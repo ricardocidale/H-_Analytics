@@ -127,7 +127,7 @@ const MODEL_DEFAULTS_VISIBLE_TABS: Partial<Record<AdminSection, readonly string[
   "defaults-management-company": ["company"],
   "defaults-property":           ["property-underwriting"],
   "defaults-market-macro":       ["market-macro"],
-  "constants":                   ["model-constants"],
+  "constants":                   ["model-constants", "dd-template"],
 };
 
 const REBECCA_SUB_TAB: Partial<Record<AdminSection, string>> = {

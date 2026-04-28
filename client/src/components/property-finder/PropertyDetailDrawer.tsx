@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { formatMoney } from "@/lib/financialEngine";
 import { usePropertyValue, useMarketContext } from "@/lib/api";
 import type { PropertyFinderResult } from "@/lib/api/types";
@@ -6,10 +7,17 @@ import { Loader2 } from "@/components/icons/themed-icons";
 import {
   IconMapPin, IconBed, IconBath, IconRuler, IconTrees,
   IconExternalLink, IconTrendingUp, IconBuilding, IconStar,
+  IconClipboardList,
 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
+import {
+  DD_WORKSTREAM_LABELS,
+  DD_TEMPLATE_VERSION,
+  type DdWorkstream,
+} from "@shared/dd-template";
+import type { DdTemplateItemRow } from "@shared/schema";
 
-type Tab = "listing" | "value" | "comps";
+type Tab = "listing" | "value" | "comps" | "dd";
 
 const MAX_ESTIMATES_SHOWN = 12;
 const MAX_OTA_CHANNELS_SHOWN = 6;
@@ -48,7 +56,7 @@ export function PropertyDetailDrawer({ property, onClose }: Props) {
           </div>
 
           <div className="flex gap-1 bg-muted/50 rounded-lg p-1" data-testid="detail-tabs">
-            {(["listing", "value", "comps"] as Tab[]).map((tab) => (
+            {(["listing", "value", "comps", "dd"] as Tab[]).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -59,7 +67,13 @@ export function PropertyDetailDrawer({ property, onClose }: Props) {
                 }`}
                 data-testid={`tab-${tab}`}
               >
-                {tab === "listing" ? "Listing" : tab === "value" ? "Value History" : "Hotel Comps"}
+                {tab === "listing"
+                  ? "Listing"
+                  : tab === "value"
+                    ? "Value History"
+                    : tab === "comps"
+                      ? "Hotel Comps"
+                      : "Due Diligence"}
               </button>
             ))}
           </div>
@@ -67,6 +81,7 @@ export function PropertyDetailDrawer({ property, onClose }: Props) {
           {activeTab === "listing" && <ListingPane property={property} />}
           {activeTab === "value" && <ValuePane propertyId={property.externalId} />}
           {activeTab === "comps" && <CompsPane city={cityForComps} state={stateForComps} />}
+          {activeTab === "dd" && <DdPreviewPane />}
         </div>
       </div>
     </div>
@@ -318,6 +333,110 @@ function DetailRow({ label, value }: { label: string; value: string | null | und
     <div className="bg-muted/30 rounded-md px-3 py-2">
       <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
       <p className="text-sm font-medium text-foreground capitalize">{value ?? "—"}</p>
+    </div>
+  );
+}
+
+/**
+ * Read-only preview of the canonical hospitality DD checklist that this
+ * target would inherit if added to the portfolio as an acquisition
+ * candidate. Per-property tracking (status, owner, vendor, cost,
+ * findings) lives on the PropertyDetail "Due Diligence" tab and requires
+ * a saved property record; finder targets are external listings that
+ * don't have one yet.
+ */
+function DdPreviewPane() {
+  // Read the live admin-edited template (not the code constant) so any
+  // edits in Constants → Due Diligence Template show up here. Falls back
+  // to a "loading" / "unavailable" message if the API is unreachable.
+  const { data, isLoading, error } = useQuery<{ items: DdTemplateItemRow[] }>({
+    queryKey: ["/api/dd-template"],
+    queryFn: async () => {
+      const res = await fetch("/api/dd-template", { credentials: "include" });
+      if (!res.ok) throw new Error(`Failed to load DD template (${res.status})`);
+      return res.json();
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12" data-testid="pane-dd">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="text-center py-8" data-testid="pane-dd-error">
+        <IconClipboardList className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+        <p className="text-sm text-muted-foreground">Unable to load the due-diligence template</p>
+      </div>
+    );
+  }
+
+  const activeItems = data.items.filter((it) => !it.archived);
+  const grouped = new Map<DdWorkstream, DdTemplateItemRow[]>();
+  for (const item of activeItems) {
+    const ws = item.workstream as DdWorkstream;
+    const bucket = grouped.get(ws);
+    if (bucket) {
+      bucket.push(item);
+    } else {
+      grouped.set(ws, [item]);
+    }
+  }
+  const liveVersion = activeItems[0]?.templateVersion ?? DD_TEMPLATE_VERSION;
+
+  return (
+    <div className="space-y-4" data-testid="pane-dd">
+      <div className="rounded-lg border border-border/60 bg-muted/30 p-3 flex items-start gap-3">
+        <IconClipboardList className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+        <div className="text-sm">
+          <p className="font-medium text-foreground">Hospitality due-diligence template (v{liveVersion})</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Add this target to the portfolio to start tracking status, owner, vendor, cost, and
+            findings on every item below. The same canonical checklist seeds onto every
+            acquisition target.
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-3" data-testid="dd-preview-workstreams">
+        {Array.from(grouped.entries()).map(([ws, items]) => (
+          <div
+            key={ws}
+            className="rounded-lg border border-border/60 p-3"
+            data-testid={`dd-preview-workstream-${ws}`}
+          >
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              {DD_WORKSTREAM_LABELS[ws]}
+              <span className="ml-2 text-[10px] font-normal normal-case tracking-normal">
+                ({items.length} items)
+              </span>
+            </p>
+            <ul className="space-y-1">
+              {items.map((item) => (
+                <li
+                  key={item.key}
+                  className="flex items-start gap-2 text-sm"
+                  data-testid={`dd-preview-item-${item.key}`}
+                >
+                  <span className="text-muted-foreground mt-1">•</span>
+                  <span className="text-foreground">
+                    {item.label}
+                    {item.isStopGate && (
+                      <span className="ml-2 text-[10px] uppercase font-semibold text-destructive">
+                        Stop gate
+                      </span>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

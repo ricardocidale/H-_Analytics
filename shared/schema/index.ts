@@ -6,6 +6,7 @@ export * from "./model-constants";
 export * from "./model-canonicals";
 export * from "./model-defaults";
 export * from "./properties";
+export * from "./property-dd";
 export * from "./services";
 export * from "./scenarios";
 export * from "./scenario-results";

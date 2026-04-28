@@ -32,10 +32,12 @@ import type {
   PropertyRiskBrief,
   RiskInsight,
 } from "@shared/risk-types";
+import { storage } from "../storage";
 import { computePortfolioRiskScore, type PortfolioRiskReport } from "./portfolio-risk-scorer";
 import { pct } from "./risk/helpers";
 import { generateAssumptionChallengeInsights } from "./risk/insights-assumptions";
 import { generateConcentrationInsights } from "./risk/insights-concentration";
+import { generateDueDiligenceInsights } from "./risk/insights-dd";
 import { generateLeverageInsights } from "./risk/insights-leverage";
 import { generateMacroInsights } from "./risk/insights-macro";
 import { generateRegulatoryInsights } from "./risk/insights-regulatory";
@@ -80,6 +82,10 @@ export async function generateDeterministicInsights(
   const regulatoryInsights = generateRegulatoryInsights(properties);
   const concentrationInsights = generateConcentrationInsights(properties);
   const stressInsights = generateStressTestInsights(properties);
+  const ddInsights = await generateDueDiligenceInsights(
+    properties,
+    (id) => storage.getPropertyDdSummary(id),
+  );
 
   const allInsights = [
     ...leverageInsights,
@@ -88,6 +94,7 @@ export async function generateDeterministicInsights(
     ...regulatoryInsights,
     ...concentrationInsights,
     ...stressInsights,
+    ...ddInsights,
   ];
 
   // Sort by severity: critical > warning > caution > info

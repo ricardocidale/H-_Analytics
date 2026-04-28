@@ -655,6 +655,12 @@ async function runSchemaMigrations() {
     await markMigrationApplied("admin_resources_004");
   }
 
+  if (!(await isMigrationApplied("property_dd_001"))) {
+    const { runPropertyDd001 } = await import("./migrations/property-dd-001");
+    await runPropertyDd001();
+    await markMigrationApplied("property_dd_001");
+  }
+
   if (!(await isMigrationApplied("specialist_observed_missing_001"))) {
     const { runSpecialistObservedMissing001 } = await import(
       "./migrations/specialist-observed-missing-001"

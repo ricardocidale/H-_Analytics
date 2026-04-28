@@ -9,6 +9,8 @@ import type { PropertyInput, GlobalInput, CompanyYearlyFinancials } from "@engin
 import type { YearlyPropertyFinancials } from "@engine/aggregation/yearlyAggregator";
 import { verifyExport } from "@calc/validation/export-verification";
 import { logger } from "../logger";
+import type { DdSummary } from "@shared/dd-template";
+import { DD_STATUS_LABELS, DD_WORKSTREAM_LABELS } from "@shared/dd-template";
 
 interface ExportRow {
   category: string;
@@ -449,6 +451,74 @@ export interface BuildPropertyExportDataInput {
   reportScope?: ReportScope;
 }
 
+/**
+ * Build a "Due Diligence" section for an acquisition export. Returns
+ * `null` when the property has no DD checklist seeded yet, so existing
+ * exports for non-acquisition properties stay unchanged.
+ *
+ * The section pairs a status snapshot with the open findings list so the
+ * deal memo carries the same data the Deal Team sees in the property's
+ * Due Diligence tab and in the property risk overlay.
+ */
+async function buildDdSectionForProperty(
+  propertyId: number,
+  propertyName: string,
+): Promise<StatementSection | null> {
+  let summary: DdSummary;
+  try {
+    summary = await storage.getPropertyDdSummary(propertyId);
+  } catch {
+    return null;
+  }
+  if (summary.totalItems === 0) return null;
+
+  const goLabel = summary.goIndicator.toUpperCase();
+  const rows: ExportRow[] = [
+    row("Status", [], { isHeader: true }),
+    row("Recommendation", [`${goLabel} — ${summary.goReason}`], { indent: 1, isBold: true }),
+    row("Items complete", [`${summary.completedItems} of ${summary.totalItems}`], { indent: 1 }),
+    row("Blocked items", [String(summary.blockedItems)], { indent: 1 }),
+    row("Stop-gate blockers", [String(summary.blockedStopGateItems)], { indent: 1 }),
+    row(
+      "DD spend",
+      [`$${summary.spendCommitted.toLocaleString()} of $${summary.budgetTotal.toLocaleString()} budgeted`],
+      { indent: 1 },
+    ),
+  ];
+
+  if (summary.workstreams.length > 0) {
+    rows.push(row("Workstream progress", [], { isHeader: true }));
+    for (const ws of summary.workstreams) {
+      rows.push(
+        row(
+          ws.label,
+          [`${ws.completed}/${ws.total} complete (${ws.percentComplete}%)${ws.blocked > 0 ? ` — ${ws.blocked} blocked` : ""}`],
+          { indent: 1 },
+        ),
+      );
+    }
+  }
+
+  if (summary.openFindings.length > 0) {
+    rows.push(row("Open findings", [], { isHeader: true }));
+    for (const f of summary.openFindings) {
+      rows.push(
+        row(
+          `${DD_WORKSTREAM_LABELS[f.workstream]} — ${f.label}`,
+          [`${DD_STATUS_LABELS[f.status]}: ${f.findings}`],
+          { indent: 1 },
+        ),
+      );
+    }
+  }
+
+  return {
+    title: `${propertyName} — Due Diligence`,
+    years: ["Detail"],
+    rows,
+  };
+}
+
 export async function buildPropertyExportData(
   input: BuildPropertyExportDataInput,
 ): Promise<ServerExportData> {
@@ -508,7 +578,13 @@ export async function buildPropertyExportData(
   ];
   const profileSection: StatementSection = { title: `${property.name} — Property Profile`, years: ["Value"], rows: profileRows };
 
+  // Due-diligence section — included whenever the checklist has been
+  // seeded for the property. Quietly omitted on properties without a DD
+  // checklist so legacy / non-acquisition exports are unaffected.
+  const ddSection = await buildDdSectionForProperty(input.propertyId, property.name ?? "Property");
+
   const allStatements: StatementSection[] = [profileSection, incomeStatement, cashFlowStatement];
+  if (ddSection) allStatements.push(ddSection);
   const statements = selectStatements(allStatements, scope);
   const metrics = buildMetrics(result.yearly, 1);
   const allRows = statements.flatMap(s => s.rows);

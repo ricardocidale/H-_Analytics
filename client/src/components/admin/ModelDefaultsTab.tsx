@@ -11,6 +11,7 @@ import { ModelConstantsTab } from "./model-defaults/ModelConstantsTab";
 import { PropertyUnderwritingTab } from "./model-defaults/PropertyUnderwritingTab";
 import { LlmDefaultsTab } from "./model-defaults/LlmDefaultsTab";
 import { CompanyTab } from "./model-defaults/CompanyTab";
+import { DdTemplateTab } from "./model-defaults/DdTemplateTab";
 import { useAuth } from "@/lib/auth";
 import {
   useAnalystRefresh,
@@ -215,6 +216,9 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
           {showTab("model-constants") && (
             <TabsTrigger value="model-constants" data-testid="tab-model-constants">Model Constants</TabsTrigger>
           )}
+          {showTab("dd-template") && (
+            <TabsTrigger value="dd-template" data-testid="tab-dd-template">Due Diligence Template</TabsTrigger>
+          )}
           {showTab("property-underwriting") && (
             <TabsTrigger value="property-underwriting" data-testid="tab-property-underwriting">Property Underwriting</TabsTrigger>
           )}
@@ -252,6 +256,12 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
         {showTab("model-constants") && (
           <TabsContent value="model-constants">
             <ModelConstantsTab />
+          </TabsContent>
+        )}
+
+        {showTab("dd-template") && (
+          <TabsContent value="dd-template">
+            <DdTemplateTab />
           </TabsContent>
         )}
 

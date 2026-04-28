@@ -38,6 +38,7 @@ import { NotificationStorage } from "./notifications";
 import { IntegrationStorage } from "./integrations";
 import { IntelligenceV2Storage, IntelligenceRebeccaStorage } from "./intelligence-v2";
 import { PropertyUrlStorage } from "./property-urls";
+import { PropertyDdStorage } from "./property-dd";
 import { CalcAuditStorage, type ICalcAuditStorage } from "./calc-audit";
 import { RenderSettingsStorage } from "./render-settings";
 import { PageVisitStorage } from "./page-visits";
@@ -65,6 +66,7 @@ export interface IStorage extends
   IntelligenceV2Storage,
   IntelligenceRebeccaStorage,
   PropertyUrlStorage,
+  PropertyDdStorage,
   ICalcAuditStorage,
   RenderSettingsStorage,
   PageVisitStorage,
@@ -108,6 +110,7 @@ function buildDomainFactories(intelligenceV2: IntelligenceV2Storage) {
     () => intelligenceV2,
     () => new IntelligenceRebeccaStorage(),
     () => new PropertyUrlStorage(),
+    () => new PropertyDdStorage(),
     () => new CalcAuditStorage(),
     () => new RenderSettingsStorage(),
     () => new PageVisitStorage(),

@@ -21,3 +21,4 @@ export { default as PropertyHeader } from "./PropertyHeader";
 export { default as BenchmarkPanel } from "./BenchmarkPanel";
 export { default as ReconciliationTab } from "./ReconciliationTab";
 export { default as InvestmentReturnsTab } from "./InvestmentReturnsTab";
+export { default as DueDiligenceTab } from "./DueDiligenceTab";

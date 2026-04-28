@@ -10,7 +10,7 @@ import { ConsolidatedBalanceSheet } from "@/components/statements/ConsolidatedBa
 import { CalcDetailsProvider } from "@/components/financial-table";
 import { Tabs, TabsContent, CurrentThemeTab } from "@/components/ui/tabs";
 import { Loader2, ChevronDown } from "@/components/icons/themed-icons";
-import { IconAlertTriangle, IconIncomeStatement, IconCashFlow, IconBalanceSheet, IconPPE, IconFileStack, IconMap, IconGlobe, IconInvestment } from "@/components/icons";
+import { IconAlertTriangle, IconIncomeStatement, IconCashFlow, IconBalanceSheet, IconPPE, IconFileStack, IconMap, IconGlobe, IconInvestment, IconClipboardList } from "@/components/icons";
 import { ExportMenu, pdfAction, excelAction, csvAction, pptxAction, chartAction, pngAction, docxAction } from "@/components/ui/export-toolbar";
 import { MONTHS_PER_YEAR } from "@/lib/constants";
 import { calculateLoanParams, LoanParams, GlobalLoanParams, PROJECTION_YEARS } from "@/lib/financial/loanCalculations";
@@ -31,6 +31,7 @@ import {
   PropertyHeader,
   BenchmarkPanel,
   InvestmentReturnsTab,
+  DueDiligenceTab,
 } from "@/components/property-detail";
 const PropertyMap = lazy(() => import("@/components/PropertyMap"));
 import DocumentExtractionPanel from "@/components/DocumentExtractionPanel";
@@ -357,6 +358,7 @@ export default function PropertyDetail() {
                 { value: 'balance', label: 'Balance Sheet', icon: IconBalanceSheet },
                 { value: 'investment', label: 'Financial Analysis', icon: IconInvestment },
                 { value: 'ppe', label: 'PP&E / Cost Basis', icon: IconPPE },
+                { value: 'duediligence', label: 'Due Diligence', icon: IconClipboardList },
                 { value: 'documents', label: 'Documents', icon: IconFileStack }
               ]}
               activeTab={activeTab}
@@ -463,6 +465,10 @@ export default function PropertyDetail() {
 
           <TabsContent value="ppe" className="mt-6">
             <PPECostBasisSchedule property={property} global={global} />
+          </TabsContent>
+
+          <TabsContent value="duediligence" className="mt-6">
+            <DueDiligenceTab propertyId={propertyId} />
           </TabsContent>
 
           <TabsContent value="documents" className="mt-6">
