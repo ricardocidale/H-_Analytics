@@ -15,6 +15,7 @@ export * from "./specialist";
 export * from "./calc-audit";
 export * from "./intelligence";
 export * from "./intelligence-v2";
+export * from "./reference-range";
 export * from "./watchdog";
 export * from "./engagement";
 export * from "./notifications";

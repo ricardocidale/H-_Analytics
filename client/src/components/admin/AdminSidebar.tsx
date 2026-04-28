@@ -43,7 +43,7 @@ export type AdminSection =
   | "scenarios"
   | "brand" | "exports"
   | "ai-agents"
-  | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "benchmarks" | "analyst-tables" | "vector-bench"
+  | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "benchmarks" | "analyst-tables" | "reference-ranges" | "vector-bench"
   | "sidebar-visibility" | "notifications" | "verification" | "database" | "observability"
   // Legacy URL aliases preserved for plausibly-bookmarked deep links.
   // Anything beyond this short list was a code-internal rename and was
@@ -190,6 +190,7 @@ function buildNavGroups(): NavGroup[] {
         { value: "defaults-market-macro",       label: "Market & Macro",     icon: IconGlobe },
         { value: "constants",                   label: "Constants",          icon: IconCalculator },
         { value: "analyst-tables",              label: "Analyst Tables",     icon: IconBrain },
+        { value: "reference-ranges",            label: "Reference Ranges",   icon: IconCalculator },
       ],
     },
     {

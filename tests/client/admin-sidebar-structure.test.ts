@@ -29,6 +29,7 @@ describe("admin sidebar — buildNavGroups() canonical structure", () => {
           { value: "defaults-market-macro",       label: "Market & Macro" },
           { value: "constants",                   label: "Constants" },
           { value: "analyst-tables",              label: "Analyst Tables" },
+          { value: "reference-ranges",            label: "Reference Ranges" },
         ],
       },
       {

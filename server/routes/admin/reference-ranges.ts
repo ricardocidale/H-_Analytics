@@ -9,7 +9,11 @@
  *   GET /api/admin/reference-ranges/facets     — counts for filter pills
  *   GET /api/admin/reference-ranges/:id        — single row
  *
- * Write paths (create / update / archive) land in Phase 2.
+ * Write paths (create / update / archive) and the deep-research-driven
+ * refresh endpoint land in Phase 2 / Phase 4 respectively. Phase 1 is
+ * intentionally read-only so the edit / refresh surface can be hardened
+ * with the same CSRF + rate + concurrency guards used by analyst admin
+ * POST routes before being exposed.
  */
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
@@ -18,7 +22,6 @@ import { requireAdmin } from "../../auth";
 import { logAndSendError, parseRouteId } from "../helpers";
 import { referenceRangeStorage } from "../../storage/reference-range";
 import { REFERENCE_RANGE_DOMAINS } from "@shared/schema/reference-range";
-import { logger } from "../../logger";
 
 const listFilterSchema = z.object({
   domain: z.enum(REFERENCE_RANGE_DOMAINS).optional(),
@@ -54,33 +57,6 @@ export function registerAdminReferenceRangeRoutes(app: Express) {
     } catch (err: unknown) {
       logAndSendError(res, "Failed to load reference range facets", err, "reference-ranges");
     }
-  });
-
-  // ── POST /api/admin/reference-ranges/refresh ────────────────────
-  // Admin presses the Analyst button to refresh live market data.
-  // Calls AirROI (KPI) + FRED (macro) and upserts into reference_range.
-  // Responds immediately with { started: true }; progress is visible in
-  // the server log. For a full streaming progress UX wire SSE in Phase 2.
-  app.post("/api/admin/reference-ranges/refresh", requireAdmin, async (req, res) => {
-    const domain = (req.body as Record<string, unknown>)?.domain as string | undefined;
-    res.json({ started: true, domain: domain ?? "all" });
-
-    // Fire-and-forget behind response so admin doesn't wait.
-    (async () => {
-      const { refreshKpiFromAirROI, refreshMacroFromFRED } = await import("../../seeds/reference-ranges");
-      try {
-        if (!domain || domain === "kpi") {
-          const kpi = await refreshKpiFromAirROI();
-          logger.info(`[reference-ranges] AirROI refresh: ${kpi.updated} updated, ${kpi.skipped} skipped`, "admin");
-        }
-        if (!domain || domain === "macro") {
-          const macro = await refreshMacroFromFRED();
-          logger.info(`[reference-ranges] FRED refresh: ${macro.updated} series updated`, "admin");
-        }
-      } catch (err: unknown) {
-        logger.error(`[reference-ranges] Refresh failed: ${err instanceof Error ? err.message : String(err)}`, "admin");
-      }
-    })();
   });
 
   // ── GET /api/admin/reference-ranges/:id ─────────────────────────

@@ -204,6 +204,21 @@ export const SPECIALIST_TOOLS: readonly SpecialistTool[] = [
     lastBuiltSource: { kind: "table", table: "tax_bulletin_cache" },
   },
   {
+    id: "reference-range-lookup",
+    displayName: "Reference Ranges",
+    description:
+      "Admin-curated low / mid / high reference ranges (tax, macro, hospitality KPIs, construction, financing, labor, risk, demand). Phase 1 surfaces the corpus read-only; Phase 3 will expose a best-match resolver to Specialists.",
+    kind: "deterministic",
+    ownerSpecialistId: LETICIA_SPECIALIST_ID,
+    // Empty until Phase 3 wires the `lookupReferenceRange` tool into the
+    // research Specialists. Keeping this array empty (rather than
+    // listing speculative callers) preserves the static-import accuracy
+    // guarantee documented at the top of this file.
+    calledBy: [],
+    sourceFile: "server/storage/reference-range.ts",
+    lastBuiltSource: { kind: "build-time" },
+  },
+  {
     id: "openai-image-fallback",
     displayName: "OpenAI Image Fallback",
     description:
