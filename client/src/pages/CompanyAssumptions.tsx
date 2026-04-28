@@ -44,7 +44,8 @@
  * The page itself is just glue: gating rules (per-tab Analyst availability),
  * URL ↔ active-tab sync, and the dependency wiring between the two hooks.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearch } from "wouter";
 import Layout from "@/components/Layout";
 import { AnimatedPage } from "@/components/graphics";
 import {
@@ -124,6 +125,24 @@ export default function CompanyAssumptions() {
   });
 
   const [activeTab, setActiveTab] = useState<TabKey>(getInitialTab);
+
+  // Sync `activeTab` from the URL `?tab=` whenever it changes — needed so
+  // that an Analyst verdict's "Open this field" deep link (which pushes a
+  // new `?tab=<key>&focus=<id>` while the user is already on this page)
+  // actually switches the visible tab. Without this, the URL would update
+  // but the tab body wouldn't change, and the field-focus hook would scroll
+  // an off-screen field. The local `setActiveTab` path used by user clicks
+  // already mirrors to the URL via `handleTabChange`, so this loop is
+  // a no-op for clicks (state and URL already agree). (task #767)
+  const search = useSearch();
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const t = new URLSearchParams(search).get("tab");
+    if (!t) return;
+    if ((TAB_KEYS as readonly string[]).includes(t) && t !== activeTab) {
+      setActiveTab(t as TabKey);
+    }
+  }, [search, activeTab]);
 
   const modelStartYear = global?.modelStartDate
     ? new Date(global.modelStartDate).getFullYear()

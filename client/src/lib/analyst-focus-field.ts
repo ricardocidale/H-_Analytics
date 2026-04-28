@@ -29,6 +29,7 @@
  *   back-nav doesn't refire the focus side-effect.
  */
 import { useEffect } from "react";
+import { useSearch } from "wouter";
 
 /** Query-string key used to ferry the field id through navigations. Kept
  *  as a single exported constant so `analyst-mount-points.ts` and any
@@ -124,11 +125,32 @@ function stripFocusParam(): void {
  * so the side-effect doesn't re-fire on re-renders or back-nav.
  *
  * Idempotent — if no `?focus` param is present, the hook is a no-op.
+ *
+ * URL-reactive (task #767): the hook subscribes to wouter's `useSearch()`
+ * so it re-fires whenever the URL search string changes, not only on the
+ * initial mount. This matters when the user is already on the destination
+ * page (e.g. clicking "Open this field" on the Funding tab while sitting
+ * on the Funding tab) — wouter's `navigate()` only changes the URL via
+ * `history.pushState` and the page does not re-mount, so a mount-only
+ * effect would silently no-op. Wouter monkey-patches `pushState` /
+ * `replaceState` to dispatch synthetic events, which `useSearch()` reads
+ * via `useSyncExternalStore`, so both the producer's `navigate()` AND the
+ * cleanup's `stripFocusParam()` round-trip cleanly.
  */
 export function useFocusFieldFromUrl(opts: FocusFieldOptions = {}): void {
+  // Subscribe to URL search-string changes so same-page deep links (e.g.
+  // clicking "Open this field" while already on the destination surface)
+  // still trigger the focus side-effect. The value itself is not used —
+  // it only exists to schedule a re-run of the effect below.
+  const search = useSearch();
+
   useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") return;
 
+    // Read directly from `window.location.search` rather than the `search`
+    // value in scope: the two are equivalent in the browser, and using
+    // `window.location` keeps the hook robust if a downstream test stub
+    // returns a stale snapshot from `useSearch()`.
     const url = new URL(window.location.href);
     const fieldId = url.searchParams.get(FOCUS_QUERY_PARAM);
     if (!fieldId) return;
@@ -156,9 +178,11 @@ export function useFocusFieldFromUrl(opts: FocusFieldOptions = {}): void {
     return () => {
       if (timer !== null) window.clearTimeout(timer);
     };
-    // The hook intentionally only runs once per mount: the param is
-    // consumed and stripped on first execution, so re-running on every
-    // render would be a no-op anyway.
+    // Re-run when the URL search string changes (a new `?focus=` lands or
+    // the previous one is stripped). `opts.maxAttempts` / `opts.retryMs`
+    // are read off the live `opts` object inside the effect — callers pass
+    // a stable literal, so the hook would re-fire spuriously if we listed
+    // them in the deps.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [search]);
 }
