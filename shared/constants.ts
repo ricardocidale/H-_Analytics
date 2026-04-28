@@ -404,3 +404,5 @@ export const BREAKEVEN_PROXIMITY_RATIO = 0.10;
 // Default model IDs used by each Specialist. Override via the admin_resources
 // Models registry (ADR-006) when a different model is configured.
 export const DEFAULT_FUNDING_SPECIALIST_MODEL = "claude-opus-4-7";
+export const DEFAULT_FUNDING_QUANT_PANEL_MODEL = "gemini-2.5-flash";
+export const DEFAULT_FUNDING_MARKET_PANEL_MODEL = "claude-sonnet-4-6";

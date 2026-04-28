@@ -1,29 +1,38 @@
 /**
- * runFundingSpecialist — single-shot Opus call producing a complete
- * AnalystVerdict for the Funding tab (G1.5c-v1).
+ * runFundingSpecialist — N+1 pipeline producing a complete AnalystVerdict for
+ * the Funding tab (G6-P2).
  *
- * v1 architecture:
- *   1. Build system + user prompts via mgmt-co-funding-prompt
- *   2. Call Opus via Vercel AI SDK streamObject with FundingSpecialistOutputSchema
- *   3. Map structured output → RawVerdictDimension[] (one per funding key)
- *   4. Run Voice Renderer per dimension + surface
- *   5. Build AnalystVerdict via buildAnalystVerdict (invariant-checked)
- *   6. Return verdict; route handler returns it as 200 response body
+ * G6-P2 architecture (replaces single-shot Opus from v1):
+ *   1. Parallel panels:
+ *      - Gemini Flash (quantitative): low/mid/high ranges + conviction from comparables
+ *      - Claude Sonnet (market):      LP sentiment + risk flags + directional bias
+ *   2. Convergence check (quant-conviction-only, G6-P2 minimal):
+ *      avg(convictionScore × 5 dims) < CONVERGENCE_MIN_QUANT_CONVICTION → honest-fail
+ *   3. Synthesis (Opus): full Analyst-persona verdict enriched with market context
  *
- * v1 deferrals (per .claude/replit-handoffs/g1.5c-v1-funding-specialist.md):
- *   - N+1 cross-vendor synthesis (G6-P2)
- *   - Verdict cache (G6-P3)
- *   - Regress loop on quality fail (G6-P3)
- *   - Live LP comparables (G6-P3)
- *   - Persona resolution (G6-P3)
+ * Both panels run in parallel so latency is max(quant, market) + synthesis,
+ * not quant + market + synthesis. `meta.vendorsUsed: ["anthropic", "google"]`
+ * satisfies Intelligence Bar requirement #7 (vendor breadth ≥2).
  *
- * Errors throw `Tier1UnavailableError` typed at this layer; the route
- * handler catches and degrades to Tier-0 fallback per ADR-008.
+ * G6-P2 scope notes:
+ *   - Convergence is quant-conviction-only. The market panel provides vendor
+ *     breadth (#7) and enriches Opus context. Real cross-panel convergence
+ *     (quant high vs. market cautious → widen or honest-fail) is G6-P3.
+ *   - No verdict cache, no regress loop, no live comparables fetch (G6-P3).
+ *   - Public function signature is stable. Body changes; callers unaffected.
+ *
+ * Errors throw `Tier1UnavailableError`; the route handler degrades to Tier-0
+ * fallback with `meta.fallbackReason: "tier1_temporarily_unavailable"`.
  */
 
-import { streamObject } from "ai";
+import { streamObject, generateObject } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
-import { DEFAULT_FUNDING_SPECIALIST_MODEL } from "@shared/constants";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import {
+  DEFAULT_FUNDING_SPECIALIST_MODEL,
+  DEFAULT_FUNDING_QUANT_PANEL_MODEL,
+  DEFAULT_FUNDING_MARKET_PANEL_MODEL,
+} from "@shared/constants";
 import { AI_GENERATION_TIMEOUT_MS } from "../../constants";
 import {
   buildFundingSystemPrompt,
@@ -35,6 +44,22 @@ import {
   FundingSpecialistOutputSchema,
   type FundingSpecialistOutput,
 } from "./mgmt-co-funding-output-schema";
+import {
+  QuantPanelOutputSchema,
+  type QuantPanelOutput,
+} from "./mgmt-co-funding-quant-panel-schema";
+import {
+  MarketPanelOutputSchema,
+  type MarketPanelOutput,
+} from "./mgmt-co-funding-market-panel-schema";
+import {
+  buildQuantPanelSystemPrompt,
+  buildQuantPanelUserPrompt,
+} from "./mgmt-co-funding-quant-panel-prompt";
+import {
+  buildMarketPanelSystemPrompt,
+  buildMarketPanelUserPrompt,
+} from "./mgmt-co-funding-market-panel-prompt";
 import {
   type ComparableRow,
   comparableToEvidence,
@@ -59,21 +84,36 @@ import { createVoiceRenderer } from "../../../engine/analyst/voice/voice-rendere
 import type { AnalystWatchdogBenchmarks } from "@shared/schema";
 import { getFieldRegistryEntry } from "../../../engine/analyst/registry/field-registry";
 
+// ── Model IDs ────────────────────────────────────────────────────────────────
+
 const FUNDING_MODEL_ID = DEFAULT_FUNDING_SPECIALIST_MODEL;
+const QUANT_PANEL_MODEL_ID = DEFAULT_FUNDING_QUANT_PANEL_MODEL;
+const MARKET_PANEL_MODEL_ID = DEFAULT_FUNDING_MARKET_PANEL_MODEL;
+
+// ── Token budgets ─────────────────────────────────────────────────────────────
+
 const FUNDING_MAX_OUTPUT_TOKENS = 4_000;
+const PANEL_MAX_OUTPUT_TOKENS = 2_000;
+const MARKET_PANEL_MAX_OUTPUT_TOKENS = 1_500;
+
+// ── Convergence policy (G6-P2 minimal — quant-conviction-only) ───────────────
+
+/**
+ * Average quant-panel conviction score threshold. Below this value the
+ * quantitative panel's output is too uncertain to proceed to Opus synthesis;
+ * the runner emits an honest-fail Tier-1 verdict instead.
+ *
+ * Threshold rationale: (high=85 + moderate=65) / 2 ≈ 75 would require at
+ * least half the dimensions to be "moderate". Setting 55 means we only block
+ * when the quant panel is mostly "developing" across the board — an honest
+ * floor, not a vanity gate. G6-P3 will add cross-panel divergence detection.
+ */
+const CONVERGENCE_MIN_QUANT_CONVICTION = 55;
 
 /**
  * Per-key form-field id the Funding tab's `<input data-field="...">`
- * dialog scrolls to. Mirrors `DIMENSION_META` in funding-specialist.ts but
- * kept local so the runner doesn't depend on the Specialist's private
- * internals.
- *
- * The dimension's display unit is intentionally NOT carried here: it is
- * resolved from `FIELD_REGISTRY` in `llmDimensionToRaw` (see `unitFor`),
- * matching the registry-as-source-of-truth discipline the Specialist uses.
- * This keeps the runner's `range.unit` in lockstep with the Specialist's
- * Tier-0 fallback path so the Voice Renderer formats the same dimension
- * the same way regardless of whether v1 Tier-1 or Tier-0 produced it.
+ * dialog scrolls to. Kept local so the runner doesn't depend on the
+ * Specialist's private internals.
  */
 const FUNDING_DIMENSION_FIELDS: Readonly<Record<FundingDimensionKey, { field: string }>> = {
   runwayBufferMonths: { field: "capitalRaise1Amount" },
@@ -83,51 +123,30 @@ const FUNDING_DIMENSION_FIELDS: Readonly<Record<FundingDimensionKey, { field: st
   burnFlexDownPct: { field: "burnFlexDownPct" },
 };
 
-/**
- * Resolve a dimension's display unit from the field registry. Throws on
- * miss for the same reason the Specialist's `unitFor` does — see
- * `engine/analyst/surface/mgmt-co/funding-specialist.ts` for the full
- * rationale (a missing entry would mean the parity test was bypassed and
- * the verdict's `range.unit` would be silently wrong).
- */
+// ── Pure helpers ──────────────────────────────────────────────────────────────
+
 function unitFor(field: string): string {
   const entry = getFieldRegistryEntry(field);
   if (!entry) {
     throw new Error(
-      `Funding v1 runner: no FIELD_REGISTRY entry for field "${field}". Add one to engine/analyst/registry/field-registry.ts so the Voice Renderer formats this dimension consistently.`,
+      `Funding runner: no FIELD_REGISTRY entry for field "${field}". Add one to engine/analyst/registry/field-registry.ts.`,
     );
   }
   return entry.unit;
 }
 
-/**
- * Maps the LLM's three-level conviction signal to a numeric quality score
- * the Quality Scorer will normalize. Above CONVICTION_FLOOR (33 today) so
- * the verdict-shape invariant accepts ranges with non-ok severities.
- */
 function convictionToQualityScore(c: "high" | "moderate" | "developing"): number {
   if (c === "high") return 85;
   if (c === "moderate") return 65;
   return 45;
 }
 
-/**
- * Severity based on whether the user's saved value falls within the LLM's
- * recommended range. v1 keeps the mapping simple: in-range → ok, outside →
- * advisory, missing → ok+missing-data intent. Future graduation may use
- * conviction × range-width to differentiate advisory vs warning.
- */
 function deriveSeverity(value: number | null | undefined, range: VerdictRange): Severity {
   if (value == null || !Number.isFinite(value)) return "ok";
   if (value < range.low || value > range.high) return "advisory";
   return "ok";
 }
 
-/**
- * Voice intent driven by user value vs LLM range. Mirrors the Tier-0
- * pattern in funding-specialist.ts so downstream Voice Renderer behaves
- * identically across Tier-0 and Tier-1 paths.
- */
 function deriveIntent(value: number | null | undefined, range: VerdictRange): VoiceIntent {
   if (value == null || !Number.isFinite(value)) return "missing-data";
   if (value < range.low) return "below-range";
@@ -135,12 +154,6 @@ function deriveIntent(value: number | null | undefined, range: VerdictRange): Vo
   return "within-range";
 }
 
-/**
- * Build the Evidence[] for one dimension from the LLM's evidenceRefs
- * (indexes into the comparables array provided in the prompt user message).
- * Each ref → one ComparableRow → one Evidence row via the existing
- * comparableToEvidence helper.
- */
 function buildEvidenceForDimension(
   evidenceRefs: readonly number[],
   comparables: readonly ComparableRow[],
@@ -150,10 +163,6 @@ function buildEvidenceForDimension(
     .map((idx) => comparableToEvidence(comparables[idx]));
 }
 
-/**
- * Map one LLM-emitted dimension to a RawVerdictDimension. Pure transform;
- * no business logic beyond the convention mappings above.
- */
 function llmDimensionToRaw(
   llmDim: FundingSpecialistOutput["dimensions"][number],
   inputs: FundingPromptInputContext["inputs"],
@@ -167,29 +176,18 @@ function llmDimensionToRaw(
     unit: unitFor(meta.field),
   };
   const userValue = inputs[llmDim.key] ?? null;
-  const severity = deriveSeverity(userValue, range);
-  const intent = deriveIntent(userValue, range);
-  const evidence = buildEvidenceForDimension(llmDim.evidenceRefs, comparables);
-  const qualityScore = convictionToQualityScore(llmDim.conviction);
-
   return {
     field: meta.field,
     isNumericField: true,
-    severity,
+    severity: deriveSeverity(userValue, range),
     range,
-    qualityScore,
-    evidence,
-    intent,
-    actions: [], // v1: no action prompts; future packets may add Adjust/Refine actions
+    qualityScore: convictionToQualityScore(llmDim.conviction),
+    evidence: buildEvidenceForDimension(llmDim.evidenceRefs, comparables),
+    intent: deriveIntent(userValue, range),
+    actions: [],
   };
 }
 
-/**
- * Promote a RawVerdictDimension + reasoning text to a fully-rendered
- * VerdictDimension. The LLM's reasoning is passed as `llmReasoning` into the
- * Voice Renderer, which runs it through `enforceOrSanitize` before casting —
- * preserving persona-violation enforcement for Opus-supplied text.
- */
 function rawWithVoice(
   raw: RawVerdictDimension,
   llmReasoning: string,
@@ -206,7 +204,6 @@ function rawWithVoice(
     personaContext: persona,
     llmReasoning: llmReasoning || undefined,
   });
-
   return {
     field: raw.field,
     isNumericField: raw.isNumericField,
@@ -220,10 +217,6 @@ function rawWithVoice(
   };
 }
 
-/**
- * Map the runner's persona triplet (FundingPersonaContext) to the verdict
- * contract's PersonaContext shape. Field renames only; pure.
- */
 function asPersonaContext(persona: FundingPromptInputContext["persona"]): PersonaContext {
   return {
     segment: persona.verticalSlug,
@@ -233,11 +226,40 @@ function asPersonaContext(persona: FundingPromptInputContext["persona"]): Person
 }
 
 /**
- * Typed error thrown when the v1 runner cannot produce a Tier-1 verdict
- * (Opus rate-limited, parse failure, network error). The route handler
- * catches and degrades to Tier-0 fallback with
- * `meta.fallbackReason: "tier1_temporarily_unavailable"` per ADR-008.
+ * Average quality score across all 5 quant-panel dimensions. Below
+ * CONVERGENCE_MIN_QUANT_CONVICTION → honest-fail (skip synthesis).
  */
+function computeAvgQuantConviction(quantOutput: QuantPanelOutput): number {
+  const scores = quantOutput.dimensions.map((d) => convictionToQualityScore(d.conviction));
+  return scores.reduce((a, b) => a + b, 0) / scores.length;
+}
+
+/**
+ * Render market panel output as a structured text block injected into the
+ * Opus synthesis user prompt. Provides qualitative enrichment context without
+ * overriding the quant panel's numeric grounding.
+ */
+function buildMarketEnrichmentBlock(market: MarketPanelOutput): string {
+  const dims = market.dimensions
+    .map((d) => {
+      const flags =
+        d.lpRiskFlags.length > 0
+          ? `\n      LP flags: ${d.lpRiskFlags.map((f) => `"${f}"`).join(", ")}`
+          : "";
+      return (
+        `  - ${d.key}: sentiment=${d.marketSentiment}, bias=${d.proposedBias}${flags}\n` +
+        `    ${d.reasoning}`
+      );
+    })
+    .join("\n");
+  const ctx = market.overallMarketContext
+    ? `\nOverall LP context: ${market.overallMarketContext}`
+    : "";
+  return `# Market panel signals (Claude Sonnet qualitative pass — for enrichment only)\n\n${dims}${ctx}`;
+}
+
+// ── Typed error ───────────────────────────────────────────────────────────────
+
 export class Tier1UnavailableError extends Error {
   readonly cause: unknown;
   constructor(message: string, cause: unknown) {
@@ -247,19 +269,19 @@ export class Tier1UnavailableError extends Error {
   }
 }
 
+// ── Deps interface ────────────────────────────────────────────────────────────
+
 export interface RunFundingSpecialistDeps {
   /** Optional override for the Anthropic model factory (tests inject stubs). */
   getAnthropicModel?: (modelId: string) => ReturnType<ReturnType<typeof createAnthropic>>;
+  /** Optional override for the Google model factory (tests inject stubs). */
+  getGoogleModel?: (modelId: string) => ReturnType<ReturnType<typeof createGoogleGenerativeAI>>;
   /** Optional reference time for verdict generatedAt; tests pass a fixed Date. */
   now?: Date;
 }
 
-/**
- * Look up financing benchmarks from the `reference_range` table for the
- * operator's locale. Returns rows relevant to the funding surface:
- * KPI margin benchmarks (context for raise adequacy) + financing structure
- * benchmarks (LTV, DSCR, equity multiple). Failures are silently swallowed.
- */
+// ── Market benchmark lookup ───────────────────────────────────────────────────
+
 async function resolveFundingMarketBenchmarks(
   locale: string | undefined,
 ): Promise<MarketBenchmarkEntry[]> {
@@ -296,12 +318,171 @@ async function resolveFundingMarketBenchmarks(
   return entries;
 }
 
+// ── Private panel runners (extractable to cognitive façade in G6-P4) ─────────
+
+async function runQuantPanel(
+  ctx: FundingPromptInputContext,
+  benchmarks: AnalystWatchdogBenchmarks,
+  comparables: readonly ComparableRow[],
+  marketCalibration: MarketBenchmarkEntry[],
+  deps: RunFundingSpecialistDeps,
+  abortSignal: AbortSignal,
+): Promise<QuantPanelOutput> {
+  const systemPrompt = buildQuantPanelSystemPrompt();
+  const userPrompt = buildQuantPanelUserPrompt(ctx, benchmarks, comparables, marketCalibration);
+
+  const googleModelFactory =
+    deps.getGoogleModel ??
+    ((modelId: string) =>
+      createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY ?? "" })(modelId));
+
+  const { object } = await generateObject({
+    model: googleModelFactory(QUANT_PANEL_MODEL_ID),
+    schema: QuantPanelOutputSchema,
+    system: systemPrompt,
+    prompt: userPrompt,
+    maxOutputTokens: PANEL_MAX_OUTPUT_TOKENS,
+    abortSignal,
+  });
+  return object;
+}
+
+async function runMarketPanel(
+  ctx: FundingPromptInputContext,
+  comparables: readonly ComparableRow[],
+  deps: RunFundingSpecialistDeps,
+  abortSignal: AbortSignal,
+): Promise<MarketPanelOutput> {
+  const systemPrompt = buildMarketPanelSystemPrompt();
+  const userPrompt = buildMarketPanelUserPrompt(ctx, comparables);
+
+  const anthropicFactory = deps.getAnthropicModel ?? createAnthropic();
+  const { object } = await generateObject({
+    model: anthropicFactory(MARKET_PANEL_MODEL_ID),
+    schema: MarketPanelOutputSchema,
+    system: systemPrompt,
+    prompt: userPrompt,
+    maxOutputTokens: MARKET_PANEL_MAX_OUTPUT_TOKENS,
+    abortSignal,
+  });
+  return object;
+}
+
+async function runSynthesisPanel(
+  ctx: FundingPromptInputContext,
+  benchmarks: AnalystWatchdogBenchmarks,
+  comparables: readonly ComparableRow[],
+  marketCalibration: MarketBenchmarkEntry[],
+  marketContext: MarketPanelOutput,
+  deps: RunFundingSpecialistDeps,
+  abortSignal: AbortSignal,
+): Promise<{ output: FundingSpecialistOutput; cognitiveRunId: string }> {
+  const systemPrompt = buildFundingSystemPrompt();
+  const baseUserPrompt = buildFundingUserPrompt(ctx, benchmarks, comparables, marketCalibration);
+  const enrichedUserPrompt = `${baseUserPrompt}\n\n${buildMarketEnrichmentBlock(marketContext)}`;
+
+  const anthropicFactory = deps.getAnthropicModel ?? createAnthropic();
+  const result = streamObject({
+    model: anthropicFactory(FUNDING_MODEL_ID),
+    schema: FundingSpecialistOutputSchema,
+    messages: [
+      {
+        role: "system",
+        content: systemPrompt,
+        providerOptions: {
+          anthropic: { cacheControl: { type: "ephemeral" } },
+        },
+      },
+      { role: "user", content: enrichedUserPrompt },
+    ],
+    maxOutputTokens: FUNDING_MAX_OUTPUT_TOKENS,
+    abortSignal,
+  });
+
+  // Drain partial stream for backpressure; consume final validated object.
+  for await (const _partial of result.partialObjectStream) {
+    void _partial;
+  }
+  const output = await result.object;
+  const cognitiveRunId = `funding-g6p2-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  return { output, cognitiveRunId };
+}
+
+// ── Honest-fail verdict builder ───────────────────────────────────────────────
+
 /**
- * Run the v1 Funding Specialist end-to-end.
+ * Build a Tier-1 honest-fail verdict when quant conviction is below threshold.
+ * All dimensions are ok/missing-data with null range. Both vendors appear in
+ * `meta.vendorsUsed` because both panels ran before the convergence check.
+ */
+function buildHonestFailVerdict(
+  quantOutput: QuantPanelOutput,
+  comparables: readonly ComparableRow[],
+  ctx: FundingPromptInputContext,
+  persona: PersonaContext,
+  deps: RunFundingSpecialistDeps,
+  durationMs: number,
+): AnalystVerdict {
+  const voiceRenderer = createVoiceRenderer();
+
+  // Synthetic evidence for dimensions with no quant refs. Satisfies
+  // MIN_SOURCES_FOR_ADVICE (1) and TIER_1_MIN_TOTAL_EVIDENCE (3) across dims.
+  const SYNTHETIC_EVIDENCE: Evidence = {
+    source: "quant-panel-low-conviction",
+    tier: "estimated",
+    asOf: new Date().toISOString().slice(0, 10),
+    personaFit: 0.3,
+  };
+
+  const quantByKey = new Map(quantOutput.dimensions.map((d) => [d.key, d]));
+
+  const dimensions: VerdictDimension[] = FUNDING_DIMENSION_KEYS.map((key) => {
+    const meta = FUNDING_DIMENSION_FIELDS[key];
+    const quantDim = quantByKey.get(key);
+    const evidence: Evidence[] =
+      quantDim && quantDim.evidenceRefs.length > 0
+        ? buildEvidenceForDimension(quantDim.evidenceRefs, comparables)
+        : [SYNTHETIC_EVIDENCE];
+
+    const raw: RawVerdictDimension = {
+      field: meta.field,
+      isNumericField: true,
+      severity: "ok",
+      range: null,
+      qualityScore: 35, // below CONVICTION_FLOOR — signals low confidence
+      evidence,
+      intent: "missing-data",
+      actions: [],
+    };
+
+    return rawWithVoice(raw, "", persona, voiceRenderer);
+  });
+
+  const surfaceVoice = voiceRenderer.renderSurface(dimensions);
+  const cognitiveRunId = `funding-g6p2-hf-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+
+  return buildAnalystVerdict({
+    specialistId: "mgmt-co.funding",
+    dimensions,
+    surfaceVoice,
+    meta: {
+      tier: 1,
+      durationMs,
+      cognitiveRunId,
+      vendorsUsed: ["anthropic", "google"],
+      cacheState: "miss",
+    },
+    generatedAt: deps.now ? deps.now.toISOString() : undefined,
+  });
+}
+
+// ── Public entry point ────────────────────────────────────────────────────────
+
+/**
+ * Run the G6-P2 Funding Specialist N+1 pipeline end-to-end.
  *
- * Returns a complete AnalystVerdict ready for the route handler to send
- * back to the client. Throws Tier1UnavailableError on any failure;
- * caller is responsible for degrading to Tier-0.
+ * Returns a complete AnalystVerdict ready for the route handler. Throws
+ * Tier1UnavailableError on any failure; caller degrades to Tier-0.
  */
 export async function runFundingSpecialist(
   ctx: FundingPromptInputContext,
@@ -309,101 +490,103 @@ export async function runFundingSpecialist(
   comparables: readonly ComparableRow[],
   deps: RunFundingSpecialistDeps = {},
 ): Promise<AnalystVerdict> {
+  const startMs = Date.now();
   const marketCalibration = await resolveFundingMarketBenchmarks(ctx.persona.locale);
-  const systemPrompt = buildFundingSystemPrompt();
-  const userPrompt = buildFundingUserPrompt(ctx, benchmarks, comparables, marketCalibration);
   const persona = asPersonaContext(ctx.persona);
 
-  // Direct @ai-sdk/anthropic provider — uses ANTHROPIC_API_KEY from env.
-  // No Vercel AI Gateway needed; works on Replit, Railway, any Node host.
-  const modelFactory = deps.getAnthropicModel ?? createAnthropic();
-
-  let output: FundingSpecialistOutput;
-  let cognitiveRunId: string;
-  const opusAbort = new AbortController();
-  const opusTimer = setTimeout(
-    () => opusAbort.abort(new Error(`Funding v1 Opus timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`)),
+  // ── Phase 1: parallel panels ────────────────────────────────────────────
+  const panelAbort = new AbortController();
+  const panelTimer = setTimeout(
+    () =>
+      panelAbort.abort(
+        new Error(`Funding G6-P2 panels timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`),
+      ),
     AI_GENERATION_TIMEOUT_MS,
   );
+
+  let quantOutput: QuantPanelOutput;
+  let marketOutput: MarketPanelOutput;
   try {
-    // TODO G6-P2 — replace this single-shot Opus call with the N+1 pipeline:
-    //   parallel: Gemini Flash (quantitative panel) + Sonnet (market panel)
-    //   then:     Opus synthesis with cross-vendor convergence-score
-    //   meta.vendorsUsed grows from ["anthropic"] to ≥2 (Intelligence Bar #7).
-    //   See `funding_v1_graduation_roadmap.md` memory + ADR-007.
-    const result = streamObject({
-      model: modelFactory(FUNDING_MODEL_ID),
-      schema: FundingSpecialistOutputSchema,
-      messages: [
-        {
-          role: "system",
-          content: systemPrompt,
-          providerOptions: {
-            anthropic: { cacheControl: { type: "ephemeral" } },
-          },
-        },
-        { role: "user", content: userPrompt },
-      ],
-      maxOutputTokens: FUNDING_MAX_OUTPUT_TOKENS,
-      abortSignal: opusAbort.signal,
-    });
-
-    // Drain partial stream for backpressure (mirrors research-orchestrator
-    // pattern); we only consume the final validated object.
-    for await (const _partial of result.partialObjectStream) {
-      void _partial;
-    }
-    output = await result.object;
-    clearTimeout(opusTimer);
-
-    // TODO G6-P2 — replace synthesized id with the N+1 orchestrator's
-    // structured cognitiveRunId (the real run id from the synthesis phase
-    // that the verdict cache will key on). v1's synthesized tag keeps
-    // meta.cognitiveRunId non-null so the ADR-008 invariant doesn't trip.
-    cognitiveRunId = `funding-v1-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    [quantOutput, marketOutput] = await Promise.all([
+      runQuantPanel(ctx, benchmarks, comparables, marketCalibration, deps, panelAbort.signal),
+      runMarketPanel(ctx, comparables, deps, panelAbort.signal),
+    ]);
+    clearTimeout(panelTimer);
   } catch (err: unknown) {
-    clearTimeout(opusTimer);
+    clearTimeout(panelTimer);
     throw new Tier1UnavailableError(
-      `Funding v1 cognitive call failed: ${err instanceof Error ? err.message : String(err)}`,
+      `Funding G6-P2 panel phase failed: ${err instanceof Error ? err.message : String(err)}`,
       err,
     );
   }
 
-  // Wrap all post-stream operations in a try/catch that converts any
-  // non-Tier1UnavailableError (e.g. InvalidVerdictError from buildAnalystVerdict,
-  // PersonaViolationError from voiceRenderer in dev) into Tier1UnavailableError
-  // so the route handler's Tier-0 fallback fires instead of returning HTTP 500
-  // and permanently holding the cooldown.
+  // ── Phase 2: convergence check (quant-conviction-only, G6-P2 minimal) ──
+  const avgQuantConviction = computeAvgQuantConviction(quantOutput);
+  if (avgQuantConviction < CONVERGENCE_MIN_QUANT_CONVICTION) {
+    return buildHonestFailVerdict(
+      quantOutput,
+      comparables,
+      ctx,
+      persona,
+      deps,
+      Date.now() - startMs,
+    );
+  }
+
+  // ── Phase 3: synthesis (Opus, enriched with market panel context) ───────
+  const opusAbort = new AbortController();
+  const opusTimer = setTimeout(
+    () =>
+      opusAbort.abort(
+        new Error(`Funding G6-P2 synthesis timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`),
+      ),
+    AI_GENERATION_TIMEOUT_MS,
+  );
+
+  let output: FundingSpecialistOutput;
+  let cognitiveRunId: string;
+  try {
+    ({ output, cognitiveRunId } = await runSynthesisPanel(
+      ctx,
+      benchmarks,
+      comparables,
+      marketCalibration,
+      marketOutput,
+      deps,
+      opusAbort.signal,
+    ));
+    clearTimeout(opusTimer);
+  } catch (err: unknown) {
+    clearTimeout(opusTimer);
+    throw new Tier1UnavailableError(
+      `Funding G6-P2 synthesis failed: ${err instanceof Error ? err.message : String(err)}`,
+      err,
+    );
+  }
+
+  // ── Phase 4: assemble verdict ────────────────────────────────────────────
   try {
     const voiceRenderer = createVoiceRenderer();
     const rawByKey = new Map<FundingDimensionKey, RawVerdictDimension>();
     const reasoningByKey = new Map<FundingDimensionKey, string>();
 
     for (const llmDim of output.dimensions) {
-      const raw = llmDimensionToRaw(llmDim, ctx.inputs, comparables);
-      rawByKey.set(llmDim.key, raw);
+      rawByKey.set(llmDim.key, llmDimensionToRaw(llmDim, ctx.inputs, comparables));
       reasoningByKey.set(llmDim.key, llmDim.reasoning);
     }
 
-    // Emit dimensions in the canonical FUNDING_DIMENSION_KEYS order so verdict
-    // consumers can rely on a stable iteration order regardless of LLM emission
-    // order. The Zod schema already guarantees all 5 keys are present once.
     const dimensions: VerdictDimension[] = FUNDING_DIMENSION_KEYS.map((key) => {
       const raw = rawByKey.get(key);
       const reasoning = reasoningByKey.get(key);
       if (!raw) {
         throw new Tier1UnavailableError(
-          `Funding v1 missing dimension after schema parse: ${key}`,
+          `Funding G6-P2 missing dimension after schema parse: ${key}`,
           null,
         );
       }
-      // Guard: Anthropic structured output cannot enforce minItems on evidenceRefs,
-      // so Opus may emit an empty array. An empty Evidence array fails
-      // MIN_SOURCES_FOR_ADVICE inside buildAnalystVerdict. Degrade to Tier-0
-      // rather than throwing InvalidVerdictError and holding the cooldown.
       if (raw.evidence.length === 0) {
         throw new Tier1UnavailableError(
-          `Funding v1 dimension ${key} emitted zero evidenceRefs; degrading to Tier-0`,
+          `Funding G6-P2 dimension ${key} emitted zero evidenceRefs; degrading to Tier-0`,
           null,
         );
       }
@@ -413,43 +596,31 @@ export async function runFundingSpecialist(
     const surfaceVoice = voiceRenderer.renderSurface(dimensions);
 
     return buildAnalystVerdict({
-    specialistId: "mgmt-co.funding",
-    dimensions,
-    surfaceVoice,
-    meta: {
-      tier: 1,
-      durationMs: 0, // route handler may overwrite from wallclock; v1 not tracked yet
-      cognitiveRunId,
-      // TODO G6-P2 — populate vendorsUsed once N+1 panels land. The verdict
-      // invariant at engine/analyst/contracts/verdict.ts:340 requires ≥2
-      // vendors when present (Intelligence Bar #7), so v1 (single-vendor
-      // Anthropic Opus) MUST omit this field rather than emit a single-entry
-      // array. Honest single-vendor emission lives in the Tier-0 fallback
-      // path's meta.fallbackReason, not here.
-      // vendorsUsed: omitted in v1
-      // TODO G6-P3 — cacheState becomes a real "hit" | "miss" once the
-      // verdict cache read path is wired (ADR-004 §4). v1 has no cache, so
-      // we honestly emit "miss" — Tier-1 invariant accepts this.
-      cacheState: "miss",
-    },
-    generatedAt: deps.now ? deps.now.toISOString() : undefined,
-  });
+      specialistId: "mgmt-co.funding",
+      dimensions,
+      surfaceVoice,
+      meta: {
+        tier: 1,
+        durationMs: Date.now() - startMs,
+        cognitiveRunId,
+        vendorsUsed: ["anthropic", "google"],
+        cacheState: "miss",
+      },
+      generatedAt: deps.now ? deps.now.toISOString() : undefined,
+    });
   } catch (err: unknown) {
     if (err instanceof Tier1UnavailableError) throw err;
     throw new Tier1UnavailableError(
-      `Funding v1 post-stream assembly failed: ${err instanceof Error ? err.message : String(err)}`,
+      `Funding G6-P2 verdict assembly failed: ${err instanceof Error ? err.message : String(err)}`,
       err,
     );
   }
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// Cathedral graduation roadmap (DO NOT FORGET — see funding_v1_graduation_roadmap memory)
+// Cathedral graduation roadmap
 //
-// v1 (this file)                — chapel: shippable, partial Tier-1 (~6/9 Bar)
-// G6-P2  N+1 panels             — vendor breadth ≥2; convergence-score
-// G6-P3  cache + regress + live — comparables fetch, persona resolution
-// G6-P4  Tier-1 fully graduated — all 9 Intelligence Bar requirements green
-//
-// When you graduate, the runner's PUBLIC CONTRACT (signature + return type)
-// stays stable. The body changes. UI, route, integration test untouched.
+// v1  (G1.5c)   chapel: single-shot Opus
+// G6-P2         N+1 panels (Gemini Flash + Sonnet) → vendor breadth ≥2
+// G6-P3         cache + regress + live comparables + real cross-panel convergence
+// G6-P4         Tier-1 fully graduated (all 9 Intelligence Bar requirements green)

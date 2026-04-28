@@ -1,39 +1,48 @@
 /**
- * Unit tests for `runFundingSpecialist` (G1.5c-v1 S4).
+ * Unit tests for `runFundingSpecialist` (G6-P2 N+1 pipeline).
  *
  * Coverage:
- *   - Happy path: stubbed Opus returns valid output → AnalystVerdict shape
+ *   - Happy path: quant + market panels pass, Opus synthesis succeeds →
+ *     AnalystVerdict shape, meta.vendorsUsed = ["anthropic", "google"]
  *   - Three personas: large-managementco / startup-boutique / expansion-stage
- *   - Schema rejection: stubbed Opus returns invalid output → Tier1UnavailableError
- *   - LLM error: stubbed streamObject throws → Tier1UnavailableError
+ *   - Schema rejection: synthesis returns non-conforming object → Tier1UnavailableError
+ *   - LLM error: panel throws → Tier1UnavailableError (no synthesis called)
  *   - Conviction range: qualityScore aligns with conviction enum
  *   - Severity derivation: in-range → ok, outside-range → advisory, missing → ok
- *   - Vendor breadth: meta.vendorsUsed === ["anthropic"] in v1
- *   - Cache state: meta.cacheState === "miss" in v1
+ *   - Vendor breadth: meta.vendorsUsed === ["anthropic", "google"] in G6-P2
+ *   - Cache state: meta.cacheState === "miss" in G6-P2
  *
- * The AI SDK `streamObject` is mocked at the module level. Each test sets
- * up a per-call mock return shape so we never hit the real Anthropic API.
+ * Both `streamObject` (Opus synthesis) and `generateObject` (panels) are
+ * mocked at the module level.
  */
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-// Mock streamObject BEFORE importing the runner so the runner's module-load
-// captures the mocked version.
+// Mock both AI SDK call sites BEFORE importing the runner.
 vi.mock("ai", async (importOriginal) => {
   const actual = await importOriginal<typeof import("ai")>();
   return {
     ...actual,
     streamObject: vi.fn(),
+    generateObject: vi.fn(),
   };
 });
 
-import { streamObject } from "ai";
+// Mock lookupReferenceRange so panel calls don't hit the DB.
+vi.mock("../../../server/storage/reference-range", () => ({
+  lookupReferenceRange: vi.fn().mockResolvedValue(null),
+}));
+
+import { streamObject, generateObject } from "ai";
 import {
   runFundingSpecialist,
   Tier1UnavailableError,
 } from "../../../server/ai/specialists/mgmt-co-funding-runner";
 import type { FundingSpecialistOutput } from "../../../server/ai/specialists/mgmt-co-funding-output-schema";
+import type { QuantPanelOutput } from "../../../server/ai/specialists/mgmt-co-funding-quant-panel-schema";
+import type { MarketPanelOutput } from "../../../server/ai/specialists/mgmt-co-funding-market-panel-schema";
 import type { FundingPromptInputContext } from "../../../server/ai/specialists/mgmt-co-funding-prompt-input-builder";
+import { FUNDING_DIMENSION_KEYS } from "../../../server/ai/specialists/mgmt-co-funding-prompt-input-builder";
 import { getCannedLpComparables } from "../../../server/ai/specialists/mgmt-co-funding-orchestrator-adapter";
 import type { AnalystWatchdogBenchmarks } from "@shared/schema";
 
@@ -126,8 +135,9 @@ const CTX_EXPANSION: FundingPromptInputContext = {
   priorVerdicts: [],
 };
 
-/** Build a complete, schema-valid FundingSpecialistOutput fixture. */
-function buildValidOutput(): FundingSpecialistOutput {
+// ── Output builders ───────────────────────────────────────────────────────────
+
+function buildValidSynthesisOutput(): FundingSpecialistOutput {
   return {
     dimensions: [
       {
@@ -180,42 +190,71 @@ function buildValidOutput(): FundingSpecialistOutput {
   };
 }
 
-/**
- * Set up the streamObject mock to return a canned output object. Mocking
- * shape mirrors what the real Vercel AI SDK returns: a partial-object stream
- * (we drain) and a final `.object` Promise.
- */
-function mockStreamObjectReturning(output: FundingSpecialistOutput): void {
+function buildValidQuantOutput(conviction: "high" | "moderate" | "developing" = "high"): QuantPanelOutput {
+  return {
+    dimensions: FUNDING_DIMENSION_KEYS.map((key) => ({
+      key,
+      low: 12,
+      mid: 16,
+      high: 20,
+      conviction,
+      reasoning: `Quant panel: ${key} grounded in comparable set. At least one comparable cited.`,
+      evidenceRefs: [0],
+    })),
+  };
+}
+
+function buildValidMarketOutput(): MarketPanelOutput {
+  return {
+    dimensions: FUNDING_DIMENSION_KEYS.map((key) => ({
+      key,
+      marketSentiment: "neutral" as const,
+      lpRiskFlags: [],
+      proposedBias: "hold" as const,
+      reasoning: `Market panel: ${key} — LP sentiment neutral for this vertical.`,
+    })),
+    overallMarketContext: "Market conditions are stable for boutique-luxury raises.",
+  };
+}
+
+// ── Mock helpers ──────────────────────────────────────────────────────────────
+
+/** Set up generateObject to return quant + market panel outputs (two calls). */
+function mockPanelCalls(
+  quantOutput: QuantPanelOutput = buildValidQuantOutput(),
+  marketOutput: MarketPanelOutput = buildValidMarketOutput(),
+): void {
+  let callCount = 0;
+  vi.mocked(generateObject).mockImplementation(async () => {
+    callCount++;
+    if (callCount === 1) return { object: quantOutput, finishReason: "stop" } as never;
+    return { object: marketOutput, finishReason: "stop" } as never;
+  });
+}
+
+/** Set up streamObject (Opus synthesis) to return a canned output object. */
+function mockSynthesisCall(output: FundingSpecialistOutput = buildValidSynthesisOutput()): void {
   vi.mocked(streamObject).mockImplementationOnce(
-    (() =>
-      ({
-        partialObjectStream: (async function* () {
-          yield {};
-        })(),
-        object: Promise.resolve(output),
-      })) as unknown as typeof streamObject,
+    (() => ({
+      partialObjectStream: (async function* () { yield {}; })(),
+      object: Promise.resolve(output),
+    })) as unknown as typeof streamObject,
   );
 }
 
-function mockStreamObjectThrowing(error: Error): void {
-  vi.mocked(streamObject).mockImplementationOnce(((() => {
-    throw error;
-  }) as unknown) as typeof streamObject);
-}
+/** Stub model factory — never hits the real API since streamObject/generateObject are mocked. */
+const STUB_ANTHROPIC_MODEL = {} as ReturnType<ReturnType<typeof import("@ai-sdk/anthropic").createAnthropic>>;
+const STUB_GOOGLE_MODEL = {} as ReturnType<ReturnType<typeof import("@ai-sdk/google").createGoogleGenerativeAI>>;
 
-/**
- * Stub the Vercel AI SDK Anthropic model factory so the runner doesn't try
- * to instantiate the real Gateway client (which requires AI_GATEWAY_API_KEY,
- * unset in CI). Since `streamObject` is mocked at the module level, the
- * model object's actual shape never matters — only the call site needs to
- * not throw.
- */
-function stubGetAnthropicModel(): (modelId: string) => never {
-  return ((_modelId: string) => ({} as never));
-}
+const STUB_DEPS = {
+  getAnthropicModel: (_: string) => STUB_ANTHROPIC_MODEL,
+  getGoogleModel: (_: string) => STUB_GOOGLE_MODEL,
+  now: FIXED_NOW,
+};
 
 beforeEach(() => {
   vi.mocked(streamObject).mockReset();
+  vi.mocked(generateObject).mockReset();
 });
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -223,73 +262,55 @@ beforeEach(() => {
 
 describe("runFundingSpecialist — happy path", () => {
   it("returns a complete AnalystVerdict for the large-managementco persona", async () => {
-    mockStreamObjectReturning(buildValidOutput());
+    mockPanelCalls();
+    mockSynthesisCall();
 
-    const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, {
-      now: FIXED_NOW,
-      getAnthropicModel: stubGetAnthropicModel(),
-    });
+    const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, STUB_DEPS);
 
     expect(verdict.specialistId).toBe("mgmt-co.funding");
     expect(verdict.dimensions.length).toBe(5);
     expect(verdict.meta.tier).toBe(1);
-    // v1 is single-vendor; vendorsUsed is omitted to satisfy the verdict
-    // invariant (>=2 when present). G6-P2 populates this with ["anthropic", "google"].
-    expect(verdict.meta.vendorsUsed).toBeUndefined();
+    expect(verdict.meta.vendorsUsed).toEqual(["anthropic", "google"]);
     expect(verdict.meta.cacheState).toBe("miss");
     expect(verdict.meta.cognitiveRunId).toBeTruthy();
     expect(verdict.generatedAt).toBe(FIXED_NOW.toISOString());
   });
 
   it("preserves per-dimension reasoning from the LLM in voice.detail", async () => {
-    const fixture = buildValidOutput();
-    mockStreamObjectReturning(fixture);
+    mockPanelCalls();
+    mockSynthesisCall();
 
-    const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, {
-      now: FIXED_NOW,
-      getAnthropicModel: stubGetAnthropicModel(),
-    });
+    const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, STUB_DEPS);
 
-    // The runner uses the LLM's reasoning string as voice.detail; verify
-    // each dimension's detail is non-empty (the cast preserves the content).
     for (const dim of verdict.dimensions) {
       expect(dim.voice.detail).toBeDefined();
     }
   });
 
   it("emits dimensions in canonical FUNDING_DIMENSION_KEYS order", async () => {
-    mockStreamObjectReturning(buildValidOutput());
+    mockPanelCalls();
+    mockSynthesisCall();
 
-    const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, {
-      now: FIXED_NOW,
-      getAnthropicModel: stubGetAnthropicModel(),
-    });
+    const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, STUB_DEPS);
 
     const fields = verdict.dimensions.map((d) => d.field);
-    // FUNDING_DIMENSION_KEYS canonical order maps to these form-fields per
-    // FUNDING_DIMENSION_FIELDS in the runner.
     expect(fields).toEqual([
       "capitalRaise1Amount", // runwayBufferMonths
       "capitalRaise2Amount", // sizingOvershootPct
-      "capitalRaise2Date", // trancheGapMonths
+      "capitalRaise2Date",   // trancheGapMonths
       "revenueRampDelayMonths",
       "burnFlexDownPct",
     ]);
   });
 
   it("attaches evidence rows from comparables[evidenceRefs[i]]", async () => {
-    mockStreamObjectReturning(buildValidOutput());
+    mockPanelCalls();
+    mockSynthesisCall();
 
-    const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, {
-      now: FIXED_NOW,
-      getAnthropicModel: stubGetAnthropicModel(),
-    });
+    const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, STUB_DEPS);
 
-    // Every dimension cites at least one comparable per the schema's min(1)
-    // refinement; verify evidence is present on each.
     for (const dim of verdict.dimensions) {
       expect(dim.evidence.length).toBeGreaterThanOrEqual(1);
-      // Each evidence row should reference one of the canned comparables
       expect(dim.evidence[0].source).toMatch(/LP comp:/);
     }
   });
@@ -301,9 +322,10 @@ describe("runFundingSpecialist — three personas", () => {
     ["startup-boutique", CTX_STARTUP],
     ["expansion-stage", CTX_EXPANSION],
   ])("produces a valid verdict for persona %s", async (_name, ctx) => {
-    mockStreamObjectReturning(buildValidOutput());
+    mockPanelCalls();
+    mockSynthesisCall();
 
-    const verdict = await runFundingSpecialist(ctx, BENCHMARKS, COMPARABLES, { now: FIXED_NOW, getAnthropicModel: stubGetAnthropicModel() });
+    const verdict = await runFundingSpecialist(ctx, BENCHMARKS, COMPARABLES, STUB_DEPS);
 
     expect(verdict.dimensions.length).toBe(5);
     expect(verdict.specialistId).toBe("mgmt-co.funding");
@@ -312,75 +334,59 @@ describe("runFundingSpecialist — three personas", () => {
 
 describe("runFundingSpecialist — severity derivation", () => {
   it("classifies in-range user values as 'ok'", async () => {
-    mockStreamObjectReturning(buildValidOutput());
+    mockPanelCalls();
+    mockSynthesisCall();
 
-    const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, {
-      now: FIXED_NOW,
-      getAnthropicModel: stubGetAnthropicModel(),
-    });
+    const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, STUB_DEPS);
 
-    // CTX_LARGE has all in-range values; LLM range is 14-18 for runway buffer
-    // and CTX_LARGE.runwayBufferMonths === 16 — should be ok
+    // CTX_LARGE.runwayBufferMonths === 16 falls within synthesis range 14–18
     const runway = verdict.dimensions.find((d) => d.field === "capitalRaise1Amount");
     expect(runway).toBeDefined();
     expect(runway!.severity).toBe("ok");
   });
 
   it("classifies below-range user values as 'advisory'", async () => {
-    mockStreamObjectReturning(buildValidOutput());
+    mockPanelCalls();
+    mockSynthesisCall();
 
-    const verdict = await runFundingSpecialist(CTX_STARTUP, BENCHMARKS, COMPARABLES, {
-      now: FIXED_NOW,
-      getAnthropicModel: stubGetAnthropicModel(),
-    });
+    const verdict = await runFundingSpecialist(CTX_STARTUP, BENCHMARKS, COMPARABLES, STUB_DEPS);
 
-    // CTX_STARTUP.runwayBufferMonths === 6, LLM range 14-18 — below-range
+    // CTX_STARTUP.runwayBufferMonths === 6, synthesis range 14–18 — below-range
     const runway = verdict.dimensions.find((d) => d.field === "capitalRaise1Amount");
     expect(runway!.severity).toBe("advisory");
   });
 
   it("classifies above-range user values as 'advisory'", async () => {
-    mockStreamObjectReturning(buildValidOutput());
+    mockPanelCalls();
+    mockSynthesisCall();
 
-    const verdict = await runFundingSpecialist(CTX_EXPANSION, BENCHMARKS, COMPARABLES, {
-      now: FIXED_NOW,
-      getAnthropicModel: stubGetAnthropicModel(),
-    });
+    const verdict = await runFundingSpecialist(CTX_EXPANSION, BENCHMARKS, COMPARABLES, STUB_DEPS);
 
-    // CTX_EXPANSION.runwayBufferMonths === 25, LLM range 14-18 — above-range
+    // CTX_EXPANSION.runwayBufferMonths === 25, synthesis range 14–18 — above-range
     const runway = verdict.dimensions.find((d) => d.field === "capitalRaise1Amount");
     expect(runway!.severity).toBe("advisory");
   });
 
-  it("classifies missing user values as 'ok' with missing-data intent", async () => {
-    mockStreamObjectReturning(buildValidOutput());
+  it("classifies missing user values as 'ok' with a non-null range from synthesis", async () => {
+    mockPanelCalls();
+    mockSynthesisCall();
 
     // CTX_STARTUP has trancheGapMonths === null
-    const verdict = await runFundingSpecialist(CTX_STARTUP, BENCHMARKS, COMPARABLES, {
-      now: FIXED_NOW,
-      getAnthropicModel: stubGetAnthropicModel(),
-    });
+    const verdict = await runFundingSpecialist(CTX_STARTUP, BENCHMARKS, COMPARABLES, STUB_DEPS);
 
     const trancheGap = verdict.dimensions.find((d) => d.field === "capitalRaise2Date");
     expect(trancheGap!.severity).toBe("ok");
-    // The intent is on the Raw dimension; the rendered VerdictDimension drops
-    // it, so we check via voice.headline content (which the renderer composed
-    // from the missing-data intent).
-    expect(trancheGap!.range).toBeTruthy();
+    expect(trancheGap!.range).toBeTruthy(); // synthesis still provides range
   });
 });
 
 describe("runFundingSpecialist — qualityScore from conviction", () => {
-  it("maps conviction enum to qualityScore above CONVICTION_FLOOR", async () => {
-    mockStreamObjectReturning(buildValidOutput());
+  it("maps conviction enum to qualityScore in [0, 100]", async () => {
+    mockPanelCalls();
+    mockSynthesisCall();
 
-    const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, {
-      now: FIXED_NOW,
-      getAnthropicModel: stubGetAnthropicModel(),
-    });
+    const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, STUB_DEPS);
 
-    // CONVICTION_FLOOR is 33 today; v1 mappings are high=85, moderate=65, developing=45
-    // — all >= 33. Verify each dimension's qualityScore is in [0, 100].
     for (const dim of verdict.dimensions) {
       expect(dim.qualityScore).toBeGreaterThanOrEqual(0);
       expect(dim.qualityScore).toBeLessThanOrEqual(100);
@@ -389,76 +395,55 @@ describe("runFundingSpecialist — qualityScore from conviction", () => {
 });
 
 describe("runFundingSpecialist — error paths", () => {
-  it("throws Tier1UnavailableError when streamObject throws", async () => {
-    mockStreamObjectThrowing(new Error("Anthropic API rate limit"));
+  it("throws Tier1UnavailableError when a panel throws", async () => {
+    vi.mocked(generateObject).mockRejectedValue(new Error("Gemini Flash rate limit"));
 
     await expect(
-      runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, { now: FIXED_NOW, getAnthropicModel: stubGetAnthropicModel() }),
+      runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, STUB_DEPS),
     ).rejects.toBeInstanceOf(Tier1UnavailableError);
+
+    expect(vi.mocked(streamObject)).not.toHaveBeenCalled();
   });
 
-  it("throws Tier1UnavailableError when streamObject yields a non-conforming object", async () => {
-    // Schema requires exactly 5 dimensions; this fixture has 4
-    const malformed = {
-      dimensions: buildValidOutput().dimensions.slice(0, 4),
-    } as unknown as FundingSpecialistOutput;
-    // The runner's `await result.object` will produce this malformed object;
-    // schema validation happens INSIDE streamObject (via Zod) — to simulate
-    // post-validation failure, we wrap the resolution promise to reject.
-    vi.mocked(streamObject).mockImplementationOnce(
-      (() =>
-        ({
-          partialObjectStream: (async function* () {
-            yield {};
-          })(),
-          object: Promise.reject(new Error("Schema validation failed: dimensions length 4 expected 5")),
-        })) as unknown as typeof streamObject,
-    );
+  it("throws Tier1UnavailableError when synthesis rejects", async () => {
+    mockPanelCalls();
+    vi.mocked(streamObject).mockReturnValue({
+      partialObjectStream: (async function* () { yield {}; })(),
+      object: Promise.reject(new Error("Schema validation failed")),
+    } as never);
 
     await expect(
-      runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, { now: FIXED_NOW, getAnthropicModel: stubGetAnthropicModel() }),
+      runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, STUB_DEPS),
     ).rejects.toBeInstanceOf(Tier1UnavailableError);
-
-    void malformed; // referenced for documentation; the rejection above is what triggers the error path
   });
 });
 
-describe("runFundingSpecialist — vendor + cache invariants (v1)", () => {
-  it("omits vendorsUsed in v1 (single-shot Anthropic Opus only)", async () => {
-    mockStreamObjectReturning(buildValidOutput());
+describe("runFundingSpecialist — vendor + cache invariants (G6-P2)", () => {
+  it("populates vendorsUsed with both anthropic and google", async () => {
+    mockPanelCalls();
+    mockSynthesisCall();
 
-    const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, {
-      now: FIXED_NOW,
-      getAnthropicModel: stubGetAnthropicModel(),
-    });
+    const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, STUB_DEPS);
 
-    // v1 is single-vendor; verdict invariant requires >=2 when present so we
-    // omit the field. G6-P2 populates it with multi-vendor breadth.
-    expect(verdict.meta.vendorsUsed).toBeUndefined();
+    expect(verdict.meta.vendorsUsed).toEqual(["anthropic", "google"]);
   });
 
-  it("always reports cacheState === 'miss' in v1 (cache not wired)", async () => {
-    mockStreamObjectReturning(buildValidOutput());
+  it("always reports cacheState === 'miss' (cache not wired until G6-P3)", async () => {
+    mockPanelCalls();
+    mockSynthesisCall();
 
-    const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, {
-      now: FIXED_NOW,
-      getAnthropicModel: stubGetAnthropicModel(),
-    });
+    const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, STUB_DEPS);
 
-    // v1 has no cache integration; G6-P3 wires read-path.
     expect(verdict.meta.cacheState).toBe("miss");
   });
 
-  it("emits a non-null cognitiveRunId so ADR-008 invariant holds", async () => {
-    mockStreamObjectReturning(buildValidOutput());
+  it("emits a non-null cognitiveRunId so ADR-008 Tier-1 invariant holds", async () => {
+    mockPanelCalls();
+    mockSynthesisCall();
 
-    const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, {
-      now: FIXED_NOW,
-      getAnthropicModel: stubGetAnthropicModel(),
-    });
+    const verdict = await runFundingSpecialist(CTX_LARGE, BENCHMARKS, COMPARABLES, STUB_DEPS);
 
     expect(verdict.meta.cognitiveRunId).toBeTruthy();
     expect(typeof verdict.meta.cognitiveRunId).toBe("string");
-    expect(verdict.meta.cognitiveRunId!.length).toBeGreaterThan(0);
   });
 });
