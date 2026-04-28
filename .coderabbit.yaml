@@ -32,6 +32,18 @@ reviews:
     drafts: false
     base_branches:
       - main
+  # Autofix policy (review-only mode): CodeRabbit may post inline
+  # `suggestion` blocks for humans to click-and-apply, but it MUST NOT
+  # auto-commit fixes or open autofix PRs. Reasoning: this repo's
+  # doctrine (Analyst persona / vocabulary, Steady-State naming,
+  # front-of-app-admin isolation, Constants-vs-Defaults, inflation
+  # cascade, no-magic-numbers) is enforced by ESLint + .claude/rules/
+  # + .agents/skills/, and a generic AI patch routinely violates them.
+  # Dashboard step (cannot be expressed in YAML — verify on install):
+  #   app.coderabbit.ai → Repository Settings → Code Generation
+  #   • "Auto-resolve / auto-apply suggestions": OFF
+  #   • "Generate code fixes (PR commits)": OFF
+  #   • "/fix chat command": LEAVE ON (user-initiated, not autofix)
   # CODEOWNERS already routes Analyst/engine/ADR paths to architects;
   # CodeRabbit honors the same routing for review attention.
   labeling_instructions: []
