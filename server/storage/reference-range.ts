@@ -13,7 +13,7 @@
  * rest of the surface picks it up via the canonical `storage.*`
  * accessors.
  */
-import { and, asc, desc, eq, ilike, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import { db } from "../db";
 import {
   referenceRanges,
@@ -22,6 +22,18 @@ import {
   type ReferenceRangeDomain,
   type InsertReferenceRange,
 } from "@shared/schema/reference-range";
+
+export interface BestMatchParams {
+  domain: ReferenceRangeDomain;
+  metricKey: string;
+  country?: string;
+  subdivision?: string;
+  market?: string;
+  segment?: string;
+  propertyType?: string;
+  /** Calendar year for the lookup. Evergreen rows (year = 0) always match. */
+  year?: number;
+}
 
 export interface ReferenceRangeFilter {
   domain?: ReferenceRangeDomain;
@@ -171,6 +183,86 @@ export class ReferenceRangeStorage {
       .returning();
     return row;
   }
+
+  // ── Phase 3: best-match resolver ────────────────────────────────────
+
+  async bestMatch(params: BestMatchParams): Promise<ReferenceRange | undefined> {
+    const candidates = await db
+      .select()
+      .from(referenceRanges)
+      .where(
+        and(
+          eq(referenceRanges.domain, params.domain),
+          eq(referenceRanges.metricKey, params.metricKey),
+          isNull(referenceRanges.archivedAt),
+          or(
+            eq(referenceRanges.country, "GLOBAL"),
+            eq(referenceRanges.country, params.country ?? "GLOBAL"),
+          ),
+        ),
+      );
+
+    return selectBestMatch(candidates, params);
+  }
 }
 
 export const referenceRangeStorage = new ReferenceRangeStorage();
+
+/**
+ * Pure best-match selector. Exported for unit testing without a DB.
+ *
+ * A row is a valid candidate when every non-null dimension it carries
+ * matches the corresponding query dimension (rows that over-specify are
+ * excluded — they can't safely apply to a broader context).
+ *
+ * Specificity weights (higher = more specific):
+ *   country non-GLOBAL: +1 | subdivision: +2 | market: +4
+ *   segment: +8 | propertyType: +16
+ *
+ * Tie-break: highest year ≤ requested year wins; year = 0 (evergreen)
+ * beats nothing — explicit years win at equal specificity.
+ */
+export function selectBestMatch(
+  rows: ReferenceRange[],
+  params: BestMatchParams,
+): ReferenceRange | undefined {
+  let best: ReferenceRange | undefined;
+  let bestScore = -Infinity;
+  let bestYear = -Infinity;
+
+  for (const row of rows) {
+    if (row.subdivision !== null && row.subdivision !== (params.subdivision ?? null)) continue;
+    if (row.market !== null && row.market !== (params.market ?? null)) continue;
+    if (row.segment !== null && row.segment !== (params.segment ?? null)) continue;
+    if (row.propertyType !== null && row.propertyType !== (params.propertyType ?? null)) continue;
+    if (params.year !== undefined && row.year !== 0 && row.year > params.year) continue;
+
+    const score =
+      (row.country !== "GLOBAL" ? 1 : 0) +
+      (row.subdivision !== null ? 2 : 0) +
+      (row.market !== null ? 4 : 0) +
+      (row.segment !== null ? 8 : 0) +
+      (row.propertyType !== null ? 16 : 0);
+
+    const yearKey = row.year === 0 ? -1 : row.year;
+
+    if (score > bestScore || (score === bestScore && yearKey > bestYear)) {
+      best = row;
+      bestScore = score;
+      bestYear = yearKey;
+    }
+  }
+
+  return best;
+}
+
+/**
+ * Convenience wrapper consumed by Specialists and the
+ * `lookupReferenceRange` tool callable. Returns the best-matching
+ * active row or undefined when no suitable range exists.
+ */
+export async function lookupReferenceRange(
+  params: BestMatchParams,
+): Promise<ReferenceRange | undefined> {
+  return referenceRangeStorage.bestMatch(params);
+}
