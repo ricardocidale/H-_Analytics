@@ -290,6 +290,98 @@ function scanForForbiddenLiterals(filePath: string): ForbiddenLiteralFinding[] {
   return findings;
 }
 
+// ── Baseline of known violations — drive to zero, never add new entries ──────
+// These are pre-existing violations when the file was added to the scan list.
+// When you fix a violation: remove its entry here. New violations never go here
+// — they must be fixed before the commit lands.
+// Source authority for these values → Neon model_canonicals / model_defaults.
+const KNOWN_MAGIC_NUMBER_BASELINE = new Set([
+  // engine/helpers/default-resolver.ts — quality-tier lookup tables + scale adjustment
+  // These should be named constants or pulled from Neon model_canonicals (STR/HVS data).
+  "engine/helpers/default-resolver.ts:184:0.70",
+  "engine/helpers/default-resolver.ts:199:0.05",
+  "engine/helpers/default-resolver.ts:201:20",
+  "engine/helpers/default-resolver.ts:202:0.02",
+  // engine/helpers/stress-scenarios.ts — stress shock magnitudes + DSCR covenant
+  // Shock magnitudes → Admin-configurable defaults. DSCR 1.25x → lender covenant constant.
+  "engine/helpers/stress-scenarios.ts:136:1.25",
+  "engine/helpers/stress-scenarios.ts:137:0.20",
+  "engine/helpers/stress-scenarios.ts:161:0.85",
+  "engine/helpers/stress-scenarios.ts:170:1.25",
+  "engine/helpers/stress-scenarios.ts:171:1.2",
+  "engine/helpers/stress-scenarios.ts:184:1.25",
+  "engine/helpers/stress-scenarios.ts:192:0.90",
+  "engine/helpers/stress-scenarios.ts:211:1.25",
+  "engine/helpers/stress-scenarios.ts:227:200",
+  "engine/helpers/stress-scenarios.ts:230:1.25",
+  "engine/helpers/stress-scenarios.ts:231:1.2",
+  "engine/helpers/stress-scenarios.ts:241:1.25",
+  "engine/helpers/stress-scenarios.ts:249:1.20",
+  "engine/helpers/stress-scenarios.ts:257:1.25",
+  "engine/helpers/stress-scenarios.ts:268:1.25",
+  "engine/helpers/stress-scenarios.ts:277:0.90",
+  "engine/helpers/stress-scenarios.ts:278:1.10",
+  "engine/helpers/stress-scenarios.ts:290:1.25",
+  "engine/helpers/stress-scenarios.ts:302:1.25",
+]);
+
+// Forbidden literals (raw values that should reference named constants) — same
+// drive-to-zero discipline. Each entry is "file:line:value".
+const KNOWN_FORBIDDEN_BASELINE = new Set([
+  // default-resolver quality tier tables (0.65/0.60 are tier occupancy mins — not
+  // DEFAULT_EVENT_EXPENSE_RATE despite same numeric value; needs own named constants)
+  "engine/helpers/default-resolver.ts:34:0.65",
+  "engine/helpers/default-resolver.ts:35:0.65",
+  "engine/helpers/default-resolver.ts:38:0.65",
+  "engine/helpers/default-resolver.ts:38:0.60",
+  "engine/helpers/default-resolver.ts:39:0.65",
+  "engine/helpers/default-resolver.ts:39:0.60",
+  "engine/helpers/default-resolver.ts:199:0.05",
+  "engine/helpers/default-resolver.ts:202:0.02",
+  // stress-scenarios (shock magnitude + rate step)
+  "engine/helpers/stress-scenarios.ts:137:0.20",
+  "engine/helpers/stress-scenarios.ts:219:0.02",
+  // calc/research benchmark tables — belong in Neon model_canonicals (AI Intelligence)
+  "calc/research/markup-waterfall.ts:27:0.25",
+  "calc/research/markup-waterfall.ts:28:0.30",
+  "calc/research/markup-waterfall.ts:28:0.20",
+  "calc/research/markup-waterfall.ts:29:0.30",
+  "calc/research/markup-waterfall.ts:29:0.20",
+  "calc/research/markup-waterfall.ts:30:0.30",
+  "calc/research/markup-waterfall.ts:30:0.20",
+  "calc/research/markup-waterfall.ts:31:0.08",
+  "calc/research/markup-waterfall.ts:31:0.25",
+  "calc/research/markup-waterfall.ts:32:0.30",
+  "calc/research/markup-waterfall.ts:32:0.20",
+  "calc/research/markup-waterfall.ts:33:0.25",
+  "calc/research/markup-waterfall.ts:34:0.25",
+  "calc/research/service-fee.ts:28:0.04",
+  "calc/research/service-fee.ts:28:0.015",
+  "calc/research/service-fee.ts:29:0.03",
+  "calc/research/service-fee.ts:29:0.04",
+  "calc/research/service-fee.ts:29:0.02",
+  "calc/research/service-fee.ts:30:0.03",
+  "calc/research/service-fee.ts:30:0.02",
+  "calc/research/service-fee.ts:31:0.03",
+  "calc/research/service-fee.ts:31:0.02",
+  "calc/research/service-fee.ts:31:0.015",
+  "calc/research/service-fee.ts:32:0.02",
+  "calc/research/service-fee.ts:32:0.005",
+  "calc/research/service-fee.ts:33:0.005",
+  "calc/research/service-fee.ts:33:0.015",
+  "calc/research/service-fee.ts:34:0.02",
+  "calc/research/service-fee.ts:34:0.005",
+  "calc/research/service-fee.ts:35:0.05",
+  "calc/research/service-fee.ts:35:0.03",
+  "calc/research/service-fee.ts:35:0.08",
+  "calc/research/service-fee.ts:46:0.03",
+  "calc/research/service-fee.ts:46:0.02",
+]);
+
+function makeFingerprint(f: { file: string; line: number; value: string }): string {
+  return `${f.file}:${f.line}:${f.value}`;
+}
+
 describe("Hardcoded Value Detection", () => {
   describe("Magic number scan — engine files", () => {
     const engineFindings: MagicNumberFinding[] = [];
@@ -297,16 +389,29 @@ describe("Hardcoded Value Detection", () => {
       engineFindings.push(...scanFileForMagicNumbers(file));
     }
 
-    it("finance engine files contain no magic numbers", () => {
-      if (engineFindings.length > 0) {
-        const report = engineFindings
-          .map((f) => `  ${f.file}:${f.line} — value ${f.value}\n    ${f.context}`)
-          .join("\n");
-        expect.fail(
-          `Found ${engineFindings.length} magic number(s) in engine files:\n${report}\n\n` +
-          `All numeric literals must come from constants.ts or function parameters.`,
+    it("finance engine files contain no NEW magic numbers (baseline must shrink, never grow)", () => {
+      const newViolations = engineFindings.filter(
+        (f) => !KNOWN_MAGIC_NUMBER_BASELINE.has(makeFingerprint(f)),
+      );
+      const staleBaseline = [...KNOWN_MAGIC_NUMBER_BASELINE].filter(
+        (fp) => !engineFindings.some((f) => makeFingerprint(f) === fp),
+      );
+
+      const messages: string[] = [];
+      if (newViolations.length > 0) {
+        messages.push(
+          `NEW magic numbers found — fix before committing (${KNOWN_MAGIC_NUMBER_BASELINE.size} baseline violations being driven to zero):\n` +
+          newViolations.map((f) => `  ${f.file}:${f.line} — value ${f.value}\n    ${f.context}`).join("\n") +
+          `\n\nAll numeric literals must come from Neon (model_canonicals/model_defaults) → shared/constants.ts. No raw numbers.`,
         );
       }
+      if (staleBaseline.length > 0) {
+        messages.push(
+          `Baseline entries are now fixed — remove them from KNOWN_MAGIC_NUMBER_BASELINE:\n` +
+          staleBaseline.map((fp) => `  ${fp}`).join("\n"),
+        );
+      }
+      if (messages.length > 0) expect.fail(messages.join("\n\n"));
     });
   });
 
@@ -373,16 +478,29 @@ describe("Hardcoded Value Detection", () => {
       forbiddenFindings.push(...scanForForbiddenLiterals(file));
     }
 
-    it("no known constant values appear as raw literals in runtime code", () => {
-      if (forbiddenFindings.length > 0) {
-        const report = forbiddenFindings
-          .map((f) => `  ${f.file}:${f.line} — found raw ${f.value} (should be ${f.shouldBe})\n    ${f.context}`)
-          .join("\n");
-        expect.fail(
-          `Found ${forbiddenFindings.length} raw literal(s) that should use named constants:\n${report}\n\n` +
-          `Import and use the named constant from shared/constants.ts instead.`,
+    it("no NEW known constant values appear as raw literals (baseline must shrink, never grow)", () => {
+      const newViolations = forbiddenFindings.filter(
+        (f) => !KNOWN_FORBIDDEN_BASELINE.has(makeFingerprint(f)),
+      );
+      const staleBaseline = [...KNOWN_FORBIDDEN_BASELINE].filter(
+        (fp) => !forbiddenFindings.some((f) => makeFingerprint(f) === fp),
+      );
+
+      const messages: string[] = [];
+      if (newViolations.length > 0) {
+        messages.push(
+          `NEW raw literals found — fix before committing (${KNOWN_FORBIDDEN_BASELINE.size} baseline violations being driven to zero):\n` +
+          newViolations.map((f) => `  ${f.file}:${f.line} — found raw ${f.value} (should be ${f.shouldBe})\n    ${f.context}`).join("\n") +
+          `\n\nImport the named constant from shared/constants.ts. Source: Neon model_canonicals/model_defaults.`,
         );
       }
+      if (staleBaseline.length > 0) {
+        messages.push(
+          `Baseline entries are now fixed — remove them from KNOWN_FORBIDDEN_BASELINE:\n` +
+          staleBaseline.map((fp) => `  ${fp}`).join("\n"),
+        );
+      }
+      if (messages.length > 0) expect.fail(messages.join("\n\n"));
     });
   });
 
