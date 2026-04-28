@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { requireAuth, requireAdmin, requireManagementAccess, checkPropertyAccess, getAuthUser } from "../auth";
+import { requireAuth, requireAdmin, checkPropertyAccess, getAuthUser } from "../auth";
 import { fromZodError } from "zod-validation-error";
 import { z } from "zod";
 import { logActivity, logAndSendError, parseRouteId } from "./helpers";
@@ -127,7 +127,7 @@ export function registerPropertyUrlRoutes(app: Express) {
     }
   });
 
-  app.post("/api/properties/:id/urls", requireManagementAccess, async (req, res) => {
+  app.post("/api/properties/:id/urls", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
       if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });
@@ -154,7 +154,7 @@ export function registerPropertyUrlRoutes(app: Express) {
     }
   });
 
-  app.patch("/api/properties/:id/urls/:urlId", requireManagementAccess, async (req, res) => {
+  app.patch("/api/properties/:id/urls/:urlId", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
       const urlId = parseRouteId(req.params.urlId);
@@ -184,7 +184,7 @@ export function registerPropertyUrlRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/properties/:id/urls/:urlId", requireManagementAccess, async (req, res) => {
+  app.delete("/api/properties/:id/urls/:urlId", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
       const urlId = parseRouteId(req.params.urlId);
@@ -212,7 +212,7 @@ export function registerPropertyUrlRoutes(app: Express) {
     }
   });
 
-  app.post("/api/properties/:id/urls/validate-all", requireManagementAccess, async (req, res) => {
+  app.post("/api/properties/:id/urls/validate-all", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
       if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });

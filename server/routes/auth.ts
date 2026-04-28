@@ -17,7 +17,7 @@ import { loginSchema, adminLoginSchema, userResponse, logAndSendError } from "./
 import { ensureDefaultScenario } from "./scenario-helpers";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { UserRole, isAdminRole } from "@shared/constants";
+import { isAdminRole } from "@shared/constants";
 import seedUsersConfig from "../seed-users.json" with { type: "json" };
 
 export function register(app: Express) {
@@ -167,7 +167,7 @@ export function register(app: Express) {
       if (validation.data.rebeccaOptOut !== undefined) updates.rebeccaOptOut = validation.data.rebeccaOptOut;
       if (validation.data.email !== undefined) {
         const protectedEmails = seedUsersConfig.users
-          .filter(u => isAdminRole(u.role) || u.role === UserRole.CHECKER)
+          .filter(u => isAdminRole(u.role))
           .map(u => u.email.toLowerCase());
         if (protectedEmails.includes(getAuthUser(req).email.toLowerCase())) {
           return res.status(403).json({ error: "System account emails cannot be changed" });

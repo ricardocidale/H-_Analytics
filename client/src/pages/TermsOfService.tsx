@@ -81,7 +81,7 @@ function TermsContent() {
                 You must immediately notify your administrator of any unauthorized use of your account.
               </p>
               <p className="text-muted-foreground leading-relaxed">
-                Access levels (administrator, management, investor, checker) determine which features and data are available to you.
+                Access levels (administrator, user) determine which features and data are available to you.
                 Your administrator controls your role assignment.
               </p>
             </section>

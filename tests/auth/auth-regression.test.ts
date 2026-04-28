@@ -4,8 +4,6 @@ import {
   authMiddleware,
   requireAuth,
   requireAdmin,
-  requireChecker,
-  requireManagementAccess,
   setSessionCookie,
   clearSessionCookie,
   cleanupRateLimitMaps,
@@ -105,24 +103,6 @@ describe("requireAdmin middleware", () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it("returns 403 for checker role", () => {
-    const req = mockReq({ user: mockUser({ role: UserRole.CHECKER }) });
-    const res = mockRes();
-    const next = mockNext();
-    requireAdmin(req, res, next);
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(next).not.toHaveBeenCalled();
-  });
-
-  it("returns 403 for investor role", () => {
-    const req = mockReq({ user: mockUser({ role: UserRole.INVESTOR }) });
-    const res = mockRes();
-    const next = mockNext();
-    requireAdmin(req, res, next);
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(next).not.toHaveBeenCalled();
-  });
-
   it("calls next for admin role", () => {
     const req = mockReq({ user: mockUser({ role: UserRole.ADMIN }) });
     const res = mockRes();
@@ -130,105 +110,6 @@ describe("requireAdmin middleware", () => {
     requireAdmin(req, res, next);
     expect(next).toHaveBeenCalled();
     expect(res.status).not.toHaveBeenCalled();
-  });
-});
-
-describe("requireChecker middleware", () => {
-  it("returns 401 when no user", () => {
-    const req = mockReq();
-    const res = mockRes();
-    const next = mockNext();
-    requireChecker(req, res, next);
-    expect(res.status).toHaveBeenCalledWith(401);
-    expect(next).not.toHaveBeenCalled();
-  });
-
-  it("returns 403 for regular user role", () => {
-    const req = mockReq({ user: mockUser({ role: UserRole.USER }) });
-    const res = mockRes();
-    const next = mockNext();
-    requireChecker(req, res, next);
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(res.json).toHaveBeenCalledWith({ error: "Checker or admin access required" });
-    expect(next).not.toHaveBeenCalled();
-  });
-
-  it("returns 403 for investor role", () => {
-    const req = mockReq({ user: mockUser({ role: UserRole.INVESTOR }) });
-    const res = mockRes();
-    const next = mockNext();
-    requireChecker(req, res, next);
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(next).not.toHaveBeenCalled();
-  });
-
-  it("calls next for checker role", () => {
-    const req = mockReq({ user: mockUser({ role: UserRole.CHECKER }) });
-    const res = mockRes();
-    const next = mockNext();
-    requireChecker(req, res, next);
-    expect(next).toHaveBeenCalled();
-  });
-
-  it("calls next for admin role", () => {
-    const req = mockReq({ user: mockUser({ role: UserRole.ADMIN }) });
-    const res = mockRes();
-    const next = mockNext();
-    requireChecker(req, res, next);
-    expect(next).toHaveBeenCalled();
-  });
-});
-
-describe("requireManagementAccess middleware", () => {
-  it("returns 401 when no user", () => {
-    const req = mockReq();
-    const res = mockRes();
-    const next = mockNext();
-    requireManagementAccess(req, res, next);
-    expect(res.status).toHaveBeenCalledWith(401);
-    expect(next).not.toHaveBeenCalled();
-  });
-
-  it("returns 403 for investor role", () => {
-    const req = mockReq({ user: mockUser({ role: UserRole.INVESTOR }) });
-    const res = mockRes();
-    const next = mockNext();
-    requireManagementAccess(req, res, next);
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(res.json).toHaveBeenCalledWith({ error: "Management company access required" });
-    expect(next).not.toHaveBeenCalled();
-  });
-
-  it("calls next for admin role", () => {
-    const req = mockReq({ user: mockUser({ role: UserRole.ADMIN }) });
-    const res = mockRes();
-    const next = mockNext();
-    requireManagementAccess(req, res, next);
-    expect(next).toHaveBeenCalled();
-  });
-
-  it("calls next for regular user role", () => {
-    const req = mockReq({ user: mockUser({ role: UserRole.USER }) });
-    const res = mockRes();
-    const next = mockNext();
-    requireManagementAccess(req, res, next);
-    expect(next).toHaveBeenCalled();
-  });
-
-  it("calls next for checker role", () => {
-    const req = mockReq({ user: mockUser({ role: UserRole.CHECKER }) });
-    const res = mockRes();
-    const next = mockNext();
-    requireManagementAccess(req, res, next);
-    expect(next).toHaveBeenCalled();
-  });
-
-  it("calls next for super_admin role", () => {
-    const req = mockReq({ user: mockUser({ role: UserRole.SUPER_ADMIN }) });
-    const res = mockRes();
-    const next = mockNext();
-    requireManagementAccess(req, res, next);
-    expect(next).toHaveBeenCalled();
   });
 });
 
@@ -288,37 +169,17 @@ describe("cleanupRateLimitMaps", () => {
 });
 
 describe("Auth role access matrix", () => {
-  const roles = [UserRole.ADMIN, UserRole.USER, UserRole.CHECKER, UserRole.INVESTOR, UserRole.SUPER_ADMIN] as const;
+  const roles = [UserRole.ADMIN, UserRole.USER, UserRole.SUPER_ADMIN] as const;
 
   const expectedRequireAuth: Record<string, boolean> = {
     admin: true,
     user: true,
-    checker: true,
-    investor: true,
     super_admin: true,
   };
 
   const expectedRequireAdmin: Record<string, boolean> = {
     admin: true,
     user: false,
-    checker: false,
-    investor: false,
-    super_admin: true,
-  };
-
-  const expectedRequireChecker: Record<string, boolean> = {
-    admin: true,
-    user: false,
-    checker: true,
-    investor: false,
-    super_admin: true,
-  };
-
-  const expectedManagementAccess: Record<string, boolean> = {
-    admin: true,
-    user: true,
-    checker: true,
-    investor: false,
     super_admin: true,
   };
 
@@ -341,30 +202,6 @@ describe("Auth role access matrix", () => {
       const next = mockNext();
       requireAdmin(req, res, next);
       if (expectedRequireAdmin[role]) {
-        expect(next).toHaveBeenCalled();
-      } else {
-        expect(res.status).toHaveBeenCalledWith(403);
-      }
-    });
-
-    it(`requireChecker ${expectedRequireChecker[role] ? "allows" : "rejects"} ${role}`, () => {
-      const req = mockReq({ user: mockUser({ role }) });
-      const res = mockRes();
-      const next = mockNext();
-      requireChecker(req, res, next);
-      if (expectedRequireChecker[role]) {
-        expect(next).toHaveBeenCalled();
-      } else {
-        expect(res.status).toHaveBeenCalledWith(403);
-      }
-    });
-
-    it(`requireManagementAccess ${expectedManagementAccess[role] ? "allows" : "rejects"} ${role}`, () => {
-      const req = mockReq({ user: mockUser({ role }) });
-      const res = mockRes();
-      const next = mockNext();
-      requireManagementAccess(req, res, next);
-      if (expectedManagementAccess[role]) {
         expect(next).toHaveBeenCalled();
       } else {
         expect(res.status).toHaveBeenCalledWith(403);

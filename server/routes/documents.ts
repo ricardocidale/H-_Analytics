@@ -1,5 +1,5 @@
 import type { Express } from "express";
-import { requireAuth, requireManagementAccess, isApiRateLimited, checkPropertyAccess , getAuthUser } from "../auth";
+import { requireAuth, isApiRateLimited, checkPropertyAccess, getAuthUser } from "../auth";
 import { storage } from "../storage";
 import { logActivity, logAndSendError, parseRouteId } from "./helpers";
 import { DocumentAIService } from "../integrations/document-ai";
@@ -41,7 +41,7 @@ const ALLOWED_DOC_TYPES = [
 ];
 
 export function register(app: Express) {
-  app.post("/api/documents/extract", requireManagementAccess, async (req, res) => {
+  app.post("/api/documents/extract", requireAuth, async (req, res) => {
     try {
       // Rate limit: max 3 document extractions per minute per user
       if (isApiRateLimited(getAuthUser(req).id, "document-extract", 3)) {
@@ -195,7 +195,7 @@ export function register(app: Express) {
     }
   });
 
-  app.patch("/api/documents/fields/:fieldId/status", requireManagementAccess, async (req, res) => {
+  app.patch("/api/documents/fields/:fieldId/status", requireAuth, async (req, res) => {
     try {
       const fieldId = parseRouteId(req.params.fieldId);
       if (!fieldId) return res.status(400).json({ error: "Invalid field ID" });
@@ -256,7 +256,7 @@ export function register(app: Express) {
     }
   });
 
-  app.post("/api/documents/fields/:extractionId/bulk-status", requireManagementAccess, async (req, res) => {
+  app.post("/api/documents/fields/:extractionId/bulk-status", requireAuth, async (req, res) => {
     try {
       const extractionId = parseRouteId(req.params.extractionId);
       if (!extractionId) return res.status(400).json({ error: "Invalid extraction ID" });

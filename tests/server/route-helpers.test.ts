@@ -237,7 +237,7 @@ describe("createUserSchema", () => {
   });
 
   it("accepts all valid role values", () => {
-    for (const role of ["admin", "user", "checker", "investor"]) {
+    for (const role of ["admin", "user", "super_admin"]) {
       const result = createUserSchema.safeParse({
         email: "u@e.com",
         password: "longpassword",

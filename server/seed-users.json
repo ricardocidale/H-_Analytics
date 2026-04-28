@@ -13,7 +13,7 @@
     {
       "email": "checker@norfolkgroup.io",
       "envVar": "PASSWORD_CHECKER",
-      "role": "checker",
+      "role": "user",
       "firstName": "Checker",
       "company": "Norfolk AI",
       "title": "Checker",

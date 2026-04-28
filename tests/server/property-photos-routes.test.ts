@@ -49,14 +49,14 @@ describe("Property Photos Routes — endpoint structure", () => {
 });
 
 describe("Property Photos Routes — auth guard", () => {
-  it("all endpoints require authentication or management access", () => {
-    const authMatches = routesSrc.match(/requireAuth|requireManagementAccess/g);
+  it("all endpoints require authentication", () => {
+    const authMatches = routesSrc.match(/requireAuth\b/g);
     expect(authMatches).not.toBeNull();
     expect(authMatches!.length).toBeGreaterThanOrEqual(7);
   });
 
-  it("write endpoints require management access (IDOR protection)", () => {
-    const mgmtMatches = routesSrc.match(/requireManagementAccess/g);
+  it("write endpoints require auth (IDOR protection via checkPropertyAccess)", () => {
+    const mgmtMatches = routesSrc.match(/requireAuth\b/g);
     expect(mgmtMatches).not.toBeNull();
     expect(mgmtMatches!.length).toBeGreaterThanOrEqual(5);
   });

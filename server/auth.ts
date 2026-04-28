@@ -19,11 +19,10 @@
  *     within a 1-minute sliding window. Both maps are cleaned hourly by server/index.ts.
  *
  *   Authorization middleware:
- *     Four levels of access control, applied as Express middleware on individual routes:
+ *     Three levels of access control, applied as Express middleware on individual routes:
  *       - requireAuth: any logged-in user (rejects 401 if no session)
- *       - requireAdmin: admin role only (rejects 403 for non-admins)
- *       - requireChecker: admin or checker role (for verification tools)
- *       - requireManagementAccess: everyone except investors (admin + user + checker)
+ *       - requireAdmin: admin (or super_admin) role only (rejects 403 for non-admins)
+ *       - requireSuperAdmin: super_admin role only — for break-glass operations
  *
  *   Seed users:
  *     On startup, seedAdminUser() ensures the predefined team members exist in the database
@@ -372,41 +371,6 @@ export function requireSuperAdmin(req: Request, res: Response, next: NextFunctio
 }
 
 /**
- * Express middleware that enforces checker or admin-level access. Returns a 401 response
- * if the user is not authenticated, or a 403 response if the user does not have
- * a "checker" or "admin" role.
- * @param req - The Express request object.
- * @param res - The Express response object.
- * @param next - The next middleware function in the chain.
- * @returns {void}
- */
-export function requireChecker(req: Request, res: Response, next: NextFunction) {
-  if (!req.user) {
-    return res.status(401).json({ error: "Authentication required" });
-  }
-  if (!isAdminRole(req.user.role) && req.user.role !== UserRole.CHECKER) {
-    return res.status(403).json({ error: "Checker or admin access required" });
-  }
-  next();
-}
-
-/**
- * Express middleware that allows access to anyone except investors. Investors get
- * a read-only view of the platform; management operations (editing properties,
- * saving scenarios, updating assumptions) require this middleware.
- * Returns 401 if not authenticated, 403 if the user has the "investor" role.
- */
-export function requireManagementAccess(req: Request, res: Response, next: NextFunction) {
-  if (!req.user) {
-    return res.status(401).json({ error: "Authentication required" });
-  }
-  if (req.user.role === UserRole.INVESTOR) {
-    return res.status(403).json({ error: "Management company access required" });
-  }
-  next();
-}
-
-/**
  * Sets an httpOnly session cookie on the response with a 7-day expiry.
  * The cookie is marked as secure in production and uses strict same-site policy.
  * @param res - The Express response object.
@@ -557,7 +521,7 @@ export async function seedAdminUser() {
       user = await storage.createUser({
         email: seed.email,
         passwordHash,
-        role: seed.role as "admin" | "user" | "checker" | "investor",
+        role: seed.role as "admin" | "user" | "super_admin",
         firstName: seed.firstName,
         lastName: seed.lastName,
         company: seed.company,

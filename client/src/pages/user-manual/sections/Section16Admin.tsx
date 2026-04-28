@@ -93,9 +93,6 @@ export default function Section16Admin({ expanded, onToggle, sectionRef }: Secti
             ["Super Admin", "Full system access. Cannot be edited, deleted, or modified by anyone — including other super admins."],
             ["Admin", "Full access. Manages users, settings, properties, and the AI assistant. Cannot modify super admin accounts."],
             ["User", "Standard access. Views portfolio, edits property assumptions, runs scenarios (if scenario toggle is ON)."],
-            ["Checker", "Auditor role. User-level access plus the verification system and Checker Manual."],
-            ["Partner", "External partner. Similar to standard user access."],
-            ["Investor", "Read-only. Views reports and shared scenarios but cannot edit any data."],
           ]}
         />
       </div>

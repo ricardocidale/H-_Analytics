@@ -1,4 +1,3 @@
-import { UserRole } from "@shared/constants";
 import { useState, useRef, useMemo } from "react";
 import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/ui/page-header";
@@ -13,19 +12,18 @@ interface UserManualProps {
 }
 
 export default function UserManual({ embedded }: UserManualProps) {
-  const { user, isAdmin } = useAuth();
-  const hasManagementAccess = isAdmin || (user?.role !== UserRole.INVESTOR);
+  const { isAdmin } = useAuth();
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const visibleSections = useMemo(() =>
     USER_MANUAL_SECTIONS.filter((s) => {
       if (s.access === "all") return true;
-      if (s.access === "management") return hasManagementAccess;
+      if (s.access === "management") return true;
       if (s.access === "admin") return isAdmin;
       return false;
     }),
-    [isAdmin, hasManagementAccess]
+    [isAdmin]
   );
 
   const toggleSection = (id: string) => {

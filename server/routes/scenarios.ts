@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { requireManagementAccess, requireAuth , getAuthUser, isApiRateLimited } from "../auth";
+import { requireAuth, getAuthUser, isApiRateLimited } from "../auth";
 import { updateScenarioSchema } from "@shared/schema";
 import type {
   ScenarioGlobalAssumptionsSnapshot,
@@ -112,7 +112,7 @@ export function register(app: Express) {
     }
   });
 
-  app.post("/api/scenarios/auto-save", requireManagementAccess, async (req, res) => {
+  app.post("/api/scenarios/auto-save", requireAuth, async (req, res) => {
     try {
       const user = getAuthUser(req);
       const { scenarioGA, scenarioProps, propertyFeeCategories, propertyPhotos, serviceTemplates } = await buildCreateSnapshotData(user.id);
@@ -196,7 +196,7 @@ export function register(app: Express) {
     }
   });
 
-  app.post("/api/scenarios", requireManagementAccess, requireScenarioPermission, async (req, res) => {
+  app.post("/api/scenarios", requireAuth, requireScenarioPermission, async (req, res) => {
     try {
       const user = getAuthUser(req);
       const validation = createScenarioSchema.safeParse(req.body);
@@ -244,7 +244,7 @@ export function register(app: Express) {
     }
   });
 
-  app.patch("/api/scenarios/:id", requireManagementAccess, requireScenarioPermission, async (req, res) => {
+  app.patch("/api/scenarios/:id", requireAuth, requireScenarioPermission, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
       if (!id) return res.status(400).json({ error: "Invalid scenario ID" });
@@ -271,7 +271,7 @@ export function register(app: Express) {
     }
   });
 
-  app.post("/api/scenarios/:id/load", requireManagementAccess, async (req, res) => {
+  app.post("/api/scenarios/:id/load", requireAuth, async (req, res) => {
     try {
       const user = getAuthUser(req);
       const id = parseRouteId(req.params.id);
@@ -329,7 +329,7 @@ export function register(app: Express) {
     }
   });
 
-  app.delete("/api/scenarios/:id", requireManagementAccess, requireScenarioPermission, async (req, res) => {
+  app.delete("/api/scenarios/:id", requireAuth, requireScenarioPermission, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
       if (!id) return res.status(400).json({ error: "Invalid scenario ID" });
@@ -350,7 +350,7 @@ export function register(app: Express) {
     }
   });
 
-  app.post("/api/scenarios/:id/clone", requireManagementAccess, requireScenarioPermission, async (req, res) => {
+  app.post("/api/scenarios/:id/clone", requireAuth, requireScenarioPermission, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
       if (!id) return res.status(400).json({ error: "Invalid scenario ID" });
@@ -397,7 +397,7 @@ export function register(app: Express) {
     }
   });
 
-  app.post("/api/scenarios/import", requireManagementAccess, requireScenarioPermission, async (req, res) => {
+  app.post("/api/scenarios/import", requireAuth, requireScenarioPermission, async (req, res) => {
     try {
       const validation = importScenarioSchema.safeParse(req.body);
       if (!validation.success) {
@@ -448,7 +448,7 @@ export function register(app: Express) {
     }
   });
 
-  app.post("/api/scenarios/shares", requireManagementAccess, requireScenarioPermission, async (req, res) => {
+  app.post("/api/scenarios/shares", requireAuth, requireScenarioPermission, async (req, res) => {
     try {
       const validation = shareScenarioSchema.safeParse(req.body);
       if (!validation.success) {
@@ -715,7 +715,7 @@ export function register(app: Express) {
   });
 
   // --- Tag management ---
-  app.patch("/api/scenarios/:id/tags", requireManagementAccess, async (req, res) => {
+  app.patch("/api/scenarios/:id/tags", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
       if (!id) return res.status(400).json({ error: "Invalid scenario ID" });

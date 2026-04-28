@@ -189,7 +189,7 @@ function SidebarNav({ groups, isActiveLink, onNavigate }: { groups: NavGroupDef[
 
 export default function Layout({ children, darkMode }: { children: React.ReactNode; darkMode?: boolean }) {
   const [location] = useLocation();
-  const { user, isAdmin, hasManagementAccess, requestLogout } = useAuth();
+  const { user, isAdmin, requestLogout } = useAuth();
   const { data: global } = useGlobalAssumptions();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -254,25 +254,25 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
       items: [
         { href: "/", label: "Dashboard", icon: IconDashboard },
         { href: "/portfolio", label: "Properties", icon: IconProperties },
-        ...(hasManagementAccess ? [{ href: "/company", label: "Management Company", icon: IconBriefcase }] : []),
+        { href: "/company", label: "Management Company", icon: IconBriefcase },
       ],
     },
     {
       label: "Intelligence",
       items: [
-        ...(showAnalysis && hasManagementAccess ? [{ href: "/analysis", label: "Simulation", icon: IconAnalysis }] : []),
-        ...(sb("sidebarPropertyFinder") && hasManagementAccess ? [{ href: "/property-finder", label: "Property Finder", icon: IconPropertyFinder }] : []),
-        ...(sb("sidebarMapView") && hasManagementAccess ? [{ href: "/map", label: "Map View", icon: IconMapPin }] : []),
+        ...(showAnalysis ? [{ href: "/analysis", label: "Simulation", icon: IconAnalysis }] : []),
+        ...(sb("sidebarPropertyFinder") ? [{ href: "/property-finder", label: "Property Finder", icon: IconPropertyFinder }] : []),
+        ...(sb("sidebarMapView") ? [{ href: "/map", label: "Map View", icon: IconMapPin }] : []),
       ].filter(Boolean),
     },
     {
       label: "Settings",
       items: [
         { href: "/profile", label: "My Profile", icon: IconProfile },
-        ...(sb("sidebarScenarios") && hasManagementAccess ? [{ href: "/scenarios", label: "Scenarios", icon: IconScenarios }] : []),
+        ...(sb("sidebarScenarios") ? [{ href: "/scenarios", label: "Scenarios", icon: IconScenarios }] : []),
       ],
     },
-  ].filter(g => g.items.length > 0), [hasManagementAccess, isAdmin, global]);
+  ].filter(g => g.items.length > 0), [isAdmin, global]);
 
   // Admin nav is rendered via <AdminSidebarNav> (shadcn SidebarMenuSub block)
   // when onAdminRoute is true — see desktop aside / mobile Sheet below.
@@ -482,7 +482,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
         const bottomNavItems: { href: string; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
           { href: "/", label: "Dashboard", icon: IconDashboard },
           { href: "/portfolio", label: "Properties", icon: IconProperties },
-          ...(hasManagementAccess ? [{ href: "/company", label: "Company", icon: IconBriefcase }] : []),
+          { href: "/company", label: "Company", icon: IconBriefcase },
           { href: "/profile", label: "Profile", icon: IconProfile },
         ];
         return (

@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { requireAuth, requireManagementAccess, requireAdmin, checkPropertyAccess , getAuthUser } from "../auth";
+import { requireAuth, requireAdmin, checkPropertyAccess, getAuthUser } from "../auth";
 import { insertPropertyPhotoSchema, updatePropertyPhotoSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { logAndSendError, parseRouteId } from "./helpers";
@@ -134,7 +134,7 @@ export function register(app: Express) {
   });
 
   // POST /api/properties/:id/photos — add a photo to the album
-  app.post("/api/properties/:id/photos", requireManagementAccess, async (req, res) => {
+  app.post("/api/properties/:id/photos", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
       if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });
@@ -189,7 +189,7 @@ export function register(app: Express) {
   });
 
   // PATCH /api/properties/:id/photos/:photoId — update caption or sort order
-  app.patch("/api/properties/:id/photos/:photoId", requireManagementAccess, async (req, res) => {
+  app.patch("/api/properties/:id/photos/:photoId", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
       const photoId = parseRouteId(req.params.photoId);
@@ -215,7 +215,7 @@ export function register(app: Express) {
     }
   });
 
-  app.delete("/api/properties/:id/photos/:photoId", requireManagementAccess, async (req, res) => {
+  app.delete("/api/properties/:id/photos/:photoId", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
       const photoId = parseRouteId(req.params.photoId);
@@ -242,7 +242,7 @@ export function register(app: Express) {
   });
 
   // POST /api/properties/:id/photos/:photoId/set-hero — set as hero image
-  app.post("/api/properties/:id/photos/:photoId/set-hero", requireManagementAccess, async (req, res) => {
+  app.post("/api/properties/:id/photos/:photoId/set-hero", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
       const photoId = parseRouteId(req.params.photoId);
@@ -258,7 +258,7 @@ export function register(app: Express) {
   });
 
   // PUT /api/properties/:id/photos/reorder — bulk reorder photos
-  app.put("/api/properties/:id/photos/reorder", requireManagementAccess, async (req, res) => {
+  app.put("/api/properties/:id/photos/reorder", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
       if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });
@@ -379,7 +379,7 @@ export function register(app: Express) {
     }
   });
 
-  app.post("/api/property-photos/:id/enhance", requireManagementAccess, async (req, res) => {
+  app.post("/api/property-photos/:id/enhance", requireAuth, async (req, res) => {
     try {
       const photoId = parseRouteId(req.params.id);
       if (!photoId) return res.status(400).json({ error: "Invalid photo ID" });
@@ -475,7 +475,7 @@ export function register(app: Express) {
     }
   });
 
-  app.post("/api/property-photos/:id/enhance/accept", requireManagementAccess, async (req, res) => {
+  app.post("/api/property-photos/:id/enhance/accept", requireAuth, async (req, res) => {
     try {
       const photoId = parseRouteId(req.params.id);
       if (!photoId) return res.status(400).json({ error: "Invalid photo ID" });
@@ -519,7 +519,7 @@ export function register(app: Express) {
     }
   });
 
-  app.post("/api/property-photos/:id/enhance/reject", requireManagementAccess, async (req, res) => {
+  app.post("/api/property-photos/:id/enhance/reject", requireAuth, async (req, res) => {
     try {
       const photoId = parseRouteId(req.params.id);
       if (!photoId) return res.status(400).json({ error: "Invalid photo ID" });
@@ -541,7 +541,7 @@ export function register(app: Express) {
     }
   });
 
-  app.delete("/api/property-photos/:id/enhanced", requireManagementAccess, async (req, res) => {
+  app.delete("/api/property-photos/:id/enhanced", requireAuth, async (req, res) => {
     try {
       const photoId = parseRouteId(req.params.id);
       if (!photoId) return res.status(400).json({ error: "Invalid photo ID" });

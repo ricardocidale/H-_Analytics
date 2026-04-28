@@ -518,6 +518,12 @@ async function runSchemaMigrations() {
     await markMigrationApplied("role_partner_to_user_001");
   }
 
+  if (!(await isMigrationApplied("role_checker_investor_to_user_001"))) {
+    const { migrateCheckerInvestorToUser } = await import("./migrations/role-checker-investor-to-user-001");
+    await migrateCheckerInvestorToUser();
+    await markMigrationApplied("role_checker_investor_to_user_001");
+  }
+
   if (!(await isMigrationApplied("can_manage_scenarios_001"))) {
     const { runCanManageScenarios001 } = await import("./migrations/can-manage-scenarios-001");
     await runCanManageScenarios001();

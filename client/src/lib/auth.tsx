@@ -10,16 +10,9 @@
  *      they invalidate the "auth/me" query so the user state refreshes instantly.
  *
  * Roles and access levels:
- *   • "admin"    — full platform access, can manage users, companies, and all settings
- *   • "checker"  — can view the Checker Manual and verification tools
- *   • "user"     — general access with company-level access
- *   • "investor" — read-only portfolio viewer; cannot access company settings,
- *                   scenario management, or property finder
- *   • Any other role defaults to standard management access.
- *
- * The `hasManagementAccess` flag is true for every role EXCEPT "investor". This
- * flag is used by route guards and sidebar visibility to hide management features
- * from investor users.
+ *   • "super_admin" — protected admin account; cannot be edited or deleted
+ *   • "admin"       — full platform access, can manage users, companies, and all settings
+ *   • "user"        — general access; can edit properties, run scenarios, view reports
  *
  * The auth state is cached for 5 minutes (staleTime) to avoid redundant network
  * calls on every page navigation.
@@ -51,10 +44,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAdmin: boolean;
   isSuperAdmin: boolean;
-  isChecker: boolean;
   isUser: boolean;
-  isInvestor: boolean;
-  hasManagementAccess: boolean;
   canManageScenarios: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -149,18 +139,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const user = data ?? null;
   const isAdmin = user ? isAdminRole(user.role) : false;
   const isSuperAdmin = user?.role === UserRole.SUPER_ADMIN;
-  const isChecker = user?.role === UserRole.CHECKER;
   const isUser = user?.role === UserRole.USER;
-  const isInvestor = user?.role === UserRole.INVESTOR;
-  const hasManagementAccess = user?.role !== UserRole.INVESTOR;
-  const canManageScenarios = hasManagementAccess && (user?.canManageScenarios ?? true);
+  const canManageScenarios = !!user && (user.canManageScenarios ?? true);
   
   const refetch = () => {
     refetchQuery();
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAdmin, isSuperAdmin, isChecker, isUser, isInvestor, hasManagementAccess, canManageScenarios, login, logout, requestLogout, logoutPending, confirmLogout, cancelLogout, refetch }}>
+    <AuthContext.Provider value={{ user, isLoading, isAdmin, isSuperAdmin, isUser, canManageScenarios, login, logout, requestLogout, logoutPending, confirmLogout, cancelLogout, refetch }}>
       {children}
     </AuthContext.Provider>
   );

@@ -17,8 +17,7 @@ import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 type HelpTab = "user-manual" | "checker-manual" | "guided-tour" | "architecture";
 
 export default function Help() {
-  const { isAdmin, isChecker: authIsChecker } = useAuth();
-  const isChecker = isAdmin || authIsChecker;
+  const { isAdmin } = useAuth();
   const [tab, setTab] = useState<HelpTab>("user-manual");
   const { setTourActive, setShownThisSession } = useWalkthroughStore();
   const queryClient = useQueryClient();
@@ -37,8 +36,8 @@ export default function Help() {
 
   const tabs = [
     { value: "user-manual" as const, label: "User Manual", icon: IconFileCheck },
-    ...(isChecker ? [{ value: "checker-manual" as const, label: "Checker Manual", icon: IconShield }] : []),
-    ...(isChecker ? [{ value: "architecture" as const, label: "Architecture", icon: Share2 }] : []),
+    ...(isAdmin ? [{ value: "checker-manual" as const, label: "Checker Manual", icon: IconShield }] : []),
+    ...(isAdmin ? [{ value: "architecture" as const, label: "Architecture", icon: Share2 }] : []),
     { value: "guided-tour" as const, label: "Guided Tour", icon: IconActivity },
   ];
 
@@ -62,12 +61,12 @@ export default function Help() {
           <TabsContent value="user-manual" className="space-y-6 mt-6">
             <UserManual embedded />
           </TabsContent>
-          {isChecker && (
+          {isAdmin && (
             <TabsContent value="checker-manual" className="space-y-6 mt-6">
               <CheckerManual embedded />
             </TabsContent>
           )}
-          {isChecker && (
+          {isAdmin && (
             <TabsContent value="architecture" className="space-y-6 mt-6">
               <DiagramsTab />
             </TabsContent>

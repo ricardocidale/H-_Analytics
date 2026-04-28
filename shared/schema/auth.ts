@@ -6,10 +6,9 @@ import { designThemes } from "./core";
 
 // --- USERS TABLE ---
 // Every person who can log in. Roles control what they can see and do:
+//   - "super_admin": protected admin account — cannot be edited or deleted
 //   - "admin": full access — manage users, properties, assumptions, run verifications
-//   - "user": general access — can edit properties and assumptions
-//   - "checker": independent auditor — read-only access plus verification tools
-//   - "investor": limited view — sees dashboard and reports but cannot edit
+//   - "user": general access — can edit properties, assumptions, and run scenarios
 // Company is a free-text field for organizational display purposes.
 export const users = pgTable("users", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
@@ -40,7 +39,7 @@ export const users = pgTable("users", {
   index("users_selected_theme_id_idx").on(table.selectedThemeId),
 ]);
 
-export const VALID_USER_ROLES = ["super_admin", "admin", "user", "checker", "investor"] as const;
+export const VALID_USER_ROLES = ["super_admin", "admin", "user"] as const;
 export type UserRole = typeof VALID_USER_ROLES[number];
 
 export const insertUserSchema = z.object({

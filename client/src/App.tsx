@@ -7,11 +7,9 @@
  * Key architectural decisions:
  *   • All page components (except Login and NotFound) are lazy-loaded so the initial
  *     bundle stays small. Each page is wrapped in <Suspense> with a spinner fallback.
- *   • Four route-guard wrappers enforce role-based access:
+ *   • Two route-guard wrappers enforce role-based access:
  *       – ProtectedRoute: all authenticated users
- *       – AdminRoute: admin role only
- *       – ManagementRoute: all roles except "investor"
- *       – CheckerRoute: admin or checker roles
+ *       – AdminRoute: admin (or super_admin) role only
  *   • Financial pages are additionally wrapped in <FinancialErrorBoundary> so a
  *     calculation error in one page doesn't crash the whole app.
  *   • On first login each session, a <ResearchRefreshOverlay> triggers a background
@@ -38,8 +36,6 @@ import {
   PageLoader,
   ProtectedRoute,
   AdminRoute,
-  ManagementRoute,
-  CheckerRoute as _CheckerRoute,
   IcpRedirect,
 } from "./app-guards";
 import {
@@ -193,12 +189,12 @@ function Router() {
         </Route>
         <Route path="/company">
           <FinancialErrorBoundary>
-            <ManagementRoute component={Company} />
+            <ProtectedRoute component={Company} />
           </FinancialErrorBoundary>
         </Route>
         <Route path="/company/assumptions">
           <FinancialErrorBoundary>
-            <ManagementRoute component={CompanyAssumptions} />
+            <ProtectedRoute component={CompanyAssumptions} />
           </FinancialErrorBoundary>
         </Route>
         <Route path="/company/guidance">
@@ -245,14 +241,14 @@ function Router() {
           <Redirect to="/" />
         </Route>
         <Route path="/company/icp-definition">
-          <ManagementRoute component={CompanyIcpDefinition} />
+          <ProtectedRoute component={CompanyIcpDefinition} />
         </Route>
         <Route path="/company/criteria">
           <Redirect to="/company/icp-definition" />
         </Route>
         <Route path="/company/research">
           <FinancialErrorBoundary>
-            <ManagementRoute component={CompanyResearch} />
+            <ProtectedRoute component={CompanyResearch} />
           </FinancialErrorBoundary>
         </Route>
         <Route path="/global/research">
@@ -279,12 +275,12 @@ function Router() {
         <Route path="/scenarios">
           <FinancialErrorBoundary>
             <AssumptionsGateGuard pageLabel="Scenarios">
-              <ManagementRoute component={Scenarios} />
+              <ProtectedRoute component={Scenarios} />
             </AssumptionsGateGuard>
           </FinancialErrorBoundary>
         </Route>
         <Route path="/property-finder">
-          <ManagementRoute component={PropertyFinder} />
+          <ProtectedRoute component={PropertyFinder} />
         </Route>
         <Route path="/analysis">
           <FinancialErrorBoundary>
@@ -304,7 +300,7 @@ function Router() {
         </Route>
         <Route path="/map">
           <FinancialErrorBoundary>
-            <ManagementRoute component={MapView} />
+            <ProtectedRoute component={MapView} />
           </FinancialErrorBoundary>
         </Route>
         <Route path="/checker-manual">

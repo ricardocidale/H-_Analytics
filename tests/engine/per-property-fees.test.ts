@@ -295,15 +295,20 @@ describe("Seed Data Integrity", () => {
     expect(admins.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("has exactly 1 checker user", () => {
+  it("has zero checker users (role removed)", () => {
     const checkers = expectedUsers.filter((u: { role: string }) => u.role === "checker");
-    expect(checkers).toHaveLength(1);
-    expect(checkers[0].email).toBe("checker@norfolkgroup.io");
+    expect(checkers).toHaveLength(0);
   });
 
-  it("has 5 regular users", () => {
+  it("preserves checker@norfolkgroup.io as a regular user", () => {
+    const account = expectedUsers.find((u: { email: string }) => u.email === "checker@norfolkgroup.io");
+    expect(account).toBeDefined();
+    expect(account.role).toBe("user");
+  });
+
+  it("has 6 regular users", () => {
     const users = expectedUsers.filter((u: { role: string }) => u.role === "user");
-    expect(users).toHaveLength(5);
+    expect(users).toHaveLength(6);
   });
 
   it("all users have non-empty name, company, and title", () => {

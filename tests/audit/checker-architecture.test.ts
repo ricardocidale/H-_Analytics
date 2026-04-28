@@ -112,14 +112,14 @@ describe("Calculation Checker Adapter Wiring", () => {
 });
 
 describe("Verification Endpoint Access Policy", () => {
-  it("all verification endpoints require checker role", () => {
+  it("all verification endpoints require admin role", () => {
     const content = readFile("server/routes/calculations.ts");
     const verificationRoutes = content.split("\n").filter(
       line => line.includes("/api/verification/") && (line.includes(".post(") || line.includes(".get("))
     );
     expect(verificationRoutes.length).toBeGreaterThanOrEqual(4);
     for (const route of verificationRoutes) {
-      expect(route).toContain("requireChecker");
+      expect(route).toContain("requireAdmin");
     }
   });
 
@@ -130,17 +130,17 @@ describe("Verification Endpoint Access Policy", () => {
     );
     expect(calcRoutes.length).toBeGreaterThanOrEqual(4);
     for (const route of calcRoutes) {
-      expect(route).toMatch(/requireChecker|requireAuth|requireAdmin/);
+      expect(route).toMatch(/requireAuth|requireAdmin/);
     }
   });
 
-  it("checker-specific calc endpoints (validate-identities, check-funding-gates, reconcile-schedule) require checker role", () => {
+  it("checker-specific calc endpoints (validate-identities, check-funding-gates, reconcile-schedule) require admin role", () => {
     const content = readFile("server/routes/calculations.ts");
     const checkerEndpoints = ["/api/calc/validate-identities", "/api/calc/check-funding-gates", "/api/calc/reconcile-schedule"];
     for (const endpoint of checkerEndpoints) {
       const line = content.split("\n").find(l => l.includes(endpoint));
       expect(line).toBeDefined();
-      expect(line).toContain("requireChecker");
+      expect(line).toContain("requireAdmin");
     }
   });
 

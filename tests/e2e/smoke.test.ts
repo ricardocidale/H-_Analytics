@@ -148,7 +148,7 @@ describe.skipIf(!process.env.E2E)("E2E Smoke Tests", () => {
     expect(body.auditOpinion).toBe("UNQUALIFIED");
   });
 
-  it("POST /api/verification/run requires checker/admin auth", async () => {
+  it("POST /api/verification/run requires admin auth", async () => {
     const res = await fetch(`${BASE}/api/verification/run`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

@@ -1,5 +1,5 @@
 import type { Express } from "express";
-import { requireAuth, requireManagementAccess, isApiRateLimited, getAuthUser, checkPropertyAccess } from "../auth";
+import { requireAuth, isApiRateLimited, getAuthUser, checkPropertyAccess } from "../auth";
 import { geocodeSchema, logAndSendError, parseRouteId } from "./helpers";
 import { fetchWithTimeout } from "../lib/fetch-with-timeout";
 import { fromZodError } from "zod-validation-error";
@@ -35,7 +35,7 @@ export function register(app: Express) {
     }
   });
 
-  app.post("/api/geocode/property/:id", requireManagementAccess, async (req, res) => {
+  app.post("/api/geocode/property/:id", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
       if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });

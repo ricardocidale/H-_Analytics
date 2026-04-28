@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { requireChecker, requireAuth , getAuthUser } from "../auth";
+import { requireAdmin, requireAuth , getAuthUser } from "../auth";
 import { isAdminRole } from "@shared/constants";
 import { runVerificationWithEngine } from "../calculationChecker";
 import { withModelConstants } from "../finance/apply-model-constants";
@@ -32,7 +32,7 @@ export function register(app: Express) {
   // POST /api/calc/* — modular financial calculation endpoints
   // ────────────────────────────────────────────────────────────
 
-  app.post("/api/verification/run", requireChecker, async (req, res) => {
+  app.post("/api/verification/run", requireAdmin, async (req, res) => {
     try {
       const calcUser = getAuthUser(req);
       const allProperties = isAdminRole(calcUser.role)
@@ -83,7 +83,7 @@ export function register(app: Express) {
     }
   });
 
-  app.get("/api/verification/history", requireChecker, async (req, res) => {
+  app.get("/api/verification/history", requireAdmin, async (req, res) => {
     try {
       const history = await storage.getVerificationRuns(50);
       res.json(history);
@@ -92,7 +92,7 @@ export function register(app: Express) {
     }
   });
 
-  app.get("/api/verification/runs/:id", requireChecker, async (req, res) => {
+  app.get("/api/verification/runs/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
       if (!id) return res.status(400).json({ error: "Invalid run ID" });
@@ -104,7 +104,7 @@ export function register(app: Express) {
     }
   });
 
-  app.post("/api/verification/ai-review", requireChecker, async (req, res) => {
+  app.post("/api/verification/ai-review", requireAdmin, async (req, res) => {
     try {
       const history = await storage.getVerificationRuns(1);
       if (!history.length) {
@@ -243,7 +243,7 @@ export function register(app: Express) {
     }
   });
 
-  app.post("/api/calc/validate-identities", requireChecker, async (req, res) => {
+  app.post("/api/calc/validate-identities", requireAdmin, async (req, res) => {
     try {
       const validation = calcSchemas.financialIdentitiesSchema.safeParse(req.body);
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
@@ -254,7 +254,7 @@ export function register(app: Express) {
     }
   });
 
-  app.post("/api/calc/check-funding-gates", requireChecker, async (req, res) => {
+  app.post("/api/calc/check-funding-gates", requireAdmin, async (req, res) => {
     try {
       const validation = calcSchemas.fundingGatesSchema.safeParse(req.body);
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
@@ -265,7 +265,7 @@ export function register(app: Express) {
     }
   });
 
-  app.post("/api/calc/reconcile-schedule", requireChecker, async (req, res) => {
+  app.post("/api/calc/reconcile-schedule", requireAdmin, async (req, res) => {
     try {
       const validation = calcSchemas.scheduleReconcileSchema.safeParse(req.body);
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
@@ -276,7 +276,7 @@ export function register(app: Express) {
     }
   });
 
-  app.post("/api/calc/check-consistency", requireChecker, async (req, res) => {
+  app.post("/api/calc/check-consistency", requireAdmin, async (req, res) => {
     try {
       const validation = calcSchemas.assumptionConsistencySchema.safeParse(req.body);
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });
@@ -308,7 +308,7 @@ export function register(app: Express) {
     }
   });
 
-  app.post("/api/calc/verify-export", requireChecker, async (req, res) => {
+  app.post("/api/calc/verify-export", requireAdmin, async (req, res) => {
     try {
       const validation = calcSchemas.exportVerificationSchema.safeParse(req.body);
       if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error).message });

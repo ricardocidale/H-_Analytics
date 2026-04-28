@@ -104,8 +104,6 @@ describe("Endpoint Security Audit — Auth Middleware", () => {
     "requireAuth",
     "requireAdmin",
     "requireSuperAdmin",
-    "requireManagement",
-    "requireChecker",
   ];
 
   it("all POST endpoints have authentication middleware", () => {

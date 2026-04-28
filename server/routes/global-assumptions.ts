@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { requireAuth, requireManagementAccess, requireAdmin , getAuthUser } from "../auth";
+import { requireAuth, requireAdmin, getAuthUser } from "../auth";
 import { insertGlobalAssumptionsSchema, updateServiceTemplateSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { logActivity, logAndSendError, parseParamId } from "./helpers";
@@ -141,7 +141,7 @@ export function register(app: Express) {
     }
   });
 
-  app.put("/api/global-assumptions", requireManagementAccess, async (req, res) => {
+  app.put("/api/global-assumptions", requireAuth, async (req, res) => {
     try {
       const current = await storage.getGlobalAssumptions(getAuthUser(req).id);
       // Validate req.body first, then merge with current — prevents prototype pollution
@@ -247,7 +247,7 @@ export function register(app: Express) {
       .optional(),
   });
 
-  app.post("/api/global-assumptions/save-tab", requireManagementAccess, async (req, res) => {
+  app.post("/api/global-assumptions/save-tab", requireAuth, async (req, res) => {
     try {
       const parsed = saveTabSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -428,7 +428,7 @@ export function register(app: Express) {
     changeSource: z.enum(["user_override", "user_accepted_range", "manual_edit"]),
     reason: z.string().optional(),
   });
-  app.post("/api/assumption-change-log", requireManagementAccess, async (req, res) => {
+  app.post("/api/assumption-change-log", requireAuth, async (req, res) => {
     try {
       const parsed = assumptionChangeLogSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -477,7 +477,7 @@ export function register(app: Express) {
     }
   });
 
-  app.post("/api/assumption-acknowledgments", requireManagementAccess, async (req, res) => {
+  app.post("/api/assumption-acknowledgments", requireAuth, async (req, res) => {
     try {
       const parsed = acknowledgmentSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -493,7 +493,7 @@ export function register(app: Express) {
     }
   });
 
-  app.delete("/api/assumption-acknowledgments/:fieldName", requireManagementAccess, async (req, res) => {
+  app.delete("/api/assumption-acknowledgments/:fieldName", requireAuth, async (req, res) => {
     try {
       const entityType = String(req.query.entityType ?? "company");
       const entityId = Number(req.query.entityId ?? 0);
@@ -546,7 +546,7 @@ export function register(app: Express) {
     }
   });
 
-  app.get("/api/company/service-templates", requireManagementAccess, async (_req, res) => {
+  app.get("/api/company/service-templates", requireAuth, async (_req, res) => {
     try {
       const templates = await storage.getAllServiceTemplates();
       res.json(templates);

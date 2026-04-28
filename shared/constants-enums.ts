@@ -15,8 +15,6 @@ export const UserRole = {
   SUPER_ADMIN: "super_admin",
   ADMIN: "admin",
   USER: "user",
-  CHECKER: "checker",
-  INVESTOR: "investor",
 } as const;
 
 export function isAdminRole(role: string): boolean {

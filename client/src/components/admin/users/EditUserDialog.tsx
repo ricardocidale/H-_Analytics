@@ -65,8 +65,6 @@ export default function EditUserDialog({
               <SelectTrigger data-testid="select-edit-user-role"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value={UserRole.USER}>User</SelectItem>
-                <SelectItem value={UserRole.INVESTOR}>Investor</SelectItem>
-                <SelectItem value={UserRole.CHECKER}>Checker</SelectItem>
                 <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
               </SelectContent>
             </Select>

@@ -304,8 +304,6 @@ export default function InviteUsersDialog({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value={UserRole.USER}>User</SelectItem>
-                      <SelectItem value={UserRole.CHECKER}>Checker</SelectItem>
-                      <SelectItem value={UserRole.INVESTOR}>Investor</SelectItem>
                       <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
                     </SelectContent>
                   </Select>

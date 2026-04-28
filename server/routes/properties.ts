@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { storage } from "../storage";
-import { requireAuth, requireAdmin, requireManagementAccess, checkPropertyAccess, checkPropertyEditAccess, getAuthUser } from "../auth";
+import { requireAuth, requireAdmin, checkPropertyAccess, checkPropertyEditAccess, getAuthUser } from "../auth";
 import { insertPropertySchema, updatePropertySchema, type GlobalAssumptions, type ResearchValueEntry } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import { z } from "zod";
@@ -72,7 +72,7 @@ export function register(app: Express) {
     }
   });
 
-  app.post("/api/properties", requireManagementAccess, async (req, res) => {
+  app.post("/api/properties", requireAuth, async (req, res) => {
     try {
       const validation = insertPropertySchema.safeParse(req.body);
       if (!validation.success) {
@@ -203,7 +203,7 @@ export function register(app: Express) {
     }
   });
 
-  app.patch("/api/properties/:id/coords", requireManagementAccess, async (req, res) => {
+  app.patch("/api/properties/:id/coords", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
       if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });
@@ -250,7 +250,7 @@ export function register(app: Express) {
     }
   });
 
-  app.patch("/api/properties/:id", requireManagementAccess, async (req, res) => {
+  app.patch("/api/properties/:id", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
       if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });
@@ -434,7 +434,7 @@ export function register(app: Express) {
     }
   });
 
-  app.delete("/api/properties/:id", requireManagementAccess, async (req, res) => {
+  app.delete("/api/properties/:id", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
       if (!id) return res.status(400).json({ error: "Invalid property ID" });
@@ -475,7 +475,7 @@ export function register(app: Express) {
     }
   });
 
-  app.post("/api/properties/:id/seed-research", requireManagementAccess, async (req, res) => {
+  app.post("/api/properties/:id/seed-research", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
       if (!id) return res.status(400).json({ error: "Invalid property ID" });
@@ -581,7 +581,7 @@ export function register(app: Express) {
     text: z.string().min(1).max(5000),
   });
 
-  app.post("/api/properties/:id/rewrite-description", requireManagementAccess, async (req, res) => {
+  app.post("/api/properties/:id/rewrite-description", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
       if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });

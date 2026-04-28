@@ -217,7 +217,7 @@ export default function Profile() {
           }
         />
 
-        {(isAdminRole(user.role) || user.role === UserRole.CHECKER) && (
+        {isAdminRole(user.role) && (
           <Card className="bg-card border-border shadow-sm">
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">

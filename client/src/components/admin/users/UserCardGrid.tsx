@@ -15,9 +15,7 @@ import type { SortField, SortDir } from "./types";
 const ROLE_DESCRIPTIONS: Record<string, string> = {
   [UserRole.SUPER_ADMIN]: "Full system access. Cannot be edited or deleted by anyone.",
   [UserRole.ADMIN]: "Manages users, settings, and all portfolio data. Full read/write access.",
-  [UserRole.CHECKER]: "Auditor role. Can review financials and run verification checks.",
   [UserRole.USER]: "Standard user. Can view properties and work with scenarios they have access to.",
-  [UserRole.INVESTOR]: "Read-only access. Can view reports and shared scenarios but cannot edit data.",
 };
 
 interface UserCardGridProps {
@@ -50,15 +48,12 @@ function getInitials(name: string | null | undefined, email: string): string {
 function roleBadgeVariant(role: string): "default" | "secondary" | "outline" {
   if (role === UserRole.SUPER_ADMIN) return "default";
   if (role === UserRole.ADMIN) return "default";
-  if (role === UserRole.CHECKER) return "secondary";
   return "outline";
 }
 
 function roleAvatarColors(role: string): string {
   if (role === UserRole.SUPER_ADMIN) return "bg-amber-100 text-amber-800 border-amber-300";
   if (role === UserRole.ADMIN) return "bg-sky-100 text-sky-800 border-sky-300";
-  if (role === UserRole.CHECKER) return "bg-emerald-100 text-emerald-800 border-emerald-300";
-  if (role === UserRole.INVESTOR) return "bg-violet-100 text-violet-800 border-violet-300";
   return "bg-slate-100 text-slate-700 border-slate-300";
 }
 
