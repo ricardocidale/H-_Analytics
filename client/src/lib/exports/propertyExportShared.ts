@@ -90,6 +90,10 @@ export function buildIncomeRows(ctx: PropertyExportContext, isShort: boolean): E
     rows.push({ category: "Admin & General", values: yearlyDetails.map(y => y.expenseAdmin), indent: 1 });
     rows.push({ category: "IT", values: yearlyDetails.map(y => y.expenseIT), indent: 1 });
     rows.push({ category: "Utilities", values: yearlyDetails.map(y => y.expenseUtilitiesVar + y.expenseUtilitiesFixed), indent: 1 });
+    // ADR-009 Phase 1: USALI 12th Edition EWW Schedule (Energy, Water & Waste) —
+    // equals expenseUtilitiesVar + expenseUtilitiesFixed (engine.expenseEWW),
+    // surfaced as a discrete USALI-named row alongside the legacy Utilities line.
+    rows.push({ category: "Energy, Water & Waste", values: yearlyDetails.map(y => y.expenseUtilitiesVar + y.expenseUtilitiesFixed), indent: 1 });
     rows.push({ category: "Other Expenses", values: yearlyDetails.map(y => y.expenseOther + y.expenseOtherCosts), indent: 1 });
   }
   rows.push({ category: "Total Operating Expenses", values: yearlyDetails.map(y => y.totalExpenses - y.expenseFFE - y.expenseTaxes), isBold: true });

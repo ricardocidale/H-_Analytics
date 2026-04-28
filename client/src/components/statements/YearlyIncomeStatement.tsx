@@ -365,6 +365,18 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
             {fixedCostFormulaRows("utilities", yd.map((y) => y.expenseUtilitiesFixed), true)}
           </ExpandableLineItem>
 
+          {/* ADR-009 Phase 1: USALI 12th Edition EWW Schedule (Energy, Water & Waste).
+              Engine field `expenseEWW = expenseUtilitiesVar + expenseUtilitiesFixed`,
+              which equals the yearly aggregator's `expenseUtilities` total. Rendered
+              as a discrete USALI-named row per the 12th-edition schedule format. */}
+          {yd.some((y) => y.expenseUtilities !== 0) && (
+            <LineItem
+              label="Energy, Water & Waste"
+              values={yd.map((y) => y.expenseUtilities)}
+              tooltip="USALI 12th Edition EWW Schedule: Electricity, Water & Waste aggregate"
+            />
+          )}
+
           <ExpandableLineItem
             label="Other Costs"
             tooltip={`USALI fixed cost: ${pct(costRates.other)} of Year 1 base revenue (${fmt(baseMonthlyTotalRev)}/mo), escalating ${pct(fixedEscRate)}/yr.`}
@@ -382,6 +394,12 @@ export function YearlyIncomeStatement({ data, years = 5, startYear = 2026, prope
           <LineItem label="IT & Technology"           values={yd.map((y) => y.expenseIT)} tooltip="Fixed cost per USALI: anchored to Year 1 base revenue." />
           <LineItem label="Insurance"                 values={yd.map((y) => y.expenseInsurance)} tooltip="Property insurance: based on property value, escalating annually." />
           <LineItem label="Utilities"                 values={yd.map((y) => y.expenseUtilities)} tooltip="Split into variable (scales with revenue) and fixed (anchored to Year 1 base revenue)." />
+          {/* ADR-009 Phase 1: USALI 12th Edition EWW Schedule. Equals the engine's
+              expenseEWW (= expenseUtilitiesVar + expenseUtilitiesFixed), surfaced as
+              a discrete USALI-named row alongside the legacy Utilities line. */}
+          {yd.some((y) => y.expenseUtilities !== 0) && (
+            <LineItem label="Energy, Water & Waste"   values={yd.map((y) => y.expenseUtilities)} tooltip="USALI 12th Edition EWW Schedule: Electricity, Water & Waste aggregate" />
+          )}
           <LineItem label="Other Costs"               values={yd.map((y) => y.expenseOtherCosts)} tooltip="Fixed cost per USALI: anchored to Year 1 base revenue." />
         </>
       )}

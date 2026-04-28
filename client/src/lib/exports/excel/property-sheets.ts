@@ -49,6 +49,10 @@ export function buildPropertyISRows(yearly: YearlyAggregation[]): (string | numb
     ["  Sales & Marketing", ...yearly.map((y) => y.expenseMarketing)],
     ["  Property Operations", ...yearly.map((y) => y.expensePropertyOps)],
     ["  Utilities", ...yearly.map((y) => y.expenseUtilities)],
+    // ADR-009 Phase 1: USALI 12th Edition EWW Schedule (Energy, Water & Waste).
+    // expenseUtilities equals engine.expenseEWW (var + fixed); surfaced as a
+    // discrete USALI-named row alongside the legacy Utilities line.
+    ["  Energy, Water & Waste", ...yearly.map((y) => y.expenseUtilities)],
     ["  Administrative & General", ...yearly.map((y) => y.expenseAdmin)],
     ["  IT & Technology", ...yearly.map((y) => y.expenseIT)],
     ["  Insurance", ...yearly.map((y) => y.expenseInsurance)],
