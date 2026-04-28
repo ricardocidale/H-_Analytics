@@ -95,6 +95,12 @@ The operational guide for applying this to a draft string lives at
 chokepoint that enforces persona + voice on every Specialist-emitted
 string is the Voice Renderer (`.claude/skills/analyst/voice.md`).
 
+Tone calibration for LP-facing analyst copy (memos, walkthroughs,
+investor education, Q&A) lives at
+`.agents/skills/ricardo-hospitality-analyst/SKILL.md`. Apply that skill
+on top of the rules above when the surface is teaching an LP how the
+hotel/F&B engine works, not when emitting in-app Specialist strings.
+
 ## Forbidden Patterns
 
 - NEVER show empty fields without ranges (ask The Analyst on first visit)
