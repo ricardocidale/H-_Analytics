@@ -1,8 +1,10 @@
 /**
  * runFundingSpecialist — N+1 pipeline producing a complete AnalystVerdict for
- * the Funding tab (G6-P2).
+ * the Funding tab (G6-P3a).
  *
- * G6-P2 architecture (replaces single-shot Opus from v1):
+ * G6-P3a architecture (adds Prompt Engineer pre-stage to G6-P2 base):
+ *   0. Prompt Engineer (Gemini Flash): adapts panel system prompts to operator
+ *      context → quantAddendum + marketAddendum (Intelligence Bar req #8)
  *   1. Parallel panels:
  *      - Gemini Flash (quantitative): low/mid/high ranges + conviction from comparables
  *      - Claude Sonnet (market):      LP sentiment + risk flags + directional bias
@@ -13,12 +15,11 @@
  * Both panels run in parallel so latency is max(quant, market) + synthesis,
  * not quant + market + synthesis. `meta.vendorsUsed: ["anthropic", "google"]`
  * satisfies Intelligence Bar requirement #7 (vendor breadth ≥2).
+ * `meta.promptEngineerRunId` satisfies requirement #8.
  *
- * G6-P2 scope notes:
- *   - Convergence is quant-conviction-only. The market panel provides vendor
- *     breadth (#7) and enriches Opus context. Real cross-panel convergence
- *     (quant high vs. market cautious → widen or honest-fail) is G6-P3.
- *   - No verdict cache, no regress loop, no live comparables fetch (G6-P3).
+ * G6-P3a scope notes:
+ *   - PE runs once, no regress loop yet (G6-P3b).
+ *   - No verdict cache (G6-P3c), no cross-panel convergence (G6-P3b).
  *   - Public function signature is stable. Body changes; callers unaffected.
  *
  * Errors throw `Tier1UnavailableError`; the route handler degrades to Tier-0
@@ -32,7 +33,14 @@ import {
   DEFAULT_FUNDING_SPECIALIST_MODEL,
   DEFAULT_FUNDING_QUANT_PANEL_MODEL,
   DEFAULT_FUNDING_MARKET_PANEL_MODEL,
+  DEFAULT_FUNDING_PROMPT_ENGINEER_MODEL,
 } from "@shared/constants";
+import {
+  PromptEngineerOutputSchema,
+  buildPromptEngineerSystemPrompt,
+  buildPromptEngineerUserPrompt,
+  type PromptEngineerOutput,
+} from "./mgmt-co-funding-prompt-engineer";
 import { AI_GENERATION_TIMEOUT_MS } from "../../constants";
 import {
   buildFundingSystemPrompt,
@@ -89,12 +97,14 @@ import { getFieldRegistryEntry } from "../../../engine/analyst/registry/field-re
 const FUNDING_MODEL_ID = DEFAULT_FUNDING_SPECIALIST_MODEL;
 const QUANT_PANEL_MODEL_ID = DEFAULT_FUNDING_QUANT_PANEL_MODEL;
 const MARKET_PANEL_MODEL_ID = DEFAULT_FUNDING_MARKET_PANEL_MODEL;
+const PROMPT_ENGINEER_MODEL_ID = DEFAULT_FUNDING_PROMPT_ENGINEER_MODEL;
 
 // ── Token budgets ─────────────────────────────────────────────────────────────
 
 const FUNDING_MAX_OUTPUT_TOKENS = 4_000;
 const PANEL_MAX_OUTPUT_TOKENS = 2_000;
 const MARKET_PANEL_MAX_OUTPUT_TOKENS = 1_500;
+const PROMPT_ENGINEER_MAX_OUTPUT_TOKENS = 600;
 
 // ── Convergence policy (G6-P2 minimal — quant-conviction-only) ───────────────
 
@@ -320,6 +330,31 @@ async function resolveFundingMarketBenchmarks(
 
 // ── Private panel runners (extractable to cognitive façade in G6-P4) ─────────
 
+async function runPromptEngineer(
+  ctx: FundingPromptInputContext,
+  comparables: readonly ComparableRow[],
+  deps: RunFundingSpecialistDeps,
+  abortSignal: AbortSignal,
+  regressReason?: string,
+): Promise<{ output: PromptEngineerOutput; runId: string }> {
+  const googleModelFactory =
+    deps.getGoogleModel ??
+    ((modelId: string) =>
+      createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY ?? "" })(modelId));
+
+  const { object } = await generateObject({
+    model: googleModelFactory(PROMPT_ENGINEER_MODEL_ID),
+    schema: PromptEngineerOutputSchema,
+    system: buildPromptEngineerSystemPrompt(),
+    prompt: buildPromptEngineerUserPrompt(ctx, comparables, regressReason),
+    maxOutputTokens: PROMPT_ENGINEER_MAX_OUTPUT_TOKENS,
+    abortSignal,
+  });
+
+  const runId = `pe-funding-g6p3a-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  return { output: object, runId };
+}
+
 async function runQuantPanel(
   ctx: FundingPromptInputContext,
   benchmarks: AnalystWatchdogBenchmarks,
@@ -327,8 +362,10 @@ async function runQuantPanel(
   marketCalibration: MarketBenchmarkEntry[],
   deps: RunFundingSpecialistDeps,
   abortSignal: AbortSignal,
+  peAddendum?: string,
 ): Promise<QuantPanelOutput> {
-  const systemPrompt = buildQuantPanelSystemPrompt();
+  const baseSystemPrompt = buildQuantPanelSystemPrompt();
+  const systemPrompt = peAddendum ? `${peAddendum}\n\n${baseSystemPrompt}` : baseSystemPrompt;
   const userPrompt = buildQuantPanelUserPrompt(ctx, benchmarks, comparables, marketCalibration);
 
   const googleModelFactory =
@@ -352,8 +389,10 @@ async function runMarketPanel(
   comparables: readonly ComparableRow[],
   deps: RunFundingSpecialistDeps,
   abortSignal: AbortSignal,
+  peAddendum?: string,
 ): Promise<MarketPanelOutput> {
-  const systemPrompt = buildMarketPanelSystemPrompt();
+  const baseSystemPrompt = buildMarketPanelSystemPrompt();
+  const systemPrompt = peAddendum ? `${peAddendum}\n\n${baseSystemPrompt}` : baseSystemPrompt;
   const userPrompt = buildMarketPanelUserPrompt(ctx, comparables);
 
   const anthropicFactory = deps.getAnthropicModel ?? createAnthropic();
@@ -404,7 +443,7 @@ async function runSynthesisPanel(
     void _partial;
   }
   const output = await result.object;
-  const cognitiveRunId = `funding-g6p2-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  const cognitiveRunId = `funding-g6p3a-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
   return { output, cognitiveRunId };
 }
 
@@ -422,6 +461,7 @@ function buildHonestFailVerdict(
   persona: PersonaContext,
   deps: RunFundingSpecialistDeps,
   durationMs: number,
+  peRunId: string,
 ): AnalystVerdict {
   const voiceRenderer = createVoiceRenderer();
 
@@ -459,7 +499,7 @@ function buildHonestFailVerdict(
   });
 
   const surfaceVoice = voiceRenderer.renderSurface(dimensions);
-  const cognitiveRunId = `funding-g6p2-hf-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  const cognitiveRunId = `funding-g6p3a-hf-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
   return buildAnalystVerdict({
     specialistId: "mgmt-co.funding",
@@ -471,6 +511,8 @@ function buildHonestFailVerdict(
       cognitiveRunId,
       vendorsUsed: ["anthropic", "google"],
       cacheState: "miss",
+      promptEngineerRunId: peRunId,
+      regressCount: 0,
     },
     generatedAt: deps.now ? deps.now.toISOString() : undefined,
   });
@@ -494,12 +536,40 @@ export async function runFundingSpecialist(
   const marketCalibration = await resolveFundingMarketBenchmarks(ctx.persona.locale);
   const persona = asPersonaContext(ctx.persona);
 
+  // ── Phase 0: Prompt Engineer pre-stage (G6-P3a — Intelligence Bar req #8) ──
+  const peAbort = new AbortController();
+  const peTimer = setTimeout(
+    () =>
+      peAbort.abort(
+        new Error(`Funding G6-P3a PE timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`),
+      ),
+    AI_GENERATION_TIMEOUT_MS,
+  );
+
+  let peOutput: PromptEngineerOutput;
+  let peRunId: string;
+  try {
+    ({ output: peOutput, runId: peRunId } = await runPromptEngineer(
+      ctx,
+      comparables,
+      deps,
+      peAbort.signal,
+    ));
+    clearTimeout(peTimer);
+  } catch (err: unknown) {
+    clearTimeout(peTimer);
+    throw new Tier1UnavailableError(
+      `Funding G6-P3a prompt engineer failed: ${err instanceof Error ? err.message : String(err)}`,
+      err,
+    );
+  }
+
   // ── Phase 1: parallel panels ────────────────────────────────────────────
   const panelAbort = new AbortController();
   const panelTimer = setTimeout(
     () =>
       panelAbort.abort(
-        new Error(`Funding G6-P2 panels timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`),
+        new Error(`Funding G6-P3a panels timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`),
       ),
     AI_GENERATION_TIMEOUT_MS,
   );
@@ -508,14 +578,14 @@ export async function runFundingSpecialist(
   let marketOutput: MarketPanelOutput;
   try {
     [quantOutput, marketOutput] = await Promise.all([
-      runQuantPanel(ctx, benchmarks, comparables, marketCalibration, deps, panelAbort.signal),
-      runMarketPanel(ctx, comparables, deps, panelAbort.signal),
+      runQuantPanel(ctx, benchmarks, comparables, marketCalibration, deps, panelAbort.signal, peOutput.quantAddendum),
+      runMarketPanel(ctx, comparables, deps, panelAbort.signal, peOutput.marketAddendum),
     ]);
     clearTimeout(panelTimer);
   } catch (err: unknown) {
     clearTimeout(panelTimer);
     throw new Tier1UnavailableError(
-      `Funding G6-P2 panel phase failed: ${err instanceof Error ? err.message : String(err)}`,
+      `Funding G6-P3a panel phase failed: ${err instanceof Error ? err.message : String(err)}`,
       err,
     );
   }
@@ -530,6 +600,7 @@ export async function runFundingSpecialist(
       persona,
       deps,
       Date.now() - startMs,
+      peRunId,
     );
   }
 
@@ -538,7 +609,7 @@ export async function runFundingSpecialist(
   const opusTimer = setTimeout(
     () =>
       opusAbort.abort(
-        new Error(`Funding G6-P2 synthesis timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`),
+        new Error(`Funding G6-P3a synthesis timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`),
       ),
     AI_GENERATION_TIMEOUT_MS,
   );
@@ -605,6 +676,8 @@ export async function runFundingSpecialist(
         cognitiveRunId,
         vendorsUsed: ["anthropic", "google"],
         cacheState: "miss",
+        promptEngineerRunId: peRunId,
+        regressCount: 0,
       },
       generatedAt: deps.now ? deps.now.toISOString() : undefined,
     });
@@ -621,6 +694,8 @@ export async function runFundingSpecialist(
 // Cathedral graduation roadmap
 //
 // v1  (G1.5c)   chapel: single-shot Opus
-// G6-P2         N+1 panels (Gemini Flash + Sonnet) → vendor breadth ≥2
-// G6-P3         cache + regress + live comparables + real cross-panel convergence
+// G6-P2         N+1 panels (Gemini Flash + Sonnet) → vendor breadth ≥2 (req #7)
+// G6-P3a        Prompt Engineer pre-stage → meta.promptEngineerRunId (req #8)
+// G6-P3b        quality check + bounded regress loop (req #9)
+// G6-P3c        persistent verdict cache (ADR-004)
 // G6-P4         Tier-1 fully graduated (all 9 Intelligence Bar requirements green)

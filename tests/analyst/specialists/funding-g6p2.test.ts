@@ -188,19 +188,26 @@ const STUB_DEPS = {
 // ────────────────────────────────────────────────────────────────────────────
 // Helpers to set up generateObject / streamObject mocks
 
+function buildPeOutput() {
+  return {
+    quantAddendum: "Focus on multi-property scale; widen runway range for staged raises.",
+    marketAddendum: "LP risk flags should address staged capital availability risk.",
+    rationale: "Operator scale is above the comp-set median — addenda reflect that.",
+  };
+}
+
 function mockPanelCalls(
   quantOutput: QuantPanelOutput,
   marketOutput: MarketPanelOutput,
 ): void {
-  // generateObject is called twice in parallel: once for quant (Google), once
-  // for market (Anthropic). The mock returns based on call order.
+  // generateObject is called three times: first for PE (Google Flash), then
+  // quant panel (Gemini Flash), then market panel (Sonnet). G6-P3a adds the
+  // PE pre-stage before the parallel panel calls.
   let callCount = 0;
   vi.mocked(generateObject).mockImplementation(async () => {
     callCount++;
-    // First call = quant panel (Gemini Flash); second = market panel (Sonnet).
-    // Order is not guaranteed since they're parallel, but fixtures are
-    // schema-valid for both so we can return either on either call.
-    if (callCount === 1) return { object: quantOutput, finishReason: "stop" } as never;
+    if (callCount === 1) return { object: buildPeOutput(), finishReason: "stop" } as never;
+    if (callCount === 2) return { object: quantOutput, finishReason: "stop" } as never;
     return { object: marketOutput, finishReason: "stop" } as never;
   });
 }
@@ -236,13 +243,13 @@ describe("runFundingSpecialist G6-P2 N+1 pipeline", () => {
     expect(verdict.specialistId).toBe("mgmt-co.funding");
   });
 
-  it("happy path: synthesis called once, panels called twice total", async () => {
+  it("happy path: synthesis called once, generateObject called 3 times (PE + quant + market)", async () => {
     mockPanelCalls(buildQuantOutput("high"), buildMarketOutput());
     mockSynthesisCall(buildSynthesisOutput());
 
     await runFundingSpecialist(CTX, BENCHMARKS, COMPARABLES, STUB_DEPS);
 
-    expect(vi.mocked(generateObject)).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(generateObject)).toHaveBeenCalledTimes(3);
     expect(vi.mocked(streamObject)).toHaveBeenCalledTimes(1);
   });
 

@@ -219,15 +219,25 @@ function buildValidMarketOutput(): MarketPanelOutput {
 
 // ── Mock helpers ──────────────────────────────────────────────────────────────
 
-/** Set up generateObject to return quant + market panel outputs (two calls). */
+function buildValidPeOutput() {
+  return {
+    quantAddendum: "Focus on multi-property scale; widen runway range for staged raises.",
+    marketAddendum: "LP risk flags should address staged capital availability risk.",
+    rationale: "Operator scale is above the comp-set median — addenda reflect that.",
+  };
+}
+
+/** Set up generateObject to return PE + quant + market outputs (three calls in order). */
 function mockPanelCalls(
   quantOutput: QuantPanelOutput = buildValidQuantOutput(),
   marketOutput: MarketPanelOutput = buildValidMarketOutput(),
+  peOutput = buildValidPeOutput(),
 ): void {
   let callCount = 0;
   vi.mocked(generateObject).mockImplementation(async () => {
     callCount++;
-    if (callCount === 1) return { object: quantOutput, finishReason: "stop" } as never;
+    if (callCount === 1) return { object: peOutput, finishReason: "stop" } as never;
+    if (callCount === 2) return { object: quantOutput, finishReason: "stop" } as never;
     return { object: marketOutput, finishReason: "stop" } as never;
   });
 }

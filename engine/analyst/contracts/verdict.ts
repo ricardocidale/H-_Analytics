@@ -303,6 +303,10 @@ export const AnalystVerdictMetaSchema = z.object({
   fallbackReason: z.enum(FALLBACK_REASONS).optional(),
   vendorsUsed: z.array(z.string().min(1)).optional(),
   cacheState: z.enum(["hit", "miss"]).optional(),
+  /** G6-P3a: ID of the Prompt Engineer pre-stage run (Intelligence Bar req #8). */
+  promptEngineerRunId: z.string().optional(),
+  /** G6-P3b: number of regress iterations (0 = first-pass success). */
+  regressCount: z.number().int().min(0).optional(),
 });
 export type AnalystVerdictMeta = z.infer<typeof AnalystVerdictMetaSchema>;
 
