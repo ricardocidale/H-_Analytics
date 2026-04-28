@@ -397,6 +397,5 @@ export function useFocusFieldFromUrl(opts: FocusFieldOptions = {}): void {
     // are read off the live `opts` object inside the effect — callers pass
     // a stable literal, so the hook would re-fire spuriously if we listed
     // them in the deps.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 }

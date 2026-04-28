@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { useGlobalAssumptions } from "@/lib/api/admin";
-import { UserRole, isAdminRole } from "@shared/constants";
+import { isAdminRole } from "@shared/constants";
 import { Switch } from "@/components/ui/switch";
 import { Link } from "wouter";
 import type { ColorMode, BgAnimation, FontPreference, AppearanceDefaults } from "@/lib/theme/appearance";
