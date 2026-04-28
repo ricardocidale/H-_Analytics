@@ -20,6 +20,7 @@ import {
   REFERENCE_RANGE_DOMAINS,
   type ReferenceRange,
   type ReferenceRangeDomain,
+  type InsertReferenceRange,
 } from "@shared/schema/reference-range";
 
 export interface ReferenceRangeFilter {
@@ -131,6 +132,44 @@ export class ReferenceRangeStorage {
       totalActive,
       totalArchived,
     };
+  }
+
+  // ── Phase 2: write paths ────────────────────────────────────────────
+
+  async create(data: InsertReferenceRange): Promise<ReferenceRange> {
+    const now = new Date();
+    const [row] = await db
+      .insert(referenceRanges)
+      .values({ ...data, createdAt: now, updatedAt: now })
+      .returning();
+    return row;
+  }
+
+  async update(id: number, data: Partial<InsertReferenceRange>): Promise<ReferenceRange | undefined> {
+    const [row] = await db
+      .update(referenceRanges)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(referenceRanges.id, id))
+      .returning();
+    return row;
+  }
+
+  async archive(id: number): Promise<ReferenceRange | undefined> {
+    const [row] = await db
+      .update(referenceRanges)
+      .set({ archivedAt: new Date(), updatedAt: new Date() })
+      .where(eq(referenceRanges.id, id))
+      .returning();
+    return row;
+  }
+
+  async restore(id: number): Promise<ReferenceRange | undefined> {
+    const [row] = await db
+      .update(referenceRanges)
+      .set({ archivedAt: null, updatedAt: new Date() })
+      .where(eq(referenceRanges.id, id))
+      .returning();
+    return row;
   }
 }
 

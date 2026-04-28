@@ -7,8 +7,9 @@
  * For now this surface just lets admins inspect the corpus — it sets
  * the expectation for layout and confirms the API + sidebar wiring.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import {
   Select,
@@ -19,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 type ReferenceRangeRow = {
   id: number;
@@ -88,11 +90,28 @@ function formatJurisdiction(row: ReferenceRangeRow): string {
   return parts.join(" · ");
 }
 
+const ANALYST_STEPS: readonly string[] = [
+  "The Analyst is cross-referencing live market data…",
+  "Updating KPI benchmarks from AirROI…",
+  "Refreshing macro indicators from FRED…",
+  "Done. Ranges updated.",
+] as const;
+
 export default function ReferenceRangesTab() {
   const [domain, setDomain] = useState<string>(ANY);
   const [country, setCountry] = useState<string>(ANY);
   const [year, setYear] = useState<string>(ANY);
   const [metricSearch, setMetricSearch] = useState("");
+  const [analystStep, setAnalystStep] = useState<number | null>(null);
+  const [analystError, setAnalystError] = useState<string | null>(null);
+  const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(() => {
+    return () => {
+      for (const t of timeoutsRef.current) clearTimeout(t);
+      timeoutsRef.current = [];
+    };
+  }, []);
 
   const queryParams = useMemo(() => {
     const p = new URLSearchParams();
@@ -135,6 +154,57 @@ export default function ReferenceRangesTab() {
 
   const hasActiveFilter = domain !== ANY || country !== ANY || year !== ANY || metricSearch.trim().length > 0;
 
+  const analystBusy = analystStep !== null && analystStep < ANALYST_STEPS.length - 1;
+
+  const askTheAnalyst = async () => {
+    if (analystStep !== null) return;
+    setAnalystError(null);
+
+    for (const t of timeoutsRef.current) clearTimeout(t);
+    timeoutsRef.current = [];
+
+    // Probe the refresh endpoint FIRST so we don't fake a successful
+    // animation when the backend isn't wired yet. CC owns the
+    // server-side POST /api/admin/reference-ranges/refresh route
+    // (Phase 2). Until it ships, this button surfaces an honest
+    // "not available yet" state instead of pretending to refresh.
+    try {
+      const res = await apiRequest("POST", "/api/admin/reference-ranges/refresh");
+      // Drain the body so the connection closes cleanly; we don't use it.
+      try { await res.json(); } catch { /* empty body is fine */ }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      // 404 / 405 → endpoint not yet wired (expected during Phase 1).
+      // Any other error → surface it as-is.
+      const notWired = /\b404\b|\b405\b|Not Found|Method Not Allowed/i.test(message);
+      setAnalystError(
+        notWired
+          ? "Analyst refresh ships in Phase 2. The grid below is current as of the last manual update."
+          : `Analyst refresh failed: ${message}`,
+      );
+      // Auto-clear the error after 6s so the UI doesn't get stuck.
+      timeoutsRef.current.push(setTimeout(() => setAnalystError(null), 6000));
+      return;
+    }
+
+    setAnalystStep(0);
+    timeoutsRef.current.push(setTimeout(() => setAnalystStep(1), 2000));
+    timeoutsRef.current.push(setTimeout(() => setAnalystStep(2), 4000));
+    timeoutsRef.current.push(setTimeout(() => setAnalystStep(3), 6000));
+    timeoutsRef.current.push(
+      setTimeout(() => {
+        queryClient.invalidateQueries({
+          queryKey: ["/api/admin/reference-ranges", queryParams],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["/api/admin/reference-ranges/facets"],
+        });
+      }, 8000),
+    );
+    // Keep the "Done." line visible ~3s after t=6s, then clear.
+    timeoutsRef.current.push(setTimeout(() => setAnalystStep(null), 9000));
+  };
+
   return (
     <div className="space-y-4" data-testid="reference-ranges-tab">
       <Card className="p-4">
@@ -149,17 +219,57 @@ export default function ReferenceRangesTab() {
                 wiring land in Phases 2–4.
               </p>
             </div>
-            {facets && (
-              <div className="text-right text-xs text-muted-foreground whitespace-nowrap">
-                <div data-testid="text-totals-active">
-                  <span className="font-medium text-foreground">{facets.totalActive}</span> active
+            <div className="flex flex-col items-end gap-2">
+              <Button
+                size="sm"
+                variant="default"
+                onClick={askTheAnalyst}
+                disabled={analystStep !== null}
+                data-testid="button-ask-analyst"
+              >
+                <Sparkles className="h-3.5 w-3.5 mr-1.5 text-primary-foreground" />
+                Ask The Analyst
+              </Button>
+              {facets && (
+                <div className="text-right text-xs text-muted-foreground whitespace-nowrap">
+                  <div data-testid="text-totals-active">
+                    <span className="font-medium text-foreground">{facets.totalActive}</span> active
+                  </div>
+                  <div data-testid="text-totals-archived">
+                    <span className="font-medium text-foreground">{facets.totalArchived}</span> archived
+                  </div>
                 </div>
-                <div data-testid="text-totals-archived">
-                  <span className="font-medium text-foreground">{facets.totalArchived}</span> archived
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
+
+          {analystStep !== null && (
+            <div
+              className="flex items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-xs"
+              data-testid="status-analyst-step"
+              role="status"
+              aria-live="polite"
+            >
+              <Sparkles
+                className={`h-3.5 w-3.5 text-primary ${analystBusy ? "animate-pulse" : ""}`}
+              />
+              <span data-testid={`text-analyst-step-${analystStep}`}>
+                {ANALYST_STEPS[analystStep]}
+              </span>
+            </div>
+          )}
+
+          {analystError !== null && analystStep === null && (
+            <div
+              className="flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-900 dark:text-amber-200"
+              data-testid="status-analyst-error"
+              role="status"
+              aria-live="polite"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+              <span data-testid="text-analyst-error">{analystError}</span>
+            </div>
+          )}
 
           <div className="flex flex-wrap items-center gap-2">
             <Select value={domain} onValueChange={setDomain}>

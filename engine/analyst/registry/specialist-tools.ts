@@ -60,6 +60,30 @@ export type ToolLastBuiltSource =
 
 export type ToolKind = "deterministic" | "llm" | "hybrid";
 
+/**
+ * Phase-3 callable contract. A registry descriptor — NOT a runtime fetcher.
+ *
+ * When a tool exposes a callable name (e.g. `lookupReferenceRange`) the
+ * agent runtime that consumes SPECIALIST_TOOLS in Phase 3 builds the
+ * actual call site against this contract. For now we just declare the
+ * shape so downstream consumers (Specialist authors, the Resources
+ * surface, the Phase-3 runtime) can discover what's available without
+ * grepping for ad-hoc strings.
+ *
+ * `inputSchema` is intentionally a `Record<string, string>` of free-text
+ * type descriptions rather than a Zod schema: the metadata module must
+ * stay free of runtime imports beyond the catalog (see file header), and
+ * the human-readable form survives serialization to the admin API.
+ */
+export interface SpecialistToolCallable {
+  /** Stable camelCase function name the Phase-3 runtime will register. */
+  readonly name: string;
+  /** 1–2 sentence description of what the call does and what it returns. */
+  readonly description: string;
+  /** Free-text per-field type descriptions. */
+  readonly inputSchema: Readonly<Record<string, string>>;
+}
+
 export interface SpecialistTool {
   /** Stable kebab-case identifier. Survives renames of the underlying file. */
   readonly id: string;
@@ -93,6 +117,9 @@ export interface SpecialistTool {
    *  `image-enhancement-api`). Tools without any Resource slug still
    *  appear in the admin registry endpoint but don't decorate any row. */
   readonly resourceSlugs?: readonly string[];
+  /** Phase-3 callable contract. See `SpecialistToolCallable` above —
+   *  metadata only; the runtime call site lands in Phase 3. */
+  readonly callable?: SpecialistToolCallable;
 }
 
 /**
@@ -217,6 +244,21 @@ export const SPECIALIST_TOOLS: readonly SpecialistTool[] = [
     calledBy: [],
     sourceFile: "server/storage/reference-range.ts",
     lastBuiltSource: { kind: "build-time" },
+    // Phase-3 callable contract. Registry descriptor only — the runtime
+    // call site lands when Phase 3 wires the agent runtime against
+    // SPECIALIST_TOOLS. For now, just declare the contract so consumers
+    // can find it without grepping for ad-hoc strings.
+    callable: {
+      name: "lookupReferenceRange",
+      description:
+        "Look up the best-matching reference range row for a metric in a jurisdiction. Returns low/mid/high with source attribution. Phase-3 best-match resolver — for now returns the first GET /api/admin/reference-ranges result (most-specific first wins server-side ordering when present; otherwise broader rows are acceptable fallbacks).",
+      inputSchema: {
+        domain: "kpi | labor | macro | tax | depreciation | regulation | financing | mgmt-fee | reserve | other",
+        metricKey: "string (e.g. 'adr', 'occupancy', 'inflation_rate')",
+        country: "ISO-3166 alpha-2 (e.g. 'US')",
+        market: "optional city/MSA narrowing (e.g. 'Miami')",
+      },
+    },
   },
   {
     id: "openai-image-fallback",
