@@ -138,7 +138,7 @@ export default function PropertyExitDefaultsCard({ formData, onChange, global, r
           <div className="space-y-3 rounded-md border border-border/60 bg-muted/20 p-4">
             <div className="flex items-center gap-2">
               <h4 className="text-sm font-medium text-foreground">Exit Revenue Multiple</h4>
-              <InfoTooltip text="Sanity-check the property's exit valuation against the admin-managed revenue-multiple band for the chosen industry vertical. Gaspar flags multiples outside the band and recommends the midpoint." />
+              <InfoTooltip text="Sanity-check the property's exit valuation against the admin-managed revenue-multiple band for the chosen industry vertical. The Analyst flags multiples outside the band and recommends the midpoint." />
             </div>
             <p className="text-xs text-muted-foreground -mt-1">
               Cross-check for cap-rate exits. Bands are maintained by an admin in Analyst Tables.

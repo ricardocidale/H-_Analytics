@@ -5,7 +5,7 @@
  * banner and a meta footer.
  *
  * Visual language mirrors `AnalystRangeIndicator` (severity-tinted accents,
- * Gaspar voice) but at full-card scale so the user can read the Analyst's
+ * Analyst voice) but at full-card scale so the user can read the Analyst's
  * structured argument inline below the inputs that produced it.
  *
  * Action handling: each dimension can carry `actions[]` (e.g. `set-value`,
@@ -229,7 +229,7 @@ function DimensionCard({
               </span>
             </TooltipTrigger>
             <TooltipContent side="top" className="max-w-xs text-xs">
-              <p className="font-semibold mb-1">Gaspar suggests {range}</p>
+              <p className="font-semibold mb-1">The Analyst suggests {range}</p>
               {dimension.range?.mid != null ? (
                 <p className="text-muted-foreground">
                   Midpoint: {dimension.range.unit === "%"

@@ -192,11 +192,48 @@ Developing conviction with an honest explanation beats High conviction with thin
 | The company | Norfolk AI | "Norfolk Group" |
 | The management company | Hospitality Management Co (seed) | Confusing with app name |
 | The technology | Norfolk AI Engine | "pipeline", "backend" |
-| Intelligence agent | The Analyst | "the analysts" (plural), "your analysts" |
+| Intelligence agent | The Analyst | "the analysts" (plural), "your analysts", "Gaspar" (codename) |
 | Companion agent | Rebecca | "Marcela", "the chatbot", "the bot" |
 | Research button | "Ask the Analyst" | "Regenerate Intelligence" |
 | Status labels | Up to date / Due for review / Overdue / Not yet reviewed | Fresh / Stale |
 | Quality measure | Conviction: High / Moderate / Developing | Confidence Score: 78% |
+
+### Specialist Naming — Role, Not Codename
+
+The orchestrator (The Analyst) and the 12 Specialists each carry an
+internal human codename used in code, audit tables, runtime tabs, and
+operator logs. **In user-facing copy, always address them by ROLE** —
+never by their codename.
+
+| Specialist | Role label (use this) | Codename (NEVER in user-facing copy) |
+|---|---|---|
+| Orchestrator | The Analyst | Gaspar |
+| Funding (A) | The Funding Specialist | Ana |
+| Revenue (B) | The Revenue Specialist | Bia |
+| ICP Intelligence (C) | The ICP Specialist | Cecília |
+| Property Risk (D) | The Risk Specialist | Daniela |
+| Executive Summary (E) | The Executive Summary Specialist | Eloá |
+| Photo Enhancer (F) | The Photo Specialist | Fernanda |
+| Portfolio Watchdog (G) | The Watchdog | Giovanna |
+| Tax Authority (H) | The Tax Specialist | Helena |
+| Macro Indicators (I) | The Macro Specialist | Isadora |
+| Depreciation (J) | The Depreciation Specialist | Júlia |
+| Reporting Conventions (K) | The Reporting Specialist | Kamila |
+| Resource Builder (L) | The Resource Builder | Letícia |
+
+**Where codenames ARE allowed:**
+- Admin pages under `/admin/*` and the AI Intelligence realm
+  (`/ai-intelligence`) — the Specialist audit table, Identity tab,
+  Runtime tab, Sources tab, etc.
+- Internal server logs and dev console output.
+- Code comments and internal documentation describing the engine.
+
+**Enforcement:** the test
+`tests/audit/specialist-human-names.test.ts` fails the build if any
+Specialist codename appears in a non-admin file under `client/src/*`.
+If you legitimately need a codename in a user-facing surface (you
+won't — the role label is always correct), update the allowlist in
+that test with a one-line justification.
 
 ### Loading State Verbs
 

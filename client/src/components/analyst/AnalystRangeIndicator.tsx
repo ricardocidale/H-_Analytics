@@ -52,7 +52,7 @@ export function AnalystRangeIndicator({ fieldKey, currentValue, guidance, isPerc
           </span>
         </TooltipTrigger>
         <TooltipContent side="top" className="max-w-xs text-xs">
-          <p className="font-semibold mb-1">Gaspar is withholding advice</p>
+          <p className="font-semibold mb-1">The Analyst is withholding advice</p>
           <p className="text-muted-foreground">{message}</p>
         </TooltipContent>
       </Tooltip>
@@ -90,7 +90,7 @@ export function AnalystRangeIndicator({ fieldKey, currentValue, guidance, isPerc
         </span>
       </TooltipTrigger>
       <TooltipContent side="top" className="max-w-xs text-xs">
-        <p className="font-semibold mb-1">Gaspar suggests {rangeStr}</p>
+        <p className="font-semibold mb-1">The Analyst suggests {rangeStr}</p>
         <p className="text-muted-foreground">Confidence: {confidenceLabel}</p>
         {record.sourceName && <p className="text-muted-foreground">Source: {record.sourceName}</p>}
         {record.reasoning && <p className="mt-1 text-muted-foreground">{record.reasoning}</p>}

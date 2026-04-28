@@ -1,14 +1,14 @@
 /**
  * TabActions.tsx — Post-save warnings panel for Company Assumptions tabs.
  *
- * History: this file used to render a per-tab action bar with Gaspar
+ * History: this file used to render a per-tab action bar with The Analyst
  * and Save buttons inline. As of the v2 refactor (April 2026) those buttons
  * live in the tab strip's `rightContent` slot (see `CurrentThemeTab` in
  * `client/src/components/ui/tabs.tsx`), and only the post-save validation
  * warnings remain here.
  *
  * Behavior:
- *   • If a saved field falls outside Gaspar's recommended range we
+ *   • If a saved field falls outside The Analyst's recommended range we
  *     surface inline "Adjust" / "Keep my value" prompts.
  *   • "Keep" writes to assumption_change_log with source = "user_override"
  *     so the override is auditable.
@@ -134,7 +134,7 @@ export function TabWarningsPanel({ companyId, warnings, onDismissWarning }: TabW
     <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
       <div className="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-400">
         <IconAlertTriangle className="w-4 h-4" />
-        Gaspar flagged {warnings.length} value{warnings.length === 1 ? "" : "s"} outside the expected range
+        The Analyst flagged {warnings.length} value{warnings.length === 1 ? "" : "s"} outside the expected range
       </div>
       <ul className="space-y-1.5">
         {warnings.map((w) => (

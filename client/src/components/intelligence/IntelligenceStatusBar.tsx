@@ -36,12 +36,12 @@ export function computeFreshnessStatus(opts: {
   isGenerating: boolean;
 }): { status: FreshnessStatus; reason: string; daysAgo: number | null } {
   if (opts.isGenerating) {
-    return { status: "running", reason: "Gaspar is studying your assumptions", daysAgo: null };
+    return { status: "running", reason: "The Analyst is studying your assumptions", daysAgo: null };
   }
 
   const updatedAt = safeTimestamp(opts.researchUpdatedAt);
   if (updatedAt === null) {
-    return { status: "missing", reason: "Gaspar hasn't reviewed these assumptions yet", daysAgo: null };
+    return { status: "missing", reason: "The Analyst hasn't reviewed these assumptions yet", daysAgo: null };
   }
 
   const daysAgo = Math.max(0, Math.floor((Date.now() - updatedAt) / (1000 * 60 * 60 * 24)));
@@ -157,7 +157,7 @@ export function IntelligenceStatusBar({
     ? bannerState === "saving"
       ? "Saving your assumptions"
       : bannerState === "reviewing"
-        ? "Gaspar is reviewing the change"
+        ? "The Analyst is reviewing the change"
         : bannerState === "flagged"
           ? `${flaggedCount} value${flaggedCount === 1 ? "" : "s"} outside the expected range`
           : bannerState === "clean"

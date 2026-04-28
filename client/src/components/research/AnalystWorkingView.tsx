@@ -1,14 +1,14 @@
 /**
- * AnalystWorkingView.tsx — Inline "Gaspar is studying" view.
+ * AnalystWorkingView.tsx — Inline "The Analyst is studying" view.
  *
  * Replaces the old "Consulting sources" modal with an inline section that
  * takes over the property edit content area while research runs. Shows what
- * Gaspar is FINDING (discoveries), not what it's DOING (process steps).
+ * The Analyst is FINDING (discoveries), not what it's DOING (process steps).
  *
  * Three zones:
  *   1. Analyst header — pulsing brain avatar, progress, data-point counter
  *   2. Discovery feed — scrolling, FadeInUp on each new line
- *   3. Source connections — animated SVG beams from sources to Gaspar
+ *   3. Source connections — animated SVG beams from sources to The Analyst
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -100,7 +100,7 @@ export function AnalystWorkingView({
 
         <div className="flex-1 min-w-0">
           <h3 className="text-base sm:text-lg font-semibold text-zinc-100" data-testid="text-analyst-studying">
-            Gaspar is studying <span className="text-amber-400">{propertyName}</span>
+            The Analyst is studying <span className="text-amber-400">{propertyName}</span>
           </h3>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-400 mt-1.5">
             <Progress value={progressPercent} className="w-32 h-1.5 bg-zinc-800 [&>div]:bg-amber-500" />
@@ -173,7 +173,7 @@ export function AnalystWorkingView({
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// Source connection map — animated SVG beams from sources → Gaspar
+// Source connection map — animated SVG beams from sources → The Analyst
 // ───────────────────────────────────────────────────────────────────────────
 
 function SourceConnectionMap({ sources }: { sources: AnalystSource[] }) {
@@ -187,7 +187,7 @@ function SourceConnectionMap({ sources }: { sources: AnalystSource[] }) {
           ))}
         </div>
 
-        {/* Gaspar node (center) */}
+        {/* The Analyst node (center) */}
         <div className="relative shrink-0">
           <span className="absolute inset-0 rounded-full bg-amber-500/20 blur-xl" />
           <div className="relative w-14 h-14 rounded-full bg-zinc-900 border border-amber-500/40 flex items-center justify-center shadow-[0_0_24px_rgba(245,158,11,0.25)]">
@@ -243,7 +243,7 @@ function OutputPill({ active }: { active: boolean }) {
 }
 
 /**
- * Decorative animated SVG beams connecting source pills to Gaspar.
+ * Decorative animated SVG beams connecting source pills to The Analyst.
  * Uses absolute positioning with relative percentages — works without measuring refs.
  */
 function BeamsOverlay({ sources }: { sources: AnalystSource[] }) {
