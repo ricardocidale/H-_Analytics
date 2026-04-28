@@ -194,6 +194,24 @@ export function buildFundingUserPrompt(
           )
           .join("\n");
 
+  const icpBlock = ctx.icpModel
+    ? `# Management company model (ICP — user-selected anchor)
+
+Model ${ctx.icpModel.tier}: ${ctx.icpModel.label} — ${ctx.icpModel.tagline}
+  Properties managed:   ${ctx.icpModel.propertyCount.min}–${ctx.icpModel.propertyCount.max} (typical ${ctx.icpModel.propertyCount.typical})
+  Revenue ramp:         ${ctx.icpModel.rampMonths}mo to first meaningful management fee revenue
+  Monthly burn:         $${(ctx.icpModel.monthlyBurnUsd / 1000).toFixed(0)}K overhead (excl. partner comp)
+  Partners:             ${ctx.icpModel.partnerCount} × $${(ctx.icpModel.partnerCompMonthlyUsd / 1000).toFixed(0)}K/mo
+  Typical raise:        $${(ctx.icpModel.targetRaiseUsd.min / 1_000_000).toFixed(1)}M–$${(ctx.icpModel.targetRaiseUsd.max / 1_000_000).toFixed(1)}M (typical $${(ctx.icpModel.targetRaiseUsd.typical / 1_000_000).toFixed(1)}M)
+  Tranches:             ${ctx.icpModel.typicalTrancheCount} (${ctx.icpModel.trancheGapMonths}mo gap)
+  Runway buffer:        ${ctx.icpModel.runwayBufferMonths}mo model anchor
+  Sizing overshoot:     ${(ctx.icpModel.sizingOvershootPct * 100).toFixed(0)}% model anchor
+  Revenue ramp delay:   ${ctx.icpModel.revenueRampDelayMonths}mo model anchor
+  Burn flex-down:       ${(ctx.icpModel.burnFlexDownPct * 100).toFixed(0)}% model anchor
+
+Use this model as a SECONDARY anchor — the user's saved values above take precedence where present. When user values are missing or at default, anchor ranges to this model. Adjust for any delta between user's actual property count (${portfolio.propertyCount}) and this model's typical (${ctx.icpModel.propertyCount.typical}).`
+    : "# Management company model (ICP)\n\n  (no model selected — user has not chosen A/B/C)";
+
   return `# Persona
 
 ${personaLine}
@@ -201,6 +219,8 @@ ${personaLine}
 # Portfolio aggregate
 
 ${portfolioLine}
+
+${icpBlock}
 
 # User's currently-saved Funding-tab values
 

@@ -43,6 +43,7 @@ import {
 import type { DimensionInput } from "../../../engine/analyst/cognitive/verdict-reconstructor";
 import type { CapitalRaiseInputs } from "../../../engine/watchdog/capitalRaiseEvaluator";
 import type { CanonicalResearchField } from "../synthesis-schema";
+import type { IcpModelProfile } from "@shared/constants-benchmarks";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Funding dimension taxonomy (5 keys, locked to specialist-catalog.ts entry A)
@@ -165,6 +166,8 @@ export interface FundingPromptInputContext {
   inputs: CapitalRaiseInputs;
   portfolio: PortfolioAggregate;
   persona: FundingPersonaContext;
+  /** Selected ICP management company model (A/B/C). Null = not yet selected. */
+  icpModel?: IcpModelProfile | null;
   /** Composition references; empty in G1's first run. */
   priorVerdicts?: readonly PriorVerdictRef[];
 }
