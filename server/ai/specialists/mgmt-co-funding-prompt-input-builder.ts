@@ -186,7 +186,7 @@ export interface FundingPromptInput {
 }
 
 const FUNDING_INTENT =
-  "Funding raise sizing + tranche pacing + runway adequacy for management company capital stack";
+  "Is the amount being raised enough, and is it arriving at the right time? Analyze raise sizing, tranche pacing, runway adequacy, and revenue ramp coverage for the management company capital stack. Direct the user to the Cash Flow Statement when engine output is needed to confirm sufficiency.";
 
 /**
  * Assemble the structured input pack the Prompt Engineer LLM stage consumes.
