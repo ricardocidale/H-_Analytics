@@ -1,0 +1,291 @@
+# CodeRabbit configuration for H+ Analytics.
+#
+# Schema: https://docs.coderabbit.ai/reference/yaml-template
+#
+# This config tunes CodeRabbit so its PR comments are high-signal for THIS
+# repo. The standing review prompt — what CodeRabbit and humans should look
+# for — lives in docs/architecture/CODE_REVIEW_BASELINE.md. Keep this file
+# narrow: filters + per-path instructions + tool toggles. Do NOT restate
+# rules here that already live in eslint.config.mjs, .claude/rules/, or the
+# ADRs; link to them so CodeRabbit defers to the canonical source.
+#
+# Repo install is a separate manual step (see CODE_REVIEW_BASELINE.md §5).
+
+language: en-US
+tone_instructions: >-
+  Senior engineering tone. Be precise, specific, and concise. Lead with the
+  invariant being violated (link the canonical rule path) and the smallest
+  fix. Skip style nits — Prettier and ESLint own those. Skip findings already
+  failing CI (lint:strict, check, audit:quick, verify:summary). Do not
+  re-derive opinions on architecture; defer to docs/architecture/ADR files.
+early_access: false
+
+reviews:
+  profile: assertive
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: true
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+  # CODEOWNERS already routes Analyst/engine/ADR paths to architects;
+  # CodeRabbit honors the same routing for review attention.
+  labeling_instructions: []
+
+  # Knowledge base: point CodeRabbit at the standing review prompt.
+  # docs/architecture/CODE_REVIEW_BASELINE.md is the canonical baseline
+  # for every review — it links to ESLint rules, .claude/rules/, ADRs,
+  # and skills so CodeRabbit's reviews stay aligned with
+  # locally-enforced gates instead of re-deriving opinions.
+  path_instructions:
+    - path: "**/*"
+      instructions: |
+        Standing review baseline for this repository:
+        docs/architecture/CODE_REVIEW_BASELINE.md
+        Read it as the primary review prompt before commenting on any
+        change. It contains the architectural spine, the 15
+        non-negotiable invariants, and the ordered review checklist
+        (correctness → architecture → security → financial math →
+        user-facing copy → tests/docs). Defer to the rule files and
+        ADRs it links to instead of re-deriving opinions; never
+        re-state rule text inline. The same file lists what
+        CodeRabbit should NOT flag (style nits, lint findings already
+        failing CI, and generated/binary/log files).
+    - path: "docs/architecture/CODE_REVIEW_BASELINE.md"
+      instructions: |
+        This file IS the standing review baseline that all other
+        path_instructions in this config defer to. Treat changes to
+        it with extra care: it is a pointer document and must keep
+        linking to canonical sources (eslint.config.mjs,
+        .claude/rules/, docs/architecture/decisions/, .agents/skills/)
+        rather than restating rule text. Flag any new rule text added
+        inline that should instead live in (or already exists in) the
+        canonical source.
+    - path: "calc/**/*.ts"
+      instructions: |
+        Pure deterministic financial math layer (Decimal.js). MUST NOT
+        import from engine/, server/, or client/. MUST NOT call any LLM,
+        network, or I/O. Enforce the strictest bug guards from
+        eslint.config.mjs: no Math.pow (use dPow), no `|| 0` (use
+        assertFinite), no `as any`, no `safeNum`. Defer to the rules in
+        .claude/rules/financial-engine.md, .claude/rules/financial-safety.md,
+        .claude/rules/no-hardcoded-values.md, and
+        .claude/rules/deterministic-tools.md. Flag any new numeric literal
+        that isn't math/physics — it belongs in shared/constants.ts or a DB
+        row, per .claude/rules/no-hardcoded-values.md.
+    - path: "engine/**/*.ts"
+      instructions: |
+        Domain orchestration (analyst, watchdog, property, company,
+        funding, debt, aggregation, posting). MAY import from calc/ and
+        shared/. MUST NOT import from server/ or client/. Same financial
+        bug guards as calc/. For engine/analyst/** specifically, enforce
+        The Analyst persona rules: internal team vocabulary (Surface
+        Specialist / Cognitive Engine / Surface Router / Voice Renderer /
+        Quality Scorer) is allowed in code, but any string that could
+        reach the user must read as "The Analyst" (singular). Defer to
+        docs/architecture/ANALYST.md, .claude/rules/the-analyst-persona.md,
+        and .claude/rules/analyst-team.md. Verdict shape changes touch
+        the unified contract — check
+        .claude/rules/analyst-verdict-contract.md.
+    - path: "server/**/*.ts"
+      instructions: |
+        Express 5 routes and storage facade. Routes stay thin — all
+        mutations go through IStorage in server/storage/. Enforce bug
+        guards from eslint.config.mjs (no Math.pow, no `|| 0`, no
+        `as any`, bare fetch() must use fetchWithTimeout, parseInt needs
+        a radix). Validate request bodies with Zod from drizzle-zod. New
+        routes need auth + rate-limit + CSRF where applicable — defer to
+        .claude/rules/security.md. New env vars must be added to
+        docs/architecture/DEPENDENCIES.md and .env.example. Do NOT
+        introduce new `@replit/`, `process.env.REPL*`, or `replit.dev`
+        / `replit.app` references outside the allow-listed adapters
+        (server/replit_integrations/, server/providers/) — the
+        check-replit-independence.ts CI gate fails the build otherwise.
+    - path: "client/**/*.{ts,tsx,js,jsx,html,css}"
+      instructions: |
+        React 19 + Vite + wouter + TanStack Query + Tailwind v4. Persona
+        rules are CRITICAL here: never expose internal team vocabulary
+        (Surface Specialist / Cognitive Engine / Surface Router / Voice
+        Renderer / Quality Scorer) in JSX, strings, aria labels, tooltips,
+        toasts, or error messages — defer to
+        .claude/rules/the-analyst-persona.md (ESLint enforces this in
+        client code as an error-level rule). Vocabulary discipline:
+        "assumption" means the user's working variable;
+        "default" must not appear in user-facing copy outside Admin;
+        "constant" / "model constant" means an authority-governed value.
+        The admin sidebar group is "Steady State", not "Financial
+        Defaults" — see .agents/skills/steady-state-naming/SKILL.md.
+        Per-tab Save discipline: Analyst + Save buttons live INSIDE the
+        tab strip, never in the page header (script/check-no-header-
+        analyst-save.ts enforces). Add data-testid on every interactive
+        and meaningful display element.
+    - path: "shared/**/*.ts"
+      instructions: |
+        Drizzle schema, Zod schemas, types, constants, country defaults.
+        Schema changes are irreversible — they need a migration in
+        migrations/ and an ADR if they change a contract. Constants live
+        here only as last-resort fallbacks; the runtime chain is always
+        DB row → named constant. Defer to
+        .claude/rules/no-hardcoded-values.md and
+        .claude/rules/inflation-cascade.md. Keep cross-tier types stable —
+        a breaking change here cascades through engine/, server/, and
+        client/.
+    - path: "docs/architecture/**/*.md"
+      instructions: |
+        Architecture spine, per-component specs, decision records (ADRs).
+        New irreversible decisions REQUIRE a new ADR using
+        docs/architecture/decisions/ADR-template.md (status, context,
+        decision, consequences). Do not edit accepted ADRs — supersede
+        them with a new one. CODE_REVIEW_BASELINE.md is a pointer
+        document — keep it linking to canonical sources, do not duplicate
+        rule text.
+    - path: ".claude/**"
+      instructions: |
+        Authoritative domain owned by Claude Code. Rules
+        (.claude/rules/*.md) are non-negotiable contracts; changes need
+        architect review. Skills (.claude/skills/) and notes
+        (.claude/notes/) are reference material. Do not weaken or remove
+        a rule without an ADR explaining why. Persona rules
+        (the-analyst-persona.md, analyst-team.md, rebecca-persona.md)
+        are especially load-bearing.
+    - path: ".github/workflows/**"
+      instructions: |
+        CI workflows govern build, test, and audit gates. Maintain
+        default-deny GITHUB_TOKEN permissions (`contents: read` at the
+        workflow level; jobs opt in explicitly). Do not loosen the
+        Replit-Independence Guardrail, Quick Audit, or schema-sync
+        non-interactive gate without a paired ADR. Pin actions by
+        major version (`@v4`) and pnpm/Node versions match across
+        jobs.
+
+# Filter out generated, binary, and log noise so CodeRabbit doesn't review
+# files no human edits by hand. Patterns are matched against the file path
+# from repo root.
+path_filters:
+  - "!node_modules/**"
+  - "!dist/**"
+  - "!build/**"
+  - "!.cache/**"
+  - "!.turbo/**"
+  - "!.tsbuildinfo"
+  - "!**/*.tsbuildinfo"
+  - "!**/*.d.ts"
+  - "!pnpm-lock.yaml"
+  - "!package-lock.json"
+  - "!uv.lock"
+  - "!**/*.lock"
+  - "!*.lock"
+  - "!attached_assets/**"
+  - "!test-artifacts/**"
+  - "!test-results*.json"
+  - "!seed-manifest.json"
+  - "!migrations/0*.sql"
+  - "!*.png"
+  - "!**/*.png"
+  - "!**/*.jpg"
+  - "!**/*.jpeg"
+  - "!**/*.gif"
+  - "!**/*.webp"
+  - "!**/*.svg"
+  - "!**/*.ico"
+  - "!memory.md"
+  - "!replit_waste.md"
+  - "!rewritetax.md"
+  - "!COST-MONITOR-*.txt"
+  - "!INSTALL-COST-MONITOR.txt"
+  - "!logs/**"
+  - "!tmp/**"
+  - "!.local/**"
+  - "!.remember/**"
+  - "!analytics/**"
+
+  # Knowledge base files CodeRabbit should READ for context but not review
+  # as if they were code. The `tools` block below complements this.
+
+# Tool toggles — enable what complements local CI; disable what duplicates
+# gates already failing in lint:strict, check, audit:quick, or
+# verify:summary so review comments don't double-report.
+reviews_tools: &tools_anchor
+  ast-grep:
+    rule_dirs: []
+    util_dirs: []
+    essential_rules: false
+    packages: []
+  github-checks:
+    enabled: true
+    timeout_ms: 90000
+  shellcheck:
+    enabled: true
+  ruff:
+    enabled: false
+  markdownlint:
+    enabled: true
+  languagetool:
+    enabled: true
+    enabled_rules: []
+    disabled_rules: []
+    enabled_categories: []
+    disabled_categories:
+      - TYPOS
+      - CASING
+      - PUNCTUATION
+    level: default
+  biome:
+    enabled: false
+  hadolint:
+    enabled: false
+  swiftlint:
+    enabled: false
+  phpstan:
+    enabled: false
+  golangci-lint:
+    enabled: false
+  yamllint:
+    enabled: true
+  gitleaks:
+    enabled: true
+  checkov:
+    enabled: false
+  detekt:
+    enabled: false
+  eslint:
+    # ESLint is the source of truth for this repo's bug guards
+    # (Math.pow, `|| 0`, `as any`, bare fetch, parseInt radix, persona
+    # vocabulary). lint:strict already fails CI on errors — leaving this
+    # enabled for warnings/context only. Disable if double-reporting
+    # becomes noisy.
+    enabled: true
+  rubocop:
+    enabled: false
+  buf:
+    enabled: false
+  regal:
+    enabled: false
+  actionlint:
+    enabled: true
+  pmd:
+    enabled: false
+  cppcheck:
+    enabled: false
+  semgrep:
+    enabled: false
+  circleci:
+    enabled: false
+
+tools: *tools_anchor
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  opt_out: false
+  learnings:
+    scope: auto
+  issues:
+    scope: auto
+  pull_requests:
+    scope: auto
