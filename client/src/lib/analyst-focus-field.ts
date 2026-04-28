@@ -108,6 +108,40 @@ export function focusFieldById(fieldId: string): boolean {
   return true;
 }
 
+/**
+ * Dev-only warning surfaced when `useFocusFieldFromUrl()` exhausts its
+ * retry budget without ever finding a marker for `fieldId` in the DOM.
+ *
+ * The build-time audit (task #771) catches static drift between the
+ * field registry and the destination form's source, but a marker can
+ * still be present in source yet hidden at runtime — e.g. inside a
+ * collapsed/conditional section like the toggle-gated rows in
+ * `ConvertibleTermsCard`. In those cases the user clicks Adjust, lands
+ * on the right page, and the focus hook silently exhausts its budget.
+ *
+ * Logging here surfaces the failure during normal development without
+ * polluting production logs (gated by `import.meta.env.DEV`). The
+ * message names the missing fieldId and the URL that asked for it so
+ * a developer can immediately see (a) which Specialist field id is
+ * mis-aligned and (b) which destination page failed to expose it.
+ */
+function warnFocusFieldExhausted(fieldId: string): void {
+  if (!import.meta.env.DEV) return;
+  if (typeof console === "undefined" || typeof console.warn !== "function") return;
+  const url =
+    typeof window !== "undefined" && window.location
+      ? window.location.href
+      : "(no window)";
+  console.warn(
+    `[analyst-focus-field] Could not focus field "${fieldId}" — ` +
+      `no matching [data-field] or [data-testid="field-..."] marker ` +
+      `appeared in the DOM after the retry budget was exhausted. ` +
+      `URL: ${url}. The field may be inside a collapsed/conditional ` +
+      `section, or the Specialist field id may not match any marker ` +
+      `on this page.`,
+  );
+}
+
 function stripFocusParam(): void {
   if (typeof window === "undefined") return;
   const url = new URL(window.location.href);
@@ -164,6 +198,7 @@ export function useFocusFieldFromUrl(opts: FocusFieldOptions = {}): void {
       attempts += 1;
       const ok = focusFieldById(fieldId);
       if (ok || attempts >= maxAttempts) {
+        if (!ok) warnFocusFieldExhausted(fieldId);
         stripFocusParam();
         timer = null;
         return;
