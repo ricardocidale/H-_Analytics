@@ -78,6 +78,15 @@ export default function PropertyEdit() {
   // mount-point resolver (task #751). When the user clicks "Adjust" on a
   // verdict dimension whose registry mountPoint resolves here, this hook
   // scrolls + focuses the matching form field once the page renders.
+  //
+  // Same-page deep links (task #773): this surface has no internal tab
+  // state — every section is rendered in a single scroll column — so the
+  // URL-reactive change in #767 is sufficient on its own. When the user is
+  // already on `/property/:id/edit` and clicks "Open this field" on a
+  // verdict card, wouter's pushState round-trips through `useSearch()`
+  // inside `useFocusFieldFromUrl`, which re-runs the focus side-effect
+  // against the new `?focus=<fieldId>`. No tab/section state-sync needed
+  // here (cf. CompanyAssumptions which had to add one).
   useFocusFieldFromUrl();
 
   const { data: property, isLoading, isError } = useProperty(propertyId);

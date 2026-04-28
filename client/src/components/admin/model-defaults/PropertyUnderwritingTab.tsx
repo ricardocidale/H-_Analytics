@@ -72,6 +72,16 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
   // mount-point resolver (task #751). Revenue Specialist dimensions whose
   // registry mountPoint is `defaults/revenue` land here; this hook scrolls
   // + focuses the matching `data-testid="field-<id>"` input on mount.
+  //
+  // Cross-section deep links (task #773): this tab is gated by the Admin
+  // shell's `activeSection` (must equal `defaults-property` for it to
+  // render at all). The resolver imperatively calls
+  // `setAdminSection("defaults-property")` for in-app SPA clicks, AND the
+  // Admin shell mirrors `window.location.hash` (`#defaults-property/...`)
+  // back into `activeSection` so a fresh page load / refresh / new tab on
+  // the deep link still mounts this tab. The URL-reactive focus hook then
+  // fires here once the tab actually mounts. See `client/src/pages/Admin.tsx`
+  // for the hash → section sync.
   useFocusFieldFromUrl();
 
   const acq = draft.standardAcqPackage ?? {};

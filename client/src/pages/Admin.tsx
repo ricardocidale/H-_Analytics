@@ -8,7 +8,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { IconAlertTriangle } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { SaveButton } from "@/components/ui/save-button";
-import { useAdminSection } from "@/lib/admin-nav";
+import { useAdminSection, useAdminSectionFromHash } from "@/lib/admin-nav";
 import type { AdminSaveState } from "@/components/admin/save-state";
 import { Loader2 } from "@/components/icons/themed-icons";
 
@@ -93,6 +93,17 @@ const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: strin
   "defaults-market-macro":       { title: "Market & Macro Defaults",      subtitle: "Macro and market-condition defaults applied to new entities" },
   "constants":                   { title: "Constants",                    subtitle: "Immutable model constants used across the application" },
 };
+
+/**
+ * Predicate used by `useAdminSectionFromHash` (task #773) to decide whether
+ * a `#<segment>/...` URL hash names an admin section worth switching to.
+ * Limited to keys present in `sectionMeta` so a stray anchor like
+ * `#field-cap-rate` can't replace the active section with garbage. Module-
+ * scope so the hook's effect deps stay stable across renders.
+ */
+function isKnownAdminSection(segment: string): boolean {
+  return segment in sectionMeta;
+}
 
 /** Map sidebar alias → ModelDefaultsTab internal sub-tab value */
 const MODEL_DEFAULTS_SUB_TAB: Partial<Record<AdminSection, string>> = {
@@ -190,6 +201,13 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
 export default function Admin() {
   const [activeSection, setActiveSection] = useAdminSection();
   const [saveState, setSaveState] = useState<AdminSaveState | null>(null);
+
+  // URL hash → admin section sync (task #773). See
+  // `useAdminSectionFromHash` in `client/src/lib/admin-nav.ts` for the full
+  // rationale. The predicate scopes the sync to sections the Admin shell
+  // actually renders so a stray anchor-style hash can't replace the active
+  // section with garbage.
+  useAdminSectionFromHash(isKnownAdminSection);
 
   useEffect(() => {
     setSaveState(null);

@@ -1,4 +1,5 @@
-import { useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useSearch } from "wouter";
 import { navigate } from "wouter/use-browser-location";
 import {
   normalizeAdminSection,
@@ -45,6 +46,58 @@ export function setAdminSection(section: AdminSection | string) {
 export function useAdminSection(): [AdminSection, typeof setAdminSection] {
   const section = useSyncExternalStore(subscribe, getSnapshot);
   return [section, setAdminSection];
+}
+
+/**
+ * Subscribe the admin section store to `window.location.hash`.
+ *
+ * Why this exists (task #773):
+ *   The Analyst's "Open this field" mount-point resolver navigates to
+ *   `/admin?focus=<fieldId>#<section>/<sub>` for `defaults/*` slugs (see
+ *   `client/src/lib/analyst-mount-points.ts`). For SPA clicks the resolver
+ *   imperatively calls `setAdminSection(<section>)` so the right tab is
+ *   selected. But for fresh page loads (new tab, refresh, bookmark, browser
+ *   back/forward) only the URL is available — `currentSection` defaults to
+ *   `defaults-management-company` and the user lands on the wrong sub-section,
+ *   leaving the URL-reactive focus hook to silently miss because the target
+ *   form never mounts.
+ *
+ *   This hook closes that gap: on mount, on every wouter pushState (`useSearch`
+ *   subscribes to wouter's URL events), and on browser-native `hashchange`
+ *   events, parse the leading `#` segment and, if it satisfies `isKnown`,
+ *   switch the admin section to it. Re-entrancy is bounded by the
+ *   `firstSegment === activeSection` early-return — when state and URL already
+ *   agree (the in-app SPA click path) it's a no-op.
+ *
+ *   `isKnown` is supplied by the caller (`Admin.tsx`) so this module doesn't
+ *   need to import the section meta map; only sections that map renders in
+ *   the Admin shell are honored, which keeps random anchor-style hashes from
+ *   blowing the active section away to nonsense.
+ */
+export function useAdminSectionFromHash(
+  isKnown: (section: string) => boolean,
+): void {
+  const search = useSearch();
+  // Mirror `isKnown` into a ref so the effect can read the latest predicate
+  // without re-attaching the `hashchange` listener on every render. Callers
+  // typically pass a module-level function, but a ref keeps this safe even
+  // if a caller hands in a freshly-bound closure.
+  const isKnownRef = useRef(isKnown);
+  isKnownRef.current = isKnown;
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const sync = () => {
+      const hash = window.location.hash.slice(1);
+      if (!hash) return;
+      const firstSegment = hash.split("/")[0];
+      if (!firstSegment || !isKnownRef.current(firstSegment)) return;
+      if (firstSegment === currentSection) return;
+      setAdminSection(firstSegment);
+    };
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, [search]);
 }
 
 // Test-only escape hatch: in dev/test builds, expose `setAdminSection` on
