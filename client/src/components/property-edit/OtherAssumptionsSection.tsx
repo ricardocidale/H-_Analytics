@@ -164,7 +164,14 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
               step={0.1}
             />
           </div>
-          <div className="space-y-2">
+          {/* `data-field="dispositionCommission"` marks this wrapper for the
+              Analyst's URL-driven focus hook (`useFocusFieldFromUrl()` in
+              `client/src/lib/analyst-focus-field.ts`). When an Adjust deep
+              link lands on `/property/:id/edit?focus=dispositionCommission#other-assumptions`,
+              the hook descends into this wrapper to focus the editable
+              input. Companion to the FIELD_REGISTRY entry that mounts
+              `dispositionCommission` at `property-edit/other-assumptions`. */}
+          <div className="space-y-2" data-field="dispositionCommission">
             <div className="flex justify-between items-center">
               <ResearchContextFieldLabel
                 label={<>Sale Commission <InfoTooltip text="Broker commission percentage applied when this property is sold." /></>}

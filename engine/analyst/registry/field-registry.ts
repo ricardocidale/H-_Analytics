@@ -134,6 +134,31 @@ export const FIELD_REGISTRY: Readonly<Record<string, FieldRegistryEntry>> = {
     subSection: "Capital Stack Discipline",
   },
 
+  // ─── Property Edit → Other Assumptions (per-property fields) ────────────
+  // Property-level fields edited on the PropertyEdit page's
+  // "Other Assumptions" section (`client/src/components/property-edit/
+  // OtherAssumptionsSection.tsx`). Their `data-field` markers live there.
+  // The `property-edit/<section>` mountPoint requires a `propertyId` in
+  // the resolver context — verdict surfaces that don't carry one (e.g.
+  // company-level CompanyAssumptions tabs) hide the Adjust CTA rather
+  // than producing a broken link.
+  //
+  // Note: `dispositionCommission` is also the *guidance vocabulary key*
+  // for `salesCommissionRate` in COMPANY_TAB_ANALYST_FIELDS (admin
+  // Property Underwriting Tab) — see the comment on `salesCommissionRate`
+  // below. The two are intentionally distinct registry concerns:
+  //   - `dispositionCommission` here points at the per-property slider
+  //     on PropertyEdit (used when the dimension's `field` is the
+  //     property-level draft key).
+  //   - `salesCommissionRate` below points at the admin defaults form
+  //     (used when the dimension targets the management-company-level
+  //     default applied to new properties).
+  dispositionCommission: {
+    label: "Sale Commission",
+    unit: "%",
+    mountPoint: "property-edit/other-assumptions",
+  },
+
   // ─── mgmt-co.revenue (Revenue Specialist) ───────────────────────────────
   defaultCostRateMarketing: {
     label: "Marketing Cost Rate",

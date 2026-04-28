@@ -90,6 +90,7 @@ import {
 import { PropertyUnderwritingTab } from "../../client/src/components/admin/model-defaults/PropertyUnderwritingTab";
 import { CompanyTab } from "../../client/src/components/admin/model-defaults/CompanyTab";
 import { MarketMacroTab } from "../../client/src/components/admin/model-defaults/MarketMacroTab";
+import OtherAssumptionsSection from "../../client/src/components/property-edit/OtherAssumptionsSection";
 import { findFieldElement } from "../../client/src/lib/analyst-focus-field";
 import { FIELD_REGISTRY } from "../../engine/analyst/registry/field-registry";
 
@@ -191,6 +192,31 @@ const MOUNT_POINT_RENDERERS: Readonly<
           draft={{} as Parameters<typeof MarketMacroTab>[0]["draft"]}
           onChange={NOOP_CHANGE}
           guidance={[]}
+        />
+      </TooltipProvider>
+    </QueryClientProvider>
+  ),
+  // Property Edit's "Other Assumptions" section hosts the
+  // `dispositionCommission` field (Sale Commission slider). Its
+  // `data-field="dispositionCommission"` wrapper is what
+  // `useFocusFieldFromUrl()` lands on when the Analyst Adjust deep
+  // link from a property-scoped verdict resolves to
+  // `property-edit/other-assumptions` (Task #779).
+  "property-edit/other-assumptions": () => (
+    <QueryClientProvider client={makeQueryClient()}>
+      <TooltipProvider>
+        <OtherAssumptionsSection
+          draft={
+            {} as Parameters<typeof OtherAssumptionsSection>[0]["draft"]
+          }
+          onChange={NOOP_CHANGE}
+          onNumberChange={NOOP_CHANGE as unknown as Parameters<
+            typeof OtherAssumptionsSection
+          >[0]["onNumberChange"]}
+          globalAssumptions={undefined}
+          researchValues={{}}
+          guidance={[]}
+          exitYear={2030}
         />
       </TooltipProvider>
     </QueryClientProvider>

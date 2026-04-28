@@ -68,6 +68,8 @@ import {
 import RiskInsightsPanel from "@/components/property-edit/RiskInsightsPanel";
 import RegulatoryNotesPanel from "@/components/property-edit/RegulatoryNotesPanel";
 import { useFocusFieldFromUrl } from "@/lib/analyst-focus-field";
+import { useAnalystRefresh } from "@/components/analyst/useAnalystRefresh";
+import { AnalystVerdictDisplay } from "@/components/analyst/AnalystVerdictDisplay";
 
 export default function PropertyEdit() {
   const [, params] = useRoute("/property/:id/edit");
@@ -117,6 +119,23 @@ export default function PropertyEdit() {
     specialistId: string;
     missingFields: { key: string; label: string; surface: string; surfaceAnchor?: string }[];
   }>({ open: false, specialistId: "", missingFields: [] });
+
+  // Property-scoped Analyst verdict surface (task #779). The same hook
+  // CompanyAssumptions uses for funding/revenue verdicts; we route
+  // through it so the verdict UI on this page goes through the exact
+  // same `useAnalystRefresh → /api/analyst/refresh → AnalystVerdictDisplay`
+  // pipeline as the company-level surface. Today the only v1 Specialist
+  // is `mgmt-co.funding`; until a property-level v1 Specialist ships
+  // (follow-up #790) we route through it so the per-property Analyst
+  // verdict can render any registry-known field — including
+  // `dispositionCommission`, whose mountPoint resolves to this page.
+  // `propertyId` is threaded into `AnalystVerdictDisplay` below so the
+  // mount-point resolver can produce a working same-page deep link for
+  // `property-edit/<section>` slugs.
+  const propertyAnalystRefresh = useAnalystRefresh({
+    scope: "global-assumptions",
+    specialistId: "mgmt-co.funding",
+  });
 
   const { isGenerating, streamedContent, phases, generateResearch } = useResearchStream({
     property: property ?? null,
@@ -684,6 +703,51 @@ export default function PropertyEdit() {
               totalServiceFeeRate={totalServiceFeeRate}
             />
             <OtherAssumptionsSection {...sectionProps} exitYear={exitYear} />
+
+            {/* Property-scoped Analyst verdict surface (task #779). The
+                "Ask Analyst" button POSTs to `/api/analyst/refresh`
+                (via `useAnalystRefresh`); when a verdict comes back,
+                `AnalystVerdictDisplay` renders below it and its Adjust
+                CTA resolves through `resolveFieldMountPoint()` with
+                `propertyId` in scope — so a verdict on a registry
+                field whose mountPoint is `property-edit/<section>`
+                (e.g. `dispositionCommission`) navigates to a same-page
+                `?focus=<fieldId>#<section>` URL and lands focus on
+                the matching `data-field` marker via
+                `useFocusFieldFromUrl()` above. */}
+            <section
+              className="space-y-3"
+              data-testid="property-analyst-section"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="font-display text-lg text-foreground">
+                  Analyst verdict
+                </h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => propertyAnalystRefresh.triggerRefresh()}
+                  disabled={
+                    propertyAnalystRefresh.running ||
+                    propertyAnalystRefresh.cooldownRemainingMs > 0
+                  }
+                  data-testid="button-ask-analyst-property"
+                >
+                  <IconSparkles className="w-4 h-4" />
+                  {propertyAnalystRefresh.running
+                    ? "Asking…"
+                    : "Ask Analyst"}
+                </Button>
+              </div>
+              {propertyAnalystRefresh.lastVerdict ? (
+                <div data-testid="property-analyst-verdict-section">
+                  <AnalystVerdictDisplay
+                    verdict={propertyAnalystRefresh.lastVerdict}
+                    propertyId={propertyId}
+                  />
+                </div>
+              ) : null}
+            </section>
 
             <RiskInsightsPanel propertyId={propertyId} />
             <RegulatoryNotesPanel countryCode={draft.country} />

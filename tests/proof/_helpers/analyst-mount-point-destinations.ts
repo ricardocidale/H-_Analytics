@@ -80,4 +80,13 @@ export const MOUNT_POINT_DESTINATIONS: Readonly<
   "defaults/property": [
     "client/src/components/admin/model-defaults/PropertyUnderwritingTab.tsx",
   ],
+
+  // PropertyEdit's "Other Assumptions" section hosts per-property
+  // sliders (Sale Commission, etc.) — the section the
+  // `property-edit/other-assumptions` mountPoint resolves to via
+  // `client/src/lib/analyst-mount-points.ts` →
+  // `/property/:id/edit#other-assumptions` (task #779).
+  "property-edit/other-assumptions": [
+    "client/src/components/property-edit/OtherAssumptionsSection.tsx",
+  ],
 };
