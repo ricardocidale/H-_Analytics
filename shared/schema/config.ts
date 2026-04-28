@@ -138,6 +138,7 @@ export const globalAssumptions = pgTable("global_assumptions", {
   sizingOvershootPct: real("sizing_overshoot_pct"),       // total raise as % above modeled need
   revenueRampDelayMonths: real("revenue_ramp_delay_months"), // months between ops start and first material revenue
   burnFlexDownPct: real("burn_flex_down_pct"),            // burn flex-down headroom as % of plan burn
+  icpModelTier: text("icp_model_tier"),                   // "A" | "B" | "C" — selected ICP management company model
 
   // Cost variables - Compensation (yearly partner compensation and count)
   partnerCompYear1: real("partner_comp_year1").notNull().default(540000),
