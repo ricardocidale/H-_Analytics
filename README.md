@@ -26,6 +26,7 @@ A financial modeling and portfolio management platform for boutique hospitality.
 - [Codebase Overview](#codebase-overview)
 - [Getting Started](#getting-started)
 - [Environment Variables](#environment-variables)
+- [Code Review](#code-review)
 - [Testing and Quality](#testing-and-quality)
 
 ---
@@ -597,6 +598,15 @@ bash script/db-push-force.sh --i-have-reviewed   # Apply schema without a TTY
 | `S3_BUCKET` / `S3_REGION` / `S3_ACCESS_KEY` / `S3_SECRET_KEY` | Object storage |
 | `SESSION_SECRET` | Express session encryption |
 | `ADMIN_PASSWORD` | Admin user password |
+
+---
+
+## Code Review
+
+This repo uses [CodeRabbit](https://coderabbit.ai/) for automated pull-request review, tuned via `.coderabbit.yaml`. The standing review prompt — the rules CodeRabbit (and human reviewers) apply to every PR — lives in [`docs/architecture/CODE_REVIEW_BASELINE.md`](./docs/architecture/CODE_REVIEW_BASELINE.md). Read that file before opening a non-trivial PR.
+
+- **Install requirement:** The CodeRabbit GitHub App must be installed on the organization by an org owner for reviews to appear on PRs. If you open a PR and no CodeRabbit review shows up, the App is not installed (or not granted access to this repo) — that is an org-admin task, not a per-PR setting.
+- **Advisory only:** CodeRabbit comments do not block merges. Merge gating is enforced by [`.github/CODEOWNERS`](./.github/CODEOWNERS); CodeRabbit is an extra pair of eyes, not an approver.
 
 ---
 
