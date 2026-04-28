@@ -129,3 +129,88 @@ export const SERVICE_FEE_BENCHMARK_RATES: Record<
 export const SERVICE_FEE_FALLBACK_RATE = {
   low: 0.01, mid: 0.02, high: 0.03,
 } as const;
+
+// ── ICP Management Company Models (A / B / C) ────────────────────────────────
+// Three reference models representing small, mid, and large hospitality
+// management companies. Used as context anchors when the Analyst cannot
+// derive ranges from actual user inputs alone.
+//
+// Source: HVS Fee Survey 2023, CBRE Hotels Research, Norfolk AI underwriting
+// experience across Latin American boutique-luxury operators.
+//
+// Long-term: stored in Neon model_canonicals, written by AI Intelligence
+// specialists. These constants are the cold-start fallback.
+
+export type IcpModelTier = "A" | "B" | "C";
+
+export interface IcpModelProfile {
+  tier: IcpModelTier;
+  label: string;
+  tagline: string;
+  propertyCount: { min: number; typical: number; max: number };
+  rampMonths: number;
+  monthlyBurnUsd: number;
+  partnerCount: number;
+  partnerCompMonthlyUsd: number;
+  targetRaiseUsd: { min: number; typical: number; max: number };
+  typicalTrancheCount: number;
+  trancheGapMonths: number;
+  runwayBufferMonths: number;
+  sizingOvershootPct: number;
+  revenueRampDelayMonths: number;
+  burnFlexDownPct: number;
+}
+
+export const ICP_MODEL_PROFILES: Record<IcpModelTier, IcpModelProfile> = {
+  A: {
+    tier: "A",
+    label: "Boutique",
+    tagline: "3–5 properties · Founder-led · Lean overhead",
+    propertyCount:          { min: 3,         typical: 4,          max: 5 },
+    rampMonths:             18,
+    monthlyBurnUsd:         100_000,
+    partnerCount:           2,
+    partnerCompMonthlyUsd:  45_000,
+    targetRaiseUsd:         { min: 1_000_000, typical: 1_500_000,  max: 2_500_000 },
+    typicalTrancheCount:    1,
+    trancheGapMonths:       0,
+    runwayBufferMonths:     12,
+    sizingOvershootPct:     0.20,
+    revenueRampDelayMonths: 9,
+    burnFlexDownPct:        0.20,
+  },
+  B: {
+    tier: "B",
+    label: "Growth",
+    tagline: "6–12 properties · Regional team · Structured ops",
+    propertyCount:          { min: 6,         typical: 9,          max: 12 },
+    rampMonths:             12,
+    monthlyBurnUsd:         200_000,
+    partnerCount:           3,
+    partnerCompMonthlyUsd:  60_000,
+    targetRaiseUsd:         { min: 2_000_000, typical: 3_500_000,  max: 6_000_000 },
+    typicalTrancheCount:    2,
+    trancheGapMonths:       14,
+    runwayBufferMonths:     15,
+    sizingOvershootPct:     0.22,
+    revenueRampDelayMonths: 7,
+    burnFlexDownPct:        0.22,
+  },
+  C: {
+    tier: "C",
+    label: "Platform",
+    tagline: "13–25 properties · Full corporate stack · Institutional scale",
+    propertyCount:          { min: 13,        typical: 18,         max: 25 },
+    rampMonths:             8,
+    monthlyBurnUsd:         400_000,
+    partnerCount:           5,
+    partnerCompMonthlyUsd:  75_000,
+    targetRaiseUsd:         { min: 5_000_000, typical: 9_000_000,  max: 15_000_000 },
+    typicalTrancheCount:    2,
+    trancheGapMonths:       18,
+    runwayBufferMonths:     18,
+    sizingOvershootPct:     0.25,
+    revenueRampDelayMonths: 5,
+    burnFlexDownPct:        0.25,
+  },
+};
