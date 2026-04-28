@@ -258,10 +258,23 @@ export const FIELD_REGISTRY: Readonly<Record<string, FieldRegistryEntry>> = {
   // MarketMacroTab fields (`client/src/components/admin/model-defaults/MarketMacroTab.tsx`)
   // — global macro assumptions edited on the "Defaults → Market & Macro"
   // admin section.
+  //
+  // `inflationRate` mountPoint anchors at `property-edit/other-assumptions`
+  // (not `defaults/market-macro`) because per the inflation-cascade rule
+  // the cascade is `property.inflationRate ?? mcAssumptions.inflationRate
+  // ?? marketMacroFallback`: the per-property override is the user-
+  // actionable surface, and the macro defaults row is the
+  // last-resort fallback / seed. A verdict on `inflationRate` shown on
+  // PropertyEdit (with propertyId in scope) deep-links same-page to the
+  // property override slider via this mountPoint. The admin
+  // MarketMacroTab still carries the `data-testid="field-inflationRate"`
+  // marker, so the field stays discoverable for the field-marker audit
+  // and the macro Specialist can continue to maintain the canonical
+  // Constants row independently — see `.claude/rules/inflation-cascade.md`.
   inflationRate: {
-    label: "Macro Inflation Rate",
+    label: "Inflation Rate",
     unit: "%",
-    mountPoint: "defaults/market-macro",
+    mountPoint: "property-edit/other-assumptions",
   },
 
   // ─── Admin Model Defaults → Property Underwriting tab ───────────────────

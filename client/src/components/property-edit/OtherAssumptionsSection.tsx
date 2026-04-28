@@ -152,7 +152,12 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
               Applied to taxable income (NOI − interest − depreciation)
             </p>
           </div>
-          <div className="space-y-2">
+          {/* `data-field="inflationRate"` marks this wrapper for the
+              Analyst's URL-driven focus hook. Per the inflation-cascade
+              rule the per-property override is the user-actionable
+              surface for inflation; the registry mountPoint resolves
+              same-page Adjust deep links here when shown on PropertyEdit. */}
+          <div className="space-y-2" data-field="inflationRate">
             <div className="flex justify-between items-center">
               <ResearchContextFieldLabel
                 label={<>Inflation Rate <InfoTooltip text="Annual inflation rate for this property. Escalates fixed operating costs and serves as the floor for revenue growth. If left blank, the global system default is used." /></>}
@@ -161,6 +166,7 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
                 guidanceContext={gc("inflationRate", "Inflation Rate")}
               />
               <EditableValue
+                data-testid="editable-inflation-rate"
                 value={draft.inflationRate != null ? draft.inflationRate * 100 : getFactoryNumber('inflationRate') * 100}
                 onChange={(val) => onChange("inflationRate", val / 100)}
                 format="percent"
@@ -170,6 +176,7 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
               />
             </div>
             <Slider 
+              data-testid="slider-inflation-rate"
               value={[(draft.inflationRate ?? getFactoryNumber('inflationRate')) * 100]}
               onValueChange={(vals: number[]) => onChange("inflationRate", vals[0] / 100)}
               min={0}
