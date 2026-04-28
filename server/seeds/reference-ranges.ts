@@ -1023,10 +1023,10 @@ const PASS12_SEEDS: Array<Parameters<typeof upsertRange>[0]> = [
   { domain: "tax", metricKey: "corporate-tax-rate",
     label: "Corporate Income Tax — Cyprus",
     country: "CY", year: YEAR,
-    low: 15.0, mid: 15.0, high: 15.0, unit: "percent",
+    low: 12.5, mid: 12.5, high: 15.0, unit: "percent",
     sourceName: "RemotePeople Employer of Record Cyprus 2026 / OECD Global Minimum Tax",
     sourceUrl: "https://remotepeople.com/countries/cyprus/employer-of-record/",
-    methodology: "CIT raised from 12.5% to 15% to align with OECD Pillar Two global minimum; Non-Dom regime offers 0% on worldwide dividends & interest for 17 years; 0% CGT on private shares",
+    methodology: "Domestic CIT 12.5% for small/mid operators and boutique hotel SPVs below OECD Pillar Two threshold; rate rises to 15% only for in-scope multinationals with €750M+ consolidated revenue. Non-Dom regime: 0% on worldwide dividends & interest for 17 years; 0% CGT on private shares.",
     confidence: "high" },
 
   { domain: "tax", metricKey: "payroll-tax-employer",
