@@ -242,7 +242,7 @@ export function computeStressScenarios(assumptions: StressAssumptions): StressRe
     let narrative = `A ${bpsIncrease}bps interest rate increase (${formatPct(assumptions.interestRate!)} → ${formatPct(newRate)}) raises annual debt service by ${formatCurrency(Math.abs(cashFlowChange))}.`;
     narrative += ` DSCR moves from ${base.dscr.toFixed(2)}x to ${stressed.dscr.toFixed(2)}x.`;
     if (stressed.dscr < DSCR_COVENANT_STANDARD) {
-      narrative += ` This breaches the 1.25x covenant, triggering potential lender remediation.`;
+      narrative += ` This breaches the ${DSCR_COVENANT_STANDARD}x covenant, triggering potential lender remediation.`;
     }
 
     results.push({
