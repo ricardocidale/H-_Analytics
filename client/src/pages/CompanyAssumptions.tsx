@@ -76,7 +76,13 @@ import { useCompanyAnalyst } from "@/hooks/useCompanyAnalyst";
 import { useAnalystRefresh } from "@/components/analyst/useAnalystRefresh";
 import { AnalystUnsavedChangesDialog } from "@/components/analyst/AnalystUnsavedChangesDialog";
 import { MissingRequiredFieldsPrompt } from "@/components/analyst/MissingRequiredFieldsPrompt";
+import { IcpModelDialog } from "@/components/analyst/IcpModelDialog";
 import { useFocusFieldFromUrl } from "@/lib/analyst-focus-field";
+import {
+  ICP_MODEL_PROFILES,
+  type IcpModelProfile,
+  type IcpModelTier,
+} from "@shared/constants-benchmarks";
 
 const getInitialTab = (): TabKey => {
   if (typeof window === "undefined") return "funding";
@@ -269,6 +275,19 @@ export default function CompanyAssumptions() {
     missingFields: { key: string; label: string; surface: string; surfaceAnchor?: string }[];
   }>({ open: false, specialistLabel: "The Analyst", missingFields: [] });
 
+  // ICP model gate state. Server returns 400 ICP_MODEL_REQUIRED when the
+  // user presses the Funding-tab Analyst with no `icpModelTier` saved.
+  // The dialog stays open until the user picks one (or dismisses); on
+  // pick it persists via PATCH and we re-fire the funding refresh that
+  // tripped the gate so the user gets a verdict without a second click.
+  // `pendingFundingRun` flags whether the dialog opened from a real
+  // Analyst run (auto-refire) versus the pre-selection badge (no refire).
+  const [icpDialog, setIcpDialog] = useState<{
+    open: boolean;
+    models: Record<IcpModelTier, IcpModelProfile>;
+    pendingFundingRun: boolean;
+  }>({ open: false, models: ICP_MODEL_PROFILES, pendingFundingRun: false });
+
   const fundingRefresh = useAnalystRefresh({
     scope: "global-assumptions",
     specialistId: "mgmt-co.funding",
@@ -284,7 +303,30 @@ export default function CompanyAssumptions() {
         missingFields,
       });
     },
+    onIcpModelRequired: (models) => {
+      setIcpDialog({ open: true, models, pendingFundingRun: true });
+    },
   });
+
+  // Pre-selection badge handler: open the same dialog without queueing
+  // an auto-refire (Task C — user opened the picker proactively rather
+  // than via a server gate).
+  const openIcpModelPicker = () => {
+    setIcpDialog({
+      open: true,
+      models: ICP_MODEL_PROFILES,
+      pendingFundingRun: false,
+    });
+  };
+
+  const handleIcpModelSelected = (_tier: IcpModelTier) => {
+    if (icpDialog.pendingFundingRun) {
+      // Refire the funding refresh that originally tripped the gate.
+      // The hook's local cooldown wasn't burned (400 returns early
+      // server-side), so this fires immediately.
+      fundingRefresh.triggerRefresh();
+    }
+  };
 
   // Item B (UI v1 counterpart): unsaved-changes interception. The Analyst
   // only sees what's persisted, so when the form is dirty pressing the
@@ -434,6 +476,15 @@ export default function CompanyAssumptions() {
             }
             specialistLabel={missingFieldsPrompt.specialistLabel}
             missingFields={missingFieldsPrompt.missingFields}
+          />
+
+          <IcpModelDialog
+            open={icpDialog.open}
+            onOpenChange={(open) =>
+              setIcpDialog((prev) => ({ ...prev, open }))
+            }
+            models={icpDialog.models}
+            onModelSelected={handleIcpModelSelected}
           />
 
           {/*
