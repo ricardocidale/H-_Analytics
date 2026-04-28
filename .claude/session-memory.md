@@ -8,6 +8,16 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 28, 2026 (G2-v1) — Revenue Specialist v1 shipped
+
+- **What shipped:** G2-v1 Revenue Specialist — 6 new/modified files, commit `fe6dcbe3`. Pattern mirrors G1.5c-v1 (single-shot Opus 4.7, strict Zod schema, canned 12-entry comparable dataset). 5 dimensions: `marketingRate`, `fbRevenueShare`, `eventsRevenueShare`, `otherRevenueShare`, `cateringBoostPct` — all decimal fractions (0.0–1.0). All five gates green: TS 0, Lint 0, Vocab 11/11, test:summary PASS, Verify UNQUALIFIED.
+- **Key files:** `mgmt-co-revenue-output-schema.ts`, `mgmt-co-revenue-prompt-input-builder.ts`, `mgmt-co-revenue-orchestrator-adapter.ts` (12 canned comps; "Boutique Hotel" forbidden string fixed), `mgmt-co-revenue-prompt.ts`, `mgmt-co-revenue-runner.ts`, `analyst-admin.ts` (mgmt-co.revenue branch; reads `globalAssumptions` for 5 revenue fields; Tier-0 fallback on RevenueTier1UnavailableError).
+- **Route branch is dead code** until Replit wires `<AnalystButton>` in `PropertyUnderwritingTab.tsx` → `specialistId:"mgmt-co.revenue"`. Revenue fields live in Admin → Model Defaults → Property Underwriting tab, NOT in Company Assumptions Revenue tab.
+- **Replit handoff packet authored:** `.claude/replit-handoffs/g2-v1-revenue-specialist-ui.md` — wires `revenueRefresh` hook in `ModelDefaultsTab.tsx` + verdict display in `PropertyUnderwritingTab.tsx`.
+- **phases.md updated:** G2-v1 row → ✅ Shipped.
+
+---
+
 ## Session: April 28, 2026 (final audit) — Full 30-commit window audited; EWW + Pass 12 + CodeRabbit verified
 
 - **Audit complete (0cc880b3..f581a081):** 4 domains checked. Engine PASS: `expenseEWW` computed at property-engine line 141, checker passes through, yearly aggregator derives `expenseUtilities = var + fixed` (lines 227 & 387), all 5 client EWW rows bind to `expenseUtilities` or inline equivalent. Seed PASS: Pass 12 has **19 rows** (session memory previously said 25 — that was an early estimate error, not a code bug). All 19 values accurate and well-sourced. CY CIT low/mid=12.5% ✓; NL/AT additions are VAT+RETT (not CIT — never expected). CodeRabbit PASS: all 8 config checks, pointer doc intact. Commit window PASS: zero console.log/as any/||0 in financial files, vocab clean, no TODO/FIXME.
