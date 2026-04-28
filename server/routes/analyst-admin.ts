@@ -25,6 +25,14 @@ import {
 import type { PropertyRiskIntelligencePromptInputContext } from "../ai/specialists/property-risk-intelligence-prompt";
 import type { CountryInflationOutlook } from "../../engine/analyst/surface/property/risk-intelligence-specialist";
 import type { ModelConstant } from "@shared/schema";
+import {
+  runRevenueSpecialist,
+  Tier1UnavailableError as RevenueTier1UnavailableError,
+} from "../ai/specialists/mgmt-co-revenue-runner";
+import { getCannedRevenueComparables } from "../ai/specialists/mgmt-co-revenue-orchestrator-adapter";
+import type { RevenuePromptInputContext } from "../ai/specialists/mgmt-co-revenue-prompt-input-builder";
+import type { RevenueInputs } from "../../engine/watchdog/revenueEvaluator";
+import { DEFAULT_REVENUE_BENCHMARKS } from "@shared/constants-revenue-benchmarks";
 import { storage } from "../storage";
 import { logger } from "../logger";
 
@@ -206,6 +214,37 @@ export async function analystRefreshHandler(req: Request, res: Response) {
           "analyst-admin",
         );
         return logAndSendError(res, "Funding Specialist failed", err, "analyst-admin");
+      }
+    }
+  }
+
+  // G2-v1 — Revenue Specialist branch (mgmt-co.revenue / B).
+  // Single-shot Opus runner for the Revenue tab. Falls back to the legacy
+  // Tier-0 path (runAnalystScoped) on Tier1UnavailableError — same fallback
+  // policy as Funding (mgmt-co.funding).
+  if (specialistId === "mgmt-co.revenue") {
+    try {
+      const verdict = await runRevenueV1Path(userId);
+      logActivity(req, "analyst-refresh", "company", userId, "Mgmt-Co Revenue (v1)", {
+        scope,
+        specialistId,
+        cognitiveRunId: verdict.meta.cognitiveRunId,
+        tier: verdict.meta.tier,
+      });
+      return res.json({ verdict });
+    } catch (err: unknown) {
+      if (err instanceof RevenueTier1UnavailableError) {
+        logger.warn(
+          `mgmt-co.revenue v1 unavailable; degrading to Tier-0 path: ${err.message}`,
+          "analyst-admin",
+        );
+        // fall through to legacy runAnalystScoped below
+      } else {
+        logger.error(
+          `mgmt-co.revenue v1 failed unexpectedly: ${err instanceof Error ? err.message : String(err)}`,
+          "analyst-admin",
+        );
+        return logAndSendError(res, "Revenue Specialist failed", err, "analyst-admin");
       }
     }
   }
@@ -550,6 +589,85 @@ function hospitalityTypeToVerticalSlug(type: string): string {
     motel: "budget-independent",
   };
   return knownSlugs[normalized] ?? "boutique-luxury";
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// G2-v1 — Revenue Specialist v1 path
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Assemble the v1 deps + invoke `runRevenueSpecialist`. Reads the user's
+ * saved globalAssumptions, builds RevenuePromptInputContext, and calls the
+ * runner. Throws Tier1UnavailableError on any failure; the route handler
+ * catches and degrades to Tier-0.
+ *
+ * v1 deferrals:
+ *   - Live STR/HVS comparables → G6-P3 (uses canned dataset)
+ *   - Persona resolution → G6-P3 (canonical persona derived from ga)
+ *   - Verdict cache → G6-P3 (every call is a fresh "miss")
+ *   - N+1 panels → G6-P2 (single-shot Anthropic Opus)
+ */
+async function runRevenueV1Path(userId: number): Promise<Awaited<ReturnType<typeof runRevenueSpecialist>>> {
+  const ga = await storage.getGlobalAssumptions(userId);
+  if (!ga) {
+    throw new RevenueTier1UnavailableError(
+      "globalAssumptions row missing for user",
+      null,
+    );
+  }
+
+  const properties = await storage.getAllProperties(userId);
+
+  // Build RevenueInputs from globalAssumptions. All 5 revenue fields map
+  // directly to columns on the globalAssumptions row.
+  const inputs: RevenueInputs = {
+    marketingRate: ga.defaultCostRateMarketing ?? null,
+    fbRevenueShare: ga.defaultRevShareFb ?? null,
+    eventsRevenueShare: ga.defaultRevShareEvents ?? null,
+    otherRevenueShare: ga.defaultRevShareOther ?? null,
+    cateringBoostPct: ga.defaultCateringBoostPct ?? null,
+  };
+
+  // Canonical persona for v1 — G6-P3 replaces with full persona resolution.
+  const persona: RevenuePromptInputContext["persona"] = {
+    verticalSlug: "boutique-luxury",
+    marketTier: "L+B",
+    locale: "US",
+  };
+
+  // Portfolio aggregate — simple averages from saved property assumptions.
+  // v1 uses startOccupancy + startAdr as a proxy for stabilized performance;
+  // G6-P3 persona resolution will use engine-computed RevPAR and stabilized
+  // occupancy for richer context.
+  const activeProperties = properties.filter(
+    (p) => p.roomCount != null && (p.roomCount as number) > 0,
+  );
+  const avgOccupancyRate =
+    activeProperties.length > 0
+      ? activeProperties.reduce((s, p) => s + p.startOccupancy, 0) /
+        activeProperties.length
+      : 0.65;
+  const avgAdr =
+    activeProperties.length > 0
+      ? activeProperties.reduce((s, p) => s + p.startAdr, 0) /
+        activeProperties.length
+      : 350;
+
+  const portfolio: RevenuePromptInputContext["portfolio"] = {
+    propertyCount: properties.length,
+    avgOccupancyRate,
+    avgAdr,
+  };
+
+  const ctx: RevenuePromptInputContext = {
+    inputs,
+    persona,
+    portfolio,
+    priorVerdicts: [],
+  };
+
+  const comparables = getCannedRevenueComparables();
+  return runRevenueSpecialist(ctx, DEFAULT_REVENUE_BENCHMARKS, comparables);
 }
 
 /**
