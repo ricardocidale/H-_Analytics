@@ -48,10 +48,6 @@ export function buildPropertyISRows(yearly: YearlyAggregation[]): (string | numb
     ["  Other Departments", ...yearly.map((y) => y.expenseOther)],
     ["  Sales & Marketing", ...yearly.map((y) => y.expenseMarketing)],
     ["  Property Operations", ...yearly.map((y) => y.expensePropertyOps)],
-    ["  Utilities", ...yearly.map((y) => y.expenseUtilities)],
-    // ADR-009 Phase 1: USALI 12th Edition EWW Schedule (Energy, Water & Waste).
-    // expenseUtilities equals engine.expenseEWW (var + fixed); surfaced as a
-    // discrete USALI-named row alongside the legacy Utilities line.
     ["  Energy, Water & Waste", ...yearly.map((y) => y.expenseUtilities)],
     ["  Administrative & General", ...yearly.map((y) => y.expenseAdmin)],
     ["  IT & Technology", ...yearly.map((y) => y.expenseIT)],
@@ -158,12 +154,8 @@ export async function exportPropertyCashFlow(
     ["    UNDISTRIBUTED OPERATING EXPENSES"],
     ["    Marketing & Sales", ...yearly.map((y) => y.expenseMarketing)],
     ["    Property Operations & Maintenance", ...yearly.map((y) => y.expensePropertyOps)],
-    ["    Utilities (Variable)", ...yearly.map((y) => y.expenseUtilitiesVar)],
-    ["    Utilities (Fixed)", ...yearly.map((y) => y.expenseUtilitiesFixed)],
-    // ADR-009 Phase 1: USALI 12th Edition EWW Schedule (Energy, Water & Waste).
-    // The yearly aggregator's `expenseUtilities` equals the engine's `expenseEWW`
-    // (= expenseUtilitiesVar + expenseUtilitiesFixed) per yearlyAggregator.ts.
-    ["    Energy, Water & Waste", ...yearly.map((y) => y.expenseUtilities)],
+    ["    Energy, Water & Waste (Variable)", ...yearly.map((y) => y.expenseUtilitiesVar)],
+    ["    Energy, Water & Waste (Fixed)", ...yearly.map((y) => y.expenseUtilitiesFixed)],
     ["    Property Taxes", ...yearly.map((y) => y.expenseTaxes)],
     ["    Insurance", ...yearly.map((y) => y.expenseInsurance)],
     ["    Administrative & General", ...yearly.map((y) => y.expenseAdmin)],
@@ -269,12 +261,8 @@ export async function exportFullPropertyWorkbook(
     ["    UNDISTRIBUTED OPERATING EXPENSES"],
     ["    Marketing & Sales", ...yearly.map((y) => y.expenseMarketing)],
     ["    Property Operations & Maintenance", ...yearly.map((y) => y.expensePropertyOps)],
-    ["    Utilities (Variable)", ...yearly.map((y) => y.expenseUtilitiesVar)],
-    ["    Utilities (Fixed)", ...yearly.map((y) => y.expenseUtilitiesFixed)],
-    // ADR-009 Phase 1: USALI 12th Edition EWW Schedule (Energy, Water & Waste).
-    // The yearly aggregator's `expenseUtilities` equals the engine's `expenseEWW`
-    // (= expenseUtilitiesVar + expenseUtilitiesFixed) per yearlyAggregator.ts.
-    ["    Energy, Water & Waste", ...yearly.map((y) => y.expenseUtilities)],
+    ["    Energy, Water & Waste (Variable)", ...yearly.map((y) => y.expenseUtilitiesVar)],
+    ["    Energy, Water & Waste (Fixed)", ...yearly.map((y) => y.expenseUtilitiesFixed)],
     ["    Property Taxes", ...yearly.map((y) => y.expenseTaxes)],
     ["    Insurance", ...yearly.map((y) => y.expenseInsurance)],
     ["    Administrative & General", ...yearly.map((y) => y.expenseAdmin)],

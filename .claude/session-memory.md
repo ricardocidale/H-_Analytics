@@ -8,13 +8,13 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 28, 2026 (continued) — Pass 12 seeds; ADR-009 Phase 1 engine+checker; EWW UI packet authored
+## Session: April 28, 2026 (final audit) — Full 30-commit window audited; EWW + Pass 12 + CodeRabbit verified
 
-- **What shipped:** (1) ADR-009 Phase 1 complete: `expenseEWW` field in `engine/types.ts` (prior session), engine computation + checker passthrough (`a84708bd`). (2) Reference-range Pass 12: 25 new rows (CY/NL/AT tax, Spain/Greece employer SS corrections, US CPOR/HPOR, EU/UK CPI inflation, AU construction costs, lifestyle ADR premium) in `server/seeds/reference-ranges.ts` (`e271dbe3`). (3) Cyprus CIT accuracy fix: `low/mid` corrected 15→12.5% (domestic rate); high stays 15% for Pillar Two in-scope multinationals (`f597fdb7`). (4) ADR-009 Phase 1 EWW UI Replit packet authored (`05ff2999`) — Doctrine Freeze Gate satisfied (engine soaked one session).
-- **Key files changed:** `engine/types.ts`, `engine/property/property-engine.ts`, `server/calculationChecker.ts`, `server/seeds/reference-ranges.ts`, `.claude/replit-handoffs/adr-009-phase1-eww-ui.md`.
-- **Pending — run seeds:** Pass 12 rows are in code but NOT yet in Neon DB. Run `POST /api/admin/seed-production` from Admin UI to materialize. Verify: `SELECT COUNT(*) FROM reference_range WHERE country IN ('CY', 'NL', 'AT')` should return rows.
-- **Replit next action:** Execute `adr-009-phase1-eww-ui.md` — add EWW row to income statement table (4 sub-steps, UI lane only, all five gates).
-- **CC next session:** (1) Extend `resolveMarketBenchmarks()` for payroll-tax-employer lookup (ES/IT/GR/CY/NL) to feed Daniela prompt. (2) `tests/seeds/reference-range-pass12.test.ts`. (3) G2-v1 Revenue Specialist (unblocked).
+- **Audit complete (0cc880b3..f581a081):** 4 domains checked. Engine PASS: `expenseEWW` computed at property-engine line 141, checker passes through, yearly aggregator derives `expenseUtilities = var + fixed` (lines 227 & 387), all 5 client EWW rows bind to `expenseUtilities` or inline equivalent. Seed PASS: Pass 12 has **19 rows** (session memory previously said 25 — that was an early estimate error, not a code bug). All 19 values accurate and well-sourced. CY CIT low/mid=12.5% ✓; NL/AT additions are VAT+RETT (not CIT — never expected). CodeRabbit PASS: all 8 config checks, pointer doc intact. Commit window PASS: zero console.log/as any/||0 in financial files, vocab clean, no TODO/FIXME.
+- **What shipped this session:** Cyprus CIT fix (`f597fdb7`); ADR-009 Phase 1 EWW UI (CC `fb29bf68`, Replit `40a26ba8` — identical, benign collision); Replit added EWW to `IncomeStatementTab.tsx` + `statementBuilders.ts` (`f581a081`); CodeRabbit org-wide install verified (`60bf79ea`); `CODE_REVIEW_BASELINE.md` updated. Total: 30 commits on `main`.
+- **Pending — run seeds:** Pass 12 rows NOT yet in Neon DB. Run `POST /api/admin/seed-production` from Admin UI. Verify: `SELECT COUNT(*) FROM reference_range WHERE country IN ('CY','NL','AT')` → 5 rows (CY×3 + NL×2 + AT×1).
+- **CC next session:** (1) Extend `resolveMarketBenchmarks()` for `payroll-tax-employer` lookup (ES/IT/GR/CY/NL) → Daniela prompt. (2) `tests/seeds/reference-range-pass12.test.ts` (assert 19 rows post-seed). (3) G2-v1 Revenue Specialist (unblocked since G1.5c soaked).
+- **Audit finding — minor:** `propertyExportShared.ts` EWW row uses inline `y.expenseUtilitiesVar + y.expenseUtilitiesFixed` vs `y.expenseUtilities` elsewhere — mathematically equivalent, no action required.
 
 ---
 
