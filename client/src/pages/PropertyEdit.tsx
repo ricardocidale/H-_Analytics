@@ -120,21 +120,14 @@ export default function PropertyEdit() {
     missingFields: { key: string; label: string; surface: string; surfaceAnchor?: string }[];
   }>({ open: false, specialistId: "", missingFields: [] });
 
-  // Property-scoped Analyst verdict surface (task #779). The same hook
-  // CompanyAssumptions uses for funding/revenue verdicts; we route
-  // through it so the verdict UI on this page goes through the exact
-  // same `useAnalystRefresh → /api/analyst/refresh → AnalystVerdictDisplay`
-  // pipeline as the company-level surface. Today the only v1 Specialist
-  // is `mgmt-co.funding`; until a property-level v1 Specialist ships
-  // (follow-up #790) we route through it so the per-property Analyst
-  // verdict can render any registry-known field — including
-  // `dispositionCommission`, whose mountPoint resolves to this page.
-  // `propertyId` is threaded into `AnalystVerdictDisplay` below so the
-  // mount-point resolver can produce a working same-page deep link for
-  // `property-edit/<section>` slugs.
+  // Property-scoped Analyst verdict surface (G1.6-v1). Routes through
+  // `property.risk-intelligence` so verdicts reflect per-property context.
+  // `propertyId` is forwarded to the server and threaded into
+  // `AnalystVerdictDisplay` for same-page deep-link resolution.
   const propertyAnalystRefresh = useAnalystRefresh({
-    scope: "global-assumptions",
-    specialistId: "mgmt-co.funding",
+    scope: "property",
+    specialistId: "property.risk-intelligence",
+    propertyId,
   });
 
   const { isGenerating, streamedContent, phases, generateResearch } = useResearchStream({

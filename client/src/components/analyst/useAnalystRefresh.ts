@@ -6,7 +6,7 @@ import { collectMissingLockedHardFields } from "@/lib/locked-hard-preflight";
 import type { AnalystVerdict } from "@engine/analyst/contracts/verdict";
 import type { IcpModelProfile, IcpModelTier } from "@shared/constants-benchmarks";
 
-export type AnalystRefreshScope = "global-assumptions";
+export type AnalystRefreshScope = "global-assumptions" | "property";
 
 export interface AnalystGuidanceRecord {
   id: number;
@@ -40,6 +40,12 @@ function isVerdictResponse(r: RefreshResponse): r is RefreshResponseVerdict {
 
 export interface UseAnalystRefreshOptions {
   scope: AnalystRefreshScope;
+  /**
+   * Required when scope === "property". Identifies which property to
+   * evaluate (routes to property.risk-intelligence and future property-
+   * level Specialists).
+   */
+  propertyId?: number;
   /**
    * Optional Specialist id (e.g. "mgmt-co.funding"). When set, the server
    * routes through the v1 single-shot Specialist runner and returns a
@@ -111,6 +117,7 @@ const TICK_MS = 1000;
  */
 export function useAnalystRefresh({
   scope,
+  propertyId,
   specialistId,
   invalidateKeys = [],
   entityValues,
@@ -156,6 +163,7 @@ export function useAnalystRefresh({
       const res = await apiRequest("POST", "/api/analyst/refresh", {
         scope,
         fields,
+        ...(propertyId != null ? { propertyId } : {}),
         ...(specialistId ? { specialistId } : {}),
       });
       return (await res.json()) as RefreshResponse;
