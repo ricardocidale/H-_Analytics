@@ -30,6 +30,7 @@
  */
 import { useEffect } from "react";
 import { useSearch } from "wouter";
+import { toast } from "@/hooks/use-toast";
 
 /** Query-string key used to ferry the field id through navigations. Kept
  *  as a single exported constant so `analyst-mount-points.ts` and any
@@ -142,6 +143,31 @@ function warnFocusFieldExhausted(fieldId: string): void {
   );
 }
 
+/**
+ * User-facing toast surfaced when `useFocusFieldFromUrl()` exhausts its
+ * retry budget without ever finding a marker for `fieldId` in the DOM.
+ *
+ * The dev-only `console.warn` above tells engineers what went wrong; this
+ * toast tells the human admin who clicked Adjust that the click reached
+ * the right page but the field is hidden — most often inside a collapsed
+ * or conditionally-rendered section. Without it, an Adjust click that
+ * lands on a hidden field looks like the page just sat there and did
+ * nothing, which is the exact UX gap task #780 was opened to close.
+ *
+ * Single-fire by construction: the caller strips the `?focus` param
+ * immediately after exhaustion (see `stripFocusParam`), so a re-render
+ * of the same page sees no param and the hook short-circuits before it
+ * could re-fire this toast. One toast per Adjust navigation.
+ */
+function notifyFocusFieldExhausted(): void {
+  if (typeof window === "undefined") return;
+  toast({
+    title: "Couldn't open this field",
+    description:
+      "It may be inside a collapsed section. Scroll to the section and expand it.",
+  });
+}
+
 function stripFocusParam(): void {
   if (typeof window === "undefined") return;
   const url = new URL(window.location.href);
@@ -198,7 +224,10 @@ export function useFocusFieldFromUrl(opts: FocusFieldOptions = {}): void {
       attempts += 1;
       const ok = focusFieldById(fieldId);
       if (ok || attempts >= maxAttempts) {
-        if (!ok) warnFocusFieldExhausted(fieldId);
+        if (!ok) {
+          warnFocusFieldExhausted(fieldId);
+          notifyFocusFieldExhausted();
+        }
         stripFocusParam();
         timer = null;
         return;
