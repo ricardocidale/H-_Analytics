@@ -40,10 +40,15 @@ reviews:
   # cascade, no-magic-numbers) is enforced by ESLint + .claude/rules/
   # + .agents/skills/, and a generic AI patch routinely violates them.
   # Dashboard step (cannot be expressed in YAML — verify on install):
-  #   app.coderabbit.ai → Repository Settings → Code Generation
-  #   • "Auto-resolve / auto-apply suggestions": OFF
-  #   • "Generate code fixes (PR commits)": OFF
-  #   • "/fix chat command": LEAVE ON (user-initiated, not autofix)
+  #   app.coderabbit.ai → repo → Settings → Finishing touches
+  #   • Turn OFF every "auto-generate" / "auto-apply" toggle in that
+  #     pane (docstrings, unit tests, applied suggestions, etc.).
+  #   • Pre-merge checks pane: turn OFF any "auto-fix on merge" toggle
+  #     if present.
+  #   • Reviews → Behavior pane: confirm "Request changes workflow"
+  #     and "Auto assign reviewers" stay OFF (mirrors this YAML).
+  #   • LEAVE ON: the `/coderabbitai fix` chat command — user-initiated,
+  #     not autofix.
   # CODEOWNERS already routes Analyst/engine/ADR paths to architects;
   # CodeRabbit honors the same routing for review attention.
   labeling_instructions: []
