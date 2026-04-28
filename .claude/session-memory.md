@@ -8,13 +8,13 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 28, 2026 (G2-v1) — Revenue Specialist v1 shipped
+## Session: April 28, 2026 (G2-v1 + G1.6-v1 close) — both analysts fully wired end-to-end
 
-- **What shipped:** G2-v1 Revenue Specialist — 6 new/modified files, commit `fe6dcbe3`. Pattern mirrors G1.5c-v1 (single-shot Opus 4.7, strict Zod schema, canned 12-entry comparable dataset). 5 dimensions: `marketingRate`, `fbRevenueShare`, `eventsRevenueShare`, `otherRevenueShare`, `cateringBoostPct` — all decimal fractions (0.0–1.0). All five gates green: TS 0, Lint 0, Vocab 11/11, test:summary PASS, Verify UNQUALIFIED.
-- **Key files:** `mgmt-co-revenue-output-schema.ts`, `mgmt-co-revenue-prompt-input-builder.ts`, `mgmt-co-revenue-orchestrator-adapter.ts` (12 canned comps; "Boutique Hotel" forbidden string fixed), `mgmt-co-revenue-prompt.ts`, `mgmt-co-revenue-runner.ts`, `analyst-admin.ts` (mgmt-co.revenue branch; reads `globalAssumptions` for 5 revenue fields; Tier-0 fallback on RevenueTier1UnavailableError).
-- **Route branch is dead code** until Replit wires `<AnalystButton>` in `PropertyUnderwritingTab.tsx` → `specialistId:"mgmt-co.revenue"`. Revenue fields live in Admin → Model Defaults → Property Underwriting tab, NOT in Company Assumptions Revenue tab.
-- **Replit handoff packet authored:** `.claude/replit-handoffs/g2-v1-revenue-specialist-ui.md` — wires `revenueRefresh` hook in `ModelDefaultsTab.tsx` + verdict display in `PropertyUnderwritingTab.tsx`.
-- **phases.md updated:** G2-v1 row → ✅ Shipped.
+- **G2-v1 fully closed:** Revenue Specialist server (`80df7bbc`) + UI wiring (`62a664fc`). `<AnalystButton>` live on PropertyUnderwritingTab routing to `specialistId:"mgmt-co.revenue"`. No more "Replit follow-up" in phases.md.
+- **G1.6-v1 fully closed:** `useAnalystRefresh` extended with `propertyId` + `"property"` scope union (`5c4fcc5a`). PropertyEdit hook updated to `scope:"property"` + `specialistId:"property.risk-intelligence"` + `propertyId`. TS/lint/vocab/test/verify all green.
+- **Seeds confirmed auto-seeded:** `seedPass12Updates()` (CY/NL/AT rows) is wired into `seedReferenceRanges()` which runs at server startup — no manual `POST /api/admin/seed-production` needed.
+- **CodeRabbit smoke-tested:** test PR opened 2026-04-28; auto-review triggered within ~5 min; path_instructions fired correctly.
+- **Next up:** G6-P2 (Funding N+1 panels) or G3 (Risk Intelligence graduation).
 
 ---
 
