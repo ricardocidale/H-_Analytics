@@ -39,6 +39,7 @@ import {
   DEFAULT_COMMISSION_RATE,
   DEFAULT_EXIT_CAP_RATE,
 } from "../../shared/constants";
+import { dPow } from "../shared/decimal";
 
 /** A scenario name + the NOI growth rate used to roll NOI past year-1. */
 export interface ExitScenarioAssumption {
@@ -319,7 +320,7 @@ function projectScenarioNoi(
       value = yearlyNoi[y - 1]!;
     } else if (y <= yearlyNoi.length) {
       // Relative shock vs base curve: keep engine's shape, shift the slope.
-      const shockMultiplier = Math.pow(
+      const shockMultiplier = dPow(
         (1 + scenario.noiGrowthRate) / Math.max(1e-6, 1 + baseGrowth),
         y - 1,
       );
@@ -470,7 +471,7 @@ function computeHorizon(
   const totalCashReturned = cumulativePositive + proceedsReturned;
   const profitLoss = totalCashReturned - totalCashInvested;
   const annualizedRoi = totalCashInvested > 0 && totalCashReturned > 0 && yearsHeld > 0
-    ? Math.pow(totalCashReturned / totalCashInvested, 1 / yearsHeld) - 1
+    ? dPow(totalCashReturned / totalCashInvested, 1 / yearsHeld) - 1
     : 0;
 
   return {

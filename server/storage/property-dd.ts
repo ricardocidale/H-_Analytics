@@ -10,7 +10,7 @@
  * label edit does not silently rewrite history on a closed deal.
  */
 import { db } from "../db";
-import { eq, and, asc, inArray } from "drizzle-orm";
+import { eq, asc, inArray } from "drizzle-orm";
 import {
   ddTemplateItems,
   propertyDdItems,

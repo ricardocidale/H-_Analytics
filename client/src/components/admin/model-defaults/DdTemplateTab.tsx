@@ -174,7 +174,7 @@ export function DdTemplateTab() {
                         type="number"
                         value={item.sortOrder}
                         onChange={(e) =>
-                          setField(item.id, "sortOrder", Number(e.target.value) || 0)
+                          setField(item.id, "sortOrder", (n => Number.isFinite(n) ? n : 0)(Number(e.target.value)))
                         }
                         data-testid={`input-sort-${item.key}`}
                       />
