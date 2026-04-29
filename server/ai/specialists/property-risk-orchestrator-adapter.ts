@@ -1,4 +1,3 @@
-// UNWIRED — blocking on: G3-P3 runner rewrite (property-risk-intelligence-runner.ts)
 /**
  * property-risk-orchestrator-adapter.ts — inflation comparables for the
  * Risk Intelligence Specialist's Tier-1 N+1 pipeline (G3).

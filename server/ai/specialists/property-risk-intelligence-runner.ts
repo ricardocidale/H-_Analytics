@@ -1,37 +1,35 @@
 /**
- * runPropertyRiskIntelligenceSpecialist — single-shot Opus call producing a
- * complete `AnalystVerdict` for the per-property inflation override surface
- * owned by `property.risk-intelligence` (Daniela / D).
+ * runPropertyRiskIntelligenceSpecialist — N+1 pipeline producing a complete
+ * AnalystVerdict for the per-property inflation override surface (G3).
  *
- * Mirrors the architecture of `mgmt-co-funding-runner.ts`:
- *   1. Build system + user prompts via `property-risk-intelligence-prompt`
- *   2. Call Opus via Vercel AI SDK `streamObject` with
- *      `PropertyRiskIntelligenceOutputSchema`
- *   3. Map structured output → `RawVerdictDimension` (single dimension on
- *      `propertyInflationRate`)
- *   4. Run Voice Renderer per dimension + surface
- *   5. Build `AnalystVerdict` via `buildAnalystVerdict` (invariant-checked)
- *   6. Return verdict; route handler returns it as the 200 response body
+ * G3 architecture (mirrors G6-P3a/P3b for Funding):
+ *   0. Prompt Engineer (Gemini Flash): adapts panel prompts to this property's
+ *      inflation context → quantAddendum + marketAddendum (IB req #8)
+ *   1. Parallel panels:
+ *      - Gemini Flash (quantitative): authority-anchored low/mid/high range
+ *      - Claude Sonnet (market):      property-level deviation signals
+ *   2. Convergence check: quant developing-conviction → honest-fail
+ *   3. Synthesis (Opus): full Analyst-persona verdict with market enrichment
+ *   4. Quality regress: validator failure → PE re-runs + new panels + retry
+ *      (max 2 regresses; exhaustion → honest-fail per IB req #9)
  *
- * Errors throw `Tier1UnavailableError` typed at this layer; the route
- * handler catches and degrades to the Tier-0 fallback that lives in
- * `engine/analyst/surface/property/risk-intelligence-specialist.ts`.
+ * `meta.vendorsUsed: ["anthropic", "google"]` — IB req #7.
+ * `meta.promptEngineerRunId` — IB req #8.
+ * `meta.regressCount` — IB req #9.
  *
- * Inflation-cascade discipline (`.claude/rules/inflation-cascade.md`):
- *   - The runner NEVER fabricates a country inflation outlook. The
- *     caller passes the published outlook in via
- *     `PropertyRiskIntelligencePromptInputContext.countryInflationOutlook`,
- *     resolved from the macro Specialist's Constant
- *     (`constants.macro-research`, Isadora I).
- *   - When the outlook is `null` the prompt instructs Opus to emit a
- *     developing-conviction range centered on the user's value rather
- *     than inventing an outlook; the runner does not silently
- *     substitute a default.
+ * Errors throw `Tier1UnavailableError`; the route handler degrades to Tier-0
+ * fallback with `meta.fallbackReason: "tier1_temporarily_unavailable"`.
  */
 
-import { streamObject } from "ai";
+import { streamObject, generateObject } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
-import { DEFAULT_FUNDING_SPECIALIST_MODEL } from "@shared/constants";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import {
+  DEFAULT_RISK_SPECIALIST_MODEL,
+  DEFAULT_RISK_QUANT_PANEL_MODEL,
+  DEFAULT_RISK_MARKET_PANEL_MODEL,
+  DEFAULT_RISK_PROMPT_ENGINEER_MODEL,
+} from "@shared/constants";
 import { AI_GENERATION_TIMEOUT_MS } from "../../constants";
 import {
   buildPropertyRiskIntelligenceSystemPrompt,
@@ -39,131 +37,253 @@ import {
   type PropertyRiskIntelligencePromptInputContext,
   type PropertyRiskIntelligencePersonaContext,
 } from "./property-risk-intelligence-prompt";
-import type { MarketBenchmarkEntry } from "./market-benchmark-types";
 import { lookupReferenceRange } from "../../storage/reference-range";
+import type { MarketBenchmarkEntry } from "./market-benchmark-types";
 import {
   PropertyRiskIntelligenceOutputSchema,
   type PropertyRiskIntelligenceOutput,
-  type PropertyRiskIntelligenceSource,
 } from "./property-risk-intelligence-output-schema";
+import {
+  RiskQuantPanelOutputSchema,
+  type RiskQuantPanelOutput,
+} from "./property-risk-quant-panel-schema";
+import {
+  RiskMarketPanelOutputSchema,
+  type RiskMarketPanelOutput,
+} from "./property-risk-market-panel-schema";
+import {
+  RiskPromptEngineerOutputSchema,
+  buildRiskPromptEngineerSystemPrompt,
+  buildRiskPromptEngineerUserPrompt,
+  type RiskPromptEngineerOutput,
+  type RegressContext,
+} from "./property-risk-prompt-engineer";
+import { validateRiskSynthesisOutput } from "./property-risk-synthesis-validator";
+import {
+  type InflationComparableRow,
+  getCannedInflationComparables,
+  comparableToEvidence,
+  RISK_DIMENSION_KEYS,
+} from "./property-risk-orchestrator-adapter";
 import {
   buildAnalystVerdict,
   type AnalystVerdict,
-  type Evidence,
-  type PersonaContext,
   type RawVerdictDimension,
-  type Severity,
   type VerdictDimension,
   type VerdictRange,
   type VoiceIntent,
+  type Evidence,
+  type Severity,
+  type PersonaContext,
 } from "../../../engine/analyst/contracts/verdict";
 import { createVoiceRenderer } from "../../../engine/analyst/voice/voice-renderer";
 import { getFieldRegistryEntry } from "../../../engine/analyst/registry/field-registry";
 
-/**
- * Specialist id this runner emits. Mirrors the catalog id in
- * `engine/analyst/registry/specialist-catalog.ts`.
- */
-const SPECIALIST_ID = "property.risk-intelligence";
+// ── Specialist identity ───────────────────────────────────────────────────────
 
-/** Verdict-emitting field id Daniela targets. */
+const SPECIALIST_ID = "property.risk-intelligence";
 const PROPERTY_INFLATION_FIELD = "propertyInflationRate";
 
-/**
- * Default model id. Today reuses the funding Specialist's model id —
- * both run on Opus single-shot; once admins assign Daniela her own
- * model resource via the admin Models registry (ADR-006) this default
- * will be overridden per-call.
- */
-const PROPERTY_RISK_INTELLIGENCE_MODEL_ID = DEFAULT_FUNDING_SPECIALIST_MODEL;
-const PROPERTY_RISK_INTELLIGENCE_MAX_OUTPUT_TOKENS = 2_000;
+// ── Model IDs ─────────────────────────────────────────────────────────────────
+
+const RISK_MODEL_ID = DEFAULT_RISK_SPECIALIST_MODEL;
+const QUANT_PANEL_MODEL_ID = DEFAULT_RISK_QUANT_PANEL_MODEL;
+const MARKET_PANEL_MODEL_ID = DEFAULT_RISK_MARKET_PANEL_MODEL;
+const PROMPT_ENGINEER_MODEL_ID = DEFAULT_RISK_PROMPT_ENGINEER_MODEL;
+
+// ── Token budgets ─────────────────────────────────────────────────────────────
+
+const SYNTHESIS_MAX_OUTPUT_TOKENS = 2_000;
+const PANEL_MAX_OUTPUT_TOKENS = 1_200;
+const PROMPT_ENGINEER_MAX_OUTPUT_TOKENS = 600;
+
+// ── Convergence policy (single-dimension: any developing conviction = fail) ───
 
 /**
- * Resolve the property-inflation field's display unit from FIELD_REGISTRY.
- * Mirrors `unitFor` in the Tier-0 surface specialist + funding runner so
- * Tier-0 and Tier-1 paths emit identical `range.unit` strings. Throws
- * loudly when the registry entry is missing — the parity test
- * (`tests/analyst/voice/field-registry-parity.test.ts`) guards against
- * this drift.
+ * A single `developing` conviction on the only dimension signals the quant
+ * panel cannot reliably anchor the range — skip synthesis, emit honest-fail.
+ * Mirrors the Funding runner's avg-conviction floor, simplified for 1 dimension.
  */
+const CONVERGENCE_MIN_QUANT_CONVICTION = 55; // developing=45 < 55 → honest-fail
+
+// ── Inline panel prompt builders ──────────────────────────────────────────────
+
+/**
+ * Quant panel system prompt. Focuses Gemini Flash on authority-anchored numeric
+ * range derivation using the country outlook + comparables. PE quantAddendum
+ * prepended when supplied.
+ */
+function buildRiskQuantPanelSystemPrompt(peAddendum?: string): string {
+  const base = `You are the quantitative panel for a property risk intelligence specialist. Your job is to derive a precise inflation range for the \`propertyInflationRate\` dimension based on:
+1. The country / market authority-sourced inflation outlook (macro anchor)
+2. The cross-sectoral CPI comparables (calibration cross-reference)
+3. The property's operator context (persona, vertical, locale)
+
+# Output
+Emit one dimension object with key "propertyInflationRate", low/mid/high (decimal), conviction, reasoning, and evidenceRefs (integer indices into the comparables array provided in the user message — cite 1–3 refs).
+
+# Calibration discipline
+- Ground the range against the country outlook — do NOT invent an independent range
+- Use the comparables as a cross-sector sanity check, not as a source of truth for this property
+- Emit a wider range when the country outlook is absent or when the operator has unusual cost exposure
+- Do NOT embed a "typical X%" prescription — derive per this property's specific context
+- Conviction: "high" when country outlook is fresh and property context is clear; "moderate" when one of those is uncertain; "developing" when both are uncertain or missing`;
+
+  return peAddendum ? `${peAddendum}\n\n${base}` : base;
+}
+
+function buildRiskQuantPanelUserPrompt(
+  ctx: PropertyRiskIntelligencePromptInputContext,
+  comparables: readonly InflationComparableRow[],
+): string {
+  const personaLine = `${ctx.persona.marketTier} tier, ${ctx.persona.verticalSlug} vertical, ${ctx.persona.locale} locale`;
+  const overrideLine =
+    ctx.inputs.propertyInflationRate != null
+      ? `${(ctx.inputs.propertyInflationRate * 100).toFixed(2)}%`
+      : "(not set)";
+
+  const outlookBlock = ctx.countryInflationOutlook
+    ? `  Authority: ${ctx.countryInflationOutlook.source}
+  Low: ${(ctx.countryInflationOutlook.low * 100).toFixed(2)}%  Mid: ${(ctx.countryInflationOutlook.mid * 100).toFixed(2)}%  High: ${(ctx.countryInflationOutlook.high * 100).toFixed(2)}%
+  As of: ${ctx.countryInflationOutlook.asOf}`
+    : "  (not available — emit developing conviction, range centered on user value or 3% if unset)";
+
+  const compBlock = comparables
+    .map(
+      (c, i) =>
+        `  [${i}] ${c.authority} (${c.country}, ${c.sector}, ${c.vintage}): ` +
+        `${(c.low * 100).toFixed(1)}%–${(c.high * 100).toFixed(1)}% (mid ${(c.mid * 100).toFixed(1)}%)`,
+    )
+    .join("\n");
+
+  return `# Property
+${personaLine}
+Saved inflation override: ${overrideLine}
+
+# Country inflation outlook (macro anchor)
+${outlookBlock}
+
+# Cross-sectoral CPI comparables (calibration cross-reference)
+${compBlock}
+
+Emit one dimension for propertyInflationRate. evidenceRefs must be integer indices into the comparables array above (0, 1, or 2). Cite all three if all are relevant.`;
+}
+
+/**
+ * Market panel system prompt. Focuses Sonnet on property-level deviation
+ * signals (import-heavy F&B, long-stay mix, tourist-economy CPI lag).
+ * PE marketAddendum prepended when supplied.
+ */
+function buildRiskMarketPanelSystemPrompt(peAddendum?: string): string {
+  const base = `You are the market panel for a property risk intelligence specialist. Your job is to identify qualitative deviation signals that explain why this specific property's inflation experience might diverge from the country's published outlook.
+
+# Focus areas for deviation signals
+- Revenue and cost mix: F&B-heavy properties in tourist economies face import-driven CPI overrun
+- Contract structure: long-stay or rent-controlled leases underrun country CPI
+- Labor dynamics: specialist hospitality labor may face different wage growth than country average
+- Seasonal exposure: high-season luxury operators have different cost inflation curves than year-round assets
+
+# Output
+Emit one dimension object with key "propertyInflationRate":
+- propertyDeviation: "above-outlook" | "in-line" | "below-outlook"
+- lpRiskFlags: 0–3 LP-relevant inflation risk phrases specific to this property
+- proposedBias: "increase" | "hold" | "decrease" | "insufficient-data"
+- reasoning: 20–300 chars citing the specific operator context`;
+
+  return peAddendum ? `${peAddendum}\n\n${base}` : base;
+}
+
+function buildRiskMarketPanelUserPrompt(
+  ctx: PropertyRiskIntelligencePromptInputContext,
+): string {
+  const personaLine = `${ctx.persona.marketTier} tier, ${ctx.persona.verticalSlug} vertical, ${ctx.persona.locale} locale`;
+  const locationLine = ctx.inputs.country
+    ? `${ctx.inputs.city ? `${ctx.inputs.city}, ` : ""}${ctx.inputs.country}`
+    : ctx.persona.locale;
+  const overrideLine =
+    ctx.inputs.propertyInflationRate != null
+      ? `${(ctx.inputs.propertyInflationRate * 100).toFixed(2)}%`
+      : "(not set)";
+  const outlookMid = ctx.countryInflationOutlook
+    ? `${(ctx.countryInflationOutlook.mid * 100).toFixed(2)}% (${ctx.countryInflationOutlook.source})`
+    : "unknown";
+
+  return `# Property
+${personaLine}
+Location: ${locationLine}
+Saved inflation override: ${overrideLine}
+Country inflation midpoint: ${outlookMid}
+
+Assess whether this property's inflation exposure is likely above, in-line with, or below the country outlook. Emit one dimension for propertyInflationRate with deviation signal, LP flags, proposed bias, and specific reasoning.`;
+}
+
+/**
+ * Format market panel output as an enrichment block for the Opus synthesis
+ * prompt. Qualitative signals only — Opus determines the final numeric range.
+ */
+function buildRiskMarketEnrichmentBlock(market: RiskMarketPanelOutput): string {
+  const dims = market.dimensions
+    .map((d) => {
+      const flags =
+        d.lpRiskFlags.length > 0
+          ? `\n      LP flags: ${d.lpRiskFlags.map((f) => `"${f}"`).join(", ")}`
+          : "";
+      return (
+        `  - ${d.key}: deviation=${d.propertyDeviation}, bias=${d.proposedBias}${flags}\n` +
+        `    ${d.reasoning}`
+      );
+    })
+    .join("\n");
+  const ctx = market.overallInflationContext
+    ? `\nOverall inflation context: ${market.overallInflationContext}`
+    : "";
+  return `# Market panel signals (Claude Sonnet qualitative pass — for enrichment only)\n\n${dims}${ctx}`;
+}
+
+// ── Pure helpers ──────────────────────────────────────────────────────────────
+
 function unitFor(field: string): string {
   const entry = getFieldRegistryEntry(field);
   if (!entry) {
     throw new Error(
-      `Property Risk Intelligence runner: no FIELD_REGISTRY entry for field "${field}". Add one to engine/analyst/registry/field-registry.ts so the Voice Renderer formats this dimension consistently.`,
+      `Risk Intelligence runner: no FIELD_REGISTRY entry for field "${field}". Add one to engine/analyst/registry/field-registry.ts.`,
     );
   }
   return entry.unit;
 }
 
-/**
- * Map the LLM's three-level conviction signal to a numeric quality score
- * the Quality Scorer will normalize. Above CONVICTION_FLOOR (40) so the
- * verdict-shape invariant accepts ranges with non-ok severities.
- * Identical mapping to `mgmt-co-funding-runner.ts:convictionToQualityScore`.
- */
-function convictionToQualityScore(
-  c: "high" | "moderate" | "developing",
-): number {
+function convictionToQualityScore(c: "high" | "moderate" | "developing"): number {
   if (c === "high") return 85;
   if (c === "moderate") return 65;
   return 45;
 }
 
-/**
- * Severity based on whether the user's saved value falls within the LLM's
- * recommended range. Mirrors the funding runner's mapping: in-range → ok,
- * outside → advisory, missing → ok+missing-data intent.
- */
-function deriveSeverity(
-  value: number | null | undefined,
-  range: VerdictRange,
-): Severity {
+function deriveSeverity(value: number | null | undefined, range: VerdictRange): Severity {
   if (value == null || !Number.isFinite(value)) return "ok";
   if (value < range.low || value > range.high) return "advisory";
   return "ok";
 }
 
-/**
- * Voice intent driven by user value vs LLM range. Mirrors the Tier-0
- * pattern in `engine/analyst/surface/property/risk-intelligence-specialist.ts`
- * so downstream Voice Renderer behaves identically across Tier-0 and
- * Tier-1 paths.
- */
-function deriveIntent(
-  value: number | null | undefined,
-  range: VerdictRange,
-): VoiceIntent {
+function deriveIntent(value: number | null | undefined, range: VerdictRange): VoiceIntent {
   if (value == null || !Number.isFinite(value)) return "missing-data";
   if (value < range.low) return "below-range";
   if (value > range.high) return "above-range";
   return "within-range";
 }
 
-/**
- * Convert one Opus-cited source row into a verdict `Evidence` row. The
- * runner stamps `tier: "web"` and `personaFit: 1` itself rather than
- * letting Opus claim a higher-trust tier — only the macro Specialist
- * (whose authority publications populate `db_table` rows) earns
- * `tier: "db_table"`.
- */
-function sourceToEvidence(src: PropertyRiskIntelligenceSource): Evidence {
-  return {
-    source: src.source,
-    tier: "web",
-    asOf: src.asOf,
-    url: src.url,
-    personaFit: 1,
-  };
+function buildEvidenceForDimension(
+  evidenceRefs: readonly number[],
+  comparables: readonly InflationComparableRow[],
+): Evidence[] {
+  return evidenceRefs
+    .filter((idx) => idx >= 0 && idx < comparables.length)
+    .map((idx) => comparableToEvidence(comparables[idx]));
 }
 
-/**
- * Map the LLM-emitted dimension to a `RawVerdictDimension`. Pure
- * transform; no business logic beyond the convention mappings above.
- */
 function llmDimensionToRaw(
-  llmDim: PropertyRiskIntelligenceOutput["dimension"],
+  llmDim: PropertyRiskIntelligenceOutput["dimensions"][number],
   inputs: PropertyRiskIntelligencePromptInputContext["inputs"],
+  comparables: readonly InflationComparableRow[],
 ): RawVerdictDimension {
   const range: VerdictRange = {
     low: llmDim.low,
@@ -172,30 +292,18 @@ function llmDimensionToRaw(
     unit: unitFor(PROPERTY_INFLATION_FIELD),
   };
   const userValue = inputs.propertyInflationRate ?? null;
-  const severity = deriveSeverity(userValue, range);
-  const intent = deriveIntent(userValue, range);
-  const evidence = llmDim.sources.map(sourceToEvidence);
-  const qualityScore = convictionToQualityScore(llmDim.conviction);
-
   return {
     field: PROPERTY_INFLATION_FIELD,
     isNumericField: true,
-    severity,
+    severity: deriveSeverity(userValue, range),
     range,
-    qualityScore,
-    evidence,
-    intent,
+    qualityScore: convictionToQualityScore(llmDim.conviction),
+    evidence: buildEvidenceForDimension(llmDim.evidenceRefs, comparables),
+    intent: deriveIntent(userValue, range),
     actions: [],
   };
 }
 
-/**
- * Promote a `RawVerdictDimension` + reasoning text to a fully-rendered
- * `VerdictDimension`. The LLM's reasoning is passed as `llmReasoning`
- * into the Voice Renderer, which runs it through `enforceOrSanitize`
- * before casting — preserving persona-violation enforcement for
- * Opus-supplied text.
- */
 function rawWithVoice(
   raw: RawVerdictDimension,
   llmReasoning: string,
@@ -212,7 +320,6 @@ function rawWithVoice(
     personaContext: persona,
     llmReasoning: llmReasoning || undefined,
   });
-
   return {
     field: raw.field,
     isNumericField: raw.isNumericField,
@@ -226,13 +333,7 @@ function rawWithVoice(
   };
 }
 
-/**
- * Map the runner's persona triplet to the verdict contract's
- * `PersonaContext` shape. Field renames only; pure.
- */
-function asPersonaContext(
-  persona: PropertyRiskIntelligencePersonaContext,
-): PersonaContext {
+function asPersonaContext(persona: PropertyRiskIntelligencePersonaContext): PersonaContext {
   return {
     segment: persona.verticalSlug,
     tier: persona.marketTier,
@@ -240,14 +341,8 @@ function asPersonaContext(
   };
 }
 
-/**
- * Typed error thrown when the runner cannot produce a Tier-1 verdict
- * (Opus rate-limited, parse failure, network error). The route handler
- * catches and degrades to Tier-0 fallback with
- * `meta.fallbackReason: "tier1_unavailable"` per ADR-008. Mirrors
- * `mgmt-co-funding-runner.ts:Tier1UnavailableError` so callers can
- * `instanceof`-check both runner errors uniformly.
- */
+// ── Typed error ───────────────────────────────────────────────────────────────
+
 export class Tier1UnavailableError extends Error {
   readonly cause: unknown;
   constructor(message: string, cause: unknown) {
@@ -257,21 +352,16 @@ export class Tier1UnavailableError extends Error {
   }
 }
 
+// ── Deps interface ────────────────────────────────────────────────────────────
+
 export interface RunPropertyRiskIntelligenceSpecialistDeps {
-  /** Optional override for the Anthropic model factory (tests inject stubs). */
-  getAnthropicModel?: (
-    modelId: string,
-  ) => ReturnType<ReturnType<typeof createAnthropic>>;
-  /** Optional reference time for verdict generatedAt; tests pass a fixed Date. */
+  getAnthropicModel?: (modelId: string) => ReturnType<ReturnType<typeof createAnthropic>>;
+  getGoogleModel?: (modelId: string) => ReturnType<ReturnType<typeof createGoogleGenerativeAI>>;
   now?: Date;
 }
 
-/**
- * Look up key KPI + macro benchmarks from the `reference_range` table for
- * the given country. Returns an array ready to pass into the prompt context.
- * Failures are silently swallowed — missing rows mean the benchmark block is
- * simply omitted; the verdict still runs on the inflation outlook alone.
- */
+// ── Market benchmark lookup ───────────────────────────────────────────────────
+
 async function resolveMarketBenchmarks(
   country: string | undefined,
 ): Promise<MarketBenchmarkEntry[]> {
@@ -280,7 +370,6 @@ async function resolveMarketBenchmarks(
   const lookups: Array<{ domain: "kpi" | "macro" | "labor"; metricKey: string }> = [
     { domain: "kpi", metricKey: "gopMarginPct" },
     { domain: "kpi", metricKey: "stabilizedOccupancy" },
-    { domain: "kpi", metricKey: "capRateExitStabilized" },
     { domain: "labor", metricKey: "totalLaborCostPct" },
   ];
   const entries: MarketBenchmarkEntry[] = [];
@@ -308,108 +397,380 @@ async function resolveMarketBenchmarks(
   return entries;
 }
 
+// ── Private panel runners ─────────────────────────────────────────────────────
+
+async function runPromptEngineer(
+  ctx: PropertyRiskIntelligencePromptInputContext,
+  comparables: readonly InflationComparableRow[],
+  deps: RunPropertyRiskIntelligenceSpecialistDeps,
+  abortSignal: AbortSignal,
+  regressContext?: RegressContext,
+): Promise<{ output: RiskPromptEngineerOutput; runId: string }> {
+  const googleModelFactory =
+    deps.getGoogleModel ??
+    ((modelId: string) =>
+      createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY ?? "" })(modelId));
+
+  const { object } = await generateObject({
+    model: googleModelFactory(PROMPT_ENGINEER_MODEL_ID),
+    schema: RiskPromptEngineerOutputSchema,
+    system: buildRiskPromptEngineerSystemPrompt(),
+    prompt: buildRiskPromptEngineerUserPrompt(ctx, comparables, regressContext),
+    maxOutputTokens: PROMPT_ENGINEER_MAX_OUTPUT_TOKENS,
+    abortSignal,
+  });
+
+  const runId = `pe-risk-g3-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  return { output: object, runId };
+}
+
+async function runQuantPanel(
+  ctx: PropertyRiskIntelligencePromptInputContext,
+  comparables: readonly InflationComparableRow[],
+  deps: RunPropertyRiskIntelligenceSpecialistDeps,
+  abortSignal: AbortSignal,
+  peAddendum?: string,
+): Promise<RiskQuantPanelOutput> {
+  const googleModelFactory =
+    deps.getGoogleModel ??
+    ((modelId: string) =>
+      createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY ?? "" })(modelId));
+
+  const { object } = await generateObject({
+    model: googleModelFactory(QUANT_PANEL_MODEL_ID),
+    schema: RiskQuantPanelOutputSchema,
+    system: buildRiskQuantPanelSystemPrompt(peAddendum),
+    prompt: buildRiskQuantPanelUserPrompt(ctx, comparables),
+    maxOutputTokens: PANEL_MAX_OUTPUT_TOKENS,
+    abortSignal,
+  });
+  return object;
+}
+
+async function runMarketPanel(
+  ctx: PropertyRiskIntelligencePromptInputContext,
+  deps: RunPropertyRiskIntelligenceSpecialistDeps,
+  abortSignal: AbortSignal,
+  peAddendum?: string,
+): Promise<RiskMarketPanelOutput> {
+  const baseSystemPrompt = buildRiskMarketPanelSystemPrompt(peAddendum);
+  const anthropicFactory = deps.getAnthropicModel ?? createAnthropic();
+
+  const { object } = await generateObject({
+    model: anthropicFactory(MARKET_PANEL_MODEL_ID),
+    schema: RiskMarketPanelOutputSchema,
+    system: baseSystemPrompt,
+    prompt: buildRiskMarketPanelUserPrompt(ctx),
+    maxOutputTokens: PANEL_MAX_OUTPUT_TOKENS,
+    abortSignal,
+  });
+  return object;
+}
+
+async function runSynthesisPanel(
+  ctx: PropertyRiskIntelligencePromptInputContext,
+  comparables: readonly InflationComparableRow[],
+  marketBenchmarks: MarketBenchmarkEntry[],
+  marketContext: RiskMarketPanelOutput,
+  deps: RunPropertyRiskIntelligenceSpecialistDeps,
+  abortSignal: AbortSignal,
+): Promise<{ output: PropertyRiskIntelligenceOutput; cognitiveRunId: string }> {
+  const systemPrompt = buildPropertyRiskIntelligenceSystemPrompt();
+  const ctxWithBenchmarks = { ...ctx, marketBenchmarks };
+  const baseUserPrompt = buildPropertyRiskIntelligenceUserPrompt(ctxWithBenchmarks);
+  const enrichedUserPrompt = `${baseUserPrompt}\n\n${buildRiskMarketEnrichmentBlock(marketContext)}
+
+# Comparables (cite via evidenceRefs — integer indices 0..${comparables.length - 1})
+${comparables.map((c, i) => `  [${i}] ${c.authority} (${c.country}, ${c.sector}, ${c.vintage}): ${(c.low * 100).toFixed(1)}%–${(c.high * 100).toFixed(1)}%`).join("\n")}`;
+
+  const anthropicFactory = deps.getAnthropicModel ?? createAnthropic();
+  const result = streamObject({
+    model: anthropicFactory(RISK_MODEL_ID),
+    schema: PropertyRiskIntelligenceOutputSchema,
+    messages: [
+      {
+        role: "system",
+        content: systemPrompt,
+        providerOptions: {
+          anthropic: { cacheControl: { type: "ephemeral" } },
+        },
+      },
+      { role: "user", content: enrichedUserPrompt },
+    ],
+    maxOutputTokens: SYNTHESIS_MAX_OUTPUT_TOKENS,
+    abortSignal,
+  });
+
+  for await (const _partial of result.partialObjectStream) {
+    void _partial;
+  }
+  const output = await result.object;
+  const cognitiveRunId = `risk-g3-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  return { output, cognitiveRunId };
+}
+
+// ── Honest-fail verdict builder ───────────────────────────────────────────────
+
+const SYNTHETIC_EVIDENCE: Evidence = {
+  source: "quant-panel-low-conviction",
+  tier: "estimated",
+  asOf: new Date().toISOString().slice(0, 10),
+  personaFit: 0.3,
+};
+
+function buildHonestFailVerdict(
+  quantOutput: RiskQuantPanelOutput,
+  comparables: readonly InflationComparableRow[],
+  ctx: PropertyRiskIntelligencePromptInputContext,
+  persona: PersonaContext,
+  deps: RunPropertyRiskIntelligenceSpecialistDeps,
+  durationMs: number,
+  peRunId: string,
+  regressCount: number,
+): AnalystVerdict {
+  const voiceRenderer = createVoiceRenderer();
+  const quantByKey = new Map(quantOutput.dimensions.map((d) => [d.key, d]));
+
+  const dimensions: VerdictDimension[] = RISK_DIMENSION_KEYS.map((key) => {
+    const quantDim = quantByKey.get(key);
+    const evidence: Evidence[] =
+      quantDim && quantDim.evidenceRefs.length > 0
+        ? buildEvidenceForDimension(quantDim.evidenceRefs, comparables)
+        : [SYNTHETIC_EVIDENCE];
+
+    const raw: RawVerdictDimension = {
+      field: PROPERTY_INFLATION_FIELD,
+      isNumericField: true,
+      severity: "ok",
+      range: null,
+      qualityScore: 35,
+      evidence,
+      intent: "missing-data",
+      actions: [],
+    };
+
+    return rawWithVoice(raw, "", persona, voiceRenderer);
+  });
+
+  const surfaceVoice = voiceRenderer.renderSurface(dimensions);
+  const cognitiveRunId = `risk-g3-hf-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+
+  return buildAnalystVerdict({
+    specialistId: SPECIALIST_ID,
+    dimensions,
+    surfaceVoice,
+    meta: {
+      tier: 1,
+      durationMs,
+      cognitiveRunId,
+      vendorsUsed: ["anthropic", "google"],
+      cacheState: "miss",
+      promptEngineerRunId: peRunId,
+      regressCount,
+    },
+    generatedAt: deps.now ? deps.now.toISOString() : undefined,
+  });
+}
+
+// ── Quality regress constants ─────────────────────────────────────────────────
+
+const MAX_SYNTHESIS_REGRESSES = 2;
+
+// ── Public entry point ────────────────────────────────────────────────────────
+
 /**
- * Run the Property Risk Intelligence Specialist end-to-end.
+ * Run the Risk Intelligence Specialist N+1 pipeline end-to-end.
  *
- * Returns a complete `AnalystVerdict` ready for the route handler to send
- * back to the client. Throws `Tier1UnavailableError` on any failure;
- * caller is responsible for degrading to Tier-0.
+ * Returns a complete AnalystVerdict ready for the route handler. Throws
+ * Tier1UnavailableError on any failure; caller degrades to Tier-0.
+ *
+ * @param ctx — per-call context (country outlook, persona, saved override)
+ * @param comparables — inflation comparables (defaults to canned set for G3 bring-up)
+ * @param deps — optional model/time overrides (tests inject stubs)
  */
 export async function runPropertyRiskIntelligenceSpecialist(
   ctx: PropertyRiskIntelligencePromptInputContext,
+  comparables: readonly InflationComparableRow[] = getCannedInflationComparables(),
   deps: RunPropertyRiskIntelligenceSpecialistDeps = {},
 ): Promise<AnalystVerdict> {
+  const startMs = Date.now();
   const marketBenchmarks = await resolveMarketBenchmarks(ctx.inputs.country);
-  const ctxWithBenchmarks: PropertyRiskIntelligencePromptInputContext = {
-    ...ctx,
-    marketBenchmarks,
-  };
-  const systemPrompt = buildPropertyRiskIntelligenceSystemPrompt();
-  const userPrompt = buildPropertyRiskIntelligenceUserPrompt(ctxWithBenchmarks);
   const persona = asPersonaContext(ctx.persona);
 
-  // Direct @ai-sdk/anthropic provider — uses ANTHROPIC_API_KEY from env.
-  // No Vercel AI Gateway needed; works on Replit, Railway, any Node host.
-  const modelFactory = deps.getAnthropicModel ?? createAnthropic();
-
-  let output: PropertyRiskIntelligenceOutput;
-  let cognitiveRunId: string;
-  const opusAbort = new AbortController();
-  const opusTimer = setTimeout(
-    () =>
-      opusAbort.abort(
-        new Error(
-          `Property Risk Intelligence Opus timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`,
-        ),
-      ),
+  // ── Phase 0: Prompt Engineer pre-stage (IB req #8) ─────────────────────────
+  const peAbort = new AbortController();
+  const peTimer = setTimeout(
+    () => peAbort.abort(new Error(`Risk G3 PE timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`)),
     AI_GENERATION_TIMEOUT_MS,
   );
+
+  let peOutput: RiskPromptEngineerOutput;
+  let peRunId: string;
   try {
-    const result = streamObject({
-      model: modelFactory(PROPERTY_RISK_INTELLIGENCE_MODEL_ID),
-      schema: PropertyRiskIntelligenceOutputSchema,
-      messages: [
-        {
-          role: "system",
-          content: systemPrompt,
-          providerOptions: {
-            anthropic: { cacheControl: { type: "ephemeral" } },
-          },
-        },
-        { role: "user", content: userPrompt },
-      ],
-      maxOutputTokens: PROPERTY_RISK_INTELLIGENCE_MAX_OUTPUT_TOKENS,
-      abortSignal: opusAbort.signal,
-    });
-
-    // Drain partial stream for backpressure (mirrors funding runner +
-    // research-orchestrator pattern); we only consume the final
-    // validated object.
-    for await (const _partial of result.partialObjectStream) {
-      void _partial;
-    }
-    output = await result.object;
-    clearTimeout(opusTimer);
-
-    cognitiveRunId = `property-risk-intelligence-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    ({ output: peOutput, runId: peRunId } = await runPromptEngineer(
+      ctx,
+      comparables,
+      deps,
+      peAbort.signal,
+    ));
+    clearTimeout(peTimer);
   } catch (err: unknown) {
-    clearTimeout(opusTimer);
+    clearTimeout(peTimer);
     throw new Tier1UnavailableError(
-      `Property Risk Intelligence cognitive call failed: ${err instanceof Error ? err.message : String(err)}`,
+      `Risk G3 prompt engineer failed: ${err instanceof Error ? err.message : String(err)}`,
       err,
     );
   }
 
-  // Wrap all post-stream operations in a try/catch that converts any
-  // non-Tier1UnavailableError (InvalidVerdictError from buildAnalystVerdict,
-  // PersonaViolationError from voiceRenderer in dev) into
-  // Tier1UnavailableError so the route handler's Tier-0 fallback fires
-  // instead of returning HTTP 500 and permanently holding the cooldown.
+  // ── Phase 1: parallel panels ─────────────────────────────────────────────
+  const panelAbort = new AbortController();
+  const panelTimer = setTimeout(
+    () => panelAbort.abort(new Error(`Risk G3 panels timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`)),
+    AI_GENERATION_TIMEOUT_MS,
+  );
+
+  let quantOutput: RiskQuantPanelOutput;
+  let marketOutput: RiskMarketPanelOutput;
+  try {
+    [quantOutput, marketOutput] = await Promise.all([
+      runQuantPanel(ctx, comparables, deps, panelAbort.signal, peOutput.quantAddendum),
+      runMarketPanel(ctx, deps, panelAbort.signal, peOutput.marketAddendum),
+    ]);
+    clearTimeout(panelTimer);
+  } catch (err: unknown) {
+    clearTimeout(panelTimer);
+    throw new Tier1UnavailableError(
+      `Risk G3 panel phase failed: ${err instanceof Error ? err.message : String(err)}`,
+      err,
+    );
+  }
+
+  // ── Phase 2: convergence check ──────────────────────────────────────────
+  const quantDim = quantOutput.dimensions[0];
+  const quantConviction = quantDim ? convictionToQualityScore(quantDim.conviction) : 0;
+  if (quantConviction < CONVERGENCE_MIN_QUANT_CONVICTION) {
+    return buildHonestFailVerdict(
+      quantOutput,
+      comparables,
+      ctx,
+      persona,
+      deps,
+      Date.now() - startMs,
+      peRunId,
+      0,
+    );
+  }
+
+  // ── Phase 3: synthesis + quality regress loop (IB req #9) ──────────────
+  let regressCount = 0;
+  let currentPeOutput = peOutput;
+  let currentQuantOutput = quantOutput;
+  let currentMarketOutput = marketOutput;
+
+  let output!: PropertyRiskIntelligenceOutput;
+  let cognitiveRunId = "";
+
+  while (true) {
+    const opusAbort = new AbortController();
+    const opusTimer = setTimeout(
+      () => opusAbort.abort(new Error(`Risk G3 synthesis timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`)),
+      AI_GENERATION_TIMEOUT_MS,
+    );
+
+    let loopOutput: PropertyRiskIntelligenceOutput;
+    let loopRunId: string;
+    try {
+      ({ output: loopOutput, cognitiveRunId: loopRunId } = await runSynthesisPanel(
+        ctx,
+        comparables,
+        marketBenchmarks,
+        currentMarketOutput,
+        deps,
+        opusAbort.signal,
+      ));
+      clearTimeout(opusTimer);
+    } catch (err: unknown) {
+      clearTimeout(opusTimer);
+      throw new Tier1UnavailableError(
+        `Risk G3 synthesis failed: ${err instanceof Error ? err.message : String(err)}`,
+        err,
+      );
+    }
+
+    const validation = validateRiskSynthesisOutput(loopOutput, comparables);
+    if (validation.pass) {
+      output = loopOutput;
+      cognitiveRunId = loopRunId;
+      break;
+    }
+
+    if (regressCount >= MAX_SYNTHESIS_REGRESSES) {
+      return buildHonestFailVerdict(
+        currentQuantOutput,
+        comparables,
+        ctx,
+        persona,
+        deps,
+        Date.now() - startMs,
+        peRunId,
+        regressCount,
+      );
+    }
+
+    regressCount++;
+
+    const regressCtx: RegressContext = {
+      priorQuantAddendum: currentPeOutput.quantAddendum,
+      priorMarketAddendum: currentPeOutput.marketAddendum,
+      regressReason: validation.regressReason!,
+    };
+
+    const regressAbort = new AbortController();
+    const regressTimer = setTimeout(
+      () => regressAbort.abort(new Error(`Risk G3 regress ${regressCount} timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`)),
+      AI_GENERATION_TIMEOUT_MS,
+    );
+
+    try {
+      const peResult = await runPromptEngineer(ctx, comparables, deps, regressAbort.signal, regressCtx);
+      currentPeOutput = peResult.output;
+
+      [currentQuantOutput, currentMarketOutput] = await Promise.all([
+        runQuantPanel(ctx, comparables, deps, regressAbort.signal, currentPeOutput.quantAddendum),
+        runMarketPanel(ctx, deps, regressAbort.signal, currentPeOutput.marketAddendum),
+      ]);
+      clearTimeout(regressTimer);
+    } catch (err: unknown) {
+      clearTimeout(regressTimer);
+      throw new Tier1UnavailableError(
+        `Risk G3 regress ${regressCount} phase failed: ${err instanceof Error ? err.message : String(err)}`,
+        err,
+      );
+    }
+  }
+
+  // ── Phase 4: assemble verdict ────────────────────────────────────────────
   try {
     const voiceRenderer = createVoiceRenderer();
 
-    const raw = llmDimensionToRaw(output.dimension, ctx.inputs);
-
-    // Guard: Anthropic structured output cannot enforce minItems on the
-    // sources array, so Opus may emit zero sources. An empty Evidence
-    // array fails MIN_SOURCES_FOR_ADVICE inside buildAnalystVerdict.
-    // Degrade to Tier-0 rather than throwing InvalidVerdictError and
-    // holding the cooldown. Mirrors `mgmt-co-funding-runner.ts` guard.
-    if (raw.evidence.length === 0) {
+    const llmDim = output.dimensions.find((d) => d.key === RISK_DIMENSION_KEYS[0]);
+    if (!llmDim) {
       throw new Tier1UnavailableError(
-        `Property Risk Intelligence dimension emitted zero sources; degrading to Tier-0`,
+        `Risk G3 missing dimension "${RISK_DIMENSION_KEYS[0]}" after schema parse`,
         null,
       );
     }
 
-    const dimension = rawWithVoice(
-      raw,
-      output.dimension.reasoning,
-      persona,
-      voiceRenderer,
-    );
-    const dimensions: VerdictDimension[] = [dimension];
+    const raw = llmDimensionToRaw(llmDim, ctx.inputs, comparables);
+    if (raw.evidence.length === 0) {
+      throw new Tier1UnavailableError(
+        `Risk G3 dimension emitted zero evidenceRefs; degrading to Tier-0`,
+        null,
+      );
+    }
 
+    const dimension = rawWithVoice(raw, llmDim.reasoning, persona, voiceRenderer);
+    const dimensions: VerdictDimension[] = [dimension];
     const surfaceVoice = voiceRenderer.renderSurface(dimensions);
 
     return buildAnalystVerdict({
@@ -418,22 +779,19 @@ export async function runPropertyRiskIntelligenceSpecialist(
       surfaceVoice,
       meta: {
         tier: 1,
-        durationMs: 0, // route handler may overwrite from wallclock
+        durationMs: Date.now() - startMs,
         cognitiveRunId,
-        // Single-vendor (Anthropic Opus) emission today; the verdict
-        // invariant requires ≥2 vendors when `vendorsUsed` is present
-        // (Intelligence Bar #7), so we omit the field rather than emit a
-        // single-entry array. Honest single-vendor emission lives in the
-        // Tier-0 fallback path's meta.fallbackReason, not here.
-        // vendorsUsed: omitted
+        vendorsUsed: ["anthropic", "google"],
         cacheState: "miss",
+        promptEngineerRunId: peRunId,
+        regressCount,
       },
       generatedAt: deps.now ? deps.now.toISOString() : undefined,
     });
   } catch (err: unknown) {
     if (err instanceof Tier1UnavailableError) throw err;
     throw new Tier1UnavailableError(
-      `Property Risk Intelligence post-stream assembly failed: ${err instanceof Error ? err.message : String(err)}`,
+      `Risk G3 verdict assembly failed: ${err instanceof Error ? err.message : String(err)}`,
       err,
     );
   }

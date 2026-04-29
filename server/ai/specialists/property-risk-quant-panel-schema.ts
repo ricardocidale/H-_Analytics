@@ -1,4 +1,3 @@
-// UNWIRED — blocking on: G3-P3 runner rewrite (property-risk-intelligence-runner.ts)
 /**
  * Quant panel output schema for the Gemini Flash quantitative evaluation pass
  * in the Risk Intelligence N+1 pipeline (G3).

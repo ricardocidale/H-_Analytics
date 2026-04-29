@@ -22,6 +22,7 @@ import {
   runPropertyRiskIntelligenceSpecialist,
   Tier1UnavailableError as PropertyTier1UnavailableError,
 } from "../ai/specialists/property-risk-intelligence-runner";
+import { getCannedInflationComparables } from "../ai/specialists/property-risk-orchestrator-adapter";
 import type { PropertyRiskIntelligencePromptInputContext } from "../ai/specialists/property-risk-intelligence-prompt";
 import type { CountryInflationOutlook } from "../../engine/analyst/surface/property/risk-intelligence-specialist";
 import type { ModelConstant } from "@shared/schema";
@@ -516,7 +517,7 @@ async function runPropertyRiskIntelligenceV1Path(
     countryInflationOutlook,
   };
 
-  return runPropertyRiskIntelligenceSpecialist(ctx);
+  return runPropertyRiskIntelligenceSpecialist(ctx, getCannedInflationComparables());
 }
 
 /**

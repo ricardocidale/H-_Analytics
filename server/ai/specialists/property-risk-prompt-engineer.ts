@@ -1,4 +1,3 @@
-// UNWIRED — blocking on: G3-P3 runner rewrite (property-risk-intelligence-runner.ts)
 /**
  * Prompt Engineer pre-stage for the Risk Intelligence Specialist N+1 pipeline (G3).
  *
