@@ -11,6 +11,7 @@ import {
 import { createResearchClient, resolveVendorFromModel } from "./research-client";
 import { getAnthropicClient, getOpenAIClient, getGeminiClient } from "./clients";
 import { DEFAULT_RESEARCH_MODEL } from "./resolve-llm";
+import { ENGINE_VERSION } from "./engine-version";
 import { extractGuidance } from "./guidance/extractor";
 import { PROPERTY_ASSUMPTION_KEYS } from "./guidance/schemas";
 import { buildCompanyContextPack } from "./context-pack/company-pack";
@@ -19,9 +20,17 @@ import {
   indexAssumptionGuidance,
   isVectorStoreAvailable,
 } from "./vector-store-service";
+import {
+  computeCacheKey,
+  computeInputContextHash,
+  canonicalJson,
+} from "../../engine/analyst/cognitive/cache-keys.js";
+import { createHash } from "node:crypto";
 import type { ResearchParams } from "./research-prompt-builders";
 import type { GuidanceRecord } from "./guidance/schemas";
 import type { LlmVendor, ResearchConfig } from "@shared/schema";
+import type { CompanyCacheInputs } from "../../engine/analyst/cognitive/cache-keys.js";
+import type { CanonicalResearchField } from "./synthesis-schema";
 
 export type AnalystScope = "company";
 
@@ -410,6 +419,53 @@ async function runAnalystScopedInner(
       },
     });
     runId = runRecord.id;
+  }
+
+  // ── Phase 5C-task-1: write cache_key + cache_inputs_hash ──
+  // Compute and backfill onto the research_run row now that we know the
+  // full produced fieldGroup (guidanceResult.records). Failures are
+  // non-fatal — a missing cache_key means cold-misses, not data loss.
+  try {
+    const producedFields = Array.from(
+      new Set(guidanceResult.records.map((r) => r.assumptionKey)),
+    ) as CanonicalResearchField[];
+
+    const companyInputs: CompanyCacheInputs = {
+      numProperties: properties.length,
+      country: ga.companyCountry ?? null,
+      capitalRaise1Amount: ga.capitalRaise1Amount ?? null,
+      capitalRaise2Amount: ga.capitalRaise2Amount ?? null,
+      baseManagementFee: ga.baseManagementFee ?? null,
+      incentiveManagementFee: ga.incentiveManagementFee ?? null,
+    };
+
+    const inputContextHash = computeInputContextHash(
+      "company",
+      companyInputs,
+      producedFields,
+    );
+
+    // Stable default persona sentinel until SYSTEM-MODEL §9 N3 lands.
+    const personaHash = createHash("sha256")
+      .update(canonicalJson({ style: "L+B", tier: "luxury", market: "US" }))
+      .digest("hex");
+
+    const cacheKey = computeCacheKey({
+      scenarioId: null,
+      entityType: "company",
+      entityId: userId,
+      fieldGroup: producedFields,
+      personaHash,
+      inputContextHash,
+      engineVersion: ENGINE_VERSION,
+    });
+
+    await storage.updateResearchRun(runId, { cacheKey, cacheInputsHash: inputContextHash });
+  } catch (cacheErr: unknown) {
+    logger.warn(
+      `analyst-scoped-runner: cache key write failed for run ${runId}: ${cacheErr instanceof Error ? cacheErr.message : cacheErr}`,
+      "analyst-scoped-runner",
+    );
   }
 
   for (const rec of guidanceResult.records) {
