@@ -8,6 +8,15 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 29, 2026 (continued) — P6c-a shipped + P5C-task-2/3 shipped
+
+- **P6c-a complete** (`ae422cff`): `engine/analyst/registry/specialist-runtime-schemas.ts` (new) — `PhotoEnhancerRuntimeConfigSchema` (Zod strict) + `SPECIALIST_RUNTIME_SCHEMAS` registry. `server/routes/admin/specialists/runtime.ts` — 16KB size cap + depth-4 cap + per-Specialist Zod validation on PUT. `tests/server/admin-specialists.test.ts` — +7 bar tests (Photos accept/reject, size cap, depth cap). All gates green.
+- **P5C-task-2/3 complete** (earlier in session, `6302e621`): `markAssumptionGuidanceSuperseded` on `ProposalsStorage`; wired into `server/routes/properties.ts` + `server/routes/global-assumptions.ts` (PUT + save-tab) on `hasKeyChange`.
+- **P5C-task-1** shipped in collision commit `9fb9083e` (see prior entry).
+- **Pending:** P6e (LLM defaults → admin resources adapter, blocked on P6c), P6f (legacy data-sources adapter).
+
+---
+
 ## Session: April 29, 2026 — Phase 5C-task-1 shipped (cache key write-after); Replit EWW+ICP complete
 
 - **Replit completed** both handoff packets: `9fb9083e` — ADR-009 EWW dedup (3 UI income-statement surfaces) + ICP model dialog verify. Both verified by Replit per packet acceptance criteria.
