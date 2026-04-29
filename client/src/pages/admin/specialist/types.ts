@@ -75,6 +75,14 @@ export interface SpecialistConfigView {
   /** Per-prerequisite toggle state (catalog-keyed). */
   prerequisiteToggles: Record<string, boolean>;
   runtimeConfig: Record<string, unknown>;
+  /** Recommended model slugs per pipeline role (from vendor-roster rule, refreshed quarterly). */
+  recommendedModelSlugs: {
+    primary: string | null;
+    analystA: string | null;
+    analystB: string | null;
+    synthesis: string | null;
+    fallback: string | null;
+  };
   /** Effective scheduled-refresh cadence (override → catalog default → null). */
   refreshCadenceDays: number | null;
   /** Catalog baseline used when no override is set. */
