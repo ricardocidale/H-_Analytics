@@ -704,6 +704,16 @@ async function runSchemaMigrations() {
     await markMigrationApplied("pipeline_n1_global_models_001");
   }
 
+  // P6f — seed admin_resources with model rows (LLM Config dropdowns) and
+  // source/api/benchmark rows adapted from the legacy source_registry.
+  if (!(await isMigrationApplied("admin_resources_005"))) {
+    const { runAdminResources005 } = await import(
+      "./migrations/admin-resources-005"
+    );
+    await runAdminResources005();
+    await markMigrationApplied("admin_resources_005");
+  }
+
   // Phase 4 — Task #454. `properties.financials_computed_at` is the
   // single source of truth for "this property's numbers are fresh as of
   // T". Specialist gating (engine/analyst/registry/prerequisite-registry.ts
