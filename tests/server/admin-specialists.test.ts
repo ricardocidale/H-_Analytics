@@ -158,7 +158,7 @@ describe("admin/specialists routes — catalog + detail", () => {
     expect(items).toHaveLength(SPECIALIST_CATALOG.length + 1);
     expect(items[0].id).toBe("gaspar");
     expect(items.find((i) => i.id === "mgmt-co.funding")?.status).toBe("built");
-    expect(items.find((i) => i.id === "portfolio-ops.watchdog")?.status).toBe("needs-page");
+    expect(items.find((i) => i.id === "portfolio-ops.watchdog")?.status).toBe("built");
     // Task #502 — every row carries a boolean drift flag, defaulting to
     // false when no Specialist diverges from the global LLM defaults.
     for (const item of items) {

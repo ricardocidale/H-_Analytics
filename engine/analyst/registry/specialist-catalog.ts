@@ -289,7 +289,7 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
       "all-properties-financials-computed",
       "all-properties-required-fields-complete",
     ],
-    status: "needs-page",
+    status: "built",
   },
   // ──────────────────────────────────────────────────────────────────────────
   // Constants & Authority Sources (letters H–K) — own the governed Model

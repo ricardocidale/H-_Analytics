@@ -105,6 +105,12 @@ const BUILT_SPECIALISTS_WITHOUT_VERDICT_DIMENSIONS: ReadonlySet<string> = new Se
   // (config + descriptive + analysis), not a set of per-field
   // assumption verdicts. No deep-link CTAs to individual form inputs.
   "mgmt-co.icp-intelligence",
+  // Giovanna: Tier-0 deterministic cross-portfolio monitor — no LLM,
+  // no AnalystVerdict. Returns ValidationResult / FieldAlert[] shapes.
+  // Subject is "portfolio-ops" (not "mgmt-co" or "property"), so it
+  // is exempt from the 9 Intelligence Bar requirements. No per-field
+  // deep-link anchors to register in FIELD_REGISTRY.
+  "portfolio-ops.watchdog",
 ]);
 
 describe("FIELD_REGISTRY parity — every Specialist-emitted field has an entry", () => {
