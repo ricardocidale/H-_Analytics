@@ -452,6 +452,30 @@ describe("admin/specialists routes — catalog + detail", () => {
     expect((body as { error: string }).error).toMatch(/size or depth/);
   });
 
+  it("PUT /api/admin/specialists/:id/runtime response includes recommendedModelSlugs with all five roles", async () => {
+    (storage.updateSpecialistConfigSection as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...baseConfig("portfolio-ops.watchdog"),
+      runtimeConfig: {},
+      version: 2,
+    });
+    const { status, body } = await invoke(handlers, "PUT /api/admin/specialists/:id/runtime", {
+      params: { id: "portfolio-ops.watchdog" },
+      body: { runtimeConfig: {} },
+    });
+    expect(status).toBe(200);
+    const recs = (body as { recommendedModelSlugs: Record<string, string | null> }).recommendedModelSlugs;
+    expect(recs).toMatchObject({
+      primary: expect.any(String),
+      analystA: expect.any(String),
+      analystB: expect.any(String),
+      synthesis: expect.any(String),
+      fallback: expect.any(String),
+    });
+    // Spot-check vendor-roster recommendations
+    expect(recs.synthesis).toBe("claude-opus-4-7");
+    expect(recs.analystA).toBe("gemini-2.5-flash");
+  });
+
   it("PUT /api/admin/specialists/:id/cadence rejects a Specialist that doesn't own constants", async () => {
     // photos.photo-enhancer is not a Constants Specialist — the catalog entry
     // has no `refreshCadenceDays`, so the cadence override surface must 400.

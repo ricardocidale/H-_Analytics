@@ -612,6 +612,20 @@ export const SpecialistConfigPublicViewSchema = z.object({
   prerequisiteToggles: z.record(z.string(), z.boolean()),
   runtimeConfig: z.record(z.string(), z.unknown()),
   /**
+   * Recommended model slugs by pipeline role, derived from the vendor roster
+   * recommendation matrix (`.claude/rules/llm-vendor-roster.md`). The LLM
+   * Config tab highlights model dropdowns whose selected resource slug matches
+   * the recommendation with a "Recommended" badge. Null values mean no
+   * recommendation is defined for that role.
+   */
+  recommendedModelSlugs: z.object({
+    primary: z.string().nullable(),
+    analystA: z.string().nullable(),
+    analystB: z.string().nullable(),
+    synthesis: z.string().nullable(),
+    fallback: z.string().nullable(),
+  }),
+  /**
    * Effective scheduled-refresh cadence (in days) for this Specialist's
    * Constants research. Resolved as `override ?? catalog default`. Null
    * when neither the override nor the catalog declares a cadence — i.e.

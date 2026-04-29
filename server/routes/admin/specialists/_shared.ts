@@ -27,6 +27,7 @@ import {
   ORCHESTRATOR_SPECIALIST_ID,
   type IdentityCatalogDefault,
 } from "../../../../engine/analyst/identity";
+import { RECOMMENDED_MODEL_SLUGS_BY_ROLE } from "../../../../engine/analyst/registry/recommended-models";
 
 export const idParamSchema = z.object({ id: z.string().min(1) });
 
@@ -106,6 +107,13 @@ export function toConfigView(
     lockedHardKeys: lockedHard,
     prerequisiteToggles: row.prerequisiteToggles ?? {},
     runtimeConfig: row.runtimeConfig ?? {},
+    recommendedModelSlugs: {
+      primary: RECOMMENDED_MODEL_SLUGS_BY_ROLE.primary,
+      analystA: RECOMMENDED_MODEL_SLUGS_BY_ROLE.analystA,
+      analystB: RECOMMENDED_MODEL_SLUGS_BY_ROLE.analystB,
+      synthesis: RECOMMENDED_MODEL_SLUGS_BY_ROLE.synthesis,
+      fallback: RECOMMENDED_MODEL_SLUGS_BY_ROLE.fallback,
+    },
     refreshCadenceDays: override ?? catalogDefault,
     defaultRefreshCadenceDays: catalogDefault,
     refreshCadenceOverridden: override !== null,
