@@ -17,6 +17,7 @@ import { storage } from "../../../storage";
 import { requireAdmin } from "../../../auth";
 import { logActivity, logAndSendError } from "../../helpers";
 import { getSpecialistById } from "../../../../engine/analyst/registry/specialist-catalog";
+import { SPECIALIST_RUNTIME_SCHEMAS } from "../../../../engine/analyst/registry/specialist-runtime-schemas.js";
 import {
   updateRuntimeSchema,
   updateCadenceSchema,
@@ -26,6 +27,13 @@ import {
 } from "@shared/schema";
 import { idParamSchema, toConfigView } from "./_shared";
 import { getSpecialistGlobalLlmDefaults } from "../../../ai/specialist-llm-resolver";
+
+function getMaxDepth(value: unknown, current = 0): number {
+  if (value === null || typeof value !== "object") return current;
+  const children = Array.isArray(value) ? value : Object.values(value as Record<string, unknown>);
+  if (children.length === 0) return current + 1;
+  return Math.max(...children.map((c) => getMaxDepth(c, current + 1)));
+}
 
 export function registerRuntimeRoutes(app: Express) {
   // ── Update Runtime ──────────────────────────────────────────────
@@ -41,6 +49,25 @@ export function registerRuntimeRoutes(app: Express) {
       if (!parsed.success) {
         return res.status(400).json({ error: fromZodError(parsed.error).message });
       }
+
+      // Size + depth cap applied before per-Specialist schema
+      const runtimeConfig = parsed.data.runtimeConfig;
+      if (JSON.stringify(runtimeConfig).length > 16_384) {
+        return res.status(400).json({ error: "runtimeConfig exceeds size or depth limits" });
+      }
+      if (getMaxDepth(runtimeConfig) > 4) {
+        return res.status(400).json({ error: "runtimeConfig exceeds size or depth limits" });
+      }
+
+      // Per-Specialist schema validation (Photos only for now; loose-fallback otherwise)
+      const runtimeSchema = SPECIALIST_RUNTIME_SCHEMAS[id];
+      if (runtimeSchema) {
+        const schemaResult = runtimeSchema.safeParse(runtimeConfig);
+        if (!schemaResult.success) {
+          return res.status(400).json({ error: fromZodError(schemaResult.error).message });
+        }
+      }
+
       const actorId = req.user!.id;
       const updated = await storage.updateSpecialistConfigSection(
         id,

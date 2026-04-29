@@ -362,7 +362,7 @@ describe("admin/specialists routes — catalog + detail", () => {
     );
   });
 
-  it("PUT /api/admin/specialists/:id/runtime accepts an arbitrary jsonb object", async () => {
+  it("PUT /api/admin/specialists/:id/runtime accepts an arbitrary jsonb object for Specialists with no registered runtime schema", async () => {
     (storage.updateSpecialistConfigSection as ReturnType<typeof vi.fn>).mockResolvedValue({
       ...baseConfig("portfolio-ops.watchdog"),
       runtimeConfig: { thresholds: { adr: 0.1 } },
@@ -373,6 +373,83 @@ describe("admin/specialists routes — catalog + detail", () => {
       body: { runtimeConfig: { thresholds: { adr: 0.1 } } },
     });
     expect(status).toBe(200);
+  });
+
+  it("PUT /api/admin/specialists/:id/runtime accepts a valid Photos runtime config", async () => {
+    (storage.updateSpecialistConfigSection as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...baseConfig("photos.photo-enhancer"),
+      runtimeConfig: { scheduledStyle: "standard" },
+      version: 2,
+    });
+    const { status } = await invoke(handlers, "PUT /api/admin/specialists/:id/runtime", {
+      params: { id: "photos.photo-enhancer" },
+      body: { runtimeConfig: { scheduledStyle: "standard" } },
+    });
+    expect(status).toBe(200);
+  });
+
+  it("PUT /api/admin/specialists/:id/runtime accepts an empty runtimeConfig for Photos", async () => {
+    (storage.updateSpecialistConfigSection as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...baseConfig("photos.photo-enhancer"),
+      runtimeConfig: {},
+      version: 2,
+    });
+    const { status } = await invoke(handlers, "PUT /api/admin/specialists/:id/runtime", {
+      params: { id: "photos.photo-enhancer" },
+      body: { runtimeConfig: {} },
+    });
+    expect(status).toBe(200);
+  });
+
+  it("PUT /api/admin/specialists/:id/runtime accepts a partial batchSchedule for Photos", async () => {
+    (storage.updateSpecialistConfigSection as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...baseConfig("photos.photo-enhancer"),
+      runtimeConfig: { batchSchedule: { enabled: true } },
+      version: 3,
+    });
+    const { status } = await invoke(handlers, "PUT /api/admin/specialists/:id/runtime", {
+      params: { id: "photos.photo-enhancer" },
+      body: { runtimeConfig: { batchSchedule: { enabled: true } } },
+    });
+    expect(status).toBe(200);
+  });
+
+  it("PUT /api/admin/specialists/:id/runtime rejects a negative intervalHours for Photos", async () => {
+    const { status, body } = await invoke(handlers, "PUT /api/admin/specialists/:id/runtime", {
+      params: { id: "photos.photo-enhancer" },
+      body: { runtimeConfig: { batchSchedule: { intervalHours: -1 } } },
+    });
+    expect(status).toBe(400);
+    expect((body as { error: string }).error).toBeTruthy();
+  });
+
+  it("PUT /api/admin/specialists/:id/runtime rejects an unknown top-level key for Photos", async () => {
+    const { status, body } = await invoke(handlers, "PUT /api/admin/specialists/:id/runtime", {
+      params: { id: "photos.photo-enhancer" },
+      body: { runtimeConfig: { unknownField: "bad" } },
+    });
+    expect(status).toBe(400);
+    expect((body as { error: string }).error).toBeTruthy();
+  });
+
+  it("PUT /api/admin/specialists/:id/runtime rejects an oversized runtimeConfig", async () => {
+    const bigString = "x".repeat(17_000);
+    const { status, body } = await invoke(handlers, "PUT /api/admin/specialists/:id/runtime", {
+      params: { id: "portfolio-ops.watchdog" },
+      body: { runtimeConfig: { payload: bigString } },
+    });
+    expect(status).toBe(400);
+    expect((body as { error: string }).error).toMatch(/size or depth/);
+  });
+
+  it("PUT /api/admin/specialists/:id/runtime rejects a depth-5 nested runtimeConfig", async () => {
+    const deep = { a: { b: { c: { d: { e: "too deep" } } } } };
+    const { status, body } = await invoke(handlers, "PUT /api/admin/specialists/:id/runtime", {
+      params: { id: "portfolio-ops.watchdog" },
+      body: { runtimeConfig: deep },
+    });
+    expect(status).toBe(400);
+    expect((body as { error: string }).error).toMatch(/size or depth/);
   });
 
   it("PUT /api/admin/specialists/:id/cadence rejects a Specialist that doesn't own constants", async () => {
