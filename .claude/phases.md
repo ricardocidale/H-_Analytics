@@ -110,7 +110,7 @@ Maps 1:1 to the **Resources Control Plane** workstream above. P1–P5 shipped; P
 | G3 | Risk Intelligence (D) graduation — full N+1 pipeline (PE Gemini Flash + quant Gemini Flash + market Sonnet + Opus synthesis), honest-fail path, bounded regress, 12 bar tests (IB#7 #8 #9 + IB#3 #4 #6) | ✅ Shipped | CC | `1dbd38ac` | G2 ✅ | 12 bar tests green; all 9 IB requirements exercised. Single-dimension (`propertyInflationRate`) evidence-padding handles TIER_1_MIN_TOTAL_EVIDENCE invariant. |
 | G4 | Executive Summary (E) graduation — Opus 4.6 model upgrade + catalog `built` + parity-test opt-out (narrative report, not per-field verdicts) + 10 bar tests (shape/fallback/model-tier) | ✅ Shipped | CC | `bfb989f3` (GET trigger fix) + `8feabdfc` (G4-b graduation) | G3 ✅ | Eloá tab live (Replit G4-a); trigger-discipline GET fix closes the IB compliance gap; G4-b closes here. |
 | G5 | ICP Intelligence (C) graduation — Opus 4.6 model upgrade + empty candidateFields (narrative generator, not per-field evaluator) + catalog `built` + parity-test opt-out + 10 bar tests (shape/fallback/model-tier) + research-quality fixture migration to mgmt-co.revenue | ✅ Shipped | CC | `447d3fd8` | G4 ✅ | — |
-| G6 | Watchdog (G) graduation | ⏳ Pending | CC | — | G5 ✅ | — |
+| G6 | Watchdog (G) graduation — catalog `built` + BUILT_SPECIALISTS_WITHOUT_VERDICT_DIMENSIONS opt-out + 10 bar tests (consistency/staleness/alerts/catalog) | ✅ Shipped | CC | `40f72a7c` | G5 ✅ | — |
 
 ---
 
