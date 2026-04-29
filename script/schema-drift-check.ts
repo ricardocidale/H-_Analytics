@@ -87,6 +87,26 @@ export const BASELINE_DRIFT: ReadonlyArray<{ kind: DriftFinding["kind"]; key: st
     key: "users.password_hash",
     reason: "DB enforces NOT NULL but Drizzle types it as nullable to support OAuth-only users. Pre-existing as of Task #490 — fix requires aligning either the DB constraint or the Drizzle column.",
   },
+  {
+    kind: "missing-column",
+    key: "pipeline_policies.analyst_a_model_resource_id",
+    reason: "P6e — global N+1 model defaults adapter. Migration pipeline_n1_global_models_001 adds this column on next server startup.",
+  },
+  {
+    kind: "missing-column",
+    key: "pipeline_policies.analyst_b_model_resource_id",
+    reason: "P6e — global N+1 model defaults adapter. Migration pipeline_n1_global_models_001 adds this column on next server startup.",
+  },
+  {
+    kind: "missing-column",
+    key: "pipeline_policies.synthesis_model_resource_id",
+    reason: "P6e — global N+1 model defaults adapter. Migration pipeline_n1_global_models_001 adds this column on next server startup.",
+  },
+  {
+    kind: "missing-column",
+    key: "pipeline_policies.fallback_model_resource_id",
+    reason: "P6e — global N+1 model defaults adapter. Migration pipeline_n1_global_models_001 adds this column on next server startup.",
+  },
 ];
 
 export function findingKey(f: DriftFinding): string {

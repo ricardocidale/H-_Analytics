@@ -557,6 +557,11 @@ export const SpecialistGlobalLlmDefaultsSchema = z.object({
   analystBModelLabel: z.string().nullable(),
   synthesisModelLabel: z.string().nullable(),
   fallbackModelLabel: z.string().nullable(),
+  /** DB-persisted global N+1 resource IDs (null = unset, UI shows HARDCODED_LLM_DEFAULTS placeholder). */
+  analystAModelResourceId: z.number().int().nullable(),
+  analystBModelResourceId: z.number().int().nullable(),
+  synthesisModelResourceId: z.number().int().nullable(),
+  fallbackModelResourceId: z.number().int().nullable(),
   workflow: z.object({
     stalenessThresholdHours: z.number().int().nullable(),
     maxConcurrentRuns: z.number().int().nullable(),

@@ -210,6 +210,11 @@ export function registerIntelligenceRoutes(app: Express) {
         minEvidenceScore: z.number().min(0).max(1).optional(),
         minCompCount: z.number().int().min(0).max(50).optional(),
         autoRefreshIntervalHours: z.number().int().min(1).max(8760).nullable().optional(),
+        // P6e — global N+1 model resource IDs (null = revert to hardcoded default)
+        analystAModelResourceId: z.number().int().positive().nullable().optional(),
+        analystBModelResourceId: z.number().int().positive().nullable().optional(),
+        synthesisModelResourceId: z.number().int().positive().nullable().optional(),
+        fallbackModelResourceId: z.number().int().positive().nullable().optional(),
       });
 
       const parsed = updateSchema.safeParse(req.body);

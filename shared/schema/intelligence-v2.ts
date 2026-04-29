@@ -438,6 +438,11 @@ export const pipelinePolicies = pgTable("pipeline_policies", {
   minEvidenceScore: real("min_evidence_score").default(0.3),
   minCompCount: integer("min_comp_count").default(3),
   autoRefreshIntervalHours: integer("auto_refresh_interval_hours"),
+  /** Global N+1 orchestrator model defaults (P6e). FK → admin_resources ON DELETE SET NULL. */
+  analystAModelResourceId: integer("analyst_a_model_resource_id"),
+  analystBModelResourceId: integer("analyst_b_model_resource_id"),
+  synthesisModelResourceId: integer("synthesis_model_resource_id"),
+  fallbackModelResourceId: integer("fallback_model_resource_id"),
 });
 
 export const insertPipelinePolicySchema = createInsertSchema(pipelinePolicies).pick({
@@ -445,6 +450,8 @@ export const insertPipelinePolicySchema = createInsertSchema(pipelinePolicies).p
   maxConcurrentRuns: true, dailyTokenBudget: true, monthlyTokenBudget: true,
   relaxationMaxLevel: true, minEvidenceScore: true, minCompCount: true,
   autoRefreshIntervalHours: true,
+  analystAModelResourceId: true, analystBModelResourceId: true,
+  synthesisModelResourceId: true, fallbackModelResourceId: true,
 });
 export type PipelinePolicy = typeof pipelinePolicies.$inferSelect;
 export type InsertPipelinePolicy = z.infer<typeof insertPipelinePolicySchema>;

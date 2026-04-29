@@ -693,6 +693,17 @@ async function runSchemaMigrations() {
     await markMigrationApplied("specialist_multi_model_001");
   }
 
+  // P6e — wire global N+1 model defaults to admin_resources (4 nullable FK
+  // columns on pipeline_policies so admins can configure default orchestrator
+  // models without a code deploy).
+  if (!(await isMigrationApplied("pipeline_n1_global_models_001"))) {
+    const { runPipelineN1GlobalModels001 } = await import(
+      "./migrations/pipeline-n1-global-models-001"
+    );
+    await runPipelineN1GlobalModels001();
+    await markMigrationApplied("pipeline_n1_global_models_001");
+  }
+
   // Phase 4 — Task #454. `properties.financials_computed_at` is the
   // single source of truth for "this property's numbers are fresh as of
   // T". Specialist gating (engine/analyst/registry/prerequisite-registry.ts

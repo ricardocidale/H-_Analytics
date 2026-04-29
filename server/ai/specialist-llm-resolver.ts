@@ -88,34 +88,50 @@ export async function getSpecialistGlobalLlmDefaults(): Promise<SpecialistGlobal
     tier1 = undefined;
   }
 
-  // Look up display labels for the four hardcoded N+1 model defaults. We
-  // match on AdminResource.slug (model registry stores the model id in
-  // `slug` for kind=model rows). Missing rows fall back to the raw id.
-  const slugs = [
-    HARDCODED_LLM_DEFAULTS.analystAModel,
-    HARDCODED_LLM_DEFAULTS.analystBModel,
-    HARDCODED_LLM_DEFAULTS.synthesisModel,
-  ];
-  const labelBySlug = new Map<string, string>();
-  await Promise.all(
-    slugs.map(async (slug) => {
+  // P6e: resolve display label for each N+1 role.
+  // When the admin has persisted a model resource ID on tier1_property, look up
+  // that resource by ID for its display name. Otherwise fall back to the
+  // hardcoded slug lookup (HARDCODED_LLM_DEFAULTS) so the UI still shows a
+  // meaningful placeholder before the admin configures anything.
+  const resolveLabel = async (
+    resourceId: number | null | undefined,
+    fallbackSlug: string | null,
+  ): Promise<string | null> => {
+    if (resourceId != null) {
       try {
-        const row = await storage.getAdminResourceBySlug?.("model", slug);
-        if (row) labelBySlug.set(slug, row.displayName);
+        const row = await storage.getAdminResourceById?.(resourceId);
+        if (row) return row.displayName;
       } catch {
-        // best-effort lookup — fall back to raw slug below
+        // best-effort — fall through to slug lookup
       }
-    }),
-  );
-  const labelOf = (slug: string | null): string | null =>
-    slug ? (labelBySlug.get(slug) ?? slug) : null;
+    }
+    if (!fallbackSlug) return null;
+    try {
+      const row = await storage.getAdminResourceBySlug?.("model", fallbackSlug);
+      return row ? row.displayName : fallbackSlug;
+    } catch {
+      return fallbackSlug;
+    }
+  };
+
+  const [analystAModelLabel, analystBModelLabel, synthesisModelLabel] = await Promise.all([
+    resolveLabel(tier1?.analystAModelResourceId, HARDCODED_LLM_DEFAULTS.analystAModel),
+    resolveLabel(tier1?.analystBModelResourceId, HARDCODED_LLM_DEFAULTS.analystBModel),
+    resolveLabel(tier1?.synthesisModelResourceId, HARDCODED_LLM_DEFAULTS.synthesisModel),
+  ]);
 
   return {
     multiModelEnabled: HARDCODED_LLM_DEFAULTS.multiModelEnabled,
-    analystAModelLabel: labelOf(HARDCODED_LLM_DEFAULTS.analystAModel),
-    analystBModelLabel: labelOf(HARDCODED_LLM_DEFAULTS.analystBModel),
-    synthesisModelLabel: labelOf(HARDCODED_LLM_DEFAULTS.synthesisModel),
-    fallbackModelLabel: HARDCODED_LLM_DEFAULTS.fallbackModel,
+    analystAModelLabel,
+    analystBModelLabel,
+    synthesisModelLabel,
+    fallbackModelLabel: tier1?.fallbackModelResourceId != null
+      ? await resolveLabel(tier1.fallbackModelResourceId, null)
+      : HARDCODED_LLM_DEFAULTS.fallbackModel,
+    analystAModelResourceId: tier1?.analystAModelResourceId ?? null,
+    analystBModelResourceId: tier1?.analystBModelResourceId ?? null,
+    synthesisModelResourceId: tier1?.synthesisModelResourceId ?? null,
+    fallbackModelResourceId: tier1?.fallbackModelResourceId ?? null,
     workflow: {
       stalenessThresholdHours: tier1?.stalenessThresholdHours ?? HARDCODED_WORKFLOW_DEFAULTS.stalenessThresholdHours,
       maxConcurrentRuns: tier1?.maxConcurrentRuns ?? HARDCODED_WORKFLOW_DEFAULTS.maxConcurrentRuns,
