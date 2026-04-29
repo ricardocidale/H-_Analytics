@@ -8,6 +8,14 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 29, 2026 (P6g server + handoff) — recommendedModelSlugs wired
+
+- **P6g CC work done** (`b6f44d2c`, `cab8b5e4`): `engine/analyst/registry/recommended-models.ts` (new) — `RECOMMENDED_MODEL_SLUGS_BY_ROLE` from vendor-roster; `SpecialistConfigPublicViewSchema` + `toConfigView` + `SpecialistConfigView` client type all get new `recommendedModelSlugs` field.
+- **Handoff written** (`3d4b0399`): `.claude/replit-handoffs/phase-6g-llm-tab-recommendations.md` — 2 sub-steps for Replit: S1 "Recommended" badge in each model dropdown, S2 AnalystButton → invalidate models query (data refresh only, no LLM call).
+- **All gates green** after each commit: TS 0, Lint 0, 40/40 admin-specialists tests, test:summary PASS, verify UNQUALIFIED.
+
+---
+
 ## Session: April 29, 2026 (continued) — P6c-a shipped + P5C-task-2/3 shipped
 
 - **P6c-a complete** (`ae422cff`): `engine/analyst/registry/specialist-runtime-schemas.ts` (new) — `PhotoEnhancerRuntimeConfigSchema` (Zod strict) + `SPECIALIST_RUNTIME_SCHEMAS` registry. `server/routes/admin/specialists/runtime.ts` — 16KB size cap + depth-4 cap + per-Specialist Zod validation on PUT. `tests/server/admin-specialists.test.ts` — +7 bar tests (Photos accept/reject, size cap, depth cap). All gates green.
