@@ -100,7 +100,7 @@ export async function getSpecialistGlobalLlmDefaults(): Promise<SpecialistGlobal
     if (resourceId != null) {
       try {
         const row = await storage.getAdminResourceById?.(resourceId);
-        if (row) return row.displayName;
+        if (row && row.kind === "model") return row.displayName;
       } catch {
         // best-effort — fall through to slug lookup
       }

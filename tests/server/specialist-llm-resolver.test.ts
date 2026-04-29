@@ -39,6 +39,8 @@ import {
   resolveSpecialistPolicyThresholds,
   resolveSpecialistRuntimeLimits,
   checkSpecialistRuntimeGate,
+  getSpecialistGlobalLlmDefaults,
+  HARDCODED_LLM_DEFAULTS,
   HARDCODED_WORKFLOW_DEFAULTS,
 } from "../../server/ai/specialist-llm-resolver";
 
@@ -211,6 +213,68 @@ describe("resolveSpecialistRuntimeLimits", () => {
     mockStorage.getSpecialistConfig.mockResolvedValue({ workflowOverrides: null });
     const out = await resolveSpecialistRuntimeLimits("foo");
     expect(out).toEqual({ maxConcurrentRuns: 5, dailyTokenBudget: 500, monthlyTokenBudget: 5000 });
+  });
+});
+
+describe("getSpecialistGlobalLlmDefaults", () => {
+  it("resolves analystA label from DB resource when ID is set (and returns the ID)", async () => {
+    mockStorage.getPipelinePolicies.mockResolvedValue([
+      {
+        policyKey: "tier1_property", tier: 1,
+        analystAModelResourceId: 42,
+        analystBModelResourceId: null, synthesisModelResourceId: null, fallbackModelResourceId: null,
+      },
+    ]);
+    mockStorage.getAdminResourceById.mockImplementation(async (id: number) =>
+      id === 42
+        ? { id: 42, kind: "model", slug: "gemini-2.5-pro", displayName: "Gemini 2.5 Pro" }
+        : null,
+    );
+    const out = await getSpecialistGlobalLlmDefaults();
+    expect(out.analystAModelLabel).toBe("Gemini 2.5 Pro");
+    expect(out.analystAModelResourceId).toBe(42);
+    // Slug fallback must not have been invoked for the A slot
+    expect(mockStorage.getAdminResourceBySlug).not.toHaveBeenCalledWith("model", HARDCODED_LLM_DEFAULTS.analystAModel);
+  });
+
+  it("resolves all four labels by ID when all four resource IDs are set", async () => {
+    mockStorage.getPipelinePolicies.mockResolvedValue([
+      {
+        policyKey: "tier1_property", tier: 1,
+        analystAModelResourceId: 1, analystBModelResourceId: 2,
+        synthesisModelResourceId: 3, fallbackModelResourceId: 4,
+      },
+    ]);
+    const resourceMap: Record<number, { id: number; kind: string; slug: string; displayName: string }> = {
+      1: { id: 1, kind: "model", slug: "gemini-a", displayName: "Gemini A" },
+      2: { id: 2, kind: "model", slug: "claude-b", displayName: "Claude B" },
+      3: { id: 3, kind: "model", slug: "opus-s", displayName: "Opus S" },
+      4: { id: 4, kind: "model", slug: "fallback-f", displayName: "Fallback F" },
+    };
+    mockStorage.getAdminResourceById.mockImplementation(async (id: number) => resourceMap[id] ?? null);
+    const out = await getSpecialistGlobalLlmDefaults();
+    expect(out.analystAModelLabel).toBe("Gemini A");
+    expect(out.analystBModelLabel).toBe("Claude B");
+    expect(out.synthesisModelLabel).toBe("Opus S");
+    expect(out.fallbackModelLabel).toBe("Fallback F");
+    expect(mockStorage.getAdminResourceBySlug).not.toHaveBeenCalled();
+  });
+
+  it("falls back to slug lookup when the resource row kind is not 'model'", async () => {
+    mockStorage.getPipelinePolicies.mockResolvedValue([
+      {
+        policyKey: "tier1_property", tier: 1,
+        analystAModelResourceId: 99,
+        analystBModelResourceId: null, synthesisModelResourceId: null, fallbackModelResourceId: null,
+      },
+    ]);
+    // Row exists but is a non-model resource — must NOT leak its displayName
+    mockStorage.getAdminResourceById.mockResolvedValue({ id: 99, kind: "tool", slug: "bad-tool", displayName: "Should Not Appear" });
+    mockStorage.getAdminResourceBySlug.mockResolvedValue({ displayName: "Gemini 2.5 Flash (slug)" });
+    const out = await getSpecialistGlobalLlmDefaults();
+    expect(out.analystAModelLabel).toBe("Gemini 2.5 Flash (slug)");
+    expect(out.analystAModelLabel).not.toBe("Should Not Appear");
+    expect(mockStorage.getAdminResourceBySlug).toHaveBeenCalledWith("model", HARDCODED_LLM_DEFAULTS.analystAModel);
   });
 });
 
