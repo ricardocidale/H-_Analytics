@@ -10,7 +10,7 @@ import { ConsolidatedBalanceSheet } from "@/components/statements/ConsolidatedBa
 import { CalcDetailsProvider } from "@/components/financial-table";
 import { Tabs, TabsContent, CurrentThemeTab } from "@/components/ui/tabs";
 import { Loader2, ChevronDown } from "@/components/icons/themed-icons";
-import { IconAlertTriangle, IconIncomeStatement, IconCashFlow, IconBalanceSheet, IconPPE, IconFileStack, IconMap, IconGlobe, IconInvestment, IconClipboardList } from "@/components/icons";
+import { IconAlertTriangle, IconIncomeStatement, IconCashFlow, IconBalanceSheet, IconPPE, IconFileStack, IconMap, IconGlobe, IconInvestment, IconClipboardList, IconSparkles } from "@/components/icons";
 import { ExportMenu, pdfAction, excelAction, csvAction, pptxAction, chartAction, pngAction, docxAction } from "@/components/ui/export-toolbar";
 import { MONTHS_PER_YEAR } from "@/lib/constants";
 import { calculateLoanParams, LoanParams, GlobalLoanParams, PROJECTION_YEARS } from "@/lib/financial/loanCalculations";
@@ -34,6 +34,7 @@ import {
   InvestmentReturnsTab,
   DueDiligenceTab,
   ExitScenariosSection,
+  ExecutiveSummaryTab,
 } from "@/components/property-detail";
 const PropertyMap = lazy(() => import("@/components/PropertyMap"));
 import DocumentExtractionPanel from "@/components/DocumentExtractionPanel";
@@ -384,7 +385,8 @@ export default function PropertyDetail() {
                 { value: 'investment', label: 'Financial Analysis', icon: IconInvestment },
                 { value: 'ppe', label: 'PP&E / Cost Basis', icon: IconPPE },
                 { value: 'duediligence', label: 'Due Diligence', icon: IconClipboardList },
-                { value: 'documents', label: 'Documents', icon: IconFileStack }
+                { value: 'documents', label: 'Documents', icon: IconFileStack },
+                { value: 'executive-summary', label: 'Executive Summary', icon: IconSparkles }
               ]}
               activeTab={activeTab}
               onTabChange={setActiveTab}
@@ -500,6 +502,10 @@ export default function PropertyDetail() {
             <div className="grid gap-6 lg:grid-cols-2">
               <DocumentExtractionPanel propertyId={propertyId} />
             </div>
+          </TabsContent>
+
+          <TabsContent value="executive-summary" className="mt-6">
+            <ExecutiveSummaryTab propertyId={propertyId} />
           </TabsContent>
         </Tabs>
         </CalcDetailsProvider>

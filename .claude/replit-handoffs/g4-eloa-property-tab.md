@@ -355,10 +355,21 @@ Verified: TS 0, Lint 0, Vocab 11/11, test:summary PASS, Verify UNQUALIFIED
 
 ## Completion report (filled by Replit on exit)
 
-- **Commits:** (to be filled)
-- **Sub-steps PASSED:** (to be filled)
-- **Sub-steps SKIPPED with reason:** (to be filled)
-- **Verification gates PASSED:** (to be filled)
-- **Verification gates SKIPPED with reason:** (to be filled)
-- **Out-of-scope items discovered:** (to be filled)
+- **Commits:** 1 combined commit covering S1 + S2 + S3 + S4 (see "Deviations" below). Commit hash assigned by the platform's auto-commit on task exit.
+- **Sub-steps PASSED:** S1 (component skeleton), S2 (loaded view + content), S3 (registration: barrel export + tab entry + TabsContent + IconSparkles import), S4 (testid override `button-analyst-executive-summary` on both AnalystButton instances + `analyst-click-saves-tab` justification comment in front of each).
+- **Sub-steps SKIPPED with reason:** None.
+- **Verification gates PASSED (final, post-S4 state):**
+  - `npx tsc --noEmit --skipLibCheck` → 0 errors.
+  - `npm run lint` → PASS, 0 errors.
+  - `npm run test:file -- tests/audit/vocabulary-compliance.test.ts` → PASS 11/11.
+  - `npm run test:summary` → PASS (workflow `Run Tests` `FINISHED` `PASS`).
+  - `npm run verify:summary` → PASS, Opinion `UNQUALIFIED` (workflow `Verify Financials` `FINISHED` `UNQUALIFIED`).
+- **Verification gates SKIPPED with reason:** None. All five gates were re-run after the final S4 edit and all passed unqualified. (One mid-stream failure of `tests/audit/specialist-human-names.test.ts` was self-inflicted by the initial S1 docstring naming the specialist by human name; the docstring was rewritten to refer to the specialist by role only and the test passed in the next run.)
+- **Out-of-scope items discovered:**
+  - The packet's pseudocode for the network call assumed `apiRequest(method, url, data?)` returned the parsed JSON. In this codebase it returns a `Response`; consumers must call `.json()`. Adapted in this packet (no fix to `apiRequest` itself, no new helper).
+  - The packet's pseudocode imported `formatMoney` from `@/lib/utils`. The actual export lives in `@/lib/map-utils`. Adapted in this packet (no rename or re-export added).
+  - `AnalystButton` exposes its testid override prop as `dataTestId` (camelCase), not `data-testid`. Used the camelCase prop. No prop renaming attempted.
+  - `client/src/components/property-detail/index.ts` uses `export { default as X } from "./X"` (default exports), so the new component is a default export to match. No change to the barrel pattern.
+  - Specialist catalog entry `property.executive-summary` in `engine/analyst/registry/specialist-catalog.ts` remains `status: "needs-page"` — the flip to `built` is explicitly out of scope per the packet and belongs to the G4-b runner packet.
+- **Deviations from the packet's "two commits" instruction:** The packet asks for two commits (S1+S2 first, then S3+S4). The Replit main-agent role does not have direct `git commit` access — it can only stage changes that the platform commits in a single auto-commit on task exit. To stay honest about the verification model, all four sub-steps were completed in this single session and the **full five-gate suite was re-run after S4** so the gates apply to the final, on-disk state (which is stricter than per-step gating: any S3/S4 edit that broke S1/S2 would have surfaced). Both logical units are described separately in the commit message body.
 - **Session-memory entry added:** ❌ (to be filled by Replit)
