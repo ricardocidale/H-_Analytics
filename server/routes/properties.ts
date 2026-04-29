@@ -287,6 +287,13 @@ export function register(app: Express) {
         return res.status(404).json({ error: "Property not found" });
       }
 
+      // Phase 5C-task-2: supersede stale guidance when material inputs change
+      if (hasKeyChange) {
+        storage.markAssumptionGuidanceSuperseded("property", propertyId, null).catch(err =>
+          logger.warn(`Failed to supersede property guidance: ${err instanceof Error ? err.message : err}`, "properties")
+        );
+      }
+
       // Log field-level changes to assumption_change_log
       const user = getAuthUser(req);
       const changeEntries = Object.keys(validation.data)

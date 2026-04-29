@@ -186,9 +186,17 @@ export function register(app: Express) {
         ? { ...validation.data, lastAssumptionChangeAt: new Date() }
         : validation.data;
 
-      const assumptions = await storage.upsertGlobalAssumptions(finalData, getAuthUser(req).id);
+      const authUser = getAuthUser(req);
+      const assumptions = await storage.upsertGlobalAssumptions(finalData, authUser.id);
       invalidateComputeCache();
       logActivity(req, "update", "global_assumptions", assumptions.id, "System Settings");
+
+      // Phase 5C-task-3: supersede stale company guidance when material inputs change
+      if (hasKeyChange) {
+        storage.markAssumptionGuidanceSuperseded("company", authUser.id, null).catch(err =>
+          logger.warn(`Failed to supersede company guidance: ${err instanceof Error ? err.message : err}`, "global-assumptions")
+        );
+      }
 
       // Auto-trigger The Analyst's deterministic validation when HMC basics change
       // This is the "first pass" described in ADR-003 — runs after user confirms Setup
@@ -291,6 +299,20 @@ export function register(app: Express) {
       );
       invalidateComputeCache();
       logActivity(req, "update", "global_assumptions", saved.id, `Save tab: ${tabKey}`);
+
+      // Phase 5C-task-3: supersede stale company guidance when material inputs change
+      const GA_STALENESS_TRIGGER_KEYS_SAVE_TAB = [
+        "baseManagementFee", "incentiveManagementFee",
+        "inflationRate", "companyTaxRate", "commissionRate", "staffSalary",
+      ];
+      const patchKeys = Object.keys(sanitizedPatch);
+      const hasGaKeyChange = patchKeys.some((k) => GA_STALENESS_TRIGGER_KEYS_SAVE_TAB.includes(k) &&
+        (sanitizedPatch as Record<string, unknown>)[k] !== (baseRow as Record<string, unknown>)[k]);
+      if (hasGaKeyChange) {
+        storage.markAssumptionGuidanceSuperseded("company", userId, null).catch(err =>
+          logger.warn(`Failed to supersede company guidance (save-tab): ${err instanceof Error ? err.message : err}`, "global-assumptions")
+        );
+      }
 
       // G1.5b-pre-a: Save is data-only. The Analyst dispatches ONLY on
       // explicit <AnalystButton /> press (rule:

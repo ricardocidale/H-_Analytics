@@ -74,6 +74,33 @@ export class ProposalsStorage {
     });
   }
 
+  /**
+   * Phase 5C-task-2/3 — mark all active (non-superseded) guidance rows for
+   * this entity as superseded. Called from property + global-assumption save
+   * routes when a material input key changes. One UPDATE, no per-row loop.
+   * Idempotent: rows already superseded are filtered out by the IS NULL guard.
+   */
+  async markAssumptionGuidanceSuperseded(
+    entityType: string,
+    entityId: number,
+    scenarioId: number | null,
+  ): Promise<number> {
+    const conditions = [
+      eq(assumptionGuidance.entityType, entityType),
+      eq(assumptionGuidance.entityId, entityId),
+      scenarioId != null
+        ? eq(assumptionGuidance.scenarioId, scenarioId)
+        : isNull(assumptionGuidance.scenarioId),
+      isNull(assumptionGuidance.supersededAt),
+    ];
+    const rows = await this._ptx.db
+      .update(assumptionGuidance)
+      .set({ supersededAt: sql`now()` })
+      .where(and(...conditions))
+      .returning({ id: assumptionGuidance.id });
+    return rows.length;
+  }
+
   async getAssumptionGuidanceById(id: number): Promise<AssumptionGuidance | undefined> {
     const [row] = await this._ptx.db.select().from(assumptionGuidance)
       .where(eq(assumptionGuidance.id, id))

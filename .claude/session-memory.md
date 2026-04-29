@@ -8,6 +8,15 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 29, 2026 — Phase 5C-task-1 shipped (cache key write-after); Replit EWW+ICP complete
+
+- **Replit completed** both handoff packets: `9fb9083e` — ADR-009 EWW dedup (3 UI income-statement surfaces) + ICP model dialog verify. Both verified by Replit per packet acceptance criteria.
+- **Phase 5C-task-1 shipped** (collision note below): `analyst-scoped-runner.ts` now imports `computeCacheKey`, `computeInputContextHash`, `canonicalJson` from `cache-keys.ts` + `ENGINE_VERSION`. After the cognitive run completes and `runId` is set, computes `cache_key` + `cache_inputs_hash` using `CompanyCacheInputs` from ga + `producedFields` from `guidanceResult.records`. Writes via `updateResearchRun(runId, { cacheKey, cacheInputsHash })` wrapped in a non-fatal try/catch. TS/lint/test/verify all green.
+- **Collision note:** commit `9fb9083e` (Replit's EWW packet) bundled CC's `analyst-scoped-runner.ts` Phase 5C edits. Attribution lost in git; work is correct and intact. Per agent-collision-hygiene rule — no history rewrite.
+- **Next up (CC):** Phase 5C-task-2/3 — mutation superseding: when property or global-assumption is saved, set `superseded_at` on stale `assumption_guidance` rows.
+
+---
+
 ## Session: April 28, 2026 (G2-v1 + G1.6-v1 close) — both analysts fully wired end-to-end
 
 - **G2-v1 fully closed:** Revenue Specialist server (`80df7bbc`) + UI wiring (`62a664fc`). `<AnalystButton>` live on PropertyUnderwritingTab routing to `specialistId:"mgmt-co.revenue"`. No more "Replit follow-up" in phases.md.
