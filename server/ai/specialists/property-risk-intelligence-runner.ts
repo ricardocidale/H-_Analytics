@@ -511,12 +511,16 @@ ${comparables.map((c, i) => `  [${i}] ${c.authority} (${c.country}, ${c.sector},
 
 // ── Honest-fail verdict builder ───────────────────────────────────────────────
 
-const SYNTHETIC_EVIDENCE: Evidence = {
-  source: "quant-panel-low-conviction",
-  tier: "estimated",
-  asOf: new Date().toISOString().slice(0, 10),
-  personaFit: 0.3,
-};
+const SYNTHETIC_EVIDENCE_SOURCE = "quant-panel-low-conviction";
+
+function syntheticEvidence(): Evidence {
+  return {
+    source: SYNTHETIC_EVIDENCE_SOURCE,
+    tier: "estimated",
+    asOf: new Date().toISOString().slice(0, 10),
+    personaFit: 0.3,
+  };
+}
 
 function buildHonestFailVerdict(
   quantOutput: RiskQuantPanelOutput,
@@ -531,12 +535,21 @@ function buildHonestFailVerdict(
   const voiceRenderer = createVoiceRenderer();
   const quantByKey = new Map(quantOutput.dimensions.map((d) => [d.key, d]));
 
+  // Tier-1 verdicts require ≥3 total evidence entries (MIN_SOURCES_FOR_ADVICE
+  // ×1 dim, TIER_1_MIN_TOTAL_EVIDENCE=3). With a single dimension, we pad
+  // with synthetic entries when the quant panel didn't cite all 3 comparables.
+  const MIN_TIER1_EVIDENCE = 3;
+
   const dimensions: VerdictDimension[] = RISK_DIMENSION_KEYS.map((key) => {
     const quantDim = quantByKey.get(key);
-    const evidence: Evidence[] =
+    let evidence: Evidence[] =
       quantDim && quantDim.evidenceRefs.length > 0
         ? buildEvidenceForDimension(quantDim.evidenceRefs, comparables)
-        : [SYNTHETIC_EVIDENCE];
+        : [];
+
+    while (evidence.length < MIN_TIER1_EVIDENCE) {
+      evidence = [...evidence, syntheticEvidence()];
+    }
 
     const raw: RawVerdictDimension = {
       field: PROPERTY_INFLATION_FIELD,
