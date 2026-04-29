@@ -16,8 +16,8 @@ import type {
   PortfolioQualitativeSections,
 } from "./types";
 
-const PROPERTY_MODEL = "claude-sonnet-4-5-20250514";
-const PORTFOLIO_MODEL = "claude-sonnet-4-5-20250514";
+const PROPERTY_MODEL = "claude-opus-4-6";
+const PORTFOLIO_MODEL = "claude-opus-4-6";
 
 function stripCodeFences(text: string): string {
   const trimmed = text.trim();

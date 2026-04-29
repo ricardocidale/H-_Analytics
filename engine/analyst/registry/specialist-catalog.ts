@@ -236,7 +236,7 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
       { key: "hospitalityType", label: "Property type", surface: "property-edit",                   surfaceAnchor: "basics"   },
     ],
     prerequisites: [],
-    status: "needs-page",
+    status: "built",
   },
   {
     id: "photos.photo-enhancer",

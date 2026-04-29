@@ -93,6 +93,12 @@ const BUILT_SPECIALISTS_WITHOUT_VERDICT_DIMENSIONS: ReadonlySet<string> = new Se
   // target. See `specialist-catalog.ts` for the rationale on her
   // `status: "built"`.
   "resources.builder",
+  // Eloá: produces a narrative executive summary for investor distribution
+  // (six prose sections + keyMetrics → `PropertyExecutiveSummary`), not
+  // per-field assumption verdicts. There are no assumption-field deep-link
+  // anchors to register in FIELD_REGISTRY because the output is a report,
+  // not an evaluation of individual form inputs.
+  "property.executive-summary",
 ]);
 
 describe("FIELD_REGISTRY parity — every Specialist-emitted field has an entry", () => {

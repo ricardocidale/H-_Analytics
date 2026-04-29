@@ -108,7 +108,7 @@ Maps 1:1 to the **Resources Control Plane** workstream above. P1–P5 shipped; P
 | G6-P3 | Funding Specialist PE pre-stage + bounded regress quality loop (IB#8 + IB#9); canned LP comparables (IB#4 partial; IB#5 live API deferred — canned set sufficient for graduation) | ✅ Shipped | CC | `467d9506` (P3a) + `aa2d6221` (P3b) | G6-P2 ✅ | IB#8 + IB#9 closed; 70 tests green. |
 | G6-P4 | Funding Specialist Tier-1 fully graduated — IB#3 #4 #6 #7 bar assertions added to production runner tests | ✅ Shipped | CC | `519d1c54` | G6-P3 ✅ | All 9 Intelligence Bar requirements now exercised by tests. |
 | G3 | Risk Intelligence (D) graduation — full N+1 pipeline (PE Gemini Flash + quant Gemini Flash + market Sonnet + Opus synthesis), honest-fail path, bounded regress, 12 bar tests (IB#7 #8 #9 + IB#3 #4 #6) | ✅ Shipped | CC | `1dbd38ac` | G2 ✅ | 12 bar tests green; all 9 IB requirements exercised. Single-dimension (`propertyInflationRate`) evidence-padding handles TIER_1_MIN_TOTAL_EVIDENCE invariant. |
-| G4 | Executive Summary (E) graduation | ⏳ Pending | CC | — | G3 ✅ | — |
+| G4 | Executive Summary (E) graduation — Opus 4.6 model upgrade + catalog `built` + parity-test opt-out (narrative report, not per-field verdicts) + 10 bar tests (shape/fallback/model-tier) | ✅ Shipped | CC | see next commit | G3 ✅ | Eloá tab live (Replit G4-a); trigger-discipline GET fix `bfb989f3`; G4-b closes here. |
 | G5 | ICP Intelligence (C) graduation | ⏳ Pending | CC | — | G4 ✅ | — |
 | G6 | Watchdog (G) graduation | ⏳ Pending | CC | — | G5 ✅ | — |
 
