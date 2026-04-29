@@ -8,6 +8,14 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 29, 2026 (P6e-a close) — resolveLabel kind guard + test coverage
+
+- **P6e-a fixes** (`22e70617`): `resolveLabel` in `getSpecialistGlobalLlmDefaults` now checks `row.kind === "model"` before returning displayName — prevents non-model resource leaking into model field. +3 tests covering ID-based label resolution, all-four-IDs path, and kind-mismatch fallback. Schema-drift BASELINE_DRIFT entries annotated with TODO(P6e) cleanup note.
+- **P6e-a status: COMPLETE.** All 22 resolver tests pass. TS 0, Lint 0, test:summary PASS, verify UNQUALIFIED.
+- **Next:** Replit executes `phase-6e-llm-defaults-adapter.md` (N+1 section in LlmDefaultsTab.tsx), then `phase-6g-llm-tab-recommendations.md` (Recommended badge + AnalystButton in LlmConfigTab.tsx).
+
+---
+
 ## Session: April 29, 2026 (P6g server + handoff) — recommendedModelSlugs wired
 
 - **P6g CC work done** (`b6f44d2c`, `cab8b5e4`): `engine/analyst/registry/recommended-models.ts` (new) — `RECOMMENDED_MODEL_SLUGS_BY_ROLE` from vendor-roster; `SpecialistConfigPublicViewSchema` + `toConfigView` + `SpecialistConfigView` client type all get new `recommendedModelSlugs` field.

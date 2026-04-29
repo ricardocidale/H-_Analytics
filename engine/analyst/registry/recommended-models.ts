@@ -19,7 +19,7 @@ export const RECOMMENDED_MODEL_SLUGS_BY_ROLE = {
   /** Prompt Engineer pre-stage (cheap tier, structured output) */
   primary: "claude-sonnet-4-6",
   /** Quantitative panel (fast, numeric extraction) */
-  analystA: "gemini-2.5-flash",
+  analystA: "gemini-2-5-flash",
   /** Market panel (qualitative, reasoning + citation) */
   analystB: "claude-sonnet-4-6",
   /** Synthesis / final verdict (Opus tier) */

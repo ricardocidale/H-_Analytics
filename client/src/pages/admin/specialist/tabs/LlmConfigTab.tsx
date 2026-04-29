@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import type { ResourcePublicView } from "@shared/schema";
 import type {
   SpecialistConfigView,
@@ -91,6 +92,20 @@ export function LlmConfigTab({
 
   // ── Local state mirrors every overridable field ─────────────────
   const [prompt, setPrompt] = useState(config.promptTemplate);
+  // P6g — refresh-models AnalystButton state. Invalidates the model
+  // resources query so the dropdowns re-render with any newly-recommended
+  // slugs from the latest vendor-roster sweep.
+  const [isRefreshingModels, setIsRefreshingModels] = useState(false);
+  const handleRefreshModels = async () => {
+    setIsRefreshingModels(true);
+    try {
+      await qc.invalidateQueries({ queryKey: ["/api/admin/resources?kind=model"] });
+      await qc.invalidateQueries({ queryKey: [`/api/admin/specialists/${specialistId}`] });
+      toast({ title: "Model list refreshed" });
+    } finally {
+      setIsRefreshingModels(false);
+    }
+  };
   const [primaryModelId, setPrimaryModelId] = useState<string>(toSelectValue(config.modelResourceId));
   const [analystAModelId, setAnalystAModelId] = useState<string>(toSelectValue(config.analystAModelResourceId));
   const [analystBModelId, setAnalystBModelId] = useState<string>(toSelectValue(config.analystBModelResourceId));
@@ -168,14 +183,23 @@ export function LlmConfigTab({
   ]);
 
   // Helper: render one model dropdown with the inherit/reset affordance.
+  // P6g — accepts an optional `recommendedSlug` so dropdown items whose
+  // model.slug matches the vendor-roster recommendation render a small
+  // "Recommended" badge inline. The same badge is also shown next to the
+  // SelectTrigger when the currently selected model matches.
   const renderModelField = (
     fieldKey: ModelFieldKey,
     label: string,
     value: string,
     setValue: (v: string) => void,
     globalLabel: string | null,
+    recommendedSlug: string | null = null,
   ) => {
     const isOverridden = value !== INHERIT_SENTINEL;
+    const selectedModel =
+      isOverridden ? modelOptions.find((m) => String(m.id) === value) : null;
+    const selectedIsRecommended =
+      !!recommendedSlug && !!selectedModel && selectedModel.slug === recommendedSlug;
     return (
       <div className="space-y-2" data-testid={`field-${fieldKey}`}>
         <div className="flex items-center justify-between">
@@ -196,21 +220,46 @@ export function LlmConfigTab({
             </Badge>
           )}
         </div>
-        <Select value={value} onValueChange={setValue}>
-          <SelectTrigger data-testid={`select-${fieldKey}`}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={INHERIT_SENTINEL}>
-              — Inherit global ({globalLabel ?? "uses Specialist primary"}) —
-            </SelectItem>
-            {modelOptions.map((m) => (
-              <SelectItem key={m.id} value={String(m.id)}>
-                {m.displayName ?? m.slug}
+        <div className="flex items-center gap-2">
+          <Select value={value} onValueChange={setValue}>
+            <SelectTrigger className="flex-1" data-testid={`select-${fieldKey}`}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={INHERIT_SENTINEL}>
+                — Inherit global ({globalLabel ?? "uses Specialist primary"}) —
               </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+              {modelOptions.map((m) => {
+                const isRec = !!recommendedSlug && m.slug === recommendedSlug;
+                return (
+                  <SelectItem key={m.id} value={String(m.id)}>
+                    <span className="inline-flex items-center gap-2">
+                      <span>{m.displayName ?? m.slug}</span>
+                      {isRec && (
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] py-0 px-1.5 h-4"
+                          data-testid={`badge-recommended-${fieldKey}-${m.slug}`}
+                        >
+                          Recommended
+                        </Badge>
+                      )}
+                    </span>
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+          {selectedIsRecommended && (
+            <Badge
+              variant="secondary"
+              className="text-[10px] py-0 px-1.5 h-5 shrink-0"
+              data-testid={`badge-selected-recommended-${fieldKey}`}
+            >
+              Recommended
+            </Badge>
+          )}
+        </div>
       </div>
     );
   };
@@ -280,6 +329,19 @@ export function LlmConfigTab({
 
   return (
     <div className="space-y-6">
+      {/* P6g — Refresh model list (vendor-roster recommendations) */}
+      <div className="flex justify-end">
+        <AnalystButton
+          onClick={handleRefreshModels}
+          isRunning={isRefreshingModels}
+          size="sm"
+          variant="outline"
+          suffix="Refresh models"
+          tooltip="Re-fetch the model registry and vendor-roster recommendations."
+          dataTestId="button-llm-refresh-models"
+        />
+      </div>
+
       {/* ── Override summary banner ───────────────────────────── */}
       <div
         className="flex items-center justify-between rounded-md border bg-muted/40 px-4 py-3 text-sm"
@@ -332,6 +394,7 @@ export function LlmConfigTab({
             // hardcoded primary resolved server-side via the Synthesis
             // model label (the canonical Tier-1 cognitive model).
             config.globalLlmDefaults.synthesisModelLabel,
+            config.recommendedModelSlugs.primary,
           )}
           <div className="space-y-2">
             <label className="text-sm font-medium">Prompt template</label>
@@ -393,6 +456,7 @@ export function LlmConfigTab({
             analystAModelId,
             setAnalystAModelId,
             config.globalLlmDefaults.analystAModelLabel,
+            config.recommendedModelSlugs.analystA,
           )}
           {renderModelField(
             "analystBModelResourceId",
@@ -400,6 +464,7 @@ export function LlmConfigTab({
             analystBModelId,
             setAnalystBModelId,
             config.globalLlmDefaults.analystBModelLabel,
+            config.recommendedModelSlugs.analystB,
           )}
           {renderModelField(
             "synthesisModelResourceId",
@@ -407,6 +472,7 @@ export function LlmConfigTab({
             synthesisModelId,
             setSynthesisModelId,
             config.globalLlmDefaults.synthesisModelLabel,
+            config.recommendedModelSlugs.synthesis,
           )}
         </CardContent>
       </Card>
@@ -427,6 +493,7 @@ export function LlmConfigTab({
             fallbackModelId,
             setFallbackModelId,
             config.globalLlmDefaults.fallbackModelLabel,
+            config.recommendedModelSlugs.fallback,
           )}
           {renderWorkflowField(WORKFLOW_FIELDS.find((f) => f.key === "minEvidenceScore")!)}
           {/* Relaxation max level — slider per spec (0–5 steps) */}

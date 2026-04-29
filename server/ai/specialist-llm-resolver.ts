@@ -42,7 +42,7 @@ import type {
 
 export const HARDCODED_LLM_DEFAULTS = {
   multiModelEnabled: true,
-  analystAModel: "gemini-2.5-flash",
+  analystAModel: "gemini-2-5-flash",
   analystBModel: "claude-sonnet-4-5",
   synthesisModel: "claude-opus-4-6",
   // The orchestrator's "fallback" today is `runResearch` with no override
