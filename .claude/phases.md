@@ -30,7 +30,7 @@
 | P3 | Resource health checker + `resource_health_checks` + freshness-band derivation + safe-probe profiles | ✅ Shipped | — | — | — | — |
 | P4 | Resources sub-page UIs (APIs, Sources, Tables, Benchmarks, Models) + dialogs + version history | ✅ Shipped | — | — | — | — |
 | P5 | Specialist read-only surfaces (Funding + Revenue first): 6 REST routes, 5 capability tabs, 11 contract tests, mgmt-co router wiring | ✅ Shipped | Replit | `2346de7`, `a6c78b54` | — | — |
-| P6 | Resources adapters for legacy `data_sources` / `LlmDefaultsTab`; centralize `SPECIALIST_SECTION_TO_ID`; Required Fields enforcement; audit user-name resolution; runtimeConfig schema narrowing | 🟡 Partial | Replit/CC | P6a `engine/analyst/surface/mgmt-co/index.ts`, P6b `a6c7ac81`, P6c-a `ae422cff`, P6d `AdminSidebar.tsx` | P5 ✅ | P6e (LLM defaults → admin resources adapter) → P6f |
+| P6 | Resources adapters for legacy `data_sources` / `LlmDefaultsTab`; centralize `SPECIALIST_SECTION_TO_ID`; Required Fields enforcement; audit user-name resolution; runtimeConfig schema narrowing | 🟡 Partial | Replit/CC | P6a `engine/analyst/surface/mgmt-co/index.ts`, P6b `a6c7ac81`, P6c-a `ae422cff`, P6d `AdminSidebar.tsx`, P6e-a `5524c70a` (CC), P6e-c Replit packet ready, P6g `3d4b0399` Replit packet ready | P5 ✅ | P6e-c (UI) → P6f, then P6g |
 | P7 | Specialists C–G get real evaluators behind their existing pages | ⏳ Pending | Replit (planned) | — | P6 | — |
 
 ---
