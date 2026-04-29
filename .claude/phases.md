@@ -55,7 +55,7 @@
 |---|---|---|---|---|---|---|
 | 5A — Claude side | Cache-key utilities + 21 tests | ✅ Shipped | Claude Code | `38a468b3` | — | — |
 | 5A — Migrations | `research_runs.cache_key` (indexed) + `research_runs.cache_inputs_hash` + `assumption_guidance.superseded_at` columns | ✅ Shipped | Replit | `4ebe71ae` | — | — |
-| 5B | engine-client.ts read path | ⏳ Pending | Claude Code (explicit-delegation lane) | — | 5A ✅ | Replit files `DELEGATE.md` requesting CC implementation per `claude-replit-split.md` § Explicit-delegation lane |
+| 5B | engine-client.ts read path | ✅ Shipped | Claude Code | `24853904` | 5A ✅ | `engine/analyst/cognitive/engine-client.ts` with `tryCacheRead()` + `consultCognitive()` + 501-line test file. Shipped earlier; phases.md entry was stale. |
 | 5C | write-after hook populates new columns | ⏳ Pending | Replit (planned) | — | 5B | — |
 
 ---
@@ -111,6 +111,7 @@ Maps 1:1 to the **Resources Control Plane** workstream above. P1–P5 shipped; P
 | G4 | Executive Summary (E) graduation — Opus 4.6 model upgrade + catalog `built` + parity-test opt-out (narrative report, not per-field verdicts) + 10 bar tests (shape/fallback/model-tier) | ✅ Shipped | CC | `bfb989f3` (GET trigger fix) + `8feabdfc` (G4-b graduation) | G3 ✅ | Eloá tab live (Replit G4-a); trigger-discipline GET fix closes the IB compliance gap; G4-b closes here. |
 | G5 | ICP Intelligence (C) graduation — Opus 4.6 model upgrade + empty candidateFields (narrative generator, not per-field evaluator) + catalog `built` + parity-test opt-out + 10 bar tests (shape/fallback/model-tier) + research-quality fixture migration to mgmt-co.revenue | ✅ Shipped | CC | `447d3fd8` | G4 ✅ | — |
 | G6 | Watchdog (G) graduation — catalog `built` + BUILT_SPECIALISTS_WITHOUT_VERDICT_DIMENSIONS opt-out + 10 bar tests (consistency/staleness/alerts/catalog) | ✅ Shipped | CC | `40f72a7c` | G5 ✅ | — |
+| G7 | Photo Enhancer (F) graduation — catalog `built` + BUILT_SPECIALISTS_WITHOUT_VERDICT_DIMENSIONS opt-out + 10 bar tests (batch logic/style/config/catalog) | ✅ Shipped | CC | — | G6 ✅ | — |
 
 ---
 

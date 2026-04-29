@@ -262,7 +262,7 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     ],
     candidateFields: [],
     prerequisites: [],
-    status: "needs-page",
+    status: "built",
   },
   {
     id: "portfolio-ops.watchdog",

@@ -111,6 +111,12 @@ const BUILT_SPECIALISTS_WITHOUT_VERDICT_DIMENSIONS: ReadonlySet<string> = new Se
   // is exempt from the 9 Intelligence Bar requirements. No per-field
   // deep-link anchors to register in FIELD_REGISTRY.
   "portfolio-ops.watchdog",
+  // Fernanda: batch image-generation pipeline — renders written to object
+  // storage, not per-field assumption verdicts. Subject is "photos" (not
+  // "mgmt-co" or "property"), so it is exempt from the 9 Intelligence Bar
+  // requirements. No FIELD_REGISTRY entries needed; there are no
+  // assumption-field deep-link anchors to register.
+  "photos.photo-enhancer",
 ]);
 
 describe("FIELD_REGISTRY parity — every Specialist-emitted field has an entry", () => {
