@@ -12,7 +12,6 @@ import { Router } from "express";
 import { requireAuth, isApiRateLimited, getAuthUser } from "../auth";
 import {
   generatePropertyExecutiveSummary,
-  generatePortfolioExecutiveSummary,
   formatPropertySummaryAsText,
   formatPortfolioSummaryAsText,
   type PropertyExecutiveSummary,
@@ -21,7 +20,6 @@ import {
 import { storage } from "../storage";
 import { logger } from "../logger";
 import { logActivity, parseRouteId } from "./helpers";
-import type { Property } from "@shared/schema";
 
 const router = Router();
 
@@ -64,73 +62,38 @@ export function invalidatePropertySummaryCache(propertyId: number): void {
 }
 
 // ─── GET /api/executive-summary/property/:propertyId ──────────────────────────
+// Cache-read-only. Returns 204 on miss — the POST /regenerate is the sole LLM
+// trigger per analyst-trigger-discipline.md.
 
 router.get(
   "/api/executive-summary/property/:propertyId",
   requireAuth,
   async (req, res) => {
-    const userId = getAuthUser(req).id;
-
-    // Rate limit: 3 req/min
-    if (isApiRateLimited(userId, "exec-summary-property", 3)) {
-      return res.status(429).json({ error: "Rate limited — 3 requests per minute" });
-    }
-
     try {
       const propertyId = parseRouteId(req.params.propertyId);
       if (!propertyId) {
         return res.status(400).json({ error: "Invalid property ID" });
       }
 
-      const property = await storage.getProperty(propertyId);
-      if (!property || property.userId !== userId) {
-        return res.status(404).json({ error: "Property not found" });
-      }
-
       const format = req.query.format === "text" ? "text" : "json";
-      const includeLLM = req.query.includeLLM !== "false"; // default true
-      const cacheKey = `prop:${propertyId}:${includeLLM}`;
+      const cacheKey = `prop:${propertyId}:true`;
 
-      // Check cache
       const cached = getCached(propertyCache, cacheKey);
-      if (cached) {
-        logActivity(req, "executive-summary", "property", propertyId, property.name, { cached: true, format });
-        return format === "text"
-          ? res.type("text/plain").send(formatPropertySummaryAsText(cached))
-          : res.json(cached);
-      }
+      if (!cached) return res.status(204).end();
 
-      // Fetch guidance records for this property
-      let guidanceRecords: any[] = [];
-      try {
-        guidanceRecords = await storage.getAssumptionGuidance(null, "property", propertyId);
-      } catch {
-        // No guidance available — summary will use templates
-      }
-
-      const summary = await generatePropertyExecutiveSummary(
-        property,
-        guidanceRecords,
-        { includeLLM, format },
-      );
-
-      // Cache the result
-      setCache(propertyCache, cacheKey, summary);
-
-      logActivity(req, "executive-summary", "property", propertyId, property.name, { includeLLM, format });
-
-      if (format === "text") {
-        return res.type("text/plain").send(formatPropertySummaryAsText(summary));
-      }
-      res.json(summary);
+      logActivity(req, "executive-summary", "property", propertyId, undefined, { cached: true, format });
+      return format === "text"
+        ? res.type("text/plain").send(formatPropertySummaryAsText(cached))
+        : res.json(cached);
     } catch (error: unknown) {
-      logger.error(`Property executive summary failed: ${error}`, "executive-summary");
-      res.status(500).json({ error: "Failed to generate executive summary" });
+      logger.error(`Property executive summary GET failed: ${error}`, "executive-summary");
+      res.status(500).json({ error: "Failed to retrieve executive summary" });
     }
   },
 );
 
 // ─── GET /api/executive-summary/portfolio ─────────────────────────────────────
+// Cache-read-only. Returns 204 on miss — per analyst-trigger-discipline.md.
 
 router.get(
   "/api/executive-summary/portfolio",
@@ -138,74 +101,20 @@ router.get(
   async (req, res) => {
     const userId = getAuthUser(req).id;
 
-    // Rate limit: 2 req/min
-    if (isApiRateLimited(userId, "exec-summary-portfolio", 2)) {
-      return res.status(429).json({ error: "Rate limited — 2 requests per minute" });
-    }
-
     try {
       const format = req.query.format === "text" ? "text" : "json";
-      const includeLLM = req.query.includeLLM !== "false";
-      const cacheKey = `portfolio:${userId}:${includeLLM}`;
+      const cacheKey = `portfolio:${userId}:true`;
 
-      // Check cache
       const cached = getCached(portfolioCache, cacheKey);
-      if (cached) {
-        logActivity(req, "executive-summary", "portfolio", null, `Portfolio (${cached.totalProperties} properties)`, { cached: true, format });
-        return format === "text"
-          ? res.type("text/plain").send(formatPortfolioSummaryAsText(cached))
-          : res.json(cached);
-      }
+      if (!cached) return res.status(204).end();
 
-      const userProperties: Property[] = await storage.getAllProperties(userId);
-
-      if (userProperties.length === 0) {
-        return res.json({
-          generatedAt: new Date().toISOString(),
-          portfolioThesis: "No properties in portfolio.",
-          totalProperties: 0,
-          totalInvestment: 0,
-          weightedIRR: 0,
-          portfolioRiskGrade: "N/A",
-          geographicSpread: "0 countries, 0 markets",
-          brandStrategy: "",
-          diversificationAnalysis: "",
-          growthPlan: "",
-          managementCompanyValue: "",
-          propertySummaries: [],
-          sources: [],
-        });
-      }
-
-      // Fetch guidance for all properties
-      const guidanceByProperty = new Map<number, any[]>();
-      for (const p of userProperties) {
-        try {
-          const records = await storage.getAssumptionGuidance(null, "property", p.id);
-          guidanceByProperty.set(p.id, records);
-        } catch {
-          guidanceByProperty.set(p.id, []);
-        }
-      }
-
-      const summary = await generatePortfolioExecutiveSummary(
-        userProperties,
-        guidanceByProperty,
-        { includeLLM, format },
-      );
-
-      // Cache the result
-      setCache(portfolioCache, cacheKey, summary);
-
-      logActivity(req, "executive-summary", "portfolio", null, `Portfolio (${userProperties.length} properties)`, { includeLLM, format });
-
-      if (format === "text") {
-        return res.type("text/plain").send(formatPortfolioSummaryAsText(summary));
-      }
-      res.json(summary);
+      logActivity(req, "executive-summary", "portfolio", null, `Portfolio (${cached.totalProperties} properties)`, { cached: true, format });
+      return format === "text"
+        ? res.type("text/plain").send(formatPortfolioSummaryAsText(cached))
+        : res.json(cached);
     } catch (error: unknown) {
-      logger.error(`Portfolio executive summary failed: ${error}`, "executive-summary");
-      res.status(500).json({ error: "Failed to generate portfolio executive summary" });
+      logger.error(`Portfolio executive summary GET failed: ${error}`, "executive-summary");
+      res.status(500).json({ error: "Failed to retrieve portfolio executive summary" });
     }
   },
 );
@@ -215,7 +124,7 @@ router.get(
 router.post("/api/executive-summary/property/:propertyId/regenerate", requireAuth, async (req, res) => {
     const userId = getAuthUser(req).id;
 
-    // Rate limit: 3 req/min (shared with GET)
+    // Rate limit: 3 req/min
     if (isApiRateLimited(userId, "exec-summary-property", 3)) {
       return res.status(429).json({ error: "Rate limited — 3 requests per minute" });
     }
