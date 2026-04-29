@@ -473,7 +473,7 @@ describe("admin/specialists routes — catalog + detail", () => {
     });
     // Spot-check vendor-roster recommendations
     expect(recs.synthesis).toBe("claude-opus-4-7");
-    expect(recs.analystA).toBe("gemini-2.5-flash");
+    expect(recs.analystA).toBe("gemini-2-5-flash");
   });
 
   it("PUT /api/admin/specialists/:id/cadence rejects a Specialist that doesn't own constants", async () => {
