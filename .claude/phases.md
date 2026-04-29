@@ -56,7 +56,7 @@
 | 5A — Claude side | Cache-key utilities + 21 tests | ✅ Shipped | Claude Code | `38a468b3` | — | — |
 | 5A — Migrations | `research_runs.cache_key` (indexed) + `research_runs.cache_inputs_hash` + `assumption_guidance.superseded_at` columns | ✅ Shipped | Replit | `4ebe71ae` | — | — |
 | 5B | engine-client.ts read path | ✅ Shipped | Claude Code | `24853904` | 5A ✅ | `engine/analyst/cognitive/engine-client.ts` with `tryCacheRead()` + `consultCognitive()` + 501-line test file. Shipped earlier; phases.md entry was stale. |
-| 5C | write-after hook populates new columns | ⏳ Pending | Replit (planned) | — | 5B | — |
+| 5C | write-after hook populates new columns | ✅ Shipped | CC | `9fb9083e` (task-1, collision) + `6302e621` (task-2/3) | 5B | task-4 (pgvector bulk-supersede) deferred — low-priority admin utility |
 
 ---
 
