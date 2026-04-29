@@ -17,6 +17,9 @@ import {
 import { logger } from "../logger";
 import { getAnthropicClient } from "../ai/clients";
 
+/** Opus tier — ICP narrative generation requires synthesis-quality output. */
+export const ICP_LLM_MODEL = "claude-opus-4-6";
+
 export function register(app: Express) {
 
   /**
@@ -120,7 +123,7 @@ export function register(app: Express) {
         const anthropic = getAnthropicClient();
         if (!anthropic) throw new Error("Anthropic client not available");
         const response = await anthropic.messages.create({
-          model: "claude-sonnet-4-20250514",
+          model: ICP_LLM_MODEL,
           max_tokens: 4096,
           messages: [{ role: "user", content: prompt }],
         });

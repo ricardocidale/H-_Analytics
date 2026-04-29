@@ -38,10 +38,13 @@ vi.mock("../../server/storage", () => ({
 import { computeSpecialistResearchQuality } from "../../server/ai/research-quality";
 
 // ── Test fixtures ───────────────────────────────────────────────────────────
-// We use `mgmt-co.icp-intelligence` because it has both required assignments
-// (model + api) AND non-empty candidateFields (3 of them), exercising both
-// the resource-health and missing-fields signal paths in a single specialist.
-const SPECIALIST_ID = "mgmt-co.icp-intelligence";
+// We use `mgmt-co.revenue` because it has both required assignments
+// (model + benchmark) AND non-empty candidateFields (5 of them), exercising
+// both the resource-health and missing-fields signal paths in a single
+// specialist. `mgmt-co.icp-intelligence` (formerly used here) was migrated
+// to candidateFields:[] in G5 because it is a narrative generator with no
+// per-field assumption verdicts.
+const SPECIALIST_ID = "mgmt-co.revenue";
 
 const MODEL_RESOURCE_ID = 101;
 const API_RESOURCE_ID = 202;
@@ -55,16 +58,16 @@ const W_AVAILABILITY = 10;
 const W_CONFIDENCE = 20;
 
 function buildAssignmentRows(
-  opts: { modelResourceId?: number | null; apiResourceId?: number | null } = {},
+  opts: { modelResourceId?: number | null; benchmarkResourceId?: number | null } = {},
 ) {
-  const { modelResourceId = MODEL_RESOURCE_ID, apiResourceId = API_RESOURCE_ID } = opts;
+  const { modelResourceId = MODEL_RESOURCE_ID, benchmarkResourceId = API_RESOURCE_ID } = opts;
   return [
     {
       id: 1,
       specialistId: SPECIALIST_ID,
       assignmentKind: "model",
       assignmentSlug: "primary-llm",
-      assignmentRole: "synthesis",
+      assignmentRole: "tier-1-cognitive",
       required: true,
       resourceId: modelResourceId,
       materializedAt: new Date(),
@@ -72,17 +75,17 @@ function buildAssignmentRows(
     {
       id: 2,
       specialistId: SPECIALIST_ID,
-      assignmentKind: "api",
-      assignmentSlug: "web-search",
+      assignmentKind: "benchmark",
+      assignmentSlug: "revenue-benchmarks",
       assignmentRole: null,
       required: true,
-      resourceId: apiResourceId,
+      resourceId: benchmarkResourceId,
       materializedAt: new Date(),
     },
   ];
 }
 
-function buildResource(id: number, kind: "model" | "api", slug: string) {
+function buildResource(id: number, kind: "model" | "api" | "benchmark", slug: string) {
   return {
     id,
     kind,
@@ -101,7 +104,7 @@ function buildResource(id: number, kind: "model" | "api", slug: string) {
   };
 }
 
-function okHealthCheck(resourceId: number, kind: "model" | "api" = "api") {
+function okHealthCheck(resourceId: number, kind: "model" | "api" | "benchmark" = "benchmark") {
   return {
     id: resourceId,
     resourceId,
@@ -115,7 +118,7 @@ function okHealthCheck(resourceId: number, kind: "model" | "api" = "api") {
   };
 }
 
-function failHealthCheck(resourceId: number, kind: "model" | "api" = "api") {
+function failHealthCheck(resourceId: number, kind: "model" | "api" | "benchmark" = "benchmark") {
   return {
     id: resourceId,
     resourceId,
@@ -146,12 +149,12 @@ beforeEach(() => {
   listSpecialistAssignments.mockResolvedValue(buildAssignmentRows());
   getAdminResourceById.mockImplementation(async (id: number) => {
     if (id === MODEL_RESOURCE_ID) return buildResource(id, "model", "primary-llm");
-    if (id === API_RESOURCE_ID) return buildResource(id, "api", "web-search");
+    if (id === API_RESOURCE_ID) return buildResource(id, "benchmark", "revenue-benchmarks");
     return undefined;
   });
   // Default: every resource has a fresh "ok" probe → derives "green".
   getLatestHealthCheck.mockImplementation(async (resourceId: number) =>
-    okHealthCheck(resourceId, resourceId === MODEL_RESOURCE_ID ? "model" : "api"),
+    okHealthCheck(resourceId, resourceId === MODEL_RESOURCE_ID ? "model" : "benchmark"),
   );
   // Default: one fresh, fully-confident completed run.
   getResearchRunsForSpecialist.mockResolvedValue([
@@ -183,7 +186,7 @@ describe("computeSpecialistResearchQuality — score formula", () => {
 
   it("locks the resource-health weight at exactly 35 (both required resources red → score 65)", async () => {
     getLatestHealthCheck.mockImplementation(async (resourceId: number) =>
-      failHealthCheck(resourceId, resourceId === MODEL_RESOURCE_ID ? "model" : "api"),
+      failHealthCheck(resourceId, resourceId === MODEL_RESOURCE_ID ? "model" : "benchmark"),
     );
 
     const result = await computeSpecialistResearchQuality(SPECIALIST_ID);
@@ -194,21 +197,25 @@ describe("computeSpecialistResearchQuality — score formula", () => {
     expect(result.signals.requiredResources.failing).toBe(2);
   });
 
-  it("locks the missing-fields weight at exactly 20 (all 3 candidates hard-missing → score 80)", async () => {
-    // mgmt-co.icp-intelligence declares 3 candidateFields. With all 3 hard +
-    // observed-missing: penalty = min(1, 3/3) = 1 → fieldsMultiplier = 0.
+  it("locks the missing-fields weight at exactly 20 (all 5 candidates hard-missing → score 80)", async () => {
+    // mgmt-co.revenue declares 5 candidateFields. With all 5 hard +
+    // observed-missing: penalty = min(1, 5/5) = 1 → fieldsMultiplier = 0.
     getOrCreateSpecialistConfig.mockResolvedValue({
       specialistId: SPECIALIST_ID,
       refreshCadenceDays: 30,
       fieldRequirements: {
-        companyTaxRate: "hard",
-        baseManagementFee: "hard",
-        incentiveManagementFee: "hard",
+        defaultCostRateMarketing: "hard",
+        defaultRevShareFb: "hard",
+        defaultRevShareEvents: "hard",
+        defaultRevShareOther: "hard",
+        defaultCateringBoostPct: "hard",
       },
       lastObservedMissing: [
-        "companyTaxRate",
-        "baseManagementFee",
-        "incentiveManagementFee",
+        "defaultCostRateMarketing",
+        "defaultRevShareFb",
+        "defaultRevShareEvents",
+        "defaultRevShareOther",
+        "defaultCateringBoostPct",
       ],
     });
 
@@ -217,7 +224,7 @@ describe("computeSpecialistResearchQuality — score formula", () => {
     // 1*35 + 0*20 + 1*15 + 1*10 + 1*20 = 80
     expect(result.score).toBe(100 - W_FIELDS);
     expect(result.score).toBe(80);
-    expect(result.signals.missingFields.hardOff).toBe(3);
+    expect(result.signals.missingFields.hardOff).toBe(5);
   });
 
   it("locks the freshness weight at exactly 15 (run age past ceiling → score 85)", async () => {
@@ -279,23 +286,23 @@ describe("computeSpecialistResearchQuality — score formula", () => {
     expect(result.signals.confidence.combined).toBe(0);
   });
 
-  it("locks the combined formula on a mixed scenario (every signal partial → score 68)", async () => {
+  it("locks the combined formula on a mixed scenario (every signal partial → score 71)", async () => {
     // Deterministic mixed-signal world that exercises every multiplier:
-    //   - 1 of 2 required resources failing  → resources mult = 0.5 → 17.5
-    //   - 1 of 3 candidate fields hard-miss   → fields mult = 2/3   → 13.333...
-    //   - cadence 30d, age 45d (mid-range)    → freshness mult = 0.5 → 7.5
-    //   - 1 completed run                     → availability = 1     → 10
-    //   - reliability 1 + selfReported 1      → confidence mult = 1   → 20
-    // Sum = 17.5 + 13.333... + 7.5 + 10 + 20 = 68.333... → Math.round → 68.
+    //   - 1 of 2 required resources failing    → resources mult = 0.5 → 17.5
+    //   - 1 of 5 candidate fields hard-miss    → fields mult = 4/5   → 16.0
+    //   - cadence 30d, age 45d (mid-range)     → freshness mult = 0.5 → 7.5
+    //   - 1 completed run                      → availability = 1     → 10
+    //   - reliability 1 + selfReported 1       → confidence mult = 1  → 20
+    // Sum = 17.5 + 16.0 + 7.5 + 10 + 20 = 71.0 → Math.round → 71.
     getLatestHealthCheck.mockImplementation(async (resourceId: number) => {
-      if (resourceId === API_RESOURCE_ID) return failHealthCheck(resourceId, "api");
+      if (resourceId === API_RESOURCE_ID) return failHealthCheck(resourceId, "benchmark");
       return okHealthCheck(resourceId, "model");
     });
     getOrCreateSpecialistConfig.mockResolvedValue({
       specialistId: SPECIALIST_ID,
       refreshCadenceDays: 30,
-      fieldRequirements: { companyTaxRate: "hard" },
-      lastObservedMissing: ["companyTaxRate"],
+      fieldRequirements: { defaultCostRateMarketing: "hard" },
+      lastObservedMissing: ["defaultCostRateMarketing"],
     });
     const fortyFiveDaysAgo = new Date(Date.now() - 45 * 86_400_000);
     getResearchRunsForSpecialist.mockResolvedValue([
@@ -310,14 +317,14 @@ describe("computeSpecialistResearchQuality — score formula", () => {
 
     const result = await computeSpecialistResearchQuality(SPECIALIST_ID);
 
-    expect(result.score).toBe(68);
+    expect(result.score).toBe(71);
   });
 });
 
 describe("computeSpecialistResearchQuality — gap codes", () => {
   it("emits exactly `required_resources_failing` (critical) when one required resource probe is red", async () => {
     getLatestHealthCheck.mockImplementation(async (resourceId: number) => {
-      if (resourceId === API_RESOURCE_ID) return failHealthCheck(resourceId, "api");
+      if (resourceId === API_RESOURCE_ID) return failHealthCheck(resourceId, "benchmark");
       return okHealthCheck(resourceId, "model");
     });
 
@@ -392,18 +399,18 @@ describe("computeSpecialistResearchQuality — gap codes", () => {
       specialistId: SPECIALIST_ID,
       refreshCadenceDays: 30,
       fieldRequirements: {
-        // `companyTaxRate` is one of the 3 catalog-declared candidate fields
-        // for mgmt-co.icp-intelligence. Marking it "hard" + observed-missing
+        // `defaultCostRateMarketing` is one of the 5 catalog-declared candidate
+        // fields for mgmt-co.revenue. Marking it "hard" + observed-missing
         // is the canonical critical-gap setup.
-        companyTaxRate: "hard",
+        defaultCostRateMarketing: "hard",
       },
-      lastObservedMissing: ["companyTaxRate"],
+      lastObservedMissing: ["defaultCostRateMarketing"],
     });
 
     const result = await computeSpecialistResearchQuality(SPECIALIST_ID);
 
-    // 1*35 + (2/3)*20 + 1*15 + 1*10 + 1*20 = 93.333... → Math.round → 93.
-    expect(result.score).toBe(93);
+    // 1*35 + (4/5)*20 + 1*15 + 1*10 + 1*20 = 96.0 → Math.round → 96.
+    expect(result.score).toBe(96);
     const codes = result.gaps.map((g) => g.code);
     expect(codes).toEqual(["hard_required_fields_missing"]);
     expect(result.gaps[0].severity).toBe("critical");
@@ -431,12 +438,12 @@ describe("computeSpecialistResearchQuality — gap codes", () => {
     listSpecialistAssignments.mockResolvedValue([
       {
         id: 1, specialistId: SPECIALIST_ID, assignmentKind: "model",
-        assignmentSlug: "primary-llm", assignmentRole: "synthesis",
+        assignmentSlug: "primary-llm", assignmentRole: "tier-1-cognitive",
         required: true, resourceId: null, materializedAt: new Date(),
       },
       {
-        id: 2, specialistId: SPECIALIST_ID, assignmentKind: "api",
-        assignmentSlug: "web-search", assignmentRole: null,
+        id: 2, specialistId: SPECIALIST_ID, assignmentKind: "benchmark",
+        assignmentSlug: "revenue-benchmarks", assignmentRole: null,
         required: true, resourceId: API_RESOURCE_ID, materializedAt: new Date(),
       },
     ]);
@@ -445,10 +452,10 @@ describe("computeSpecialistResearchQuality — gap codes", () => {
       specialistId: SPECIALIST_ID,
       refreshCadenceDays: 7,
       fieldRequirements: {
-        companyTaxRate: "hard",
-        baseManagementFee: "recommended",
+        defaultCostRateMarketing: "hard",
+        defaultRevShareFb: "recommended",
       },
-      lastObservedMissing: ["companyTaxRate", "baseManagementFee"],
+      lastObservedMissing: ["defaultCostRateMarketing", "defaultRevShareFb"],
     });
     getResearchRunsForSpecialist.mockResolvedValue([
       { id: 1, specialistId: SPECIALIST_ID, status: "failed", completedAt: null, metadata: null },

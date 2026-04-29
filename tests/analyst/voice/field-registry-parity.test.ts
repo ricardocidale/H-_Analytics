@@ -99,6 +99,12 @@ const BUILT_SPECIALISTS_WITHOUT_VERDICT_DIMENSIONS: ReadonlySet<string> = new Se
   // anchors to register in FIELD_REGISTRY because the output is a report,
   // not an evaluation of individual form inputs.
   "property.executive-summary",
+  // Cecília: generates the portfolio-wide Ideal Customer Profile —
+  // portfolio analysis (deterministic) + qualitative prose narrative
+  // (optional LLM via llmCallback). Output is `IcpGenerationResult`
+  // (config + descriptive + analysis), not a set of per-field
+  // assumption verdicts. No deep-link CTAs to individual form inputs.
+  "mgmt-co.icp-intelligence",
 ]);
 
 describe("FIELD_REGISTRY parity — every Specialist-emitted field has an entry", () => {

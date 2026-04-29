@@ -138,15 +138,17 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
       { kind: "model", slug: "primary-llm", role: "synthesis", required: true },
       { kind: "api", slug: "web-search", required: true },
     ],
-    candidateFields: [
-      { key: "companyTaxRate",         label: "Company tax rate",         surface: "company-assumptions" },
-      { key: "baseManagementFee",      label: "Base management fee",      surface: "company-assumptions" },
-      { key: "incentiveManagementFee", label: "Incentive management fee", surface: "company-assumptions" },
-    ],
+    // ICP Intelligence generates a portfolio-wide narrative (Ideal Customer
+    // Profile prose + deterministic config). It is a narrative output surface
+    // like Executive Summary (Eloá), NOT a per-field assumption evaluator —
+    // there are no verdict dimensions deep-linking to individual form inputs.
+    // candidateFields intentionally empty; prerequisites cover the sole
+    // preflight requirement (at least one property / company profile saved).
+    candidateFields: [],
     prerequisites: [
       "company-profile-saved",
     ],
-    status: "needs-page",
+    status: "built",
   },
   {
     id: "property.risk-intelligence",
