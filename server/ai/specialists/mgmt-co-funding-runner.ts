@@ -793,4 +793,4 @@ export async function runFundingSpecialist(
 // G6-P3a        Prompt Engineer pre-stage → meta.promptEngineerRunId (req #8)
 // G6-P3b        quality check + bounded regress loop → meta.regressCount (req #9)
 // G6-P3c        persistent verdict cache (ADR-004)
-// G6-P4         Tier-1 fully graduated (all 9 Intelligence Bar requirements green)
+// G6-P4         Bar invariants asserted in funding-g6p3.test.ts (IB#1-#9 all green)

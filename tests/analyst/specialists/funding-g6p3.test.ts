@@ -134,6 +134,29 @@ function buildSynthesisOutput(): FundingSpecialistOutput {
   };
 }
 
+// CTX.inputs.runwayBufferMonths=16 falls below low=18 → that dim gets severity "advisory".
+// evidenceRefs [0,1,2] covers all 3 canned LP comparables → satisfies IB#3 + IB#4.
+function buildSynthesisWithAdvisory(): FundingSpecialistOutput {
+  return {
+    dimensions: [
+      {
+        key: "runwayBufferMonths",
+        low: 18,
+        mid: 20,
+        high: 24,
+        conviction: "high",
+        reasoning: "Runway buffer must exceed 18 months for boutique-luxury operators to weather demand-cycle troughs.",
+        evidenceRefs: [0, 1, 2],
+      },
+      { key: "sizingOvershootPct", low: 0.15, mid: 0.20, high: 0.25, conviction: "high", reasoning: "Overshoot within boutique-luxury range.", evidenceRefs: [0] },
+      { key: "trancheGapMonths", low: 6, mid: 9, high: 12, conviction: "moderate", reasoning: "Tranche gap standard for staged raises.", evidenceRefs: [0] },
+      { key: "revenueRampDelayMonths", low: 6, mid: 9, high: 12, conviction: "moderate", reasoning: "Revenue ramp grounded in comparable set.", evidenceRefs: [0] },
+      { key: "burnFlexDownPct", low: 0.15, mid: 0.20, high: 0.25, conviction: "high", reasoning: "Burn flex supported by operator profile.", evidenceRefs: [0] },
+    ],
+    overallNarrative: "Raise is below the recommended runway threshold; LP review expected.",
+  };
+}
+
 const STUB_ANTHROPIC_MODEL = { specificationVersion: "v1" } as ReturnType<
   ReturnType<typeof import("@ai-sdk/anthropic").createAnthropic>
 >;
@@ -265,5 +288,57 @@ describe("runFundingSpecialist G6-P3a — Prompt Engineer pre-stage", () => {
     const verdict = await runFundingSpecialist(CTX, BENCHMARKS, COMPARABLES, STUB_DEPS);
 
     expect(verdict.meta.cognitiveRunId).toMatch(/^funding-g6p3a-hf-/);
+  });
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// G6-P4 — Intelligence Bar invariant assertions (production runner)
+//
+// These tests exercise the production `runFundingSpecialist` directly and
+// assert the requirements that close out IB#3, #4, #6, and #7.
+// IB#1/#8/#9 are already covered by the G6-P3a describe above.
+// IB#2 and IB#5 are confirmed at PR-review time (not statically assertable).
+
+describe("runFundingSpecialist G6-P4 — Intelligence Bar invariants (production runner)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("IB#7: meta.vendorsUsed contains ≥ 2 distinct vendors on happy path", async () => {
+    mockAllCalls(buildQuantOutput("high"), buildMarketOutput(), buildSynthesisOutput());
+
+    const verdict = await runFundingSpecialist(CTX, BENCHMARKS, COMPARABLES, STUB_DEPS);
+
+    expect(verdict.meta.vendorsUsed).toBeDefined();
+    expect(verdict.meta.vendorsUsed!.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("IB#6 + IB#3 + IB#4: advisory dimension carries range, ≥3 evidence, and ≥1 LP comp entry", async () => {
+    // CTX.inputs.runwayBufferMonths=16, synthesis range low=18 → below range → "advisory"
+    mockAllCalls(buildQuantOutput("high"), buildMarketOutput(), buildSynthesisWithAdvisory());
+
+    const verdict = await runFundingSpecialist(CTX, BENCHMARKS, COMPARABLES, STUB_DEPS);
+
+    const advisoryDim = verdict.dimensions.find((d) => d.severity === "advisory");
+    expect(advisoryDim).toBeDefined();
+
+    // IB#6 — non-ok numeric dimension carries a non-null range
+    expect(advisoryDim!.range).not.toBeNull();
+
+    // IB#3 — ≥3 evidence entries per non-ok dimension
+    expect(advisoryDim!.evidence.length).toBeGreaterThanOrEqual(3);
+
+    // IB#4 — tabular LP comp evidence present (source prefixed "LP comp:")
+    const lpCompEvidence = advisoryDim!.evidence.filter((e) => e.source.startsWith("LP comp:"));
+    expect(lpCompEvidence.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("IB#7: honest-fail path still sets vendorsUsed ≥ 2 (both panels ran before convergence check)", async () => {
+    mockAllCallsHonestFail(buildQuantOutput("developing"), buildMarketOutput());
+
+    const verdict = await runFundingSpecialist(CTX, BENCHMARKS, COMPARABLES, STUB_DEPS);
+
+    expect(verdict.meta.vendorsUsed).toBeDefined();
+    expect(verdict.meta.vendorsUsed!.length).toBeGreaterThanOrEqual(2);
   });
 });
