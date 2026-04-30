@@ -328,14 +328,20 @@ export function AdminSidebarNav({ activeSection, onSectionChange }: AdminSidebar
             </SidebarMenu>
           </SidebarGroup>
 
-          {/* AI Intelligence — top-level link to the dedicated AI Intelligence area */}
+          {/* AI — top-level link to the dedicated AI area (formerly "AI
+              Intelligence" in the menu; the inside surface still talks
+              about "AI Intelligence" in body copy and is allowed to. The
+              menu label is shortened so the sidebar reads as a clean noun
+              alongside Home / Companies / Properties / etc., per the
+              persona-first naming doctrine in
+              `.agents/skills/specialist-persona-naming/SKILL.md`). */}
           <SidebarGroup className="p-0">
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isAiIntelligenceActive} tooltip="AI Intelligence">
+                <SidebarMenuButton asChild isActive={isAiIntelligenceActive} tooltip="AI">
                   <Link href="/ai-intelligence" data-testid="admin-nav-ai-intelligence">
                     <IconBrain className="size-4 shrink-0" />
-                    <span className="truncate">AI Intelligence</span>
+                    <span className="truncate">AI</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
