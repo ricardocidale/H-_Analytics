@@ -198,15 +198,9 @@ Most insidious form. The named constant exists, is imported, and the literal is 
 
 ## Enforcement
 
-This skill is enforced by a three-layer gate. The layers are designed to catch different failure modes — do not skip one because another exists.
+This skill is enforced by a two-layer gate. Both layers must stay healthy — the ratchet catches what the audit test validates.
 
-### Layer 1 — Per-file ESLint nudge (`no-magic-numbers`, warn-level)
-
-Configured in `eslint.config.mjs` for `calc/**` and `engine/**`. Surfaces every bare numeric literal as a warning in `npm run lint:summary` so an author sees it on the way in. The `ignore` list maps to category 4 (structural: `-1, 0, 1, 2, 3`) and category 3 (universal unit conversions: `12, 24, 30, 60, 100, 365, 1000, 1024, 3600, 86400`). It stays at WARN to avoid breaking `lint:strict` on the existing baseline — promote your own literal to a named constant rather than waiting for the rule to be promoted to ERROR.
-
-To silence it for a genuinely-allowed literal, prefer fixing the code (promote to a named constant) over adding `// eslint-disable-next-line no-magic-numbers`. If you must disable, the same line MUST contain a comment explaining which of the four categories applies.
-
-### Layer 2 — Cross-file duplication ratchet (the hard gate)
+### Layer 1 — Cross-file duplication ratchet (the hard gate)
 
 ESLint cannot see across files, which is exactly where the worst failure mode lives. The script `script/check-magic-numbers.ts` walks `calc/`, `engine/`, `server/`, `shared/` and groups every numeric literal by the set of files it appears in. Any value that appears in `>= 4` distinct files is a "duplication suspect"; the script then ratchets the current state against the snapshot at `tests/audit/_magic-numbers-baseline.json`.
 
@@ -232,7 +226,7 @@ The ratchet is wired into:
 - `script/audit-quick.ts` as a critical finding labelled "Magic-numbers ratchet".
 - `tests/audit/no-magic-numbers.test.ts`, which runs in the regular vitest suite (`npm run test:summary`).
 
-### Layer 3 — Vitest guard test
+### Layer 2 — Vitest guard test
 
 `tests/audit/no-magic-numbers.test.ts` asserts every contract that holds the layers together: the ratchet script exists, the baseline is checked in, the workflow is registered, the SKILL points at the actual command, audit:quick wires the guard, and a probe that plants the same novel literal in four files is correctly rejected. Don't delete this test — it is what prevents future agents from quietly bypassing the enforcement.
 
