@@ -34,6 +34,14 @@ import { getCannedRevenueComparables } from "../ai/specialists/mgmt-co-revenue-o
 import type { RevenuePromptInputContext } from "../ai/specialists/mgmt-co-revenue-prompt-input-builder";
 import type { RevenueInputs } from "../../engine/watchdog/revenueEvaluator";
 import { DEFAULT_REVENUE_BENCHMARKS } from "@shared/constants-revenue-benchmarks";
+import {
+  runCompensationSpecialist,
+  Tier1UnavailableError as CompensationTier1UnavailableError,
+} from "../ai/specialists/mgmt-co-compensation-runner";
+import { getCannedCompensationComparables } from "../ai/specialists/mgmt-co-compensation-orchestrator-adapter";
+import type { CompensationPromptInputContext } from "../ai/specialists/mgmt-co-compensation-prompt-input-builder";
+import type { CompensationInputs } from "../../engine/watchdog/compensationEvaluator";
+import { DEFAULT_COMPENSATION_BENCHMARKS } from "@shared/constants-compensation-benchmarks";
 import { storage } from "../storage";
 import { logger } from "../logger";
 
@@ -246,6 +254,37 @@ export async function analystRefreshHandler(req: Request, res: Response) {
           "analyst-admin",
         );
         return logAndSendError(res, "Revenue Specialist failed", err, "analyst-admin");
+      }
+    }
+  }
+
+  // G3 — Compensation Specialist branch (mgmt-co.compensation / Mariana / M).
+  // N+1 runner (PE + parallel quant/market panels + Opus synthesis + bounded
+  // regress). Falls back to the legacy Tier-0 path (runAnalystScoped) on
+  // Tier1UnavailableError — same fallback policy as Funding/Revenue.
+  if (specialistId === "mgmt-co.compensation") {
+    try {
+      const verdict = await runCompensationV1Path(userId);
+      logActivity(req, "analyst-refresh", "company", userId, "Mgmt-Co Compensation (G3)", {
+        scope,
+        specialistId,
+        cognitiveRunId: verdict.meta.cognitiveRunId,
+        tier: verdict.meta.tier,
+      });
+      return res.json({ verdict });
+    } catch (err: unknown) {
+      if (err instanceof CompensationTier1UnavailableError) {
+        logger.warn(
+          `mgmt-co.compensation G3 unavailable; degrading to Tier-0 path: ${err.message}`,
+          "analyst-admin",
+        );
+        // fall through to legacy runAnalystScoped below
+      } else {
+        logger.error(
+          `mgmt-co.compensation G3 failed unexpectedly: ${err instanceof Error ? err.message : String(err)}`,
+          "analyst-admin",
+        );
+        return logAndSendError(res, "Compensation Specialist failed", err, "analyst-admin");
       }
     }
   }
@@ -669,6 +708,71 @@ async function runRevenueV1Path(userId: number): Promise<Awaited<ReturnType<type
 
   const comparables = getCannedRevenueComparables();
   return runRevenueSpecialist(ctx, DEFAULT_REVENUE_BENCHMARKS, comparables);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// G3 — Compensation Specialist N+1 path (Mariana / M)
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Assemble the G3 deps + invoke `runCompensationSpecialist`. Reads the user's
+ * saved globalAssumptions, builds CompensationPromptInputContext, and calls
+ * the runner. Throws Tier1UnavailableError on any failure; the route handler
+ * catches and degrades to Tier-0.
+ *
+ * G3 deferrals:
+ *   - Live AHLA/HVS comp survey API → uses canned dataset
+ *   - Persona resolution → canonical persona derived from globalAssumptions
+ *   - Verdict cache → every call is a fresh "miss"
+ */
+async function runCompensationV1Path(userId: number): Promise<Awaited<ReturnType<typeof runCompensationSpecialist>>> {
+  const ga = await storage.getGlobalAssumptions(userId);
+  if (!ga) {
+    throw new CompensationTier1UnavailableError(
+      "globalAssumptions row missing for user",
+      null,
+    );
+  }
+
+  const properties = await storage.getAllProperties(userId);
+
+  // Build CompensationInputs from globalAssumptions. All 5 compensation
+  // fields map directly to columns on the globalAssumptions row.
+  const inputs: CompensationInputs = {
+    partnerCompYear1: ga.partnerCompYear1 ?? null,
+    partnerCompYear10: ga.partnerCompYear10 ?? null,
+    partnerCountYear1: ga.partnerCountYear1 ?? null,
+    staffSalary: ga.staffSalary ?? null,
+    staffTier3Fte: ga.staffTier3Fte ?? null,
+  };
+
+  // Canonical persona for G3 — full persona resolution lands in a follow-up.
+  const persona: CompensationPromptInputContext["persona"] = {
+    verticalSlug: "boutique-luxury",
+    marketTier: "L+B",
+    locale: "US",
+  };
+
+  // Portfolio aggregate. ManCo revenue and burn are taken from the ICP model
+  // selection when available; G3 uses the median Highline tier as a fallback
+  // proxy until persona resolution fully lands.
+  const icpTier = (ga.icpModelTier as IcpModelTier | null) ?? "B";
+  const icpProfile = ICP_MODEL_PROFILES[icpTier];
+  const portfolio: CompensationPromptInputContext["portfolio"] = {
+    propertyCount: properties.length,
+    totalManagementCoRevenueUsd: icpProfile.managementCoRevenueUsd.typical,
+    monthlyBurnUsd: icpProfile.monthlyBurnUsd,
+  };
+
+  const ctx: CompensationPromptInputContext = {
+    inputs,
+    persona,
+    portfolio,
+    priorVerdicts: [],
+  };
+
+  const comparables = getCannedCompensationComparables();
+  return runCompensationSpecialist(ctx, DEFAULT_COMPENSATION_BENCHMARKS, comparables);
 }
 
 /**
