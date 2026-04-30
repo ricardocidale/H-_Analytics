@@ -35,7 +35,7 @@ import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { SPECIALIST_SECTION_TO_ID } from "@/components/admin/AdminSidebar";
 import type { SpecialistSection } from "@/components/admin/AdminSidebar";
-import { SPECIALIST_CATALOG } from "@engine/analyst/registry/specialist-catalog";
+import { resolveSpecialistDisplay } from "@/components/specialists";
 import { ORCHESTRATOR_SPECIALIST_ID } from "@engine/analyst/identity";
 
 interface SpecialistListItem {
@@ -97,21 +97,27 @@ interface NavGroup {
  * tab updates the sidebar row without a page reload. While the query is
  * in flight (or if it fails), we fall back to the static catalog
  * `humanName`, mirroring how Gaspar's row already behaves.
+ *
+ * The resolution chain itself lives in `resolveSpecialistDisplay`
+ * (`@/components/specialists`) so this sidebar, the page-header builder
+ * in `AiIntelligence.tsx`, and the `<SpecialistName />` component all
+ * agree on what name to lead with. See
+ * `.agents/skills/specialist-persona-naming/SKILL.md` for the rule.
  */
 function specialistRow(
   specialistId: string,
   fallbackPrimary: string,
   liveHumanNameById: Map<string, string>,
 ): { primary: string; secondary?: string } {
-  const def = SPECIALIST_CATALOG.find((d) => d.id === specialistId);
-  if (!def) return { primary: fallbackPrimary };
-  const role = def.displayName ?? def.realName;
-  const liveName = liveHumanNameById.get(specialistId);
-  const humanName = liveName ?? def.humanName;
-  if (humanName && humanName !== role) {
-    return { primary: humanName, secondary: role };
+  const display = resolveSpecialistDisplay(specialistId, liveHumanNameById);
+  // Unknown id — preserve the caller's literal fallback (e.g. "Funding")
+  // instead of echoing the slug through, so a stale or mistyped id
+  // still shows the human-meaningful label the sidebar config intended.
+  if (!display.isCatalogEntry) return { primary: fallbackPrimary };
+  if (display.humanName && display.humanName !== display.role) {
+    return { primary: display.humanName, secondary: display.role };
   }
-  return { primary: role };
+  return { primary: display.role };
 }
 
 function specialistSection(

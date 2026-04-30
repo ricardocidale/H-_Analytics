@@ -138,7 +138,19 @@ export function useSpecialistDisplay(id: string): SpecialistDisplay {
   return useMemo(() => resolveSpecialistDisplay(id, liveHumanNames), [id, liveHumanNames]);
 }
 
-function resolveSpecialistDisplay(
+/**
+ * Pure resolver — turn a Specialist id + override map into the full
+ * display payload. Exported so legacy non-component callers (page
+ * header builders, sidebar row builders, toast text generators) can
+ * share one resolution chain instead of re-implementing the
+ * humanName → displayName → realName → id fallback ladder.
+ *
+ * Most callers want `useSpecialistDisplay(id)` instead — this lower-
+ * level form exists for code paths that already have the override map
+ * in hand (built from the same `/api/admin/specialists` query) and
+ * just need the resolved display data.
+ */
+export function resolveSpecialistDisplay(
   id: string,
   liveHumanNames: Map<string, string>,
 ): SpecialistDisplay {

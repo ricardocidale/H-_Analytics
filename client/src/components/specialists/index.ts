@@ -1,6 +1,7 @@
 export {
   SpecialistName,
   useSpecialistDisplay,
+  resolveSpecialistDisplay,
 } from "./SpecialistName";
 export type {
   SpecialistDisplay,

@@ -16,8 +16,9 @@ import {
 } from "@/components/ai-intelligence/AiIntelligenceSidebar";
 import { SpecialistQuickSearch } from "@/components/ai-intelligence/SpecialistQuickSearch";
 import { useRefreshLlmRegistry } from "@/lib/api/admin";
+import { ORCHESTRATOR_SPECIALIST_ID } from "@engine/analyst/identity";
 import { SPECIALIST_CATALOG } from "@engine/analyst/registry/specialist-catalog";
-import { GASPAR_IDENTITY, ORCHESTRATOR_SPECIALIST_ID } from "@engine/analyst/identity";
+import { resolveSpecialistDisplay } from "@/components/specialists";
 
 interface SpecialistListItem {
   id: string;
@@ -79,19 +80,39 @@ const sectionMeta: Record<AiIntelligenceSection, { title: string; subtitle: stri
   "specialist-constants-reporting-research":   { title: "Reporting Conventions Research",  subtitle: "" },
 };
 
+/**
+ * Page-header copy for a Specialist section. Persona-first header: lead
+ * with the override-resolved human name from `/api/admin/specialists`
+ * (so an Identity-tab rename reflects immediately without a reload),
+ * fall back to the catalog `humanName` while the query is in flight,
+ * then to just the role label if neither is set.
+ *
+ * The resolution chain itself lives in `resolveSpecialistDisplay`
+ * (`@/components/specialists`) so this page header, the AI sidebar's
+ * `specialistRow`, and the `<SpecialistName />` component all agree on
+ * what name to lead with. See
+ * `.agents/skills/specialist-persona-naming/SKILL.md` for the rule.
+ */
 function specialistMeta(
   section: keyof typeof SPECIALIST_SECTION_TO_ID,
   humanNameById: Map<string, string>,
 ): { title: string; subtitle: string } {
   const id = SPECIALIST_SECTION_TO_ID[section];
+  const display = resolveSpecialistDisplay(id, humanNameById);
+  // For an unknown id the resolver returns `{ humanName: id, role: id }`;
+  // the page header should fall back to the section's marketing-copy
+  // title in that case so the chrome doesn't show a raw slug.
+  const role = display.isCatalogEntry ? display.role : sectionMeta[section].title;
+  const human = display.isCatalogEntry && display.humanName !== display.role
+    ? display.humanName
+    : null;
+  const title = human ? `${human} · ${role}` : role;
+  // Subtitle stays a local concern — the catalog `description` is the
+  // one-line tagline shown under the page header, distinct from the
+  // persona-naming chain in `resolveSpecialistDisplay`. Looking it up
+  // here keeps the resolver focused on names while preserving the
+  // descriptive subtitle on every Specialist page.
   const def = SPECIALIST_CATALOG.find((d) => d.id === id);
-  const role = def?.displayName ?? def?.realName ?? sectionMeta[section].title;
-  // Persona-first header: lead with the override-resolved human name from
-  // /api/admin/specialists (so an Identity-tab rename reflects immediately
-  // without a reload). Falls back to the catalog `humanName` while the
-  // query is in flight, then to just the role label if neither is set.
-  const human = humanNameById.get(id) ?? def?.humanName ?? null;
-  const title = human && human !== role ? `${human} · ${role}` : role;
   return {
     title,
     subtitle: def?.description ?? "",
@@ -102,13 +123,13 @@ function specialistMeta(
 // is the marketing copy used throughout the AI Intelligence surface and
 // stays fixed; only the persona name in front of it tracks the Identity-
 // tab override so a Gaspar rename shows up here without a page reload.
-// The fallback is sourced from `GASPAR_IDENTITY` (single source of truth
-// in `engine/analyst/identity.ts`) rather than a hardcoded string so a
-// future rename of the orchestrator default flows through automatically.
+// The orchestrator fallback (Gaspar) is wired into the shared resolver,
+// so a future rename of the orchestrator default flows through here
+// automatically.
 function orchestratorMeta(humanNameById: Map<string, string>): { title: string; subtitle: string } {
-  const human = humanNameById.get(ORCHESTRATOR_SPECIALIST_ID) ?? GASPAR_IDENTITY.humanName;
+  const display = resolveSpecialistDisplay(ORCHESTRATOR_SPECIALIST_ID, humanNameById);
   return {
-    title: `${human} · The Analyst`,
+    title: `${display.humanName} · The Analyst`,
     subtitle: sectionMeta["analyst-orchestrator"].subtitle,
   };
 }
