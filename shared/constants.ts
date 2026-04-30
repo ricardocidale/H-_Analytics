@@ -432,3 +432,8 @@ export const DEFAULT_RISK_SPECIALIST_MODEL = "claude-opus-4-7";
 export const DEFAULT_RISK_QUANT_PANEL_MODEL = "gemini-2.5-flash";
 export const DEFAULT_RISK_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
 export const DEFAULT_RISK_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";
+
+export const DEFAULT_PROPERTY_DEFAULTS_SPECIALIST_MODEL = "claude-opus-4-7";
+export const DEFAULT_PROPERTY_DEFAULTS_QUANT_PANEL_MODEL = "gemini-2.5-flash";
+export const DEFAULT_PROPERTY_DEFAULTS_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
+export const DEFAULT_PROPERTY_DEFAULTS_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";

@@ -58,6 +58,14 @@ import { getCannedCompanyComparables } from "../ai/specialists/mgmt-co-company-o
 import type { CompanyPromptInputContext } from "../ai/specialists/mgmt-co-company-prompt-input-builder";
 import type { CompanyInputs } from "../../engine/watchdog/companyEvaluator";
 import { DEFAULT_COMPANY_BENCHMARKS } from "@shared/constants-company-benchmarks";
+import {
+  runPropertyDefaultsSpecialist,
+  Tier1UnavailableError as PropertyDefaultsTier1UnavailableError,
+} from "../ai/specialists/mgmt-co-property-defaults-runner";
+import { getCannedPropertyDefaultsComparables } from "../ai/specialists/mgmt-co-property-defaults-orchestrator-adapter";
+import type { PropertyDefaultsPromptInputContext } from "../ai/specialists/mgmt-co-property-defaults-prompt-input-builder";
+import type { PropertyDefaultsInputs } from "../../engine/watchdog/propertyDefaultsEvaluator";
+import { DEFAULT_PROPERTY_DEFAULTS_BENCHMARKS } from "@shared/constants-property-defaults-benchmarks";
 import { storage } from "../storage";
 import { logger } from "../logger";
 
@@ -363,6 +371,37 @@ export async function analystRefreshHandler(req: Request, res: Response) {
           "analyst-admin",
         );
         return logAndSendError(res, "Company Specialist failed", err, "analyst-admin");
+      }
+    }
+  }
+
+  // P7-B Phase 2 — Property-Defaults Specialist branch (mgmt-co.property-defaults / Paula / P).
+  // N+1 runner (PE + parallel quant/market panels + Opus synthesis + bounded
+  // regress). Falls back to the legacy Tier-0 path (runAnalystScoped) on
+  // PropertyDefaultsTier1UnavailableError — same fallback policy as Company/Overhead.
+  if (specialistId === "mgmt-co.property-defaults") {
+    try {
+      const verdict = await runPropertyDefaultsV1Path(userId);
+      logActivity(req, "analyst-refresh", "company", userId, "Mgmt-Co Property Defaults (Phase 2)", {
+        scope,
+        specialistId,
+        cognitiveRunId: verdict.meta.cognitiveRunId,
+        tier: verdict.meta.tier,
+      });
+      return res.json({ verdict });
+    } catch (err: unknown) {
+      if (err instanceof PropertyDefaultsTier1UnavailableError) {
+        logger.warn(
+          `mgmt-co.property-defaults Phase 2 unavailable; degrading to Tier-0 path: ${err.message}`,
+          "analyst-admin",
+        );
+        // fall through to legacy runAnalystScoped below
+      } else {
+        logger.error(
+          `mgmt-co.property-defaults Phase 2 failed unexpectedly: ${err instanceof Error ? err.message : String(err)}`,
+          "analyst-admin",
+        );
+        return logAndSendError(res, "Property Defaults Specialist failed", err, "analyst-admin");
       }
     }
   }
@@ -972,6 +1011,69 @@ async function runCompanyV1Path(userId: number): Promise<Awaited<ReturnType<type
 
   const comparables = getCannedCompanyComparables();
   return runCompanySpecialist(ctx, DEFAULT_COMPANY_BENCHMARKS, comparables);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// P7-B Phase 2 — Property-Defaults Specialist N+1 path (Paula / P)
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Assemble the Phase 2 deps + invoke `runPropertyDefaultsSpecialist`. Reads
+ * the user's saved globalAssumptions, builds PropertyDefaultsPromptInputContext,
+ * and calls the runner. Throws PropertyDefaultsTier1UnavailableError on any
+ * failure; the route handler catches and degrades to Tier-0.
+ *
+ * Phase 2 deferrals:
+ *   - Live USALI/CBRE/Kalibri Labs API → uses canned comparables dataset
+ *   - Persona resolution → canonical persona derived from globalAssumptions
+ *   - Verdict cache → every call is a fresh "miss"
+ */
+async function runPropertyDefaultsV1Path(userId: number): Promise<Awaited<ReturnType<typeof runPropertyDefaultsSpecialist>>> {
+  const ga = await storage.getGlobalAssumptions(userId);
+  if (!ga) {
+    throw new PropertyDefaultsTier1UnavailableError(
+      "globalAssumptions row missing for user",
+      null,
+    );
+  }
+
+  const properties = await storage.getAllProperties(userId);
+
+  // Build PropertyDefaultsInputs from globalAssumptions. All 4 property-defaults
+  // fields map directly to columns on the globalAssumptions row (fractions).
+  const inputs: PropertyDefaultsInputs = {
+    eventExpenseRate: ga.eventExpenseRate ?? null,
+    otherExpenseRate: ga.otherExpenseRate ?? null,
+    utilitiesVariableSplit: ga.utilitiesVariableSplit ?? null,
+    salesCommissionRate: ga.salesCommissionRate ?? null,
+  };
+
+  // Canonical persona for Phase 2 — full persona resolution lands in a follow-up.
+  const persona: PropertyDefaultsPromptInputContext["persona"] = {
+    verticalSlug: "boutique-luxury",
+    marketTier: "L+B",
+    locale: "US",
+  };
+
+  // Portfolio aggregate. ManCo revenue and burn are taken from the ICP model
+  // selection when available; Phase 2 uses the median Highline tier as a fallback.
+  const icpTier = (ga.icpModelTier as IcpModelTier | null) ?? "B";
+  const icpProfile = ICP_MODEL_PROFILES[icpTier];
+  const portfolio: PropertyDefaultsPromptInputContext["portfolio"] = {
+    propertyCount: properties.length,
+    totalManagementCoRevenueUsd: icpProfile.managementCoRevenueUsd.typical,
+    monthlyBurnUsd: icpProfile.monthlyBurnUsd,
+  };
+
+  const ctx: PropertyDefaultsPromptInputContext = {
+    inputs,
+    persona,
+    portfolio,
+    priorVerdicts: [],
+  };
+
+  const comparables = getCannedPropertyDefaultsComparables();
+  return runPropertyDefaultsSpecialist(ctx, DEFAULT_PROPERTY_DEFAULTS_BENCHMARKS, comparables);
 }
 
 /**
