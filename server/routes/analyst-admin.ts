@@ -42,6 +42,14 @@ import { getCannedCompensationComparables } from "../ai/specialists/mgmt-co-comp
 import type { CompensationPromptInputContext } from "../ai/specialists/mgmt-co-compensation-prompt-input-builder";
 import type { CompensationInputs } from "../../engine/watchdog/compensationEvaluator";
 import { DEFAULT_COMPENSATION_BENCHMARKS } from "@shared/constants-compensation-benchmarks";
+import {
+  runOverheadSpecialist,
+  Tier1UnavailableError as OverheadTier1UnavailableError,
+} from "../ai/specialists/mgmt-co-overhead-runner";
+import { getCannedOverheadComparables } from "../ai/specialists/mgmt-co-overhead-orchestrator-adapter";
+import type { OverheadPromptInputContext } from "../ai/specialists/mgmt-co-overhead-prompt-input-builder";
+import type { OverheadInputs } from "../../engine/watchdog/overheadEvaluator";
+import { DEFAULT_OVERHEAD_BENCHMARKS } from "@shared/constants-overhead-benchmarks";
 import { storage } from "../storage";
 import { logger } from "../logger";
 
@@ -285,6 +293,37 @@ export async function analystRefreshHandler(req: Request, res: Response) {
           "analyst-admin",
         );
         return logAndSendError(res, "Compensation Specialist failed", err, "analyst-admin");
+      }
+    }
+  }
+
+  // P7-B Phase 2 — Overhead Specialist branch (mgmt-co.overhead / Natália / N).
+  // N+1 runner (PE + parallel quant/market panels + Opus synthesis + bounded
+  // regress). Falls back to the legacy Tier-0 path (runAnalystScoped) on
+  // Tier1UnavailableError — same fallback policy as Funding/Revenue/Compensation.
+  if (specialistId === "mgmt-co.overhead") {
+    try {
+      const verdict = await runOverheadV1Path(userId);
+      logActivity(req, "analyst-refresh", "company", userId, "Mgmt-Co Overhead (Phase 2)", {
+        scope,
+        specialistId,
+        cognitiveRunId: verdict.meta.cognitiveRunId,
+        tier: verdict.meta.tier,
+      });
+      return res.json({ verdict });
+    } catch (err: unknown) {
+      if (err instanceof OverheadTier1UnavailableError) {
+        logger.warn(
+          `mgmt-co.overhead Phase 2 unavailable; degrading to Tier-0 path: ${err.message}`,
+          "analyst-admin",
+        );
+        // fall through to legacy runAnalystScoped below
+      } else {
+        logger.error(
+          `mgmt-co.overhead Phase 2 failed unexpectedly: ${err instanceof Error ? err.message : String(err)}`,
+          "analyst-admin",
+        );
+        return logAndSendError(res, "Overhead Specialist failed", err, "analyst-admin");
       }
     }
   }
@@ -773,6 +812,68 @@ async function runCompensationV1Path(userId: number): Promise<Awaited<ReturnType
 
   const comparables = getCannedCompensationComparables();
   return runCompensationSpecialist(ctx, DEFAULT_COMPENSATION_BENCHMARKS, comparables);
+}
+
+/**
+ * Assemble the Phase 2 deps + invoke `runOverheadSpecialist`. Reads the
+ * user's saved globalAssumptions, builds OverheadPromptInputContext, and
+ * calls the runner. Throws Tier1UnavailableError on any failure; the route
+ * handler catches and degrades to Tier-0.
+ *
+ * Phase 2 deferrals:
+ *   - Live AHLA/HFTP/AICPA overhead survey API → uses canned dataset
+ *   - Persona resolution → canonical persona derived from globalAssumptions
+ *   - Verdict cache → every call is a fresh "miss"
+ */
+async function runOverheadV1Path(userId: number): Promise<Awaited<ReturnType<typeof runOverheadSpecialist>>> {
+  const ga = await storage.getGlobalAssumptions(userId);
+  if (!ga) {
+    throw new OverheadTier1UnavailableError(
+      "globalAssumptions row missing for user",
+      null,
+    );
+  }
+
+  const properties = await storage.getAllProperties(userId);
+
+  // Build OverheadInputs from globalAssumptions. All 6 overhead fields map
+  // directly to columns on the globalAssumptions row.
+  const inputs: OverheadInputs = {
+    officeLeaseStart: ga.officeLeaseStart ?? null,
+    professionalServicesStart: ga.professionalServicesStart ?? null,
+    techInfraStart: ga.techInfraStart ?? null,
+    businessInsuranceStart: ga.businessInsuranceStart ?? null,
+    travelCostPerClient: ga.travelCostPerClient ?? null,
+    itLicensePerClient: ga.itLicensePerClient ?? null,
+  };
+
+  // Canonical persona for Phase 2 — full persona resolution lands in a follow-up.
+  const persona: OverheadPromptInputContext["persona"] = {
+    verticalSlug: "boutique-luxury",
+    marketTier: "L+B",
+    locale: "US",
+  };
+
+  // Portfolio aggregate. ManCo revenue and burn are taken from the ICP model
+  // selection when available; Phase 2 uses the median Highline tier as a fallback
+  // proxy until persona resolution fully lands.
+  const icpTier = (ga.icpModelTier as IcpModelTier | null) ?? "B";
+  const icpProfile = ICP_MODEL_PROFILES[icpTier];
+  const portfolio: OverheadPromptInputContext["portfolio"] = {
+    propertyCount: properties.length,
+    totalManagementCoRevenueUsd: icpProfile.managementCoRevenueUsd.typical,
+    monthlyBurnUsd: icpProfile.monthlyBurnUsd,
+  };
+
+  const ctx: OverheadPromptInputContext = {
+    inputs,
+    persona,
+    portfolio,
+    priorVerdicts: [],
+  };
+
+  const comparables = getCannedOverheadComparables();
+  return runOverheadSpecialist(ctx, DEFAULT_OVERHEAD_BENCHMARKS, comparables);
 }
 
 /**
