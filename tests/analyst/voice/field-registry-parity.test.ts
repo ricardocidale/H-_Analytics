@@ -133,6 +133,16 @@ const BUILT_SPECIALISTS_WITHOUT_VERDICT_DIMENSIONS: ReadonlySet<string> = new Se
   // requirements. No FIELD_REGISTRY entries needed; there are no
   // assumption-field deep-link anchors to register.
   "photos.photo-enhancer",
+  // Helena / Isadora / Júlia / Kamila (H–K): Constants Specialists that
+  // produce updated `model_canonicals` rows via the Constants refresh flow
+  // (`POST /api/admin/model-constants/:key/refresh`), not per-field
+  // AnalystVerdict + VerdictDimension shapes. Their output is a constant
+  // row update, not an evaluation of individual form inputs — so there are
+  // no FIELD_REGISTRY entries or Adjust CTA deep-links to register.
+  "constants.tax-research",
+  "constants.macro-research",
+  "constants.depreciation-research",
+  "constants.reporting-research",
 ]);
 
 describe("FIELD_REGISTRY parity — every Specialist-emitted field has an entry", () => {

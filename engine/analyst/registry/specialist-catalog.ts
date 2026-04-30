@@ -336,7 +336,7 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     // Tax statutes change on annual cycles; monthly cadence catches mid-year
     // adjustments without spamming the Specialist or the activity log.
     refreshCadenceDays: 30,
-    status: "needs-page",
+    status: "built",
   },
   {
     id: "constants.macro-research",
@@ -365,7 +365,7 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     // cadence keeps the discount-rate math honest without overrunning the
     // grounded-search budget.
     refreshCadenceDays: 7,
-    status: "needs-page",
+    status: "built",
   },
   {
     id: "constants.depreciation-research",
@@ -393,7 +393,7 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     // Useful-life statutes are slow-moving; quarterly cadence keeps the
     // schedule current after annual tax-code refreshes.
     refreshCadenceDays: 90,
-    status: "needs-page",
+    status: "built",
   },
   {
     id: "constants.reporting-research",
@@ -421,7 +421,7 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     // USALI / AHLA conventions update on multi-year cycles; an annual
     // cadence is plenty.
     refreshCadenceDays: 365,
-    status: "needs-page",
+    status: "built",
   },
   // ──────────────────────────────────────────────────────────────────────────
   // Resource Builder (letter L) — Letícia. Maintains the deterministic tools

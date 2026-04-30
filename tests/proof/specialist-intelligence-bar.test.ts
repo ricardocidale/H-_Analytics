@@ -48,6 +48,14 @@ const VERDICT_DIMENSION_EXEMPT: ReadonlySet<string> = new Set([
   "portfolio-ops.watchdog",
   // Fernanda (F) — Photo Enhancer. Image-gen pipeline, no assumption verdicts.
   "photos.photo-enhancer",
+  // Helena / Isadora / Júlia / Kamila (H–K) — Constants Specialists. Work
+  // product is updated model_canonicals rows via the Constants refresh flow,
+  // not per-field AnalystVerdict + VerdictDimension shapes. No synthesis
+  // validator, no FIELD_REGISTRY entries, no Adjust CTA deep-links.
+  "constants.tax-research",
+  "constants.macro-research",
+  "constants.depreciation-research",
+  "constants.reporting-research",
 ]);
 
 // ── Validator file map — keyed by specialist id, value is the relative path
