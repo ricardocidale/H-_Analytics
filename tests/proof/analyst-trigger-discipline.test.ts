@@ -107,7 +107,11 @@ function stripComments(src: string): string {
  * regressed in the past and are now contractually data-only.
  */
 const FORBIDDEN_DISPATCH_FILES = [
+  // Company Assumptions save-tab — original regression surface (G1.5b-pre)
   "server/routes/global-assumptions.ts",
+  // Property PATCH/PUT handlers — mutation routes that must not re-acquire
+  // Specialist dispatch after the trigger-discipline rule landed
+  "server/routes/properties.ts",
 ] as const;
 
 /**
@@ -164,7 +168,11 @@ describe("Analyst Trigger Discipline — save-time dispatch is banned", () => {
       // pattern where dispatch is reintroduced via a temporary variable
       // (e.g. `const responseBody = { …, verdict, prerequisiteFailures }`)
       // which a naive `res.json({ ...inline... })` regex would miss.
+      // Files that do not have a save-tab handler at all skip this check —
+      // they are covered by the hard-banned-tokens check above.
       const src = read(file);
+      const hasSaveTab = /app\.post\(\s*["']\/api\/global-assumptions\/save-tab["']/.test(src);
+      if (!hasSaveTab) return; // no save-tab handler in this file; covered above
       const handler = stripComments(extractSaveTabHandler(src));
       const offenders: string[] = [];
       if (/\bverdict\b/.test(handler)) offenders.push("verdict");

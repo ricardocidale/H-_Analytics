@@ -63,7 +63,7 @@ export function applyRefinancePostProcessing(
   const yearlyOperationalMonths: number[] = [];
   for (let y = 0; y < projectionYears; y++) {
     const yearSlice = financials.slice(y * MONTHS_PER_YEAR, (y + 1) * MONTHS_PER_YEAR);
-    yearlyNOI.push(yearSlice.reduce((sum, m) => sum + m.noi, 0));
+    yearlyNOI.push(yearSlice.reduce((sum, m) => sum + m.noi, 0)); // NOI (pre-FF&E) — lender appraises against pre-reserve income by convention; ANOI used for cash flows below
     yearlyOperationalMonths.push(yearSlice.filter(m => m.revenueTotal > 0 || m.anoi !== 0).length);
   }
 

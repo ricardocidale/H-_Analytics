@@ -30,8 +30,8 @@
 | P3 | Resource health checker + `resource_health_checks` + freshness-band derivation + safe-probe profiles | ✅ Shipped | — | — | — | — |
 | P4 | Resources sub-page UIs (APIs, Sources, Tables, Benchmarks, Models) + dialogs + version history | ✅ Shipped | — | — | — | — |
 | P5 | Specialist read-only surfaces (Funding + Revenue first): 6 REST routes, 5 capability tabs, 11 contract tests, mgmt-co router wiring | ✅ Shipped | Replit | `2346de7`, `a6c78b54` | — | — |
-| P6 | Resources adapters for legacy `data_sources` / `LlmDefaultsTab`; centralize `SPECIALIST_SECTION_TO_ID`; Required Fields enforcement; audit user-name resolution; runtimeConfig schema narrowing | 🟡 Partial | Replit/CC | P6a `engine/analyst/surface/mgmt-co/index.ts`, P6b `a6c7ac81`, P6c-a `ae422cff`, P6d `AdminSidebar.tsx`, P6e-a `5524c70a` (CC), P6e-c+P6g `7a4efea2` (Replit), schema fixes `9dc6b2a3` (CC), P6f (CC) | P5 ✅ | P7 next (Specialists C–G real evaluators) |
-| P7 | Specialists C–G get real evaluators behind their existing pages | ⏳ Pending | Replit (planned) | — | P6 | — |
+| P6 | Resources adapters for legacy `data_sources` / `LlmDefaultsTab`; centralize `SPECIALIST_SECTION_TO_ID`; Required Fields enforcement; audit user-name resolution; runtimeConfig schema narrowing | ✅ Shipped | Replit/CC | P6a `engine/analyst/surface/mgmt-co/index.ts`, P6b `a6c7ac81`, P6c-a `ae422cff`, P6d `AdminSidebar.tsx`, P6e-a `5524c70a` (CC), P6e-c+P6g `7a4efea2` (Replit), schema fixes `9dc6b2a3` (CC), P6f `a8248c21` (CC). P6c-b/P6c-c deferred — server-side gate is enforced; deferred work folded into P7 prep. | P5 ✅ | P7 ⏳ |
+| P7 | Constants Specialists H–K admin pages + Revenue N+1 graduation (ADR + phase TBD) + remaining mgmt-co Specialists (Compensation, Overhead, Company, Property-Defaults) | ⏳ Pending | CC + Replit | — | P6 ✅ | — |
 
 ---
 

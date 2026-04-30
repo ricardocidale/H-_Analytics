@@ -276,7 +276,7 @@ export async function runRevenueSpecialist(
     AI_GENERATION_TIMEOUT_MS,
   );
   try {
-    // TODO G6-P2 — replace with N+1 pipeline (Gemini Flash quant + Sonnet market + Opus synthesis)
+    // TODO (Revenue N+1 graduation — phase TBD, see phases.md; G6-P2 was Funding-only)
     const result = streamObject({
       model: modelFactory(REVENUE_MODEL_ID),
       schema: RevenueSpecialistOutputSchema,
@@ -300,7 +300,7 @@ export async function runRevenueSpecialist(
     output = await result.object;
     clearTimeout(opusTimer);
 
-    // TODO G6-P2 — replace with real orchestrator cognitiveRunId
+    // TODO (Revenue N+1 graduation — phase TBD) replace with real orchestrator cognitiveRunId
     cognitiveRunId = `revenue-v1-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
   } catch (err: unknown) {
     clearTimeout(opusTimer);
@@ -349,9 +349,9 @@ export async function runRevenueSpecialist(
         tier: 1,
         durationMs: 0,
         cognitiveRunId,
-        // TODO G6-P2 — populate vendorsUsed once N+1 panels land. Omit in v1
-        // (single-vendor Anthropic Opus) to avoid violating the ≥2-vendor
-        // invariant that fires when vendorsUsed is present.
+        // TODO (Revenue N+1 graduation — phase TBD) populate vendorsUsed once
+        // N+1 panels land. Omit in v1 (single-vendor Anthropic Opus) to avoid
+        // violating the ≥2-vendor invariant that fires when vendorsUsed is set.
         // vendorsUsed: omitted in v1
         // TODO G6-P3 — cacheState becomes "hit" | "miss" once verdict cache
         // read path is wired (ADR-004 §4). v1 honestly emits "miss".

@@ -56,8 +56,8 @@ A wide range marked `qualityScore < CONVICTION_FLOOR` (per Phase 5B v2 reconstru
 
 | Specialist | Status | Below-bar gap | Owner / when |
 |---|---|---|---|
-| `mgmt-co.funding` | Ships as Phase 3b watchdog wrapper around `evaluateCapitalRaise` | Tier-0 only; no `cognitiveRunId`; no live API; no comparables table | Graduate during P7+ behind an explicit ADR |
-| `mgmt-co.revenue` | Ships as Phase 3b watchdog wrapper around `evaluateRevenue` | Same as Funding | Graduate during P7+ behind an explicit ADR |
+| `mgmt-co.funding` | ✅ Graduated — G6-P4 (`519d1c54`). Full N+1 pipeline, IB#1–9 all tested. | — | — |
+| `mgmt-co.revenue` | G2-v1 (`80df7bbc`): single-shot Opus, not N+1. Pending N+1 graduation (phase TBD). Current deferrals: IB#1 (N+1), IB#7 (vendor breadth ≥2), IB#8 (promptEngineerRunId). `cognitiveRunId` is synthetic. | Tier-1 N+1 not yet implemented; vendorsUsed intentionally omitted in v1 runner to avoid violating ≥2-vendor invariant | Revenue N+1 graduation — author ADR + phase packet before starting |
 | `photos.photo-enhancer` | Image-generation pipeline, not an assumption tab | Exempt — different surface category | — |
 | `resources.builder` | Resource Builder UI, not an assumption tab | Exempt — admin tooling, not investor-facing intelligence | — |
 
