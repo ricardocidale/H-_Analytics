@@ -19,6 +19,7 @@
 import type { RevenueSpecialistOutput } from "./mgmt-co-revenue-output-schema";
 import type { RevenueComparableRow } from "./mgmt-co-revenue-orchestrator-adapter";
 import { REVENUE_DIMENSION_KEYS } from "./mgmt-co-revenue-prompt-input-builder";
+import { TIER_1_MIN_TOTAL_EVIDENCE } from "@shared/analyst-conviction";
 
 export interface SynthesisValidationResult {
   pass: boolean;
@@ -70,6 +71,21 @@ export function validateSynthesisOutput(
       return {
         pass: false,
         regressReason: `Dimension "${dim.key}" reasoning is too short (${dim.reasoning?.trim().length ?? 0} chars). Provide grounded reasoning that cites specific comparables.`,
+      };
+    }
+  }
+
+  // 5. Total valid evidence refs >= TIER_1_MIN_TOTAL_EVIDENCE when the
+  //    comparable set is large enough to satisfy it (ADR-003 invariant 7).
+  if (comparables.length >= TIER_1_MIN_TOTAL_EVIDENCE) {
+    const totalValid = output.dimensions.reduce(
+      (sum, d) => sum + d.evidenceRefs.filter((i) => i >= 0 && i < comparables.length).length,
+      0,
+    );
+    if (totalValid < TIER_1_MIN_TOTAL_EVIDENCE) {
+      return {
+        pass: false,
+        regressReason: `Total in-bounds evidenceRefs across all dimensions is ${totalValid} (minimum ${TIER_1_MIN_TOTAL_EVIDENCE}). Cite at least ${TIER_1_MIN_TOTAL_EVIDENCE} distinct comparables across dimensions.`,
       };
     }
   }
