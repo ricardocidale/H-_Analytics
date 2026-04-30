@@ -73,6 +73,60 @@ A guard test — `tests/audit/analyst-button-convention.test.ts` — fails the b
 
 If your surface legitimately needs a non-Analyst refresh (e.g. a pure cache-bust that does NOT call into The Analyst or a specialist), add the file to the allowlist at the top of the guard test with a one-line justification.
 
+## Wait copy — what the user sees while The Analyst studies
+
+The button label stays terse (`Analyst` → `Studying…`). The **descriptive sub-line** that appears next to the spinner — the message the user actually reads while waiting — is governed by `.claude/brand-voice-guidelines.md` (the canonical source) and reinforced in `.claude/skills/analyst/voice.md`.
+
+### The verb list (non-negotiable)
+
+The brand voice canon (§6 *Loading State Verbs*) prescribes the present-participle verbs The Analyst uses while at work. **Use exactly one of these** as the lead verb:
+
+> **USE:** studying · reviewing · cross-referencing · checking · weighing · forming a view
+>
+> **NEVER:** processing · generating · computing · loading · running · executing · consulting · thinking · analyzing · working
+
+`consulting` and `thinking` are common slips that read as software, not as a colleague — they are out. (`AnalystButton.tsx`'s current "Consulting..." string is a known drift from this canon and should be migrated to "Studying…" the next time it is touched.)
+
+### The shape of the message
+
+From the Tone-by-Context Matrix (§4): loading copy is **low-formality, medium-warmth, no wit, and specific to the work**. The sub-line names the *thing being studied* in plain language — never the machinery.
+
+| | ❌ Wrong | ✅ Right |
+|---|---|---|
+| Generic | "Loading…" / "Please wait…" | "Studying current market data…" |
+| Implementation-leaking | "Generating AI analysis…" / "Calling LLM…" | "Cross-referencing STR and CBRE reports…" |
+| Fake activity | "Thinking really hard…" | "Reviewing the last quarter of ADR observations…" |
+| Vague | "Working on it…" | "Checking the latest labor-rate surveys for this market…" |
+
+### The pattern
+
+```tsx
+{isRunning ? (
+  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+    <OrbitalDots size={14} />
+    <span>Studying current hospitality benchmarks…</span>
+    {/* ← specific noun phrase, lead verb from the approved list, ellipsis (…), no exclamation, no emoji */}
+  </div>
+) : null}
+```
+
+For longer-running jobs (≥ 8s), it is acceptable to rotate two or three sub-lines that walk through what The Analyst is doing — but every line still leads with an approved verb and names a concrete artifact:
+
+```ts
+const STUDYING_LINES = [
+  "Studying the latest STR and CBRE benchmark reports…",
+  "Cross-referencing recent transactions in this market…",
+  "Forming a view on the right ranges to keep…",
+];
+```
+
+### Forbidden patterns (caught by guards or review)
+
+- Buttons that show `Consulting…`, `Thinking…`, `Processing…`, `Loading…`, `Generating…`, `Working on it…`, or any progressive-form verb outside the approved list
+- Sub-lines that name the implementation (`Calling Claude…`, `Querying database…`, `Fetching from API…`)
+- Sub-lines without a specific noun phrase (`Studying…` alone is too vague — append what is being studied)
+- Exclamation marks, emojis, or "Great question!"-style warmth (that voice belongs to Rebecca, not The Analyst)
+
 ## Quick checklist before committing a research-trigger button
 
 1. Label is `Analyst` (or `Studying…` while in-flight). ✅
@@ -80,4 +134,5 @@ If your surface legitimately needs a non-Analyst refresh (e.g. a pure cache-bust
 3. Tooltip / `title` carries the verb. ✅
 4. `data-testid` starts with `button-analyst-`. ✅
 5. Header text on the surface reads `Analyst — …`, not `Refresh research — …`. ✅
-6. The guard test passes (`npx vitest run tests/audit/analyst-button-convention.test.ts`). ✅
+6. **Wait sub-line uses an approved verb (`studying`, `reviewing`, `cross-referencing`, `checking`, `weighing`, `forming a view`) and names a specific artifact.** ✅
+7. The guard test passes (`npx vitest run tests/audit/analyst-button-convention.test.ts`). ✅
