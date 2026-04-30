@@ -58,6 +58,8 @@ const MAX_DIMENSIONS_IN_SURFACE_DETAIL = 3;
  */
 const PERCENT_DISPLAY_DECIMALS = 1;
 const CURRENCY_DISPLAY_DECIMALS = 0;
+const COUNT_DISPLAY_DECIMALS = 0;
+const FTE_DISPLAY_DECIMALS = 1;
 
 /** Decimal-to-percent scale factor (100). Math/unit conversion. */
 const PERCENT_SCALE = 100;
@@ -174,6 +176,8 @@ function formatNumber(n: number, unit: string): string {
   if (unit === "$") {
     return `$${n.toLocaleString("en-US", { maximumFractionDigits: CURRENCY_DISPLAY_DECIMALS })}`;
   }
+  if (unit === "partners") return `${n.toFixed(COUNT_DISPLAY_DECIMALS)} partners`;
+  if (unit === "FTE") return `${n.toFixed(FTE_DISPLAY_DECIMALS)} FTE`;
   return `${n}${unit ? " " + unit : ""}`;
 }
 
