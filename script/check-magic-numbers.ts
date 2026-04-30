@@ -115,6 +115,8 @@ const EXCLUDED_FILE_PATTERNS: readonly RegExp[] = [
   /^shared\/model-constants-registry\.ts$/, // canonical registry
   /^shared\/field-registry\.ts$/,    // canonical registry
   /^server\/migrations\//,           // generated SQL/data migrations
+  /^server\/ai\/regenerate-market-data\.ts$/, // LLM prompt templates — literals are example values for the LLM, not code logic
+  /^server\/ai\/specialists\/.*-orchestrator-adapter\.ts$/, // benchmark fixture arrays for LLM prompting context — literals are data
 ];
 
 // Literal values that are NEVER a magic number under any circumstance:
@@ -184,6 +186,14 @@ const ALLOWED_DUPLICATED_VALUES: Record<string, string> = {
   "10000": "basis points per 100% (universal definition)",
   "0.0001": "one basis point as a decimal",
   "0.01": "one percent as a decimal",
+  // ---------- Common rational fractions ----------
+  // ---------- HTTP status codes (IETF RFC 9110 — protocol constants) ----------
+  "400": "HTTP 400 Bad Request — IETF RFC 9110",
+  "401": "HTTP 401 Unauthorized — IETF RFC 9110",
+  "403": "HTTP 403 Forbidden — IETF RFC 9110",
+  "404": "HTTP 404 Not Found — IETF RFC 9110",
+  "409": "HTTP 409 Conflict — IETF RFC 9110",
+  "500": "HTTP 500 Internal Server Error — IETF RFC 9110",
   // ---------- Common rational fractions ----------
   "0.25": "one quarter (display / calendar fraction)",
   "0.5": "midpoint / half-credit (documented in calc/ helpers)",

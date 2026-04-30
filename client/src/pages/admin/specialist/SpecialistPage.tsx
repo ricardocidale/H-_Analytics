@@ -38,6 +38,7 @@ import { WorkflowTab } from "./tabs/WorkflowTab";
 import { SpecialistSummaryPanel } from "./SpecialistSummaryPanel";
 import { SpecialistToolsICall } from "./SpecialistToolsICall";
 import { SpecialistToolsIBuild } from "./SpecialistToolsIBuild";
+import { ConstantsOwnedCard } from "./ConstantsOwnedCard";
 
 export default function SpecialistPage({ specialistId }: { specialistId: string }) {
   const { data, isLoading, error } = useQuery<SpecialistDetailResponse>({
@@ -168,6 +169,12 @@ export default function SpecialistPage({ specialistId }: { specialistId: string 
 
       <SpecialistToolsIBuild specialistId={specialistId} />
       <SpecialistToolsICall specialistId={specialistId} />
+      {(definition.constantsOwned ?? []).length > 0 && (
+        <ConstantsOwnedCard
+          specialistId={specialistId}
+          ownedKeys={definition.constantsOwned ?? []}
+        />
+      )}
 
       {definition.status === "needs-page" && (
         <Alert data-testid="banner-needs-page">
