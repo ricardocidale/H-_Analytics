@@ -38,6 +38,9 @@ const SpecialistPage = lazy(() => import("@/pages/admin/specialist/SpecialistPag
 const FernandaRenderConsolePage = lazy(
   () => import("@/pages/ai-intelligence/FernandaRenderConsolePage"),
 );
+const MarketDataTablesPage = lazy(
+  () => import("@/pages/ai-intelligence/MarketDataTablesPage"),
+);
 
 const REBECCA_SUB_TAB: Partial<Record<AiIntelligenceSection, string>> = {
   "ai-agents":      "configuration",
@@ -58,7 +61,7 @@ const sectionMeta: Record<AiIntelligenceSection, { title: string; subtitle: stri
   "vector-bench":        { title: "Vector Search Latency", subtitle: "pgvector / HNSW p50 and p95 query latency over time" },
   "resources-apis":        { title: "Resources · APIs",        subtitle: "Live external HTTP services. Canonical wiring for every Specialist." },
   "resources-sources":     { title: "Resources · Sources",     subtitle: "Bulk data sources and scrapers feeding the warehouse." },
-  "resources-tables":      { title: "Resources · Tables",      subtitle: "Internal warehouse tables Specialists query." },
+  "resources-tables":      { title: "Market Data · Reference Tables", subtitle: "Industry benchmarks and market data tables used by The Analyst. Read-only; refreshed by The Analyst on demand." },
   "resources-benchmarks":  { title: "Resources · Benchmarks",  subtitle: "Hospitality benchmark slugs (ADR, RevPAR, occupancy, etc.)." },
   "resources-models":      { title: "Resources · Models",      subtitle: "LLM model rows (provider + secret + config)." },
   "analyst-orchestrator":  { title: "Gaspar · The Analyst",    subtitle: "Orchestrator persona that routes work across the 12 Specialists." },
@@ -158,7 +161,7 @@ function SectionContent({ section }: { section: AiIntelligenceSection }) {
     case "vector-bench":       return <VectorBenchTrendsTab />;
     case "resources-apis":       return <ResourcesTab kind="api" />;
     case "resources-sources":    return <ResourcesTab kind="source" />;
-    case "resources-tables":     return <ResourcesTab kind="table" />;
+    case "resources-tables":     return <MarketDataTablesPage />;
     case "resources-benchmarks": return <ResourcesTab kind="benchmark" />;
     case "resources-models":     return <ResourcesTab kind="model" />;
     case "analyst-orchestrator": return <SpecialistPage specialistId={ORCHESTRATOR_SPECIALIST_ID} />;
