@@ -8,12 +8,13 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 30, 2026 — P7-B Overhead Phase 1 + range-shaped defaults doctrine
+## Session: April 30, 2026 — P7-B Overhead full graduation (Natália) + range-shaped defaults doctrine
 
 - **Doctrine firmed** at `7284d428`: constants-vs-defaults skill + no-hardcoded-values rule both gained a "Range-shaped defaults" section codifying the binding naming convention `DEFAULT_*_BENCHMARK_{LOW,MID,HIGH}` for Specialist watchdog reference bands. Trigger: user feedback while building Overhead Phase 1 ("you are creating magic numbers instead of default values to be seeded" + "default values are values to be used as seed values"). Defaults are now framed explicitly as SEED values, not just runtime fallbacks.
-- **P7-B Overhead Specialist Phase 1 (Natália / N)** shipped at `3a173ee9` following the firmed pattern. 6 tracked dims (4 fixed-line $ + 2 per-property $), all referencing 18 named `DEFAULT_*_BENCHMARK_{LOW,MID,HIGH}` constants. Drops fixedCostEscalationRate (Macro/CPI), miscOpsRate (catch-all), marketingRate (already Revenue Specialist). 14 specialists total (letter N added).
-- **Pre-existing debt flagged for follow-up:** `shared/constants-compensation-benchmarks.ts` and `shared/constants-revenue-benchmarks.ts` still embed inline numeric literals inside their band objects. Sweep to lift them into `DEFAULT_*_BENCHMARK_{LOW,MID,HIGH}` constants is its own packet — don't expand Phase 1 scope per advisor.
-- **Next:** P7-B Overhead Phase 2 (N+1 graduation, mirrors Compensation G3). Then Phase 3 (IB bench + api assignmentRef). Then Company + Property-Defaults Specialists.
+- **P7-B Overhead Specialist (Natália / N) full Tier-1 graduation** shipped this session: Phase 1 `3a173ee9` (Tier-0 watchdog + 6 tracked dims), Phase 2 `495803ee` (full N+1 — PE + parallel quant/market panels + Opus synthesis + bounded regress, mirrors Compensation G3 verbatim), Phase 3 in this commit (25 IB bench tests + overhead-comp-dataset api assignmentRef). 14 specialists total (letter N added). 6 dims all USD: officeLeaseStart, professionalServicesStart, techInfraStart, businessInsuranceStart, travelCostPerClient, itLicensePerClient.
+- **Pre-existing debt flagged for follow-up:** `shared/constants-compensation-benchmarks.ts` and `shared/constants-revenue-benchmarks.ts` still embed inline numeric literals inside their band objects. Sweep to lift them into `DEFAULT_*_BENCHMARK_{LOW,MID,HIGH}` constants is its own packet — not blocking forward progress.
+- **Latent gap (matches Funding/Revenue/Compensation pattern):** `validateSynthesisOutput` does not enforce ≥3 evidenceRefs per non-ok dimension across Funding/Revenue/Compensation/Overhead. Worth patching in one cross-specialist sweep when convenient; not blocking.
+- **Next:** P7-B Company + Property-Defaults Specialists. Each follows the same 3-phase pattern (foundation → N+1 graduation → IB bench).
 
 ---
 

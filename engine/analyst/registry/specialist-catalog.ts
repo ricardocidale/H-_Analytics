@@ -532,6 +532,14 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     assignmentRefs: [
       { kind: "model", slug: "primary-llm", role: "tier-1-cognitive", required: true },
       { kind: "benchmark", slug: "overhead-benchmarks", required: true },
+      // P7-B Overhead Phase 3: live ManCo overhead survey dataset for
+      // comparables fetch (AHLA / HFTP / AICPA / HVS / FOHB practice
+      // benchmarks). Optional so the Specialist falls back to canned data
+      // when the resource is unmapped (red/amber health), mirroring
+      // Funding's lp-comp-dataset, Revenue's revenue-comp-dataset, and
+      // Compensation's compensation-comp-dataset assignmentRefs. Live API
+      // integration follows in a separate packet.
+      { kind: "api", slug: "overhead-comp-dataset", required: false, role: "comparables" },
     ],
     candidateFields: [
       { key: "officeLeaseStart",          label: "Office Lease",            surface: "company-assumptions" },
@@ -544,10 +552,10 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     prerequisites: [
       "company-profile-saved",
     ],
-    // P7-B Overhead Phase 1: Tier-0 deterministic watchdog wrapper shipped.
-    // Tier-1 N+1 graduation lands in Phase 2 (mirrors Compensation G3 /
-    // Revenue G2 pattern); api assignmentRef (overhead-comp-dataset) + IB
-    // bar tests in Phase 3.
+    // P7-B Overhead Phase 1 (Tier-0): `3a173ee9` — deterministic watchdog
+    // wrapper shipped. Phase 2 (Tier-1 N+1): `495803ee` — full PE + parallel
+    // panels + Opus synthesis + bounded regress. Phase 3: this commit —
+    // 25-test IB bench + api assignmentRef wired.
     status: "built",
   },
 ] as const;
