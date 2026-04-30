@@ -280,6 +280,35 @@ findings.push({
   samples: deprecatedConstGuardSamples,
 });
 
+// 15b. Magic-numbers cross-file duplication ratchet — runs the
+// no-magic-numbers guard (.agents/skills/no-magic-numbers/SKILL.md) against
+// the baseline at tests/audit/_magic-numbers-baseline.json. Catches the
+// "same literal in two files, one drifts" failure mode that ESLint can't
+// see. Wired here for the same reason as the other guards (package.json
+// is read-only in this environment).
+let magicNumbersGuardCount = 0;
+const magicNumbersGuardSamples: string[] = [];
+try {
+  execSync("tsx script/check-magic-numbers.ts", {
+    encoding: "utf-8",
+    timeout: 60_000,
+  });
+} catch (err: unknown) {
+  magicNumbersGuardCount = 1;
+  const msg = err instanceof Error ? err.message : String(err);
+  magicNumbersGuardSamples.push(
+    msg
+      .split("\n")
+      .find((l) => /brand-new|regressions|→/.test(l)) ?? "ratchet regressed",
+  );
+}
+findings.push({
+  label: "Magic-numbers ratchet (no new cross-file duplications)",
+  count: magicNumbersGuardCount,
+  severity: magicNumbersGuardCount > 0 ? "critical" : "info",
+  samples: magicNumbersGuardSamples,
+});
+
 // 16. Legacy storage URL guard — fails if a non-allowlisted file
 // hard-codes a legacy storage host (`storage.googleapis.com`,
 // `objectstorage.replit.com`, `*.repl.co/objects`) or sidecar bucket

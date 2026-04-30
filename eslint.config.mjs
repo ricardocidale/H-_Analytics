@@ -24,6 +24,36 @@ const NEW_BUG_GUARDS = [
   },
 ];
 
+// Per-file magic-number nudge for financial code. The HARD gate that
+// catches cross-file duplication (the worst failure mode of the
+// no-magic-numbers SKILL) is the ratchet at script/check-magic-numbers.ts,
+// wired into Quick Audit, the "Magic Numbers Check" workflow, and
+// tests/audit/no-magic-numbers.test.ts. This rule is the per-file nudge
+// that surfaces a bare literal as a warning in `npm run lint:summary` so
+// authors think twice before adding one. The `ignore` list maps cleanly
+// to the four allowed categories from .agents/skills/no-magic-numbers/SKILL.md:
+//   - 0, 1, -1, 2, 3       → category 4 (structural index/clamp)
+//   - 100, 1000, 60, 24,   → category 3 (universal unit conversion)
+//     365, 12, 30, 3600,
+//     86400, 1024
+const MAGIC_NUMBER_NUDGE = [
+  "warn",
+  {
+    ignore: [
+      -1, 0, 1, 2, 3,
+      12, 24, 30, 60, 100, 365, 1000, 1024, 3600, 86400,
+    ],
+    ignoreArrayIndexes: true,
+    ignoreDefaultValues: true,
+    ignoreClassFieldInitialValues: true,
+    ignoreEnums: true,
+    ignoreNumericLiteralTypes: true,
+    ignoreReadonlyClassProperties: true,
+    enforceConst: true,
+    detectObjects: false,
+  },
+];
+
 // Internal Analyst team vocabulary. These names exist for code, docs, and skills
 // only; they must NEVER reach a user-facing string. Persona rule: the user only
 // ever sees "The Analyst" (singular). See:
@@ -90,6 +120,12 @@ export default [
           message: "safeNum is banned. Use assertFinite from calc/shared/decimal-helpers.ts instead.",
         },
       ],
+      // Per-file magic-number nudge. The cross-file duplication detector
+      // at script/check-magic-numbers.ts is the hard gate; this surfaces
+      // single-file literals as warnings in `npm run lint:summary` so an
+      // author sees them on the way in. Stays at WARN to avoid breaking
+      // lint:strict on the existing baseline.
+      "no-magic-numbers": MAGIC_NUMBER_NUDGE,
     },
   },
 

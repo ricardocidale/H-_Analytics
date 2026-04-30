@@ -46,6 +46,10 @@ args = "Start application"
 task = "workflow.run"
 args = "Parity Check"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Magic Numbers Check"
+
 [[workflows.workflow]]
 name = "Start application"
 author = "agent"
@@ -113,6 +117,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "tsx script/parity-check.ts"
+
+[[workflows.workflow]]
+name = "Magic Numbers Check"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "tsx script/check-magic-numbers.ts"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [agent]
 mockupState = "FULLSTACK"

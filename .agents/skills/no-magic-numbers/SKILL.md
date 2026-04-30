@@ -65,6 +65,26 @@ const PERCENT_SCALE = 100;            // decimal-to-percent
 
 If it isn't a true physical constant or a definitional unit relationship, it doesn't qualify here — promote it to category 1.
 
+#### Universal vs. authority-dictated — a critical distinction
+
+A literal qualifies for category 2 or 3 (and the cross-file allowlist) **only** when its value is fixed by math, by the calendar, by physics, or by a unit definition that is the same in every country. Examples that qualify:
+
+- `30.5` — days per month, derives from `365 / 12`. Same arithmetic everywhere.
+- `365.25` — days in a Julian year. Astronomy, not policy.
+- `86400` — seconds per day. Definitional.
+- `10000` — basis points per 100%. The definition of a basis point.
+- `Math.PI`, `Math.E`, `√2` — constants of nature.
+
+Examples that **do NOT qualify** (these vary by jurisdiction and belong in the country-scoped Constants table — see the `constants-vs-defaults` skill):
+
+- Depreciation lives — 39 years (US IRS Pub 946), 40 years (Canada CRA Class 1), different again under Spanish, French, Colombian tax codes. Not universal.
+- Tax rates, brackets, withholding rules.
+- Day-count conventions tied to a debt instrument — `30/360`, `ACT/360`, `ACT/ACT`. The fact that US commercial mortgages use 360-day banker's years is a *convention*, not arithmetic. A different country, a different instrument, may use a different convention.
+- Trading-day counts — 252 for NYSE, different for Tokyo, different again for São Paulo.
+- "Standard" cap rates, "standard" mgmt fee bps, "industry" labor burden.
+
+**The rule:** if the number could legitimately be different under a different country's rules, it is policy, not math. Promote it to the database-backed, country-scoped Constants table. The cross-file duplication detector EXISTS to catch jurisdictional values that have been hardcoded in multiple files instead of being sourced from the table.
+
 ### 4. Structural index / length / clamp
 
 ```ts
@@ -175,6 +195,60 @@ Most insidious form. The named constant exists, is imported, and the literal is 
 2. For each literal, classify it into one of the four allowed categories. If it doesn't fit, promote it.
 3. For each named constant you added, search the rest of the codebase for its value (`grep -rn '0\.85' src/`). If the same value already lives somewhere with a different name, you have duplication — unify.
 4. If you added a constant to a shared module, check every file that should import it (especially older callers that might still hardcode the old literal).
+
+## Enforcement
+
+This skill is enforced by a three-layer gate. The layers are designed to catch different failure modes — do not skip one because another exists.
+
+### Layer 1 — Per-file ESLint nudge (`no-magic-numbers`, warn-level)
+
+Configured in `eslint.config.mjs` for `calc/**` and `engine/**`. Surfaces every bare numeric literal as a warning in `npm run lint:summary` so an author sees it on the way in. The `ignore` list maps to category 4 (structural: `-1, 0, 1, 2, 3`) and category 3 (universal unit conversions: `12, 24, 30, 60, 100, 365, 1000, 1024, 3600, 86400`). It stays at WARN to avoid breaking `lint:strict` on the existing baseline — promote your own literal to a named constant rather than waiting for the rule to be promoted to ERROR.
+
+To silence it for a genuinely-allowed literal, prefer fixing the code (promote to a named constant) over adding `// eslint-disable-next-line no-magic-numbers`. If you must disable, the same line MUST contain a comment explaining which of the four categories applies.
+
+### Layer 2 — Cross-file duplication ratchet (the hard gate)
+
+ESLint cannot see across files, which is exactly where the worst failure mode lives. The script `script/check-magic-numbers.ts` walks `calc/`, `engine/`, `server/`, `shared/` and groups every numeric literal by the set of files it appears in. Any value that appears in `>= 4` distinct files is a "duplication suspect"; the script then ratchets the current state against the snapshot at `tests/audit/_magic-numbers-baseline.json`.
+
+The ratchet **fails** when:
+
+- A value already in the baseline appears in MORE files than baseline (someone added a new occurrence of an already-known magic number).
+- A brand-new value crosses the duplication threshold (someone introduced a fresh cross-file duplication).
+
+It does **not** fail on improvements (a baseline value's file-count shrank). After an intentional cleanup, re-snapshot with `tsx script/check-magic-numbers.ts --init` to lock in the gain.
+
+Common commands:
+
+| Goal | Command |
+|------|---------|
+| Default ratchet check (used by tests, CI, the workflow) | `tsx script/check-magic-numbers.ts` |
+| Show every duplication, no baseline check | `tsx script/check-magic-numbers.ts --show` |
+| Re-snapshot the baseline after a cleanup | `tsx script/check-magic-numbers.ts --init` |
+| Fail on ANY duplication (aspirational, when baseline reaches 0) | `tsx script/check-magic-numbers.ts --strict` |
+
+The ratchet is wired into:
+
+- The **Magic Numbers Check** workflow (run from the workflow pane or via `tsx script/check-magic-numbers.ts`).
+- `script/audit-quick.ts` as a critical finding labelled "Magic-numbers ratchet".
+- `tests/audit/no-magic-numbers.test.ts`, which runs in the regular vitest suite (`npm run test:summary`).
+
+### Layer 3 — Vitest guard test
+
+`tests/audit/no-magic-numbers.test.ts` asserts every contract that holds the layers together: the ratchet script exists, the baseline is checked in, the workflow is registered, the SKILL points at the actual command, audit:quick wires the guard, and a probe that plants the same novel literal in four files is correctly rejected. Don't delete this test — it is what prevents future agents from quietly bypassing the enforcement.
+
+### How to fix a failing ratchet
+
+When `tsx script/check-magic-numbers.ts` reports a regression:
+
+1. Read the offending value and the new file(s) the script names.
+2. Find the canonical home for that value — usually `shared/constants.ts`, the relevant `calc/` helper, or `shared/model-constants-registry.ts` for locality-aware financial values.
+3. Define a named constant (or reuse an existing one) in the canonical home.
+4. Replace the literal in EVERY listed file with the named import in the SAME commit. Partial promotion is the failure mode this skill exists to prevent.
+5. Re-run `tsx script/check-magic-numbers.ts`. The ratchet should pass.
+
+If the value is genuinely universal — calendar math (12 months, 365 days, 30.5 days/month, 60 seconds), unit definition (basis points, percent), or a constant of nature (π, e) — add it to `ALLOWED_DUPLICATED_VALUES` in `script/check-magic-numbers.ts` with a one-line justification.
+
+If the value varies by jurisdiction (depreciation life, tax rate, day-count convention, trading-day count, "industry-standard" anything that an authority has codified differently in different countries), do **not** allowlist it. Promote it to the country-scoped Constants table per the `constants-vs-defaults` skill — the ratchet exists precisely to catch jurisdictional values that have been hardcoded in multiple files.
 
 ## Coupling with other skills
 
