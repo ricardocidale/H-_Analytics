@@ -8,6 +8,15 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 30, 2026 — P7-B Company Specialist (Olívia / O) full Tier-1 graduation
+
+- **Company Specialist (Olívia / O) all 3 phases shipped:** Phase 1 `2588f4fd` (Tier-0), Phase 2 (N+1 runner + 6 prompt/schema/validator files + route branch + magic-numbers re-snapshot), Phase 3 IB bench `eaebd3fa` (25 tests, 4 fraction dims). Critical distinction: all 4 dims are fractions (0.08=8%), unlike Overhead's USD integers — fraction-enforcement baked into every prompt with `# Output scale — CRITICAL` section and `high ≤ 2` schema guard.
+- **Company 4 dims:** baseManagementFee (fraction of revenue), incentiveManagementFee (fraction of GOP), companyTaxRate (effective combined rate), costOfEquity (DCF hurdle). Evidence prefix `"Company:"`, runId prefixes `company-p2-` / `pe-company-p2-`.
+- **All 5 gates green at every commit.** Magic-numbers baseline re-snapshotted after Phase 2 (135 duplicated values, 2331 occurrences).
+- **Next:** P7-B Property-Defaults Specialist (P) — 4 dims: eventExpenseRate, otherExpenseRate, utilitiesVariableSplit, salesCommissionRate. Mount point: defaults/property → PropertyUnderwritingTab. Same 3-phase pattern.
+
+---
+
 ## Session: April 30, 2026 — P7-B Overhead full graduation (Natália) + range-shaped defaults doctrine
 
 - **Doctrine firmed** at `7284d428`: constants-vs-defaults skill + no-hardcoded-values rule both gained a "Range-shaped defaults" section codifying the binding naming convention `DEFAULT_*_BENCHMARK_{LOW,MID,HIGH}` for Specialist watchdog reference bands. Trigger: user feedback while building Overhead Phase 1 ("you are creating magic numbers instead of default values to be seeded" + "default values are values to be used as seed values"). Defaults are now framed explicitly as SEED values, not just runtime fallbacks.
