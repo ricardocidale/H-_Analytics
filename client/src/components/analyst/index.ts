@@ -24,6 +24,19 @@ export type {
 export {
   useAnalystRefresh,
 } from "./useAnalystRefresh";
+export {
+  AnalystStudyingIndicator,
+} from "./AnalystStudyingIndicator";
+export type {
+  AnalystStudyingIndicatorProps,
+  AnalystStudyingSize,
+  AnalystStudyingVariant,
+} from "./AnalystStudyingIndicator";
+export {
+  STUDYING_LINES,
+  studyingLinesFor,
+} from "./studying-lines";
+export type { StudyTopic } from "./studying-lines";
 export type {
   AnalystGuidanceRecord,
   AnalystRefreshScope,

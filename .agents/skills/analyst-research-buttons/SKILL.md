@@ -98,27 +98,40 @@ From the Tone-by-Context Matrix (§4): loading copy is **low-formality, medium-w
 | Fake activity | "Thinking really hard…" | "Reviewing the last quarter of ADR observations…" |
 | Vague | "Working on it…" | "Checking the latest labor-rate surveys for this market…" |
 
-### The pattern
+### The pattern — use the canonical component
+
+`<AnalystStudyingIndicator />` (`client/src/components/analyst/AnalystStudyingIndicator.tsx`) is the **single visual + voice contract** for every research wait state. It pairs the gold sparkle with a topic-keyed rotating sub-line drawn from the curated lexicon at `client/src/components/analyst/studying-lines.ts`. Do not roll your own — extend the lexicon if your topic isn't covered.
 
 ```tsx
-{isRunning ? (
-  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-    <OrbitalDots size={14} />
-    <span>Studying current hospitality benchmarks…</span>
-    {/* ← specific noun phrase, lead verb from the approved list, ellipsis (…), no exclamation, no emoji */}
-  </div>
-) : null}
+import { AnalystButton } from "@/components/intelligence/AnalystButton";
+import { AnalystStudyingIndicator } from "@/components/analyst";
+
+<div className="flex flex-col gap-2">
+  <AnalystButton onClick={refresh} isRunning={isRunning} suffix="Benchmarks" />
+  {isRunning && (
+    <AnalystStudyingIndicator topic="hospitality-benchmarks" variant="block" />
+  )}
+</div>
 ```
 
-For longer-running jobs (≥ 8s), it is acceptable to rotate two or three sub-lines that walk through what The Analyst is doing — but every line still leads with an approved verb and names a concrete artifact:
+The indicator already handles:
 
-```ts
-const STUDYING_LINES = [
-  "Studying the latest STR and CBRE benchmark reports…",
-  "Cross-referencing recent transactions in this market…",
-  "Forming a view on the right ranges to keep…",
-];
-```
+- The gold sparkle with a slow breathing pulse (the brand mark for "AI is at work")
+- A 3.5s rotation through the topic's bank with a fade/blur transition
+- The animated three-dot ellipsis after the sub-line (the Claude-Code "still working" feel)
+- An accessible `role="status"` + `aria-live="polite"` so screen readers announce changes
+- A stable `data-testid="indicator-analyst-studying"` for guards and integration tests
+
+### When to add a new topic
+
+If your surface needs a topic that isn't in `STUDYING_LINES`, add a new key (kebab-case) and 5–7 lines following the editing rules at the top of `studying-lines.ts`:
+
+- Lead with one of the six approved gerunds
+- Name a concrete artifact (a report, a market, a metric, a comp set)
+- End with `…` (U+2026), not `...`
+- Under 60 characters, no exclamation, no emoji, no first-person warmth
+
+If the surface is one-off and unlikely to be reused, pass a bespoke `lines={[…]}` array — but the same voice rules still apply, and code review will hold the line.
 
 ### Forbidden patterns (caught by guards or review)
 

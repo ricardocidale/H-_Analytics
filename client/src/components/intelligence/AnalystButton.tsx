@@ -4,7 +4,10 @@
  * Vocabulary rule (`.claude/skills/vocabulary/SKILL.md` §2):
  *   Label is always "Analyst" with `IconSparkles`. Per-context variant adds
  *   a suffix: e.g. "Analyst — Setup". Loading state shows OrbitalDots and
- *   the label "Consulting...".
+ *   the label "Studying…" (the canonical wait verb from the brand-voice
+ *   approved list — see `.agents/skills/analyst-research-buttons/SKILL.md`).
+ *   Pair this button with `<AnalystStudyingIndicator />` underneath to give
+ *   the user a rotating, specific sub-line about what is being studied.
  *
  * Every Analyst trigger in the app must use this component so a single
  * design tweak (label, icon, animation, freshness dot styling) is a single-
@@ -79,7 +82,12 @@ export function AnalystButton({
   dataTestId = "button-analyst",
 }: AnalystButtonProps) {
   const cfg = SIZE_CONFIG[size];
-  const label = isRunning ? "Consulting..." : suffix ? `Analyst — ${suffix}` : "Analyst";
+  // "Studying…" is the canonical wait verb from the brand-voice approved
+  // list (`.claude/brand-voice-guidelines.md` §6). Never "Consulting…",
+  // never "Thinking…", never "Processing…" — those read as software,
+  // not as a sharp colleague at work. The single horizontal ellipsis
+  // (U+2026) is intentional; do not regress to three dots.
+  const label = isRunning ? "Studying…" : suffix ? `Analyst — ${suffix}` : "Analyst";
 
   const button = (
     <Button
