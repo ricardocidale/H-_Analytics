@@ -16,6 +16,37 @@ A number is math/physics if and only if it has exactly one interpretation regard
 
 The fallback constant in `shared/constants.ts` is a **last resort** for when the database has not been seeded yet. At runtime the chain is always: **DB row → named constant**. Never: **raw literal**.
 
+### Range-shaped defaults (Specialist watchdog benchmark bands)
+
+Specialist watchdog reference ranges (low/mid/high bands) are a fourth shape of admin default. They drive Tier-0 deterministic verdicts and seed Tier-1 LLM-prompt context. Live as named `DEFAULT_*_BENCHMARK_{LOW,MID,HIGH}` constants in a sibling file (e.g. `shared/constants-overhead-benchmarks.ts`). The band object that consumers use is assembled by reference — never inline literals.
+
+The named constants double as the SEED for any `admin_resources` benchmark row, `hospitality_benchmarks` row, or `reference_ranges` row that backs the Specialist; they are not "hardcoded fallbacks", they are the canonical source of truth for that calibration. Recalibration goes through commit + ADR, not admin keystrokes.
+
+```ts
+// CORRECT — named bench-band constants assembled by reference
+export const DEFAULT_OFFICE_LEASE_BENCHMARK_LOW  = 24_000;
+export const DEFAULT_OFFICE_LEASE_BENCHMARK_MID  = 36_000;
+export const DEFAULT_OFFICE_LEASE_BENCHMARK_HIGH = 48_000;
+
+export const DEFAULT_OVERHEAD_BENCHMARKS = {
+  officeLeaseStart: {
+    low:  DEFAULT_OFFICE_LEASE_BENCHMARK_LOW,
+    mid:  DEFAULT_OFFICE_LEASE_BENCHMARK_MID,
+    high: DEFAULT_OFFICE_LEASE_BENCHMARK_HIGH,
+  },
+  // …
+};
+
+// WRONG — inline literals inside the band object
+export const DEFAULT_OVERHEAD_BENCHMARKS = {
+  officeLeaseStart: { low: 24_000, mid: 36_000, high: 48_000 }, // ← magic numbers
+};
+```
+
+The `_BENCHMARK_` infix distinguishes calibration ranges (Specialist-readable, never user-editable) from `DEFAULT_*_START` values that seed `global_assumptions` columns (point seeds for user-editable assumption rows). The two are different tiers and may diverge intentionally — a conservative tenant seed (`DEFAULT_OFFICE_LEASE_START = 36_000`) does not have to equal an industry midpoint (`DEFAULT_OFFICE_LEASE_BENCHMARK_MID = 36_000`); they happen to coincide here, but a different default could legitimately differ.
+
+See `.agents/skills/constants-vs-defaults/SKILL.md` ("Range-shaped defaults — naming convention") for the worked example + binding pattern.
+
 ## The only allowed literals everywhere
 
 - `27.5` — IRS Pub 946 depreciation life (structural law)

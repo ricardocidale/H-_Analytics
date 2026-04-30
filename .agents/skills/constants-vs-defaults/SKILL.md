@@ -29,23 +29,57 @@ A value that comes from an external authority — a regulator, a standards body,
 - Changes are events, not opinions — when the IRS changes a rate, every system using it should change too.
 - Admins (not engineers) should be able to update it without a deploy.
 
-### Default (market-driven)
+### Default (market-driven, seed-shaped)
 
-A value that represents a reasonable starting estimate when no better data is available. No authority publishes it. The number reflects internal calibration against benchmarks, prior deals, market research, or expert judgment.
+A value that represents a reasonable starting estimate when no better data is available. No single authority publishes it. The number reflects internal calibration against industry benchmarks, prior deals, market research, or expert judgment.
 
-**Examples:**
+**Defaults are SEED VALUES.** They are the canonical source from which DB rows get populated when a fresh tenant is created, when a new admin_resources benchmark row is registered, or when a Specialist evaluator needs reference data on cold start. The named code constant is both the runtime fallback AND the seed source — those are the same thing by design.
+
+**Examples (point-shaped):**
 - Default exit cap rate for a luxury hotel (e.g. 8.5%)
 - Default RevPAR assumption for a market segment
 - Default management fee percentage
 - Default F&B cost ratio
 - Default leverage ratio for a development pro forma
 
-**Properties:**
-- No external authority. The value is *your* opinion.
+**Examples (range-shaped — benchmark bands):**
+- Specialist watchdog reference ranges for ManCo overhead lines (`DEFAULT_OFFICE_LEASE_BENCHMARK_{LOW,MID,HIGH}`)
+- LP-defensibility ranges per dimension (Funding, Revenue, Compensation, Overhead Specialists)
+- Market reference ranges that drive Tier-0 deterministic verdicts before Tier-1 LLM refresh lands
+
+**Properties (both shapes):**
+- No external authority. The value is *your* opinion, calibrated against industry data.
 - Calibration is internal — informed by data, but not dictated by it.
 - Changes are calibration decisions, recorded in ADRs or commit messages.
 - Lives in code as a named constant (see `no-magic-numbers` skill).
-- May have an admin-editable override per-property/per-portfolio, but the *default itself* is a code constant.
+- IS a seed value: when persisted to a DB row (admin_resources benchmark, hospitality_benchmarks, model_defaults), the row's initial values come from the named code constant.
+- May have an admin-editable override per-property/per-portfolio, but the *default itself* is a code constant — recalibration goes through commit + ADR, not through admin keystrokes.
+
+**Range-shaped defaults — naming convention:**
+When a default is a low/mid/high band (e.g. for a Specialist watchdog that compares user inputs against industry midpoints), expose THREE named constants per dimension:
+```ts
+export const DEFAULT_OFFICE_LEASE_BENCHMARK_LOW  = 24_000;
+export const DEFAULT_OFFICE_LEASE_BENCHMARK_MID  = 36_000;
+export const DEFAULT_OFFICE_LEASE_BENCHMARK_HIGH = 48_000;
+```
+Then assemble the band object by reference, never by inline literal:
+```ts
+export const DEFAULT_OVERHEAD_BENCHMARKS = {
+  officeLeaseStart: {
+    low:  DEFAULT_OFFICE_LEASE_BENCHMARK_LOW,
+    mid:  DEFAULT_OFFICE_LEASE_BENCHMARK_MID,
+    high: DEFAULT_OFFICE_LEASE_BENCHMARK_HIGH,
+  },
+  // …
+};
+```
+The `_BENCHMARK_` infix distinguishes calibration ranges from `DEFAULT_*_START` values that seed `global_assumptions` columns (those are point seeds for user-editable assumption rows; benchmark bands are watchdog reference data — different tier, different consumer, different naming).
+
+**Don't confuse the two seed roles:**
+- `DEFAULT_OFFICE_LEASE_START` → seeds the `global_assumptions.officeLeaseStart` column for new tenants. Conservative starting value. User-editable on the Overhead tab.
+- `DEFAULT_OFFICE_LEASE_BENCHMARK_MID` → seeds the watchdog reference midpoint. Industry midpoint, NOT a tenant default. Specialist-readable, never user-editable directly.
+
+The two values may diverge intentionally — a conservative tenant seed (`DEFAULT_*_START`) does not have to equal an industry midpoint (`DEFAULT_*_BENCHMARK_MID`).
 
 ## Why this matters
 
