@@ -159,6 +159,11 @@ export class BenchmarksStorage {
   }
 
   // ── Market ADR Index ─────────────────────────────────────────
+  async getAllMarketAdrIndex(): Promise<MarketAdrIndex[]> {
+    return this._ctx.db.select().from(marketAdrIndex)
+      .orderBy(marketAdrIndex.market, desc(marketAdrIndex.quarter));
+  }
+
   async getMarketAdrIndex(market: string, quarter?: string): Promise<MarketAdrIndex[]> {
     const conditions = [eq(marketAdrIndex.market, market)];
     if (quarter) conditions.push(eq(marketAdrIndex.quarter, quarter));
@@ -185,6 +190,11 @@ export class BenchmarksStorage {
   }
 
   // ── Seasonal Calendars ───────────────────────────────────────
+  async getAllSeasonalCalendars(): Promise<SeasonalCalendar[]> {
+    return this._ctx.db.select().from(seasonalCalendars)
+      .orderBy(seasonalCalendars.country, seasonalCalendars.market, seasonalCalendars.month);
+  }
+
   async getSeasonalCalendar(market: string): Promise<SeasonalCalendar[]> {
     return this._ctx.db.select().from(seasonalCalendars)
       .where(eq(seasonalCalendars.market, market))
@@ -260,6 +270,11 @@ export class BenchmarksStorage {
   }
 
   // ── Labor Rates ──────────────────────────────────────────────
+  async getAllLaborRates(): Promise<LaborRate[]> {
+    return this._ctx.db.select().from(laborRates)
+      .orderBy(laborRates.country, laborRates.market, laborRates.role);
+  }
+
   async getLaborRates(market: string, country?: string): Promise<LaborRate[]> {
     const conditions = [eq(laborRates.market, market)];
     if (country) conditions.push(eq(laborRates.country, country));
@@ -290,6 +305,11 @@ export class BenchmarksStorage {
   }
 
   // ── F&B Benchmarks ───────────────────────────────────────────
+  async getAllFbBenchmarks(): Promise<FbBenchmark[]> {
+    return this._ctx.db.select().from(fbBenchmarks)
+      .orderBy(fbBenchmarks.country, fbBenchmarks.market, fbBenchmarks.propertyType);
+  }
+
   async getFbBenchmarks(market: string, propertyType?: string): Promise<FbBenchmark[]> {
     const conditions = [eq(fbBenchmarks.market, market)];
     if (propertyType) conditions.push(eq(fbBenchmarks.propertyType, propertyType));

@@ -20,6 +20,7 @@ import { registerAdminSpecialistRoutes } from "./specialists";
 import { registerAdminSpecialistToolRoutes } from "./specialist-tools";
 import { registerRequiredFieldsRoutes } from "./required-fields";
 import { registerObservabilityRoutes } from "./observability";
+import { registerMarketDataTableRoutes } from "./market-data-tables";
 
 export function register(app: Express) {
   registerUserRoutes(app);
@@ -46,4 +47,5 @@ export function register(app: Express) {
   registerAdminSpecialistToolRoutes(app);
   registerRequiredFieldsRoutes(app);
   registerObservabilityRoutes(app);
+  registerMarketDataTableRoutes(app);
 }
