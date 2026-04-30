@@ -103,6 +103,12 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     assignmentRefs: [
       { kind: "model", slug: "primary-llm", role: "tier-1-cognitive", required: true },
       { kind: "benchmark", slug: "revenue-benchmarks", required: true },
+      // G2 Tier-1 graduation: live hotel-revenue-comp dataset for comparables
+      // fetch (STR / HVS / CBRE benchmarks). Optional so the Specialist falls
+      // back to canned data when the resource is unmapped (red/amber health),
+      // mirroring Funding's lp-comp-dataset assignmentRef. Live API integration
+      // follows in a separate packet.
+      { kind: "api", slug: "revenue-comp-dataset", required: false, role: "comparables" },
     ],
     candidateFields: [
       { key: "defaultCostRateMarketing", label: "Marketing cost %",   surface: "company-assumptions" },

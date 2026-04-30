@@ -8,13 +8,13 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 30, 2026 — P7 plan written; P7 now in progress
+## Session: April 30, 2026 — P7-A shipped (Revenue Tier-1 N+1 graduation)
 
-- **P7 plan created** at `.claude/plans/p7-engine-specialists.md` — survives future context compaction.
-- **Decision: P7 combines items 2+3** (Revenue N+1 graduation + remaining mgmt-co Specialists). Constants H–K admin pages = P7-C, separate Replit track.
-- **phases.md updated:** P7 split into P7-A (Revenue N+1 graduation, In progress), P7-B (remaining Specialists, Pending P7-A), P7-C (Constants H–K pages, Pending/Replit). Analyst Architecture Phase 4 unblocked, folded into P7-B.
-- **Next step:** Start P7-A G2-P1 — Revenue prompt-engineer + quant-panel files. Read `mgmt-co-funding-prompt-engineer.ts` first as the pattern template.
-- **All gates still green** at HEAD `18077f4e` (no code changes this session — plan writing only).
+- **P7 plan created** at `.claude/plans/p7-engine-specialists.md` (`c407d5a9`) — survives future context compaction.
+- **P7-A G2 graduation shipped** at `2f1a649c`: 6 new files (PE + quant/market panels + synthesis-validator) + runner rewrite. Mirrors Funding G6-P3b architecture verbatim. IB bar reqs #1, #6, #7, #8, #9 satisfied.
+- **P7-A IB bar closure** in this commit: 25-test bench at `tests/analyst/specialists/revenue-g2.test.ts` + `revenue-comp-dataset` api assignmentRef on Revenue catalog entry → IB req #5 satisfied.
+- **All 5 gates green** at every commit. Convergence threshold matches Funding (55); revisit if telemetry shows mode-collapse in Revenue's 12-comp dataset.
+- **Next step:** P7-B — Compensation Specialist (mgmt-co.compensation, letter TBD). Same N+1 architecture; build order Compensation → Overhead → Company → Property-Defaults.
 
 ---
 
