@@ -85,6 +85,7 @@ export const SPECIALIST_LETTERS = [
   "M",
   "N",
   "O",
+  "P",
 ] as const;
 export type SpecialistLetter = typeof SPECIALIST_LETTERS[number];
 export const SpecialistLetterSchema = z.enum(SPECIALIST_LETTERS);

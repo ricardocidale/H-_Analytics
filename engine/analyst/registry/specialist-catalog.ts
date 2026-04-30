@@ -593,6 +593,42 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     ],
     status: "built",
   },
+  // P7-B Property-Defaults Phase 1 (Tier-0): deterministic watchdog + Tier-0
+  // surface specialist shipped. Phase 2 (Tier-1 N+1) and Phase 3 (IB bench)
+  // follow the Company (Olívia / O) pattern exactly.
+  {
+    id: "mgmt-co.property-defaults",
+    letter: "P",
+    realName: "Property Defaults",
+    displayName: "Property Defaults Intelligence",
+    humanName: "Paula",
+    gender: "female",
+    description:
+      "Validates the admin-level property underwriting defaults — event and other expense rates, utilities variable-to-fixed split, and sales commission rate — so that new property models seed from defensible market-calibrated baselines.",
+    subject: "mgmt-co",
+    capabilities: [
+      "required-fields",
+      "llm-config",
+      "resource-assignments",
+      "runtime",
+      "audit",
+    ],
+    assignmentRefs: [
+      { kind: "model", slug: "primary-llm", role: "tier-1-cognitive", required: true },
+      { kind: "benchmark", slug: "property-defaults-benchmarks", required: true },
+      { kind: "api", slug: "property-defaults-comp-dataset", required: false, role: "comparables" },
+    ],
+    candidateFields: [
+      { key: "eventExpenseRate",       label: "Event Expense Rate",        surface: "defaults" },
+      { key: "otherExpenseRate",       label: "Other Expense Rate",         surface: "defaults" },
+      { key: "utilitiesVariableSplit", label: "Utilities Variable Split",   surface: "defaults" },
+      { key: "salesCommissionRate",    label: "Sales Commission Rate",      surface: "defaults" },
+    ],
+    prerequisites: [
+      "company-profile-saved",
+    ],
+    status: "built",
+  },
 ] as const;
 
 const validation = (() => {

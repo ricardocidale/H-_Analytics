@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-30T08:50:25.369Z",
+  "generatedAt": "2026-04-30T09:10:18.665Z",
   "threshold": 4,
   "duplications": {
     "4": [
@@ -18,6 +18,7 @@
       "engine/watchdog/companyEvaluator.ts",
       "engine/watchdog/compensationEvaluator.ts",
       "engine/watchdog/overheadEvaluator.ts",
+      "engine/watchdog/propertyDefaultsEvaluator.ts",
       "engine/watchdog/revenueEvaluator.ts",
       "server/ai/ambient/fetchers.ts",
       "server/ai/analyst-scoped-runner.ts",
@@ -384,6 +385,7 @@
       "engine/analyst/surface/mgmt-co/compensation-specialist.ts",
       "engine/analyst/surface/mgmt-co/funding-specialist.ts",
       "engine/analyst/surface/mgmt-co/overhead-specialist.ts",
+      "engine/analyst/surface/mgmt-co/property-defaults-specialist.ts",
       "engine/analyst/surface/mgmt-co/revenue-specialist.ts",
       "engine/analyst/surface/property/risk-intelligence-specialist.ts",
       "engine/property/refinance-pass.ts",
@@ -1031,6 +1033,7 @@
       "engine/analyst/surface/mgmt-co/compensation-specialist.ts",
       "engine/analyst/surface/mgmt-co/funding-specialist.ts",
       "engine/analyst/surface/mgmt-co/overhead-specialist.ts",
+      "engine/analyst/surface/mgmt-co/property-defaults-specialist.ts",
       "engine/analyst/surface/mgmt-co/revenue-specialist.ts",
       "engine/analyst/surface/property/risk-intelligence-specialist.ts",
       "server/ai/confidence-scorer.ts",
@@ -2124,7 +2127,8 @@
       "server/ai/specialists/mgmt-co-revenue-prompt.ts",
       "server/ai/specialists/mgmt-co-revenue-quant-panel-prompt.ts",
       "server/finance/sensitivity.ts",
-      "shared/constants-business-models.ts"
+      "shared/constants-business-models.ts",
+      "shared/constants-property-defaults-benchmarks.ts"
     ],
     "0.3": [
       "calc/research/property-metrics.ts",
@@ -2192,6 +2196,7 @@
       "shared/constants-business-models.ts",
       "shared/constants-funding.ts",
       "shared/constants-operating-structures-data.ts",
+      "shared/constants-property-defaults-benchmarks.ts",
       "shared/constants-research.ts",
       "shared/constants-revenue-benchmarks.ts",
       "shared/countryDefaults.ts"
@@ -2277,7 +2282,8 @@
       "server/scripts/backfill-vector-store.ts",
       "shared/constants-benchmarks.ts",
       "shared/constants-business-models.ts",
-      "shared/constants-operating-structures-data.ts"
+      "shared/constants-operating-structures-data.ts",
+      "shared/constants-property-defaults-benchmarks.ts"
     ],
     "-5": [
       "calc/analysis/stress-test.ts",
@@ -2349,6 +2355,7 @@
       "server/storage/intelligence/constants/sources.ts",
       "shared/companyBenchmarks.ts",
       "shared/constants-benchmarks.ts",
+      "shared/constants-property-defaults-benchmarks.ts",
       "shared/rebecca-settings.ts"
     ],
     "1.3": [
@@ -2394,7 +2401,8 @@
       "server/routes/format-generators/pptx-generator.ts",
       "shared/constants-benchmarks.ts",
       "shared/constants-business-models.ts",
-      "shared/constants-funding.ts"
+      "shared/constants-funding.ts",
+      "shared/constants-property-defaults-benchmarks.ts"
     ],
     "0.4": [
       "server/ai/analyst-scoped-runner.ts",
@@ -2411,6 +2419,7 @@
       "server/routes/research/generate-persist-guidance.ts",
       "shared/constants-benchmarks.ts",
       "shared/constants-operating-structures-data.ts",
+      "shared/constants-property-defaults-benchmarks.ts",
       "shared/constants-revenue-benchmarks.ts"
     ],
     "0.45": [
@@ -2495,7 +2504,8 @@
       "server/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
       "server/routes/properties.ts",
       "shared/constants-business-models.ts",
-      "shared/constants-company-benchmarks.ts"
+      "shared/constants-company-benchmarks.ts",
+      "shared/constants-property-defaults-benchmarks.ts"
     ],
     "0.09": [
       "server/ai/risk/benchmarks.ts",
@@ -2595,6 +2605,7 @@
       "shared/constants-funding.ts",
       "shared/constants-operating-structures-data.ts",
       "shared/constants-operating-structures.ts",
+      "shared/constants-property-defaults-benchmarks.ts",
       "shared/market-intelligence-pipeline.ts"
     ],
     "0.015": [

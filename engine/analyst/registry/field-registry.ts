@@ -491,6 +491,25 @@ export const FIELD_REGISTRY: Readonly<Record<string, FieldRegistryEntry>> = {
     unit: "%",
     mountPoint: "defaults/property",
   },
+  // eventExpenseRate / otherExpenseRate / utilitiesVariableSplit — Property
+  // Underwriting defaults tab (Admin → Model Defaults → Property Underwriting).
+  // All are cost-rate fractions displayed as %; mountPoint matches the input
+  // location so the Analyst Adjust CTA lands on the correct section.
+  eventExpenseRate: {
+    label: "Event Expense Rate",
+    unit: "%",
+    mountPoint: "defaults/property",
+  },
+  otherExpenseRate: {
+    label: "Other Expense Rate",
+    unit: "%",
+    mountPoint: "defaults/property",
+  },
+  utilitiesVariableSplit: {
+    label: "Utilities Variable Split",
+    unit: "%",
+    mountPoint: "defaults/property",
+  },
   // salesCommissionRate is classified under COMPANY_TAB_ANALYST_FIELDS in
   // `client/src/components/admin/model-defaults/analyst-fields.ts` (its
   // guidance vocabulary key is `dispositionCommission`), but the actual
