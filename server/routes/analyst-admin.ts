@@ -50,6 +50,14 @@ import { getCannedOverheadComparables } from "../ai/specialists/mgmt-co-overhead
 import type { OverheadPromptInputContext } from "../ai/specialists/mgmt-co-overhead-prompt-input-builder";
 import type { OverheadInputs } from "../../engine/watchdog/overheadEvaluator";
 import { DEFAULT_OVERHEAD_BENCHMARKS } from "@shared/constants-overhead-benchmarks";
+import {
+  runCompanySpecialist,
+  Tier1UnavailableError as CompanyTier1UnavailableError,
+} from "../ai/specialists/mgmt-co-company-runner";
+import { getCannedCompanyComparables } from "../ai/specialists/mgmt-co-company-orchestrator-adapter";
+import type { CompanyPromptInputContext } from "../ai/specialists/mgmt-co-company-prompt-input-builder";
+import type { CompanyInputs } from "../../engine/watchdog/companyEvaluator";
+import { DEFAULT_COMPANY_BENCHMARKS } from "@shared/constants-company-benchmarks";
 import { storage } from "../storage";
 import { logger } from "../logger";
 
@@ -324,6 +332,37 @@ export async function analystRefreshHandler(req: Request, res: Response) {
           "analyst-admin",
         );
         return logAndSendError(res, "Overhead Specialist failed", err, "analyst-admin");
+      }
+    }
+  }
+
+  // P7-B Phase 2 — Company Specialist branch (mgmt-co.company / Olívia / O).
+  // N+1 runner (PE + parallel quant/market panels + Opus synthesis + bounded
+  // regress). Falls back to the legacy Tier-0 path (runAnalystScoped) on
+  // CompanyTier1UnavailableError — same fallback policy as Overhead.
+  if (specialistId === "mgmt-co.company") {
+    try {
+      const verdict = await runCompanyV1Path(userId);
+      logActivity(req, "analyst-refresh", "company", userId, "Mgmt-Co Company (Phase 2)", {
+        scope,
+        specialistId,
+        cognitiveRunId: verdict.meta.cognitiveRunId,
+        tier: verdict.meta.tier,
+      });
+      return res.json({ verdict });
+    } catch (err: unknown) {
+      if (err instanceof CompanyTier1UnavailableError) {
+        logger.warn(
+          `mgmt-co.company Phase 2 unavailable; degrading to Tier-0 path: ${err.message}`,
+          "analyst-admin",
+        );
+        // fall through to legacy runAnalystScoped below
+      } else {
+        logger.error(
+          `mgmt-co.company Phase 2 failed unexpectedly: ${err instanceof Error ? err.message : String(err)}`,
+          "analyst-admin",
+        );
+        return logAndSendError(res, "Company Specialist failed", err, "analyst-admin");
       }
     }
   }
@@ -874,6 +913,65 @@ async function runOverheadV1Path(userId: number): Promise<Awaited<ReturnType<typ
 
   const comparables = getCannedOverheadComparables();
   return runOverheadSpecialist(ctx, DEFAULT_OVERHEAD_BENCHMARKS, comparables);
+}
+
+/**
+ * Assemble the Phase 2 deps + invoke `runCompanySpecialist`. Reads the
+ * user's saved globalAssumptions, builds CompanyPromptInputContext, and
+ * calls the runner. Throws CompanyTier1UnavailableError on any failure;
+ * the route handler catches and degrades to Tier-0.
+ *
+ * Phase 2 deferrals:
+ *   - Live CBRE/HVS/Damodaran API → uses canned dataset
+ *   - Persona resolution → canonical persona derived from globalAssumptions
+ *   - Verdict cache → every call is a fresh "miss"
+ */
+async function runCompanyV1Path(userId: number): Promise<Awaited<ReturnType<typeof runCompanySpecialist>>> {
+  const ga = await storage.getGlobalAssumptions(userId);
+  if (!ga) {
+    throw new CompanyTier1UnavailableError(
+      "globalAssumptions row missing for user",
+      null,
+    );
+  }
+
+  const properties = await storage.getAllProperties(userId);
+
+  // Build CompanyInputs from globalAssumptions. All 4 company fields map
+  // directly to columns on the globalAssumptions row (fractions, 0.08 = 8%).
+  const inputs: CompanyInputs = {
+    baseManagementFee: ga.baseManagementFee ?? null,
+    incentiveManagementFee: ga.incentiveManagementFee ?? null,
+    companyTaxRate: ga.companyTaxRate ?? null,
+    costOfEquity: ga.costOfEquity ?? null,
+  };
+
+  // Canonical persona for Phase 2 — full persona resolution lands in a follow-up.
+  const persona: CompanyPromptInputContext["persona"] = {
+    verticalSlug: "boutique-luxury",
+    marketTier: "L+B",
+    locale: "US",
+  };
+
+  // Portfolio aggregate. ManCo revenue and burn are taken from the ICP model
+  // selection when available; Phase 2 uses the median Highline tier as a fallback.
+  const icpTier = (ga.icpModelTier as IcpModelTier | null) ?? "B";
+  const icpProfile = ICP_MODEL_PROFILES[icpTier];
+  const portfolio: CompanyPromptInputContext["portfolio"] = {
+    propertyCount: properties.length,
+    totalManagementCoRevenueUsd: icpProfile.managementCoRevenueUsd.typical,
+    monthlyBurnUsd: icpProfile.monthlyBurnUsd,
+  };
+
+  const ctx: CompanyPromptInputContext = {
+    inputs,
+    persona,
+    portfolio,
+    priorVerdicts: [],
+  };
+
+  const comparables = getCannedCompanyComparables();
+  return runCompanySpecialist(ctx, DEFAULT_COMPANY_BENCHMARKS, comparables);
 }
 
 /**
