@@ -11,7 +11,7 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 ## Session: April 30, 2026 — P7-A + P7-B Compensation shipped (Mariana M / G3)
 
 - **P7-A Revenue G2** shipped earlier in session: plan `c407d5a9` → G2 N+1 `2f1a649c` → IB bench + api assignmentRef `6a7cf08c`. Convergence threshold 55, mirrors Funding G6-P3b verbatim.
-- **P7-B Compensation Specialist (Mariana / M)** shipped: Phase 1 (Tier-0 foundation) `889dcd59`, Phase 2 (G3 N+1 graduation) `36db0f45`, Phase 3 (IB bench + api assignmentRef + phases.md) in this commit. 13 specialists total in catalog now (letter M added to SPECIALIST_LETTERS).
+- **P7-B Compensation Specialist (Mariana / M)** shipped: Phase 1 (Tier-0 foundation) `889dcd59`, Phase 2 (G3 N+1 graduation) `36db0f45`, Phase 3 (IB bench + api assignmentRef + phases.md) `05789a2a`, Voice Renderer unit hardening `f202b146` (explicit `partners` / `FTE` cases lock precision contract). 13 specialists total in catalog now (letter M added to SPECIALIST_LETTERS).
 - **All 5 gates green at every commit.** Magic-numbers baseline re-snapshotted twice this session (Revenue G2 + Compensation Phase 1 + Phase 2) — legitimate domain-data growth, not duplicated logic.
 - **P7-B remaining:** Overhead, Company, Property-Defaults. Each follows the same 3-phase pattern (foundation → N+1 graduation → IB bench). Build order: Overhead → Company → Property-Defaults (simpler tabs first).
 - **Latent gap (matches Funding/Revenue pattern):** `validateSynthesisOutput` does not enforce ≥3 evidenceRefs per non-ok dimension across all three Specialists. Worth patching in one cross-specialist sweep when convenient; not blocking.
