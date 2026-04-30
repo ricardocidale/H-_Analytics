@@ -489,6 +489,13 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     assignmentRefs: [
       { kind: "model", slug: "primary-llm", role: "tier-1-cognitive", required: true },
       { kind: "benchmark", slug: "compensation-benchmarks", required: true },
+      // P7-B Phase 3: live ManCo comp survey dataset for comparables fetch
+      // (AHLA / HVS / CBRE Hospitality C-Suite Survey). Optional so the
+      // Specialist falls back to canned data when the resource is unmapped
+      // (red/amber health), mirroring Funding's lp-comp-dataset and
+      // Revenue's revenue-comp-dataset assignmentRefs. Live API integration
+      // follows in a separate packet.
+      { kind: "api", slug: "compensation-comp-dataset", required: false, role: "comparables" },
     ],
     candidateFields: [
       { key: "partnerCompYear1",  label: "Year 1 Management Comp",     surface: "company-assumptions" },

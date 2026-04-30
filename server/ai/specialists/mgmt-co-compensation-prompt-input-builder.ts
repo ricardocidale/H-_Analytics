@@ -60,8 +60,8 @@ export type CompensationDimensionKey = (typeof COMPENSATION_DIMENSION_KEYS)[numb
 export interface CompensationDimensionDescriptor {
   key: CompensationDimensionKey;
   label: string;
-  /** Display unit hint for prompt rendering — "$" for USD, "" for unitless count. */
-  unit: "$" | "";
+  /** Display unit hint for prompt rendering — "$" for USD, "partners" or "FTE" for count dims. */
+  unit: "$" | "partners" | "FTE";
   /** Data sources + reasoning inputs Opus should consult. No numbers. */
   evidenceCues: readonly string[];
 }
@@ -90,7 +90,7 @@ const COMPENSATION_DIMENSIONS: readonly CompensationDimensionDescriptor[] = [
   {
     key: "partnerCountYear1",
     label: "Year 1 partner headcount (count)",
-    unit: "",
+    unit: "partners",
     evidenceCues: [
       "founding team composition for comparable boutique-luxury operators (AHLA, HVS founder surveys)",
       "key-person risk LPs price into single-founder vs. small-team operators in this vertical",
@@ -110,7 +110,7 @@ const COMPENSATION_DIMENSIONS: readonly CompensationDimensionDescriptor[] = [
   {
     key: "staffTier3Fte",
     label: "Tier-3 (max-scale) FTE count",
-    unit: "",
+    unit: "FTE",
     evidenceCues: [
       "scale-stage staffing models for comparable institutional-scale boutique platforms (HVS, CBRE staffing surveys)",
       "operating capacity required at the operator's target portfolio size and how that maps to FTE load",

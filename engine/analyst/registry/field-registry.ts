@@ -45,7 +45,7 @@
  * registry to a specific router.
  */
 
-export type FieldUnit = "%" | "$" | "mo" | "date" | "";
+export type FieldUnit = "%" | "$" | "mo" | "date" | "" | "partners" | "FTE";
 
 export interface FieldRegistryEntry {
   /** User-facing label authored by product copy. Title-cased, no unit suffix. */
@@ -291,7 +291,7 @@ export const FIELD_REGISTRY: Readonly<Record<string, FieldRegistryEntry>> = {
   },
   partnerCountYear1: {
     label: "Year 1 Partner Headcount",
-    unit: "",
+    unit: "partners",
     mountPoint: "company-assumptions/compensation",
   },
   staffSalary: {
@@ -301,7 +301,7 @@ export const FIELD_REGISTRY: Readonly<Record<string, FieldRegistryEntry>> = {
   },
   staffTier3Fte: {
     label: "Tier-3 FTE Count",
-    unit: "",
+    unit: "FTE",
     mountPoint: "company-assumptions/compensation",
   },
 

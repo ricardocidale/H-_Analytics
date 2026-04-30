@@ -8,14 +8,13 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
-## Session: April 30, 2026 — P7-A shipped (Revenue Tier-1 N+1 graduation)
+## Session: April 30, 2026 — P7-A + P7-B Compensation shipped (Mariana M / G3)
 
-- **P7 plan created** at `.claude/plans/p7-engine-specialists.md` (`c407d5a9`) — survives future context compaction.
-- **P7-A G2 graduation shipped** at `2f1a649c`: 6 new files (PE + quant/market panels + synthesis-validator) + runner rewrite. Mirrors Funding G6-P3b architecture verbatim. IB bar reqs #1, #6, #7, #8, #9 satisfied.
-- **P7-A IB bar closure** in this commit: 25-test bench at `tests/analyst/specialists/revenue-g2.test.ts` + `revenue-comp-dataset` api assignmentRef on Revenue catalog entry → IB req #5 satisfied.
-- **All 5 gates green** at every commit. Convergence threshold matches Funding (55); revisit if telemetry shows mode-collapse in Revenue's 12-comp dataset.
-- **Next step:** P7-B — Compensation Specialist (mgmt-co.compensation, letter TBD). Same N+1 architecture; build order Compensation → Overhead → Company → Property-Defaults. **Do NOT auto-start P7-B without explicit user direction** (Doctrine Freeze Gate + new-phase kickoff).
-- **Latent gap (matches Funding pattern):** `validateSynthesisOutput` does not enforce ≥3 evidenceRefs per non-ok dimension — Opus could emit 1 ref and pass. Worth patching in both Specialists at once in a follow-up. Surface specialist Tier-1 (`RevenueSpecialistDeps` via `deps.orchestrator.run`) also remains deferred; runner-level IB bar coverage was the P7-A scope.
+- **P7-A Revenue G2** shipped earlier in session: plan `c407d5a9` → G2 N+1 `2f1a649c` → IB bench + api assignmentRef `6a7cf08c`. Convergence threshold 55, mirrors Funding G6-P3b verbatim.
+- **P7-B Compensation Specialist (Mariana / M)** shipped: Phase 1 (Tier-0 foundation) `889dcd59`, Phase 2 (G3 N+1 graduation) `36db0f45`, Phase 3 (IB bench + api assignmentRef + phases.md) in this commit. 13 specialists total in catalog now (letter M added to SPECIALIST_LETTERS).
+- **All 5 gates green at every commit.** Magic-numbers baseline re-snapshotted twice this session (Revenue G2 + Compensation Phase 1 + Phase 2) — legitimate domain-data growth, not duplicated logic.
+- **P7-B remaining:** Overhead, Company, Property-Defaults. Each follows the same 3-phase pattern (foundation → N+1 graduation → IB bench). Build order: Overhead → Company → Property-Defaults (simpler tabs first).
+- **Latent gap (matches Funding/Revenue pattern):** `validateSynthesisOutput` does not enforce ≥3 evidenceRefs per non-ok dimension across all three Specialists. Worth patching in one cross-specialist sweep when convenient; not blocking.
 
 ---
 
