@@ -8,6 +8,15 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 30, 2026 — P7-B Overhead Phase 1 + range-shaped defaults doctrine
+
+- **Doctrine firmed** at `7284d428`: constants-vs-defaults skill + no-hardcoded-values rule both gained a "Range-shaped defaults" section codifying the binding naming convention `DEFAULT_*_BENCHMARK_{LOW,MID,HIGH}` for Specialist watchdog reference bands. Trigger: user feedback while building Overhead Phase 1 ("you are creating magic numbers instead of default values to be seeded" + "default values are values to be used as seed values"). Defaults are now framed explicitly as SEED values, not just runtime fallbacks.
+- **P7-B Overhead Specialist Phase 1 (Natália / N)** shipped at `3a173ee9` following the firmed pattern. 6 tracked dims (4 fixed-line $ + 2 per-property $), all referencing 18 named `DEFAULT_*_BENCHMARK_{LOW,MID,HIGH}` constants. Drops fixedCostEscalationRate (Macro/CPI), miscOpsRate (catch-all), marketingRate (already Revenue Specialist). 14 specialists total (letter N added).
+- **Pre-existing debt flagged for follow-up:** `shared/constants-compensation-benchmarks.ts` and `shared/constants-revenue-benchmarks.ts` still embed inline numeric literals inside their band objects. Sweep to lift them into `DEFAULT_*_BENCHMARK_{LOW,MID,HIGH}` constants is its own packet — don't expand Phase 1 scope per advisor.
+- **Next:** P7-B Overhead Phase 2 (N+1 graduation, mirrors Compensation G3). Then Phase 3 (IB bench + api assignmentRef). Then Company + Property-Defaults Specialists.
+
+---
+
 ## Session: April 30, 2026 — P7-A + P7-B Compensation shipped (Mariana M / G3)
 
 - **P7-A Revenue G2** shipped earlier in session: plan `c407d5a9` → G2 N+1 `2f1a649c` → IB bench + api assignmentRef `6a7cf08c`. Convergence threshold 55, mirrors Funding G6-P3b verbatim.
