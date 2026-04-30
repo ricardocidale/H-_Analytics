@@ -57,6 +57,20 @@ export const MOUNT_POINT_DESTINATIONS: Readonly<
     "client/src/components/company-assumptions/PartnerCompSection.tsx",
   ],
 
+  // Overhead-tab fields (officeLeaseStart, professionalServicesStart,
+  // techInfraStart, businessInsuranceStart, travelCostPerClient,
+  // itLicensePerClient) are rendered across FixedOverheadSection (the four
+  // fixed lines) and VariableCostsSection (the two per-property variable
+  // lines) — both mounted by CompanyAssumptionsTabsView.tsx::renderBody
+  // case "overhead". `marketingRate` and `miscOpsRate` also render in
+  // VariableCostsSection but are NOT Overhead-tracked dimensions —
+  // marketingRate lives under the Revenue Specialist; miscOpsRate is
+  // intentionally untracked. See VariableCostsSection's manifest comment.
+  "company-assumptions/overhead": [
+    "client/src/components/company-assumptions/FixedOverheadSection.tsx",
+    "client/src/components/company-assumptions/VariableCostsSection.tsx",
+  ],
+
   // Revenue defaults are admin-only and live on the Property Underwriting
   // tab of Admin → Model Defaults (the "Ancillary Revenue Mix" section
   // and the "USALI Operating Cost Rates" section both render `field-*`

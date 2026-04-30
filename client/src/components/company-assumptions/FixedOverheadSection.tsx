@@ -14,6 +14,16 @@
  *
  * The model start year is shown in the section header so the user knows
  * which year's dollars are being entered as the "base year" cost.
+ *
+ * Analyst deep-link manifest (P7-B Overhead Phase 1) — these `data-field`
+ * attributes are scanned by the deep-link audit at
+ * `tests/proof/analyst-deep-link-default-render-marker.test.tsx` so each
+ * tracked Specialist field has a deterministic mount target. Literal strings
+ * for static grep coverage:
+ *   - data-field="officeLeaseStart"
+ *   - data-field="professionalServicesStart"
+ *   - data-field="techInfraStart"
+ *   - data-field="businessInsuranceStart"
  */
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -66,14 +76,16 @@ export default function FixedOverheadSection({ formData, onChange, global, model
               onApplyValue={() => researchValues.officeLease && onChange("officeLeaseStart", researchValues.officeLease.mid)}
               guidanceContext={gc("officeLease", "Office Lease")}
             />
-            <EditableValue
-              value={formData.officeLeaseStart ?? global.officeLeaseStart}
-              onChange={(v) => onChange("officeLeaseStart", v)}
-              format="dollar"
-              min={0}
-              max={200000}
-              step={2000}
-            />
+            <span data-field="officeLeaseStart">
+              <EditableValue
+                value={formData.officeLeaseStart ?? global.officeLeaseStart}
+                onChange={(v) => onChange("officeLeaseStart", v)}
+                format="dollar"
+                min={0}
+                max={200000}
+                step={2000}
+              />
+            </span>
           </div>
           <Slider
             value={[formData.officeLeaseStart ?? global.officeLeaseStart]}
@@ -92,14 +104,16 @@ export default function FixedOverheadSection({ formData, onChange, global, model
               onApplyValue={() => researchValues.professionalServices && onChange("professionalServicesStart", researchValues.professionalServices.mid)}
               guidanceContext={gc("professionalServices", "Professional Services")}
             />
-            <EditableValue
-              value={formData.professionalServicesStart ?? global.professionalServicesStart}
-              onChange={(v) => onChange("professionalServicesStart", v)}
-              format="dollar"
-              min={0}
-              max={150000}
-              step={2000}
-            />
+            <span data-field="professionalServicesStart">
+              <EditableValue
+                value={formData.professionalServicesStart ?? global.professionalServicesStart}
+                onChange={(v) => onChange("professionalServicesStart", v)}
+                format="dollar"
+                min={0}
+                max={150000}
+                step={2000}
+              />
+            </span>
           </div>
           <Slider
             value={[formData.professionalServicesStart ?? global.professionalServicesStart]}
@@ -118,14 +132,16 @@ export default function FixedOverheadSection({ formData, onChange, global, model
               onApplyValue={() => researchValues.techInfra && onChange("techInfraStart", researchValues.techInfra.mid)}
               guidanceContext={gc("techInfra", "Tech Infrastructure")}
             />
-            <EditableValue
-              value={formData.techInfraStart ?? global.techInfraStart}
-              onChange={(v) => onChange("techInfraStart", v)}
-              format="dollar"
-              min={0}
-              max={100000}
-              step={2000}
-            />
+            <span data-field="techInfraStart">
+              <EditableValue
+                value={formData.techInfraStart ?? global.techInfraStart}
+                onChange={(v) => onChange("techInfraStart", v)}
+                format="dollar"
+                min={0}
+                max={100000}
+                step={2000}
+              />
+            </span>
           </div>
           <Slider
             value={[formData.techInfraStart ?? global.techInfraStart]}
@@ -144,15 +160,17 @@ export default function FixedOverheadSection({ formData, onChange, global, model
               onApplyValue={() => researchValues.businessInsurance && onChange("businessInsuranceStart", researchValues.businessInsurance.mid)}
               guidanceContext={gc("businessInsurance", "Business Insurance")}
             />
-            <EditableValue
-              value={formData.businessInsuranceStart ?? global.businessInsuranceStart}
-              onChange={(v) => onChange("businessInsuranceStart", v)}
-              format="dollar"
-              min={0}
-              max={100000}
-              step={1000}
-              data-testid="input-business-insurance"
-            />
+            <span data-field="businessInsuranceStart">
+              <EditableValue
+                value={formData.businessInsuranceStart ?? global.businessInsuranceStart}
+                onChange={(v) => onChange("businessInsuranceStart", v)}
+                format="dollar"
+                min={0}
+                max={100000}
+                step={1000}
+                data-testid="input-business-insurance"
+              />
+            </span>
           </div>
           <Slider
             value={[formData.businessInsuranceStart ?? global.businessInsuranceStart]}

@@ -15,6 +15,16 @@
  *
  * Research Badges display AI-benchmarked industry averages for marketing
  * spend and travel budgets when available.
+ *
+ * Analyst deep-link manifest (P7-B Overhead Phase 1) — these `data-field`
+ * attributes give the Overhead Specialist deep-link a deterministic mount
+ * target on the per-property variable lines. The `marketingRate` and
+ * `miscOpsRate` fields are NOT marked here because they are not Overhead-
+ * tracked dimensions (`marketingRate` lives under the Revenue Specialist;
+ * `miscOpsRate` is intentionally untracked). Literal strings for static
+ * grep coverage:
+ *   - data-field="travelCostPerClient"
+ *   - data-field="itLicensePerClient"
  */
 
 import { Slider } from "@/components/ui/slider";
@@ -43,14 +53,16 @@ export default function VariableCostsSection({ formData, onChange, global, resea
               onApplyValue={() => researchValues.travelCost && onChange("travelCostPerClient", researchValues.travelCost.mid)}
               guidanceContext={gc("travelCost", "Travel Cost per Client")}
             />
-            <EditableValue
-              value={formData.travelCostPerClient ?? global.travelCostPerClient}
-              onChange={(v) => onChange("travelCostPerClient", v)}
-              format="dollar"
-              min={0}
-              max={50000}
-              step={1000}
-            />
+            <span data-field="travelCostPerClient">
+              <EditableValue
+                value={formData.travelCostPerClient ?? global.travelCostPerClient}
+                onChange={(v) => onChange("travelCostPerClient", v)}
+                format="dollar"
+                min={0}
+                max={50000}
+                step={1000}
+              />
+            </span>
           </div>
           <Slider
             value={[formData.travelCostPerClient ?? global.travelCostPerClient]}
@@ -69,14 +81,16 @@ export default function VariableCostsSection({ formData, onChange, global, resea
               onApplyValue={() => researchValues.itLicense && onChange("itLicensePerClient", researchValues.itLicense.mid)}
               guidanceContext={gc("itLicense", "IT/Licensing per Client")}
             />
-            <EditableValue
-              value={formData.itLicensePerClient ?? global.itLicensePerClient}
-              onChange={(v) => onChange("itLicensePerClient", v)}
-              format="dollar"
-              min={0}
-              max={15000}
-              step={500}
-            />
+            <span data-field="itLicensePerClient">
+              <EditableValue
+                value={formData.itLicensePerClient ?? global.itLicensePerClient}
+                onChange={(v) => onChange("itLicensePerClient", v)}
+                format="dollar"
+                min={0}
+                max={15000}
+                step={500}
+              />
+            </span>
           </div>
           <Slider
             value={[formData.itLicensePerClient ?? global.itLicensePerClient]}

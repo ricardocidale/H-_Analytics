@@ -21,8 +21,8 @@ describe("SPECIALIST_CATALOG (P1 doctrine lock)", () => {
     expect(SPECIALIST_CATALOG_VALID).toBe(true);
   });
 
-  it("declares exactly 13 Specialists (A–G + Constants H–K + Resource Builder L + Compensation M)", () => {
-    expect(SPECIALIST_CATALOG).toHaveLength(13);
+  it("declares exactly 14 Specialists (A–G + Constants H–K + Resource Builder L + Compensation M + Overhead N)", () => {
+    expect(SPECIALIST_CATALOG).toHaveLength(14);
   });
 
   it("assigns a unique humanName and a gender to every Specialist", () => {

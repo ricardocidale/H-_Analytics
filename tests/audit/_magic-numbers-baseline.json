@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-30T04:20:38.054Z",
+  "generatedAt": "2026-04-30T07:45:19.834Z",
   "threshold": 4,
   "duplications": {
     "4": [
@@ -16,6 +16,7 @@
       "engine/company/company-engine.ts",
       "engine/watchdog/capitalRaiseEvaluator.ts",
       "engine/watchdog/compensationEvaluator.ts",
+      "engine/watchdog/overheadEvaluator.ts",
       "engine/watchdog/revenueEvaluator.ts",
       "server/ai/ambient/fetchers.ts",
       "server/ai/analyst-scoped-runner.ts",
@@ -346,6 +347,7 @@
       "engine/analyst/cognitive/verdict-reconstructor.ts",
       "engine/analyst/surface/mgmt-co/compensation-specialist.ts",
       "engine/analyst/surface/mgmt-co/funding-specialist.ts",
+      "engine/analyst/surface/mgmt-co/overhead-specialist.ts",
       "engine/analyst/surface/mgmt-co/revenue-specialist.ts",
       "engine/analyst/surface/property/risk-intelligence-specialist.ts",
       "engine/property/refinance-pass.ts",
@@ -943,6 +945,7 @@
     "70": [
       "engine/analyst/surface/mgmt-co/compensation-specialist.ts",
       "engine/analyst/surface/mgmt-co/funding-specialist.ts",
+      "engine/analyst/surface/mgmt-co/overhead-specialist.ts",
       "engine/analyst/surface/mgmt-co/revenue-specialist.ts",
       "engine/analyst/surface/property/risk-intelligence-specialist.ts",
       "server/ai/confidence-scorer.ts",
@@ -1626,7 +1629,8 @@
       "server/routes/admin/hospitality-benchmarks.ts",
       "server/routes/rebecca.ts",
       "server/services/photo-enhancer-pipeline.ts",
-      "shared/constants-capex.ts"
+      "shared/constants-capex.ts",
+      "shared/constants-overhead-benchmarks.ts"
     ],
     "2024": [
       "server/ai/specialists/mgmt-co-compensation-orchestrator-adapter.ts",
@@ -1671,7 +1675,8 @@
       "server/routes/properties.ts",
       "server/storage/property-urls.ts",
       "shared/constants-benchmarks.ts",
-      "shared/constants-capex.ts"
+      "shared/constants-capex.ts",
+      "shared/constants-overhead-benchmarks.ts"
     ],
     "8000": [
       "server/ai/vector-indexing.ts",
@@ -1679,7 +1684,8 @@
       "server/constants.ts",
       "server/scripts/backfill-vector-store.ts",
       "server/services/FREDService.ts",
-      "shared/constants-capex.ts"
+      "shared/constants-capex.ts",
+      "shared/constants-overhead-benchmarks.ts"
     ],
     "12000": [
       "server/ai/icp/config-builder.ts",
@@ -1691,6 +1697,7 @@
       "server/services/FinancialNewsService.ts",
       "server/syncHelpers.ts",
       "shared/constants-capex.ts",
+      "shared/constants-overhead-benchmarks.ts",
       "shared/constants-staffing.ts"
     ],
     "15000": [
@@ -1707,7 +1714,14 @@
       "server/services/SPGlobalService.ts",
       "server/services/USRealEstateService.ts",
       "server/services/WeatherService.ts",
-      "server/services/WorldBankService.ts"
+      "server/services/WorldBankService.ts",
+      "shared/constants-overhead-benchmarks.ts"
+    ],
+    "18000": [
+      "server/syncHelpers.ts",
+      "shared/constants-brand.ts",
+      "shared/constants-overhead-benchmarks.ts",
+      "shared/constants-staffing.ts"
     ],
     "30000": [
       "server/ai/icp/config-builder.ts",

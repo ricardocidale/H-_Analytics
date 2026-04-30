@@ -64,6 +64,7 @@ const sectionMeta: Record<AiIntelligenceSection, { title: string; subtitle: stri
   "specialist-mgmt-co-funding":            { title: "Funding Intelligence",         subtitle: "" },
   "specialist-mgmt-co-revenue":            { title: "Revenue Intelligence",         subtitle: "" },
   "specialist-mgmt-co-compensation":       { title: "Compensation Intelligence",    subtitle: "" },
+  "specialist-mgmt-co-overhead":           { title: "Overhead Intelligence",        subtitle: "" },
   "specialist-mgmt-co-icp-intelligence":   { title: "ICP Intelligence",             subtitle: "" },
   "specialist-property-risk-intelligence": { title: "Property Risk Intelligence",   subtitle: "" },
   "specialist-property-executive-summary": { title: "Executive Summary",            subtitle: "" },

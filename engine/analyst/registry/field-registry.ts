@@ -305,6 +305,43 @@ export const FIELD_REGISTRY: Readonly<Record<string, FieldRegistryEntry>> = {
     mountPoint: "company-assumptions/compensation",
   },
 
+  // ─── mgmt-co.overhead (Overhead Specialist) ─────────────────────────────
+  // Overhead tab fields (`client/src/components/company-assumptions/
+  // FixedOverheadSection.tsx` + `VariableCostsSection.tsx`) — corporate
+  // overhead lines (fixed annual + per-property variable). All USD-
+  // denominated; the mountPoint slug points the deep-link resolver at the
+  // company-assumptions overhead tab.
+  officeLeaseStart: {
+    label: "Office Lease",
+    unit: "$",
+    mountPoint: "company-assumptions/overhead",
+  },
+  professionalServicesStart: {
+    label: "Professional Services",
+    unit: "$",
+    mountPoint: "company-assumptions/overhead",
+  },
+  techInfraStart: {
+    label: "Tech Infrastructure",
+    unit: "$",
+    mountPoint: "company-assumptions/overhead",
+  },
+  businessInsuranceStart: {
+    label: "Business Insurance",
+    unit: "$",
+    mountPoint: "company-assumptions/overhead",
+  },
+  travelCostPerClient: {
+    label: "Travel Cost per Client",
+    unit: "$",
+    mountPoint: "company-assumptions/overhead",
+  },
+  itLicensePerClient: {
+    label: "IT/Licensing per Client",
+    unit: "$",
+    mountPoint: "company-assumptions/overhead",
+  },
+
   // ─── Admin Model Defaults → Company tab ─────────────────────────────────
   // CompanyTab fields (`client/src/components/admin/model-defaults/CompanyTab.tsx`)
   // — management-company-level financial defaults the admin endorses on the

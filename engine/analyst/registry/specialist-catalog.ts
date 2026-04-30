@@ -512,6 +512,44 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     // Revenue G2 pattern); api assignmentRef + IB bar tests in Phase 3.
     status: "built",
   },
+  {
+    id: "mgmt-co.overhead",
+    letter: "N",
+    realName: "Overhead",
+    displayName: "Overhead Intelligence",
+    humanName: "Natália",
+    gender: "female",
+    description:
+      "Watches the management company's corporate overhead — fixed lines (office, legal, tech, insurance) and per-property variables (travel, IT licensing) — so the cost structure stays defensible to LPs as the platform scales.",
+    subject: "mgmt-co",
+    capabilities: [
+      "required-fields",
+      "llm-config",
+      "resource-assignments",
+      "runtime",
+      "audit",
+    ],
+    assignmentRefs: [
+      { kind: "model", slug: "primary-llm", role: "tier-1-cognitive", required: true },
+      { kind: "benchmark", slug: "overhead-benchmarks", required: true },
+    ],
+    candidateFields: [
+      { key: "officeLeaseStart",          label: "Office Lease",            surface: "company-assumptions" },
+      { key: "professionalServicesStart", label: "Professional Services",   surface: "company-assumptions" },
+      { key: "techInfraStart",            label: "Tech Infrastructure",     surface: "company-assumptions" },
+      { key: "businessInsuranceStart",    label: "Business Insurance",      surface: "company-assumptions" },
+      { key: "travelCostPerClient",       label: "Travel Cost per Client",  surface: "company-assumptions" },
+      { key: "itLicensePerClient",        label: "IT/Licensing per Client", surface: "company-assumptions" },
+    ],
+    prerequisites: [
+      "company-profile-saved",
+    ],
+    // P7-B Overhead Phase 1: Tier-0 deterministic watchdog wrapper shipped.
+    // Tier-1 N+1 graduation lands in Phase 2 (mirrors Compensation G3 /
+    // Revenue G2 pattern); api assignmentRef (overhead-comp-dataset) + IB
+    // bar tests in Phase 3.
+    status: "built",
+  },
 ] as const;
 
 const validation = (() => {

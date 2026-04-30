@@ -89,6 +89,8 @@ import {
 } from "../../client/src/components/company-assumptions/FundingSection";
 import CompensationSection from "../../client/src/components/company-assumptions/CompensationSection";
 import PartnerCompSection from "../../client/src/components/company-assumptions/PartnerCompSection";
+import FixedOverheadSection from "../../client/src/components/company-assumptions/FixedOverheadSection";
+import VariableCostsSection from "../../client/src/components/company-assumptions/VariableCostsSection";
 import { PropertyUnderwritingTab } from "../../client/src/components/admin/model-defaults/PropertyUnderwritingTab";
 import { CompanyTab } from "../../client/src/components/admin/model-defaults/CompanyTab";
 import { MarketMacroTab } from "../../client/src/components/admin/model-defaults/MarketMacroTab";
@@ -217,6 +219,45 @@ const MOUNT_POINT_RENDERERS: Readonly<
         }
         modelStartYear={2026}
         researchValues={{} as Parameters<typeof PartnerCompSection>[0]["researchValues"]}
+      />
+    </TooltipProvider>
+  ),
+  // Overhead tab: composed from FixedOverheadSection (4 fixed-line $
+  // inputs) + VariableCostsSection (2 per-property $ inputs that are
+  // Overhead-tracked, plus 2 % rates that are NOT). Both render under
+  // CompanyAssumptionsTabsView::renderBody case "overhead". Slug seeds
+  // the global with non-zero defaults so the EditableValue inputs render
+  // (zero is a valid input value but the slider/EditableValue logic
+  // assumes a number, not undefined).
+  "company-assumptions/overhead": () => (
+    <TooltipProvider>
+      <FixedOverheadSection
+        formData={{} as Parameters<typeof FixedOverheadSection>[0]["formData"]}
+        onChange={NOOP_CHANGE}
+        global={
+          {
+            fixedCostEscalationRate: 0.03,
+            officeLeaseStart: 36_000,
+            professionalServicesStart: 27_000,
+            techInfraStart: 18_000,
+            businessInsuranceStart: 11_500,
+          } as Parameters<typeof FixedOverheadSection>[0]["global"]
+        }
+        modelStartYear={2026}
+        researchValues={{} as Parameters<typeof FixedOverheadSection>[0]["researchValues"]}
+      />
+      <VariableCostsSection
+        formData={{} as Parameters<typeof VariableCostsSection>[0]["formData"]}
+        onChange={NOOP_CHANGE}
+        global={
+          {
+            travelCostPerClient: 13_000,
+            itLicensePerClient: 3_500,
+            marketingRate: 0.06,
+            miscOpsRate: 0.03,
+          } as Parameters<typeof VariableCostsSection>[0]["global"]
+        }
+        researchValues={{} as Parameters<typeof VariableCostsSection>[0]["researchValues"]}
       />
     </TooltipProvider>
   ),
