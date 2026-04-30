@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect, lazy, Suspense } from "react";
+import { useMemo, useState, useCallback, useEffect, lazy, Suspense } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/ui/page-header";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,6 +12,12 @@ import { SaveButton } from "@/components/ui/save-button";
 import { useAdminSection, useAdminSectionFromHash } from "@/lib/admin-nav";
 import type { AdminSaveState } from "@/components/admin/save-state";
 import { Loader2 } from "@/components/icons/themed-icons";
+import { buildSpecialistTitle } from "@/components/specialists";
+
+interface SpecialistListItem {
+  id: string;
+  humanName?: string | null;
+}
 
 function isSpecialistSection(s: AdminSection): s is SpecialistSection {
   return s in SPECIALIST_SECTION_TO_ID;
@@ -66,19 +73,12 @@ const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: strin
   database:              { title: "Database",                  subtitle: "Entity monitoring, seed data, and canonical sync" },
   observability:         { title: "Observability",             subtitle: "Background scheduler health, last-cycle summaries, and stale-warnings" },
 
-  // AI Research → Specialists (P5). Title/subtitle mirror the catalog
-  // letter+name so the page header reads identically to the sidebar row.
-  "specialist-mgmt-co-funding":            { title: "Specialist A — Funding",            subtitle: "Read-only assignment + health surface for the mgmt-co Funding Specialist." },
-  "specialist-mgmt-co-revenue":            { title: "Specialist B — Revenue",            subtitle: "Read-only assignment + health surface for the mgmt-co Revenue Specialist." },
-  "specialist-mgmt-co-icp-intelligence":   { title: "Specialist C — ICP Intelligence",   subtitle: "Read-only assignment + health surface (evaluator pending)." },
-  "specialist-property-risk-intelligence": { title: "Specialist D — Risk Intelligence",  subtitle: "Read-only assignment + health surface (evaluator pending)." },
-  "specialist-property-executive-summary": { title: "Specialist E — Executive Summary",  subtitle: "Read-only assignment + health surface (evaluator pending)." },
-  "specialist-photos-photo-enhancer":      { title: "Specialist F — Photo Enhancer",     subtitle: "Read-only assignment + health surface (evaluator pending)." },
-  "specialist-portfolio-ops-watchdog":     { title: "Specialist G — Watchdog",           subtitle: "Read-only assignment + health surface (evaluator pending)." },
-  "specialist-constants-tax-research":         { title: "Specialist H — Tax Authority Research",          subtitle: "Owns tax-rate, capital-gains, and property-tax constants. Authority-sourced; refresh per row." },
-  "specialist-constants-macro-research":       { title: "Specialist I — Macro Indicators Research",       subtitle: "Owns inflation and country risk premium. Sourced from central banks and IMF." },
-  "specialist-constants-depreciation-research":{ title: "Specialist J — Depreciation Schedule Research",  subtitle: "Owns building depreciation useful-life by country (IRS Pub. 946, CRA, CGI, etc.)." },
-  "specialist-constants-reporting-research":   { title: "Specialist K — Reporting Conventions Research",  subtitle: "Owns universal conventions (USALI/AHLA) such as days-per-month." },
+  // AI Research → Specialists (P5). The page header *title* for these
+  // sections is computed dynamically from the catalog + the live
+  // `/api/admin/specialists` rename overrides via `specialistMeta()` below
+  // so it reads persona-first (e.g. "Ana · Funding Intelligence") per
+  // `.agents/skills/specialist-persona-naming/SKILL.md`. Only the operator-
+  // focused subtitle copy lives here; see `SPECIALIST_SUBTITLES` below.
 
   // Legacy URL aliases — page header reuses the canonical section's title.
   // Kept only for plausibly-bookmarked deep links per
@@ -97,14 +97,71 @@ const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: strin
 };
 
 /**
+ * Operator-focused subtitle copy for the Specialist admin sections. The
+ * *title* is computed dynamically by `specialistMeta()` so it leads with
+ * the persona name (e.g. "Ana · Funding Intelligence"); only the
+ * subtitle, which describes what the *admin operator* can do on this
+ * page (assignment + health surface, what the Specialist owns, etc.), is
+ * worth pinning in marketing copy here. Keep this list in sync with
+ * `SPECIALIST_SECTION_TO_ID` in `AdminSidebar.tsx`.
+ */
+const SPECIALIST_SUBTITLES: Record<SpecialistSection, string> = {
+  "specialist-mgmt-co-funding":            "Read-only assignment + health surface for the mgmt-co Funding Specialist.",
+  "specialist-mgmt-co-revenue":            "Read-only assignment + health surface for the mgmt-co Revenue Specialist.",
+  "specialist-mgmt-co-compensation":       "Read-only assignment + health surface for the mgmt-co Compensation Specialist.",
+  "specialist-mgmt-co-overhead":           "Read-only assignment + health surface for the mgmt-co Overhead Specialist.",
+  "specialist-mgmt-co-company":            "Read-only assignment + health surface for the mgmt-co Company Specialist.",
+  "specialist-mgmt-co-property-defaults":  "Read-only assignment + health surface for the mgmt-co Property Defaults Specialist.",
+  "specialist-mgmt-co-icp-intelligence":   "Read-only assignment + health surface (evaluator pending).",
+  "specialist-property-risk-intelligence": "Read-only assignment + health surface (evaluator pending).",
+  "specialist-property-executive-summary": "Read-only assignment + health surface (evaluator pending).",
+  "specialist-photos-photo-enhancer":      "Read-only assignment + health surface (evaluator pending).",
+  "specialist-portfolio-ops-watchdog":     "Read-only assignment + health surface (evaluator pending).",
+  "specialist-resources-builder":          "Read-only assignment + health surface for the Resources Builder Specialist.",
+  "specialist-constants-tax-research":         "Owns tax-rate, capital-gains, and property-tax constants. Authority-sourced; refresh per row.",
+  "specialist-constants-macro-research":       "Owns inflation and country risk premium. Sourced from central banks and IMF.",
+  "specialist-constants-depreciation-research":"Owns building depreciation useful-life by country (IRS Pub. 946, CRA, CGI, etc.).",
+  "specialist-constants-reporting-research":   "Owns universal conventions (USALI/AHLA) such as days-per-month.",
+};
+
+/**
+ * Persona-first page header for an admin Specialist section. Delegates
+ * the title assembly to the shared `buildSpecialistTitle()` helper in
+ * `@/components/specialists` so the Admin page header, the AI Intelligence
+ * page header, the AI sidebar's `specialistRow`, and the `<SpecialistName />`
+ * component can never drift on what name to lead with. See
+ * `.agents/skills/specialist-persona-naming/SKILL.md` for the rule.
+ *
+ * `humanNameById` carries the live override pulled from
+ * `/api/admin/specialists` so an Identity-tab rename reflects on the
+ * page header without a reload (the Identity tab already invalidates
+ * that query on save). Falls back to the catalog `humanName` while the
+ * query is in flight, then to just the role label if neither is set.
+ *
+ * The fallback role passed to `buildSpecialistTitle` is the raw section
+ * slug — when an unknown specialist id sneaks in, we'd rather show the
+ * URL-shaped slug than the placeholder id the resolver returns.
+ */
+function specialistMeta(
+  section: SpecialistSection,
+  humanNameById: Map<string, string>,
+): { title: string; subtitle: string } {
+  const id = SPECIALIST_SECTION_TO_ID[section];
+  return {
+    title: buildSpecialistTitle(id, humanNameById, section),
+    subtitle: SPECIALIST_SUBTITLES[section] ?? "",
+  };
+}
+
+/**
  * Predicate used by `useAdminSectionFromHash` (task #773) to decide whether
  * a `#<segment>/...` URL hash names an admin section worth switching to.
- * Limited to keys present in `sectionMeta` so a stray anchor like
- * `#field-cap-rate` can't replace the active section with garbage. Module-
- * scope so the hook's effect deps stay stable across renders.
+ * Specialist sections live in `SPECIALIST_SECTION_TO_ID` (their titles are
+ * resolved dynamically rather than via `sectionMeta`), so we accept either
+ * source. Module-scope so the hook's effect deps stay stable across renders.
  */
 function isKnownAdminSection(segment: string): boolean {
-  return segment in sectionMeta;
+  return segment in sectionMeta || segment in SPECIALIST_SECTION_TO_ID;
 }
 
 /** Map sidebar alias → ModelDefaultsTab internal sub-tab value */
@@ -220,8 +277,29 @@ export default function Admin() {
     setSaveState(state);
   }, []);
 
+  // Pull the live Specialist list so the page header for any Specialist
+  // section tracks an Identity-tab rename (including a future Gaspar
+  // override) without a reload. The IdentityTab already invalidates this
+  // query on save, so the header refreshes the moment the override is
+  // persisted. Falls back to the catalog `humanName` while the query is in
+  // flight or if the request fails. Mirrors the same hook in
+  // `client/src/pages/AiIntelligence.tsx`.
+  const { data: specialists } = useQuery<SpecialistListItem[]>({
+    queryKey: ["/api/admin/specialists"],
+  });
+  const humanNameById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const s of specialists ?? []) {
+      const trimmed = s.humanName?.trim();
+      if (trimmed) m.set(s.id, trimmed);
+    }
+    return m;
+  }, [specialists]);
+
   const resolved = resolveSection(activeSection);
-  const meta = lookupAlongChain(activeSection, sectionMeta) ?? sectionMeta[resolved] ?? { title: "Admin", subtitle: "" };
+  const meta = isSpecialistSection(activeSection)
+    ? specialistMeta(activeSection, humanNameById)
+    : lookupAlongChain(activeSection, sectionMeta) ?? sectionMeta[resolved] ?? { title: "Admin", subtitle: "" };
 
   return (
     <AnimatedPage>

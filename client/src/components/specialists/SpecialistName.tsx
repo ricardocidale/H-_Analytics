@@ -197,6 +197,42 @@ export function resolveSpecialistDisplay(
 }
 
 /**
+ * Compose the canonical persona-first page-header *title* for a Specialist
+ * id ("Ana · Funding Intelligence", "Daniela · Risk Intelligence",
+ * "Gaspar · The Analyst"), reusing the shared resolution chain in
+ * `resolveSpecialistDisplay`. Both `client/src/pages/AiIntelligence.tsx`
+ * and `client/src/pages/Admin.tsx` call this so the AI Intelligence page,
+ * the Admin shell, and the AI sidebar's `specialistRow` can never drift
+ * on what name to lead with.
+ *
+ * `fallbackRole` is what to render when the catalog doesn't know the id
+ * (and the resolver therefore returns a non-catalog placeholder). Each
+ * page picks a different fallback that makes sense for its own chrome —
+ * e.g. the section's marketing-copy title for AI Intelligence, or the
+ * raw section slug for Admin — so the fallback stays a per-page concern
+ * even though the persona-first assembly is shared.
+ *
+ * The "human name === role" guard keeps the title from rendering as
+ * "Funding Intelligence · Funding Intelligence" if the catalog ever has
+ * the same string in both slots; in that degenerate case the title
+ * collapses to just the role label.
+ *
+ * See `.agents/skills/specialist-persona-naming/SKILL.md` for the rule.
+ */
+export function buildSpecialistTitle(
+  id: string,
+  liveHumanNames: Map<string, string>,
+  fallbackRole: string,
+): string {
+  const display = resolveSpecialistDisplay(id, liveHumanNames);
+  const role = display.isCatalogEntry ? display.role : fallbackRole;
+  const human = display.isCatalogEntry && display.humanName !== display.role
+    ? display.humanName
+    : null;
+  return human ? `${human} · ${role}` : role;
+}
+
+/**
  * Pull the first visible grapheme — handles accents and multi-byte
  * characters so "Eloá" → "E" cleanly, not the diacritic byte. Falls
  * back to "?" only if the name is empty.

@@ -2,6 +2,7 @@ export {
   SpecialistName,
   useSpecialistDisplay,
   resolveSpecialistDisplay,
+  buildSpecialistTitle,
 } from "./SpecialistName";
 export type {
   SpecialistDisplay,

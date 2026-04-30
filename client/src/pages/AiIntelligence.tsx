@@ -18,7 +18,7 @@ import { SpecialistQuickSearch } from "@/components/ai-intelligence/SpecialistQu
 import { useRefreshLlmRegistry } from "@/lib/api/admin";
 import { ORCHESTRATOR_SPECIALIST_ID } from "@engine/analyst/identity";
 import { SPECIALIST_CATALOG } from "@engine/analyst/registry/specialist-catalog";
-import { resolveSpecialistDisplay } from "@/components/specialists";
+import { buildSpecialistTitle, resolveSpecialistDisplay } from "@/components/specialists";
 
 interface SpecialistListItem {
   id: string;
@@ -98,15 +98,13 @@ function specialistMeta(
   humanNameById: Map<string, string>,
 ): { title: string; subtitle: string } {
   const id = SPECIALIST_SECTION_TO_ID[section];
-  const display = resolveSpecialistDisplay(id, humanNameById);
-  // For an unknown id the resolver returns `{ humanName: id, role: id }`;
-  // the page header should fall back to the section's marketing-copy
-  // title in that case so the chrome doesn't show a raw slug.
-  const role = display.isCatalogEntry ? display.role : sectionMeta[section].title;
-  const human = display.isCatalogEntry && display.humanName !== display.role
-    ? display.humanName
-    : null;
-  const title = human ? `${human} · ${role}` : role;
+  // Title goes through the shared `buildSpecialistTitle` helper so this
+  // page header, the Admin shell's specialist sections, and the AI
+  // sidebar's `specialistRow` can never drift on what name to lead with.
+  // The fallback role for an unknown id is the section's marketing-copy
+  // title — when the resolver can't find the id in the catalog we'd
+  // rather show "Funding Intelligence" than the raw slug.
+  const title = buildSpecialistTitle(id, humanNameById, sectionMeta[section].title);
   // Subtitle stays a local concern — the catalog `description` is the
   // one-line tagline shown under the page header, distinct from the
   // persona-naming chain in `resolveSpecialistDisplay`. Looking it up

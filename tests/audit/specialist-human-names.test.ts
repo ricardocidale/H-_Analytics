@@ -52,9 +52,19 @@ const SPECIALIST_HUMAN_NAMES = [
 const ADMIN_PATH_PREFIXES = [
   "client/src/pages/admin/",
   "client/src/components/admin/",
+  "client/src/pages/Admin.tsx",
   "client/src/pages/AiIntelligence.tsx",
   "client/src/pages/ai-intelligence/",
   "client/src/components/ai-intelligence/",
+  // The canonical `<SpecialistName />` primitive and its barrel re-export
+  // are the implementation that turns specialist ids into persona-first
+  // strings for admin surfaces. Their JSDoc and palette comments
+  // necessarily reference example human names ("Ana", "Fernanda",
+  // "Gaspar", "Eloá") to document what the resolver returns. The
+  // primitive itself never renders into front-of-app surfaces (those
+  // continue to address agents by role per `front-of-app-admin-isolation`),
+  // so the names in its source are docs/data, not user-facing copy.
+  "client/src/components/specialists/",
 ];
 
 interface Hit {
