@@ -8,6 +8,15 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 30, 2026 — P7-B Property-Defaults Specialist (Paula / P) full Tier-1 graduation
+
+- **P7-B complete.** Property-Defaults (Paula / P, id `mgmt-co.property-defaults`, 16th specialist) all 3 phases shipped: Phase 1 `4cb664b9` (Tier-0), Phase 2 `43541a0e` (N+1 runner + route branch + magic-numbers re-snapshot 137/2428), Phase 3 `fc5d8c99` (25 IB bench tests). P7-B now fully shipped; phases.md stamped.
+- **4 fraction dims:** eventExpenseRate, otherExpenseRate, utilitiesVariableSplit, salesCommissionRate. Evidence prefix `"PropertyDefaults:"`, runId prefixes `property-defaults-p2-` / `pe-property-defaults-p2-`. salesCommissionRate naming ambiguity (schema=exit commission, specialist=OTA commission) accepted as Phase 1 design; reads `ga.salesCommissionRate` directly.
+- **2 TypeScript fixes during Phase 2:** `AiIntelligenceSection` Record missing new section key (fix: add entry); `computeInputContextHash("property-defaults")` invalid enum (fix: `"company"`). Rule-compliance fix: `"Urban Boutique Hotel B"` → `"Urban Boutique Property B"` (forbidden admin string). All gates green at every commit.
+- **Next workstream:** P7-C — Constants Specialists H–K admin pages. Replit handoff packet needed.
+
+---
+
 ## Session: April 30, 2026 — P7-B Company Specialist (Olívia / O) full Tier-1 graduation
 
 - **Company Specialist (Olívia / O) all 3 phases shipped:** Phase 1 `2588f4fd` (Tier-0), Phase 2 (N+1 runner + 6 prompt/schema/validator files + route branch + magic-numbers re-snapshot), Phase 3 IB bench `eaebd3fa` (25 tests, 4 fraction dims). Critical distinction: all 4 dims are fractions (0.08=8%), unlike Overhead's USD integers — fraction-enforcement baked into every prompt with `# Output scale — CRITICAL` section and `high ≤ 2` schema guard.
