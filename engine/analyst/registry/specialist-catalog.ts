@@ -558,6 +558,41 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     // 25-test IB bench + api assignmentRef wired.
     status: "built",
   },
+  // P7-B Company Phase 1 (Tier-0): deterministic watchdog + Tier-0 surface
+  // specialist shipped. Phase 2 (Tier-1 N+1) and Phase 3 (IB bench) follow.
+  {
+    id: "mgmt-co.company",
+    letter: "O",
+    realName: "Company",
+    displayName: "Company Intelligence",
+    humanName: "Olívia",
+    gender: "female",
+    description:
+      "Validates the management company's core financial defaults — base and incentive fee rates, corporate tax structure, and cost-of-equity hurdle — so the LP data room reflects defensible operator-market benchmarks.",
+    subject: "mgmt-co",
+    capabilities: [
+      "required-fields",
+      "llm-config",
+      "resource-assignments",
+      "runtime",
+      "audit",
+    ],
+    assignmentRefs: [
+      { kind: "model", slug: "primary-llm", role: "tier-1-cognitive", required: true },
+      { kind: "benchmark", slug: "company-benchmarks", required: true },
+      { kind: "api", slug: "company-comp-dataset", required: false, role: "comparables" },
+    ],
+    candidateFields: [
+      { key: "baseManagementFee",     label: "Base Management Fee",     surface: "defaults" },
+      { key: "incentiveManagementFee", label: "Incentive Management Fee", surface: "defaults" },
+      { key: "companyTaxRate",        label: "Company Tax Rate",         surface: "defaults" },
+      { key: "costOfEquity",          label: "Cost of Equity",           surface: "defaults" },
+    ],
+    prerequisites: [
+      "company-profile-saved",
+    ],
+    status: "built",
+  },
 ] as const;
 
 const validation = (() => {

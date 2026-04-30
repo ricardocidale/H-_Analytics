@@ -78,6 +78,7 @@ export const SPECIALIST_SECTION_TO_ID = {
   "specialist-mgmt-co-revenue": "mgmt-co.revenue",
   "specialist-mgmt-co-compensation": "mgmt-co.compensation",
   "specialist-mgmt-co-overhead": "mgmt-co.overhead",
+  "specialist-mgmt-co-company": "mgmt-co.company",
   "specialist-mgmt-co-icp-intelligence": "mgmt-co.icp-intelligence",
   "specialist-property-risk-intelligence": "property.risk-intelligence",
   "specialist-property-executive-summary": "property.executive-summary",

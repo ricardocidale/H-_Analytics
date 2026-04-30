@@ -84,6 +84,7 @@ export const SPECIALIST_LETTERS = [
   "L",
   "M",
   "N",
+  "O",
 ] as const;
 export type SpecialistLetter = typeof SPECIALIST_LETTERS[number];
 export const SpecialistLetterSchema = z.enum(SPECIALIST_LETTERS);
@@ -187,6 +188,7 @@ export const SpecialistDefinitionSchema = z
             "property-edit",
             "market-macro",
             "constants",
+            "defaults",
           ]),
           /**
            * Catalog-locked hard-required marker. When `true`, this field is

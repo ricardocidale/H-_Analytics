@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-30T08:02:14.658Z",
+  "generatedAt": "2026-04-30T08:34:59.718Z",
   "threshold": 4,
   "duplications": {
     "4": [
@@ -15,6 +15,7 @@
       "calc/shared/utils.ts",
       "engine/company/company-engine.ts",
       "engine/watchdog/capitalRaiseEvaluator.ts",
+      "engine/watchdog/companyEvaluator.ts",
       "engine/watchdog/compensationEvaluator.ts",
       "engine/watchdog/overheadEvaluator.ts",
       "engine/watchdog/revenueEvaluator.ts",
@@ -360,6 +361,7 @@
       "calc/research/cost-benchmarks.ts",
       "calc/research/validate-research.ts",
       "engine/analyst/cognitive/verdict-reconstructor.ts",
+      "engine/analyst/surface/mgmt-co/company-specialist.ts",
       "engine/analyst/surface/mgmt-co/compensation-specialist.ts",
       "engine/analyst/surface/mgmt-co/funding-specialist.ts",
       "engine/analyst/surface/mgmt-co/overhead-specialist.ts",
@@ -980,6 +982,7 @@
       "server/data/researchSeeds.ts"
     ],
     "70": [
+      "engine/analyst/surface/mgmt-co/company-specialist.ts",
       "engine/analyst/surface/mgmt-co/compensation-specialist.ts",
       "engine/analyst/surface/mgmt-co/funding-specialist.ts",
       "engine/analyst/surface/mgmt-co/overhead-specialist.ts",
@@ -1966,6 +1969,7 @@
       "server/storage/intelligence/constants/sources.ts",
       "shared/constants-benchmarks.ts",
       "shared/constants-business-models.ts",
+      "shared/constants-company-benchmarks.ts",
       "shared/constants-funding.ts",
       "shared/constants-operating-structures-data.ts",
       "shared/constants-operating-structures.ts",
@@ -2016,6 +2020,7 @@
       "server/routes/format-generators/pptx-generator.ts",
       "shared/constants-benchmarks.ts",
       "shared/constants-business-models.ts",
+      "shared/constants-company-benchmarks.ts",
       "shared/constants-revenue-benchmarks.ts",
       "shared/countryDefaults.ts",
       "shared/market-intelligence-pipeline.ts",
@@ -2034,6 +2039,7 @@
       "server/finance/sensitivity.ts",
       "server/routes/format-generators/pptx-generator.ts",
       "shared/constants-benchmarks.ts",
+      "shared/constants-company-benchmarks.ts",
       "shared/constants-operating-structures-data.ts",
       "shared/constants-revenue-benchmarks.ts",
       "shared/countryDefaults.ts"
@@ -2079,6 +2085,7 @@
       "server/scripts/backfill-vector-store.ts",
       "shared/constants-benchmarks.ts",
       "shared/constants-business-models.ts",
+      "shared/constants-company-benchmarks.ts",
       "shared/constants-funding.ts",
       "shared/constants-research.ts",
       "shared/countryDefaults.ts",
@@ -2348,6 +2355,7 @@
       "server/routes/properties.ts",
       "shared/constants-benchmarks.ts",
       "shared/constants-business-models.ts",
+      "shared/constants-company-benchmarks.ts",
       "shared/constants-funding.ts",
       "shared/constants-operating-structures-data.ts",
       "shared/constants-research.ts",
@@ -2376,6 +2384,7 @@
       "server/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
       "server/routes/properties.ts",
       "shared/constants-business-models.ts",
+      "shared/constants-company-benchmarks.ts",
       "shared/constants-operating-structures-data.ts"
     ],
     "0.04": [
@@ -2388,6 +2397,7 @@
       "shared/constants-benchmarks.ts",
       "shared/constants-brand.ts",
       "shared/constants-business-models.ts",
+      "shared/constants-company-benchmarks.ts",
       "shared/constants-funding.ts",
       "shared/constants-operating-structures-data.ts",
       "shared/constants-revenue-benchmarks.ts",
@@ -2399,7 +2409,8 @@
       "server/ai/specialists/mgmt-co-funding-quant-panel-prompt.ts",
       "server/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
       "server/routes/properties.ts",
-      "shared/constants-business-models.ts"
+      "shared/constants-business-models.ts",
+      "shared/constants-company-benchmarks.ts"
     ],
     "0.09": [
       "server/ai/risk/benchmarks.ts",

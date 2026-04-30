@@ -26,6 +26,10 @@ export {
   createOverheadSpecialist,
   type OverheadSpecialistOptions,
 } from "./overhead-specialist";
+export {
+  createCompanySpecialist,
+  type CompanySpecialistOptions,
+} from "./company-specialist";
 
 // Legacy re-exports — kept for back-compat with any caller that hasn't
 // migrated to the verdict contract yet (currently: nothing on the read
@@ -52,17 +56,22 @@ export type { CompensationInputs } from "../../../watchdog/compensationEvaluator
 export { evaluateOverhead } from "../../../watchdog/overheadEvaluator";
 export type { OverheadInputs } from "../../../watchdog/overheadEvaluator";
 
+export { evaluateCompany } from "../../../watchdog/companyEvaluator";
+export type { CompanyInputs } from "../../../watchdog/companyEvaluator";
+
 // Specialist ids (single source of truth so the Router registry, the route
 // handler, and tests all agree).
 export const MGMT_CO_FUNDING_ID = "mgmt-co.funding" as const;
 export const MGMT_CO_REVENUE_ID = "mgmt-co.revenue" as const;
 export const MGMT_CO_COMPENSATION_ID = "mgmt-co.compensation" as const;
 export const MGMT_CO_OVERHEAD_ID = "mgmt-co.overhead" as const;
+export const MGMT_CO_COMPANY_ID = "mgmt-co.company" as const;
 
 import type { AnalystWatchdogBenchmarks } from "@shared/schema";
 import type { RevenueBenchmarks } from "@shared/constants-revenue-benchmarks";
 import type { CompensationBenchmarks } from "@shared/constants-compensation-benchmarks";
 import type { OverheadBenchmarks } from "@shared/constants-overhead-benchmarks";
+import type { CompanyBenchmarks } from "@shared/constants-company-benchmarks";
 import {
   createSurfaceRouter,
   type SpecialistFn,
@@ -74,12 +83,14 @@ import type { FundingSpecialistDeps } from "./funding-specialist";
 import { createRevenueSpecialist } from "./revenue-specialist";
 import { createCompensationSpecialist } from "./compensation-specialist";
 import { createOverheadSpecialist } from "./overhead-specialist";
+import { createCompanySpecialist } from "./company-specialist";
 
 export interface MgmtCoBenchmarks {
   funding: AnalystWatchdogBenchmarks;
   revenue: RevenueBenchmarks;
   compensation: CompensationBenchmarks;
   overhead: OverheadBenchmarks;
+  company: CompanyBenchmarks;
 }
 
 /**
@@ -230,6 +241,12 @@ export interface MgmtCoSpecialistConfigs {
     /** P6a: admin-declared required field names; pre-check gates dispatch. */
     requiredFields?: readonly string[];
   };
+  company?: {
+    promptTemplate?: string;
+    modelResourceId?: number | null;
+    /** P6a: admin-declared required field names; pre-check gates dispatch. */
+    requiredFields?: readonly string[];
+  };
 }
 
 export function createMgmtCoRouter(
@@ -288,6 +305,18 @@ export function createMgmtCoRouter(
         modelResourceId: options.configs?.overhead?.modelResourceId ?? null,
       }),
       options.configs?.overhead?.requiredFields,
+    ),
+  );
+  router.register(
+    MGMT_CO_COMPANY_ID,
+    withRequiredFieldsGate(
+      MGMT_CO_COMPANY_ID,
+      createCompanySpecialist(benchmarks.company, {
+        evidenceAsOf: options.evidenceAsOf,
+        promptTemplate: options.configs?.company?.promptTemplate,
+        modelResourceId: options.configs?.company?.modelResourceId ?? null,
+      }),
+      options.configs?.company?.requiredFields,
     ),
   );
   return router;
