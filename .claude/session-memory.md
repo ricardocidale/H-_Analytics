@@ -14,7 +14,8 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 - **P7-A G2 graduation shipped** at `2f1a649c`: 6 new files (PE + quant/market panels + synthesis-validator) + runner rewrite. Mirrors Funding G6-P3b architecture verbatim. IB bar reqs #1, #6, #7, #8, #9 satisfied.
 - **P7-A IB bar closure** in this commit: 25-test bench at `tests/analyst/specialists/revenue-g2.test.ts` + `revenue-comp-dataset` api assignmentRef on Revenue catalog entry → IB req #5 satisfied.
 - **All 5 gates green** at every commit. Convergence threshold matches Funding (55); revisit if telemetry shows mode-collapse in Revenue's 12-comp dataset.
-- **Next step:** P7-B — Compensation Specialist (mgmt-co.compensation, letter TBD). Same N+1 architecture; build order Compensation → Overhead → Company → Property-Defaults.
+- **Next step:** P7-B — Compensation Specialist (mgmt-co.compensation, letter TBD). Same N+1 architecture; build order Compensation → Overhead → Company → Property-Defaults. **Do NOT auto-start P7-B without explicit user direction** (Doctrine Freeze Gate + new-phase kickoff).
+- **Latent gap (matches Funding pattern):** `validateSynthesisOutput` does not enforce ≥3 evidenceRefs per non-ok dimension — Opus could emit 1 ref and pass. Worth patching in both Specialists at once in a follow-up. Surface specialist Tier-1 (`RevenueSpecialistDeps` via `deps.orchestrator.run`) also remains deferred; runner-level IB bar coverage was the P7-A scope.
 
 ---
 
