@@ -461,6 +461,24 @@ export const SEED_SYNC_PROPERTIES = [
   { ...SEED_PROPERTY_DEFAULTS, name: "Blue Ridge Manor", streetAddress: "275 Elk Mountain Scenic Highway", city: "Asheville", stateProvince: "NC", zipPostalCode: "28804", location: "Blue Ridge Mountains, North Carolina", market: "North America", imageUrl: "/api/media/property-asheville.png", status: PropertyStatus.PIPELINE, acquisitionDate: "2027-07-01", operationsStartDate: "2028-07-01", purchasePrice: 6000000, buildingImprovements: 1500000, preOpeningCosts: 250000, operatingReserve: 500000, roomCount: 30, startAdr: 375, adrGrowthRate: 0.025, startOccupancy: 0.50, maxOccupancy: 0.80, occupancyRampMonths: 6, occupancyGrowthStep: 0.05, type: "Financed", costRateFB: 0.10, costRateIT: 0.005, cateringBoostPercent: 0.25, exitCapRate: 0.09, acquisitionLTV: 0.60, acquisitionInterestRate: 0.09, acquisitionTermYears: 25, acquisitionClosingCostRate: 0.02, revShareEvents: 0.28 },
 ];
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Medellin Duplex — single-unit luxury short-term rental (VRBO/Airbnb model).
+//
+// This is NOT a hotel. It books as one whole-unit at a premium nightly rate,
+// has no F&B / events / wellness services, and pays platform commission on
+// each booking. Earlier seed values mixed hotel revenue/cost structure with
+// STR-class pricing, producing an unrealistically high IRR — every assumption
+// below is now stated in STR-native terms:
+//   • roomCount = 1 (one bookable unit), startAdr = 1200 (per-unit nightly)
+//   • Premium STR occupancy: start 0.30, max 0.50 — high day rate
+//     compresses demand pool; conservative-defensible for investor deck
+//   • All non-existent service revenues zeroed (no F&B, events, catering)
+//   • costRateFB = 0 (no F&B operation)
+//   • costRateMarketing = 0.15 (Airbnb/VRBO platform commission, dominant
+//     marketing cost for any STR booking)
+//   • exitCapRate = 0.095 (Colombia country-risk premium, matches Casa
+//     Medellín and San Diego/Cartagena seeds)
+// ─────────────────────────────────────────────────────────────────────────────
 export const SEED_MEDELLIN_DUPLEX = {
   userId: null,
   name: "Medellin Duplex",
@@ -481,20 +499,20 @@ export const SEED_MEDELLIN_DUPLEX = {
   landValuePercent: DEFAULT_LAND_VALUE_PERCENT,
   preOpeningCosts: 15000,
   operatingReserve: 60000,
-  roomCount: 4,
-  startAdr: 1000,
+  roomCount: 1,
+  startAdr: 1200,
   adrGrowthRate: 0.04,
-  startOccupancy: 0.45,
-  maxOccupancy: 0.65,
+  startOccupancy: 0.30,
+  maxOccupancy: 0.50,
   occupancyRampMonths: 4,
   stabilizationMonths: 12,
   occupancyGrowthStep: 0.04,
   type: "Full Equity",
   willRefinance: "No",
   costRateRooms: 0.14,
-  costRateFB: 0.06,
+  costRateFB: 0,
   costRateAdmin: 0.07,
-  costRateMarketing: 0.02,
+  costRateMarketing: 0.15,
   costRatePropertyOps: 0.04,
   costRateUtilities: 0.04,
   costRateTaxes: 0.018,
@@ -502,11 +520,11 @@ export const SEED_MEDELLIN_DUPLEX = {
   costRateFFE: 0.03,
   costRateOther: 0.04,
   costRateInsurance: DEFAULT_COST_RATE_INSURANCE,
-  revShareEvents: 0.10,
-  revShareFB: 0.12,
-  revShareOther: 0.06,
-  cateringBoostPercent: 0.10,
-  exitCapRate: 0.08,
+  revShareEvents: 0,
+  revShareFB: 0,
+  revShareOther: 0,
+  cateringBoostPercent: 0,
+  exitCapRate: 0.095,
   taxRate: 0.35,
   countryRiskPremium: 0.0275,
   dispositionCommission: DEFAULT_COMMISSION_RATE,
