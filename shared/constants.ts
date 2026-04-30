@@ -408,6 +408,11 @@ export const DEFAULT_FUNDING_QUANT_PANEL_MODEL = "gemini-2.5-flash";
 export const DEFAULT_FUNDING_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
 export const DEFAULT_FUNDING_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";
 
+export const DEFAULT_REVENUE_SPECIALIST_MODEL = "claude-opus-4-7";
+export const DEFAULT_REVENUE_QUANT_PANEL_MODEL = "gemini-2.5-flash";
+export const DEFAULT_REVENUE_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
+export const DEFAULT_REVENUE_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";
+
 export const DEFAULT_RISK_SPECIALIST_MODEL = "claude-opus-4-7";
 export const DEFAULT_RISK_QUANT_PANEL_MODEL = "gemini-2.5-flash";
 export const DEFAULT_RISK_MARKET_PANEL_MODEL = "claude-sonnet-4-6";

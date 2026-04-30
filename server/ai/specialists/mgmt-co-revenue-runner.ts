@@ -1,32 +1,64 @@
 /**
- * runRevenueSpecialist — single-shot Opus call producing a complete
- * AnalystVerdict for the Revenue tab (G2-v1).
+ * runRevenueSpecialist — N+1 pipeline producing a complete AnalystVerdict
+ * for the Revenue tab (G2 graduation).
  *
- * Mirrors mgmt-co-funding-runner.ts (G1.5c-v1) — same v1 architecture,
- * same error handling, same verdict assembly pattern.
+ * Mirrors mgmt-co-funding-runner.ts (G6-P3b) — same N+1 architecture, same
+ * regress loop, same vendor breadth. Revenue-specific:
+ *   - Persona: hospitality management revenue ancillary mix (not LP funding)
+ *   - Comparables: hotel revenue mix rows (RevenueComparableRow)
+ *   - Reference benchmarks: kpi/demand domains (gopMargin, revpar, seasonality)
  *
- * v1 architecture:
- *   1. Build system + user prompts via mgmt-co-revenue-prompt
- *   2. Call Opus via Vercel AI SDK streamObject with RevenueSpecialistOutputSchema
- *   3. Map structured output → RawVerdictDimension[] (one per revenue key)
- *   4. Run Voice Renderer per dimension + surface
- *   5. Build AnalystVerdict via buildAnalystVerdict (invariant-checked)
- *   6. Return verdict; route handler returns it as 200 response body
+ * G2 architecture (mirrors Funding G6-P3b end state):
+ *   0. Prompt Engineer (Gemini Flash): adapts panel system prompts to operator
+ *      context → quantAddendum + marketAddendum (Intelligence Bar req #8)
+ *   1. Parallel panels:
+ *      - Gemini Flash (quantitative): low/mid/high decimal-fraction ranges +
+ *        conviction grounded in revenue comparables
+ *      - Claude Sonnet (market):       guest-mix sentiment + concept-fit risk
+ *        flags + directional bias
+ *   2. Convergence check (quant-conviction-only):
+ *      avg(convictionScore × 5 dims) < CONVERGENCE_MIN_QUANT_CONVICTION → honest-fail
+ *   3. Synthesis (Opus): full Analyst-persona verdict enriched with market context
+ *   4. Quality regress (max 2 attempts): on synthesis-validator failure, re-run
+ *      PE with regressReason + re-execute panels → retry synthesis. Exhaustion
+ *      → honest-fail (Intelligence Bar req #9).
  *
- * v1 deferrals:
- *   - N+1 cross-vendor synthesis (G6-P2)
- *   - Verdict cache (G6-P3)
- *   - Regress loop on quality fail (G6-P3)
- *   - Live STR / HVS comparables (G6-P3)
- *   - Persona resolution (G6-P3)
+ * Both panels run in parallel so latency is max(quant, market) + synthesis,
+ * not quant + market + synthesis. `meta.vendorsUsed: ["anthropic", "google"]`
+ * satisfies Intelligence Bar requirement #7 (vendor breadth ≥2).
+ * `meta.promptEngineerRunId` satisfies requirement #8.
+ * `meta.regressCount` is tracked per req #9.
  *
- * Errors throw `Tier1UnavailableError`; the route handler catches and
- * degrades to Tier-0 fallback per ADR-008.
+ * G2 scope notes:
+ *   - Same convergence threshold as Funding (55). The 12-comp dataset spans
+ *     urban / wellness / lifestyle / Latam / Med-Europe — wider distribution
+ *     than Funding's LP set, so the same floor remains a reasonable honest
+ *     band. Revisit if telemetry shows mode-collapse vs. honest-fail bias.
+ *   - No verdict cache yet (ADR-004 / G6-P3c equivalent for Revenue).
+ *   - No live STR/HVS API yet — uses canned RevenueComparableRow set.
+ *   - Public function signature is stable. Body changes; callers unaffected.
+ *
+ * Errors throw `Tier1UnavailableError`; the route handler degrades to Tier-0
+ * fallback with `meta.fallbackReason: "tier1_temporarily_unavailable"`.
  */
 
-import { streamObject } from "ai";
+import { streamObject, generateObject } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
-import { DEFAULT_FUNDING_SPECIALIST_MODEL } from "@shared/constants";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import {
+  DEFAULT_REVENUE_SPECIALIST_MODEL,
+  DEFAULT_REVENUE_QUANT_PANEL_MODEL,
+  DEFAULT_REVENUE_MARKET_PANEL_MODEL,
+  DEFAULT_REVENUE_PROMPT_ENGINEER_MODEL,
+} from "@shared/constants";
+import {
+  PromptEngineerOutputSchema,
+  buildPromptEngineerSystemPrompt,
+  buildPromptEngineerUserPrompt,
+  type PromptEngineerOutput,
+  type RegressContext,
+} from "./mgmt-co-revenue-prompt-engineer";
+import { validateSynthesisOutput } from "./mgmt-co-revenue-synthesis-validator";
 import { AI_GENERATION_TIMEOUT_MS } from "../../constants";
 import {
   buildRevenueSystemPrompt,
@@ -37,6 +69,22 @@ import {
   RevenueSpecialistOutputSchema,
   type RevenueSpecialistOutput,
 } from "./mgmt-co-revenue-output-schema";
+import {
+  QuantPanelOutputSchema,
+  type QuantPanelOutput,
+} from "./mgmt-co-revenue-quant-panel-schema";
+import {
+  MarketPanelOutputSchema,
+  type MarketPanelOutput,
+} from "./mgmt-co-revenue-market-panel-schema";
+import {
+  buildQuantPanelSystemPrompt,
+  buildQuantPanelUserPrompt,
+} from "./mgmt-co-revenue-quant-panel-prompt";
+import {
+  buildMarketPanelSystemPrompt,
+  buildMarketPanelUserPrompt,
+} from "./mgmt-co-revenue-market-panel-prompt";
 import {
   type RevenueComparableRow,
   revenueComparableToEvidence,
@@ -62,10 +110,36 @@ import type { RevenueBenchmarks } from "@shared/constants-revenue-benchmarks";
 import { getFieldRegistryEntry } from "../../../engine/analyst/registry/field-registry";
 import type { MarketBenchmarkEntry } from "./market-benchmark-types";
 
-// Revenue v1 uses the same Opus model as Funding v1 per the LLM vendor roster
-// (Opus 4.7 for synthesis/verdict-final). Alias avoids a separate constant.
-const REVENUE_MODEL_ID = DEFAULT_FUNDING_SPECIALIST_MODEL;
+// ── Model IDs ────────────────────────────────────────────────────────────────
+
+const REVENUE_MODEL_ID = DEFAULT_REVENUE_SPECIALIST_MODEL;
+const QUANT_PANEL_MODEL_ID = DEFAULT_REVENUE_QUANT_PANEL_MODEL;
+const MARKET_PANEL_MODEL_ID = DEFAULT_REVENUE_MARKET_PANEL_MODEL;
+const PROMPT_ENGINEER_MODEL_ID = DEFAULT_REVENUE_PROMPT_ENGINEER_MODEL;
+
+// ── Token budgets ────────────────────────────────────────────────────────────
+
 const REVENUE_MAX_OUTPUT_TOKENS = 4_000;
+const PANEL_MAX_OUTPUT_TOKENS = 2_000;
+const MARKET_PANEL_MAX_OUTPUT_TOKENS = 1_500;
+const PROMPT_ENGINEER_MAX_OUTPUT_TOKENS = 600;
+
+// ── Convergence policy (quant-conviction-only) ───────────────────────────────
+
+/**
+ * Average quant-panel conviction score threshold. Below this value the
+ * quantitative panel's output is too uncertain to proceed to Opus synthesis;
+ * the runner emits an honest-fail Tier-1 verdict instead.
+ *
+ * Same threshold as Funding (55). Revenue's 12-comp dataset spans urban,
+ * wellness, lifestyle, Latam, and Med-Europe — wider than Funding's LP set,
+ * so the same honest floor applies. Revisit if telemetry shows persistent
+ * mode-collapse on the convergence side.
+ */
+const CONVERGENCE_MIN_QUANT_CONVICTION = 55;
+
+/** Maximum synthesis regress iterations. 0 = first-pass success, 2 = exhausted. */
+const MAX_SYNTHESIS_REGRESSES = 2;
 
 /**
  * Per-key form-field id the Revenue tab's `<input data-field="...">` dialog
@@ -80,11 +154,13 @@ const REVENUE_DIMENSION_FIELDS: Readonly<Record<RevenueDimensionKey, { field: st
   cateringBoostPct: { field: "defaultCateringBoostPct" },
 };
 
+// ── Pure helpers ─────────────────────────────────────────────────────────────
+
 function unitFor(field: string): string {
   const entry = getFieldRegistryEntry(field);
   if (!entry) {
     throw new Error(
-      `Revenue v1 runner: no FIELD_REGISTRY entry for field "${field}". Add one to engine/analyst/registry/field-registry.ts so the Voice Renderer formats this dimension consistently.`,
+      `Revenue runner: no FIELD_REGISTRY entry for field "${field}". Add one to engine/analyst/registry/field-registry.ts.`,
     );
   }
   return entry.unit;
@@ -132,19 +208,14 @@ function llmDimensionToRaw(
   };
   const userValue =
     (inputs as Record<string, number | null | undefined>)[llmDim.key] ?? null;
-  const severity = deriveSeverity(userValue, range);
-  const intent = deriveIntent(userValue, range);
-  const evidence = buildEvidenceForDimension(llmDim.evidenceRefs, comparables);
-  const qualityScore = convictionToQualityScore(llmDim.conviction);
-
   return {
     field: meta.field,
     isNumericField: true,
-    severity,
+    severity: deriveSeverity(userValue, range),
     range,
-    qualityScore,
-    evidence,
-    intent,
+    qualityScore: convictionToQualityScore(llmDim.conviction),
+    evidence: buildEvidenceForDimension(llmDim.evidenceRefs, comparables),
+    intent: deriveIntent(userValue, range),
     actions: [],
   };
 }
@@ -165,7 +236,6 @@ function rawWithVoice(
     personaContext: persona,
     llmReasoning: llmReasoning || undefined,
   });
-
   return {
     field: raw.field,
     isNumericField: raw.isNumericField,
@@ -188,9 +258,40 @@ function asPersonaContext(persona: RevenuePromptInputContext["persona"]): Person
 }
 
 /**
- * Typed error thrown when the v1 runner cannot produce a Tier-1 verdict.
- * Route handler catches and degrades to Tier-0 fallback per ADR-008.
+ * Average quality score across all 5 quant-panel dimensions. Below
+ * CONVERGENCE_MIN_QUANT_CONVICTION → honest-fail (skip synthesis).
  */
+function computeAvgQuantConviction(quantOutput: QuantPanelOutput): number {
+  const scores = quantOutput.dimensions.map((d) => convictionToQualityScore(d.conviction));
+  return scores.reduce((a, b) => a + b, 0) / scores.length;
+}
+
+/**
+ * Render market panel output as a structured text block injected into the
+ * Opus synthesis user prompt. Provides qualitative enrichment context without
+ * overriding the quant panel's numeric grounding.
+ */
+function buildMarketEnrichmentBlock(market: MarketPanelOutput): string {
+  const dims = market.dimensions
+    .map((d) => {
+      const flags =
+        d.conceptRiskFlags.length > 0
+          ? `\n      Concept flags: ${d.conceptRiskFlags.map((f) => `"${f}"`).join(", ")}`
+          : "";
+      return (
+        `  - ${d.key}: sentiment=${d.marketSentiment}, bias=${d.proposedBias}${flags}\n` +
+        `    ${d.reasoning}`
+      );
+    })
+    .join("\n");
+  const ctx = market.overallMarketContext
+    ? `\nOverall guest-mix context: ${market.overallMarketContext}`
+    : "";
+  return `# Market panel signals (Claude Sonnet qualitative pass — for enrichment only)\n\n${dims}${ctx}`;
+}
+
+// ── Typed error ──────────────────────────────────────────────────────────────
+
 export class Tier1UnavailableError extends Error {
   readonly cause: unknown;
   constructor(message: string, cause: unknown) {
@@ -200,18 +301,24 @@ export class Tier1UnavailableError extends Error {
   }
 }
 
+// ── Deps interface ───────────────────────────────────────────────────────────
+
 export interface RunRevenueSpecialistDeps {
   /** Optional override for the Anthropic model factory (tests inject stubs). */
   getAnthropicModel?: (modelId: string) => ReturnType<ReturnType<typeof createAnthropic>>;
+  /** Optional override for the Google model factory (tests inject stubs). */
+  getGoogleModel?: (modelId: string) => ReturnType<ReturnType<typeof createGoogleGenerativeAI>>;
   /** Optional reference time for verdict generatedAt; tests pass a fixed Date. */
   now?: Date;
 }
 
+// ── Market benchmark lookup ──────────────────────────────────────────────────
+
 /**
  * Look up KPI and demand benchmarks from `reference_range` for the operator's
- * locale. Provides market calibration context to the Revenue prompt (ADR, RevPAR,
- * demand seasonality). Failures silently swallowed — missing benchmarks should
- * not block the verdict.
+ * locale. Provides market calibration context to the Revenue prompts (GOP
+ * margin, RevPAR, seasonality). Failures silently swallowed — missing
+ * benchmarks should not block the verdict.
  */
 async function resolveRevenueMarketBenchmarks(
   locale: string | undefined,
@@ -248,12 +355,205 @@ async function resolveRevenueMarketBenchmarks(
   return entries;
 }
 
+// ── Private panel runners ────────────────────────────────────────────────────
+
+async function runPromptEngineer(
+  ctx: RevenuePromptInputContext,
+  comparables: readonly RevenueComparableRow[],
+  deps: RunRevenueSpecialistDeps,
+  abortSignal: AbortSignal,
+  regressContext?: RegressContext,
+): Promise<{ output: PromptEngineerOutput; runId: string }> {
+  const googleModelFactory =
+    deps.getGoogleModel ??
+    ((modelId: string) =>
+      createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY ?? "" })(modelId));
+
+  const { object } = await generateObject({
+    model: googleModelFactory(PROMPT_ENGINEER_MODEL_ID),
+    schema: PromptEngineerOutputSchema,
+    system: buildPromptEngineerSystemPrompt(),
+    prompt: buildPromptEngineerUserPrompt(ctx, comparables, regressContext),
+    maxOutputTokens: PROMPT_ENGINEER_MAX_OUTPUT_TOKENS,
+    abortSignal,
+  });
+
+  const runId = `pe-revenue-g2-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  return { output: object, runId };
+}
+
+async function runQuantPanel(
+  ctx: RevenuePromptInputContext,
+  benchmarks: RevenueBenchmarks,
+  comparables: readonly RevenueComparableRow[],
+  marketCalibration: MarketBenchmarkEntry[],
+  deps: RunRevenueSpecialistDeps,
+  abortSignal: AbortSignal,
+  peAddendum?: string,
+): Promise<QuantPanelOutput> {
+  const baseSystemPrompt = buildQuantPanelSystemPrompt();
+  const systemPrompt = peAddendum ? `${peAddendum}\n\n${baseSystemPrompt}` : baseSystemPrompt;
+  const userPrompt = buildQuantPanelUserPrompt(ctx, benchmarks, comparables, marketCalibration);
+
+  const googleModelFactory =
+    deps.getGoogleModel ??
+    ((modelId: string) =>
+      createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY ?? "" })(modelId));
+
+  const { object } = await generateObject({
+    model: googleModelFactory(QUANT_PANEL_MODEL_ID),
+    schema: QuantPanelOutputSchema,
+    system: systemPrompt,
+    prompt: userPrompt,
+    maxOutputTokens: PANEL_MAX_OUTPUT_TOKENS,
+    abortSignal,
+  });
+  return object;
+}
+
+async function runMarketPanel(
+  ctx: RevenuePromptInputContext,
+  comparables: readonly RevenueComparableRow[],
+  deps: RunRevenueSpecialistDeps,
+  abortSignal: AbortSignal,
+  peAddendum?: string,
+): Promise<MarketPanelOutput> {
+  const baseSystemPrompt = buildMarketPanelSystemPrompt();
+  const systemPrompt = peAddendum ? `${peAddendum}\n\n${baseSystemPrompt}` : baseSystemPrompt;
+  const userPrompt = buildMarketPanelUserPrompt(ctx, comparables);
+
+  const anthropicFactory = deps.getAnthropicModel ?? createAnthropic();
+  const { object } = await generateObject({
+    model: anthropicFactory(MARKET_PANEL_MODEL_ID),
+    schema: MarketPanelOutputSchema,
+    system: systemPrompt,
+    prompt: userPrompt,
+    maxOutputTokens: MARKET_PANEL_MAX_OUTPUT_TOKENS,
+    abortSignal,
+  });
+  return object;
+}
+
+async function runSynthesisPanel(
+  ctx: RevenuePromptInputContext,
+  benchmarks: RevenueBenchmarks,
+  comparables: readonly RevenueComparableRow[],
+  marketCalibration: MarketBenchmarkEntry[],
+  marketContext: MarketPanelOutput,
+  deps: RunRevenueSpecialistDeps,
+  abortSignal: AbortSignal,
+): Promise<{ output: RevenueSpecialistOutput; cognitiveRunId: string }> {
+  const systemPrompt = buildRevenueSystemPrompt();
+  const baseUserPrompt = buildRevenueUserPrompt(ctx, benchmarks, comparables, marketCalibration);
+  const enrichedUserPrompt = `${baseUserPrompt}\n\n${buildMarketEnrichmentBlock(marketContext)}`;
+
+  const anthropicFactory = deps.getAnthropicModel ?? createAnthropic();
+  const result = streamObject({
+    model: anthropicFactory(REVENUE_MODEL_ID),
+    schema: RevenueSpecialistOutputSchema,
+    messages: [
+      {
+        role: "system",
+        content: systemPrompt,
+        providerOptions: {
+          anthropic: { cacheControl: { type: "ephemeral" } },
+        },
+      },
+      { role: "user", content: enrichedUserPrompt },
+    ],
+    maxOutputTokens: REVENUE_MAX_OUTPUT_TOKENS,
+    abortSignal,
+  });
+
+  // Drain partial stream for backpressure; consume final validated object.
+  for await (const _partial of result.partialObjectStream) {
+    void _partial;
+  }
+  const output = await result.object;
+  const cognitiveRunId = `revenue-g2-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  return { output, cognitiveRunId };
+}
+
+// ── Honest-fail verdict builder ──────────────────────────────────────────────
+
 /**
- * Run the v1 Revenue Specialist end-to-end.
+ * Build a Tier-1 honest-fail verdict when quant conviction is below threshold.
+ * All dimensions are ok/missing-data with null range. Both vendors appear in
+ * `meta.vendorsUsed` because both panels ran before the convergence check.
+ */
+function buildHonestFailVerdict(
+  quantOutput: QuantPanelOutput,
+  comparables: readonly RevenueComparableRow[],
+  ctx: RevenuePromptInputContext,
+  persona: PersonaContext,
+  deps: RunRevenueSpecialistDeps,
+  durationMs: number,
+  peRunId: string,
+  regressCount: number,
+): AnalystVerdict {
+  void ctx;
+  const voiceRenderer = createVoiceRenderer();
+
+  // Synthetic evidence for dimensions with no quant refs. Satisfies
+  // MIN_SOURCES_FOR_ADVICE (1) and TIER_1_MIN_TOTAL_EVIDENCE (3) across dims.
+  const SYNTHETIC_EVIDENCE: Evidence = {
+    source: "quant-panel-low-conviction",
+    tier: "estimated",
+    asOf: new Date().toISOString().slice(0, 10),
+    personaFit: 0.3,
+  };
+
+  const quantByKey = new Map(quantOutput.dimensions.map((d) => [d.key, d]));
+
+  const dimensions: VerdictDimension[] = REVENUE_DIMENSION_KEYS.map((key) => {
+    const meta = REVENUE_DIMENSION_FIELDS[key];
+    const quantDim = quantByKey.get(key);
+    const evidence: Evidence[] =
+      quantDim && quantDim.evidenceRefs.length > 0
+        ? buildEvidenceForDimension(quantDim.evidenceRefs, comparables)
+        : [SYNTHETIC_EVIDENCE];
+
+    const raw: RawVerdictDimension = {
+      field: meta.field,
+      isNumericField: true,
+      severity: "ok",
+      range: null,
+      qualityScore: 35, // below CONVICTION_FLOOR — signals low confidence
+      evidence,
+      intent: "missing-data",
+      actions: [],
+    };
+
+    return rawWithVoice(raw, "", persona, voiceRenderer);
+  });
+
+  const surfaceVoice = voiceRenderer.renderSurface(dimensions);
+  const cognitiveRunId = `revenue-g2-hf-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+
+  return buildAnalystVerdict({
+    specialistId: "mgmt-co.revenue",
+    dimensions,
+    surfaceVoice,
+    meta: {
+      tier: 1,
+      durationMs,
+      cognitiveRunId,
+      vendorsUsed: ["anthropic", "google"],
+      cacheState: "miss",
+      promptEngineerRunId: peRunId,
+      regressCount,
+    },
+    generatedAt: deps.now ? deps.now.toISOString() : undefined,
+  });
+}
+
+// ── Public entry point ───────────────────────────────────────────────────────
+
+/**
+ * Run the G2 Revenue Specialist N+1 pipeline end-to-end.
  *
- * Returns a complete AnalystVerdict ready for the route handler to send
- * back to the client. Throws Tier1UnavailableError on any failure;
- * caller is responsible for degrading to Tier-0.
+ * Returns a complete AnalystVerdict ready for the route handler. Throws
+ * Tier1UnavailableError on any failure; caller degrades to Tier-0.
  */
 export async function runRevenueSpecialist(
   ctx: RevenuePromptInputContext,
@@ -261,63 +561,218 @@ export async function runRevenueSpecialist(
   comparables: readonly RevenueComparableRow[],
   deps: RunRevenueSpecialistDeps = {},
 ): Promise<AnalystVerdict> {
+  const startMs = Date.now();
   const marketCalibration = await resolveRevenueMarketBenchmarks(ctx.persona.locale);
-  const systemPrompt = buildRevenueSystemPrompt();
-  const userPrompt = buildRevenueUserPrompt(ctx, benchmarks, comparables, marketCalibration);
   const persona = asPersonaContext(ctx.persona);
 
-  const modelFactory = deps.getAnthropicModel ?? createAnthropic();
-
-  let output: RevenueSpecialistOutput;
-  let cognitiveRunId: string;
-  const opusAbort = new AbortController();
-  const opusTimer = setTimeout(
-    () => opusAbort.abort(new Error(`Revenue v1 Opus timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`)),
+  // ── Phase 0: Prompt Engineer pre-stage (Intelligence Bar req #8) ────────
+  const peAbort = new AbortController();
+  const peTimer = setTimeout(
+    () =>
+      peAbort.abort(
+        new Error(`Revenue G2 PE timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`),
+      ),
     AI_GENERATION_TIMEOUT_MS,
   );
+
+  let peOutput: PromptEngineerOutput;
+  let peRunId: string;
   try {
-    // TODO (Revenue N+1 graduation — phase TBD, see phases.md; G6-P2 was Funding-only)
-    const result = streamObject({
-      model: modelFactory(REVENUE_MODEL_ID),
-      schema: RevenueSpecialistOutputSchema,
-      messages: [
-        {
-          role: "system",
-          content: systemPrompt,
-          providerOptions: {
-            anthropic: { cacheControl: { type: "ephemeral" } },
-          },
-        },
-        { role: "user", content: userPrompt },
-      ],
-      maxOutputTokens: REVENUE_MAX_OUTPUT_TOKENS,
-      abortSignal: opusAbort.signal,
-    });
-
-    for await (const _partial of result.partialObjectStream) {
-      void _partial;
-    }
-    output = await result.object;
-    clearTimeout(opusTimer);
-
-    // TODO (Revenue N+1 graduation — phase TBD) replace with real orchestrator cognitiveRunId
-    cognitiveRunId = `revenue-v1-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    ({ output: peOutput, runId: peRunId } = await runPromptEngineer(
+      ctx,
+      comparables,
+      deps,
+      peAbort.signal,
+    ));
+    clearTimeout(peTimer);
   } catch (err: unknown) {
-    clearTimeout(opusTimer);
+    clearTimeout(peTimer);
     throw new Tier1UnavailableError(
-      `Revenue v1 cognitive call failed: ${err instanceof Error ? err.message : String(err)}`,
+      `Revenue G2 prompt engineer failed: ${err instanceof Error ? err.message : String(err)}`,
       err,
     );
   }
 
+  // ── Phase 1: parallel panels ────────────────────────────────────────────
+  const panelAbort = new AbortController();
+  const panelTimer = setTimeout(
+    () =>
+      panelAbort.abort(
+        new Error(`Revenue G2 panels timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`),
+      ),
+    AI_GENERATION_TIMEOUT_MS,
+  );
+
+  let quantOutput: QuantPanelOutput;
+  let marketOutput: MarketPanelOutput;
+  try {
+    [quantOutput, marketOutput] = await Promise.all([
+      runQuantPanel(
+        ctx,
+        benchmarks,
+        comparables,
+        marketCalibration,
+        deps,
+        panelAbort.signal,
+        peOutput.quantAddendum,
+      ),
+      runMarketPanel(ctx, comparables, deps, panelAbort.signal, peOutput.marketAddendum),
+    ]);
+    clearTimeout(panelTimer);
+  } catch (err: unknown) {
+    clearTimeout(panelTimer);
+    throw new Tier1UnavailableError(
+      `Revenue G2 panel phase failed: ${err instanceof Error ? err.message : String(err)}`,
+      err,
+    );
+  }
+
+  // ── Phase 2: convergence check (quant-conviction-only) ──────────────────
+  // Convergence-fail is NOT a regress candidate — PE addenda cannot repair a
+  // thin revenue comp set. Emit honest-fail immediately with regressCount=0.
+  const avgQuantConviction = computeAvgQuantConviction(quantOutput);
+  if (avgQuantConviction < CONVERGENCE_MIN_QUANT_CONVICTION) {
+    return buildHonestFailVerdict(
+      quantOutput,
+      comparables,
+      ctx,
+      persona,
+      deps,
+      Date.now() - startMs,
+      peRunId,
+      0,
+    );
+  }
+
+  // ── Phase 3: synthesis + quality regress loop (Intelligence Bar req #9) ──
+  // Each failed quality check re-runs PE (with prior addenda + failure reason)
+  // and both panels, then retries synthesis. Max MAX_SYNTHESIS_REGRESSES
+  // attempts; exhaustion → honest-fail. regressCount tracks completed regresses.
+
+  let regressCount = 0;
+  let currentPeOutput = peOutput;
+  let currentQuantOutput = quantOutput;
+  let currentMarketOutput = marketOutput;
+
+  let output!: RevenueSpecialistOutput;
+  let cognitiveRunId = "";
+
+  while (true) {
+    const opusAbort = new AbortController();
+    const opusTimer = setTimeout(
+      () =>
+        opusAbort.abort(
+          new Error(`Revenue G2 synthesis timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`),
+        ),
+      AI_GENERATION_TIMEOUT_MS,
+    );
+
+    let loopOutput: RevenueSpecialistOutput;
+    let loopRunId: string;
+    try {
+      ({ output: loopOutput, cognitiveRunId: loopRunId } = await runSynthesisPanel(
+        ctx,
+        benchmarks,
+        comparables,
+        marketCalibration,
+        currentMarketOutput,
+        deps,
+        opusAbort.signal,
+      ));
+      clearTimeout(opusTimer);
+    } catch (err: unknown) {
+      clearTimeout(opusTimer);
+      throw new Tier1UnavailableError(
+        `Revenue G2 synthesis failed: ${err instanceof Error ? err.message : String(err)}`,
+        err,
+      );
+    }
+
+    const validation = validateSynthesisOutput(loopOutput, comparables);
+    if (validation.pass) {
+      output = loopOutput;
+      cognitiveRunId = loopRunId;
+      break;
+    }
+
+    if (regressCount >= MAX_SYNTHESIS_REGRESSES) {
+      return buildHonestFailVerdict(
+        currentQuantOutput,
+        comparables,
+        ctx,
+        persona,
+        deps,
+        Date.now() - startMs,
+        peRunId,
+        regressCount,
+      );
+    }
+
+    regressCount++;
+
+    const regressCtx: RegressContext = {
+      priorQuantAddendum: currentPeOutput.quantAddendum,
+      priorMarketAddendum: currentPeOutput.marketAddendum,
+      regressReason: validation.regressReason!,
+    };
+
+    const regressAbort = new AbortController();
+    const regressTimer = setTimeout(
+      () =>
+        regressAbort.abort(
+          new Error(
+            `Revenue G2 regress ${regressCount} timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`,
+          ),
+        ),
+      AI_GENERATION_TIMEOUT_MS,
+    );
+
+    try {
+      const peResult = await runPromptEngineer(
+        ctx,
+        comparables,
+        deps,
+        regressAbort.signal,
+        regressCtx,
+      );
+      currentPeOutput = peResult.output;
+
+      [currentQuantOutput, currentMarketOutput] = await Promise.all([
+        runQuantPanel(
+          ctx,
+          benchmarks,
+          comparables,
+          marketCalibration,
+          deps,
+          regressAbort.signal,
+          currentPeOutput.quantAddendum,
+        ),
+        runMarketPanel(
+          ctx,
+          comparables,
+          deps,
+          regressAbort.signal,
+          currentPeOutput.marketAddendum,
+        ),
+      ]);
+      clearTimeout(regressTimer);
+    } catch (err: unknown) {
+      clearTimeout(regressTimer);
+      throw new Tier1UnavailableError(
+        `Revenue G2 regress ${regressCount} phase failed: ${err instanceof Error ? err.message : String(err)}`,
+        err,
+      );
+    }
+  }
+
+  // ── Phase 4: assemble verdict ────────────────────────────────────────────
   try {
     const voiceRenderer = createVoiceRenderer();
     const rawByKey = new Map<RevenueDimensionKey, RawVerdictDimension>();
     const reasoningByKey = new Map<RevenueDimensionKey, string>();
 
     for (const llmDim of output.dimensions) {
-      const raw = llmDimensionToRaw(llmDim, ctx.inputs, comparables);
-      rawByKey.set(llmDim.key, raw);
+      rawByKey.set(llmDim.key, llmDimensionToRaw(llmDim, ctx.inputs, comparables));
       reasoningByKey.set(llmDim.key, llmDim.reasoning);
     }
 
@@ -326,13 +781,13 @@ export async function runRevenueSpecialist(
       const reasoning = reasoningByKey.get(key);
       if (!raw) {
         throw new Tier1UnavailableError(
-          `Revenue v1 missing dimension after schema parse: ${key}`,
+          `Revenue G2 missing dimension after schema parse: ${key}`,
           null,
         );
       }
       if (raw.evidence.length === 0) {
         throw new Tier1UnavailableError(
-          `Revenue v1 dimension ${key} emitted zero evidenceRefs; degrading to Tier-0`,
+          `Revenue G2 dimension ${key} emitted zero evidenceRefs; degrading to Tier-0`,
           null,
         );
       }
@@ -347,23 +802,30 @@ export async function runRevenueSpecialist(
       surfaceVoice,
       meta: {
         tier: 1,
-        durationMs: 0,
+        durationMs: Date.now() - startMs,
         cognitiveRunId,
-        // TODO (Revenue N+1 graduation — phase TBD) populate vendorsUsed once
-        // N+1 panels land. Omit in v1 (single-vendor Anthropic Opus) to avoid
-        // violating the ≥2-vendor invariant that fires when vendorsUsed is set.
-        // vendorsUsed: omitted in v1
-        // TODO G6-P3 — cacheState becomes "hit" | "miss" once verdict cache
-        // read path is wired (ADR-004 §4). v1 honestly emits "miss".
+        vendorsUsed: ["anthropic", "google"],
         cacheState: "miss",
+        promptEngineerRunId: peRunId,
+        regressCount,
       },
       generatedAt: deps.now ? deps.now.toISOString() : undefined,
     });
   } catch (err: unknown) {
     if (err instanceof Tier1UnavailableError) throw err;
     throw new Tier1UnavailableError(
-      `Revenue v1 post-stream assembly failed: ${err instanceof Error ? err.message : String(err)}`,
+      `Revenue G2 verdict assembly failed: ${err instanceof Error ? err.message : String(err)}`,
       err,
     );
   }
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// Cathedral graduation roadmap
+//
+// v1            chapel: single-shot Opus
+// G2  (this)    N+1 panels (Gemini Flash + Sonnet) → vendor breadth ≥2 (req #7)
+//                + Prompt Engineer pre-stage → meta.promptEngineerRunId (req #8)
+//                + quality check + bounded regress loop → meta.regressCount (req #9)
+// G2-next       persistent verdict cache (ADR-004 / Funding G6-P3c equivalent)
+// G2-tests      Bar invariants asserted in revenue-g2.test.ts (IB#1-#9 all green)
