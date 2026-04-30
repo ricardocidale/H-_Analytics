@@ -20,7 +20,7 @@ The platform features two AI agents:
 - **Button Label Consistency:** Always "Save" — never "Update". See `rules/ui-patterns.md`.
 - **Brand Voice is LAW:** Before writing ANY user-facing text, read `.claude/brand-voice-guidelines.md` — the SINGLE SOURCE OF TRUTH.
 - **CI Hygiene:** After pulling external code (Claude Code, other agents), run `npx tsx script/ci-hygiene.ts` to auto-fix ESLint unused vars/imports, secret scanner false positives, and TypeScript errors.
-- **Intelligence-First Pages:** Every page with inputs must: (1) nudge user to Ask the Analyst on first visit (glowing button), (2) require Save before leaving, (3) auto-save if user doesn't press Save, (4) block downstream fields until compulsory fields are completed, (5) compel regeneration if intelligence is old. Track first-visit per-user per-page in DB.
+- **Intelligence-First Pages:** Every page with inputs must: (1) nudge user to consult the Analyst on first visit (glowing Analyst button per `.claude/skills/vocabulary/SKILL.md` § 2 — never write "Ask The Analyst" as a literal label), (2) require Save before leaving, (3) auto-save if user doesn't press Save, (4) block downstream fields until compulsory fields are completed, (5) compel regeneration if intelligence is old. Track first-visit per-user per-page in DB.
 - **100% Session Memory:** Save decisions to `.claude/session-memory.md` at session end.
 - **Every financial line item** should have a ? tooltip (HelpTooltip or InfoTooltip).
 - **Every page must be graphics-rich** — charts, animations, visual elements required.

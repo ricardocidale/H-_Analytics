@@ -8,6 +8,16 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 30, 2026 (later) — Skills audit + skill-path proof test + P7-C close
+
+- **P7-C closed** (`76525c11`, `9720d72c`): H–K Constants Specialists status flipped `"needs-page"` → `"built"` after Replit shipped `ConstantsOwnedCard.tsx` (`03d5ceb7`). Updated both exempt sets in sync — `VERDICT_DIMENSION_EXEMPT` (`tests/proof/specialist-intelligence-bar.test.ts`) and `BUILT_SPECIALISTS_WITHOUT_VERDICT_DIMENSIONS` (`tests/analyst/voice/field-registry-parity.test.ts`).
+- **Skills audit** (`a3485608`): 18 broken `.md` path references fixed across `context-loading/SKILL.md`, `design-standards.md` (rule), and 6 other files — all consequence of skills moving into subdirectories without the routing layer following. 15 previously-invisible skills (analyst/, resources/, session-plans/) added to `_index.md`. Two pre-ADR planning docs (`research-intelligence-redesign.md`, `research-intelligence-strategy.md`) archived — both used forbidden "Regenerate Research" vocabulary and pre-dated current Analyst architecture.
+- **Skill-path proof test shipped** (`74f54846`): `tests/proof/skill-paths.test.ts` scans every backtick-quoted `.md` reference and asserts existence on disk. TDD red-phase verified by deliberate broken path. Surfaced 20 additional broken refs beyond the manual audit (api-routes, no-hardcoded-assumptions → no-hardcoded-values rename, market-intelligence/SKILL.md → research/market-intelligence.md, tour/SKILL.md → ui/tour.md, etc.). Compound engineering investment defending today's audit forever.
+- **CI triage** confirmed all 5 Replit workflows (Health Check, Magic Numbers, Quick Audit, Run Tests, Verify Financials) PASS locally. Replit's "pre-existing failing" reports were stale/transient — pthread_create exhaustion in their parallel runner, cleared during session.
+- **Compound engineering memory writes:** `feedback_analyst_vocabulary.md` ("Analyst" not "Ask The Analyst") + `feedback_superpowers_triggers.md` (when to invoke each `superpowers:*` skill) + `MEMORY.md` index. Two discipline lessons now survive session boundaries.
+
+---
+
 ## Session: April 30, 2026 — Quality sweep + market data backend + IB proof gate
 
 - **validateSynthesisOutput sweep** (`22dd9e91`, `9cd2fb85`): All 7 synthesis validators (A, B, D, M, N, O, P + property-risk) now enforce `TIER_1_MIN_TOTAL_EVIDENCE` total-evidence floor (ADR-003 invariant 7). Check #5 fires when comparables ≥ 3 but total valid refs < 3.
