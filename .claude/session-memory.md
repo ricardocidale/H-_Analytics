@@ -8,6 +8,14 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 30, 2026 — Quality sweep + market data backend + IB proof gate
+
+- **validateSynthesisOutput sweep** (`22dd9e91`, `9cd2fb85`): All 7 synthesis validators (A, B, D, M, N, O, P + property-risk) now enforce `TIER_1_MIN_TOTAL_EVIDENCE` total-evidence floor (ADR-003 invariant 7). Check #5 fires when comparables ≥ 3 but total valid refs < 3.
+- **specialist-intelligence-bar.test.ts** (`9cd2fb85`): 23-test proof gate — R5 (api assignmentRef), R9 (validator file exists), R9+ (TIER_1_MIN_TOTAL_EVIDENCE import). Completeness gate catches uncovered built specialists immediately.
+- **Literal drift cleanup** (`9cd2fb85`): `constants-compensation-benchmarks.ts` + `constants-revenue-benchmarks.ts` — 5 bands → 15 named `DEFAULT_*_BENCHMARK_{LOW,MID,HIGH}` constants each. Company/Overhead/PropertyDefaults were already correct (written post-doctrine).
+- **Market data backend** (`7bd5583f`): `GET/POST /api/admin/market-data-tables/*` routes + `regenerate-market-data.ts` (web search + Claude extraction → upsert for 5 tables). P7-D UI packet written; Replit executing now.
+- **P7-C packet written** (`9a365479`): ConstantsOwnedCard for H–K constants specialists (not yet given to Replit). CC follow-up after Replit lands UI: flip catalog status "needs-page" → "built".
+
 ## Session: April 30, 2026 — P7-B Property-Defaults Specialist (Paula / P) full Tier-1 graduation
 
 - **P7-B complete.** Property-Defaults (Paula / P, id `mgmt-co.property-defaults`, 16th specialist) all 3 phases shipped: Phase 1 `4cb664b9` (Tier-0), Phase 2 `43541a0e` (N+1 runner + route branch + magic-numbers re-snapshot 137/2428), Phase 3 `fc5d8c99` (25 IB bench tests). P7-B now fully shipped; phases.md stamped.
