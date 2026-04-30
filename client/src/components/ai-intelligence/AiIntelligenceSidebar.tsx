@@ -77,6 +77,12 @@ interface SectionItem {
    */
   secondary?: string;
   icon: React.ComponentType<{ className?: string }>;
+  /**
+   * Optional native-tooltip text rendered as the row's `title` attribute.
+   * Used to describe what a section actually contains when the label
+   * alone (e.g. "Market Data") doesn't tell the whole story.
+   */
+  tooltip?: string;
 }
 
 interface NavGroup {
@@ -244,7 +250,12 @@ function buildNavGroups(
       sections: [
         { value: "resources-apis",       label: "APIs",       icon: IconGlobe },
         { value: "resources-sources",    label: "Sources",    icon: IconDatabase },
-        { value: "resources-tables",     label: "Tables",     icon: IconResearch },
+        {
+          value: "resources-tables",
+          label: "Market Data",
+          icon: IconDatabase,
+          tooltip: "Industry benchmarks, ADR index, labor rates, F&B, and seasonal calendars — refreshed by The Analyst",
+        },
         { value: "resources-benchmarks", label: "Benchmarks", icon: IconResearch },
         { value: "resources-models",     label: "Models",     icon: IconBrain },
       ],
@@ -379,6 +390,7 @@ export function AiIntelligenceSidebarNav({ activeSection, onSectionChange }: AiI
                               isActive={isActive}
                               onClick={() => onSectionChange(section.value)}
                               data-testid={`ai-intelligence-nav-${section.value}`}
+                              title={section.tooltip}
                               className={`cursor-pointer ${section.secondary ? "h-auto py-1.5" : ""} ${hasOverride ? "pr-16" : ""}`}
                             >
                               <Icon className="size-4 shrink-0" />
