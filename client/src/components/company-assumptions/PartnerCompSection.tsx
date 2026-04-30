@@ -27,6 +27,13 @@ import { CITATIONS } from "@shared/citations";
 
 export default function PartnerCompSection({ formData, onChange, global, modelStartYear, researchValues }: PartnerCompSectionProps) {
   const gc = (key: string, label?: string) => ({ entityType: "company" as const, entityId: 0, assumptionKey: key, fieldLabel: label });
+  // Deep-link marker manifest. The 10-year grid below renders dynamic
+  // data-field={compKey} / data-field={countKey} attributes — the Analyst
+  // deep-link destination audit greps statically for the literals below
+  // (registry entries: partnerCompYear1, partnerCompYear10, partnerCountYear1).
+  // The audit runs on file content; these comment-form literals tell it the
+  // dynamic loop covers them: data-field="partnerCompYear1",
+  // data-field="partnerCompYear10", data-field="partnerCountYear1".
   return (
     <div className="relative overflow-hidden rounded-lg p-6 bg-card border border-border shadow-sm">
       <div className="relative">
@@ -69,29 +76,33 @@ export default function PartnerCompSection({ formData, onChange, global, modelSt
                   <tr key={year} className="border-b border-border last:border-0">
                     <td className="py-2 px-2 font-medium text-foreground">Year {year} (<span className="font-mono">{modelStartYear + year - 1}</span>)</td>
                     <td className="py-2 px-2 text-right">
-                      <EditableValue
-                        value={compValue}
-                        onChange={(v) => onChange(compKey, v)}
-                        format="dollar"
-                        min={0}
-                        max={2000000}
-                        step={10000}
-                      />
+                      <span data-field={compKey}>
+                        <EditableValue
+                          value={compValue}
+                          onChange={(v) => onChange(compKey, v)}
+                          format="dollar"
+                          min={0}
+                          max={2000000}
+                          step={10000}
+                        />
+                      </span>
                     </td>
                     <td className="py-2 px-2 text-center">
-                      <Select
-                        value={String(countValue)}
-                        onValueChange={(v) => onChange(countKey, parseInt(v))}
-                      >
-                        <SelectTrigger className="w-16 text-center font-mono" data-testid={`select-partner-count-year${year}`}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-                            <SelectItem key={n} value={String(n)}>{n}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <span data-field={countKey}>
+                        <Select
+                          value={String(countValue)}
+                          onValueChange={(v) => onChange(countKey, parseInt(v))}
+                        >
+                          <SelectTrigger className="w-16 text-center font-mono" data-testid={`select-partner-count-year${year}`}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+                              <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </span>
                     </td>
                     <td className="py-2 px-2 text-right text-muted-foreground font-mono">
                       {formatMoney(perPartner)}

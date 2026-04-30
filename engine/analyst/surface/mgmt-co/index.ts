@@ -18,6 +18,10 @@ export {
   createRevenueSpecialist,
   type RevenueSpecialistOptions,
 } from "./revenue-specialist";
+export {
+  createCompensationSpecialist,
+  type CompensationSpecialistOptions,
+} from "./compensation-specialist";
 
 // Legacy re-exports — kept for back-compat with any caller that hasn't
 // migrated to the verdict contract yet (currently: nothing on the read
@@ -38,13 +42,18 @@ export type {
 export { evaluateRevenue } from "../../../watchdog/revenueEvaluator";
 export type { RevenueInputs } from "../../../watchdog/revenueEvaluator";
 
+export { evaluateCompensation } from "../../../watchdog/compensationEvaluator";
+export type { CompensationInputs } from "../../../watchdog/compensationEvaluator";
+
 // Specialist ids (single source of truth so the Router registry, the route
 // handler, and tests all agree).
 export const MGMT_CO_FUNDING_ID = "mgmt-co.funding" as const;
 export const MGMT_CO_REVENUE_ID = "mgmt-co.revenue" as const;
+export const MGMT_CO_COMPENSATION_ID = "mgmt-co.compensation" as const;
 
 import type { AnalystWatchdogBenchmarks } from "@shared/schema";
 import type { RevenueBenchmarks } from "@shared/constants-revenue-benchmarks";
+import type { CompensationBenchmarks } from "@shared/constants-compensation-benchmarks";
 import {
   createSurfaceRouter,
   type SpecialistFn,
@@ -54,10 +63,12 @@ import {
 import { createFundingSpecialist } from "./funding-specialist";
 import type { FundingSpecialistDeps } from "./funding-specialist";
 import { createRevenueSpecialist } from "./revenue-specialist";
+import { createCompensationSpecialist } from "./compensation-specialist";
 
 export interface MgmtCoBenchmarks {
   funding: AnalystWatchdogBenchmarks;
   revenue: RevenueBenchmarks;
+  compensation: CompensationBenchmarks;
 }
 
 /**
@@ -196,6 +207,12 @@ export interface MgmtCoSpecialistConfigs {
     /** P6a: admin-declared required field names; pre-check gates dispatch. */
     requiredFields?: readonly string[];
   };
+  compensation?: {
+    promptTemplate?: string;
+    modelResourceId?: number | null;
+    /** P6a: admin-declared required field names; pre-check gates dispatch. */
+    requiredFields?: readonly string[];
+  };
 }
 
 export function createMgmtCoRouter(
@@ -230,6 +247,18 @@ export function createMgmtCoRouter(
         modelResourceId: options.configs?.revenue?.modelResourceId ?? null,
       }),
       options.configs?.revenue?.requiredFields,
+    ),
+  );
+  router.register(
+    MGMT_CO_COMPENSATION_ID,
+    withRequiredFieldsGate(
+      MGMT_CO_COMPENSATION_ID,
+      createCompensationSpecialist(benchmarks.compensation, {
+        evidenceAsOf: options.evidenceAsOf,
+        promptTemplate: options.configs?.compensation?.promptTemplate,
+        modelResourceId: options.configs?.compensation?.modelResourceId ?? null,
+      }),
+      options.configs?.compensation?.requiredFields,
     ),
   );
   return router;

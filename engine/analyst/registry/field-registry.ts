@@ -273,6 +273,38 @@ export const FIELD_REGISTRY: Readonly<Record<string, FieldRegistryEntry>> = {
     mountPoint: "defaults/revenue",
   },
 
+  // ─── mgmt-co.compensation (Compensation Specialist) ─────────────────────
+  // Compensation tab fields (`client/src/components/company-assumptions/
+  // PartnerCompSection.tsx` + `CompensationSection.tsx`) — partner comp
+  // schedule + staff salary + tier-3 staffing govern the management
+  // company's people costs. The mountPoint slug names the company-
+  // assumptions tab so the resolver lands the user on the right surface.
+  partnerCompYear1: {
+    label: "Year 1 Management Compensation",
+    unit: "$",
+    mountPoint: "company-assumptions/compensation",
+  },
+  partnerCompYear10: {
+    label: "Year 10 Management Compensation",
+    unit: "$",
+    mountPoint: "company-assumptions/compensation",
+  },
+  partnerCountYear1: {
+    label: "Year 1 Partner Headcount",
+    unit: "",
+    mountPoint: "company-assumptions/compensation",
+  },
+  staffSalary: {
+    label: "Staff Salary",
+    unit: "$",
+    mountPoint: "company-assumptions/compensation",
+  },
+  staffTier3Fte: {
+    label: "Tier-3 FTE Count",
+    unit: "",
+    mountPoint: "company-assumptions/compensation",
+  },
+
   // ─── Admin Model Defaults → Company tab ─────────────────────────────────
   // CompanyTab fields (`client/src/components/admin/model-defaults/CompanyTab.tsx`)
   // — management-company-level financial defaults the admin endorses on the

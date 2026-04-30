@@ -469,6 +469,42 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     // toolbox, so the "needs-page" banner doesn't apply.
     status: "built",
   },
+  {
+    id: "mgmt-co.compensation",
+    letter: "M",
+    realName: "Compensation",
+    displayName: "Compensation Intelligence",
+    humanName: "Mariana",
+    gender: "female",
+    description:
+      "Watches the management company's compensation plan — partner draws, headcount, staff salary, scale-stage staffing — so the people line stays defensible to LPs across the founding-to-institutional arc.",
+    subject: "mgmt-co",
+    capabilities: [
+      "required-fields",
+      "llm-config",
+      "resource-assignments",
+      "runtime",
+      "audit",
+    ],
+    assignmentRefs: [
+      { kind: "model", slug: "primary-llm", role: "tier-1-cognitive", required: true },
+      { kind: "benchmark", slug: "compensation-benchmarks", required: true },
+    ],
+    candidateFields: [
+      { key: "partnerCompYear1",  label: "Year 1 Management Comp",     surface: "company-assumptions" },
+      { key: "partnerCompYear10", label: "Year 10 Management Comp",    surface: "company-assumptions" },
+      { key: "partnerCountYear1", label: "Year 1 Partner Headcount",   surface: "company-assumptions" },
+      { key: "staffSalary",       label: "Staff Salary",               surface: "company-assumptions" },
+      { key: "staffTier3Fte",     label: "Tier-3 FTE Count",           surface: "company-assumptions" },
+    ],
+    prerequisites: [
+      "company-profile-saved",
+    ],
+    // P7-B Phase 1: Tier-0 deterministic watchdog wrapper shipped. Tier-1
+    // N+1 graduation lands in P7-B Phase 2 (mirrors Funding G6-P3b /
+    // Revenue G2 pattern); api assignmentRef + IB bar tests in Phase 3.
+    status: "built",
+  },
 ] as const;
 
 const validation = (() => {

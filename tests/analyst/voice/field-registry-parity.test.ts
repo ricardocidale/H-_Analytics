@@ -36,6 +36,9 @@ import {
   createRevenueSpecialist,
 } from "@engine/analyst/surface/mgmt-co/revenue-specialist";
 import {
+  COMPENSATION_SPECIALIST_TRACKED_FIELDS,
+} from "@engine/analyst/surface/mgmt-co/compensation-specialist";
+import {
   RISK_INTELLIGENCE_SPECIALIST_TRACKED_FIELDS,
   createPropertyRiskIntelligenceSpecialist,
   type PropertyRiskIntelligenceInputs,
@@ -56,6 +59,7 @@ interface SpecialistTrackedFields {
 const SPECIALISTS_EMITTING_VERDICT_DIMENSIONS: readonly SpecialistTrackedFields[] = [
   { specialistId: "mgmt-co.funding", fields: FUNDING_SPECIALIST_TRACKED_FIELDS },
   { specialistId: "mgmt-co.revenue", fields: REVENUE_SPECIALIST_TRACKED_FIELDS },
+  { specialistId: "mgmt-co.compensation", fields: COMPENSATION_SPECIALIST_TRACKED_FIELDS },
   // Daniela / D — per-property inflation override surface. Tier-0 lives in
   // engine/analyst/surface/property/risk-intelligence-specialist.ts; the
   // Tier-1 single-shot Opus runner lives at

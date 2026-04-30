@@ -76,6 +76,7 @@ export type AdminSection =
 export const SPECIALIST_SECTION_TO_ID = {
   "specialist-mgmt-co-funding": "mgmt-co.funding",
   "specialist-mgmt-co-revenue": "mgmt-co.revenue",
+  "specialist-mgmt-co-compensation": "mgmt-co.compensation",
   "specialist-mgmt-co-icp-intelligence": "mgmt-co.icp-intelligence",
   "specialist-property-risk-intelligence": "property.risk-intelligence",
   "specialist-property-executive-summary": "property.executive-summary",

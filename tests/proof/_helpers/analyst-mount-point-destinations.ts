@@ -46,6 +46,17 @@ export const MOUNT_POINT_DESTINATIONS: Readonly<
     "client/src/components/company-assumptions/FundingSection.tsx",
   ],
 
+  // Compensation-tab fields (partnerCompYearN / partnerCountYearN /
+  // staffSalary / staffTier3Fte) are rendered across PartnerCompSection
+  // and CompensationSection — both mounted by
+  // CompanyAssumptionsTabsView.tsx::renderBody case "compensation".
+  // EditableValue wraps each numeric input with the underlying form-field
+  // marker; the table-driven PartnerComp grid emits per-year cells.
+  "company-assumptions/compensation": [
+    "client/src/components/company-assumptions/CompensationSection.tsx",
+    "client/src/components/company-assumptions/PartnerCompSection.tsx",
+  ],
+
   // Revenue defaults are admin-only and live on the Property Underwriting
   // tab of Admin → Model Defaults (the "Ancillary Revenue Mix" section
   // and the "USALI Operating Cost Rates" section both render `field-*`

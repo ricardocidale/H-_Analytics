@@ -50,14 +50,16 @@ export default function CompensationSection({ formData, onChange, global, resear
               onApplyValue={() => researchValues.staffSalary && onChange("staffSalary", researchValues.staffSalary.mid)}
               guidanceContext={gc("staffSalary", "Staff Salary")}
             />
-            <EditableValue
-              value={formData.staffSalary ?? global.staffSalary}
-              onChange={(v) => onChange("staffSalary", v)}
-              format="dollar"
-              min={40000}
-              max={200000}
-              step={5000}
-            />
+            <span data-field="staffSalary">
+              <EditableValue
+                value={formData.staffSalary ?? global.staffSalary}
+                onChange={(v) => onChange("staffSalary", v)}
+                format="dollar"
+                min={40000}
+                max={200000}
+                step={5000}
+              />
+            </span>
           </div>
           <Slider
             value={[formData.staffSalary ?? global.staffSalary]}
@@ -138,6 +140,7 @@ export default function CompensationSection({ formData, onChange, global, resear
                 max={50}
                 step={0.5}
                 className="w-20 bg-card border-primary/30 text-foreground text-center"
+                data-field="staffTier3Fte"
                 data-testid="input-tier3-fte"
               />
               <span className="text-xs text-muted-foreground">FTE</span>

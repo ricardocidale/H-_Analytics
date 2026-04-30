@@ -87,6 +87,8 @@ import {
   ConvertibleTermsCard,
   CapitalStackDisciplineCard,
 } from "../../client/src/components/company-assumptions/FundingSection";
+import CompensationSection from "../../client/src/components/company-assumptions/CompensationSection";
+import PartnerCompSection from "../../client/src/components/company-assumptions/PartnerCompSection";
 import { PropertyUnderwritingTab } from "../../client/src/components/admin/model-defaults/PropertyUnderwritingTab";
 import { CompanyTab } from "../../client/src/components/admin/model-defaults/CompanyTab";
 import { MarketMacroTab } from "../../client/src/components/admin/model-defaults/MarketMacroTab";
@@ -163,6 +165,58 @@ const MOUNT_POINT_RENDERERS: Readonly<
         formData={{}}
         onChange={NOOP_CHANGE}
         global={FUNDING_GLOBAL}
+      />
+    </TooltipProvider>
+  ),
+  // Compensation tab: composed from CompensationSection (staff inputs) +
+  // PartnerCompSection (per-year mgmt-comp grid). Both render under
+  // CompanyAssumptionsTabsView::renderBody case "compensation".
+  "company-assumptions/compensation": () => (
+    <TooltipProvider>
+      <CompensationSection
+        formData={{} as Parameters<typeof CompensationSection>[0]["formData"]}
+        onChange={NOOP_CHANGE}
+        global={
+          {
+            staffSalary: 75_000,
+            staffTier1MaxProperties: 3,
+            staffTier1Fte: 2.5,
+            staffTier2MaxProperties: 6,
+            staffTier2Fte: 4.5,
+            staffTier3Fte: 7,
+          } as Parameters<typeof CompensationSection>[0]["global"]
+        }
+        researchValues={{} as Parameters<typeof CompensationSection>[0]["researchValues"]}
+      />
+      <PartnerCompSection
+        formData={{} as Parameters<typeof PartnerCompSection>[0]["formData"]}
+        onChange={NOOP_CHANGE}
+        global={
+          {
+            partnerCompYear1: 540_000,
+            partnerCompYear2: 540_000,
+            partnerCompYear3: 540_000,
+            partnerCompYear4: 600_000,
+            partnerCompYear5: 600_000,
+            partnerCompYear6: 700_000,
+            partnerCompYear7: 700_000,
+            partnerCompYear8: 800_000,
+            partnerCompYear9: 800_000,
+            partnerCompYear10: 900_000,
+            partnerCountYear1: 3,
+            partnerCountYear2: 3,
+            partnerCountYear3: 3,
+            partnerCountYear4: 3,
+            partnerCountYear5: 3,
+            partnerCountYear6: 3,
+            partnerCountYear7: 3,
+            partnerCountYear8: 3,
+            partnerCountYear9: 3,
+            partnerCountYear10: 3,
+          } as Parameters<typeof PartnerCompSection>[0]["global"]
+        }
+        modelStartYear={2026}
+        researchValues={{} as Parameters<typeof PartnerCompSection>[0]["researchValues"]}
       />
     </TooltipProvider>
   ),

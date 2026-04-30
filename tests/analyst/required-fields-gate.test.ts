@@ -34,6 +34,7 @@ import {
 import type { PersonaContext } from "@engine/analyst/contracts/verdict";
 import type { AnalystWatchdogBenchmarks } from "@shared/schema";
 import type { RevenueBenchmarks } from "@shared/constants-revenue-benchmarks";
+import { DEFAULT_COMPENSATION_BENCHMARKS } from "@shared/constants-compensation-benchmarks";
 
 const PERSONA: PersonaContext = { segment: "L+B", tier: "luxury", market: "US" };
 const NOW = new Date("2026-04-22T00:00:00.000Z");
@@ -68,7 +69,7 @@ const WELL_SIZED_FUNDING = {
 function makeRouter(requiredFields: readonly string[]) {
   return createMgmtCoRouter(
     { voiceRenderer: createVoiceRenderer(), qualityScorer: createQualityScorer() },
-    { funding: FUNDING_BENCH, revenue: REVENUE_BENCH },
+    { funding: FUNDING_BENCH, revenue: REVENUE_BENCH, compensation: DEFAULT_COMPENSATION_BENCHMARKS },
     {
       evidenceAsOf: EVIDENCE_AS_OF,
       configs: { funding: { requiredFields } },
@@ -207,7 +208,7 @@ describe("P6a — required-fields gate (mgmt-co.funding)", () => {
     // payload uses dispatch-payload keys.
     const router = createMgmtCoRouter(
       { voiceRenderer: createVoiceRenderer(), qualityScorer: createQualityScorer() },
-      { funding: FUNDING_BENCH, revenue: REVENUE_BENCH },
+      { funding: FUNDING_BENCH, revenue: REVENUE_BENCH, compensation: DEFAULT_COMPENSATION_BENCHMARKS },
       {
         evidenceAsOf: EVIDENCE_AS_OF,
         configs: { revenue: { requiredFields: [] } },
