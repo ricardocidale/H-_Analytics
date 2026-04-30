@@ -58,7 +58,7 @@ interface ThemeTokens {
 - Design themes: Database table `design_themes` (id, name, description, colors JSON, isDefault, createdAt, updatedAt)
 - Themes are standalone entities (not user-owned), assigned to User Groups
 - Active theme: resolved from user's User Group → default theme fallback
-- See `.claude/skills/multi-tenancy/SKILL.md` for full branding architecture
+- See `.claude/skills/architecture/multi-tenancy.md` for full branding architecture
 
 ## Applying Themes
 - Theme tokens map to CSS custom properties on `:root`

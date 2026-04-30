@@ -79,8 +79,7 @@ Master index of 178 skill files across 19 domains. Use this to find the right sk
 | `research/property-finder.md` | Property finder feature |
 | `research/property-value-costs/SKILL.md` | Property value and cost analysis |
 | `research/property-value-costs/components.md` | Property value UI components |
-| `research/research-intelligence-redesign.md` | Research intelligence redesign plan |
-| `research/research-intelligence-strategy.md` | Research intelligence strategy |
+| `research/intelligence-pipeline.md` | Intelligence pipeline architecture — N+1 orchestration, prompt builders, tool dispatch |
 | `research/research-questions/SKILL.md` | Research questions CRUD |
 | `research/str-properties.md` | Short-term rental property research |
 
@@ -273,6 +272,36 @@ Master index of 178 skill files across 19 domains. Use this to find the right sk
 | File | Description |
 |------|-------------|
 | `context-loading/SKILL.md` | Token-efficient context loading protocol, task-to-skill map |
+
+## Analyst Architecture (11 files)
+
+| File | Description |
+|------|-------------|
+| `analyst/_index.md` | Entry point — when to load which analyst skill |
+| `analyst/cognitive-engine.md` | N+1 multi-model cognitive pipeline (quant + market panels + Opus synthesis) |
+| `analyst/contracts.md` | AnalystVerdict contract, VerdictDimension, VerdictRange, Evidence shapes |
+| `analyst/orchestrator.md` | Surface Router — event-to-Specialist dispatch, aggregation, conviction-floor |
+| `analyst/quality-scoring.md` | Quality Scorer — 0-100 qualityScore, source tier, convergence, persona-fit |
+| `analyst/steward.md` | 9-step steward checklist for any PR touching Specialist code |
+| `analyst/surface-admin-defaults.md` | Admin Defaults surface Specialists |
+| `analyst/surface-cross-portfolio.md` | Cross-portfolio surface Specialist |
+| `analyst/surface-icp.md` | ICP surface Specialist |
+| `analyst/surface-mgmt-co.md` | Management-company surface Specialists (Funding, Revenue, Compensation, Overhead, Company, Property-Defaults) |
+| `analyst/surface-property.md` | Property surface Specialists (Risk Intelligence, etc.) |
+| `analyst/surface-staleness.md` | Staleness surface Specialist |
+| `analyst/voice.md` | Voice Renderer — persona enforcement, VoiceRenderedString, intent taxonomy |
+
+## Resources Control Plane (1 file)
+
+| File | Description |
+|------|-------------|
+| `resources/SKILL.md` | Resources control plane — admin_resources table, model resources, API resources, benchmark resources, health checks |
+
+## Session Plans (1 file)
+
+| File | Description |
+|------|-------------|
+| `session-plans/SKILL.md` | Verify-before-execute discipline for session plans — prove work is not already done before first tool call |
 
 ---
 

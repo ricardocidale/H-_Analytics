@@ -56,13 +56,13 @@ With 176 skill files, loading everything wastes tokens and slows responses. This
 | Financial table styling | `ui/financial-table-styling.md`, `ui/theme-engine.md` | Finance engine skills |
 | Navigation / sidebar | `ui/navigation.md`, `component-library/SKILL.md` | Finance skills |
 | Export UI (buttons, menus) | `exports/SKILL.md`, `component-library/SKILL.md` | Finance skills |
-| 3D graphics / animations | `3d-graphics/SKILL.md`, `ui/animation-patterns.md` | Everything else |
+| 3D graphics / animations | `ui/3d-graphics.md`, `ui/animation-patterns.md` | Everything else |
 | Theme changes | `ui/theme-engine.md`, `design-system/SKILL.md` | Finance skills |
 | Image generation / AI images | `ui/reusable-components.md`, `ui/property-image-picker.md` | Finance skills |
-| Logo management | `multi-tenancy/SKILL.md`, `ui/reusable-components.md` | Finance skills |
-| Branding / user groups / logos | `multi-tenancy/SKILL.md` | Finance skills |
+| Logo management | `architecture/multi-tenancy.md`, `ui/reusable-components.md` | Finance skills |
+| Branding / user groups / logos | `architecture/multi-tenancy.md` | Finance skills |
 | Entity card UI (admin CRUD) | `ui/entity-cards.md`, `rules/ui-patterns.md` | Finance skills |
-| User management / roles | `multi-tenancy/SKILL.md` | Finance skills |
+| User management / roles | `architecture/multi-tenancy.md` | Finance skills |
 | Accordion/formula rows | `ui/help-tooltip.md`, `ui/financial-table-styling.md` | Finance engine skills |
 | Info/help icon work | `ui/info-icons.md`, `ui/help-tooltip.md` | Finance skills |
 | Tabbed/composite pages | `ui/composite-tabbed-pages.md` | Finance skills |
@@ -70,12 +70,12 @@ With 176 skill files, loading everything wastes tokens and slows responses. This
 #### Mobile & Tablet Responsiveness
 | Task | Load These Skills | Skip |
 |------|------------------|------|
-| Fix mobile layout issues | `mobile-responsive/SKILL.md` | Finance skills, research |
-| iPad / tablet layout | `mobile-responsive/SKILL.md`, `mobile-responsive/tablet-layouts.md` | Finance skills |
-| Responsive charts (0px height) | `mobile-responsive/SKILL.md`, `ui/charts.md` | Finance skills |
-| Device testing / QA | `mobile-responsive/device-testing-checklist.md` | Finance skills |
-| useIsMobile hook usage | `mobile-responsive/responsive-helpers.md` | Finance skills |
-| Full mobile overhaul | `mobile-responsive/SKILL.md`, `mobile-responsive/tablet-layouts.md`, `mobile-responsive/device-testing-checklist.md` | Finance skills |
+| Fix mobile layout issues | `ui/mobile-responsive.md` | Finance skills, research |
+| iPad / tablet layout | `ui/mobile-responsive.md`, `ui/tablet-layouts.md` | Finance skills |
+| Responsive charts (0px height) | `ui/mobile-responsive.md`, `ui/charts.md` | Finance skills |
+| Device testing / QA | `ui/device-testing-checklist.md` | Finance skills |
+| useIsMobile hook usage | `ui/responsive-helpers.md` | Finance skills |
+| Full mobile overhaul | `ui/mobile-responsive.md`, `ui/tablet-layouts.md`, `ui/device-testing-checklist.md` | Finance skills |
 
 #### Export Work
 | Task | Load These Skills | Skip |
@@ -97,8 +97,8 @@ With 176 skill files, loading everything wastes tokens and slows responses. This
 | Location-aware seeding | `research/location-aware-seeding/SKILL.md` | Analysis skills |
 | Research badge data flow | `ui/research-badges.md`, `research/SKILL.md` | Analysis skills |
 | Research questions CRUD | `research/research-questions/SKILL.md` | Analysis skills, finance |
-| Research validation, deterministic tools, research tool schemas | `research/SKILL.md`, `rules/research-precision.md`, `tool-schemas/SKILL.md` | Finance engine, UI |
-| ICP definition / research | `icp-research/SKILL.md` | Property-level research |
+| Research validation, deterministic tools, research tool schemas | `research/SKILL.md`, `rules/research-precision.md`, `architecture/tool-schemas.md` | Finance engine, UI |
+| ICP definition / research | `research/icp-research.md` | Property-level research |
 | Any research change | **Always also load**: `research/SKILL.md` (master) | — |
 
 #### Rebecca Chatbot
@@ -115,24 +115,24 @@ With 176 skill files, loading everything wastes tokens and slows responses. This
 | Admin API route work | `admin/admin-api-routes.md`, `rules/api-routes.md` | Finance skills |
 | Admin shell restructure | `admin/admin-shell-template.md`, `admin/admin-refactor-map.md` | Finance skills |
 | Admin types/shared code | `admin/admin-refactor-map.md` | Finance, UI skills |
-| Admin components/hooks/styles | `admin-components/SKILL.md` | Finance skills |
+| Admin components/hooks/styles | `admin/components.md` | Finance skills |
 
 #### Codebase Architecture & UI Components
 | Task | Load These Skills | Skip |
 |------|------------------|------|
-| Barrel files / import paths | `codebase-architecture/SKILL.md` | Finance, research |
-| UI component lookup | `codebase-architecture/SKILL.md` § UI Component Catalog | Finance, research |
-| Module boundaries / re-exports | `codebase-architecture/SKILL.md` | Finance, research |
-| Tooltip system | `codebase-architecture/SKILL.md` § Tooltips, `admin-components/SKILL.md` § Tooltip Explainers | Finance |
+| Barrel files / import paths | `architecture/codebase.md` | Finance, research |
+| UI component lookup | `architecture/codebase.md` § UI Component Catalog | Finance, research |
+| Module boundaries / re-exports | `architecture/codebase.md` | Finance, research |
+| Tooltip system | `architecture/codebase.md` § Tooltips, `admin/components.md` § Tooltip Explainers | Finance |
 
 #### Funding, Maps, Notifications, Documents
 | Task | Load These Skills | Skip |
 |------|------------------|------|
-| Capital strategy / SAFE tranches | `funding-strategy/SKILL.md`, `rules/financial-engine.md` | UI skills, research |
-| Map view / geospatial | `map-view/SKILL.md` | Finance, research |
-| Notifications / alert rules | `notifications/SKILL.md` | Finance, research |
-| Email sharing (Resend) | `notifications/SKILL.md` | Finance, UI skills |
-| Document OCR / extraction | `document-intelligence/SKILL.md` | Finance, research |
+| Capital strategy / SAFE tranches | `finance/funding-strategy.md`, `rules/financial-engine.md` | UI skills, research |
+| Map view / geospatial | `ui/map-view.md` | Finance, research |
+| Notifications / alert rules | `integrations/notifications.md` | Finance, research |
+| Email sharing (Resend) | `integrations/notifications.md` | Finance, UI skills |
+| Document OCR / extraction | `integrations/document-ai.md` | Finance, research |
 | Financial diagnostics | `finance/diagnostic-decision-tree.md`, `proof-system/SKILL.md` | UI skills |
 
 #### Database & Infrastructure
@@ -146,11 +146,11 @@ With 176 skill files, loading everything wastes tokens and slows responses. This
 #### Documentation & Skills
 | Task | Load These Skills | Skip |
 |------|------------------|------|
-| Update checker manual | `manuals/checker-manual/SKILL.md` | Finance engine, UI |
-| Update user manual | `manuals/user-manual/SKILL.md` | Finance engine, UI |
+| Update checker manual | `.claude/manuals/checker-manual/SKILL.md` | Finance engine, UI |
+| Update user manual | `.claude/manuals/user-manual/SKILL.md` | Finance engine, UI |
 | Create new skill | `coding-conventions/SKILL.md`, `skills/coding-conventions/skill-organization.md` | Unrelated domain skills |
 | Reorganize skills/rules | `skills/coding-conventions/skill-organization.md`, `context-loading/SKILL.md` | Finance, UI skills |
-| Audit folder structure | `skills/coding-conventions/skill-organization.md`, `source-code/SKILL.md` | Finance, UI skills |
+| Audit folder structure | `skills/coding-conventions/skill-organization.md`, `architecture/source-map.md` | Finance, UI skills |
 
 ## Loading Tiers by Request Complexity
 
@@ -178,7 +178,7 @@ User asks for verification, release prep, or comprehensive review.
 | Load all UI skills for a button change | Load `component-library/SKILL.md` only |
 | Load testing skills for a UI change | Skip testing unless the change affects calculations |
 | Load research skills for a finance fix | Skip research entirely |
-| Load source-code/SKILL.md (814 lines) routinely | Only load when you need a full file map |
+| Load architecture/source-map.md (814 lines) routinely | Only load when you need a full file map |
 | Read all 18 checker manual sections | Read only the section relevant to the task |
 
 ## Session Start Checklist

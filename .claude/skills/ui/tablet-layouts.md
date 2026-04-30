@@ -139,4 +139,4 @@ Action buttons should not wrap awkwardly on tablet portrait:
 
 ## Related Rules
 - `rules/design-standards.md` — Graphics must render properly on all devices
-- `.claude/skills/mobile-responsive/SKILL.md` — Base mobile patterns (load first)
+- `.claude/skills/ui/mobile-responsive.md` — Base mobile patterns (load first)

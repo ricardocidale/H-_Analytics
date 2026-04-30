@@ -213,7 +213,7 @@ The `/api/my-branding` endpoint resolves branding for the authenticated user:
 | Theme manager component | `client/src/features/design-themes/ThemeManager.tsx` |
 | Theme types | `client/src/features/design-themes/types.ts` |
 | Theme engine skill | `.claude/skills/ui/theme-engine.md` |
-| This skill | `.claude/skills/multi-tenancy/SKILL.md` |
+| This skill | `.claude/skills/architecture/multi-tenancy.md` |
 
 ## User Group Assignments (Seed)
 

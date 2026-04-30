@@ -27,12 +27,12 @@
 
 | Rule | Governs | Enforcement |
 |------|---------|-------------|
-| `design-standards.md` | `ui/graphics-component-catalog.md`, `ui/animation-patterns.md`, `3d-graphics/SKILL.md` | Every page must have graphics |
-| `no-hardcoded-values.md` | `finance/*`, `multi-tenancy/SKILL.md` | No literal financial or admin values |
+| `design-standards.md` | `ui/graphics-component-catalog.md`, `ui/animation-patterns.md`, `ui/3d-graphics.md` | Every page must have graphics |
+| `no-hardcoded-values.md` | `finance/*`, `architecture/multi-tenancy.md` | No literal financial or admin values |
 | `recalculate-on-save.md` | `architecture/SKILL.md`, `finance/calculation-chain.md` | All saves invalidate financial queries |
 | `financial-engine.md` | `finance/*` | Mandatory business rules + immutable constants |
 | `database-seeding.md` | `database/SKILL.md` | Seeding invariants |
-| `architecture.md` | `architecture/SKILL.md`, `source-code/SKILL.md` | Stack constraints |
+| `architecture.md` | `architecture/SKILL.md`, `architecture/source-map.md` | Stack constraints |
 | `audit-persona.md` | `proof-system/SKILL.md`, `testing/SKILL.md` | Audit doctrine |
 | `documentation.md` | All skills | Docs-after-edits protocol |
 | `ui-patterns.md` | `ui/entity-cards.md` | Button labels + entity card layout |

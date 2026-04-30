@@ -104,5 +104,5 @@ All external services extend `BaseIntegrationService` from `server/integrations/
 
 ## Related Skills
 
-- `.claude/skills/funding-strategy/SKILL.md` — Uses FRED rates for SAFE term calibration
+- `.claude/skills/finance/funding-strategy.md` — Uses FRED rates for SAFE term calibration
 - `.claude/skills/research/SKILL.md` — Uses MI for property research context

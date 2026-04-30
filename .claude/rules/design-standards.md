@@ -58,9 +58,9 @@ Every page must look and feel like a premium, bespoke $50K+ financial platform. 
 |------|------|
 | Adding charts | `ui/charts.md`, `charts/SKILL.md` |
 | Adding animations | `ui/animation-patterns.md` |
-| Adding 3D elements | `3d-graphics/SKILL.md` |
+| Adding 3D elements | `ui/3d-graphics.md` |
 | Building a new page | `ui/page-enhancement-checklist.md`, `ui/graphics-component-catalog.md` |
-| Mobile graphics | `mobile-responsive/SKILL.md` |
+| Mobile graphics | `ui/mobile-responsive.md` |
 
 ## Verification
 

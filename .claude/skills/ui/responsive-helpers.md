@@ -189,8 +189,8 @@ function PropertyHeader({ property }) {
 ```
 
 ## Related Skills
-- `mobile-responsive/SKILL.md` — Complete pattern reference (load first)
-- `mobile-responsive/tablet-layouts.md` — iPad-specific patterns
-- `mobile-responsive/device-testing-checklist.md` — Testing verification
+- `ui/mobile-responsive.md` — Complete pattern reference (load first)
+- `ui/tablet-layouts.md` — iPad-specific patterns
+- `ui/device-testing-checklist.md` — Testing verification
 - `ui/charts.md` — Chart component conventions
 - `component-library/SKILL.md` — UI component catalog
