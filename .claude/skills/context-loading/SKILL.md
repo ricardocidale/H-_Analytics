@@ -112,7 +112,7 @@ With 176 skill files, loading everything wastes tokens and slows responses. This
 | Task | Load These Skills | Skip |
 |------|------------------|------|
 | Extract admin tab component | `admin/tab-extraction-guide.md`, `admin/admin-refactor-map.md`, `admin/component-checklist.md` | Finance skills, research |
-| Admin API route work | `admin/admin-api-routes.md`, `rules/api-routes.md` | Finance skills |
+| Admin API route work | `admin/admin-api-routes.md`, `architecture/api-routes.md` | Finance skills |
 | Admin shell restructure | `admin/admin-shell-template.md`, `admin/admin-refactor-map.md` | Finance skills |
 | Admin types/shared code | `admin/admin-refactor-map.md` | Finance, UI skills |
 | Admin components/hooks/styles | `admin/components.md` | Finance skills |
@@ -139,7 +139,7 @@ With 176 skill files, loading everything wastes tokens and slows responses. This
 | Task | Load These Skills | Skip |
 |------|------------------|------|
 | Schema changes / migrations | `database/SKILL.md`, `rules/database-seeding.md` | Finance, UI skills |
-| API route changes | `rules/api-routes.md`, `architecture/SKILL.md` | UI skills |
+| API route changes | `architecture/api-routes.md`, `architecture/SKILL.md` | UI skills |
 | Seed data changes | `rules/database-seeding.md` | Finance engine skills |
 | Image generation server | `ui/property-image-picker.md`, `architecture/SKILL.md` | Finance, UI skills |
 

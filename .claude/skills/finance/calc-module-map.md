@@ -77,6 +77,6 @@ All `calc/**/*.ts` files are automatically scanned by `tests/proof/hardcoded-det
 
 ## Related Rules
 
-- `.claude/rules/no-hardcoded-assumptions.md` — all values from constants
-- `.claude/rules/constants-and-config.md` — constant definitions
+- `.claude/rules/no-hardcoded-values.md` — all values from constants
+- `.claude/skills/finance/constants-and-config.md` — constant definitions
 - `.claude/rules/financial-engine.md` — calculation rules

@@ -136,7 +136,7 @@ Budget: ~45 minutes the first time, 10 minutes to refresh.
 | Adding a new Specialist that consumes Resources | `.claude/skills/analyst/_index.md` + this skill's [`assignmentRef` compatibility step](#add-a-new-resourcekind--runbook) |
 | Probe-profile design for an LLM API | `.claude/skills/finance/SKILL.md` (cost guards) + `.claude/rules/deterministic-tools.md` |
 | Resources sub-page UI | `.claude/skills/design-system/SKILL.md` + `.claude/skills/vocabulary/SKILL.md` |
-| Secret resolution at runtime | `.claude/rules/environment-secrets.md` (if exists) + the project's secret-store conventions |
+| Secret resolution at runtime | `.claude/rules/security.md` (if exists) + the project's secret-store conventions |
 | Versioned writes / audit | `.claude/rules/cross-check-invariants.md` (every write needs an `admin_resource_versions` row) |
 
 ---

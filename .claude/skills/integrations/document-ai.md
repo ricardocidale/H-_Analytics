@@ -131,5 +131,5 @@ Upload uses raw binary body with metadata in headers:
 
 ## Related Skills
 
-- `.claude/skills/market-intelligence/adding-integrations.md` — BaseIntegrationService pattern
+- `.claude/skills/research/adding-integrations.md` — BaseIntegrationService pattern
 - `.claude/skills/admin/SKILL.md` — Admin Integrations health tab

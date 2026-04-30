@@ -135,4 +135,4 @@ The engine queries FRED rates via `MarketRateResponse[]`:
 ## Related Skills
 
 - `.claude/skills/finance/SKILL.md` — Financial engine master
-- `.claude/skills/market-intelligence/SKILL.md` — FRED service pipeline
+- `.claude/skills/research/market-intelligence.md` — FRED service pipeline

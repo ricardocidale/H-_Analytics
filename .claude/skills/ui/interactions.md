@@ -31,7 +31,7 @@ Side-by-side comparison of two scenarios with variance highlighting.
 ## Guided Walkthrough
 Step-by-step interactive tour explaining the recommended workflow for new users.
 
-**Full reference:** `.claude/skills/tour/SKILL.md` and `.claude/tools/ui/tour-steps.json`
+**Full reference:** `.claude/skills/ui/tour.md` and `.claude/tools/ui/tour-steps.json`
 
 - **File**: `client/src/components/GuidedWalkthrough.tsx`
 - **9 steps**: Welcome → Properties → Company → Assumptions → Scenarios → Analysis → Help → Search → Notifications

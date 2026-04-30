@@ -68,7 +68,7 @@ Documents the financial calculation engine — GAAP-compliant (ASC 230, ASC 360,
 ## Related Rules
 - `rules/financial-engine.md` — Engine architecture and calculation rules
 - `rules/audit-persona.md` — Audit doctrine
-- `rules/no-hardcoded-assumptions.md` — No literal financial values
-- `rules/constants-and-config.md` — Named constants in `shared/constants.ts`
-- `rules/verification-system.md` — GAAP verification pipeline
+- `rules/no-hardcoded-values.md` — No literal financial values
+- `finance/constants-and-config.md` — Named constants in `shared/constants.ts`
+- `proof-system/verification-system.md` — GAAP verification pipeline
 - `rules/mandatory-financial-tests.md` — Required test coverage

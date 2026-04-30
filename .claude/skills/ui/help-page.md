@@ -34,6 +34,6 @@ Unified help page at `/help` with tabbed navigation. Consolidates User Manual, C
 - `/methodology` — redirects to `/help` (legacy route)
 
 ## Related Skills
-- `tour/SKILL.md` — Guided Walkthrough details
+- `ui/tour.md` — Guided Walkthrough details
 - `.claude/manuals/user-manual/SKILL.md` — User Manual section map
 - `.claude/manuals/checker-manual/SKILL.md` — Checker Manual section map

@@ -56,7 +56,7 @@ Every page must look and feel like a premium, bespoke $50K+ financial platform. 
 
 | Task | Load |
 |------|------|
-| Adding charts | `ui/charts.md`, `charts/SKILL.md` |
+| Adding charts | `ui/charts.md`, `ui/charts.md` |
 | Adding animations | `ui/animation-patterns.md` |
 | Adding 3D elements | `ui/3d-graphics.md` |
 | Building a new page | `ui/page-enhancement-checklist.md`, `ui/graphics-component-catalog.md` |

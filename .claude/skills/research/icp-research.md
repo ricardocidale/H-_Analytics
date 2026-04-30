@@ -126,5 +126,5 @@ Each location section covers: ADR ranges by sub-market, occupancy benchmarks, Re
 ## Related Skills
 
 - `.claude/skills/research/SKILL.md` — Property-level research (different from ICP)
-- `.claude/skills/market-intelligence/SKILL.md` — FRED/Hospitality/Grounded data pipeline
+- `.claude/skills/research/market-intelligence.md` — FRED/Hospitality/Grounded data pipeline
 - `.claude/skills/admin/SKILL.md` — Admin ICP configuration tab

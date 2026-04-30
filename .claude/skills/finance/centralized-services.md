@@ -123,4 +123,4 @@ interface ServiceTemplate {
 ## Related Rules
 - `rules/financial-engine.md` — Engine architecture
 - `rules/recalculate-on-save.md` — Service template mutations must invalidate all financial queries
-- `rules/no-hardcoded-assumptions.md` — Service markup rates come from DB
+- `rules/no-hardcoded-values.md` — Service markup rates come from DB

@@ -44,6 +44,6 @@ See `ai-agent-admin.md` for full architecture.
 For any work touching Admin → Defaults or Admin → Constants — including the locked tab/sub-tab tree, Save UX contract, gold-vs-neutral info icons, yellow Analyst range, Pending Proposals queue, and the `model_defaults` table — read **`docs/architecture/STEADY-STATE.md`** first. It supersedes the older "Model Defaults → Model Constants" framing above.
 
 ## Related Rules
-- `rules/api-routes.md` — API naming conventions
+- `architecture/api-routes.md` — API naming conventions
 - `rules/ui-patterns.md` — Button labels, entity cards
 - `skills/coding-conventions/context-reduction.md` — Skills required for every feature

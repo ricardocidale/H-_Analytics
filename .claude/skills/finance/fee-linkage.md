@@ -179,7 +179,7 @@ These would follow the same pattern: expense on property, revenue on company, tr
 | Default rates | `shared/constants.ts` | `DEFAULT_BASE_MANAGEMENT_FEE_RATE` (5%), `DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE` (15%) |
 | Fee rate UI (edit) | `client/src/pages/PropertyEdit.tsx` | Management Fees section with sliders, tooltips, and research badges |
 | Fee rate UI (summary) | `client/src/pages/CompanyAssumptions.tsx` | Read-only table showing each property's fee rates |
-| Cross-entity validation | `.claude/skills/finance/fee-reconciliation.md` | Validation identity and audit procedure |
+| Cross-entity validation | `.claude/skills/finance/validation-identities.md` | Validation identity and audit procedure |
 
 ---
 
@@ -187,7 +187,7 @@ These would follow the same pattern: expense on property, revenue on company, tr
 
 | Skill | Path |
 |-------|------|
-| Fee Reconciliation | `.claude/skills/finance/fee-reconciliation.md` |
+| Fee Reconciliation | `.claude/skills/finance/validation-identities.md` |
 | Income Statement | `.claude/skills/finance/income-statement.md` |
 | Management Company Statements | `.claude/skills/finance/management-company-statements.md` |
 | Cash Line Architecture | `.claude/skills/finance/cash-line-architecture.md` |

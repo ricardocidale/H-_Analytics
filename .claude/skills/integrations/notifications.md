@@ -99,4 +99,4 @@ Admin can view logs via `/api/notifications/logs?limit=100`.
 ## Related Skills
 
 - `.claude/skills/admin/SKILL.md` — Admin Notifications tab
-- `.claude/skills/market-intelligence/adding-integrations.md` — Resend as integration service
+- `.claude/skills/research/adding-integrations.md` — Resend as integration service
