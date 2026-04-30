@@ -8,6 +8,16 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: April 30, 2026 — P7 plan written; P7 now in progress
+
+- **P7 plan created** at `.claude/plans/p7-engine-specialists.md` — survives future context compaction.
+- **Decision: P7 combines items 2+3** (Revenue N+1 graduation + remaining mgmt-co Specialists). Constants H–K admin pages = P7-C, separate Replit track.
+- **phases.md updated:** P7 split into P7-A (Revenue N+1 graduation, In progress), P7-B (remaining Specialists, Pending P7-A), P7-C (Constants H–K pages, Pending/Replit). Analyst Architecture Phase 4 unblocked, folded into P7-B.
+- **Next step:** Start P7-A G2-P1 — Revenue prompt-engineer + quant-panel files. Read `mgmt-co-funding-prompt-engineer.ts` first as the pattern template.
+- **All gates still green** at HEAD `18077f4e` (no code changes this session — plan writing only).
+
+---
+
 ## Session: April 29, 2026 (P6e-c + P6g shipped; P6f scoped)
 
 - **P6e-c + P6g shipped** by Replit at `7a4efea2`: N+1 Orchestrator Defaults section in LlmDefaultsTab.tsx (4 dropdowns → pipeline policy) + Recommended badges + AnalystButton in LlmConfigTab.tsx.

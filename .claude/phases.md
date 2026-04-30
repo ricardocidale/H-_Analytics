@@ -31,7 +31,9 @@
 | P4 | Resources sub-page UIs (APIs, Sources, Tables, Benchmarks, Models) + dialogs + version history | ✅ Shipped | — | — | — | — |
 | P5 | Specialist read-only surfaces (Funding + Revenue first): 6 REST routes, 5 capability tabs, 11 contract tests, mgmt-co router wiring | ✅ Shipped | Replit | `2346de7`, `a6c78b54` | — | — |
 | P6 | Resources adapters for legacy `data_sources` / `LlmDefaultsTab`; centralize `SPECIALIST_SECTION_TO_ID`; Required Fields enforcement; audit user-name resolution; runtimeConfig schema narrowing | ✅ Shipped | Replit/CC | P6a `engine/analyst/surface/mgmt-co/index.ts`, P6b `a6c7ac81`, P6c-a `ae422cff`, P6d `AdminSidebar.tsx`, P6e-a `5524c70a` (CC), P6e-c+P6g `7a4efea2` (Replit), schema fixes `9dc6b2a3` (CC), P6f `a8248c21` (CC). P6c-b/P6c-c deferred — server-side gate is enforced; deferred work folded into P7 prep. | P5 ✅ | P7 ⏳ |
-| P7 | Constants Specialists H–K admin pages + Revenue N+1 graduation (ADR + phase TBD) + remaining mgmt-co Specialists (Compensation, Overhead, Company, Property-Defaults) | ⏳ Pending | CC + Replit | — | P6 ✅ | — |
+| P7-A | Revenue Specialist N+1 graduation (G2): prompt-engineer + quant/market panels + synthesis-validator + runner N+1 wiring + IB bar tests | 🟢 In progress | CC | — | P6 ✅ | Plan: `.claude/plans/p7-engine-specialists.md` |
+| P7-B | Remaining mgmt-co Specialists — Compensation, Overhead, Company, Property-Defaults (Analyst Architecture Phase 4) | ⏳ Pending | CC + Replit | — | P7-A ✅ | Same plan file |
+| P7-C | Constants Specialists H–K admin pages (`status: "needs-page"` → built) | ⏳ Pending | Replit | — | P6 ✅ | Separate handoff packet |
 
 ---
 
@@ -44,7 +46,7 @@
 | 2 | `engine/analyst/{contracts,router,voice,quality,surface}/` skeleton + CODEOWNERS + naming-lint + ADR-002 | ✅ Shipped | Replit | `5ba18f29` | — | — |
 | 3a | `AnalystVerdict` contract + Surface Router + Voice Renderer + Quality Scorer + persona test bench + ADR-003 + 53 tests; **contract frozen** | ✅ Shipped | Claude Code | `d220f4b1`, `cc6d5a0e` | — | — |
 | 3b | Funding + Revenue Surface Specialists; `createMgmtCoRouter`; `/save-tab` returns `AnalystVerdict | null`; `AnalystCheckDialog` rewritten on the contract | ✅ Shipped | Replit | `ee0c6573` | — | — |
-| 4 | Remaining mgmt-co Specialists (Compensation, Overhead, Company, Property-Defaults). Persona resolution + verdict-cache table deferred. | ⏳ Pending | Replit (planned) | — | Resources P6 (Required Fields enforcement) | — |
+| 4 | Remaining mgmt-co Specialists (Compensation, Overhead, Company, Property-Defaults). Persona resolution + verdict-cache table deferred. | ⏳ Pending | CC + Replit | — | P6 ✅ (unblocked) | Folded into P7-B — see `.claude/plans/p7-engine-specialists.md` |
 | 5 | Cognitive Engine reorg (`server/ai/` 41 flat files → 6 capability folders) | ⏸ Paused | — | — | ADR-005 doctrine freeze | Wait for ADR-005 to clear Doctrine Freeze Gate |
 
 ---
