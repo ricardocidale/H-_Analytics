@@ -25,10 +25,10 @@ interface UserManualContentProps {
   sections: UserManualSection[];
   expandedSections: Set<string>;
   toggleSection: (id: string) => void;
-  sectionRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
+  registerSectionRef: (id: string, el: HTMLDivElement | null) => void;
 }
 
-export function UserManualContent({ sections, expandedSections, toggleSection, sectionRefs }: UserManualContentProps) {
+export function UserManualContent({ sections, expandedSections, toggleSection, registerSectionRef }: UserManualContentProps) {
   return (
     <main className="flex-1 space-y-4 min-w-0">
       {sections.map((section) => {
@@ -39,7 +39,7 @@ export function UserManualContent({ sections, expandedSections, toggleSection, s
             <Component
               expanded={expandedSections.has(section.id)}
               onToggle={() => toggleSection(section.id)}
-              sectionRef={(el: HTMLDivElement | null) => { sectionRefs.current[section.id] = el; }}
+              sectionRef={(el: HTMLDivElement | null) => registerSectionRef(section.id, el)}
             />
           </Suspense>
         );

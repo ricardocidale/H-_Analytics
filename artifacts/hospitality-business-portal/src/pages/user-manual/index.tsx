@@ -15,6 +15,7 @@ export default function UserManual({ embedded }: UserManualProps) {
   const { isAdmin } = useAuth();
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const pendingHashRef = useRef<string | null>(null);
 
   const visibleSections = useMemo(() =>
     USER_MANUAL_SECTIONS.filter((s) => {
@@ -40,16 +41,24 @@ export default function UserManual({ embedded }: UserManualProps) {
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
       setExpandedSections((prev) => new Set(prev).add(id));
+      pendingHashRef.current = null;
+    }
+  }, []);
+
+  const registerSectionRef = useCallback((id: string, el: HTMLDivElement | null) => {
+    sectionRefs.current[id] = el;
+    if (el && pendingHashRef.current === id) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      setExpandedSections((prev) => new Set(prev).add(id));
+      pendingHashRef.current = null;
     }
   }, []);
 
   useEffect(() => {
     const hash = window.location.hash.slice(1);
     if (!hash) return;
-    const timer = setTimeout(() => {
-      scrollToSection(hash);
-    }, 300);
-    return () => clearTimeout(timer);
+    pendingHashRef.current = hash;
+    scrollToSection(hash);
   }, [scrollToSection]);
 
   const Wrapper = embedded ? ({ children }: { children: React.ReactNode }) => <>{children}</> : Layout;
@@ -89,7 +98,7 @@ export default function UserManual({ embedded }: UserManualProps) {
             sections={visibleSections}
             expandedSections={expandedSections}
             toggleSection={toggleSection}
-            sectionRefs={sectionRefs}
+            registerSectionRef={registerSectionRef}
           />
         </div>
       </div>
