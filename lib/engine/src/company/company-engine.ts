@@ -223,7 +223,13 @@ export function generateCompanyProForma(
             serviceFeeBreakdown.byPropertyId[propId] = propServiceTotal;
             baseFeeRevenue += propServiceTotal;
           } else {
-            const propServiceFee = pf[m].revenueTotal * propBaseFeeRates[i];
+            // Use the property engine's own feeBase (computed against
+            // netRevenueAfterPlatformFees so STR properties with
+            // platformFeeRate>0 don't double-count platform commissions as
+            // ManCo revenue). Mirrors property's expense side per ASC 810
+            // intercompany-elimination — fee revenue here MUST equal fee
+            // expense on the property's books for consolidation to net zero.
+            const propServiceFee = pf[m].feeBase;
             baseFeeRevenue += propServiceFee;
             serviceFeeBreakdown.byPropertyId[propId] = propServiceFee;
             serviceFeeBreakdown.byCategory["Service Fee"] = (serviceFeeBreakdown.byCategory["Service Fee"] ?? 0) + propServiceFee;
