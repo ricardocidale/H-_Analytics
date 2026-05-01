@@ -1,6 +1,6 @@
 # ADR-011 — Waterfall Schema: per-property capital-structure storage
 
-**Status:** Proposed
+**Status:** Accepted
 **Date filed:** 2026-05-01
 **Authors:** Claude Code
 **Supersedes:** none
@@ -97,3 +97,7 @@ Remains **Proposed** until:
 3. ADR-010 status → Accepted
 
 When Accepted, the migration (`ALTER TABLE properties ADD COLUMN lp_equity_pct real, ADD COLUMN catch_up_rate real, ADD COLUMN catch_up_to_gp_pct real, ADD COLUMN waterfall_tiers jsonb`) ships as `lib/db/migrations/0030_waterfall_schema.sql`.
+
+## Implementation
+
+Migration applied 2026-05-01 via `lib/db/script/apply-0030.mjs`. All four columns (`lp_equity_pct real`, `catch_up_rate real`, `catch_up_to_gp_pct real`, `waterfall_tiers jsonb`) are nullable with no DB-level defaults. Drizzle schema updated in `lib/db/src/schema/properties.ts`. Engine integration remains deferred to ADR-010 Phase 1.
