@@ -1,13 +1,43 @@
-modules = ["python-3.11", "nodejs-20"]
+modules = ["nodejs-24"]
+
+[deployment]
+router = "application"
+deploymentTarget = "autoscale"
+
+[deployment.postBuild]
+args = ["pnpm", "store", "prune"]
+env = { "CI" = "true" }
+
+[workflows]
+runButton = "Project"
+
+[agent]
+stack = "PNPM_WORKSPACE"
+expertMode = true
+integrations = ["linear:1.0.0"]
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 20000
 
 [[ports]]
-localPort = 5000
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 23312
 externalPort = 80
 
 [[ports]]
 localPort = 23636
-externalPort = 3001
+externalPort = 3000
+
+[userenv]
+
+[userenv.shared]
+STORAGE_PROVIDER = "r2"
+AUTH_PROVIDER = "replit"
+NODE_ENV = "production"
 
 [nix]
 channel = "stable-25_05"
-packages = ["fontconfig", "freetype", "ghostscript", "glib", "harfbuzz", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "pango", "tcl", "tk", "xcodebuild", "zlib"]

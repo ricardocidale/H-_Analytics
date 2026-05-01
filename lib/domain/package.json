@@ -1,0 +1,12 @@
+{
+  "name": "@workspace/domain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./src/*.ts",
+    "./*/": "./src/*/",
+    "./types/*": "./src/types/*.ts",
+    "./ledger/*": "./src/ledger/*.ts"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "types": ["node"],
+    "paths": {
+      "@shared/*": ["./src/shared/*"],
+      "@engine": ["../../lib/engine/src"],
+      "@engine/*": ["../../lib/engine/src/*"],
+      "@calc": ["../../lib/calc/src"],
+      "@calc/*": ["../../lib/calc/src/*"],
+      "@analytics": ["../../lib/analytics/src"],
+      "@analytics/*": ["../../lib/analytics/src/*"],
+      "@domain": ["../../lib/domain/src"],
+      "@domain/*": ["../../lib/domain/src/*"],
+      "@server": ["./src"],
+      "@server/*": ["./src/*"]
+    }
+  },
+  "include": ["src"],
+  "references": [
+    {
+      "path": "../../lib/db"
+    },
+    {
+      "path": "../../lib/api-zod"
+    }
+  ]
+}
