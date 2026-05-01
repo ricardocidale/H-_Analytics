@@ -129,7 +129,7 @@ function diagnoseProperty(seedProperty: Record<string, unknown>, global: GlobalI
     commission_rate: (merged.dispositionCommission as number | null) ?? DEFAULT_COMMISSION_RATE,
     outstanding_debt: finalDebtOutstanding,
     room_count: merged.roomCount,
-    rounding_policy: { precision: 2, bankers_rounding: false },
+    rounding_policy: { precision: USD_CENTS_PRECISION, bankers_rounding: false },
   });
 
   const cashFlowsForIrr: number[] = [];
@@ -171,7 +171,7 @@ function main(): void {
   const global = buildGlobal();
   console.log(`\nPortfolio IRR Diagnostic — ${SEED_INITIAL_PROPERTIES.length} active properties`);
   console.log(`Healthy band: ${(HEALTHY_BAND_LOW * 100).toFixed(0)}%–${(HEALTHY_BAND_HIGH * 100).toFixed(0)}% IRR`);
-  console.log(`Projection: ${PROJECTION_YEARS}y (${PROJECTION_MONTHS} months) starting ${MODEL_START_DATE}\n`);
+  console.log(`Projection: ${PROJECTION_YEARS}y (${PROJECTION_MONTHS} months) starting ${DEFAULT_MODEL_START_DATE}\n`);
   for (const prop of SEED_INITIAL_PROPERTIES) {
     diagnoseProperty(prop as Record<string, unknown>, global);
   }
