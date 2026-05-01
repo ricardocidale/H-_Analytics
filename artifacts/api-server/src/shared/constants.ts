@@ -101,6 +101,11 @@ export const DEFAULT_BUSINESS_INSURANCE_START = 12000; // Company-level annual b
 export const DEFAULT_BASE_MANAGEMENT_FEE_RATE = 0.085;      // 8.5% of Total Revenue
 export const DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE = 0.12;   // 12% of Gross Operating Profit
 
+// SHORT-TERM RENTAL (STR) defaults are defined in constants-business-models.ts
+// (where they're consumed) to avoid the circular import that would arise from
+// defining them here and importing them there. They remain available via the
+// wildcard re-export at the top of this file.
+
 // ──────────────────────────────────────────────────────────
 // SERVICE FEE CATEGORIES (GRANULAR BREAKDOWN)
 // Instead of a single base management fee, each property can break down fees
@@ -284,6 +289,7 @@ export const DEFAULT_FIXED_COST_ESCALATION_RATE = DEFAULT_PROPERTY_INFLATION_RAT
 // ──────────────────────────────────────────────────────────
 
 export const DEFAULT_PROJECTION_YEARS = 10;
+export const PROJECTION_YEARS = DEFAULT_PROJECTION_YEARS;
 export const PROJECTION_MONTHS = DEFAULT_PROJECTION_YEARS * 12; // 120
 export const DEFAULT_BUSINESS_INSURANCE = 12000; // Annual business insurance ($)
 

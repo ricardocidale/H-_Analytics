@@ -1,3 +1,51 @@
+// ──────────────────────────────────────────────────────────
+// SHORT-TERM RENTAL (STR) BENCHMARKS — defined here (not constants.ts)
+// to avoid circular imports. constants.ts re-exports this file via wildcard,
+// so consumers can still import these names from "@shared/constants".
+//
+// Sources (May 2026 industry benchmarks):
+//   - Vacasa: 25–35% (avg ~30%) https://www.vacasa.com/homeowner-guides/vacation-rental-management-fees
+//   - AvantStay: 20–25% base + add-ons up to 35% (luxury full-service)
+//   - OneFineStay: ~50% revenue share (Accor luxury, premium curated)
+//   - Evolve Core: 10% (listing-only, owner does ops) https://evolve.com/owner/vacation-rental-management
+//   - Airbnb host fee: 15.5% / VRBO: 8% / Booking: 15% (2026 host fee data)
+//   - Blended channel commission for luxury STR (60/30/10 mix): ~14%
+//   - AirROI 2026 cleaning fee economics: 2BR turnover $60-100 US benchmark
+//     https://www.airroi.com/blog/airbnb-cleaning-fee-economics
+// ──────────────────────────────────────────────────────────
+
+/** STR full-service mgmt fee — Vacasa / AvantStay tier (passive owner). */
+export const DEFAULT_VRBO_FULL_SERVICE_MGMT_FEE_RATE = 0.25;
+/** STR listing-only mgmt fee — Evolve Core tier (owner arranges cleaning + maintenance). */
+export const DEFAULT_VRBO_OWNER_MANAGED_MGMT_FEE_RATE = 0.10;
+/** Blended STR channel commission (Airbnb 15.5% / VRBO 8% / Booking 15% at 60/30/10 mix). */
+export const DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE = 0.14;
+
+/** Owner-direct cleaning + linens + supplies. Lower than vrbo full-service (0.30) — owner sources locally. */
+export const DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_ROOMS = 0.06;
+/** Owner light F&B (welcome amenities, coffee, snacks). */
+export const DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_FB = 0.03;
+/** Owner light admin; ManCo absorbs majority into 10% mgmt fee. */
+export const DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_ADMIN = 0.02;
+/** Owner-direct handyman/landscaping/repairs. */
+export const DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_PROPERTY_OPS = 0.04;
+/** Owner-paid utilities; per-market override expected (Latin America materially cheaper). */
+export const DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_UTILITIES = 0.05;
+/** Residential property tax baseline; per-market override expected via getFactoryNumber(). */
+export const DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_TAXES = 0.025;
+/** STR insurance — short-term coverage typically higher than long-term residential. */
+export const DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_INSURANCE = 0.025;
+/** Real FF&E replacement reserve. */
+export const DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_FFE = 0.03;
+/** Consumables, toiletries, supplies. */
+export const DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_OTHER = 0.02;
+/** Light F&B revenue share — chef nights, welcome baskets. */
+export const DEFAULT_VRBO_OWNER_MANAGED_REV_SHARE_FB = 0.04;
+/** Other revenue share — cleaning fees passed to guest, experiences. */
+export const DEFAULT_VRBO_OWNER_MANAGED_REV_SHARE_OTHER = 0.04;
+/** Other-revenue expense rate — lower than hotel (fewer overhead components). */
+export const DEFAULT_VRBO_OWNER_MANAGED_OTHER_EXPENSE_RATE = 0.40;
+
 /**
  * BusinessModelType — pricing + cost-stack archetype the engine routes a
  * property through.
@@ -124,11 +172,11 @@ export const BUSINESS_MODEL_DEFAULTS: Record<BusinessModelType, BusinessModelDef
     revShareFB: 0.08,              // 8% of total revenue — welcome baskets, catering, cooking
     revShareOther: 0.02,           // 2% of total revenue — cleaning fees charged to guests
     cateringBoostPct: 0,           // 0% — deprecated
-    baseMgmtFeeRate: 0.25,      // 25% — all-in management fee (Vacasa/AvantStay tier)
+    baseMgmtFeeRate: DEFAULT_VRBO_FULL_SERVICE_MGMT_FEE_RATE,  // Vacasa/AvantStay tier full-service all-in fee
     incentiveMgmtFeeRate: 0,    // 0% — no incentive fee (all-in model)
     eventExpenseRate: 0,        // N/A
     otherExpenseRate: 0.50,     // 50% of other revenue
-    platformFeeRate: 0.14,      // 14% — blended Airbnb/VRBO platform fee
+    platformFeeRate: DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE,  // blended Airbnb 15.5% / VRBO 8% / Booking 15%
     preOpeningMonthlyBurn: 0,
   },
 
@@ -149,26 +197,26 @@ export const BUSINESS_MODEL_DEFAULTS: Record<BusinessModelType, BusinessModelDef
     //     US benchmark $60-100/turnover; Medellín / Latin America rates run
     //     30-50% of US benchmark; the 6% costRateRooms anchors to a global
     //     midpoint, properties in low-labor markets should override down.
-    costRateRooms: 0.06,        // 6% — owner-direct cleaning + linens + supplies (vs vrbo full-service 30%; owner sources locally)
-    costRateFB: 0.03,           // 3% — light welcome amenities (coffee, snacks, water)
-    costRateAdmin: 0.02,        // 2% — owner light admin; ManCo absorbs majority into 10%
-    costRateMarketing: 0,       // 0% — ManCo provides listing/pricing tools (bundled in 10%)
-    costRatePropertyOps: 0.04,  // 4% — owner-direct handyman/landscaping/repairs (cheaper than ManCo-routed)
-    costRateUtilities: 0.05,    // 5% — owner pays utilities; varies by market (Latin America lower)
-    costRateTaxes: 0.025,       // 2.5% — residential property tax baseline (per-market override expected)
-    costRateIT: 0,              // 0% — ManCo provides booking/channel systems (bundled in 10%)
-    costRateFFE: 0.03,          // 3% — real FF&E reserve (replacement cost)
-    costRateOther: 0.02,        // 2% — consumables, toiletries, supplies
-    costRateInsurance: 0.025,   // 2.5% — STR insurance (matches vrbo)
-    revShareEvents: 0,             // 0% — single-unit, no events
-    revShareFB: 0.04,              // 4% of total revenue — light F&B (chef nights, welcome baskets)
-    revShareOther: 0.04,           // 4% of total revenue — cleaning fees passed to guest, experiences
+    costRateRooms: DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_ROOMS,        // owner-direct cleaning + linens + supplies (vs vrbo full-service 0.30)
+    costRateFB: DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_FB,               // light welcome amenities (coffee, snacks, water)
+    costRateAdmin: DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_ADMIN,         // owner light admin; ManCo absorbs majority into 10%
+    costRateMarketing: 0,                                               // ManCo provides listing/pricing tools (bundled in 10%)
+    costRatePropertyOps: DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_PROPERTY_OPS, // owner-direct handyman/landscaping/repairs
+    costRateUtilities: DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_UTILITIES, // owner pays utilities; per-market override expected
+    costRateTaxes: DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_TAXES,         // residential property tax baseline; per-market override via getFactoryNumber()
+    costRateIT: 0,                                                      // ManCo provides booking/channel systems (bundled in 10%)
+    costRateFFE: DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_FFE,              // real FF&E reserve (replacement cost)
+    costRateOther: DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_OTHER,          // consumables, toiletries, supplies
+    costRateInsurance: DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_INSURANCE,  // STR insurance (matches vrbo)
+    revShareEvents: 0,                                                  // single-unit, no events
+    revShareFB: DEFAULT_VRBO_OWNER_MANAGED_REV_SHARE_FB,                // light F&B (chef nights, welcome baskets)
+    revShareOther: DEFAULT_VRBO_OWNER_MANAGED_REV_SHARE_OTHER,          // cleaning fees passed to guest, experiences
     cateringBoostPct: 0,
-    baseMgmtFeeRate: 0.10,      // 10% — Evolve Core tier (listing + bookings; owner does ops)
-    incentiveMgmtFeeRate: 0,    // 0% — no incentive (consolidated)
+    baseMgmtFeeRate: DEFAULT_VRBO_OWNER_MANAGED_MGMT_FEE_RATE,         // Evolve Core tier (listing + bookings; owner does ops)
+    incentiveMgmtFeeRate: 0,                                            // no incentive (consolidated)
     eventExpenseRate: 0,
-    otherExpenseRate: 0.40,     // 40% of other revenue (lower; fewer overhead components)
-    platformFeeRate: 0.14,      // 14% — blended Airbnb/VRBO/Booking platform commission
+    otherExpenseRate: DEFAULT_VRBO_OWNER_MANAGED_OTHER_EXPENSE_RATE,    // lower than hotel; fewer overhead components
+    platformFeeRate: DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE,            // blended Airbnb/VRBO/Booking commission
     preOpeningMonthlyBurn: 0,
   },
 };

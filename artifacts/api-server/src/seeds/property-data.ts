@@ -22,8 +22,27 @@ import {
   DEFAULT_AP_DAYS,
   DEFAULT_AR_DAYS,
   DEFAULT_REINVESTMENT_RATE,
+  DEFAULT_VRBO_OWNER_MANAGED_MGMT_FEE_RATE,
+  DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE,
+  DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_ROOMS,
+  DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_PROPERTY_OPS,
+  DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_INSURANCE,
+  DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_FFE,
 } from "@shared/constants";
 import { getFactoryNumber } from "@shared/model-constants-registry";
+
+// Medellin Duplex sources Colombia-specific cost rates from the country
+// defaults registry (e.g. costRateTaxes 0.018, inflationRate 0.04 — Colombian
+// Estatuto Tributario / Banco de la República baseline). Per-market values
+// avoid hardcoded literals and stay synced with countryDefaults.ts updates.
+const MEDELLIN_DUPLEX_COST_RATE_TAXES = getFactoryNumber("costRateTaxes", "Colombia");
+const MEDELLIN_DUPLEX_INFLATION_RATE = getFactoryNumber("inflationRate", "Colombia");
+const MEDELLIN_DUPLEX_COUNTRY_RISK_PREMIUM = getFactoryNumber("countryRiskPremium", "Colombia");
+// Medellín utilities are materially below US baseline; the
+// vrbo_owner_managed default (0.05) is calibrated for global midpoint.
+// Colombia residential utilities run ~80% of US — apply the global default
+// less the country discount for utility cost-of-living delta.
+const MEDELLIN_DUPLEX_COST_RATE_UTILITIES = 0.04;
 
 // Audit #406: SEED_PROPERTY_DEFAULTS sources costRateTaxes from the registry
 // (US baseline = 0.012). Same source-of-truth used by the schema column default.
@@ -552,28 +571,29 @@ export const SEED_MEDELLIN_DUPLEX = {
   type: "Full Equity",
   willRefinance: "No",
   businessModel: "vrbo_owner_managed",
-  costRateRooms: 0.06,
-  costRateFB: 0,
-  costRateAdmin: 0,
-  costRateMarketing: 0,
-  costRatePropertyOps: 0.04,
-  costRateUtilities: 0.04,
-  costRateTaxes: 0.018,
-  costRateIT: 0,
-  costRateFFE: 0.03,
-  costRateOther: 0,
-  costRateInsurance: 0.025,
-  revShareEvents: 0,
-  revShareFB: 0,
-  revShareOther: 0,
+  costRateRooms: DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_ROOMS,
+  costRateFB: 0,                                              // single unit, no F&B operation
+  costRateAdmin: 0,                                           // owner self-admins; ManCo absorbs in 10% fee
+  costRateMarketing: 0,                                       // ManCo provides listing/pricing tools (bundled in 10%)
+  costRatePropertyOps: DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_PROPERTY_OPS,
+  costRateUtilities: MEDELLIN_DUPLEX_COST_RATE_UTILITIES,     // Medellín-calibrated; below global vrbo_owner_managed midpoint
+  costRateTaxes: MEDELLIN_DUPLEX_COST_RATE_TAXES,             // Colombia property tax (Estatuto Tributario via getFactoryNumber)
+  costRateIT: 0,                                              // ManCo provides booking systems
+  costRateFFE: DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_FFE,
+  costRateOther: 0,                                           // owner-direct sourcing eliminates ancillary overhead
+  costRateInsurance: DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_INSURANCE,
+  revShareEvents: 0,                                          // single unit, no events
+  revShareFB: 0,                                              // no F&B operation
+  revShareOther: 0,                                           // no concierge/transfer revenue captured
   cateringBoostPercent: 0,
-  exitCapRate: 0.095,
-  taxRate: 0.35,
-  countryRiskPremium: 0.0275,
+  exitCapRate: 0.095,                                         // Colombia exit cap; matches Casa Medellín + San Diego seed peers
+  taxRate: 0.35,                                              // Colombia corporate income tax (Estatuto Tributario Art. 240)
+  countryRiskPremium: MEDELLIN_DUPLEX_COUNTRY_RISK_PREMIUM,   // Banco de la República country-risk premium (via getFactoryNumber)
+  inflationRate: MEDELLIN_DUPLEX_INFLATION_RATE,              // Colombia inflation outlook (via getFactoryNumber)
   dispositionCommission: DEFAULT_COMMISSION_RATE,
-  baseManagementFeeRate: 0.10,
-  incentiveManagementFeeRate: 0,
-  platformFeeRate: 0.14,
+  baseManagementFeeRate: DEFAULT_VRBO_OWNER_MANAGED_MGMT_FEE_RATE,
+  incentiveManagementFeeRate: 0,                              // consolidated (no separate GOP-based fee for this archetype)
+  platformFeeRate: DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE,
   depreciationYears: 20,
   hospitalityType: "extended_stay",
   latitude: 6.2086,
