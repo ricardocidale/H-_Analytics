@@ -25,6 +25,13 @@ All services are path-routed through a single reverse proxy on `localhost:80`. A
 
 See the `pnpm-workspace` skill for workspace structure, TypeScript project references, and package conventions.
 
+## Screenshot and image file conventions
+
+- **Temporary / debug screenshots** → `screenshots/` (gitignored, never committed)
+- **Permanent / referenced images** → `attached_assets/` (committed, tracked by git)
+- Root-level `*.png`, `*.jpg`, `*.jpeg`, `*.webp` are blocked by `.gitignore` to keep the repo root clean.
+- When using the `screenshot` tool, always pass `save_to: "screenshots/<descriptive-name>.jpg"` instead of writing to the project root.
+
 ## Secrets configured in this Repl
 
 `POSTGRES_URL`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `TOKEN_ENCRYPTION_KEY`, `OPENAI_EMBEDDING_KEY`, `FRED_API_KEY`, `GITHUB_PAT`, `GOOGLE_CLIENT_SECRET`
