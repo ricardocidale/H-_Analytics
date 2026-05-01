@@ -3,8 +3,10 @@
  *
  * The orchestrator (formerly "The Analyst") is humanized as Gustavo so that
  * activity logs, narration, and admin-facing UX read as a named team
- * rather than a faceless pipeline. Gustavo coordinates the 12 Specialists
- * declared in `engine/analyst/registry/specialist-catalog.ts`.
+ * rather than a faceless pipeline. Gustavo coordinates the 16 Specialists
+ * declared in `engine/analyst/registry/specialist-catalog.ts` (letters A–P;
+ * the roster will grow to 18 once Q "Returns Intelligence" / Quitéria and
+ * R "Distributions Intelligence" / Rafaela ship per ADR-010).
  *
  * This module is the SINGLE source of truth for the orchestrator persona.
  * Anywhere the engine narrates "the orchestrator decided …" or "the

@@ -21,6 +21,10 @@
 
 import { storage } from "../storage";
 import { COUNTRY_DEFAULTS, type CountryDefaults } from "@shared/countryDefaults";
+import {
+  STR_ARCHETYPE_DETECTION_MAX_ROOMS,
+  STR_ARCHETYPE_DETECTION_MIN_ADR,
+} from "@shared/constants";
 import { validateAllAssumptions, validateAssumptionRange, computeDataQuality, meetsConvictionFloor, insufficientDataMessage } from "./benchmark-lookups";
 import { loggerFor } from "../logger";
 import { GASPAR_IDENTITY } from "@engine/analyst/identity";
@@ -222,6 +226,83 @@ export async function validatePropertyAssumptions(propertyId: number): Promise<V
           flags.pop(); // Remove the flag we just pushed — insufficient data to justify it
         }
       }
+    }
+  }
+
+  // ── Step 2.5: Business-model archetype consistency check ──────────
+  // Detects properties whose `businessModel` field appears to mismatch their
+  // structural data (e.g. a single-unit luxury STR misconfigured with a hotel
+  // cost stack — the bug pattern that produced the original Medellin Duplex
+  // 4.8% IRR before correction).  Three signals trigger the flag, each strong
+  // enough on its own:
+  //   1. pricingModel === "per_property" (explicit STR signal)
+  //   2. hospitalityType ∈ {vrbo, extended_stay} (user-declared STR type)
+  //   3. roomCount ≤ STR_ARCHETYPE_DETECTION_MAX_ROOMS AND
+  //      startAdr ≥ STR_ARCHETYPE_DETECTION_MIN_ADR (heuristic fallback)
+  // When the property's businessModel is NOT vrbo or vrbo_owner_managed and
+  // any signal fires, surface as a flag with a recommendation to review the
+  // archetype.  Tier-0 deterministic — no LLM cost.  Logged under [gaspar].
+  const businessModel = ((property as Record<string, unknown>).businessModel ?? "hotel") as string;
+  const pricingModel = (property as Record<string, unknown>).pricingModel as string | null;
+  const hospitalityType = (property as Record<string, unknown>).hospitalityType as string | null;
+  const roomCount = typeof property.roomCount === "number" ? property.roomCount : null;
+  const startAdr = typeof property.startAdr === "number" ? property.startAdr : null;
+  const isStrBusinessModel = businessModel === "vrbo" || businessModel === "vrbo_owner_managed";
+
+  if (!isStrBusinessModel) {
+    const explicitStrSignal = pricingModel === "per_property";
+    const declaredStrType = hospitalityType === "vrbo" || hospitalityType === "extended_stay";
+    const heuristicStrShape =
+      roomCount != null &&
+      startAdr != null &&
+      roomCount <= STR_ARCHETYPE_DETECTION_MAX_ROOMS &&
+      startAdr >= STR_ARCHETYPE_DETECTION_MIN_ADR;
+
+    if (explicitStrSignal || declaredStrType || heuristicStrShape) {
+      const reasonParts: string[] = [];
+      if (explicitStrSignal) reasonParts.push(`pricingModel="per_property"`);
+      if (declaredStrType) reasonParts.push(`hospitalityType="${hospitalityType}"`);
+      if (heuristicStrShape) reasonParts.push(`roomCount=${roomCount}, startAdr=$${startAdr}`);
+
+      flags.push({
+        field: "businessModel",
+        value: 0,
+        expected: "vrbo or vrbo_owner_managed",
+        verdict: "above",
+        source: "structural-data-consistency",
+      });
+
+      await storage.upsertAssumptionGuidance({
+        entityType: "property",
+        entityId: propertyId,
+        assumptionKey: "businessModel",
+        valueLow: 0,
+        valueMid: 0,
+        valueHigh: 0,
+        confidence: "high",
+        sourceName: "Structural-data consistency check",
+        reasoning:
+          `Property looks like a short-term rental (${reasonParts.join(", ")}) but ` +
+          `businessModel is "${businessModel}". Hotel-class cost stack on STR pricing ` +
+          `produces materially wrong IRR. Recommend setting businessModel to ` +
+          `"vrbo_owner_managed" if owner arranges cleaning/maintenance directly, ` +
+          `or "vrbo" if a full-service manager handles all operations.`,
+        dataQuality: {
+          sourceCount: 1,
+          sourceTypes: ["db_table"],
+          dataAgeDays: 0,
+          rangeSpreadPct: 0,
+          sourcesConverge: true,
+          qualityScore: 95,
+          qualityNarrative: "Deterministic structural check — high confidence.",
+        },
+      });
+
+      watchdogLog.info(
+        `Flagged property ${propertyId} ("${property.name}"): looks like STR archetype ` +
+        `(${reasonParts.join(", ")}) but businessModel="${businessModel}". ` +
+        `Recommended review.`,
+      );
     }
   }
 

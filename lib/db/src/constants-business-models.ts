@@ -46,6 +46,26 @@ export const DEFAULT_VRBO_OWNER_MANAGED_REV_SHARE_OTHER = 0.04;
 /** Other-revenue expense rate — lower than hotel (fewer overhead components). */
 export const DEFAULT_VRBO_OWNER_MANAGED_OTHER_EXPENSE_RATE = 0.40;
 
+// ──────────────────────────────────────────────────────────
+// STR ARCHETYPE DETECTION THRESHOLDS — used by the watchdog
+// (`analyst-watchdog.ts → validateBusinessModelArchetype`) to flag
+// properties whose `businessModel` field appears to mismatch their
+// structural data. Three signals trigger the flag:
+//   1. `pricingModel === "per_property"` — explicit STR signal
+//   2. `hospitalityType` ∈ {vrbo, extended_stay} — user-declared STR type
+//   3. roomCount ≤ MAX_ROOMS AND startAdr ≥ MIN_ADR — heuristic fallback
+// Combined with `businessModel ∉ {vrbo, vrbo_owner_managed}`, any of these
+// signals fires the tripwire. Thresholds calibrated for May 2026 luxury
+// STR market — a single unit charging ≥$500/night is overwhelmingly
+// likely a whole-property rental, not a hotel suite.
+// ──────────────────────────────────────────────────────────
+
+/** Heuristic: any property at or below this room count is potentially a whole-unit STR. */
+export const STR_ARCHETYPE_DETECTION_MAX_ROOMS = 1;
+
+/** Heuristic: a 1-unit property with this nightly rate or higher is almost certainly STR (not a hotel suite). */
+export const STR_ARCHETYPE_DETECTION_MIN_ADR = 500;
+
 /**
  * BusinessModelType — pricing + cost-stack archetype the engine routes a
  * property through.
