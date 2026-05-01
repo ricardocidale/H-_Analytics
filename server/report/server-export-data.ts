@@ -11,6 +11,7 @@ import { verifyExport } from "@calc/validation/export-verification";
 import { logger } from "../logger";
 import type { DdSummary } from "@shared/dd-template";
 import { DD_STATUS_LABELS, DD_WORKSTREAM_LABELS } from "@shared/dd-template";
+import { buildPropertyAssumptionsSection, buildCompanyAssumptionsSection } from "./assumption-sections";
 
 interface ExportRow {
   category: string;
@@ -405,6 +406,18 @@ export async function buildExportData(
 
   const allStatements: StatementSection[] = [incomeStatement, cashFlowStatement];
   const statements = selectStatements(allStatements, scope);
+
+  // Portfolio exports append (1 ManCo + N per-property) assumption pages so
+  // investors can validate every driver behind the consolidated statements.
+  const globalsRecord = globalAssumptions as unknown as Record<string, unknown>;
+  statements.push(buildCompanyAssumptionsSection(globalsRecord));
+  for (const propInput of propertyInputs) {
+    const rawProp = propInput.id !== undefined
+      ? (await storage.getProperty(propInput.id)) as unknown as Record<string, unknown> | undefined
+      : undefined;
+    statements.push(buildPropertyAssumptionsSection(propInput, globalsRecord, rawProp));
+  }
+
   const metrics = buildMetrics(result.consolidatedYearly, result.propertyCount);
 
   const allRows = [...incomeStatement.rows, ...cashFlowStatement.rows];
@@ -586,6 +599,16 @@ export async function buildPropertyExportData(
   const allStatements: StatementSection[] = [profileSection, incomeStatement, cashFlowStatement];
   if (ddSection) allStatements.push(ddSection);
   const statements = selectStatements(allStatements, scope);
+
+  // Assumption sections always travel with the report regardless of reportScope —
+  // appended after selectStatements() so single-statement scope picks still
+  // surface the drivers behind the numbers. Format gating (Commit C) excludes
+  // them from PPTX/DOCX.
+  statements.push(
+    buildCompanyAssumptionsSection(globalAssumptions as unknown as Record<string, unknown>),
+    buildPropertyAssumptionsSection(property, globalAssumptions as unknown as Record<string, unknown>, rawProperty as unknown as Record<string, unknown>),
+  );
+
   const metrics = buildMetrics(result.yearly, 1);
   const allRows = statements.flatMap(s => s.rows);
 
@@ -641,6 +664,9 @@ export async function buildCompanyExportData(
 
   const allStatements: StatementSection[] = [companyIncomeStatement, companyCashFlow, companyBalance];
   const statements = selectStatements(allStatements, scope);
+
+  statements.push(buildCompanyAssumptionsSection(globalAssumptions as unknown as Record<string, unknown>));
+
   const companyMetrics = buildCompanyMetrics(result.companyYearly);
   const allRows = statements.flatMap(s => s.rows);
 
