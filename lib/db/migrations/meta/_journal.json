@@ -246,6 +246,13 @@
       "when": 1746144007000,
       "tag": "0037_batch8_datafix_and_unique",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1746144008000,
+      "tag": "0038_batch9_drop_company_fk",
+      "breakpoints": true
     }
   ]
 }

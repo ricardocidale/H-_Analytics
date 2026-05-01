@@ -575,11 +575,7 @@ async function runSchemaMigrations() {
   // on scenarios) was already shipped via 0010_scenario_service_templates.sql in the
   // Drizzle migration path. Runtime gate removed as part of Phase C batch 1.
 
-  if (!(await isMigrationApplied("drop_company_fk_001"))) {
-    const { run: runDropCompanyFk } = await import("./migrations/drop-company-fk-001");
-    await runDropCompanyFk(drizzleDb);
-    await markMigrationApplied("drop_company_fk_001");
-  }
+  // drop_company_fk_001 consolidated into 0038_batch9_drop_company_fk.sql (Phase C batch 9)
 
   // rebecca_opt_out_001, rebecca_fixtures_001 consolidated into
   // 0032_batch3_rebecca.sql (Phase C batch 3)
