@@ -16,7 +16,7 @@ import {
   IconCheck, IconInfo, IconPencil,
 } from "@/components/icons";
 import { Loader2, ChevronDown } from "@/components/icons/themed-icons";
-import { ExportMenu, pdfAction, pptxAction } from "@/components/ui/export-toolbar";
+import { ExportMenu, pdfAction, excelAction, csvAction, pptxAction, pngAction, docxAction } from "@/components/ui/export-toolbar";
 import {
   type IcpConfig, type IcpDescriptive,
   DEFAULT_ICP_CONFIG, DEFAULT_ICP_DESCRIPTIVE,
@@ -266,6 +266,80 @@ export default function CompanyIcpDefinition() {
     }
   };
 
+  const handleExportExcel = async (customFilename?: string) => {
+    try {
+      const response = await fetch("/api/premium-export", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ format: "excel", reportType: "company-research-criteria", title: `${companyName} Co. — ICP Definition`, data: exportData }),
+      });
+      if (!response.ok) throw new Error("Export failed");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = customFilename || `${companyName.replace(/\s+/g, "-")}-ICP-Definition.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: "Exported", description: "Excel downloaded successfully." });
+    } catch {
+      toast({ title: "Export failed", description: "Could not generate Excel.", variant: "destructive" });
+    }
+  };
+
+  const handleExportCSV = async (customFilename?: string) => {
+    try {
+      const response = await fetch("/api/premium-export", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ format: "csv", reportType: "company-research-criteria", title: `${companyName} Co. — ICP Definition`, data: exportData }),
+      });
+      if (!response.ok) throw new Error("Export failed");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = customFilename || `${companyName.replace(/\s+/g, "-")}-ICP-Definition.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: "Exported", description: "CSV downloaded successfully." });
+    } catch {
+      toast({ title: "Export failed", description: "Could not generate CSV.", variant: "destructive" });
+    }
+  };
+
+  const handleExportDOCX = async (customFilename?: string) => {
+    try {
+      const response = await fetch("/api/premium-export", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ format: "docx", reportType: "company-research-criteria", title: `${companyName} Co. — ICP Definition`, data: exportData }),
+      });
+      if (!response.ok) throw new Error("Export failed");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = customFilename || `${companyName.replace(/\s+/g, "-")}-ICP-Definition.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ title: "Exported", description: "Word document downloaded successfully." });
+    } catch {
+      toast({ title: "Export failed", description: "Could not generate Word document.", variant: "destructive" });
+    }
+  };
+
+  const handleExportPNG = async () => {
+    try {
+      const { captureToPng } = await import("@/lib/exports/domCapture");
+      const dataUrl = await captureToPng(contentRef.current!);
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `${companyName.replace(/\s+/g, "-")}-ICP-Definition.png`;
+      a.click();
+      toast({ title: "Exported", description: "PNG downloaded successfully." });
+    } catch {
+      toast({ title: "Export failed", description: "Could not capture PNG.", variant: "destructive" });
+    }
+  };
+
   if (isLoading) {
     return (<Layout><div className="flex items-center justify-center h-[60vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div></Layout>);
   }
@@ -307,7 +381,16 @@ export default function CompanyIcpDefinition() {
                   {generating === "ai" ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
                   Generate with AI
                 </Button>
-                <ExportMenu actions={[pdfAction(() => requestSave(`${companyName} ICP Definition`, ".pdf", (f) => handleExportPDF(f))), pptxAction(() => requestSave(`${companyName} ICP Definition`, ".pptx", (f) => handleExportPPTX(f)))]} />
+                <ExportMenu
+                  actions={[
+                    pdfAction(() => requestSave(`${companyName} ICP Definition`, ".pdf", (f) => handleExportPDF(f))),
+                    excelAction(() => requestSave(`${companyName} ICP Definition`, ".xlsx", (f) => handleExportExcel(f))),
+                    csvAction(() => requestSave(`${companyName} ICP Definition`, ".csv", (f) => handleExportCSV(f))),
+                    pptxAction(() => requestSave(`${companyName} ICP Definition`, ".pptx", (f) => handleExportPPTX(f))),
+                    pngAction(() => handleExportPNG()),
+                    docxAction(() => requestSave(`${companyName} ICP Definition`, ".docx", (f) => handleExportDOCX(f))),
+                  ]}
+                />
               </div>
             }
           />

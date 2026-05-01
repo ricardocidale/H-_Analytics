@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/ui/page-header";
 import { ContentPanel } from "@/components/ui/content-panel";
@@ -6,6 +6,7 @@ import { IconCalculator, IconTrending, IconAnalysis, IconShield } from "@/compon
 import { AnimatedPage, ScrollReveal } from "@/components/graphics";
 import { DSCRTab, DebtYieldTab, StressTestTab, PrepaymentTab } from "@/components/financing";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ExportMenu, pngAction } from "@/components/ui/export-toolbar";
 
 type TabId = "dscr" | "debt-yield" | "sensitivity" | "prepayment";
 
@@ -41,10 +42,25 @@ const TAB_DESCRIPTIONS: Record<TabId, { icon: React.ComponentType<any>; title: s
 
 export default function FinancingAnalysis({ embedded }: { embedded?: boolean }) {
   const [activeTab, setActiveTab] = useState<TabId>("dscr");
+  const tabContentRef = useRef<HTMLDivElement>(null);
 
   const Wrapper = embedded ? ({ children }: { children: React.ReactNode }) => <>{children}</> : Layout;
   const desc = TAB_DESCRIPTIONS[activeTab];
   const DescIcon = desc.icon;
+
+  const handleExportPNG = async () => {
+    try {
+      const { captureToPng } = await import("@/lib/exports/domCapture");
+      const label = TABS.find(t => t.id === activeTab)?.label ?? "Financing Analysis";
+      const dataUrl = await captureToPng(tabContentRef.current!);
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `${label.replace(/\s+/g, "-")}.png`;
+      a.click();
+    } catch {
+      /* silent — PNG capture is best-effort */
+    }
+  };
 
   return (
     <Wrapper>
@@ -58,49 +74,60 @@ export default function FinancingAnalysis({ embedded }: { embedded?: boolean }) 
           )}
 
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabId)} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 md:flex md:w-auto h-auto p-1 bg-muted/50 rounded-xl gap-1">
-              {TABS.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <TabsTrigger
-                    key={tab.id}
-                    value={tab.id}
-                    data-testid={`tab-${tab.id}`}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span className="text-sm font-medium">{tab.label}</span>
-                  </TabsTrigger>
-                );
-              })}
-            </TabsList>
-
-            <ScrollReveal>
-              <ContentPanel variant="light" className="mt-6">
-                <div className="space-y-6">
-                  <div className="flex items-start gap-3 bg-muted/50 rounded-lg p-3 border border-border/50">
-                    <DescIcon className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                    <div>
-                      <h3 className="text-sm font-semibold text-foreground mb-1">{desc.title}</h3>
-                      <p className="text-xs text-muted-foreground leading-relaxed">{desc.body}</p>
-                    </div>
-                  </div>
-
-                  <TabsContent value="dscr" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
-                    <DSCRTab />
-                  </TabsContent>
-                  <TabsContent value="debt-yield" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
-                    <DebtYieldTab />
-                  </TabsContent>
-                  <TabsContent value="sensitivity" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
-                    <StressTestTab />
-                  </TabsContent>
-                  <TabsContent value="prepayment" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
-                    <PrepaymentTab />
-                  </TabsContent>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
+              <TabsList className="grid w-full grid-cols-2 md:flex md:w-auto h-auto p-1 bg-muted/50 rounded-xl gap-1">
+                {TABS.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <TabsTrigger
+                      key={tab.id}
+                      value={tab.id}
+                      data-testid={`tab-${tab.id}`}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span className="text-sm font-medium">{tab.label}</span>
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+              {!embedded && (
+                <div className="flex justify-end">
+                  <ExportMenu
+                    actions={[pngAction(handleExportPNG, "button-financing-export-png")]}
+                  />
                 </div>
-              </ContentPanel>
-            </ScrollReveal>
+              )}
+            </div>
+
+            <div ref={tabContentRef}>
+              <ScrollReveal>
+                <ContentPanel variant="light" className="mt-6">
+                  <div className="space-y-6">
+                    <div className="flex items-start gap-3 bg-muted/50 rounded-lg p-3 border border-border/50">
+                      <DescIcon className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                      <div>
+                        <h3 className="text-sm font-semibold text-foreground mb-1">{desc.title}</h3>
+                        <p className="text-xs text-muted-foreground leading-relaxed">{desc.body}</p>
+                      </div>
+                    </div>
+
+                    <TabsContent value="dscr" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
+                      <DSCRTab />
+                    </TabsContent>
+                    <TabsContent value="debt-yield" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
+                      <DebtYieldTab />
+                    </TabsContent>
+                    <TabsContent value="sensitivity" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
+                      <StressTestTab />
+                    </TabsContent>
+                    <TabsContent value="prepayment" className="mt-0 focus-visible:outline-none focus-visible:ring-0">
+                      <PrepaymentTab />
+                    </TabsContent>
+                  </div>
+                </ContentPanel>
+              </ScrollReveal>
+            </div>
           </Tabs>
         </div>
       </AnimatedPage>

@@ -8,7 +8,8 @@
  */
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { IconDownload, IconFileDown, IconFileSpreadsheet, IconImageIcon, IconFileBarChart, IconPresentation } from "@/components/icons";
+import { IconDownload, IconFileDown, IconFileSpreadsheet, IconFileText, IconImageIcon, IconFileBarChart, IconPresentation } from "@/components/icons";
+import { Loader2 } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -28,9 +29,10 @@ export interface ExportToolbarProps {
   actions: ExportAction[];
   className?: string;
   variant?: "glass" | "light";
+  isPending?: boolean;
 }
 
-function ExportMenu({ actions, className }: ExportToolbarProps) {
+function ExportMenu({ actions, className, isPending }: ExportToolbarProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -39,9 +41,12 @@ function ExportMenu({ actions, className }: ExportToolbarProps) {
           size="sm"
           className={cn("gap-2 h-9 text-xs font-medium", className)}
           data-testid="button-export-menu"
+          disabled={isPending}
         >
-          <IconDownload className="w-3.5 h-3.5" />
-          <span>Export</span>
+          {isPending
+            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            : <IconDownload className="w-3.5 h-3.5" />}
+          <span>{isPending ? "Exporting…" : "Export"}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[160px]">
@@ -61,8 +66,8 @@ function ExportMenu({ actions, className }: ExportToolbarProps) {
   );
 }
 
-function ExportToolbar({ actions, className, variant }: ExportToolbarProps) {
-  return <ExportMenu actions={actions} className={className} variant={variant} />;
+function ExportToolbar({ actions, className, variant, isPending }: ExportToolbarProps) {
+  return <ExportMenu actions={actions} className={className} variant={variant} isPending={isPending} />;
 }
 
 function pdfAction(onClick: () => void): ExportAction {
@@ -122,7 +127,7 @@ function pngAction(onClick: () => void, testId?: string): ExportAction {
 function docxAction(onClick: () => void): ExportAction {
   return {
     label: "Word",
-    icon: <IconFileDown className="w-3.5 h-3.5" />,
+    icon: <IconFileText className="w-3.5 h-3.5" />,
     onClick,
     testId: "button-export-docx",
   };
