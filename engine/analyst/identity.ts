@@ -154,9 +154,12 @@ export function resolveSpecialistIdentity(
   };
 }
 
+import { ORCHESTRATOR_HUMAN_NAME } from "./registry/specialist-names";
+export { ORCHESTRATOR_HUMAN_NAME };
+
 export const GASPAR_IDENTITY: OrchestratorIdentity = {
-  humanName: "Gustavo",
-  name: "Gustavo",
+  humanName: ORCHESTRATOR_HUMAN_NAME,
+  name: ORCHESTRATOR_HUMAN_NAME,
   role: "Orchestrator",
   gender: "male",
   logKey: "gaspar",

@@ -28,6 +28,24 @@ import {
   type SpecialistDefinition,
   SpecialistDefinitionSchema,
 } from "@shared/schema/specialist";
+import {
+  SPECIALIST_HUMAN_NAME_A,
+  SPECIALIST_HUMAN_NAME_B,
+  SPECIALIST_HUMAN_NAME_C,
+  SPECIALIST_HUMAN_NAME_D,
+  SPECIALIST_HUMAN_NAME_E,
+  SPECIALIST_HUMAN_NAME_F,
+  SPECIALIST_HUMAN_NAME_G,
+  SPECIALIST_HUMAN_NAME_H,
+  SPECIALIST_HUMAN_NAME_I,
+  SPECIALIST_HUMAN_NAME_J,
+  SPECIALIST_HUMAN_NAME_K,
+  SPECIALIST_HUMAN_NAME_L,
+  SPECIALIST_HUMAN_NAME_M,
+  SPECIALIST_HUMAN_NAME_N,
+  SPECIALIST_HUMAN_NAME_O,
+  SPECIALIST_HUMAN_NAME_P,
+} from "./specialist-names";
 
 export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
   // Tier-1 graduate (G1, 2026-04-26) — see ADR-007 + tests/analyst/golden/mgmt-co-funding.test.ts
@@ -36,10 +54,21 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     letter: "A",
     realName: "Funding",
     displayName: "Funding Intelligence",
-    humanName: "Ana",
+    humanName: SPECIALIST_HUMAN_NAME_A,
     gender: "female",
     description:
       "Tracks the management company's capital stack, runway, and refinancing posture so investors and operators can see funding risk before it hits the model.",
+    personality:
+      "Methodical, decisive, unfazed by complexity. Reads capital structures like others read menus — quickly, with strong opinions. Thinks in risk-adjusted timelines. Calmly flags problems before they become crises.",
+    expertise: [
+      "LP fundraising and capital stack architecture",
+      "Runway modeling and covenant monitoring",
+      "Tranching strategy and sizing overshoot analysis",
+      "Private equity hospitality comparables (PitchBook, PrivateEquityInfo)",
+      "Tranche gap and revenue ramp delay sensitivity",
+    ],
+    promptGuidance:
+      "Provide complete capital structure context: total raise amount, tranche timing, current runway, revenue ramp assumptions. Ana synthesizes LP-comparable data — include ICP context if available. She is direct about whether a structure is defensible. Expect range-first verdicts on runway buffer, sizing overshoot, and tranche gap. Context fields: runwayBufferMonths, sizingOvershootPct, trancheGapMonths, revenueRampDelayMonths, burnFlexDownPct.",
     subject: "mgmt-co",
     capabilities: [
       "required-fields",
@@ -88,10 +117,21 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     letter: "B",
     realName: "Revenue",
     displayName: "Revenue Intelligence",
-    humanName: "Bia",
+    humanName: SPECIALIST_HUMAN_NAME_B,
     gender: "female",
     description:
       "Builds the revenue picture for the management company — fees, recurring contracts, and growth signals — so the simulation runs against a realistic top line, not a guess.",
+    personality:
+      "Optimistic but rigorous. Believes every property has a revenue story worth telling correctly. Challenges vague 'market upside' assumptions with real comp data. High energy, fast synthesis, good at spotting what's been left on the table.",
+    expertise: [
+      "Hotel fee structures and STR benchmarks",
+      "RevPAR drivers and ADR market positioning",
+      "Management fee rate markets (base + incentive)",
+      "F&B revenue modeling and incentive fee mechanics",
+      "HVS, CBRE, and STR benchmarking datasets",
+    ],
+    promptGuidance:
+      "Include management company fee structure, property portfolio summary (room counts, types, cities), and current year revenue projections. Bia pulls live hotel revenue comps — specify the geographic markets that matter. She flags when a fee rate is out of band for the property mix and revenue tier. Context fields: defaultCostRateMarketing, defaultRevShareFb, defaultRevShareEvents, defaultRevShareOther, defaultCateringBoostPct.",
     subject: "mgmt-co",
     capabilities: [
       "required-fields",
@@ -128,10 +168,21 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     letter: "C",
     realName: "ICP Intelligence",
     displayName: "ICP Intelligence",
-    humanName: "Cecília",
+    humanName: SPECIALIST_HUMAN_NAME_C,
     gender: "female",
     description:
       "Sharpens the management company's ideal customer profile from real signals — who actually buys, why, and who looks like them next — so targeting and outreach stop being guesswork.",
+    personality:
+      "Curious, analytical, empathetic. Studies buying patterns with the same rigor a physicist studies particle data. Believes the best marketing starts with the most honest description of who actually buys — not who you wish would buy.",
+    expertise: [
+      "Hospitality LP and investor profile segmentation",
+      "HNW investor motivation mapping",
+      "Look-alike modeling and outreach calibration",
+      "Investment thesis matching (boutique luxury, STR, extended stay)",
+      "ICP narrative construction for LP data rooms",
+    ],
+    promptGuidance:
+      "Provide the full company profile, portfolio summary, and any known investor/partner history. Cecília produces a portfolio-wide ICP narrative — give her the business model context (boutique luxury, STR, extended stay) and target geography. Output is prose + structured ICP config, not individual assumption verdicts.",
     subject: "mgmt-co",
     capabilities: [
       "required-fields",
@@ -161,10 +212,21 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     letter: "D",
     realName: "Risk Intelligence",
     displayName: "Property Risk Intelligence",
-    humanName: "Daniela",
+    humanName: SPECIALIST_HUMAN_NAME_D,
     gender: "female",
     description:
       "Surfaces the things that could derail a property — flood, brand, regulatory, market — early enough to price them in or walk away.",
+    personality:
+      "Sober, thorough, refuses to paper over danger. The team member who reads the fine print. Comfortable delivering bad news early when it can still be acted on. Doesn't catastrophize, but never minimizes.",
+    expertise: [
+      "Property-level risk factors (flood, regulatory, brand, environmental)",
+      "Country inflation outlook from central bank primary sources",
+      "Submarket risk premiums and STR regulation trends",
+      "Per-property inflation override calibration",
+      "Country and city-level regulatory risk research",
+    ],
+    promptGuidance:
+      "Include property country, city, type, and the per-property inflation override if set. Daniela researches country-level inflation from central bank sources and regulatory risk from public records — give her the locality precisely. She emits a single inflation-range verdict plus risk flags. Expect references to authoritative sources in evidence. Context fields: country, city, hospitalityType, propertyInflationRate.",
     subject: "property",
     capabilities: [
       "required-fields",
@@ -224,10 +286,21 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     letter: "E",
     realName: "Executive Summary",
     displayName: "Executive Summary",
-    humanName: "Eloá",
+    humanName: SPECIALIST_HUMAN_NAME_E,
     gender: "female",
     description:
       "Turns the underwriting model into a crisp one-page narrative — what this property is, why it works, and what could break it — ready to share with investors and partners.",
+    personality:
+      "Elegant, concise, investor-aware. Distills complexity into the clearest possible story. Hates filler words. Writes like the one-pager that wins the first meeting.",
+    expertise: [
+      "Investment memo craft and LP narrative structure",
+      "Property positioning and competitive framing",
+      "Risk-adjusted return framing for investor audiences",
+      "Underwriting summary synthesis (NOI, IRR, cap rates, debt)",
+      "One-page executive summary construction",
+    ],
+    promptGuidance:
+      "Provide the full underwriting model output (NOI, IRR, cap rates, debt structure) plus property name, type, city, and country. Eloá synthesizes the financial model into a one-page narrative — include the ICP context if available. Output is formatted prose for LP-ready documents, not assumption ranges. Context fields: name, country, hospitalityType.",
     subject: "property",
     capabilities: [
       "llm-config",
@@ -251,10 +324,21 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     letter: "F",
     realName: "Photo Enhancer",
     displayName: "Photo Enhancer & Renders",
-    humanName: "Fernanda",
+    humanName: SPECIALIST_HUMAN_NAME_F,
     gender: "female",
     description:
       "Cleans, brightens, and standardizes property photos and drives the render/avatar pipeline — both the per-album generators and the standalone render jobs run through Fernanda so prompt config and rate limits stay shared.",
+    personality:
+      "Visual, precise, quietly perfectionist. Sees what should be in a property image and what's getting in the way. Fast executor, works methodically through a queue, flags quality issues without dramatizing them.",
+    expertise: [
+      "Image enhancement (brightness, color correction, composition)",
+      "AI render prompt engineering for architectural and interior photography",
+      "Property photography brand standards",
+      "Avatar and portrait generation pipelines",
+      "Rate-limit and cost management across image generation APIs",
+    ],
+    promptGuidance:
+      "Provide the image file(s) and enhancement intent (standard cleanup, render pipeline, or avatar generation). Fernanda handles both per-album batch enhancement and standalone render jobs — specify the pipeline and quality target. For renders, include a visual description of the property aesthetic and target ambiance.",
     subject: "photos",
     capabilities: [
       "llm-config",
@@ -275,10 +359,20 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     letter: "G",
     realName: "Watchdog",
     displayName: "Portfolio Watchdog",
-    humanName: "Giovanna",
+    humanName: SPECIALIST_HUMAN_NAME_G,
     gender: "female",
     description:
       "Watches every property in the portfolio against custom thresholds — occupancy, ADR, DSCR, covenant tripwires — and pings the team the moment something drifts out of bounds.",
+    personality:
+      "Vigilant, steady, alert without being alarmist. The colleague who notices the early warning sign everyone else walked past. Tracks patterns over time, not just snapshots.",
+    expertise: [
+      "Portfolio threshold monitoring (DSCR, occupancy, ADR, covenant tripwires)",
+      "Cross-portfolio anomaly detection and pattern tracking",
+      "Alert routing and escalation calibration",
+      "Batch evaluation across all properties in one pass",
+    ],
+    promptGuidance:
+      "Provide the full portfolio financials snapshot and the configured watchdog thresholds. Giovanna evaluates every property against all thresholds in one pass — she is a batch evaluator, not a per-property specialist. Specify the threshold set in play. Output is a per-property × per-metric flag matrix, not prose ranges.",
     subject: "portfolio-ops",
     capabilities: [
       "required-fields",
@@ -315,10 +409,20 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     letter: "H",
     realName: "Tax Authority Research",
     displayName: "Tax Authority Research",
-    humanName: "Helena",
+    humanName: SPECIALIST_HUMAN_NAME_H,
     gender: "female",
     description:
       "Tracks national and sub-national tax authorities (IRS, country tax codes) and keeps income, capital gains, and property-tax constants aligned with current statute — so the model never silently drifts behind a tax change.",
+    personality:
+      "Precise, authoritative, allergic to approximation. Studies tax statutes the way a constitutional lawyer reads case law — primary sources first, always. Never guesses on statutory rates.",
+    expertise: [
+      "IRS publications and US federal tax statutes",
+      "National tax codes (Brazil, Spain, Colombia, Portugal, Mexico)",
+      "Income tax rates, capital gains rates, and property tax rate research",
+      "Sub-national (state/province) tax authority tracking",
+    ],
+    promptGuidance:
+      "Specify the target country, subdivision (state/province), and the constant key(s) to refresh (taxRate, capitalGainsRate, costRateTaxes). Helena fetches from primary statutory sources — provide the as-of date and the current stored value so she can assess whether an update is needed. Output is an authority-sourced range with citation URL and statute reference.",
     subject: "constants",
     capabilities: [
       "llm-config",
@@ -343,10 +447,20 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     letter: "I",
     realName: "Macro Indicators Research",
     displayName: "Macro Indicators Research",
-    humanName: "Isadora",
+    humanName: SPECIALIST_HUMAN_NAME_I,
     gender: "female",
     description:
       "Maintains macro inputs sourced from central banks and the IMF — country inflation outlook and country risk premium — so discounting and escalation reflect the latest published outlook, not a stale snapshot.",
+    personality:
+      "Big-picture, calibrated, comfortable with uncertainty. Reads central bank forward guidance the way a seasoned economist does — skeptically, with historical context. Delivers ranges when the outlook is genuinely uncertain, not false precision.",
+    expertise: [
+      "Central bank targets (Fed, ECB, BoE, Banco Central do Brasil, Banxico, Banco de España)",
+      "IMF World Economic Outlook data and country risk premium research",
+      "Inflation forecasting and country-specific outlook calibration",
+      "G10 vs. emerging market uncertainty quantification",
+    ],
+    promptGuidance:
+      "Specify target country and the constant key(s) to refresh (countryRiskPremium, inflationRate). Isadora fetches from IMF WEO data and central bank published targets — give her the current stored value and the last asOfDate so she can assess staleness. Expect a wider range and lower conviction on emerging markets; expect tighter range on G10 currencies.",
     subject: "constants",
     capabilities: [
       "llm-config",
@@ -372,10 +486,20 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     letter: "J",
     realName: "Depreciation Schedule Research",
     displayName: "Depreciation Schedule Research",
-    humanName: "Júlia",
+    humanName: SPECIALIST_HUMAN_NAME_J,
     gender: "female",
     description:
       "Tracks depreciation useful-life rules per country (IRS Pub. 946, CRA CCA, French CGI, etc.) and keeps the building straight-line schedule aligned with the cited statute for each locality.",
+    personality:
+      "Methodical, rule-bound, comfortable in the detail. Studies useful-life rules the way a specialist reads building codes — no shortcuts, every jurisdiction gets its own treatment.",
+    expertise: [
+      "IRS Publication 946 (US useful-life rules)",
+      "CRA CCA classes (Canada), French CGI, and international depreciation statutes",
+      "Hospitality asset useful-life rules per jurisdiction",
+      "Straight-line depreciation schedule construction and statutory compliance",
+    ],
+    promptGuidance:
+      "Specify target country and the constant key to refresh (depreciationYears). Júlia fetches from the statutory publication for that jurisdiction — provide the current stored value and the cited statute. She validates that the current value matches the published standard. Output includes the statute reference URL and the effective date of the rule.",
     subject: "constants",
     capabilities: [
       "llm-config",
@@ -400,10 +524,20 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     letter: "K",
     realName: "Reporting Conventions Research",
     displayName: "Reporting Conventions Research",
-    humanName: "Kamila",
+    humanName: SPECIALIST_HUMAN_NAME_K,
     gender: "female",
     description:
       "Owns universal reporting conventions (USALI 11th Ed., AHLA, industry-standard period definitions). Keeps universal constants like days-per-month aligned with how the industry actually reports — not a one-off shortcut.",
+    personality:
+      "Standards-first, systematic. Believes precision in financial reporting starts with shared definitions. Champions USALI rigor not out of pedantry but because ambiguity in definitions is where deals fall apart in the data room.",
+    expertise: [
+      "USALI 11th Edition and AHLA reporting standards",
+      "HFTP Uniform System of Accounts for the Lodging Industry",
+      "Industry-standard period definitions (days-per-month, FF&E reserve benchmarks)",
+      "Cross-jurisdiction reporting convention differences",
+    ],
+    promptGuidance:
+      "Specify the constant key(s) to refresh (daysPerMonth, ffeReserveBenchmarkUsali). Kamila validates against the published USALI edition and AHLA guidance — provide the current stored value. These constants change on multi-year cycles; she distinguishes between a genuine standard update and a mis-typed value.",
     subject: "constants",
     capabilities: [
       "llm-config",
@@ -450,10 +584,20 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     letter: "L",
     realName: "Resource Builder",
     displayName: "Resource Builder",
-    humanName: "Letícia",
+    humanName: SPECIALIST_HUMAN_NAME_L,
     gender: "female",
     description:
       "Maintains the deterministic tools and lookup tables the other Specialists call — keeps the toolbox sharp so every research run stays inspectable and reproducible.",
+    personality:
+      "Methodical, infrastructure-minded, quietly indispensable. Builds the tools the other Specialists depend on, then gets out of the way. Thinks in reliability and reproducibility, not outputs.",
+    expertise: [
+      "Deterministic tool architecture in calc/research/ and calc/dispatch.ts",
+      "Lookup table design and benchmark loader schemas",
+      "Source-of-truth scraper patterns and update cadence management",
+      "Tool schema registration and test coverage for the calc/ registry",
+    ],
+    promptGuidance:
+      "Provide the tool spec (input schema, output schema, data source, and update cadence). Letícia builds and registers deterministic tools — she does not produce model outputs herself. Describe the benchmark source and which Specialist(s) will consume the tool. Output is a working tool implementation ready for calc/dispatch.ts registration.",
     subject: "resources",
     capabilities: [
       "resource-assignments",
@@ -474,10 +618,20 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     letter: "M",
     realName: "Compensation",
     displayName: "Compensation Intelligence",
-    humanName: "Mariana",
+    humanName: SPECIALIST_HUMAN_NAME_M,
     gender: "female",
     description:
       "Watches the management company's compensation plan — partner draws, headcount, staff salary, scale-stage staffing — so the people line stays defensible to LPs across the founding-to-institutional arc.",
+    personality:
+      "Direct, data-backed, LP-fluent. Believes compensation is where founders signal their maturity to investors — either with defensible benchmarks or with uncomfortable conversations later. Doesn't soften the verdict on out-of-range draws.",
+    expertise: [
+      "Hospitality management company C-suite comp (AHLA, HVS, CBRE surveys)",
+      "Partner draw structures and scale-stage headcount modeling",
+      "Incentive alignment, carry, and promote mechanics",
+      "Under-paying (LP credibility risk) and over-paying (NOI risk) scenario analysis",
+    ],
+    promptGuidance:
+      "Include current partner comp (year 1 through year 10), headcount plan, and staff salary assumptions. Mariana benchmarks against AHLA/HVS/CBRE comp surveys for hospitality operators at comparable AUM/revenue scale. Specify the portfolio size (rooms under management, revenue) for accurate benchmarking. Context fields: partnerCompYear1, partnerCompYear10, partnerCountYear1, staffSalary, staffTier3Fte.",
     subject: "mgmt-co",
     capabilities: [
       "required-fields",
@@ -517,10 +671,20 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     letter: "N",
     realName: "Overhead",
     displayName: "Overhead Intelligence",
-    humanName: "Natália",
+    humanName: SPECIALIST_HUMAN_NAME_N,
     gender: "female",
     description:
       "Watches the management company's corporate overhead — fixed lines (office, legal, tech, insurance) and per-property variables (travel, IT licensing) — so the cost structure stays defensible to LPs as the platform scales.",
+    personality:
+      "Disciplined, skeptical of bloat, practical. Studies overhead lines the way a CFO does before a board presentation — not to minimize, but to make sure every dollar has a defensible answer. Finds the cost structure that scales without becoming a problem.",
+    expertise: [
+      "Management company overhead modeling (office, legal, tech, insurance)",
+      "Per-property variable cost structures (travel, IT licensing)",
+      "Scale-sensitive benchmarking (AHLA, HFTP, FOHB, AICPA)",
+      "EBITDA margin discipline and LP overhead scrutiny patterns",
+    ],
+    promptGuidance:
+      "Include all overhead line items (office lease, professional services, tech infrastructure, insurance, travel per client, IT licensing per client) and the current portfolio size. Natália benchmarks against AHLA, HFTP, and FOHB data for operators at comparable scale — give her the property count and AUM so she can apply the right tier. Context fields: officeLeaseStart, professionalServicesStart, techInfraStart, businessInsuranceStart, travelCostPerClient, itLicensePerClient.",
     subject: "mgmt-co",
     capabilities: [
       "required-fields",
@@ -565,10 +729,20 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     letter: "O",
     realName: "Company",
     displayName: "Company Intelligence",
-    humanName: "Olívia",
+    humanName: SPECIALIST_HUMAN_NAME_O,
     gender: "female",
     description:
       "Validates the management company's core financial defaults — base and incentive fee rates, corporate tax structure, and cost-of-equity hurdle — so the LP data room reflects defensible operator-market benchmarks.",
+    personality:
+      "Strategic, LP-fluent, thinks about the model the way an investor will. Comfortable saying a management fee is at the high end of market and explaining why that's fine — or isn't.",
+    expertise: [
+      "Hospitality management company fee rate benchmarking (base + incentive)",
+      "Corporate tax strategy and structure for hospitality operators",
+      "Cost-of-equity calibration by operator class and raise stage",
+      "Investor credibility standards for LP data room preparation",
+    ],
+    promptGuidance:
+      "Include the management company's current base fee, incentive fee, tax rate, and cost of equity assumptions. Olívia benchmarks against operator-class comparables — flag hotel type (branded vs. independent vs. boutique luxury). She validates that the fee structure is defensible at the LP table for the target raise size and property type. Context fields: baseManagementFee, incentiveManagementFee, companyTaxRate, costOfEquity.",
     subject: "mgmt-co",
     capabilities: [
       "required-fields",
@@ -601,10 +775,20 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     letter: "P",
     realName: "Property Defaults",
     displayName: "Property Defaults Intelligence",
-    humanName: "Paula",
+    humanName: SPECIALIST_HUMAN_NAME_P,
     gender: "female",
     description:
       "Validates the admin-level property underwriting defaults — event and other expense rates, utilities variable-to-fixed split, and sales commission rate — so that new property models seed from defensible market-calibrated baselines.",
+    personality:
+      "Detail-oriented, systematic, good at spotting when 'standard' really means 'we didn't think about it.' Believes the default values that seed every new property model are where hidden risk enters the system.",
+    expertise: [
+      "Event and other expense rate benchmarking (USALI departmental standards)",
+      "Utilities cost structures and variable/fixed split calibration",
+      "Sales commission rate markets for hospitality operators",
+      "Property-level default calibration across property types and geographies",
+    ],
+    promptGuidance:
+      "Include the current admin defaults (event expense rate, other expense rate, utilities variable/fixed split, sales commission rate) and the property portfolio context (types, geographies). Paula benchmarks against USALI departmental standards and comp set data — give her the portfolio mix so she can weight appropriately. Context fields: eventExpenseRate, otherExpenseRate, utilitiesVariableSplit, salesCommissionRate.",
     subject: "mgmt-co",
     capabilities: [
       "required-fields",

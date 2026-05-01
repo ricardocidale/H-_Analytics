@@ -156,6 +156,24 @@ export const SpecialistDefinitionSchema = z
      * as the sidebar tooltip where supported.
      */
     description: z.string().min(1).max(400).optional(),
+    /**
+     * Character traits and communication style for this Specialist's persona.
+     * Used by prompt builders to give the Specialist a consistent voice in
+     * narration and in the reasoning it produces. Keep under 500 chars.
+     */
+    personality: z.string().min(1).max(500).optional(),
+    /**
+     * Domain knowledge areas and primary skills. Prompt builders inject this
+     * to frame the Specialist's authority and calibrate the depth of sourcing
+     * they expect. Ordered from most to least central.
+     */
+    expertise: z.array(z.string().min(1).max(120)).min(1).max(12).optional(),
+    /**
+     * Instructions for agents or LLMs that are building prompts to dispatch
+     * jobs to this Specialist. Describe what context to provide, what outputs
+     * to expect, and any surface-specific framing that matters. Max 1000 chars.
+     */
+    promptGuidance: z.string().min(1).max(1000).optional(),
     subject: SubjectSchema,
     capabilities: z.array(SpecialistCapabilitySchema).min(1),
     assignmentRefs: z.array(AssignmentRefSchema),
