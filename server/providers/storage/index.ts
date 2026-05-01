@@ -17,6 +17,10 @@ async function createProvider(): Promise<StorageProvider> {
       const { S3StorageProvider } = await import("./s3-storage");
       return new S3StorageProvider();
     }
+    case "local": {
+      const { LocalStorageProvider } = await import("./local-storage");
+      return new LocalStorageProvider();
+    }
     default:
       throw new Error(`Unknown STORAGE_PROVIDER: ${provider}`);
   }
