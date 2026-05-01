@@ -128,3 +128,65 @@ All traffic is routed by path through a shared reverse proxy. Services must hand
 | `.local/tasks/task-800.md` | Full architecture audit (scenarios, portfolios, sharing, roles) |
 | `.local/db-audit-phase-c-inventory.md` | DB migration inventory (Phase C) |
 | `.local/tasks/build-property-slides.md` | Property slide deck build plan |
+
+---
+
+## Agent & Skill System
+
+Skills are reusable process documents that guide AI agents through complex tasks. They live in `.agents/skills/` and are invoked via the `Skill` tool (Claude Code) or by name in Replit.
+
+### Directory layout
+
+```
+.agents/
+  skills/              Individual skill directories (each has SKILL.md)
+    ce-*/              Compound Engineering core loop skills
+    norfolk-*/         Project-specific skills for this repo
+    embedded-ai-agent/ Reusable: streaming AI chatbot pattern (the "Rebecca" pattern)
+    ui-page-patterns/  Reusable: consistent UI page building for any React+Tailwind app
+    brainstorming/     Reusable: collaborative design before implementation
+    architecture-decision-records/  Reusable: writing ADRs
+    replit-independence/ Reusable: keeping the codebase off-Replit-portable
+    README.md          Full index of all available skills
+  ce-agents/           Compound Engineering persona definitions
+  COMPOUND-ENGINEERING.md  CE plugin documentation
+vendor/
+  compound-engineering-plugin/  CE plugin source (v3.2.0) — see its README.md
+```
+
+### Core workflow (Compound Engineering loop)
+
+| Step | Skill | Purpose |
+|---|---|---|
+| 1 | `ce-brainstorm` | Explore requirements, produce a requirements doc |
+| 2 | `ce-plan` | Break the requirements doc into an implementation plan |
+| 3 | `ce-work` | Execute the plan step-by-step |
+| 4 | `ce-code-review` / `norfolk-code-review` | Review before merging |
+| 5 | `ce-compound` | Capture new knowledge as a skill or ADR |
+
+### CC / Replit lane split
+
+| Work type | Owner | Notes |
+|---|---|---|
+| DB migrations | Claude Code | Use `apply-0029.mjs` pattern (pg client, idempotent SQL) |
+| UI pages / components | Replit Agent | Use `ui-page-patterns` skill |
+| AI/chatbot features | Either | Use `embedded-ai-agent` skill |
+| Architecture decisions | Claude Code | Use `architecture-decision-records` skill |
+
+### Key project-specific skills
+
+| Skill | When to use |
+|---|---|
+| `norfolk-code-review` | Any PR on this repo — wraps `ce-code-review` with hospitality/Drizzle personas |
+| `ui-page-patterns` | Building or fixing any UI page — enforces canonical page archetypes |
+| `embedded-ai-agent` | Adding or extending any AI chatbot / analyst panel (e.g. Rebecca) |
+| `replit-independence` | Adding any dependency, env var, or deployment-affecting change |
+| `architecture-decision-records` | Any irreversible technical decision that future contributors might re-litigate |
+
+### How to invoke
+
+**Claude Code:** Use the `Skill` tool with the skill name. Example: `Skill("ui-page-patterns")`.
+
+**Replit Agent:** Type the skill name as a command. Example: `use the ui-page-patterns skill`.
+
+**Full index:** See `.agents/skills/README.md`.

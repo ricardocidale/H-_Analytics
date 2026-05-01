@@ -32,6 +32,32 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript project refer
 - Root-level `*.png`, `*.jpg`, `*.jpeg`, `*.webp` are blocked by `.gitignore` to keep the repo root clean.
 - When using the `screenshot` tool, always pass `save_to: "screenshots/<descriptive-name>.jpg"` instead of writing to the project root.
 
+## Skills
+
+Skills are process documents that guide AI agents. See `claude.md` § "Agent & Skill System" for the full picture and `.agents/skills/README.md` for a complete index.
+
+**How to invoke in Replit:** type the skill name as a text command. Example: *"use the ui-page-patterns skill"*.
+
+> Note: the `advisor()` tool and the `Skill` tool are not available in Replit Agent. Skills work via plain-text invocation only.
+
+### Key skills for Replit UI work
+
+| Skill | Use when |
+|---|---|
+| `ui-page-patterns` | Building or revising any page — finds canonical examples, enforces loading/empty/error states, action-button discipline, tab URL sync |
+| `embedded-ai-agent` | Adding or extending a chatbot / analyst panel (e.g. Rebecca) |
+| `replit-independence` | Adding any npm package, env var, or host-specific call — ensures the codebase stays portable |
+| `norfolk-code-review` | Before opening a PR — runs project-tuned review personas |
+
+### Canonical page archetypes (UI reference)
+
+Two archetypes cover 95% of app pages:
+
+- **Report/Presentation** — tabs + export actions, read-only data display. Canonical: `artifacts/hospitality-business-portal/src/pages/PropertyDetail.tsx`
+- **Form/Editor** — tabs + per-tab Save + AnalystButton, user edits structured data. Canonical: `artifacts/hospitality-business-portal/src/pages/CompanyAssumptions.tsx`
+
+Always read the relevant canonical page before building a new one.
+
 ## Secrets configured in this Repl
 
 `POSTGRES_URL`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `TOKEN_ENCRYPTION_KEY`, `OPENAI_EMBEDDING_KEY`, `FRED_API_KEY`, `GITHUB_PAT`, `GOOGLE_CLIENT_SECRET`
