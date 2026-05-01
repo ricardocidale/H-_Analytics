@@ -8,6 +8,14 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: May 1, 2026 — Admin/AI Intel inventory audit + drift-prevention proof test + collision #6
+
+- **Inventory audit shipped** (`8428ca2a`): `.claude/audits/admin-intelligence-inventory.md` — every Admin + AI Intel sidebar entry traced for connectivity. 4 explicit rule violations found (Specialist Identity/RequiredFields/LlmConfig/Runtime tabs all admin-editable in violation of `specialists-are-dev-defined-only.md`; Rebecca Guardrails same; Scheduled Research violates `analyst-trigger-discipline.md`). 1 confirmed orphan (Admin → Reports & Exports saves to `global_assumptions.exportConfig` but production code reads localStorage — UI lies). 5 dual-mounts/duplications + 3 unclear surfaces. 78% of surfaces clean.
+- **Proof test shipped** (in collision `68f74c12`): `tests/proof/admin-surface-coverage.test.ts` — 8/8 PASS. T1 dead-route detection, T2 Specialist tab edit-affordance baseline ratchet, T3 dual-mount detection. Compound-engineering keystone — future drift in admin surfaces fails CI immediately.
+- **Replit shipped S6 of smoke-test packet** (`68f74c12` same commit): `tests/e2e/smoke-stable-without-analyst.spec.ts` (377 lines). Implies all 5 smoke flows passed in browser → **app is stable for issuing investor reports**. The packet's "If all 5 flows pass, emit Playwright test" contract was honored.
+- **Collision #6** (`agent-collision-hygiene.md`): Replit's autocommit `68f74c12` ("Update testing and documentation for core platform functionality") swept up CC's unstaged proof test alongside Replit's smoke spec + 2 stale skill file deletions + opengraph swap. Content fully preserved; attribution muddled. Both pieces of work landed correctly.
+- **Pending remediation queue** (per audit): Specialist 4-tab read-only conversion → Rebecca Guardrails read-only → Scheduled Research strip-cron → ExportsTab kill → 5 quick-win UX bugs.
+
 ## Session: May 1, 2026 — Assumption export pages (PDF/Excel/CSV) + seed optimization
 
 - **Assumption pages shipped E2E** in 4 commits (`803888da` A → `da886f94` B → `dc0451c7` C → this D). Live in PDF/Excel/CSV; skipped in PPTX/DOCX. Single-property = 2 pages (ManCo + property); company = 1; portfolio = (N+1). New file `server/report/assumption-sections.ts` (helpers + `ASSUMPTIONS_TITLE_PREFIX` constant). New proof test `tests/proof/assumptions-export-completeness.test.ts` (8/8 PASS) guards drift via FIELD_REGISTRY iteration.
