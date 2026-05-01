@@ -12,11 +12,6 @@ uri = "file://attached_assets/rebecca-portrait.png"
 type = "image"
 title = "Rebecca AI portrait"
 
-[[generated]]
-id = "3XQqwfpaemF7c5VwDtvKQ"
-uri = "file://generated-icon.png"
-type = "image"
-title = "h-plus-analytics-icon"
 
 [[generated]]
 id = "--c1IyX9bR7XJgCSTGocO"
