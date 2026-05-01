@@ -3,7 +3,7 @@ import type { AuthProvider } from './types';
 import {
   setupAuth,
   isAuthenticated,
-} from '../../replit_integrations/auth/replitAuth';
+} from './replit-oidc-impl';
 import { logger } from '../../logger';
 
 /**

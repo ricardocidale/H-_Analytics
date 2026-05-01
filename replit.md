@@ -116,10 +116,10 @@ Project skills live in `.claude/skills/` (canonical) and are mirrored under `.lo
 - UI patterns and theme engine: `.claude/skills/ui/`
 - Coding conventions and context reduction: `.claude/skills/coding-conventions/`
 - Financial calculation rules: `.claude/skills/finance/`
-- Analyst-button convention: `.agents/skills/analyst-research-buttons/SKILL.md`
-- Compound Engineering bundle (vendored from EveryInc/compound-engineering-plugin v3.2.0): `.agents/skills/COMPOUND-ENGINEERING.md` — index of 37 `ce-*` skills + 51 personas. Tool/path mapping for Replit Agent at `.agents/ce-agents/REPLIT-ADAPTATION.md`. Setup is a no-op (already vendored).
+- Engineering-discipline skills (project-agnostic): `.agents/skills/` — `pre-commit-gates`, `cross-check-invariants`, `architecture-decision-records`, `agent-handoff-briefs`, `ci-hygiene`, `prefer-external-dependencies`, `replit-independence`, `agent-memory-files`, `analyst-research-buttons`, etc.
+- Compound Engineering bundle: `.agents/skills/COMPOUND-ENGINEERING.md` — vendored EveryInc/compound-engineering-plugin v3.2.0 (MIT, pinned commit `265cb428`); 37 `ce-*` workflow skills (`ce-brainstorm`, `ce-plan`, `ce-work`, `ce-code-review`, `ce-debug`, `ce-compound`, …) + 51 sub-agent personas at `.agents/ce-agents/`. Tool/path mapping for Replit Agent at `.agents/ce-agents/REPLIT-ADAPTATION.md`. Setup is a no-op — already vendored.
 
-The full skill index is in `.claude/claude.md`, which is the authoritative AI context file when in doubt.
+The full skill index is in `.claude/claude.md`, which is the authoritative AI context file when in doubt. When `claude.md` and `replit.md` disagree on shared facts (Identity, Inviolable Rules, Vocabulary, Routing), `claude.md` wins and the drift is a bug to fix immediately — see `.agents/skills/agent-memory-files/SKILL.md`.
 
 ## Tech Stack
 

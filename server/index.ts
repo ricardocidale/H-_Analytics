@@ -25,7 +25,7 @@ import cookieParser from "cookie-parser";
 import compression from "compression";
 import { registerRoutes } from "./routes";
 import { registerImageRoutes } from "./routes/images";
-import { buildContentSecurityPolicy } from "./replit_integrations/csp";
+import { buildContentSecurityPolicy } from "./csp";
 import { getAuthProvider } from "./providers/auth";
 import { serveStatic } from "./static";
 import { createServer } from "http";

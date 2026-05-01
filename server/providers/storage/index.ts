@@ -4,12 +4,8 @@ let _instance: StorageProvider | null = null;
 let _initPromise: Promise<StorageProvider> | null = null;
 
 async function createProvider(): Promise<StorageProvider> {
-  const provider = process.env.STORAGE_PROVIDER || "replit";
+  const provider = process.env.STORAGE_PROVIDER || "local";
   switch (provider) {
-    case "replit": {
-      const { ReplitStorageProvider } = await import("./replit-storage");
-      return new ReplitStorageProvider();
-    }
     case "s3":
     case "r2": {
       // "r2" is an alias for the S3 adapter; it auto-derives the endpoint

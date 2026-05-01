@@ -164,6 +164,8 @@ Quick rules:
 | Domain | Skill Path | What It Covers |
 |--------|-----------|---------------|
 | Skill Index | `.claude/skills/_index.md` | Master catalog of all skills by domain |
+| Engineering-discipline skills | `.agents/skills/` | Project-agnostic, reusable in any codebase: `pre-commit-gates`, `cross-check-invariants`, `architecture-decision-records`, `agent-handoff-briefs`, `ci-hygiene`, `prefer-external-dependencies`, `replit-independence`, `agent-memory-files`, etc. |
+| Compound Engineering bundle | `.agents/skills/COMPOUND-ENGINEERING.md` | Vendored from EveryInc/compound-engineering-plugin v3.2.0 (MIT, pinned commit `265cb428`) — index of 37 `ce-*` skills (`ce-brainstorm`, `ce-plan`, `ce-work`, `ce-code-review`, `ce-debug`, `ce-compound`, …) + 51 sub-agent personas under `.agents/ce-agents/`. Tool/path mapping (`AskUserQuestion → user_query`, `Task → delegation`, `Bash/Read/Grep/Glob → bash/read/rg/glob`) at `.agents/ce-agents/REPLIT-ADAPTATION.md`. Setup is a no-op — already vendored. |
 | Architecture | `.claude/skills/architecture/SKILL.md` | Tech stack, two-entity model, file organization |
 | Architecture extras | `.claude/skills/architecture/*.md` | Codebase map, multi-tenancy, server finance, tool schemas, source map, API routes, property lifecycle, source health |
 | Business Model | `.claude/skills/business-model/SKILL.md` | Dual-entity model, revenue streams, USALI waterfall, management fees, SAFE funding |
@@ -437,6 +439,10 @@ The Analyst is **internally** a team of specialists; **user-facing voice stays s
 - `cross-check-invariants/` — "edit one, verify many" discipline
 - `architecture-decision-records/` — ADR template + lifecycle
 - `agent-handoff-briefs/` — six required sections + common patterns
+- `prefer-external-dependencies/` — 30-second secret/codebase scan before reaching for Replit infra (Neon over Replit DB, R2 over Replit Object Storage)
+- `replit-independence/` — keep the codebase portable off Replit (no `@replit/*` runtime deps, no `process.env.REPL*`, no `.replit` triggers)
+
+**Compound Engineering bundle under `.agents/skills/ce-*/` and `.agents/ce-agents/`:** vendored EveryInc/compound-engineering-plugin v3.2.0 (MIT, pinned commit `265cb428`) — 37 workflow skills (`ce-brainstorm`, `ce-plan`, `ce-work`, `ce-code-review`, `ce-debug`, `ce-compound`, `ce-doc-review`, `ce-resolve-pr-feedback`, etc.) + 51 sub-agent personas. Bundle index at `.agents/skills/COMPOUND-ENGINEERING.md`. Tool/path mapping for non-Claude hosts at `.agents/ce-agents/REPLIT-ADAPTATION.md`. Lives **alongside** the project's existing skills (`brainstorming`, `frontend-design`, `code_review`, `debug`) — neither displaces the other; the `ce-` prefix prevents collisions.
 
 ---
 

@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import type { Server } from "http";
-import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
+import { registerObjectRoutes } from "./routes/objects";
 import * as authRoutes from "./routes/auth";
 import * as propertyRoutes from "./routes/properties";
 import * as adminRoutes from "./routes/admin";
@@ -52,7 +52,7 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  registerObjectStorageRoutes(app);
+  registerObjectRoutes(app);
 
   app.use(healthRouter);
 

@@ -1,6 +1,11 @@
 # Skill Catalog — H+ Analytics by Norfolk AI
 
-Master index of 178 skill files across 19 domains. Use this to find the right skill for any task.
+Master index of 178 skill files across 19 domains under `.claude/skills/`. Use this to find the right skill for any task.
+
+> **Two parallel skill trees exist outside this catalog** — they are not counted above and live under `.agents/skills/`:
+>
+> 1. **Engineering-discipline skills** (project-agnostic, reusable in any codebase) — `pre-commit-gates`, `cross-check-invariants`, `architecture-decision-records`, `agent-handoff-briefs`, `ci-hygiene`, `prefer-external-dependencies`, `replit-independence`, `agent-memory-files`, `analyst-research-buttons`, etc.
+> 2. **Compound Engineering bundle** — vendored EveryInc/compound-engineering-plugin v3.2.0 (MIT, pinned commit `265cb428`): 37 `ce-*` workflow skills (`ce-brainstorm`, `ce-plan`, `ce-work`, `ce-code-review`, `ce-debug`, `ce-compound`, …) + 51 sub-agent personas at `.agents/ce-agents/`. Bundle index: [`.agents/skills/COMPOUND-ENGINEERING.md`](../../.agents/skills/COMPOUND-ENGINEERING.md). Tool/path mapping: [`.agents/ce-agents/REPLIT-ADAPTATION.md`](../../.agents/ce-agents/REPLIT-ADAPTATION.md).
 
 ---
 

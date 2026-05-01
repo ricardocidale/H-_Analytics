@@ -1,21 +1,3 @@
-/**
- * csp.ts — Content-Security-Policy header builder (Task #402)
- *
- * Lives under `server/replit_integrations/` so the literal "replit.dev" /
- * "replit.app" hostnames stay confined to the Replit-coupled corner of the
- * codebase that the independence guardrail allow-lists.
- *
- * The frame-ancestors clause lets the app be embedded inside the Replit IDE
- * preview pane during development; on a non-Replit deploy nothing relies on
- * those hosts being whitelisted.
- */
-
-const REPLIT_FRAME_ANCESTORS = [
-  "https://*.replit.dev",
-  "https://*.replit.app",
-  "https://*.repl.co",
-];
-
 const DIRECTIVES: Record<string, string[]> = {
   "default-src": ["'self'"],
   "script-src": ["'self'", "'unsafe-inline'"],
@@ -30,7 +12,7 @@ const DIRECTIVES: Record<string, string[]> = {
     "https://app.posthog.com",
   ],
   "media-src": ["'self'", "blob:"],
-  "frame-ancestors": ["'self'", ...REPLIT_FRAME_ANCESTORS],
+  "frame-ancestors": ["'self'"],
 };
 
 export function buildContentSecurityPolicy(): string {
