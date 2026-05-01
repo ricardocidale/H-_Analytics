@@ -239,6 +239,13 @@
       "when": 1746144006000,
       "tag": "0036_batch7_pure_ddl",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1746144007000,
+      "tag": "0037_batch8_datafix_and_unique",
+      "breakpoints": true
     }
   ]
 }

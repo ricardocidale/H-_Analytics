@@ -494,40 +494,14 @@ async function runSchemaMigrations() {
     label: "data-fixes",
   });
 
-  if (!(await isMigrationApplied("db_hygiene_001"))) {
-    const { runDbHygiene001 } = await import("./migrations/db-hygiene-001");
-    await runDbHygiene001();
-    await markMigrationApplied("db_hygiene_001");
-  }
-
-  if (!(await isMigrationApplied("fix_shared_ownership"))) {
-    const { fixLegacyOwnership } = await import("./migrations/fix-shared-ownership");
-    await fixLegacyOwnership();
-    await markMigrationApplied("fix_shared_ownership");
-  }
-
-  if (!(await isMigrationApplied("role_partner_to_user_001"))) {
-    const { migratePartnerToUser } = await import("./migrations/role-partner-to-user-001");
-    await migratePartnerToUser();
-    await markMigrationApplied("role_partner_to_user_001");
-  }
-
-  if (!(await isMigrationApplied("role_checker_investor_to_user_001"))) {
-    const { migrateCheckerInvestorToUser } = await import("./migrations/role-checker-investor-to-user-001");
-    await migrateCheckerInvestorToUser();
-    await markMigrationApplied("role_checker_investor_to_user_001");
-  }
+  // db_hygiene_001, fix_shared_ownership, role_partner_to_user_001,
+  // role_checker_investor_to_user_001, property_notnull_001 consolidated into
+  // 0037_batch8_datafix_and_unique.sql (Phase C batch 8)
 
   // can_manage_scenarios_001, fk_hardening_001, scenario_overrides_001
   // consolidated into 0036_batch7_pure_ddl.sql (Phase C batch 7)
 
   // appearance_defaults_001 consolidated into 0034_batch6_ga_columns.sql (Phase C batch 6)
-
-  if (!(await isMigrationApplied("property_notnull_001"))) {
-    const { runPropertyNotNullMigration } = await import("./migrations/property-notnull-001");
-    await runPropertyNotNullMigration();
-    await markMigrationApplied("property_notnull_001");
-  }
 
   // scenario_system_unique_001 consolidated into 0036_batch7_pure_ddl.sql (Phase C batch 7)
 
@@ -594,29 +568,12 @@ async function runSchemaMigrations() {
   // properties_financials_computed_at_001 consolidated into
   // 0035_batch5_standalone_tables.sql (Phase C batch 5)
 
-  // Task #442 — one-shot backfill so the
-  // `all-properties-financials-computed` prerequisite (engine/analyst/
-  // registry/prerequisite-registry.ts) doesn't false-positive every
-  // existing property as stale on first deploy. Idempotent: only fills
-  // rows where the column is still null, so it's safe across re-runs and
-  // never clobbers a freshly-stamped timestamp from a real recompute.
-  if (!(await isMigrationApplied("financials_computed_at_backfill_001"))) {
-    const { runFinancialsComputedAtBackfill001 } = await import(
-      "./migrations/financials-computed-at-backfill-001"
-    );
-    await runFinancialsComputedAtBackfill001();
-    await markMigrationApplied("financials_computed_at_backfill_001");
-  }
+  // financials_computed_at_backfill_001, app_logo_001 consolidated into
+  // 0037_batch8_datafix_and_unique.sql (Phase C batch 8)
 
   // scenario_service_templates_001 consolidated: its DDL (ADD COLUMN service_templates
   // on scenarios) was already shipped via 0010_scenario_service_templates.sql in the
   // Drizzle migration path. Runtime gate removed as part of Phase C batch 1.
-
-  if (!(await isMigrationApplied("app_logo_001"))) {
-    const { runAppLogo001 } = await import("./migrations/app-logo-001");
-    await runAppLogo001();
-    await markMigrationApplied("app_logo_001");
-  }
 
   if (!(await isMigrationApplied("drop_company_fk_001"))) {
     const { run: runDropCompanyFk } = await import("./migrations/drop-company-fk-001");
@@ -638,44 +595,9 @@ async function runSchemaMigrations() {
 
   // rebecca_fixture_replay_001 consolidated into 0032_batch3_rebecca.sql (Phase C batch 3)
 
-  // Task #573 — collapse legacy duplicates and add the
-  // assumption_guidance_unique constraint declared in
-  // lib/db/src/schema/intelligence-v2.ts so `npm run db:push` no longer
-  // prompts for a destructive truncate in non-TTY environments.
-  if (!(await isMigrationApplied("assumption_guidance_dedupe_001"))) {
-    const { runAssumptionGuidanceDedupe001 } = await import(
-      "./migrations/assumption-guidance-dedupe-001"
-    );
-    await runAssumptionGuidanceDedupe001();
-    await markMigrationApplied("assumption_guidance_dedupe_001");
-  }
-
-  // Audit follow-up — same regression class as Task #573, this time on
-  // benchmark_snapshots.snapshot_key (declared `.unique()` in
-  // lib/db/src/schema/intelligence-v2.ts but never applied to the live DB).
-  // Without this, `npm run db:push` blocks on a destructive truncate
-  // prompt in non-TTY environments and the Task #715 CI gate fails.
-  if (!(await isMigrationApplied("benchmark_snapshots_unique_001"))) {
-    const { runBenchmarkSnapshotsUnique001 } = await import(
-      "./migrations/benchmark-snapshots-unique-001"
-    );
-    await runBenchmarkSnapshotsUnique001();
-    await markMigrationApplied("benchmark_snapshots_unique_001");
-  }
-
-  // Audit follow-up — sweep the remaining single-column UNIQUE constraints
-  // declared in lib/db/src/schema/** but never applied to the live DB
-  // (properties.stable_key, media_assets.filename, source_registry.service_key,
-  // pipeline_policies.policy_key, scheduled_research_workflows.workflow_key,
-  // external_integrations.service_key, capital_raise_benchmarks.dimension_key,
-  // exit_multiples.dimension_key). Same fix pattern.
-  if (!(await isMigrationApplied("audit_unique_constraints_001"))) {
-    const { runAuditUniqueConstraints001 } = await import(
-      "./migrations/audit-unique-constraints-001"
-    );
-    await runAuditUniqueConstraints001();
-    await markMigrationApplied("audit_unique_constraints_001");
-  }
+  // assumption_guidance_dedupe_001, benchmark_snapshots_unique_001,
+  // audit_unique_constraints_001 consolidated into
+  // 0037_batch8_datafix_and_unique.sql (Phase C batch 8)
 
   // funding_cascade_001 consolidated into 0034_batch6_ga_columns.sql (Phase C batch 6)
 
