@@ -765,11 +765,7 @@ async function runSchemaMigrations() {
     await markMigrationApplied("rebecca_fixtures_001");
   }
 
-  if (!(await isMigrationApplied("app_name_001"))) {
-    const { runAppName001 } = await import("./migrations/app-name-001");
-    await runAppName001();
-    await markMigrationApplied("app_name_001");
-  }
+  // app_name_001 consolidated into 0030_phase_c_batch_1.sql (Phase C batch 1)
 
   if (!(await isMigrationApplied("market_data_tables_001"))) {
     const { runMarketDataTables001 } = await import("./migrations/market-data-tables-001");
@@ -858,11 +854,7 @@ async function runSchemaMigrations() {
     await markMigrationApplied("cache_entries_001");
   }
 
-  if (!(await isMigrationApplied("icp_model_tier_001"))) {
-    const { runIcpModelTierMigration } = await import("./migrations/icp-model-tier-001");
-    await runIcpModelTierMigration();
-    await markMigrationApplied("icp_model_tier_001");
-  }
+  // icp_model_tier_001 consolidated into 0030_phase_c_batch_1.sql (Phase C batch 1)
 
   if (!(await isMigrationApplied("reference_range_001"))) {
     const { runReferenceRange001 } = await import("./migrations/reference-range-001");
