@@ -8,6 +8,16 @@ Keep each session entry to ≤5 lines. Detail lives in skill files. Archive sess
 
 ---
 
+## Session: May 1, 2026 — Assumption export pages (PDF/Excel/CSV) + seed optimization
+
+- **Assumption pages shipped E2E** in 4 commits (`803888da` A → `da886f94` B → `dc0451c7` C → this D). Live in PDF/Excel/CSV; skipped in PPTX/DOCX. Single-property = 2 pages (ManCo + property); company = 1; portfolio = (N+1). New file `server/report/assumption-sections.ts` (helpers + `ASSUMPTIONS_TITLE_PREFIX` constant). New proof test `tests/proof/assumptions-export-completeness.test.ts` (8/8 PASS) guards drift via FIELD_REGISTRY iteration.
+- **Pipeline audit:** Confirmed `USE_SERVER_EXPORTS = true` is hard-set; live path is `/api/exports/generate` → `compileReport` → format generators. Client-side `propertyDetailExports.ts` is dead under flag. Title-pattern `"Assumptions — <Entity>"` is the load-bearing contract — discriminates without polluting the `ReportSection` type.
+- **Surprise:** PNG export NOT actually wired in live pipeline (`ServerExportFormat = "pdf" | "xlsx" | "pptx" | "docx" | "csv"`). The "PNG zip" in `.claude/rules/exports.md` is aspirational.
+- **Seed adjustments earlier in session:** Medellín Duplex hotel→STR (`8b9b10ec` — 4 rooms→1 unit, $1K→$1.2K, 0% svc shares, 15% platform commission, 30-50% occ); ManCo partner comp Y1-3 ramp (`92bd98b9` — $540K flat→$360/$420/$480K).
+- **All 5 gates PASS after each of A/B/C/D.** Verified: TS 0, Lint 0, Vocab 11/11, test:summary PASS, Verify UNQUALIFIED.
+
+---
+
 ## Session: April 30, 2026 (later) — Skills audit + skill-path proof test + P7-C close
 
 - **P7-C closed** (`76525c11`, `9720d72c`): H–K Constants Specialists status flipped `"needs-page"` → `"built"` after Replit shipped `ConstantsOwnedCard.tsx` (`03d5ceb7`). Updated both exempt sets in sync — `VERDICT_DIMENSION_EXEMPT` (`tests/proof/specialist-intelligence-bar.test.ts`) and `BUILT_SPECIALISTS_WITHOUT_VERDICT_DIMENSIONS` (`tests/analyst/voice/field-registry-parity.test.ts`).
