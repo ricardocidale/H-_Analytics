@@ -487,7 +487,12 @@ async function runSchemaMigrations() {
   const { db: drizzleDb } = await import("./db");
   await migrate(drizzleDb, { migrationsFolder: "./migrations" });
 
-  await runDataFixes();
+  const { withRetry } = await import("./db");
+  await withRetry(() => runDataFixes(), {
+    retries: 3,
+    baseDelayMs: 2000,
+    label: "data-fixes",
+  });
 
   if (!(await isMigrationApplied("db_hygiene_001"))) {
     const { runDbHygiene001 } = await import("./migrations/db-hygiene-001");
@@ -591,11 +596,7 @@ async function runSchemaMigrations() {
     await markMigrationApplied("property_urls_001");
   }
 
-  if (!(await isMigrationApplied("enhanced_photo_001"))) {
-    const { runEnhancedPhoto001 } = await import("./migrations/enhanced-photo-001");
-    await runEnhancedPhoto001();
-    await markMigrationApplied("enhanced_photo_001");
-  }
+  // enhanced_photo_001 consolidated into 0030_phase_c_batch_1.sql (Phase C batch 1)
 
   if (!(await isMigrationApplied("rebecca_guardrails_001"))) {
     const { runRebeccaGuardrails001 } = await import("./migrations/rebecca-guardrails-001");
@@ -609,10 +610,8 @@ async function runSchemaMigrations() {
     await markMigrationApplied("rebecca_kb_001");
   }
 
-  if (!(await isMigrationApplied("rebecca_language_001"))) {
-    const { runRebeccaLanguage001 } = await import("./migrations/rebecca-language-001");
-    await runRebeccaLanguage001();
-  }
+  // rebecca_language_001 consolidated into 0030_phase_c_batch_1.sql (Phase C batch 1)
+  // Note: this block was also missing markMigrationApplied, which is fixed by removal.
 
   if (!(await isMigrationApplied("calc_audit_001"))) {
     const { runCalcAudit001 } = await import("./migrations/calc-audit-001");
@@ -738,11 +737,9 @@ async function runSchemaMigrations() {
     await markMigrationApplied("financials_computed_at_backfill_001");
   }
 
-  if (!(await isMigrationApplied("scenario_service_templates_001"))) {
-    const { runScenarioServiceTemplates001 } = await import("./migrations/scenario-service-templates-001");
-    await runScenarioServiceTemplates001();
-    await markMigrationApplied("scenario_service_templates_001");
-  }
+  // scenario_service_templates_001 consolidated: its DDL (ADD COLUMN service_templates
+  // on scenarios) was already shipped via 0010_scenario_service_templates.sql in the
+  // Drizzle migration path. Runtime gate removed as part of Phase C batch 1.
 
   if (!(await isMigrationApplied("app_logo_001"))) {
     const { runAppLogo001 } = await import("./migrations/app-logo-001");

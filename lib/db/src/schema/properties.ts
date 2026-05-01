@@ -294,6 +294,17 @@ export const properties = pgTable("properties", {
   relistCount: integer("relist_count").notNull().default(0),
   motivationTier: text("motivation_tier"),
 
+  // Waterfall / LP-GP capital structure (ADR-011)
+  // Engine integration deferred to ADR-010 Phase 1 build.
+  // lp_equity_pct: LP share of total equity (0–1); GP share = 1 − lp_equity_pct.
+  // catch_up_rate: fraction of catch-up dollars going to GP (1.0 = 100% GP during catch-up).
+  // catch_up_to_gp_pct: GP's target share of all distributions after pref.
+  // waterfall_tiers: WaterfallTier[] — {label, hurdle_irr, lp_split, gp_split}[]. null = use seed defaults.
+  lpEquityPct: real("lp_equity_pct"),
+  catchUpRate: real("catch_up_rate"),
+  catchUpToGpPct: real("catch_up_to_gp_pct"),
+  waterfallTiers: jsonb("waterfall_tiers"),
+
   // Whether this property is active in the portfolio.
   // Inactive properties are excluded from all calculations and aggregations.
   // Default and seed value is true (ON).
