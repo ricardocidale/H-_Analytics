@@ -123,8 +123,8 @@ Maps 1:1 to the **Resources Control Plane** workstream above. P1–P5 shipped; P
 | Phase | Scope | Status | Owner | Commit/PR | Blocked-by | Next |
 |---|---|---|---|---|---|---|
 | 8 | Platform Independence (4–6 wk est.) | 🟢 In progress | CC+Replit | 93b16fd8 | — | 8.2+8.3+8.4+8.7 shipped (docker-compose, Dockerfile, S3 provider, migration scripts); 8.5 pending successful prod deploy |
-| 9 | Research Excellence (backend ✅; UI in T001–T007) | 🟡 Partial | Replit | — | — | UI tasks T001–T007 |
-| 10 | Scenario Intelligence (backend ✅; UI in T006) | 🟡 Partial | Replit | — | — | UI task T006 |
+| 9 | Research Excellence (backend ✅; UI ✅) | ✅ Shipped | CC+Replit | — | — | All T001–T007 confirmed shipped: HospitalityBenchmarksTab, EngineDashboard staleness, ConfidenceBadge + GuidanceSideSheet confidence, RangeIndicator confidence indicator |
+| 10 | Scenario Intelligence (backend ✅; UI ✅) | ✅ Shipped | CC+Replit | — | — | T006 confirmed shipped: PortfolioRiskGradeSection on dashboard OverviewTab, RiskInsightsPanel on PropertyEdit |
 | 11 | Export Excellence (3–5 wk est.) | ⏳ Pending | Replit | — | Phase 8 deploy | — |
 | 12 | Knowledge & Onboarding (4–6 wk est.) | ⏳ Pending | Replit | — | Phase 8 deploy | Video content is separate workstream |
 | 13 | Scale & Performance (6–8 wk est.) | ⏳ Pending | Replit | — | Phase 8 deploy | Multi-org migration = riskiest schema change |
