@@ -117,6 +117,7 @@ Project skills live in `.claude/skills/` (canonical) and are mirrored under `.lo
 - Coding conventions and context reduction: `.claude/skills/coding-conventions/`
 - Financial calculation rules: `.claude/skills/finance/`
 - Analyst-button convention: `.agents/skills/analyst-research-buttons/SKILL.md`
+- Compound Engineering bundle (vendored from EveryInc/compound-engineering-plugin v3.2.0): `.agents/skills/COMPOUND-ENGINEERING.md` — index of 37 `ce-*` skills + 51 personas. Tool/path mapping for Replit Agent at `.agents/ce-agents/REPLIT-ADAPTATION.md`. Setup is a no-op (already vendored).
 
 The full skill index is in `.claude/claude.md`, which is the authoritative AI context file when in doubt.
 

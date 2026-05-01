@@ -1,6 +1,6 @@
 import type { Express, Request, Response, NextFunction } from 'express';
 import type { AuthProvider } from './types';
-import { getSession } from '../../replit_integrations/auth/replitAuth';
+import { getSession } from '../../session';
 
 /**
  * Auth provider for running the app without Replit.
