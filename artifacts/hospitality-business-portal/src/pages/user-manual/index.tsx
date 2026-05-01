@@ -55,10 +55,16 @@ export default function UserManual({ embedded }: UserManualProps) {
   }, []);
 
   useEffect(() => {
-    const hash = window.location.hash.slice(1);
-    if (!hash) return;
-    pendingHashRef.current = hash;
-    scrollToSection(hash);
+    const handleHash = () => {
+      const hash = window.location.hash.slice(1);
+      if (!hash) return;
+      pendingHashRef.current = hash;
+      scrollToSection(hash);
+    };
+
+    handleHash();
+    window.addEventListener("hashchange", handleHash);
+    return () => window.removeEventListener("hashchange", handleHash);
   }, [scrollToSection]);
 
   const Wrapper = embedded ? ({ children }: { children: React.ReactNode }) => <>{children}</> : Layout;
