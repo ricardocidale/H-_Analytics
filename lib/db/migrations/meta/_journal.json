@@ -232,6 +232,13 @@
       "when": 1746144005000,
       "tag": "0035_batch5_standalone_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1746144006000,
+      "tag": "0036_batch7_pure_ddl",
+      "breakpoints": true
     }
   ]
 }

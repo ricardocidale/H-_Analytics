@@ -518,25 +518,10 @@ async function runSchemaMigrations() {
     await markMigrationApplied("role_checker_investor_to_user_001");
   }
 
-  if (!(await isMigrationApplied("can_manage_scenarios_001"))) {
-    const { runCanManageScenarios001 } = await import("./migrations/can-manage-scenarios-001");
-    await runCanManageScenarios001();
-    await markMigrationApplied("can_manage_scenarios_001");
-  }
+  // can_manage_scenarios_001, fk_hardening_001, scenario_overrides_001
+  // consolidated into 0036_batch7_pure_ddl.sql (Phase C batch 7)
 
   // appearance_defaults_001 consolidated into 0034_batch6_ga_columns.sql (Phase C batch 6)
-
-  if (!(await isMigrationApplied("fk_hardening_001"))) {
-    const { runFkHardening001 } = await import("./migrations/fk-hardening-001");
-    await runFkHardening001();
-    await markMigrationApplied("fk_hardening_001");
-  }
-
-  if (!(await isMigrationApplied("scenario_overrides_001"))) {
-    const { runScenarioOverrides001 } = await import("./migrations/scenario-overrides-001");
-    await runScenarioOverrides001();
-    await markMigrationApplied("scenario_overrides_001");
-  }
 
   if (!(await isMigrationApplied("property_notnull_001"))) {
     const { runPropertyNotNullMigration } = await import("./migrations/property-notnull-001");
@@ -544,11 +529,7 @@ async function runSchemaMigrations() {
     await markMigrationApplied("property_notnull_001");
   }
 
-  if (!(await isMigrationApplied("scenario_system_unique_001"))) {
-    const { runScenarioSystemUnique001 } = await import("./migrations/scenario-system-unique-001");
-    await runScenarioSystemUnique001();
-    await markMigrationApplied("scenario_system_unique_001");
-  }
+  // scenario_system_unique_001 consolidated into 0036_batch7_pure_ddl.sql (Phase C batch 7)
 
   // drop_marcela_columns_001 consolidated into 0031_batch2_drops.sql (Phase C batch 2)
 
@@ -558,31 +539,10 @@ async function runSchemaMigrations() {
     await markMigrationApplied("seed_external_integrations_001");
   }
 
-  if (!(await isMigrationApplied("photo_image_data_001"))) {
-    const { runPhotoImageData001 } = await import("./migrations/photo-image-data-001");
-    await runPhotoImageData001();
-    await markMigrationApplied("photo_image_data_001");
-  }
-
-  if (!(await isMigrationApplied("scenario_access_001"))) {
-    const { runScenarioAccess001 } = await import("./migrations/scenario-access-001");
-    await runScenarioAccess001();
-    await markMigrationApplied("scenario_access_001");
-  }
-
-  if (!(await isMigrationApplied("source_call_logs_001"))) {
-    const { runSourceCallLogs001 } = await import("./migrations/source-call-logs-001");
-    await runSourceCallLogs001();
-    await markMigrationApplied("source_call_logs_001");
-  }
+  // photo_image_data_001, scenario_access_001, source_call_logs_001, property_urls_001
+  // consolidated into 0036_batch7_pure_ddl.sql (Phase C batch 7)
 
   // drop_engine_suggested_lines_001 consolidated into 0031_batch2_drops.sql (Phase C batch 2)
-
-  if (!(await isMigrationApplied("property_urls_001"))) {
-    const { runPropertyUrlsMigration } = await import("./migrations/property-urls-001");
-    await runPropertyUrlsMigration();
-    await markMigrationApplied("property_urls_001");
-  }
 
   // enhanced_photo_001 consolidated into 0030_phase_c_batch_1.sql (Phase C batch 1)
 
@@ -601,40 +561,13 @@ async function runSchemaMigrations() {
   // rebecca_language_001 consolidated into 0030_phase_c_batch_1.sql (Phase C batch 1)
   // Note: this block was also missing markMigrationApplied, which is fixed by removal.
 
-  if (!(await isMigrationApplied("calc_audit_001"))) {
-    const { runCalcAudit001 } = await import("./migrations/calc-audit-001");
-    await runCalcAudit001();
-    await markMigrationApplied("calc_audit_001");
-  }
-
-  if (!(await isMigrationApplied("admin_resources_001"))) {
-    const { runAdminResources001 } = await import("./migrations/admin-resources-001");
-    await runAdminResources001();
-    await markMigrationApplied("admin_resources_001");
-  }
-
-  if (!(await isMigrationApplied("admin_resources_002"))) {
-    const { runAdminResources002 } = await import("./migrations/admin-resources-002");
-    await runAdminResources002();
-    await markMigrationApplied("admin_resources_002");
-  }
-
-  if (!(await isMigrationApplied("admin_resources_003"))) {
-    const { runAdminResources003 } = await import("./migrations/admin-resources-003");
-    await runAdminResources003();
-    await markMigrationApplied("admin_resources_003");
-  }
+  // calc_audit_001, admin_resources_001, admin_resources_002, admin_resources_003,
+  // property_dd_001 consolidated into 0036_batch7_pure_ddl.sql (Phase C batch 7)
 
   if (!(await isMigrationApplied("admin_resources_004"))) {
     const { runAdminResources004 } = await import("./migrations/admin-resources-004");
     await runAdminResources004();
     await markMigrationApplied("admin_resources_004");
-  }
-
-  if (!(await isMigrationApplied("property_dd_001"))) {
-    const { runPropertyDd001 } = await import("./migrations/property-dd-001");
-    await runPropertyDd001();
-    await markMigrationApplied("property_dd_001");
   }
 
   // specialist_observed_missing_001, specialist_recommendation_events_001,
@@ -645,22 +578,8 @@ async function runSchemaMigrations() {
   // 0022_specialist_llm_overrides.sql. Runtime patch removed; existing DBs
   // have the migration key recorded in _applied_migrations.
 
-  // P6e — wire global N+1 model defaults to admin_resources (4 nullable FK
-  // columns on pipeline_policies so admins can configure default orchestrator
-  // models without a code deploy).
-  if (!(await isMigrationApplied("pipeline_n1_global_models_001"))) {
-    const { runPipelineN1GlobalModels001 } = await import(
-      "./migrations/pipeline-n1-global-models-001"
-    );
-    await runPipelineN1GlobalModels001();
-    await markMigrationApplied("pipeline_n1_global_models_001");
-  }
-
-  if (!(await isMigrationApplied("vector_chunks_gin_001"))) {
-    const { runVectorChunksGin001 } = await import("./migrations/vector-chunks-gin-001");
-    await runVectorChunksGin001();
-    await markMigrationApplied("vector_chunks_gin_001");
-  }
+  // pipeline_n1_global_models_001, vector_chunks_gin_001 consolidated into
+  // 0036_batch7_pure_ddl.sql (Phase C batch 7)
 
   // P6f — seed admin_resources with model rows (LLM Config dropdowns) and
   // source/api/benchmark rows adapted from the legacy source_registry.
@@ -712,11 +631,7 @@ async function runSchemaMigrations() {
 
   // market_data_tables_001 consolidated into 0035_batch5_standalone_tables.sql (Phase C batch 5)
 
-  if (!(await isMigrationApplied("index_coverage_001"))) {
-    const { runIndexCoverage001 } = await import("./migrations/index-coverage-001");
-    await runIndexCoverage001();
-    await markMigrationApplied("index_coverage_001");
-  }
+  // index_coverage_001 consolidated into 0036_batch7_pure_ddl.sql (Phase C batch 7)
 
   // scheduler_runs_001, scheduler_runs_002, storage_drift_sweep_runs_001
   // consolidated into 0035_batch5_standalone_tables.sql (Phase C batch 5)
@@ -769,11 +684,7 @@ async function runSchemaMigrations() {
 
   // icp_model_tier_001 consolidated into 0030_phase_c_batch_1.sql (Phase C batch 1)
 
-  if (!(await isMigrationApplied("fk_indexes_002"))) {
-    const { runFkIndexes002 } = await import("./migrations/fk-indexes-002");
-    await runFkIndexes002();
-    await markMigrationApplied("fk_indexes_002");
-  }
+  // fk_indexes_002 consolidated into 0036_batch7_pure_ddl.sql (Phase C batch 7)
 }
 
 async function runSeeds() {
