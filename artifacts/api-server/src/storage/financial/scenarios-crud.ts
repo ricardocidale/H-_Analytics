@@ -7,7 +7,6 @@
  */
 import {
   scenarios,
-  scenarioShares,
   scenarioAccess,
   type Scenario,
   type InsertScenario,
@@ -170,7 +169,6 @@ export class ScenariosCrudStorage {
       await tx.update(scenarios)
         .set({ deletedAt: now, deletedBy: userId, purgeAfter: purge, updatedAt: now })
         .where(eq(scenarios.id, id));
-      await tx.delete(scenarioShares).where(eq(scenarioShares.scenarioId, id));
       await tx.delete(scenarioAccess).where(eq(scenarioAccess.scenarioId, id));
     });
   }

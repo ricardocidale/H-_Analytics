@@ -23,7 +23,7 @@
  * directly. Removing that field would be a breaking signature change.
  */
 import { db, pool } from "../db";
-import { users, sessions, marketResearch, prospectiveProperties, savedSearches, properties, globalAssumptions, loginLogs, activityLogs, verificationRuns, scenarios, scenarioShares, scenarioAccess, notificationPreferences, documentExtractions, conversations, calculationAuditLogs, userPageVisits } from "@workspace/db";
+import { users, sessions, marketResearch, prospectiveProperties, savedSearches, properties, globalAssumptions, loginLogs, activityLogs, verificationRuns, scenarios, scenarioAccess, notificationPreferences, documentExtractions, conversations, calculationAuditLogs, userPageVisits } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { UserStorage } from "./users";
 import { PropertyStorage } from "./properties";
@@ -177,8 +177,6 @@ export class DatabaseStorage implements IStorage {
   async deleteUser(id: number): Promise<void> {
     await db.transaction(async (tx) => {
       await tx.delete(sessions).where(eq(sessions.userId, id));
-      await tx.delete(scenarioShares).where(eq(scenarioShares.grantedBy, id));
-      await tx.delete(scenarioShares).where(and(eq(scenarioShares.targetType, "user"), eq(scenarioShares.targetId, id)));
       await tx.delete(scenarioAccess).where(eq(scenarioAccess.ownerId, id));
       await tx.delete(scenarioAccess).where(eq(scenarioAccess.granteeId, id));
       await tx.delete(scenarios).where(eq(scenarios.userId, id));

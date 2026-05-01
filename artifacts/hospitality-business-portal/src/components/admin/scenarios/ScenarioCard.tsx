@@ -1,14 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { IconTrash, IconPencil, IconPeople, IconScenarios, IconProperties, IconBuilding2 } from "@/components/icons";
+import { IconTrash, IconPencil, IconPeople, IconScenarios, IconProperties } from "@/components/icons";
 import { formatDateTime } from "@/lib/formatters";
 import { Badge } from "@/components/ui/badge";
 
 interface AccessGrant {
   id: number;
-  targetType: string;
-  targetId: number;
-  grantedBy: number;
+  grantType: string;
+  granteeId: number;
+  ownerId: number;
   createdAt: string;
 }
 
@@ -31,13 +31,7 @@ interface ScenarioCardProps {
   onManageAccess: (scenario: AdminScenario) => void;
   onEdit: (scenario: AdminScenario) => void;
   onDelete: (scenario: AdminScenario) => void;
-  getGrantLabel: (targetType: string, targetId: number) => string;
-}
-
-function getGrantBadgeVariant(targetType: string): "default" | "secondary" | "outline" {
-  if (targetType === "group") return "default";
-  if (targetType === "company") return "secondary";
-  return "outline";
+  getGrantLabel: (granteeId: number) => string;
 }
 
 export function ScenarioCard({ scenario, onManageAccess, onEdit, onDelete, getGrantLabel }: ScenarioCardProps) {
@@ -101,12 +95,10 @@ export function ScenarioCard({ scenario, onManageAccess, onEdit, onDelete, getGr
             {scenario.accessGrants.map(grant => (
               <Badge
                 key={grant.id}
-                variant={getGrantBadgeVariant(grant.targetType)}
+                variant="outline"
                 className="text-xs"
               >
-                {grant.targetType === "group" && <IconPeople className="w-3 h-3 mr-1" />}
-                {grant.targetType === "company" && <IconBuilding2 className="w-3 h-3 mr-1" />}
-                {getGrantLabel(grant.targetType, grant.targetId)}
+                {getGrantLabel(grant.granteeId)}
               </Badge>
             ))}
           </div>

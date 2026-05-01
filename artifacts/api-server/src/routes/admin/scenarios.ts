@@ -15,7 +15,7 @@ const createAdminScenarioSchema = z.object({
 });
 
 const accessGrantSchema = z.object({
-  targetType: z.enum(["user", "group", "company"]),
+  targetType: z.enum(["user"]),
   targetId: z.number(),
 });
 
@@ -23,18 +23,18 @@ export function registerAdminScenarioRoutes(app: Express) {
   app.get("/api/admin/scenarios", requireAdmin, async (req, res) => {
     try {
       const userIdFilter = req.query.userId ? Number(req.query.userId) : undefined;
-      const groupIdFilter = req.query.groupId ? Number(req.query.groupId) : undefined;
-      const allScenarios = await storage.getAllScenarios({ userId: userIdFilter, groupId: groupIdFilter });
+      const allScenarios = await storage.getAllScenarios({ userId: userIdFilter });
       const allShares = await storage.getAllScenarioShares();
 
-      const sharesByScenario: Record<number, Array<{ id: number; targetType: string; targetId: number; grantedBy: number; createdAt: string }>> = {};
+      const sharesByScenario: Record<number, Array<{ id: number; ownerId: number; granteeId: number; grantType: string; createdAt: string }>> = {};
       for (const share of allShares) {
+        if (share.scenarioId == null) continue;
         if (!sharesByScenario[share.scenarioId]) sharesByScenario[share.scenarioId] = [];
         sharesByScenario[share.scenarioId].push({
           id: share.id,
-          targetType: share.targetType,
-          targetId: share.targetId,
-          grantedBy: share.grantedBy,
+          ownerId: share.ownerId,
+          granteeId: share.granteeId,
+          grantType: share.grantType,
           createdAt: share.createdAt?.toISOString?.() ?? String(share.createdAt),
         });
       }

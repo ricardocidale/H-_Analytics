@@ -52,14 +52,6 @@ export async function checkScenarioAccess(scenarioId: number, userId: number, sc
   const user = await storage.getUserById(userId);
   if (!user) return false;
 
-  // Check legacy scenarioShares table
-  const shares = await storage.getScenarioSharesForScenario(scenarioId);
-  const hasLegacyAccess = shares.some(s =>
-    (s.targetType === "user" && s.targetId === userId)
-  );
-  if (hasLegacyAccess) return true;
-
-  // Check new scenarioAccess table (specific + all grants)
   const sharedViaAccess = await storage.getScenariosSharedViaAccess(userId);
   return sharedViaAccess.some(s => s.id === scenarioId);
 }

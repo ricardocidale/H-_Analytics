@@ -1,7 +1,7 @@
 /**
  * FinancialSharingStorage — orchestrator for the scenario-sharing surface.
  *
- * Composition: this orchestrator wires four focused submodules under
+ * Composition: this orchestrator wires three focused submodules under
  * `./financial-sharing/` into the same flat public surface the pre-split
  * class exposed. Composition mirrors `server/storage/intelligence/constants.ts`
  * and `server/storage/admin-resource.ts`.
@@ -9,10 +9,9 @@
  * Submodules (./financial-sharing/):
  *   - listing.ts — getAllScenarios + createScenarioForUser + getScenarioCountByUser
  *                  (cross-user listing, materialization-from-current-state)
- *   - shares.ts  — scenario_shares CRUD (legacy share-with-target table)
- *   - access.ts  — scenario_access CRUD + the user-facing
- *                  "what's been shared with me" reader methods that union
- *                  scenario_shares and scenario_access in one place
+ *   - access.ts  — scenario_access CRUD + all scenario-sharing operations.
+ *                  The former shares.ts (scenario_shares) was merged here
+ *                  when scenario_shares was dropped (task #871).
  *   - results.ts — scenario_results upsert + latest-result lookup
  *
  * The composition pattern: each submodule is instantiated once, and every
@@ -22,7 +21,6 @@
  * monolithic class verbatim — no signature changes downstream.
  */
 import { FinancialSharingListingStorage } from "./financial-sharing/listing";
-import { FinancialSharingSharesStorage } from "./financial-sharing/shares";
 import { FinancialSharingAccessStorage } from "./financial-sharing/access";
 import { FinancialSharingResultsStorage } from "./financial-sharing/results";
 
@@ -35,14 +33,12 @@ import { FinancialSharingResultsStorage } from "./financial-sharing/results";
  */
 export const FINANCIAL_SHARING_DOMAIN_FACTORIES = [
   () => new FinancialSharingListingStorage(),
-  () => new FinancialSharingSharesStorage(),
   () => new FinancialSharingAccessStorage(),
   () => new FinancialSharingResultsStorage(),
 ] as const;
 
 export interface FinancialSharingStorage
   extends FinancialSharingListingStorage,
-    FinancialSharingSharesStorage,
     FinancialSharingAccessStorage,
     FinancialSharingResultsStorage {}
 

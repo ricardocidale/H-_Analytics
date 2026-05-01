@@ -7,13 +7,12 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconPlus, IconTrash } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
 
 interface AccessGrant {
   id: number;
-  targetType: string;
-  targetId: number;
-  grantedBy: number;
+  grantType: string;
+  granteeId: number;
+  ownerId: number;
   createdAt: string;
 }
 
@@ -38,18 +37,16 @@ export function ScenarioAccessDialog({ open, onOpenChange, scenario, users }: Sc
   const userNameMap: Record<number, string> = {};
   users?.forEach(u => { userNameMap[u.id] = u.name || u.email; });
 
-  const getGrantLabel = (targetType: string, targetId: number) => {
-    if (targetType === "user") return userNameMap[targetId] || `User #${targetId}`;
-    return `${targetType} #${targetId}`;
-  };
+  const getGranteeLabel = (granteeId: number) =>
+    userNameMap[granteeId] || `User #${granteeId}`;
 
   const addAccessMutation = useMutation({
-    mutationFn: async ({ scenarioId, targetType, targetId }: { scenarioId: number; targetType: string; targetId: number }) => {
+    mutationFn: async ({ scenarioId, targetId }: { scenarioId: number; targetId: number }) => {
       const res = await fetch(`/api/admin/scenarios/${scenarioId}/access`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ targetType, targetId }),
+        body: JSON.stringify({ targetType: "user", targetId }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -68,12 +65,12 @@ export function ScenarioAccessDialog({ open, onOpenChange, scenario, users }: Sc
   });
 
   const removeAccessMutation = useMutation({
-    mutationFn: async ({ scenarioId, targetType, targetId }: { scenarioId: number; targetType: string; targetId: number }) => {
+    mutationFn: async ({ scenarioId, targetId }: { scenarioId: number; targetId: number }) => {
       const res = await fetch(`/api/admin/scenarios/${scenarioId}/access`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ targetType, targetId }),
+        body: JSON.stringify({ targetType: "user", targetId }),
       });
       if (!res.ok) throw new Error("Failed to remove access");
       return res.json();
@@ -98,7 +95,7 @@ export function ScenarioAccessDialog({ open, onOpenChange, scenario, users }: Sc
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["admin", "scenarios"] });
-      toast({ title: "All Access Removed", description: `Removed ${(data.sharesRemoved ?? 0) + (data.accessRemoved ?? 0)} access grant(s)` });
+      toast({ title: "All Access Removed", description: `Removed ${data.accessRemoved ?? 0} access grant(s)` });
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -122,10 +119,7 @@ export function ScenarioAccessDialog({ open, onOpenChange, scenario, users }: Sc
                 {scenario.accessGrants.map(grant => (
                   <div key={grant.id} className="flex items-center justify-between bg-muted/50 rounded px-3 py-2">
                     <span className="text-sm">
-                      <Badge variant="outline" className="mr-2 text-xs">
-                        {grant.targetType}
-                      </Badge>
-                      {getGrantLabel(grant.targetType, grant.targetId)}
+                      {getGranteeLabel(grant.granteeId)}
                     </span>
                     <Button
                       variant="ghost"
@@ -134,12 +128,11 @@ export function ScenarioAccessDialog({ open, onOpenChange, scenario, users }: Sc
                         if (!scenario) return;
                         removeAccessMutation.mutate({
                           scenarioId: scenario.id,
-                          targetType: grant.targetType,
-                          targetId: grant.targetId,
+                          targetId: grant.granteeId,
                         });
                       }}
                       data-testid={`button-revoke-access-${grant.id}`}
-                      aria-label={`Revoke access for ${getGrantLabel(grant.targetType, grant.targetId)}`}
+                      aria-label={`Revoke access for ${getGranteeLabel(grant.granteeId)}`}
                     >
                       <IconTrash className="w-3.5 h-3.5 text-destructive" />
                     </Button>
@@ -190,7 +183,6 @@ export function ScenarioAccessDialog({ open, onOpenChange, scenario, users }: Sc
                   if (!scenario || !grantForm.targetId) return;
                   addAccessMutation.mutate({
                     scenarioId: scenario.id,
-                    targetType: "user",
                     targetId: Number(grantForm.targetId),
                   });
                 }}

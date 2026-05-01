@@ -132,10 +132,8 @@ export default function ScenariosTab() {
     });
   }, [scenarios, search, ownerFilter]);
 
-  const getGrantLabel = (targetType: string, targetId: number) => {
-    if (targetType === "user") return userNameMap[targetId] || `User #${targetId}`;
-    return `${targetType} #${targetId}`;
-  };
+  const getGrantLabel = (granteeId: number) =>
+    userNameMap[granteeId] || `User #${granteeId}`;
 
   if (isLoading) {
     return (

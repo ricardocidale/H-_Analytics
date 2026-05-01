@@ -91,20 +91,6 @@ export const scenarioPropertyOverrides = pgTable("scenario_property_overrides", 
   index("spo_overrides_gin_idx").using("gin", table.overrides),
 ]);
 
-export const scenarioShares = pgTable("scenario_shares", {
-  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  scenarioId: integer("scenario_id").notNull().references(() => scenarios.id, { onDelete: "cascade" }),
-  targetType: text("target_type").notNull(),
-  targetId: integer("target_id").notNull(),
-  grantedBy: integer("granted_by").notNull().references(() => users.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => [
-  index("scenario_shares_scenario_id_idx").on(table.scenarioId),
-  index("scenario_shares_target_idx").on(table.targetType, table.targetId),
-  index("scenario_shares_granted_by_idx").on(table.grantedBy),
-  unique("scenario_shares_unique_grant").on(table.scenarioId, table.targetType, table.targetId),
-]);
-
 // --- SCENARIO ACCESS TABLE ---
 // Fine-grained access control for scenario sharing. Two grant types:
 //   - "specific": scenarioId is set — grants access to one scenario
@@ -176,6 +162,5 @@ export const selectScenarioSchema = createSelectSchema(scenarios);
 export type Scenario = typeof scenarios.$inferSelect;
 export type InsertScenario = z.infer<typeof insertScenarioSchema>;
 export type UpdateScenario = z.infer<typeof updateScenarioSchema>;
-export type ScenarioShare = typeof scenarioShares.$inferSelect;
 export type ScenarioPropertyOverride = typeof scenarioPropertyOverrides.$inferSelect;
 export type InsertScenarioPropertyOverride = z.infer<typeof insertScenarioPropertyOverrideSchema>;

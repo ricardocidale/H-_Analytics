@@ -50,7 +50,6 @@ const TARGETS: Target[] = [
   // (lib/db/src/schema/intelligence-v2.ts:642, scenarios.ts:85, scenarios.ts:100)
   { table: "hospitality_benchmarks", columns: ["metric_key", "country", "source_year"], constraintName: "hospitality_benchmarks_metric_country_year" },
   { table: "scenario_property_overrides", columns: ["scenario_id", "property_name"], constraintName: "spo_scenario_property_unique" },
-  { table: "scenario_shares", columns: ["scenario_id", "target_type", "target_id"], constraintName: "scenario_shares_unique_grant" },
 ];
 
 async function tableExists(table: string): Promise<boolean> {

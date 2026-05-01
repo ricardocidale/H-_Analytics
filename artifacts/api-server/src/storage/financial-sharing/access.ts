@@ -1,78 +1,45 @@
 /**
- * scenario_access CRUD + the user-facing "what's been shared with me" reads.
+ * scenario_access CRUD — the single source of truth for scenario sharing.
  *
- * scenario_access is the fine-grained grant system; it coexists with
- * scenario_shares (see ./shares.ts). The two reader methods at the bottom
- * merge results from both systems so callers don't have to know about the
- * legacy table — `getScenariosSharedWithUser` queries scenario_shares then
- * unions in `getScenariosSharedViaAccess`'s scenario_access results.
+ * After task #871 (drop scenario_shares), all grant/revoke operations read
+ * and write only to scenario_access. The two-table union that previously
+ * existed in getScenariosSharedWithUser has been removed; the method now
+ * queries scenario_access exclusively.
  *
- * Write path consolidation (task #865):
- * grantScenarioAccess and revokeScenarioAccess now update BOTH tables
- * atomically in a transaction for the "specific" grant type (where a
- * scenarioId is provided).  "all" grants (scenarioId = null) have no
- * equivalent row in scenario_shares, so only scenario_access is touched
- * for those.
+ * Two grant types in scenario_access:
+ *   - "specific": scenarioId is set — grants access to one scenario
+ *   - "all":      scenarioId is NULL — grants access to ALL scenarios owned by ownerId
+ *
+ * Admin-path helpers (addScenarioAccess, removeScenarioAccess,
+ * getScenarioSharesForScenario, getAllScenarioShares, getSharesForScenario,
+ * removeAllSharesForScenario, removeScenarioSharesByTarget,
+ * shareScenarioWithUser, shareAllScenariosWithUser) were previously split
+ * across shares.ts (now deleted). They are consolidated here and operate
+ * only on scenario_access.
  */
 import {
   scenarios,
-  scenarioShares,
   scenarioAccess,
   users,
   type Scenario,
   type ScenarioAccess,
 } from "@workspace/db";
 import { db } from "../../db";
-import { eq, isNull, inArray, or, sql, and, exists, aliasedTable } from "drizzle-orm";
+import { eq, isNull, inArray, or, sql, and, aliasedTable } from "drizzle-orm";
 
 export class FinancialSharingAccessStorage {
   /**
    * Grant access to a scenario (or all scenarios) for a grantee.
    *
-   * For "specific" grants (scenarioId != null): writes atomically to both
-   * scenario_access (enforcement) and scenario_shares (admin tracking).
-   * For "all" grants (scenarioId = null): only writes to scenario_access
-   * because scenario_shares has no equivalent "grant all" row structure.
+   * "specific" grants (scenarioId != null): one scenario.
+   * "all" grants (scenarioId = null): all current and future scenarios owned
+   *   by ownerId.
    */
   async grantScenarioAccess(ownerId: number, granteeId: number, scenarioId: number | null): Promise<ScenarioAccess> {
     const grantType = scenarioId != null ? "specific" : "all";
 
-    if (scenarioId != null) {
-      return await db.transaction(async (tx) => {
-        const [access] = await tx.insert(scenarioAccess).values({
-          scenarioId,
-          ownerId,
-          granteeId,
-          grantType,
-        } as typeof scenarioAccess.$inferInsert)
-          .onConflictDoNothing()
-          .returning();
-
-        const result = access ?? await (async () => {
-          const [existing] = await tx.select().from(scenarioAccess).where(
-            and(
-              eq(scenarioAccess.ownerId, ownerId),
-              eq(scenarioAccess.granteeId, granteeId),
-              eq(scenarioAccess.grantType, grantType),
-              eq(scenarioAccess.scenarioId, scenarioId),
-            )
-          );
-          return existing;
-        })();
-
-        await tx.insert(scenarioShares).values({
-          scenarioId,
-          targetType: "user",
-          targetId: granteeId,
-          grantedBy: ownerId,
-        } as typeof scenarioShares.$inferInsert).onConflictDoNothing();
-
-        return result;
-      });
-    }
-
     const [access] = await db.insert(scenarioAccess).values({
-      scenarioId: null,
+      scenarioId: scenarioId ?? null,
       ownerId,
       granteeId,
       grantType,
@@ -81,14 +48,20 @@ export class FinancialSharingAccessStorage {
       .returning();
 
     if (!access) {
-      const [existing] = await db.select().from(scenarioAccess).where(
-        and(
-          eq(scenarioAccess.ownerId, ownerId),
-          eq(scenarioAccess.granteeId, granteeId),
-          eq(scenarioAccess.grantType, grantType),
-          isNull(scenarioAccess.scenarioId),
-        )
-      );
+      const whereClause = scenarioId != null
+        ? and(
+            eq(scenarioAccess.ownerId, ownerId),
+            eq(scenarioAccess.granteeId, granteeId),
+            eq(scenarioAccess.grantType, grantType),
+            eq(scenarioAccess.scenarioId, scenarioId),
+          )
+        : and(
+            eq(scenarioAccess.ownerId, ownerId),
+            eq(scenarioAccess.granteeId, granteeId),
+            eq(scenarioAccess.grantType, grantType),
+            isNull(scenarioAccess.scenarioId),
+          );
+      const [existing] = await db.select().from(scenarioAccess).where(whereClause);
       return existing;
     }
     return access;
@@ -97,41 +70,21 @@ export class FinancialSharingAccessStorage {
   /**
    * Revoke access for a grantee.
    *
-   * For "specific" revocations (scenarioId != null): removes atomically from
-   * both scenario_access and scenario_shares in a transaction.
-   * For "all" revocations (scenarioId = null): only removes from
-   * scenario_access (no matching row exists in scenario_shares).
+   * "specific" revocations (scenarioId != null): remove one scenario grant.
+   * "all" revocations (scenarioId = null): remove the "all" grant.
    */
   async revokeScenarioAccess(ownerId: number, granteeId: number, scenarioId: number | null): Promise<void> {
     const grantType = scenarioId != null ? "specific" : "all";
 
     if (scenarioId != null) {
-      await db.transaction(async (tx) => {
-        await tx.delete(scenarioAccess).where(
-          and(
-            eq(scenarioAccess.ownerId, ownerId),
-            eq(scenarioAccess.granteeId, granteeId),
-            eq(scenarioAccess.grantType, grantType),
-            eq(scenarioAccess.scenarioId, scenarioId),
-          )
-        );
-
-        // Only remove the scenario_shares row when the caller is confirmed as the
-        // scenario owner, preventing unauthorized deletion of another user's audit record.
-        // We validate ownership via a correlated subquery on the scenarios table.
-        await tx.delete(scenarioShares).where(
-          and(
-            eq(scenarioShares.scenarioId, scenarioId),
-            eq(scenarioShares.targetType, "user"),
-            eq(scenarioShares.targetId, granteeId),
-            exists(
-              tx.select({ one: sql`1` })
-                .from(scenarios)
-                .where(and(eq(scenarios.id, scenarioId), eq(scenarios.userId, ownerId)))
-            ),
-          )
-        );
-      });
+      await db.delete(scenarioAccess).where(
+        and(
+          eq(scenarioAccess.ownerId, ownerId),
+          eq(scenarioAccess.granteeId, granteeId),
+          eq(scenarioAccess.grantType, grantType),
+          eq(scenarioAccess.scenarioId, scenarioId),
+        )
+      );
       return;
     }
 
@@ -168,46 +121,7 @@ export class FinancialSharingAccessStorage {
   async getScenariosSharedWithUser(userId: number): Promise<(Scenario & { accessType: string; sharedByUserId: number | null; sharedByName: string | null })[]> {
     const [user] = await db.select().from(users).where(eq(users.id, userId));
     if (!user) return [];
-
-    const conditions = [and(eq(scenarioShares.targetType, "user"), eq(scenarioShares.targetId, userId))];
-
-    const granterAlias = aliasedTable(users, "granter");
-    const rows = await db
-      .select({
-        scenario: scenarios,
-        grantedBy: scenarioShares.grantedBy,
-        granterFirstName: granterAlias.firstName,
-        granterLastName: granterAlias.lastName,
-        granterEmail: granterAlias.email,
-      })
-      .from(scenarioShares)
-      .innerJoin(scenarios, and(
-        eq(scenarioShares.scenarioId, scenarios.id),
-        isNull(scenarios.deletedAt),
-        sql`${scenarios.userId} != ${userId}`,
-      ))
-      .leftJoin(granterAlias, eq(scenarioShares.grantedBy, granterAlias.id))
-      .where(or(...conditions));
-
-    const seen = new Set<number>();
-    const results: (Scenario & { accessType: string; sharedByUserId: number | null; sharedByName: string | null })[] = [];
-    for (const row of rows) {
-      if (seen.has(row.scenario.id)) continue;
-      seen.add(row.scenario.id);
-      const granterName = row.granterFirstName || row.granterLastName
-        ? [row.granterFirstName, row.granterLastName].filter(Boolean).join(" ")
-        : row.granterEmail ?? null;
-      results.push({ ...row.scenario, accessType: "shared", sharedByUserId: row.grantedBy, sharedByName: granterName });
-    }
-
-    const accessResults = await this.getScenariosSharedViaAccess(userId);
-    for (const s of accessResults) {
-      if (seen.has(s.id)) continue;
-      seen.add(s.id);
-      results.push(s);
-    }
-
-    return results;
+    return this.getScenariosSharedViaAccess(userId);
   }
 
   async getScenariosSharedViaAccess(userId: number): Promise<(Scenario & { accessType: string; sharedByUserId: number; sharedByName: string | null })[]> {
@@ -281,5 +195,154 @@ export class FinancialSharingAccessStorage {
     }
 
     return results;
+  }
+
+  /**
+   * Grant access to a specific scenario for a user target (admin path).
+   * Only "user" targetType is supported; other target types are ignored
+   * since scenario_access has no group/company row structure.
+   */
+  async addScenarioAccess(scenarioId: number, targetType: string, targetId: number, grantedBy: number): Promise<ScenarioAccess> {
+    if (targetType !== "user") {
+      throw new Error(`scenario_access does not support targetType "${targetType}" — only "user" grants are stored`);
+    }
+
+    const [scenario] = await db.select({ userId: scenarios.userId }).from(scenarios).where(eq(scenarios.id, scenarioId));
+    const ownerId = scenario?.userId ?? grantedBy;
+
+    const [access] = await db.insert(scenarioAccess).values({
+      scenarioId,
+      ownerId,
+      granteeId: targetId,
+      grantType: "specific",
+    } as typeof scenarioAccess.$inferInsert)
+      .onConflictDoNothing()
+      .returning();
+
+    if (!access) {
+      const [existing] = await db.select().from(scenarioAccess).where(
+        and(
+          eq(scenarioAccess.scenarioId, scenarioId),
+          eq(scenarioAccess.granteeId, targetId),
+          eq(scenarioAccess.grantType, "specific"),
+        )
+      );
+      return existing;
+    }
+    return access;
+  }
+
+  /**
+   * Revoke access to a specific scenario for a target (admin path).
+   * Only "user" targetType affects scenario_access rows; other types are no-ops.
+   */
+  async removeScenarioAccess(scenarioId: number, targetType: string, targetId: number): Promise<void> {
+    if (targetType !== "user") return;
+
+    await db.delete(scenarioAccess).where(
+      and(
+        eq(scenarioAccess.scenarioId, scenarioId),
+        eq(scenarioAccess.granteeId, targetId),
+        eq(scenarioAccess.grantType, "specific"),
+      )
+    );
+  }
+
+  /** Return all scenario_access rows for a given scenario (admin path). */
+  async getScenarioSharesForScenario(scenarioId: number): Promise<ScenarioAccess[]> {
+    return await db.select().from(scenarioAccess).where(eq(scenarioAccess.scenarioId, scenarioId));
+  }
+
+  /** Return all scenario_access rows across all scenarios (admin path). */
+  async getAllScenarioShares(): Promise<ScenarioAccess[]> {
+    return await db.select().from(scenarioAccess);
+  }
+
+  /** Alias for getScenarioSharesForScenario (legacy call-site compatibility). */
+  async getSharesForScenario(scenarioId: number): Promise<ScenarioAccess[]> {
+    return this.getScenarioSharesForScenario(scenarioId);
+  }
+
+  /**
+   * Share a single scenario with a user (user-facing path).
+   *
+   * Returns null if the grant already exists, otherwise returns the new row.
+   */
+  async shareScenarioWithUser(scenarioId: number, recipientId: number, grantedBy: number): Promise<ScenarioAccess | null> {
+    const [scenario] = await db.select({ userId: scenarios.userId }).from(scenarios).where(eq(scenarios.id, scenarioId));
+    const ownerId = scenario?.userId ?? grantedBy;
+
+    const [access] = await db.insert(scenarioAccess).values({
+      scenarioId,
+      ownerId,
+      granteeId: recipientId,
+      grantType: "specific",
+    } as typeof scenarioAccess.$inferInsert)
+      .onConflictDoNothing()
+      .returning();
+
+    return access ?? null;
+  }
+
+  /**
+   * Share all of an owner's scenarios with a recipient.
+   *
+   * Skips scenarios that the recipient already has a specific grant for.
+   */
+  async shareAllScenariosWithUser(ownerId: number, recipientId: number): Promise<ScenarioAccess[]> {
+    const userScenarios = await db
+      .select()
+      .from(scenarios)
+      .where(and(eq(scenarios.userId, ownerId), isNull(scenarios.deletedAt)));
+
+    if (userScenarios.length === 0) return [];
+
+    const existingAccess = await db.select().from(scenarioAccess).where(
+      and(
+        eq(scenarioAccess.ownerId, ownerId),
+        eq(scenarioAccess.granteeId, recipientId),
+        eq(scenarioAccess.grantType, "specific"),
+        inArray(scenarioAccess.scenarioId, userScenarios.map(s => s.id)),
+      )
+    );
+    const alreadyGrantedIds = new Set(existingAccess.map(a => a.scenarioId));
+    const toGrant = userScenarios.filter(s => !alreadyGrantedIds.has(s.id));
+
+    if (toGrant.length === 0) return [];
+
+    const results: ScenarioAccess[] = [];
+    for (const s of toGrant) {
+      const [access] = await db.insert(scenarioAccess).values({
+        scenarioId: s.id,
+        ownerId,
+        granteeId: recipientId,
+        grantType: "specific",
+      } as typeof scenarioAccess.$inferInsert)
+        .onConflictDoNothing()
+        .returning();
+      if (access) results.push(access);
+    }
+    return results;
+  }
+
+  /** Remove all access grants for a scenario (admin path). */
+  async removeAllSharesForScenario(scenarioId: number): Promise<{ accessRemoved: number }> {
+    const deleted = await db.delete(scenarioAccess).where(eq(scenarioAccess.scenarioId, scenarioId)).returning();
+    return { accessRemoved: deleted.length };
+  }
+
+  /**
+   * Remove all specific grants for a target user (e.g. when a user is deleted).
+   * Non-user targets are a no-op since scenario_access has no such rows.
+   */
+  async removeScenarioSharesByTarget(targetType: string, targetId: number): Promise<void> {
+    if (targetType !== "user") return;
+
+    await db.delete(scenarioAccess).where(
+      and(
+        eq(scenarioAccess.granteeId, targetId),
+        eq(scenarioAccess.grantType, "specific"),
+      )
+    );
   }
 }

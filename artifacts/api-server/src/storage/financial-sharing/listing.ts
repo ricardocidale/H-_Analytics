@@ -14,7 +14,6 @@
 import {
   globalAssumptions,
   scenarios,
-  scenarioShares,
   properties,
   users,
   propertyFeeCategories,
@@ -41,7 +40,7 @@ async function loadGlobalAssumptionsForUser(userId?: number): Promise<GlobalAssu
 }
 
 export class FinancialSharingListingStorage {
-  async getAllScenarios(filters?: { userId?: number; groupId?: number }): Promise<(Scenario & { ownerEmail: string; ownerName: string | null })[]> {
+  async getAllScenarios(filters?: { userId?: number }): Promise<(Scenario & { ownerEmail: string; ownerName: string | null })[]> {
     let query = db
       .select({
         id: scenarios.id,
@@ -118,14 +117,6 @@ export class FinancialSharingListingStorage {
     }));
 
     // userId filter is now in SQL above
-
-    if (filters?.groupId) {
-      const matchingShares = await db.select({ scenarioId: scenarioShares.scenarioId })
-        .from(scenarioShares)
-        .where(and(eq(scenarioShares.targetType, "group"), eq(scenarioShares.targetId, filters.groupId)));
-      const matchingIds = new Set(matchingShares.map(s => s.scenarioId));
-      result = result.filter(r => matchingIds.has(r.id));
-    }
 
     return result;
   }
