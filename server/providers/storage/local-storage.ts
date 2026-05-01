@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { createReadStream, createWriteStream, existsSync } from "node:fs";
+import { createReadStream, existsSync } from "node:fs";
 import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { Response } from "express";
@@ -36,11 +36,8 @@ export class LocalStorageProvider implements StorageProvider {
     _ttlSec?: number,
   ): Promise<{ url: string; objectPath: string }> {
     const id = randomUUID();
-    const safeName = (key || "")
-      .replace(/^.*[\\/]/, "")
-      .replace(/[^a-zA-Z0-9._-]/g, "_")
-      .slice(0, 120);
-    const objectKey = safeName ? `private/${id}/${safeName}` : `private/${id}`;
+    const filename = (key || "").replace(/^.*[\\/]/, "").replace(/[^\w._-]/g, "_") || "upload";
+    const objectKey = `private/${id}/${filename}`;
     const objectPath = `/objects/${objectKey}`;
     // Local provider uses a fake upload URL that the server intercepts
     return { url: `/api/local-upload/${objectKey}`, objectPath };
