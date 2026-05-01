@@ -1,0 +1,26 @@
+  Paste into Replit:                                                                                                                                                                                                  
+  
+  Read the following and execute — CC has wired AirROI + FRED to the reference_range table. Your job is the UI refresh button and the wiring.                                                                         
+                                                                                                                                                                                                                      
+  The reference_range table now has data (KPI: ADR/occupancy/RevPAR for 9 markets; Labor: wages by role × city; Macro: inflation/rates). The table schema is at shared/schema/reference-range.ts. The admin routes are
+   at server/routes/admin/reference-ranges.ts.                                                                                                                                                                        
+                                                                                                                                                                                                                      
+  Task A — Add Analyst refresh button to ReferenceRangesTab.tsx                                                                                                                                                       
+  The tab you built needs a button that calls POST /api/admin/reference-ranges/refresh. When clicked:
+  1. Show a progress animation: "The Analyst is cross-referencing live market data…" → "Updating KPI benchmarks from AirROI…" → "Refreshing macro indicators from FRED…" → "Done"                                     
+  2. The endpoint responds immediately with { started: true } and runs in background. Simulate the 3-step progress over ~8 seconds (2s per step) then show "Done. Ranges updated."                                    
+  3. After completion, refetch the GET /api/admin/reference-ranges list so the table reloads with fresh data.                                                                                                         
+  4. The button should be in the tab header, right side. Label: "Ask The Analyst" with a Sparkles icon. Voice per the-analyst-persona.md — NOT "Refresh", NOT "Update", NOT "Sync".                                   
+                                                                                                                                                                                                                      
+  Task B — Wire the ReferenceRangesTab into the Specialist tools                                                                                                                                                      
+  In engine/analyst/registry/specialist-tools.ts, add a lookupReferenceRange tool that:                                                                                                                               
+  - Takes: { domain, metricKey, country, market? }                                                                                                                                                                    
+  - Calls GET /api/admin/reference-ranges?domain=X&metricKey=Y&country=Z                                                                                                                                              
+  - Returns the best matching row (most specific jurisdiction)                                                                                                                                                        
+  - This is Phase 3's best-match resolver — keep it simple for now: return the first result.                                                                                                                          
+                                                                                                                                                                                                                      
+  Task C — Update tests                                                                                                                                                                                               
+  Run npm run test:summary and fix any snapshot tests that broke due to the new admin sidebar entries (tests/client/admin-sidebar-structure.test.ts and tests/client/admin-redirects-snapshot.test.ts may need        
+  baseline updates).                                                                                                                                                                                                  
+  
+  Do NOT touch server/ files except specialist-tools.ts — those are CC lane.  

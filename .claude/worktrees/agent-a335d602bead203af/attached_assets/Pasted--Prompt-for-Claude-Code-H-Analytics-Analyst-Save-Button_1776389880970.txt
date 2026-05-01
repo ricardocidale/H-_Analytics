@@ -1,0 +1,74 @@
+# Prompt for Claude Code: H+ Analytics — Analyst & Save Button Refactor
+
+## Task
+Refactor the Company Assumptions configuration screen to move Analyst and Save actions from the section level to the tab level, and implement an automatic Analyst review that runs on save.
+
+## Current state
+- A section-wide Analyst button and Save Changes button sit in the Company Assumptions header.
+- Each tab (Setup, Funding, Revenue Model, Compensation, Overhead, Tax & Exit, Property Defaults) currently has its own Analyst and Save buttons above the form.
+- A status banner sits below the header.
+
+## Required changes
+
+### 1. Remove the section-level buttons
+Delete the Analyst and Save Changes buttons from the Company Assumptions header. Keep the Auto toggle and the back arrow.
+
+### 2. Relocate per-tab Analyst and Save buttons
+- Place both buttons at the right end of the tab menu row, on the same horizontal line as the tab labels.
+- Order: Analyst immediately followed by Save.
+- Keep existing styling (Analyst = dark pill with sparkle icon; Save = light pill with save icon).
+- Remove the duplicate Analyst/Save buttons currently sitting above each tab's form content.
+
+### 3. Analyst button behavior (on-demand)
+- Disabled until the current tab's anchor fields are filled. Tooltip uses existing copy pattern with the list of required fields.
+- Disabled if upstream tabs have not been saved. Tooltip references the upstream tab.
+- Enabled when anchors are filled and upstream tabs are saved. Clicking runs Analyst against current (possibly unsaved) values and returns guidance.
+
+### 4. Save button behavior (commit + auto-review)
+- Save commits the tab's values immediately. Never blocks.
+- On successful save, trigger an Analyst review pass asynchronously in the background.
+- Save button does not wait for the review to complete. UI stays responsive; user can navigate to another tab.
+
+### 5. Status banner — surface review results
+Reuse existing banner component and copy conventions. Banner must reflect these distinct states:
+- Idle / no unsaved changes
+- Save in progress
+- Saved, review running
+- Saved, no issues
+- Saved, issues found (include flag count)
+
+### 6. Inline flag display
+When Analyst flags a value, display the suggested range inline next to the field using the existing range-pill component already used on Company Inflation Rate. Flagged fields should be visually distinct but not alarming — guidance, not error.
+
+### 7. Override memory (anti-nag)
+For each flagged field, track whether the user has acknowledged the flag, along with the value at time of acknowledgment and the suggested range.
+
+Rules:
+- When Analyst flags a field, it starts as unacknowledged.
+- When the user views the flag and saves without changing the value, mark it acknowledged.
+- If the user changes the value later, reset to unacknowledged so Analyst can re-evaluate.
+- The banner's flag count reflects only unacknowledged fields.
+
+### 8. Non-negotiables
+- Analyst is a helper, not an enforcer. Nothing it says blocks the user from saving any value.
+- Save always succeeds on valid input, regardless of Analyst's opinion.
+- Analyst review must run in the background; never freeze the UI.
+
+## Button state summary
+
+| State | Analyst | Save |
+|---|---|---|
+| Anchor fields empty | Disabled (tooltip) | Disabled |
+| Upstream tab unsaved | Disabled (tooltip) | Enabled |
+| Ready, unsaved changes | Enabled | Enabled |
+| Saved, review running | Enabled | Enabled |
+| Saved, flags pending review | Enabled | Enabled |
+| Saved, all acknowledged | Enabled | Enabled |
+
+## Deliverables
+1. Updated header component (section buttons removed).
+2. Updated tab bar component (Analyst + Save buttons at right end).
+3. Removed in-form Analyst/Save buttons from each tab.
+4. Banner component updated to handle the new states above, using existing copy conventions.
+5. State management for acknowledgment status per flagged field.
+6. Async save-triggered Analyst review wired up without blocking UI.

@@ -1,0 +1,48 @@
+                                                                                                                                                                                                                                                                              
+  What was built                                            
+
+  New Admin tab: "Research" under the Business nav group in Admin → accessible at /admin → Research sidebar item.
+
+  Per-event control for all 3 research types (Property / Company / Global):
+  - Enable/disable toggle — disabled types return 403 when triggered
+  - Focus Areas — tag-style input, injected as bulleted guidance into the prompt
+  - Geographic Regions — tag-style input, scopes the research geography
+  - Investment Horizon — dropdown (5/7/10/15-year)
+  - Custom Instructions — free-text appended to the system prompt
+  - Custom Questions — specific questions the LLM must address
+  - Deterministic Tools — checkboxes for all 9 tools (property type only); unchecked all = all tools enabled
+
+  Files changed
+
+  ┌───────────────────────────────────────────────┬──────────────────────────────────────────────────────────────────────────────┐
+  │                     File                      │                                    Change                                    │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────┤
+  │ shared/schema.ts                              │ ResearchEventConfig + ResearchConfig interfaces; researchConfig JSONB column │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────┤
+  │ shared/constants.ts                           │ DEFAULT_RESEARCH_EVENT_CONFIG constant                                       │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────┤
+  │ server/migrations/research-config-001.ts      │ NEW — adds column (safe, idempotent)                                         │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────┤
+  │ server/index.ts                               │ Runs migration at startup                                                    │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────┤
+  │ server/routes/admin/research.ts               │ NEW — GET/PUT /api/admin/research-config                                     │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────┤
+  │ server/routes/admin/index.ts                  │ Registers new router                                                         │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────┤
+  │ server/ai/research-prompt-builders.ts         │ eventConfig param + buildEventConfigSuffix()                                 │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────┤
+  │ server/ai/aiResearch.ts                       │ Filters tools to enabledTools list                                           │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────┤
+  │ server/routes/research.ts                     │ Loads config from DB, blocks disabled types, threads into generator          │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────┤
+  │ client/src/lib/api/admin.ts                   │ useResearchConfig() + useSaveResearchConfig() hooks                          │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────┤
+  │ client/src/components/admin/ResearchTab.tsx   │ NEW — full admin UI                                                          │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────┤
+  │ client/src/components/admin/index.ts          │ Exports ResearchTab                                                          │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────┤
+  │ client/src/pages/Admin.tsx                    │ Adds research tab + meta                                                     │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────┤
+  │ client/src/components/admin/AdminSidebar.tsx  │ Adds Research nav entry + type                                               │
+  ├───────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────────┤
+  │ tests/proof/recalculation-enforcement.test.ts │ Registers new hooks as non-financial                                         │

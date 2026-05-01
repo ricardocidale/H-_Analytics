@@ -1,0 +1,157 @@
+***
+
+title: WhatsApp
+subtitle: Connect your WhatsApp business account with ElevenLabs Agents
+-----------------------------------------------------------------------
+
+## Overview
+
+You can connect your WhatsApp business account to an ElevenLabs Agent. The agent can then handle:
+
+* Message conversations
+* Calls
+
+## Importing a WhatsApp business account
+
+<Steps>
+  <Step title="Import your account">
+    Go to the [WhatsApp page](https://elevenlabs.io/app/agents/whatsapp) and click the ***Import account*** button:
+
+    <Frame background="subtle">
+      <img src="file:89a6fa3b-f3c6-4b3a-b203-8a055c24f91c" alt="WhatsApp page" />
+    </Frame>
+  </Step>
+
+  <Step title="Authorize ElevenLabs">
+    This will open the authorization flow where you select your account and give ElevenLabs permission to manage it:
+
+    <Frame background="subtle">
+      <img src="file:de5defaf-87c3-427c-9b77-166b992026de" alt="WhatsApp authorization flow" />
+    </Frame>
+  </Step>
+
+  <Step title="Assign an agent">
+    When you finish importing your account, you will be taken to its settings page where you can assign an agent to it:
+
+    <Frame background="subtle">
+      <img src="file:84f2f92e-2a0f-487d-8160-8b58b68aadaf" alt="WhatsApp account page" />
+    </Frame>
+
+    <Info>
+      If you don't assign an agent to your account, inbound messages will be ignored and inbound calls
+      will be rejected. However, you will still be able to make outbound calls.
+    </Info>
+  </Step>
+
+  <Step title="Configure WhatsApp Manager">
+    Go to [WhatsApp Manager](https://business.facebook.com/latest/whatsapp_manager/) to:
+
+    * Configure your profile picture, etc.: open the ***Phone numbers*** page, select a phone number and go to the ***Profile*** tab
+    * Allow voice calls: open the ***Phone numbers*** page, select a phone number and go to the ***Call settings*** tab
+    * If you want to make outbound calls, add a payment method: open the ***Overview*** page and click the ***Add payment method*** button
+  </Step>
+</Steps>
+
+## Message conversations
+
+### Inbound
+
+You can send a message to your WhatsApp business account and the agent will respond:
+
+<Frame background="subtle">
+  <img src="file:0d10f722-b819-48f1-8b56-78be4b267bb7" alt="WhatsApp text conversation" width="300" />
+</Frame>
+
+The conversation will be ended either by the ***End conversation*** system tool (if you have it enabled on your agent) or after the ***Max conversation duration*** timeout.
+
+<Info>
+  There is currently no indication on the user side that the conversation ended, which can lead to a
+  confusing user experience. We will soon add a setting that will let you specify a message the
+  agent will send before ending the conversation due to timeout.
+</Info>
+
+### Outbound
+
+You can start a conversation by sending an outbound message.
+
+First, go to [WhatsApp Manager](https://business.facebook.com/latest/whatsapp_manager/message_templates) and create a message template. Then call [the API](/docs/api-reference/whats-app/outbound-message).
+
+<Frame background="subtle">
+  <img src="file:da0b3d14-eaa0-4ff5-99f9-357a51a561b5" alt="WhatsApp text conversation" width="300" />
+</Frame>
+
+<Info>
+  For outbound messages, the timer for max conversation duration only starts after the user
+  responds.
+</Info>
+
+### Message types
+
+In addition to text, you can also send:
+
+* audio (will be transcribed to text before being passed to the agent)
+* images
+* documents
+
+<Info>
+  Transcribing audio messages to text is charged the same as in the speech-to-text API.
+</Info>
+
+<Frame background="subtle">
+  <img src="file:97e6eb23-0baf-49ef-b9c3-52dcbf1eff9f" alt="WhatsApp audio conversation" width="300" />
+</Frame>
+
+<Frame background="subtle">
+  <img src="file:c2ba4bd0-01c4-4ff0-a6a9-2380b680cfc9" alt="WhatsApp image conversation" width="300" />
+</Frame>
+
+<Frame background="subtle">
+  <img src="file:2178df94-28c9-41d5-8fe6-4fdd3acd25ad" alt="WhatsApp document conversation" width="300" />
+</Frame>
+
+## Calls
+
+### Inbound
+
+You can call your WhatsApp business account and the agent will respond. During the call, you can also send text messages and they will be incorporated into the conversation.
+
+### Outbound
+
+Making an outbound call requires permission from the user. You can read more about this in [WhatsApp documentation](https://developers.facebook.com/documentation/business-messaging/whatsapp/calling/user-call-permissions). When you schedule an outbound call, we will automatically send a template message with a call permission request if necessary, and make the call as soon as the user approves it.
+
+First, go to [WhatsApp Manager](https://business.facebook.com/latest/whatsapp_manager/message_templates) and create a message template with a call permission request component.
+
+You can then go to the [WhatsApp page](https://elevenlabs.io/app/agents/whatsapp), select your account, and click the ***Outbound call*** button. This will open a dialog where you select an agent, provide a WhatsApp user ID to call, and the call permission request template to use:
+
+<Frame background="subtle">
+  <img src="file:04283a55-cc60-46df-8861-60850e031f7b" alt="WhatsApp outbound call dialog" />
+</Frame>
+
+Alternatively, you can schedule the call via [the API](/docs/api-reference/whats-app/outbound-call) or schedule multiple calls with [batch calling](/docs/agents-platform/phone-numbers/batch-calls).
+
+## Next steps: personalization
+
+We set the `{{system__caller_id}}` and `{{system__called_number}}` [dynamic variables](/docs/agents-platform/customization/personalization/dynamic-variables) to the WhatsApp user ID and your WhatsApp phone number ID (or vice versa, depending on who started the conversation). You can use those in a tool or a [conversation initiation webhook](/docs/agents-platform/customization/personalization/twilio-personalization) to personalize conversations.
+
+<Info>
+  You can find your WhatsApp phone number ID by going to the [WhatsApp
+  page](https://elevenlabs.io/app/agents/whatsapp), clicking the menu next to your account and
+  selecting ***Copy phone number ID***.
+</Info>
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Pricing">
+    Meta charges for outbound calls and call permission requests sent outside of a [Customer Service
+    Window](https://developers.facebook.com/documentation/business-messaging/whatsapp/messages/send-messages#customer-service-windows).
+    You will not be able to make outbound calls until you add a payment method to your WhatsApp
+    business account. You can read more in [WhatsApp
+    documentation](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing).
+  </Accordion>
+
+  <Accordion title="Zero-Retention Mode">
+    [Zero-Retention Mode](/docs/developers/resources/zero-retention-mode) limits our ability to
+    provide certain functionality: we ignore messages and disallow outbound calls.
+  </Accordion>
+</AccordionGroup>

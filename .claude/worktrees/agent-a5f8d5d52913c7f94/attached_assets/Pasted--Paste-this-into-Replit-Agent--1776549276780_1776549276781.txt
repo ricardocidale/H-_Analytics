@@ -1,0 +1,32 @@
+  Paste this into Replit Agent                                                                                                                              
+   
+  Read .claude/replit-handoffs/phase-5a-citations-promotion.md and execute the                                                                              
+  tasks in order. Two commits expected:                                                                                                                     
+                                                                                                                                                            
+  1. Task 5A-1 + 5A-2 combined: move client/src/components/company-assumptions/                                                                             
+     citations.ts → shared/citations.ts and update all 9 client imports to                                                                                  
+     @shared/citations. Client-only, no behavior change.                                                                                                    
+                  
+  2. Task 5A-3: adopt CITATIONS in server/data/researchSeeds.ts for the three                                                                               
+     exact-match lines (343, 353, 364).
+                                                                                                                                                            
+  Tasks 5A-4 and 5A-5 are DEFERRED — do not execute. If 5A-4 has you wanting to                                                                             
+  decide on the short "HVS 2024" label, file a BLOCKED.md sibling instead.                                                                                  
+                                                                                                                                                            
+  Run the full verification block after EACH of the two commits (don't batch).                                                                              
+  Expected: TS 0, Lint 0, vocab 11/11, test:summary PASS, Verify UNQUALIFIED.                                                                               
+                                                                                                                                                            
+  Both commits must include the `Surfaces:` footer as specified in the handoff.                                                                             
+                                                                                                                                                            
+  When done, append a ≤5-line note to .claude/session-memory.md with the two                                                                                
+  commit SHAs and final verification result, and update .claude/audit-inventory.md
+  to mark D-2 as closed for exact-match sites.                                                                                                              
+   
+  ---                                                                                                                                                       
+  Scope summary   
+                                                                                                                                                            
+  - 2 commits expected (client move, server adoption)
+  - Touches: 1 new shared file, 1 deleted client file, 9 client import updates, 1 server file with 3 line changes                                           
+  - Deferred to future handoffs: 5A-4 (short "HVS 2024" label — needs product decision), 5A-5 (Rebecca KB markdown — needs Pinecone re-indexing)            
+  - Not in this handoff: 5B (KB numeric templating) and 5C (remaining "2026-06-01" literals for capitalRaise1Date) — separate handoffs when 5A lands        
+                                                                             

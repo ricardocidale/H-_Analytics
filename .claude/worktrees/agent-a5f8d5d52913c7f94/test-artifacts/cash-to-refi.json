@@ -1,0 +1,44 @@
+{
+  "scenario": "Cash Purchase → Refinance Year 3",
+  "timestamp": "2026-05-01T13:14:12.972Z",
+  "sources_and_uses": {
+    "sources": {
+      "equity": 2000000,
+      "debt": 0
+    },
+    "uses": {
+      "purchase_price": 2000000
+    },
+    "total_sources": 2000000,
+    "total_uses": 2000000,
+    "balanced": true
+  },
+  "noi_to_fcf_bridge": {
+    "noi": 7703907.261824703,
+    "anoi": 6479895.433682371,
+    "less_debt_service": 842823.2399999991,
+    "less_income_tax": 1351427.3222667482,
+    "plus_refi_proceeds": 1261000,
+    "fcf": 5546644.871415629,
+    "check_passed": true
+  },
+  "cash_bridge": {
+    "beginning_cash": 0,
+    "plus_operating_cf": 4438897.35141563,
+    "plus_financing_cf": 1107747.519999999,
+    "ending_cash": 5546644.871415629,
+    "check_passed": true
+  },
+  "debt_reconciliation": {
+    "beginning_balance": 0,
+    "plus_draws": 1298633.06,
+    "less_payments": 153252.48000000004,
+    "ending_balance": 1146747.52,
+    "check_passed": false
+  },
+  "financial_identities": {
+    "opinion": "UNQUALIFIED",
+    "checks_passed": 4,
+    "checks_total": 4
+  }
+}

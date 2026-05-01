@@ -1,0 +1,112 @@
+  Three HIGH items to close before Phase 3 merges. Two MED items for a                            
+  follow-up commit. One meta issue (the --no-verify hook timeout) that keeps                      
+  biting.                                                                                         
+                                                                                                  
+  === HIGH (fix before Phase 3 merge) ===                                                         
+                                                        
+  1. pronounSet() crashes on unknown gender — engine/analyst/identity.ts:91-93                    
+     Direct Record<Gender, PronounSet> index with no guard. Contract is
+     typed as (gender: Gender), but at runtime the DB can contain anything                        
+     (Zod on write is not a runtime guarantee on read — stale rows, manual                        
+     SQL, future enum extension). pronounSet("other").possessive throws                           
+     TypeError. Fix: switch to an explicit switch or guard, fall back to                          
+     neutral on miss, and log at warn level.                                                      
+                                                                                                  
+  2. Identity humanName empty-string schema mismatch — shared/schema/specialist.ts                
+     Line 565 (SpecialistIdentityPublicViewSchema): z.string().nullable() —                       
+     accepts "". Line 549 (updateSpecialistIdentitySchema): .min(1) —                             
+     rejects "". Result: if an empty string ever lands in the table (race,
+     future migration, manual SQL), GET serializes it, client treats it as                        
+     valid, header renders "In effect: " with no name. Fix: .min(1) on both,                      
+     OR canonicalize "" → null at storage-read time.                                              
+                                                                                                  
+  3. SPECIALIST_TOOLS registry has no boot-time catalog validation —                              
+     engine/analyst/registry/specialist-tools.ts:213-224                                          
+     The module-load IIFE only checks duplicate tool IDs. A typo in                               
+     ownerSpecialistId or a stale entry in calledBy compiles fine, the                            
+     Vitest registry test catches it at test time, but server startup does                        
+     not. First admin-UI fetch of /api/admin/specialist-tools hits the                            
+     route, getSpecialistById() returns undefined, route falls back to the                        
+     raw ID string as humanName. Fix: extend the IIFE to assert every                             
+     ownerSpecialistId and every calledBy entry is in SPECIALIST_CATALOG.                         
+     Throws at boot, not at user-first-click.                                                     
+                                                                                                  
+  === MED (queue as Phase 3 follow-up) ===                                                        
+                                                                                                  
+  4. Last-write-wins on identity overrides — server/storage/specialist-identity.ts                
+     Two admins editing Helena concurrently: both transactions succeed,
+     both audit rows are written, only one override row wins. No version                          
+     column, no optimistic-concurrency check. Either document last-write-
+     wins as the contract (add a comment + a test asserting it), or add a                         
+     `version` column and WHERE version = ? on update. For admin tooling,                         
+     documented LWW is fine — just make it explicit.                                              
+                                                                                                  
+  5. JurisdictionKey contract not enforced at runtime —                                           
+     server/ai/tools/tax-bulletin-diff.ts (around the exported entry points)                      
+     Docblock says "country NAME, not ISO code" but no runtime check.                             
+     Caller passing "US" or "USA" gets a silent UnsupportedJurisdictionError                      
+     with no hint about the format. Fix: add a Zod refinement or an                               
+     explicit length/format check at the entry point. Throw a loud                                
+     "expected country name like 'United States', got 'US'" error.                                
+                                                                                                  
+  6. (Optional MED) calledBy in SPECIALIST_TOOLS is hand-maintained.                              
+     Docstring says "populated by static inspection of imports" but there's                       
+     no CI/lint enforcement. A proof test that grep's the actual imports                          
+     from each Specialist file and diffs against calledBy would close this.                       
+     Not blocking — file it as a backlog item.                                                    
+                                                                                                  
+  === Test tightening ===                                                                         
+                                                                                                  
+  7. Tax-bulletin trust threshold boundary not tested —                                           
+     tests/server/tax-bulletin-diff.test.ts
+     Covers parseConfidence = 0.5 (fallback) and ≥1.0 (success), but                              
+     nothing at 0.99 exactly (must fall back) or 1.0 exactly (must succeed).                      
+     Add two tests at the boundary. Off-by-one on >= vs > is exactly the                          
+     kind of bug the architect review catches on round 3.                                         
+                                                                                                  
+  === Meta: the --no-verify problem ===                                                           
+                                                                                                  
+  The retro Phase 2c packet documents that every Phase 2c/3 commit used                           
+  --no-verify because the pre-commit hook times out (>120s). "Manually
+  verified" is weaker than hook-verified — it skips whatever the hook does                        
+  automatically (e.g. formatter, secret scan, staged-files-only tests). The                       
+  hook timeout is a real bug, not a permanent workaround.                                         
+                                                                                                  
+  Two requests:                                                                                   
+                                                                                                  
+    (a) Before the next commit on this branch, spend 30 min profiling the                         
+        hook. Most likely cause: vocab test or verify:summary being run
+        in-hook when they should only run in CI. Fix the hook config                              
+        (lint-staged scope, husky _/pre-commit script) so the hook runs                           
+        under 30s. If you can't fix in 30 min, file BLOCKED-precommit-hook.md                     
+        so it's visible instead of buried in a retro packet.                                      
+                                                                                                  
+    (b) Until the hook is fixed, stop using --no-verify and instead invoke                        
+        the 5 gates explicitly in order per .claude/rules/pre-commit-                             
+        verification.md. That forces the same discipline without the                              
+        timeout. Commit messages should still carry the Verified: line.                           
+                                                                                                  
+  === Branch housekeeping (non-blocking) ===                                                      
+                                                                                                  
+  - Branch is 201 commits ahead of main / 97 ahead of origin. Consider a                          
+    push to origin before the next logical unit of work, so the commits
+    aren't just local.                                                                            
+  - Opengraph.jpg was caught by git add -A and reverted in cf8d9349 —
+    exactly the agent-collision-hygiene.md §2 footgun. Going forward,                             
+    prefer `git add <explicit files>` over `git add -A` on this branch.                           
+                                                                                                  
+  === GitHub security features (separate, user-level, non-code) ===                               
+                                                                                                  
+  Ricardo is enabling three GitHub security features on the repo:                                 
+    - Secret scanning + push protection (free, catches .env/API-key pushes)
+    - Dependabot alerts + security updates (free, auto-PRs)                                       
+    - Dependency review on PRs (free, one workflow file)                                          
+                                                                                                  
+  These will add CI checks you'll see in PRs. CodeQL code scanning is being                       
+  deferred until this branch merges, so the initial baseline is taken on a
+  clean main rather than the 201-commit diff. No action needed from you                           
+  yet — just a heads-up.                                                                          
+                                                                                                  
+  Nothing blocking. Three HIGH fixes are all <20 LOC each. Queue MED + test                       
+  tightening in a single Phase 3 follow-up commit after Ricardo signs off
+  on this list.   

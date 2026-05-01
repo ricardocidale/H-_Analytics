@@ -1,0 +1,128 @@
+2026-03-15T22:47:46Z info: Deployment: 405d021d-7b76-4dd4-94c0-b3096e4ca912
+2026-03-15T22:47:46Z info: Running Security Scan
+2026-03-15T22:48:03Z info: Security Scan Complete
+2026-03-15T22:48:03Z info: Connecting to builder
+2026-03-15T22:48:04Z info: Builder connected
+2026-03-15T22:48:05Z info: Installing packages
+--> npm install
+
+
+up to date, audited 1365 packages in 4s
+
+  run `npm fund` for details
+
+
+17 vulnerabilities (6 low, 6 moderate, 4 high, 1 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues possible (including breaking changes), run:
+  npm audit fix --force
+
+Some issues need review, and may require choosing
+a different dependency.
+
+Run `npm audit` for details.
+
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 11.11.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.11.1
+npm notice To update run: npm install -g npm@11.11.1
+npm notice
+
+2026-03-15T22:48:09Z info: Starting Build
+
+> hospitality-business-portal@1.0.0 build
+> tsx script/build.ts
+
+
+building client...
+
+vite v7.3.1 building client environment for production...
+
+transforming...
+
+✓ 6128 modules transformed.
+
+rendering chunks...
+
+[meta-images] using internal app domain: https://partner-portal-landb.replit.app
+
+[meta-images] updating meta image tags to: https://partner-portal-landb.replit.app/opengraph.jpg
+
+computing gzip size...
+
+../dist/public/index.html                                            2.17 kB │ gzip:   0.80 kB
+../dist/public/assets/hotel-party-DV1l5CVC.jpg                     340.89 kB
+
+../dist/public/assets/highlighted-body-TPN3WLV5-0szd9i87.js          0.68 kB │ gzip:   0.43 kB
+../dist/public/assets/badge-BgKt6BDo.js                              0.76 kB │ gzip:   0.40 kB
+../dist/public/assets/slider-Cxqu9UhB.js                             0.78 kB │ gzip:   0.45 kB
+../dist/public/assets/manual-table-BWL40HEb.js                       0.78 kB │ gzip:   0.42 kB
+
+✓ built in 36.56s
+building server...
+
+
+  dist/index.cjs  3.2mb ⚠️
+
+⚡ Done in 715ms
+
+2026-03-15T22:48:50Z info: Pushing pid1 binary layer...
+2026-03-15T22:48:52Z info: Created pid1 binary layer
+2026-03-15T22:48:53Z info: Pushing Repl layer...
+2026-03-15T22:48:53Z info: Pushing hosting layer...
+2026-03-15T22:48:53Z info: Created hosting layer
+2026-03-15T22:50:43Z info: Created Repl layer
+2026-03-15T22:50:43Z info: Pushing Repl (cache) layer...
+2026-03-15T22:50:44Z info: Created Repl (cache) layer
+2026-03-15T22:50:49Z info: Creating Autoscale service
+In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+
+See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+forwarding local port 5000 to external port 80 (mapped as 1104)
+2026-03-15T22:52:42.218Z [INFO] [auth] User exists, password preserved: reynaldo.fagundes@norfolk.ai
+2026-03-15T22:52:42.852Z [INFO] [auth] User exists, password preserved: wlaruffa@gmail.com
+2026-03-15T22:52:40.120Z [INFO] [icp-config-001] Migration complete
+s:r,foreignColumns:t}=this.reference(),a=r.map(f=>f.name),s=t.map(f=>f.name),l=[this.table[xo],...a,t[0].table[xo],...s];return e??`${l.join("_")}_fk`}}});function Y1(n,...e){return n(...e)}var tF=z(()=>{});function K1(n){return new nF(n)}function iF(n,e){return`${n[xo]}_${e.join("_")}_unique`}var rF,nF,aF,sF=z(()=>{bt();z1();rF=class{constructor(e,r){this.name=r,this.columns=e}static[ae]="PgUniqueConstraintBuilder";columns;nullsNotDistinctConfig=!1;nullsNotDistinct(){return this.nullsNotDistinctConfig=!0,this}build(e){return new aF(e,this.columns,this.nullsNotDistinctConfig,this.name)}},nF=class{static[ae]="PgUniqueOnConstraintBuilder";name;constructor(e){this.name=e}on(...e){return new rF(e,this.name)}},aF=class{constructor(e,r,t,a){this.table=e,this.columns=r,this.name=a??iF(this.table,this.columns.map(s=>s.name)),this.nullsNotDistinct=t}static[ae]="PgUniqueConstraint";columns;name;nullsNotDistinct=!1;getName(){return this.name}}});function cq(n,e,r){for(let t=e;t<n.length;t++){let ...
+`);cg.write(M$.format.apply(M$,e))}}Object.defineProperty(Xc.exports,"isWin",{get:function(){return D1},set:function(n){D1=n}});Xc.exports.warnTo=function(n){var e=cg;return cg=n,e};Xc.exports.getFileName=function(n){var e=n||process.env,r=e.PGPASSFILE||(D1?L$.join(e.APPDATA||"./","postgresql","pgpass.conf"):L$.join(e.HOME||"./",".pgpass"));return r};Xc.exports.usePgPass=function(n,e){return Object.prototype.hasOwnProperty.call(process.env,"PGPASSWORD")?!1:D1?!0:(e=e||"<unkn>",_2e(n.mode)?n.mode&(x2e|v2e)?(HR('WARNING: password file "%s" has group or world access; permissions should be u=rw (0600) or less',e),!1):!0:(HR('WARNING: password file "%s" is not a plain file',e),!1))};var E2e=Xc.exports.match=function(n,e){return Pm.slice(0,-1).reduce(function(r,t,a){return a==1&&Number(n[t]||g2e)===Number(e[t])?r&&!0:r&&(e[t]==="*"||e[t]===n[t])},!0)};Xc.exports.getPassword=function(n,e,r){var t,a=e.pipe(h2e());function s(d){var h=A2e(d);h&&S2e(h)&&E2e(n,h)&&(t=h[w2e],a.end())}var l=function...
+2026-03-15T22:52:45.356Z [INFO] [documents-001] Migration complete
+2026-03-15T22:52:45.203Z [INFO] [marcela-voice-001] Migration complete
+s:r,foreignColumns:t}=this.reference(),a=r.map(f=>f.name),s=t.map(f=>f.name),l=[this.table[xo],...a,t[0].table[xo],...s];return e??`${l.join("_")}_fk`}}});function Y1(n,...e){return n(...e)}var tF=z(()=>{});function K1(n){return new nF(n)}function iF(n,e){return`${n[xo]}_${e.join("_")}_unique`}var rF,nF,aF,sF=z(()=>{bt();z1();rF=class{constructor(e,r){this.name=r,this.columns=e}static[ae]="PgUniqueConstraintBuilder";columns;nullsNotDistinctConfig=!1;nullsNotDistinct(){return this.nullsNotDistinctConfig=!0,this}build(e){return new aF(e,this.columns,this.nullsNotDistinctConfig,this.name)}},nF=class{static[ae]="PgUniqueOnConstraintBuilder";name;constructor(e){this.name=e}on(...e){return new rF(e,this.name)}},aF=class{constructor(e,r,t,a){this.table=e,this.columns=r,this.name=a??iF(this.table,this.columns.map(s=>s.name)),this.nullsNotDistinct=t}static[ae]="PgUniqueConstraint";columns;name;nullsNotDistinct=!1;getName(){return this.name}}});function cq(n,e,r){for(let t=e;t<n.length;t++){let ...
+2026-03-15T22:52:52.412Z [INFO] [auth] User exists, password preserved: reynaldo.fagundes@norfolk.ai
+2026-03-15T22:52:50.494Z [INFO] [documents-001] Migration complete
+`);cg.write(M$.format.apply(M$,e))}}Object.defineProperty(Xc.exports,"isWin",{get:function(){return D1},set:function(n){D1=n}});Xc.exports.warnTo=function(n){var e=cg;return cg=n,e};Xc.exports.getFileName=function(n){var e=n||process.env,r=e.PGPASSFILE||(D1?L$.join(e.APPDATA||"./","postgresql","pgpass.conf"):L$.join(e.HOME||"./",".pgpass"));return r};Xc.exports.usePgPass=function(n,e){return Object.prototype.hasOwnProperty.call(process.env,"PGPASSWORD")?!1:D1?!0:(e=e||"<unkn>",_2e(n.mode)?n.mode&(x2e|v2e)?(HR('WARNING: password file "%s" has group or world access; permissions should be u=rw (0600) or less',e),!1):!0:(HR('WARNING: password file "%s" is not a plain file',e),!1))};var E2e=Xc.exports.match=function(n,e){return Pm.slice(0,-1).reduce(function(r,t,a){return a==1&&Number(n[t]||g2e)===Number(e[t])?r&&!0:r&&(e[t]==="*"||e[t]===n[t])},!0)};Xc.exports.getPassword=function(n,e,r){var t,a=e.pipe(h2e());function s(d){var h=A2e(d);h&&S2e(h)&&E2e(n,h)&&(t=h[w2e],a.end())}var l=function...
+
+s:r,foreignColumns:t}=this.reference(),a=r.map(f=>f.name),s=t.map(f=>f.name),l=[this.table[xo],...a,t[0].table[xo],...s];return e??`${l.join("_")}_fk`}}});function Y1(n,...e){return n(...e)}var tF=z(()=>{});function K1(n){return new nF(n)}function iF(n,e){return`${n[xo]}_${e.join("_")}_unique`}var rF,nF,aF,sF=z(()=>{bt();z1();rF=class{constructor(e,r){this.name=r,this.columns=e}static[ae]="PgUniqueConstraintBuilder";columns;nullsNotDistinctConfig=!1;nullsNotDistinct(){return this.nullsNotDistinctConfig=!0,this}build(e){return new aF(e,this.columns,this.nullsNotDistinctConfig,this.name)}},nF=class{static[ae]="PgUniqueOnConstraintBuilder";name;constructor(e){this.name=e}on(...e){return new rF(e,this.name)}},aF=class{constructor(e,r,t,a){this.table=e,this.columns=r,this.name=a??iF(this.table,this.columns.map(s=>s.name)),this.nullsNotDistinct=t}static[ae]="PgUniqueConstraint";columns;name;nullsNotDistinct=!1;getName(){return this.name}}});function cq(n,e,r){for(let t=e;t<n.length;t++){let ...
+
+In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+- If you want the current behavior, explicitly use 'sslmode=verify-full'
+2026-03-15T22:53:00.819Z [INFO] [server] [auto-research-refresh-001] auto_research_refresh_enabled column added (or already existed)
+s:r,foreignColumns:t}=this.reference(),a=r.map(f=>f.name),s=t.map(f=>f.name),l=[this.table[xo],...a,t[0].table[xo],...s];return e??`${l.join("_")}_fk`}}});function Y1(n,...e){return n(...e)}var tF=z(()=>{});function K1(n){return new nF(n)}function iF(n,e){return`${n[xo]}_${e.join("_")}_unique`}var rF,nF,aF,sF=z(()=>{bt();z1();rF=class{constructor(e,r){this.name=r,this.columns=e}static[ae]="PgUniqueConstraintBuilder";columns;nullsNotDistinctConfig=!1;nullsNotDistinct(){return this.nullsNotDistinctConfig=!0,this}build(e){return new aF(e,this.columns,this.nullsNotDistinctConfig,this.name)}},nF=class{static[ae]="PgUniqueOnConstraintBuilder";name;constructor(e){this.name=e}on(...e){return new rF(e,this.name)}},aF=class{constructor(e,r,t,a){this.table=e,this.columns=r,this.name=a??iF(this.table,this.columns.map(s=>s.name)),this.nullsNotDistinct=t}static[ae]="PgUniqueConstraint";columns;name;nullsNotDistinct=!1;getName(){return this.name}}});function cq(n,e,r){for(let t=e;t<n.length;t++){let ...
+To prepare for this change:
+2026-03-15T22:53:09.086Z [INFO] [auth] User exists, password preserved: kit@kitcapital.com
+
+2026-03-15T22:53:08.638Z [INFO] [auth] User password reset: ricardo.cidale@norfolkgroup.io
+2026-03-15T22:53:07.963Z [INFO] [server] [fk-indexes-001] FK indexes migration complete
+2026-03-15T22:53:09.775Z [INFO] [seed] Service templates already exist, skipping seed.
+command finished with error [node ./dist/index.cjs]: exit status 1
+2026-03-15T22:53:14.252Z [INFO] [server] [inflation-per-entity-001] Per-entity inflation and company profile columns added (or already existed)
+2026-03-15T22:53:16.581Z [INFO] [auth] User exists, password preserved: rosario@kitcapital.com
+2026-03-15T22:53:17.133Z [INFO] [seed] Service templates already exist, skipping seed.
+2026-03-15T22:53:16.992Z [INFO] [auth] User exists, password preserved: wlaruffa@gmail.com
+s:r,foreignColumns:t}=this.reference(),a=r.map(f=>f.name),s=t.map(f=>f.name),l=[this.table[xo],...a,t[0].table[xo],...s];return e??`${l.join("_")}_fk`}}});function Y1(n,...e){return n(...e)}var tF=z(()=>{});function K1(n){return new nF(n)}function iF(n,e){return`${n[xo]}_${e.join("_")}_unique`}var rF,nF,aF,sF=z(()=>{bt();z1();rF=class{constructor(e,r){this.name=r,this.columns=e}static[ae]="PgUniqueConstraintBuilder";columns;nullsNotDistinctConfig=!1;nullsNotDistinct(){return this.nullsNotDistinctConfig=!0,this}build(e){return new aF(e,this.columns,this.nullsNotDistinctConfig,this.name)}},nF=class{static[ae]="PgUniqueOnConstraintBuilder";name;constructor(e){this.name=e}on(...e){return new rF(e,this.name)}},aF=class{constructor(e,r,t,a){this.table=e,this.columns=r,this.name=a??iF(this.table,this.columns.map(s=>s.name)),this.nullsNotDistinct=t}static[ae]="PgUniqueConstraint";columns;name;nullsNotDistinct=!1;getName(){return this.name}}});function cq(n,e,r){for(let t=e;t<n.length;t++){let ...
+See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+(node:106) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+2026-03-15T22:53:23.503Z [INFO] [server] [funding-interest-001] Funding interest columns added (or already existed)
+2026-03-15T22:53:26.346Z [INFO] [auth] User exists, password preserved: wlaruffa@gmail.com
+2026-03-15T22:53:24.604Z [INFO] [server] [fk-indexes-001] FK indexes migration complete
+2026-03-15T22:53:25.278Z [INFO] [auth] User password reset: ricardo.cidale@norfolkgroup.io
+2026-03-15T22:53:25.744Z [INFO] [auth] User exists, password preserved: kit@kitcapital.com
+To prepare for this change:
+2026-03-15T22:53:31.006Z [INFO] [auth] User exists, password preserved: reynaldo.fagundes@norfolk.ai
+2026-03-15T22:53:31.268Z [INFO] [auth] User exists, password preserved: rosario@kitcapital.com
+2026-03-15T22:53:30.030Z [INFO] [notification-logs-001] [notification-logs-001] Migration complete
+`);cg.write(M$.format.apply(M$,e))}}Object.defineProperty(Xc.exports,"isWin",{get:function(){return D1},set:function(n){D1=n}});Xc.exports.warnTo=function(n){var e=cg;return cg=n,e};Xc.exports.getFileName=function(n){var e=n||process.env,r=e.PGPASSFILE||(D1?L$.join(e.APPDATA||"./","postgresql","pgpass.conf"):L$.join(e.HOME||"./",".pgpass"));return r};Xc.exports.usePgPass=function(n,e){return Object.prototype.hasOwnProperty.call(process.env,"PGPASSWORD")?!1:D1?!0:(e=e||"<unkn>",_2e(n.mode)?n.mode&(x2e|v2e)?(HR('WARNING: password file "%s" has group or world access; permissions should be u=rw (0600) or less',e),!1):!0:(HR('WARNING: password file "%s" is not a plain file',e),!1))};var E2e=Xc.exports.match=function(n,e){return Pm.slice(0,-1).reduce(function(r,t,a){return a==1&&Number(n[t]||g2e)===Number(e[t])?r&&!0:r&&(e[t]==="*"||e[t]===n[t])},!0)};Xc.exports.getPassword=function(n,e,r){var t,a=e.pipe(h2e());function s(d){var h=A2e(d);h&&S2e(h)&&E2e(n,h)&&(t=h[w2e],a.end())}var l=function...
+2026-03-15T22:54:10Z error: The deployment failed because the application failed to open a port in time. This can happen because the application takes to long to open a server, or doesn't open one at all on the expected port. Note that this doesn't mean that the application is crashing, only that it's not opening a port in time. The application must serve traffic on the first port specified as 'localPort' in the port configuration specified in the .replit file. Make sure that the application opens a port quickly and that there are no operations taking too long on startup. Check the logs for more information.

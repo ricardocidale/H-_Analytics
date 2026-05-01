@@ -1,0 +1,10 @@
+[
+  {
+    "id": "a7f3d2c1-8b4e-4f5a-9c6d-2e1b3a7f5c8d",
+    "position": 1,
+    "filepath": "src/pages/slides/PropertyDeck.tsx",
+    "title": "L+B Property Portfolio",
+    "description": "Interactive property investment slide deck fetching live data from the H+ Analytics API.",
+    "speakerNotes": ""
+  }
+]

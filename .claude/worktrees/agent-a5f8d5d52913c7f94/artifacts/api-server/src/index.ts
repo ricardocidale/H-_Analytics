@@ -1,0 +1,1109 @@
+/**
+ * server/index.ts — Application Entry Point
+ *
+ * This is the main startup file for the Express server. It wires together every
+ * layer of the backend in the correct order:
+ *
+ *   1. Security headers (CSP, HSTS, X-Frame-Options, etc.)
+ *   2. Body parsing (JSON + URL-encoded, with raw body preserved for webhooks)
+ *   3. Cookie-based session authentication middleware
+ *   4. Default-deny authorization: every /api/ route requires a valid session
+ *      unless it's on the explicit PUBLIC_API_PATHS whitelist
+ *   5. Request logging (method, path, status, duration) for all /api/ calls
+ *   6. Seed data: admin user, logos, companies, user groups, fee categories,
+ *      and missing market research records are created on first boot
+ *   7. Route registration: image routes, API routes, object storage, chat, etc.
+ *   8. Error handler (hides internal details in production)
+ *   9. Static file serving (production) or Vite dev server (development)
+ *  10. Periodic cleanup: expired sessions and stale rate-limit entries every hour
+ *
+ * The server listens on the PORT environment variable (default 5000). This single
+ * port serves both the API and the client SPA — it is the only port not firewalled.
+ */
+import express, { type Request, Response, NextFunction } from "express";
+import cookieParser from "cookie-parser";
+import compression from "compression";
+import { registerRoutes } from "./legacyRoutes";
+import { registerImageRoutes } from "./routes/images";
+import { buildContentSecurityPolicy } from "./csp";
+import { getAuthProvider } from "./providers/auth";
+import { createServer } from "http";
+import { authMiddleware, requireAuth, seedAdminUser, cleanupRateLimitMaps } from "./auth";
+import { storage } from "./storage";
+import { log as serverLog } from "./logger";
+import { hasDbUrl } from "@shared/db-url";
+import { initSentry, sentryRequestHandler, setupSentryExpressErrorHandler } from "./sentry";
+import {
+  COMPRESSION_THRESHOLD_BYTES,
+  CACHE_MAX_AGE_SECONDS,
+  CACHE_STALE_REVALIDATE_SECONDS,
+  HSTS_MAX_AGE_SECONDS,
+  MARKET_RATE_REFRESH_INTERVAL_MS,
+  SESSION_CLEANUP_INTERVAL_MS,
+  MI_CACHE_INVALIDATION_INTERVAL_MS,
+  SCENARIO_PURGE_INTERVAL_MS,
+  VECTOR_LATENCY_CHECK_INTERVAL_MS,
+  CONSTANTS_REFRESH_DIGEST_INTERVAL_MS,
+  PERENNIAL_RECOMMENDATIONS_DIGEST_INTERVAL_MS,
+} from "./constants";
+
+const contentSecurityPolicy = buildContentSecurityPolicy();
+
+initSentry();
+
+const app = express();
+const httpServer = createServer(app);
+
+declare module "http" {
+  interface IncomingMessage {
+    rawBody: unknown;
+  }
+}
+
+app.set("trust proxy", 1); // Replit runs behind a reverse proxy
+app.disable("x-powered-by");
+app.use(sentryRequestHandler());
+app.use(compression({ threshold: COMPRESSION_THRESHOLD_BYTES }));
+app.use(cookieParser());
+
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(self), geolocation=()");
+  res.setHeader("Content-Security-Policy", contentSecurityPolicy);
+  if (process.env.NODE_ENV === "production") {
+    res.setHeader("Strict-Transport-Security", `max-age=${HSTS_MAX_AGE_SECONDS}; includeSubDomains`);
+  }
+  next();
+});
+
+app.use(
+  express.json({
+    limit: "10mb",
+    verify: (req, _res, buf) => {
+      req.rawBody = buf;
+    },
+  }),
+);
+
+app.use(express.urlencoded({ extended: false }));
+app.use(authMiddleware);
+
+// Wire the auth provider abstraction (Replit OIDC or local password-based,
+// selected by AUTH_PROVIDER env var, defaults to 'replit').
+// setupSession adds provider-specific session middleware (e.g. Passport + OIDC).
+// registerRoutes adds provider-specific auth endpoints (e.g. /api/login, /api/callback).
+// The custom authMiddleware above handles our own cookie-based sessions and runs
+// regardless of provider — both systems coexist.
+const authProvider = getAuthProvider();
+authProvider.setupSession(app);
+authProvider.registerRoutes(app);
+
+// Default-deny: require authentication on all /api/ routes unless explicitly public
+const PUBLIC_API_PATHS = new Set([
+  "/api/auth/login",
+  "/api/auth/admin-login",
+  "/api/auth/dev-login",
+  "/api/auth/logout",
+  "/api/auth/me",
+  "/api/auth/google",
+  "/api/auth/google/callback",
+  "/api/finance/health",
+  "/api/health/live",
+  "/api/health/ready",
+  "/api/health/deep",
+]);
+
+const PUBLIC_API_PREFIXES = [
+  "/api/public/",
+  "/api/letter-logo/",
+  "/api/media/",
+];
+
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (!req.path.startsWith("/api")) return next();
+  if (PUBLIC_API_PATHS.has(req.path)) return next();
+  if (PUBLIC_API_PREFIXES.some(p => req.path.startsWith(p))) return next();
+  return requireAuth(req, res, next);
+});
+
+export function log(message: string, source = "express") {
+  serverLog(message, source);
+}
+
+// Cache-Control for stable, rarely-changing GET endpoints
+const CACHEABLE_PATHS = new Set([
+  "/api/logos",
+  "/api/design-themes",
+  "/api/documents/templates",
+]);
+app.use((req, res, next) => {
+  if (req.method === "GET" && CACHEABLE_PATHS.has(req.path)) {
+    res.setHeader("Cache-Control", `private, max-age=${CACHE_MAX_AGE_SECONDS}, stale-while-revalidate=${CACHE_STALE_REVALIDATE_SECONDS}`);
+  }
+  next();
+});
+
+app.use((req, res, next) => {
+  const start = Date.now();
+  const path = req.path;
+
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    if (path.startsWith("/api")) {
+      const responseSize = res.getHeader("content-length") || "unknown";
+      log(`${req.method} ${path} ${res.statusCode} in ${duration}ms :: ${responseSize} bytes`);
+    }
+  });
+
+  next();
+});
+
+(async () => {
+  // ── Phase 1: Register routes and open port FAST ──────────────────────
+  // The deployment platform requires the port to open within ~60s.
+  // Migrations and seeds run AFTER the port is open.
+
+  const googleEnvVars = ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "TOKEN_ENCRYPTION_KEY"] as const;
+  for (const envVar of googleEnvVars) {
+    if (process.env[envVar]) {
+      serverLog(`${envVar}: set`, "startup", "info");
+    } else {
+      serverLog(`${envVar}: not set`, "startup", "warn");
+    }
+  }
+
+  const hasVectorStore = hasDbUrl();
+  const hasEmbeddingKey = !!(process.env.OPENAI_EMBEDDING_KEY || process.env.OPENAI_API_KEY);
+  if (hasVectorStore && hasEmbeddingKey) {
+    serverLog("Vector store (pgvector) + embeddings: ready (knowledge learning active)", "startup", "info");
+  } else if (hasVectorStore && !hasEmbeddingKey) {
+    serverLog("Vector store: configured but embeddings unavailable — set OPENAI_EMBEDDING_KEY for vector learning. Replit AI integration proxies do not support embedding endpoints.", "startup", "warn");
+  } else {
+    serverLog("Vector store: POSTGRES_URL/DATABASE_URL not set — vector indexing disabled", "startup", "warn");
+  }
+
+  const { initStorageProvider } = await import("./providers/storage");
+  await initStorageProvider();
+
+  registerImageRoutes(app);
+  const { registerGoogleAuthRoutes } = await import("./routes/google-auth");
+  registerGoogleAuthRoutes(app);
+  await registerRoutes(httpServer, app);
+
+  setupSentryExpressErrorHandler(app);
+
+  app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = process.env.NODE_ENV === "production" && status >= 500
+      ? "Internal Server Error"
+      : err.message || "Internal Server Error";
+
+    serverLog(`Internal Server Error: ${err instanceof Error ? err.message : err}`, "server", "error");
+
+    if (res.headersSent) {
+      return next(err);
+    }
+
+    return res.status(status).json({ error: message });
+  });
+
+  // ALWAYS serve the app on the port specified in the environment variable PORT
+  // Other ports are firewalled. Default to 5000 if not specified.
+  // this serves both the API and the client.
+  // It is the only port that is not firewalled.
+  const port = parseInt(process.env.PORT || "5000", 10);
+  httpServer.listen(
+    {
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    },
+    () => {
+      log(`serving on port ${port}`);
+
+      // ── Phase 2a: Schema migrations (fatal if they fail — schema integrity matters) ──
+      runSchemaMigrationsWithRetry()
+        .then(() => {
+          // ── Phase 2b: Seeds (non-fatal — server stays up if seeds fail) ──
+          // Wrapped in setImmediate so any thrown error cannot escape into a
+          // process-killing unhandledRejection during the listen callback.
+          setImmediate(() => {
+            runSeedsSafely().catch(err => {
+              serverLog(
+                `Seeds completed with warnings (server continues serving): ${err instanceof Error ? err.message : err}`,
+                "startup",
+                "warn",
+              );
+            });
+          });
+        })
+        .catch(err => {
+          serverLog(
+            `FATAL: Schema migrations failed: ${err instanceof Error ? err.message : err}`,
+            "startup",
+            "error",
+          );
+          process.exit(1);
+        });
+
+      // ── Phase 3: Ambient benchmark scheduler ────────
+      import("./ai/ambient/scheduler").then(({ startAmbientScheduler }) => {
+        startAmbientScheduler();
+      }).catch(err => {
+        serverLog(`[ambient-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+      });
+
+      // ── Phase 3b: Scheduled research workflow runner ────────
+      import("./ai/ambient/research-scheduler").then(({ startResearchScheduler }) => {
+        startResearchScheduler();
+      }).catch(err => {
+        serverLog(`[research-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+      });
+
+      // ── Phase 3c: Resource health checker (per-kind TTL probes) ────────
+      import("./jobs/resource-health-checker").then(({ startResourceHealthChecker }) => {
+        startResourceHealthChecker();
+      }).catch(err => {
+        serverLog(`[resource-health-checker] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+      });
+
+      // ── Phase 3d: Constants research refresher (per-Specialist cadence) ────────
+      import("./jobs/specialist-constants-refresh").then(({ startConstantsRefreshScheduler }) => {
+        startConstantsRefreshScheduler();
+      }).catch(err => {
+        serverLog(`[constants-refresh-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+      });
+
+      // ── Phase 3e: Nightly Specialist quality-score recompute ────────
+      import("./jobs/specialist-quality-recompute").then(({ startSpecialistQualityRecomputeScheduler }) => {
+        startSpecialistQualityRecomputeScheduler();
+      }).catch(err => {
+        serverLog(`[specialist-quality-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+      });
+
+      // ── Phase 3f: Photos & Renders specialist scheduled batch (Task #433) ────────
+      // Polls `specialist_configs.runtimeConfig.batchSchedule` for
+      // `photos.photo-enhancer` and dispatches the engine evaluator
+      // across the configured property list at the admin-set cadence.
+      import("./jobs/specialist-photos-batch").then(({ startSpecialistPhotosBatchScheduler }) => {
+        startSpecialistPhotosBatchScheduler();
+      }).catch(err => {
+        serverLog(`[specialist-photos-batch-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+      });
+
+      // ── Phase 3g: Rebecca preview-fixture replay (Task #559) ────────
+      // Daily replay of every saved Rebecca fixture against the current
+      // settings; emits drift notifications and updates per-fixture
+      // last-run badges in the admin Test Chat panel.
+      import("./jobs/rebecca-fixture-replay").then(({ startRebeccaFixtureReplayScheduler }) => {
+        startRebeccaFixtureReplayScheduler();
+      }).catch(err => {
+        serverLog(`[rebecca-fixture-replay-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+      });
+
+      // ── Phase 3h: Nightly legacy storage URL audit (Task #534) ────────
+      // Walks every text/varchar/jsonb column in `public` for legacy
+      // Replit Object Storage URL shapes and emails admins when new bad
+      // rows reappear (e.g. via a write path that bypasses the
+      // source-side guard).
+      import("./jobs/legacy-storage-url-audit").then(({ startLegacyStorageUrlAuditScheduler }) => {
+        startLegacyStorageUrlAuditScheduler();
+      }).catch(err => {
+        serverLog(`[legacy-storage-url-audit] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+      });
+
+      const intervalHandles: NodeJS.Timeout[] = [];
+
+      // ── Graceful shutdown handler ────────
+      let isShuttingDown = false;
+      const shutdown = async (signal: string) => {
+        if (isShuttingDown) return;
+        isShuttingDown = true;
+        serverLog(`Received ${signal}, shutting down gracefully...`, "shutdown", "info");
+        for (const h of intervalHandles) clearInterval(h);
+        // Stop the Constants refresh scheduler so its hourly tick + startup
+        // delay timer don't keep the event loop alive past httpServer.close().
+        try {
+          const { stopConstantsRefreshScheduler } = await import("./jobs/specialist-constants-refresh");
+          stopConstantsRefreshScheduler();
+        } catch {
+          /* best-effort — module may not have loaded yet */
+        }
+        try {
+          const { stopSpecialistQualityRecomputeScheduler } = await import("./jobs/specialist-quality-recompute");
+          stopSpecialistQualityRecomputeScheduler();
+        } catch {
+          /* best-effort — module may not have loaded yet */
+        }
+        try {
+          const { stopSpecialistPhotosBatchScheduler } = await import("./jobs/specialist-photos-batch");
+          stopSpecialistPhotosBatchScheduler();
+        } catch {
+          /* best-effort — module may not have loaded yet */
+        }
+        try {
+          const { stopRebeccaFixtureReplayScheduler } = await import("./jobs/rebecca-fixture-replay");
+          stopRebeccaFixtureReplayScheduler();
+        } catch {
+          /* best-effort — module may not have loaded yet */
+        }
+        try {
+          const { stopLegacyStorageUrlAuditScheduler } = await import("./jobs/legacy-storage-url-audit");
+          stopLegacyStorageUrlAuditScheduler();
+        } catch {
+          /* best-effort — module may not have loaded yet */
+        }
+        const forceTimer = setTimeout(() => { serverLog("Forced exit after timeout", "shutdown", "error"); process.exit(1); }, 10_000);
+        httpServer.close(() => {
+          serverLog("HTTP server closed", "shutdown", "info");
+          clearTimeout(forceTimer);
+          import("./db").then(({ pool }) => {
+            pool.end().then(() => process.exit(0)).catch(() => process.exit(1));
+          }).catch(() => process.exit(0));
+        });
+      };
+      process.on("SIGTERM", () => shutdown("SIGTERM"));
+      process.on("SIGINT", () => shutdown("SIGINT"));
+
+      // Refresh stale market rates periodically
+      intervalHandles.push(setInterval(async () => {
+        try {
+          const { refreshAllStaleRates } = await import("./data/marketRates");
+          const refreshed = await refreshAllStaleRates();
+          if (refreshed > 0) log(`Refreshed ${refreshed} stale market rates`);
+        } catch (err: unknown) {
+          serverLog(`[ERROR] [market-rates] Market rate refresh error: ${err instanceof Error ? err.message : err}`);
+        }
+        try {
+          const { getMarketIntelligenceAggregator } = await import("./services/MarketIntelligenceAggregator");
+          const aggregator = getMarketIntelligenceAggregator();
+          await aggregator.refreshFREDRates();
+        } catch (err: unknown) {
+          serverLog(`[ERROR] [market-rates] FRED refresh error: ${err instanceof Error ? err.message : err}`);
+        }
+      }, MARKET_RATE_REFRESH_INTERVAL_MS));
+
+      // Clean expired sessions, stale rate-limit entries, and old login logs periodically
+      intervalHandles.push(setInterval(async () => {
+        try {
+          const sessions = await storage.deleteExpiredSessions();
+          if (sessions > 0) log(`Cleaned ${sessions} expired sessions`);
+          const rateLimits = cleanupRateLimitMaps();
+          if (rateLimits > 0) log(`Cleaned ${rateLimits} stale rate-limit entries`);
+          const oldLogs = await storage.deleteOldLoginLogs(180);
+          if (oldLogs > 0) log(`Cleaned ${oldLogs} login logs older than 180 days`);
+        } catch (err: unknown) {
+          serverLog(`Periodic cleanup error: ${err instanceof Error ? err.message : err}`, "cleanup", "error");
+        }
+      }, SESSION_CLEANUP_INTERVAL_MS));
+
+      // Invalidate stale property-level MI cache daily so next research regen gets fresh data
+      intervalHandles.push(setInterval(async () => {
+        try {
+          const { cache } = await import("./cache");
+          const invalidated = await cache.invalidate("mi:property:*");
+          if (invalidated > 0) log(`Invalidated ${invalidated} stale MI cache entries`);
+        } catch (err: unknown) {
+          serverLog(`MI cache invalidation error: ${err instanceof Error ? err.message : err}`, "cache", "error");
+        }
+      }, MI_CACHE_INVALIDATION_INTERVAL_MS));
+
+      // Purge soft-deleted scenarios past their retention period
+      intervalHandles.push(setInterval(async () => {
+        try {
+          const purged = await storage.purgeExpiredScenarios();
+          if (purged > 0) log(`Purged ${purged} expired soft-deleted scenarios`);
+        } catch (err: unknown) {
+          serverLog(`Scenario purge error: ${err instanceof Error ? err.message : err}`, "purge", "error");
+        }
+      }, SCENARIO_PURGE_INTERVAL_MS));
+
+      // Email admins when the latest vector benchmark run breaches the
+      // p95 latency threshold embedded in docs/vector-bench-history.json
+      const runVectorLatencyAlert = async () => {
+        try {
+          const { evaluateVectorLatencyAlert } = await import("./notifications/vector-latency-alert");
+          const result = await evaluateVectorLatencyAlert();
+          if (result.status === "ok") {
+            log(`Vector latency alert sent to ${result.sent}/${result.recipients} admins (runId=${result.runId})`);
+          }
+        } catch (err: unknown) {
+          serverLog(`Vector latency alert error: ${err instanceof Error ? err.message : err}`, "notifications", "error");
+        }
+      };
+      void runVectorLatencyAlert();
+      intervalHandles.push(setInterval(runVectorLatencyAlert, VECTOR_LATENCY_CHECK_INTERVAL_MS));
+
+      // Email admins a daily digest of failed scheduled Constants refreshes
+      // (server/jobs/specialist-constants-refresh.ts → research_runs failures).
+      // Tick every CONSTANTS_REFRESH_DIGEST_INTERVAL_MS; the evaluator dedupes
+      // per UTC day so frequent ticks are safe.
+      const runConstantsRefreshDigest = async () => {
+        try {
+          const { evaluateConstantsRefreshFailureDigest } = await import("./notifications/constants-refresh-failure-digest");
+          const result = await evaluateConstantsRefreshFailureDigest();
+          if (result.status === "ok") {
+            log(`Constants refresh failure digest sent to ${result.sent}/${result.recipients} admins (failures=${result.failures}, digestKey=${result.digestKey})`);
+          }
+        } catch (err: unknown) {
+          serverLog(`Constants refresh digest error: ${err instanceof Error ? err.message : err}`, "notifications", "error");
+        }
+      };
+      void runConstantsRefreshDigest();
+      intervalHandles.push(setInterval(runConstantsRefreshDigest, CONSTANTS_REFRESH_DIGEST_INTERVAL_MS));
+
+      // Email admins a daily digest of perennial Specialist recommendations
+      // (candidate fields with appearances >= 3 AND lastPromotedAt IS NULL).
+      // Tick every PERENNIAL_RECOMMENDATIONS_DIGEST_INTERVAL_MS; the
+      // evaluator dedupes per UTC day so frequent ticks are safe.
+      const runPerennialRecommendationsDigest = async () => {
+        try {
+          const { evaluatePerennialRecommendationsDigest } = await import("./notifications/perennial-recommendations-digest");
+          const result = await evaluatePerennialRecommendationsDigest();
+          if (result.status === "ok") {
+            log(`Perennial recommendations digest sent to ${result.sent}/${result.recipients} admins (offenders=${result.offenders}, digestKey=${result.digestKey})`);
+          }
+        } catch (err: unknown) {
+          serverLog(`Perennial recommendations digest error: ${err instanceof Error ? err.message : err}`, "notifications", "error");
+        }
+      };
+      void runPerennialRecommendationsDigest();
+      intervalHandles.push(setInterval(runPerennialRecommendationsDigest, PERENNIAL_RECOMMENDATIONS_DIGEST_INTERVAL_MS));
+    },
+  );
+})();
+
+/**
+ * Runs all database migrations and seed operations. Called after the HTTP server
+ * is listening so the deployment port-open check succeeds immediately.
+ * Errors are caught and logged but do not crash the server.
+ */
+async function runSchemaMigrations() {
+  const { bootstrapDrizzleMigrationState, runDataFixes, isMigrationApplied, markMigrationApplied } = await import("./migrations/consolidated-schema");
+  await bootstrapDrizzleMigrationState();
+
+  const { migrate } = await import("drizzle-orm/node-postgres/migrator");
+  const { db: drizzleDb } = await import("./db");
+  await migrate(drizzleDb, { migrationsFolder: "./migrations" });
+
+  await runDataFixes();
+
+  if (!(await isMigrationApplied("db_hygiene_001"))) {
+    const { runDbHygiene001 } = await import("./migrations/db-hygiene-001");
+    await runDbHygiene001();
+    await markMigrationApplied("db_hygiene_001");
+  }
+
+  if (!(await isMigrationApplied("fix_shared_ownership"))) {
+    const { fixLegacyOwnership } = await import("./migrations/fix-shared-ownership");
+    await fixLegacyOwnership();
+    await markMigrationApplied("fix_shared_ownership");
+  }
+
+  if (!(await isMigrationApplied("role_partner_to_user_001"))) {
+    const { migratePartnerToUser } = await import("./migrations/role-partner-to-user-001");
+    await migratePartnerToUser();
+    await markMigrationApplied("role_partner_to_user_001");
+  }
+
+  if (!(await isMigrationApplied("role_checker_investor_to_user_001"))) {
+    const { migrateCheckerInvestorToUser } = await import("./migrations/role-checker-investor-to-user-001");
+    await migrateCheckerInvestorToUser();
+    await markMigrationApplied("role_checker_investor_to_user_001");
+  }
+
+  if (!(await isMigrationApplied("can_manage_scenarios_001"))) {
+    const { runCanManageScenarios001 } = await import("./migrations/can-manage-scenarios-001");
+    await runCanManageScenarios001();
+    await markMigrationApplied("can_manage_scenarios_001");
+  }
+
+  if (!(await isMigrationApplied("appearance_defaults_001"))) {
+    const { runAppearanceDefaults001 } = await import("./migrations/appearance-defaults-001");
+    await runAppearanceDefaults001();
+    await markMigrationApplied("appearance_defaults_001");
+  }
+
+  if (!(await isMigrationApplied("fk_hardening_001"))) {
+    const { runFkHardening001 } = await import("./migrations/fk-hardening-001");
+    await runFkHardening001();
+    await markMigrationApplied("fk_hardening_001");
+  }
+
+  if (!(await isMigrationApplied("scenario_overrides_001"))) {
+    const { runScenarioOverrides001 } = await import("./migrations/scenario-overrides-001");
+    await runScenarioOverrides001();
+    await markMigrationApplied("scenario_overrides_001");
+  }
+
+  if (!(await isMigrationApplied("property_notnull_001"))) {
+    const { runPropertyNotNullMigration } = await import("./migrations/property-notnull-001");
+    await runPropertyNotNullMigration();
+    await markMigrationApplied("property_notnull_001");
+  }
+
+  if (!(await isMigrationApplied("scenario_system_unique_001"))) {
+    const { runScenarioSystemUnique001 } = await import("./migrations/scenario-system-unique-001");
+    await runScenarioSystemUnique001();
+    await markMigrationApplied("scenario_system_unique_001");
+  }
+
+  if (!(await isMigrationApplied("drop_marcela_columns_001"))) {
+    const { runDropMarcelaColumns } = await import("./migrations/drop-marcela-columns");
+    await runDropMarcelaColumns();
+    await markMigrationApplied("drop_marcela_columns_001");
+  }
+
+  if (!(await isMigrationApplied("seed_external_integrations_001"))) {
+    const { seedExternalIntegrations } = await import("./migrations/seed-external-integrations");
+    await seedExternalIntegrations();
+    await markMigrationApplied("seed_external_integrations_001");
+  }
+
+  if (!(await isMigrationApplied("photo_image_data_001"))) {
+    const { runPhotoImageData001 } = await import("./migrations/photo-image-data-001");
+    await runPhotoImageData001();
+    await markMigrationApplied("photo_image_data_001");
+  }
+
+  if (!(await isMigrationApplied("scenario_access_001"))) {
+    const { runScenarioAccess001 } = await import("./migrations/scenario-access-001");
+    await runScenarioAccess001();
+    await markMigrationApplied("scenario_access_001");
+  }
+
+  if (!(await isMigrationApplied("source_call_logs_001"))) {
+    const { runSourceCallLogs001 } = await import("./migrations/source-call-logs-001");
+    await runSourceCallLogs001();
+    await markMigrationApplied("source_call_logs_001");
+  }
+
+  if (!(await isMigrationApplied("drop_engine_suggested_lines_001"))) {
+    const { runDropEngineSuggestedLines001 } = await import("./migrations/drop-engine-suggested-lines-001");
+    await runDropEngineSuggestedLines001();
+    await markMigrationApplied("drop_engine_suggested_lines_001");
+  }
+
+  if (!(await isMigrationApplied("property_urls_001"))) {
+    const { runPropertyUrlsMigration } = await import("./migrations/property-urls-001");
+    await runPropertyUrlsMigration();
+    await markMigrationApplied("property_urls_001");
+  }
+
+  if (!(await isMigrationApplied("enhanced_photo_001"))) {
+    const { runEnhancedPhoto001 } = await import("./migrations/enhanced-photo-001");
+    await runEnhancedPhoto001();
+    await markMigrationApplied("enhanced_photo_001");
+  }
+
+  if (!(await isMigrationApplied("rebecca_guardrails_001"))) {
+    const { runRebeccaGuardrails001 } = await import("./migrations/rebecca-guardrails-001");
+    await runRebeccaGuardrails001();
+    await markMigrationApplied("rebecca_guardrails_001");
+  }
+
+  if (!(await isMigrationApplied("rebecca_kb_001"))) {
+    const { runRebeccaKB001 } = await import("./migrations/rebecca-kb-001");
+    await runRebeccaKB001();
+    await markMigrationApplied("rebecca_kb_001");
+  }
+
+  if (!(await isMigrationApplied("rebecca_language_001"))) {
+    const { runRebeccaLanguage001 } = await import("./migrations/rebecca-language-001");
+    await runRebeccaLanguage001();
+  }
+
+  if (!(await isMigrationApplied("calc_audit_001"))) {
+    const { runCalcAudit001 } = await import("./migrations/calc-audit-001");
+    await runCalcAudit001();
+    await markMigrationApplied("calc_audit_001");
+  }
+
+  if (!(await isMigrationApplied("admin_resources_001"))) {
+    const { runAdminResources001 } = await import("./migrations/admin-resources-001");
+    await runAdminResources001();
+    await markMigrationApplied("admin_resources_001");
+  }
+
+  if (!(await isMigrationApplied("admin_resources_002"))) {
+    const { runAdminResources002 } = await import("./migrations/admin-resources-002");
+    await runAdminResources002();
+    await markMigrationApplied("admin_resources_002");
+  }
+
+  if (!(await isMigrationApplied("admin_resources_003"))) {
+    const { runAdminResources003 } = await import("./migrations/admin-resources-003");
+    await runAdminResources003();
+    await markMigrationApplied("admin_resources_003");
+  }
+
+  if (!(await isMigrationApplied("admin_resources_004"))) {
+    const { runAdminResources004 } = await import("./migrations/admin-resources-004");
+    await runAdminResources004();
+    await markMigrationApplied("admin_resources_004");
+  }
+
+  if (!(await isMigrationApplied("property_dd_001"))) {
+    const { runPropertyDd001 } = await import("./migrations/property-dd-001");
+    await runPropertyDd001();
+    await markMigrationApplied("property_dd_001");
+  }
+
+  if (!(await isMigrationApplied("specialist_observed_missing_001"))) {
+    const { runSpecialistObservedMissing001 } = await import(
+      "./migrations/specialist-observed-missing-001"
+    );
+    await runSpecialistObservedMissing001();
+    await markMigrationApplied("specialist_observed_missing_001");
+  }
+
+  if (!(await isMigrationApplied("specialist_recommendation_events_001"))) {
+    const { runSpecialistRecommendationEvents001 } = await import(
+      "./migrations/specialist-recommendation-events-001"
+    );
+    await runSpecialistRecommendationEvents001();
+    await markMigrationApplied("specialist_recommendation_events_001");
+  }
+
+  if (!(await isMigrationApplied("specialist_recommendation_counters_001"))) {
+    const { runSpecialistRecommendationCounters001 } = await import(
+      "./migrations/specialist-recommendation-counters-001"
+    );
+    await runSpecialistRecommendationCounters001();
+    await markMigrationApplied("specialist_recommendation_counters_001");
+  }
+
+  if (!(await isMigrationApplied("specialist_multi_model_001"))) {
+    const { runSpecialistMultiModel001 } = await import(
+      "./migrations/specialist-multi-model-001"
+    );
+    await runSpecialistMultiModel001();
+    await markMigrationApplied("specialist_multi_model_001");
+  }
+
+  // P6e — wire global N+1 model defaults to admin_resources (4 nullable FK
+  // columns on pipeline_policies so admins can configure default orchestrator
+  // models without a code deploy).
+  if (!(await isMigrationApplied("pipeline_n1_global_models_001"))) {
+    const { runPipelineN1GlobalModels001 } = await import(
+      "./migrations/pipeline-n1-global-models-001"
+    );
+    await runPipelineN1GlobalModels001();
+    await markMigrationApplied("pipeline_n1_global_models_001");
+  }
+
+  // P6f — seed admin_resources with model rows (LLM Config dropdowns) and
+  // source/api/benchmark rows adapted from the legacy source_registry.
+  if (!(await isMigrationApplied("admin_resources_005"))) {
+    const { runAdminResources005 } = await import(
+      "./migrations/admin-resources-005"
+    );
+    await runAdminResources005();
+    await markMigrationApplied("admin_resources_005");
+  }
+
+  // Phase 4 — Task #454. `properties.financials_computed_at` is the
+  // single source of truth for "this property's numbers are fresh as of
+  // T". Specialist gating (engine/analyst/registry/prerequisite-registry.ts
+  // → all-properties-financials-computed) depends on this column.
+  // Non-destructive: ADD COLUMN IF NOT EXISTS.
+  if (!(await isMigrationApplied("properties_financials_computed_at_001"))) {
+    const { db: dbRef } = await import("./db");
+    const { sql: sqlTag } = await import("drizzle-orm");
+    await dbRef.execute(sqlTag`
+      ALTER TABLE properties
+        ADD COLUMN IF NOT EXISTS financials_computed_at timestamp
+    `);
+    await markMigrationApplied("properties_financials_computed_at_001");
+  }
+
+  // Task #442 — one-shot backfill so the
+  // `all-properties-financials-computed` prerequisite (engine/analyst/
+  // registry/prerequisite-registry.ts) doesn't false-positive every
+  // existing property as stale on first deploy. Idempotent: only fills
+  // rows where the column is still null, so it's safe across re-runs and
+  // never clobbers a freshly-stamped timestamp from a real recompute.
+  if (!(await isMigrationApplied("financials_computed_at_backfill_001"))) {
+    const { runFinancialsComputedAtBackfill001 } = await import(
+      "./migrations/financials-computed-at-backfill-001"
+    );
+    await runFinancialsComputedAtBackfill001();
+    await markMigrationApplied("financials_computed_at_backfill_001");
+  }
+
+  if (!(await isMigrationApplied("scenario_service_templates_001"))) {
+    const { runScenarioServiceTemplates001 } = await import("./migrations/scenario-service-templates-001");
+    await runScenarioServiceTemplates001();
+    await markMigrationApplied("scenario_service_templates_001");
+  }
+
+  if (!(await isMigrationApplied("app_logo_001"))) {
+    const { runAppLogo001 } = await import("./migrations/app-logo-001");
+    await runAppLogo001();
+    await markMigrationApplied("app_logo_001");
+  }
+
+  if (!(await isMigrationApplied("drop_company_fk_001"))) {
+    const { run: runDropCompanyFk } = await import("./migrations/drop-company-fk-001");
+    await runDropCompanyFk(drizzleDb);
+    await markMigrationApplied("drop_company_fk_001");
+  }
+
+  if (!(await isMigrationApplied("rebecca_opt_out_001"))) {
+    const { runRebeccaOptOut001 } = await import("./migrations/rebecca-opt-out-001");
+    await runRebeccaOptOut001();
+    await markMigrationApplied("rebecca_opt_out_001");
+  }
+
+  if (!(await isMigrationApplied("rebecca_fixtures_001"))) {
+    const { runRebeccaFixtures001 } = await import("./migrations/rebecca-fixtures-001");
+    await runRebeccaFixtures001();
+    await markMigrationApplied("rebecca_fixtures_001");
+  }
+
+  if (!(await isMigrationApplied("app_name_001"))) {
+    const { runAppName001 } = await import("./migrations/app-name-001");
+    await runAppName001();
+    await markMigrationApplied("app_name_001");
+  }
+
+  if (!(await isMigrationApplied("market_data_tables_001"))) {
+    const { runMarketDataTables001 } = await import("./migrations/market-data-tables-001");
+    await runMarketDataTables001();
+    await markMigrationApplied("market_data_tables_001");
+  }
+
+  if (!(await isMigrationApplied("index_coverage_001"))) {
+    const { runIndexCoverage001 } = await import("./migrations/index-coverage-001");
+    await runIndexCoverage001();
+    await markMigrationApplied("index_coverage_001");
+  }
+
+  if (!(await isMigrationApplied("scheduler_runs_001"))) {
+    const { runSchedulerRuns001 } = await import("./migrations/scheduler-runs-001");
+    await runSchedulerRuns001();
+    await markMigrationApplied("scheduler_runs_001");
+  }
+
+  if (!(await isMigrationApplied("scheduler_runs_002"))) {
+    const { runSchedulerRuns002 } = await import("./migrations/scheduler-runs-002");
+    await runSchedulerRuns002();
+    await markMigrationApplied("scheduler_runs_002");
+  }
+
+  if (!(await isMigrationApplied("storage_drift_sweep_runs_001"))) {
+    const { runStorageDriftSweepRuns001 } = await import("./migrations/storage-drift-sweep-runs-001");
+    await runStorageDriftSweepRuns001();
+    await markMigrationApplied("storage_drift_sweep_runs_001");
+  }
+
+  if (!(await isMigrationApplied("rebecca_fixture_replay_001"))) {
+    const { runRebeccaFixtureReplay001 } = await import("./migrations/rebecca-fixture-replay-001");
+    await runRebeccaFixtureReplay001();
+    await markMigrationApplied("rebecca_fixture_replay_001");
+  }
+
+  // Task #573 — collapse legacy duplicates and add the
+  // assumption_guidance_unique constraint declared in
+  // lib/db/src/schema/intelligence-v2.ts so `npm run db:push` no longer
+  // prompts for a destructive truncate in non-TTY environments.
+  if (!(await isMigrationApplied("assumption_guidance_dedupe_001"))) {
+    const { runAssumptionGuidanceDedupe001 } = await import(
+      "./migrations/assumption-guidance-dedupe-001"
+    );
+    await runAssumptionGuidanceDedupe001();
+    await markMigrationApplied("assumption_guidance_dedupe_001");
+  }
+
+  // Audit follow-up — same regression class as Task #573, this time on
+  // benchmark_snapshots.snapshot_key (declared `.unique()` in
+  // lib/db/src/schema/intelligence-v2.ts but never applied to the live DB).
+  // Without this, `npm run db:push` blocks on a destructive truncate
+  // prompt in non-TTY environments and the Task #715 CI gate fails.
+  if (!(await isMigrationApplied("benchmark_snapshots_unique_001"))) {
+    const { runBenchmarkSnapshotsUnique001 } = await import(
+      "./migrations/benchmark-snapshots-unique-001"
+    );
+    await runBenchmarkSnapshotsUnique001();
+    await markMigrationApplied("benchmark_snapshots_unique_001");
+  }
+
+  // Audit follow-up — sweep the remaining single-column UNIQUE constraints
+  // declared in lib/db/src/schema/** but never applied to the live DB
+  // (properties.stable_key, media_assets.filename, source_registry.service_key,
+  // pipeline_policies.policy_key, scheduled_research_workflows.workflow_key,
+  // external_integrations.service_key, capital_raise_benchmarks.dimension_key,
+  // exit_multiples.dimension_key). Same fix pattern.
+  if (!(await isMigrationApplied("audit_unique_constraints_001"))) {
+    const { runAuditUniqueConstraints001 } = await import(
+      "./migrations/audit-unique-constraints-001"
+    );
+    await runAuditUniqueConstraints001();
+    await markMigrationApplied("audit_unique_constraints_001");
+  }
+
+  if (!(await isMigrationApplied("funding_cascade_001"))) {
+    const { runFundingCascade001 } = await import("./migrations/funding-cascade-001");
+    await runFundingCascade001();
+    await markMigrationApplied("funding_cascade_001");
+  }
+
+  if (!(await isMigrationApplied("cache_entries_001"))) {
+    const { runCacheEntries001 } = await import("./migrations/cache-entries-001");
+    await runCacheEntries001();
+    await markMigrationApplied("cache_entries_001");
+  }
+
+  if (!(await isMigrationApplied("icp_model_tier_001"))) {
+    const { runIcpModelTierMigration } = await import("./migrations/icp-model-tier-001");
+    await runIcpModelTierMigration();
+    await markMigrationApplied("icp_model_tier_001");
+  }
+
+  if (!(await isMigrationApplied("reference_range_001"))) {
+    const { runReferenceRange001 } = await import("./migrations/reference-range-001");
+    await runReferenceRange001();
+    await markMigrationApplied("reference_range_001");
+  }
+
+  if (!(await isMigrationApplied("fk_indexes_002"))) {
+    const { runFkIndexes002 } = await import("./migrations/fk-indexes-002");
+    await runFkIndexes002();
+    await markMigrationApplied("fk_indexes_002");
+  }
+}
+
+async function runSeeds() {
+  await seedAdminUser();
+
+  const { seedMissingMarketResearch, seedDefaultLogos, seedCompanies, seedFeeCategories, seedServiceTemplates, seedPropertyPhotos, seedGlobalAssumptions, seedMedellinDuplex, seedMedellinDuplexPhotos } = await import("./seed");
+  const { seedMarketRates } = await import("./seeds/market-rates");
+  const { seedMarketDataTables } = await import("./seeds/market-data-tables");
+  const { seedProductionSql } = await import("./seeds/production-sql");
+  const { seedModelConstants } = await import("../script/seed-model-constants");
+  const { seedModelDefaults } = await import("../script/seed-model-defaults");
+
+  // Canonical production-sync SQL — gated by content hash via _applied_migrations,
+  // so it runs exactly once per unique seed-production.sql file content. After a
+  // first successful apply, subsequent boots are no-ops; regenerating the file
+  // (next deploy) will run it again. Runs BEFORE the smaller idempotent seeds so
+  // those see the canonical baseline.
+  //
+  // Production-only by default: the SQL contains DELETE statements scoped to the
+  // canonical property ID list (32, 33, 35, 39, 41, 43) and would wipe extra
+  // dev-only properties on first boot if run against the dev DB. Set
+  // FORCE_RUN_PRODUCTION_SEED=true to apply it in non-production environments.
+  const isProductionEnv = process.env.NODE_ENV === "production";
+  const shouldRunProductionSql =
+    isProductionEnv || process.env.FORCE_RUN_PRODUCTION_SEED === "true";
+  if (shouldRunProductionSql) {
+    try {
+      const result = await seedProductionSql();
+      serverLog(`[seed:production-sql] ${result.status}`, "startup", "info");
+      // Fail-closed in production: if the canonical SQL was not applied or
+      // could not be located, abort boot so downstream idempotent seeds do
+      // not run on a non-canonical baseline.
+      if (
+        isProductionEnv &&
+        result.status === "skipped-not-found"
+      ) {
+        serverLog(
+          `[seed:production-sql] FATAL in production: seed-production.sql not located in dist/ or script/ — aborting boot to preserve canonical baseline`,
+          "startup",
+          "error",
+        );
+        process.exit(1);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      serverLog(`[seed:production-sql] FAILED: ${msg}`, "startup", "error");
+      if (isProductionEnv) {
+        serverLog(
+          `[seed:production-sql] FATAL in production — aborting boot to preserve canonical baseline`,
+          "startup",
+          "error",
+        );
+        process.exit(1);
+      }
+    }
+  } else {
+    serverLog(
+      `[seed:production-sql] skipped (NODE_ENV=${process.env.NODE_ENV ?? "unset"}, set FORCE_RUN_PRODUCTION_SEED=true to override)`,
+      "startup",
+      "info",
+    );
+  }
+
+  // Each seed is isolated — one failure does not cancel the others.
+  // All seeds are idempotent (skip-if-exists semantics) so partial completion
+  // on cold start is safe; the next boot will fill in whatever was missed.
+  const seedTasks: Array<{ name: string; run: () => Promise<unknown> }> = [
+    { name: "missing-market-research", run: seedMissingMarketResearch },
+    { name: "market-rates", run: seedMarketRates },
+    { name: "market-data-tables", run: seedMarketDataTables },
+    { name: "reference-ranges",   run: async () => { const { seedReferenceRanges } = await import("./seeds/reference-ranges"); await seedReferenceRanges(); } },
+    { name: "default-logos", run: seedDefaultLogos },
+    { name: "fee-categories", run: seedFeeCategories },
+    { name: "service-templates", run: seedServiceTemplates },
+    { name: "property-photos", run: seedPropertyPhotos },
+    { name: "global-assumptions", run: seedGlobalAssumptions },
+    // Pure idempotent upserts of authority-dictated constants and Steady-State
+    // defaults from shared/constants.ts. Safe to run on every boot.
+    { name: "model-constants", run: () => seedModelConstants({ silent: true }) },
+    { name: "model-defaults", run: () => seedModelDefaults({ silent: true }) },
+  ];
+
+  const results = await Promise.allSettled(seedTasks.map(t => t.run()));
+  results.forEach((r, i) => {
+    const name = seedTasks[i].name;
+    if (r.status === "rejected") {
+      serverLog(
+        `[seed:${name}] skipped (will retry next boot): ${r.reason instanceof Error ? r.reason.message : r.reason}`,
+        "startup",
+        "warn",
+      );
+    } else {
+      serverLog(`[seed:${name}] ok`, "startup", "info");
+    }
+  });
+
+  await seedCompanies().catch(err => {
+    serverLog(`[seed:companies] skipped: ${err instanceof Error ? err.message : err}`, "startup", "warn");
+  });
+
+  await seedMedellinDuplex().catch(err => {
+    serverLog(`[seed:medellin-duplex] skipped: ${err instanceof Error ? err.message : err}`, "startup", "warn");
+  });
+  await seedMedellinDuplexPhotos().catch(err => {
+    serverLog(`[seed:medellin-duplex-photos] skipped: ${err instanceof Error ? err.message : err}`, "startup", "warn");
+  });
+
+  try {
+    const { cleanOrphanedLogos } = await import("./migrations/db-hygiene-001");
+    await cleanOrphanedLogos();
+  } catch (err: unknown) {
+    serverLog(`[seed:clean-orphaned-logos] skipped: ${err instanceof Error ? err.message : err}`, "startup", "warn");
+  }
+
+  // Light up the Sources tab on every Specialist page from the in-code
+  // Specialist catalog. Idempotent: re-running is a no-op when the catalog
+  // hasn't changed and every assignment slug is already resolved. Runs
+  // here (not as a one-shot migration) because production DBs can ship
+  // with empty `specialist_assignments` tables — the original
+  // admin-resources-004 seed step has nothing to copy from until catalog
+  // sync has run at least once. Keeping this in the seed phase means
+  // every cold start re-resolves catalog → connections without manual
+  // admin action. (Task #507.)
+  try {
+    const { backfillCatalogConnections } = await import("./jobs/catalog-sync");
+    const result = await backfillCatalogConnections();
+    serverLog(
+      `[seed:catalog-connections] catalog ${result.inserted}+/${result.updated}~/${result.removed}- · ${result.connectionsInserted} new connection(s)`,
+      "startup",
+      "info",
+    );
+  } catch (err: unknown) {
+    serverLog(
+      `[seed:catalog-connections] skipped (will retry next boot): ${err instanceof Error ? err.message : err}`,
+      "startup",
+      "warn",
+    );
+  }
+
+  indexPropertiesToVectorStoreAsync();
+}
+
+// ── Boot orchestration: schema migrations (fatal) ─────────────────────
+async function runSchemaMigrationsWithRetry(): Promise<void> {
+  const { withRetry } = await import("./db");
+  await withRetry(() => runSchemaMigrations(), {
+    retries: 3,
+    baseDelayMs: 2000,
+    label: "schema-migrations",
+  });
+}
+
+// ── Boot orchestration: seeds (non-fatal, single-replica) ──
+// Uses a Postgres session-level advisory lock so that when Autoscale spins up
+// multiple replicas, only one runs the seed phase. Other replicas log and skip.
+// We deliberately do NOT impose a hard timeout that releases the lock early:
+// releasing the lock while runSeeds() is still in flight would let a second
+// replica start a concurrent seed pass, defeating the single-replica guarantee.
+// If seeds genuinely run long, we log a soft-warning at SEED_SLOW_WARN_MS but
+// keep awaiting the real promise. The server is already serving traffic
+// (this whole function runs inside setImmediate after the port is open).
+const SEED_ADVISORY_LOCK_KEY = 7244911300; // arbitrary stable bigint, app-specific
+const SEED_SLOW_WARN_MS = 90_000;
+
+async function runSeedsSafely(): Promise<void> {
+  const startTime = Date.now();
+  const { pool } = await import("./db");
+  const client = await pool.connect();
+  let lockAcquired = false;
+  let slowWarnTimer: NodeJS.Timeout | undefined;
+  try {
+    const lockResult = await client.query<{ pg_try_advisory_lock: boolean }>(
+      "SELECT pg_try_advisory_lock($1) AS pg_try_advisory_lock",
+      [SEED_ADVISORY_LOCK_KEY],
+    );
+    lockAcquired = lockResult.rows[0]?.pg_try_advisory_lock === true;
+
+    if (!lockAcquired) {
+      serverLog("Another replica holds the seed lock — skipping seeds on this instance", "startup", "info");
+      return;
+    }
+
+    slowWarnTimer = setTimeout(() => {
+      serverLog(
+        `Seed phase still running after ${SEED_SLOW_WARN_MS}ms — server continues serving (lock held)`,
+        "startup",
+        "warn",
+      );
+    }, SEED_SLOW_WARN_MS);
+
+    await runSeeds();
+    log(`Migrations and seeds completed in ${Date.now() - startTime}ms`);
+  } finally {
+    if (slowWarnTimer) clearTimeout(slowWarnTimer);
+    if (lockAcquired) {
+      try {
+        await client.query("SELECT pg_advisory_unlock($1)", [SEED_ADVISORY_LOCK_KEY]);
+      } catch {
+        // best-effort unlock; advisory locks auto-release on session close
+      }
+    }
+    client.release();
+  }
+}
+
+function indexPropertiesToVectorStoreAsync() {
+  (async () => {
+    try {
+      const { indexPropertyProfile } = await import("./ai/vector-store-service");
+      const { properties: propertiesTable } = await import("@workspace/db");
+      const { db: database } = await import("./db");
+      const allProps = await database.select().from(propertiesTable);
+      for (const p of allProps) {
+        await indexPropertyProfile({
+          propertyId: p.id,
+          name: p.name ?? "Unnamed Property",
+          location: [p.city, p.stateProvince, p.country].filter(Boolean).join(", "),
+          propertyType: "hotel",
+          roomCount: p.roomCount ?? null,
+          status: p.status ?? "active",
+          purchasePrice: p.purchasePrice ?? null,
+          market: p.market ?? null,
+          description: p.description ?? null,
+          streetAddress: p.streetAddress ?? null,
+        });
+      }
+      if (allProps.length > 0) {
+        log(`Indexed ${allProps.length} property profiles to vector store`);
+      }
+    } catch (err: unknown) {
+      log(`Vector store property indexing failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  })();
+}
+

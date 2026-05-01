@@ -1,0 +1,241 @@
+import type { Express } from "express";
+import { storage } from "../../storage";
+import { requireAdmin } from "../../auth";
+import { logAndSendError, logActivity } from "../helpers";
+
+import { isVectorStoreAvailable, isEmbeddingAvailable, getNamespaceStats, deleteNamespace, getTotalVectorCount, ALL_NAMESPACES, type VectorNamespace, indexScenarioSummary, indexPropertyProfile } from "../../ai/vector-store-service";
+import { mapCategoryToKpis } from "../../ai/vector-indexing";
+import { indexAllAssets } from "../../ai/asset-intelligence";
+import { indexKnowledgeBase } from "../../ai/knowledge-base";
+import { checkVendorAvailability, getRecommendedDefaults } from "../../ai/resolve-llm";
+import { logger } from "../../logger";
+
+export function registerVectorStoreRoutes(app: Express) {
+  app.get("/api/admin/system-intelligence-status", requireAdmin, async (_req, res) => {
+    try {
+      const vendors = checkVendorAvailability();
+      const recommended = getRecommendedDefaults();
+      const vectorStore = isVectorStoreAvailable();
+      const embeddings = isEmbeddingAvailable();
+
+      const knowledgeLearning = vectorStore && embeddings;
+
+      res.json({
+        llmVendors: vendors,
+        recommendedDefaults: recommended,
+        knowledgeBase: {
+          vectorStore,
+          embeddings,
+          learningActive: knowledgeLearning,
+          message: knowledgeLearning
+            ? "Knowledge learning is active — research results are indexed for future retrieval"
+            : !vectorStore
+              ? "Vector store not configured (POSTGRES_URL or DATABASE_URL) — knowledge learning disabled"
+              : "Embedding API not available — set OPENAI_EMBEDDING_KEY for vector learning. Replit AI integration proxies do not support embedding endpoints.",
+        },
+        missingKeys: {
+          fredApiKey: !process.env.FRED_API_KEY,
+          vectorStore: !vectorStore,
+          embeddingKey: !embeddings,
+        },
+      });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to check system intelligence status", error);
+    }
+  });
+
+  app.post("/api/admin/intelligence/index-assets", requireAdmin, async (_req, res) => {
+    try {
+      if (!isVectorStoreAvailable()) {
+        return res.status(400).json({ error: "Vector store not configured" });
+      }
+      if (!isEmbeddingAvailable()) {
+        return res.status(400).json({ error: "Embedding service not available" });
+      }
+      const result = await indexAllAssets();
+      logActivity(_req, "index-assets", "vector-store", null, "knowledge-base", { indexed: result });
+      res.json({ success: true, indexed: result });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to index assets", error);
+    }
+  });
+
+  app.get("/api/admin/vector-bench/history", requireAdmin, async (_req, res) => {
+    try {
+      const { readFile } = await import("node:fs/promises");
+      const { resolve } = await import("node:path");
+      const path = resolve(process.cwd(), "docs/vector-bench-history.json");
+      let raw: string;
+      try {
+        raw = await readFile(path, "utf8");
+      } catch (err: unknown) {
+        if ((err as NodeJS.ErrnoException)?.code === "ENOENT") {
+          return res.json({
+            available: false,
+            updatedAt: null,
+            namespaces: ALL_NAMESPACES.length,
+            thresholds: null,
+            runs: [],
+            message: "No benchmark history yet. Run `npx tsx script/vector-bench.ts` to record one.",
+          });
+        }
+        throw err;
+      }
+      const parsed = JSON.parse(raw);
+      res.json({ available: true, ...parsed });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to read vector benchmark history", error);
+    }
+  });
+
+  app.get("/api/admin/vector-store/stats", requireAdmin, async (_req, res) => {
+    try {
+      if (!isVectorStoreAvailable()) {
+        return res.json({ available: false, namespaces: {}, totalVectors: 0 });
+      }
+      const [namespaces, totalVectors] = await Promise.all([
+        getNamespaceStats(),
+        getTotalVectorCount(),
+      ]);
+      res.json({
+        available: true,
+        embeddingsAvailable: isEmbeddingAvailable(),
+        totalVectors,
+        namespaces,
+        allNamespaces: ALL_NAMESPACES,
+      });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to get vector store stats", error);
+    }
+  });
+
+  app.post("/api/admin/vector-store/reindex/:namespace", requireAdmin, async (req, res) => {
+    try {
+      const ns = req.params.namespace as VectorNamespace;
+      if (!ALL_NAMESPACES.includes(ns)) {
+        return res.status(400).json({ error: `Invalid namespace: ${ns}` });
+      }
+      if (!isVectorStoreAvailable()) {
+        return res.status(400).json({ error: "Vector store not configured" });
+      }
+      if (!isEmbeddingAvailable()) {
+        return res.status(400).json({ error: "Embedding service not available" });
+      }
+
+      let result: Record<string, any> = { namespace: ns };
+
+      if (ns === "knowledge-base") {
+        await deleteNamespace(ns);
+        const kbResult = await indexKnowledgeBase();
+        const assetResult = await indexAllAssets();
+        result.chunksIndexed = kbResult.chunksIndexed;
+        result.photosIndexed = assetResult.photos;
+        result.logosIndexed = assetResult.logos;
+        result.timeMs = kbResult.timeMs;
+      } else if (ns === "scenarios") {
+        await deleteNamespace(ns);
+        const allScenariosRaw = await storage.getAllScenarios();
+        const allScenarios = allScenariosRaw.filter(s => !s.deletedAt);
+        let indexed = 0;
+        for (const scenario of allScenarios) {
+          try {
+            const propArr = Array.isArray(scenario.properties) ? scenario.properties : [];
+            const firstProp = propArr[0] as Record<string, any> | undefined;
+            const ga = scenario.globalAssumptions as Record<string, any> | null;
+            const cr = scenario.computedResults as Record<string, any> | null;
+            await indexScenarioSummary({
+              scenarioId: scenario.id,
+              scenarioName: scenario.name,
+              propertyId: firstProp?.id ?? 0,
+              propertyName: firstProp?.name ?? "Portfolio",
+              location: firstProp?.location ?? firstProp?.city ?? "",
+              propertyType: firstProp?.propertyType ?? firstProp?.property_type ?? "hotel",
+              totalRevenue: cr?.totalRevenue ?? null,
+              totalExpenses: cr?.totalExpenses ?? null,
+              noi: cr?.noi ?? null,
+              adr: ga?.adr ?? firstProp?.adr ?? null,
+              occupancy: ga?.occupancy ?? firstProp?.occupancy ?? null,
+              revpar: cr?.revpar ?? null,
+              years: ga?.holdPeriod ?? ga?.projectionYears ?? null,
+              createdBy: scenario.userId ? String(scenario.userId) : undefined,
+            });
+            indexed++;
+          } catch (e: unknown) { logger.warn(`Failed to index scenario ${scenario.id}: ${e instanceof Error ? e.message : e}`, "vector-store"); }
+        }
+        result.indexed = indexed;
+        result.total = allScenarios.length;
+      } else if (ns === "properties") {
+        await deleteNamespace(ns);
+        const allProperties = await storage.getAllProperties();
+        let indexed = 0;
+        for (const property of allProperties) {
+          try {
+            await indexPropertyProfile({
+              propertyId: property.id,
+              name: property.name ?? "Unnamed Property",
+              location: [property.city, property.stateProvince, property.country].filter(Boolean).join(", "),
+              propertyType: "hotel",
+              roomCount: property.roomCount ?? null,
+              starRating: property.starRating ?? null,
+              status: "active",
+              purchasePrice: property.purchasePrice ?? null,
+              market: undefined,
+            });
+            indexed++;
+          } catch (e: unknown) { logger.warn(`Failed to index property ${property.id}: ${e instanceof Error ? e.message : e}`, "vector-store"); }
+        }
+        result.indexed = indexed;
+        result.total = allProperties.length;
+      } else if (ns === "comparables") {
+        await deleteNamespace(ns);
+        const snapshots = await storage.getBenchmarkSnapshots();
+        const { indexBenchmarkSnapshot } = await import("../../ai/vector-store-service");
+        let indexed = 0;
+        for (const snap of snapshots) {
+          try {
+            const kpis = mapCategoryToKpis(snap.category, snap.value);
+            await indexBenchmarkSnapshot({
+              market: snap.snapshotKey,
+              propertyType: snap.category,
+              ...kpis,
+              source: snap.source ?? "unknown",
+              snapshotDate: snap.fetchedAt.toISOString(),
+            });
+            indexed++;
+          } catch (e: unknown) { logger.warn(`Failed to index benchmark ${snap.snapshotKey}: ${e instanceof Error ? e.message : e}`, "vector-store"); }
+        }
+        result.indexed = indexed;
+        result.total = snapshots.length;
+      } else {
+        await deleteNamespace(ns);
+        result.cleared = true;
+        result.message = `Namespace "${ns}" cleared. Data will be re-indexed as new items are created.`;
+      }
+
+      logActivity(req, "reindex-vector-store", "vector-store", null, ns, result as Record<string, unknown>);
+      logger.info(`Admin re-indexed vector-store namespace "${ns}": ${JSON.stringify(result)}`, "vector-store");
+      res.json({ success: true, ...result });
+    } catch (error: unknown) {
+      logAndSendError(res, `Failed to reindex namespace ${req.params.namespace}`, error);
+    }
+  });
+
+  app.delete("/api/admin/vector-store/clear/:namespace", requireAdmin, async (req, res) => {
+    try {
+      const ns = req.params.namespace as VectorNamespace;
+      if (!ALL_NAMESPACES.includes(ns)) {
+        return res.status(400).json({ error: `Invalid namespace: ${ns}` });
+      }
+      if (!isVectorStoreAvailable()) {
+        return res.status(400).json({ error: "Vector store not configured" });
+      }
+      await deleteNamespace(ns);
+      logActivity(req, "clear-vector-store", "vector-store", null, ns);
+      logger.info(`Admin cleared vector-store namespace "${ns}"`, "vector-store");
+      res.json({ success: true, namespace: ns, cleared: true });
+    } catch (error: unknown) {
+      logAndSendError(res, `Failed to clear namespace ${req.params.namespace}`, error);
+    }
+  });
+
+}

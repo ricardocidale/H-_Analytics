@@ -1,0 +1,38 @@
+Option 1+3 authorized. The structural mismatch is a product-intent change, not a regression — new path is the Analyst we actually 
+  ▎ want.
+  ▎                                                                                                                                   
+  ▎ Before the re-spec, pin down two missing rigors:        
+  ▎
+  ▎ A. Critical-field tiering. Output a proposed three-tier classification over the 41 canonical fields:                              
+  ▎ - Tier 1 (foundational, bucket-match matters): adr, occupancy, capRate, ltv, incentiveFee
+  ▎ - Tier 2 (structural, midpoint agreement matters): revShareFB, costFB, costPropertyTaxes, rampMonths, costFFE                     
+  ▎ - Tier 3 (technical, categorical gate only): costSeg*, svcFee sub-categories, arDays, apDays                                      
+  ▎                                                                                                                                   
+  ▎ Send me the full 41-field tiering before writing the gate spec. I'll redirect if I disagree.                                      
+  ▎                                                                                                                                   
+  ▎ B. Midpoint agreement tolerance. For each legacy point vs new midpoint:                                                           
+  ▎ - Tier 1: ±10% relative tolerance (tight)               
+  ▎ - Tier 2: ±20%                                                                                                                    
+  ▎ - Tier 3: ±30%, or just "legacy point falls within new range"
+  ▎                                                                                                                                   
+  ▎ New unblock spec for OT-A.4:                                                                                                      
+  ▎ 1. Categorical gate 100% clean ✓ (confirmed in v4)                                                                                
+  ▎ 2. Tier-1 fields: bucket-match ≥ 55% AND midpoint within ±10% of legacy point ≥ 90% of cases                                      
+  ▎ 3. Tier-2 fields: midpoint within ±20% of legacy point ≥ 85% of cases                                                             
+  ▎ 4. Tier-3 fields: legacy point within new range ≥ 80% of cases                                                                    
+  ▎ 5. Per-field unique-range count ≥ 3 across 20 markets (no mode collapse)                                                          
+  ▎                                                                                                                                   
+  ▎ Compute all four from v4 raw data — no rerun needed. If it passes, OT-A.4 unblocks. If specific tiers/fields miss, we have a      
+  ▎ field-level remediation list instead of "still below 80%."                                                                        
+  ▎                                                                                                                                   
+  ▎ Deliverables, all free:                                                                                                           
+  ▎ - docs/operational-tooling/OT-A-3-field-tiering.md — the 41-field classification + rationale
+  ▎ - docs/operational-tooling/OT-A-3-path3-respec.md — new gate spec with tier-level criteria                                        
+  ▎ - Offline computation of the new gate against v4 data                                                                             
+  ▎ - BLOCKED-ota3-path3.md → RESOLVED or ESCALATED depending on outcome                                                              
+  ▎                                                                                                                                   
+  ▎ Also file .claude/rules/llm-contract-migration-parity.md (or similar) documenting mechanism bug #3 so future migrations don't     
+  ▎ rediscover this. Pattern: "migrations between LLM output contracts cannot be validated by raw-output parity; must validate by     
+  ▎ downstream-effect parity."                                                                                                        
+  ▎                                                         
+  ▎ No API spend for any of this. Target: all done + respec results in one working session.     

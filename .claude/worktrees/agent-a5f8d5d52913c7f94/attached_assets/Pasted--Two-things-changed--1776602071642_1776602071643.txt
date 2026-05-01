@@ -1,0 +1,75 @@
+  Two things changed:                                                                                                                 
+  1. server/ai/synthesis-schema.ts now exports FIELD_DEFINITIONS + formatFieldDefinitionsForPrompt() — Replit should inject the       
+  formatted block into the system prompt instead of hand-typing the enum list                                                         
+  2. Parity target reframed to bucket-match (already decided), so the harness logic stays — just the prompt changes                   
+                                                                                                                                      
+  Resume OT-A.3 A/B retry — NOW WITH DEFINITIONAL CONTRACT (commit 9b88958e).                                                         
+                                                                                                                                      
+  The first full 20-case run (1f80383f) failed bucket-match at 39.9% due                                                              
+  to definitional drift: Opus interpreted canonical keys like "landValue"                                                             
+  as dollars instead of percentages, costFB with the wrong denominator,                                                               
+  occupancyStep as cumulative instead of per-step, etc. The data showed                                                               
+  this is fixable at the prompt layer.                                                                                                
+                                                                                                                                      
+  NEW IN 9b88958e:                                                                                                                    
+  - server/ai/synthesis-schema.ts now exports FIELD_DEFINITIONS — a                                                                   
+    Record<CanonicalResearchField, { key, unit, denominator, description }>                                                           
+    with unit + denominator + scope for all 41 fields, derived from the                                                               
+    legacy research-value-extractor.ts path names.                                                                                    
+  - formatFieldDefinitionsForPrompt() produces a prompt-ready table with                                                              
+    one line per field: `  - `key` (unit) — denominator`.                                                                             
+                                                                                                                                      
+  Prompt update in server/ai/research-orchestrator.ts:                                                                                
+                                                                                                                                      
+  (a) Import { formatFieldDefinitionsForPrompt } from "./synthesis-schema"                                                            
+                                                            
+  (b) In the synthesis system prompt builder, REPLACE the flat canonical                                                              
+      enum list from the previous retry kickoff with a formatted table:
+                                                                                                                                      
+      const fieldTable = formatFieldDefinitionsForPrompt(); 
+      // ... inside the prompt:                                                                                                       
+      `Each numeric value in \`values[]\` must use \`field\` from this                                                                
+       EXACT list. The unit and denominator for each field are FIXED;                                                                 
+       do not emit a field in a different unit or denominator than shown.                                                             
+                                                                                                                                      
+       ${fieldTable}                                        
+                                                                                                                                      
+       For percentage fields, emit the value as a PERCENTAGE (e.g., 30 for                                                            
+       30%), not a decimal (0.30). Match the stated denominator exactly —
+       if a field says "% of TOTAL revenue", do NOT emit it as "% of F&B                                                              
+       revenue" or "% of room revenue".                                                                                               
+                                                                                                                                      
+       Only include fields you have real evidence for — omit the rest.`                                                               
+                                                                                                                                      
+  (c) Any remaining instruction that told Opus to produce narrative blocks                                                            
+      must be removed (no narrative[] in the schema).       
+                                                                                                                                      
+  (d) Tighten reasoning-field instruction to "one tight sentence citing                                                               
+      top 2-3 sources" (unchanged from previous retry).                                                                               
+                                                                                                                                      
+  Rerun the 20-case A/B harness. Update                                                                                               
+  docs/operational-tooling/OT-A-3-ab-results.md with the new run.                                                                     
+                                                                                                                                      
+  DIAGNOSTIC (already confirmed once, but re-verify): after case 1,                                                                   
+  Gateway balance should NOT drop meaningfully. BYOK confirmed working                                                                
+  per the last run; a new drop suggests something regressed.                                                                          
+                                                                                                                                      
+  Parity criteria (unchanged from bucket-match retry):                                                                                
+    - Field overlap ≥ 95% per case                                                                                                    
+    - Bucket-match on shared fields ≥ 80%                                                                                             
+    - Schema validity 100%
+    - Voice violations on new path = 0                                                                                                
+    - Latency regression ≤ 2x                                                                                                         
+                                                                                                                                      
+  Per-field expectations with the definitional fix:                                                                                   
+    - landValue: should now emit as 20-30 (percent), not 5_000_000
+    - costFB: should now emit as 25-35 (% of F&B revenue), not ~60                                                                    
+    - occupancyStep: should now emit as 3-10 (per-step), not 10-15                                                                    
+    - costPropertyTaxes: should now emit as 1-3 (% of property value)                                                                 
+    - Others: should snap to the legacy path's scale within stochastic variance                                                       
+                                                                                                                                      
+  If bucket-match passes: reply with go-ahead and Claude Code queues OT-A.4.                                                          
+  If bucket-match is still below 80% but closer to 60%+: report which                                                                 
+    fields are still mis-aligned; those likely have schema/prompt                                                                     
+    ambiguity that needs more work.                                                                                                   
+  If it's basically the same 40%: something i

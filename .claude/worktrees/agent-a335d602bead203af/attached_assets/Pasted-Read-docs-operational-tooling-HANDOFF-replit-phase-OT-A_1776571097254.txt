@@ -1,0 +1,44 @@
+Read docs/operational-tooling/HANDOFF-replit-phase-OT-A.md and execute.                                                             
+                                                                                                                                      
+  Four sub-tasks, four commits expected, each gated by the full five-gate                                                             
+  verification block.                                                                                                                 
+                                                                                                                                      
+  OT-A.1: Add Anthropic native prompt caching to the synthesis + panel calls                                                          
+  via cache_control: { type: "ephemeral" }. ~10 lines. Ship this FIRST —                                                              
+  it pays for itself on every synthesis call regardless of the broader                                                                
+  migration.                                                                                                                          
+                                                                                                                                      
+  OT-A.2: Install @ai-sdk/* packages. AI_GATEWAY_API_KEY is already in                                                                
+  Replit Secrets. Create server/ai/ai-sdk-clients.ts wrapper routing                                                                  
+  through AI Gateway with BYOK. No existing call sites change yet.                                                                    
+                                                                                                                                      
+  OT-A.3: Create server/ai/synthesis-schema.ts from Amendment 1 verbatim                                                              
+  (at the end of the handoff file). Add a parallel synthesis path behind                                                              
+  USE_AI_SDK_SYNTHESIS env flag (default false). Run 20-case A/B on real                                                              
+  research inputs. Document results in                                                                                                
+  docs/operational-tooling/OT-A-3-ab-results.md. Parity criteria in the                                                               
+  handoff: severity match ≥95%, numeric midpoints within ±5%, voice                                                                   
+  violations = 0, latency regression ≤ 20%.                                                                                           
+                                                                                                                                      
+  OT-A.4: ONLY if OT-A.3 parity passes all criteria — flip flag default,                                                              
+  delete the old synthesis block, delete server/ai/research-value-extractor.ts,                                                       
+  delete the A.2 smoke test. If parity fails, file BLOCKED-OT-A.md and stop.                                                          
+                                                                                                                                      
+  Boundaries per the handoff §"what NOT to touch":                                                                                    
+  - No engine/analyst/** (Phase 3b is active in that surface area)                                                                    
+  - No engine/watchdog/*Evaluator.ts (Phase 3b)                                                                                       
+  - No server/routes/** (Phase 3b)                                                                                                    
+  - No client/src/**                                                                                                                  
+  - No .claude/rules/**                                                                                                               
+  - No tests/analyst/**                                                                                                               
+   
+  OT-A runs PARALLEL to Phase 3b. No file is touched by both phases —                                                                 
+  OT-A is server/ai/ plumbing; Phase 3b is engine/analyst/surface/.
+                                                                                                                                      
+  Commit message footer on every commit:                    
+    Verified: TS 0, Lint 0, Vocab 11/11, test:summary PASS, Verify UNQUALIFIED                                                        
+    Surfaces: S8 (A.1/A.2/A.4) or S8,S10 (A.3)                                                                                        
+                                                                                                                                      
+  When done: ≤5-line append to .claude/session-memory.md with the four                                                                
+  commit SHAs + any caveats from A/B results. Reply on this channel so                                                                
+  Claude Code can pick up OT-B (Promptfoo).  

@@ -1,0 +1,30 @@
+  ▎ OT-A.5 drafts approved. Two small tweaks before v6 authorization:                                                                 
+  ▎                                                                                                                                   
+  ▎ Nit 1 — Add the NaN-coercion bug to the T+72h Sentry watchlist. You flagged the sub-string-path NaN-coercion bug in               
+  ▎ extractGuidance as "out of scope for OT-A.5, file under OT-B." That's right for fix-path, but the affected fields include T1 
+  ▎ members (ltv, inflationRate) — silent wrong guidance on T1 is worse than any OT-A.4 parity error. Please update                   
+  ▎ OT-A-5-known-issues-followup.md §v6 authorization gate clause (2) to include the NaN-coercion detection pattern alongside the 
+  ▎ extractGuidance / synthesisOutputToLegacyJson / routes/research.ts:522 path list. Define the detection: any assumption_guidance 
+  ▎ INSERT with valueMid = 0 for a field where valueLow ≠ 0 OR valueHigh ≠ 0 is a smell. If any such row appears in the 72h window,
+  ▎ BLOCKED doc and pause.
+  ▎
+  ▎ Nit 2 — Tighten v6 gate clause to prevent Class 1 backsliding. Current spec: "T1 ≥ 7/8 raw OR ≥ 7/8 exemption-adjusted." Change   
+  ▎ to: "Raw T1 ≥ 7/8 OR exemption-adjusted T1 = 8/8 with no new raw regressions on previously-exempt Class 1 fields (incentiveFee, 
+  ▎ svcFeeMarketing, costFB once added)." Otherwise a v6 that silently flips incentiveFee from exempt-correct to raw-drift passes the 
+  ▎ gate by exemption-math while actually regressing. Watch for this specifically.
+  ▎
+  ▎ Anchor wordings: all approved. Special notes:                                                                                     
+  ▎ - B.4 startOccupancy — your definitional clarification ("single-month value, not a first-quarter average") is permitted under the 
+  ▎ mechanism-bug-#2 rule because it disambiguates field semantics rather than embedding a target value. You flagged this correctly; I
+  ▎  agree.                                                 
+  ▎ - B.2 costMarketing — the "branded properties typically run lower direct marketing spend" phrasing is soft-directional but within 
+  ▎ the rule since it's a USALI presentation distinction, not a target. Leave as-is.                                                  
+  ▎ - C.2 costSeg5yrPct — the v3.3-prompt-diff-first approach is exactly right. If the clause was dropped during the OT-A.4 rewrite, 
+  ▎ restore-only; don't strengthen speculatively.                                                                                     
+  ▎                                                         
+  ▎ Authorization: apply the two nits, commit updated doc, wait for T+72h elapsed + Sentry clean + 0 user reports + NaN-coercion      
+  ▎ detection clean + my final ack. Then spend the $22.     
+  ▎                                                                                                                                   
+  ▎ OT-A.5 itself: good scope. Single batch, single rerun, clean gate. No further redirect from me.                                   
+  ▎
+  ▎ Ping when the two nits are landed. 

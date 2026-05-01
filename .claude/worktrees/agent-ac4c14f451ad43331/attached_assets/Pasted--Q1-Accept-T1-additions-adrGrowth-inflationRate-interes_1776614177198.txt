@@ -1,0 +1,23 @@
+▎ Q1: Accept T1 additions. adrGrowth, inflationRate, interestRate all belong in T1. My seed of 5 was under-inclusive — I was        
+  ▎ thinking "foundational drivers" and forgot the compounders. The criterion is compounds over the 10-yr hold with outsized leverage 
+  ▎ on exit value, which is exactly what the three you're adding do. Final T1 = {adr, occupancy, capRate, ltv, incentiveFee,          
+  ▎ adrGrowth, inflationRate, interestRate} = 8 fields.     
+  ▎                                                                                                                                   
+  ▎ Q2: Per-field. Aggregate hides weak fields — adrGrowth at 80% can mask interestRate at 30% and we'd ship a 30%-accurate           
+  ▎ interestRate. Per-field catches this. Each of the 8 T1 fields must independently clear the bucket-match and midpoint gates.
+  ▎                                                                                                                                   
+  ▎ Q3: Relative-to-legacy, with one edge-case handler: if |legacy| < 0.5 (sub-half-percent threshold — think emergency-rate          
+  ▎ interestRate or zero adrGrowth in a downturn scenario), fall back to absolute tolerance in the same units (±1pp for T1, ±2pp for 
+  ▎ T2, ±3pp for T3). Avoids division-blowup on near-zero legacy values that aren't common but do appear in the 20-case set. Document 
+  ▎ the fallback explicitly in the respec doc.              
+  ▎
+  ▎ On startOccupancy → T2 and incomeTax/landValue → T2: concur. Your reasoning is cleaner than my original seed. startOccupancy IS   
+  ▎ over-constrained by occupancyStep + rampMonths. incomeTax bounds to statutory rates. landValue bounds to depreciable-basis math. 
+  ▎ T2 is correct for all three.                                                                                                      
+  ▎                                                         
+  ▎ One pre-approval flag for the respec doc. When you compute against v4 data, please also report per-field direction of failure for 
+  ▎ any misses (is new-path value systematically higher or lower than legacy, or is it unbiased noise?). Systematic bias on a T1 field
+  ▎  is a different problem than unbiased noise — the former would need a field-level fix before OT-A.4; the latter just needs        
+  ▎ acknowledgment. This is free output from the comparison you're already running.
+  ▎
+  ▎ Proceed with the respec doc + offline evaluation. No further redirect expected.    

@@ -1,0 +1,49 @@
+how to switch replit's enbeded database (Helium) to Neon?
+Completed 2 steps
+You generally can’t switch Replit’s embedded database, Helium, back to Neon as the built-in Replit database. Replit has moved development databases from Neon to Helium automatically, updates DATABASE_URL to Helium, and treats the old Neon database as legacy-only reference via NEON_DATABASE_URL.
+
+Short answer
+If your app already uses Replit’s database integration, the practical path is to either stay on Helium or manually migrate your app to an external Neon database by creating a Neon project yourself and changing your app’s connection string/config to use that external database instead of Replit’s managed one.
+
+What Replit changed
+Replit says all new development databases are now hosted on its own infrastructure, and older Neon-backed development databases are being upgraded to Helium automatically when you open the app in the Workspace.
+
+After the upgrade, DATABASE_URL points to Helium, while the previous Neon connection is stored as NEON_DATABASE_URL for reference; the old Neon database is no longer the one your app should use through Replit’s managed flow.
+
+If you want Neon anyway
+The way to use Neon now is to treat it as an external PostgreSQL provider, not as Replit’s embedded database. Replit’s docs indicate Helium is the native current database, and the connection model centers on DATABASE_URL, so using Neon means replacing that with your own Neon connection details in your app configuration.
+
+In practice, that means:
+
+Create a database in Neon.
+
+Export your schema/data from the current Helium or old Neon source.
+
+Import into your new Neon database.
+
+Update your app to read from your Neon connection string.
+
+Stop relying on Replit-managed database variables that were specific to Helium migration behavior.
+
+Code changes to check
+Replit specifically warns that Helium does not use the same SSL behavior as Neon, so if your code was changed for Helium, you may need to re-enable Neon-compatible SSL when connecting to an external Neon database.
+
+Also, Replit says the individual PGHOST, PGPORT, PGUSER, and PGPASSWORD variables are removed after upgrade, and you should use DATABASE_URL instead. If you move to Neon manually, standardizing your app around a single external DATABASE_URL is the safest pattern.
+
+Recommended migration path
+Back up your current data before changing anything. Replit says Helium upgrade preserves data, but you should still export before a provider switch.
+
+Create a new Neon database outside Replit.
+
+Export from your current DB using Replit’s SQL runner or visual tools, which support exporting data.
+
+Import into Neon with pg_dump/psql or Neon’s import workflow. Replit confirms both Helium and legacy Neon are PostgreSQL 16 compatible in the migration context, so schema/query compatibility should generally remain straightforward.
+
+Replace your app’s database config so your ORM/client uses your Neon connection string instead of Replit’s managed Helium connection.
+
+If you use Node/Postgres, verify SSL settings because Neon typically expects SSL while Helium development does not.
+
+Important caveat
+If your concern is a published app that still depended on an older shared Neon database, Replit has a separate fix path for that situation rather than a “switch back” path. Their docs say those older shared Neon setups are temporary and need to be migrated to proper production databases.
+
+If you want, I can give you a step-by-step migration for your specific stack—for example Drizzle, Prisma, pg, Python SQLAlchemy, or a plain Node app on Replit.

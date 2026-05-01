@@ -1,0 +1,37 @@
+
+#293 - Add Lodge Business Model & Update Lakeview Haven
+What & Why
+Add "lodge" as a third business model type, positioned between VRBO/STR and Hotel. Lodges are larger STR-style properties (8–20 rooms) that offer hotel-like amenities (gym, sauna, hot tub, sports courts, media rooms) but operate on a whole-property rental basis without F&B departments, events staff, or front desk. Simultaneously, update the Lakeview Haven Lodge seed data and photos with real property information scraped from its actual listing site.
+
+Done looks like
+The Business Model selector on the property edit page shows three options: Hotel, Lodge, and VRBO/STR — with Lodge described as something like "Large vacation lodge — whole-property rental, premium amenities, no F&B/events departments"
+Lakeview Haven Lodge seed record uses businessModel: "lodge", roomCount: 8, and an accurate description pulled from the real website
+Lakeview Haven Lodge seed photos are replaced with ~10–15 curated real photos from the OwnerRez listing (using the uc.orez.io URLs from the site), with descriptive captions from the alt text
+The research methodology skill is updated with a Lodge section describing its financial profile (between Hotel and VRBO)
+All existing schema validation, research staleness triggers, and UI components accept "lodge" as a valid business model without errors
+Out of scope
+Implementing separate financial calculation logic branching for lodge vs hotel vs vrbo in the pro forma engine (that can come later)
+Updating any other seed properties to use the lodge model
+Building new Lodge-specific UI pages or dashboard views
+Tasks
+Add "lodge" to BUSINESS_MODEL_TYPES array and HOSPITALITY_TYPES array in the schema, and ensure the Zod validation schema accepts it
+Add a Lodge option to the BusinessModelSelector UI component with label "Lodge" and description like "Large vacation lodge — whole-property rental, premium amenities, no F&B or events departments"
+Update the EngineDashboard and any other components that reference business model values to handle the new "lodge" value gracefully
+Update the Lakeview Haven Lodge seed property record with accurate real-world data:
+roomCount: 8 (based on 16-person capacity / ~2 per room)
+businessModel: "lodge"
+hospitalityType: "vrbo" (or add "lodge" to hospitality types)
+description: Use the real description from the website (the paragraph starting "Lakeview Haven Lodge is a unique cabin...")
+streetAddress: keep "Pineview Reservoir" or update if more specific address found
+Replace the 3 placeholder Lakeview Haven Lodge seed photos with ~10–15 curated real photos from the site using uc.orez.io URLs, with captions from the alt text. Select a good hero image (the exterior/A-frame cabin shot). Key photos to include: exterior A-frame, great room, primary bedroom, kitchen, hot tub, sauna, pickleball court, gym, media room, lake views, winter scenes
+Update the research methodology skill (.agents/skills/research-methodology/SKILL.md) to add a Lodge section under §2.2 or alongside it, describing the Lodge financial profile as a midpoint between Hotel and VRBO — whole-property rental, no F&B/events revenue, premium amenity costs, lower staffing than hotel but higher maintenance than VRBO
+Relevant files
+shared/schema/properties.ts:293-305
+client/src/components/research/PropertyTypeSelector.tsx
+client/src/components/property-edit/BasicInfoSection.tsx
+client/src/components/admin/intelligence/EngineDashboard.tsx
+server/routes/properties.ts:194
+server/seeds/properties.ts:440-492
+server/seeds/photos.ts:58-62
+.agents/skills/research-methodology/SKILL.md:112-186
+memory.md

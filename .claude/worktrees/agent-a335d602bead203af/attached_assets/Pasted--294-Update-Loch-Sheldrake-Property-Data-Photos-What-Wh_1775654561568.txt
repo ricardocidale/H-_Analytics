@@ -1,0 +1,57 @@
+
+#294 - Update Loch Sheldrake Property Data & Photos
+What & Why
+Update the Loch Sheldrake property with its correct street address (59 Hazelnis Drive), enhanced description based on the actual realtor listing, and replace the AI-generated property photos with real photos from the listing. The current seed data has a placeholder "Loch Sheldrake" as the street address and uses AI-generated images instead of the actual property photos.
+
+Current state of the real property (pre-acquisition, from realtor listing)
+Address: 59 Hazelnis Drive, Loch Sheldrake, NY 12759
+Listed price: $1,999,999 (acquisition budget remains $3,000,000 to cover improvements)
+Current layout: 4BR/3BA, 4,474 sq ft main house on ~9.86 acres
+Built: 1989, octagonal shape
+Features: 3 private bodies of water, private island with gazebo, fish-stocked ponds, circular driveway (15+ car parking), two attached garages, income-generating apartment with private entrance, pool house, gym, shed (former horse stables)
+Event potential: Ideal for weddings, events, wellness retreats, Airbnb
+Note: The room count (20) represents planned post-renovation capacity, NOT the current 4-bedroom state. Do NOT change room count.
+Real property photos provided
+Three attached images to use:
+
+Hero / Property Card image — Aerial drone shot showing the octagonal main house with wrap-around deck, second building, and lush green grounds surrounded by forest. Use as the main property card image and hero photo.
+
+Source: attached_assets/image_1775647186697.png
+Import path: @assets/image_1775647186697.png
+Copy to: client/public/images/property-loch-sheldrake.png (replacing the existing AI-generated image)
+Lake/grounds view — Golden hour sunset view from the deck showing the pond/lake, lawn, trees, and surrounding nature. Perfect for the "lake" photo slot.
+
+Source: attached_assets/image_1775647253728.png
+Import path: @assets/image_1775647253728.png
+Copy to: client/public/images/property-loch-sheldrake-lake.png (replacing existing)
+Remove the fake interior — The current property-loch-sheldrake-interior.png is AI-generated and does not represent this property. Either remove it from the photo album seed or replace its caption to reflect the actual property. If keeping, update the caption to something relevant to the real property.
+
+Done looks like
+Loch Sheldrake property card shows the aerial drone photo as the hero image
+Property detail photo album shows real photos (aerial view, lake/sunset view)
+Address shows "59 Hazelnis Drive" on the property card and detail pages
+Description reflects the actual property features
+All seed files (TypeScript, SQL, production SQL) are consistent
+Tests still pass
+Out of scope
+Changing room count, ADR, purchase price, or any financial assumptions (those represent the post-acquisition plan)
+Changing business model type
+Any changes to other properties
+Tasks
+Copy the two attached real photos into client/public/images/, replacing the existing AI-generated Loch Sheldrake hero and lake images. Remove or update the fake interior photo entry.
+Update the Loch Sheldrake property seed data — change streetAddress from "Loch Sheldrake" to "59 Hazelnis Drive" and update the description to better reflect the actual property (10-acre lakeside estate with 3 private bodies of water, private island, octagonal main house, event venue potential in Sullivan County's Catskill region).
+Update the photo seeds to use accurate captions for the real images (e.g., "Aerial view of the octagonal estate and grounds" for hero, "Sunset over the private lake from the wraparound deck" for lake view). Remove or update the interior photo entry since no real interior photo is available.
+Mirror the same address and description changes in the SQL seed files (manual-sync and production seed).
+Update any test fixtures or golden values that reference the old street address to prevent drift test failures.
+Relevant files
+server/seeds/properties.ts:276-330
+server/seeds/photos.ts:43-47
+script/manual-sync/04-properties.sql
+script/seed-production.sql:260-295
+tests/proof/seed-constants-drift.test.ts
+tests/golden/portfolio-irr-seed-properties.test.ts:111-116
+client/public/images/property-loch-sheldrake.png
+client/public/images/property-loch-sheldrake-interior.png
+client/public/images/property-loch-sheldrake-lake.png
+attached_assets/image_1775647186697.png
+attached_assets/image_1775647253728.png

@@ -1,0 +1,97 @@
+Two UI tasks. Backend is done — no server changes needed.                                                                                                                                                                                       
+                                                                                                                                                                                                                                                  
+  ---                                                                                                                                                                                                                                             
+   
+  ## Task A: BasicInfoSection.tsx — platform fee rate for STR properties                                                                                                                                                                          
+                                                                  
+  File: `src/components/property-edit/BasicInfoSection.tsx`                                                                                                                                                                                       
+                                                                  
+  1. Find the condition `draft.businessModel === "vrbo"` (around line 273) and change it to:                                                                                                                                                      
+     `(draft.businessModel === "vrbo" || draft.businessModel === "vrbo_owner_managed")`
+                                                                                                                                                                                                                                                  
+  2. Inside that bordered block, after the closing `</div>` of the pricing model grid, add:                                                                                                                                                       
+   
+  ```tsx                                                                                                                                                                                                                                          
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">    
+    <div className="space-y-2">                                                                                                                                                                                                                   
+      <Label className="label-text text-foreground flex items-center gap-1.5">
+        Platform Fee Rate (%)                                                                                                                                                                                                                     
+        <InfoTooltip text="Blended Airbnb / VRBO / Booking.com commission as % of room revenue. Default 14% = Airbnb 15.5% / VRBO 8% / Booking 15% blended. Set to 0 for direct-booking only." />
+      </Label>                                                                                                                                                                                                                                    
+      <Input
+        type="number"                                                                                                                                                                                                                             
+        step="0.1"                                                
+        min="0"
+        max="100"
+        value={draft.platformFeeRate != null ? +(draft.platformFeeRate * 100).toFixed(2) : ""}
+        placeholder="14"                                                                                                                                                                                                                          
+        onChange={(e) => {
+          const raw = parseFloat(e.target.value);                                                                                                                                                                                                 
+          onChange("platformFeeRate", isNaN(raw) ? null : raw / 100);
+        }}
+        className="bg-card border-primary/30 text-foreground"                                                                                                                                                                                     
+        data-testid="input-platform-fee-rate"
+      />                                                                                                                                                                                                                                          
+    </div>                                                        
+  </div>
+
+  The field stores a decimal (0–1) in draft.platformFeeRate. Blank = engine uses archetype default (14%).                                                                                                                                         
+   
+  ---                                                                                                                                                                                                                                             
+  Task B: PropertyUnderwritingTab.tsx — STR Defaults section      
+                                                                                                                                                                                                                                                  
+  File: src/components/admin/model-defaults/PropertyUnderwritingTab.tsx
+                                                                                                                                                                                                                                                  
+  Add these near the top of the component function, after existing state/queries:                                                                                                                                                                 
+   
+  const { data: strDefaultRow, refetch: refetchStrDefault } = useQuery({                                                                                                                                                                          
+    queryKey: ["model-defaults", "property_defaults", "platformFeeRate"],
+    queryFn: async () => {                                                                                                                                                                                                                        
+      const res = await fetch("/api/admin/model-defaults?category=management_company&cardKey=property_defaults", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch STR defaults");                                                                                                                                                                               
+      const json = await res.json() as { rows: Array<{ id: number; defaultKey: string; value: unknown }> };                                                                                                                                       
+      return json.rows.find(r => r.defaultKey === "mc.property_defaults.platformFeeRate") ?? null;
+    },                                                                                                                                                                                                                                            
+  });                                                             
+                                                                                                                                                                                                                                                  
+  const [platformFeeDraft, setPlatformFeeDraft] = useState("");   
+  useEffect(() => {
+    if (strDefaultRow?.value != null)
+      setPlatformFeeDraft((+(strDefaultRow.value as number) * 100).toFixed(1));
+  }, [strDefaultRow]);                                                                                                                                                                                                                            
+   
+  const savePlatformFee = async () => {                                                                                                                                                                                                           
+    if (!strDefaultRow) return;                                   
+    await fetch(`/api/admin/model-defaults/${strDefaultRow.id}`, {
+      method: "PATCH",                                                                                                                                                                                                                            
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",                                                                                                                                                                                                                     
+      body: JSON.stringify({ value: parseFloat(platformFeeDraft) / 100, reason: "Admin updated STR platform fee default" }),
+    });                                                                                                                                                                                                                                           
+    refetchStrDefault();
+  };                                                                                                                                                                                                                                              
+                                                                  
+  Then add this <Section> at the bottom of the JSX, just before the final closing tag:                                                                                                                                                            
+   
+  <Section grid title="Short-Term Rental Defaults" description="Default rates applied to new STR properties when no per-property override is set.">                                                                                               
+    <div className="space-y-2">                                   
+      <Label className="label-text text-foreground flex items-center gap-1.5">
+        Platform Fee Rate (%)                                                                                                                                                                                                                     
+        <InfoTooltip text="Blended OTA commission rate (Airbnb 15.5% / VRBO 8% / Booking 15%). Users can override per property on the property edit page." />
+      </Label>                                                                                                                                                                                                                                    
+      <div className="flex gap-2 items-center">                   
+        <Input                                                                                                                                                                                                                                    
+          type="number" step="0.1" min="0" max="100"              
+          value={platformFeeDraft}                                                                                                                                                                                                                
+          onChange={(e) => setPlatformFeeDraft(e.target.value)}
+          className="bg-card border-primary/30 text-foreground w-32"                                                                                                                                                                              
+          data-testid="input-default-platform-fee-rate"                                                                                                                                                                                           
+        />
+        <span className="text-sm text-muted-foreground">%</span>                                                                                                                                                                                  
+        <Button size="sm" variant="outline" onClick={savePlatformFee}>Save</Button>
+      </div>                                                                                                                                                                                                                                      
+    </div>
+  </Section>                                                                                                                                                                                                                                      
+                                                                  
+  Note: this section has its own Save button (not the shared draft flow) because it writes to a different API (/api/admin/model-defaults) than the rest of the tab (/api/global-assumptions). Add useState, useEffect, useQuery imports if not    
+  already present.

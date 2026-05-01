@@ -1,0 +1,427 @@
+Review this repository as a Replit-native, production-grade financial modeling and reporting platform.
+
+Repository:
+https://github.com/ricardocidale/LB_Hospitality.git
+
+This is already a substantial, robust application. Do not treat it as a simple calculator app.
+
+Assess it specifically from a Replit perspective:
+- Replit Workspace runtime and developer flow
+- Replit Deployments production model
+- Replit-backed PostgreSQL / Neon database persistence
+- Replit server-side architecture boundaries
+- Replit-native handling of authoritative calculations, reporting, and saved scenarios
+
+This repository already appears to have:
+- a Replit-native setup
+- a Node/Express + TypeScript backend
+- a PostgreSQL persistence layer
+- a scenarios table
+- significant financial logic
+- a documented financial engine in client/src/lib/financialEngine.ts
+
+Your job is to review how calculations are done today and recommend the best-in-class server-side architecture for this specific Replit application so that authoritative financial calculations and reports are generated reliably on the server and saved scenarios are persisted in cloud databases in a deterministic, auditable, reproducible way.
+
+PRIMARY QUESTION
+
+For this Replit-hosted app, what is the best-in-class way to implement authoritative server-side financial calculations and cloud-database-backed scenario persistence so that:
+- all important financial outputs are generated server-side
+- saved scenarios are frozen in the cloud database
+- recalled scenarios can be recalculated or replayed reliably
+- reports and exports come from canonical backend calculations
+- roll-ups and consolidated results remain deterministic and auditable
+
+I want a code-aware answer based on the actual repository, not generic advice.
+
+==================================================
+1. REVIEW THE CURRENT REPLIT ARCHITECTURE
+==================================================
+
+Start by mapping how this app is currently structured from a Replit perspective.
+
+Identify:
+- the runtime entry points
+- the frontend/backend boundary
+- the current Express server responsibilities
+- the shared code layer
+- database access patterns
+- Replit-specific configuration and deployment assumptions
+- whether the architecture already supports a centralized server-side finance engine
+
+Map the exact:
+- files
+- modules
+- services
+- routes
+- database models
+- shared types/schemas
+- financial calculation modules
+- report/export modules
+- scenario persistence paths
+
+Specifically evaluate whether the current Replit architecture is well aligned for:
+- server-side authoritative calculations
+- server-side report generation
+- cloud database scenario persistence
+- deterministic recalculation pipelines
+
+==================================================
+2. AUDIT HOW FINANCIAL CALCULATIONS ARE DONE TODAY
+==================================================
+
+Find every place where financial calculations currently happen.
+
+Review how the code currently handles:
+- income statements
+- cash flow statements
+- balance sheets
+- financial analysis
+- IRR / XIRR
+- NPV / DCF
+- valuations
+- debt / interest / amortization
+- ratios and performance metrics
+- property-level calculations
+- vendor-level calculations
+- research-driven inputs
+- portfolio roll-ups
+- scenario comparisons
+- reporting outputs
+
+For each major area, identify:
+- which file/module performs the work
+- whether the logic is in the client, server, shared layer, or database workflow
+- whether the logic exists in multiple places
+- whether the output appears authoritative or just for display
+- whether the logic is snapshot-based, recalculated on demand, or cached
+- whether the implementation is well suited for server-side ownership in Replit
+
+==================================================
+3. DETERMINE WHAT SHOULD BECOME SERVER-AUTHORITATIVE
+==================================================
+
+This is the most important part of the review.
+
+For this specific Replit app, determine which financial calculations should absolutely become server-side authoritative.
+
+Assume that anything affecting the following should be authoritative on the server:
+- saved scenarios
+- reports
+- exports
+- consolidated roll-ups
+- scenario comparisons
+- valuations
+- IRR / XIRR / DCF results
+- investor-facing numbers
+- management-facing numbers
+- any number that must be reproducible later
+
+Clearly distinguish:
+- client-side preview or UX calculations
+vs
+- canonical server-side calculations
+
+Identify where the current code may still rely too heavily on:
+- client-side financial logic
+- shared UI-driven utilities
+- frontend recalculation for authoritative outputs
+- report formatting code that also performs math
+
+Then recommend what should move into backend services running in the Replit server layer.
+
+==================================================
+4. AUDIT CONSOLIDATION, ROLL-UPS, AND DEPENDENCY CHAINS
+==================================================
+
+Review how the app consolidates numbers across:
+- assumptions
+- P&L lines
+- properties
+- vendors
+- research inputs
+- statement-level results
+- valuation models
+- portfolio-level results
+- saved scenarios
+- reporting summaries
+
+Determine whether the current roll-up design is reliable and deterministic.
+
+Look for risks such as:
+- duplicated formulas
+- stale roll-ups
+- using previously derived totals instead of recalculating from authoritative underlying data
+- UI-level aggregation becoming the source of truth
+- different code paths producing different versions of the same number
+- dependency-order issues
+- hidden shared mutable state
+- display-formatted values being reused as raw calculation inputs
+
+Then explain how a best-in-class Replit server-side calculation layer should handle consolidation instead.
+
+==================================================
+5. AUDIT SAVED SCENARIOS AS CLOUD DATABASE RECORDS
+==================================================
+
+Treat saved scenarios as frozen financial states that must be persisted in cloud databases, not just held in client state or temporary memory.
+
+Review exactly how scenarios are currently:
+- created
+- saved
+- stored
+- versioned
+- cloned
+- recalled
+- recalculated
+- compared
+- used by reports/exports
+
+Specifically determine:
+- what is actually stored when a scenario is saved
+- whether the current implementation stores full snapshots, partial snapshots, references to live records, or hybrids
+- whether the scenarios table is sufficient for deterministic replay
+- whether related assumptions, property inputs, vendor inputs, research inputs, valuation settings, and timing settings are frozen correctly
+- whether scenario recall reproduces historical state or silently uses current live data
+- whether a saved scenario can drift over time
+- whether a report tied to a saved scenario can be regenerated consistently on the server
+
+Recommend the best cloud-database persistence pattern for this Replit app, such as:
+- immutable scenario version records
+- snapshot tables
+- normalized inputs plus immutable snapshot payload
+- raw drivers + derived outputs + calculation engine version
+- schema versioning for historical compatibility
+
+Be explicit about what each saved scenario record should contain in the database.
+
+==================================================
+6. AUDIT NUMERICAL CORRECTNESS AND FINANCIAL RELIABILITY
+==================================================
+
+Review the correctness and reliability of the current implementation for:
+- IRR
+- XIRR
+- NPV
+- DCF
+- terminal value
+- discounting
+- growth logic
+- debt schedules
+- interest calculations
+- amortization
+- working capital treatment
+- capex / depreciation if present
+- valuation multiples
+- sign conventions
+- period timing
+- monthly / quarterly / annual conversions
+- rounding rules
+- decimal precision
+
+Check for:
+- floating-point precision problems
+- lack of decimal-safe math where needed
+- incorrect date handling for irregular cash flows
+- inconsistent rounding policy
+- duplicate implementations of the same financial logic
+- spreadsheet-like formulas copied into UI code
+- divide-by-zero and null propagation risks
+- assumptions of equal periods where XIRR-like treatment is needed
+- authoritative outputs being derived in the wrong layer
+
+For each major issue, explain:
+- what the current code appears to do
+- why it is risky
+- whether it should be corrected, centralized, or moved server-side
+- what a best-in-class backend implementation should do instead
+
+==================================================
+7. RECOMMEND A BEST-IN-CLASS REPLIT SERVER-SIDE DESIGN
+==================================================
+
+Propose the best-in-class architecture for this specific repo, assuming Replit is the primary hosting and runtime environment.
+
+Prioritize:
+- server-side authority
+- deterministic recalculation
+- cloud database persistence
+- auditability
+- reproducibility
+- clear separation of concerns
+- maintainability
+- compatibility with Replit deployments and this existing stack
+
+Recommend whether the target shape should move toward something like:
+- server/finance/core
+- server/finance/statements
+- server/finance/valuation
+- server/finance/consolidation
+- server/finance/scenarios
+- server/reports
+- shared/validation
+
+Explain how the system should separate:
+- raw inputs
+- normalized assumptions
+- calculation services
+- consolidation services
+- scenario snapshot persistence
+- report generation
+- export generation
+- presentation formatting
+
+Be explicit about how the Replit backend should produce authoritative numbers:
+- API-triggered recalculation
+- server-side report generation
+- database-backed scenario replay
+- deterministic orchestration order
+- canonical calculation modules only
+
+==================================================
+8. RECOMMEND LIBRARIES, TOOLS, AND IMPLEMENTATION OPTIONS
+==================================================
+
+For this repository, recommend the strongest practical options for best-in-class server-side financial calculation and scenario persistence.
+
+Cover:
+- IRR / XIRR
+- NPV / DCF
+- date-based cash flow math
+- decimal-safe arithmetic
+- valuation logic
+- deterministic replay
+- database snapshot/version strategy
+- report regeneration from saved scenarios
+- input validation and schema control
+
+Be explicit about whether the best fit is:
+- staying in Node / TypeScript and centralizing server-side finance there
+- introducing Python for selected finance-calculation services
+- a hybrid approach
+
+If recommending a different language or library, explain:
+- why it is more accurate or reliable
+- how it would fit into this Replit-hosted architecture
+- what tradeoffs it introduces for this repo
+
+Prefer maintained, production-grade choices.
+
+==================================================
+9. REQUIRED FINAL OUTPUT
+==================================================
+
+Produce a final report with these sections:
+
+A. Replit Architecture Assessment
+- how this app is structured today from a Replit perspective
+- where frontend vs backend responsibilities currently sit
+- whether the current setup is suitable for server-authoritative finance
+
+B. Current Financial Calculation Map
+- where financial logic currently lives
+- which logic is client-side, server-side, shared, or duplicated
+- where roll-ups and reports are built
+
+C. Current Risks
+- calculation accuracy risks
+- precision risks
+- roll-up/consolidation risks
+- scenario persistence/replay risks
+- Replit architecture risks
+- server/client boundary risks
+
+D. Best-in-Class Server-Side Recommendation
+- what should become authoritative on the server
+- what can remain client-side for UX only
+- what backend modules/services/routes should be created or refactored
+- how reports and exports should be generated from canonical server-side math
+
+E. Best-in-Class Cloud Database Scenario Design
+- how saved scenarios should be stored in the cloud database
+- what should be immutable
+- what should be versioned
+- what raw inputs and derived outputs should be persisted
+- how to prevent historical drift
+- how to support deterministic replay and report regeneration
+
+F. Resource Map
+- exact libraries, frameworks, packages, and references to use
+- what each one solves
+- where it should fit in this repo
+
+G. Phased Refactor Plan
+- safest migration order
+- smallest units of change
+- backward compatibility considerations
+- testing strategy
+- benchmark strategy
+- reproducibility validation for saved scenarios
+
+==================================================
+10. IMPORTANT RULES
+==================================================
+
+- Base the review on actual code in this repository.
+- Do not give generic advice.
+- Point to actual files, modules, functions, routes, and database structures.
+- If uncertain, say so clearly.
+- Prioritize best-in-class server-side calculation reliability over cosmetic refactoring.
+- Prioritize cloud-database-backed saved scenarios over client-side persistence patterns.
+- Call out anywhere authoritative financial logic currently depends on UI code.
+- Call out anywhere the same number may be computed differently in different places.
+- Call out anywhere saved scenarios may drift because they depend on mutable live data.
+- Distinguish clearly between display values and authoritative values.
+- Distinguish clearly between live recalculation and frozen historical replay.
+- Make recommendations that fit this Replit-hosted stack, not a generic platform-agnostic fantasy architecture.
+
+==================================================
+11. STARTING SEARCH CHECKLIST
+==================================================
+
+Start by scanning the repo for:
+- financialEngine
+- irr
+- xirr
+- npv
+- dcf
+- valuation
+- discount
+- terminal value
+- cash flow
+- income statement
+- balance sheet
+- pnl
+- p&l
+- margin
+- debt
+- amortization
+- interest
+- assumptions
+- scenario
+- snapshot
+- recalculate
+- report
+- export
+- vendor
+- property
+- research
+- rollup
+- roll-up
+- aggregation
+- consolidation
+- decimal
+- rounding
+- drizzle
+- postgres
+- neon
+- database
+- scenario_version
+- serializer
+- clone
+
+Then:
+1. map the current Replit-native architecture
+2. identify where authoritative financial logic currently lives
+3. identify what should move server-side
+4. identify how scenarios should be persisted in the cloud database
+5. recommend a best-in-class Replit server-side finance architecture for this repo

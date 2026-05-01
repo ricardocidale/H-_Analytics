@@ -1,0 +1,63 @@
+ OT-A.5 status: approved, locked, waiting on clock.
+                                                                                                                                      
+  Both nits landed cleanly. Drafts approved as-is:                                                                                    
+  - docs/operational-tooling/OT-A-5-design.md — Sections A/B/C anchor proposals + v6 batch summary                                    
+  - docs/operational-tooling/OT-A-5-known-issues-followup.md — post-flip state + 5-condition authorization gate                       
+  - .claude/replit-handoffs/nan-coercion-extractguidance-fix.md — new handoff from Claude Code covering the NaN bug in extractGuidance
+   for post-OT-A.5 execution                                                                                                          
+                                                                                                                                      
+  Clock: T+72h from OT-A.4 (7da9f25a at 2026-04-19 18:14 UTC) → eligible 2026-04-22 18:14 UTC.                                        
+                                                                                                                                      
+  Do NOT do (during the 72h window):                                                                                                  
+  - No prompt changes committed to synthesis-schema.ts or research-prompt-builders.ts — would trigger                                 
+  tests/proof/engine-version-drift.test.ts and confound any OT-A.4 regression signal.                                                 
+  - No API spend. Zero v6 trial runs, zero "let me just check one field" calls.      
+  - No commits to server/ai/guidance/extractor.ts (NaN fix is handoff-only until T+72h elapses).                                      
+                                                                                                                                      
+  What IS productive (offline, no API spend) — pick any or all:                                                                       
+                                                                                                                                      
+  1. Section A Q1 re-verification (highest value). Open docs/operational-tooling/OT-A-3-ab-raw.json. For each of the 20 v5 cases,     
+  extract (country, legacy.inflationRate.mid, LEA-cited-source-string). Tabulate distinct legacy inflationRate.mid values vs. country.
+   Apply the decision rule from OT-A-5-design.md §A verification protocol — STAYS / PROMOTED / DEFER. Record the outcome in           
+  OT-A-3-parity-exemptions.md Class 2 table with numeric evidence. If outcome is STAYS: prepare the country-CPI anchor wording for
+  inclusion in v6 batch. If PROMOTED: parity-exempt becomes permanent, Section A drops out of v6 batch.
+  2. Section C.2 v3.3 prompt diff. Open the current OT-A.4 synthesis system prompt (post-7da9f25a). Diff against the v3.3 cost-seg
+  block (commit e5d873fe or equivalent). If the v3.3 clause for costSeg5yrPct is intact, include the strengthening anchor from C.2 in 
+  v6. If the clause was dropped during the OT-A.4 rewrite, the fix is restore-only. Record the diff outcome in OT-A-3-known-issues.md
+  or the design doc.                                                                                                                  
+  3. Draft the Sentry fallback_reason tag patch (from OT-A-5-known-issues-followup.md §"Zod-validation failure"). fallback_reason: 
+  "synthesis_zod" | "dual_panel" at the orchestrator catch site (line ~494) + the existing dual-panel catch site (line ~385). Draft   
+  only — do not commit. Bundle into v6 commit when the window closes.
+  4. Draft the v6 prompt diff. Six USALI anchor insertions (B.1–B.6) + C.2 outcome + Section A outcome. Prepare as a single diff ready
+   to commit the moment T+72h clears. Do NOT commit yet. This is the "ready to go" package.                                           
+  5. Observation duty. Watch Sentry for ContractMigrationParityMisuseError and related OT-A.4 paths. Watch for the NaN-detection
+  pattern (assumption_guidance INSERT with valueMid=0 while valueLow≠0 OR valueHigh≠0). If anything trips: file                       
+  BLOCKED-post-ota4-flip.md immediately and stop all OT-A.5 prep work.
+                                                                                                                                      
+  At T+72h (2026-04-22 18:14 UTC) — if all four preconditions clean:                                                                  
+   
+  - Ping me (the user) for the explicit final $22 spend ack (clause 5 of the gate).                                                   
+  - On ack: commit the v6 prompt diff (single commit, surfaces S10, engine-version bump v2-2026-04-20-a → v2-2026-04-22-a), recompute
+  SYNTHESIS_FINGERPRINT, run the $22 v6 A/B.                                                                                          
+  - Evaluate against the tightened gate: raw T1 ≥ 7/8 OR exemption-adjusted T1 = 8/8 with no new raw regressions on Class 1 fields
+  (incentiveFee, svcFeeMarketing, costFB-once-added).                                                                                 
+  - If gate passes: commit the prompt changes, update OT-A-3-parity-exemptions.md Class 1 table with costFB entry, update
+  OT-A-5-known-issues-followup.md to mark items RESOLVED. OT-A.5 ships.                                                               
+  - If gate fails: pause; file BLOCKED-ota5-v6-gate.md with the per-field outcome; do not commit prompt changes. Back to me for
+  redirect.                                                                                                                           
+                                                            
+  After OT-A.5 ships (whenever that is):                                                                                              
+  - Execute .claude/replit-handoffs/nan-coercion-extractguidance-fix.md — the NaN bug in extractGuidance. Pure logic fix, tests
+  included, commit template provided. Either agent can take it.                                                                       
+                                                               
+  Three other decisions parked with the user (not blocking OT-A.5 work):                                                              
+  - ADR-004 verdict cache: Proposed → Accepted?                                                                                       
+  - Lint Batch 5 + 6 execution strategy (Option 1/2/3 per pre-audit docs)                                                             
+  - OT-B Promptfoo kickoff timing                                                                                                     
+                                                                                                                                      
+  If the user authorizes any of those while the OT-A.5 window runs, they'll ping directly.                                            
+                                                                                                                                      
+  Pull origin/main before starting any of the productive items above — you're ahead as of 7da9f25a+2d072b0d+b9e840e4 (your commits)   
+  and behind by f4c2e7e8 (Claude Code's handoff + count refresh).                                                                     
+                                                                                                                                      
+  Ping when you have any of (1)-(4) drafted or when the observation window trips. 

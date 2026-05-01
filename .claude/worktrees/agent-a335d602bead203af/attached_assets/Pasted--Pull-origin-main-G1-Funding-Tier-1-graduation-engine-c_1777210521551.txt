@@ -1,0 +1,33 @@
+  Pull `origin/main` (G1 Funding Tier-1 graduation engine code is shipped: 6f4696ba, 71061c1d, 8ba81dfd, 9a461f92, ae2a16e7,    
+  e6f6059a, 3a3f244a).                                                                                                          
+                                                                                                                                
+  Read `.claude/replit-handoffs/adr-007-g1-funding-graduation.md` — execute ONLY the "Behavioral verification (manual,          
+  post-merge)" section under ## Verification. The five gates already passed pre-commit; this is dev-server + browser DevTools   
+  work.                                                                                                                      
+                                                                                                                                
+  Steps:                                                          
+  1. Boot dev server.
+  2. Navigate to the Funding (Capital Raise) tab in Mgmt Co assumptions.
+  3. Edit any field, click Save, watch DevTools Network for the `/api/global-assumptions` save response.
+  4. Confirm the response body's verdict.meta carries ONE of:                                                                   
+     - `cognitiveRunId` (UUID) — Tier-1 path active, OR                                                                         
+     - `fallbackReason: "tier1_unavailable"` — Tier-0 fallback active                                                           
+  5. If Tier-1 active: confirm `meta.vendorsUsed` lists ≥2 vendor IDs (per `.claude/rules/llm-vendor-roster.md` requirement #7).
+  6. Confirm `meta.cacheState` is observable. Save the same field twice within TTL → second response should show HIT.           
+  7. Browser console: zero new errors during the save flow.                                                                     
+                                                                                                                                
+  Report back:                                                                                                                  
+  - The actual `meta.cognitiveRunId` / `fallbackReason` value seen                                                              
+  - The vendor list if Tier-1                                     
+  - HIT/MISS observed on second save                                                                                            
+  - Any console errors                                            
+                                                                                                                                
+  If anything fails: file `.claude/replit-handoffs/adr-007-g1-funding-graduation.BLOCKED.md` describing what broke. Do NOT
+  improvise fixes — engine code is CC's lane per `claude-replit-split.md` 2026-04-26 revision.                                  
+                                                                                              
+  If all green: append a 2-line entry to `.claude/session-memory.md` under the latest April 26 session noting "G1 behavioral    
+  verification PASSED" + the captured meta values, then commit with `Surfaces: S-Analyst-Verdict, S-Cognitive-Cache,            
+  S-Resources-Catalog, S-Analyst-Tier0-Fallback` + `Packet: .claude/replit-handoffs/adr-007-g1-funding-graduation.md`. Push.
+                                                                                                                                
+  After your verification commit lands clean and one full session passes, G2 (Revenue Tier-1 graduation) unblocks per ADR-007
+  §2. 

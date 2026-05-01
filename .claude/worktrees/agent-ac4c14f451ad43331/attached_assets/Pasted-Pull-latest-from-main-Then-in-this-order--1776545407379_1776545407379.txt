@@ -1,0 +1,32 @@
+Pull latest from main. Then, in this order:                                                                                                               
+                                                                                   
+  1. Read these three files in full before starting:                                                                                                        
+     - .claude/replit-handoffs/README.md   (workflow)                             
+     - .claude/audit-inventory.md           (dependency surface map S1–S13)                                                                                 
+     - .claude/session-memory.md            (session context)                                                                                               
+                                                                    
+  2. Execute .claude/replit-handoffs/phase-2-verification.md — confirm the 5                                                                                
+     audit commits already on main (ae563c1c, a417f2b1, f916300e, 0ce1f06b,        
+     5d4b4111) did not regress anything. Run every step in the checklist.                                                                                   
+     Report PASS/FAIL when done. If FAIL, file a bug and stop — don't proceed  
+     to phase 4.                                                                                                                                            
+                                                                                                                                                            
+  3. After phase 2 verification PASSES, execute                                                                                                             
+     .claude/replit-handoffs/phase-4-pending-ui-tasks.md. Tasks in order:                                                                                   
+     #9, #10, #11, #12, #14, #15, #16. (Skip #13 — Claude already did that.)                                                                                
+     Each task: commit separately with the suggested message format, run
+     type-check and test:summary after each.                                                                                                                
+                                                                                   
+  4. After all 7 tasks ship, push to main and append a 3-line summary to                                                                                    
+     .claude/session-memory.md under the current session entry.                                                                                             
+                                                                                                                                                            
+  Rules to obey throughout (read them once, then follow):                                                                                                   
+     - .claude/rules/no-hardcoded-values.md                                                                                                                 
+     - .claude/rules/branding-vocabulary-enforcement.md                                                                                                     
+     - .claude/rules/ui-patterns.md                                                                                                                         
+     - .claude/rules/recalculate-on-save.md                                                                                                                 
+     - .claude/rules/financial-safety.md                                                                                                                    
+     - .claude/rules/documentation.md                                                                                                                       
+                                                                                                                                                            
+  Every commit must include a "Surfaces: S?, S?…" footer listing which             
+  dependency surfaces it touched (inventory has the list).    

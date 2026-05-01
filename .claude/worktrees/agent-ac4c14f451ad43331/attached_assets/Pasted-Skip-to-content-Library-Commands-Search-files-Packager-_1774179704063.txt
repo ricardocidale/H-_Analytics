@@ -1,0 +1,51 @@
+Skip to content
+Library
+Commands
+Search files
+Packager files
+Config files
+/
+You are currently viewing a preview of the main version.
+what are the Authorized redirect URIs for this project?
+
+I am creating a Client in Google Cloud
+
+Got it! For setting up the Google Cloud OAuth Client, you'll need to add these as your Authorized redirect URIs:
+
+For production:
+
+https://h-analysis.com/api/auth/google/callback
+For development (Replit):
+You'll also want to add your Replit dev URL. It would follow this pattern:
+
+https://<your-repl-slug>.<your-username>.repl.co/api/auth/google/callback
+You can find your exact Replit dev URL in the webview panel when the app is running.
+
+Make sure both are added in the Google Cloud Console under APIs & Credentials → OAuth 2.0 Client IDs → Authorized redirect URIs so that login works in both environments.
+
+what is my username?
+
+I don't have access to your Google Cloud or Replit account details, so I can't see your username. But you can find your Replit username by looking at the URL in your browser — it's typically in the format replit.com/@YourUsername. Your current Replit dev URL will also be visible in the webview panel when the app is running.
+
+could the username be my email address?
+
+In the context of Google Cloud OAuth, no — the "username" I was referring to is your Replit username, not your email. It's the short handle you chose when you created your Replit account (like @john or @mycompany).
+
+You can spot it easily — just look at the URL bar in your browser right now. It'll be something like:
+
+replit.com/@YourUsername/YourProjectName
+That @YourUsername part is what you need. Your Replit dev URL for the redirect URI would then look something like:
+
+https://YourProjectName.YourUsername.repl.co/api/auth/google/callback
+whre do I find that?
+
+The easiest way to find it: look at the browser address bar right now while you're in your Replit project. The URL will show something like:
+
+https://replit.com/@YourUsername/YourProjectName
+The part right after the @ symbol is your Replit username.
+
+
+Scroll to latest
+
+Ask questions, plan your work…
+Partner Portal - Replit

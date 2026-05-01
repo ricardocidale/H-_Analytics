@@ -1,0 +1,66 @@
+(b) Reframe to severity-bucket parity. 30 minutes well spent.
+                                                                                          
+  Why not (a) or (c)                                                                                                                  
+                                                                                                                                      
+  (a) will fail for a boring reason. "Two independent Opus runs on the same prompt" differ by more than 5% on most numeric fields —   
+  that's inherent model stochasticity, not a migration problem. Even comparing old-path-run-1 vs old-path-run-2 would fail (a).       
+  Dragging it forward to fail anyway produces zero signal.                                                                            
+                                                            
+  (c) might pass but doesn't answer the real question. If 80% within ±15% passes, what did we learn? That two stochastic runs happen  
+  to agree within loose bands on this particular seed. That's not "new path is safe to delete the extractor." It's a coin flip.
+                                                                                                                                      
+  (b) measures what matters for downstream consumers. The business question is "when OT-A.4 ships and we delete the extractor, will   
+  users see the same verdicts?" Downstream consumers consume ranges + conviction tiers, not exact midpoints. If both paths say "ADR is
+   within range, severity: ok" or "marketing spend is below range, severity: warning," that's behavioral equivalence — regardless of  
+  whether the midpoints drift by 8%.                        
+
+  Bucket-match definition to implement
+
+  For each field where both paths produced a value, define bucket-match as:                                                           
+   
+  path_A.low <= path_B.mid <= path_A.high                                                                                             
+    AND                                                     
+  path_B.low <= path_A.mid <= path_B.high
+                                                                                                                                      
+  Translation: both paths' ranges mutually contain each other's midpoints. This directly tests "do the two ranges overlap             
+  meaningfully?" Examples:                                                                                                            
+                                                                                                                                      
+  ┌──────────────────────┬──────────────────────┬──────────────────────────────────────────────┐
+  │     path_A range     │     path_B range     │                bucket-match?                 │
+  ├──────────────────────┼──────────────────────┼──────────────────────────────────────────────┤
+  │ $250–$280 (mid $265) │ $260–$290 (mid $275) │ ✅ Yes — each mid falls in the other's range │
+  ├──────────────────────┼──────────────────────┼──────────────────────────────────────────────┤
+  │ $250–$280 (mid $265) │ $295–$325 (mid $310) │ ❌ No — non-overlapping                      │                                      
+  ├──────────────────────┼──────────────────────┼──────────────────────────────────────────────┤                                      
+  │ $250–$300 (mid $275) │ $260–$310 (mid $285) │ ✅ Yes — heavy overlap                       │                                      
+  ├──────────────────────┼──────────────────────┼──────────────────────────────────────────────┤                                      
+  │ $250–$255 (mid $253) │ $280–$285 (mid $283) │ ❌ No — disjoint tight ranges                │
+  └──────────────────────┴──────────────────────┴──────────────────────────────────────────────┘                                      
+                                                            
+  New criteria for the retry                                                                                                          
+                                                            
+  Run with these instead of the original criteria:                                                                                    
+   
+  ┌─────────────────────────────────────────────────────────────────────────┬────────────────────────┐                                
+  │                                Criterion                                │         Target         │
+  ├─────────────────────────────────────────────────────────────────────────┼────────────────────────┤                                
+  │ Field overlap (same canonical keys emitted)                             │ ≥ 95% per case         │
+  ├─────────────────────────────────────────────────────────────────────────┼────────────────────────┤                                
+  │ Bucket-match on shared fields (the mutual-containment definition above) │ ≥ 80% of shared fields │                                
+  ├─────────────────────────────────────────────────────────────────────────┼────────────────────────┤                                
+  │ Schema validity                                                         │ 100%                   │                                
+  ├─────────────────────────────────────────────────────────────────────────┼────────────────────────┤                                
+  │ Voice violations on new path                                            │ 0                      │
+  ├─────────────────────────────────────────────────────────────────────────┼────────────────────────┤                                
+  │ Latency regression                                                      │ ≤ 2×                   │
+  └─────────────────────────────────────────────────────────────────────────┴────────────────────────┘                                
+   
+  80% bucket-match is a realistic target for stochastic two-shot Opus output — high enough to mean "the two paths agree on the        
+  business conclusion," low enough that normal variance doesn't blow it up.
+                                                                                                                                      
+  Run the full 20                                           
+
+  BYOK confirmed working (Gateway balance unchanged on case 1) — no double-billing risk. Kick off the full 20 with the new            
+  bucket-match criterion. If it hits ≥ 80% bucket-match + ≥ 95% field overlap, we're clear for OT-A.4.
+                                                                                                                                      
+  Ping me with the final results. If bucket-match passes I'll queue OT-A.4 immediately.

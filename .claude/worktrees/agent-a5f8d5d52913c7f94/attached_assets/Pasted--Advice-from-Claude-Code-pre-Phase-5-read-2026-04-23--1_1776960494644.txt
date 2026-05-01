@@ -1,0 +1,133 @@
+● Advice from Claude Code (pre-Phase-5 read, 2026-04-23)                                        
+                                                                                                  
+  Phase 5 (Task #455, Photos & Renders Hardening) is 8 coordinated steps                          
+  spanning schema + scheduler + UI + tests. That's over the atomic-packet                         
+  budget (≤7 sub-steps / ≤3 files / ≤2 domains per claude-replit-split.md                         
+  §Atomic packet budget). Split BEFORE coding:                                                    
+                                                                                                  
+    5a — Pipeline consolidation + rate limit + SSRF verification (steps 1)                        
+    5b — Job history persistence + album call-log UI (steps 2, 3)                                 
+    5c — Upload progress + drag reorder + validation (steps 4, 5)                                 
+    5d — Scheduled runs + cost guardrails (step 6)                                                
+    5e — e2e + funnel tests (steps 7, 8)                                                          
+                                                        
+  Commit boundaries. Each sub-phase gets its own commit trailer.                                  
+                                                        
+  ══════════════════════════════════════════════════════════════════════                          
+  Issues to resolve BEFORE writing code                 
+  ══════════════════════════════════════════════════════════════════════                          
+   
+  • Deleted file referenced in scope.                                                             
+    client/src/pages/ai-intelligence/PhotosAndRendersSpecialistPage.tsx
+    was DELETED in commit 2ab98804 (P2a remediation pt.9, "delete                                 
+    unreachable PhotosAndRendersSpecialistPage"). Step 2 needs to find                            
+    the new host surface. Grep "photos.photo-enhancer" in client/src/ and                         
+    name the replacement component before starting.                                               
+                                                                                                  
+  • Playwright is not installed.                                                                  
+    npm grep finds nothing. Step 7 either (a) adds @playwright/test as
+    a dev dep + CI config — a real decision that wants ADR-grade                                  
+    consideration — or (b) drops to vitest + happy-dom component tests.                           
+    Pick before you start step 7, not mid-step.                                                   
+                                                                                                  
+  ══════════════════════════════════════════════════════════════════════                          
+  Step-by-step preemptive concerns (read before each sub-phase)                                   
+  ══════════════════════════════════════════════════════════════════════                          
+                                                                                                  
+  Step 1 — pipeline consolidation (5a)                                                            
+    This step is the highest-leverage in all of Phase 5. Do it slowly.                            
+    - The canonical path is server/routes/specialist-photo-enhancer.ts                            
+      (not server/routes/specialists-photos-renders.ts — that name doesn't                        
+      exist anymore after Phase 2a). Verify and update your scope doc.                            
+    - Rate limit MUST land with this step. Skipping it adds to the 17                             
+      open CodeQL js/missing-rate-limiting findings. Use express-rate-                            
+      limit keyed on (userId OR ip, specialistId). Photos & Renders                               
+      costs real money per call; no route goes live without it.                                   
+    - SSRF verification. Photos & Renders calls Replicate + OpenAI-image                          
+      via server/lib/fetch-with-timeout.ts, which has 2 open CRITICAL                             
+      js/request-forgery CodeQL findings. Consolidation must not widen                            
+      this surface. Before commit, grep for every caller of fetchWithTimeout                      
+      in the photos pipeline and confirm the URLs are hard-coded / derived                        
+      from a closed enum, not user input.                                                         
+    - Single research_runs write. The consolidation has to delete the                             
+      legacy write paths (not leave them in as "compat"). Otherwise                               
+      history views in step 2 will show duplicates.                                               
+                                                                                                  
+  Step 2 — job history persistence (5b)                                                           
+    - The query filter metadata->>'specialistId' = 'photos.photo-enhancer'                        
+      is a JSON path query. If research_runs has grown past a few thousand                        
+      rows, this will be slow. Check if the existing index on metadata is                         
+      GIN; if not, either add one or use a dedicated column.                                      
+    - Admin-gated? Audit whether job history exposes any user-identifying                         
+      data (actor_user_id, property IP, etc.). If yes, requireAdmin. If no,                       
+      still requireAdmin because Photos & Renders is an admin feature.                            
+    - Query key invalidation: new render completes → invalidate the                               
+      history query so UI updates without a refresh.                                              
+                                                                                                  
+  Step 3 — album call-log UI (5b)                                                                 
+    - Reuses step 2's storage method but adds propertyId filter. Make                             
+      the storage method signature take an OPTIONAL propertyId so step 2                          
+      and step 3 call the same method.                                                            
+                                                                                                  
+  Step 4 — upload progress (5c)                                                                   
+    - Fetch API cannot expose upload progress. This step requires XHR                             
+      (XMLHttpRequest) or axios. Plan for it.                                                     
+    - Keep per-file state keyed on a stable fileId (crypto.randomUUID()
+      at pick time), NOT on array index. Index-based state breaks as soon                         
+      as the user removes a file mid-upload.                                                      
+                                                                                                  
+  Step 5 — drag reorder (5c)                                                                      
+    - Mandatory server-side validations on PUT /api/properties/:id/photos/order:                  
+        (a) every photoId in body belongs to :id → else 403                                       
+        (b) array length === current photo count → else 400                                       
+        (c) array is a permutation (no dupes, no omits) → else 400                                
+    - Transactional update. UPDATE photos SET display_order = $N WHERE id = $id                   
+      inside a single transaction, not N separate queries. Partial writes                         
+      corrupt the album.                                                                          
+    - Concurrency: two admins reorder at once = last-write-wins. Document                         
+      or add a display_order_version column. LWW is probably fine for                             
+      admin tooling.                                                                              
+                                                                                                  
+  Step 6 — scheduled runs (5d)                                                                    
+    - Cost guardrail. Each run bills Replicate or OpenAI. Admin sets a                            
+      cadence once and forgets → potentially $1000s if cadence is                                 
+      "hourly". Mandatory: hard cap of max-runs-per-day per schedule                              
+      (default 24), a kill switch, and an audit log of every scheduled                            
+      invocation.                                                                                 
+    - Persistence. photos_render_schedules.nextRunAt + lastRunAt must                             
+      survive restart. A scheduler that only lives in-memory loses state                          
+      on every deploy.                                                                            
+    - Timezones. Store nextRunAt as timestamptz, not timestamp. Document                          
+      whether cadence is UTC or local.                                                            
+    - Auth identity. The scheduler runs server-side. Audit log should
+      record actor = "scheduler:<scheduleId>", not the admin who last                             
+      touched the schedule.                                                                       
+                                                                                                  
+  Step 7 — e2e tests                                                                              
+    - See "Playwright not installed" above. Decide first.
+                                                                                                  
+  Step 8 — funnel tests
+    - Must cover: rate-limit hit (429 returned), OpenAI fallback path                             
+      (Replicate 5xx → OpenAI 200), research_runs row written with                                
+      correct specialistId. Integration test hits a test DB, not mocks.                           
+                                                                                                  
+  ══════════════════════════════════════════════════════════════════════                          
+  Branch reminder                                                                                 
+  ══════════════════════════════════════════════════════════════════════                          
+   
+  The branch is now 207 commits ahead of main. Before Phase 5 starts,                             
+  push to origin so the work isn't just local. If Phase 5a lands cleanly
+  and the five gates pass, that's a logical merge-to-main checkpoint.                             
+  Phase 5b-e can happen on a new branch after Phase 5a is in main. That                           
+  prevents another 200-commit branch from forming.                                                
+                                                                                                  
+  ══════════════════════════════════════════════════════════════════════                          
+  Order of operations                                                                             
+  ══════════════════════════════════════════════════════════════════════
+
+    1. Reconcile the deleted PhotosAndRendersSpecialistPage path.                                 
+    2. Decide Playwright vs vitest for step 7.
+    3. Split Phase 5 into 5a/5b/5c/5d/5e packets. One commit per sub-phase.                       
+    4. Execute 5a (pipeline consolidation). Five-gate it. Push to origin.                         
+    5. STOP. Ping for review before starting 5b. Phase 5a is the                                  
+       highest-risk step; don't bundle it with anything else. 

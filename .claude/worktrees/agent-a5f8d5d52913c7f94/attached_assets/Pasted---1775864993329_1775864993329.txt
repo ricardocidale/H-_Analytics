@@ -1,0 +1,83 @@
+  ---                                                                                                                                                                                                                  
+  There are 7 codebase improvements to make. Do them in order, verify after each one.
+                                                                                                                                                                                                                       
+  1. Add .claude/settings.local.json to .gitignore          
+                                                                                                                                                                                                                       
+  This file contains personal local Claude settings and keeps showing as modified. Add it to .gitignore under the "Replit agent artifacts" section and run git rm --cached .claude/settings.local.json to stop tracking
+   it.                                                                                                                                                                                                                 
+                                                                                                                                                                                                                       
+  2. Expand ESLint coverage to client and server code       
+
+  Currently eslint.config.mjs only enforces rules on calc/**/*.ts and engine/**/*.ts. Add a new config block for client/src/**/*.{ts,tsx} and server/**/*.ts with a baseline rule set:                                 
+  - @typescript-eslint/no-unused-vars (error, with _ prefix exception)
+  - no-console (warn for console.log, allow console.error/console.warn)                                                                                                                                                
+                                                                       
+  Don't apply the strict financial rules (no Math.pow, no any, no || 0) to client/server — those stay calc/engine only. Fix any violations that surface, or adjust the rule severity if there are too many to fix at   
+  once.                                                                                                                                                                                                                
+                                                                                                                                                                                                                       
+  3. Parallelize CI jobs                                                                                                                                                                                               
+                                                            
+  In .github/workflows/ci.yml, the test-and-verify job has needs: lint-and-typecheck, making them sequential. They're independent — run them in parallel by removing the needs line. Both jobs already do their own npm
+   install. This cuts CI wall time roughly in half.
+                                                                                                                                                                                                                       
+  4. Reduce as any further (target: under 100)                                                                                                                                                                         
+   
+  Current count: 120 (server: 50, client: 70). The biggest safe wins:                                                                                                                                                  
+                                                            
+  a) jsPDF lastAutoTable (7 instances): Create a type augmentation file client/src/types/jspdf-autotable.d.ts:                                                                                                         
+  import "jspdf";                                           
+  declare module "jspdf" {                                                                                                                                                                                             
+    interface jsPDF {                                       
+      lastAutoTable?: { finalY: number };
+    }                                    
+  }                                                                                                                                                                                                                    
+  Then replace (doc as any).lastAutoTable.finalY with doc.lastAutoTable?.finalY in these files:
+  - client/src/components/admin/verification/index.tsx (5 instances)                                                                                                                                                   
+  - client/src/components/dashboard/exportRenderersPdf.ts (1)                                                                                                                                                          
+  - client/src/components/dashboard/exportRenderersPdfComprehensive.ts (1)                                                                                                                                             
+  - client/src/components/sensitivity/useSensitivityExports.ts (1)                                                                                                                                                     
+                                                                                                                                                                                                                       
+  b) Property type in Excel exports (~12 instances): In client/src/lib/exports/excel/property-sheets.ts, the property parameter is typed as LoanParams but code accesses .purchasePrice, .buildingImprovements,        
+  .preOpeningCosts, .operatingReserve. Either widen the parameter type to include those fields, or create an intersection type.                                                                                        
+                                                                                                                                                                                                                       
+  Similarly in client/src/lib/exports/excel/portfolio-sheet.ts, prop accesses .acquisitionDate, .operationsStartDate, .purchasePrice, .buildingImprovements, .operatingReserve.                                        
+                                                            
+  Run npm run audit:quick after and confirm the as any count is under 100.                                                                                                                                             
+                                                            
+  5. Split 5 files over 500 lines                                                                                                                                                                                      
+                                                            
+  These files are over the 500-line threshold per npm run audit:quick:                                                                                                                                                 
+  - client/src/components/statements/YearlyCashFlowStatement.tsx (671 lines)
+  - client/src/components/dashboard/BalanceSheetSections.tsx (671 lines)                                                                                                                                               
+  - client/src/App.tsx (667 lines)                                      
+  - client/src/components/admin/intelligence/DataSourcesTab.tsx (662 lines)                                                                                                                                            
+  - client/src/lib/exports/researchPdfExport.ts (653 lines)                                                                                                                                                            
+                                                           
+  Split each into focused sub-modules and re-export from the original file for backward compatibility. Target: each piece under 500 lines. Use the same pattern as the earlier sidebar/Scenarios/icp-config splits.    
+                                                                                                                                                                                                                       
+  6. Enable Vitest thread pool                                                                                                                                                                                         
+                                                                                                                                                                                                                       
+  In vitest.config.ts, add pool configuration to parallelize test execution:                                                                                                                                           
+  test: {                                                   
+    include: ["tests/**/*.test.ts"],
+    exclude: ["tests/e2e/**"],      
+    pool: "threads",                                                                                                                                                                                                   
+  },                                                                                                                                                                                                                   
+  Run npm run test:summary and verify all 4,463 tests still pass. Compare runtime before/after.                                                                                                                        
+                                                                                                                                                                                                                       
+  7. Verify bundle lazy-loading                                                                                                                                                                                        
+                                                                                                                                                                                                                       
+  Check that these heavy chunks only load when needed (not on initial page load):                                                                                                                                      
+  - vendor-exports (1.2MB — jsPDF, xlsx, pptxgenjs) — should only load when user clicks Export                                                                                                                         
+  - maplibre-gl (999KB) — should only load on the map page                                                                                                                                                             
+                                                            
+  Run npx vite build --report or check the network tab. If either loads eagerly, wrap the import in React.lazy() or ensure the dynamic import() is inside the action handler, not at module scope.                     
+                                                                                                                                                                                                                       
+  Verification after all 7                                                                                                                                                                                             
+                                                                                                                                                                                                                       
+  Run these and confirm all pass:                                                                                                                                                                                      
+  npm run health                                            
+  npm run audit:quick
+  npm run test:summary
+                      
+  Expected: 0 TS errors, 0 lint errors, as any under 100, no files over 500 lines in the audit top-5, all tests pass, UNQUALIFIED verification.

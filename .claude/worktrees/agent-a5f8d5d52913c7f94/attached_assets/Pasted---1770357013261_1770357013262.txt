@@ -1,0 +1,172 @@
+  ---                                                                                                                                                                                                                                   
+  Formula Errors & Fixed Variables Audit Report
+                                                                                                                                                                                                                                        
+  CRITICAL: Formula Errors                                                                                                                                                                                                              
+
+  1. LTV Applied to Different Bases (Two Engines Disagree)
+
+  Files: financialEngine.ts:250 vs loanCalculations.ts:108-111
+
+  - Monthly Engine (financialEngine.ts):
+  totalPropertyValue = purchasePrice + buildingImprovements
+  loanAmount = totalPropertyValue × LTV
+  - Yearly Engine (loanCalculations.ts):
+  totalInvestment = purchasePrice + buildingImprovements + preOpeningCosts + operatingReserve
+  loanAmount = totalInvestment × LTV
+
+  Impact: For a property with $5M purchase + $500K improvements + $200K pre-opening + $100K reserves at 65% LTV:
+  - Monthly engine: $5.5M × 0.65 = $3.575M loan
+  - Yearly engine: $5.8M × 0.65 = $3.770M loan
+  - $195K difference in loan amount, cascading to different debt service, interest, cash flow, IRR, and balance sheet figures
+
+  The monthly pro forma (used in property detail views) and the yearly cash flow model (used in Dashboard, Balance Sheet) show different numbers for the same property.
+
+  ---
+  2. ADR Growth Tied to Model Month, Not Property Operations Month
+
+  File: financialEngine.ts:277-278
+
+  if (i > 0 && i % 12 === 0) {
+    currentAdr = currentAdr * (1 + property.adrGrowthRate);
+  }
+
+  i is the model month index (0-119). ADR grows at model month 12, 24, 36... regardless of when the property starts operating. A property acquired in month 6 gets its first ADR increase at model month 12 (only 6 months of
+  operations), while a property acquired at month 0 gets it at month 12 (12 months). The growth should be tied to monthsSinceOps, not i.
+
+  ---
+  3. Company Incentive Fee Recalculation Differs from Engine
+
+  File: Company.tsx:178-181 vs financialEngine.ts:359
+
+  - Company.tsx: yearlyGOP × incentiveManagementFee (annual GOP can net negative months against positive months)
+  - Engine: Math.max(0, gop * incentiveManagementFee) per month (negative GOP months produce $0 fee, not negative fee)
+
+  The monthly Math.max(0, ...) clamp means the annual sum from the engine is always >= the annual-recalculation approach in Company.tsx. Any month where GOP is negative produces $0 in the engine but reduces the annual GOP in the
+  Company.tsx calculation.
+
+  ---
+  4. Balance Sheet Debt Off-by-One
+
+  File: ConsolidatedBalanceSheet.tsx:106
+
+  const debtOutstanding = getOutstandingDebtAtYear(loan, refi, year - 1);
+
+  The balance sheet displays "Year N" but passes year - 1 to the debt function. Inside getOutstandingDebtAtYear, yearEnd is used with (yearEnd + 1) * 12 to compute end-of-year month. Passing year - 1 means: (year - 1 + 1) * 12 =
+  year * 12 months. This actually may be correct for 0-indexed year semantics, but needs verification against how year is defined in the component's props (it appears to be 1-indexed based on the slider usage).
+
+  ---
+  HIGH: Status Filter Mismatch
+
+  5. "Operating" vs "Operational" Property Filter
+
+  Files: Company.tsx:158 vs Dashboard.tsx:222
+
+  - Company.tsx: properties.filter(p => p.status === "Operating")
+  - Dashboard.tsx: properties.filter(p => p.status === "Operational" || p.status === "Development")
+
+  These filter different sets of properties. If the actual status value in the database is "Operational", then Company.tsx gets 0 active properties, causing staffing tier calculations and all per-property variable costs to be wrong.
+
+  ---
+  HIGH: Fixed Variables That Should Be Dynamic
+
+  6. Partner Compensation Not Inflation-Adjusted
+
+  File: financialEngine.ts:591-604
+
+  const totalPartnerCompForYear = yearlyPartnerComp[yearIndex];
+  partnerCompensation = totalPartnerCompForYear / 12;
+
+  Partner comp is a fixed schedule (e.g. $150K, $175K, $200K...) with NO fixedCostFactor applied. But on the very next line:
+  staffCompensation = (staffFTE * staffSalary * fixedCostFactor) / 12;
+  Staff comp, office lease, professional services, tech infra, and insurance ALL use fixedCostFactor (inflation). Partner comp is the only fixed cost that doesn't inflate.
+
+  ---
+  7. Company.tsx Hardcoded 10-Year Projection
+
+  File: Company.tsx:184
+
+  const years = Array.from({ length: 10 }, (_, i) => getFiscalYear(i));
+
+  This is hardcoded to 10 years. The global assumption projectionYears exists and is used elsewhere (Dashboard uses projectionYears), but Company.tsx ignores it.
+
+  ---
+  8. landValuePercent Default Hardcoded, Not a Global Assumption
+
+  Files: financialEngine.ts:244, loanCalculations.ts:120
+
+  const landPct = property.landValuePercent ?? 0.25;
+
+  The 0.25 (25%) fallback is hardcoded in both engines. It's not exposed as a Global Assumption, so if a user doesn't set it per-property, every property defaults to 25% land value. This significantly affects depreciation
+  calculations.
+
+  ---
+  9. Depreciation Uses Residential Rate for All Properties
+
+  Files: constants.ts — DEPRECIATION_YEARS = 27.5
+
+  27.5-year straight-line is the IRS rate for residential rental property. Commercial/hospitality properties use 39-year depreciation under MACRS. The model uses 27.5 for all properties regardless of type. This should either vary by
+   property type or be a configurable assumption.
+
+  ---
+  MEDIUM: Formula Concerns
+
+  10. Company Balance Sheet Treats SAFE Notes as Liabilities
+
+  File: Company.tsx:431-433
+
+  rows.push({ category: "SAFE Notes", values: safeValues, indent: 1 });
+  rows.push({ category: "TOTAL LIABILITIES", values: safeValues, isHeader: true });
+
+  SAFE notes are classified under LIABILITIES. Under current GAAP (ASC 480), SAFEs may be classified as equity or mezzanine depending on their terms. The model treats them as pure debt.
+
+  ---
+  11. Company Cash Flow = Net Income + SAFE Funding Only
+
+  File: Company.tsx:390, 396
+
+  return yearData.reduce((a, m) => a + m.netIncome + m.safeFunding, 0);
+
+  Cash flow is calculated as netIncome + safeFunding. This is only valid if there are zero non-cash items (no depreciation, no accruals). For the management company this may be acceptable since it's asset-light, but it conflates net
+   income with cash flow.
+
+  ---
+  12. Occupancy Growth Uses Floor Division (Step Function)
+
+  File: financialEngine.ts:283
+
+  const rampSteps = Math.floor(monthsSinceOps / property.occupancyRampMonths);
+
+  If occupancyRampMonths = 3, occupancy jumps on months 0, 3, 6, 9... This creates a staircase rather than a smooth ramp. For a property with startOccupancy=0.40, maxOccupancy=0.75, occupancyGrowthStep=0.05, ramp months=3: occupancy
+   stays at 40% for months 0-2, jumps to 45% at month 3, etc. This is likely intentional design but worth confirming.
+
+  ---
+  Summary Table
+  ┌─────┬──────────┬───────────┬───────────────────────────────────────────────────────────────────┐
+  │  #  │ Severity │   Type    │                               Issue                               │
+  ├─────┼──────────┼───────────┼───────────────────────────────────────────────────────────────────┤
+  │ 1   │ CRITICAL │ Formula   │ LTV applied to different cost bases between engines               │
+  ├─────┼──────────┼───────────┼───────────────────────────────────────────────────────────────────┤
+  │ 2   │ CRITICAL │ Formula   │ ADR growth tied to model month, not operations month              │
+  ├─────┼──────────┼───────────┼───────────────────────────────────────────────────────────────────┤
+  │ 3   │ CRITICAL │ Formula   │ Incentive fee monthly-clamped vs annual recalculation             │
+  ├─────┼──────────┼───────────┼───────────────────────────────────────────────────────────────────┤
+  │ 4   │ HIGH     │ Formula   │ Balance sheet debt year indexing (verify off-by-one)              │
+  ├─────┼──────────┼───────────┼───────────────────────────────────────────────────────────────────┤
+  │ 5   │ HIGH     │ Variable  │ Status filter "Operating" vs "Operational" mismatch               │
+  ├─────┼──────────┼───────────┼───────────────────────────────────────────────────────────────────┤
+  │ 6   │ HIGH     │ Fixed var │ Partner comp not inflation-adjusted (unlike all other costs)      │
+  ├─────┼──────────┼───────────┼───────────────────────────────────────────────────────────────────┤
+  │ 7   │ HIGH     │ Fixed var │ Company.tsx hardcoded to 10 years, ignores projectionYears        │
+  ├─────┼──────────┼───────────┼───────────────────────────────────────────────────────────────────┤
+  │ 8   │ MEDIUM   │ Fixed var │ landValuePercent 25% default not configurable globally            │
+  ├─────┼──────────┼───────────┼───────────────────────────────────────────────────────────────────┤
+  │ 9   │ MEDIUM   │ Fixed var │ Depreciation always 27.5 years (residential), not 39 (commercial) │
+  ├─────┼──────────┼───────────┼───────────────────────────────────────────────────────────────────┤
+  │ 10  │ MEDIUM   │ Formula   │ SAFE notes classified as liabilities (GAAP depends on terms)      │
+  ├─────┼──────────┼───────────┼───────────────────────────────────────────────────────────────────┤
+  │ 11  │ MEDIUM   │ Formula   │ Company cash flow = net income (no non-cash adjustments)          │
+  ├─────┼──────────┼───────────┼───────────────────────────────────────────────────────────────────┤
+  │ 12  │ LOW      │ Formula   │ Occupancy ramp is a staircase, not a smooth curve                 │
+  └─────┴──────────┴───────────┴───────────────────────────────────────────────────────────────────┘
+  Issues #1, #2, and #3 are the most impactful because they produce different financial results between the two calculation engines and between the monthly/yearly views. Issue #5 could silently zero out company staffing costs if the
+   status value doesn't match.

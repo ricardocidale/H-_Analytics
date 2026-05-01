@@ -1,0 +1,126 @@
+  Toggle Compliance Audit — Fee Categories, Service Templates, costSegEnabled                                                                                                                                          
+                                                                                                                                                                                                                       
+  What was done (Claude Code)
+                                                                                                                                                                                                                       
+  Audited three toggle systems that control financial calculations: per-property fee category isActive, company service template isActive, and costSegEnabled. Found and fixed 2 bugs, added 17 proof tests.           
+   
+  ---                                                                                                                                                                                                                  
+  Bug 1 Fixed (CRITICAL): Server compute path omitted service templates
+                                                                                                                                                                                                                       
+  Files changed: server/finance/service.ts, server/routes/finance.ts
+                                                                                                                                                                                                                       
+  What was wrong: When USE_SERVER_COMPUTE=true (the default deployment mode), the server-side compute functions computePortfolioProjectionWithAudit and computeCompanyProjection called                                
+  generateCompanyProForma(properties, globalAssumptions, months) with only 3 arguments. The 4th parameter serviceTemplates was never passed. This meant:                                                               
+  - The company engine's hasServiceTemplates gate was always false                                                                                                                                                     
+  - computeCostOfServices was never called                        
+  - Vendor cost-of-services was always zero
+  - Company gross profit was overstated by the entire vendor cost amount                                                                                                                                               
+  
+  What was fixed:                                                                                                                                                                                                      
+  - Added serviceTemplates?: ServiceTemplate[] to both ComputePortfolioInput and ComputeCompanyInput interfaces in server/finance/service.ts
+  - Both generateCompanyProForma calls in that file now pass input.serviceTemplates                                                                                                                                    
+  - Both finance routes (/api/finance/compute and /api/finance/company in server/routes/finance.ts) now load service templates from storage via storage.getAllServiceTemplates(), map them to the ServiceTemplate type,
+   and include them in the compute input                                                                                                                                                                               
+  - The engine already accepts templates as an optional 4th arg, so no engine changes were needed                                                                                                                      
+                                                                                                                                                                                                                       
+  Impact: Company financial statements now correctly include vendor cost-of-services when service templates are configured with serviceModel: 'centralized'. This affects the Company page, consolidated exports, and  
+  any downstream analysis that uses company P&L data.                                                                                                                                                                  
+                                                                                                                                                                                                                       
+  ---                                                                                                                                                                                                                  
+  Bug 2 Fixed (HIGH): Service template admin routes missing cache invalidation
+
+  File changed: server/routes/admin/services.ts
+
+  What was wrong: All 4 mutation handlers (create, update/toggle isActive, delete, sync-to-properties) did NOT call invalidateComputeCache(). When an admin toggled a service template inactive or changed its markup  
+  rate, the server-side compute cache continued serving stale company financials until some other event (like a property update) happened to invalidate it.
+                                                                                                                                                                                                                       
+  What was fixed: Added import { invalidateComputeCache } from "../../finance/cache" and invalidateComputeCache() call in each of the 4 mutation handlers: POST create, PATCH update, DELETE, and POST sync.           
+  
+  ---                                                                                                                                                                                                                  
+  Verified Correct (no changes needed)                      
+                                      
+  Fee categories isActive (per-property):
+  - Engine: resolve-assumptions.ts line 238 filters feeCategories?.filter(c => c.isActive) ✓                                                                                                                           
+  - Engine branch: property-engine.ts line 122 uses hasActiveFeeCategories to decide sum-of-categories vs flat rate ✓                                                                                                  
+  - Exports: All consume feeBase from engine output (already filtered) ✓                                                                                                                                               
+  - Consolidated statements: Consolidation sums feeBase per property (already filtered) ✓                                                                                                                              
+  - Scenarios: Fee categories preserved via getFeeCategoriesByProperties() + stripAutoFields() ✓                                                                                                                       
+  - Verification checker: cross-calculator validation checks feeCategories.filter(c => c.isActive).length ✓                                                                                                            
+  - UI: ManagementFeesSection line 95-101 toggle, total computed from active-only categories ✓                                                                                                                         
+                                                                                                                                                                                                                       
+  Service templates isActive (company-level):                                                                                                                                                                          
+  - Engine: cost-of-services.ts line 37 if (t.isActive) gates lookup map ✓                                                                                                                                             
+  - Sync to properties: services.ts line 45 activeTemplates = templates.filter(t => t.isActive) ✓                                                                                                                      
+  - AI context: company-pack.ts line 162 filters active templates ✓                              
+  - Admin UI: ServicesTab shows toggle, opacity-50 when inactive ✓                                                                                                                                                     
+                                                            
+  costSegEnabled (per-property):                                                                                                                                                                                       
+  - Engine: resolve-assumptions.ts line 143, 153 branches to multi-tier depreciation ✓
+  - Engine: property-engine.ts line 190 applies correct depreciation method ✓                                                                                                                                          
+  - Scenarios: Preserved via catch-all [key: string]: unknown in snapshot type ✓
+  - Checker: line 349-365 branches on flag ✓                                                                                                                                                                           
+  - Exports: Consume depreciationExpense from engine output (already computed correctly) ✓                                                                                                                             
+                                                                                                                                                                                                                       
+  ---                                                                                                                                                                                                                  
+  Proof Tests Added                                                                                                                                                                                                    
+                                                                                                                                                                                                                       
+  File: tests/proof/toggle-compliance.test.ts — 17 tests    
+                                                                                                                                                                                                                       
+  - Fee category: resolve-assumptions filters, property-engine branches, engine types define isActive, UI toggles                                                                                                      
+  - Service template: cost-of-services filters, sync filters active, AI context filters, ComputePortfolioInput has serviceTemplates, ComputeCompanyInput has serviceTemplates, server compute passes templates, finance
+   routes load templates                                                                                                                                                                                               
+  - Cache: admin service routes call invalidateComputeCache at least 4 times
+  - costSegEnabled: resolve-assumptions reads it, property-engine branches, schema defaults false                                                                                                                      
+  - Scenarios: ScenarioPropertySnapshot allows isActive, scenario helpers fetch fee categories                                                                                                                         
+                                                                                                                                                                                                                       
+  ---                                                                                                                                                                                                                  
+  What Replit needs to do (3 items)                                                                                                                                                                                    
+                                                                                                                                                                                                                       
+  1. PropertyFeeSummaryTable — Inactive Fee Category Indicator
+                                                                                                                                                                                                                       
+  File: client/src/components/company-assumptions/PropertyFeeSummaryTable.tsx                                                                                                                                          
+                                                                                                                                                                                                                       
+  Problem: The fee summary table on the Company Assumptions page shows all fee categories per property. Column headers (line ~18) correctly filter to active categories only: allFeeCategories.filter(c =>             
+  c.isActive).map(c => c.name). But the per-property rows (line ~76-79) display ALL categories including inactive ones with only a muted text color to differentiate. This creates a visual mismatch — columns don't
+  align with cell data.                                                                                                                                                                                                
+                                                            
+  Fix: Two options:
+  - Option A (simpler): Only show active fee categories in both the header AND the row cells. Filter out inactive ones entirely.
+  - Option B (more informative): Keep inactive categories visible but add a consistent visual pattern — grey the cell text, add a small strikethrough or "—" instead of the rate value, and optionally show an         
+  "(inactive)" label. Match the pattern from ManagementFeesSection.tsx which uses line-through on inactive category names.                                                                                    
+                                                                                                                                                                                                                       
+  2. costSegEnabled — Add UI Toggle to Property Edit        
+                                                                                                                                                                                                                       
+  File: client/src/pages/PropertyEdit.tsx or the relevant property edit section                                                                                                                                        
+                                                                                                                                                                                                                       
+  Problem: The costSegEnabled field has full engine support (multi-tier 5yr/7yr/15yr/rest depreciation), checker support, and scenario preservation — but there is no UI toggle anywhere for users to enable it. The   
+  only way to set it is via direct API/DB access.           
+                                                                                                                                                                                                                       
+  Fix: Add a toggle switch in the Property Edit page, likely in the financing/capital structure section near the depreciation-related fields. Use the standard Switch component pattern:                               
+  - Label: "Cost Segregation Study" or "Enable Cost Segregation"
+  - Description tooltip: "Apply accelerated depreciation using cost segregation analysis (5, 7, 15-year schedules instead of straight-line 27.5 years)"                                                                
+  - Default: off (matches schema default of false)                                                                                                     
+  - When toggled, it should trigger invalidateAllFinancialQueries like other property financial mutations                                                                                                              
+  - The field name in the API payload is costSegEnabled                                                                                                                                                                
+                                                                                                                                                                                                                       
+  When enabled, also show the cost seg basis fields if they exist: costSeg5yrPct, costSeg7yrPct, costSeg15yrPct (the percentages of total property value allocated to each accelerated tier).                          
+                                                                                                                                                                                                                       
+  3. Service Templates Not in Scenario Snapshots                                                                                                                                                                       
+                                                                                                                                                                                                                       
+  Context (informational, discuss before implementing): Service templates are NOT included in scenario snapshots. The scenarios table has no serviceTemplates column, and buildCreateSnapshotData does not capture     
+  them. This means:                                         
+  - Saving a scenario captures property data and fee categories, but NOT the company's service template configuration                                                                                                  
+  - Loading a scenario restores properties and fees but uses CURRENT service templates                                                                                                                                 
+  - If templates changed between save and load, the company P&L will differ from what was originally saved
+                                                                                                                                                                                                                       
+  This may be by design (service templates are company infrastructure, not scenario-specific). But if users expect scenario snapshots to fully reproduce financial results, this is a gap.                             
+                                                                                                                                                                                                                       
+  Decision needed: Should service templates be included in scenario snapshots? If yes, add a serviceTemplates JSONB column to the scenarios table, capture them in buildCreateSnapshotData, and restore them on load.  
+  If no, document that company service template configuration is not scenario-specific.                                                                                                                                
+                                                                                                                                                                                                                       
+  Verification                                              
+
+  After all changes:
+  npm run test:summary    # all 4,495 tests pass
+  npm run health          # ALL CLEAR           
+                                           

@@ -1,0 +1,73 @@
+  ---
+  Task: Breakeven Reverse-Solve panel on the Sensitivity page                                                                                                                                                         
+                                                             
+  Build a "Breakeven Targets" panel that answers: what does each key driver need to be for this deal to work? It's the inverse of the existing stress-test — instead of "what happens at X ADR," it answers "what ADR 
+  is needed to hit a target."                                                                                                                                                                                         
+   
+
+  Build a "Breakeven Targets" panel that answers: what does each key driver need to be for this deal to work? It's the inverse of the existing stress-test — instead of "what happens at X ADR," it answers "what ADR
+  is needed to hit a target."
+
+  ---
+  What to compute (six reverse-solve lines)
+
+  For the selected property, compute and display:
+
+  1. Breakeven ADR — ADR needed to cover all operating expenses + debt service (ANOI ≥ 0 after debt payments)
+  2. Breakeven Occupancy — occupancy % needed at the current ADR assumption to cover debt service
+  3. Breakeven RevPAR — RevPAR needed to cover debt service (= breakeven ADR × breakeven occupancy)
+  4. Breakeven Going-In Cap Rate — cap rate at which the purchase price equals the stabilized NOI / cap, i.e. the minimum cap rate the deal pencils at
+  5. Breakeven Debt Rate — the maximum interest rate at which the property still achieves DSCR ≥ 1.0
+  6. Breakeven Terminal Cap — the exit cap rate ceiling beyond which IRR turns negative (reverse-solve from calc/returns/irr.ts)
+
+  For each line also show: current assumption, breakeven value, gap (current − breakeven), and a pass/fail badge (green = current is better than breakeven, red = current is worse).
+
+  ---
+  Where to put the calculation logic
+
+  Create client/src/lib/financial/breakeven-targets.ts. Export a single pure function:
+
+  export function computeBreakevenTargets(
+    inputs: BreakevenInputs
+  ): BreakevenTargets
+
+  BreakevenInputs should pull from the same data the Sensitivity page already has (property assumptions + engine output). Do NOT inline the math in the component.
+
+  ---
+  Critical financial rules — do not skip these
+
+  - Use ANOI, not NOI. ANOI = NOI − FF&E reserve. Debt service is paid from ANOI. Using NOI overstates available cash. Reference: client/src/lib/financial/property-engine.ts — the engine defines cashFlow = anoi -
+  debtPayment - incomeTax.
+  - Use the same debt service formula as the engine. Look at client/src/lib/financial/loanCalculations.ts — use the calculateMonthlyPayment / PMT function already there; do not re-implement it.
+  - No Math.pow — use dPow from calc/shared/decimal.ts.
+  - Guard all division — whenever a denominator could be zero (rooms, occupancy, ADR), check before dividing and return null rather than Infinity or NaN.
+  - No hardcoded rate thresholds — the "target CoC" or "target DSCR floor" must come from the property's assumptions or a named constant in shared/constants.ts, never a raw literal like 0.08.
+  - No safeNum or || 0 on computed financial results — use assertFinite(value, label) from calc/shared/decimal.ts for values that must be finite.
+
+  ---
+  Where to put the UI
+
+  Add the panel to the existing Sensitivity Analysis page (client/src/pages/SensitivityAnalysis.tsx or wherever the sensitivity tab lives). It should appear as a section alongside the existing stress-test grid, not
+   on a separate page.
+
+  Use the same design patterns as the rest of the page — gradient cards, animated number reveals, the same color system for pass/fail (green/red). Badge the gap value: if the current assumption is within 10% of
+  breakeven, show an amber warning badge ("Close to breakeven").
+
+  ---
+  Files to read before starting
+
+  - client/src/lib/financial/property-engine.ts — engine formulas, especially how ANOI, cashFlow, and debtPayment are computed
+  - client/src/lib/financial/loanCalculations.ts — PMT / debt service math
+  - calc/analysis/stress-test.ts — how the existing stress-test is structured (mirror the pattern)
+  - client/src/pages/SensitivityAnalysis.tsx (or wherever the Sensitivity page lives) — where to add the panel
+  - shared/constants.ts — existing named constants; add any new thresholds here
+
+  ---
+  What CC will check in review
+
+  - Breakeven ADR × breakeven occupancy ≈ breakeven RevPAR (internal consistency)
+  - Forward-verify: plugging the breakeven ADR back into the engine should produce ANOI ≈ debt service (within $1 rounding)
+  - No NOI/ANOI confusion
+  - No hardcoded values
+  - Division guards present
+  - Calc logic isolated in breakeven-targets.ts, not in the component

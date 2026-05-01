@@ -1,0 +1,20 @@
+  ---                                                                                                                                                                                                                  
+  The technical debt cleanup sprint is complete. Here's what was done across both agents so you're up to date:                                                                                                         
+                                                                                                                                                                                                                       
+  Task 1 — Hardcoded hex colors: Replaced in StarRatingInput.tsx (used currentColor + CSS class) and RebeccaAnalyticsTab.tsx (extracted H+ brand colors to named constants HP_NAVY, HP_TEAL, HP_GOLD; replaced
+  remaining chart colors with hsl(var(--chart-N))).                                                                                                                                                                    
+                                                            
+  Task 2 — Domain boundary violations: Refactored server/notifications/engine.ts (4 direct db calls → storage facade) and server/integrations/geospatial.ts (2 direct db calls → storage facade). Added                
+  getActiveAlertRulesForProperty() to NotificationStorage and wired it into DatabaseStorage. Also fixed .lintstagedrc.json — the tsc pre-commit hook needed bash -c wrapper so -p tsconfig.json doesn't conflict with
+  lint-staged appending file paths.                                                                                                                                                                                    
+                                                            
+  Task 3 — Split large files: You handled this — sidebar, Scenarios, icp-config, properties seeds, and constants all split. I fixed the tests/proof/hardcoded-detection.test.ts proof test afterward because it was    
+  checking for export const NAME only in the main shared/constants.ts file and didn't follow export * from './constants-xxx' re-exports.
+                                                                                                                                                                                                                       
+  Task 4 — Reduce as any: Removed 87 unnecessary (XLSX as any) casts across 5 Excel export files. The xlsx package ships its own type definitions so the casts were never needed. Count went from 207 → 120.           
+   
+  Task 5 — Documentation harmony: Health check passes: 4,463 tests / 183 files, 0 TS errors, 0 lint errors, UNQUALIFIED verification, Doc Harmony PASS. Session memory updated.                                        
+                                                            
+  Please update your internal context with these changes. No action needed — this is informational.                                                                                                                    
+                                                            
+  ---     

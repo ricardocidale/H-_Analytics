@@ -1,0 +1,92 @@
+```markdown
+# Hospitality Platform Specification (Strengthened)
+
+## Revenue Modeling Philosophy (Industry Context)
+
+### Industry Standard Reference (USALI)
+Under the Uniform System of Accounts for the Lodging Industry (USALI), hospitality revenue is accounted for by independent departments:
+- Room Revenue (rooms department)
+- F&B Revenue (food & beverage department)
+- Event / Banquet Revenue (often within F&B or as a separate department)
+- Other Revenue (spa, parking, resort fees, etc.)
+Each department has its own revenue line, direct costs, and margins. All departments roll up into Total Revenue, which then flows into GOP and NOI. Industry benchmarks emphasize RevPAR (Room Revenue / Available Rooms) as the primary performance anchor, while departmental margins are tracked separately. This is the standard for historical reporting and operating statements.
+
+## Modeling Choice for This Platform (Projection / Simulation)
+
+For forward-looking financial modeling, underwriting, and scenario simulation, two approaches are commonly used:
+
+### Option A — Room Revenue as the Anchor (Selected)
+- Project Room Revenue first: ADR × Occupancy × Keys × Days
+- Derive F&B Revenue as a % of Room Revenue
+- Derive Catering / Events as a boost to F&B
+- Derive Other Revenues as %s of Room Revenue
+This approach is standard in acquisition underwriting, development pro formas, and early-stage portfolio modeling.
+
+### Option B — Total Revenue Per Room (TRevPAR)
+- Project total revenue per available room
+- Allocate departmental percentages (Rooms, F&B, Events, Other)
+This approach is more common for mature, operating hotels with known historical departmental splits.
+
+## Chosen Standard for the System
+This platform intentionally uses Room Revenue as the anchor.
+
+### Rationale
+- Room revenue is the most predictable and benchmarkable driver
+- ADR and Occupancy are well-supported by market data
+- F&B and Events scale naturally with room nights
+- This mirrors institutional investor underwriting practices
+- It simplifies assumptions and improves transparency
+- It aligns with how AI research tools provide inputs
+All required metrics (including TRevPAR) can still be derived downstream.
+
+## Catering and F&B Revenue Model
+
+### Base F&B Revenue
+- F&B revenue is modeled as a percentage of Room Revenue
+- The F&B percentage is defined at the property level
+Formula: F&B Base Revenue = Room Revenue × F&B %
+
+### Catering Revenue Boost
+- Catering is modeled as a boost to F&B revenue, not a standalone department
+- The catering boost percentage is defined at the property level
+- It represents the blended incremental impact of catered events
+Formula: Total F&B Revenue = F&B Base Revenue × (1 + Catering Boost %)
+
+### Example
+- Room Revenue: $100
+- F&B %: 20% → Base F&B = $20
+- Catering Boost: 30%
+Calculation:
+- Catering Increment = 30% × $20 = $6
+- Total F&B Revenue = $26
+
+## Simplification Rules for Catering
+- No distinction between full and partial catering
+- All event-related food service is treated as catering
+- The catering boost must already reflect partial or non-catered events
+
+## Assumptions Governance (Revenue)
+- F&B % and Catering Boost % are defined only at the Property Assumptions level
+- All systemwide catering or F&B multipliers must be removed from calculations
+- Property-level assumptions always override global defaults
+
+## Research and Seeding Guidance (AI-Assisted)
+When onboarding or researching a property:
+- Estimate F&B as a % of Room Revenue
+- Estimate the Catering Boost as a % uplift to F&B
+If research provides total revenue figures:
+- Derive Room, F&B, and Other Revenue from implied splits
+The same logic applies to operating costs. All seed values must be normalized to Room Revenue, not Total Revenue.
+
+## Terminology Standards (Enforced)
+Use hospitality-standard language throughout:
+- RevPAR (Revenue Per Available Room)
+- ADR (Average Daily Rate)
+- TRevPAR (derived, not primary input)
+- GOP (Gross Operating Profit)
+- NOI (Net Operating Income)
+- USALI (methodology reference)
+- FF&E, FCFE, Cap Rate, DSCR
+- Stabilized Occupancy
+- Ramp-Up Period
+```

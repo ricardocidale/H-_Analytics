@@ -1,0 +1,62 @@
+import { db } from '../db';
+import { designThemes } from '../../shared/schema';
+import { eq } from 'drizzle-orm';
+
+async function seedNorfolkAiTheme() {
+  console.log('Seeding Norfolk AI theme...');
+
+  const existing = await db.select().from(designThemes).where(eq(designThemes.name, 'Norfolk AI'));
+
+  if (existing.length > 0) {
+    await db.update(designThemes)
+      .set({
+        description: 'Norfolk AI brand theme — navy primary, salmon and yellow gold accents, with teal highlights. Built for the H-Analysis investor portal.',
+        colors: [
+          { rank: 1,  name: 'Navy',       hexCode: '#112548', description: 'Primary brand color for navigation sidebars, headers, and key UI elements.' },
+          { rank: 2,  name: 'Salmon',     hexCode: '#F4795B', description: 'Primary accent for CTAs, highlights, badges, and emphasis elements.' },
+          { rank: 3,  name: 'Yellow Gold',hexCode: '#FDB817', description: 'Secondary accent for warnings, notifications, and attention-drawing elements.' },
+          { rank: 4,  name: 'Teal',       hexCode: '#0091AE', description: 'Supporting color for data visualization, links, and interactive highlights.' },
+          { rank: 5,  name: 'Teal Light', hexCode: '#00A9B8', description: 'Secondary teal for charts, progress indicators, and visual accents.' },
+          { rank: 6,  name: 'Green',      hexCode: '#21B9A3', description: 'Positive indicator for success states and growth metrics.' },
+          { rank: 7,  name: 'White',      hexCode: '#FFFFFF', description: 'Base background for page surfaces and card backgrounds.' },
+          { rank: 8,  name: 'Light Gray', hexCode: '#F5F8FA', description: 'Subtle background for card surfaces, input fields, and secondary panels.' },
+          { rank: 9,  name: 'Gray',       hexCode: '#CCD6E2', description: 'Border, divider, and separator color throughout the UI.' },
+          { rank: 10, name: 'Dark Gray',  hexCode: '#34475B', description: 'Secondary text and dark UI element backgrounds.' },
+        ],
+      })
+      .where(eq(designThemes.name, 'Norfolk AI'));
+    console.log('Norfolk AI theme updated.');
+  } else {
+    await db.insert(designThemes).values({
+      name: 'Norfolk AI',
+      description: 'Norfolk AI brand theme — navy primary, salmon and yellow gold accents, with teal highlights. Built for the H-Analysis investor portal.',
+      isDefault: false,
+      colors: [
+          { rank: 1,  name: 'Navy',       hexCode: '#112548', description: 'Primary brand color for navigation sidebars, headers, and key UI elements.' },
+          { rank: 2,  name: 'Salmon',     hexCode: '#F4795B', description: 'Primary accent for CTAs, highlights, badges, and emphasis elements.' },
+          { rank: 3,  name: 'Yellow Gold',hexCode: '#FDB817', description: 'Secondary accent for warnings, notifications, and attention-drawing elements.' },
+          { rank: 4,  name: 'Teal',       hexCode: '#0091AE', description: 'Supporting color for data visualization, links, and interactive highlights.' },
+          { rank: 5,  name: 'Teal Light', hexCode: '#00A9B8', description: 'Secondary teal for charts, progress indicators, and visual accents.' },
+          { rank: 6,  name: 'Green',      hexCode: '#21B9A3', description: 'Positive indicator for success states and growth metrics.' },
+          { rank: 7,  name: 'White',      hexCode: '#FFFFFF', description: 'Base background for page surfaces and card backgrounds.' },
+          { rank: 8,  name: 'Light Gray', hexCode: '#F5F8FA', description: 'Subtle background for card surfaces, input fields, and secondary panels.' },
+          { rank: 9,  name: 'Gray',       hexCode: '#CCD6E2', description: 'Border, divider, and separator color throughout the UI.' },
+          { rank: 10, name: 'Dark Gray',  hexCode: '#34475B', description: 'Secondary text and dark UI element backgrounds.' },
+      ],
+    });
+    console.log('Norfolk AI theme inserted.');
+  }
+
+  console.log('Done.');
+  process.exit(0);
+}
+
+seedNorfolkAiTheme().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
+```
+
+**Then run it in the Shell:**
+```
+npx tsx server/seeds/seed-norfolk-ai-theme.ts

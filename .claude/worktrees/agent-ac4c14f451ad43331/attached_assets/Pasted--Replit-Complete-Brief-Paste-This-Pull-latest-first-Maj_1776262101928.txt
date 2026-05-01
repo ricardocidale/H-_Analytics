@@ -1,0 +1,154 @@
+## Replit — Complete Brief (Paste This)
+
+**Pull latest first.** Major changes pushed: 3 enforcement rules, updated claude.md, updated replit.md, The Analyst persona (singular), expanded vocabulary audit test. READ THESE BEFORE DOING ANYTHING:
+- `rules/branding-vocabulary-enforcement.md`
+- `rules/the-analyst-persona.md`  
+- `rules/rebecca-persona.md`
+- `skills/vocabulary/SKILL.md`
+- `skills/product-vision/the-analyst.md`
+
+---
+
+### 1. User Activity Tracking Database
+
+Build a `user_page_visits` table to track every user's interaction with every page. Rolling 12 months.
+
+**Schema:**
+```sql
+CREATE TABLE user_page_visits (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  page_key TEXT NOT NULL,
+  entity_type TEXT,
+  entity_id INTEGER,
+  first_visited_at TIMESTAMP DEFAULT NOW(),
+  last_visited_at TIMESTAMP DEFAULT NOW(),
+  last_saved_at TIMESTAMP,
+  last_analyst_run_at TIMESTAMP,
+  endorsed BOOLEAN DEFAULT FALSE,
+  compulsory_fields_complete BOOLEAN DEFAULT FALSE,
+  visit_count INTEGER DEFAULT 1,
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id, page_key)
+);
+CREATE INDEX idx_user_page_visits_user ON user_page_visits(user_id);
+CREATE INDEX idx_user_page_visits_page ON user_page_visits(page_key);
+```
+
+**page_key format:** `"property:{id}:assumptions"`, `"property:{id}:edit"`, `"company:assumptions"`, `"global:settings"`
+
+**Behavior:**
+- On page load: upsert visit record, increment visit_count, update last_visited_at
+- On Save: set `endorsed = true`, `last_saved_at = NOW()`
+- On Ask the Analyst completion: set `last_analyst_run_at = NOW()`, then compulsory save
+- On leaving without saving: auto-save, set `endorsed = true`
+- If compulsory fields not complete and user leaves: treat as non-visit, don't set endorsed
+- If intelligence is old (>24h): show glowing "Ask the Analyst" button, nudge to regenerate
+- Auto-cleanup: delete rows older than 12 months (add to ambient scheduler)
+
+**API endpoints (all requireAuth, scoped to current user):**
+- `GET /api/page-visit/:pageKey`
+- `POST /api/page-visit/:pageKey/visit`
+- `POST /api/page-visit/:pageKey/save`
+- `POST /api/page-visit/:pageKey/analyst-run`
+
+Add Drizzle schema to `shared/schema/`, storage class, and routes.
+
+---
+
+### 2. Place the Unused AI Animations
+
+Three animations in `client/src/components/ui/ai-loader.tsx` are built but unused:
+
+**OrbitalDots** → The Analyst's "working" animation. Show when user clicks "Ask the Analyst" on `PropertyEdit.tsx` and `CompanyAssumptions.tsx`. Replace the button with OrbitalDots + streaming status text while research runs. This is The Analyst's signature visual.
+
+**NeuralGlow** → First-visit nudge animation. Show on `IntelligenceStatusBar.tsx` when status is "missing" (The Analyst hasn't reviewed yet). Replace the static alert icon with NeuralGlow next to the glowing "Ask the Analyst" button. Signals: intelligence is available, tap into it.
+
+**DataFlowDots** → Streaming data indicator. Show on `ResearchTheater.tsx` next to the "Live Output" text area as research results stream in.
+
+**Rule:** Every AI loading state uses these premium animations — never `Loader2 animate-spin` for anything related to The Analyst.
+
+---
+
+### 3. Admin Tab: AI Agent Personas (Read-Only)
+
+Add a new tab in Admin > Rebecca AI Assistant section called **"AI Agents"** or **"Personas"**. This is read-only — admin can see but not edit (personas are code-defined, not user-configurable).
+
+**Display two cards:**
+
+**Card 1: The Analyst**
+- Title: "The Analyst"
+- Subtitle: "AI Agent — Intelligence & Research"
+- Badge: "Powered by Norfolk AI Engine"
+- Description: The Analyst is the ultimate expert in real estate, hospitality business, branding, and management services. The Analyst conducts AI-powered research using multiple models, pre-collected market data, and deterministic calculation tools. The Analyst provides intelligence as ranges next to every assumption field — each range comes with a conviction level (High, Moderate, or Developing) and a data quality score that explains how trustworthy the range is.
+- Key capabilities (bullet list):
+  - Studies comparable properties using progressive relaxation across 6 levels
+  - Cross-references pre-collected benchmarks from 7 market data tables
+  - Validates every assumption against market ranges
+  - Provides conviction-scored Analyst Notes next to every input field
+  - Gets smarter over time as more properties and research accumulate
+- Status: Show count of Analyst Notes generated, average conviction, last research run
+
+**Card 2: Rebecca**
+- Title: "Rebecca"
+- Subtitle: "AI Agent — Expert Companion"
+- Badge: "Norfolk AI"
+- Description: Rebecca is the user's expert companion — outgoing, professional, intellectual, and a little geeky with a dry wit. She answers questions about the portfolio using live data and The Analyst's intelligence. She conducts guided tours, offers contextual help, and explains financial concepts in simple everyday language. Rebecca draws on The Analyst's work to give pointed, specific answers backed by real numbers.
+- Key capabilities (bullet list):
+  - Answers portfolio questions from live financial data
+  - Explains what The Analyst found in plain language
+  - Conducts guided tours of the platform
+  - Offers contextual help via the floating chat panel
+  - Knows every property, every scenario, every assumption
+- Status: Show conversation count, messages today, knowledge base size
+
+**Build this as a modular component** — `client/src/components/admin/AgentPersonasTab.tsx`. The persona definitions should come from a shared config (not hardcoded in the component) so other apps can extract and reuse the pattern. Consider a `shared/agent-personas.ts` that exports the persona data.
+
+---
+
+### 4. Intelligence-First Page Behavior
+
+Every page with inputs/assumptions must follow these rules:
+
+**First visit (endorsed = false):**
+1. Pre-fill fields with defaults (from property defaults, country defaults, benchmarks)
+2. Show glowing "Ask the Analyst" button with NeuralGlow animation
+3. Show banner: "The Analyst hasn't reviewed these assumptions yet"
+4. Block downstream fields until compulsory fields are completed
+5. After Ask the Analyst completes → compulsory save → set endorsed = true
+
+**Return visit (endorsed = true, intelligence fresh):**
+1. Show saved values — never overwrite
+2. Analyst Notes visible next to fields
+3. Status bar: "Up to date"
+4. "Ask the Analyst" button available but not glowing
+
+**Return visit (endorsed = true, intelligence old >24h or assumptions changed):**
+1. Show saved values
+2. Status bar: "Due for review" with glowing "Ask the Analyst" button
+3. Nudge but don't block — user can still edit and save
+
+**Leaving without saving:**
+1. Show reminder: "You have unsaved changes"
+2. If user dismisses → auto-save current values
+3. Set endorsed = true
+
+---
+
+### 5. Vocabulary Compliance (CRITICAL)
+
+**BEFORE writing any UI text, read these files:**
+- `.claude/skills/vocabulary/SKILL.md`
+- `.claude/rules/branding-vocabulary-enforcement.md`
+
+**Key terms:**
+- Button: **"Ask the Analyst"** (singular, capital T and A) — NEVER "Ask the Analysts" (plural), NEVER "Regenerate Intelligence"
+- Status: "The Analyst is studying..." / "The Analyst hasn't reviewed these yet" / "Up to date" / "Due for review"
+- Agent names: **The Analyst** and **Rebecca** — NEVER "the system", "the chatbot", "your analysts", "the assistant"
+- App name: **H+ Analytics** (editable by super admin)
+- Company name: **Hospitality Management Co** (editable by any user)
+- Technology: **Norfolk AI Engine**
+- AI terms OK when proud: "AI-powered intelligence", "our AI models reviewed"
+- AI terms NOT OK: "The LLM outputted", "machine learning algorithms", implementation details
+
+**An audit test (`tests/audit/vocabulary-compliance.test.ts`) blocks forbidden terms on every commit.** If your code uses "Ask the Analysts" (plural), "Your analysts", "Our analysts", "the chatbot", or "the assistant" — it will fail.

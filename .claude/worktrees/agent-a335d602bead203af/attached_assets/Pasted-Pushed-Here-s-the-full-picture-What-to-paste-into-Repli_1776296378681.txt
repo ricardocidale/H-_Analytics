@@ -1,0 +1,49 @@
+Pushed. Here's the full picture:
+
+---
+
+## What to paste into Replit
+
+```
+Pull main first: git pull origin main
+
+Read the instruction file at .claude/replit-instructions/2026-04-15-handoff.md
+
+Execute in this order:
+1. npx tsx server/seeds/index.ts --force (populates 7 empty data tables)
+2. Wire auto-trigger research on first visit in PropertyEdit.tsx (useEffect on isFirstVisit)
+3. Migrate top 6 fetch() files to useQuery (Dashboard, CompanyAssumptions, PropertyDetail, admin/hooks, ResearchHub, Profile)
+4. Split Dashboard.tsx into 4 files (Layout, Overview, Charts, useDashboardData hook)
+5. Test WeasyPrint PDF export end-to-end
+6. Add visible alerts when Pinecone/data tables are empty (silent degradation is dangerous)
+
+Full details with code examples are in .claude/replit-instructions/2026-04-15-handoff.md
+```
+
+---
+
+## The honest self-review
+
+**What I did well across 88 commits:**
+- Zero raw `parseInt(req.params)` remaining (was 36)
+- Zero direct `db.*` calls outside storage layer (was 10)
+- Zero unvalidated `req.body` in critical routes (was 7)
+- Architecture fully documented — every field, every dependency, every route
+- Automated guard tests (209 tests) that catch regressions on commit
+
+**What I missed or left fragile:**
+1. **Seeds probably never ran on Replit** — the 7 pre-collected data tables may be empty, and the app silently falls back to degraded mode with no alert
+2. **Intelligence auto-trigger isn't auto** — the banner shows but waits for a click, contradicting the design
+3. **WeasyPrint was wired but never tested** — could have bugs in the HTML template code
+4. **Golden tests are self-contained units** — they don't validate that DB seed data actually exists
+5. **86 `as any` casts in non-test code** — type safety debt still significant
+6. **One Zod gap remains** — `finance.ts:211` does `typeof req.body.scenarioId` instead of using the schema
+
+**What I should do in the next session** (in priority order):
+1. Typed JSONB accessors (kills 22 server `as any`)
+2. Test fixture factories (kills ~200 test `as any`)
+3. Fix the finance.ts Zod gap
+4. Add seed-data-integrity audit test
+5. Expand audit guards (no `db.` outside storage, no `parseInt` anywhere)
+
+Now — what did you want to discuss about what I should be doing?
