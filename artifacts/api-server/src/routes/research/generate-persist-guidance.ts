@@ -1,11 +1,26 @@
+import { createHash } from "node:crypto";
 import type { Request } from "express";
 import { storage } from "../../storage";
 import { getAuthUser } from "../../auth";
 import { extractGuidance } from "../../ai/guidance/extractor";
 import { indexAssumptionGuidance } from "../../ai/vector-store-service";
 import { logger } from "../../logger";
+import { ENGINE_VERSION } from "../../ai/engine-version";
+import {
+  computeCacheKey,
+  computeInputContextHash,
+  canonicalJson,
+  type PropertyCacheInputs,
+  type CompanyCacheInputs,
+} from "@engine/analyst/cognitive/cache-keys";
+import type { CanonicalResearchField } from "../../ai/synthesis-schema";
 import type { GlobalAssumptions } from "@workspace/db";
 import type { ResearchParams } from "../../ai/research-prompt-builders";
+
+/** Stable default persona sentinel — same sentinel used by analyst-scoped-runner.ts. */
+const PERSONA_HASH = createHash("sha256")
+  .update(canonicalJson({ style: "L+B", tier: "luxury", market: "US" }))
+  .digest("hex");
 
 export interface PropertyGuidanceInput {
   req: Request;
@@ -89,6 +104,51 @@ export async function persistPropertyGuidance(
             metadata: runMetadata,
           });
           runId = runRecord.id;
+        }
+
+        // ── Phase 5C-task-1: write cache_key + cache_inputs_hash ──
+        // Non-fatal — a missing cache_key means cold-misses on the verdict
+        // cache, not data loss. Matches the pattern in analyst-scoped-runner.ts.
+        try {
+          const producedFields = Array.from(
+            new Set(guidanceResult.records.map((r) => r.assumptionKey)),
+          ) as CanonicalResearchField[];
+          const propertyInputs: PropertyCacheInputs = {
+            type: property.hospitalityType ?? null,
+            businessModel: property.businessModel ?? null,
+            location: property.location ?? null,
+            market: property.market ?? null,
+            country: property.country ?? null,
+            stateProvince: property.stateProvince ?? null,
+            marketTier: property.marketTier ?? null,
+            propertyType: property.hospitalityType ?? null,
+            qualityTier: property.qualityTier ?? null,
+            serviceLevel: property.serviceLevel ?? null,
+            roomCount: property.roomCount ?? null,
+            maxGuests: property.maxGuests ?? null,
+            purchasePrice: property.purchasePrice ?? null,
+            buildingImprovements: property.buildingImprovements ?? null,
+            acquisitionLTV: property.acquisitionLTV ?? null,
+            operatingReserve: property.operatingReserve ?? null,
+            inflationRate: property.inflationRate ?? null,
+            taxRate: property.taxRate ?? null,
+          };
+          const inputContextHash = computeInputContextHash("property", propertyInputs, producedFields);
+          const cacheKey = computeCacheKey({
+            scenarioId: null,
+            entityType: "property",
+            entityId: propertyId,
+            fieldGroup: producedFields,
+            personaHash: PERSONA_HASH,
+            inputContextHash,
+            engineVersion: ENGINE_VERSION,
+          });
+          await storage.updateResearchRun(runId, { cacheKey, cacheInputsHash: inputContextHash });
+        } catch (cacheErr: unknown) {
+          logger.warn(
+            `generate-persist-guidance: cache key write failed for property run ${runId}: ${cacheErr instanceof Error ? cacheErr.message : cacheErr}`,
+            "research",
+          );
         }
 
         const propLocation = property.location ?? "";
@@ -243,6 +303,36 @@ export async function persistCompanyGuidance(
           metadata: runMetadata,
         });
         runId = runRecord.id;
+      }
+
+      // ── Phase 5C-task-1: write cache_key + cache_inputs_hash ──
+      try {
+        const producedFields = Array.from(
+          new Set(guidanceResult.records.map((r) => r.assumptionKey)),
+        ) as CanonicalResearchField[];
+        const companyInputs: CompanyCacheInputs = {
+          country: ga?.companyCountry ?? null,
+          capitalRaise1Amount: ga?.capitalRaise1Amount ?? null,
+          capitalRaise2Amount: ga?.capitalRaise2Amount ?? null,
+          baseManagementFee: ga?.baseManagementFee ?? null,
+          incentiveManagementFee: ga?.incentiveManagementFee ?? null,
+        };
+        const inputContextHash = computeInputContextHash("company", companyInputs, producedFields);
+        const cacheKey = computeCacheKey({
+          scenarioId: null,
+          entityType: "company",
+          entityId: ownerUserId,
+          fieldGroup: producedFields,
+          personaHash: PERSONA_HASH,
+          inputContextHash,
+          engineVersion: ENGINE_VERSION,
+        });
+        await storage.updateResearchRun(runId, { cacheKey, cacheInputsHash: inputContextHash });
+      } catch (cacheErr: unknown) {
+        logger.warn(
+          `generate-persist-guidance: cache key write failed for company run ${runId}: ${cacheErr instanceof Error ? cacheErr.message : cacheErr}`,
+          "research",
+        );
       }
 
       for (const rec of guidanceResult.records) {

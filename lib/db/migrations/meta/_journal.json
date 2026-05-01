@@ -225,6 +225,13 @@
       "when": 1746144004000,
       "tag": "0034_batch6_ga_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1746144005000,
+      "tag": "0035_batch5_standalone_tables",
+      "breakpoints": true
     }
   ]
 }

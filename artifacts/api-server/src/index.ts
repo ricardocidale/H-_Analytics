@@ -672,20 +672,8 @@ async function runSchemaMigrations() {
     await markMigrationApplied("admin_resources_005");
   }
 
-  // Phase 4 — Task #454. `properties.financials_computed_at` is the
-  // single source of truth for "this property's numbers are fresh as of
-  // T". Specialist gating (engine/analyst/registry/prerequisite-registry.ts
-  // → all-properties-financials-computed) depends on this column.
-  // Non-destructive: ADD COLUMN IF NOT EXISTS.
-  if (!(await isMigrationApplied("properties_financials_computed_at_001"))) {
-    const { db: dbRef } = await import("./db");
-    const { sql: sqlTag } = await import("drizzle-orm");
-    await dbRef.execute(sqlTag`
-      ALTER TABLE properties
-        ADD COLUMN IF NOT EXISTS financials_computed_at timestamp
-    `);
-    await markMigrationApplied("properties_financials_computed_at_001");
-  }
+  // properties_financials_computed_at_001 consolidated into
+  // 0035_batch5_standalone_tables.sql (Phase C batch 5)
 
   // Task #442 — one-shot backfill so the
   // `all-properties-financials-computed` prerequisite (engine/analyst/
@@ -722,11 +710,7 @@ async function runSchemaMigrations() {
 
   // app_name_001 consolidated into 0030_phase_c_batch_1.sql (Phase C batch 1)
 
-  if (!(await isMigrationApplied("market_data_tables_001"))) {
-    const { runMarketDataTables001 } = await import("./migrations/market-data-tables-001");
-    await runMarketDataTables001();
-    await markMigrationApplied("market_data_tables_001");
-  }
+  // market_data_tables_001 consolidated into 0035_batch5_standalone_tables.sql (Phase C batch 5)
 
   if (!(await isMigrationApplied("index_coverage_001"))) {
     const { runIndexCoverage001 } = await import("./migrations/index-coverage-001");
@@ -734,23 +718,8 @@ async function runSchemaMigrations() {
     await markMigrationApplied("index_coverage_001");
   }
 
-  if (!(await isMigrationApplied("scheduler_runs_001"))) {
-    const { runSchedulerRuns001 } = await import("./migrations/scheduler-runs-001");
-    await runSchedulerRuns001();
-    await markMigrationApplied("scheduler_runs_001");
-  }
-
-  if (!(await isMigrationApplied("scheduler_runs_002"))) {
-    const { runSchedulerRuns002 } = await import("./migrations/scheduler-runs-002");
-    await runSchedulerRuns002();
-    await markMigrationApplied("scheduler_runs_002");
-  }
-
-  if (!(await isMigrationApplied("storage_drift_sweep_runs_001"))) {
-    const { runStorageDriftSweepRuns001 } = await import("./migrations/storage-drift-sweep-runs-001");
-    await runStorageDriftSweepRuns001();
-    await markMigrationApplied("storage_drift_sweep_runs_001");
-  }
+  // scheduler_runs_001, scheduler_runs_002, storage_drift_sweep_runs_001
+  // consolidated into 0035_batch5_standalone_tables.sql (Phase C batch 5)
 
   // rebecca_fixture_replay_001 consolidated into 0032_batch3_rebecca.sql (Phase C batch 3)
 
@@ -795,19 +764,10 @@ async function runSchemaMigrations() {
 
   // funding_cascade_001 consolidated into 0034_batch6_ga_columns.sql (Phase C batch 6)
 
-  if (!(await isMigrationApplied("cache_entries_001"))) {
-    const { runCacheEntries001 } = await import("./migrations/cache-entries-001");
-    await runCacheEntries001();
-    await markMigrationApplied("cache_entries_001");
-  }
+  // cache_entries_001, reference_range_001 consolidated into
+  // 0035_batch5_standalone_tables.sql (Phase C batch 5)
 
   // icp_model_tier_001 consolidated into 0030_phase_c_batch_1.sql (Phase C batch 1)
-
-  if (!(await isMigrationApplied("reference_range_001"))) {
-    const { runReferenceRange001 } = await import("./migrations/reference-range-001");
-    await runReferenceRange001();
-    await markMigrationApplied("reference_range_001");
-  }
 
   if (!(await isMigrationApplied("fk_indexes_002"))) {
     const { runFkIndexes002 } = await import("./migrations/fk-indexes-002");
