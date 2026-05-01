@@ -889,6 +889,11 @@ export function register(app: Express) {
         detectedLanguage,
         sourcesUsed: sourcesUsedSorted,
         ...(blocksIncluded ? { blocksIncluded } : {}),
+        // Task #665 — admin-only: echo the exact assembled system prompt so
+        // the Test Chat preview can show it verbatim. Gated behind the same
+        // isAdmin check that gates blocksIncluded (both rely on blocksIncluded
+        // being truthy). fullSystemPrompt is already computed above.
+        ...(blocksIncluded ? { assembledSystemPrompt: fullSystemPrompt } : {}),
         ...(autoGreeting ? { autoGreeting } : {}),
         ...(matchedAssets.length > 0 ? { assets: matchedAssets } : {}),
         ...(observations.length > 0 ? { observations } : {}),

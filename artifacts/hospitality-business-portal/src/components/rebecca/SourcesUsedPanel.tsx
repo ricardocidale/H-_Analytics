@@ -58,34 +58,43 @@ export function SourcesUsedPanel({
             className="mt-1 space-y-1 px-2 py-1.5 border border-border/40 rounded-md bg-muted/20"
             data-testid={`list-sources-${turnIndex}`}
           >
-            {sources.map((s, i) => (
-              <li
-                key={`${s.namespace}-${s.title}-${i}`}
-                className="flex items-start gap-2 text-[11px]"
-                data-testid={`source-${turnIndex}-${i}`}
-              >
-                <Badge
-                  variant="outline"
-                  className="text-[9px] py-0 px-1.5 h-4 font-medium shrink-0"
-                  data-testid={`badge-source-namespace-${turnIndex}-${i}`}
+            {sources.map((s, i) => {
+              const label = NAMESPACE_LABELS[s.namespace] ?? s.namespace;
+              const weightedScore = s.score * s.weight / 100;
+              return (
+                <li
+                  key={`${s.namespace}-${s.title}-${i}`}
+                  className="flex items-start gap-2 text-[11px]"
+                  data-testid={`source-${turnIndex}-${i}`}
                 >
-                  {NAMESPACE_LABELS[s.namespace] ?? s.namespace}
-                </Badge>
-                <span
-                  className="flex-1 truncate text-foreground/90"
-                  title={s.title}
-                  data-testid={`text-source-title-${turnIndex}-${i}`}
-                >
-                  {s.title}
-                </span>
-                <span
-                  className="font-mono text-muted-foreground shrink-0"
-                  data-testid={`text-source-score-${turnIndex}-${i}`}
-                >
-                  {s.score.toFixed(2)}
-                </span>
-              </li>
-            ))}
+                  <Badge
+                    variant="outline"
+                    className="text-[9px] py-0 px-1.5 h-4 font-medium shrink-0 cursor-default"
+                    title={`${label} — weight ${s.weight}/100`}
+                    data-testid={`badge-source-namespace-${turnIndex}-${i}`}
+                  >
+                    {label}
+                  </Badge>
+                  <span
+                    className="flex-1 truncate text-foreground/90"
+                    title={s.title}
+                    data-testid={`text-source-title-${turnIndex}-${i}`}
+                  >
+                    {s.title}
+                  </span>
+                  <span
+                    className="font-mono text-muted-foreground shrink-0 tabular-nums"
+                    title={`similarity ${s.score.toFixed(3)} × weight ${s.weight}/100 = ${weightedScore.toFixed(3)}`}
+                    data-testid={`text-source-score-${turnIndex}-${i}`}
+                  >
+                    <span className="text-[9px] text-muted-foreground/60">w{s.weight}</span>
+                    {" "}
+                    {s.score.toFixed(2)}
+                    <span className="text-[9px] text-muted-foreground/50 ml-0.5">→{weightedScore.toFixed(2)}</span>
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         )}
       </CollapsibleContent>

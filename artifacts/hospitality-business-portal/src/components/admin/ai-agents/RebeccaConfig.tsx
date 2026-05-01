@@ -1,4 +1,6 @@
 import { useState, useEffect, type ComponentType } from "react";
+import { ChevronDown } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -225,6 +227,8 @@ export function RebeccaConfig({
     ts: number;
     sources?: PreviewSource[];
     blocksIncluded?: RebeccaSourceKey[];
+    // Task #665 — admin-only verbatim assembled system prompt for this turn.
+    assembledSystemPrompt?: string;
   };
   const [testInput, setTestInput] = useState("");
   const [previewHistory, setPreviewHistory] = useState<PreviewTurn[]>([]);
@@ -290,12 +294,15 @@ export function RebeccaConfig({
         (k: unknown): k is RebeccaSourceKey =>
           typeof k === "string" && (REBECCA_SOURCE_KEYS as readonly string[]).includes(k),
       );
+      const assembledSystemPrompt =
+        typeof data.assembledSystemPrompt === "string" ? data.assembledSystemPrompt : undefined;
       const reply: PreviewTurn = {
         role: "assistant",
         content: data.response ?? "(empty response)",
         ts: Date.now(),
         sources,
         blocksIncluded,
+        assembledSystemPrompt,
       };
       setPreviewHistory((prev) => [...prev, reply]);
     } catch (e: unknown) {
@@ -622,7 +629,8 @@ export function RebeccaConfig({
         </p>
       </SectionCard>
 
-      {/* Knowledge & Sources */}
+      {/* Knowledge & Sources — id used by the "No source grounding" warning chip to scroll here */}
+      <div id="section-knowledge-sources">
       <SectionCard
         icon={IconBrain}
         accent="bg-primary/10 text-primary"
@@ -664,6 +672,7 @@ export function RebeccaConfig({
           })}
         </div>
       </SectionCard>
+      </div>
 
       {/* Guardrails Summary */}
       <SectionCard
@@ -794,8 +803,40 @@ export function RebeccaConfig({
                     {!isUser && turn.blocksIncluded !== undefined && (
                       <BlocksIncludedBadges blocks={turn.blocksIncluded} turnIndex={i} />
                     )}
+                    {/* Task #666 — louder warning when zero blocks reached the prompt */}
+                    {!isUser && turn.blocksIncluded !== undefined && turn.blocksIncluded.length === 0 && (
+                      <button
+                        type="button"
+                        className="mt-1 ml-1 flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded px-2 py-0.5 hover:bg-amber-500/20 transition-colors cursor-pointer"
+                        title="No knowledge blocks reached this reply — check Knowledge & Sources toggles"
+                        data-testid={`warning-no-grounding-${i}`}
+                        onClick={() => document.getElementById("section-knowledge-sources")?.scrollIntoView({ behavior: "smooth" })}
+                      >
+                        ⚠ No source grounding — fix toggles ↓
+                      </button>
+                    )}
                     {!isUser && turn.sources !== undefined && (
                       <SourcesUsedPanel sources={turn.sources} turnIndex={i} />
+                    )}
+                    {/* Task #665 — expandable verbatim system prompt for this turn */}
+                    {!isUser && turn.assembledSystemPrompt && (
+                      <Collapsible className="mt-1.5 max-w-[85%] w-full" data-testid={`system-prompt-reveal-${i}`}>
+                        <CollapsibleTrigger className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground hover:text-foreground transition-colors px-1">
+                          <ChevronDown className="w-3 h-3 -rotate-90 transition-transform [[data-state=open]_&]:rotate-0" />
+                          System prompt
+                          <span className="font-mono font-normal normal-case tracking-normal text-muted-foreground/60">
+                            ({turn.assembledSystemPrompt.length.toLocaleString()} chars)
+                          </span>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <pre
+                            className="mt-1 px-3 py-2 text-[10px] leading-relaxed font-mono whitespace-pre-wrap break-words border border-border/40 rounded-md bg-muted/30 text-foreground/80 max-h-72 overflow-y-auto"
+                            data-testid={`text-system-prompt-${i}`}
+                          >
+                            {turn.assembledSystemPrompt}
+                          </pre>
+                        </CollapsibleContent>
+                      </Collapsible>
                     )}
                   </div>
                 );
