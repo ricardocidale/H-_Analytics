@@ -1,49 +1,8 @@
 import { type Express } from "express";
-import { z } from "zod";
 import { storage } from "../../storage";
 import { requireAdmin } from "../../auth";
-import { logAndSendError, logActivity } from "../helpers";
+import { logAndSendError } from "../helpers";
 
-const categoryFormatSchema = {
-  allowLandscape: z.boolean(),
-  allowPortrait: z.boolean(),
-  allowShort: z.boolean(),
-  allowExtended: z.boolean(),
-  allowPremium: z.boolean(),
-  densePagination: z.boolean(),
-};
-
-const exportConfigSchema = z.object({
-  overview: z.object({
-    ...categoryFormatSchema,
-    kpiMetrics: z.boolean(),
-    revenueChart: z.boolean(),
-    projectionTable: z.boolean(),
-    compositionTables: z.boolean(),
-    compositionCharts: z.boolean(),
-    waterfallTable: z.boolean(),
-    propertyInsights: z.boolean(),
-    aiInsights: z.boolean(),
-  }).partial().optional(),
-  statements: z.object({
-    ...categoryFormatSchema,
-    incomeStatement: z.boolean(),
-    incomeChart: z.boolean(),
-    cashFlow: z.boolean(),
-    cashFlowChart: z.boolean(),
-    balanceSheet: z.boolean(),
-    balanceSheetChart: z.boolean(),
-  }).partial().optional(),
-  analysis: z.object({
-    ...categoryFormatSchema,
-    kpiSummaryCards: z.boolean(),
-    returnChart: z.boolean(),
-    freeCashFlowTable: z.boolean(),
-    propertyIrrTable: z.boolean(),
-    dcfAnalysis: z.boolean(),
-    performanceTrend: z.boolean(),
-  }).partial().optional(),
-});
 
 const FORMAT_DEFAULTS = {
   allowLandscape: true,
@@ -118,26 +77,11 @@ export function registerExportConfigRoutes(app: Express) {
     }
   });
 
-  app.put("/api/admin/export-config", requireAdmin, async (req, res) => {
-    try {
-      const parsed = exportConfigSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid export config", details: parsed.error.flatten() });
-      }
-      const ga = await storage.getGlobalAssumptions();
-      if (!ga) return res.status(404).json({ error: "No global assumptions found" });
-      const current = mergeWithDefaults(ga.exportConfig as StoredConfig | null);
-      const incoming = parsed.data;
-      const merged = {
-        overview: { ...current.overview, ...(incoming.overview ?? {}) },
-        statements: { ...current.statements, ...(incoming.statements ?? {}) },
-        analysis: { ...current.analysis, ...(incoming.analysis ?? {}) },
-      };
-      await storage.patchGlobalAssumptions(ga.id, { exportConfig: merged });
-      logActivity(req, "update-export-config", "settings", ga.id, "Export Config");
-      res.json(merged);
-    } catch (error: unknown) {
-      logAndSendError(res, "Failed to save export config", error);
-    }
+  // Disabled: ExportsTab was an orphan — the config persisted here was never read by
+  // the production export pipeline (export-generate.ts uses compileReport directly).
+  // ExportsTab UI deleted in admin-cleanup-exports-tab-kill packet. 405 so any
+  // stale callers surface a clear error rather than silently no-oping.
+  app.put("/api/admin/export-config", requireAdmin, (_req, res) => {
+    res.status(405).json({ error: "Export config is no longer managed via admin UI — it is inert. The export pipeline is configured via compileReport directly." });
   });
 }

@@ -16,9 +16,8 @@ import type { Express } from "express";
 import { fromZodError } from "zod-validation-error";
 import { storage } from "../../../storage";
 import { requireAdmin } from "../../../auth";
-import { logActivity, logAndSendError } from "../../helpers";
+import { logAndSendError } from "../../helpers";
 import {
-  updateSpecialistIdentitySchema,
   type SpecialistIdentityPublicView,
 } from "@shared/schema";
 import {
@@ -27,7 +26,6 @@ import {
 } from "../../../../engine/analyst/identity";
 import {
   idParamSchema,
-  resetIdentityBodySchema,
   identityHistoryQuerySchema,
   getIdentityCatalogDefault,
 } from "./_shared";
@@ -59,72 +57,15 @@ export function registerIdentityRoutes(app: Express) {
     }
   });
 
-  app.put("/api/admin/specialists/:id/identity", requireAdmin, async (req, res) => {
-    try {
-      const { id } = idParamSchema.parse(req.params);
-      const catalog = getIdentityCatalogDefault(id);
-      if (!catalog) return res.status(404).json({ error: "Specialist not found" });
-      const parsed = updateSpecialistIdentitySchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
-      }
-      const actorId = req.user!.id;
-      const updated = await storage.upsertIdentityOverride(
-        id,
-        { humanName: parsed.data.humanName, gender: parsed.data.gender },
-        actorId,
-        parsed.data.changeSummary,
-      );
-      logActivity(
-        req,
-        "update-specialist-identity",
-        "specialist_identity_override",
-        null,
-        `${id}: humanName=${parsed.data.humanName ?? "(default)"}, gender=${parsed.data.gender ?? "(default)"}`,
-      );
-      const resolved = resolveSpecialistIdentity(catalog, updated);
-      const view: SpecialistIdentityPublicView = {
-        specialistId: id,
-        catalog,
-        override: {
-          humanName: updated.humanName,
-          gender: updated.gender,
-          updatedByUserId: updated.updatedByUserId,
-          updatedAt: updated.updatedAt.toISOString(),
-        },
-        resolved,
-      };
-      res.json(view);
-    } catch (error: unknown) {
-      logAndSendError(res, "Failed to update specialist identity", error);
-    }
+  // Disabled: IdentityTab is now read-only per specialists-are-dev-defined-only.md §3.2.
+  // UI no longer calls this endpoint. Kept as 405 so any direct API callers get an
+  // explicit signal rather than a silent hang.
+  app.put("/api/admin/specialists/:id/identity", requireAdmin, (_req, res) => {
+    res.status(405).json({ error: "Specialist identity is dev-defined. Edit the catalog and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
   });
 
-  app.delete("/api/admin/specialists/:id/identity", requireAdmin, async (req, res) => {
-    try {
-      const { id } = idParamSchema.parse(req.params);
-      const catalog = getIdentityCatalogDefault(id);
-      if (!catalog) return res.status(404).json({ error: "Specialist not found" });
-      // Body is optional — admins reset by clicking "Restore default" with
-      // no payload. When present, only `changeSummary` is accepted.
-      const parsedBody = resetIdentityBodySchema.safeParse(req.body ?? {});
-      if (!parsedBody.success) {
-        return res.status(400).json({ error: fromZodError(parsedBody.error).message });
-      }
-      const actorId = req.user!.id;
-      await storage.resetIdentityOverride(id, actorId, parsedBody.data.changeSummary);
-      logActivity(req, "reset-specialist-identity", "specialist_identity_override", null, id);
-      const resolved = resolveSpecialistIdentity(catalog, null);
-      const view: SpecialistIdentityPublicView = {
-        specialistId: id,
-        catalog,
-        override: null,
-        resolved,
-      };
-      res.json(view);
-    } catch (error: unknown) {
-      logAndSendError(res, "Failed to reset specialist identity", error);
-    }
+  app.delete("/api/admin/specialists/:id/identity", requireAdmin, (_req, res) => {
+    res.status(405).json({ error: "Specialist identity is dev-defined. Edit the catalog and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
   });
 
   app.get("/api/admin/specialists/:id/identity/history", requireAdmin, async (req, res) => {

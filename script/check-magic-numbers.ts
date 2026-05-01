@@ -192,6 +192,7 @@ const ALLOWED_DUPLICATED_VALUES: Record<string, string> = {
   "401": "HTTP 401 Unauthorized — IETF RFC 9110",
   "403": "HTTP 403 Forbidden — IETF RFC 9110",
   "404": "HTTP 404 Not Found — IETF RFC 9110",
+  "405": "HTTP 405 Method Not Allowed — IETF RFC 9110 (used on disabled admin write endpoints)",
   "409": "HTTP 409 Conflict — IETF RFC 9110",
   "500": "HTTP 500 Internal Server Error — IETF RFC 9110",
   // ---------- Common rational fractions ----------

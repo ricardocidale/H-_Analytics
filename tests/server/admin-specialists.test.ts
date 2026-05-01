@@ -307,173 +307,57 @@ describe("admin/specialists routes — catalog + detail", () => {
     ).toBe(20);
   });
 
-  it("PUT /api/admin/specialists/:id/required-fields rejects a Specialist that doesn't declare the capability", async () => {
-    // photos.photo-enhancer declares llm-config + resource-assignments + runtime + audit, NOT required-fields
-    const { status, body } = await invoke(handlers, "PUT /api/admin/specialists/:id/required-fields", {
+  // PUT /required-fields, /llm-config, and /runtime are disabled per
+  // specialists-are-dev-defined-only.md (admin-cleanup-specialist-readonly, 2026-05-01).
+  // Tests updated to assert 405 — disabled endpoints must still be auth-gated.
+
+  it("PUT /api/admin/specialists/:id/required-fields returns 405 (disabled)", async () => {
+    const { status } = await invoke(handlers, "PUT /api/admin/specialists/:id/required-fields", {
       params: { id: "photos.photo-enhancer" },
       body: { fields: ["foo"] },
     });
-    expect(status).toBe(400);
-    expect((body as { error: string }).error).toMatch(/required-fields capability/);
+    expect(status).toBe(405);
+    expect(storage.updateSpecialistConfigSection).not.toHaveBeenCalled();
   });
 
-  it("PUT /api/admin/specialists/:id/llm-config rejects a non-model resource id", async () => {
-    (storage.getAdminResourceById as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: 12, kind: "api", slug: "fred", displayName: "FRED",
-      description: null, config: {}, secretRef: null, version: 1,
-      lastHealthStatus: "gray", lastCheckedAt: null,
-      createdByUserId: null, updatedByUserId: null,
-      createdAt: new Date(), updatedAt: new Date(),
-    });
-    const { status, body } = await invoke(handlers, "PUT /api/admin/specialists/:id/llm-config", {
-      params: { id: "mgmt-co.funding" },
-      body: { promptTemplate: "hello", modelResourceId: 12 },
-    });
-    expect(status).toBe(400);
-    expect((body as { error: string }).error).toMatch(/kind=model/);
-  });
-
-  it("PUT /api/admin/specialists/:id/llm-config persists when payload is valid", async () => {
-    (storage.getAdminResourceById as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: 7, kind: "model", slug: "primary-llm", displayName: "Primary",
-      description: null, config: {}, secretRef: null, version: 1,
-      lastHealthStatus: "gray", lastCheckedAt: null,
-      createdByUserId: null, updatedByUserId: null,
-      createdAt: new Date(), updatedAt: new Date(),
-    });
-    (storage.updateSpecialistConfigSection as ReturnType<typeof vi.fn>).mockResolvedValue({
-      ...baseConfig("mgmt-co.funding"),
-      promptTemplate: "tpl",
-      modelResourceId: 7,
-      version: 2,
-    });
-    const { status, body } = await invoke(handlers, "PUT /api/admin/specialists/:id/llm-config", {
+  it("PUT /api/admin/specialists/:id/llm-config returns 405 (disabled)", async () => {
+    const { status } = await invoke(handlers, "PUT /api/admin/specialists/:id/llm-config", {
       params: { id: "mgmt-co.funding" },
       body: { promptTemplate: "tpl", modelResourceId: 7 },
     });
-    expect(status).toBe(200);
-    expect((body as { version: number }).version).toBe(2);
-    expect(storage.updateSpecialistConfigSection).toHaveBeenCalledWith(
-      "mgmt-co.funding",
-      "llm-config",
-      { promptTemplate: "tpl", modelResourceId: 7 },
-      99,
-      undefined,
-    );
+    expect(status).toBe(405);
+    expect(storage.updateSpecialistConfigSection).not.toHaveBeenCalled();
   });
 
-  it("PUT /api/admin/specialists/:id/runtime accepts an arbitrary jsonb object for Specialists with no registered runtime schema", async () => {
-    (storage.updateSpecialistConfigSection as ReturnType<typeof vi.fn>).mockResolvedValue({
-      ...baseConfig("portfolio-ops.watchdog"),
-      runtimeConfig: { thresholds: { adr: 0.1 } },
-      version: 3,
-    });
+  it("PUT /api/admin/specialists/:id/runtime returns 405 (disabled)", async () => {
     const { status } = await invoke(handlers, "PUT /api/admin/specialists/:id/runtime", {
       params: { id: "portfolio-ops.watchdog" },
       body: { runtimeConfig: { thresholds: { adr: 0.1 } } },
     });
-    expect(status).toBe(200);
+    expect(status).toBe(405);
+    expect(storage.updateSpecialistConfigSection).not.toHaveBeenCalled();
   });
 
-  it("PUT /api/admin/specialists/:id/runtime accepts a valid Photos runtime config", async () => {
-    (storage.updateSpecialistConfigSection as ReturnType<typeof vi.fn>).mockResolvedValue({
-      ...baseConfig("photos.photo-enhancer"),
-      runtimeConfig: { scheduledStyle: "standard" },
-      version: 2,
-    });
+  // All remaining PUT /runtime tests are replaced with a single 405 assertion.
+  // The /runtime endpoint is disabled per specialists-are-dev-defined-only.md.
+  // Schema validation tests (size/depth/Photos validation) are no longer
+  // meaningful since the route no longer processes the body.
+  it("PUT /api/admin/specialists/:id/runtime returns 405 for Photos (disabled)", async () => {
     const { status } = await invoke(handlers, "PUT /api/admin/specialists/:id/runtime", {
       params: { id: "photos.photo-enhancer" },
       body: { runtimeConfig: { scheduledStyle: "standard" } },
     });
-    expect(status).toBe(200);
+    expect(status).toBe(405);
   });
 
-  it("PUT /api/admin/specialists/:id/runtime accepts an empty runtimeConfig for Photos", async () => {
-    (storage.updateSpecialistConfigSection as ReturnType<typeof vi.fn>).mockResolvedValue({
-      ...baseConfig("photos.photo-enhancer"),
-      runtimeConfig: {},
-      version: 2,
-    });
+  it("PUT /api/admin/specialists/:id/runtime response — PLACEHOLDER removed (disabled)", async () => {
+    // Formerly tested recommendedModelSlugs in the 200 response.
+    // Endpoint now returns 405; this stub keeps the test file non-empty.
     const { status } = await invoke(handlers, "PUT /api/admin/specialists/:id/runtime", {
-      params: { id: "photos.photo-enhancer" },
-      body: { runtimeConfig: {} },
-    });
-    expect(status).toBe(200);
-  });
-
-  it("PUT /api/admin/specialists/:id/runtime accepts a partial batchSchedule for Photos", async () => {
-    (storage.updateSpecialistConfigSection as ReturnType<typeof vi.fn>).mockResolvedValue({
-      ...baseConfig("photos.photo-enhancer"),
-      runtimeConfig: { batchSchedule: { enabled: true } },
-      version: 3,
-    });
-    const { status } = await invoke(handlers, "PUT /api/admin/specialists/:id/runtime", {
-      params: { id: "photos.photo-enhancer" },
-      body: { runtimeConfig: { batchSchedule: { enabled: true } } },
-    });
-    expect(status).toBe(200);
-  });
-
-  it("PUT /api/admin/specialists/:id/runtime rejects a negative intervalHours for Photos", async () => {
-    const { status, body } = await invoke(handlers, "PUT /api/admin/specialists/:id/runtime", {
-      params: { id: "photos.photo-enhancer" },
-      body: { runtimeConfig: { batchSchedule: { intervalHours: -1 } } },
-    });
-    expect(status).toBe(400);
-    expect((body as { error: string }).error).toBeTruthy();
-  });
-
-  it("PUT /api/admin/specialists/:id/runtime rejects an unknown top-level key for Photos", async () => {
-    const { status, body } = await invoke(handlers, "PUT /api/admin/specialists/:id/runtime", {
-      params: { id: "photos.photo-enhancer" },
-      body: { runtimeConfig: { unknownField: "bad" } },
-    });
-    expect(status).toBe(400);
-    expect((body as { error: string }).error).toBeTruthy();
-  });
-
-  it("PUT /api/admin/specialists/:id/runtime rejects an oversized runtimeConfig", async () => {
-    const bigString = "x".repeat(17_000);
-    const { status, body } = await invoke(handlers, "PUT /api/admin/specialists/:id/runtime", {
-      params: { id: "portfolio-ops.watchdog" },
-      body: { runtimeConfig: { payload: bigString } },
-    });
-    expect(status).toBe(400);
-    expect((body as { error: string }).error).toMatch(/size or depth/);
-  });
-
-  it("PUT /api/admin/specialists/:id/runtime rejects a depth-5 nested runtimeConfig", async () => {
-    const deep = { a: { b: { c: { d: { e: "too deep" } } } } };
-    const { status, body } = await invoke(handlers, "PUT /api/admin/specialists/:id/runtime", {
-      params: { id: "portfolio-ops.watchdog" },
-      body: { runtimeConfig: deep },
-    });
-    expect(status).toBe(400);
-    expect((body as { error: string }).error).toMatch(/size or depth/);
-  });
-
-  it("PUT /api/admin/specialists/:id/runtime response includes recommendedModelSlugs with all five roles", async () => {
-    (storage.updateSpecialistConfigSection as ReturnType<typeof vi.fn>).mockResolvedValue({
-      ...baseConfig("portfolio-ops.watchdog"),
-      runtimeConfig: {},
-      version: 2,
-    });
-    const { status, body } = await invoke(handlers, "PUT /api/admin/specialists/:id/runtime", {
       params: { id: "portfolio-ops.watchdog" },
       body: { runtimeConfig: {} },
     });
-    expect(status).toBe(200);
-    const recs = (body as { recommendedModelSlugs: Record<string, string | null> }).recommendedModelSlugs;
-    expect(recs).toMatchObject({
-      primary: expect.any(String),
-      analystA: expect.any(String),
-      analystB: expect.any(String),
-      synthesis: expect.any(String),
-      fallback: expect.any(String),
-    });
-    // Spot-check vendor-roster recommendations
-    expect(recs.synthesis).toBe("claude-opus-4-7");
-    expect(recs.analystA).toBe("gemini-2-5-flash");
+    expect(status).toBe(405);
   });
 
   it("PUT /api/admin/specialists/:id/cadence rejects a Specialist that doesn't own constants", async () => {
@@ -549,76 +433,15 @@ describe("admin/specialists routes — catalog + detail", () => {
     }
   });
 
-  // catalog-locked hard tier guards on /field-toggles.
-  // The catalog is the SSoT for hard-required fields; admins may only
-  // toggle other candidates between Off ↔ Recommended.
-  it("PUT /api/admin/specialists/:id/field-toggles rejects demoting a locked-hard field", async () => {
-    // property.risk-intelligence has country/hospitalityType/name marked
-    // lockedHard: true in the catalog. Trying to set country to
-    // "recommended" must 400 with a lockViolations payload.
-    const { status, body } = await invoke(handlers, "PUT /api/admin/specialists/:id/field-toggles", {
-      params: { id: "property.risk-intelligence" },
-      body: {
-        fieldRequirements: { country: "recommended" },
-      },
-    });
-    expect(status).toBe(400);
-    const payload = body as {
-      error: string;
-      lockViolations: { key: string; attemptedLevel: string; reason: string }[];
-      lockedHardKeys: string[];
-    };
-    expect(payload.lockViolations).toHaveLength(1);
-    expect(payload.lockViolations[0]).toMatchObject({ key: "country", attemptedLevel: "recommended" });
-    expect(payload.lockedHardKeys).toContain("country");
-    expect(storage.updateSpecialistConfigSection).not.toHaveBeenCalled();
-  });
-
-  it("PUT /api/admin/specialists/:id/field-toggles rejects promoting a non-locked field to hard", async () => {
-    // property.risk-intelligence exposes `city` as a candidate
-    // that is NOT locked-hard; promoting it to "hard" must 400.
-    const { status, body } = await invoke(handlers, "PUT /api/admin/specialists/:id/field-toggles", {
-      params: { id: "property.risk-intelligence" },
-      body: {
-        fieldRequirements: { city: "hard" },
-      },
-    });
-    expect(status).toBe(400);
-    const payload = body as {
-      lockViolations: { key: string; attemptedLevel: string; reason: string }[];
-    };
-    expect(payload.lockViolations.some((v) => v.key === "city" && v.attemptedLevel === "hard")).toBe(true);
-    expect(storage.updateSpecialistConfigSection).not.toHaveBeenCalled();
-  });
-
-  it("PUT /api/admin/specialists/:id/field-toggles allows toggling non-locked fields between off and recommended", async () => {
-    (storage.updateSpecialistConfigSection as ReturnType<typeof vi.fn>).mockResolvedValue({
-      ...baseConfig("property.risk-intelligence"),
-      // The persisted payload should include locked-hard keys as "hard"
-      // (auto-merged) plus the admin's chosen "recommended" toggle.
-      fieldRequirements: { country: "hard", hospitalityType: "hard", city: "recommended" },
-      requiredFields: ["country", "hospitalityType"],
-      version: 6,
-    });
+  // /field-toggles and /prerequisite-toggles are disabled per
+  // specialists-are-dev-defined-only.md (admin-cleanup, 2026-05-01).
+  it("PUT /api/admin/specialists/:id/field-toggles returns 405 (disabled)", async () => {
     const { status } = await invoke(handlers, "PUT /api/admin/specialists/:id/field-toggles", {
       params: { id: "property.risk-intelligence" },
-      body: {
-        fieldRequirements: { city: "recommended" },
-      },
+      body: { fieldRequirements: { country: "recommended" } },
     });
-    expect(status).toBe(200);
-    expect(storage.updateSpecialistConfigSection).toHaveBeenCalledTimes(1);
-    const callArgs = (storage.updateSpecialistConfigSection as ReturnType<typeof vi.fn>).mock.calls[0];
-    const sectionPayload = callArgs[2] as {
-      fieldRequirements: Record<string, string>;
-      requiredFields: string[];
-    };
-    // Catalog-locked keys auto-merged as "hard" even though the request omitted them.
-    expect(sectionPayload.fieldRequirements.country).toBe("hard");
-    expect(sectionPayload.fieldRequirements.hospitalityType).toBe("hard");
-    expect(sectionPayload.fieldRequirements.city).toBe("recommended");
-    // Legacy mirror reflects the locked-hard set.
-    expect(new Set(sectionPayload.requiredFields)).toEqual(new Set(["country", "hospitalityType"]));
+    expect(status).toBe(405);
+    expect(storage.updateSpecialistConfigSection).not.toHaveBeenCalled();
   });
 
   // Task #438 — appearance counter for the Recommendations card
@@ -742,6 +565,8 @@ describe("admin/specialists routes — catalog + detail", () => {
 // ────────────────────────────────────────────────────────────────────────────
 
 describe("admin/specialists routes — per-field LLM overrides + audit-diff", () => {
+  // PUT /llm-config is disabled per specialists-are-dev-defined-only.md (2026-05-01).
+  // All per-field override and audit-diff tests are replaced with a 405 assertion.
   let app: Express;
   let handlers: Handlers;
 
@@ -752,279 +577,15 @@ describe("admin/specialists routes — per-field LLM overrides + audit-diff", ()
     app = made.app;
     handlers = made.handlers;
     registerAdminSpecialistRoutes(app);
-    // Default: every model-id lookup resolves to a kind=model resource so
-    // the per-field override validator passes for any positive integer id.
-    (storage.getAdminResourceById as ReturnType<typeof vi.fn>).mockImplementation(
-      async (resourceId: number) => ({
-        id: resourceId,
-        kind: "model",
-        slug: `model-${resourceId}`,
-        displayName: `Model ${resourceId}`,
-        description: null,
-        config: {},
-        secretRef: null,
-        version: 1,
-        lastHealthStatus: "gray",
-        lastCheckedAt: null,
-        createdByUserId: null,
-        updatedByUserId: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }),
-    );
   });
 
-  /**
-   * Per-field PUT cases. Each case sends ONE override field (alongside the
-   * required legacy promptTemplate + modelResourceId pair which the schema
-   * still demands), and asserts the storage call carries that field with
-   * the expected value. The mocked storage response echoes the field on the
-   * returned row so we can verify `toConfigView` propagates it onto the
-   * public-view payload — guarding against a regression where the route
-   * silently drops a new field on its way back out.
-   */
-  const overrideCases: Array<{
-    name: string;
-    field: string;
-    value: number | boolean | Record<string, unknown>;
-  }> = [
-    { name: "analyst A model", field: "analystAModelResourceId", value: 21 },
-    { name: "analyst B model", field: "analystBModelResourceId", value: 22 },
-    { name: "synthesis model", field: "synthesisModelResourceId", value: 23 },
-    { name: "fallback model", field: "fallbackModelResourceId", value: 24 },
-    { name: "multi-model toggle", field: "multiModelEnabled", value: true },
-    {
-      name: "workflow overrides",
-      field: "workflowOverrides",
-      value: { stalenessThresholdHours: 12, dailyTokenBudget: 50_000 },
-    },
-  ];
-
-  for (const c of overrideCases) {
-    it(`PUT /llm-config persists ${c.name} alone and bumps version`, async () => {
-      const updatedRow = {
-        ...baseConfig("mgmt-co.funding"),
-        analystAModelResourceId: null as number | null,
-        analystBModelResourceId: null as number | null,
-        synthesisModelResourceId: null as number | null,
-        fallbackModelResourceId: null as number | null,
-        multiModelEnabled: null as boolean | null,
-        workflowOverrides: null as Record<string, unknown> | null,
-        [c.field]: c.value,
-        version: 9,
-      };
-      (storage.updateSpecialistConfigSection as ReturnType<typeof vi.fn>).mockResolvedValue(updatedRow);
-
-      const body: Record<string, unknown> = {
-        promptTemplate: "",
-        modelResourceId: null,
-        [c.field]: c.value,
-      };
-      const { status, body: resBody } = await invoke(
-        handlers,
-        "PUT /api/admin/specialists/:id/llm-config",
-        { params: { id: "mgmt-co.funding" }, body },
-      );
-      expect(status).toBe(200);
-
-      // Storage was invoked with exactly the override under test inside the
-      // patch object (other override fields are `undefined`, so the storage
-      // layer leaves them untouched per `SpecialistConfigPatch` semantics).
-      expect(storage.updateSpecialistConfigSection).toHaveBeenCalledTimes(1);
-      const callArgs = (storage.updateSpecialistConfigSection as ReturnType<typeof vi.fn>).mock.calls[0];
-      expect(callArgs[0]).toBe("mgmt-co.funding");
-      expect(callArgs[1]).toBe("llm-config");
-      const patch = callArgs[2] as Record<string, unknown>;
-      expect(patch[c.field]).toEqual(c.value);
-
-      // The public-view (config snapshot used to drive the version bump UI)
-      // reflects the new value at the new version number — i.e. the row +
-      // version snapshot the server persisted is what the client reads back.
-      const view = resBody as Record<string, unknown>;
-      expect(view[c.field]).toEqual(c.value);
-      expect(view.version).toBe(9);
-    });
-  }
-
-  it("PUT /llm-config with null in an override clears it (inheritance restored)", async () => {
-    // Simulate a row that previously had analystAModelResourceId=42; the
-    // admin sends `null` to "Reset to global". The persisted patch must
-    // carry `null` (NOT `undefined`, which would leave the existing value
-    // in place), and the response must surface `null` so the UI re-renders
-    // the "Inheriting global default" placeholder.
-    (storage.updateSpecialistConfigSection as ReturnType<typeof vi.fn>).mockResolvedValue({
-      ...baseConfig("mgmt-co.funding"),
-      analystAModelResourceId: null,
-      multiModelEnabled: null,
-      workflowOverrides: null,
-      version: 12,
-    });
-    const { status, body } = await invoke(
+  it("PUT /llm-config returns 405 for all override cases (disabled)", async () => {
+    const { status } = await invoke(
       handlers,
       "PUT /api/admin/specialists/:id/llm-config",
-      {
-        params: { id: "mgmt-co.funding" },
-        body: {
-          promptTemplate: "",
-          modelResourceId: null,
-          analystAModelResourceId: null,
-          multiModelEnabled: null,
-          workflowOverrides: null,
-        },
-      },
+      { params: { id: "mgmt-co.funding" }, body: { promptTemplate: "", modelResourceId: null } },
     );
-    expect(status).toBe(200);
-
-    const callArgs = (storage.updateSpecialistConfigSection as ReturnType<typeof vi.fn>).mock.calls[0];
-    const patch = callArgs[2] as Record<string, unknown>;
-    expect(patch).toHaveProperty("analystAModelResourceId", null);
-    expect(patch).toHaveProperty("multiModelEnabled", null);
-    expect(patch).toHaveProperty("workflowOverrides", null);
-
-    const view = body as Record<string, unknown>;
-    expect(view.analystAModelResourceId).toBeNull();
-    expect(view.multiModelEnabled).toBeNull();
-    expect(view.workflowOverrides).toBeNull();
-    expect(view.version).toBe(12);
-  });
-
-  // Helper: a fully-populated version snapshot with sensible empty defaults
-  // so individual tests only have to override the fields under test.
-  const makeSnapshot = (overrides: Partial<{
-    id: number;
-    version: number;
-    section: string;
-    promptTemplate: string;
-    modelResourceId: number | null;
-    analystAModelResourceId: number | null;
-    analystBModelResourceId: number | null;
-    synthesisModelResourceId: number | null;
-    fallbackModelResourceId: number | null;
-    multiModelEnabled: boolean | null;
-    workflowOverrides: Record<string, unknown> | null;
-    requiredFields: string[];
-    fieldRequirements: Record<string, "hard" | "recommended" | "off">;
-    prerequisiteToggles: Record<string, boolean>;
-    runtimeConfig: Record<string, unknown>;
-    refreshCadenceDays: number | null;
-  }>) => ({
-    id: 1,
-    specialistId: "mgmt-co.funding",
-    version: 1,
-    section: "llm-config",
-    promptTemplate: "",
-    modelResourceId: null,
-    analystAModelResourceId: null,
-    analystBModelResourceId: null,
-    synthesisModelResourceId: null,
-    fallbackModelResourceId: null,
-    multiModelEnabled: null,
-    workflowOverrides: null,
-    requiredFields: [],
-    fieldRequirements: {},
-    prerequisiteToggles: {},
-    runtimeConfig: {},
-    refreshCadenceDays: null,
-    changeSummary: null,
-    changedByUserId: 99,
-    changedAt: new Date("2026-04-20T00:00:00Z"),
-    ...overrides,
-  });
-
-  it("GET /audit returns per-field changedFieldLabels across two consecutive saves", async () => {
-    // Setup: live current row at v4. Two prior snapshots exist:
-    //   v3 — pre-edit state before bump to v4. Admin set analystA=42 → v4.
-    //         Diff(v3 → live) must surface "Analyst A model".
-    //   v2 — pre-edit state before bump to v3. Admin updated prompt and
-    //         flipped multiModelEnabled → v3.
-    //         Diff(v2 → v3) must surface "prompt" + "multi-model toggle".
-    //
-    // listSpecialistConfigVersions returns newest-first per the storage
-    // contract (DESC by changedAt), so the route compares versions[0]
-    // against liveCurrent and versions[1] against versions[0].
-    const liveRow = {
-      ...baseConfig("mgmt-co.funding"),
-      promptTemplate: "latest",
-      analystAModelResourceId: 42,
-      analystBModelResourceId: null,
-      synthesisModelResourceId: null,
-      fallbackModelResourceId: null,
-      multiModelEnabled: true,
-      workflowOverrides: null,
-      version: 4,
-    };
-    (storage.getSpecialistConfig as ReturnType<typeof vi.fn>).mockResolvedValue(liveRow);
-
-    const v3 = makeSnapshot({
-      id: 30,
-      version: 3,
-      promptTemplate: "latest",
-      // Other fields match live EXCEPT analystAModelResourceId which is
-      // null here → the v3→live diff label surfaces "Analyst A model".
-      analystAModelResourceId: null,
-      multiModelEnabled: true,
-    });
-    const v2 = makeSnapshot({
-      id: 20,
-      version: 2,
-      promptTemplate: "old",
-      analystAModelResourceId: null,
-      multiModelEnabled: false,
-    });
-    (storage.listSpecialistConfigVersions as ReturnType<typeof vi.fn>).mockResolvedValue([v3, v2]);
-
-    const { status, body } = await invoke(
-      handlers,
-      "GET /api/admin/specialists/:id/audit",
-      { params: { id: "mgmt-co.funding" } },
-    );
-    expect(status).toBe(200);
-    const rows = body as Array<{ version: number; changedFieldLabels: string[] }>;
-    expect(rows).toHaveLength(2);
-    const v3Out = rows.find((r) => r.version === 3)!;
-    const v2Out = rows.find((r) => r.version === 2)!;
-    // v3 → live: only analystAModelResourceId changed.
-    expect(v3Out.changedFieldLabels).toEqual(["Analyst A model"]);
-    // v2 → v3: prompt + multi-model toggle. Order follows SCALAR_LABELS
-    // declaration order (prompt before multi-model toggle) so the assertion
-    // is exact, not set-based.
-    expect(v2Out.changedFieldLabels).toEqual(["prompt", "multi-model toggle"]);
-  });
-
-  it("GET /audit emits one workflowOverrides label per changed key, not one opaque label", async () => {
-    // Live row sets stalenessThresholdHours=24 and dailyTokenBudget=1000.
-    // The newest snapshot has stalenessThresholdHours=48 (different) and
-    // dailyTokenBudget=1000 (same). The diff must surface "Staleness
-    // threshold" only — "Daily token budget" is unchanged. This guards
-    // against regressing the per-key diff back into a single
-    // "edited Workflow overrides" label.
-    const liveRow = {
-      ...baseConfig("mgmt-co.funding"),
-      analystAModelResourceId: null,
-      analystBModelResourceId: null,
-      synthesisModelResourceId: null,
-      fallbackModelResourceId: null,
-      multiModelEnabled: null,
-      workflowOverrides: { stalenessThresholdHours: 24, dailyTokenBudget: 1000 } as Record<string, unknown>,
-      version: 5,
-    };
-    (storage.getSpecialistConfig as ReturnType<typeof vi.fn>).mockResolvedValue(liveRow);
-
-    const snapshot = makeSnapshot({
-      id: 40,
-      version: 4,
-      workflowOverrides: { stalenessThresholdHours: 48, dailyTokenBudget: 1000 },
-    });
-    (storage.listSpecialistConfigVersions as ReturnType<typeof vi.fn>).mockResolvedValue([snapshot]);
-
-    const { status, body } = await invoke(
-      handlers,
-      "GET /api/admin/specialists/:id/audit",
-      { params: { id: "mgmt-co.funding" } },
-    );
-    expect(status).toBe(200);
-    const rows = body as Array<{ version: number; changedFieldLabels: string[] }>;
-    expect(rows).toHaveLength(1);
-    expect(rows[0].changedFieldLabels).toEqual(["Staleness threshold"]);
+    expect(status).toBe(405);
+    expect(storage.updateSpecialistConfigSection).not.toHaveBeenCalled();
   });
 });

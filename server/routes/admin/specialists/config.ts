@@ -23,119 +23,18 @@ import {
   getSpecialistById,
   getLockedHardCandidateKeys,
 } from "../../../../engine/analyst/registry/specialist-catalog";
-import {
-  findInvalidRequiredFieldKeys,
-  getValidRequiredFieldKeys,
-} from "../../../../engine/analyst/registry/required-field-keys";
-import {
-  updateLlmConfigSchema,
-  updateRequiredFieldsSchema,
-  updateFieldTogglesSchema,
-  updatePrerequisiteTogglesSchema,
-  type UpdateLlmConfigInput,
-} from "@shared/schema";
-import { idParamSchema, toConfigView } from "./_shared";
-import { getSpecialistGlobalLlmDefaults } from "../../../ai/specialist-llm-resolver";
+import { idParamSchema } from "./_shared";
 
 export function registerConfigRoutes(app: Express) {
-  // ── Update LLM config (promptTemplate + modelResourceId) ────────
-  app.put("/api/admin/specialists/:id/llm-config", requireAdmin, async (req, res) => {
-    try {
-      const { id } = idParamSchema.parse(req.params);
-      const def = getSpecialistById(id);
-      if (!def) return res.status(404).json({ error: "Specialist not found" });
-      if (!def.capabilities.includes("llm-config")) {
-        return res.status(400).json({ error: "Specialist does not declare llm-config capability" });
-      }
-      const parsed = updateLlmConfigSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
-      }
-      // Validate every supplied model resource id exists and is kind=model.
-      // Each of {primary, analystA, analystB, synthesis, fallback} can be
-      // null (= "clear override"), a positive int (= "use this model"), or
-      // omitted (= "leave the field unchanged").
-      const modelFieldKeys: Array<keyof UpdateLlmConfigInput> = [
-        "modelResourceId",
-        "analystAModelResourceId",
-        "analystBModelResourceId",
-        "synthesisModelResourceId",
-        "fallbackModelResourceId",
-      ];
-      for (const key of modelFieldKeys) {
-        const value = parsed.data[key] as number | null | undefined;
-        if (value == null) continue; // null or undefined: nothing to look up
-        const resource = await storage.getAdminResourceById(value);
-        if (!resource) {
-          return res.status(400).json({ error: `${key} not found` });
-        }
-        if (resource.kind !== "model") {
-          return res.status(400).json({ error: `${key} must reference a Resource of kind=model` });
-        }
-      }
-      const actorId = req.user!.id;
-      const updated = await storage.updateSpecialistConfigSection(
-        id,
-        "llm-config",
-        {
-          promptTemplate: parsed.data.promptTemplate,
-          modelResourceId: parsed.data.modelResourceId,
-          analystAModelResourceId: parsed.data.analystAModelResourceId,
-          analystBModelResourceId: parsed.data.analystBModelResourceId,
-          synthesisModelResourceId: parsed.data.synthesisModelResourceId,
-          fallbackModelResourceId: parsed.data.fallbackModelResourceId,
-          multiModelEnabled: parsed.data.multiModelEnabled,
-          workflowOverrides: parsed.data.workflowOverrides,
-        },
-        actorId,
-        parsed.data.changeSummary,
-      );
-      logActivity(req, "update-specialist-llm-config", "specialist_config", updated.id, `${id} v${updated.version}`);
-      res.json(toConfigView(updated, def, await getSpecialistGlobalLlmDefaults()));
-    } catch (error: unknown) {
-      logAndSendError(res, "Failed to update specialist LLM config", error);
-    }
+  // Disabled: LlmConfigTab is read-only per specialists-are-dev-defined-only.md §3.3.
+  // Prompt templates, model selection, and routing rules are dev-defined.
+  app.put("/api/admin/specialists/:id/llm-config", requireAdmin, (_req, res) => {
+    res.status(405).json({ error: "Specialist LLM config is dev-defined. Edit the catalog and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
   });
 
-  // ── Update Required Fields ──────────────────────────────────────
-  app.put("/api/admin/specialists/:id/required-fields", requireAdmin, async (req, res) => {
-    try {
-      const { id } = idParamSchema.parse(req.params);
-      const def = getSpecialistById(id);
-      if (!def) return res.status(404).json({ error: "Specialist not found" });
-      if (!def.capabilities.includes("required-fields")) {
-        return res.status(400).json({ error: "Specialist does not declare required-fields capability" });
-      }
-      const parsed = updateRequiredFieldsSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
-      }
-      // P6a follow-up: enforce per-Specialist allow-list on requiredFields.
-      // Specialists with a wired allow-list (mgmt-co.funding,
-      // mgmt-co.revenue) reject keys outside the list. Specialists without
-      // an allow-list (`null`) accept any string for backward-compat.
-      const invalid = findInvalidRequiredFieldKeys(id, parsed.data.fields);
-      if (invalid.length > 0) {
-        const allow = getValidRequiredFieldKeys(id) ?? [];
-        return res.status(400).json({
-          error: `Unknown required-field key(s) for ${id}: ${invalid.join(", ")}. Valid keys: ${allow.join(", ")}`,
-          invalidKeys: invalid,
-          validKeys: [...allow],
-        });
-      }
-      const actorId = req.user!.id;
-      const updated = await storage.updateSpecialistConfigSection(
-        id,
-        "required-fields",
-        { requiredFields: parsed.data.fields },
-        actorId,
-        parsed.data.changeSummary,
-      );
-      logActivity(req, "update-specialist-required-fields", "specialist_config", updated.id, `${id} v${updated.version}`);
-      res.json(toConfigView(updated, def, await getSpecialistGlobalLlmDefaults()));
-    } catch (error: unknown) {
-      logAndSendError(res, "Failed to update specialist required fields", error);
-    }
+  // Disabled: RequiredFieldsTab is read-only per specialists-are-dev-defined-only.md §3.1.
+  app.put("/api/admin/specialists/:id/required-fields", requireAdmin, (_req, res) => {
+    res.status(405).json({ error: "Specialist required fields are dev-defined. Edit the catalog and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
   });
 
   // ── Promote/Ignore observed-missing telemetry ────────────────────
@@ -210,143 +109,13 @@ export function registerConfigRoutes(app: Express) {
     }
   });
 
-  // ── Update Field Toggles (toggle UI) ────────────────────────────
-  // Body: { fieldRequirements: Record<key,"hard"|"recommended"|"off">,
-  //         changeSummary?: string }
-  // Validates each key against the catalog `candidateFields[]` declaration.
-  // Mirrors the hard-required subset into the legacy `requiredFields`
-  // column so the in-flight surface-router gate stays honest during the
-  // transition (see deriveHardRequiredFieldKeys helper).
-  app.put("/api/admin/specialists/:id/field-toggles", requireAdmin, async (req, res) => {
-    try {
-      const { id } = idParamSchema.parse(req.params);
-      const def = getSpecialistById(id);
-      if (!def) return res.status(404).json({ error: "Specialist not found" });
-      if (!def.capabilities.includes("required-fields")) {
-        return res.status(400).json({ error: "Specialist does not declare required-fields capability" });
-      }
-      const parsed = updateFieldTogglesSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
-      }
-      const candidateKeys = new Set((def.candidateFields ?? []).map((c) => c.key));
-      const invalid = Object.keys(parsed.data.fieldRequirements).filter(
-        (k) => !candidateKeys.has(k),
-      );
-      if (invalid.length > 0) {
-        return res.status(400).json({
-          error: `Unknown candidate field key(s) for ${id}: ${invalid.join(", ")}. Valid keys: ${Array.from(candidateKeys).join(", ")}`,
-          invalidKeys: invalid,
-          validKeys: Array.from(candidateKeys),
-        });
-      }
-
-      // catalog-locked hard tier enforcement.
-      // The catalog (engine/analyst/registry/specialist-catalog.ts) is the
-      // SOLE place where the hard-required tier is decided. Admins can flip
-      // OTHER candidates between Off ↔ Recommended, but they cannot:
-      //   (a) demote a `lockedHard: true` field out of "hard", or
-      //   (b) promote a non-locked field to "hard".
-      // The PUT request is rejected loudly so the UI surfaces the lock and
-      // never silently degrades the gate. The toggle UI also renders these
-      // rows read-only — this is the defense-in-depth check.
-      const lockedHard = new Set(getLockedHardCandidateKeys(id));
-      const lockViolations: { key: string; attemptedLevel: string; reason: string }[] = [];
-      for (const [k, v] of Object.entries(parsed.data.fieldRequirements)) {
-        if (lockedHard.has(k) && v !== "hard") {
-          lockViolations.push({
-            key: k,
-            attemptedLevel: v,
-            reason: "catalog-locked hard-required; cannot demote",
-          });
-        }
-        if (!lockedHard.has(k) && v === "hard") {
-          lockViolations.push({
-            key: k,
-            attemptedLevel: v,
-            reason: "not catalog-locked; admins cannot promote to hard",
-          });
-        }
-      }
-      if (lockViolations.length > 0) {
-        return res.status(400).json({
-          error: `Catalog hard-tier lock rejected ${lockViolations.length} change(s) for ${id}. The hard-required set is decided in the catalog and cannot be changed by admins.`,
-          lockViolations,
-          lockedHardKeys: Array.from(lockedHard),
-        });
-      }
-
-      // Auto-merge: ensure every locked-hard key is present in the saved
-      // payload as "hard", regardless of whether the client included it.
-      // This guarantees the persisted toggle state and the legacy
-      // `requiredFields` mirror always reflect the catalog lock — no race
-      // where a partial payload could omit a locked key and leave the
-      // gate effectively unprotected.
-      const merged: Record<string, "hard" | "recommended" | "off"> = {
-        ...parsed.data.fieldRequirements,
-      };
-      lockedHard.forEach((k) => {
-        merged[k] = "hard";
-      });
-
-      const hardKeys = Object.entries(merged)
-        .filter(([, v]) => v === "hard")
-        .map(([k]) => k);
-      const actorId = req.user!.id;
-      const updated = await storage.updateSpecialistConfigSection(
-        id,
-        "field-toggles",
-        {
-          fieldRequirements: merged,
-          // Mirror hard subset into legacy column so existing readers
-          // (surface-router gate, ModelDefaults rollup) stay correct.
-          requiredFields: hardKeys,
-        },
-        actorId,
-        parsed.data.changeSummary,
-      );
-      logActivity(req, "update-specialist-field-toggles", "specialist_config", updated.id, `${id} v${updated.version}`);
-      res.json(toConfigView(updated, def, await getSpecialistGlobalLlmDefaults()));
-    } catch (error: unknown) {
-      logAndSendError(res, "Failed to update specialist field toggles", error);
-    }
+  // Disabled: field-toggles and prerequisite-toggles are dev-defined per
+  // specialists-are-dev-defined-only.md §3.1. UI tabs are now read-only.
+  app.put("/api/admin/specialists/:id/field-toggles", requireAdmin, (_req, res) => {
+    res.status(405).json({ error: "Specialist field toggles are dev-defined. Edit the catalog and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
   });
 
-  // ── Update Prerequisite Toggles ─────────────────────────────────
-  // Body: { prerequisiteToggles: Record<prereqId, boolean>, changeSummary?: string }
-  // Each prereqId must appear in the Specialist's catalog `prerequisites[]`.
-  app.put("/api/admin/specialists/:id/prerequisite-toggles", requireAdmin, async (req, res) => {
-    try {
-      const { id } = idParamSchema.parse(req.params);
-      const def = getSpecialistById(id);
-      if (!def) return res.status(404).json({ error: "Specialist not found" });
-      const parsed = updatePrerequisiteTogglesSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
-      }
-      const allowedPrereqs = new Set(def.prerequisites ?? []);
-      const invalid = Object.keys(parsed.data.prerequisiteToggles).filter(
-        (k) => !allowedPrereqs.has(k),
-      );
-      if (invalid.length > 0) {
-        return res.status(400).json({
-          error: `Unknown prerequisite id(s) for ${id}: ${invalid.join(", ")}. Valid ids: ${Array.from(allowedPrereqs).join(", ")}`,
-          invalidIds: invalid,
-          validIds: Array.from(allowedPrereqs),
-        });
-      }
-      const actorId = req.user!.id;
-      const updated = await storage.updateSpecialistConfigSection(
-        id,
-        "prerequisite-toggles",
-        { prerequisiteToggles: parsed.data.prerequisiteToggles },
-        actorId,
-        parsed.data.changeSummary,
-      );
-      logActivity(req, "update-specialist-prerequisite-toggles", "specialist_config", updated.id, `${id} v${updated.version}`);
-      res.json(toConfigView(updated, def, await getSpecialistGlobalLlmDefaults()));
-    } catch (error: unknown) {
-      logAndSendError(res, "Failed to update specialist prerequisite toggles", error);
-    }
+  app.put("/api/admin/specialists/:id/prerequisite-toggles", requireAdmin, (_req, res) => {
+    res.status(405).json({ error: "Specialist prerequisite toggles are dev-defined. Edit the catalog and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
   });
 }

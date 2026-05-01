@@ -1,3 +1,7 @@
+// UNWIRED — blocking on: PUT /api/admin/specialists/:id/runtime disabled per
+// specialists-are-dev-defined-only.md (admin-cleanup-specialist-readonly, 2026-05-01).
+// This schema validated per-Specialist runtime JSON blobs on the write path.
+// Delete or rewire once a new admin-tunable runtime surface replaces the editor.
 import { z } from "zod";
 import { PHOTO_ENHANCER_STYLES } from "../../../server/services/photo-enhancer-pipeline.js";
 

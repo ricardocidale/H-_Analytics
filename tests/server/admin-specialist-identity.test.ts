@@ -210,136 +210,27 @@ describe("admin/specialists identity routes", () => {
     expect(view.resolved.humanName).toBe(GASPAR_IDENTITY.humanName);
   });
 
-  it("PUT validates payload and persists override + writes audit", async () => {
-    (storage.upsertIdentityOverride as ReturnType<typeof vi.fn>).mockResolvedValue({
-      specialistId: "constants.tax-research",
-      humanName: "Hellena",
-      gender: "female",
-      updatedByUserId: 99,
-      updatedAt: new Date(),
-    });
-    const { status, body } = await invoke(handlers, "PUT /api/admin/specialists/:id/identity", {
-      params: { id: "constants.tax-research" },
-      body: { humanName: "Hellena", gender: "female", changeSummary: "spelling" },
-    });
-    expect(status).toBe(200);
-    expect((body as { resolved: { humanName: string } }).resolved.humanName).toBe("Hellena");
-    expect(storage.upsertIdentityOverride).toHaveBeenCalledWith(
-      "constants.tax-research",
-      { humanName: "Hellena", gender: "female" },
-      99,
-      "spelling",
-    );
-    expect(storage.createActivityLog).toHaveBeenCalled();
-  });
+  // PUT and DELETE are disabled per specialists-are-dev-defined-only.md §3.2
+  // (admin-cleanup-specialist-readonly packet, 2026-05-01). Specialist identity
+  // is dev-defined; edit the catalog and redeploy. Tests below verify the
+  // 405 response so auth guards still apply before the 405 fires.
 
-  it("PUT rejects humanName longer than 40 chars", async () => {
+  it("PUT returns 405 (disabled — Specialist identity is dev-defined)", async () => {
     const { status } = await invoke(handlers, "PUT /api/admin/specialists/:id/identity", {
       params: { id: "constants.tax-research" },
-      body: { humanName: "x".repeat(41), gender: "female" },
+      body: { humanName: "Hellena", gender: "female" },
     });
-    expect(status).toBe(400);
+    expect(status).toBe(405);
     expect(storage.upsertIdentityOverride).not.toHaveBeenCalled();
   });
 
-  it("PUT rejects unknown gender value", async () => {
-    const { status } = await invoke(handlers, "PUT /api/admin/specialists/:id/identity", {
-      params: { id: "constants.tax-research" },
-      body: { humanName: "Helena", gender: "robot" },
-    });
-    expect(status).toBe(400);
-  });
-
-  it("PUT accepts null fields (per-field clearing)", async () => {
-    (storage.upsertIdentityOverride as ReturnType<typeof vi.fn>).mockResolvedValue({
-      specialistId: "constants.tax-research",
-      humanName: null,
-      gender: "neutral",
-      updatedByUserId: 99,
-      updatedAt: new Date(),
-    });
-    const { status } = await invoke(handlers, "PUT /api/admin/specialists/:id/identity", {
-      params: { id: "constants.tax-research" },
-      body: { humanName: null, gender: "neutral" },
-    });
-    expect(status).toBe(200);
-    expect(storage.upsertIdentityOverride).toHaveBeenCalledWith(
-      "constants.tax-research",
-      { humanName: null, gender: "neutral" },
-      99,
-      undefined,
-    );
-  });
-
-  // Task #464 — UI form-state coverage. The IdentityTab now lets admins
-  // clear *just one* field (name only or pronouns only) by sending null
-  // for the cleared slot while keeping the other override. Lock the
-  // inverse direction (name override kept, gender cleared back to
-  // catalog default) so the per-field clear path is exercised in both
-  // orientations and the resolved view falls back correctly.
-  it("PUT clears only gender (humanName override kept, source.gender = catalog)", async () => {
-    (storage.upsertIdentityOverride as ReturnType<typeof vi.fn>).mockResolvedValue({
-      specialistId: "constants.tax-research",
-      humanName: "Hellena",
-      gender: null,
-      updatedByUserId: 99,
-      updatedAt: new Date(),
-    });
-    const { status, body } = await invoke(handlers, "PUT /api/admin/specialists/:id/identity", {
-      params: { id: "constants.tax-research" },
-      body: { humanName: "Hellena", gender: null, changeSummary: "keep name only" },
-    });
-    expect(status).toBe(200);
-    expect(storage.upsertIdentityOverride).toHaveBeenCalledWith(
-      "constants.tax-research",
-      { humanName: "Hellena", gender: null },
-      99,
-      "keep name only",
-    );
-    const view = body as {
-      override: { humanName: string | null; gender: string | null };
-      resolved: { humanName: string; gender: string; source: { humanName: string; gender: string } };
-    };
-    expect(view.override.humanName).toBe("Hellena");
-    expect(view.override.gender).toBeNull();
-    // Resolver fills gender from the catalog default ("female" for Helena).
-    expect(view.resolved.gender).toBe("female");
-    expect(view.resolved.source.humanName).toBe("override");
-    expect(view.resolved.source.gender).toBe("catalog");
-  });
-
-  it("DELETE clears the override and returns catalog-only resolved view", async () => {
-    (storage.resetIdentityOverride as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
-    const { status, body } = await invoke(handlers, "DELETE /api/admin/specialists/:id/identity", {
+  it("DELETE returns 405 (disabled — Specialist identity is dev-defined)", async () => {
+    const { status } = await invoke(handlers, "DELETE /api/admin/specialists/:id/identity", {
       params: { id: "constants.tax-research" },
       body: { changeSummary: "back to default" },
     });
-    expect(status).toBe(200);
-    const view = body as { override: unknown; resolved: { humanName: string; source: { humanName: string } } };
-    expect(view.override).toBeNull();
-    expect(view.resolved.humanName).toBe("Helena");
-    expect(view.resolved.source.humanName).toBe("catalog");
-    expect(storage.resetIdentityOverride).toHaveBeenCalledWith(
-      "constants.tax-research",
-      99,
-      "back to default",
-    );
-  });
-
-  it("PUT accepts id=\"gaspar\"", async () => {
-    (storage.upsertIdentityOverride as ReturnType<typeof vi.fn>).mockResolvedValue({
-      specialistId: "gaspar",
-      humanName: "Gaspar Sr.",
-      gender: "male",
-      updatedByUserId: 99,
-      updatedAt: new Date(),
-    });
-    const { status } = await invoke(handlers, "PUT /api/admin/specialists/:id/identity", {
-      params: { id: "gaspar" },
-      body: { humanName: "Gaspar Sr.", gender: "male" },
-    });
-    expect(status).toBe(200);
-    expect(storage.upsertIdentityOverride).toHaveBeenCalled();
+    expect(status).toBe(405);
+    expect(storage.resetIdentityOverride).not.toHaveBeenCalled();
   });
 
   it("rejects unauthenticated callers (401)", async () => {

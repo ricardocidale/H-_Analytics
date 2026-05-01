@@ -5,7 +5,7 @@ import { storage } from "../storage";
 import { sendNotificationEmail } from "../integrations/resend";
 import { logger } from "../logger";
 import { logActivity, parseRouteId } from "./helpers";
-import { insertRebeccaGuardrailSchema, insertRebeccaKBSchema } from "@shared/schema";
+import { insertRebeccaKBSchema } from "@shared/schema";
 import { upsertChunks, deleteVectors, vectorCount } from "../ai/vector-store-service";
 import { rebeccaSettingsSchema, tryParseRebeccaSettings } from "@shared/rebecca-settings";
 
@@ -240,63 +240,18 @@ export function register(app: Express) {
     }
   });
 
-  app.post("/api/rebecca/guardrails", requireAuth, requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const parsed = insertRebeccaGuardrailSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid request: " + parsed.error.issues[0]?.message });
-      }
-      const guardrail = await storage.createRebeccaGuardrail(parsed.data);
-      logActivity(req, "create-guardrail", "rebecca_guardrail", guardrail.id, guardrail.label);
-      logger.info(`Rebecca guardrail created: ${guardrail.label}`, "rebecca");
-      return res.json(guardrail);
-    } catch (err: unknown) {
-      logger.error(`Failed to create guardrail: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
-      return res.status(500).json({ error: "Failed to create guardrail" });
-    }
+  // Disabled: GuardrailEditor is read-only per specialists-are-dev-defined-only.md.
+  // Rebecca guardrails are dev-defined. GET (display) stays live; writes return 405.
+  app.post("/api/rebecca/guardrails", requireAuth, requireAdmin, (_req: Request, res: Response) => {
+    res.status(405).json({ error: "Rebecca guardrails are dev-defined. Edit source code and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
   });
 
-  app.patch("/api/rebecca/guardrails/:id", requireAuth, requireAdmin, async (req: Request<{ id: string }>, res: Response) => {
-    try {
-      const id = parseRouteId(req.params.id);
-      if (!id) {
-        return res.status(400).json({ error: "Invalid guardrail ID" });
-      }
-      const updateSchema = insertRebeccaGuardrailSchema.partial();
-      const parsed = updateSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid request: " + parsed.error.issues[0]?.message });
-      }
-      const updated = await storage.updateRebeccaGuardrail(id, parsed.data);
-      if (!updated) {
-        return res.status(404).json({ error: "Guardrail not found" });
-      }
-      logActivity(req, "update-guardrail", "rebecca_guardrail", id, updated.label);
-      logger.info(`Rebecca guardrail ${id} updated`, "rebecca");
-      return res.json(updated);
-    } catch (err: unknown) {
-      logger.error(`Failed to update guardrail: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
-      return res.status(500).json({ error: "Failed to update guardrail" });
-    }
+  app.patch("/api/rebecca/guardrails/:id", requireAuth, requireAdmin, (_req: Request, res: Response) => {
+    res.status(405).json({ error: "Rebecca guardrails are dev-defined. Edit source code and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
   });
 
-  app.delete("/api/rebecca/guardrails/:id", requireAuth, requireAdmin, async (req: Request<{ id: string }>, res: Response) => {
-    try {
-      const id = parseRouteId(req.params.id);
-      if (!id) {
-        return res.status(400).json({ error: "Invalid guardrail ID" });
-      }
-      const deleted = await storage.deleteRebeccaGuardrail(id);
-      if (!deleted) {
-        return res.status(404).json({ error: "Guardrail not found" });
-      }
-      logActivity(req, "delete-guardrail", "rebecca_guardrail", id);
-      logger.info(`Rebecca guardrail ${id} deleted`, "rebecca");
-      return res.json({ success: true });
-    } catch (err: unknown) {
-      logger.error(`Failed to delete guardrail: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
-      return res.status(500).json({ error: "Failed to delete guardrail" });
-    }
+  app.delete("/api/rebecca/guardrails/:id", requireAuth, requireAdmin, (_req: Request, res: Response) => {
+    res.status(405).json({ error: "Rebecca guardrails are dev-defined. Edit source code and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
   });
 
   app.get("/api/rebecca/kb", requireAuth, requireAdmin, async (req: Request, res: Response) => {
