@@ -6,6 +6,7 @@
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "record-storage-drift-sweep": "tsx ./src/record-storage-drift-sweep.ts",
+    "check:replit-independence": "tsx ./src/check-replit-independence.ts",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
