@@ -103,7 +103,7 @@ export function DCFAnalysis({
       <CardHeader>
         <CardTitle className="flex items-center gap-1.5">
           Discounted Cash Flow (DCF) Analysis — Per Property
-          <InfoTooltip text="Per-property DCF valuation using individual WACC for each property. Each property's cost of equity = base Re + country risk premium (Damodaran). WACC = (E/V × Re) + (D/V × Rd × (1−T))." manualSection="investment-returns" />
+          <InfoTooltip text="Per-property DCF valuation using individual WACC for each property. Each property's cost of equity = base Re + country risk premium (Damodaran). WACC = (E/V × Re) + (D/V × Rd × (1−T))." manualSection="analysis" />
         </CardTitle>
         <p className="text-sm text-muted-foreground">Individual property valuations with country-adjusted discount rates (source: Damodaran Jan 2026)</p>
       </CardHeader>
@@ -113,7 +113,7 @@ export function DCFAnalysis({
             <div className="bg-card rounded-lg p-5 border border-border shadow-sm">
               <p className="text-sm font-medium text-foreground/70 flex items-center mb-2" data-testid="text-portfolio-wacc-label">
                 Portfolio WACC
-                <InfoTooltip text={`Capital-weighted average WACC across all properties. Base Re: ${(baseCostOfEquity * 100).toFixed(0)}% + per-property country risk premium (Damodaran).`} manualSection="investment-returns" />
+                <InfoTooltip text={`Capital-weighted average WACC across all properties. Base Re: ${(baseCostOfEquity * 100).toFixed(0)}% + per-property country risk premium (Damodaran).`} manualSection="analysis" />
               </p>
               <div className="text-2xl font-bold text-foreground font-mono" data-testid="text-portfolio-wacc">{(portfolioWACC * 100).toFixed(1)}%</div>
               <p className="text-[10px] text-muted-foreground mt-1">Base Re: {(baseCostOfEquity * 100).toFixed(0)}% + country risk</p>

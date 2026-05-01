@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/ui/page-header";
 import { Tabs, TabsContent, CurrentThemeTab } from "@/components/ui/tabs";
@@ -19,6 +19,13 @@ export default function Help() {
   const { isAdmin } = useAuth();
   const [tab, setTab] = useState<HelpTab>("user-manual");
   const { setTourActive, setShownThisSession } = useWalkthroughStore();
+
+  useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    if (hash) {
+      setTab("user-manual");
+    }
+  }, []);
   const queryClient = useQueryClient();
 
   const handleStartTour = useCallback(async () => {

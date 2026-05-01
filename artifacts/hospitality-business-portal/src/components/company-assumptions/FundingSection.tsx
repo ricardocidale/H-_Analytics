@@ -67,7 +67,7 @@ export function CapitalRaisesCard({ formData, onChange, global }: FundingSection
           <div className="flex items-center gap-4 mb-2">
             <h3 className="text-lg font-display text-foreground flex items-center">
               Funding
-              <InfoTooltip text="Capital raised to fund management company operations before fee revenue begins" manualSection="funding-financing" />
+              <InfoTooltip text="Capital raised to fund management company operations before fee revenue begins" manualSection="management-company" />
             </h3>
           </div>
           <div className="flex items-center gap-3 mb-3">
@@ -179,7 +179,7 @@ export function ConvertibleTermsCard({ formData, onChange, global }: FundingSect
         <div>
           <h3 className="text-lg font-display text-foreground flex items-center">
             Convertible Terms
-            <InfoTooltip text="Optional terms that determine how the capital raise converts to equity in a future priced round. Toggle on only the terms your instrument carries." manualSection="funding-financing" />
+            <InfoTooltip text="Optional terms that determine how the capital raise converts to equity in a future priced round. Toggle on only the terms your instrument carries." manualSection="management-company" />
           </h3>
           <p className="text-muted-foreground text-sm label-text mt-1">Toggle on the terms that apply to your instrument.</p>
         </div>
@@ -188,7 +188,7 @@ export function ConvertibleTermsCard({ formData, onChange, global }: FundingSect
             <div className="flex items-center justify-between">
               <Label className="flex items-center text-foreground label-text">
                 Valuation Cap
-                <InfoTooltip text="Maximum company valuation at which the capital raise converts to equity. Enable this if your instrument includes a valuation cap (common for SAFEs and convertible notes)." manualSection="funding-financing" />
+                <InfoTooltip text="Maximum company valuation at which the capital raise converts to equity. Enable this if your instrument includes a valuation cap (common for SAFEs and convertible notes)." manualSection="management-company" />
               </Label>
               <Switch
                 checked={showValuationCap}
@@ -236,7 +236,7 @@ export function ConvertibleTermsCard({ formData, onChange, global }: FundingSect
             <div className="flex items-center justify-between">
               <Label className="flex items-center text-foreground label-text">
                 Discount Rate
-                <InfoTooltip text="Percentage discount on share price when the capital raise converts to equity. Enable this if your instrument includes a discount rate." manualSection="funding-financing" />
+                <InfoTooltip text="Percentage discount on share price when the capital raise converts to equity. Enable this if your instrument includes a discount rate." manualSection="management-company" />
               </Label>
               <Switch
                 checked={showDiscountRate}
@@ -279,7 +279,7 @@ export function ConvertibleTermsCard({ formData, onChange, global }: FundingSect
             <div className="flex items-center justify-between">
               <Label className="flex items-center text-foreground label-text">
                 Interest Rate
-                <InfoTooltip text="Annual simple interest rate on the outstanding capital raise principal. Common for convertible notes and interest-bearing SAFEs. Interest accrues monthly and flows through the income statement as Interest Expense." manualSection="funding-financing" />
+                <InfoTooltip text="Annual simple interest rate on the outstanding capital raise principal. Common for convertible notes and interest-bearing SAFEs. Interest accrues monthly and flows through the income statement as Interest Expense." manualSection="management-company" />
               </Label>
               <Switch
                 checked={showInterestRate}
@@ -364,7 +364,7 @@ export function CapitalStackDisciplineCard({ formData, onChange, global }: Fundi
         <div>
           <h3 className="text-lg font-display text-foreground flex items-center">
             Capital Stack Discipline
-            <InfoTooltip text="Discipline metrics the Funding Specialist evaluates against live capital-raise benchmarks. Override here when your raise plan diverges from the company defaults; leave alone to inherit." manualSection="funding-financing" />
+            <InfoTooltip text="Discipline metrics the Funding Specialist evaluates against live capital-raise benchmarks. Override here when your raise plan diverges from the company defaults; leave alone to inherit." manualSection="management-company" />
           </h3>
           <p className="text-muted-foreground text-xs label-text mt-1">Runway, sizing overshoot, revenue ramp, and burn flex-down used to size and stress-test the raise.</p>
         </div>

@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect, useCallback } from "react";
 import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
@@ -35,13 +35,22 @@ export default function UserManual({ embedded }: UserManualProps) {
     });
   };
 
-  const scrollToSection = (id: string) => {
+  const scrollToSection = useCallback((id: string) => {
     const el = sectionRefs.current[id];
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
       setExpandedSections((prev) => new Set(prev).add(id));
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    if (!hash) return;
+    const timer = setTimeout(() => {
+      scrollToSection(hash);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [scrollToSection]);
 
   const Wrapper = embedded ? ({ children }: { children: React.ReactNode }) => <>{children}</> : Layout;
 

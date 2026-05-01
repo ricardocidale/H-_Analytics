@@ -99,7 +99,7 @@ export default function PropertyExitDefaultsCard({ formData, onChange, global, r
         <div className="space-y-6">
           <h3 className="text-lg font-display text-foreground flex items-center gap-2">
             Property Exit Defaults
-            <InfoTooltip text="Default exit cap rate and sales commission applied to NEW properties. Each property can override these on its own assumptions page. The Management Company itself has no cap-rate exit — see Cost of Equity (Funding tab) for company-level DCF." manualSection="investment-returns" />
+            <InfoTooltip text="Default exit cap rate and sales commission applied to NEW properties. Each property can override these on its own assumptions page. The Management Company itself has no cap-rate exit — see Cost of Equity (Funding tab) for company-level DCF." manualSection="analysis" />
           </h3>
           <p className="text-xs text-muted-foreground -mt-3">
             Cascading defaults for property terminal-year valuation. Not used for the Management Company.
@@ -108,7 +108,7 @@ export default function PropertyExitDefaultsCard({ formData, onChange, global, r
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <ResearchContextFieldLabel
-                label={<>Default Exit Cap Rate <InfoTooltip text="Capitalization rate used for property valuation at exit. Higher cap rate = lower valuation. Applied as: GrossValue = AnnualizedNOI / exitCapRate at the property's terminal year." manualSection="investment-returns" /></>}
+                label={<>Default Exit Cap Rate <InfoTooltip text="Capitalization rate used for property valuation at exit. Higher cap rate = lower valuation. Applied as: GrossValue = AnnualizedNOI / exitCapRate at the property's terminal year." manualSection="analysis" /></>}
                 badgeProps={{ value: researchValues.exitCapRate?.display, sourceType: "industry", sourceName: CITATIONS.cbreCapRateSurvey, "data-testid": "badge-exit-cap" }}
                 onApplyValue={() => researchValues.exitCapRate && onChange("exitCapRate", researchValues.exitCapRate.mid / 100)}
                 guidanceContext={gc("exitCapRate", "Default Exit Cap Rate")}

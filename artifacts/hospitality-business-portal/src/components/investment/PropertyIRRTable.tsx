@@ -50,7 +50,7 @@ export function PropertyIRRTable({
               <TableHead className="text-right">
                 <div className="flex items-center justify-end gap-1">
                   Exit Cap Rate
-                  <InfoTooltip text="Capitalization rate used to value the property at sale. Lower cap rate = higher valuation." manualSection="investment-returns" />
+                  <InfoTooltip text="Capitalization rate used to value the property at sale. Lower cap rate = higher valuation." manualSection="analysis" />
                 </div>
               </TableHead>
               <TableHead className="text-right">Exit Value ({getFiscalYear(projectionYears - 1)})</TableHead>
@@ -58,13 +58,13 @@ export function PropertyIRRTable({
               <TableHead className="text-right">
                 <div className="flex items-center justify-end gap-1">
                   Equity Multiple
-                  <InfoTooltip text="Total cash returned divided by total equity invested. A 2.0x multiple means investors received $2 for every $1 invested." manualSection="investment-returns" />
+                  <InfoTooltip text="Total cash returned divided by total equity invested. A 2.0x multiple means investors received $2 for every $1 invested." manualSection="analysis" />
                 </div>
               </TableHead>
               <TableHead className="text-right">
                 <div className="flex items-center justify-end gap-1">
                   IRR
-                  <InfoTooltip text="Internal Rate of Return — the annualized return that makes the net present value of all cash flows equal to zero." manualSection="investment-returns" />
+                  <InfoTooltip text="Internal Rate of Return — the annualized return that makes the net present value of all cash flows equal to zero." manualSection="analysis" />
                 </div>
               </TableHead>
             </TableRow>

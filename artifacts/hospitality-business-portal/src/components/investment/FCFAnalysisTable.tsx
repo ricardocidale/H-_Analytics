@@ -93,7 +93,7 @@ export function FCFAnalysisTable({
               <TableCell className="sticky left-0 bg-card flex items-center gap-2">
                 {expandedRows.has('fcfOperating') ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
                 Free Cash Flow to Equity (FCFE)
-                <InfoTooltip text="GAAP FCFE = Cash from Operations - Principal Payments. For hotels where FF&E reserves are included in NOI, this equals After-Tax Cash Flow (ATCF)." manualSection="investment-returns" manualLabel="FCFE formula in the Manual" />
+                <InfoTooltip text="GAAP FCFE = Cash from Operations - Principal Payments. For hotels where FF&E reserves are included in NOI, this equals After-Tax Cash Flow (ATCF)." manualSection="analysis" manualLabel="FCFE formula in the Manual" />
               </TableCell>
               <TableCell className="text-right text-muted-foreground">-</TableCell>
               {Array.from({ length: projectionYears }, (_, y) => {
@@ -124,7 +124,7 @@ export function FCFAnalysisTable({
                 <TableRow className="bg-muted/5">
                   <TableCell className="sticky left-0 bg-muted/5 pl-12 text-sm text-muted-foreground flex items-center gap-1">
                     = Before-Tax Cash Flow (BTCF)
-                    <InfoTooltip text="BTCF = ANOI − Debt Service. Cash available before income taxes." manualSection="property-formulas" />
+                    <InfoTooltip text="BTCF = ANOI − Debt Service. Cash available before income taxes." manualSection="property-details" />
                   </TableCell>
                   <TableCell className="text-right text-sm text-muted-foreground">-</TableCell>
                   {Array.from({ length: projectionYears }, (_, y) => {
@@ -172,7 +172,7 @@ export function FCFAnalysisTable({
                 <TableRow className="bg-primary/10 dark:bg-primary/5 border-t">
                   <TableCell className="sticky left-0 bg-primary/10 dark:bg-primary/5 pl-8 text-sm font-medium flex items-center gap-1">
                     After-Tax Cash Flow (ATCF)
-                    <InfoTooltip text="ATCF = BTCF - Tax Liability. Cash available to investors after all taxes paid." manualSection="property-formulas" />
+                    <InfoTooltip text="ATCF = BTCF - Tax Liability. Cash available to investors after all taxes paid." manualSection="property-details" />
                   </TableCell>
                   <TableCell className="text-right text-sm text-muted-foreground">-</TableCell>
                   {Array.from({ length: projectionYears }, (_, y) => {

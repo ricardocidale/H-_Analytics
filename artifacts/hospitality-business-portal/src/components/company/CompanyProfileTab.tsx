@@ -79,7 +79,7 @@ export default function CompanyProfileTab({ onSaveStateChange }: CompanyProfileT
           <CardTitle className="flex items-center gap-2 font-display">
             <IconHotel className="w-5 h-5 text-primary" />
             General Property Description
-            <InfoTooltip text="Defines the target property profile for the portfolio. These parameters guide market research searches, comp set analysis, and financial benchmarks." manualSection="global-assumptions" />
+            <InfoTooltip text="Defines the target property profile for the portfolio. These parameters guide market research searches, comp set analysis, and financial benchmarks." manualSection="assumptions" />
           </CardTitle>
           <CardDescription className="label-text">Characterize the target property profile for the portfolio</CardDescription>
         </CardHeader>

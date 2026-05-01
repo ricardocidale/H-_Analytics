@@ -143,7 +143,7 @@ export default function PPECostBasisSchedule({ property, global }: PPECostBasisS
       <CardHeader className="pb-2">
         <CardTitle className="text-foreground flex items-center gap-2">
           PP&E / Cost Basis Schedule
-          <InfoTooltip text="Asset values, depreciation basis, and cost anchors that drive the property's financial projections. Expand each section for details." manualSection="property-formulas" />
+          <InfoTooltip text="Asset values, depreciation basis, and cost anchors that drive the property's financial projections. Expand each section for details." manualSection="property-details" />
         </CardTitle>
         <p className="text-sm text-muted-foreground">
           {property.name} — Checker transparency view

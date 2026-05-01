@@ -28,12 +28,12 @@ export default function CostOfEquityCard({ formData, onChange, global, researchV
         <div className="space-y-4">
           <h3 className="text-lg font-display text-foreground flex items-center gap-2">
             Cost of Capital
-            <InfoTooltip text="The equity investor's required annual return — used as Re in WACC and as the discount rate for company-level DCF." manualSection="investment-returns" />
+            <InfoTooltip text="The equity investor's required annual return — used as Re in WACC and as the discount rate for company-level DCF." manualSection="analysis" />
           </h3>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <ResearchContextFieldLabel
-                label={<>Cost of Equity <InfoTooltip text="The equity investor's required annual return. Used as the Re component in WACC and as the discount rate for any Management Company DCF. Typical range: 15–25%." formula="WACC = (E/V × Re) + (D/V × Rd × (1−T))" manualSection="investment-returns" /></>}
+                label={<>Cost of Equity <InfoTooltip text="The equity investor's required annual return. Used as the Re component in WACC and as the discount rate for any Management Company DCF. Typical range: 15–25%." formula="WACC = (E/V × Re) + (D/V × Rd × (1−T))" manualSection="analysis" /></>}
                 badgeProps={{ value: researchValues.costOfEquity?.display, sourceType: "industry", sourceName: CITATIONS.privateReEquityBenchmarks, "data-testid": "badge-cost-of-equity" }}
                 onApplyValue={() => researchValues.costOfEquity && onChange("costOfEquity", researchValues.costOfEquity.mid / 100)}
                 guidanceContext={gc("costOfEquity", "Cost of Equity")}

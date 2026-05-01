@@ -207,7 +207,7 @@ export default function SidebarVisibilityTab() {
           <CardTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
             <IconSliders className="w-4 h-4 text-primary" />
             Calculation Transparency
-            <InfoTooltip text="Show or hide step-by-step formula breakdowns in financial reports. Turn off for clean, investor-ready presentations." manualSection="financial-statements" />
+            <InfoTooltip text="Show or hide step-by-step formula breakdowns in financial reports. Turn off for clean, investor-ready presentations." manualSection="admin" />
           </CardTitle>
           <CardDescription className="label-text">Show or hide the formula verification details and help icons in financial statements.</CardDescription>
         </CardHeader>

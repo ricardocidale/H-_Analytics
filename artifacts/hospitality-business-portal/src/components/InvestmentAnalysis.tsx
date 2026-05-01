@@ -130,21 +130,21 @@ export function InvestmentAnalysis({
           <div className="bg-card rounded-lg p-5 border border-border shadow-sm">
             <p className="text-sm font-medium text-foreground/70 flex items-center mb-2">
               Total Equity
-              <InfoTooltip text="Total initial capital required from investors across all properties, including purchase price, improvements, pre-opening costs, and operating reserves (net of any financing)." manualSection="investment-returns" />
+              <InfoTooltip text="Total initial capital required from investors across all properties, including purchase price, improvements, pre-opening costs, and operating reserves (net of any financing)." manualSection="analysis" />
             </p>
             <div className="text-2xl font-bold text-foreground font-mono">{formatMoney(totalInitialEquityIA)}</div>
           </div>
           <div className="bg-card rounded-lg p-5 border border-border shadow-sm">
             <p className="text-sm font-medium text-foreground/70 flex items-center mb-2">
               Exit Value ({getFiscalYear(projectionYears - 1)})
-              <InfoTooltip text={`Projected sale value of all properties at ${getFiscalYear(projectionYears - 1)}, calculated as NOI ÷ Exit Cap Rate, minus any outstanding debt at time of sale.`} manualSection="investment-returns" />
+              <InfoTooltip text={`Projected sale value of all properties at ${getFiscalYear(projectionYears - 1)}, calculated as NOI ÷ Exit Cap Rate, minus any outstanding debt at time of sale.`} manualSection="analysis" />
             </p>
             <div className="text-2xl font-bold text-primary font-mono">{formatMoney(totalExitValueIA)}</div>
           </div>
           <div className="bg-card rounded-lg p-5 border border-border shadow-sm">
             <p className="text-sm font-medium text-foreground/70 flex items-center mb-2">
               Equity Multiple
-              <InfoTooltip text="Total cash returned divided by total equity invested. A 2.0x multiple means investors received $2 for every $1 invested." manualSection="investment-returns" manualLabel="MOIC formula in the Manual" />
+              <InfoTooltip text="Total cash returned divided by total equity invested. A 2.0x multiple means investors received $2 for every $1 invested." manualSection="analysis" manualLabel="MOIC formula in the Manual" />
             </p>
             <div className="text-2xl font-bold text-chart-1 font-mono">{equityMultipleIA.toFixed(2)}x</div>
           </div>
@@ -158,7 +158,7 @@ export function InvestmentAnalysis({
           <div className="bg-card rounded-lg p-5 border border-border shadow-sm">
             <p className="text-sm font-medium text-foreground/70 flex items-center mb-2">
               Portfolio IRR
-              <InfoTooltip text="Internal Rate of Return — the annualized return that makes the net present value of all cash flows equal to zero." manualSection="investment-returns" manualLabel="IRR methodology in the Manual" />
+              <InfoTooltip text="Internal Rate of Return — the annualized return that makes the net present value of all cash flows equal to zero." manualSection="analysis" manualLabel="IRR methodology in the Manual" />
             </p>
             <div className="text-2xl font-bold text-secondary font-mono">{(portfolioIRRIA * 100).toFixed(1)}%</div>
           </div>

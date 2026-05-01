@@ -72,7 +72,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
         <div className="mb-6">
           <h3 className="text-xl font-display text-foreground flex items-center">
             Operating Cost Rates
-            <InfoTooltip text="Operating expense rates for this property, following the USALI (Uniform System of Accounts for the Lodging Industry) framework. Variable costs scale with revenue each month; fixed costs are anchored to Year 1 base revenue and escalate annually with inflation; property-value-based charges (taxes) are based on the property's total value." manualSection="expense-rates" />
+            <InfoTooltip text="Operating expense rates for this property, following the USALI (Uniform System of Accounts for the Lodging Industry) framework. Variable costs scale with revenue each month; fixed costs are anchored to Year 1 base revenue and escalate annually with inflation; property-value-based charges (taxes) are based on the property's total value." manualSection="property-details" />
           </h3>
           <p className="text-muted-foreground text-sm label-text">Expense allocation as percentage of revenue</p>
         </div>
