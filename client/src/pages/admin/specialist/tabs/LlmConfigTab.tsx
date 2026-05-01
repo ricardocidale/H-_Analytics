@@ -1,57 +1,33 @@
 /**
- * LlmConfigTab — per-Specialist LLM/orchestrator/workflow override panel
- * (Task #495). Replaces the prior "model + prompt + embedded global pipeline"
- * card with a five-section editor:
+ * LlmConfigTab — read-only display of the per-Specialist LLM/orchestrator/
+ * workflow configuration. Per `.claude/rules/specialists-are-dev-defined-only.md`
+ * §3, admins cannot edit Specialist prompts, models, or workflow knobs at
+ * runtime — the catalog (engine/analyst/registry/specialist-catalog.ts)
+ * and the global pipeline policy own these values, and changes happen in
+ * source code + redeploy.
  *
- *   1. Primary model + prompt template
- *   2. N+1 Multi-model synthesis
- *        (Analyst A model, Analyst B model, Synthesis model, enable toggle)
- *   3. N+2 Fallback model + relaxation max level
- *   4. Workflow policy (staleness, concurrency, token budgets,
- *      evidence/comp thresholds, auto-refresh interval)
- *   5. Other (change summary + Save)
+ * The previous editor's mutation, save button, prompt textarea, model
+ * Select dropdowns, multi-model Switch, relaxation Slider, workflow
+ * numeric Inputs, change-summary Input, and the refresh-models button
+ * have all been removed. The tab now renders five Cards mirroring the
+ * old layout with the resolved values rendered as static text + badges.
  *
- * Every override field is independently nullable and renders an
- * "Inheriting global default — <value>" placeholder when unset, with a
- * "Reset to global" button to clear the override. Resolution order is
- * specialist override → global pipeline policy / N+1 default → hardcoded
- * fallback (resolved server-side and surfaced via `globalLlmDefaults`).
- *
- * The tab issues a single PUT to `/llm-config` per Save, which writes one
- * versioned row to `specialist_config_versions`. Per-field "edited X, Y, Z"
- * labels are rendered by the Audit tab from that snapshot diff.
+ * The model list query is kept so model resource IDs can be rendered as
+ * human-readable names ("Override · GPT-4o (slug: gpt-4o)") instead of
+ * raw integers. If it fails to load, the fields fall back to "#<id>".
  */
-import { useMemo, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { SaveButton } from "@/components/ui/save-button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Slider } from "@/components/ui/slider";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { AnalystButton } from "@/components/intelligence/AnalystButton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { ResourcePublicView } from "@shared/schema";
 import type {
   SpecialistConfigView,
   SpecialistWorkflowOverrides,
 } from "../types";
 import { navigateToResources } from "../constants";
-
-// "none" sentinel is used by the Select component to represent the cleared
-// (= inherit global) state, since RadixSelect cannot have a value of "".
-const INHERIT_SENTINEL = "__inherit__";
 
 type ModelFieldKey =
   | "modelResourceId"
@@ -60,287 +36,132 @@ type ModelFieldKey =
   | "synthesisModelResourceId"
   | "fallbackModelResourceId";
 
-/** Workflow knob keys + their labels / units / step / range for the form. */
+/** Workflow knob keys + their labels / units / formatting for display. */
 const WORKFLOW_FIELDS: Array<{
   key: keyof SpecialistWorkflowOverrides;
   label: string;
   unit?: string;
-  step?: number;
-  min?: number;
-  max?: number;
-  formatGlobal: (n: number | null) => string;
+  format: (n: number | null | undefined) => string;
 }> = [
-  { key: "stalenessThresholdHours", label: "Staleness threshold", unit: "hours", min: 1, max: 8760, formatGlobal: (n) => n == null ? "—" : `${n}h` },
-  { key: "maxConcurrentRuns",       label: "Max concurrent runs",  min: 1,  max: 20,    formatGlobal: (n) => n == null ? "—" : String(n) },
-  { key: "dailyTokenBudget",        label: "Daily token budget",   min: 0,  max: 10_000_000, formatGlobal: (n) => n == null ? "—" : n.toLocaleString() },
-  { key: "monthlyTokenBudget",      label: "Monthly token budget", min: 0,  max: 100_000_000, formatGlobal: (n) => n == null ? "—" : n.toLocaleString() },
-  { key: "minEvidenceScore",        label: "Min evidence score",   step: 0.01, min: 0, max: 1, formatGlobal: (n) => n == null ? "—" : n.toFixed(2) },
-  { key: "minCompCount",            label: "Min comp count",       min: 0, max: 50,    formatGlobal: (n) => n == null ? "—" : String(n) },
-  { key: "autoRefreshIntervalHours",label: "Auto-refresh interval",unit: "hours", min: 1, max: 8760, formatGlobal: (n) => n == null ? "—" : `${n}h` },
+  { key: "stalenessThresholdHours",  label: "Staleness threshold",  unit: "hours", format: (n) => n == null ? "—" : `${n}h` },
+  { key: "maxConcurrentRuns",        label: "Max concurrent runs",  format: (n) => n == null ? "—" : String(n) },
+  { key: "dailyTokenBudget",         label: "Daily token budget",   format: (n) => n == null ? "—" : n.toLocaleString() },
+  { key: "monthlyTokenBudget",       label: "Monthly token budget", format: (n) => n == null ? "—" : n.toLocaleString() },
+  { key: "minEvidenceScore",         label: "Min evidence score",   format: (n) => n == null ? "—" : n.toFixed(2) },
+  { key: "minCompCount",             label: "Min comp count",       format: (n) => n == null ? "—" : String(n) },
+  { key: "autoRefreshIntervalHours", label: "Auto-refresh interval",unit: "hours", format: (n) => n == null ? "—" : `${n}h` },
 ];
 
 export function LlmConfigTab({
-  specialistId,
   config,
 }: {
   specialistId: string;
   config: SpecialistConfigView;
 }) {
-  const { toast } = useToast();
-  const qc = useQueryClient();
   const [, setLocation] = useLocation();
-
-  // ── Local state mirrors every overridable field ─────────────────
-  const [prompt, setPrompt] = useState(config.promptTemplate);
-  // P6g — refresh-models AnalystButton state. Invalidates the model
-  // resources query so the dropdowns re-render with any newly-recommended
-  // slugs from the latest vendor-roster sweep.
-  const [isRefreshingModels, setIsRefreshingModels] = useState(false);
-  const handleRefreshModels = async () => {
-    setIsRefreshingModels(true);
-    try {
-      await qc.invalidateQueries({ queryKey: ["/api/admin/resources?kind=model"] });
-      await qc.invalidateQueries({ queryKey: [`/api/admin/specialists/${specialistId}`] });
-      toast({ title: "Model list refreshed" });
-    } finally {
-      setIsRefreshingModels(false);
-    }
-  };
-  const [primaryModelId, setPrimaryModelId] = useState<string>(toSelectValue(config.modelResourceId));
-  const [analystAModelId, setAnalystAModelId] = useState<string>(toSelectValue(config.analystAModelResourceId));
-  const [analystBModelId, setAnalystBModelId] = useState<string>(toSelectValue(config.analystBModelResourceId));
-  const [synthesisModelId, setSynthesisModelId] = useState<string>(toSelectValue(config.synthesisModelResourceId));
-  const [fallbackModelId, setFallbackModelId] = useState<string>(toSelectValue(config.fallbackModelResourceId));
-  const [multiModelEnabled, setMultiModelEnabled] = useState<boolean | null>(config.multiModelEnabled);
-  const [workflow, setWorkflow] = useState<SpecialistWorkflowOverrides>(config.workflowOverrides ?? {});
-  const [summary, setSummary] = useState("");
-
   const { data: models } = useQuery<ResourcePublicView[]>({ queryKey: ["/api/admin/resources?kind=model"] });
-
-  // ── Save: single PUT, single versioned audit row ────────────────
-  const mutation = useMutation({
-    mutationFn: async () => {
-      const body = {
-        promptTemplate: prompt,
-        modelResourceId: fromSelectValue(primaryModelId),
-        analystAModelResourceId: fromSelectValue(analystAModelId),
-        analystBModelResourceId: fromSelectValue(analystBModelId),
-        synthesisModelResourceId: fromSelectValue(synthesisModelId),
-        fallbackModelResourceId: fromSelectValue(fallbackModelId),
-        multiModelEnabled,
-        workflowOverrides: hasAnyOverride(workflow) ? workflow : null,
-        changeSummary: summary || undefined,
-      };
-      const res = await apiRequest("PUT", `/api/admin/specialists/${specialistId}/llm-config`, body);
-      return res.json();
-    },
-    onSuccess: () => {
-      toast({ title: "LLM config updated" });
-      qc.invalidateQueries({ queryKey: [`/api/admin/specialists/${specialistId}`] });
-      qc.invalidateQueries({ queryKey: [`/api/admin/specialists/${specialistId}/audit`] });
-      // Task #502 — keep the catalog list's hasLlmOverrides flag in
-      // sync so the AI Intelligence sidebar's per-row "Overrides"
-      // badge and the LLM Defaults summary count refresh on the same
-      // tick. Without this, an admin who toggles a knob from default
-      // to overridden (or back) sees stale drift state until the
-      // next refocus/remount.
-      qc.invalidateQueries({ queryKey: ["/api/admin/specialists"] });
-      setSummary("");
-    },
-    onError: (e: unknown) =>
-      toast({
-        title: "Save failed",
-        description: e instanceof Error ? e.message : String(e),
-        variant: "destructive",
-      }),
-  });
-
   const modelOptions = useMemo(() => models ?? [], [models]);
 
   // ── Override summary banner ─────────────────────────────────────
-  // Counts every overridable knob (5 model fields + multi-model toggle +
-  // 8 workflow knobs = 14 total) and reports how many are currently set
-  // by this Specialist vs inheriting the global default. Recomputed
-  // on every state change so the banner stays in sync with edits.
+  // Reports how many of the 14 overridable knobs are currently set vs
+  // inheriting global. Read-only display; if the count drifts upward,
+  // CC's follow-up endpoint-removal commit will be the one to truncate
+  // the override row.
   const overrideStats = useMemo(() => {
+    const w = config.workflowOverrides ?? {};
     const knobs: boolean[] = [
-      primaryModelId !== INHERIT_SENTINEL,
-      analystAModelId !== INHERIT_SENTINEL,
-      analystBModelId !== INHERIT_SENTINEL,
-      synthesisModelId !== INHERIT_SENTINEL,
-      fallbackModelId !== INHERIT_SENTINEL,
-      multiModelEnabled !== null,
-      ...WORKFLOW_FIELDS.map((f) => workflow[f.key] !== undefined && workflow[f.key] !== null),
-      // The relaxation max level is a workflow knob too, kept separate from
-      // WORKFLOW_FIELDS for layout reasons.
-      workflow.relaxationMaxLevel !== undefined && workflow.relaxationMaxLevel !== null,
+      config.modelResourceId != null,
+      config.analystAModelResourceId != null,
+      config.analystBModelResourceId != null,
+      config.synthesisModelResourceId != null,
+      config.fallbackModelResourceId != null,
+      config.multiModelEnabled !== null,
+      ...WORKFLOW_FIELDS.map((f) => w[f.key] !== undefined && w[f.key] !== null),
+      w.relaxationMaxLevel !== undefined && w.relaxationMaxLevel !== null,
     ];
     const overridden = knobs.filter(Boolean).length;
     return { overridden, total: knobs.length, inheriting: knobs.length - overridden };
-  }, [
-    primaryModelId, analystAModelId, analystBModelId, synthesisModelId,
-    fallbackModelId, multiModelEnabled, workflow,
-  ]);
+  }, [config]);
 
-  // Helper: render one model dropdown with the inherit/reset affordance.
-  // P6g — accepts an optional `recommendedSlug` so dropdown items whose
-  // model.slug matches the vendor-roster recommendation render a small
-  // "Recommended" badge inline. The same badge is also shown next to the
-  // SelectTrigger when the currently selected model matches.
-  const renderModelField = (
+  // Helper: format a model resource id as a human-readable label, or
+  // "Inheriting global default (<global-label>)" when null.
+  const renderModelValue = (
     fieldKey: ModelFieldKey,
-    label: string,
-    value: string,
-    setValue: (v: string) => void,
+    resourceId: number | null,
     globalLabel: string | null,
-    recommendedSlug: string | null = null,
   ) => {
-    const isOverridden = value !== INHERIT_SENTINEL;
-    const selectedModel =
-      isOverridden ? modelOptions.find((m) => String(m.id) === value) : null;
-    const selectedIsRecommended =
-      !!recommendedSlug && !!selectedModel && selectedModel.slug === recommendedSlug;
+    if (resourceId == null) {
+      return (
+        <div className="flex items-center gap-2" data-testid={`value-${fieldKey}`}>
+          <Badge variant="outline" className="text-xs" data-testid={`badge-inherit-${fieldKey}`}>
+            Inheriting global default
+          </Badge>
+          <span className="text-sm text-muted-foreground">{globalLabel ?? "—"}</span>
+        </div>
+      );
+    }
+    const m = modelOptions.find((mm) => mm.id === resourceId);
+    const display = m?.displayName ?? m?.slug ?? `#${resourceId}`;
     return (
-      <div className="space-y-2" data-testid={`field-${fieldKey}`}>
-        <div className="flex items-center justify-between">
-          <label className="text-sm font-medium">{label}</label>
+      <div className="flex items-center gap-2" data-testid={`value-${fieldKey}`}>
+        <Badge variant="secondary" className="text-xs" data-testid={`badge-override-${fieldKey}`}>
+          Override active
+        </Badge>
+        <span className="text-sm font-medium">{display}</span>
+      </div>
+    );
+  };
+
+  const renderWorkflowValue = (spec: typeof WORKFLOW_FIELDS[number]) => {
+    const w = config.workflowOverrides ?? {};
+    const overrideRaw = w[spec.key];
+    const isOverridden = overrideRaw !== undefined && overrideRaw !== null;
+    const globalRaw = config.globalLlmDefaults.workflow[spec.key];
+    const effective = isOverridden ? (overrideRaw as number) : globalRaw;
+    return (
+      <div className="space-y-1" data-testid={`value-workflow-${spec.key}`}>
+        <div className="text-sm font-medium">
+          {spec.label}{spec.unit ? ` (${spec.unit})` : ""}
+        </div>
+        <div className="flex items-center gap-2">
           {isOverridden ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 text-xs text-muted-foreground"
-              onClick={() => setValue(INHERIT_SENTINEL)}
-              data-testid={`button-reset-${fieldKey}`}
-            >
-              Reset to global
-            </Button>
+            <Badge variant="secondary" className="text-xs" data-testid={`badge-override-workflow-${spec.key}`}>
+              Override active
+            </Badge>
           ) : (
-            <Badge variant="outline" className="text-xs" data-testid={`badge-inherit-${fieldKey}`}>
+            <Badge variant="outline" className="text-xs" data-testid={`badge-inherit-workflow-${spec.key}`}>
               Inheriting global default
             </Badge>
           )}
-        </div>
-        <div className="flex items-center gap-2">
-          <Select value={value} onValueChange={setValue}>
-            <SelectTrigger className="flex-1" data-testid={`select-${fieldKey}`}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={INHERIT_SENTINEL}>
-                — Inherit global ({globalLabel ?? "uses Specialist primary"}) —
-              </SelectItem>
-              {modelOptions.map((m) => {
-                const isRec = !!recommendedSlug && m.slug === recommendedSlug;
-                return (
-                  <SelectItem key={m.id} value={String(m.id)}>
-                    <span className="inline-flex items-center gap-2">
-                      <span>{m.displayName ?? m.slug}</span>
-                      {isRec && (
-                        <Badge
-                          variant="secondary"
-                          className="text-[10px] py-0 px-1.5 h-4"
-                          data-testid={`badge-recommended-${fieldKey}-${m.slug}`}
-                        >
-                          Recommended
-                        </Badge>
-                      )}
-                    </span>
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-          {selectedIsRecommended && (
-            <Badge
-              variant="secondary"
-              className="text-[10px] py-0 px-1.5 h-5 shrink-0"
-              data-testid={`badge-selected-recommended-${fieldKey}`}
-            >
-              Recommended
-            </Badge>
-          )}
+          <span className="text-sm">{spec.format(effective)}</span>
         </div>
       </div>
     );
   };
 
-  // Helper: render one numeric workflow knob with the inherit/reset
-  // affordance. Empty string ⇒ inherit; numeric ⇒ overridden.
-  const renderWorkflowField = (
-    spec: typeof WORKFLOW_FIELDS[number],
-  ) => {
-    const value = workflow[spec.key];
-    const isOverridden = value !== undefined && value !== null;
-    const globalRaw = config.globalLlmDefaults.workflow[spec.key];
-    return (
-      <div className="space-y-2" data-testid={`field-workflow-${spec.key}`}>
-        <div className="flex items-center justify-between">
-          <label className="text-sm font-medium">
-            {spec.label}{spec.unit ? ` (${spec.unit})` : ""}
-          </label>
-          {isOverridden ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 text-xs text-muted-foreground"
-              onClick={() =>
-                setWorkflow((w) => {
-                  const next = { ...w };
-                  delete next[spec.key];
-                  return next;
-                })
-              }
-              data-testid={`button-reset-workflow-${spec.key}`}
-            >
-              Reset to global
-            </Button>
-          ) : (
-            <Badge variant="outline" className="text-xs" data-testid={`badge-inherit-workflow-${spec.key}`}>
-              Inheriting global default ({spec.formatGlobal(globalRaw)})
-            </Badge>
-          )}
-        </div>
-        <Input
-          type="number"
-          step={spec.step}
-          min={spec.min}
-          max={spec.max}
-          value={value ?? ""}
-          placeholder={spec.formatGlobal(globalRaw)}
-          onChange={(e) => {
-            const raw = e.target.value;
-            setWorkflow((w) => {
-              const next = { ...w };
-              if (raw === "") {
-                delete next[spec.key];
-              } else {
-                const n = Number(raw);
-                if (!Number.isFinite(n)) return w;
-                next[spec.key] = n;
-              }
-              return next;
-            });
-          }}
-          data-testid={`input-workflow-${spec.key}`}
-        />
-      </div>
-    );
-  };
+  const multiModelEffective =
+    config.multiModelEnabled === null
+      ? config.globalLlmDefaults.multiModelEnabled
+      : config.multiModelEnabled;
+  const multiModelInherits = config.multiModelEnabled === null;
+
+  const w = config.workflowOverrides ?? {};
+  const relaxOverride = w.relaxationMaxLevel;
+  const relaxIsOverridden = relaxOverride !== undefined && relaxOverride !== null;
+  const relaxGlobal = config.globalLlmDefaults.workflow.relaxationMaxLevel;
+  const relaxEffective = relaxIsOverridden ? (relaxOverride as number) : relaxGlobal;
 
   return (
     <div className="space-y-6">
-      {/* P6g — Refresh model list (vendor-roster recommendations) */}
-      <div className="flex justify-end">
-        <AnalystButton
-          onClick={handleRefreshModels}
-          isRunning={isRefreshingModels}
-          size="sm"
-          variant="outline"
-          suffix="Refresh models"
-          tooltip="Re-fetch the model registry and vendor-roster recommendations."
-          dataTestId="button-llm-refresh-models"
-        />
-      </div>
+      <Alert data-testid="llm-config-readonly-banner">
+        <AlertTitle>Read-only — dev-defined</AlertTitle>
+        <AlertDescription>
+          Specialist LLM, prompt, and workflow configuration is defined in
+          source code per <code>specialists-are-dev-defined-only.md</code>.
+          To change prompts, models, or workflow knobs, edit the Specialist
+          catalog (or the global pipeline policy) and redeploy.
+        </AlertDescription>
+      </Alert>
 
       {/* ── Override summary banner ───────────────────────────── */}
       <div
@@ -368,7 +189,7 @@ export function LlmConfigTab({
           <CardTitle>Primary model &amp; prompt</CardTitle>
           <p className="text-xs text-muted-foreground">
             The single-model path used when multi-model synthesis is disabled.
-            Models are managed in{" "}
+            Models are listed in{" "}
             <a
               className="underline"
               data-testid="link-resources-models"
@@ -383,28 +204,22 @@ export function LlmConfigTab({
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          {renderModelField(
-            "modelResourceId",
-            "Primary model",
-            primaryModelId,
-            setPrimaryModelId,
-            // Primary model has no separate "global default" — it IS the
-            // Specialist's local default. The placeholder labels what the
-            // runtime would do if cleared: fall through to the system-wide
-            // hardcoded primary resolved server-side via the Synthesis
-            // model label (the canonical Tier-1 cognitive model).
-            config.globalLlmDefaults.synthesisModelLabel,
-            config.recommendedModelSlugs.primary,
-          )}
+          <div className="space-y-2" data-testid="field-modelResourceId">
+            <div className="text-sm font-medium">Primary model</div>
+            {renderModelValue(
+              "modelResourceId",
+              config.modelResourceId,
+              config.globalLlmDefaults.synthesisModelLabel,
+            )}
+          </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Prompt template</label>
-            <Textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              rows={12}
-              className="font-mono text-sm"
-              data-testid="textarea-prompt-template"
-            />
+            <div className="text-sm font-medium">Prompt template</div>
+            <pre
+              className="text-xs font-mono bg-muted/40 border rounded-md p-3 overflow-auto max-h-96 whitespace-pre-wrap"
+              data-testid="text-prompt-template"
+            >
+              {config.promptTemplate}
+            </pre>
           </div>
         </CardContent>
       </Card>
@@ -415,65 +230,50 @@ export function LlmConfigTab({
           <CardTitle>N+1 multi-model synthesis</CardTitle>
           <p className="text-xs text-muted-foreground">
             Two analyst panels run in parallel and are reconciled by a
-            synthesis model. Disable to bypass and use the primary model
-            single-shot.
+            synthesis model. Disabled means the primary model runs single-shot.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <label className="text-sm font-medium">Enable multi-model synthesis</label>
+              <div className="text-sm font-medium">Multi-model synthesis</div>
               <p className="text-xs text-muted-foreground">
-                {multiModelEnabled === null
+                {multiModelInherits
                   ? `Inheriting global default (${config.globalLlmDefaults.multiModelEnabled ? "enabled" : "disabled"})`
-                  : multiModelEnabled
-                    ? "Override: enabled"
-                    : "Override: disabled"}
+                  : `Override active`}
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              {multiModelEnabled !== null && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 text-xs text-muted-foreground"
-                  onClick={() => setMultiModelEnabled(null)}
-                  data-testid="button-reset-multiModelEnabled"
-                >
-                  Reset to global
-                </Button>
-              )}
-              <Switch
-                checked={multiModelEnabled ?? config.globalLlmDefaults.multiModelEnabled}
-                onCheckedChange={(v) => setMultiModelEnabled(v)}
-                data-testid="switch-multiModelEnabled"
-              />
-            </div>
+            <Badge
+              variant={multiModelEffective ? "default" : "outline"}
+              data-testid="badge-multiModelEnabled"
+            >
+              {multiModelEffective ? "Synthesis: enabled" : "Synthesis: disabled"}
+            </Badge>
           </div>
-          {renderModelField(
-            "analystAModelResourceId",
-            "Analyst A model (quantitative)",
-            analystAModelId,
-            setAnalystAModelId,
-            config.globalLlmDefaults.analystAModelLabel,
-            config.recommendedModelSlugs.analystA,
-          )}
-          {renderModelField(
-            "analystBModelResourceId",
-            "Analyst B model (market strategy)",
-            analystBModelId,
-            setAnalystBModelId,
-            config.globalLlmDefaults.analystBModelLabel,
-            config.recommendedModelSlugs.analystB,
-          )}
-          {renderModelField(
-            "synthesisModelResourceId",
-            "Synthesis model (+1 reconciler)",
-            synthesisModelId,
-            setSynthesisModelId,
-            config.globalLlmDefaults.synthesisModelLabel,
-            config.recommendedModelSlugs.synthesis,
-          )}
+          <div className="space-y-2" data-testid="field-analystAModelResourceId">
+            <div className="text-sm font-medium">Analyst A model (quantitative)</div>
+            {renderModelValue(
+              "analystAModelResourceId",
+              config.analystAModelResourceId,
+              config.globalLlmDefaults.analystAModelLabel,
+            )}
+          </div>
+          <div className="space-y-2" data-testid="field-analystBModelResourceId">
+            <div className="text-sm font-medium">Analyst B model (market strategy)</div>
+            {renderModelValue(
+              "analystBModelResourceId",
+              config.analystBModelResourceId,
+              config.globalLlmDefaults.analystBModelLabel,
+            )}
+          </div>
+          <div className="space-y-2" data-testid="field-synthesisModelResourceId">
+            <div className="text-sm font-medium">Synthesis model (+1 reconciler)</div>
+            {renderModelValue(
+              "synthesisModelResourceId",
+              config.synthesisModelResourceId,
+              config.globalLlmDefaults.synthesisModelLabel,
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -487,122 +287,51 @@ export function LlmConfigTab({
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          {renderModelField(
-            "fallbackModelResourceId",
-            "Fallback model",
-            fallbackModelId,
-            setFallbackModelId,
-            config.globalLlmDefaults.fallbackModelLabel,
-            config.recommendedModelSlugs.fallback,
-          )}
-          {renderWorkflowField(WORKFLOW_FIELDS.find((f) => f.key === "minEvidenceScore")!)}
-          {/* Relaxation max level — slider per spec (0–5 steps) */}
-          {(() => {
-            const value = workflow.relaxationMaxLevel;
-            const isOverridden = value !== undefined && value !== null;
-            const globalRaw = config.globalLlmDefaults.workflow.relaxationMaxLevel;
-            const effective = (value ?? globalRaw ?? 5) as number;
-            return (
-              <div className="space-y-2" data-testid="field-workflow-relaxationMaxLevel">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium">Relaxation max level</label>
-                  {isOverridden ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 text-xs text-muted-foreground"
-                      onClick={() =>
-                        setWorkflow((w) => {
-                          const next = { ...w };
-                          delete next.relaxationMaxLevel;
-                          return next;
-                        })
-                      }
-                      data-testid="button-reset-workflow-relaxationMaxLevel"
-                    >
-                      Reset to global
-                    </Button>
-                  ) : (
-                    <Badge variant="outline" className="text-xs" data-testid="badge-inherit-workflow-relaxationMaxLevel">
-                      Inheriting global default ({globalRaw ?? "—"})
-                    </Badge>
-                  )}
-                </div>
-                <div className="flex items-center gap-3">
-                  <Slider
-                    min={0}
-                    max={5}
-                    step={1}
-                    value={[effective]}
-                    onValueChange={(vals) =>
-                      setWorkflow((w) => ({ ...w, relaxationMaxLevel: vals[0] }))
-                    }
-                    className="flex-1"
-                    data-testid="slider-workflow-relaxationMaxLevel"
-                  />
-                  <span className="w-10 text-right text-sm tabular-nums" data-testid="text-relaxation-value">
-                    L{effective}
-                  </span>
-                </div>
-              </div>
-            );
-          })()}
+          <div className="space-y-2" data-testid="field-fallbackModelResourceId">
+            <div className="text-sm font-medium">Fallback model</div>
+            {renderModelValue(
+              "fallbackModelResourceId",
+              config.fallbackModelResourceId,
+              config.globalLlmDefaults.fallbackModelLabel,
+            )}
+          </div>
+          {renderWorkflowValue(WORKFLOW_FIELDS.find((f) => f.key === "minEvidenceScore")!)}
+          <div className="space-y-1" data-testid="value-workflow-relaxationMaxLevel">
+            <div className="text-sm font-medium">Relaxation max level</div>
+            <div className="flex items-center gap-2">
+              {relaxIsOverridden ? (
+                <Badge variant="secondary" className="text-xs" data-testid="badge-override-workflow-relaxationMaxLevel">
+                  Override active
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-xs" data-testid="badge-inherit-workflow-relaxationMaxLevel">
+                  Inheriting global default
+                </Badge>
+              )}
+              <span className="text-sm tabular-nums" data-testid="text-relaxation-value">
+                L{relaxEffective ?? "—"}
+              </span>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       {/* ── Section 4 · Workflow policy ────────────────────────── */}
       <Card data-testid="card-llm-workflow">
         <CardHeader>
-          <CardTitle>Workflow policy overrides</CardTitle>
+          <CardTitle>Workflow policy</CardTitle>
           <p className="text-xs text-muted-foreground">
-            Per-Specialist overrides for the global pipeline policy. Leave a
-            field blank to inherit the global value shown as placeholder.
+            Per-Specialist effective values for the global pipeline policy.
+            "Inheriting global default" means the Specialist uses whatever
+            the global policy says today.
           </p>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           {WORKFLOW_FIELDS.filter((f) => f.key !== "minEvidenceScore").map((spec) => (
-            <div key={spec.key}>{renderWorkflowField(spec)}</div>
+            <div key={spec.key}>{renderWorkflowValue(spec)}</div>
           ))}
-        </CardContent>
-      </Card>
-
-      {/* ── Section 5 · Other (summary + Save) ─────────────────── */}
-      <Card data-testid="card-llm-save">
-        <CardHeader>
-          <CardTitle>Save</CardTitle>
-          <p className="text-xs text-muted-foreground">
-            One Save writes a single audited revision; the Audit tab shows
-            per-field "edited X, Y, Z" labels for the diff.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Input
-            value={summary}
-            onChange={(e) => setSummary(e.target.value)}
-            placeholder="Change summary (optional, recorded in audit)"
-            data-testid="input-change-summary-llm"
-          />
-          <div className="flex justify-end">
-            <SaveButton
-              onClick={() => mutation.mutate()}
-              isPending={mutation.isPending}
-              data-testid="button-save-llm-config"
-            />
-          </div>
         </CardContent>
       </Card>
     </div>
   );
-}
-
-// ── Helpers ────────────────────────────────────────────────────────
-
-function toSelectValue(id: number | null): string {
-  return id == null ? INHERIT_SENTINEL : String(id);
-}
-function fromSelectValue(v: string): number | null {
-  return v === INHERIT_SENTINEL ? null : Number(v);
-}
-function hasAnyOverride(w: SpecialistWorkflowOverrides): boolean {
-  return Object.values(w).some((v) => v !== undefined && v !== null);
 }

@@ -125,13 +125,20 @@ function countEditAffordances(content: string): number {
 }
 
 const SPECIALIST_TAB_BASELINE: Record<string, number> = {
-  // Baseline frozen 2026-05-01 from .claude/audits/admin-intelligence-inventory.md.
-  // Each non-zero entry is a documented rule violation that must be
-  // remediated. New edit affordances beyond these counts fail the test.
-  "client/src/pages/admin/specialist/tabs/IdentityTab.tsx": Number.POSITIVE_INFINITY,
-  "client/src/pages/admin/specialist/tabs/RequiredFieldsTab.tsx": Number.POSITIVE_INFINITY,
-  "client/src/pages/admin/specialist/tabs/LlmConfigTab.tsx": Number.POSITIVE_INFINITY,
-  "client/src/pages/admin/specialist/tabs/RuntimeTab.tsx": Number.POSITIVE_INFINITY,
+  // Baseline lowered 2026-05-01 by admin-cleanup-specialist-readonly packet.
+  // Per `.claude/rules/specialists-are-dev-defined-only.md` §3, admins
+  // cannot edit Specialist persona, prompts, models, field requirements,
+  // or routing — these tabs are now read-only display.
+  "client/src/pages/admin/specialist/tabs/IdentityTab.tsx": 0,
+  "client/src/pages/admin/specialist/tabs/RequiredFieldsTab.tsx": 0,
+  "client/src/pages/admin/specialist/tabs/LlmConfigTab.tsx": 0,
+  // RuntimeTab.tsx baseline is 2 because the file also exports CadenceCard,
+  // which has 2 editable Inputs (refresh-cadence days + change-summary).
+  // Scheduling cadence is OUTSIDE the dev-defined-only rule (which scopes
+  // to persona, prompts, models, field requirements, and routing) so it
+  // remains admin-tunable. The RuntimeTab function itself is now 0
+  // edit-affordances (was: Textarea + Input + Save Button).
+  "client/src/pages/admin/specialist/tabs/RuntimeTab.tsx": 2,
 };
 
 describe("admin-surface coverage T2 — Specialist tabs are read-only per rule", () => {

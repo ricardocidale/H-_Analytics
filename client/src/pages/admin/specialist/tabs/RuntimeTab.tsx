@@ -1,8 +1,17 @@
 /**
- * RuntimeTab — free-form JSON object passed to the Specialist evaluator
- * at runtime. Includes a sibling CadenceCard (exported separately because
- * it's only rendered for Constants Specialists) for the per-Specialist
- * scheduled-refresh cadence override.
+ * RuntimeTab — read-only display of the per-Specialist runtime config
+ * JSON. Per `.claude/rules/specialists-are-dev-defined-only.md` §3,
+ * admins cannot edit Specialist runtime configuration at runtime — the
+ * catalog (and the Specialist's evaluator code) are the source of truth.
+ *
+ * The previous JSON Textarea editor, change-summary Input, save Button,
+ * and the PUT mutation have all been removed. The current effective
+ * config is rendered as a pretty-printed `<pre>` block.
+ *
+ * The sibling CadenceCard is exported separately and intentionally
+ * RETAINED as editable: per-Specialist scheduled-refresh cadence is a
+ * scheduling knob (not persona, prompts, models, field requirements,
+ * or routing) so it falls outside the dev-defined-only rule.
  */
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -10,68 +19,55 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { SpecialistAuditEntry, SpecialistConfigView } from "../types";
 
-export function RuntimeTab({ specialistId, config }: { specialistId: string; config: SpecialistConfigView }) {
-  const { toast } = useToast();
-  const qc = useQueryClient();
-  const [text, setText] = useState(JSON.stringify(config.runtimeConfig ?? {}, null, 2));
-  const [summary, setSummary] = useState("");
-  const [parseError, setParseError] = useState<string | null>(null);
-
-  const mutation = useMutation({
-    mutationFn: async () => {
-      let runtimeConfig: Record<string, unknown>;
-      try { runtimeConfig = JSON.parse(text); } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : "Invalid JSON";
-        setParseError(msg);
-        throw new Error(msg);
-      }
-      setParseError(null);
-      const res = await apiRequest("PUT", `/api/admin/specialists/${specialistId}/runtime`, {
-        runtimeConfig,
-        changeSummary: summary || undefined,
-      });
-      return res.json();
-    },
-    onSuccess: () => {
-      toast({ title: "Runtime updated" });
-      qc.invalidateQueries({ queryKey: [`/api/admin/specialists/${specialistId}`] });
-      qc.invalidateQueries({ queryKey: [`/api/admin/specialists/${specialistId}/audit`] });
-      setSummary("");
-    },
-    onError: (e: unknown) => toast({ title: "Save failed", description: e instanceof Error ? e.message : String(e), variant: "destructive" }),
-  });
+export function RuntimeTab({ config }: { specialistId: string; config: SpecialistConfigView }) {
+  const pretty = JSON.stringify(config.runtimeConfig ?? {}, null, 2);
+  const isEmpty = !config.runtimeConfig || Object.keys(config.runtimeConfig).length === 0;
 
   return (
-    <Card>
-      <CardHeader><CardTitle>Runtime</CardTitle></CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Free-form JSON object passed to the Specialist evaluator at runtime.
-        </p>
-        <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={14} className="font-mono text-sm" data-testid="textarea-runtime-json" />
-        {parseError && <p className="text-xs text-destructive" data-testid="text-runtime-parse-error">{parseError}</p>}
-        <Input value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="Change summary (optional, recorded in audit)" data-testid="input-change-summary-runtime" />
-        <div className="flex justify-end">
-          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending} data-testid="button-save-runtime">
-            {mutation.isPending ? "Saving…" : "Save"}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      <Alert data-testid="runtime-readonly-banner">
+        <AlertTitle>Read-only — dev-defined</AlertTitle>
+        <AlertDescription>
+          Runtime config is set in code. This view is read-only — edits
+          are forbidden per <code>specialists-are-dev-defined-only.md</code>.
+        </AlertDescription>
+      </Alert>
+
+      <Card>
+        <CardHeader><CardTitle>Runtime</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Free-form JSON object passed to the Specialist evaluator at runtime.
+          </p>
+          {isEmpty ? (
+            <p className="text-sm text-muted-foreground italic" data-testid="text-runtime-empty">
+              No runtime config set — the Specialist runs with evaluator defaults.
+            </p>
+          ) : (
+            <pre
+              className="text-xs font-mono bg-muted/40 border rounded-md p-3 overflow-auto max-h-96 whitespace-pre"
+              data-testid="text-runtime-json"
+            >
+              {pretty}
+            </pre>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
 // ── CadenceCard ────────────────────────────────────────────────────────
 // Per-Specialist override for the scheduled Constants refresh cadence.
 // Only rendered for Constants Specialists (those whose catalog entry
-// owns one or more registry keys). Passing a blank value or clicking
-// "Reset to default" clears the override and the scheduler falls back
-// to the catalog default.
+// owns one or more registry keys). Scheduling cadence is OUTSIDE the
+// dev-defined-only rule (which scopes to persona, prompts, models,
+// field requirements, and routing) so this remains admin-editable.
 export function CadenceCard({ specialistId, config }: { specialistId: string; config: SpecialistConfigView }) {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -102,10 +98,6 @@ export function CadenceCard({ specialistId, config }: { specialistId: string; co
   const parsed = draft.trim() === "" ? null : Number(draft);
   const invalid = draft.trim() !== "" && (!Number.isInteger(parsed) || (parsed as number) < 1 || (parsed as number) > 3650);
 
-  // Find the most-recent cadence edit so admins can see who last changed
-  // the override and when. If no cadence-section entries exist the cadence
-  // is still at the catalog default. We track loading/error explicitly so
-  // a transient fetch failure isn't silently shown as "never changed".
   const {
     data: auditEntries,
     isLoading: isAuditLoading,
