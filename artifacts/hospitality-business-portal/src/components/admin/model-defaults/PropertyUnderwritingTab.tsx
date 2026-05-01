@@ -1,6 +1,9 @@
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { IconShieldCheck } from "@/components/icons";
 import { useAuth } from "@/lib/auth";
 import { Section, PctField, DollarField, NumberField, TabBanner, type Draft } from "./FieldHelpers";
@@ -99,6 +102,33 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
   // fires here once the tab actually mounts. See `client/src/pages/Admin.tsx`
   // for the hash → section sync.
   useFocusFieldFromUrl();
+
+  const { data: strDefaultRow, refetch: refetchStrDefault } = useQuery({
+    queryKey: ["model-defaults", "property_defaults", "platformFeeRate"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/model-defaults?category=management_company&cardKey=property_defaults", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch STR defaults");
+      const json = await res.json() as { rows: Array<{ id: number; defaultKey: string; value: unknown }> };
+      return json.rows.find(r => r.defaultKey === "mc.property_defaults.platformFeeRate") ?? null;
+    },
+  });
+
+  const [platformFeeDraft, setPlatformFeeDraft] = useState("");
+  useEffect(() => {
+    if (strDefaultRow?.value != null)
+      setPlatformFeeDraft((+(strDefaultRow.value as number) * 100).toFixed(1));
+  }, [strDefaultRow]);
+
+  const savePlatformFee = async () => {
+    if (!strDefaultRow) return;
+    await fetch(`/api/admin/model-defaults/${strDefaultRow.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ value: parseFloat(platformFeeDraft) / 100, reason: "Admin updated STR platform fee default" }),
+    });
+    refetchStrDefault();
+  };
 
   const acq = draft.standardAcqPackage ?? {};
   const debt = draft.debtAssumptions ?? {};
@@ -733,6 +763,26 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
           testId="field-monthsToOps"
           researchRange="3–12 mo"
         />
+      </Section>
+
+      <Section grid title="Short-Term Rental Defaults" description="Default rates applied to new STR properties when no per-property override is set.">
+        <div className="space-y-2">
+          <Label className="label-text text-foreground flex items-center gap-1.5">
+            Platform Fee Rate (%)
+            <InfoTooltip text="Blended OTA commission rate (Airbnb 15.5% / VRBO 8% / Booking 15%). Users can override per property on the property edit page." />
+          </Label>
+          <div className="flex gap-2 items-center">
+            <Input
+              type="number" step="0.1" min="0" max="100"
+              value={platformFeeDraft}
+              onChange={(e) => setPlatformFeeDraft(e.target.value)}
+              className="bg-card border-primary/30 text-foreground w-32"
+              data-testid="input-default-platform-fee-rate"
+            />
+            <span className="text-sm text-muted-foreground">%</span>
+            <Button size="sm" variant="outline" onClick={savePlatformFee}>Save</Button>
+          </div>
+        </div>
       </Section>
     </div>
   );

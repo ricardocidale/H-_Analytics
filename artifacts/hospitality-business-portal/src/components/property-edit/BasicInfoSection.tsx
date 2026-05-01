@@ -270,7 +270,7 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
             />
           </div>
 
-          {draft.businessModel === "vrbo" && (
+          {(draft.businessModel === "vrbo" || draft.businessModel === "vrbo_owner_managed") && (
             <div className="sm:col-span-2 border border-primary/20 rounded-xl p-4 space-y-4">
               <p className="text-sm font-medium text-foreground label-text">Pricing Model</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -296,6 +296,28 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
                     </div>
                   </>
                 )}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                <div className="space-y-2">
+                  <Label className="label-text text-foreground flex items-center gap-1.5">
+                    Platform Fee Rate (%)
+                    <InfoTooltip text="Blended Airbnb / VRBO / Booking.com commission as % of room revenue. Default 14% = Airbnb 15.5% / VRBO 8% / Booking 15% blended. Set to 0 for direct-booking only." />
+                  </Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    value={draft.platformFeeRate != null ? +(draft.platformFeeRate * 100).toFixed(2) : ""}
+                    placeholder="14"
+                    onChange={(e) => {
+                      const raw = parseFloat(e.target.value);
+                      onChange("platformFeeRate", isNaN(raw) ? null : raw / 100);
+                    }}
+                    className="bg-card border-primary/30 text-foreground"
+                    data-testid="input-platform-fee-rate"
+                  />
+                </div>
               </div>
             </div>
           )}
