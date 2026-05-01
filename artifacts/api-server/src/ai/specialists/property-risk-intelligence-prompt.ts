@@ -99,6 +99,7 @@ export interface PropertyRiskIntelligencePromptInputContext {
     propertyInflationRate: number | null;
     country?: string;
     city?: string;
+    businessModel?: string;
   };
   /**
    * Country / market published inflation outlook resolved from the

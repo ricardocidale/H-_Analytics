@@ -273,7 +273,7 @@ export function register(app: Express) {
         "roomCount", "city", "stateProvince", "country",
         "revShareFB", "revShareEvents", "revShareOther",
         "maxOccupancy", "startOccupancy", "adrGrowthRate",
-        "sourceUrls",
+        "sourceUrls", "platformFeeRate",
       ];
       const hasKeyChange = existingProp && STALENESS_TRIGGER_KEYS.some(
         (k) => k in validation.data && (validation.data as Record<string, unknown>)[k] !== (existingProp as Record<string, unknown>)[k]

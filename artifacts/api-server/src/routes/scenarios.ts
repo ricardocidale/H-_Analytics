@@ -463,7 +463,7 @@ export function register(app: Express) {
 
       const recipient = await storage.getUserByEmail(recipientEmail);
       if (!recipient) {
-        return res.status(404).json({ error: "No user found with that email address" });
+        return res.status(404).json({ error: "Recipient not found" });
       }
 
       const sharer = getAuthUser(req);

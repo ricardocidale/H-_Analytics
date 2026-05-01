@@ -582,11 +582,8 @@ async function runFundingV1Path(userId: number) {
     burnFlexDownPct: overlaidGa.burnFlexDownPct,
   };
 
-  // Canonical persona for v1 — derived from globalAssumptions identity
-  // hints when present, otherwise sensible defaults. G6-P3 replaces this
-  // with full persona resolution.
   const persona: FundingPromptInputContext["persona"] = {
-    verticalSlug: "boutique-luxury",
+    verticalSlug: portfolioVerticalSlug(properties),
     marketTier: "L+B",
     locale: "US",
   };
@@ -669,6 +666,7 @@ async function runPropertyRiskIntelligenceV1Path(
       propertyInflationRate: property.inflationRate ?? null,
       country: property.country ?? undefined,
       city: property.city ?? undefined,
+      businessModel: property.businessModel ?? undefined,
     },
     countryInflationOutlook,
   };
@@ -744,8 +742,31 @@ function hospitalityTypeToVerticalSlug(type: string): string {
     "bed-and-breakfast": "boutique-luxury",
     "vacation-rental": "short-term-rental",
     motel: "budget-independent",
+    vrbo: "short-term-rental",
+    "vrbo-owner-managed": "short-term-rental",
   };
   return knownSlugs[normalized] ?? "boutique-luxury";
+}
+
+/**
+ * Derive the plurality vertical slug for a portfolio. Active properties
+ * (roomCount > 0) are used when present; falls back to all properties.
+ * Returns "boutique-luxury" for an empty portfolio.
+ */
+function portfolioVerticalSlug(
+  properties: Array<{ hospitalityType?: string | null; roomCount?: unknown }>,
+): string {
+  const active = properties.filter(
+    (p) => p.roomCount != null && (p.roomCount as number) > 0,
+  );
+  const pool = active.length > 0 ? active : properties;
+  const freq: Record<string, number> = {};
+  for (const p of pool) {
+    const slug = hospitalityTypeToVerticalSlug(p.hospitalityType ?? "hotel");
+    freq[slug] = (freq[slug] ?? 0) + 1;
+  }
+  const entries = Object.entries(freq);
+  return entries.length > 0 ? entries.reduce((a, b) => (b[1] > a[1] ? b : a))[0] : "boutique-luxury";
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -785,9 +806,8 @@ async function runRevenueV1Path(userId: number): Promise<Awaited<ReturnType<type
     cateringBoostPct: ga.defaultCateringBoostPct ?? null,
   };
 
-  // Canonical persona for v1 — G6-P3 replaces with full persona resolution.
   const persona: RevenuePromptInputContext["persona"] = {
-    verticalSlug: "boutique-luxury",
+    verticalSlug: portfolioVerticalSlug(properties),
     marketTier: "L+B",
     locale: "US",
   };
@@ -863,9 +883,8 @@ async function runCompensationV1Path(userId: number): Promise<Awaited<ReturnType
     staffTier3Fte: ga.staffTier3Fte ?? null,
   };
 
-  // Canonical persona for G3 — full persona resolution lands in a follow-up.
   const persona: CompensationPromptInputContext["persona"] = {
-    verticalSlug: "boutique-luxury",
+    verticalSlug: portfolioVerticalSlug(properties),
     marketTier: "L+B",
     locale: "US",
   };
@@ -925,9 +944,8 @@ async function runOverheadV1Path(userId: number): Promise<Awaited<ReturnType<typ
     itLicensePerClient: ga.itLicensePerClient ?? null,
   };
 
-  // Canonical persona for Phase 2 — full persona resolution lands in a follow-up.
   const persona: OverheadPromptInputContext["persona"] = {
-    verticalSlug: "boutique-luxury",
+    verticalSlug: portfolioVerticalSlug(properties),
     marketTier: "L+B",
     locale: "US",
   };
@@ -985,9 +1003,8 @@ async function runCompanyV1Path(userId: number): Promise<Awaited<ReturnType<type
     costOfEquity: ga.costOfEquity ?? null,
   };
 
-  // Canonical persona for Phase 2 — full persona resolution lands in a follow-up.
   const persona: CompanyPromptInputContext["persona"] = {
-    verticalSlug: "boutique-luxury",
+    verticalSlug: portfolioVerticalSlug(properties),
     marketTier: "L+B",
     locale: "US",
   };
@@ -1048,9 +1065,8 @@ async function runPropertyDefaultsV1Path(userId: number): Promise<Awaited<Return
     salesCommissionRate: ga.salesCommissionRate ?? null,
   };
 
-  // Canonical persona for Phase 2 — full persona resolution lands in a follow-up.
   const persona: PropertyDefaultsPromptInputContext["persona"] = {
-    verticalSlug: "boutique-luxury",
+    verticalSlug: portfolioVerticalSlug(properties),
     marketTier: "L+B",
     locale: "US",
   };

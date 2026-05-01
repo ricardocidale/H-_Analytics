@@ -180,8 +180,9 @@ export const SPECS: SeedSpec[] = [
   { key: "occupancyGrowthStep",         card: "property_defaults", value: DEFAULT_OCCUPANCY_GROWTH_STEP,     unit: "%",      label: "Occupancy growth step per period" },
   { key: "propertyInflationRate",       card: "property_defaults", value: DEFAULT_PROPERTY_INFLATION_RATE,   unit: "%",      label: "Property-level cost inflation (annual)" },
   // STR platform fee — blended Airbnb 15.5% / VRBO 8% / Booking 15%.
-  // Universal scope (businessType=null) so it applies to all archetypes
-  // until admin adds a businessType-scoped override row.
+  // Admin-visible reference value. The engine resolves this via
+  // property.platformFeeRate ?? BUSINESS_MODEL_DEFAULTS[bm].platformFeeRate
+  // (TS constant) — this DB row is dormant until a scoped overlay is wired.
   { key: "platformFeeRate",             card: "property_defaults", value: DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE, unit: "%", label: "STR platform fee rate (Airbnb/VRBO/Booking blended)" },
 ];
 
