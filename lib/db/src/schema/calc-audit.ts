@@ -47,7 +47,7 @@ export const insertCalcAuditLogSchema = z.object({
     module: z.string(),
     label: z.string(),
     formula: z.string(),
-    inputs: z.record(z.number()),
+    inputs: z.record(z.string(), z.number()),
     output: z.number(),
     note: z.string().optional(),
   })),

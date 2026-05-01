@@ -48,7 +48,7 @@ export const insertActivityLogSchema = z.object({
   entityType: z.string(),
   entityId: z.number().nullable().optional(),
   entityName: z.string().nullable().optional(),
-  metadata: z.record(z.unknown()).nullable().optional(),
+  metadata: z.record(z.string(), z.unknown()).nullable().optional(),
   ipAddress: z.string().nullable().optional(),
 });
 
@@ -77,7 +77,7 @@ export const insertVerificationRunSchema = z.object({
   failed: z.number(),
   auditOpinion: z.string(),
   overallStatus: z.string(),
-  results: z.record(z.unknown()),
+  results: z.record(z.string(), z.unknown()),
 });
 
 export type VerificationRun = typeof verificationRuns.$inferSelect;

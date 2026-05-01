@@ -200,7 +200,7 @@ export const updateRenderSettingSchema = z.object({
   model: z.string().optional(),
   promptPrefix: z.string().optional(),
   promptSuffix: z.string().optional(),
-  params: z.record(z.unknown()).optional(),
+  params: z.record(z.string(), z.unknown()).optional(),
   isImg2Img: z.boolean().optional(),
   requiresSourceImage: z.boolean().optional(),
   promptOptional: z.boolean().optional(),

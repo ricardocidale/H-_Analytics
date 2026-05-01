@@ -107,7 +107,7 @@ export const insertNotificationLogSchema = z.object({
   subject: z.string().nullable().optional(),
   status: z.string().optional().default("pending"),
   errorMessage: z.string().nullable().optional(),
-  metadata: z.record(z.unknown()).nullable().optional(),
+  metadata: z.record(z.string(), z.unknown()).nullable().optional(),
   alertRuleId: z.number().nullable().optional(),
   propertyId: z.number().nullable().optional(),
   retryCount: z.number().optional().default(0),
