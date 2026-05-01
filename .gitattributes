@@ -6,3 +6,4 @@
 # and `.turbo/` is in `.gitignore` to keep it from coming back. See
 # docs/developer/migration-from-replit.md, "History rewrite — Helium backup
 # purge", for the runbook and rationale.
+.turbo/cache/4ef2d42dbe46b27f.tar.zst filter=lfs diff=lfs merge=lfs -text

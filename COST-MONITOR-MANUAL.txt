@@ -1,0 +1,112 @@
+API COST MONITOR — User Manual
+================================
+
+WHAT IS THIS?
+A small app that runs in PowerShell and shows you how much
+money you are spending on AI services like Claude, Replit,
+OpenAI, etc. You type in what you spent and it keeps a
+running total with a nice dashboard.
+
+
+HOW TO START IT
+Open PowerShell and type:
+
+   cd "$env:USERPROFILE\.costs"
+   tsx cost-monitor.ts
+
+Leave this window open. It updates every 2 seconds.
+
+
+HOW TO LOG A COST
+Open a SECOND PowerShell window. Go to the same folder:
+
+   cd "$env:USERPROFILE\.costs"
+
+Then type one of these:
+
+   tsx cost-monitor.ts --add --service anthropic --cost 1.20 --note "Claude Code work"
+   tsx cost-monitor.ts --add --service replit --cost 0.25 --note "Replit agent fixes"
+   tsx cost-monitor.ts --add --service openai --cost 0.03 --note "ChatGPT question"
+
+To tag it to a specific project, add --project:
+
+   tsx cost-monitor.ts --add --service anthropic --cost 0.80 --project hospitality-portal --note "Audit"
+   tsx cost-monitor.ts --add --service replit --cost 0.10 --project side-project --note "Bug fix"
+
+
+WHAT CAN I TYPE FOR --service?
+Use any of these names:
+
+   anthropic         Claude, Claude Code
+   openai            ChatGPT, OpenAI API
+   gemini            Google Gemini
+   replit            Replit agent, Replit hosting
+   cursor            Cursor IDE
+   github-copilot    GitHub Copilot
+   elevenlabs        ElevenLabs voice
+   replicate         Replicate image gen
+   resend            Resend email
+   twilio            Twilio SMS/voice
+   vercel            Vercel hosting
+   perplexity        Perplexity
+   other             Anything else
+
+
+KEYBOARD SHORTCUTS (while the dashboard is open)
+   q     Quit the dashboard
+   h     Change the time view (Today / Last Hour / 7 Days / All Time)
+   b     Change the budget ($10 / $20 / $50 / $100 / $200 / off)
+   r     Reset the display
+   a     Add an entry (it will ask you questions step by step)
+
+
+PRESSING "a" TO ADD INTERACTIVELY
+Instead of typing the long --add command, you can press
+the "a" key while the dashboard is running. It will ask:
+
+   Service?    Type: anthropic, replit, openai, etc.
+   Cost?       Type the dollar amount, like: 0.50
+   Model?      Optional. Press Enter to skip.
+   Project?    Optional. Press Enter to skip.
+   Note?       Optional. Press Enter to skip.
+
+
+WHERE IS MY DATA?
+All your entries are saved in one file:
+
+   C:\Users\YOUR_NAME\.costs\activity.jsonl
+
+It is a plain text file. You can open it in Notepad to
+see all your entries, edit them, or delete lines.
+Each line is one entry.
+
+
+HOW TO SEE ONLY TODAY'S COSTS
+That is the default. But you can change it:
+
+   Press h once  = Last Hour
+   Press h twice = Last 7 Days
+   Press h three times = All Time
+   Press h four times = Back to Today
+
+
+HOW TO SET A DAILY BUDGET
+Press b to cycle through budget options:
+   $10 → $20 → $50 → $100 → $200 → off → $10 ...
+
+The progress bar turns yellow at 50% and red at 80%.
+
+
+HOW TO STOP IT
+Press q. Or close the PowerShell window.
+
+
+TIPS
+- Log your costs right after each session while you
+  remember the amount.
+- Check your actual spending on the provider websites:
+    Anthropic: https://console.anthropic.com/settings/billing
+    OpenAI:    https://platform.openai.com/usage
+    Replit:    Check your Replit account billing page
+- The amounts you enter are estimates. The dashboard does
+  not connect to any service — it only shows what you type.

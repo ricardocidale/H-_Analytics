@@ -1,0 +1,22 @@
+  A download feature was added to the PhotoCard component in client/src/features/property-images/PhotoCard.tsx. Please review the UI and make sure it meets our design standards.
+                                                                                                                                                                                                                       
+  What was added:                                           
+  - Two new buttons in the hover action row (between the edit pencil and delete trash icons):                                                                                                                          
+    a. A Download icon (lucide-react) for downloading the original photo                                                                                                                                               
+    b. A Sparkles icon for downloading the AI-enhanced version (only visible when photo.enhancedImageData exists)
+  - Both have tooltips ("Download original" / "Download AI enhanced")                                                                                                                                                  
+  - The enhanced download button uses text-primary/70 hover:text-primary to differentiate it                                                                                                                           
+                                                                                                                                                                                                                       
+  What to check:                                                                                                                                                                                                       
+  1. Button sizes and spacing match the existing edit/delete buttons (all h-6 w-6 with gap-0.5)                                                                                                                        
+  2. The Download icon imported from lucide-react looks consistent with the rest of the themed icon set — if it doesn't, add a proper Download entry to themed-icons.tsx with all 3 variants (lucide, phosphor,        
+  material)                                                                                                                                                                                                    
+  3. Hover states, transitions, and opacity match the group-hover pattern already in use                                                                                                                               
+  4. The enhanced download sparkles icon is visually distinct enough from the enhance button in the top-right corner
+  5. Tooltips render correctly and don't overlap with other elements                                                                                                                                                   
+  6. Mobile touch targets — the hover-only action row doesn't work on mobile. Consider whether a long-press menu or always-visible download action is needed                                                           
+  7. Overall the photo card should still feel premium — not cluttered with too many icons in the action row                                                                                                            
+                                                                                                                                                                                                                       
+  No functional changes needed — the download logic works. This is purely a design/UI compliance review.                                                                                                               
+                                                                                                                                                                                                                       
+  ---       

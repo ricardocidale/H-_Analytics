@@ -1,0 +1,34 @@
+
+Library
+Commands
+Search files
+Packager files
+Config files
+/
+You are currently viewing a preview of the main version.
+would be nice two be able to use something similar to Google Earth to fly to the properties onscreen
+
+what SDK or plugins would do that?
+
+Great question! Here's what would power this, building on what your project already has:
+
+Already installed (no new dependencies needed):
+
+MapLibre GL JS v5.19 — This is your main rendering engine. Version 4+ added native globe projection (a 3D spherical Earth view) and it has a built-in flyTo() method that handles smooth cinematic camera animations. This alone gets you 80% of the way to a Google Earth feel.
+
+Three.js / React Three Fiber — Already in your project. Not strictly needed for the globe flyover itself (MapLibre handles it), but could enhance atmosphere effects or custom 3D overlays if desired.
+
+What MapLibre provides natively (no plugins):
+
+projection: 'globe' — Turns the flat map into a 3D rotating globe
+map.flyTo({ center, zoom, pitch, bearing, speed }) — Smooth cinematic fly-to animations with tilt and rotation
+setTerrain() — You already use this for 3D terrain with hillshading
+Atmosphere/sky layers for that "view from space" look
+One thing to add — satellite imagery tiles:
+Your map currently uses OpenStreetMap road tiles. For a Google Earth feel, you'd want satellite/aerial imagery. The best free options:
+
+Esri World Imagery — Free for non-commercial or with an ArcGIS developer account. High quality global satellite coverage.
+MapTiler Satellite — Free tier available, good quality. Has a dedicated MapLibre-compatible tile URL.
+So the short answer: MapLibre GL JS does almost everything out of the box — globe view, fly-to animations, 3D terrain. The only addition is swapping in a satellite tile source for the aerial imagery. No CesiumJS or other heavy 3D globe library needed.
+
+Would you like me to update the task plan with any of these specifics, or does the current scope look good to you?

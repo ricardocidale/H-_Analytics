@@ -1,0 +1,27 @@
+▎ Triage-first — don't draft anchors yet. Five decisions to make before you touch prompts:                                          
+  ▎
+  ▎ D1: Fix inflationRate only. Accept incentiveFee (domain-standardized, 75% mid-hit is fine) and ltv (100% midpoint hit =           
+  ▎ value-parity OK even with narrow bucket-match).         
+  ▎                                                                                                                                   
+  ▎ D2: Defer the 6 T2 USALI anchors to a post-OT-A.4 batch (call it OT-A.5). Reasoning: all 6 are cost lines — operating margin      
+  ▎ impact only, no headline NPV impact. Ship OT-A.4, iterate. Document the 6 known-issue biases in a follow-up file.
+  ▎                                                                                                                                   
+  ▎ D3: Accept all 5 T3 misses as noise. No action.         
+  ▎
+  ▎ D4: Fix svcFeeMarketing + svcFeeTechRes mode collapse in the same pass as inflationRate. Even though they're T3, we have a rule   
+  ▎ against shipping known mode collapse (.claude/rules/field-definitions-no-prescription-hints.md).
+  ▎                                                                                                                                   
+  ▎ D5 (optional): When fixing incentiveFee later, try bimodal language ("8-12% branded operator, 5-10% independent") to produce 2    
+  ▎ unique ranges instead of 1. Skip if it introduces new regressions.
+  ▎                                                                                                                                   
+  ▎ Revised OT-A.4 unblock spec:                                                                                                      
+  ▎ 1. Fix inflationRate (country-CPI anchor, no prescriptive percentage) + svcFeeMarketing + svcFeeTechRes (strip any latent hints, 
+  ▎ add per-market reasoning cues). 3 fields only.                                                                                    
+  ▎ 2. Offline re-evaluate against v4 raw data. Success: 0 mode-collapsed fields (excluding incentiveFee exemption), T1 pass ≥ 7/8.
+  ▎ 3. File a known-issue doc for the 6 T2 USALI cost-line biases + 3 T2 unbiased-noise + 5 T3 misses. Non-blocking follow-ups.       
+  ▎                                                                                                                                   
+  ▎ Draft the 3 definition edits. Commit separately from offline re-evaluation. Each gets its own five-gate pass.                     
+  ▎                                                                                                                                   
+  ▎ Watch for re-collapse on inflationRate — country-CPI anchor must NOT include numeric ranges ("typical 2-3%"); it must direct Opus 
+  ▎ to the actual jurisdiction's CPI source ("reason per-market from IMF / local central bank CPI for the property's country, not a 
+  ▎ generic global inflation rate"). Same pattern as the previous mode-collapse fix.

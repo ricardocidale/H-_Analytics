@@ -1,0 +1,39 @@
+  ▎ Q1 — inflationRate Class 2: verify legacy first. Read the legacy extractor path for inflationRate (probably in                    
+  ▎ research-value-extractor.ts regex chains) and confirm it hard-codes a USA CPI constant. 10 min, free, removes ambiguity.
+  ▎                                                                                                                                   
+  ▎ - If confirmed: Class 2 stands, T1 = 8/8.                                                                                         
+  ▎ - If legacy is doing something smarter (e.g., parsing from panel output): downgrade to Class 4, T1 = 7/8, still clears the bar.   
+  ▎                                                                                                                                   
+  ▎ Either way OT-A.4 can ship. But "exempt a field from parity" needs the exemption to be true.                                      
+  ▎                                                                                                                                   
+  ▎ Q2 — svcFeeMarketing: move to Class 1. For the L+B persona (branded boutique-luxury), 1.5–2.0% of total revenue IS the canonical  
+  ▎ marketing-services fee — same operator-contract standardization as incentiveFee at 10% of GOP. Marriott/Hilton/Hyatt soft-brand 
+  ▎ marketing fees land in that narrow band globally; the uniq=1 emission is correct behavior, not under-reasoning. The Δ −2.5%±8%    
+  ▎ with σ>|Δ| suggests legacy was drawing from a broader operator mix (branded + independent) rather than the L+B persona 
+  ▎ specifically — exactly the pattern we'd expect if new path is more L+B-aligned. Document as Class 1 with a one-line note about the
+  ▎  legacy-mix contrast so future readers know the Δ isn't drift, it's persona-narrowing. OT-A.5 design scope shrinks accordingly.
+  ▎
+  ▎ Q3 — OT-A.4 green light. YES, conditional on:                                                                                     
+  ▎
+  ▎ 1. Q1 verification done (commit the finding; keep Class 2 if confirmed or downgrade to Class 4 if not)                            
+  ▎ 2. Q2 Class 1 assignment committed in OT-A-3-parity-exemptions.md
+  ▎ 3. Known-issues doc (OT-A-3-known-issues.md) updated with: the 4 non-T1 mode-collapsed fields (costFB, costSeg5yrPct,             
+  ▎ svcFeeGeneralMgmt, svcFeeTechRes), the 6 T2 USALI biases parked for OT-A.5, plus the T3 misses explicitly acknowledged as noise   
+  ▎ 4. All three docs committed before the flag flip                                                                                  
+  ▎                                                                                                                                   
+  ▎ On the flip itself: single commit per principle. USE_AI_SDK_SYNTHESIS=true as the default, delete                                 
+  ▎ server/ai/research-value-extractor.ts, delete the legacy synthesis path in research-orchestrator.ts, update ENGINE_VERSION to     
+  ▎ v2-2026-04-20-a (major bump — the engine shape fundamentally changed), recompute SYNTHESIS_FINGERPRINT.                           
+  ▎                                                         
+  ▎ Post-flip watches (not blockers):                                                                                                 
+  ▎ - Sentry for ContractMigrationParityMisuseError in the first 72 hours.
+  ▎ - PostHog (after Phase 5D ships) for verdict-cache hit rate once ADR-004 lands — new synthesis outputs should match cache keys    
+  ▎ identically across runs once the engine version stabilizes.                                                                       
+  ▎ - If any T1 field drifts below its exemption criterion in production outputs, file as a BLOCKED doc and we revisit exemption class
+  ▎  assignment.                                                                                                                      
+  ▎                                                         
+  ▎ One addition: the exemption taxonomy you're landing as a doc should probably also become .claude/rules/parity-exemption-classes.md
+  ▎  — same pattern as the no-hints + contract-migration-parity rules. Future LLM migrations (OT-C, or any specialist swap) will want 
+  ▎ this framework. Draft it after OT-A.4 ships; don't block on it.                                                                   
+  ▎                                                         
+  ▎ Ship it.

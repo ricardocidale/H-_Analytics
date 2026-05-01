@@ -1,0 +1,39 @@
+  Before you commit the current in-progress Phase 2c work, two things to close:                   
+   
+  1. MIGRATION. shared/schema/intelligence-v2.ts has an unstaged addition                         
+     (tax_bulletin_cache table — Helena's tax-bulletin-diff tool). The Drizzle
+     migration hasn't been generated yet. Before commit:                                          
+       - npx drizzle-kit generate  (creates the migration SQL)                                    
+       - Apply it to dev Postgres                                                                 
+       - Export taxBulletinCache + types from shared/schema/index.ts so the                       
+         rest of the server can import it                                                         
+       - Run the 5 pre-commit gates (tsc, lint, vocab, test:summary,
+         verify:summary UNQUALIFIED). All must pass.                                              
+                                                                                                  
+  2. DOCTRINE GAP. There's no handoff packet or ADR for Phase 2c. Per                             
+     claude-replit-split.md §Doctrine Freeze Gate, new-phase work wants a                         
+     stable governing doc first. Lowest-friction close: before you commit,                        
+     write a 1-page packet at .claude/replit-handoffs/phase-2c-helena-tax-                        
+     bulletin-cache.md using _TEMPLATE.md, OR add a ~10-line note to session-                     
+     memory.md explaining the Replit-originated scope. Either is fine; doing                      
+     neither leaves the governance gap open.                                                      
+                                                                                                  
+  General branch-hygiene notes when you reach a stopping point:                                   
+                                                        
+  3. The branch name (adr-005/phase-1-workspace-bootstrap) is stale. Phase 1                      
+     tooling landed ~165 commits ago; everything since has been Resources/
+     Specialists feature work, not workspace reorg. ADR-005 Phase 2+ is ⏸                         
+     Paused per .claude/phases.md. When this branch merges, the PR title and                      
+     a session-memory entry should capture that the branch became a general                       
+     feature branch.                                                                              
+                                                                                                  
+  4. When committing the Phase 2c schema, follow the atomic-commit cadence                        
+     from agent-collision-hygiene.md rule #1: one commit for the schema +
+     migration + index export, separate commits for the service/routes/UI                         
+     that consume the table. Don't bundle.                                                        
+                                                                                                  
+  5. If any gate fails, don't --no-verify. Root-cause it, or file a                               
+     BLOCKED-phase-2c.md sibling and flag it back.                                                
+                                                                                                  
+  Nothing blocking. The Phase 2b work is clean — SPECIALIST_TOOLS registry,                       
+  LeticiaToolbox UI, and the admin route all look good. Carry on. 

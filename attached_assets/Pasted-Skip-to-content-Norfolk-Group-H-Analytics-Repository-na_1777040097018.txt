@@ -1,0 +1,103 @@
+Skip to content
+Norfolk-Group
+H-Analytics
+Repository navigation
+Code
+Issues
+Pull requests
+9
+ (9)
+Agents
+Actions
+Projects
+Wiki
+Security and quality
+51
+ (51)
+Insights
+Settings
+Back to pull request #9
+Phase 1–6: workspace bootstrap, audit cleanup, specialist + Rebecca + source #423
+All jobs
+Run details
+Annotations
+8 errors and 1 warning
+test-and-verify
+failed 2 minutes ago in 3m 27s
+Search logs
+1s
+27s
+10s
+1s
+6s
+37s
+2m 0s
++
++ export interface FinancialStorage
++   extends GlobalAssumptionsStorage,
++     ScenariosCrudStorage,
++     ScenariosLoadStorage,
++     PropertyOverridesStorage,
++     FinancialFeeStorage,
++     FinancialSharingStorage {}
++
++ export class FinancialStorage {
++   constructor() {
++     for (const factory of FINANCIAL_DOMAIN_FACTORIES) {
++       const instance = factory();
++       const seen = new Set<string>();
++       // Walk both the prototype (for plain method classes) AND own properties
++       // (FinancialSharingStorage is itself an orchestrator that installs its
++       // sub-domain methods as own bound props in its constructor).
++       const sources: Array<Record<string, unknown>> = [
++         instance as unknown as Record<string, unknown>,
++         Object.getPrototypeOf(instance) as Record<string, unknown>,
++       ];
++       for (const src of sources) {
++         for (const name of Object.getOwnPropertyNames(src)) {
++           if (name === "constructo
+Error: AssertionError: expected '' to contain 'stripAutoFields('
+
+- Expected
++ Received
+
+- stripAutoFields(
+
+ ❯ tests/server/strip-auto-fields.test.ts:119:20
+
+
+Error: AssertionError: expected '' to contain 'stripAutoFields('
+
+- Expected
++ Received
+
+- stripAutoFields(
+
+ ❯ tests/server/strip-auto-fields.test.ts:126:20
+
+
+Error: AssertionError: expected '' to contain 'id: _gaId'
+
+- Expected
++ Received
+
+- id: _gaId
+
+ ❯ tests/server/strip-auto-fields.test.ts:140:20
+
+
+  FAIL  tests/db/analyst-cooldown.integration.test.ts > tryReserveAnalystCooldown — real-DB concurrency
+  FAIL  tests/server/admin-resources.test.ts > AdminResourceStorage (real DB)
+  FAIL  tests/server/admin-resources.test.ts > AdminResourceStorage (real DB)
+  FAIL  tests/server/photo-enhancer-pipeline.test.ts [ tests/server/photo-enhancer-pipeline.test.ts ]
+  Error: Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.
+  FAIL  tests/proof/defaults-drift.test.ts > Defaults drift — seed values match their paired constants > mc.setup.modelStartDate matches `shared/constants.ts`
+
+FAIL (1 failed) — × routes through researchExitMultiples (NOT researchCapitalRaiseBenchmarks) and 
+Error: Process completed with exit code 1.
+0s
+0s
+0s
+0s
+0s
+0s

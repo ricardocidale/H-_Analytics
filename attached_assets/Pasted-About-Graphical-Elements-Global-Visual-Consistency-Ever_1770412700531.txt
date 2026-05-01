@@ -1,0 +1,90 @@
+About Graphical Elements
+Global Visual Consistency
+
+Every page uses a hero header.
+
+All hero headers must feel identical across the app, including:
+
+Background color
+
+Typography (font family, weight, size)
+
+Spacing and alignment
+
+The hero header may include primary actions (buttons). When it does, those buttons must follow the global button system defined below.
+
+Button System (Global)
+
+Buttons across the app must share a consistent design language:
+
+Lightly rounded rectangles
+
+Consistent fill/outline styles
+
+Consistent typography (font, size, weight)
+
+Consistent icon placement and spacing
+
+Most buttons include a small icon + label. Icon size, padding, and alignment should be standardized.
+
+Tab-Bar System (Card + Tabs)
+
+Most pages include a tab-bar.
+
+Conceptually, the tab-bar behaves like a filing system:
+
+Each tab represents a “card”
+
+Each card contains a distinct content set (e.g., graphs, financial reports)
+
+Tab styling should closely match header button styling (same “family”):
+
+Similar shapes, typography, and corner radius
+
+Visually consistent interaction states (hover/active/disabled)
+
+Export Controls (Right Side of Tab-Bar)
+
+The tab-bar includes export buttons aligned to the right side.
+
+Supported export formats:
+
+PDF
+
+PPTX
+
+PNG
+
+XLSW
+
+CSV
+
+Export behavior requirements:
+
+PNG exports graphs and tables as separate pages, one visual per page.
+
+PNG exports must use the non-expanded / summary view for tables.
+
+If tables support accordion expansion, exports must capture the collapsed state (summary view), not expanded detail lines.
+
+Save / Navigation / Assumptions Controls
+
+Most pages include these controls and they must be visually consistent across the app:
+
+Save As
+
+Used to persist assumptions and variables
+
+Treated as a distinct, recognizable action (consistent placement and styling)
+
+Back
+
+Returns the user to the previous page
+
+Standard placement and style
+
+Assumptions
+
+Opens assumptions/variables relevant to the current page
+
+Standard label, icon, and styling across all pages

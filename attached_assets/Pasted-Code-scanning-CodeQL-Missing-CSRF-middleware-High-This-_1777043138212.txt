@@ -1,0 +1,232 @@
+Code scanning
+/ CodeQL
+
+Missing CSRF middleware
+High
+
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a request handler
+ without CSRF protection.
+This cookie middleware is serving a [r
+Show more details
+ Check failure on line 123 in server/index.ts 
+
+Code scanning
+/ CodeQL
+
+Missing rate limiting
+High
+
+This route handler performs authorization
+, but is not rate-limited.
+Show more details
+ Check failure on line 153 in server/routes/admin/intelligence-vector-store.ts 
+
+Code scanning
+/ CodeQL
+
+Missing rate limiting
+High
+
+This route handler performs a file system access
+, but is not rate-limited.
+Show more details
+ Check failure on line 215 in server/routes/admin/tools.ts 
+
+Code scanning
+/ CodeQL
+
+Missing rate limiting
+High
+
+This route handler performs authorization
+, but is not rate-limited.
+Show more details
+ Check failure on line 513 in server/routes/admin/tools.ts 
+
+Code scanning
+/ CodeQL
+
+Missing rate limiting
+High
+
+This route handler performs a file system access
+, but is not rate-limited.
+Show more details
+ Check failure on line 550 in server/routes/admin/tools.ts 
+
+Code scanning
+/ CodeQL
+
+Missing rate limiting
+High
+
+This route handler performs a file system access
+, but is not rate-limited.
+Show more details
+ Check failure on line 311 in server/routes/calculations.ts 
+
+Code scanning
+/ CodeQL
+
+Missing rate limiting
+High
+
+This route handler performs authorization
+, but is not rate-limited.
+Show more details
+ Check failure on line 70 in server/routes/google-auth.ts 
+
+Code scanning
+/ CodeQL
+
+Missing rate limiting
+High
+
+This route handler performs authorization
+, but is not rate-limited.
+This route handler performs authorization
+, but is not rate-limited.
+Show more details
+ Check failure on line 152 in server/routes/google-auth.ts 
+
+Code scanning
+/ CodeQL
+
+Missing rate limiting
+High
+
+This route handler performs authorization
+, but is not rate-limited.
+This route handler performs authorization
+, but is not rate-limited.
+This route handler performs authorization
+, but is not rate-limited.
+Show more details
+ Check failure on line 253 in tests/proof/hardcoded-detection.test.ts 
+
+Code scanning
+/ CodeQL
+
+Incomplete string escaping or encoding
+High
+test
+
+This does not escape backslash characters in the input.
+Show more details
+ Check warning on line 245 in server/routes/admin/tools.ts 
+
+Code scanning
+/ CodeQL
+
+Replacement of a substring with itself
+Medium
+
+This replaces '/' with itself.
+Show more details
+ Check warning on line 74 in server/routes/google-auth.ts 
+
+Code scanning
+/ CodeQL
+
+Sensitive data read from GET request
+Medium
+
+Route handler
+ for GET requests uses query parameter as sensitive data.
+Show more details

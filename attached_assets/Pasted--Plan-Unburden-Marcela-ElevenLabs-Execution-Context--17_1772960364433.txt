@@ -1,0 +1,92 @@
+ Plan: Unburden Marcela/ElevenLabs Execution Context                                                                                                                                                                                                                           
+                                                                                                                                                                                                                                                                               
+ Context                                                                                                                                                                                                                                                                       
+
+ The Marcela AI feature (~17,100 lines of source + ~4,200 lines of docs) is well-built but
+ loading it all into context on every session is expensive. The goal is to give Replit precise
+ instructions so Claude Code can work on Marcela/ElevenLabs with minimal context overhead —
+ loading only what each specific task needs.
+
+ This is a DOCUMENTATION + SKILL CONSOLIDATION task. NO source code changes.
+
+ What to Tell Replit (the instruction set)
+
+ The user will paste this into the Replit AI assistant to guide future sessions:
+
+ ---
+ INSTRUCTION FOR REPLIT AI AGENT — MARCELA/ELEVENLABS CONTEXT REDUCTION
+
+ When working on anything related to Marcela AI or ElevenLabs, follow this loading protocol:
+
+ NEVER auto-load these large files (load only when the specific sub-task requires it):
+
+ ┌──────────────────────────────────────────────────────┬───────┬─────────────────────────────────────────┐
+ │                         File                         │ Lines │            Load only when...            │
+ ├──────────────────────────────────────────────────────┼───────┼─────────────────────────────────────────┤
+ │ client/src/features/ai-agent/components/waveform.tsx │ 1,658 │ Modifying waveform visualization        │
+ ├──────────────────────────────────────────────────────┼───────┼─────────────────────────────────────────┤
+ │ client/src/features/ai-agent/Speaker.tsx             │ 1,381 │ Modifying TTS playback/streaming        │
+ ├──────────────────────────────────────────────────────┼───────┼─────────────────────────────────────────┤
+ │ client/src/features/ai-agent/RealtimeTranscriber.tsx │ 785   │ Modifying STT/live transcription        │
+ ├──────────────────────────────────────────────────────┼───────┼─────────────────────────────────────────┤
+ │ server/ai/knowledge-base.ts                          │ 726   │ Modifying KB sync with ElevenLabs API   │
+ ├──────────────────────────────────────────────────────┼───────┼─────────────────────────────────────────┤
+ │ server/ai/marcela-knowledge-base.ts                  │ 465   │ Modifying what data goes into KB        │
+ ├──────────────────────────────────────────────────────┼───────┼─────────────────────────────────────────┤
+ │ client/src/features/ai-agent/components/matrix.tsx   │ 612   │ Modifying matrix visual effect          │
+ ├──────────────────────────────────────────────────────┼───────┼─────────────────────────────────────────┤
+ │ server/ai/marcela-agent-config.ts                    │ 242   │ Adding/changing agent tools or prompts  │
+ ├──────────────────────────────────────────────────────┼───────┼─────────────────────────────────────────┤
+ │ server/integrations/elevenlabs.ts                    │ 305   │ Changing voice config or system prompts │
+ └──────────────────────────────────────────────────────┴───────┴─────────────────────────────────────────┘
+
+ ALWAYS load these lightweight anchor files first (total ~450 lines):
+
+ 1. .claude/skills/marcela-ai/SKILL.md — feature overview + file map
+ 2. client/src/features/ai-agent/types.ts — all shared types (109 lines)
+ 3. client/src/features/ai-agent/index.ts — barrel exports (9 lines)
+ 4. shared/constants.ts — Marcela defaults (grep for DEFAULT_MARCELA)
+
+ Task-to-file mapping (load only the relevant files):
+
+ ┌─────────────────────────────┬─────────────────────────────────────────────────────────────────────────────────┐
+ │            Task             │                                  Files to load                                  │
+ ├─────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+ │ Change voice/audio settings │ server/integrations/elevenlabs.ts, shared/schema.ts (marcela columns), types.ts │
+ ├─────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+ │ Add/change agent tools      │ server/ai/marcela-agent-config.ts only                                          │
+ ├─────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+ │ Change system prompt        │ server/integrations/elevenlabs.ts only                                          │
+ ├─────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+ │ Fix waveform/orb/visual     │ The specific component file only                                                │
+ ├─────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+ │ KB sync issue               │ server/ai/knowledge-base.ts + marcela-knowledge-base.ts                         │
+ ├─────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+ │ Telephony/Twilio            │ server/integrations/elevenlabs.ts + server/integrations/elevenlabs-audio.ts     │
+ ├─────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+ │ Admin UI settings           │ .claude/skills/marcela-ai/ai-agent-admin.md + the admin tab component           │
+ ├─────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+ │ Audio codec issue           │ server/integrations/elevenlabs-audio.ts (133 lines) only                        │
+ ├─────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+ │ STT/speech input            │ RealtimeTranscriber.tsx + components/speech-input.tsx                           │
+ ├─────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+ │ Widget variants             │ VoiceChatOrb.tsx, VoiceChatFull.tsx, or VoiceChatBar.tsx (one at a time)        │
+ └─────────────────────────────┴─────────────────────────────────────────────────────────────────────────────────┘
+
+ Key facts to keep in working memory (no file load needed):
+
+ - AgentState name collision in features/ai-agent/components/index.ts — use explicit export { Orb } not export *
+ - VoiceChatBar uses signed URL (not bare agentId) — fetched on mount via useAdminSignedUrl()
+ - Admin DB columns keep marcela_* names; only UI labels use dynamic aiAgentName
+ - All 35 marcela_* schema columns map 1:1 to VoiceSettings interface in types.ts
+ - buildVoiceConfigFromDB(ga) in elevenlabs.ts hydrates server-side VoiceConfig from DB row
+
+ What NOT to load:
+
+ - .claude/tools/marcela/ JSON schemas — only needed for adding new tools
+ - .claude/skills/elevenlabs/docs/ folder — raw API reference, rarely needed
+ - node_modules/@elevenlabs/ — never needed, use skill docs instead
+ - The full 455-line elevenlabs-ui-components.md — use targeted grep instead
+
+ ---
+ Files Changed

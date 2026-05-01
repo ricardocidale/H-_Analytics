@@ -1,0 +1,162 @@
+  ## PROJECT CONTEXT — READ BEFORE DOING ANYTHING
+
+  You are working on the **Hospitality Business Group** simulation portal — a GAAP-compliant hotel investment
+  platform. Before making ANY changes, read this entire context document. This prevents you from redoing work that's
+  already complete.
+
+  ---
+
+  ## TECH STACK (do not change without approval)
+  - Frontend: React 18 + TypeScript, Wouter routing, TanStack Query, Zustand, shadcn/ui, Tailwind CSS v4, Recharts,
+  Framer Motion, Three.js
+  - Backend: Node.js, Express 5, TypeScript (ESM), Drizzle ORM, PostgreSQL (Neon), Zod
+  - AI: Gemini 2.5 Flash (primary + premium exports + Rebecca chatbot), OpenAI gpt-image-1 (fallback), Anthropic
+  Claude (verification/research)
+  - Exports: jsPDF, xlsx, pptxgenjs, dom-to-image-more
+  - Hosting: Replit (object storage, secrets, deployments)
+  - 846 source files · ~149K lines · 3,418 tests across 150 test files
+
+  ---
+
+  ## ALREADY IMPLEMENTED — DO NOT REDO THESE
+
+  ### Export System (COMPLETE)
+  - ExportMenu component with all 6 formats: PDF, Excel, CSV, PowerPoint, Chart PNG, Table PNG
+  - Native file picker save dialog (no browser downloads)
+  - Google Drive + Local Drive dual destination
+  - File naming happens at save step — NOT in export dialog
+  - Full-scope export: any tab exports ALL statements for the entity, never just the current tab
+  - Premium Export: POST /api/exports/premium using Gemini 2.5 Flash (65k tokens), enterprise PDF design with navy
+  cover, branded headers, KPI cards
+  - All export helpers in client/src/lib/exports/
+
+  ### LLM / AI Configuration (COMPLETE)
+  - Admin LLMs tab: 7 domains (Company Research, Property Research, Market Research, Report Generation,
+  Chatbot/Rebecca, Premium Exports, AI Utilities)
+  - Each domain has primary + fallback model with vendor selection (OpenAI, Anthropic, Gemini)
+  - LLM tab has 4-column layout with Research section in two columns
+  - NO hardcoded model names anywhere — all AI model selections come from admin LLMs config
+  - Rebecca chatbot uses Gemini or Perplexity based on admin config
+
+  ### Financial Reporting / USALI (COMPLETE)
+  - NOI vs ANOI distinction enforced: ANOI = NOI − FF&E Reserve
+  - cashFlow = ANOI − debtPayment − incomeTax
+  - Balance sheet identity A = L + E holds within $1
+  - Cash derivation uses m.anoi (never m.noi) — using m.noi was a known bug, already fixed
+  - USALI waterfall: Revenue → GOP → AGOP → NOI → ANOI
+  - Engine chain: gop = revenue − opex, agop = gop − feeBase − feeIncentive, noi = agop − expenseTaxes, anoi = noi −
+  expenseFFE
+  - Independent verification checker in server/calculationChecker.ts
+
+  ### Admin Panel (COMPLETE — 16 sections)
+  - Sidebar groups: Business (Users, Companies, Groups), Research (ICP, Research Center), Design (Logos, Themes), AI
+  Agents (9 sub-tabs), System (Notifications, Navigation, Diagrams, Verification, Database, Integrations), Logs
+  - Model Defaults tab: Market & Macro sub-tab + Property Underwriting sub-tab (23 nullable columns)
+  - All admin tabs use ref-based save handlers (not state-in-deps) to avoid re-render loops
+  - Settings page eliminated — Company Assumptions is admin-only, non-admins see read-only Model Inputs panel on
+  Company page
+
+  ### Navigation & Routing (COMPLETE)
+  - /settings redirects: admins → Admin Navigation tab, non-admins → Company page
+  - Executive Summary merged into Dashboard
+  - ICP split into two pages: Profile + Research Center
+
+  ### Authentication & Roles (COMPLETE)
+  - Roles: admin, user (formerly "partner"), checker, investor
+  - Role rename partner→user already migrated across entire codebase
+  - Google Sign-In integrated
+
+  ### Configuration Architecture (COMPLETE)
+  - Seed defaults: Model Defaults admin tab (templates for new properties)
+  - Live assumptions: Company Assumptions page (what the engine reads)
+  - Config switches: Admin panel system settings
+  - buildPropertyDefaultsFromGlobal() maps Model Defaults to new property creation
+  - Three-tier inflation cascade: property.inflationRate → companyInflationRate → global.inflationRate
+  - DEPRECIATION_YEARS (27.5) and DAYS_PER_MONTH (30.5) are now DB-backed with constant fallbacks
+
+  ### Other Completed Work
+  - Country risk premiums integrated into property analysis
+  - Market intelligence pipeline: FRED rates, hospitality benchmarks, grounded research
+  - MapLibre GL portfolio map with Supercluster clustering
+  - Property photos: Sharp pipeline, WebP/AVIF variants (thumb/card/hero/full)
+  - Document Intelligence: Google Document AI OCR extraction with USALI field mapping
+  - Resend replaces SendGrid for all transactional email
+  - Sentry + PostHog observability
+  - Alert rules engine with metric thresholds and cooldowns
+  - Marcela AI voice agent ISOLATED (config preserved, zero network calls) — Rebecca is the sole active chatbot
+  - Icon set system: Lucide default, Phosphor alternative, switchable per theme
+  - Norfolk AI theme preset added
+  - Working capital (AR/AP days), NOL carryforward (80% cap), MIRR, cost segregation depreciation
+
+  ---
+
+  ## CRITICAL RULES — NEVER VIOLATE THESE
+
+  1. **Financial accuracy beats everything** — never compromise calculations for UI improvements
+  2. **All buttons say "Save"** — never "Update"
+  3. **All DB access via IStorage interface** — no route may import db directly
+  4. **No hardcoded model names, tax rates, or financial constants** — all come from DB with named-constant fallbacks
+  5. **onSuccess financial mutations must call invalidateAllFinancialQueries(queryClient)** — never hand-pick query
+  keys
+  6. **calculationChecker.ts must never import from the client engine** — independence is the point
+  7. **All properties created with userId: null** — shared ownership, visible to all users
+  8. **calc/ files must never import from server/** — tool purity
+  9. **Admin tabs with onSaveStateChange must use ref-based save handlers** — never put draft state in useCallback
+  deps
+  10. **No raw hex colors in components** — use CSS variable tokens
+  11. **All financial line items need a ? tooltip** (HelpTooltip or InfoTooltip)
+  12. **Every page must be graphics-rich** — charts, animations, Framer Motion, skeleton loading states
+  13. **Full-scope exports only** — exporting from any tab exports all statements, never just the current tab
+  14. **File naming at save step** — never add a filename field to the export dialog
+
+  ---
+
+  ## DESIGN STANDARDS
+
+  This is a $50K+ bespoke financial platform. Every page must have:
+  - At least one animated Recharts chart (gradient fills, custom tooltips)
+  - Framer Motion page transitions and staggered list reveals
+  - Skeleton loading states (no spinner-only states)
+  - Glassmorphism cards with backdrop blur and shadows (no flat white cards)
+  - Animated number transitions (never snap to new values)
+  - Playfair Display for headings, Inter for data
+  - Theme colors only — never raw hex
+  - Empty states with illustrations and CTAs, not blank pages
+
+  Active theme: **Tuscan Olive Grove** (olive-sage). Brand colors: SAGE=#9FBCA4, DARK_GREEN=#257D41, NAVY=#1A2332.
+
+  ---
+
+  ## KEY FILES TO KNOW
+
+  | File | Purpose |
+  |------|---------|
+  | client/src/lib/financial/property-engine.ts | Single-property pro-forma engine |
+  | client/src/lib/financial/company-engine.ts | Management company engine |
+  | server/calculationChecker.ts | Independent server-side verification |
+  | shared/schema.ts | Single source of truth for all types |
+  | shared/constants.ts | All named constants and defaults |
+  | client/src/lib/api.ts | invalidateAllFinancialQueries lives here |
+  | client/src/lib/exports/ | All export helpers |
+  | server/storage/ | IStorage interface + implementations |
+  | server/routes/ | All API endpoints (prefix /api/) |
+  | server/migrations/ | Idempotent SQL migration scripts |
+
+  ---
+
+  ## COMMANDS
+
+  ```bash
+  npm run dev            # Start dev server (port 5000)
+  npm run health         # tsc + tests + verify + doc harmony
+  npm run test:summary   # All 3,418 tests
+  npm run verify:summary # 7-phase GAAP verification (must show UNQUALIFIED)
+
+  After any financial change: run npm run verify:summary before considering the task done. It must show UNQUALIFIED.
+
+  ---                                                                                                                 
+  YOUR TASK
+                                                                                                                      
+  [DESCRIBE THE SPECIFIC NEW TASK HERE]                           
+                                                                                                                      
+  Work additively. Do not refactor, reorganize, or "improve" anything not directly related to the task above. 

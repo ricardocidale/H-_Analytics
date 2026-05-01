@@ -1,0 +1,51 @@
+Paste this into Replit BEFORE he starts the re-seed                                                                                 
+                                                                                                                                      
+  Before you start the re-seed (or any other code work), read these two                                                               
+  new rules that Claude Code just pushed:                                                                                             
+                  
+      .claude/rules/pre-commit-verification.md                                                                                        
+      .claude/rules/cross-check-invariants.md
+                                                                                                                                      
+  Plus the reinforced existing rules:
+
+      .claude/rules/claude-replit-split.md (guardrails 4, 5, 6 updated)                                                               
+      .claude/rules/testing-strategy.md (Pre-Commit Gate, Contract Tests,
+                                          Dead Code Detection sections added)                                                         
+                                                                                                                                      
+  Why: we've been averaging 40+ bugs per audit sweep. Almost every one                                                                
+  would have been caught by running the verification commands BEFORE                                                                  
+  committing. The new rules make the gate explicit and non-optional.                                                                  
+                  
+  The short version:                                                                                                                  
+                  
+  1. Before EVERY commit (not just "important" ones), run all five gates:                                                             
+       npx tsc --noEmit
+       npm run lint                                                                                                                   
+       npm run test:file -- tests/audit/vocabulary-compliance.test.ts
+       npm run test:summary                                                                                                           
+       npm run verify:summary
+     All five must pass. If any fail, stop and investigate root cause.                                                                
+     No --no-verify. No deferred fixes. No deleted tests.                                                                             
+                                                                                                                                      
+  2. Before EDITING any file, check cross-check-invariants.md for the                                                                 
+     invariant pair (change type X → also verify Y). It lists real
+     failure modes from recent audits — e.g. `any[]` props hiding                                                                     
+     contract drift, schema changes that forgot to update seeds, citation                                                             
+     renames that left server strings stale.                                                                                          
+                                                                                                                                      
+  3. Commit messages for code commits SHOULD include a verification line:                                                             
+     "Verified: TS 0, Lint 0, Vocab 11/11, test:summary PASS, Verify UNQUALIFIED"                                                     
+     Missing line = reviewer should look harder.                                                                                      
+                                                                                                                                      
+  4. If you hit a pre-existing failure you didn't cause, file a BLOCKED.md                                                            
+     sibling next to the active handoff (or the re-seed plan) and escalate                                                            
+     to Claude Code. Do not skip the gate.                                                                                            
+                                                                                                                                      
+  These rules apply to the re-seed work too. Specifically watch for:                                                                  
+    - Seed changes without corresponding tests updated (mandatory-financial-tests)                                                    
+    - Schema/seed drift (cross-check-invariants Pattern 3)                                                                            
+    - Any hardcoded values slipping in (no-hardcoded-values already exists —                                                          
+      the new rules make the gate that catches violations non-optional)                                                               
+                                                                                                                                      
+  Knowledge-only, no specific task to do beyond reading and internalizing.                                                            
+  When you start the re-seed, apply these rules on every commit.  
