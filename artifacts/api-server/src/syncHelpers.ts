@@ -22,7 +22,11 @@ import {
   DEFAULT_UTILITIES_VARIABLE_SPLIT,
   SEED_DEBT_ASSUMPTIONS,
   DEFAULT_BUSINESS_INSURANCE_START,
+  DEFAULT_OFFICE_LEASE_START,
+  DEFAULT_PROFESSIONAL_SERVICES_START,
+  DEFAULT_TECH_INFRA_START,
 } from "@shared/constants";
+import { DEFAULT_STAFF_SALARY } from "@shared/constants-staffing";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 
 // Audit #319 R4 / #406: registry-backed factory baselines.
@@ -43,7 +47,7 @@ export const SEED_GLOBAL_ASSUMPTIONS = {
   inflationRate: SEED_INFLATION_RATE,
   baseManagementFee: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   incentiveManagementFee: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
-  staffSalary: 75000,
+  staffSalary: DEFAULT_STAFF_SALARY,
   staffTier1MaxProperties: 3,
   staffTier1Fte: 2.5,
   staffTier2MaxProperties: 6,
@@ -53,9 +57,9 @@ export const SEED_GLOBAL_ASSUMPTIONS = {
   itLicensePerClient: 3000,
   marketingRate: 0.05,
   miscOpsRate: 0.03,
-  officeLeaseStart: 36000,
-  professionalServicesStart: 24000,
-  techInfraStart: 18000,
+  officeLeaseStart: DEFAULT_OFFICE_LEASE_START,
+  professionalServicesStart: DEFAULT_PROFESSIONAL_SERVICES_START,
+  techInfraStart: DEFAULT_TECH_INFRA_START,
   businessInsuranceStart: DEFAULT_BUSINESS_INSURANCE_START,
   standardAcqPackage: { monthsToOps: 6, purchasePrice: 3800000, preOpeningCosts: 200000, operatingReserve: 250000, buildingImprovements: 1200000 },
   debtAssumptions: SEED_DEBT_ASSUMPTIONS,

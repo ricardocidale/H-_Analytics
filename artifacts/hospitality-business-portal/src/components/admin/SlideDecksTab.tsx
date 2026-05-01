@@ -101,19 +101,48 @@ export default function SlideDecksTab() {
       }
 
       const blob = await resp.blob();
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
       const slug = propertyName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-      anchor.href = url;
-      anchor.download = `${slug}-slides.pptx`;
-      document.body.appendChild(anchor);
-      anchor.click();
-      document.body.removeChild(anchor);
-      URL.revokeObjectURL(url);
+      const filename = `${slug}-slides.pptx`;
+
+      // Use the native OS save dialog when available (Chrome / Edge)
+      // showSaveFilePicker is not yet in the TypeScript lib; access via unknown cast
+      const win = window as unknown as Record<string, unknown>;
+      if (typeof win["showSaveFilePicker"] === "function") {
+        const showSaveFilePicker = win["showSaveFilePicker"] as (opts: unknown) => Promise<{
+          createWritable: () => Promise<{ write: (data: Blob) => Promise<void>; close: () => Promise<void> }>;
+        }>;
+        const handle = await showSaveFilePicker({
+          suggestedName: filename,
+          types: [{
+            description: "PowerPoint Presentation",
+            accept: {
+              "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"],
+            },
+          }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+      } else {
+        // Fallback: anchor-click download (Firefox, Safari)
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = filename;
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        URL.revokeObjectURL(url);
+      }
 
       setDownloadState(propertyId, "done");
       setTimeout(() => setDownloadState(propertyId, "idle"), 4_000);
     } catch (err) {
+      // User dismissed the native save dialog — not an error
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setDownloadState(propertyId, "idle");
+        return;
+      }
       console.error(`Slide download failed for property ${propertyId}:`, err);
       setDownloadState(propertyId, "error");
       setTimeout(() => setDownloadState(propertyId, "idle"), 6_000);

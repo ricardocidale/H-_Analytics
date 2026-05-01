@@ -2555,30 +2555,19 @@
     "artifacts/api-server/src/syncHelpers.ts",
     "lib/shared/src/constants.ts"
   ],
-  "18000": [
-    "artifacts/api-server/src/seeds/properties.ts",
-    "artifacts/api-server/src/seeds/reference-ranges.ts",
-    "artifacts/api-server/src/shared/constants.ts",
-    "artifacts/api-server/src/syncHelpers.ts",
-    "lib/shared/src/constants.ts"
-  ],
   "24000": [
     "artifacts/api-server/src/ai/specialists/mgmt-co-overhead-prompt.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-overhead-quant-panel-prompt.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
-    "artifacts/api-server/src/seeds/properties.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "artifacts/api-server/src/shared/constants.ts",
-    "artifacts/api-server/src/syncHelpers.ts",
     "lib/shared/src/constants.ts"
   ],
   "36000": [
     "artifacts/api-server/src/ai/specialists/mgmt-co-overhead-prompt.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-overhead-quant-panel-prompt.ts",
-    "artifacts/api-server/src/seeds/properties.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "artifacts/api-server/src/shared/constants.ts",
-    "artifacts/api-server/src/syncHelpers.ts",
     "lib/shared/src/constants.ts"
   ],
   "50000": [
@@ -2586,12 +2575,6 @@
     "artifacts/api-server/src/routes/ai.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts"
-  ],
-  "75000": [
-    "artifacts/api-server/src/seeds/market-data-tables.ts",
-    "artifacts/api-server/src/seeds/properties.ts",
-    "artifacts/api-server/src/seeds/reference-ranges.ts",
-    "artifacts/api-server/src/syncHelpers.ts"
   ],
   "250000": [
     "artifacts/api-server/src/seeds/market-data-tables.ts",

@@ -48,8 +48,19 @@ Skills are process documents that guide AI agents. See `claude.md` § "Agent & S
 | `embedded-ai-agent` | Adding or extending a chatbot / analyst panel (e.g. Rebecca) |
 | `replit-independence` | Adding any npm package, env var, or host-specific call — ensures the codebase stays portable |
 | `norfolk-code-review` | Before opening a PR — runs project-tuned review personas |
+| `hplus-pptx-generator` | Extending or debugging the LB Slides PPTX generator |
 
 ### Canonical page archetypes (UI reference)
+
+## LB Slides admin page
+
+
+
+Admin sidebar → **LB Slides** renders `SlideDecksTab` — a card grid of all properties, each with a "Download Slides" button that calls `GET /api/properties/:id/slides`. The route runs the finance engine, generates vision text via Claude, then spawns a Python subprocess (`scripts/src/generate_property_slides.py`) that writes a `.pptx` to a temp path and returns it. `python-pptx` and `Pillow` are installed via `uv` (the `python3` module). Template: `attached_assets/L+B_Property_Slides_1777637870265.pptx`.
+
+---
+
+## Canonical page archetypes
 
 Two archetypes cover 95% of app pages:
 

@@ -1,6 +1,6 @@
 # H+ Analytics — Project Source of Truth
 
-H+ Analytics is a hospitality-sector financial analytics platform. Asset managers use it to model scenarios, run portfolio projections, and generate property-level slide decks. Users are organised by organisation; access to scenarios and portfolios is governed by a share / permission model.
+H+ Analytics is a hospitality-sector financial analytics platform. Asset managers use it to model scenarios, run portfolio projections, and generate property-level PPTX investor slide decks using the L+B template. Users are organised by organisation; access to scenarios and portfolios is governed by a share / permission model.
 
 ---
 
@@ -74,7 +74,7 @@ Health endpoint: `GET /api/health/live` (not `/api/healthz`).
 | `AUTH_PROVIDER` | Set to `replit` |
 | `NODE_ENV` | Set to `production` in deployed env |
 | `SESSION_SECRET`, `TOKEN_ENCRYPTION_KEY` | Auth / session signing |
-| `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` | AI providers |
+| `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` | AI providers (Claude used for LB Slides vision text) |
 | `FRED_API_KEY` | FRED economic data |
 | `GITHUB_PAT` | GitHub integration |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth |
@@ -107,6 +107,36 @@ Specialists are **dev-defined only** — see `.claude/rules/specialists-are-dev-
 - `canManageScenarios` is a boolean orthogonal to role — see the architecture audit at `.local/tasks/task-800.md`.
 - Dual share tables exist: `scenario_access` (enforcement) and `scenario_shares` (admin tracking). Both must be kept in sync.
 
+### LB Slides — per-property PPTX generator
+
+The "LB Slides" feature generates a 6-slide investor deck per property using the L+B PowerPoint template. Slide 7 ("The Ask") is always excluded.
+
+**Entry point:** Admin sidebar → "LB Slides" → per-property "Download Slides" button.
+
+**API route:** `GET /api/properties/:id/slides` (registered in `routes/index.ts`)
+- Source: `artifacts/api-server/src/routes/property-slides.ts`
+- Auth: `requireAuth` guard
+- Finance: uses `recomputeSinglePropertyAndStamp` → `aggregateUnifiedByYear` (same path as finance.ts)
+- Loan data: `calculateLoanParams` returns `LoanCalculation` — use `equityInvested`, `monthlyPayment * 12` (not `.ltv` or `.annualDebtService` — those fields don't exist)
+- IRR: `computeIRR([-equity, ...annualFlows])` — first element must be the negative initial outlay
+- Vision text: `artifacts/api-server/src/ai/property-vision.ts` — Claude claude-opus-4-6 with deterministic fallback by type (retreat / vrbo / hotel)
+- Python subprocess: stdin JSON → stdout `{ path, slides }` → temp file streamed back, deleted in `finally`
+
+**Python generator:** `scripts/src/generate_property_slides.py`
+- Helpers: `scripts/src/slide_helpers.py`, `scripts/src/renovation_budget.py`
+- Template: `attached_assets/L+B_Property_Slides_1777637870265.pptx` (slides 0–5, index 6 excluded)
+- Runtime deps: `python-pptx`, `Pillow` (installed via `uv`, managed by the `python3` module)
+
+**Admin UI:** `artifacts/hospitality-business-portal/src/components/admin/SlideDecksTab.tsx`
+- Queries `/api/properties` for the card grid
+- `AdminSection` type includes `"slide-decks"`, nav group `id: "lb-slides"`, label `"LB Slides"`
+
+**Skills:**
+- `.agents/skills/hplus-pptx-generator/` — full architecture + extension guide
+- `.agents/skills/hplus-slide-mapping/` — shape-name ↔ data-field mapping for all 6 slides
+- `.agents/skills/hplus-renovation-benchmarks/` — deterministic renovation budget ranges
+- `.agents/skills/hplus-vision-templates/` — deterministic vision text fallback templates
+
 ### Known issues to address
 
 - **Email-existence leak** at `POST /api/scenarios/shares` — returns 404 "No user found with that email address", leaking whether an email exists. Should return a generic 404.
@@ -129,6 +159,8 @@ All traffic is routed by path through a shared reverse proxy. Services must hand
 | `.local/tasks/task-800.md` | Full architecture audit (scenarios, portfolios, sharing, roles) |
 | `.local/db-audit-phase-c-inventory.md` | DB migration inventory (Phase C) |
 | `.local/tasks/build-property-slides.md` | Property slide deck build plan |
+| `.agents/skills/hplus-pptx-generator/SKILL.md` | LB Slides full architecture + extension guide |
+| `.agents/skills/hplus-slide-mapping/SKILL.md` | Shape-name ↔ data-field mapping for all 6 slides |
 
 ---
 
@@ -183,6 +215,8 @@ vendor/
 | `embedded-ai-agent` | Adding or extending any AI chatbot / analyst panel (e.g. Rebecca) |
 | `replit-independence` | Adding any dependency, env var, or deployment-affecting change |
 | `architecture-decision-records` | Any irreversible technical decision that future contributors might re-litigate |
+| `hplus-pptx-generator` | Extending or debugging the LB Slides PPTX generator |
+| `hplus-slide-mapping` | Mapping data fields to slide shapes in the L+B template |
 
 ### How to invoke
 
