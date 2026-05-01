@@ -122,7 +122,7 @@ Maps 1:1 to the **Resources Control Plane** workstream above. P1–P5 shipped; P
 
 | Phase | Scope | Status | Owner | Commit/PR | Blocked-by | Next |
 |---|---|---|---|---|---|---|
-| 8 | Platform Independence (4–6 wk est.) | 🟢 In progress | Replit | — | — | Sub-phase 8.1 done; remainder open |
+| 8 | Platform Independence (4–6 wk est.) | 🟢 In progress | CC+Replit | 93b16fd8 | — | 8.2+8.3+8.4+8.7 shipped (docker-compose, Dockerfile, S3 provider, migration scripts); 8.5 pending successful prod deploy |
 | 9 | Research Excellence (backend ✅; UI in T001–T007) | 🟡 Partial | Replit | — | — | UI tasks T001–T007 |
 | 10 | Scenario Intelligence (backend ✅; UI in T006) | 🟡 Partial | Replit | — | — | UI task T006 |
 | 11 | Export Excellence (3–5 wk est.) | ⏳ Pending | Replit | — | Phase 8 deploy | — |
