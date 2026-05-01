@@ -8,6 +8,7 @@ import { logActivity, parseRouteId } from "./helpers";
 import { insertRebeccaKBSchema } from "@workspace/db";
 import { upsertChunks, deleteVectors, vectorCount } from "../ai/vector-store-service";
 import { rebeccaSettingsSchema, tryParseRebeccaSettings } from "@shared/rebecca-settings";
+import { HTTP_422_UNPROCESSABLE_ENTITY } from "../constants";
 
 const previewTurnSchema = z.object({
   role: z.enum(["user", "assistant"]),
@@ -754,7 +755,7 @@ export function register(app: Express) {
         `Rebecca fixtures bulk import: ${total} processed — ${summary.created} created, ${summary.overwritten} overwritten, ${summary.skipped} skipped, ${summary.errors.length} errors`,
         "rebecca",
       );
-      return res.status(summary.errors.length > 0 && summary.created + summary.overwritten === 0 ? 422 : 200).json(summary);
+      return res.status(summary.errors.length > 0 && summary.created + summary.overwritten === 0 ? HTTP_422_UNPROCESSABLE_ENTITY : 200).json(summary);
     } catch (err: unknown) {
       logger.error(`Failed to bulk-import Rebecca fixtures: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
       return res.status(500).json({ error: "Failed to import fixtures" });

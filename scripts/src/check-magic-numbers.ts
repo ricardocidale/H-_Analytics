@@ -171,7 +171,14 @@ function* walkDir(dir: string, excludeDirs?: Set<string>): Generator<string> {
       if (SKIP_DIRS.has(entry.name)) continue;
       if (excludeDirs?.has(entry.name)) continue;
       yield* walkDir(path.join(dir, entry.name), excludeDirs);
-    } else if (entry.isFile() && CHECKED_EXTENSIONS.has(path.extname(entry.name))) {
+    } else if (
+      entry.isFile() &&
+      CHECKED_EXTENSIONS.has(path.extname(entry.name)) &&
+      !entry.name.endsWith(".test.ts") &&
+      !entry.name.endsWith(".test.tsx") &&
+      !entry.name.endsWith(".spec.ts") &&
+      !entry.name.endsWith(".spec.tsx")
+    ) {
       yield path.join(dir, entry.name);
     }
   }

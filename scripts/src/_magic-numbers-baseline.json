@@ -1534,8 +1534,6 @@
     "artifacts/api-server/src/shared/regulatory/profiles-latam.ts",
     "artifacts/api-server/src/shared/regulatory/profiles-na.ts",
     "artifacts/api-server/src/svg-charts.ts",
-    "artifacts/api-server/src/tests/chat-sources.test.ts",
-    "artifacts/api-server/src/tests/rebecca-context-contract.test.ts",
     "lib/calc/src/research/validate-research.ts",
     "lib/engine/src/analyst/surface/property/risk-intelligence-specialist.ts",
     "lib/shared/src/analyst-conviction.ts",
@@ -1853,8 +1851,6 @@
     "artifacts/api-server/src/shared/constants-staffing.ts",
     "artifacts/api-server/src/shared/rebecca-settings.ts",
     "artifacts/api-server/src/shared/regulatory/profiles-latam.ts",
-    "artifacts/api-server/src/tests/chat-sources.test.ts",
-    "artifacts/api-server/src/tests/rebecca-context-contract.test.ts",
     "lib/calc/src/analysis/breakeven-targets.ts",
     "lib/calc/src/research/validate-research.ts",
     "lib/engine/src/helpers/default-resolver.ts",
@@ -2563,6 +2559,7 @@
     "lib/shared/src/constants-benchmarks.ts"
   ],
   "422": [
+    "artifacts/api-server/src/constants.ts",
     "artifacts/api-server/src/routes/admin/intelligence-qa.ts",
     "artifacts/api-server/src/routes/admin/model-constants.ts",
     "artifacts/api-server/src/routes/chat.ts",
@@ -3000,8 +2997,6 @@
     "artifacts/api-server/src/routes/research/generate-persist-guidance.ts",
     "artifacts/api-server/src/scripts/backfill-vector-store.ts",
     "artifacts/api-server/src/storage/intelligence/constants/sources.ts",
-    "artifacts/api-server/src/tests/chat-sources.test.ts",
-    "artifacts/api-server/src/tests/rebecca-context-contract.test.ts",
     "lib/calc/src/analysis/break-even.ts"
   ],
   "1.1": [
@@ -3130,7 +3125,6 @@
     "artifacts/api-server/src/shared/companyBenchmarks.ts",
     "artifacts/api-server/src/shared/market-intelligence-pipeline.ts",
     "artifacts/api-server/src/svg-charts.ts",
-    "artifacts/api-server/src/tests/chat-sources.test.ts",
     "lib/analytics/src/returns/irr.ts",
     "lib/calc/src/analysis/capex-reserve.ts",
     "lib/calc/src/analysis/hold-vs-sell.ts",
@@ -4178,7 +4172,6 @@
     "artifacts/api-server/src/routes/properties-urls.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "artifacts/api-server/src/shared/constants.ts",
-    "artifacts/api-server/src/tests/chat-sources.test.ts",
     "lib/shared/src/constants.ts"
   ],
   "0.0049": [

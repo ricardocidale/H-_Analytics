@@ -62,6 +62,9 @@ export const PERENNIAL_RECOMMENDATIONS_MIN_APPEARANCES = 3;
 // HTTP / compression / caching
 // ---------------------------------------------------------------------------
 
+/** HTTP 422 Unprocessable Entity — validation passed but semantic errors prevent processing */
+export const HTTP_422_UNPROCESSABLE_ENTITY = 422;
+
 /** Minimum response size to trigger gzip compression (bytes) */
 export const COMPRESSION_THRESHOLD_BYTES = 1024;
 
