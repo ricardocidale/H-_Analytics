@@ -30,7 +30,7 @@ import connectPg from "connect-pg-simple";
 import { Pool } from "pg";
 import { db } from "../../server/db";
 import { users } from "../../shared/schema/auth";
-import { upsertUser } from "../../server/replit_integrations/auth/replitAuth";
+import { upsertUser } from "../../server/providers/auth/replit-oidc-impl";
 import { getDbUrl } from "../../shared/db-url";
 import { eq } from "drizzle-orm";
 

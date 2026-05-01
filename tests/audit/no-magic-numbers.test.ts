@@ -160,10 +160,9 @@ describe("Magic-numbers cross-file duplication ratchet", () => {
     expect(src).toMatch(/Magic[- ]numbers?/i);
   });
 
-  it("the 'Magic Numbers Check' workflow is registered in .replit", () => {
-    const src = read(".replit");
-    expect(src).toContain("Magic Numbers Check");
-    expect(src).toContain("tsx script/check-magic-numbers.ts");
+  it("the 'audit:quick' npm script references the magic-numbers check", () => {
+    const src = read("script/audit-quick.ts");
+    expect(src).toContain("check-magic-numbers.ts");
   });
 
   it("the SKILL.md references the actual enforcement command", () => {
