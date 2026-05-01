@@ -240,7 +240,7 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
             <TabsTrigger value="property-underwriting" data-testid="tab-property-underwriting">Property Underwriting</TabsTrigger>
           )}
           {showTab("llm-defaults") && (
-            <TabsTrigger value="llm-defaults" data-testid="tab-llm-defaults">LLM Defaults</TabsTrigger>
+            <TabsTrigger value="llm-defaults" data-testid="tab-llm-defaults">Research LLM Config</TabsTrigger>
           )}
         </TabsList>
 

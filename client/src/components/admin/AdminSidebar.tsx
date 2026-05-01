@@ -187,7 +187,7 @@ function buildNavGroups(): NavGroup[] {
       id: "financial-defaults",
       label: "Steady State",
       icon: IconSliders,
-      description: "Defaults applied to new entities and immutable model constants",
+      description: "Defaults applied to new entities, model constants, and research LLM config",
       sections: [
         { value: "defaults-management-company", label: "Management Company", icon: IconBriefcase },
         { value: "defaults-property",           label: "Property",           icon: IconProperties },
