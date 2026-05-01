@@ -9,24 +9,31 @@
  */
 import { globalAssumptions, type GlobalAssumptions, type InsertGlobalAssumptions } from "@shared/schema";
 import { db } from "../../db";
-import { eq, desc, isNull, or, sql } from "drizzle-orm";
+import { eq, desc, isNull, sql } from "drizzle-orm";
 import { stripAutoFields, stripToColumns } from "../utils";
 
 export class GlobalAssumptionsStorage {
+  /**
+   * Read precedence (single query, no fallback round-trip):
+   *   1. row matching the requested userId (when provided)
+   *   2. row with userId IS NULL (the seeded shared default)
+   *   3. any other row (last-resort fallback so a brand-new install still
+   *      returns something)
+   *
+   * Encoded via a CASE expression in ORDER BY so the database picks the
+   * winner in a single index/sort pass instead of three sequential SELECTs
+   * (db-audit spec item 6 — see `.local/db-audit-PHASE-A-CLOSEOUT.md`).
+   */
   async getGlobalAssumptions(userId?: number): Promise<GlobalAssumptions | undefined> {
-    const condition = userId
-      ? or(eq(globalAssumptions.userId, userId), isNull(globalAssumptions.userId))
-      : isNull(globalAssumptions.userId);
+    const orderExpr = userId
+      ? sql`CASE WHEN ${eq(globalAssumptions.userId, userId)} THEN 0 WHEN ${isNull(globalAssumptions.userId)} THEN 1 ELSE 2 END`
+      : sql`CASE WHEN ${isNull(globalAssumptions.userId)} THEN 0 ELSE 1 END`;
 
     const [result] = await db.select().from(globalAssumptions)
-      .where(condition)
-      .orderBy(sql`${globalAssumptions.userId} IS NULL ASC`, desc(globalAssumptions.id))
+      .orderBy(orderExpr, desc(globalAssumptions.id))
       .limit(1);
 
-    if (result) return result;
-
-    const [fallback] = await db.select().from(globalAssumptions).limit(1);
-    return fallback || undefined;
+    return result || undefined;
   }
 
   /**
