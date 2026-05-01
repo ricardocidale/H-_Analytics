@@ -483,3 +483,17 @@ Repeating one more time the core loop here for emphasis:
 Please add steps to your TodoList, if you have such a thing, to make sure you don't forget. If you're in Cowork, please specifically put "Create evals JSON and run `eval-viewer/generate_review.py` so human can review test cases" in your TodoList to make sure it happens.
 
 Good luck!
+
+---
+
+## CE workflow integration (Norfolk project addition)
+
+When drafting a new skill from scratch, use the CE workflow as the authoring loop:
+
+1. **`ce-brainstorm`** — clarify what the skill should do, when it should trigger, what gaps it fills vs. existing skills. Call `advisor()` before writing the first draft.
+2. **`ce-plan`** — produce a structured breakdown: SKILL.md sections, references/ sub-tree, test prompts.
+3. **`ce-work`** — execute the draft, including writing SKILL.md and initial test prompts.
+4. **Eval loop** — run test prompts per this skill's eval loop; iterate.
+5. **`ce-compound`** — after a skill is proven, document the design decision (why this skill, what alternatives were rejected) in `docs/solutions/`.
+
+This turns the `skill-creator` eval loop into a compound-engineering loop: every new skill ships with captured reasoning, not just a file.

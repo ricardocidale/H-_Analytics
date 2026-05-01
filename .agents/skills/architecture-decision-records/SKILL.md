@@ -116,6 +116,9 @@ Substantive change → new ADR. The historical decision context is the *value* o
 
 ## Composition with other skills
 
+- **`ce-brainstorm`** — use to explore the decision space before writing the ADR. `ce-brainstorm` surfaces rigor gaps and alternative approaches; the ADR captures the settled decision. Run brainstorm first for any deep or cross-cutting decision.
+- **`ce-compound`** — run immediately after an ADR moves to **Accepted**. `ce-compound` documents the reasoning as a searchable solution in `docs/solutions/`, turning the one-time architectural decision into institutional knowledge the next session can find.
+- **`ce-code-review`** (or `norfolk-code-review`) — for ADRs that gate a migration or schema change, run a code review on the implementation before advancing status to Accepted.
 - **`agent-handoff-briefs`** — handoffs that introduce irreversible change should reference (or write) an ADR.
 - **`cross-check-invariants`** — locking in an invariant pair often warrants an ADR.
 - **`pre-commit-gates`** — adding a gate is itself an architectural decision; consider an ADR.

@@ -5,6 +5,8 @@ argument-hint: "[feature idea or problem to explore]"
 ---
 > **Replit Agent users:** see [`.agents/ce-agents/REPLIT-ADAPTATION.md`](../../ce-agents/REPLIT-ADAPTATION.md) for tool-name and path mappings (AskUserQuestion → user_query, Task → delegation skill, etc.).
 
+> **Norfolk project rule — advisor integration:** Always call `advisor()` in conjunction with this brainstorm when the advisor tool is available in the current harness (Claude Code). Call it at two points: (1) after Phase 1.1 context scan and before Phase 2 approaches — to pressure-test your reading of the problem space; (2) after Phase 2.5 synthesis and before Phase 3 document write — to catch scope gaps or wrong framing before the requirements doc lands on disk.
+
 # Brainstorm a Feature or Improvement
 
 **Note: The current year is 2026.** Use this when dating requirements documents.
