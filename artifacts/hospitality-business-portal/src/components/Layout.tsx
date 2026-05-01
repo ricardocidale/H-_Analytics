@@ -29,7 +29,6 @@ import { RebeccaChatbot } from "@/components/RebeccaChatbot";
 import { ResearchQueueIndicator } from "@/components/research/ResearchQueueIndicator";
 import { GuidanceSideSheet } from "@/components/research/GuidanceSideSheet";
 import { RebeccaPanel } from "@/components/rebecca/RebeccaPanel";
-import { RebeccaFloatingLauncher } from "@/components/rebecca/RebeccaFloatingLauncher";
 import { usePanelManager } from "@/lib/panel-manager";
 
 import { applyThemeColors, resetThemeColors, type ThemeColor as DesignColor } from "@/lib/theme";
@@ -192,6 +191,8 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
   const { user, isAdmin, requestLogout } = useAuth();
   const { data: global } = useGlobalAssumptions();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { activePanel } = usePanelManager();
+  const rebeccaRailOpen = activePanel === "rebecca";
 
   const { data: myBranding } = useQuery<{ logoUrl: string | null; themeName: string | null; themeColors: DesignColor[] | null; groupCompanyName: string | null }>({
     queryKey: ["my-branding"],
@@ -433,7 +434,11 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
         </SheetContent>
       </Sheet>
 
-      <main className={cn("relative flex-1 flex flex-col min-w-0 overflow-hidden", darkMode ? "bg-foreground text-white" : "bg-background text-foreground")}>
+      <main className={cn(
+          "relative flex-1 flex flex-col min-w-0 overflow-hidden transition-[margin-right] duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)]",
+          darkMode ? "bg-foreground text-white" : "bg-background text-foreground",
+          rebeccaRailOpen && "md:mr-[360px]",
+        )}>
         <header className="h-12 shrink-0 border-b border-border bg-card flex items-center justify-between px-4 sticky top-0 z-10">
           <div className="flex items-center gap-2 min-w-0">
             <Button
@@ -517,10 +522,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
       <GuidedWalkthrough />
       <GuidanceSideSheet />
       {!!global?.rebeccaEnabled && !user?.rebeccaOptOut && !!global?.rebeccaV2 && (
-        <>
-          <RebeccaPanel displayName={global?.rebeccaDisplayName || "Rebecca"} />
-          <RebeccaFloatingLauncher displayName={global?.rebeccaDisplayName || "Rebecca"} />
-        </>
+        <RebeccaPanel displayName={global?.rebeccaDisplayName || "Rebecca"} />
       )}
     </div>
   );

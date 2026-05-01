@@ -70,6 +70,31 @@ const fixtureImportSchema = z.object({
     .optional(),
 });
 
+// Task #699 — Bulk export/import envelope.
+// A bundle wraps N individual fixture export payloads so admins can
+// snapshot all fixtures at once, move them across environments, or
+// check them into source control as a regression baseline.
+const FIXTURE_BUNDLE_KIND = "rebecca-preview-fixture-bundle" as const;
+const FIXTURE_BUNDLE_VERSION = 1 as const;
+
+export const fixtureBundleExportSchema = z.object({
+  $kind: z.literal(FIXTURE_BUNDLE_KIND),
+  version: z.literal(FIXTURE_BUNDLE_VERSION),
+  exportedAt: z.string().optional(),
+  count: z.number().int().nonnegative(),
+  fixtures: z.array(fixtureExportPayloadSchema).min(1).max(500),
+});
+
+export type FixtureBundleExport = z.infer<typeof fixtureBundleExportSchema>;
+
+const bulkImportSchema = z.object({
+  bundle: fixtureBundleExportSchema,
+  // Applied to every fixture in the bundle whose name conflicts.
+  // Individual fixture resolution is intentionally coarse — this is a
+  // bulk operation and per-fixture 409 renegotiation would be unusable.
+  defaultConflictResolution: z.enum(["skip", "overwrite"]).default("skip"),
+});
+
 const emailRequestSchema = z.object({
   conversationId: z.number().int().positive(),
   recipientEmail: z.string().email().max(320),
@@ -607,6 +632,132 @@ export function register(app: Express) {
     } catch (err: unknown) {
       logger.error(`Failed to import Rebecca fixture: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
       return res.status(500).json({ error: "Failed to import fixture" });
+    }
+  });
+
+  // Task #699 — bulk export: download ALL saved fixtures as a single bundle
+  // JSON file. Registered BEFORE the /:id/export route so Express never tries
+  // to parse the literal "export" segment as an integer fixture id.
+  app.get("/api/rebecca/fixtures/export", requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const fixtures = await storage.listRebeccaPreviewFixtures();
+      if (fixtures.length === 0) {
+        return res.status(404).json({ error: "No fixtures to export" });
+      }
+
+      const bundle: FixtureBundleExport = {
+        $kind: FIXTURE_BUNDLE_KIND,
+        version: FIXTURE_BUNDLE_VERSION,
+        exportedAt: new Date().toISOString(),
+        count: fixtures.length,
+        fixtures: fixtures.map((f) => ({
+          $kind: FIXTURE_EXPORT_KIND,
+          version: FIXTURE_EXPORT_VERSION,
+          exportedAt: new Date().toISOString(),
+          fixture: {
+            name: f.name,
+            description: f.description,
+            settings: f.settings as Record<string, unknown>,
+            turns: f.turns as Array<{ role: "user" | "assistant"; content: string }>,
+          },
+        })),
+      };
+
+      const dateStamp = new Date().toISOString().slice(0, 10);
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="rebecca-fixtures-bundle-${dateStamp}.json"`,
+      );
+      logActivity(req, "export-rebecca-fixtures-bulk", "rebecca_preview_fixture", null, `${fixtures.length} fixtures`);
+      logger.info(`Rebecca fixtures bulk export: ${fixtures.length} fixtures`, "rebecca");
+      return res.send(JSON.stringify(bundle, null, 2));
+    } catch (err: unknown) {
+      logger.error(`Failed to bulk-export Rebecca fixtures: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
+      return res.status(500).json({ error: "Failed to export fixtures" });
+    }
+  });
+
+  // Task #699 — bulk import: accepts a bundle (from the bulk export above)
+  // and applies a single conflict resolution policy across all fixtures.
+  // Returns a summary rather than aborting on first conflict so admins can
+  // see the full picture after a single call.
+  app.post("/api/rebecca/fixtures/import/bulk", requireAuth, requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const parsed = bulkImportSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: "Invalid bundle: " + parsed.error.issues[0]?.message,
+        });
+      }
+      const { bundle, defaultConflictResolution } = parsed.data;
+      const user = getAuthUser(req);
+
+      const summary = {
+        created: 0,
+        overwritten: 0,
+        skipped: 0,
+        errors: [] as Array<{ name: string; error: string }>,
+      };
+
+      for (const payload of bundle.fixtures) {
+        const incoming = payload.fixture;
+        const settingsParse = tryParseRebeccaSettings(incoming.settings);
+        if (!settingsParse.success) {
+          const issue = settingsParse.error.issues[0];
+          summary.errors.push({
+            name: incoming.name,
+            error: `Settings incompatible (${issue?.path?.join(".") ?? "settings"}): ${issue?.message ?? "validation failed"}`,
+          });
+          continue;
+        }
+
+        try {
+          const existing = await storage.getRebeccaPreviewFixtureByName(incoming.name);
+          if (existing) {
+            if (defaultConflictResolution === "overwrite") {
+              const replaced = await storage.replaceRebeccaPreviewFixtureContent(existing.id, {
+                description: incoming.description ?? null,
+                settings: settingsParse.data,
+                turns: incoming.turns,
+                createdById: user.id,
+                expectedName: existing.name,
+              });
+              if (replaced) {
+                summary.overwritten++;
+                logActivity(req, "import-rebecca-fixture-bulk-overwrite", "rebecca_preview_fixture", replaced.id, replaced.name);
+              } else {
+                summary.errors.push({ name: incoming.name, error: "Overwrite race — row renamed or deleted by another admin" });
+              }
+            } else {
+              summary.skipped++;
+            }
+          } else {
+            const created = await storage.createRebeccaPreviewFixture({
+              name: incoming.name,
+              description: incoming.description ?? null,
+              settings: settingsParse.data,
+              turns: incoming.turns,
+              createdById: user.id,
+            });
+            summary.created++;
+            logActivity(req, "import-rebecca-fixture-bulk-create", "rebecca_preview_fixture", created.id, created.name);
+          }
+        } catch (fixtureErr: unknown) {
+          const msg = fixtureErr instanceof Error ? fixtureErr.message : String(fixtureErr);
+          summary.errors.push({ name: incoming.name, error: msg });
+        }
+      }
+
+      const total = summary.created + summary.overwritten + summary.skipped + summary.errors.length;
+      logger.info(
+        `Rebecca fixtures bulk import: ${total} processed — ${summary.created} created, ${summary.overwritten} overwritten, ${summary.skipped} skipped, ${summary.errors.length} errors`,
+        "rebecca",
+      );
+      return res.status(summary.errors.length > 0 && summary.created + summary.overwritten === 0 ? 422 : 200).json(summary);
+    } catch (err: unknown) {
+      logger.error(`Failed to bulk-import Rebecca fixtures: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
+      return res.status(500).json({ error: "Failed to import fixtures" });
     }
   });
 

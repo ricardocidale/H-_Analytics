@@ -19,6 +19,7 @@ import {
   Zap,
   AlignLeft,
   BookOpen,
+  ChevronRight,
 } from "lucide-react";
 import { RebeccaEmailPreview } from "./RebeccaEmailPreview";
 import { RebeccaFeedbackForm } from "./RebeccaFeedbackForm";
@@ -138,6 +139,8 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
       closeAll();
     };
     const onPointerDown = (e: PointerEvent) => {
+      // On desktop (md+) the panel is a docked rail — don't close on outside click
+      if (window.innerWidth >= 768) return;
       const target = e.target as Node | null;
       if (!target) return;
       if (panelRef.current && panelRef.current.contains(target)) return;
@@ -147,6 +150,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
       closeAll();
     };
     document.addEventListener("keydown", onKey);
+    // Outside-click to close only on mobile (desktop uses header button / collapse tab / Escape)
     document.addEventListener("pointerdown", onPointerDown);
     return () => {
       document.removeEventListener("keydown", onKey);
@@ -438,24 +442,43 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
     <>
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            ref={panelRef}
-            role="dialog"
-            aria-label={displayName}
-            aria-modal="false"
-            initial={{ opacity: 0, y: 16, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.98 }}
-            transition={{ duration: 0.18, ease: "easeOut" }}
-            className={cn(
-              "fixed z-[70] bg-background border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden",
-              // Mobile: nearly full viewport but still floating with rounded corners
-              "left-2 right-2 bottom-2 top-2",
-              // Desktop: small chat-box anchored bottom-right
-              "sm:left-auto sm:top-auto sm:right-6 sm:bottom-6 sm:w-[400px] sm:h-[600px] sm:max-h-[calc(100svh-3rem)]",
-            )}
-            data-testid="rebecca-panel"
-          >
+          <>
+            {/* Mobile backdrop */}
+            <motion.div
+              className="fixed inset-0 z-[49] bg-black/40 md:hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              aria-hidden="true"
+              onClick={() => closeAll()}
+            />
+            <motion.div
+              ref={panelRef}
+              role="dialog"
+              aria-label={displayName}
+              aria-modal="false"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className={cn(
+                "fixed z-[50] bg-background flex flex-col overflow-hidden",
+                // Mobile: full-screen sheet from right
+                "inset-0",
+                // Desktop: docked right copilot rail — full height, flush to edge
+                "md:left-auto md:top-0 md:right-0 md:bottom-0 md:w-[360px] md:h-svh md:border-l md:border-border",
+              )}
+              data-testid="rebecca-panel"
+            >
+              {/* Desktop collapse tab on the left edge */}
+              <button
+                onClick={() => closeAll()}
+                className="hidden md:flex absolute -left-3 top-1/2 -translate-y-1/2 z-10 h-14 w-3 items-center justify-center rounded-l-md bg-border/70 hover:bg-muted-foreground/30 transition-colors cursor-pointer"
+                aria-label="Close Rebecca panel"
+              >
+                <ChevronRight className="w-2.5 h-2.5 text-foreground/60" />
+              </button>
         <div className="px-5 pt-4 pb-3 border-b border-border/40 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5 min-w-0">
@@ -703,7 +726,8 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
           onSelect={handleSelectConversation}
           currentConversationId={conversationId}
         />
-          </motion.div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 
