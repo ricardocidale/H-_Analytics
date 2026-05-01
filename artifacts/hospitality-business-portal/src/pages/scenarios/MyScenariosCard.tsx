@@ -125,7 +125,7 @@ export function MyScenariosCard({ actions }: MyScenariosCardProps) {
                   onClick={handleCompare}
                   data-testid="button-run-compare"
                 >
-                  {compareLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <IconGitCompareArrows className="w-4 h-4" />}
+                  {compareLoading ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop" /> : <IconGitCompareArrows className="w-4 h-4" />}
                   Compare
                 </Button>
               </TooltipTrigger>
@@ -210,7 +210,7 @@ export function MyScenariosCard({ actions }: MyScenariosCardProps) {
                               data-testid={`button-load-scenario-${scenario.id}`}
                             >
                               {loadIsPending ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <Loader2 className="w-4 h-4 animate-spin text-accent-pop" />
                               ) : (
                                 <IconFolderOpen className="w-4 h-4" />
                               )}

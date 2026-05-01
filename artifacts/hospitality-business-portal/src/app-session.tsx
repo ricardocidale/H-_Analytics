@@ -183,7 +183,7 @@ export function AutoSaveRestorePrompt() {
             Start Fresh
           </Button>
           <Button onClick={handleRestore} disabled={loadScenario.isPending} data-testid="button-restore-autosave">
-            {loadScenario.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+            {loadScenario.isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop mr-2" /> : null}
             Restore
           </Button>
         </DialogFooter>

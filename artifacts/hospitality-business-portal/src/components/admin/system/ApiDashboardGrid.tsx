@@ -139,7 +139,7 @@ export default function ApiDashboardGrid() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16" data-testid="api-dashboard-loading">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <Loader2 className="w-6 h-6 animate-spin text-accent-pop" />
       </div>
     );
   }
@@ -380,7 +380,7 @@ function ServiceCard({
                 disabled={isRotating}
                 data-testid={`button-rotate-key-${integration.serviceKey}`}
               >
-                {isRotating ? <Loader2 className="w-3 h-3 animate-spin" /> : <IconKey className="w-3 h-3 mr-1" />}
+                {isRotating ? <Loader2 className="w-3 h-3 animate-spin text-accent-pop" /> : <IconKey className="w-3 h-3 mr-1" />}
                 Rotate
               </Button>
             </div>

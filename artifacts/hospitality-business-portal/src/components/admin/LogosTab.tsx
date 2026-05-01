@@ -371,7 +371,7 @@ export default function LogosTab() {
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center">
                       <IconSparkles className="w-6 h-6 text-muted-foreground animate-pulse" />
                     </div>
-                    <Loader2 className="w-16 h-16 text-muted-foreground/40 animate-spin absolute -top-2 -left-2" />
+                    <Loader2 className="w-16 h-16 text-accent-pop animate-spin absolute -top-2 -left-2" />
                   </div>
                   <p className="text-sm font-medium text-foreground">Generating your logo...</p>
                   <p className="text-xs text-muted-foreground">AI is creating your design</p>
@@ -384,7 +384,7 @@ export default function LogosTab() {
             <div className="w-full aspect-square max-h-[220px] rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center transition-colors cursor-pointer hover:border-border hover:bg-muted/30" onClick={() => !isUploadingFile && fileInputRef.current?.click()}>
               {isUploadingFile ? (
                 <>
-                  <Loader2 className="w-10 h-10 text-muted-foreground animate-spin mb-2" />
+                  <Loader2 className="w-10 h-10 text-accent-pop animate-spin mb-2" />
                   <p className="text-sm text-muted-foreground">Uploading...</p>
                 </>
               ) : (
@@ -423,7 +423,7 @@ export default function LogosTab() {
             className="bg-gradient-to-b from-primary/10 to-primary/20 border-primary/30 text-foreground hover:from-primary/20 hover:to-primary/30 flex items-center gap-2"
             data-testid="button-save-logo"
           >
-            {createLogoMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <IconSave className="w-4 h-4" />}
+            {createLogoMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop" /> : <IconSave className="w-4 h-4" />}
             Save Logo
           </Button>
         </DialogFooter>
@@ -445,7 +445,7 @@ export default function LogosTab() {
             data-testid="button-confirm-delete-logo"
             className="flex items-center gap-2"
           >
-            {deleteLogoMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <IconTrash className="w-4 h-4" />}
+            {deleteLogoMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop" /> : <IconTrash className="w-4 h-4" />}
             Delete
           </Button>
         </DialogFooter>

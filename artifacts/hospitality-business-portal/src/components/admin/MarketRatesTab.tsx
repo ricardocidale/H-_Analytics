@@ -159,7 +159,7 @@ export default function MarketRatesTab() {
             size="sm"
             className="gap-2"
           >
-            {refreshAll.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <IconRefreshCw className="w-4 h-4" />}
+            {refreshAll.isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop" /> : <IconRefreshCw className="w-4 h-4" />}
             Refresh All
           </Button>
         </CardHeader>
@@ -192,7 +192,7 @@ export default function MarketRatesTab() {
       {/* Loading State */}
       {isLoading && (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          <Loader2 className="w-6 h-6 animate-spin text-accent-pop" />
         </div>
       )}
 
@@ -320,7 +320,7 @@ export default function MarketRatesTab() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setOverrideDialog(null)}>Cancel</Button>
             <Button onClick={handleOverride} disabled={overrideRate.isPending} className="gap-2">
-              {overrideRate.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <IconSave className="w-4 h-4" />}
+              {overrideRate.isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop" /> : <IconSave className="w-4 h-4" />}
               Save
             </Button>
           </DialogFooter>

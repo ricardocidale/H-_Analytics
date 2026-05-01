@@ -159,7 +159,7 @@ export function ScenarioAccessDialog({ open, onOpenChange, scenario, users }: Sc
               disabled={unshareAllMutation.isPending}
               data-testid="button-unshare-all"
             >
-              {unshareAllMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <IconTrash className="w-4 h-4 mr-2" />}
+              {unshareAllMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop mr-2" /> : <IconTrash className="w-4 h-4 mr-2" />}
               Remove All Access
             </Button>
           )}
@@ -193,7 +193,7 @@ export function ScenarioAccessDialog({ open, onOpenChange, scenario, users }: Sc
                 data-testid="button-add-access"
                 aria-label="Grant access"
               >
-                {addAccessMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <IconPlus className="w-4 h-4" />}
+                {addAccessMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop" /> : <IconPlus className="w-4 h-4" />}
               </Button>
             </div>
           </div>

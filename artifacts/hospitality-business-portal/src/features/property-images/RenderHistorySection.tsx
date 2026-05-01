@@ -70,7 +70,7 @@ function StatusBadge({ status }: { status: string }) {
   if (status === "running" || status === "pending") {
     return (
       <Badge variant="outline" className="h-5 gap-1 text-[10px] font-medium text-amber-700 border-amber-200 bg-amber-50 dark:text-amber-300 dark:border-amber-900 dark:bg-amber-950/40">
-        <Loader2 className="w-3 h-3 animate-spin" />
+        <Loader2 className="w-3 h-3 animate-spin text-accent-pop" />
         {status === "running" ? "Running" : "Pending"}
       </Badge>
     );
@@ -131,7 +131,7 @@ export function RenderHistorySection({ propertyId, className }: RenderHistorySec
 
           {isLoading ? (
             <div className="flex items-center gap-2 py-3 text-xs text-muted-foreground" data-testid="state-render-history-loading">
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop" />
               Loading render history…
             </div>
           ) : error ? (

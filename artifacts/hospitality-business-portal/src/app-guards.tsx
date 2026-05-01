@@ -5,7 +5,7 @@ import { Loader2 } from "@/components/icons/themed-icons";
 
 export const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
-    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+    <Loader2 className="w-8 h-8 animate-spin text-accent-pop" />
   </div>
 );
 

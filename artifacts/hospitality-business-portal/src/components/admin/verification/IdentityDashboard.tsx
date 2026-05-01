@@ -313,7 +313,7 @@ export function IdentityDashboard({
           disabled={loading}
           size="sm"
         >
-          {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <RefreshCw className="w-3.5 h-3.5 mr-1.5" />}
+          {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop mr-1.5" /> : <RefreshCw className="w-3.5 h-3.5 mr-1.5" />}
           {loading ? "Validating..." : "Run Identities"}
         </Button>
       </div>
@@ -383,7 +383,7 @@ export function IdentityDashboard({
       {/* Loading */}
       {loading && (
         <div className="flex flex-col items-center justify-center py-12 space-y-3">
-          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+          <Loader2 className="w-8 h-8 text-accent-pop animate-spin" />
           <p className="text-sm text-muted-foreground animate-pulse">Validating identities across all properties...</p>
         </div>
       )}

@@ -260,7 +260,7 @@ export function DomainLlmCard({ domain, domainLabel, config, onChange, draft, se
               }
             }}
           >
-            {refreshModels.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <IconRefreshCw className="w-3.5 h-3.5" />}
+            {refreshModels.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop" /> : <IconRefreshCw className="w-3.5 h-3.5" />}
             Update LLM List
           </Button>
         </div>
@@ -422,7 +422,7 @@ export function LlmSelectionCard({ draft, setDraft, setIsDirty }: {
               }
             }}
           >
-            {refreshModels.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <IconRefreshCw className="w-3.5 h-3.5" />}
+            {refreshModels.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop" /> : <IconRefreshCw className="w-3.5 h-3.5" />}
             Update LLM List
           </Button>
         </div>

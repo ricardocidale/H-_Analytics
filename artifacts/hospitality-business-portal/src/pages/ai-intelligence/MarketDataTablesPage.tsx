@@ -421,7 +421,7 @@ function TableSection({ entry, isExpanded, onRefresh, isRefreshing, refreshDisab
             className="gap-1.5"
           >
             {isRefreshing ? (
-              <Loader2 className="size-3.5 animate-spin" />
+              <Loader2 className="size-3.5 animate-spin text-accent-pop" />
             ) : (
               <IconSparkles className="size-3.5" />
             )}
@@ -435,7 +435,7 @@ function TableSection({ entry, isExpanded, onRefresh, isRefreshing, refreshDisab
             className="mb-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-primary flex items-center gap-2"
             data-testid={`text-pending-${entry.name}`}
           >
-            <Loader2 className="size-3.5 animate-spin" />
+            <Loader2 className="size-3.5 animate-spin text-accent-pop" />
             The Analyst is studying current market data…
           </div>
         )}

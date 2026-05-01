@@ -357,7 +357,7 @@ export function IndustryResearchTab() {
                 }}
                 data-testid="button-add-research-question"
               >
-                {createQuestion.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <IconPlus className="w-4 h-4" />}
+                {createQuestion.isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop" /> : <IconPlus className="w-4 h-4" />}
               </Button>
             </div>
           </div>
@@ -380,7 +380,7 @@ export function IndustryResearchTab() {
         <Card className="border-primary/30 bg-primary/5 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-display flex items-center gap-2">
-              <IconRefreshCw className="w-4 h-4 animate-spin text-primary" />
+              <IconRefreshCw className="w-4 h-4 animate-spin text-accent-pop" />
               Real-time Generation
             </CardTitle>
           </CardHeader>

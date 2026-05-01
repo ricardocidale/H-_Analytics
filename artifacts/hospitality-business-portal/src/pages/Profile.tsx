@@ -194,7 +194,7 @@ export default function Profile() {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <Loader2 className="w-8 h-8 animate-spin text-accent-pop" />
         </div>
       </Layout>
     );
@@ -576,7 +576,7 @@ export default function Profile() {
                       disabled={passwordMutation.isPending || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
                       data-testid="button-change-password"
                     >
-                      {passwordMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <IconKey className="w-4 h-4" />}
+                      {passwordMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop" /> : <IconKey className="w-4 h-4" />}
                       Update Password
                     </Button>
                   </div>

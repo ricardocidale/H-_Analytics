@@ -42,10 +42,10 @@ export function EnhancePreviewDialog({
         {isEnhancing ? (
           <div className="flex flex-col items-center justify-center py-16 gap-4" data-testid="enhance-loading">
             <div className="relative">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <div className="w-16 h-16 rounded-full bg-accent-pop/10 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-accent-pop" />
               </div>
-              <div className="absolute -inset-2 rounded-full border-2 border-primary/20 animate-pulse" />
+              <div className="absolute -inset-2 rounded-full border-2 border-accent-pop/20 animate-pulse" />
             </div>
             <p className="text-sm text-muted-foreground">Processing with AI clarity upscaler...</p>
           </div>

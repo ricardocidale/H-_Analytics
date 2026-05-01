@@ -89,7 +89,7 @@ export default function SourceRegistryOverlay() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16" data-testid="source-registry-loading">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <Loader2 className="w-6 h-6 animate-spin text-accent-pop" />
       </div>
     );
   }

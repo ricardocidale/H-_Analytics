@@ -355,7 +355,7 @@ export default function VerificationTab() {
               data-testid="button-run-selected"
               size="sm"
             >
-              {runSuites.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <IconPlayCircle className="w-3.5 h-3.5 mr-1.5" />}
+              {runSuites.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop mr-1.5" /> : <IconPlayCircle className="w-3.5 h-3.5 mr-1.5" />}
               Run Selected
             </Button>
             <Button
@@ -365,7 +365,7 @@ export default function VerificationTab() {
               variant="outline"
               size="sm"
             >
-              {runVerification.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <IconPlayCircle className="w-3.5 h-3.5 mr-1.5" />}
+              {runVerification.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop mr-1.5" /> : <IconPlayCircle className="w-3.5 h-3.5 mr-1.5" />}
               Run All
             </Button>
           </div>
@@ -425,7 +425,7 @@ export default function VerificationTab() {
         {isRunning && (
           <div className="flex flex-col items-center justify-center py-16 space-y-6">
             <div className="relative">
-              <div className="w-16 h-16 rounded-full border-4 border-secondary/20 border-t-secondary animate-spin" />
+              <div className="w-16 h-16 rounded-full border-4 border-accent-pop/20 border-t-accent-pop animate-spin" />
               <div className="absolute inset-0 flex items-center justify-center">
                 <IconPlayCircle className="w-6 h-6 text-secondary animate-pulse" />
               </div>
@@ -558,19 +558,19 @@ export default function VerificationTab() {
             </TabsContent>
 
             <TabsContent value="pipeline" className="min-h-[300px]">
-              <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}>
+              <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-accent-pop" /></div>}>
                 <HealthCheckDashboard />
               </Suspense>
             </TabsContent>
 
             <TabsContent value="calc-audit" className="min-h-[300px]">
-              <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}>
+              <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-accent-pop" /></div>}>
                 <CalcAuditViewer />
               </Suspense>
             </TabsContent>
 
             <TabsContent value="testing" className="min-h-[300px]">
-              <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}>
+              <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-accent-pop" /></div>}>
                 <TestingDashboard />
               </Suspense>
             </TabsContent>

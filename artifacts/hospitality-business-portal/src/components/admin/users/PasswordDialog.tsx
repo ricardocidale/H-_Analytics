@@ -51,7 +51,7 @@ export default function PasswordDialog({
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="button-cancel-password">Cancel</Button>
           <Button variant="outline" onClick={onSubmit} disabled={isPending || !newPassword} data-testid="button-update-password" className="flex items-center gap-2">
-            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <IconKey className="w-4 h-4" />}
+            {isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop" /> : <IconKey className="w-4 h-4" />}
             Save Password
           </Button>
         </DialogFooter>

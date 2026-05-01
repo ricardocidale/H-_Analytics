@@ -88,7 +88,7 @@ export default function ModelRoutingPanel({ onNavigate }: ModelRoutingPanelProps
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16" data-testid="model-routing-loading">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <Loader2 className="w-6 h-6 animate-spin text-accent-pop" />
       </div>
     );
   }
@@ -185,7 +185,7 @@ export default function ModelRoutingPanel({ onNavigate }: ModelRoutingPanelProps
             disabled={refreshMutation.isPending}
             data-testid="button-refresh-registry"
           >
-            {refreshMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <IconFlaskConical className="w-3.5 h-3.5" />}
+            {refreshMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop" /> : <IconFlaskConical className="w-3.5 h-3.5" />}
             <span className="ml-1 text-xs">Re-probe</span>
           </Button>
           {onNavigate && (

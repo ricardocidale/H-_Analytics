@@ -79,7 +79,7 @@ export default function DefaultPropertiesDialog({ open, onOpenChange, userId, us
         </DialogHeader>
 
         {isLoading ? (
-          <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" /></div>
+          <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-accent-pop" /></div>
         ) : (
           <div className="space-y-1 mt-2">
             {properties.map((prop: any) => (
@@ -137,7 +137,7 @@ export default function DefaultPropertiesDialog({ open, onOpenChange, userId, us
         <div className="flex justify-end gap-2 mt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="button-cancel-defaults">Cancel</Button>
           <Button onClick={() => saveMutation.mutate(Array.from(selectedIds))} disabled={saveMutation.isPending} data-testid="button-save-defaults">
-            {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+            {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop mr-2" /> : null}
             Save
           </Button>
         </div>

@@ -219,7 +219,7 @@ export default function KnowledgeBaseEditor() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <Loader2 className="w-6 h-6 animate-spin text-accent-pop" />
       </div>
     );
   }
@@ -376,7 +376,7 @@ export default function KnowledgeBaseEditor() {
                     disabled={!newTitle.trim() || !newContent.trim() || createMutation.isPending}
                     data-testid="button-save-create-kb"
                   >
-                    {createMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
+                    {createMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop mr-1.5" /> : null}
                     Create Entry
                   </Button>
                 </div>
@@ -418,7 +418,7 @@ export default function KnowledgeBaseEditor() {
                         disabled={rollbackMutation.isPending}
                         data-testid={`button-rollback-${h.id}`}
                       >
-                        {rollbackMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <IconRefreshCw className="w-3 h-3 mr-1" />}
+                        {rollbackMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin text-accent-pop" /> : <IconRefreshCw className="w-3 h-3 mr-1" />}
                         Restore
                       </Button>
                     </div>
@@ -515,7 +515,7 @@ export default function KnowledgeBaseEditor() {
                           disabled={!editTitle.trim() || !editContent.trim() || updateMutation.isPending}
                           data-testid={`button-save-edit-${entry.id}`}
                         >
-                          {updateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
+                          {updateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop mr-1.5" /> : null}
                           Save
                         </Button>
                       </div>
@@ -585,7 +585,7 @@ export default function KnowledgeBaseEditor() {
                               disabled={deleteMutation.isPending}
                               data-testid={`button-confirm-delete-kb-${entry.id}`}
                             >
-                              {deleteMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : "Delete"}
+                              {deleteMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin text-accent-pop" /> : "Delete"}
                             </Button>
                             <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => setDeletingId(null)} data-testid={`button-cancel-delete-kb-${entry.id}`}>No</Button>
                           </div>

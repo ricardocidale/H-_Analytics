@@ -222,7 +222,7 @@ export default function PropertyMap({ latitude, longitude, propertyName }: Prope
 
         {poisLoading && (
           <div className="absolute top-3 left-3 bg-card/90 backdrop-blur-sm rounded-lg px-3 py-1.5 flex items-center gap-2 text-xs text-muted-foreground shadow-sm border border-border">
-            <Loader2 className="w-3 h-3 animate-spin" />
+            <Loader2 className="w-3 h-3 animate-spin text-accent-pop" />
             Loading nearby places...
           </div>
         )}

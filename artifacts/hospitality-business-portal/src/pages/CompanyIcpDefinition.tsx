@@ -341,7 +341,7 @@ export default function CompanyIcpDefinition() {
   };
 
   if (isLoading) {
-    return (<Layout><div className="flex items-center justify-center h-[60vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div></Layout>);
+    return (<Layout><div className="flex items-center justify-center h-[60vh]"><Loader2 className="w-8 h-8 animate-spin text-accent-pop" /></div></Layout>);
   }
 
   if (!global) {
@@ -369,7 +369,7 @@ export default function CompanyIcpDefinition() {
                   disabled={noProperties || generating !== null}
                   data-testid="button-quick-generate"
                 >
-                  {generating === "quick" ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
+                  {generating === "quick" ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop mr-1.5" /> : null}
                   Quick Generate
                 </Button>
                 <Button
@@ -378,7 +378,7 @@ export default function CompanyIcpDefinition() {
                   disabled={noProperties || generating !== null}
                   data-testid="button-ai-generate"
                 >
-                  {generating === "ai" ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
+                  {generating === "ai" ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop mr-1.5" /> : null}
                   Generate with AI
                 </Button>
                 <ExportMenu

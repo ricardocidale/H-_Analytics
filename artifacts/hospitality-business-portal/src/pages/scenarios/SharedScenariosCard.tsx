@@ -40,7 +40,7 @@ export function SharedScenariosCard({ actions }: SharedScenariosCardProps) {
       <CardContent className="relative space-y-4">
         {sharedLoading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            <Loader2 className="w-6 h-6 animate-spin text-accent-pop" />
           </div>
         ) : sharedScenarios.length === 0 ? (
           <div className="text-center py-12">
@@ -91,7 +91,7 @@ export function SharedScenariosCard({ actions }: SharedScenariosCardProps) {
                           data-testid={`button-load-shared-scenario-${scenario.id}`}
                         >
                           {loadIsPending ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <Loader2 className="w-4 h-4 animate-spin text-accent-pop" />
                           ) : (
                             <IconFolderOpen className="w-4 h-4" />
                           )}

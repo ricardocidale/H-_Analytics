@@ -44,7 +44,7 @@ function ExportMenu({ actions, className, isPending }: ExportToolbarProps) {
           disabled={isPending}
         >
           {isPending
-            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop" />
             : <IconDownload className="w-3.5 h-3.5" />}
           <span>{isPending ? "Exporting…" : "Export"}</span>
         </Button>

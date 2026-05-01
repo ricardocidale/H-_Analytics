@@ -148,7 +148,7 @@ export function RebeccaEmailPreview({
                 </>
               ) : sending ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                  <Loader2 className="w-4 h-4 mr-1.5 animate-spin text-accent-pop" />
                   Sending...
                 </>
               ) : (

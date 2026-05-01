@@ -213,7 +213,7 @@ export function IcpResearchSection({ enabled, onToggle }: IcpResearchSectionProp
               </div>
             )}
             <Button size="sm" variant="outline" onClick={h.handleOptimize} disabled={h.isOptimizing || (!h.prompt && !h.editablePrompt)} className="text-xs h-8 gap-1.5" data-testid="button-optimize-prompt">
-              {h.isOptimizing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <IconWand2 className="w-3.5 h-3.5" />}
+              {h.isOptimizing ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop" /> : <IconWand2 className="w-3.5 h-3.5" />}
               Optimize
             </Button>
             <Button size="sm" variant="ghost" onClick={h.handleCopy} disabled={!h.prompt && !h.editablePrompt} className="text-xs h-8 gap-1.5" data-testid="button-copy-prompt">
@@ -267,7 +267,7 @@ export function IcpResearchSection({ enabled, onToggle }: IcpResearchSectionProp
             </div>
             <div className="flex items-center gap-2">
               <Button size="sm" variant="default" onClick={h.handleGenerateResearch} disabled={h.isGenerating} className="text-xs h-8 gap-1.5" data-testid="button-generate-research">
-                {h.isGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <IconRefreshCw className="w-3.5 h-3.5" />}
+                {h.isGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop" /> : <IconRefreshCw className="w-3.5 h-3.5" />}
                 {h.isGenerating ? "Consulting..." : h.report ? "Ask Again" : "Consult"}
               </Button>
             </div>
@@ -276,7 +276,7 @@ export function IcpResearchSection({ enabled, onToggle }: IcpResearchSectionProp
           {h.isGenerating && (
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop" />
                 <span>Analyzing markets and generating report...</span>
               </div>
               <div ref={h.streamRef} className="max-h-[500px] overflow-y-auto bg-muted/40 border border-border rounded-lg p-4 font-mono text-xs leading-relaxed text-foreground/80 whitespace-pre-wrap" data-testid="stream-content">
@@ -319,7 +319,7 @@ export function IcpResearchSection({ enabled, onToggle }: IcpResearchSectionProp
                     </SelectContent>
                   </Select>
                   <Button size="sm" variant="outline" onClick={h.handleExport} disabled={h.isExporting} className="text-xs h-8 gap-1.5" data-testid="button-export-research">
-                    {h.isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <IconDownload className="w-3.5 h-3.5" />}
+                    {h.isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop" /> : <IconDownload className="w-3.5 h-3.5" />}
                     Export
                   </Button>
                 </div>
@@ -411,7 +411,7 @@ export function IcpResearchSection({ enabled, onToggle }: IcpResearchSectionProp
             </div>
             <div className="flex items-center gap-2">
               <Button size="sm" variant="default" onClick={h.handleGenerateResearch} disabled={h.isGenerating} className="text-xs h-8 gap-1.5" data-testid="button-regenerate-markdown">
-                {h.isGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <IconRefreshCw className="w-3.5 h-3.5" />}
+                {h.isGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop" /> : <IconRefreshCw className="w-3.5 h-3.5" />}
                 {h.isGenerating ? "Generating..." : h.researchMarkdown ? "Regenerate" : "Generate"}
               </Button>
               <Button size="sm" variant="outline" onClick={h.handleExportMarkdown} disabled={!h.researchMarkdown} className="text-xs h-8 gap-1.5" data-testid="button-export-markdown">
@@ -424,7 +424,7 @@ export function IcpResearchSection({ enabled, onToggle }: IcpResearchSectionProp
           {h.isGenerating && (
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop" />
                 <span>Generating markdown research report...</span>
               </div>
               <div ref={h.streamRef} className="max-h-[500px] overflow-y-auto bg-muted/40 border border-border rounded-lg p-4 font-mono text-xs leading-relaxed text-foreground/80 whitespace-pre-wrap" data-testid="stream-markdown">

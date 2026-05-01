@@ -172,7 +172,7 @@ export function LlmDefaultsTab() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-10">
-        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+        <Loader2 className="w-5 h-5 animate-spin text-accent-pop" />
       </div>
     );
   }
@@ -265,7 +265,7 @@ export function LlmDefaultsTab() {
             data-testid="button-n1-save"
           >
             {n1SaveMutation.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin text-accent-pop" />
             ) : (
               <IconSave className="w-4 h-4" />
             )}
@@ -451,7 +451,7 @@ export function LlmDefaultsTab() {
             className="gap-2"
             data-testid="button-save-llm-defaults"
           >
-            {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <IconSave className="w-4 h-4" />}
+            {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop" /> : <IconSave className="w-4 h-4" />}
             Save
           </Button>
         </div>

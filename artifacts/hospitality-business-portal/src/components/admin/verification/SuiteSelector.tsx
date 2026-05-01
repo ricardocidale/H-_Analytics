@@ -108,7 +108,7 @@ export function SuiteSelector({ selected, onToggle, onSelectAll, lastResults, ru
               } ${isRunning ? "animate-pulse" : ""}`}
             >
               {isRunning && (
-                <div className="absolute inset-0 rounded-xl border-2 border-primary/40 animate-spin-slow pointer-events-none" style={{ borderTopColor: 'transparent', borderLeftColor: 'transparent' }} />
+                <div className="absolute inset-0 rounded-xl border-2 border-accent-pop/40 animate-spin-slow pointer-events-none" style={{ borderTopColor: 'transparent', borderLeftColor: 'transparent' }} />
               )}
 
               <div className="flex items-start gap-3">

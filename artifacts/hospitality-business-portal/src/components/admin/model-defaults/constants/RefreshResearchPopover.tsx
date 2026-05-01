@@ -120,7 +120,7 @@ export function RefreshResearchPopover({
           data-testid={`button-analyst-${row.key}`}
         >
           {refresh.isPending
-            ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+            ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin text-accent-pop" />
             : <IconSparkles className="w-3.5 h-3.5 mr-1.5" />}
           {refresh.isPending ? "Studying…" : "Analyst"}
         </Button>
@@ -138,7 +138,7 @@ export function RefreshResearchPopover({
 
           {refresh.isPending && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin text-accent-pop" />
               {row.specialistName ?? "Specialist"} is researching the authority…
             </div>
           )}
@@ -245,7 +245,7 @@ export function RefreshResearchPopover({
                   disabled={apply.isPending || !proposal.researchRunId}
                   data-testid={`button-apply-refresh-${row.key}`}
                 >
-                  {apply.isPending && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
+                  {apply.isPending && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin text-accent-pop" />}
                   Apply
                 </Button>
               </div>

@@ -96,7 +96,7 @@ export function AssumptionsGateGuard({
           className="flex items-center justify-center min-h-[60vh]"
           data-testid="loader-assumptions-gate"
         >
-          <div className="h-6 w-6 rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground animate-spin" />
+          <div className="h-6 w-6 rounded-full border-2 border-accent-pop/30 border-t-accent-pop animate-spin" />
         </div>
       </Layout>
     );

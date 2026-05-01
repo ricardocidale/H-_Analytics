@@ -213,7 +213,7 @@ export default function PipelinePoliciesForm() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16" data-testid="policies-loading">
-        <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+        <div className="animate-spin w-6 h-6 border-2 border-accent-pop border-t-transparent rounded-full" />
       </div>
     );
   }

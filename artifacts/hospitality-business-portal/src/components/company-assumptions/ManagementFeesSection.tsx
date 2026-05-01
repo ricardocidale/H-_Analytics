@@ -203,7 +203,7 @@ export default function ManagementFeesSection({ formData, onChange, global, prop
     return (
       <div className="relative overflow-hidden rounded-lg p-6 bg-card border border-border shadow-sm">
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          <Loader2 className="w-6 h-6 animate-spin text-accent-pop" />
         </div>
       </div>
     );
@@ -276,7 +276,7 @@ export default function ManagementFeesSection({ formData, onChange, global, prop
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="outline" size="sm" onClick={handleSync} disabled={syncMutation.isPending} data-testid="button-sync-templates">
-                    {syncMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <IconArrowRightLeft className="w-4 h-4 mr-1" />}
+                    {syncMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop mr-1" /> : <IconArrowRightLeft className="w-4 h-4 mr-1" />}
                     Sync to Properties
                   </Button>
                 </TooltipTrigger>
@@ -410,7 +410,7 @@ export default function ManagementFeesSection({ formData, onChange, global, prop
               disabled={deleteMutation.isPending}
               data-testid="button-confirm-delete-service"
             >
-              {deleteMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
+              {deleteMutation.isPending && <Loader2 className="w-4 h-4 animate-spin text-accent-pop mr-1" />}
               Delete
             </Button>
           </DialogFooter>

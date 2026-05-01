@@ -58,7 +58,7 @@ export function SavedSearchBar({
             data-testid={`btn-delete-search-${search.id}`}
           >
             {isDeletePending ? (
-              <Loader2 className="w-3 h-3 animate-spin" />
+              <Loader2 className="w-3 h-3 animate-spin text-accent-pop" />
             ) : (
               <X className="w-3 h-3" />
             )}

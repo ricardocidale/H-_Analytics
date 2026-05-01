@@ -114,7 +114,7 @@ export default function DescriptionSection({ draft, onChange }: PropertyEditSect
                   data-testid="button-ai-rewrite-description"
                 >
                   {isRewriting ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop mr-1.5" />
                   ) : (
                     <IconWand2 className="w-3.5 h-3.5 mr-1.5" />
                   )}

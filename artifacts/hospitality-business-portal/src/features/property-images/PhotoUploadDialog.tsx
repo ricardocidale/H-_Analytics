@@ -290,7 +290,7 @@ export function PhotoUploadDialog({ open, onOpenChange, propertyId }: PhotoUploa
                     )}
                     {item.status === "uploading" && (
                       <span className="flex items-center gap-1 text-xs text-primary font-medium" data-testid={`status-${i}`}>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop" />
                         {STATUS_LABEL.uploading}
                       </span>
                     )}
@@ -358,7 +358,7 @@ export function PhotoUploadDialog({ open, onOpenChange, propertyId }: PhotoUploa
               data-testid="button-upload-all"
             >
               {isUploading ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Uploading {finishedCount + 1} of {totalCount}...</>
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin text-accent-pop" />Uploading {finishedCount + 1} of {totalCount}...</>
               ) : failedCount > 0 && queuedCount > 0 ? (
                 `Retry ${queuedCount} Photo${queuedCount !== 1 ? "s" : ""}`
               ) : (

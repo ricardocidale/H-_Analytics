@@ -264,7 +264,7 @@ export default function AiIntelligence() {
             />
 
             <div className="space-y-6" data-testid={`ai-intelligence-content-${activeSection}`}>
-              <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}>
+              <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-accent-pop" /></div>}>
                 <SectionContent section={activeSection} />
               </Suspense>
             </div>

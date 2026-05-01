@@ -126,7 +126,7 @@ export function DeletedScenariosSection() {
               data-testid={`button-restore-scenario-${s.id}`}
             >
               {restoreScenario.isPending ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop" />
               ) : (
                 <IconFolderOpen className="w-3.5 h-3.5" />
               )}
@@ -170,7 +170,7 @@ export function DeletedScenariosSection() {
         <CardContent className="pt-0">
           {isLoading ? (
             <div className="flex items-center justify-center py-6">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <Loader2 className="h-6 w-6 animate-spin text-accent-pop" />
             </div>
           ) : deleted?.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4">No deleted scenarios.</p>
@@ -191,7 +191,7 @@ export function DeletedScenariosSection() {
                       data-testid="button-cleanup-expired"
                     >
                       {purgeExpired.isPending ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop mr-1" />
                       ) : (
                         <IconTrash className="w-3.5 h-3.5 mr-1" />
                       )}
@@ -257,7 +257,7 @@ export function DeletedScenariosSection() {
             data-testid="button-confirm-bulk-purge"
           >
             {purgeExpired.isPending ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop mr-1" />
             ) : null}
             Permanently Delete All Expired
           </AlertDialogAction>

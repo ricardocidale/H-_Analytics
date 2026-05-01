@@ -99,7 +99,7 @@ export default function HospitalityBenchmarksTab() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <Loader2 className="w-6 h-6 animate-spin text-accent-pop" />
       </div>
     );
   }
@@ -186,7 +186,7 @@ export default function HospitalityBenchmarksTab() {
                           }}
                           data-testid={`button-save-benchmark-${b.id}`}
                         >
-                          {updateMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <IconCheckCircle className="w-3.5 h-3.5 text-emerald-600" />}
+                          {updateMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin text-accent-pop" /> : <IconCheckCircle className="w-3.5 h-3.5 text-emerald-600" />}
                         </Button>
                       </>
                     ) : (

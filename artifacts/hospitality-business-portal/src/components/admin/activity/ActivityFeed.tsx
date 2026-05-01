@@ -67,7 +67,7 @@ export function ActivityFeed({
         <CardContent className="p-6">
           {activityLogsLoading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              <Loader2 className="w-6 h-6 animate-spin text-accent-pop" />
             </div>
           ) : !activityLogs?.length ? (
             <p className="text-muted-foreground text-center py-12 label-text">No activity recorded yet</p>

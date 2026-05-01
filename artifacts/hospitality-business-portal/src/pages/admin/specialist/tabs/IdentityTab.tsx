@@ -43,7 +43,7 @@ export function IdentityTab({ specialistId }: { specialistId: string }) {
   if (isLoading) {
     return (
       <Card><CardContent className="py-8 flex items-center justify-center">
-        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+        <Loader2 className="w-5 h-5 animate-spin text-accent-pop" />
       </CardContent></Card>
     );
   }

@@ -208,7 +208,7 @@ export function AgentCard({
               onClick={(e) => e.stopPropagation()}
             >
               {isToggling ? (
-                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                <Loader2 className="w-5 h-5 animate-spin text-accent-pop" />
               ) : (
                 <Switch
                   checked={isEnabled}

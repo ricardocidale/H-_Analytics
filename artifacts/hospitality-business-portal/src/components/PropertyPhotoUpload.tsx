@@ -119,7 +119,7 @@ export function PropertyPhotoUpload({ propertyId, onUploadComplete }: PropertyPh
       >
         {isUploading ? (
           <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            <Loader2 className="w-4 h-4 mr-2 animate-spin text-accent-pop" />
             Uploading...
           </>
         ) : (

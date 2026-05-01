@@ -324,7 +324,7 @@ export default function Admin() {
           />
 
           <div className="space-y-6" data-testid={`admin-content-${resolved}`}>
-            <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}>
+            <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-accent-pop" /></div>}>
               <SectionContent section={activeSection} onNavigate={setActiveSection} onSaveStateChange={handleSaveStateChange} />
             </Suspense>
           </div>

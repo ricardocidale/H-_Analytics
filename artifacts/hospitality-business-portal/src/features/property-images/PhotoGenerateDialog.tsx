@@ -389,7 +389,7 @@ export function PhotoGenerateDialog({
             data-testid="button-generate-image"
           >
             {isGenerating ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{generationStatus || "Generating..."}</>
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin text-accent-pop" />{generationStatus || "Generating..."}</>
             ) : (
               <>
                 {selectedStyle === "photo-upscale" ? <ArrowUp className="w-4 h-4 mr-2" /> :

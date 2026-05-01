@@ -225,7 +225,7 @@ export function AIImagePicker({
         >
           {isUploadingPhoto ? (
             <>
-              <Loader2 className="w-10 h-10 text-primary animate-spin mb-2" />
+              <Loader2 className="w-10 h-10 text-accent-pop animate-spin mb-2" />
               <p className="text-sm text-muted-foreground">Uploading...</p>
             </>
           ) : (
@@ -263,7 +263,7 @@ export function AIImagePicker({
           >
             {isGenerating ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                <Loader2 className="w-4 h-4 animate-spin text-accent-pop mr-2" />
                 Generating with Norfolk AI...
               </>
             ) : (

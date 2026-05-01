@@ -302,7 +302,7 @@ export default function CompanyGuidance() {
     return (
       <Layout>
         <div className="flex justify-center items-center h-64">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          <Loader2 className="w-8 h-8 animate-spin text-accent-pop" />
         </div>
       </Layout>
     );

@@ -208,7 +208,7 @@ export default function Login() {
                   className="w-full h-10 font-medium"
                   data-testid="button-login"
                 >
-                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop mr-2" /> : null}
                   Sign In
                 </Button>
 

@@ -74,7 +74,7 @@ export default function CreateUserDialog({
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="button-cancel-add-user">Cancel</Button>
           <Button variant="outline" onClick={onSubmit} disabled={isPending || !newUser.email} data-testid="button-create-user" className="flex items-center gap-2">
-            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <IconSave className="w-4 h-4" />}
+            {isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop" /> : <IconSave className="w-4 h-4" />}
             Save
           </Button>
         </DialogFooter>

@@ -49,7 +49,7 @@ export default function AnalystRefreshTheater({ tableLabel, narration, onCancel 
         <div className="flex justify-center mb-6">
           <div className="relative">
             <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
-              <Loader2 className="w-10 h-10 text-primary animate-spin" />
+              <Loader2 className="w-10 h-10 text-accent-pop animate-spin" />
             </div>
           </div>
         </div>

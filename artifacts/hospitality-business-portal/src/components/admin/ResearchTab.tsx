@@ -64,7 +64,7 @@ export default function ResearchTab() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16" data-testid="status-loading">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <Loader2 className="w-6 h-6 animate-spin text-accent-pop" />
       </div>
     );
   }
@@ -127,7 +127,7 @@ export default function ResearchTab() {
                 }
               }}
             >
-              {refreshModels.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <IconRefreshCw className="w-3.5 h-3.5" />}
+              {refreshModels.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop" /> : <IconRefreshCw className="w-3.5 h-3.5" />}
               Update LLM List
             </Button>
           </div>

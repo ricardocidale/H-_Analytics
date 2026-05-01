@@ -299,7 +299,7 @@ function GalleryPanel() {
           disabled={isFetching}
           data-testid="button-refresh-gallery"
         >
-          {isFetching ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : null}
+          {isFetching ? <Loader2 className="w-3 h-3 mr-1 animate-spin text-accent-pop" /> : null}
           Refresh
         </Button>
       </CardHeader>
@@ -316,7 +316,7 @@ function GalleryPanel() {
 
         {isLoading && accumulated.length === 0 ? (
           <div className="flex items-center justify-center py-12" data-testid="loader-gallery">
-            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            <Loader2 className="w-6 h-6 animate-spin text-accent-pop" />
           </div>
         ) : accumulated.length === 0 ? (
           <div
@@ -346,7 +346,7 @@ function GalleryPanel() {
               disabled={isFetching}
               data-testid="button-load-more-gallery"
             >
-              {isFetching ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              {isFetching ? <Loader2 className="w-4 h-4 mr-2 animate-spin text-accent-pop" /> : null}
               Load more
             </Button>
           </div>
@@ -372,7 +372,7 @@ export default function FernandaRenderConsolePage() {
       <Suspense
         fallback={
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            <Loader2 className="w-6 h-6 animate-spin text-accent-pop" />
           </div>
         }
       >

@@ -82,7 +82,7 @@ export function SearchResultCard({
               data-testid={`btn-favorite-${property.externalId}`}
             >
               {isSaving ? (
-                <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+                <Loader2 className="w-4 h-4 text-accent-pop animate-spin" />
               ) : isSaved ? (
                 <IconHeart className="w-4 h-4 text-destructive fill-destructive" />
               ) : (

@@ -54,7 +54,7 @@ export default function RiskInsightsPanel({ propertyId }: { propertyId: number }
     return (
       <Card className="bg-card border-border">
         <CardContent className="py-4 flex items-center gap-2 text-muted-foreground text-sm">
-          <Loader2 className="w-4 h-4 animate-spin" />
+          <Loader2 className="w-4 h-4 animate-spin text-accent-pop" />
           Loading risk analysis…
         </CardContent>
       </Card>

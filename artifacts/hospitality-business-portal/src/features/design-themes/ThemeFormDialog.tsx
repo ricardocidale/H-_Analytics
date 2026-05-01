@@ -237,7 +237,7 @@ export function ThemeFormDialog({ open, onOpenChange, editingTheme, themeForForm
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={onSave} disabled={isSaving}>
-            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <IconSave className="w-4 h-4" />}
+            {isSaving ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop" /> : <IconSave className="w-4 h-4" />}
             {editingTheme ? "Save" : "Create Theme"}
           </Button>
         </DialogFooter>
@@ -269,7 +269,7 @@ export function DeleteConfirmDialog({ deleteConfirmId, onOpenChange, themeName, 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button variant="destructive" onClick={onDelete} disabled={isPending}>
-            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <IconTrash className="w-4 h-4" />}
+            {isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop" /> : <IconTrash className="w-4 h-4" />}
             Delete Theme
           </Button>
         </DialogFooter>

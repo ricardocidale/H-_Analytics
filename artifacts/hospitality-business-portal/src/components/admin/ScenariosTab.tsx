@@ -137,7 +137,7 @@ export default function ScenariosTab() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12" data-testid="scenarios-loading">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-accent-pop" />
       </div>
     );
   }
@@ -251,7 +251,7 @@ export default function ScenariosTab() {
               disabled={createMutation.isPending || !createForm.userId || !createForm.name.trim()}
               data-testid="button-confirm-create-scenario"
             >
-              {createMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {createMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin text-accent-pop" />}
               Create
             </Button>
           </DialogFooter>
@@ -296,7 +296,7 @@ export default function ScenariosTab() {
               disabled={editMutation.isPending || !editForm.name.trim()}
               data-testid="button-confirm-edit-scenario"
             >
-              {editMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {editMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin text-accent-pop" />}
               Save
             </Button>
           </DialogFooter>

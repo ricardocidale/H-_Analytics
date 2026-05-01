@@ -694,7 +694,7 @@ export function RebeccaFixturesPanel({
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   Replay diff — <span className="font-mono text-sm">{activeReplay.fixture.name}</span>
-                  {activeReplay.running && <IconRefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />}
+                  {activeReplay.running && <IconRefreshCw className="w-4 h-4 animate-spin text-accent-pop" />}
                 </DialogTitle>
                 <DialogDescription>
                   Re-ran the saved prompts through {displayName || "Rebecca"}'s

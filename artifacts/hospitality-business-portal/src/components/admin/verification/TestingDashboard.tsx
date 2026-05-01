@@ -516,7 +516,7 @@ export default function TestingDashboard() {
             data-testid="button-run-testing-dashboard"
           >
             {runDashboard.isPending
-              ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop mr-1.5" />
               : <IconRefreshCw className="w-3.5 h-3.5 mr-1.5" />}
             {runDashboard.isPending ? "Scanning…" : "Run Scan"}
           </Button>
@@ -537,7 +537,7 @@ export default function TestingDashboard() {
               data-testid="button-run-engine-tests"
             >
               {runBattery.isPending && runBattery.variables === "proof"
-                ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop mr-1.5" />
                 : <IconFileCheck className="w-3.5 h-3.5 mr-1.5" />}
               Engine Tests
             </Button>
@@ -549,7 +549,7 @@ export default function TestingDashboard() {
               data-testid="button-run-golden-tests"
             >
               {runBattery.isPending && runBattery.variables === "golden"
-                ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop mr-1.5" />
                 : <IconFileCheck className="w-3.5 h-3.5 mr-1.5" />}
               Golden Tests
             </Button>
@@ -561,7 +561,7 @@ export default function TestingDashboard() {
               data-testid="button-run-source-verification"
             >
               {runSourceVerify.isPending
-                ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop mr-1.5" />
                 : <IconFileCode className="w-3.5 h-3.5 mr-1.5" />}
               Source Verification
             </Button>
@@ -573,14 +573,14 @@ export default function TestingDashboard() {
               data-testid="button-run-financial-verify"
             >
               {runFinancialVerify.isPending
-                ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop mr-1.5" />
                 : <IconCheckCircle2 className="w-3.5 h-3.5 mr-1.5" />}
               Financial Verify
             </Button>
           </div>
           {anyBatteryRunning && (
             <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin text-accent-pop" />
               Running test battery… this may take up to 2 minutes.
             </div>
           )}
@@ -590,7 +590,7 @@ export default function TestingDashboard() {
       {runDashboard.isPending && (
         <div className="flex flex-col items-center justify-center py-16 space-y-6">
           <div className="relative">
-            <div className="w-16 h-16 rounded-full border-4 border-secondary/20 border-t-secondary animate-spin" />
+            <div className="w-16 h-16 rounded-full border-4 border-accent-pop/20 border-t-accent-pop animate-spin" />
             <div className="absolute inset-0 flex items-center justify-center">
               <IconHash className="w-6 h-6 text-secondary animate-pulse" />
             </div>

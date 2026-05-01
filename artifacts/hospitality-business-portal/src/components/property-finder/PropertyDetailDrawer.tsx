@@ -169,7 +169,7 @@ function ValuePane({ propertyId }: { propertyId: string }) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12" data-testid="pane-value">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <Loader2 className="w-6 h-6 animate-spin text-accent-pop" />
       </div>
     );
   }
@@ -241,7 +241,7 @@ function CompsPane({ city, state }: { city: string | null; state?: string }) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12" data-testid="pane-comps">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <Loader2 className="w-6 h-6 animate-spin text-accent-pop" />
         <span className="ml-2 text-sm text-muted-foreground">Loading hotel comps…</span>
       </div>
     );
@@ -379,7 +379,7 @@ function DdPreviewPane() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12" data-testid="pane-dd">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <Loader2 className="w-6 h-6 animate-spin text-accent-pop" />
       </div>
     );
   }

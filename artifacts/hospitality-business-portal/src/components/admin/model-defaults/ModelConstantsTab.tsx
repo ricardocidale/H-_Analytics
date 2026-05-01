@@ -214,7 +214,7 @@ export function ModelConstantsTab() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <Loader2 className="w-6 h-6 animate-spin text-accent-pop" />
       </div>
     );
   }
@@ -446,7 +446,7 @@ function ConstantRowCard({
             data-testid={`button-reset-${row.key}`}
           >
             {isResetting
-              ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+              ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin text-accent-pop" />
               : <RefreshCw className="w-3.5 h-3.5 mr-1.5" />}
             Reset to factory
           </Button>

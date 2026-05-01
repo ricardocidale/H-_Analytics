@@ -161,7 +161,7 @@ export function SearchForm({
                         disabled={isSaveSearchPending}
                         data-testid="btn-confirm-save-search"
                       >
-                        {isSaveSearchPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <IconSave className="w-3.5 h-3.5" />}
+                        {isSaveSearchPending ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop" /> : <IconSave className="w-3.5 h-3.5" />}
                       </Button>
                       <Button
                         type="button"
@@ -193,7 +193,7 @@ export function SearchForm({
               data-testid="btn-search"
             >
               {isSearching ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Searching...</>
+                <><Loader2 className="w-4 h-4 animate-spin text-accent-pop" /> Searching...</>
               ) : (
                 <><Search className="w-4 h-4" /> Search Properties</>
               )}

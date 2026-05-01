@@ -92,7 +92,7 @@ export default function CompanyResearch() {
     return (
       <Layout>
         <div className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <Loader2 className="w-8 h-8 animate-spin text-accent-pop" />
         </div>
       </Layout>
     );
@@ -131,7 +131,7 @@ export default function CompanyResearch() {
                   disabled={isGenerating}
                   data-testid="button-regenerate-all"
                 >
-                  {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <IconRefreshCw className="w-4 h-4" />}
+                  {isGenerating ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop" /> : <IconRefreshCw className="w-4 h-4" />}
                   {isGenerating ? "Generating..." : "Regenerate All"}
                 </Button>
                 {hasCompany && !isGenerating && (

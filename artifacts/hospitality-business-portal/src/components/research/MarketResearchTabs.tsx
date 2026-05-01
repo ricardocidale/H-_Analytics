@@ -172,7 +172,7 @@ function HotelCompSection({ location }: { location: string }) {
           <IconBuilding className="w-5 h-5 text-primary" /> Hotel Comps
         </h3>
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-5 h-5 animate-spin text-primary" />
+          <Loader2 className="w-5 h-5 animate-spin text-accent-pop" />
           <span className="ml-2 text-sm text-muted-foreground">Loading hotel comps for {city}…</span>
         </div>
       </motion.div>

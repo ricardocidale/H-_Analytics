@@ -141,7 +141,7 @@ export default function RequiredFieldsRollup() {
   if (listQuery.isLoading) {
     return (
       <div className="flex items-center justify-center py-12" data-testid="rollup-loading">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <Loader2 className="w-6 h-6 animate-spin text-accent-pop" />
       </div>
     );
   }
@@ -177,7 +177,7 @@ export default function RequiredFieldsRollup() {
               className="flex items-center justify-center py-6"
               data-testid="perennial-offenders-loading"
             >
-              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              <Loader2 className="w-5 h-5 animate-spin text-accent-pop" />
             </div>
           ) : !offendersQuery.data || offendersQuery.data.length === 0 ? (
             <p

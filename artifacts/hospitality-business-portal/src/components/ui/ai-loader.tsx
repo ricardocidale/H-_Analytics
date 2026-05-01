@@ -13,7 +13,7 @@ function OrbitalDots({ className, size = 32 }: { className?: string; size?: numb
         return (
           <motion.div
             key={i}
-            className="absolute rounded-full bg-primary"
+            className="absolute rounded-full bg-accent-pop"
             style={{
               width: dotSize,
               height: dotSize,
@@ -44,7 +44,7 @@ function OrbitalDots({ className, size = 32 }: { className?: string; size?: numb
         );
       })}
       <motion.div
-        className="absolute rounded-full bg-primary/20"
+        className="absolute rounded-full bg-accent-pop/20"
         style={{
           width: dotSize * 2,
           height: dotSize * 2,
@@ -64,13 +64,13 @@ function NeuralGlow({ className, size = 40 }: { className?: string; size?: numbe
       <motion.div
         className="absolute inset-0 rounded-full"
         style={{
-          background: "conic-gradient(from 0deg, hsl(var(--primary) / 0), hsl(var(--primary) / 0.6), hsl(var(--primary) / 0))",
+          background: "conic-gradient(from 0deg, hsl(var(--accent-pop) / 0), hsl(var(--accent-pop) / 0.6), hsl(var(--accent-pop) / 0))",
         }}
         animate={{ rotate: 360 }}
         transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
       />
       <motion.div
-        className="absolute rounded-full bg-primary/10"
+        className="absolute rounded-full bg-accent-pop/10"
         style={{ inset: size * 0.08 }}
         animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0.2, 0.5] }}
         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
@@ -80,7 +80,7 @@ function NeuralGlow({ className, size = 40 }: { className?: string; size?: numbe
         style={{ inset: size * 0.15 }}
       />
       <motion.div
-        className="absolute rounded-full bg-primary/30"
+        className="absolute rounded-full bg-accent-pop/30"
         style={{ inset: size * 0.3 }}
         animate={{ scale: [0.9, 1.1, 0.9] }}
         transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
@@ -95,7 +95,7 @@ function StreamPulse({ className }: { className?: string }) {
       {[0, 1, 2, 3, 4].map((i) => (
         <motion.div
           key={i}
-          className="w-[3px] rounded-full bg-primary"
+          className="w-[3px] rounded-full bg-accent-pop"
           animate={{
             height: [4, 16, 8, 14, 4],
             opacity: [0.4, 1, 0.6, 0.9, 0.4],
@@ -118,7 +118,7 @@ function BreathingDots({ className, count = 3 }: { className?: string; count?: n
       {Array.from({ length: count }).map((_, i) => (
         <motion.span
           key={i}
-          className="block w-1.5 h-1.5 rounded-full bg-primary"
+          className="block w-1.5 h-1.5 rounded-full bg-accent-pop"
           animate={{
             scale: [0.5, 1, 0.5],
             opacity: [0.3, 1, 0.3],
@@ -154,7 +154,7 @@ function ThinkingRing({ className, size = 20 }: { className?: string; size?: num
         cy={size / 2}
         r={r}
         fill="none"
-        stroke="hsl(var(--primary) / 0.15)"
+        stroke="hsl(var(--accent-pop) / 0.15)"
         strokeWidth={strokeWidth}
       />
       <motion.circle
@@ -162,7 +162,7 @@ function ThinkingRing({ className, size = 20 }: { className?: string; size?: num
         cy={size / 2}
         r={r}
         fill="none"
-        stroke="hsl(var(--primary))"
+        stroke="hsl(var(--accent-pop))"
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         strokeDasharray={circumference}
@@ -186,7 +186,7 @@ function DataFlowDots({ className }: { className?: string }) {
       {[0, 1, 2, 3, 4].map((i) => (
         <motion.div
           key={i}
-          className="w-1.5 h-1.5 rounded-full bg-primary"
+          className="w-1.5 h-1.5 rounded-full bg-accent-pop"
           animate={{
             y: [0, -6, 0],
             opacity: [0.2, 1, 0.2],

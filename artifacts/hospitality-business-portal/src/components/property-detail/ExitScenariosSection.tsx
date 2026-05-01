@@ -327,7 +327,7 @@ export default function ExitScenariosSection({ property, global }: Props) {
           <CardTitle className="text-base">Exit Scenarios</CardTitle>
         </CardHeader>
         <CardContent className="flex items-center justify-center py-8 text-muted-foreground">
-          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+          <Loader2 className="w-4 h-4 animate-spin text-accent-pop mr-2" />
           Computing exit scenarios…
         </CardContent>
       </Card>

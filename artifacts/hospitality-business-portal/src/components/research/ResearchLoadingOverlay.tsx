@@ -47,7 +47,7 @@ function PulsingOrb() {
       <motion.div
         className="absolute inset-0 rounded-full"
         style={{
-          background: "conic-gradient(from 0deg, hsl(var(--primary) / 0), hsl(var(--primary) / 0.3), hsl(var(--primary) / 0))",
+          background: "conic-gradient(from 0deg, hsl(var(--accent-pop) / 0), hsl(var(--accent-pop) / 0.3), hsl(var(--accent-pop) / 0))",
         }}
         animate={{ rotate: 360 }}
         transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
@@ -55,23 +55,23 @@ function PulsingOrb() {
       <motion.div
         className="absolute inset-0 rounded-full"
         style={{
-          background: "conic-gradient(from 180deg, hsl(var(--primary) / 0), hsl(var(--primary) / 0.15), hsl(var(--primary) / 0))",
+          background: "conic-gradient(from 180deg, hsl(var(--accent-pop) / 0), hsl(var(--accent-pop) / 0.15), hsl(var(--accent-pop) / 0))",
         }}
         animate={{ rotate: -360 }}
         transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
       />
       <motion.div
-        className="absolute inset-1 rounded-full bg-primary/10"
+        className="absolute inset-1 rounded-full bg-accent-pop/10"
         animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.15, 0.4] }}
         transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
       />
       <div className="absolute inset-2 rounded-full bg-card" />
       <motion.div
-        className="absolute inset-3 rounded-full bg-primary/15 flex items-center justify-center"
+        className="absolute inset-3 rounded-full bg-accent-pop/15 flex items-center justify-center"
         animate={{ scale: [0.95, 1.08, 0.95] }}
         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
       >
-        <Brain className="w-5 h-5 text-primary" />
+        <Brain className="w-5 h-5 text-accent-pop" />
       </motion.div>
     </div>
   );
@@ -106,7 +106,7 @@ export function ResearchLoadingOverlay({
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -4 }}
         className={cn(
-          "flex items-center gap-3 px-4 py-2.5 rounded-lg bg-primary/5 border border-primary/10",
+          "flex items-center gap-3 px-4 py-2.5 rounded-lg bg-accent-pop/5 border border-accent-pop/10",
           className
         )}
         data-testid="research-loading-compact"
@@ -147,7 +147,7 @@ export function ResearchLoadingOverlay({
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="bg-card/95 backdrop-blur-xl border border-primary/20 rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 space-y-6"
+            className="bg-card/95 backdrop-blur-xl border border-accent-pop/20 rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 space-y-6"
           >
             <div className="flex flex-col items-center gap-4">
               <PulsingOrb />
@@ -172,7 +172,7 @@ export function ResearchLoadingOverlay({
                   transition={{ duration: 0.4 }}
                   className="flex items-center gap-2.5 text-sm text-foreground/80"
                 >
-                  <TipIcon className="w-4 h-4 text-primary shrink-0" />
+                  <TipIcon className="w-4 h-4 text-accent-pop shrink-0" />
                   <span>{displayMessage}</span>
                 </motion.div>
               </AnimatePresence>
@@ -186,7 +186,7 @@ export function ResearchLoadingOverlay({
                       key={i}
                       className={cn(
                         "w-2 h-2 rounded-full",
-                        i < queuePosition ? "bg-primary" : i === queuePosition ? "bg-primary animate-pulse" : "bg-muted-foreground/30"
+                        i < queuePosition ? "bg-accent-pop" : i === queuePosition ? "bg-accent-pop animate-pulse" : "bg-muted-foreground/30"
                       )}
                     />
                   ))}
@@ -207,10 +207,10 @@ export function ResearchLoadingOverlay({
                     className="flex items-center gap-2 text-xs"
                   >
                     {i === phases.slice(-5).length - 1 ? (
-                      <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                      <Loader2 className="w-3 h-3 animate-spin text-accent-pop" />
                     ) : (
-                      <div className="w-3 h-3 rounded-full bg-primary/30 flex items-center justify-center">
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      <div className="w-3 h-3 rounded-full bg-accent-pop/30 flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 rounded-full bg-accent-pop" />
                       </div>
                     )}
                     <span className="text-muted-foreground">{phase}</span>
@@ -230,7 +230,7 @@ export function ResearchLoadingOverlay({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 8 }}
       className={cn(
-        "rounded-xl border border-primary/15 bg-gradient-to-br from-primary/5 to-transparent p-5 space-y-4",
+        "rounded-xl border border-accent-pop/15 bg-gradient-to-br from-accent-pop/5 to-transparent p-5 space-y-4",
         className
       )}
       data-testid="research-loading-inline"
@@ -266,7 +266,7 @@ export function ResearchLoadingOverlay({
                 key={i}
                 className={cn(
                   "w-1.5 h-1.5 rounded-full",
-                  i < queuePosition ? "bg-primary" : i === queuePosition ? "bg-primary animate-pulse" : "bg-muted-foreground/30"
+                  i < queuePosition ? "bg-accent-pop" : i === queuePosition ? "bg-accent-pop animate-pulse" : "bg-muted-foreground/30"
                 )}
               />
             ))}

@@ -19,14 +19,14 @@ export function AIReviewPanel({ review, loading, onRun }: AIReviewPanelProps) {
           variant="ghost"
           size="sm"
         >
-          {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <IconSparkles className="w-3.5 h-3.5 mr-1.5" />}
+          {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop mr-1.5" /> : <IconSparkles className="w-3.5 h-3.5 mr-1.5" />}
           Refresh AI Review
         </Button>
       </div>
       
       {loading && !review && (
         <div className="flex flex-col items-center justify-center py-12 text-muted-foreground space-y-4">
-          <Loader2 className="w-8 h-8 animate-spin text-secondary" />
+          <Loader2 className="w-8 h-8 animate-spin text-accent-pop" />
           <p className="text-sm font-medium animate-pulse">Analyzing verification results and generating narrative...</p>
         </div>
       )}

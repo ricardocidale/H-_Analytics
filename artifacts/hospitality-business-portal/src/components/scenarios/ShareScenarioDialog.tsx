@@ -135,7 +135,7 @@ export function ShareScenarioDialog({
               disabled={shareScenario.isPending}
               data-testid="button-share-confirm"
             >
-              {shareScenario.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <IconShare className="w-4 h-4 mr-2" />}
+              {shareScenario.isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop mr-2" /> : <IconShare className="w-4 h-4 mr-2" />}
               Share
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -248,7 +248,7 @@ export function ShareScenarioDialog({
                         data-testid={`button-revoke-access-${grant.id}`}
                       >
                         {revokeAccess.isPending ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
+                          <Loader2 className="w-3 h-3 animate-spin text-accent-pop" />
                         ) : (
                           <IconTrash className="w-3 h-3" />
                         )}
@@ -262,7 +262,7 @@ export function ShareScenarioDialog({
 
           {grantsLoading && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Loader2 className="w-3 h-3 animate-spin" />
+              <Loader2 className="w-3 h-3 animate-spin text-accent-pop" />
               Loading current access...
             </div>
           )}

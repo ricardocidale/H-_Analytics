@@ -38,7 +38,7 @@ export function ResearchQueueIndicator({ className }: ResearchQueueIndicatorProp
       >
         {activeItems.length > 0 && (
           <>
-            <Loader2 className="w-3 h-3 animate-spin" />
+            <Loader2 className="w-3 h-3 animate-spin text-accent-pop" />
             <span>
               {activeItems.length} researching
               {queuedItems.length > 0 && ` · ${queuedItems.length} queued`}

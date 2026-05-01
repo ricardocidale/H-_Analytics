@@ -132,7 +132,7 @@ export default function DatabaseTab() {
             disabled={checkSyncStatus.isPending}
             data-testid="button-check-status"
           >
-            {checkSyncStatus.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <IconRefreshCw className="w-4 h-4 mr-2" />}
+            {checkSyncStatus.isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop mr-2" /> : <IconRefreshCw className="w-4 h-4 mr-2" />}
             Check Status
           </Button>
 
@@ -249,7 +249,7 @@ export default function DatabaseTab() {
             className="bg-accent-pop/10 border-accent-pop/30 hover:bg-accent-pop/20 text-accent-pop"
             data-testid="button-sync-database"
           >
-            {executeSyncMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <IconUpload className="w-4 h-4 mr-2" />}
+            {executeSyncMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop mr-2" /> : <IconUpload className="w-4 h-4 mr-2" />}
             Fill Missing Values
           </Button>
         </CardContent>
@@ -272,7 +272,7 @@ export default function DatabaseTab() {
             className="bg-muted border-chart-1/30 hover:bg-muted text-chart-1"
             data-testid="button-canonical-sync"
           >
-            {canonicalSyncMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <IconShield className="w-4 h-4 mr-2" />}
+            {canonicalSyncMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop mr-2" /> : <IconShield className="w-4 h-4 mr-2" />}
             Sync Now
           </Button>
 
@@ -330,7 +330,7 @@ export default function DatabaseTab() {
               className="bg-chart-1 hover:bg-chart-1 text-white"
               data-testid="button-confirm-canonical"
             >
-              {canonicalSyncMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <IconShield className="w-4 h-4 mr-2" />}
+              {canonicalSyncMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop mr-2" /> : <IconShield className="w-4 h-4 mr-2" />}
               Yes, Sync Now
             </Button>
           </DialogFooter>
@@ -355,7 +355,7 @@ export default function DatabaseTab() {
               className="bg-accent-pop hover:bg-accent-pop/80 text-white"
               data-testid="button-confirm-sync"
             >
-              {executeSyncMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              {executeSyncMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop mr-2" /> : null}
               Yes, Fill Now
             </Button>
           </DialogFooter>

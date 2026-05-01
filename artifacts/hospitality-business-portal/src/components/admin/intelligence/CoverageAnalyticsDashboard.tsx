@@ -119,7 +119,7 @@ export default function CoverageAnalyticsDashboard() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16" data-testid="coverage-loading">
-        <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+        <div className="animate-spin w-6 h-6 border-2 border-accent-pop border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -228,7 +228,7 @@ export default function CoverageAnalyticsDashboard() {
 
           {detailLoading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full" />
+              <div className="animate-spin w-5 h-5 border-2 border-accent-pop border-t-transparent rounded-full" />
             </div>
           ) : detailError ? (
             <div className="flex flex-col items-center justify-center py-8 text-center gap-2" data-testid="coverage-detail-error">

@@ -151,7 +151,7 @@ export function ImageCropDialog({
           <Button onClick={handleSave} disabled={isCropping || !completedCrop} data-testid="crop-save">
             {isCropping ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                <Loader2 className="w-4 h-4 animate-spin text-accent-pop mr-2" />
                 Cropping...
               </>
             ) : (

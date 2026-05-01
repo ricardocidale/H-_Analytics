@@ -321,7 +321,7 @@ export default function Dashboard() {
     return (
       <Layout>
         <div className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <Loader2 className="w-8 h-8 animate-spin text-accent-pop" />
         </div>
       </Layout>
     );
@@ -407,7 +407,7 @@ export default function Dashboard() {
               />
             </div>
 
-            <Suspense fallback={<div className="flex justify-center p-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}>
+            <Suspense fallback={<div className="flex justify-center p-12"><Loader2 className="w-6 h-6 animate-spin text-accent-pop" /></div>}>
             <ScrollReveal>
               <div ref={tabContentRef}>
                 <TabsContent value="overview" className="mt-0 focus-visible:outline-none">

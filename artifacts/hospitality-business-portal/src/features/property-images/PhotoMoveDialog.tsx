@@ -96,7 +96,7 @@ export function PhotoMoveDialog({
           <div className="max-h-64 overflow-y-auto rounded-md border border-border divide-y divide-border">
             {isLoading ? (
               <div className="p-4 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" /> Loading properties...
+                <Loader2 className="w-4 h-4 animate-spin text-accent-pop" /> Loading properties...
               </div>
             ) : candidates.length === 0 ? (
               <div className="p-4 text-center text-sm text-muted-foreground">No matching properties.</div>
@@ -129,7 +129,7 @@ export function PhotoMoveDialog({
             data-testid="button-confirm-move"
           >
             {move.isPending ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{mode === "move" ? "Moving..." : "Copying..."}</>
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin text-accent-pop" />{mode === "move" ? "Moving..." : "Copying..."}</>
             ) : (
               mode === "move" ? "Move photos" : "Copy photos"
             )}

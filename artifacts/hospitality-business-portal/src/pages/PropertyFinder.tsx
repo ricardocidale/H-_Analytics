@@ -251,7 +251,7 @@ export default function PropertyFinder() {
 
         {isSearching && (
           <div className="flex justify-center py-16">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <Loader2 className="w-8 h-8 animate-spin text-accent-pop" />
           </div>
         )}
 
@@ -345,7 +345,7 @@ export default function PropertyFinder() {
 
           {isFavoritesLoading ? (
             <div className="flex justify-center py-16">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <Loader2 className="w-8 h-8 animate-spin text-accent-pop" />
             </div>
           ) : favorites.length === 0 ? (
             <div className="bg-card rounded-lg shadow-sm border border-border p-12 text-center">

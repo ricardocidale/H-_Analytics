@@ -57,7 +57,7 @@ export function HistoryButton({
         <div className="text-sm font-medium mb-2">Research history — {row.label}</div>
         {isLoading && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground py-3">
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 className="w-4 h-4 animate-spin text-accent-pop" />
             Loading…
           </div>
         )}

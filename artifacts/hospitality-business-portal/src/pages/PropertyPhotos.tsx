@@ -32,7 +32,7 @@ export default function PropertyPhotos() {
     return (
       <Layout>
         <div className="min-h-[60vh] flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" data-testid="loading-spinner" />
+          <Loader2 className="w-8 h-8 animate-spin text-accent-pop" data-testid="loading-spinner" />
         </div>
       </Layout>
     );

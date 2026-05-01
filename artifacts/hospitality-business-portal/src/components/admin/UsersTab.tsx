@@ -270,7 +270,7 @@ export default function UsersTab() {
       <CardContent className="relative">
         {usersLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            <Loader2 className="w-8 h-8 animate-spin text-accent-pop" />
           </div>
         ) : (
           <UserCardGrid

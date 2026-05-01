@@ -61,7 +61,7 @@ export function EditScenarioDialog({
             data-testid="button-update-scenario"
             className="flex items-center gap-2"
           >
-            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <IconSave className="w-4 h-4" />}
+            {isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop" /> : <IconSave className="w-4 h-4" />}
             Save
           </Button>
         </DialogFooter>

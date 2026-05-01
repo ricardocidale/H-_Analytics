@@ -176,7 +176,7 @@ export function ThemeManager() {
       <CardContent className="relative">
         {themesLoading ? (
           <div className="text-center py-8">
-            <Loader2 className="w-8 h-8 mx-auto text-muted-foreground animate-spin" />
+            <Loader2 className="w-8 h-8 mx-auto text-accent-pop animate-spin" />
           </div>
         ) : sortedThemes.length > 0 ? (
           <Tabs defaultValue={defaultTab}>

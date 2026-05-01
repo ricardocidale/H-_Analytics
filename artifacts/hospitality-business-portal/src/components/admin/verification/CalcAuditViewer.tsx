@@ -151,7 +151,7 @@ function NoteEditor({ logId, stepIndex, currentNote }: { logId: number; stepInde
         }}
         data-testid={`btn-save-note-${stepIndex}`}
       >
-        {updateNote.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <IconCheck className="w-3 h-3" />}
+        {updateNote.isPending ? <Loader2 className="w-3 h-3 animate-spin text-accent-pop" /> : <IconCheck className="w-3 h-3" />}
       </Button>
     </div>
   );
@@ -306,7 +306,7 @@ function AuditDetailView({ logId }: { logId: number }) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16 text-muted-foreground">
-        <Loader2 className="w-5 h-5 animate-spin mr-2" />
+        <Loader2 className="w-5 h-5 animate-spin text-accent-pop mr-2" />
         Loading audit trail...
       </div>
     );
@@ -445,7 +445,7 @@ export default function CalcAuditViewer() {
 
           {logsLoading && (
             <div className="flex items-center justify-center py-12 text-muted-foreground">
-              <Loader2 className="w-5 h-5 animate-spin mr-2" />
+              <Loader2 className="w-5 h-5 animate-spin text-accent-pop mr-2" />
               Loading audit logs...
             </div>
           )}

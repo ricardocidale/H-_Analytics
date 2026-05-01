@@ -65,7 +65,7 @@ export function IcpProfileTab({
               ) : (
                 <div className="flex items-center gap-1.5">
                   <Button size="sm" variant="default" onClick={onSave} disabled={isPending} className="text-xs h-8 gap-1.5" data-testid="button-save-definition">
-                    {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                    {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop" /> : null}
                     Save
                   </Button>
                   <Button size="sm" variant="ghost" onClick={onCancelEdit} className="text-xs h-8" data-testid="button-cancel-definition">Cancel</Button>

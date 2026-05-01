@@ -333,7 +333,7 @@ export default function InviteUsersDialog({
                   data-testid="button-send-invitations"
                 >
                   {sendInvitations.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    <Loader2 className="w-4 h-4 animate-spin text-accent-pop mr-2" />
                   ) : (
                     <IconSend className="w-4 h-4 mr-2" />
                   )}

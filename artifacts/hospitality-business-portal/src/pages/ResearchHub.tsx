@@ -281,7 +281,7 @@ export default function ResearchHub() {
     return (
       <Layout>
         <div className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <Loader2 className="w-8 h-8 animate-spin text-accent-pop" />
         </div>
       </Layout>
     );
@@ -326,7 +326,7 @@ export default function ResearchHub() {
                 className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300"
               >
                 {isGeneratingAll ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin text-accent-pop" />
                 ) : (
                   <IconRefreshCw className="w-4 h-4" />
                 )}

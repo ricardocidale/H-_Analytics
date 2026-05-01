@@ -95,7 +95,7 @@ export default function ScheduledResearchPanel() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+        <div className="animate-spin w-6 h-6 border-2 border-accent-pop border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -177,7 +177,7 @@ export default function ScheduledResearchPanel() {
                       data-testid={`button-run-${w.id}`}
                     >
                       {isRunning ? (
-                        <div className="animate-spin w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full" />
+                        <div className="animate-spin w-3.5 h-3.5 border-2 border-accent-pop border-t-transparent rounded-full" />
                       ) : (
                         <Play className="w-3.5 h-3.5" />
                       )}

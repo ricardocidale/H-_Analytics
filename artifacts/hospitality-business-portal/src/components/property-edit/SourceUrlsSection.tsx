@@ -69,7 +69,7 @@ export default function SourceUrlsSection({ urls, onChange, onRunResearch, isGen
               data-testid="button-extract-from-urls"
             >
               {isGenerating ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
+                <Loader2 className="w-4 h-4 animate-spin text-accent-pop mr-1.5" />
               ) : (
                 <IconPlay className="w-4 h-4 mr-1.5" />
               )}

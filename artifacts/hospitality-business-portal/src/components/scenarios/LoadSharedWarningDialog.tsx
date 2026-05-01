@@ -47,7 +47,7 @@ export function LoadSharedWarningDialog({
             disabled={isPending}
             data-testid="button-load-shared-confirm"
           >
-            {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <IconFolderOpen className="w-4 h-4 mr-2" />}
+            {isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop mr-2" /> : <IconFolderOpen className="w-4 h-4 mr-2" />}
             Load Scenario
           </AlertDialogAction>
         </AlertDialogFooter>

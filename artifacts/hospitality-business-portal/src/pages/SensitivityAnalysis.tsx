@@ -311,7 +311,7 @@ export default function SensitivityAnalysis({ embedded }: { embedded?: boolean }
     return (
       <Wrapper>
         <div className="min-h-screen flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" data-testid="loading-spinner" />
+          <Loader2 className="w-8 h-8 animate-spin text-accent-pop" data-testid="loading-spinner" />
         </div>
       </Wrapper>
     );

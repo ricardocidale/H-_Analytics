@@ -14,7 +14,7 @@ export function MarketContextPanel({ data, isLoading, location }: Props) {
     return (
       <div className="bg-card rounded-lg shadow-sm border border-border p-6" data-testid="panel-market-context-loading">
         <div className="flex items-center gap-3">
-          <Loader2 className="w-5 h-5 animate-spin text-primary" />
+          <Loader2 className="w-5 h-5 animate-spin text-accent-pop" />
           <span className="text-sm text-muted-foreground">Loading hotel market data for {location}...</span>
         </div>
       </div>

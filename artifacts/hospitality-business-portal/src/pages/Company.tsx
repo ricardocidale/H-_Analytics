@@ -187,7 +187,7 @@ export default function Company() {
     return (
       <Layout>
         <div className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <Loader2 className="w-8 h-8 animate-spin text-accent-pop" />
         </div>
       </Layout>
     );
@@ -384,7 +384,7 @@ export default function Company() {
             isAdmin={isAdmin}
           />
           
-          <Suspense fallback={<div className="flex justify-center p-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>}>
+          <Suspense fallback={<div className="flex justify-center p-12"><Loader2 className="w-6 h-6 animate-spin text-accent-pop" /></div>}>
           <div className="mt-4 mb-2">
             <CompanyBenchmarkPanel global={global} yearlyChartData={yearlyChartData} financials={financials} />
           </div>

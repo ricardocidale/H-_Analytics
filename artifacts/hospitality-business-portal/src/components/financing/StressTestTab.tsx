@@ -112,7 +112,7 @@ export function StressTestTab() {
         variant="default"
         data-testid="button-sens-calculate"
       >
-        {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2 inline" /> : <IconBarChart3 className="w-4 h-4 mr-2 inline" />}
+        {loading ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop mr-2 inline" /> : <IconBarChart3 className="w-4 h-4 mr-2 inline" />}
         Run Stress Test
       </Button>
       {error && <p className="text-destructive text-sm">{error}</p>}

@@ -113,7 +113,7 @@ export function AcquisitionPricingPanel({ prospectiveId, address }: Props) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12" data-testid="pane-pricing">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <Loader2 className="w-6 h-6 animate-spin text-accent-pop" />
       </div>
     );
   }
@@ -352,7 +352,7 @@ function TimelineRow({
         data-testid={`btn-delete-price-event-${event.id}`}
       >
         {deleting ? (
-          <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop" />
         ) : (
           <IconTrash className="w-3.5 h-3.5 text-destructive/60 hover:text-destructive" />
         )}
@@ -506,7 +506,7 @@ function AddEventForm({ submitting, error, onSubmit }: AddEventFormProps) {
       >
         {submitting ? (
           <>
-            <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> Saving…
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop mr-1" /> Saving…
           </>
         ) : (
           "Save event"

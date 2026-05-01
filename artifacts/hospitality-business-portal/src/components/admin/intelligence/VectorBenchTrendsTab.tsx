@@ -170,7 +170,7 @@ export default function VectorBenchTrendsTab() {
         className="flex items-center justify-center py-12"
         data-testid="vector-bench-loading"
       >
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <Loader2 className="w-6 h-6 animate-spin text-accent-pop" />
       </div>
     );
   }

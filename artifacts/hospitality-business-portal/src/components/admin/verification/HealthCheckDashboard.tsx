@@ -263,7 +263,7 @@ export default function HealthCheckDashboard() {
             data-testid="button-run-health-check"
           >
             {runHealthCheck.isPending
-              ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop mr-1.5" />
               : <IconRefreshCw className="w-3.5 h-3.5 mr-1.5" />}
             {runHealthCheck.isPending ? "Running..." : "Run Health Check"}
           </Button>
@@ -273,7 +273,7 @@ export default function HealthCheckDashboard() {
       {runHealthCheck.isPending && (
         <div className="flex flex-col items-center justify-center py-16 space-y-6">
           <div className="relative">
-            <div className="w-16 h-16 rounded-full border-4 border-secondary/20 border-t-secondary animate-spin" />
+            <div className="w-16 h-16 rounded-full border-4 border-accent-pop/20 border-t-accent-pop animate-spin" />
             <div className="absolute inset-0 flex items-center justify-center">
               <IconPlayCircle className="w-6 h-6 text-secondary animate-pulse" />
             </div>

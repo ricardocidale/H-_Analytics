@@ -141,7 +141,7 @@ export function FavoriteCard({
             data-testid={`btn-remove-saved-${property.id}`}
           >
             {isRemoving ? (
-              <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+              <Loader2 className="w-4 h-4 text-accent-pop animate-spin" />
             ) : (
               <IconTrash className="w-4 h-4 text-destructive/70 hover:text-destructive" />
             )}

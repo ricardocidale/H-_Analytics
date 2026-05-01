@@ -98,7 +98,7 @@ export function OverrideDialog({ row, country }: { row: ConstantRow; country: st
             Cancel
           </Button>
           <Button onClick={() => save.mutate()} disabled={save.isPending}>
-            {save.isPending && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
+            {save.isPending && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin text-accent-pop" />}
             Save override
           </Button>
         </DialogFooter>

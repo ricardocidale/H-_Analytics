@@ -203,7 +203,7 @@ export default function DocumentExtractionPanel({ propertyId }: { propertyId: nu
           >
             {uploading ? (
               <div className="flex flex-col items-center gap-3">
-                <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                <Loader2 className="w-10 h-10 animate-spin text-accent-pop" />
                 <p className="text-sm text-muted-foreground">Processing document...</p>
               </div>
             ) : (

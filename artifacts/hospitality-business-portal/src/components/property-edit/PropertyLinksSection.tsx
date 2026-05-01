@@ -199,7 +199,7 @@ export default function PropertyLinksSection({ propertyId }: PropertyLinksSectio
               data-testid="button-validate-urls"
             >
               {validateMutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
+                <Loader2 className="w-4 h-4 animate-spin text-accent-pop mr-1.5" />
               ) : (
                 <span className="mr-1.5">🔍</span>
               )}
@@ -210,7 +210,7 @@ export default function PropertyLinksSection({ propertyId }: PropertyLinksSectio
 
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            <Loader2 className="w-5 h-5 animate-spin text-accent-pop" />
           </div>
         ) : (
           <div className="space-y-3">
@@ -338,7 +338,7 @@ export default function PropertyLinksSection({ propertyId }: PropertyLinksSectio
                 data-testid="button-add-property-url"
               >
                 {addMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
+                  <Loader2 className="w-4 h-4 animate-spin text-accent-pop mr-1.5" />
                 ) : (
                   <IconPlus className="w-4 h-4 mr-1.5" />
                 )}

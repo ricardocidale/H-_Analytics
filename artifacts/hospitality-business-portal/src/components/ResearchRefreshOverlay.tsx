@@ -8,7 +8,7 @@ function CSSBackground() {
     <>
       <div className="absolute inset-0 overflow-hidden">
         {[
-          { color: "hsl(var(--primary))", size: 220, x: "50%", y: "50%", delay: 0, dur: 8 },
+          { color: "hsl(var(--accent-pop))", size: 220, x: "50%", y: "50%", delay: 0, dur: 8 },
           { color: "hsl(var(--chart-3))", size: 160, x: "30%", y: "40%", delay: 1, dur: 10 },
           { color: "hsl(var(--accent-pop))", size: 130, x: "70%", y: "60%", delay: 2, dur: 12 },
         ].map((sphere, i) => (
@@ -37,7 +37,7 @@ function CSSBackground() {
               left: "50%",
               top: "50%",
               transform: "translate(-50%, -50%)",
-              borderColor: i === 0 ? "hsl(var(--primary) / 0.3)" : i === 1 ? "hsl(var(--chart-3) / 0.25)" : "hsl(var(--accent-pop) / 0.2)",
+              borderColor: i === 0 ? "hsl(var(--accent-pop) / 0.3)" : i === 1 ? "hsl(var(--chart-3) / 0.25)" : "hsl(var(--accent-pop) / 0.2)",
               animation: `researchRingSpin ${8 + i * 4}s linear infinite${i % 2 ? " reverse" : ""}`,
             }}
           />
@@ -46,7 +46,7 @@ function CSSBackground() {
         {Array.from({ length: 12 }).map((_, i) => {
           const angle = (i / 12) * Math.PI * 2;
           const r = 35 + Math.sin(i * 1.5) * 8;
-          const colors = ["hsl(var(--primary))", "hsl(var(--chart-3))", "hsl(var(--accent-pop))", "hsl(var(--chart-3))"];
+          const colors = ["hsl(var(--accent-pop))", "hsl(var(--chart-3))", "hsl(var(--accent-pop))", "hsl(var(--chart-3))"];
           return (
             <div
               key={`particle-${i}`}
@@ -305,7 +305,7 @@ export function ResearchRefreshOverlay({ onComplete }: ResearchRefreshOverlayPro
             <p className="text-sm text-white/50">
               {phase === "loading" && "Connecting to market data sources..."}
               {phase === "researching" && (
-                <>Analyzing <span className="text-primary font-medium">{currentProperty}</span> ({completedCount}/{totalProperties})</>
+                <>Analyzing <span className="text-accent-pop font-medium">{currentProperty}</span> ({completedCount}/{totalProperties})</>
               )}
               {phase === "done" && "All properties are up to date"}
             </p>
@@ -320,7 +320,7 @@ export function ResearchRefreshOverlay({ onComplete }: ResearchRefreshOverlayPro
             <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
               <motion.div
                 className="h-full rounded-full"
-                style={{ background: "linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)), hsl(var(--primary)))" }}
+                style={{ background: "linear-gradient(90deg, hsl(var(--accent-pop)), hsl(var(--accent)), hsl(var(--accent-pop)))" }}
                 animate={{ width: `${progress}%` }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
               />

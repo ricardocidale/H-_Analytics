@@ -29,7 +29,7 @@ export function MarketRateBenchmark({
   if (isLoading) {
     return (
       <div data-testid="market-rates-loading" className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
-        <Loader2 className="w-4 h-4 animate-spin" />
+        <Loader2 className="w-4 h-4 animate-spin text-accent-pop" />
         Loading market rates...
       </div>
     );

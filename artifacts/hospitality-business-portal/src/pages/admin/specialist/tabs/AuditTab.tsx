@@ -40,7 +40,7 @@ export function AuditTab({ specialistId }: { specialistId: string }) {
     () => (sectionFilter === "all" ? entries : entries.filter((e) => e.section === sectionFilter)),
     [entries, sectionFilter],
   );
-  if (isLoading) return <Loader2 className="w-5 h-5 animate-spin" />;
+  if (isLoading) return <Loader2 className="w-5 h-5 animate-spin text-accent-pop" />;
   return (
     <Card>
       <CardHeader>
