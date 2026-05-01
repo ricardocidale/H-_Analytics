@@ -1,8 +1,8 @@
 /**
  * Cross-user scenario listing + materialization.
  *
- * `getAllScenarios` is the admin/listing read with optional userId/groupId
- * filters (filters are pushed into SQL where possible).
+ * `getAllScenarios` is the admin/listing read with an optional userId
+ * filter (pushed into SQL rather than filtering in memory).
  *
  * `createScenarioForUser` materializes a fresh scenario row from the user's
  * current global assumptions, properties, fee categories, photos, and the
