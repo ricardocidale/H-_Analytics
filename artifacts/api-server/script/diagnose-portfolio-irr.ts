@@ -31,18 +31,22 @@ import {
   SEED_INITIAL_PROPERTIES,
 } from "../src/seeds/property-data";
 
-const MODEL_START_DATE = "2026-01-01";
 const PROJECTION_YEARS = PROJECTION_MONTHS / MONTHS_PER_YEAR;
+// Diagnostic thresholds — LP-credible boutique-luxury IRR band.
+// Below LOW: under-performing for hospitality private equity (LP institutional minimum ~15-18%).
+// Above HIGH: implausibly high; LPs will scrutinize the model.
 const HEALTHY_BAND_LOW = 0.20;
 const HEALTHY_BAND_HIGH = 0.50;
+// Currency formatting precision (USD cents) for the exit waterfall round.
+const USD_CENTS_PRECISION = 2;
 
 function buildGlobal(): GlobalInput {
   return {
-    modelStartDate: MODEL_START_DATE,
+    modelStartDate: DEFAULT_MODEL_START_DATE,
     projectionYears: PROJECTION_YEARS,
     inflationRate: getFactoryNumber("inflationRate", "United States"),
     fixedCostEscalationRate: getFactoryNumber("inflationRate", "United States"),
-    marketingRate: 0.05,
+    marketingRate: DEFAULT_MARKETING_RATE,
     baseManagementFee: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
     incentiveManagementFee: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
     commissionRate: DEFAULT_COMMISSION_RATE,
