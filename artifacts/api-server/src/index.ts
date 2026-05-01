@@ -673,13 +673,9 @@ async function runSchemaMigrations() {
     await markMigrationApplied("specialist_recommendation_counters_001");
   }
 
-  if (!(await isMigrationApplied("specialist_multi_model_001"))) {
-    const { runSpecialistMultiModel001 } = await import(
-      "./migrations/specialist-multi-model-001"
-    );
-    await runSpecialistMultiModel001();
-    await markMigrationApplied("specialist_multi_model_001");
-  }
+  // specialist_multi_model_001 — columns now owned by Drizzle migration
+  // 0022_specialist_llm_overrides.sql. Runtime patch removed; existing DBs
+  // have the migration key recorded in _applied_migrations.
 
   // P6e — wire global N+1 model defaults to admin_resources (4 nullable FK
   // columns on pipeline_policies so admins can configure default orchestrator
