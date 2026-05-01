@@ -46,6 +46,7 @@ externalPort = 3000
 STORAGE_PROVIDER = "r2"
 AUTH_PROVIDER = "replit"
 NODE_ENV = "production"
+CI = "true"
 
 [nix]
 channel = "stable-25_05"
