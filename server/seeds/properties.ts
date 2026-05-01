@@ -92,9 +92,17 @@ export async function seedGlobalAssumptions() {
     capitalRaiseDiscountRate: DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE,
     fundingInterestRate: DEFAULT_FUNDING_INTEREST_RATE,
     fundingInterestPaymentFrequency: DEFAULT_FUNDING_INTEREST_PAYMENT_FREQUENCY,
-    partnerCompYear1: 540000,
-    partnerCompYear2: 540000,
-    partnerCompYear3: 540000,
+    // Partner compensation seed schedule — 3 partners, $/year total.
+    // Y1-Y3 reduced from $540K to align with $2M raise runway: at $360K
+    // total Y1 ($120K each) we burn ~$640K Y1 and reach break-even in
+    // late Y3 / early Y4 with property fee revenue (incl. acquisition
+    // fees from new property deployment). LPs read $120K Y1 founder pay
+    // as runway discipline; $180K is at the high end of seed-stage
+    // norms for a $2M raise. Y3 ramps to $160K/each as Norfolk's first
+    // properties stabilize; Y4+ unchanged from original schedule.
+    partnerCompYear1: 360000,
+    partnerCompYear2: 420000,
+    partnerCompYear3: 480000,
     partnerCompYear4: 600000,
     partnerCompYear5: 600000,
     partnerCompYear6: 700000,
