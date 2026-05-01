@@ -399,11 +399,11 @@ How values reach the engine: the admin's confirmed value is overlaid onto the gl
   return chunks;
 }
 
-export function extractCheckerManualContent(): KBChunk[] {
+export function extractVerificationManualContent(): KBChunk[] {
   const chunks: KBChunk[] = [];
 
   chunks.push({
-    title: "Checker Manual: Application Overview",
+    title: "Verification Manual: Application Overview",
     content: `H+ Analytics by Norfolk AI is a GAAP-compliant financial analytics portal for boutique hotel investment analysis. It models two entities: a Management Company that earns management fees, and individual Property SPVs (Special Purpose Vehicles) that hold and operate hotel assets.
 
 The platform provides:
@@ -417,13 +417,13 @@ The platform provides:
 
 Navigation: Dashboard (consolidated view), Properties (individual SPVs), Management Company (fee revenue), Settings (assumptions), Scenarios (what-if), ICP (portfolio intelligence), Help (manuals and guided tour).
 
-User Roles: Super Admin (full access, cannot be modified by anyone), Admin (full access, manages users), User (standard portfolio access), Checker (verification tools), Partner (external partner access), Investor (read-only — Dashboard, Properties, Profile, Help only).`,
-    source: "Checker Manual",
+User Roles: Super Admin (full access, cannot be modified by anyone), Admin (full access, manages users and verification tools), User (standard portfolio access — can edit properties, assumptions, and run scenarios).`,
+    source: "Verification Manual",
     category: "manual",
   });
 
   chunks.push({
-    title: "Checker Manual: Cash Flow Streams",
+    title: "Verification Manual: Cash Flow Streams",
     content: `Each property SPV has 6 distinct cash flow streams:
 
 1. Operating Cash Flow: ANOI minus income tax. The primary recurring cash flow from hotel operations.
@@ -439,12 +439,12 @@ User Roles: Super Admin (full access, cannot be modified by anyone), Admin (full
 6. Disposition Cash Flow: Final-year proceeds from property sale. Gross sale value (final year NOI / exit cap rate) minus commission, minus outstanding debt, minus closing costs.
 
 The Free Cash Flow to Equity (FCFE) aggregates these streams: FCFE = Operating CF − Debt Service − CapEx + Refi Proceeds + Disposition Proceeds.`,
-    source: "Checker Manual",
+    source: "Verification Manual",
     category: "manual",
   });
 
   chunks.push({
-    title: "Checker Manual: Financial Statements",
+    title: "Verification Manual: Financial Statements",
     content: `Each property generates three GAAP-compliant financial statements:
 
 Income Statement (USALI Waterfall):
@@ -472,12 +472,12 @@ Balance Sheet:
 - Liabilities = Outstanding loan balance
 - Equity = Contributed capital + Retained earnings
 - Must satisfy: Assets = Liabilities + Equity`,
-    source: "Checker Manual",
+    source: "Verification Manual",
     category: "manual",
   });
 
   chunks.push({
-    title: "Checker Manual: Testing Methodology",
+    title: "Verification Manual: Testing Methodology",
     content: `The verification system uses a 7-phase testing workflow:
 
 Phase 1: Input Validation — Verify all assumptions are within valid ranges.
@@ -488,8 +488,8 @@ Phase 5: Cross-Statement Reconciliation — Verify CF ties to BS cash changes, I
 Phase 6: Portfolio Consolidation — Confirm aggregated totals match sum of individual properties.
 Phase 7: Return Calculations — Validate IRR, NPV, equity multiple, cash-on-cash.
 
-The Checker role has access to: Full Data Export (PDF with all assumptions and financials), Manual Export (checker manual as PDF), Verification Runner (triggers server-side recalculation), and the AI Verification Review (LLM analysis of audit findings).`,
-    source: "Checker Manual",
+Admins have access to: Full Data Export (PDF with all assumptions and financials), Verification Manual Export (PDF), Verification Runner (triggers server-side recalculation), and the AI Verification Review (LLM analysis of audit findings).`,
+    source: "Verification Manual",
     category: "manual",
   });
 
@@ -519,11 +519,11 @@ Settings (Systemwide Assumptions): Four tabs:
 
 Scenarios: Save, load, and compare different assumption sets. Useful for stress testing and sensitivity analysis.
 
-Help: User Manual (17 chapters — role-filtered so users only see sections relevant to their access level), Checker Manual (21 sections, visible to checkers and admins), and Interactive Guided Tour.
+Help: User Manual (17 chapters — role-filtered so users only see sections relevant to their access level), Verification Manual (21 sections, visible to admins only), and Interactive Guided Tour.
 
 Administration (Admin only): Users (create, invite, edit, assign roles, reset passwords, control scenario access, set default properties), Activity, Verification, Logos, Branding, Themes, Navigation, Database, Rebecca AI (knowledge base, guardrails, analytics), ICP, Research Center, Integrations. The portal is a closed system — no public sign-up. Every user must be added or invited by an admin.
 
-Role-based access: Investors see read-only dashboards and property details. Management users can edit properties, assumptions, scenarios, and run analysis. Checkers can access verification tools. Admins have full system access including user management and AI configuration. Super admins have full admin access but cannot be modified by anyone. Per-user scenario management can be toggled on or off by admins.`,
+Role-based access: Users can edit properties, assumptions, scenarios, and run analysis. Admins have full system access including user management, verification tools, and AI configuration. Super admins have full admin access but cannot be modified by anyone. Per-user scenario management can be toggled on or off by admins.`,
     source: "Platform Guide",
     category: "guide",
   });

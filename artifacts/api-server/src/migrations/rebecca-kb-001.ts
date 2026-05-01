@@ -1,7 +1,7 @@
 import { db } from "../db";
 import { sql } from "drizzle-orm";
 import { logger } from "../logger";
-import { extractMethodologyContent, extractCheckerManualContent, extractPlatformGuide } from "../ai/kb-content";
+import { extractMethodologyContent, extractVerificationManualContent, extractPlatformGuide } from "../ai/kb-content";
 
 const TAG = "[migration] rebecca-kb-001";
 
@@ -49,7 +49,7 @@ export async function runRebeccaKB001(): Promise<void> {
   if (count === 0) {
     const allChunks = [
       ...extractMethodologyContent(),
-      ...extractCheckerManualContent(),
+      ...extractVerificationManualContent(),
       ...extractPlatformGuide(),
     ];
 

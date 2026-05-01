@@ -11,7 +11,7 @@ import {
   MAX_RAG_CONTEXT_CHARS,
   KB_MIN_CONFIDENCE,
 } from "../constants";
-import { extractMethodologyContent, extractCheckerManualContent, extractPlatformGuide } from "./kb-content";
+import { extractMethodologyContent, extractVerificationManualContent, extractPlatformGuide } from "./kb-content";
 import { isVectorStoreAvailable, upsertChunks, queryChunks, vectorCount } from "./vector-store-service";
 
 const EMBEDDING_MODEL = "text-embedding-3-small";
@@ -145,7 +145,7 @@ export async function indexKnowledgeBase(): Promise<{ chunksIndexed: number; tim
     const allChunks: { title: string; content: string; source: string; category: string }[] = [];
 
     allChunks.push(...extractMethodologyContent());
-    allChunks.push(...extractCheckerManualContent());
+    allChunks.push(...extractVerificationManualContent());
     allChunks.push(...extractPlatformGuide());
 
     const assetChunks = await loadAttachedAssets();

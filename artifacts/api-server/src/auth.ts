@@ -486,9 +486,9 @@ async function createDefaultScenarioForUser(userId: number, userName: string) {
 }
 
 /**
- * Seeds the database with default users (admin, checker, users) using
+ * Seeds the database with default users (super_admin, admin, user) using
  * credentials from environment variables. All users read passwords from
- * their respective env vars (e.g. PASSWORD_ADMIN, PASSWORD_CHECKER, PASSWORD_REYNALDO)
+ * their respective env vars (e.g. PASSWORD_ADMIN, PASSWORD_REYNALDO)
  * with PASSWORD_DEFAULT as fallback, and only reset when FORCE_RESEED_PASSWORDS=true.
  * A default "Development" scenario is created for each seeded user.
  * @returns A promise that resolves when all seed operations are complete.
