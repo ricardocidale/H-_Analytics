@@ -7,17 +7,16 @@
       "firstName": "Ricardo",
       "lastName": "Cidale",
       "company": "The Norfolk AI Group",
-      "title": "Partner",
-      "userGroupId": 2
+      "title": "Partner"
     },
     {
       "email": "checker@norfolkgroup.io",
-      "envVar": "PASSWORD_CHECKER",
+      "envVar": "PASSWORD_ALEXANDRA",
       "role": "user",
-      "firstName": "Checker",
+      "firstName": "Alexandra",
+      "lastName": "Morgan",
       "company": "Norfolk AI",
-      "title": "Checker",
-      "userGroupId": 2
+      "title": "Research Analyst"
     },
     {
       "email": "reynaldo.fagundes@norfolk.ai",
@@ -26,8 +25,7 @@
       "firstName": "Reynaldo",
       "lastName": "Fagundes",
       "company": "Norfolk AI",
-      "title": "CTO",
-      "userGroupId": 2
+      "title": "CTO"
     },
     {
       "email": "kit@kitcapital.com",
@@ -36,8 +34,7 @@
       "firstName": "Dov",
       "lastName": "Tuzman",
       "company": "KIT Capital",
-      "title": "Principal",
-      "userGroupId": 1
+      "title": "Principal"
     },
     {
       "email": "rosario@kitcapital.com",
@@ -46,8 +43,7 @@
       "firstName": "Rosario",
       "lastName": "David",
       "company": "KIT Capital",
-      "title": "COO",
-      "userGroupId": 1
+      "title": "COO"
     },
     {
       "email": "lemazniku@icloud.com",
@@ -56,8 +52,7 @@
       "firstName": "Lea",
       "lastName": "Mazniku",
       "company": "KIT Capital",
-      "title": "Partner",
-      "userGroupId": 1
+      "title": "Partner"
     },
     {
       "email": "leslie@cidale.com",
@@ -66,8 +61,7 @@
       "firstName": "Leslie",
       "lastName": "Cidale",
       "company": "Numeratti Endeavors",
-      "title": "Senior Partner",
-      "userGroupId": 3
+      "title": "Senior Partner"
     },
     {
       "email": "wlaruffa@gmail.com",
@@ -76,37 +70,7 @@
       "firstName": "William",
       "lastName": "Laruffa",
       "company": "Independent",
-      "title": "Partner",
-      "userGroupId": 3
+      "title": "Partner"
     }
-  ],
-  "groupAssignments": {
-    "rosario@kitcapital.com": "KIT Capital Group",
-    "kit@kitcapital.com": "KIT Capital Group",
-    "lemazniku@icloud.com": "KIT Capital Group",
-    "ricardo.cidale@norfolkgroup.io": "The Norfolk AI Group",
-    "checker@norfolkgroup.io": "The Norfolk AI Group",
-    "wlaruffa@gmail.com": "The Norfolk AI Group",
-    "reynaldo.fagundes@norfolk.ai": "The Norfolk AI Group"
-  },
-  "companyAssignments": {
-    "The Norfolk AI Group": [
-      "ricardo.cidale@norfolkgroup.io",
-      "checker@norfolkgroup.io",
-      "reynaldo.fagundes@norfolk.ai"
-    ],
-    "KIT Capital": [
-      "kit@kitcapital.com",
-      "rosario@kitcapital.com",
-      "lemazniku@icloud.com"
-    ],
-    "Numeratti Endeavors": [
-      "leslie@cidale.com"
-    ]
-  },
-  "seedGroups": [
-    { "name": "KIT Capital Group" },
-    { "name": "The Norfolk AI Group" }
-  ],
-  "sharedPropertyGroup": "The Norfolk AI Group"
+  ]
 }

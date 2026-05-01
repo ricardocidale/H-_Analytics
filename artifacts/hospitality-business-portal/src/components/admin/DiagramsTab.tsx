@@ -408,9 +408,8 @@ function L3Property() {
 
 function L3DataModel() {
   const entities: { name: string; fields: string[]; relations: string[] }[] = [
-    { name: "Users", fields: ["id, username, role, companyId, userGroupId"], relations: ["→ Properties, Scenarios, Sessions, LoginLogs, ActivityLogs, Conversations, MarketResearch, ProspectiveProperties, VerificationRuns, AlertRules, GlobalAssumptions"] },
-    { name: "Properties", fields: ["id, name, userId, status, financialData"], relations: ["→ PropertyPhotos, PropertyFeeCategories, MarketResearch, UserGroupProperties"] },
-    { name: "UserGroups", fields: ["id, name, logoId, themeId"], relations: ["→ UserGroupProperties, Logos, DesignThemes"] },
+    { name: "Users", fields: ["id, email, role, company, title"], relations: ["→ Properties, Scenarios, Sessions, LoginLogs, ActivityLogs, Conversations, MarketResearch, ProspectiveProperties, VerificationRuns, AlertRules, GlobalAssumptions"] },
+    { name: "Properties", fields: ["id, name, userId, status, financialData"], relations: ["→ PropertyPhotos, PropertyFeeCategories, MarketResearch"] },
     { name: "Scenarios", fields: ["id, userId, name, snapshot"], relations: ["← Users"] },
     { name: "Conversations", fields: ["id, userId, title"], relations: ["→ Messages"] },
     { name: "AlertRules", fields: ["id, userId, ruleType, enabled"], relations: ["→ NotificationLogs"] },

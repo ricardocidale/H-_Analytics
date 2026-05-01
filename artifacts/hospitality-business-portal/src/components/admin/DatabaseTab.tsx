@@ -138,7 +138,7 @@ export default function DatabaseTab() {
 
           {syncResults && (
             <div className="space-y-4 mt-4">
-              <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3">
+              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
                 <div className="bg-muted rounded-xl p-4 text-center" data-testid="stat-users-count">
                   <p className="text-2xl font-bold text-muted-foreground">{syncResults.summary?.users ?? "—"}</p>
                   <p className="text-xs text-muted-foreground mt-1">Users</p>
@@ -146,10 +146,6 @@ export default function DatabaseTab() {
                 <div className="bg-muted rounded-xl p-4 text-center" data-testid="stat-properties-count">
                   <p className="text-2xl font-bold text-muted-foreground">{syncResults.summary?.properties ?? "—"}</p>
                   <p className="text-xs text-muted-foreground mt-1">Properties</p>
-                </div>
-                <div className="bg-muted rounded-xl p-4 text-center" data-testid="stat-groups-count">
-                  <p className="text-2xl font-bold text-muted-foreground">{syncResults.summary?.userGroups ?? "—"}</p>
-                  <p className="text-xs text-muted-foreground mt-1">User Groups</p>
                 </div>
                 <div className="bg-muted rounded-xl p-4 text-center" data-testid="stat-logos-count">
                   <p className="text-2xl font-bold text-muted-foreground">{syncResults.summary?.logos ?? "—"}</p>
@@ -265,7 +261,7 @@ export default function DatabaseTab() {
             <IconShield className="w-5 h-5" /> Sync Canonical Data
           </CardTitle>
           <CardDescription className="label-text text-muted-foreground">
-            Enforce canonical database state: correct user roles and groups, clean orphaned records, fix fee category rates, and remove test/duplicate scenarios. Safe to run at any time — protects all legitimate user data.
+            Enforce canonical database state: correct user roles, clean orphaned records, fix fee category rates, and remove test/duplicate scenarios. Safe to run at any time — protects all legitimate user data.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -319,7 +315,7 @@ export default function DatabaseTab() {
             </DialogTitle>
             <DialogDescription className="space-y-2">
               <span className="block">This will enforce the canonical database state:</span>
-              <span className="block text-xs pl-2">- Correct user roles and group assignments</span>
+              <span className="block text-xs pl-2">- Correct user roles</span>
               <span className="block text-xs pl-2">- Remove orphaned fee categories and market research</span>
               <span className="block text-xs pl-2">- Clean up test and duplicate scenarios</span>
               <span className="block text-xs pl-2">- Enforce canonical fee category rates</span>
