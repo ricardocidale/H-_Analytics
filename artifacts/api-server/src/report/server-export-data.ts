@@ -315,6 +315,8 @@ function toPropertyInput(p: Record<string, unknown>): PropertyInput {
     revShareEvents: p.revShareEvents,
     revShareFB: p.revShareFB,
     revShareOther: p.revShareOther,
+    platformFeeRate: p.platformFeeRate,
+    businessModel: p.businessModel,
     id: p.id,
     name: p.name,
   } as PropertyInput;

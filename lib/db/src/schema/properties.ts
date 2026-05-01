@@ -228,6 +228,9 @@ export const properties = pgTable("properties", {
   qualityTier: text("quality_tier").notNull().default("upscale"),
   hospitalityType: text("hospitality_type").notNull().default("hotel"),
   businessModel: text("business_model").notNull().default("hotel"),
+  // Platform fee rate for STR archetypes (Airbnb/VRBO commission %).
+  // Nullable — NULL falls back to BUSINESS_MODEL_DEFAULTS[businessModel].platformFeeRate.
+  platformFeeRate: real("platform_fee_rate"),
   brandId: integer("brand_id").references(() => businessBrands.id, { onDelete: "set null" }),
 
   description: text("description"),
@@ -443,6 +446,7 @@ export const insertPropertySchema = createInsertSchema(properties).pick({
   qualityTier: true,
   hospitalityType: true,
   businessModel: true,
+  platformFeeRate: true,
   brandId: true,
   description: true,
   serviceLevel: true,
@@ -498,6 +502,7 @@ const starRatingRefinement = z.object({
   qualityTier: z.enum(QUALITY_TIERS).optional(),
   hospitalityType: z.enum(HOSPITALITY_TYPES).optional(),
   businessModel: z.enum(BUSINESS_MODEL_TYPES).optional(),
+  platformFeeRate: z.number().min(0).max(1).nullable().optional(),
   sourceUrls: z.array(z.string().url()).max(20).nullable().optional(),
   pricingModel: z.enum(["per_room", "per_property"]).nullable().optional(),
   nightlyPropertyRate: z.number().nullable().optional(),

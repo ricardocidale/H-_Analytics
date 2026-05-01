@@ -21,6 +21,7 @@ import { registerAdminSpecialistToolRoutes } from "./specialist-tools";
 import { registerRequiredFieldsRoutes } from "./required-fields";
 import { registerObservabilityRoutes } from "./observability";
 import { registerMarketDataTableRoutes } from "./market-data-tables";
+import { registerModelDefaultsRoutes } from "./model-defaults";
 
 export function register(app: Express) {
   registerUserRoutes(app);
@@ -48,4 +49,5 @@ export function register(app: Express) {
   registerRequiredFieldsRoutes(app);
   registerObservabilityRoutes(app);
   registerMarketDataTableRoutes(app);
+  registerModelDefaultsRoutes(app);
 }
