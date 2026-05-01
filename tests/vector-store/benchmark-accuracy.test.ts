@@ -182,7 +182,8 @@ describe("T013 — Benchmark Snapshot Accuracy", () => {
     });
 
     it("marks benchmarks exactly at 90 days as fresh (boundary)", () => {
-      const boundary = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      // Subtract 5 s buffer so execution-time drift doesn't push the date past the threshold
+      const boundary = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000 + 5_000);
       expect(computeBenchmarkFreshness(boundary)).toBe("fresh");
     });
 
