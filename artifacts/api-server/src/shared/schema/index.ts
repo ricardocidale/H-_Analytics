@@ -26,6 +26,7 @@ export * from "./vector-chunks";
 export * from "./media-assets";
 export * from "./scheduler-runs";
 export * from "./storage-drift-sweep-runs";
+export * from "./cache";
 // NOTE: ./replit-billing is intentionally NOT re-exported. Billing telemetry
 // lives in the dev_internal Postgres schema and is strictly dev tooling.
 // Dev scripts import it directly: `from "@workspace/db"`.

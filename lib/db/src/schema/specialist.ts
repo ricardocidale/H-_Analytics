@@ -426,6 +426,10 @@ export const specialistConfigs = pgTable(
   },
   (t) => [
     uniqueIndex("specialist_configs_specialist_uniq").on(t.specialistId),
+    index("specialist_configs_analyst_a_model_idx").on(t.analystAModelResourceId),
+    index("specialist_configs_analyst_b_model_idx").on(t.analystBModelResourceId),
+    index("specialist_configs_synthesis_model_idx").on(t.synthesisModelResourceId),
+    index("specialist_configs_fallback_model_idx").on(t.fallbackModelResourceId),
   ],
 );
 
@@ -459,6 +463,10 @@ export const specialistConfigVersions = pgTable(
   (t) => [
     uniqueIndex("specialist_config_versions_uniq").on(t.specialistId, t.version),
     index("specialist_config_versions_specialist_idx").on(t.specialistId),
+    index("specialist_config_versions_analyst_a_model_idx").on(t.analystAModelResourceId),
+    index("specialist_config_versions_analyst_b_model_idx").on(t.analystBModelResourceId),
+    index("specialist_config_versions_synthesis_model_idx").on(t.synthesisModelResourceId),
+    index("specialist_config_versions_fallback_model_idx").on(t.fallbackModelResourceId),
   ],
 );
 

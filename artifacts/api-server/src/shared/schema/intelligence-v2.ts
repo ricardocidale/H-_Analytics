@@ -443,7 +443,12 @@ export const pipelinePolicies = pgTable("pipeline_policies", {
   analystBModelResourceId: integer("analyst_b_model_resource_id"),
   synthesisModelResourceId: integer("synthesis_model_resource_id"),
   fallbackModelResourceId: integer("fallback_model_resource_id"),
-});
+}, (t) => [
+  index("pipeline_policies_analyst_a_model_idx").on(t.analystAModelResourceId),
+  index("pipeline_policies_analyst_b_model_idx").on(t.analystBModelResourceId),
+  index("pipeline_policies_synthesis_model_idx").on(t.synthesisModelResourceId),
+  index("pipeline_policies_fallback_model_idx").on(t.fallbackModelResourceId),
+]);
 
 export const insertPipelinePolicySchema = createInsertSchema(pipelinePolicies).pick({
   policyKey: true, tier: true, isEnabled: true, stalenessThresholdHours: true,

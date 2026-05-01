@@ -208,6 +208,12 @@ export function registerScenarioAccessRoutes(app: Express) {
       const { granteeId, scenarioId } = validation.data;
       const resolvedScenarioId = scenarioId ?? null;
 
+      if (resolvedScenarioId != null) {
+        const scenario = await storage.getScenario(resolvedScenarioId);
+        if (!scenario) return res.status(404).json({ error: "Scenario not found" });
+        if (scenario.userId !== user.id) return res.status(403).json({ error: "You can only revoke access to your own scenarios" });
+      }
+
       await storage.revokeScenarioAccess(user.id, granteeId, resolvedScenarioId);
       logActivity(req, "revoke_access", "scenario_access", null, `Revoke ${resolvedScenarioId ? `scenario ${resolvedScenarioId}` : "all scenarios"} from user ${granteeId}`);
       res.json({ success: true });

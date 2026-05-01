@@ -94,6 +94,7 @@ export const propertyDdItems = pgTable(
     uniqueIndex("property_dd_items_property_key_uniq").on(t.propertyId, t.templateItemKey),
     index("property_dd_items_property_idx").on(t.propertyId),
     index("property_dd_items_workstream_idx").on(t.workstream),
+    index("property_dd_items_owner_user_id_idx").on(t.ownerUserId),
     check("property_dd_items_status_valid", sql`${t.status} IN (${sql.join(DD_STATUSES.map(s => sql`${s}`), sql`, `)})`),
   ],
 );

@@ -23,6 +23,7 @@ export const marketResearch = pgTable("market_research", {
   index("market_research_type_idx").on(table.type),
   index("market_research_property_id_idx").on(table.propertyId),
   index("market_research_updated_at_idx").on(table.updatedAt),
+  index("market_research_type_updated_idx").on(table.type, table.updatedAt),
 ]);
 
 export const insertMarketResearchSchema = createInsertSchema(marketResearch).pick({

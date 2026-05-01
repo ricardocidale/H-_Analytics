@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, integer, timestamp, jsonb, index, unique, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, timestamp, jsonb, index, unique, uniqueIndex, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { users } from "./auth";
@@ -53,6 +53,11 @@ export const scenarios = pgTable("scenarios", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   index("scenarios_user_id_idx").on(table.userId),
+  index("scenarios_user_updated_idx").on(table.userId, table.updatedAt),
+  // Partial unique index: one default + one autosave per user among non-deleted rows.
+  uniqueIndex("scenarios_user_kind_unique")
+    .on(table.userId, table.kind)
+    .where(sql`"kind" IN ('default', 'autosave') AND "deleted_at" IS NULL`),
 ]);
 
 // --- SCENARIO PROPERTY OVERRIDES TABLE ---
