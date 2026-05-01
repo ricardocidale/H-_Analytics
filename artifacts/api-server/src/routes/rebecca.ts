@@ -8,7 +8,7 @@ import { logActivity, parseRouteId } from "./helpers";
 import { insertRebeccaKBSchema } from "@workspace/db";
 import { upsertChunks, deleteVectors, vectorCount } from "../ai/vector-store-service";
 import { rebeccaSettingsSchema, tryParseRebeccaSettings } from "@shared/rebecca-settings";
-import { HTTP_422_UNPROCESSABLE_ENTITY } from "../constants";
+import { HTTP_422_UNPROCESSABLE_ENTITY, HTTP_405_METHOD_NOT_ALLOWED, HTTP_409_CONFLICT } from "../constants";
 
 const previewTurnSchema = z.object({
   role: z.enum(["user", "assistant"]),

@@ -15,6 +15,7 @@ import { checkScenarioAccess } from "./scenario-helpers";
 import { logger } from "../logger";
 import { logActivity, parseRouteId } from "./helpers";
 import { isAdminRole } from "@shared/constants";
+import { HTTP_422_UNPROCESSABLE_ENTITY } from "../constants";
 
 export function register(app: Express): void {
   // ── Portfolio-wide risk score ──────────────────────────────────────────────

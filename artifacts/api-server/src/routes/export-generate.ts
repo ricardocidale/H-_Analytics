@@ -12,6 +12,7 @@ import { generatePptxFromReport } from "./format-generators/pptx-generator";
 import { generateDocxFromReport } from "./format-generators/docx-generator";
 import { generateCsvFromExportData } from "../exports/csv-generator";
 import { renderSeasonalityBarSvg } from "../report/svg-charts";
+import { HTTP_413_PAYLOAD_TOO_LARGE, HTTP_422_UNPROCESSABLE_ENTITY } from "../constants";
 
 const generateExportSchema = z.object({
   entityType: z.enum(["portfolio", "property", "company"]),
@@ -88,7 +89,7 @@ export function register(app: Express) {
           return res.status(404).json({ error: msg });
         }
         if (msg.includes("No global assumptions")) {
-          return res.status(422).json({ error: msg });
+          return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: msg });
         }
         throw domainError;
       }
@@ -184,7 +185,7 @@ export function register(app: Express) {
       const MAX_EXPORT_BYTES = 50 * 1024 * 1024;
       if (buffer.length > MAX_EXPORT_BYTES) {
         logger.error(`Export too large: ${buffer.length} bytes`, "server-export");
-        return res.status(413).json({ error: "Export exceeds maximum size limit" });
+        return res.status(HTTP_413_PAYLOAD_TOO_LARGE).json({ error: "Export exceeds maximum size limit" });
       }
 
       const safeEntity = entityName.replace(/[^a-zA-Z0-9 ]/g, "").substring(0, 40).trim();
