@@ -26,3 +26,4 @@
 {"timestamp":"2026-05-01T13:51:53.270Z","service":"gemini","model":"gemini-2.5-flash","operation":"chat","inputTokens":2658,"outputTokens":80,"estimatedCostUsd":0.00044669999999999996,"durationMs":6030,"route":"/api/chat"}
 {"timestamp":"2026-05-01T13:52:00.473Z","service":"gemini","model":"gemini-2.5-flash","operation":"chat","inputTokens":2532,"outputTokens":92,"estimatedCostUsd":0.000435,"durationMs":6938,"route":"/api/chat"}
 {"timestamp":"2026-05-01T13:52:02.872Z","service":"gemini","model":"gemini-2.5-flash","operation":"chat","inputTokens":2630,"outputTokens":69,"estimatedCostUsd":0.00043589999999999997,"durationMs":2208,"route":"/api/chat"}
+{"timestamp":"2026-05-01T14:04:39.718Z","service":"gemini","model":"gemini-2.5-flash","operation":"insight","inputTokens":262,"outputTokens":6,"estimatedCostUsd":0.0000429,"durationMs":1121,"userId":32,"route":"/api/rebecca/insight"}
