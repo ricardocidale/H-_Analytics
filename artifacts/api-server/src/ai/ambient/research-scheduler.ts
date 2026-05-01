@@ -2,6 +2,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { storage } from "../../storage";
 import { logger } from "../../logger";
 import { isAdminRole } from "@shared/constants";
+import { AI_AMBIENT_RESEARCH_MAX_TOKENS } from "../../constants";
 import { recordSchedulerCycle, truncateNotes } from "../../jobs/scheduler-run-tracker";
 import { createResearchClient, resolveVendorFromModel } from "../research-client";
 import { getAnthropicClient, getOpenAIClient, getGeminiClient, normalizeModelId } from "../clients";
@@ -81,7 +82,7 @@ export async function executeScheduledWorkflow(
 
     const response = await researchClient.createMessage({
       model,
-      maxTokens: 6144,
+      maxTokens: AI_AMBIENT_RESEARCH_MAX_TOKENS,
       system: buildSchedulerSystemPrompt(),
       messages: [{ role: "user", content: buildWorkflowUserPrompt(workflow, benchmarkContext) }],
     });
@@ -145,7 +146,7 @@ async function submitWorkflowBatch(
     custom_id: workflow.workflowKey,
     params: {
       model,
-      max_tokens: 6144,
+      max_tokens: AI_AMBIENT_RESEARCH_MAX_TOKENS,
       system: systemPrompt,
       messages: [{ role: "user" as const, content: buildWorkflowUserPrompt(workflow, benchmarkContext) }],
     },

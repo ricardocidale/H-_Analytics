@@ -35,6 +35,7 @@ const ScenariosTab = lazy(() => import("@/components/admin/ScenariosTab"));
 const QASandbox = lazy(() => import("@/components/admin/intelligence/QASandbox"));
 const ScheduledResearchPanel = lazy(() => import("@/components/admin/intelligence/ScheduledResearchPanel"));
 const BrandTab = lazy(() => import("@/components/admin/BrandTab"));
+const SlideDecksTab = lazy(() => import("@/components/admin/SlideDecksTab"));
 const EngineDashboard = lazy(() => import("@/components/admin/intelligence/EngineDashboard"));
 const DataSourcesTab = lazy(() => import("@/components/admin/intelligence/DataSourcesTab"));
 const PipelineConfigTab = lazy(() => import("@/components/admin/intelligence/PipelineConfigTab"));
@@ -245,6 +246,7 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "sidebar-visibility": return <SidebarVisibilityTab />;
     case "verification":     return <VerificationTab />;
     case "database":         return <DatabaseTab />;
+    case "slide-decks":      return <SlideDecksTab />;
     case "observability":    return <ObservabilityTab />;
     default: {
       if (isSpecialistSection(section)) {

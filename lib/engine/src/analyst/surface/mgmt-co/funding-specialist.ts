@@ -51,7 +51,7 @@
  * Replit's route-handler slice per `claude-replit-split.md`.
  */
 import type { AnalystWatchdogBenchmarks } from "@workspace/db/schema";
-import { CONVICTION_FLOOR } from "@shared/analyst-conviction";
+import { CONVICTION_FLOOR, SPECIALIST_RAW_QUALITY_SEED } from "@shared/analyst-conviction";
 import {
   evaluateCapitalRaise,
   type CapitalRaiseInputs,
@@ -95,7 +95,7 @@ import { getFieldRegistryEntry } from "../../registry/field-registry";
  *  recomputes the authoritative value from evidence/range/persona, so this
  *  is only the Raw-schema seed. Above CONVICTION_FLOOR so the contract
  *  invariants pass even if the scorer is mocked in a test. */
-const RAW_QUALITY_SEED = 70;
+const RAW_QUALITY_SEED = SPECIALIST_RAW_QUALITY_SEED;
 
 /** Synthetic source label for benchmark-driven evidence. */
 const BENCHMARK_SOURCE_LABEL = "L+B Capital Raise Benchmarks v1";

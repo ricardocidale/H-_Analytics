@@ -8,6 +8,7 @@
 import type { Property } from "@workspace/db";
 import { getAnthropicClient } from "../clients";
 import { logger } from "../../logger";
+import { AI_EXEC_SUMMARY_FULL_MAX_TOKENS, AI_EXEC_SUMMARY_SECTION_MAX_TOKENS } from "../../constants";
 import { pct, dollars, getRegulatoryHighlights } from "./finance-helpers";
 import type {
   PropertyExecutiveSummary,
@@ -84,7 +85,7 @@ Rules:
 
     const response = await anthropic.messages.create({
       model: PROPERTY_MODEL,
-      max_tokens: 1500,
+      max_tokens: AI_EXEC_SUMMARY_FULL_MAX_TOKENS,
       messages: [{ role: "user", content: prompt }],
     });
 
@@ -150,7 +151,7 @@ Rules:
 
     const response = await anthropic.messages.create({
       model: PORTFOLIO_MODEL,
-      max_tokens: 1200,
+      max_tokens: AI_EXEC_SUMMARY_SECTION_MAX_TOKENS,
       messages: [{ role: "user", content: prompt }],
     });
 

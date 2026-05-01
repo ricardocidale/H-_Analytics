@@ -8,6 +8,12 @@ import { VALID_USER_ROLES } from "@workspace/db";
 import { UserRole } from "@shared/constants";
 import { z } from "zod";
 import { sendInvitationEmail } from "../../integrations/resend";
+import {
+  HTTP_201_CREATED,
+  HTTP_400_BAD_REQUEST,
+  HTTP_403_FORBIDDEN,
+  HTTP_404_NOT_FOUND,
+} from "../../constants";
 import { logger } from "../../logger";
 import crypto from "crypto";
 
@@ -16,7 +22,7 @@ const roleSchema = z.enum(VALID_USER_ROLES);
 async function guardSuperAdmin(targetId: number, _req: Request, res: Response): Promise<boolean> {
   const target = await storage.getUserById(targetId);
   if (target && target.role === UserRole.SUPER_ADMIN) {
-    res.status(403).json({ error: "Super admin accounts cannot be modified" });
+    res.status(HTTP_403_FORBIDDEN).json({ error: "Super admin accounts cannot be modified" });
     return true;
   }
   return false;
@@ -41,12 +47,12 @@ export function registerUserRoutes(app: Express) {
     try {
       const validation = createUserSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       }
 
       const existingUser = await storage.getUserByEmail(validation.data.email);
       if (existingUser) {
-        return res.status(400).json({ error: "User already exists" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "User already exists" });
       }
 
       const { email, password, role, firstName, lastName, company, title } = validation.data;
@@ -54,7 +60,7 @@ export function registerUserRoutes(app: Express) {
       if (role === UserRole.SUPER_ADMIN) {
         const caller = req.user as { role?: string };
         if (caller.role !== UserRole.SUPER_ADMIN) {
-          return res.status(403).json({ error: "Only super admins can create super admin accounts" });
+          return res.status(HTTP_403_FORBIDDEN).json({ error: "Only super admins can create super admin accounts" });
         }
       }
 
@@ -71,7 +77,7 @@ export function registerUserRoutes(app: Express) {
       });
 
       logActivity(req, "create-user", "user", user.id, email, { role });
-      res.status(201).json(userResponse(user));
+      res.status(HTTP_201_CREATED).json(userResponse(user));
     } catch (error: unknown) {
       logAndSendError(res, "Failed to create user", error);
     }
@@ -94,20 +100,20 @@ export function registerUserRoutes(app: Express) {
       if (await guardSuperAdmin(id, req, res)) return;
       const parsed = updateUserSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
       }
       const { email, firstName, lastName, company, title, role, canManageScenarios } = parsed.data;
 
       if (role !== undefined) {
         const roleResult = roleSchema.safeParse(role);
         if (!roleResult.success) {
-          return res.status(400).json({ error: `Invalid role. Must be one of: ${VALID_USER_ROLES.join(", ")}` });
+          return res.status(HTTP_400_BAD_REQUEST).json({ error: `Invalid role. Must be one of: ${VALID_USER_ROLES.join(", ")}` });
         }
         if (role === UserRole.SUPER_ADMIN && getAuthUser(req).role !== UserRole.SUPER_ADMIN) {
-          return res.status(403).json({ error: "Only a super admin can assign the super admin role" });
+          return res.status(HTTP_403_FORBIDDEN).json({ error: "Only a super admin can assign the super admin role" });
         }
         if (id === getAuthUser(req).id) {
-          return res.status(400).json({ error: "You cannot change your own role" });
+          return res.status(HTTP_400_BAD_REQUEST).json({ error: "You cannot change your own role" });
         }
       }
 
@@ -115,7 +121,7 @@ export function registerUserRoutes(app: Express) {
         const cleanEmail = sanitizeEmail(email);
         const existing = await storage.getUserByEmail(cleanEmail);
         if (existing && existing.id !== id) {
-          return res.status(400).json({ error: "Email already in use by another user" });
+          return res.status(HTTP_400_BAD_REQUEST).json({ error: "Email already in use by another user" });
         }
       }
 
@@ -147,18 +153,18 @@ export function registerUserRoutes(app: Express) {
       const { role } = req.body;
       const roleResult = roleSchema.safeParse(role);
       if (!roleResult.success) {
-        return res.status(400).json({ error: `Invalid role. Must be one of: ${VALID_USER_ROLES.join(", ")}` });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: `Invalid role. Must be one of: ${VALID_USER_ROLES.join(", ")}` });
       }
 
       const id = parseParamId(req.params.id, res, "user ID");
       if (id === null) return;
       if (await guardSuperAdmin(id, req, res)) return;
       if (roleResult.data === UserRole.SUPER_ADMIN && getAuthUser(req).role !== UserRole.SUPER_ADMIN) {
-        return res.status(403).json({ error: "Only a super admin can assign the super admin role" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Only a super admin can assign the super admin role" });
       }
 
       if (id === getAuthUser(req).id) {
-        return res.status(400).json({ error: "You cannot change your own role" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "You cannot change your own role" });
       }
 
       await storage.updateUserRole(id, roleResult.data);
@@ -175,7 +181,7 @@ export function registerUserRoutes(app: Express) {
       if (id === null) return;
       if (await guardSuperAdmin(id, req, res)) return;
       if (id === getAuthUser(req).id) {
-        return res.status(400).json({ error: "You cannot delete yourself" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "You cannot delete yourself" });
       }
 
       await storage.deleteUser(id);
@@ -193,12 +199,12 @@ export function registerUserRoutes(app: Express) {
       if (await guardSuperAdmin(id, req, res)) return;
       const parsed = z.object({ password: z.string().min(6) }).safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
       }
       const { password } = parsed.data;
       const pwValidationResult = validatePassword(password);
       if (!pwValidationResult.valid) {
-        return res.status(400).json({ error: pwValidationResult.message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: pwValidationResult.message });
       }
       const passwordHash = await hashPassword(password);
       await storage.updateUserPassword(id, passwordHash);
@@ -215,7 +221,7 @@ export function registerUserRoutes(app: Express) {
       if (id === null) return;
       const parsed = z.object({ themeId: z.number().nullable() }).safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
       }
       const { themeId } = parsed.data;
       await storage.updateUserSelectedTheme(id, themeId ?? null);
@@ -236,7 +242,7 @@ export function registerUserRoutes(app: Express) {
     try {
       const validation = invitationSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       }
 
       const { emails, role, message } = validation.data;

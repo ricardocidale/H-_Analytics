@@ -2,6 +2,7 @@ import { type Express } from "express";
 import { storage } from "../../storage";
 import { requireAdmin , getAuthUser } from "../../auth";
 import { logAndSendError, logActivity, parseParamId } from "../helpers";
+import { PG_UNIQUE_VIOLATION_CODE } from "../../constants";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error/v3";
 import { updateScenarioSchema } from "@workspace/db";
@@ -225,7 +226,7 @@ export function registerAdminScenarioRoutes(app: Express) {
       logActivity(req, "admin-grant-scenario-access", "scenario", id, existing.name, { targetType, targetId });
       res.status(201).json(share);
     } catch (error: unknown) {
-      if (typeof error === "object" && error !== null && "code" in error && (error as { code: string }).code === "23505") {
+      if (typeof error === "object" && error !== null && "code" in error && (error as { code: string }).code === PG_UNIQUE_VIOLATION_CODE) {
         return res.status(409).json({ error: "This access grant already exists" });
       }
       logAndSendError(res, "Failed to add scenario access", error);

@@ -16,6 +16,13 @@ import { getAnthropicClient, getOpenAIClient, getGeminiClient } from "../ai/clie
 import { DEFAULT_RESEARCH_MODEL } from "../ai/resolve-llm";
 import { computeConfidenceBreakdown, computePerFieldConfidence } from "../ai/confidence-scorer";
 import type { IcpConfig } from "@workspace/db";
+import {
+  HTTP_201_CREATED,
+  HTTP_400_BAD_REQUEST,
+  HTTP_403_FORBIDDEN,
+  HTTP_404_NOT_FOUND,
+  HTTP_502_BAD_GATEWAY,
+} from "../constants";
 
 const VALID_ENTITY_TYPES = ["property", "company"] as const;
 type EntityType = typeof VALID_ENTITY_TYPES[number];
@@ -58,15 +65,15 @@ export function register(app: Express) {
   app.get("/api/guidance/coverage/:entityType/:entityId", requireAuth, async (req, res) => {
     try {
       const params = entityParamsSchema.safeParse(req.params);
-      if (!params.success) return res.status(400).json({ error: fromZodError(params.error as any).message });
+      if (!params.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(params.error as any).message });
 
       const { entityType, entityId } = params.data;
       if (!(await checkEntityAccess(getAuthUser(req), entityType, entityId))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
 
       const query = guidanceQuerySchema.safeParse(req.query);
-      if (!query.success) return res.status(400).json({ error: fromZodError(query.error as any).message });
+      if (!query.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(query.error as any).message });
 
       const scenarioId = query.data.scenarioId ?? null;
       const guidance = await storage.getAssumptionGuidance(scenarioId, entityType, entityId);
@@ -96,15 +103,15 @@ export function register(app: Express) {
   app.get("/api/guidance/:entityType/:entityId", requireAuth, async (req, res) => {
     try {
       const params = entityParamsSchema.safeParse(req.params);
-      if (!params.success) return res.status(400).json({ error: fromZodError(params.error as any).message });
+      if (!params.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(params.error as any).message });
 
       const { entityType, entityId } = params.data;
       if (!(await checkEntityAccess(getAuthUser(req), entityType, entityId))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
 
       const query = guidanceQuerySchema.safeParse(req.query);
-      if (!query.success) return res.status(400).json({ error: fromZodError(query.error as any).message });
+      if (!query.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(query.error as any).message });
 
       const scenarioId = query.data.scenarioId ?? null;
       const guidance = await storage.getAssumptionGuidance(scenarioId, entityType, entityId);
@@ -132,15 +139,15 @@ export function register(app: Express) {
   app.get("/api/guidance/:entityType/:entityId/confidence", requireAuth, async (req, res) => {
     try {
       const params = entityParamsSchema.safeParse(req.params);
-      if (!params.success) return res.status(400).json({ error: fromZodError(params.error as any).message });
+      if (!params.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(params.error as any).message });
 
       const { entityType, entityId } = params.data;
       if (!(await checkEntityAccess(getAuthUser(req), entityType, entityId))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
 
       const query = guidanceQuerySchema.safeParse(req.query);
-      if (!query.success) return res.status(400).json({ error: fromZodError(query.error as any).message });
+      if (!query.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(query.error as any).message });
 
       const scenarioId = query.data.scenarioId ?? null;
       const guidance = await storage.getAssumptionGuidance(scenarioId, entityType, entityId);
@@ -155,16 +162,16 @@ export function register(app: Express) {
   app.get("/api/guidance/:entityType/:entityId/:assumptionKey", requireAuth, async (req, res) => {
     try {
       const params = entityParamsSchema.safeParse(req.params);
-      if (!params.success) return res.status(400).json({ error: fromZodError(params.error as any).message });
+      if (!params.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(params.error as any).message });
 
       const { entityType, entityId } = params.data;
       const assumptionKey = String(req.params.assumptionKey);
       if (!(await checkEntityAccess(getAuthUser(req), entityType, entityId))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
 
       const query = guidanceQuerySchema.safeParse(req.query);
-      if (!query.success) return res.status(400).json({ error: fromZodError(query.error as any).message });
+      if (!query.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(query.error as any).message });
 
       const scenarioId = query.data.scenarioId ?? null;
       const guidance = await storage.getAssumptionGuidance(scenarioId, entityType, entityId);
@@ -185,17 +192,17 @@ export function register(app: Express) {
   app.post("/api/guidance/decision", requireAuth, async (req, res) => {
     try {
       const validation = guidanceDecisionSchema.safeParse(req.body);
-      if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error as any).message });
+      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
 
       const { assumptionGuidanceId, action, previousValue, newValue } = validation.data;
       const user = getAuthUser(req);
 
       const guidanceRecord = await storage.getAssumptionGuidanceById(assumptionGuidanceId);
       if (!guidanceRecord) {
-        return res.status(404).json({ error: "Guidance record not found" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "Guidance record not found" });
       }
       if (!(await checkEntityAccess(user, guidanceRecord.entityType as EntityType, guidanceRecord.entityId))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
 
       const decision = await storage.createGuidanceDecision({
@@ -226,7 +233,7 @@ export function register(app: Express) {
       }
 
       logActivity(req, "guidance-decision", "guidance", assumptionGuidanceId, action);
-      res.status(201).json(decision);
+      res.status(HTTP_201_CREATED).json(decision);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to record guidance decision", error);
     }
@@ -235,11 +242,11 @@ export function register(app: Express) {
   app.get("/api/research/runs", requireAuth, async (req, res) => {
     try {
       const query = researchRunsQuerySchema.safeParse(req.query);
-      if (!query.success) return res.status(400).json({ error: fromZodError(query.error as any).message });
+      if (!query.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(query.error as any).message });
 
       const { entityType, entityId } = query.data;
       if (!(await checkEntityAccess(getAuthUser(req), entityType, entityId))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
 
       const runs = await storage.getResearchRuns(entityType, entityId);
@@ -260,13 +267,13 @@ export function register(app: Express) {
     try {
       const parsed = tier2Schema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
       }
       const { entityType, entityId, assumptionKeys, scenarioId } = parsed.data;
       const user = getAuthUser(req);
 
       if (!(await checkEntityAccess(user, entityType, entityId))) {
-        return res.status(403).json({ error: `${entityType} access denied` });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: `${entityType} access denied` });
       }
 
       const ga = await storage.getGlobalAssumptions(user.id);
@@ -282,7 +289,7 @@ export function register(app: Express) {
 
       if (entityType === "property") {
         const property = await storage.getProperty(entityId);
-        if (!property) return res.status(404).json({ error: "Property not found" });
+        if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
         const icpConfig = (ga?.icpConfig as IcpConfig) ?? null;
         const contextPack = buildPropertyContextPack(property, ga ?? null, icpConfig);
         v2Prompt = assembleResearchPrompt(contextPack, {
@@ -316,7 +323,7 @@ export function register(app: Express) {
       }
 
       if (!v2Prompt) {
-        return res.status(400).json({ error: "Could not build context for deep-dive" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Could not build context for deep-dive" });
       }
 
       const modelId = DEFAULT_RESEARCH_MODEL;
@@ -359,7 +366,7 @@ export function register(app: Express) {
           durationMs: Date.now() - startTime,
           error: "AI research did not return valid JSON",
         });
-        return res.status(502).json({ error: "AI research did not return valid JSON" });
+        return res.status(HTTP_502_BAD_GATEWAY).json({ error: "AI research did not return valid JSON" });
       }
 
       const guidanceResult = extractGuidance(researchResult as Record<string, unknown>, 2, entityType);

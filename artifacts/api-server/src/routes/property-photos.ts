@@ -10,6 +10,14 @@ import { processExistingPhoto, processImage } from "../image/pipeline";
 import { logger } from "../logger";
 import { isApiRateLimited } from "../auth";
 import { isAutoEnhanceEnabled } from "../integrations/replicate";
+import {
+  HTTP_201_CREATED,
+  HTTP_204_NO_CONTENT,
+  HTTP_400_BAD_REQUEST,
+  HTTP_403_FORBIDDEN,
+  HTTP_404_NOT_FOUND,
+  HTTP_429_TOO_MANY_REQUESTS,
+} from "../constants";
 
 async function autoEnhancePhoto(photoId: number, imageUrl: string, imageDataBase64: string | null, propertyId?: number) {
   let sourceBuffer: Buffer;
@@ -92,13 +100,13 @@ export function register(app: Express) {
   app.get("/api/property-photos/:id/image", requireAuth, async (req, res) => {
     try {
       const photoId = parseRouteId(req.params.id);
-      if (!photoId) return res.status(400).json({ error: "Invalid photo ID" });
+      if (!photoId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid photo ID" });
       const photo = await storage.getPhotoById(photoId);
       if (!photo) {
-        return res.status(404).json({ error: "Photo not found" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "Photo not found" });
       }
       if (!(await checkPropertyAccess(getAuthUser(req), photo.propertyId))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
       if (photo.imageUrl?.startsWith("/objects/")) {
         return res.redirect(302, photo.imageUrl);
@@ -112,7 +120,7 @@ export function register(app: Express) {
         });
         return res.send(buffer);
       }
-      return res.status(404).json({ error: "Image not found" });
+      return res.status(HTTP_404_NOT_FOUND).json({ error: "Image not found" });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to serve photo", error);
     }
@@ -122,9 +130,9 @@ export function register(app: Express) {
   app.get("/api/properties/:id/photos", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
-      if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });
+      if (!propertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
       const photos = await storage.getPropertyPhotos(propertyId);
       res.json(photos);
@@ -137,10 +145,10 @@ export function register(app: Express) {
   app.post("/api/properties/:id/photos", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
-      if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });
+      if (!propertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
       const property = await checkPropertyAccess(getAuthUser(req), propertyId);
       if (!property) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
 
       const parsed = insertPropertyPhotoSchema.safeParse({
@@ -148,7 +156,7 @@ export function register(app: Express) {
         propertyId,
       });
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
       }
 
       const photo = await storage.addPropertyPhoto(parsed.data);
@@ -182,7 +190,7 @@ export function register(app: Express) {
         }
       })();
 
-      res.status(201).json(photo);
+      res.status(HTTP_201_CREATED).json(photo);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to add property photo", error);
     }
@@ -193,22 +201,22 @@ export function register(app: Express) {
     try {
       const propertyId = parseRouteId(req.params.id);
       const photoId = parseRouteId(req.params.photoId);
-      if (!propertyId || !photoId) return res.status(400).json({ error: "Invalid ID" });
+      if (!propertyId || !photoId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
       const parsed = updatePropertyPhotoSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
       }
 
       const existingPhoto = await storage.getPhotoById(photoId);
       if (!existingPhoto || existingPhoto.propertyId !== propertyId) {
-        return res.status(404).json({ error: "Photo not found for this property" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "Photo not found for this property" });
       }
 
       const photo = await storage.updatePropertyPhoto(photoId, parsed.data);
-      if (!photo) return res.status(404).json({ error: "Photo not found" });
+      if (!photo) return res.status(HTTP_404_NOT_FOUND).json({ error: "Photo not found" });
       res.json(photo);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update property photo", error);
@@ -219,23 +227,23 @@ export function register(app: Express) {
     try {
       const propertyId = parseRouteId(req.params.id);
       const photoId = parseRouteId(req.params.photoId);
-      if (!propertyId || !photoId) return res.status(400).json({ error: "Invalid ID" });
+      if (!propertyId || !photoId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
       const existingPhoto = await storage.getPhotoById(photoId);
       if (!existingPhoto || existingPhoto.propertyId !== propertyId) {
-        return res.status(404).json({ error: "Photo not found for this property" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "Photo not found for this property" });
       }
 
       const photos = await storage.getPropertyPhotos(propertyId);
       const user = getAuthUser(req);
       if (photos.length <= 1 && user.role !== "admin") {
-        return res.status(403).json({ error: "Cannot delete the last photo — admin required" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Cannot delete the last photo — admin required" });
       }
 
       await storage.deletePropertyPhoto(photoId);
-      res.status(204).send();
+      res.status(HTTP_204_NO_CONTENT).send();
     } catch (error: unknown) {
       logAndSendError(res, "Failed to delete property photo", error);
     }
@@ -246,9 +254,9 @@ export function register(app: Express) {
     try {
       const propertyId = parseRouteId(req.params.id);
       const photoId = parseRouteId(req.params.photoId);
-      if (!propertyId || !photoId) return res.status(400).json({ error: "Invalid ID" });
+      if (!propertyId || !photoId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
       await storage.setHeroPhoto(propertyId, photoId);
       res.json({ success: true });
@@ -261,14 +269,14 @@ export function register(app: Express) {
   app.put("/api/properties/:id/photos/reorder", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
-      if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });
+      if (!propertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
       const schema = z.object({ orderedIds: z.array(z.number()) });
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
       }
 
       await storage.reorderPhotos(propertyId, parsed.data.orderedIds);
@@ -282,10 +290,10 @@ export function register(app: Express) {
   app.post("/api/properties/:id/photos/move", requireAdmin, async (req, res) => {
     try {
       const sourcePropertyId = parseRouteId(req.params.id);
-      if (!sourcePropertyId) return res.status(400).json({ error: "Invalid property ID" });
+      if (!sourcePropertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
       const user = getAuthUser(req);
       if (!(await checkPropertyAccess(user, sourcePropertyId))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
 
       const schema = z.object({
@@ -295,22 +303,22 @@ export function register(app: Express) {
       });
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
       }
       const { photoIds, destinationPropertyId, mode } = parsed.data;
 
       if (destinationPropertyId === sourcePropertyId) {
-        return res.status(400).json({ error: "Destination must be a different property" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Destination must be a different property" });
       }
       if (!(await checkPropertyAccess(user, destinationPropertyId))) {
-        return res.status(403).json({ error: "Access denied to destination property" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied to destination property" });
       }
 
       // Ensure all photo ids actually belong to source
       for (const pid of photoIds) {
         const p = await storage.getPhotoById(pid);
         if (!p || p.propertyId !== sourcePropertyId) {
-          return res.status(400).json({ error: `Photo ${pid} does not belong to source property` });
+          return res.status(HTTP_400_BAD_REQUEST).json({ error: `Photo ${pid} does not belong to source property` });
         }
       }
 
@@ -329,16 +337,16 @@ export function register(app: Express) {
   app.get("/api/property-photos/:id/enhanced-image", requireAuth, async (req, res) => {
     try {
       const photoId = parseRouteId(req.params.id);
-      if (!photoId) return res.status(400).json({ error: "Invalid photo ID" });
+      if (!photoId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid photo ID" });
       const photo = await storage.getPhotoById(photoId);
       if (!photo) {
-        return res.status(404).json({ error: "Photo not found" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "Photo not found" });
       }
       if (!(await checkPropertyAccess(getAuthUser(req), photo.propertyId))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
       if (!photo.enhancedImageData) {
-        return res.status(404).json({ error: "Enhanced image not found" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "Enhanced image not found" });
       }
       const buffer = Buffer.from(photo.enhancedImageData, "base64");
       res.set({
@@ -355,17 +363,17 @@ export function register(app: Express) {
   app.get("/api/property-photos/:id/enhanced-preview", requireAuth, async (req, res) => {
     try {
       const photoId = parseRouteId(req.params.id);
-      if (!photoId) return res.status(400).json({ error: "Invalid photo ID" });
+      if (!photoId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid photo ID" });
       const pending = pendingEnhancements.get(photoId);
       if (!pending) {
-        return res.status(404).json({ error: "No pending enhancement preview" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "No pending enhancement preview" });
       }
       const photo = await storage.getPhotoById(photoId);
       if (!photo) {
-        return res.status(404).json({ error: "Photo not found" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "Photo not found" });
       }
       if (!(await checkPropertyAccess(getAuthUser(req), photo.propertyId))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
       const buffer = Buffer.from(pending, "base64");
       res.set({
@@ -382,20 +390,20 @@ export function register(app: Express) {
   app.post("/api/property-photos/:id/enhance", requireAuth, async (req, res) => {
     try {
       const photoId = parseRouteId(req.params.id);
-      if (!photoId) return res.status(400).json({ error: "Invalid photo ID" });
+      if (!photoId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid photo ID" });
       const user = getAuthUser(req);
 
       if (isApiRateLimited(user.id, "enhance-photo", 3)) {
-        return res.status(429).json({ error: "Rate limit exceeded. Try again in a minute." });
+        return res.status(HTTP_429_TOO_MANY_REQUESTS).json({ error: "Rate limit exceeded. Try again in a minute." });
       }
 
       const photo = await storage.getPhotoById(photoId);
       if (!photo) {
-        return res.status(404).json({ error: "Photo not found" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "Photo not found" });
       }
 
       if (!(await checkPropertyAccess(user, photo.propertyId))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
 
       // ── Test-mode bypass (opt-in via env) ───────────────────────────
@@ -431,11 +439,11 @@ export function register(app: Express) {
         } else if (photo.imageUrl.startsWith("http")) {
           const imgRes = await fetchWithTimeout(photo.imageUrl, undefined, 30_000);
           if (!imgRes.ok) {
-            return res.status(400).json({ error: "Failed to fetch source image" });
+            return res.status(HTTP_400_BAD_REQUEST).json({ error: "Failed to fetch source image" });
           }
           sourceBuffer = Buffer.from(await imgRes.arrayBuffer());
         } else {
-          return res.status(400).json({ error: "Cannot resolve source image for enhancement" });
+          return res.status(HTTP_400_BAD_REQUEST).json({ error: "Cannot resolve source image for enhancement" });
         }
 
         const sharp = (await import("sharp")).default;
@@ -478,21 +486,21 @@ export function register(app: Express) {
   app.post("/api/property-photos/:id/enhance/accept", requireAuth, async (req, res) => {
     try {
       const photoId = parseRouteId(req.params.id);
-      if (!photoId) return res.status(400).json({ error: "Invalid photo ID" });
+      if (!photoId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid photo ID" });
       const user = getAuthUser(req);
 
       const photo = await storage.getPhotoById(photoId);
       if (!photo) {
-        return res.status(404).json({ error: "Photo not found" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "Photo not found" });
       }
 
       if (!(await checkPropertyAccess(user, photo.propertyId))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
 
       const pending = pendingEnhancements.get(photoId);
       if (!pending) {
-        return res.status(404).json({ error: "No pending enhancement to accept" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "No pending enhancement to accept" });
       }
 
       const enhancedBuffer = Buffer.from(pending, "base64");
@@ -522,16 +530,16 @@ export function register(app: Express) {
   app.post("/api/property-photos/:id/enhance/reject", requireAuth, async (req, res) => {
     try {
       const photoId = parseRouteId(req.params.id);
-      if (!photoId) return res.status(400).json({ error: "Invalid photo ID" });
+      if (!photoId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid photo ID" });
       const user = getAuthUser(req);
 
       const photo = await storage.getPhotoById(photoId);
       if (!photo) {
-        return res.status(404).json({ error: "Photo not found" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "Photo not found" });
       }
 
       if (!(await checkPropertyAccess(user, photo.propertyId))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
 
       pendingEnhancements.delete(photoId);
@@ -544,15 +552,15 @@ export function register(app: Express) {
   app.delete("/api/property-photos/:id/enhanced", requireAuth, async (req, res) => {
     try {
       const photoId = parseRouteId(req.params.id);
-      if (!photoId) return res.status(400).json({ error: "Invalid photo ID" });
+      if (!photoId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid photo ID" });
       const photo = await storage.getPhotoById(photoId);
       if (!photo) {
-        return res.status(404).json({ error: "Photo not found" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "Photo not found" });
       }
 
       const user = getAuthUser(req);
       if (!(await checkPropertyAccess(user, photo.propertyId))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
 
       await storage.updatePropertyPhoto(photoId, { enhancedImageData: null });

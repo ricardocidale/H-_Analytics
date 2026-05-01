@@ -20,6 +20,7 @@ import { z } from "zod";
 import { fromZodError } from "zod-validation-error/v3";
 import { requireAdmin } from "../../auth";
 import { logAndSendError, parseRouteId } from "../helpers";
+import { PG_UNIQUE_VIOLATION_CODE } from "../../constants";
 import { referenceRangeStorage } from "../../storage/reference-range";
 import {
   REFERENCE_RANGE_DOMAINS,
@@ -69,8 +70,8 @@ function isUniqueViolation(err: unknown): boolean {
   return (
     typeof err === "object" &&
     err !== null &&
-    ((err as { code?: string }).code === "23505" ||
-      ((err as { cause?: { code?: string } }).cause?.code === "23505"))
+    ((err as { code?: string }).code === PG_UNIQUE_VIOLATION_CODE ||
+      ((err as { cause?: { code?: string } }).cause?.code === PG_UNIQUE_VIOLATION_CODE))
   );
 }
 

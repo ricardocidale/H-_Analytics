@@ -32,6 +32,7 @@
 
 import { getAnthropicClient, normalizeModelId } from "./clients";
 import { GroundedResearchService } from "../services/GroundedResearchService";
+import { AI_REGEN_CONSTANTS_MAX_TOKENS } from "../constants";
 import { MODEL_CONSTANTS_REGISTRY, getFactoryValue } from "@shared/model-constants-registry";
 import { getEffectiveConstant } from "@shared/get-effective-constant";
 import type { ModelConstantOverride } from "@workspace/db";
@@ -561,7 +562,7 @@ export async function proposeConstantRegeneration(args: {
   const anthropic = getAnthropicClient();
   const completion = await anthropic.messages.create({
     model: ANALYST_MODEL,
-    max_tokens: 1024,
+    max_tokens: AI_REGEN_CONSTANTS_MAX_TOKENS,
     system: buildSystemPrompt(),
     messages: [
       {

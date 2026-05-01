@@ -202,27 +202,29 @@ This skill is enforced by a two-layer gate. Both layers must stay healthy — th
 
 ### Layer 1 — Cross-file duplication ratchet (the hard gate)
 
-ESLint cannot see across files, which is exactly where the worst failure mode lives. The script `script/check-magic-numbers.ts` walks `calc/`, `engine/`, `server/`, `shared/` and groups every numeric literal by the set of files it appears in. Any value that appears in `>= 4` distinct files is a "duplication suspect"; the script then ratchets the current state against the snapshot at `tests/audit/_magic-numbers-baseline.json`.
+ESLint cannot see across files, which is exactly where the worst failure mode lives. The script `scripts/src/check-magic-numbers.ts` walks `lib/calc/src`, `lib/engine/src`, `lib/shared/src`, `lib/domain/src`, `lib/analytics/src`, and `artifacts/api-server/src` (excluding migrations) and groups every numeric literal by the set of files it appears in. Any value that appears in `>= 4` distinct files (after content-hash deduplication for identical mirror files) is a "duplication suspect"; the script then ratchets the current state against the snapshot at `scripts/src/_magic-numbers-baseline.json`.
 
 The ratchet **fails** when:
 
 - A value already in the baseline appears in MORE files than baseline (someone added a new occurrence of an already-known magic number).
 - A brand-new value crosses the duplication threshold (someone introduced a fresh cross-file duplication).
 
-It does **not** fail on improvements (a baseline value's file-count shrank). After an intentional cleanup, re-snapshot with `tsx script/check-magic-numbers.ts --init` to lock in the gain.
+It does **not** fail on improvements (a baseline value's file-count shrank). After an intentional cleanup, re-snapshot with `--init` to lock in the gain.
+
+Note: test files (`.test.ts`, `.spec.ts`, etc.) are excluded — test fixture values are assertions, not production magic numbers.
 
 Common commands:
 
 | Goal | Command |
 |------|---------|
-| Default ratchet check (used by tests, CI, the workflow) | `tsx script/check-magic-numbers.ts` |
-| Show every duplication, no baseline check | `tsx script/check-magic-numbers.ts --show` |
-| Re-snapshot the baseline after a cleanup | `tsx script/check-magic-numbers.ts --init` |
-| Fail on ANY duplication (aspirational, when baseline reaches 0) | `tsx script/check-magic-numbers.ts --strict` |
+| Default ratchet check (CI gate) | `scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts` |
+| Show every duplication, no baseline check | `scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts --show` |
+| Re-snapshot the baseline after a cleanup | `scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts --init` |
+| Fail on ANY duplication (aspirational, when baseline reaches 0) | `scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts --strict` |
 
 The ratchet is wired into:
 
-- The **Magic Numbers Check** workflow (run from the workflow pane or via `tsx script/check-magic-numbers.ts`).
+- The **Magic Numbers Check** workflow (run from the workflow pane or via the command above).
 - `script/audit-quick.ts` as a critical finding labelled "Magic-numbers ratchet".
 - `tests/audit/no-magic-numbers.test.ts`, which runs in the regular vitest suite (`npm run test:summary`).
 

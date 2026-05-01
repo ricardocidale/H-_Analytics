@@ -39,6 +39,14 @@ import { backfillCatalogConnections, syncSpecialistCatalog } from "../../jobs/ca
 import { logger } from "../../logger";
 import { runProbe } from "../../jobs/probes";
 import type { ResourceKind } from "@workspace/db";
+import {
+  HTTP_201_CREATED,
+  HTTP_204_NO_CONTENT,
+  HTTP_400_BAD_REQUEST,
+  HTTP_404_NOT_FOUND,
+  HTTP_409_CONFLICT,
+  HTTP_429_TOO_MANY_REQUESTS,
+} from "../../constants";
 
 const updateResourceSchema = z.object({
   displayName: z.string().min(1).optional(),
@@ -66,7 +74,7 @@ export function registerAdminResourceRoutes(app: Express) {
     try {
       const parsed = listQuerySchema.safeParse(req.query);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
       }
       const rows = await storage.listAdminResources(parsed.data.kind);
       // Wrap in an arrow so Array.map's `index` arg doesn't bind to `now`.
@@ -81,7 +89,7 @@ export function registerAdminResourceRoutes(app: Express) {
     try {
       const { id } = idParamSchema.parse(req.params);
       const row = await storage.getAdminResourceById(id);
-      if (!row) return res.status(404).json({ error: "Resource not found" });
+      if (!row) return res.status(HTTP_404_NOT_FOUND).json({ error: "Resource not found" });
       res.json(toResourcePublicView(row));
     } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch admin resource", error);
@@ -93,12 +101,12 @@ export function registerAdminResourceRoutes(app: Express) {
     try {
       const parsed = insertAdminResourceSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
       }
       // Reject duplicates explicitly (cleaner than catching the unique-index error).
       const existing = await storage.getAdminResourceBySlug(parsed.data.kind, parsed.data.slug);
       if (existing) {
-        return res.status(409).json({ error: `Resource ${parsed.data.kind}/${parsed.data.slug} already exists` });
+        return res.status(HTTP_409_CONFLICT).json({ error: `Resource ${parsed.data.kind}/${parsed.data.slug} already exists` });
       }
       const actorId = req.user!.id;
       const row = await storage.createAdminResource(parsed.data, actorId);
@@ -115,7 +123,7 @@ export function registerAdminResourceRoutes(app: Express) {
         );
       }
       logActivity(req, "create-admin-resource", "admin_resource", row.id, `${row.kind}/${row.slug}`);
-      res.status(201).json(toResourcePublicView(row));
+      res.status(HTTP_201_CREATED).json(toResourcePublicView(row));
     } catch (error: unknown) {
       logAndSendError(res, "Failed to create admin resource", error);
     }
@@ -127,11 +135,11 @@ export function registerAdminResourceRoutes(app: Express) {
       const { id } = idParamSchema.parse(req.params);
       const parsed = updateResourceSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
       }
       const actorId = req.user!.id;
       const row = await storage.updateAdminResource(id, parsed.data, actorId);
-      if (!row) return res.status(404).json({ error: "Resource not found" });
+      if (!row) return res.status(HTTP_404_NOT_FOUND).json({ error: "Resource not found" });
       const impact = await storage.listResourceImpact(id);
       logActivity(req, "update-admin-resource", "admin_resource", id, `v${row.version}`);
       res.json({ resource: toResourcePublicView(row), impact });
@@ -146,12 +154,12 @@ export function registerAdminResourceRoutes(app: Express) {
       const { id } = idParamSchema.parse(req.params);
       const parsed = rollbackSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
       }
       const actorId = req.user!.id;
       const row = await storage.rollbackAdminResource(id, parsed.data.targetVersion, actorId);
       if (!row) {
-        return res.status(404).json({ error: "Resource or target version not found" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "Resource or target version not found" });
       }
       logActivity(req, "rollback-admin-resource", "admin_resource", id, `to v${parsed.data.targetVersion}`);
       res.json(toResourcePublicView(row));
@@ -165,9 +173,9 @@ export function registerAdminResourceRoutes(app: Express) {
     try {
       const { id } = idParamSchema.parse(req.params);
       const ok = await storage.deleteAdminResource(id);
-      if (!ok) return res.status(404).json({ error: "Resource not found" });
+      if (!ok) return res.status(HTTP_404_NOT_FOUND).json({ error: "Resource not found" });
       logActivity(req, "delete-admin-resource", "admin_resource", id);
-      res.status(204).end();
+      res.status(HTTP_204_NO_CONTENT).end();
     } catch (error: unknown) {
       logAndSendError(res, "Failed to delete admin resource", error);
     }
@@ -213,7 +221,7 @@ export function registerAdminResourceRoutes(app: Express) {
     try {
       const { id } = idParamSchema.parse(req.params);
       const view = await storage.getResourceHealthView(id);
-      if (!view) return res.status(404).json({ error: "Resource not found" });
+      if (!view) return res.status(HTTP_404_NOT_FOUND).json({ error: "Resource not found" });
       res.json({
         ...view,
         lastChecked: view.lastChecked ? view.lastChecked.toISOString() : null,
@@ -253,7 +261,7 @@ export function registerAdminResourceRoutes(app: Express) {
     try {
       const { id } = idParamSchema.parse(req.params);
       const row = await storage.getAdminResourceById(id);
-      if (!row) return res.status(404).json({ error: "Resource not found" });
+      if (!row) return res.status(HTTP_404_NOT_FOUND).json({ error: "Resource not found" });
 
       const actorId = req.user!.id;
       const kind = row.kind as ResourceKind;
@@ -261,7 +269,7 @@ export function registerAdminResourceRoutes(app: Express) {
       if (limited) {
         // Audit the throttled attempt too — every Test press leaves a trace.
         logActivity(req, "test-admin-resource-throttled", "admin_resource", id, `${row.kind}/${row.slug}`);
-        return res.status(429).json({
+        return res.status(HTTP_429_TOO_MANY_REQUESTS).json({
           error: "Rate limit exceeded for Test on this resource. Try again in a minute.",
         });
       }
@@ -314,7 +322,7 @@ export function registerAdminResourceRoutes(app: Express) {
     try {
       const parsed = breakGlassListQuery.safeParse(req.query);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
       }
       const rows = await storage.listBreakGlassOverrides(parsed.data.specialistId);
       res.json(rows);
@@ -327,11 +335,11 @@ export function registerAdminResourceRoutes(app: Express) {
     try {
       const parsed = breakGlassCreateBody.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
       }
       const actorId = req.user!.id;
       if (parsed.data.expiresAt.getTime() <= Date.now()) {
-        return res.status(400).json({ error: "expiresAt must be in the future" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "expiresAt must be in the future" });
       }
       const row = await storage.createBreakGlassOverride({
         specialistId: parsed.data.specialistId,
@@ -345,7 +353,7 @@ export function registerAdminResourceRoutes(app: Express) {
       });
       logActivity(req, "create-break-glass-override", "break_glass", row.id,
         `${row.specialistId} ${row.assignmentKind}/${row.assignmentSlug}`);
-      res.status(201).json(row);
+      res.status(HTTP_201_CREATED).json(row);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to create break-glass override", error);
     }
@@ -356,7 +364,7 @@ export function registerAdminResourceRoutes(app: Express) {
       const { id } = idParamSchema.parse(req.params);
       const actorId = req.user!.id;
       const row = await storage.revokeBreakGlassOverride(id, actorId);
-      if (!row) return res.status(404).json({ error: "Override not found" });
+      if (!row) return res.status(HTTP_404_NOT_FOUND).json({ error: "Override not found" });
       logActivity(req, "revoke-break-glass-override", "break_glass", id);
       res.json(row);
     } catch (error: unknown) {

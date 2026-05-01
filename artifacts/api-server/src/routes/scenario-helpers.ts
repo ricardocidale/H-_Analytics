@@ -12,6 +12,7 @@ import type {
 import { computeFullDiff, reconstructScenarioProperties } from "../scenarios/diff-engine";
 import { computePortfolioProjection } from "../finance/service";
 import { applyModelConstantsToGlobals } from "../finance/apply-model-constants";
+import { PG_UNIQUE_VIOLATION_CODE } from "../constants";
 import type { ModelConstantOverride } from "@workspace/db";
 import { logger } from "../logger";
 
@@ -121,7 +122,7 @@ export async function ensureDefaultScenario(userId: number): Promise<void> {
 
     logger.info(`Created default scenario "${name}" (id=${scenario.id}) for userId=${userId}`, "scenario");
   } catch (err: unknown) {
-    if ((err as Record<string, unknown>)?.code === "23505") {
+    if ((err as Record<string, unknown>)?.code === PG_UNIQUE_VIOLATION_CODE) {
       logger.info(`Default scenario already exists for userId=${userId} (concurrent creation)`, "scenario");
       return;
     }

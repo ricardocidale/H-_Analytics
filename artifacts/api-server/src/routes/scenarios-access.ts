@@ -17,22 +17,28 @@ import {
   determineDriftStatus,
   buildDriftCheckResponse,
 } from "./scenario-helpers";
+import {
+  HTTP_201_CREATED,
+  HTTP_400_BAD_REQUEST,
+  HTTP_403_FORBIDDEN,
+  HTTP_404_NOT_FOUND,
+} from "../constants";
 
 export function registerScenarioAccessRoutes(app: Express) {
   app.post("/api/scenarios/:id/recompute", requireAuth, async (req, res) => {
     try {
       const idParse = scenarioIdSchema.safeParse(req.params.id);
-      if (!idParse.success) return res.status(400).json({ error: "Invalid scenario ID" });
+      if (!idParse.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID" });
       const scenarioId = idParse.data;
 
       const bodyParse = recomputeBodySchema.safeParse(req.body);
-      if (!bodyParse.success) return res.status(400).json({ error: fromZodError(bodyParse.error).message });
+      if (!bodyParse.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(bodyParse.error).message });
 
       const scenario = await storage.getScenario(scenarioId);
-      if (!scenario) return res.status(404).json({ error: "Scenario not found" });
+      if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
 
       if (scenario.userId !== getAuthUser(req).id) {
-        return res.status(403).json({ error: "Only the scenario owner can trigger recompute" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Only the scenario owner can trigger recompute" });
       }
 
       const { propertyInputs, globalInput, projYears, scenarioProps, scenarioGA } =
@@ -100,17 +106,17 @@ export function registerScenarioAccessRoutes(app: Express) {
   app.get("/api/scenarios/:id/results/latest", requireAuth, async (req, res) => {
     try {
       const idParse = scenarioIdSchema.safeParse(req.params.id);
-      if (!idParse.success) return res.status(400).json({ error: "Invalid scenario ID" });
+      if (!idParse.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID" });
       const scenarioId = idParse.data;
 
       const scenario = await storage.getScenario(scenarioId);
-      if (!scenario) return res.status(404).json({ error: "Scenario not found" });
+      if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
 
       const hasAccess = await checkScenarioAccess(scenarioId, getAuthUser(req).id, scenario);
-      if (!hasAccess) return res.status(403).json({ error: "Access denied" });
+      if (!hasAccess) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
 
       const result = await storage.getLatestScenarioResult(scenarioId);
-      if (!result) return res.status(404).json({ error: "No computed results found for this scenario" });
+      if (!result) return res.status(HTTP_404_NOT_FOUND).json({ error: "No computed results found for this scenario" });
 
       res.json(result);
     } catch (error: unknown) {
@@ -121,14 +127,14 @@ export function registerScenarioAccessRoutes(app: Express) {
   app.post("/api/scenarios/:id/drift-check", requireAuth, async (req, res) => {
     try {
       const idParse = scenarioIdSchema.safeParse(req.params.id);
-      if (!idParse.success) return res.status(400).json({ error: "Invalid scenario ID" });
+      if (!idParse.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID" });
       const scenarioId = idParse.data;
 
       const scenario = await storage.getScenario(scenarioId);
-      if (!scenario) return res.status(404).json({ error: "Scenario not found" });
+      if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
 
       const hasAccess = await checkScenarioAccess(scenarioId, getAuthUser(req).id, scenario);
-      if (!hasAccess) return res.status(403).json({ error: "Access denied" });
+      if (!hasAccess) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
 
       const stored = await storage.getLatestScenarioResult(scenarioId);
       if (!stored) {
@@ -168,30 +174,30 @@ export function registerScenarioAccessRoutes(app: Express) {
       const user = getAuthUser(req);
       const validation = grantAccessSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       }
 
       const { granteeId, scenarioId } = validation.data;
       const resolvedScenarioId = scenarioId ?? null;
 
       if (granteeId === user.id) {
-        return res.status(400).json({ error: "You cannot grant access to yourself" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "You cannot grant access to yourself" });
       }
 
       const grantee = await storage.getUserById(granteeId);
       if (!grantee) {
-        return res.status(404).json({ error: "User not found" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "User not found" });
       }
 
       if (resolvedScenarioId != null) {
         const scenario = await storage.getScenario(resolvedScenarioId);
-        if (!scenario) return res.status(404).json({ error: "Scenario not found" });
-        if (scenario.userId !== user.id) return res.status(403).json({ error: "You can only grant access to your own scenarios" });
+        if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
+        if (scenario.userId !== user.id) return res.status(HTTP_403_FORBIDDEN).json({ error: "You can only grant access to your own scenarios" });
       }
 
       const access = await storage.grantScenarioAccess(user.id, granteeId, resolvedScenarioId);
       logActivity(req, "grant_access", "scenario_access", access.id, `Grant ${resolvedScenarioId ? `scenario ${resolvedScenarioId}` : "all scenarios"} to user ${granteeId}`);
-      res.status(201).json(access);
+      res.status(HTTP_201_CREATED).json(access);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to grant scenario access", error);
     }
@@ -202,7 +208,7 @@ export function registerScenarioAccessRoutes(app: Express) {
       const user = getAuthUser(req);
       const validation = revokeAccessSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       }
 
       const { granteeId, scenarioId } = validation.data;
@@ -210,8 +216,8 @@ export function registerScenarioAccessRoutes(app: Express) {
 
       if (resolvedScenarioId != null) {
         const scenario = await storage.getScenario(resolvedScenarioId);
-        if (!scenario) return res.status(404).json({ error: "Scenario not found" });
-        if (scenario.userId !== user.id) return res.status(403).json({ error: "You can only revoke access to your own scenarios" });
+        if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
+        if (scenario.userId !== user.id) return res.status(HTTP_403_FORBIDDEN).json({ error: "You can only revoke access to your own scenarios" });
       }
 
       await storage.revokeScenarioAccess(user.id, granteeId, resolvedScenarioId);

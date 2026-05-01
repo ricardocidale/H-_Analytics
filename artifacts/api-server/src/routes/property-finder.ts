@@ -10,6 +10,12 @@ import {
 } from "@shared/price-history";
 import { fromZodError } from "zod-validation-error/v3";
 import { logActivity, logAndSendError, prospectiveNotesSchema, parseRouteId } from "./helpers";
+import {
+  HTTP_201_CREATED,
+  HTTP_400_BAD_REQUEST,
+  HTTP_404_NOT_FOUND,
+  HTTP_503_SERVICE_UNAVAILABLE,
+} from "../constants";
 import { z } from "zod";
 import { logger } from "../logger";
 import { aiRateLimit } from "../middleware/rate-limit";
@@ -199,7 +205,7 @@ export function register(app: Express) {
     try {
       const validation = insertProspectivePropertySchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       }
 
       const property = await storage.addProspectiveProperty({
@@ -208,7 +214,7 @@ export function register(app: Express) {
       });
 
       logActivity(req, "favorite", "prospective_property", property.id, property.address);
-      res.status(201).json(property);
+      res.status(HTTP_201_CREATED).json(property);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to add prospective property", error);
     }
@@ -217,7 +223,7 @@ export function register(app: Express) {
   app.delete("/api/property-finder/prospective/:id", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
       await storage.deleteProspectiveProperty(id, getAuthUser(req).id);
       res.json({ success: true });
     } catch (error: unknown) {
@@ -229,16 +235,16 @@ export function register(app: Express) {
     try {
       const parsed = prospectiveNotesSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
       }
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
       const property = await storage.updateProspectivePropertyNotes(
         id,
         getAuthUser(req).id,
         parsed.data.notes ?? ""
       );
-      if (!property) return res.status(404).json({ error: "Property not found" });
+      if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
       res.json(property);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update notes", error);
@@ -255,9 +261,9 @@ export function register(app: Express) {
   app.get("/api/property-finder/prospective/:id/price-events", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
       const property = await storage.getProspectivePriceHistory(id, getAuthUser(req).id);
-      if (!property) return res.status(404).json({ error: "Property not found" });
+      if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
       const events: PriceEvent[] = property.priceEvents ?? [];
       res.json({
         events,
@@ -272,15 +278,15 @@ export function register(app: Express) {
   app.post("/api/property-finder/prospective/:id/price-events", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
       const parsed = priceEventInputSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
       }
       const property = await storage.addProspectivePriceEvent(id, getAuthUser(req).id, parsed.data);
-      if (!property) return res.status(404).json({ error: "Property not found" });
+      if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
       logActivity(req, "add_price_event", "prospective_property", property.id, parsed.data.kind);
-      res.status(201).json({
+      res.status(HTTP_201_CREATED).json({
         property,
         rollups: computePriceHistoryRollups(property.priceEvents ?? []),
       });
@@ -292,12 +298,12 @@ export function register(app: Express) {
   app.patch("/api/property-finder/prospective/:id/price-events/:eventId", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
       const eventId = String(req.params.eventId ?? "").slice(0, 64);
-      if (!eventId) return res.status(400).json({ error: "Invalid event ID" });
+      if (!eventId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid event ID" });
       const parsed = priceEventPatchSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
       }
       const property = await storage.updateProspectivePriceEvent(
         id,
@@ -305,7 +311,7 @@ export function register(app: Express) {
         eventId,
         parsed.data,
       );
-      if (!property) return res.status(404).json({ error: "Event not found" });
+      if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Event not found" });
       res.json({
         property,
         rollups: computePriceHistoryRollups(property.priceEvents ?? []),
@@ -318,11 +324,11 @@ export function register(app: Express) {
   app.delete("/api/property-finder/prospective/:id/price-events/:eventId", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
       const eventId = String(req.params.eventId ?? "").slice(0, 64);
-      if (!eventId) return res.status(400).json({ error: "Invalid event ID" });
+      if (!eventId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid event ID" });
       const property = await storage.deleteProspectivePriceEvent(id, getAuthUser(req).id, eventId);
-      if (!property) return res.status(404).json({ error: "Event not found" });
+      if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Event not found" });
       res.json({
         property,
         rollups: computePriceHistoryRollups(property.priceEvents ?? []),
@@ -338,13 +344,13 @@ export function register(app: Express) {
     try {
       const parsed = searchQuerySchema.safeParse(req.query);
       if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid search parameters", results: [], total: 0, offset: 0 });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: parsed.error.issues[0]?.message ?? "Invalid search parameters", results: [], total: 0, offset: 0 });
       }
 
       const { location, priceMin, priceMax, bedsMin, lotSizeMin, propertyType, offset: pageOffset } = parsed.data;
 
       if (!realtyService.isAvailable()) {
-        return res.status(503).json({ error: "RapidAPI key not configured. Add RAPIDAPI_KEY in Secrets to enable real property listings.", results: [], total: 0, offset: 0 });
+        return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({ error: "RapidAPI key not configured. Add RAPIDAPI_KEY in Secrets to enable real property listings.", results: [], total: 0, offset: 0 });
       }
 
       const result = await realtyService.searchProperties({
@@ -371,7 +377,7 @@ export function register(app: Express) {
     try {
       const parsed = marketContextSchema.safeParse(req.query);
       if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid parameters" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: parsed.error.issues[0]?.message ?? "Invalid parameters" });
       }
 
       const { location, state } = parsed.data;
@@ -455,11 +461,11 @@ export function register(app: Express) {
     try {
       const parsed = propertyValueSchema.safeParse(req.query);
       if (!parsed.success) {
-        return res.status(400).json({ error: parsed.error.issues[0]?.message ?? "Invalid parameters" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: parsed.error.issues[0]?.message ?? "Invalid parameters" });
       }
 
       if (!usRealEstateService.isAvailable()) {
-        return res.status(503).json({ error: "RapidAPI key not configured" });
+        return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({ error: "RapidAPI key not configured" });
       }
 
       const history = await usRealEstateService.getPropertyValueHistory(parsed.data.property_id);
@@ -482,7 +488,7 @@ export function register(app: Express) {
     try {
       const validation = insertSavedSearchSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       }
 
       const search = await storage.addSavedSearch({
@@ -491,7 +497,7 @@ export function register(app: Express) {
       });
 
       logActivity(req, "save-search", "saved_search", search.id, search.name);
-      res.status(201).json(search);
+      res.status(HTTP_201_CREATED).json(search);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to add saved search", error);
     }
@@ -500,7 +506,7 @@ export function register(app: Express) {
   app.delete("/api/property-finder/saved-searches/:id", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
       await storage.deleteSavedSearch(id, getAuthUser(req).id);
       res.json({ success: true });
     } catch (error: unknown) {

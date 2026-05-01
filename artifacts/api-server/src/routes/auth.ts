@@ -19,6 +19,13 @@ import { z } from "zod";
 import { fromZodError } from "zod-validation-error/v3";
 import { isAdminRole } from "@shared/constants";
 import seedUsersConfig from "../seed-users.json" with { type: "json" };
+import {
+  HTTP_400_BAD_REQUEST,
+  HTTP_401_UNAUTHORIZED,
+  HTTP_403_FORBIDDEN,
+  HTTP_404_NOT_FOUND,
+  HTTP_429_TOO_MANY_REQUESTS,
+} from "../constants";
 
 export function register(app: Express) {
   // ────────────────────────────────────────────────────────────
@@ -31,24 +38,24 @@ export function register(app: Express) {
 
   async function handleCredentialLogin(email: string, password: string, clientIp: string, res: import("express").Response) {
     if (isRateLimited(clientIp)) {
-      return res.status(429).json({ error: "Too many login attempts. Please try again in 15 minutes." });
+      return res.status(HTTP_429_TOO_MANY_REQUESTS).json({ error: "Too many login attempts. Please try again in 15 minutes." });
     }
 
     const user = await storage.getUserByEmail(sanitizeEmail(email));
     if (!user) {
       recordLoginAttempt(clientIp, false);
-      return res.status(401).json({ error: "Invalid credentials" });
+      return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Invalid credentials" });
     }
 
     if (!user.passwordHash) {
       recordLoginAttempt(clientIp, false);
-      return res.status(401).json({ error: "Please sign in with Google" });
+      return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Please sign in with Google" });
     }
 
     const valid = await verifyPassword(password, user.passwordHash);
     if (!valid) {
       recordLoginAttempt(clientIp, false);
-      return res.status(401).json({ error: "Invalid credentials" });
+      return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Invalid credentials" });
     }
 
     recordLoginAttempt(clientIp, true);
@@ -65,7 +72,7 @@ export function register(app: Express) {
     try {
       const validation = loginSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: "Invalid request" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid request" });
       }
       const clientIp = req.ip || req.socket.remoteAddress || "unknown";
       await handleCredentialLogin(validation.data.email, validation.data.password, clientIp, res);
@@ -78,11 +85,11 @@ export function register(app: Express) {
     try {
       const adminSeed = seedUsersConfig.users.find(u => isAdminRole(u.role));
       if (!adminSeed) {
-        return res.status(401).json({ error: "No admin user configured" });
+        return res.status(HTTP_401_UNAUTHORIZED).json({ error: "No admin user configured" });
       }
       const validation = adminLoginSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(401).json({ error: "Password required" });
+        return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Password required" });
       }
       const clientIp = req.ip || req.socket.remoteAddress || "unknown";
       await handleCredentialLogin(adminSeed.email, validation.data.password, clientIp, res);
@@ -94,22 +101,22 @@ export function register(app: Express) {
   app.post("/api/auth/dev-login", async (req, res) => {
     try {
       if (process.env.NODE_ENV === "production") {
-        return res.status(403).json({ error: "Dev login disabled in production" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Dev login disabled in production" });
       }
       const adminSeed = seedUsersConfig.users.find(u => isAdminRole(u.role));
       if (!adminSeed) {
-        return res.status(401).json({ error: "No admin user configured" });
+        return res.status(HTTP_401_UNAUTHORIZED).json({ error: "No admin user configured" });
       }
       const user = await storage.getUserByEmail(adminSeed.email);
       if (!user) {
-        return res.status(401).json({ error: "Admin user not found" });
+        return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Admin user not found" });
       }
       if (!user.passwordHash) {
-        return res.status(401).json({ error: "Please sign in with Google" });
+        return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Please sign in with Google" });
       }
       const adminPassword = process.env[adminSeed.envVar] || process.env.PASSWORD_DEFAULT;
       if (!adminPassword) {
-        return res.status(401).json({ error: "Admin password not configured in env" });
+        return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Admin password not configured in env" });
       }
       const clientIp = req.ip || req.socket.remoteAddress || "unknown";
       await handleCredentialLogin(adminSeed.email, adminPassword, clientIp, res);
@@ -158,7 +165,7 @@ export function register(app: Express) {
       const validation = updateProfileSchema.safeParse(req.body);
       if (!validation.success) {
         const error = fromZodError(validation.error as any);
-        return res.status(400).json({ error: error.message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: error.message });
       }
       
       const updates: { firstName?: string; lastName?: string; email?: string; company?: string; title?: string; rebeccaOptOut?: boolean } = {};
@@ -170,13 +177,13 @@ export function register(app: Express) {
           .filter(u => isAdminRole(u.role))
           .map(u => u.email.toLowerCase());
         if (protectedEmails.includes(getAuthUser(req).email.toLowerCase())) {
-          return res.status(403).json({ error: "System account emails cannot be changed" });
+          return res.status(HTTP_403_FORBIDDEN).json({ error: "System account emails cannot be changed" });
         }
         const newEmail = sanitizeEmail(validation.data.email);
         if (newEmail !== getAuthUser(req).email) {
           const existingUser = await storage.getUserByEmail(newEmail);
           if (existingUser && existingUser.id !== getAuthUser(req).id) {
-            return res.status(400).json({ error: "Email already in use" });
+            return res.status(HTTP_400_BAD_REQUEST).json({ error: "Email already in use" });
           }
           updates.email = newEmail;
         }
@@ -201,21 +208,21 @@ export function register(app: Express) {
       const validation = changePasswordSchema.safeParse(req.body);
       if (!validation.success) {
         const error = fromZodError(validation.error as any);
-        return res.status(400).json({ error: error.message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: error.message });
       }
 
       const user = await storage.getUserById(getAuthUser(req).id);
       if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "User not found" });
       }
 
       if (!user.passwordHash) {
-        return res.status(401).json({ error: "Your account uses Google sign-in and does not have a password set" });
+        return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Your account uses Google sign-in and does not have a password set" });
       }
 
       const validPassword = await verifyPassword(validation.data.currentPassword, user.passwordHash);
       if (!validPassword) {
-        return res.status(401).json({ error: "Current password is incorrect" });
+        return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Current password is incorrect" });
       }
 
       const newPasswordHash = await hashPassword(validation.data.newPassword);
@@ -232,7 +239,7 @@ export function register(app: Express) {
       const schema = z.object({ hide: z.boolean() });
       const validation = schema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       }
       await storage.updateUserHideTourPrompt(getAuthUser(req).id, validation.data.hide);
       res.json({ hideTourPrompt: validation.data.hide });
@@ -250,7 +257,7 @@ export function register(app: Express) {
       });
       const validation = schema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       }
       const user = await storage.updateUserAppearance(getAuthUser(req).id, {
         colorMode: validation.data.colorMode,
@@ -268,12 +275,12 @@ export function register(app: Express) {
       const schema = z.object({ themeId: z.number().nullable() });
       const validation = schema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       }
       if (validation.data.themeId !== null) {
         const theme = await storage.getDesignTheme(validation.data.themeId);
         if (!theme) {
-          return res.status(404).json({ error: "Theme not found" });
+          return res.status(HTTP_404_NOT_FOUND).json({ error: "Theme not found" });
         }
       }
       const user = await storage.updateUserSelectedTheme(getAuthUser(req).id, validation.data.themeId);

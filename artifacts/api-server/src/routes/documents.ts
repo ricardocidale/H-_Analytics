@@ -9,7 +9,15 @@ import { getStorageProvider } from "../providers/storage";
 import { randomUUID } from "crypto";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error/v3";
-import { MAX_DOC_SIZE } from "../constants";
+import {
+  MAX_DOC_SIZE,
+  HTTP_400_BAD_REQUEST,
+  HTTP_403_FORBIDDEN,
+  HTTP_404_NOT_FOUND,
+  HTTP_413_PAYLOAD_TOO_LARGE,
+  HTTP_429_TOO_MANY_REQUESTS,
+  HTTP_500_INTERNAL_SERVER_ERROR,
+} from "../constants";
 import { DEFAULT_EXIT_CAP_RATE } from "@shared/constants";
 import { resolveDefault } from "../defaults";
 
@@ -45,7 +53,7 @@ export function register(app: Express) {
     try {
       // Rate limit: max 3 document extractions per minute per user
       if (isApiRateLimited(getAuthUser(req).id, "document-extract", 3)) {
-        return res.status(429).json({ error: "Rate limit exceeded. Please wait before extracting another document." });
+        return res.status(HTTP_429_TOO_MANY_REQUESTS).json({ error: "Rate limit exceeded. Please wait before extracting another document." });
       }
 
       const contentType = (req.headers["content-type"] || "").split(";")[0].trim();
@@ -53,16 +61,16 @@ export function register(app: Express) {
       const fileName = (req.headers["x-file-name"] as string) || "document";
 
       if (!propertyId || isNaN(propertyId)) {
-        return res.status(400).json({ error: "Missing x-property-id header" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Missing x-property-id header" });
       }
 
       if (!ALLOWED_DOC_TYPES.includes(contentType)) {
-        return res.status(400).json({ error: `Unsupported file type: ${contentType}. Supported: PDF, PNG, JPEG, TIFF, WebP` });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: `Unsupported file type: ${contentType}. Supported: PDF, PNG, JPEG, TIFF, WebP` });
       }
 
       const property = await checkPropertyAccess(getAuthUser(req), propertyId);
       if (!property) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
 
       const chunks: Buffer[] = [];
@@ -71,14 +79,14 @@ export function register(app: Express) {
         const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
         totalSize += buf.length;
         if (totalSize > MAX_DOC_SIZE) {
-          return res.status(413).json({ error: `File too large. Maximum size is ${MAX_DOC_SIZE / 1024 / 1024}MB.` });
+          return res.status(HTTP_413_PAYLOAD_TOO_LARGE).json({ error: `File too large. Maximum size is ${MAX_DOC_SIZE / 1024 / 1024}MB.` });
         }
         chunks.push(buf);
       }
       const body = Buffer.concat(chunks);
 
       if (body.length === 0) {
-        return res.status(400).json({ error: "No file data received" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "No file data received" });
       }
 
       const storageProvider = getStorageProvider();
@@ -157,10 +165,10 @@ export function register(app: Express) {
     try {
       const propertyId = parseRouteId(req.params.propertyId);
       if (!propertyId) {
-        return res.status(400).json({ error: "Invalid property ID" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
       }
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
 
       const extractions = await storage.getPropertyExtractions(propertyId);
@@ -174,13 +182,13 @@ export function register(app: Express) {
     try {
       const extractionId = parseRouteId(req.params.extractionId);
       if (!extractionId) {
-        return res.status(400).json({ error: "Invalid extraction ID" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid extraction ID" });
       }
 
       const extraction = await storage.getDocumentExtraction(extractionId);
-      if (!extraction) return res.status(404).json({ error: "Extraction not found" });
+      if (!extraction) return res.status(HTTP_404_NOT_FOUND).json({ error: "Extraction not found" });
       if (!await checkPropertyAccess(getAuthUser(req), extraction.propertyId)) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
 
       const fields = await storage.getExtractionFields(extractionId);
@@ -198,24 +206,24 @@ export function register(app: Express) {
   app.patch("/api/documents/fields/:fieldId/status", requireAuth, async (req, res) => {
     try {
       const fieldId = parseRouteId(req.params.fieldId);
-      if (!fieldId) return res.status(400).json({ error: "Invalid field ID" });
+      if (!fieldId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid field ID" });
       const validation = fieldStatusSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       }
       const { status } = validation.data;
 
       const existingField = await storage.getExtractionField(fieldId);
       if (!existingField) {
-        return res.status(404).json({ error: "Field not found" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "Field not found" });
       }
       const ownerExtraction = await storage.getDocumentExtraction(existingField.extractionId);
       if (!ownerExtraction || !(await checkPropertyAccess(getAuthUser(req), ownerExtraction.propertyId))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
 
       const updated = await storage.updateExtractionFieldStatus(fieldId, status);
-      if (!updated) return res.status(404).json({ error: "Field not found" });
+      if (!updated) return res.status(HTTP_404_NOT_FOUND).json({ error: "Field not found" });
 
       if (status === "approved" && updated.mappedPropertyField) {
         const extraction = ownerExtraction;
@@ -259,17 +267,17 @@ export function register(app: Express) {
   app.post("/api/documents/fields/:extractionId/bulk-status", requireAuth, async (req, res) => {
     try {
       const extractionId = parseRouteId(req.params.extractionId);
-      if (!extractionId) return res.status(400).json({ error: "Invalid extraction ID" });
+      if (!extractionId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid extraction ID" });
       const validation = fieldStatusSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       }
       const { status } = validation.data;
 
       const extraction = await storage.getDocumentExtraction(extractionId);
-      if (!extraction) return res.status(404).json({ error: "Extraction not found" });
+      if (!extraction) return res.status(HTTP_404_NOT_FOUND).json({ error: "Extraction not found" });
       if (!await checkPropertyAccess(getAuthUser(req), extraction.propertyId)) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
 
       if (status === "approved") {
@@ -337,12 +345,12 @@ export function register(app: Express) {
 
       const property = await checkPropertyAccess(getAuthUser(req), data.propertyId);
       if (!property) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
 
       const globalAssumptions = await storage.getGlobalAssumptions();
       if (!globalAssumptions) {
-        return res.status(500).json({ error: "Global assumptions not found" });
+        return res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Global assumptions not found" });
       }
 
       const senderName = [getAuthUser(req).firstName, getAuthUser(req).lastName].filter(Boolean).join(" ") || getAuthUser(req).email;

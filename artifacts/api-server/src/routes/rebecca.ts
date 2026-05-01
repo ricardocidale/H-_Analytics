@@ -755,7 +755,8 @@ export function register(app: Express) {
         `Rebecca fixtures bulk import: ${total} processed — ${summary.created} created, ${summary.overwritten} overwritten, ${summary.skipped} skipped, ${summary.errors.length} errors`,
         "rebecca",
       );
-      return res.status(summary.errors.length > 0 && summary.created + summary.overwritten === 0 ? HTTP_422_UNPROCESSABLE_ENTITY : 200).json(summary);
+      const allFailed = summary.errors.length > 0 && summary.created + summary.overwritten === 0;
+      return res.status(allFailed ? HTTP_422_UNPROCESSABLE_ENTITY : 200).json(summary);
     } catch (err: unknown) {
       logger.error(`Failed to bulk-import Rebecca fixtures: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
       return res.status(500).json({ error: "Failed to import fixtures" });

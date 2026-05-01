@@ -49,6 +49,15 @@ import {
   type RefreshActionVerifyResult,
 } from "../../notifications/constants-action-token";
 import { CONSTANTS_TAB_PATH } from "../../notifications/constants-overdue-digest";
+import {
+  HTTP_200_OK,
+  HTTP_400_BAD_REQUEST,
+  HTTP_401_UNAUTHORIZED,
+  HTTP_403_FORBIDDEN,
+  HTTP_404_NOT_FOUND,
+  HTTP_422_UNPROCESSABLE_ENTITY,
+  HTTP_502_BAD_GATEWAY,
+} from "../../constants";
 
 /**
  * In-memory in-flight set for the email-action `refresh-from-email`
@@ -151,7 +160,7 @@ export function registerModelConstantsRoutes(app: Express) {
   app.get("/api/admin/model-constants", requireAdmin, async (req, res) => {
     try {
       const parsed = localityQuerySchema.safeParse(req.query);
-      if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
+      if (!parsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: parsed.error.message });
       const { country, subdivision } = normaliseLocality(parsed.data.country, parsed.data.subdivision);
 
       const [allOverrides, allCanonicals, cadenceOverrides] = await Promise.all([
@@ -331,7 +340,7 @@ export function registerModelConstantsRoutes(app: Express) {
     try {
       const key = String(req.params.key ?? "");
       const entry = MODEL_CONSTANTS_REGISTRY[key];
-      if (!entry) return res.status(404).json({ error: `Unknown constant key: ${key}` });
+      if (!entry) return res.status(HTTP_404_NOT_FOUND).json({ error: `Unknown constant key: ${key}` });
 
       // Phase 3 doctrine guard: Constants owned by an AI Intelligence
       // Specialist (every entry in MODEL_CONSTANTS_REGISTRY today) are
@@ -340,7 +349,7 @@ export function registerModelConstantsRoutes(app: Express) {
       // factory) route is intentionally NOT guarded — admins always retain
       // the rollback escape hatch.
       if (entry.specialistOwned) {
-        return res.status(422).json({
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
           error:
             `Constant '${key}' is authority-sourced and owned by an AI Intelligence Specialist. ` +
             `Manual overrides are not permitted. Use the "Refresh research" button on the Constants tab ` +
@@ -350,7 +359,7 @@ export function registerModelConstantsRoutes(app: Express) {
       }
 
       const parsed = overrideBodySchema.safeParse(req.body);
-      if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
+      if (!parsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: parsed.error.message });
 
       // Normalise body locality the same way query strings are normalised so
       // whitespace-only values collapse to NULL and never produce dead rows.
@@ -358,7 +367,7 @@ export function registerModelConstantsRoutes(app: Express) {
 
       const localityCheck = validateLocality(key, country, subdivision);
       if (!localityCheck.ok) {
-        return res.status(400).json({ error: localityCheck.error });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: localityCheck.error });
       }
 
       // Deprecation telemetry for the long tail: any non-specialist-owned
@@ -410,17 +419,17 @@ export function registerModelConstantsRoutes(app: Express) {
     try {
       const key = String(req.params.key ?? "");
       if (!MODEL_CONSTANTS_REGISTRY[key]) {
-        return res.status(404).json({ error: `Unknown constant key: ${key}` });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: `Unknown constant key: ${key}` });
       }
 
       const parsed = localityQuerySchema.safeParse(req.query);
-      if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
+      if (!parsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: parsed.error.message });
       const { country, subdivision } = normaliseLocality(parsed.data.country, parsed.data.subdivision);
 
       // Same locality rules as PUT: explicit 4xx instead of silent no-ops.
       const localityCheck = validateLocality(key, country, subdivision);
       if (!localityCheck.ok) {
-        return res.status(400).json({ error: localityCheck.error });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: localityCheck.error });
       }
 
       await storage.deleteModelConstantOverride(key, country, subdivision);
@@ -451,16 +460,16 @@ export function registerModelConstantsRoutes(app: Express) {
     try {
       const key = String(req.params.key ?? "");
       if (!MODEL_CONSTANTS_REGISTRY[key]) {
-        return res.status(404).json({ error: `Unknown constant key: ${key}` });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: `Unknown constant key: ${key}` });
       }
 
       const parsed = localityQuerySchema.safeParse(req.query);
-      if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
+      if (!parsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: parsed.error.message });
       const { country, subdivision } = normaliseLocality(parsed.data.country, parsed.data.subdivision);
 
       const localityCheck = validateLocality(key, country, subdivision);
       if (!localityCheck.ok) {
-        return res.status(400).json({ error: localityCheck.error });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: localityCheck.error });
       }
 
       // The proposer needs the full overrides list to resolve the current
@@ -502,7 +511,7 @@ export function registerModelConstantsRoutes(app: Express) {
     try {
       const key = String(req.params.key ?? "");
       if (!MODEL_CONSTANTS_REGISTRY[key]) {
-        return res.status(404).json({ error: `Unknown constant key: ${key}` });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: `Unknown constant key: ${key}` });
       }
 
       const userIdForLog = (req as { user?: { id?: number } }).user?.id ?? null;
@@ -528,7 +537,7 @@ export function registerModelConstantsRoutes(app: Express) {
             `userId=${userIdForLog ?? "anonymous"}. raw=${JSON.stringify(rawRunId)}.`,
           "model-constants",
         );
-        return res.status(422).json({
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
           error:
             `Apply requires a researchRunId returned by POST /api/admin/model-constants/${key}/regenerate. ` +
             `Only AI Intelligence Specialists may set Constants — re-run /regenerate or /refresh and apply the result unchanged.`,
@@ -537,13 +546,13 @@ export function registerModelConstantsRoutes(app: Express) {
       }
 
       const parsed = applyResearchBodySchema.safeParse(req.body);
-      if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
+      if (!parsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: parsed.error.message });
 
       const { country, subdivision } = normaliseLocality(parsed.data.country, parsed.data.countrySubdivision);
 
       const localityCheck = validateLocality(key, country, subdivision);
       if (!localityCheck.ok) {
-        return res.status(400).json({ error: localityCheck.error });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: localityCheck.error });
       }
 
       const loc = `${country ?? "universal"}${subdivision ? `/${subdivision}` : ""}`;
@@ -564,7 +573,7 @@ export function registerModelConstantsRoutes(app: Express) {
             `does not exist (requested for ${key} (${loc})). userId=${userIdForLog ?? "anonymous"}.`,
           "model-constants",
         );
-        return res.status(422).json({
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
           error:
             `research_run ${parsed.data.researchRunId} does not exist. ` +
             `Apply requires a researchRunId returned by POST /api/admin/model-constants/${key}/regenerate ` +
@@ -608,7 +617,7 @@ export function registerModelConstantsRoutes(app: Express) {
             `but apply requested ${key} (${loc}). userId=${userIdForLog ?? "anonymous"}.`,
           "model-constants",
         );
-        return res.status(422).json({
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
           error:
             `research_run ${parsed.data.researchRunId} belongs to ${persistedConstant.key ?? "(unknown)"} ` +
             `(${persistedLoc}), not ${key} (${loc}). ` +
@@ -629,7 +638,7 @@ export function registerModelConstantsRoutes(app: Express) {
             `does not carry a complete Specialist proposal. userId=${userIdForLog ?? "anonymous"}.`,
           "model-constants",
         );
-        return res.status(422).json({
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
           error:
             `research_run ${run.id} does not carry a complete Specialist proposal — ` +
             `cannot apply.`,
@@ -669,7 +678,7 @@ export function registerModelConstantsRoutes(app: Express) {
             })}`,
           "model-constants",
         );
-        return res.status(422).json({
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
           error:
             `Apply payload does not match the persisted Specialist proposal for research_run ${run.id}. ` +
             `Mismatched fields: ${tamperedFields.join(", ")}. ` +
@@ -746,16 +755,16 @@ export function registerModelConstantsRoutes(app: Express) {
     try {
       const key = String(req.params.key ?? "");
       if (!MODEL_CONSTANTS_REGISTRY[key]) {
-        return res.status(404).json({ error: `Unknown constant key: ${key}` });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: `Unknown constant key: ${key}` });
       }
 
       const parsed = localityQuerySchema.safeParse(req.query);
-      if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
+      if (!parsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: parsed.error.message });
       const { country, subdivision } = normaliseLocality(parsed.data.country, parsed.data.subdivision);
 
       const localityCheck = validateLocality(key, country, subdivision);
       if (!localityCheck.ok) {
-        return res.status(400).json({ error: localityCheck.error });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: localityCheck.error });
       }
 
       const overrides = await storage.listModelConstantOverrides();
@@ -809,22 +818,22 @@ export function registerModelConstantsRoutes(app: Express) {
     try {
       const key = String(req.params.key ?? "");
       if (!MODEL_CONSTANTS_REGISTRY[key]) {
-        return res.status(404).json({ error: `Unknown constant key: ${key}` });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: `Unknown constant key: ${key}` });
       }
 
       const parsedBody = applyProposalSchema.safeParse(req.body);
       if (!parsedBody.success) {
-        return res.status(400).json({ error: parsedBody.error.message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: parsedBody.error.message });
       }
       const { researchRunId } = parsedBody.data;
 
       const parsedQuery = localityQuerySchema.safeParse(req.query);
-      if (!parsedQuery.success) return res.status(400).json({ error: parsedQuery.error.message });
+      if (!parsedQuery.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: parsedQuery.error.message });
       const { country, subdivision } = normaliseLocality(parsedQuery.data.country, parsedQuery.data.subdivision);
 
       const localityCheck = validateLocality(key, country, subdivision);
       if (!localityCheck.ok) {
-        return res.status(400).json({ error: localityCheck.error });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: localityCheck.error });
       }
 
       // Load the persisted Specialist verdict. We re-query through the
@@ -833,7 +842,7 @@ export function registerModelConstantsRoutes(app: Express) {
       const candidates = await storage.getResearchRunsForConstant(key, country, subdivision, 25);
       const run = candidates.find((r) => r.id === researchRunId) ?? null;
       if (!run) {
-        return res.status(404).json({
+        return res.status(HTTP_404_NOT_FOUND).json({
           error: `research_run ${researchRunId} not found for ${key} (${country ?? "universal"}${subdivision ? `/${subdivision}` : ""}).`,
         });
       }
@@ -843,7 +852,7 @@ export function registerModelConstantsRoutes(app: Express) {
       };
       const proposal = meta.proposal;
       if (!proposal || proposal.value === undefined || !proposal.authority) {
-        return res.status(422).json({
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
           error: `research_run ${researchRunId} does not carry a complete Specialist proposal.`,
         });
       }
@@ -909,7 +918,7 @@ export function registerModelConstantsRoutes(app: Express) {
   app.get("/api/admin/model-constants/scheduled-failures", requireAdmin, async (req, res) => {
     try {
       const userId = (req as { user?: { id?: number } }).user?.id;
-      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+      if (!userId) return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Unauthorized" });
 
       // "Since admin's last visit" semantics: read the previous visit
       // timestamp, then immediately record a new visit for next time.
@@ -958,7 +967,7 @@ export function registerModelConstantsRoutes(app: Express) {
   app.post("/api/admin/model-constants/scheduled-failures/dismiss", requireAdmin, async (req, res) => {
     try {
       const userId = (req as { user?: { id?: number } }).user?.id;
-      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+      if (!userId) return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Unauthorized" });
       const visit = await storage.recordVisit(userId, FAILURES_PAGE_KEY);
       res.json({ dismissedAt: visit.lastVisitedAt });
     } catch (error: unknown) {
@@ -970,16 +979,16 @@ export function registerModelConstantsRoutes(app: Express) {
     try {
       const key = String(req.params.key ?? "");
       if (!MODEL_CONSTANTS_REGISTRY[key]) {
-        return res.status(404).json({ error: `Unknown constant key: ${key}` });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: `Unknown constant key: ${key}` });
       }
 
       const parsed = localityQuerySchema.safeParse(req.query);
-      if (!parsed.success) return res.status(400).json({ error: parsed.error.message });
+      if (!parsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: parsed.error.message });
       const { country, subdivision } = normaliseLocality(parsed.data.country, parsed.data.subdivision);
 
       const localityCheck = validateLocality(key, country, subdivision);
       if (!localityCheck.ok) {
-        return res.status(400).json({ error: localityCheck.error });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: localityCheck.error });
       }
 
       const runs = await storage.getResearchRunsForConstant(key, country, subdivision, 10);
@@ -1056,7 +1065,7 @@ export function registerModelConstantsRoutes(app: Express) {
       verified.payload.subdivision !== s
     ) {
       return res
-        .status(400)
+        .status(HTTP_400_BAD_REQUEST)
         .type("html")
         .send(
           renderActionPage({
@@ -1071,7 +1080,7 @@ export function registerModelConstantsRoutes(app: Express) {
     //    long-tail email link should fail with a clear message.
     if (!MODEL_CONSTANTS_REGISTRY[k]) {
       return res
-        .status(404)
+        .status(HTTP_404_NOT_FOUND)
         .type("html")
         .send(
           renderActionPage({
@@ -1090,7 +1099,7 @@ export function registerModelConstantsRoutes(app: Express) {
     const user = (req as { user?: { id?: number; role?: string } }).user;
     if (!user) {
       return res
-        .status(401)
+        .status(HTTP_401_UNAUTHORIZED)
         .type("html")
         .send(
           renderActionPage({
@@ -1103,7 +1112,7 @@ export function registerModelConstantsRoutes(app: Express) {
     }
     if (!isAdminRole(user.role ?? "")) {
       return res
-        .status(403)
+        .status(HTTP_403_FORBIDDEN)
         .type("html")
         .send(
           renderActionPage({
@@ -1123,7 +1132,7 @@ export function registerModelConstantsRoutes(app: Express) {
     const localityCheck = validateLocality(k, c, s);
     if (!localityCheck.ok) {
       return res
-        .status(400)
+        .status(HTTP_400_BAD_REQUEST)
         .type("html")
         .send(
           renderActionPage({
@@ -1142,7 +1151,7 @@ export function registerModelConstantsRoutes(app: Express) {
       const issuedAtDate = new Date(verified.payload.issuedAt);
       if (latest?.completedAt && latest.completedAt > issuedAtDate) {
         return res
-          .status(200)
+          .status(HTTP_200_OK)
           .type("html")
           .send(
             renderActionPage({
@@ -1205,7 +1214,7 @@ export function registerModelConstantsRoutes(app: Express) {
       );
 
       return res
-        .status(200)
+        .status(HTTP_200_OK)
         .type("html")
         .send(
           renderActionPage({
@@ -1225,7 +1234,7 @@ export function registerModelConstantsRoutes(app: Express) {
         "model-constants",
       );
       return res
-        .status(502)
+        .status(HTTP_502_BAD_GATEWAY)
         .type("html")
         .send(
           renderActionPage({

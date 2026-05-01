@@ -46,6 +46,7 @@ import type {
   SpecialistOutput,
 } from "../../router/surface-router";
 import { getFieldRegistryEntry } from "../../registry/field-registry";
+import { CONVICTION_FLOOR, SPECIALIST_RAW_QUALITY_SEED } from "@shared/analyst-conviction";
 
 /** Verdict-emitting field id Daniela targets for the Adjust deep-link. */
 const PROPERTY_INFLATION_FIELD = "propertyInflationRate";
@@ -57,8 +58,8 @@ const PROPERTY_INFLATION_FIELD = "propertyInflationRate";
  * are presentation thresholds, not financial assumptions, so they stay
  * here as named constants per the no-magic-numbers rule.
  */
-const RAW_QUALITY_SEED = 70;
-const RAW_QUALITY_MISSING_OUTLOOK = 40;
+const RAW_QUALITY_SEED = SPECIALIST_RAW_QUALITY_SEED;
+const RAW_QUALITY_MISSING_OUTLOOK = CONVICTION_FLOOR;
 
 /**
  * Resolve the property-inflation field's display unit from FIELD_REGISTRY.

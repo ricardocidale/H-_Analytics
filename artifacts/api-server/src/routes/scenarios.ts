@@ -36,6 +36,15 @@ import {
   computeGhostName,
 } from "./scenario-helpers";
 import { registerScenarioAccessRoutes } from "./scenarios-access";
+import {
+  HTTP_201_CREATED,
+  HTTP_400_BAD_REQUEST,
+  HTTP_403_FORBIDDEN,
+  HTTP_404_NOT_FOUND,
+  HTTP_422_UNPROCESSABLE_ENTITY,
+  HTTP_429_TOO_MANY_REQUESTS,
+  PG_UNIQUE_VIOLATION_CODE,
+} from "../constants";
 
 // --- Batch comparison helpers ---
 
@@ -152,7 +161,7 @@ export function register(app: Express) {
           res.json({ success: true, scenario });
         } catch (createErr: unknown) {
           const dbErr = createErr as Record<string, unknown>;
-          if (dbErr?.code === "23505") {
+          if (dbErr?.code === PG_UNIQUE_VIOLATION_CODE) {
             const raced = await storage.getAutoSaveScenario(user.id);
             if (raced) {
               const updated = await storage.updateScenarioSnapshot(raced.id, {
@@ -201,12 +210,12 @@ export function register(app: Express) {
       const user = getAuthUser(req);
       const validation = createScenarioSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       }
 
       const manualCount = await storage.countManualScenarios(user.id);
       if (manualCount >= MAX_SCENARIOS_PER_USER) {
-        return res.status(400).json({ error: `Maximum of ${MAX_SCENARIOS_PER_USER} scenarios allowed` });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: `Maximum of ${MAX_SCENARIOS_PER_USER} scenarios allowed` });
       }
 
       const { scenarioGA, scenarioProps, propertyFeeCategories, propertyPhotos, serviceTemplates, diffResult } =
@@ -235,7 +244,7 @@ export function register(app: Express) {
       }
 
       logActivity(req, "create", "scenario", scenario.id, scenario.name);
-      res.status(201).json({
+      res.status(HTTP_201_CREATED).json({
         ...scenario,
         snapshotStatus: computedResults ? "computed" : "failed",
       });
@@ -247,22 +256,22 @@ export function register(app: Express) {
   app.patch("/api/scenarios/:id", requireAuth, requireScenarioPermission, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid scenario ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID" });
       const existing = await storage.getScenario(id);
-      if (!existing) return res.status(404).json({ error: "Scenario not found" });
-      if (existing.userId !== getAuthUser(req).id) return res.status(403).json({ error: "Access denied" });
+      if (!existing) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
+      if (existing.userId !== getAuthUser(req).id) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
 
       if (existing.isLocked) {
-        return res.status(403).json({ error: "This scenario is locked and cannot be edited" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "This scenario is locked and cannot be edited" });
       }
 
       const validation = updateScenarioSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       }
 
       const scenario = await storage.updateScenario(id, validation.data);
-      if (!scenario) return res.status(404).json({ error: "Scenario not found" });
+      if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
 
       logActivity(req, "update", "scenario", id, scenario.name);
       res.json(scenario);
@@ -275,15 +284,15 @@ export function register(app: Express) {
     try {
       const user = getAuthUser(req);
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid scenario ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID" });
       const scenario = await storage.getScenario(id);
-      if (!scenario) return res.status(404).json({ error: "Scenario not found" });
+      if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
 
       const isOwner = scenario.userId === user.id;
       if (!isOwner) {
         const shared = await storage.getScenariosSharedWithUser(user.id);
         const hasAccess = shared.some(s => s.id === id);
-        if (!hasAccess) return res.status(403).json({ error: "Access denied" });
+        if (!hasAccess) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
 
       const validation = validateLoadSnapshot(scenario);
@@ -295,7 +304,7 @@ export function register(app: Express) {
 
       if (!isOwner) {
         const accessError = await checkSharedPropertyAccess(id, user.id, snapshotProps);
-        if (accessError) return res.status(403).json({ error: accessError });
+        if (accessError) return res.status(HTTP_403_FORBIDDEN).json({ error: accessError });
       }
 
       if (orphanedFeeCategories.length > 0) {
@@ -332,13 +341,13 @@ export function register(app: Express) {
   app.delete("/api/scenarios/:id", requireAuth, requireScenarioPermission, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid scenario ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID" });
       const scenario = await storage.getScenario(id);
-      if (!scenario) return res.status(404).json({ error: "Scenario not found" });
-      if (scenario.userId !== getAuthUser(req).id) return res.status(403).json({ error: "Access denied" });
+      if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
+      if (scenario.userId !== getAuthUser(req).id) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
 
       if (scenario.isLocked) {
-        return res.status(403).json({ error: "This scenario is locked and cannot be deleted" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "This scenario is locked and cannot be deleted" });
       }
 
       const user = getAuthUser(req);
@@ -353,19 +362,19 @@ export function register(app: Express) {
   app.post("/api/scenarios/:id/clone", requireAuth, requireScenarioPermission, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid scenario ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID" });
       const scenario = await storage.getScenario(id);
-      if (!scenario) return res.status(404).json({ error: "Scenario not found" });
-      if (scenario.userId !== getAuthUser(req).id) return res.status(403).json({ error: "Access denied" });
+      if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
+      if (scenario.userId !== getAuthUser(req).id) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
 
       const cloneManualCount = await storage.countManualScenarios(getAuthUser(req).id);
       if (cloneManualCount >= MAX_SCENARIOS_PER_USER) {
-        return res.status(400).json({ error: `Maximum of ${MAX_SCENARIOS_PER_USER} scenarios allowed` });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: `Maximum of ${MAX_SCENARIOS_PER_USER} scenarios allowed` });
       }
 
       const cloned = await storage.cloneScenario(id, getAuthUser(req).id);
       logActivity(req, "clone", "scenario", cloned.id, cloned.name);
-      res.status(201).json(cloned);
+      res.status(HTTP_201_CREATED).json(cloned);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to clone scenario", error);
     }
@@ -374,10 +383,10 @@ export function register(app: Express) {
   app.get("/api/scenarios/:id/export", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid scenario ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID" });
       const scenario = await storage.getScenario(id);
-      if (!scenario) return res.status(404).json({ error: "Scenario not found" });
-      if (scenario.userId !== getAuthUser(req).id) return res.status(403).json({ error: "Access denied" });
+      if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
+      if (scenario.userId !== getAuthUser(req).id) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
 
       const exportData = {
         name: scenario.name,
@@ -401,13 +410,13 @@ export function register(app: Express) {
     try {
       const validation = importScenarioSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       }
 
       const user = getAuthUser(req);
       const importManualCount = await storage.countManualScenarios(user.id);
       if (importManualCount >= MAX_SCENARIOS_PER_USER) {
-        return res.status(400).json({ error: `Maximum of ${MAX_SCENARIOS_PER_USER} scenarios allowed` });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: `Maximum of ${MAX_SCENARIOS_PER_USER} scenarios allowed` });
       }
 
       const data = validation.data;
@@ -421,7 +430,7 @@ export function register(app: Express) {
       });
 
       logActivity(req, "import", "scenario", scenario.id, scenario.name);
-      res.status(201).json(scenario);
+      res.status(HTTP_201_CREATED).json(scenario);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to import scenario", error);
     }
@@ -431,14 +440,14 @@ export function register(app: Express) {
     try {
       const id1 = parseRouteId(req.params.id1);
       const id2 = parseRouteId(req.params.id2);
-      if (!id1 || !id2) return res.status(400).json({ error: "Invalid scenario ID" });
+      if (!id1 || !id2) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID" });
       const [s1, s2] = await Promise.all([
         storage.getScenario(id1),
         storage.getScenario(id2),
       ]);
-      if (!s1 || !s2) return res.status(404).json({ error: "Scenario not found" });
+      if (!s1 || !s2) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
       if (s1.userId !== getAuthUser(req).id || s2.userId !== getAuthUser(req).id) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
 
       const result = storage.compareScenarios(s1, s2);
@@ -452,18 +461,18 @@ export function register(app: Express) {
     try {
       const validation = shareScenarioSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       }
 
       const { recipientEmail, mode, scenarioId } = validation.data;
 
       if (recipientEmail === getAuthUser(req).email) {
-        return res.status(400).json({ error: "You cannot share scenarios with yourself" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "You cannot share scenarios with yourself" });
       }
 
       const recipient = await storage.getUserByEmail(recipientEmail);
       if (!recipient) {
-        return res.status(404).json({ error: "Recipient not found" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "Recipient not found" });
       }
 
       const sharer = getAuthUser(req);
@@ -473,22 +482,22 @@ export function register(app: Express) {
 
       if (mode === "single") {
         if (!scenarioId) {
-          return res.status(400).json({ error: "scenarioId is required for single share mode" });
+          return res.status(HTTP_400_BAD_REQUEST).json({ error: "scenarioId is required for single share mode" });
         }
         const scenario = await storage.getScenario(scenarioId);
-        if (!scenario) return res.status(404).json({ error: "Scenario not found" });
-        if (scenario.userId !== sharer.id) return res.status(403).json({ error: "You can only share your own scenarios" });
+        if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
+        if (scenario.userId !== sharer.id) return res.status(HTTP_403_FORBIDDEN).json({ error: "You can only share your own scenarios" });
 
         const share = await storage.shareScenarioWithUser(scenarioId, recipient.id, sharer.id);
         logActivity(req, "share", "scenario", scenarioId, scenario.name);
         scenarioNames = [scenario.name];
-        res.status(201).json({ shares: share ? [share] : [], recipientName: recipientDisplayName });
+        res.status(HTTP_201_CREATED).json({ shares: share ? [share] : [], recipientName: recipientDisplayName });
       } else {
         const shares = await storage.shareAllScenariosWithUser(sharer.id, recipient.id);
         logActivity(req, "share_all", "scenario", null, `All scenarios to ${recipient.email}`);
         const userScenarios = await storage.getScenariosByUser(sharer.id);
         scenarioNames = userScenarios.filter(s => s.kind === "manual").map(s => s.name);
-        res.status(201).json({ shares, recipientName: recipientDisplayName });
+        res.status(HTTP_201_CREATED).json({ shares, recipientName: recipientDisplayName });
       }
 
       const portalUrl = `${getAppUrl()}/scenarios`;
@@ -526,15 +535,15 @@ export function register(app: Express) {
   app.get("/api/scenarios/:id/preview", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid scenario ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID" });
       const scenario = await storage.getScenario(id);
-      if (!scenario) return res.status(404).json({ error: "Scenario not found" });
+      if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
 
       const isOwner = scenario.userId === getAuthUser(req).id;
       if (!isOwner) {
         const shared = await storage.getScenariosSharedWithUser(getAuthUser(req).id);
         const hasAccess = shared.some(s => s.id === id);
-        if (!hasAccess) return res.status(403).json({ error: "Access denied" });
+        if (!hasAccess) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
       }
 
       const overrides = await storage.getPropertyOverrides(id);
@@ -548,7 +557,7 @@ export function register(app: Express) {
   app.get("/api/scenarios/cross-query", requireAuth, async (req, res) => {
     try {
       const field = req.query.field as string;
-      if (!field) return res.status(400).json({ error: "field query parameter is required" });
+      if (!field) return res.status(HTTP_400_BAD_REQUEST).json({ error: "field query parameter is required" });
 
       const [results, userScenarios] = await Promise.all([
         storage.getPropertyOverridesForField(getAuthUser(req).id, field),
@@ -572,12 +581,12 @@ export function register(app: Express) {
 
       // Rate limit: 3 requests per minute (compute-heavy)
       if (isApiRateLimited(user.id, "scenarios-compare-batch", 3)) {
-        return res.status(429).json({ error: "Rate limit exceeded. Maximum 3 batch comparisons per minute." });
+        return res.status(HTTP_429_TOO_MANY_REQUESTS).json({ error: "Rate limit exceeded. Maximum 3 batch comparisons per minute." });
       }
 
       const validation = compareBatchSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       }
 
       const { scenarioIds, baseScenarioId } = validation.data;
@@ -591,14 +600,14 @@ export function register(app: Express) {
       for (let i = 0; i < scenarioIds.length; i++) {
         const s = scenariosRaw[i];
         if (!s) {
-          return res.status(404).json({ error: `Scenario ${scenarioIds[i]} not found` });
+          return res.status(HTTP_404_NOT_FOUND).json({ error: `Scenario ${scenarioIds[i]} not found` });
         }
         if (s.userId !== user.id) {
           // Check shared access
           const shared = await storage.getScenariosSharedWithUser(user.id);
           const hasAccess = shared.some(sh => sh.id === s.id);
           if (!hasAccess) {
-            return res.status(403).json({ error: `Access denied for scenario ${s.id}` });
+            return res.status(HTTP_403_FORBIDDEN).json({ error: `Access denied for scenario ${s.id}` });
           }
         }
         scenarioMap.set(s.id, s);
@@ -608,7 +617,7 @@ export function register(app: Express) {
       const baseId = baseScenarioId ?? scenarioIds[0];
       const baseScenario = scenarioMap.get(baseId);
       if (!baseScenario) {
-        return res.status(400).json({ error: `Base scenario ${baseId} is not in the scenarioIds list` });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: `Base scenario ${baseId} is not in the scenarioIds list` });
       }
 
       // Compute metrics for all scenarios — overlay admin-governed Model
@@ -618,7 +627,7 @@ export function register(app: Express) {
       for (const [id, scenario] of Array.from(scenarioMap.entries())) {
         const metrics = extractMetricsFromScenario(scenario, modelConstantOverrides);
         if (!metrics) {
-          return res.status(422).json({ error: `Failed to compute metrics for scenario "${scenario.name}" (ID ${id})` });
+          return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: `Failed to compute metrics for scenario "${scenario.name}" (ID ${id})` });
         }
         metricsMap.set(id, metrics);
       }
@@ -718,22 +727,22 @@ export function register(app: Express) {
   app.patch("/api/scenarios/:id/tags", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid scenario ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID" });
       const existing = await storage.getScenario(id);
-      if (!existing) return res.status(404).json({ error: "Scenario not found" });
-      if (existing.userId !== getAuthUser(req).id) return res.status(403).json({ error: "Access denied" });
+      if (!existing) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
+      if (existing.userId !== getAuthUser(req).id) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
 
       if (existing.isLocked) {
-        return res.status(403).json({ error: "This scenario is locked and cannot be edited" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "This scenario is locked and cannot be edited" });
       }
 
       const validation = updateTagsSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       }
 
       const scenario = await storage.updateScenario(id, { tags: validation.data.tags });
-      if (!scenario) return res.status(404).json({ error: "Scenario not found" });
+      if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
 
       logActivity(req, "update_tags", "scenario", id, scenario.name);
       res.json(scenario);

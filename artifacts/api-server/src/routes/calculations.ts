@@ -20,6 +20,11 @@ import { consolidateStatements } from "@calc/analysis/consolidation";
 import { compareScenarios } from "@calc/analysis/scenario-compare";
 import { computeBreakEven } from "@calc/analysis/break-even";
 import { fromZodError } from "zod-validation-error/v3";
+import {
+  HTTP_400_BAD_REQUEST,
+  HTTP_404_NOT_FOUND,
+  HTTP_500_INTERNAL_SERVER_ERROR,
+} from "../constants";
 
 import { DEFAULT_ROUNDING } from "@calc/shared/utils";
 import { getOpenAIClient } from "../ai/clients";
@@ -43,7 +48,7 @@ export function register(app: Express) {
       const rawGlobal = await storage.getGlobalAssumptions(calcUser.id);
 
       if (!rawGlobal) {
-        return res.status(400).json({ error: "Global assumptions not found" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Global assumptions not found" });
       }
 
       // Overlay admin-governed Model Constants so verification uses the same
@@ -95,9 +100,9 @@ export function register(app: Express) {
   app.get("/api/verification/runs/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid run ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID" });
       const run = await storage.getVerificationRun(id);
-      if (!run) return res.status(404).json({ error: "Run not found" });
+      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Run not found" });
       res.json(run);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch verification run", error);
@@ -108,11 +113,11 @@ export function register(app: Express) {
     try {
       const history = await storage.getVerificationRuns(1);
       if (!history.length) {
-        return res.status(400).json({ error: "No verification runs found. Run verification first." });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "No verification runs found. Run verification first." });
       }
       const latestRun = await storage.getVerificationRun(history[0].id);
       if (!latestRun) {
-        return res.status(404).json({ error: "Verification run not found" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "Verification run not found" });
       }
 
       const _globalAssumptions = await storage.getGlobalAssumptions(getAuthUser(req).id);
@@ -202,84 +207,84 @@ export function register(app: Express) {
   app.post("/api/calc/dcf", requireAuth, async (req, res) => {
     try {
       const validation = calcSchemas.dcfSchema.safeParse(req.body);
-      if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error as any).message });
+      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       const result = computeDCF({ ...validation.data, rounding_policy: DEFAULT_ROUNDING });
       res.json(result);
     } catch (_error: unknown) {
-      res.status(500).json({ error: "DCF calculation failed" });
+      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "DCF calculation failed" });
     }
   });
 
   app.post("/api/calc/irr-vector", requireAuth, async (req, res) => {
     try {
       const validation = calcSchemas.irrVectorSchema.safeParse(req.body);
-      if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error as any).message });
+      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       const result = buildIRRVector(validation.data);
       res.json(result);
     } catch (_error: unknown) {
-      res.status(500).json({ error: "IRR calculation failed" });
+      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "IRR calculation failed" });
     }
   });
 
   app.post("/api/calc/equity-multiple", requireAuth, async (req, res) => {
     try {
       const validation = calcSchemas.equityMultipleSchema.safeParse(req.body);
-      if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error as any).message });
+      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       const result = computeEquityMultiple({ ...validation.data, rounding_policy: DEFAULT_ROUNDING });
       res.json({ equityMultiple: result });
     } catch (_error: unknown) {
-      res.status(500).json({ error: "Equity multiple calculation failed" });
+      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Equity multiple calculation failed" });
     }
   });
 
   app.post("/api/calc/exit-valuation", requireAuth, async (req, res) => {
     try {
       const validation = calcSchemas.exitValuationSchema.safeParse(req.body);
-      if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error as any).message });
+      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       const result = computeExitValuation({ ...validation.data, rounding_policy: DEFAULT_ROUNDING });
       res.json(result);
     } catch (_error: unknown) {
-      res.status(500).json({ error: "Exit valuation failed" });
+      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Exit valuation failed" });
     }
   });
 
   app.post("/api/calc/validate-identities", requireAdmin, async (req, res) => {
     try {
       const validation = calcSchemas.financialIdentitiesSchema.safeParse(req.body);
-      if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error as any).message });
+      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       const result = validateFinancialIdentities({ ...validation.data, rounding_policy: DEFAULT_ROUNDING });
       res.json(result);
     } catch (_error: unknown) {
-      res.status(500).json({ error: "Identity validation failed" });
+      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Identity validation failed" });
     }
   });
 
   app.post("/api/calc/check-funding-gates", requireAdmin, async (req, res) => {
     try {
       const validation = calcSchemas.fundingGatesSchema.safeParse(req.body);
-      if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error as any).message });
+      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       const result = checkFundingGates(validation.data);
       res.json(result);
     } catch (_error: unknown) {
-      res.status(500).json({ error: "Funding gate check failed" });
+      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Funding gate check failed" });
     }
   });
 
   app.post("/api/calc/reconcile-schedule", requireAdmin, async (req, res) => {
     try {
       const validation = calcSchemas.scheduleReconcileSchema.safeParse(req.body);
-      if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error as any).message });
+      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       const result = reconcileSchedule(validation.data);
       res.json(result);
     } catch (_error: unknown) {
-      res.status(500).json({ error: "Schedule reconciliation failed" });
+      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Schedule reconciliation failed" });
     }
   });
 
   app.post("/api/calc/check-consistency", requireAdmin, async (req, res) => {
     try {
       const validation = calcSchemas.assumptionConsistencySchema.safeParse(req.body);
-      if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error as any).message });
+      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       // Inject admin-managed exit-multiple ranges from the analyst
       // intelligence store unless the caller already supplied them
       // (tests/dispatch may pass them inline).
@@ -304,51 +309,51 @@ export function register(app: Express) {
       const result = checkAssumptionConsistency({ ...validation.data, exit_multiples: exitMultiples });
       res.json(result);
     } catch (_error: unknown) {
-      res.status(500).json({ error: "Consistency check failed" });
+      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Consistency check failed" });
     }
   });
 
   app.post("/api/calc/verify-export", requireAdmin, async (req, res) => {
     try {
       const validation = calcSchemas.exportVerificationSchema.safeParse(req.body);
-      if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error as any).message });
+      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       const result = verifyExport(validation.data);
       res.json(result);
     } catch (_error: unknown) {
-      res.status(500).json({ error: "Export verification failed" });
+      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Export verification failed" });
     }
   });
 
   app.post("/api/calc/consolidate", requireAuth, async (req, res) => {
     try {
       const validation = calcSchemas.consolidationSchema.safeParse(req.body);
-      if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error as any).message });
+      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       const result = consolidateStatements({ ...validation.data, rounding_policy: DEFAULT_ROUNDING });
       res.json(result);
     } catch (_error: unknown) {
-      res.status(500).json({ error: "Consolidation failed" });
+      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Consolidation failed" });
     }
   });
 
   app.post("/api/calc/compare-scenarios", requireAuth, async (req, res) => {
     try {
       const validation = calcSchemas.scenarioCompareSchema.safeParse(req.body);
-      if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error as any).message });
+      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       const result = compareScenarios(validation.data);
       res.json(result);
     } catch (_error: unknown) {
-      res.status(500).json({ error: "Scenario comparison failed" });
+      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Scenario comparison failed" });
     }
   });
 
   app.post("/api/calc/break-even", requireAuth, async (req, res) => {
     try {
       const validation = calcSchemas.breakEvenSchema.safeParse(req.body);
-      if (!validation.success) return res.status(400).json({ error: fromZodError(validation.error as any).message });
+      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
       const result = computeBreakEven(validation.data);
       res.json(result);
     } catch (_error: unknown) {
-      res.status(500).json({ error: "Break-even analysis failed" });
+      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Break-even analysis failed" });
     }
   });
 }

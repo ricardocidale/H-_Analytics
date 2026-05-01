@@ -46,6 +46,14 @@ export const CONVICTION_MODERATE_THRESHOLD = 60;
  */
 export const TIER_1_MIN_TOTAL_EVIDENCE = 3;
 
+/**
+ * Starting qualityScore for deterministic (Tier-0) specialist verdicts before
+ * the Quality Scorer runs. Sits between CONVICTION_MODERATE_THRESHOLD (60) and
+ * CONVICTION_HIGH_THRESHOLD (80) so the verdict satisfies the conviction floor
+ * while signalling that full scoring has not yet occurred.
+ */
+export const SPECIALIST_RAW_QUALITY_SEED = 70;
+
 export function meetsConvictionFloor(quality: DataQualitySummary | null | undefined): boolean {
   if (!quality) return false;
   if (quality.qualityScore < CONVICTION_FLOOR) return false;

@@ -16,6 +16,12 @@ import { requireAuth, requireAdmin, isApiRateLimited, getAuthUser } from "../aut
 import { logger } from "../logger";
 import { storage } from "../storage";
 import { parseRouteId } from "./helpers";
+import {
+  HTTP_400_BAD_REQUEST,
+  HTTP_422_UNPROCESSABLE_ENTITY,
+  HTTP_429_TOO_MANY_REQUESTS,
+  HTTP_500_INTERNAL_SERVER_ERROR,
+} from "../constants";
 import type { PropertyInput, GlobalInput } from "@engine/types";
 import type { AuditTrailPerProperty } from "../finance/service";
 
@@ -175,11 +181,11 @@ export function registerFinanceRoutes(router: Router): void {
   router.post("/api/finance/compute", requireAuth, async (req: Request, res: Response) => {
     try {
       if (isApiRateLimited(getAuthUser(req).id, "finance-compute", 10)) {
-        return res.status(429).json({ error: "Rate limit exceeded. Please wait before computing again." });
+        return res.status(HTTP_429_TOO_MANY_REQUESTS).json({ error: "Rate limit exceeded. Please wait before computing again." });
       }
       const validation = computeRequestSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({
+        return res.status(HTTP_400_BAD_REQUEST).json({
           error: "Invalid input",
           details: validation.error.issues.map(i => ({
             path: i.path.join("."),
@@ -273,7 +279,7 @@ export function registerFinanceRoutes(router: Router): void {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Server computation failed";
       logger.error(`Compute error: ${message}`, "finance");
-      return res.status(500).json({ error: process.env.NODE_ENV === "production" ? "Server computation failed" : message });
+      return res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: process.env.NODE_ENV === "production" ? "Server computation failed" : message });
     }
   });
 
@@ -281,12 +287,12 @@ export function registerFinanceRoutes(router: Router): void {
     try {
       const routeId = parseRouteId(req.params.id);
       if (!routeId) {
-        return res.status(400).json({ error: "Invalid property ID in route" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID in route" });
       }
 
       const validation = singlePropertyComputeSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({
+        return res.status(HTTP_400_BAD_REQUEST).json({
           error: "Invalid input",
           details: validation.error.issues.map(i => ({
             path: i.path.join("."),
@@ -298,7 +304,7 @@ export function registerFinanceRoutes(router: Router): void {
       const { property, globalAssumptions: rawGlobal, projectionYears } = validation.data;
 
       if (property.id !== undefined && property.id !== routeId) {
-        return res.status(400).json({ error: "Property ID in body does not match route" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Property ID in body does not match route" });
       }
 
       // Overlay admin-governed Model Constants before engine call.
@@ -320,7 +326,7 @@ export function registerFinanceRoutes(router: Router): void {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Property computation failed";
       logger.error(`Property compute error: ${message}`, "finance");
-      return res.status(500).json({ error: process.env.NODE_ENV === "production" ? "Property computation failed" : message });
+      return res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: process.env.NODE_ENV === "production" ? "Property computation failed" : message });
     }
   });
 
@@ -337,12 +343,12 @@ export function registerFinanceRoutes(router: Router): void {
     try {
       const routeId = parseRouteId(req.params.id);
       if (!routeId) {
-        return res.status(400).json({ error: "Invalid property ID in route" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID in route" });
       }
 
       const validation = singlePropertyComputeSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({
+        return res.status(HTTP_400_BAD_REQUEST).json({
           error: "Invalid input",
           details: validation.error.issues.map(i => ({ path: i.path.join("."), message: i.message })),
         });
@@ -350,7 +356,7 @@ export function registerFinanceRoutes(router: Router): void {
 
       const { property, globalAssumptions: rawGlobal, projectionYears } = validation.data;
       if (property.id !== undefined && property.id !== routeId) {
-        return res.status(400).json({ error: "Property ID in body does not match route" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Property ID in body does not match route" });
       }
 
       const globalAssumptions = await withModelConstants(rawGlobal);
@@ -400,7 +406,7 @@ export function registerFinanceRoutes(router: Router): void {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Exit scenarios computation failed";
       logger.error(`Exit scenarios error: ${message}`, "finance");
-      return res.status(500).json({ error: process.env.NODE_ENV === "production" ? "Exit scenarios computation failed" : message });
+      return res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: process.env.NODE_ENV === "production" ? "Exit scenarios computation failed" : message });
     }
   });
 
@@ -408,7 +414,7 @@ export function registerFinanceRoutes(router: Router): void {
     try {
       const validation = computeRequestSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({
+        return res.status(HTTP_400_BAD_REQUEST).json({
           error: "Invalid input",
           details: validation.error.issues.map(i => ({
             path: i.path.join("."),
@@ -452,7 +458,7 @@ export function registerFinanceRoutes(router: Router): void {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Company computation failed";
       logger.error(`Company compute error: ${message}`, "finance");
-      return res.status(500).json({ error: process.env.NODE_ENV === "production" ? "Company computation failed" : message });
+      return res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: process.env.NODE_ENV === "production" ? "Company computation failed" : message });
     }
   });
 
@@ -490,12 +496,12 @@ export function registerFinanceRoutes(router: Router): void {
   router.post("/api/finance/sensitivity", requireAuth, async (req: Request, res: Response) => {
     try {
       if (isApiRateLimited(getAuthUser(req).id, "finance-sensitivity", 10)) {
-        return res.status(429).json({ error: "Rate limit exceeded. Please wait before running sensitivity analysis again." });
+        return res.status(HTTP_429_TOO_MANY_REQUESTS).json({ error: "Rate limit exceeded. Please wait before running sensitivity analysis again." });
       }
 
       const parsed = sensitivityRequestSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid input", details: parsed.error.issues });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid input", details: parsed.error.issues });
       }
 
       const userId = getAuthUser(req).id;
@@ -505,9 +511,9 @@ export function registerFinanceRoutes(router: Router): void {
       const message = err instanceof Error ? err.message : "Sensitivity computation failed";
       logger.error(`Sensitivity compute error: ${message}`, "finance");
       if (message.includes("No global assumptions") || message.includes("No matching properties")) {
-        return res.status(422).json({ error: message });
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: message });
       }
-      return res.status(500).json({ error: process.env.NODE_ENV === "production" ? "Sensitivity computation failed" : message });
+      return res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: process.env.NODE_ENV === "production" ? "Sensitivity computation failed" : message });
     }
   });
 }

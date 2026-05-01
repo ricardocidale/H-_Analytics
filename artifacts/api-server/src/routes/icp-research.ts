@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, isApiRateLimited , getAuthUser } from "../auth";
 import { isAdminRole } from "@shared/constants";
+import { AI_ICP_RESEARCH_MAX_TOKENS } from "../constants";
 import { logActivity, logAndSendError, icpGenerateSchema, icpExportSchema } from "./helpers";
 import { fromZodError } from "zod-validation-error/v3";
 import { getAnthropicClient, normalizeModelId } from "../ai/clients";
@@ -72,7 +73,7 @@ export function register(app: Express) {
       const startTime = Date.now();
       const stream = await anthropic.messages.stream({
         model,
-        max_tokens: 12000,
+        max_tokens: AI_ICP_RESEARCH_MAX_TOKENS,
         messages: [{ role: "user", content: prompt }],
       });
 

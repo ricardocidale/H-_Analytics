@@ -4,6 +4,11 @@ import { requireAdmin } from "../../auth";
 import { logAndSendError, logActivity, parseRouteId } from "../helpers";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error/v3";
+import {
+  HTTP_201_CREATED,
+  HTTP_400_BAD_REQUEST,
+  HTTP_404_NOT_FOUND,
+} from "../../constants";
 
 export function registerSourceRoutes(app: Express) {
   app.get("/api/admin/source-registry", requireAdmin, async (_req, res) => {
@@ -33,10 +38,10 @@ export function registerSourceRoutes(app: Express) {
         isActive: z.boolean().optional(),
       });
       const parsed = bodySchema.safeParse(req.body);
-      if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+      if (!parsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
       const created = await storage.createSourceRegistryEntry(parsed.data);
       logActivity(req, "create-source", "source_registry", created.id, created.name);
-      res.status(201).json(created);
+      res.status(HTTP_201_CREATED).json(created);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to create source registry entry", error);
     }
@@ -45,7 +50,7 @@ export function registerSourceRoutes(app: Express) {
   app.patch("/api/admin/source-registry/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
 
       const bodySchema = z.object({
         name: z.string().min(1).max(200).optional(),
@@ -62,10 +67,10 @@ export function registerSourceRoutes(app: Express) {
         isActive: z.boolean().optional(),
       });
       const parsed = bodySchema.safeParse(req.body);
-      if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+      if (!parsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
 
       const updated = await storage.updateSourceRegistryEntry(id, parsed.data);
-      if (!updated) return res.status(404).json({ error: "Source not found" });
+      if (!updated) return res.status(HTTP_404_NOT_FOUND).json({ error: "Source not found" });
       logActivity(req, "update-source", "source_registry", id, updated.name, { fields: Object.keys(parsed.data) });
       res.json(updated);
     } catch (error: unknown) {
@@ -76,12 +81,12 @@ export function registerSourceRoutes(app: Express) {
   app.patch("/api/admin/source-registry/:id/toggle", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
       const toggleParsed = z.object({ isActive: z.boolean() }).safeParse(req.body);
-      if (!toggleParsed.success) return res.status(400).json({ error: "isActive must be a boolean" });
+      if (!toggleParsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: "isActive must be a boolean" });
       const { isActive } = toggleParsed.data;
       const updated = await storage.updateSourceRegistryEntry(id, { isActive });
-      if (!updated) return res.status(404).json({ error: "Source not found" });
+      if (!updated) return res.status(HTTP_404_NOT_FOUND).json({ error: "Source not found" });
       logActivity(req, "toggle-source", "source_registry", id, updated.name, { isActive });
       res.json(updated);
     } catch (error: unknown) {
@@ -92,9 +97,9 @@ export function registerSourceRoutes(app: Express) {
   app.delete("/api/admin/source-registry/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
       const existing = await storage.getSourceRegistryEntry(id);
-      if (!existing) return res.status(404).json({ error: "Source not found" });
+      if (!existing) return res.status(HTTP_404_NOT_FOUND).json({ error: "Source not found" });
       await storage.deleteSourceRegistryEntry(id);
       logActivity(req, "delete-source", "source_registry", id, existing.name);
       res.json({ success: true });
@@ -106,9 +111,9 @@ export function registerSourceRoutes(app: Express) {
   app.get("/api/admin/source-registry/:id/logs", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
       const source = await storage.getSourceRegistryEntry(id);
-      if (!source) return res.status(404).json({ error: "Source not found" });
+      if (!source) return res.status(HTTP_404_NOT_FOUND).json({ error: "Source not found" });
       const logs = await storage.getSourceCallLogs(id, 50);
       res.json(logs);
     } catch (error: unknown) {
@@ -119,9 +124,9 @@ export function registerSourceRoutes(app: Express) {
   app.post("/api/admin/source-registry/:id/test", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
       const source = await storage.getSourceRegistryEntry(id);
-      if (!source) return res.status(404).json({ error: "Source not found" });
+      if (!source) return res.status(HTTP_404_NOT_FOUND).json({ error: "Source not found" });
 
       const startTime = Date.now();
       let healthy = false;
@@ -132,7 +137,7 @@ export function registerSourceRoutes(app: Express) {
         try {
           const url = new URL(source.endpoint);
           if (!["https:", "http:"].includes(url.protocol)) {
-            return res.status(400).json({ error: "Only HTTP(S) endpoints are supported" });
+            return res.status(HTTP_400_BAD_REQUEST).json({ error: "Only HTTP(S) endpoints are supported" });
           }
           const rawHostname = url.hostname.toLowerCase();
           const hostname = rawHostname.replace(/^\[|\]$/g, "");
@@ -149,7 +154,7 @@ export function registerSourceRoutes(app: Express) {
           };
 
           if (isPrivateAddr(hostname)) {
-            return res.status(400).json({ error: "Internal/private endpoints are not allowed" });
+            return res.status(HTTP_400_BAD_REQUEST).json({ error: "Internal/private endpoints are not allowed" });
           }
 
           const dns = await import("dns");
@@ -157,11 +162,11 @@ export function registerSourceRoutes(app: Express) {
           const ipv6 = await dns.promises.resolve6(hostname).catch(() => [] as string[]);
           const allResolved = [...ipv4, ...ipv6];
           if (allResolved.some(isPrivateAddr)) {
-            return res.status(400).json({ error: "Endpoint resolves to a private IP address" });
+            return res.status(HTTP_400_BAD_REQUEST).json({ error: "Endpoint resolves to a private IP address" });
           }
 
           if (allResolved.length === 0) {
-            return res.status(400).json({ error: "Could not resolve endpoint hostname" });
+            return res.status(HTTP_400_BAD_REQUEST).json({ error: "Could not resolve endpoint hostname" });
           }
 
           const controller = new AbortController();

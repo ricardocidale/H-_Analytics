@@ -27,8 +27,9 @@ import {
 } from "../../contracts/verdict";
 import type { SpecialistFn, SpecialistOutput } from "../../router/surface-router";
 import { getFieldRegistryEntry } from "../../registry/field-registry";
+import { SPECIALIST_RAW_QUALITY_SEED } from "@shared/analyst-conviction";
 
-const RAW_QUALITY_SEED = 70;
+const RAW_QUALITY_SEED = SPECIALIST_RAW_QUALITY_SEED;
 const BENCHMARK_SOURCE_LABEL = "L+B Company Benchmarks v1";
 
 const DIMENSION_META = {
