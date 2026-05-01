@@ -15,6 +15,7 @@ import { generatePptxFromReport } from "./format-generators/pptx-generator";
 import { generateDocxFromReport } from "./format-generators/docx-generator";
 import { buildExportData } from "../report/server-export-data";
 import { logActivity } from "./helpers";
+import { HTTP_413_PAYLOAD_TOO_LARGE } from "../constants";
 
 const exportRowSchema = z.object({
   category: z.string(),
@@ -249,7 +250,7 @@ export function register(app: Express) {
       const buffer = await generateViaTemplatePipeline(data);
       if (buffer.length > MAX_EXPORT_BYTES) {
         logger.error(`Export too large: ${buffer.length} bytes exceeds ${MAX_EXPORT_BYTES} limit`, "premium-export");
-        return res.status(413).json({ error: "Export exceeds maximum size limit. Try reducing the number of properties or projection years." });
+        return res.status(HTTP_413_PAYLOAD_TOO_LARGE).json({ error: "Export exceeds maximum size limit. Try reducing the number of properties or projection years." });
       }
       logger.info(`Premium ${data.format} generated (${buffer.length} bytes)`, "premium-export");
 

@@ -29,7 +29,7 @@ export function register(app: Express): void {
       const active = allProperties.filter((p: any) => p.isActive !== false);
 
       if (active.length === 0) {
-        return res.status(422).json({ error: "No active properties in portfolio." });
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "No active properties in portfolio." });
       }
 
       const report = computePortfolioRiskScore(active);
@@ -79,7 +79,7 @@ export function register(app: Express): void {
       const active = allProperties.filter((p: any) => p.isActive !== false);
 
       if (active.length === 0) {
-        return res.status(422).json({ error: "No active properties found for this scenario." });
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "No active properties found for this scenario." });
       }
 
       const report = computePortfolioRiskScore(active);

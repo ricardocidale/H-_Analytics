@@ -269,15 +269,15 @@ export function register(app: Express) {
   // Disabled: GuardrailEditor is read-only per specialists-are-dev-defined-only.md.
   // Rebecca guardrails are dev-defined. GET (display) stays live; writes return 405.
   app.post("/api/rebecca/guardrails", requireAuth, requireAdmin, (_req: Request, res: Response) => {
-    res.status(405).json({ error: "Rebecca guardrails are dev-defined. Edit source code and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
+    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Rebecca guardrails are dev-defined. Edit source code and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
   });
 
   app.patch("/api/rebecca/guardrails/:id", requireAuth, requireAdmin, (_req: Request, res: Response) => {
-    res.status(405).json({ error: "Rebecca guardrails are dev-defined. Edit source code and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
+    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Rebecca guardrails are dev-defined. Edit source code and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
   });
 
   app.delete("/api/rebecca/guardrails/:id", requireAuth, requireAdmin, (_req: Request, res: Response) => {
-    res.status(405).json({ error: "Rebecca guardrails are dev-defined. Edit source code and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
+    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Rebecca guardrails are dev-defined. Edit source code and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
   });
 
   app.get("/api/rebecca/kb", requireAuth, requireAdmin, async (req: Request, res: Response) => {
@@ -457,7 +457,7 @@ export function register(app: Express) {
       // Postgres unique-violation surfaces as a duplicate-key error — translate
       // it to a friendly 409 instead of leaking the internal SQLSTATE.
       if (/duplicate key/i.test(msg) || /rebecca_preview_fixtures_name_uq/i.test(msg)) {
-        return res.status(409).json({ error: "A fixture with that name already exists" });
+        return res.status(HTTP_409_CONFLICT).json({ error: "A fixture with that name already exists" });
       }
       logger.error(`Failed to create Rebecca fixture: ${msg}`, "rebecca");
       return res.status(500).json({ error: "Failed to save fixture" });
@@ -479,7 +479,7 @@ export function register(app: Express) {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       if (/duplicate key/i.test(msg) || /rebecca_preview_fixtures_name_uq/i.test(msg)) {
-        return res.status(409).json({ error: "A fixture with that name already exists" });
+        return res.status(HTTP_409_CONFLICT).json({ error: "A fixture with that name already exists" });
       }
       logger.error(`Failed to update Rebecca fixture: ${msg}`, "rebecca");
       return res.status(500).json({ error: "Failed to update fixture" });
@@ -585,7 +585,7 @@ export function register(app: Express) {
             expectedName: existing.name,
           });
           if (!replaced) {
-            return res.status(409).json({
+            return res.status(HTTP_409_CONFLICT).json({
               error: `Fixture "${existing.name}" was renamed or deleted by another admin — please retry the import`,
               code: "overwrite_target_changed",
             });
@@ -597,7 +597,7 @@ export function register(app: Express) {
           return res.json({ fixture: replaced, mode: "overwrite" });
         }
         // Either no resolution at all, or a renameTo that still collides.
-        return res.status(409).json({
+        return res.status(HTTP_409_CONFLICT).json({
           error: `A fixture named "${targetName}" already exists`,
           code: "duplicate_name",
           conflictName: targetName,
@@ -622,7 +622,7 @@ export function register(app: Express) {
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         if (/duplicate key/i.test(msg) || /rebecca_preview_fixtures_name_uq/i.test(msg)) {
-          return res.status(409).json({
+          return res.status(HTTP_409_CONFLICT).json({
             error: `A fixture named "${targetName}" already exists`,
             code: "duplicate_name",
             conflictName: targetName,

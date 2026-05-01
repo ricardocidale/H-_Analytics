@@ -7,7 +7,7 @@ import { randomUUID } from "crypto";
 import { processImage, type CropRegion } from "../image/pipeline";
 import { storage } from "../storage";
 
-import { MAX_UPLOAD_BYTES } from "../constants";
+import { MAX_UPLOAD_BYTES, HTTP_413_PAYLOAD_TOO_LARGE } from "../constants";
 import { logger } from "../logger";
 import { isBlockedHostResolved } from "./ssrf-guard";
 import { fetchWithTimeout } from "../lib/fetch-with-timeout";
@@ -62,7 +62,7 @@ export function register(app: Express) {
       const parsedLength = contentLengthHeader ? parseInt(contentLengthHeader, 10) : 0;
       const contentLength = Number.isFinite(parsedLength) ? parsedLength : 0;
       if (contentLength > MAX_UPLOAD_BYTES) {
-        return res.status(413).json({ error: `File too large. Maximum size is ${MAX_UPLOAD_BYTES / 1024 / 1024}MB.` });
+        return res.status(HTTP_413_PAYLOAD_TOO_LARGE).json({ error: `File too large. Maximum size is ${MAX_UPLOAD_BYTES / 1024 / 1024}MB.` });
       }
 
       const chunks: Buffer[] = [];
@@ -71,7 +71,7 @@ export function register(app: Express) {
         const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
         totalSize += buf.length;
         if (totalSize > MAX_UPLOAD_BYTES) {
-          return res.status(413).json({ error: `File too large. Maximum size is ${MAX_UPLOAD_BYTES / 1024 / 1024}MB.` });
+          return res.status(HTTP_413_PAYLOAD_TOO_LARGE).json({ error: `File too large. Maximum size is ${MAX_UPLOAD_BYTES / 1024 / 1024}MB.` });
         }
         chunks.push(buf);
       }

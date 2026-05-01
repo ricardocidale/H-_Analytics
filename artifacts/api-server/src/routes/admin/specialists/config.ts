@@ -24,6 +24,7 @@ import {
   getLockedHardCandidateKeys,
 } from "@engine/analyst/registry/specialist-catalog";
 import { idParamSchema } from "./_shared";
+import { HTTP_405_METHOD_NOT_ALLOWED } from "../../../constants";
 
 export function registerConfigRoutes(app: Express) {
   // Disabled: LlmConfigTab is read-only per specialists-are-dev-defined-only.md §3.3.

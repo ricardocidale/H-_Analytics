@@ -2,6 +2,7 @@ import { type Express } from "express";
 import { storage } from "../../storage";
 import { requireAdmin } from "../../auth";
 import { logAndSendError } from "../helpers";
+import { HTTP_405_METHOD_NOT_ALLOWED } from "../../constants";
 
 
 const FORMAT_DEFAULTS = {
@@ -82,6 +83,6 @@ export function registerExportConfigRoutes(app: Express) {
   // ExportsTab UI deleted in admin-cleanup-exports-tab-kill packet. 405 so any
   // stale callers surface a clear error rather than silently no-oping.
   app.put("/api/admin/export-config", requireAdmin, (_req, res) => {
-    res.status(405).json({ error: "Export config is no longer managed via admin UI — it is inert. The export pipeline is configured via compileReport directly." });
+    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Export config is no longer managed via admin UI — it is inert. The export pipeline is configured via compileReport directly." });
   });
 }
