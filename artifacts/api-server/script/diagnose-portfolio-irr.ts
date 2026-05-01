@@ -29,6 +29,7 @@ import { computeIRR } from "@analytics/returns/irr";
 import {
   SEED_PROPERTY_DEFAULTS,
   SEED_INITIAL_PROPERTIES,
+  SEED_MEDELLIN_DUPLEX,
 } from "../src/seeds/property-data";
 
 const PROJECTION_YEARS = PROJECTION_MONTHS / MONTHS_PER_YEAR;
@@ -169,10 +170,13 @@ function diagnoseProperty(seedProperty: Record<string, unknown>, global: GlobalI
 
 function main(): void {
   const global = buildGlobal();
-  console.log(`\nPortfolio IRR Diagnostic — ${SEED_INITIAL_PROPERTIES.length} active properties`);
+  // Active portfolio = SEED_INITIAL_PROPERTIES (6 hospitality assets) + SEED_MEDELLIN_DUPLEX
+  // (single-unit luxury STR, separately seeded — see SEED_MEDELLIN_DUPLEX comment block).
+  const activeProperties = [...SEED_INITIAL_PROPERTIES, SEED_MEDELLIN_DUPLEX];
+  console.log(`\nPortfolio IRR Diagnostic — ${activeProperties.length} active properties`);
   console.log(`Healthy band: ${(HEALTHY_BAND_LOW * 100).toFixed(0)}%–${(HEALTHY_BAND_HIGH * 100).toFixed(0)}% IRR`);
   console.log(`Projection: ${PROJECTION_YEARS}y (${PROJECTION_MONTHS} months) starting ${DEFAULT_MODEL_START_DATE}\n`);
-  for (const prop of SEED_INITIAL_PROPERTIES) {
+  for (const prop of activeProperties) {
     diagnoseProperty(prop as Record<string, unknown>, global);
   }
   console.log("");

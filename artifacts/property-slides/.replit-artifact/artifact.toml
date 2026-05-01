@@ -12,7 +12,7 @@ version = "1.0.0"
 [[services]]
 name = "web"
 paths = [ "/property-slides/" ]
-localPort = 23636
+localPort = 25092
 
 [services.development]
 run = "pnpm --filter @workspace/property-slides run dev"
@@ -27,5 +27,5 @@ from = "/*"
 to = "/index.html"
 
 [services.env]
-PORT = "23636"
+PORT = "25092"
 BASE_PATH = "/property-slides/"
