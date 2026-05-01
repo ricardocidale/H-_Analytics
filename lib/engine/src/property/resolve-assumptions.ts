@@ -211,7 +211,7 @@ export function resolvePropertyAssumptions(
   const apDays = property.apDays ?? DEFAULT_AP_DAYS;
   const escalationMethod = property.escalationMethod ?? DEFAULT_ESCALATION_METHOD;
 
-  const bm = (property.businessModel as 'hotel' | 'lodge' | 'vrbo') ?? 'hotel';
+  const bm = (property.businessModel as 'hotel' | 'lodge' | 'vrbo' | 'vrbo_owner_managed') ?? 'hotel';
   const modelDefaults = BUSINESS_MODEL_DEFAULTS[bm] ?? BUSINESS_MODEL_DEFAULTS.hotel;
 
   const pricingModel = property.pricingModel ?? 'per_room';

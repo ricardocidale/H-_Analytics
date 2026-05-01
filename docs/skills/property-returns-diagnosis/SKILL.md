@@ -127,6 +127,58 @@ Levers used: roomCount, startAdr, revShareEvents, cateringBoostPercent, building
 | `computeWaterfall(input)` (LP/GP distributions) | `lib/calc/src/analysis/waterfall.ts:99` |
 | Property `equityInvested` semantics | `lib/engine/src/property/resolve-assumptions.ts:368` |
 
+## Pricing model variants — when to switch from hotel cost-stack
+
+Not every property is a hotel. The engine routes properties through one of four
+business model archetypes via the `businessModel` field. **Always classify the
+property first** — running a single-unit STR through the hotel cost stack
+produces a fundamentally wrong picture of profitability.
+
+| `businessModel` | When to use | Fee structure |
+|---|---|---|
+| `hotel` | Multi-room hospitality property; F&B + events + meetings | Cost-plus services (separate admin, marketing, IT, propops rates) + 8.5% base mgmt fee + 12% incentive on GOP |
+| `lodge` | Whole-property retreat; rural; bundled F&B; no events | 18% base mgmt fee + 10% incentive; higher cleaning + utilities |
+| `vrbo` | STR full-service ManCo (Vacasa/AvantStay-tier). Owner is **passive**; ManCo handles ALL operations | 25% consolidated all-in fee; no incentive; 14% blended platform commission |
+| `vrbo_owner_managed` | STR listing-only ManCo (Evolve Core-tier). Owner arranges cleaning/maintenance/handyman directly with local vendors | 10% mgmt fee (listing + bookings + guest support only); 14% platform commission; OWNER pays variable + fixed property costs at owner-direct rates |
+
+**Why two STR variants matter:**
+
+The same property in the same market produces materially different IRRs depending
+on whether the owner is passive (full-service ManCo) or active (owner-managed
+listing). The Medellin Duplex worked example demonstrates this:
+
+- Original misconfiguration (hotel cost stack on STR pricing): 4.8% IRR, $87K stabilized ANOI
+- Switched to `vrbo` full-service: 2.4% IRR, $70K stabilized ANOI (worse — high mgmt fee + still some duplicated cost rates)
+- Switched to `vrbo_owner_managed` with Medellin-calibrated rates: 11.0% IRR, $141K stabilized ANOI
+
+The driver: in markets with low labor costs (Latin America, Eastern Europe, parts
+of Asia), owner-direct sourcing of cleaning + handyman beats US-equivalent ManCo
+overhead by 10-20pp of revenue. The `vrbo_owner_managed` model captures that.
+
+**Bundle context:** STR-class properties often blend below the standalone
+HEALTHY band (teens to low-20s IRR is normal for single-unit luxury STR) but
+work fine when packaged with stronger hotel/lodge properties. A two-property
+Colombia bundle of Jano Grande Ranch (41% IRR) + Medellin Duplex (11% IRR)
+weighted by equity blends to ~31% — strongly LP-healthy. **Don't force a
+single-unit STR into the standalone band by overstating occupancy or ADR; lift
+it via bundling instead.**
+
+## Cost-rate calibration cheatsheet — when defaults need a per-market override
+
+The `BUSINESS_MODEL_DEFAULTS` table in `lib/shared/src/constants-business-models.ts`
+ships with US-anchored cost rates. Override per-property when the market
+materially differs:
+
+| Cost rate | US benchmark (vrbo defaults) | Latin America override | Reason |
+|---|---|---|---|
+| `costRateRooms` | 0.30 (vrbo); 0.20 (hotel) | 0.06–0.14 | Cleaning labor 30-50% of US rates |
+| `costRateUtilities` | 0.07 (vrbo) | 0.04 | Utilities materially cheaper |
+| `costRateTaxes` | 0.03 | 0.018 | Property tax assessment lower |
+| `costRatePropertyOps` | 0.06 (vrbo); 0.04 (vrbo_owner_managed) | 0.03–0.04 | Handyman labor cheaper |
+
+Reference: AirROI 2026 cleaning fee economics; Colombia minimum wage data;
+cost-of-living comparisons (https://thelatinvestor.com).
+
 ## What this skill is the spec for
 
 When Specialists Q (Returns / Quitéria) and R (Distributions / Rafaela) are built, this procedure becomes their evaluator body — same root-cause taxonomy, same lever set, same band classification, same LP-credibility check. The skill compounds: every session that uses it improves the doctrine, and the doctrine becomes the productized Specialist when the prerequisites are met.

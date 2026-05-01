@@ -462,22 +462,64 @@ export const SEED_SYNC_PROPERTIES = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Medellin Duplex — single-unit luxury short-term rental (VRBO/Airbnb model).
+// Medellin Duplex — single-unit luxury short-term rental, owner-managed model.
 //
-// This is NOT a hotel. It books as one whole-unit at a premium nightly rate,
-// has no F&B / events / wellness services, and pays platform commission on
-// each booking. Earlier seed values mixed hotel revenue/cost structure with
-// STR-class pricing, producing an unrealistically high IRR — every assumption
-// below is now stated in STR-native terms:
-//   • roomCount = 1 (one bookable unit), startAdr = 1200 (per-unit nightly)
-//   • Premium STR occupancy: start 0.30, max 0.50 — high day rate
-//     compresses demand pool; conservative-defensible for investor deck
-//   • All non-existent service revenues zeroed (no F&B, events, catering)
-//   • costRateFB = 0 (no F&B operation)
-//   • costRateMarketing = 0.15 (Airbnb/VRBO platform commission, dominant
-//     marketing cost for any STR booking)
-//   • exitCapRate = 0.095 (Colombia country-risk premium, matches Casa
-//     Medellín and San Diego/Cartagena seeds)
+// Business model: `vrbo_owner_managed` (Evolve Core tier — listing-only
+// management). NOT the same as the `vrbo` full-service model used elsewhere.
+// The owner here arranges cleaning, maintenance, handyman, and supplies
+// DIRECTLY with local Medellín vendors. The management company (Norfolk)
+// provides listing optimization, channel distribution, booking handling,
+// and guest support for a flat 10% mgmt fee. This mirrors how Evolve Core
+// operates ($10% of bookings; owner does ops): https://evolve.com/owner.
+//
+// Why owner-managed and not full-service ManCo for this property:
+//   - Medellín cleaning + handyman labor is materially cheaper than US.
+//     Per-turnover cleaning runs ~$30-50 (vs US $60-100); a US-based
+//     full-service ManCo charging 25-30% all-in cannot match the unit
+//     economics of an owner sourcing a local cleaner directly.
+//   - Single unit doesn't justify the overhead of a Vacasa-tier operator;
+//     listing-only suffices.
+//   - Bundling context: the duplex is offered to LP investors as part of a
+//     Colombia package (e.g., bundled with Jano Grande Ranch). Blended
+//     IRR across the bundle is what reads in the LP deck — single-unit
+//     STR at teens-to-low-20s IRR is on-target for the bundle blend.
+//
+// Cost-rate calibrations (Medellín market, May 2026 benchmarks):
+//   - costRateRooms = 0.06: cleaning + linens + supplies, owner-direct.
+//     AirROI 2026 cleaning fee economics: 2BR turnover $60-100 US;
+//     Latin America rates run 30-50% of US benchmark. For $1,200 ADR
+//     property at avg 7.7-night stay: ~$40 cleaning per turnover ÷
+//     ~7 nights = ~$5.50 per night = 0.5% of ADR. Add linens + supplies
+//     + per-stay deep cleaning + monthly pest service: ~6% all-in is
+//     conservative. Sources: AirROI Airbnb Cleaning Fee Economics 2026.
+//   - costRatePropertyOps = 0.04: owner-direct handyman, landscaping,
+//     pool service, repairs (cheaper than ManCo-routed).
+//   - costRateUtilities = 0.04: Medellín residential utilities; Colombia
+//     wholesale electricity is materially cheaper than US.
+//   - costRateTaxes = 0.018: Colombia property tax (Medellín municipal
+//     rate, 0.4-0.7% of cadastral assessment annually = ~1.8% of revenue
+//     at this property's ratio).
+//   - costRateInsurance = 0.025: STR insurance per vrbo benchmarks.
+//   - costRateFFE = 0.03: real FF&E reserve (replacement cost).
+//
+// Fees:
+//   - baseManagementFeeRate = 0.10: Evolve Core tier listing-only mgmt fee.
+//   - incentiveManagementFeeRate = 0: consolidated, no GOP-based incentive.
+//   - platformFeeRate = 0.14: blended Airbnb 15.5% / VRBO 8% / Booking 15%
+//     channel commission (60/30/10 mix typical for luxury).
+//
+// Revenue:
+//   - All ancillary zeroed (revShareEvents/FB/Other = 0). Single unit, no F&B
+//     operation, no events.
+//   - cateringBoostPercent = 0.
+//
+// Other:
+//   - exitCapRate = 0.095 (Colombia country-risk premium; matches Casa
+//     Medellín + San Diego/Cartagena seeds).
+//
+// See `lib/shared/src/constants-business-models.ts` for the
+// vrbo_owner_managed default table; per-field overrides below reflect
+// Medellín-specific calibration.
 // ─────────────────────────────────────────────────────────────────────────────
 export const SEED_MEDELLIN_DUPLEX = {
   userId: null,
@@ -509,17 +551,18 @@ export const SEED_MEDELLIN_DUPLEX = {
   occupancyGrowthStep: 0.04,
   type: "Full Equity",
   willRefinance: "No",
-  costRateRooms: 0.14,
+  businessModel: "vrbo_owner_managed",
+  costRateRooms: 0.06,
   costRateFB: 0,
-  costRateAdmin: 0.07,
-  costRateMarketing: 0.15,
+  costRateAdmin: 0,
+  costRateMarketing: 0,
   costRatePropertyOps: 0.04,
   costRateUtilities: 0.04,
   costRateTaxes: 0.018,
-  costRateIT: 0.005,
+  costRateIT: 0,
   costRateFFE: 0.03,
-  costRateOther: 0.04,
-  costRateInsurance: DEFAULT_COST_RATE_INSURANCE,
+  costRateOther: 0,
+  costRateInsurance: 0.025,
   revShareEvents: 0,
   revShareFB: 0,
   revShareOther: 0,
@@ -528,8 +571,9 @@ export const SEED_MEDELLIN_DUPLEX = {
   taxRate: 0.35,
   countryRiskPremium: 0.0275,
   dispositionCommission: DEFAULT_COMMISSION_RATE,
-  baseManagementFeeRate: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
-  incentiveManagementFeeRate: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
+  baseManagementFeeRate: 0.10,
+  incentiveManagementFeeRate: 0,
+  platformFeeRate: 0.14,
   depreciationYears: 20,
   hospitalityType: "extended_stay",
   latitude: 6.2086,

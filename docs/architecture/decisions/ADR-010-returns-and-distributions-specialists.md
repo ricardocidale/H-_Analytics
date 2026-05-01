@@ -98,6 +98,61 @@ Every requirement in `.claude/rules/specialist-intelligence-bar.md` is intended 
 8. ✅ LLM-driven Prompt Engineer pre-stage (per ADR-007)
 9. ✅ Quality regress + honest-fail (per ADR-007)
 
+## STR business-model variants — addendum (2026-05-01)
+
+After this ADR was filed, the May 1 2026 portfolio diagnosis revealed that the
+engine's `vrbo` business-model default (full-service Vacasa/AvantStay-tier ManCo)
+was the wrong shape for at least one active property — the Medellin Duplex,
+where the OWNER arranges cleaning and maintenance directly with local Medellín
+vendors at materially lower cost than a US-anchored full-service ManCo.
+
+A new `vrbo_owner_managed` business-model variant was added to
+`lib/shared/src/constants-business-models.ts` (and synced copies) reflecting the
+Evolve Core tier (10% listing-only fee, owner does ops). The Medellin Duplex
+seed switched to this variant.
+
+**Implication for Specialist Q (Returns Intelligence):** Q must distinguish the
+four business-model archetypes (`hotel`, `lodge`, `vrbo`, `vrbo_owner_managed`)
+in its diagnostic logic. Operating-IRR root-cause analysis differs by archetype:
+
+- For `hotel`/`lodge`: lever on revenue mix (events, F&B, catering boost), room
+  count buildouts, ADR positioning.
+- For `vrbo` (full-service): lever on consolidated fee level, channel mix,
+  ADR + occupancy together (passive-owner can't change cost structure
+  unilaterally — it's bundled into the ManCo fee).
+- For `vrbo_owner_managed` (listing-only): lever on owner-direct cost
+  efficiency (cleaner sourcing, handyman rates), occupancy + ADR. Cost rates
+  are NOT bundled into a ManCo fee — they are real owner expenses.
+
+The Specialist's `comparables` tables also differ:
+- `hotel`/`lodge`: STR / CBRE / HVS hotel comp sets.
+- `vrbo`: AvantStay / Vacasa / OneFineStay management benchmarks (per ADR-006
+  Resources control plane).
+- `vrbo_owner_managed`: Evolve / iTrip / Lodgify benchmarks; AirROI / AirDNA
+  market-level rate data.
+
+## Bundling for LP credibility — addendum (2026-05-01)
+
+A single-unit STR often produces standalone IRR in the teens (12-19%) — below
+the 20% LP-credible band but defensible when bundled with stronger
+hotel/lodge properties in the same geography. Example: Colombia bundle of
+Jano Grande Ranch (41% IRR, $2.05M equity) + Medellin Duplex (11% IRR,
+$1.02M equity) blends by equity weight to ~31% — strongly healthy.
+
+Specialists Q + R should support **bundle-aware verdicts** in their later
+phases: an LP-deck export view where a property is shown in a named bundle
+(e.g., "Colombia Package") with both standalone and blended IRRs visible. The
+methodology is bundle-blended IRR = Σ(IRR_i × equity_i) / Σ(equity_i) — pure
+weighted average. (Note: this is an approximation; the rigorous bundle IRR is
+the IRR of the combined cash flow vector, which is what the engine computes
+when properties are aggregated. Both numbers should appear in the deck.)
+
+This is a **deck-export feature**, not a property-level data field. No schema
+work required; the bundle is a presentation layer over the existing IRR data.
+Naming bundles (e.g., "Colombia Package", "Catskills Package") could live in
+a new `property_bundles` lookup if Specialists Q + R need to render verdict
+text that references the bundle name — but that's a Phase 4+ concern.
+
 ## Compounding signal — what would suggest this ADR is wrong
 
 - The methodology skill (`.local/skills/property-returns-diagnosis/SKILL.md`) gets used 5+ times before either Q or R is built and reveals that the procedure NEEDS to be different per investor profile (LP institutional vs family office vs HNW direct). In that case, this ADR splits into ADR-010a (Q) + ADR-010b (R) + ADR-010c (per-investor-profile customization).
