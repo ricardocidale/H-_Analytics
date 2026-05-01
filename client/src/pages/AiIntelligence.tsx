@@ -29,7 +29,7 @@ const AIAgentsTab = lazy(() => import("@/components/admin/AIAgentsTab"));
 const EngineDashboard = lazy(() => import("@/components/admin/intelligence/EngineDashboard"));
 const ScheduledResearchPanel = lazy(() => import("@/components/admin/intelligence/ScheduledResearchPanel"));
 const VectorBenchTrendsTab = lazy(() => import("@/components/admin/intelligence/VectorBenchTrendsTab"));
-const ResourcesTab = lazy(() => import("@/components/admin/resources/ResourcesTab"));
+const ResourcesAdminPage = lazy(() => import("@/components/admin/resources/ResourcesAdminPage"));
 const SpecialistPage = lazy(() => import("@/pages/admin/specialist/SpecialistPage"));
 // Photos & Renders has a richer page than other specialists — it overlays
 // a server-backed history gallery (Task #432) on top of the standard
@@ -59,11 +59,8 @@ const sectionMeta: Record<AiIntelligenceSection, { title: string; subtitle: stri
   "engine-health":       { title: "System Health",         subtitle: "Coverage, freshness, costs, and system health" },
   "scheduled-research":  { title: "Scheduled Research",    subtitle: "Automated research workflows that keep intelligence fresh" },
   "vector-bench":        { title: "Vector Search Latency", subtitle: "pgvector / HNSW p50 and p95 query latency over time" },
-  "resources-apis":        { title: "Resources · APIs",        subtitle: "Live external HTTP services. Canonical wiring for every Specialist." },
-  "resources-sources":     { title: "Resources · Sources",     subtitle: "Bulk data sources and scrapers feeding the warehouse." },
-  "resources-tables":      { title: "Market Data · Reference Tables", subtitle: "Industry benchmarks and market data tables used by The Analyst. Read-only; refreshed by The Analyst on demand." },
-  "resources-benchmarks":  { title: "Resources · Benchmarks",  subtitle: "Hospitality benchmark slugs (ADR, RevPAR, occupancy, etc.)." },
-  "resources-models":      { title: "Resources · Models",      subtitle: "LLM model rows (provider + secret + config)." },
+  "resources":             { title: "Resources · Catalog",            subtitle: "Admin-managed registries of which APIs, sources, benchmark slugs, and models exist. Benchmark *values* live in Market Data." },
+  "resources-tables":      { title: "Market Data · Reference Tables", subtitle: "Actual benchmark and market data values (ADR index, labor rates, F&B, seasonal calendars) refreshed by The Analyst. The slug registry lives in Catalog → Benchmark Slugs." },
   "analyst-orchestrator":  { title: "Gaspar · The Analyst",    subtitle: "Orchestrator persona that routes work across the 12 Specialists." },
   "specialist-mgmt-co-funding":            { title: "Funding Intelligence",         subtitle: "" },
   "specialist-mgmt-co-revenue":            { title: "Revenue Intelligence",         subtitle: "" },
@@ -159,11 +156,8 @@ function SectionContent({ section }: { section: AiIntelligenceSection }) {
     case "engine-health":      return <EngineDashboard />;
     case "scheduled-research": return <ScheduledResearchPanel />;
     case "vector-bench":       return <VectorBenchTrendsTab />;
-    case "resources-apis":       return <ResourcesTab kind="api" />;
-    case "resources-sources":    return <ResourcesTab kind="source" />;
+    case "resources":            return <ResourcesAdminPage />;
     case "resources-tables":     return <MarketDataTablesPage />;
-    case "resources-benchmarks": return <ResourcesTab kind="benchmark" />;
-    case "resources-models":     return <ResourcesTab kind="model" />;
     case "analyst-orchestrator": return <SpecialistPage specialistId={ORCHESTRATOR_SPECIALIST_ID} />;
     case "specialist-photos-photo-enhancer": return <FernandaRenderConsolePage />;
     default: {
@@ -189,11 +183,8 @@ const VALID_SECTIONS = new Set<AiIntelligenceSection>([
   "engine-health",
   "scheduled-research",
   "vector-bench",
-  "resources-apis",
-  "resources-sources",
+  "resources",
   "resources-tables",
-  "resources-benchmarks",
-  "resources-models",
 ]);
 
 export default function AiIntelligence() {

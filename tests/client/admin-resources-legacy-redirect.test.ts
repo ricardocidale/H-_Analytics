@@ -31,9 +31,14 @@
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
-const { navigateMock, setAiIntelligenceSectionMock } = vi.hoisted(() => ({
+const {
+  navigateMock,
+  setAiIntelligenceSectionMock,
+  setResourcesCatalogKindHintMock,
+} = vi.hoisted(() => ({
   navigateMock: vi.fn(),
   setAiIntelligenceSectionMock: vi.fn(),
+  setResourcesCatalogKindHintMock: vi.fn(),
 }));
 
 vi.mock("wouter/use-browser-location", () => ({
@@ -42,16 +47,26 @@ vi.mock("wouter/use-browser-location", () => ({
 
 vi.mock("@/lib/ai-intelligence-nav", () => ({
   setAiIntelligenceSection: setAiIntelligenceSectionMock,
+  setResourcesCatalogKindHint: setResourcesCatalogKindHintMock,
 }));
 
 import { renderHook, act } from "@testing-library/react";
 import { setAdminSection, useAdminSection } from "@/lib/admin-nav";
 import { RESOURCES_LEGACY_SECTIONS } from "@/components/admin/AdminSidebar";
 
+const LEGACY_TO_KIND: Record<string, string | null> = {
+  "resources-apis": "api",
+  "resources-sources": "source",
+  "resources-benchmarks": "benchmark",
+  "resources-models": "model",
+  "resources-tables": null,
+};
+
 describe("setAdminSection — resources-* legacy keys route to /ai-intelligence", () => {
   beforeEach(() => {
     navigateMock.mockReset();
     setAiIntelligenceSectionMock.mockReset();
+    setResourcesCatalogKindHintMock.mockReset();
     // Pretend the user is currently somewhere outside /ai-intelligence so
     // the navigate branch is exercised. jsdom defaults to "/" which is
     // already not under /ai-intelligence, but assert it explicitly.
@@ -60,8 +75,16 @@ describe("setAdminSection — resources-* legacy keys route to /ai-intelligence"
     }
   });
 
+  // Packet #7 (admin-cleanup-INDEX): the 4 catalog leaves
+  // (apis/sources/benchmarks/models) collapsed into a single "resources"
+  // entry with internal tabs. The legacy keys must still forward (so old
+  // deep links keep working), but they all land on "resources" now.
+  // "resources-tables" (Market Data) stays a separate leaf.
+  const expectedTarget = (key: string) =>
+    key === "resources-tables" ? "resources-tables" : "resources";
+
   it.each(RESOURCES_LEGACY_SECTIONS)(
-    "%s → setAiIntelligenceSection(key) + navigate('/ai-intelligence') + admin section store untouched",
+    "%s → setAiIntelligenceSection(target) + navigate('/ai-intelligence') + admin section store untouched",
     (key) => {
       // Pin the admin section store to a known sentinel value so we can
       // observe whether the resources-* call mutates it (it must not).
@@ -73,7 +96,19 @@ describe("setAdminSection — resources-* legacy keys route to /ai-intelligence"
       act(() => setAdminSection(key));
 
       expect(setAiIntelligenceSectionMock).toHaveBeenCalledTimes(1);
-      expect(setAiIntelligenceSectionMock).toHaveBeenCalledWith(key);
+      expect(setAiIntelligenceSectionMock).toHaveBeenCalledWith(expectedTarget(key));
+
+      // Sub-tab fidelity: legacy catalog keys (apis/sources/benchmarks/
+      // models) must seed the kind hint so ResourcesAdminPage opens on
+      // the matching inner tab; resources-tables (Market Data) is its
+      // own AI section and must NOT touch the catalog kind hint.
+      const expectedKind = LEGACY_TO_KIND[key];
+      if (expectedKind) {
+        expect(setResourcesCatalogKindHintMock).toHaveBeenCalledTimes(1);
+        expect(setResourcesCatalogKindHintMock).toHaveBeenCalledWith(expectedKind);
+      } else {
+        expect(setResourcesCatalogKindHintMock).not.toHaveBeenCalled();
+      }
 
       expect(navigateMock).toHaveBeenCalledTimes(1);
       expect(navigateMock).toHaveBeenCalledWith("/ai-intelligence");

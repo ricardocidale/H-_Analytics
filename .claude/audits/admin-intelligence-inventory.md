@@ -22,7 +22,7 @@
 | 5 | 🟠 Dual mount | **Knowledge Base** and **Conversations** are reachable via both sidebar AND inside RebeccaAdminTabs — same surface, two routes. |
 | 6 | 🟠 Sidebar duplication | **Market & Macro** appears as both a sidebar leaf AND a tab inside ModelDefaultsTab — same content. |
 | 7 | 🟠 UX | **Resources** has 4 sidebar entries (APIs / Sources / Benchmarks / Models) pointing to the same `ResourcesTab` with different `kind=` props — should be one entry with internal tabs. |
-| 8 | 🟡 Overlap | **Market Data tables** and **Resources → Benchmarks** display overlapping benchmark data. |
+| 8 | ✅ Resolved | ~~**Market Data tables** and **Resources → Benchmarks** display overlapping benchmark data.~~ Investigation (admin-cleanup-8) confirmed they are *not* duplicates: Resources → Benchmark Slugs is the admin-managed registry of which benchmark *slugs* exist (`/api/admin/resources?kind=benchmark`), while Market Data holds the actual *values* refreshed by The Analyst (`/api/admin/market-data-tables/*`). Renamed the catalog tab to "Benchmark Slugs" and cross-linked the two subtitles. |
 | 9 | 🟡 Overlap | **Resources → Models** registry and **Steady State → LLM Defaults** both touch the same LLM config — unclear which is source-of-truth. |
 | 10 | 🟡 Wrapper | **PeopleTab** is a 21-line wrapper around `UsersTab` — pointless indirection. |
 | 11 | 🟡 Unclear | **Vector Search Latency** purpose unclear — possible debug artifact left in production. |
@@ -81,8 +81,8 @@
 | Rebecca | Conversations (sidebar) | Chat history | ✅ wired | Dual-mount #5 | Keep, remove from RebeccaAdminTabs |
 | Resources | APIs (`ResourcesTab kind="api"`) | External HTTP services registry | ✅ wired | Same component, 4 sidebar entries | **Consolidate**: one Resources entry with internal tabs |
 | Resources | Sources (`ResourcesTab kind="source"`) | Bulk data sources | ✅ wired | Same | Same |
-| Resources | Market Data (`MarketDataTablesPage`) | Industry benchmarks (read-only) | ✅ wired | Overlaps Resources → Benchmarks | Merge benchmarks into Market Data |
-| Resources | Benchmarks (`ResourcesTab kind="benchmark"`) | Hospitality benchmarks | ⚠️ duplicate | Market Data tables | **Kill or merge** into Market Data |
+| Resources | Market Data (`MarketDataTablesPage`) | Industry benchmark *values* (read-only; Analyst-refreshed) | ✅ wired | Different surface from Resources → Benchmark Slugs (registry of admin-managed slugs) | Cross-linked in subtitles ✅ |
+| Resources | Benchmark Slugs (`ResourcesTab kind="benchmark"`) | Registry of which benchmark *slugs* exist (admin-managed) | ✅ wired | NOT a duplicate of Market Data — different table, different shape (slug registry vs values) | Renamed to "Benchmark Slugs" + cross-linked ✅ |
 | Resources | Models (`ResourcesTab kind="model"`) | LLM provider+secret wiring | ⚠️ overlap | Steady State → LLM Defaults | Pick one source-of-truth |
 | System | System Health | Engine dashboard | ✅ wired | — | Keep |
 | System | Scheduled Research | Cron schedules for Specialist runs | 🔴 **RULE VIOLATION** | — | **Strip cron, make manual-run-only** (per `analyst-trigger-discipline.md`) |

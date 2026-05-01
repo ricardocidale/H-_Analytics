@@ -22,8 +22,8 @@ import {
   IconPanelLeft, IconProperties,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   IconBot, IconBrain, IconFileCheck, IconDatabase, IconShield, IconSettingsGear, IconSliders,
-  IconBriefcase, IconPhone, IconExport, IconScenarios, IconPalette,
-  IconShieldCheck, IconGlobe,
+  IconBriefcase, IconPhone, IconScenarios, IconPalette,
+  IconShieldCheck,
   IconCalculator, IconDashboard,
 } from "@/components/icons";
 import { Link } from "wouter";
@@ -41,7 +41,7 @@ export type AdminSection =
   | "model-defaults"
   | "users" | "activity"
   | "scenarios"
-  | "brand" | "exports"
+  | "brand"
   | "ai-agents"
   | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "benchmarks" | "analyst-tables" | "reference-ranges" | "vector-bench"
   | "sidebar-visibility" | "notifications" | "verification" | "database" | "observability"
@@ -191,7 +191,6 @@ function buildNavGroups(): NavGroup[] {
       sections: [
         { value: "defaults-management-company", label: "Management Company", icon: IconBriefcase },
         { value: "defaults-property",           label: "Property",           icon: IconProperties },
-        { value: "defaults-market-macro",       label: "Market & Macro",     icon: IconGlobe },
         { value: "constants",                   label: "Constants",          icon: IconCalculator },
         { value: "analyst-tables",              label: "Analyst Tables",     icon: IconBrain },
         { value: "reference-ranges",            label: "Reference Ranges",   icon: IconCalculator },
@@ -232,15 +231,6 @@ function buildNavGroups(): NavGroup[] {
       description: "Logos, themes, and icon customization",
       sections: [
         { value: "brand", label: "Brand Settings", icon: IconPalette },
-      ],
-    },
-    {
-      id: "reports",
-      label: "Reports & Exports",
-      icon: IconExport,
-      description: "PDF, PPTX, Excel & CSV exports",
-      sections: [
-        { value: "exports", label: "All Exports", icon: IconExport },
       ],
     },
     {

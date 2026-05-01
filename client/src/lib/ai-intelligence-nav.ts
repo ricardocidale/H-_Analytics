@@ -90,3 +90,23 @@ function getTabHintSnapshot() {
 export function usePendingAiIntelligenceTabHint(): PendingHint | null {
   return useSyncExternalStore(subscribeTabHint, getTabHintSnapshot, getTabHintSnapshot);
 }
+
+// admin-cleanup #7 — Resources catalog kind hint. Legacy admin deep links
+// `resources-apis|sources|benchmarks|models` collapsed into a single
+// `resources` AI section with internal tabs. To preserve sub-tab fidelity
+// for those legacy links, `setAdminSection` (admin-nav.ts) sets the
+// matching kind here before navigating; `ResourcesAdminPage` consumes
+// it on mount as the initial selected tab. One-shot to avoid stale
+// hints surviving a back/forward.
+export type ResourcesCatalogKind = "api" | "source" | "benchmark" | "model";
+let pendingResourcesKindHint: ResourcesCatalogKind | null = null;
+
+export function setResourcesCatalogKindHint(kind: ResourcesCatalogKind): void {
+  pendingResourcesKindHint = kind;
+}
+
+export function consumeResourcesCatalogKindHint(): ResourcesCatalogKind | null {
+  const k = pendingResourcesKindHint;
+  pendingResourcesKindHint = null;
+  return k;
+}

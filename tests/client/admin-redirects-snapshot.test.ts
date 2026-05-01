@@ -37,7 +37,6 @@ const RENDERABLE_ADMIN_SECTIONS: ReadonlySet<AdminSection> = new Set<AdminSectio
   "activity",
   "scenarios",
   "brand",
-  "exports",
   "ai-agents",
   "engine-dashboard",
   "data-sources",

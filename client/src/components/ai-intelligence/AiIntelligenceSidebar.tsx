@@ -23,9 +23,7 @@ import {
   IconBrain,
   IconBookOpen,
   IconMessageSquare,
-  IconGlobe,
   IconDatabase,
-  IconResearch,
   IconSettingsGear,
   IconGauge,
   IconTimer,
@@ -59,11 +57,8 @@ export type AiIntelligenceSection =
   | "engine-health"
   | "scheduled-research"
   | "vector-bench"
-  | "resources-apis"
-  | "resources-sources"
-  | "resources-tables"
-  | "resources-benchmarks"
-  | "resources-models";
+  | "resources"
+  | "resources-tables";
 
 interface SectionItem {
   value: AiIntelligenceSection;
@@ -248,16 +243,18 @@ function buildNavGroups(
       label: "Resources",
       icon: IconLayers,
       sections: [
-        { value: "resources-apis",       label: "APIs",       icon: IconGlobe },
-        { value: "resources-sources",    label: "Sources",    icon: IconDatabase },
+        {
+          value: "resources",
+          label: "Catalog",
+          icon: IconLayers,
+          tooltip: "APIs, Sources, Benchmarks, and Models — wire-up registry for Specialists",
+        },
         {
           value: "resources-tables",
           label: "Market Data",
           icon: IconDatabase,
           tooltip: "Industry benchmarks, ADR index, labor rates, F&B, and seasonal calendars — refreshed by The Analyst",
         },
-        { value: "resources-benchmarks", label: "Benchmarks", icon: IconResearch },
-        { value: "resources-models",     label: "Models",     icon: IconBrain },
       ],
     },
     {

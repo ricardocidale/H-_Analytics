@@ -26,12 +26,11 @@ function isSpecialistSection(s: AdminSection): s is SpecialistSection {
 const ActivityTab = lazy(() => import("@/components/admin").then(m => ({ default: m.ActivityTab })));
 const VerificationTab = lazy(() => import("@/components/admin").then(m => ({ default: m.VerificationTab })));
 const DatabaseTab = lazy(() => import("@/components/admin").then(m => ({ default: m.DatabaseTab })));
-const PeopleTab = lazy(() => import("@/components/admin/PeopleTab"));
+const UsersTab = lazy(() => import("@/components/admin/UsersTab"));
 const SidebarVisibilityTab = lazy(() => import("@/components/admin/SidebarVisibilityTab"));
 const AIAgentsTab = lazy(() => import("@/components/admin/AIAgentsTab"));
 const NotificationsTab = lazy(() => import("@/components/admin/NotificationsTab"));
 const ModelDefaultsTab = lazy(() => import("@/components/admin/ModelDefaultsTab"));
-const ExportsTab = lazy(() => import("@/components/admin/ExportsTab"));
 const ScenariosTab = lazy(() => import("@/components/admin/ScenariosTab"));
 const QASandbox = lazy(() => import("@/components/admin/intelligence/QASandbox"));
 const ScheduledResearchPanel = lazy(() => import("@/components/admin/intelligence/ScheduledResearchPanel"));
@@ -56,7 +55,6 @@ const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: strin
   activity:              { title: "Activity",                subtitle: "Login logs, audit trail, and session monitoring" },
   scenarios:             { title: "Scenarios",                subtitle: "Manage all scenarios, ownership, and access grants" },
   brand:                 { title: "Brand",                    subtitle: "Logos, themes, and icon customization" },
-  exports:               { title: "Exports",                  subtitle: "Configure content, orientation, and layout for all report exports" },
   "ai-agents":           { title: "Rebecca Configuration",   subtitle: "System prompt, personality, and configuration for your AI assistant" },
   "engine-dashboard":    { title: "Research Dashboard",       subtitle: "Coverage, freshness, costs, and system health" },
   "data-sources":        { title: "Data Sources",             subtitle: "APIs, scrapers, sources, and AI models powering intelligence" },
@@ -216,11 +214,10 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
   switch (resolved) {
     case "model-defaults":   return <ModelDefaultsTab onSaveStateChange={onSaveStateChange} initialTab={lookupAlongChain(section, MODEL_DEFAULTS_SUB_TAB)} visibleTabs={lookupAlongChain(section, MODEL_DEFAULTS_VISIBLE_TABS)} />;
     case "required-fields":  return <RequiredFieldsRollup />;
-    case "users":            return <PeopleTab />;
+    case "users":            return <UsersTab />;
     case "activity":         return <ActivityTab />;
     case "scenarios":        return <ScenariosTab />;
     case "brand":            return <BrandTab />;
-    case "exports":          return <ExportsTab />;
     case "ai-agents":        return (
       <ErrorBoundary fallback={
         <div className="mt-6 p-8 flex flex-col items-center gap-4 text-center rounded-xl border border-accent-pop/20 bg-accent-pop/10">

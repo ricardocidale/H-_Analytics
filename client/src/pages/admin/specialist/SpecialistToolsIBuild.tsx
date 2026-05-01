@@ -197,7 +197,7 @@ export function SpecialistToolsIBuild({ specialistId }: { specialistId: string }
                   <Button
                     variant="link"
                     size="sm"
-                    onClick={() => navigateToResources(setLocation, "resources-apis")}
+                    onClick={() => navigateToResources(setLocation, "resources")}
                     data-testid={`link-tool-i-build-resources-${t.id}`}
                   >
                     Open in Resources →

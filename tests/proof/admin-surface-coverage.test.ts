@@ -194,7 +194,7 @@ function normalizeJsx(jsx: string): string {
 const KNOWN_DUAL_MOUNTS: Record<string, Set<string>> = {
   // Documented in admin-intelligence-inventory.md as dual-mount UX bugs
   // pending remediation. Empty set after fix.
-  "AiIntelligence.tsx": new Set(["knowledge-base", "conversations", "ai-agents"]),
+  "AiIntelligence.tsx": new Set(["ai-agents"]),
 };
 
 describe("admin-surface coverage T3 — no dual mounts", () => {

@@ -195,7 +195,7 @@ export function LlmConfigTab({
               data-testid="link-resources-models"
               onClick={(e) => {
                 e.preventDefault();
-                navigateToResources(setLocation, "resources-models");
+                navigateToResources(setLocation, "resources");
               }}
               href="#"
             >

@@ -18,11 +18,11 @@ export const HEALTH_BAND: Record<
 };
 
 export const RESOURCE_KIND_TO_SECTION: Record<ResourceKind, AiIntelligenceSection> = {
-  api: "resources-apis",
-  source: "resources-sources",
+  api: "resources",
+  source: "resources",
   table: "resources-tables",
-  benchmark: "resources-benchmarks",
-  model: "resources-models",
+  benchmark: "resources",
+  model: "resources",
 };
 
 export function navigateToResources(

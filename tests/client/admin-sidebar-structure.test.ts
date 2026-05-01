@@ -26,7 +26,6 @@ describe("admin sidebar — buildNavGroups() canonical structure", () => {
         sections: [
           { value: "defaults-management-company", label: "Management Company" },
           { value: "defaults-property",           label: "Property" },
-          { value: "defaults-market-macro",       label: "Market & Macro" },
           { value: "constants",                   label: "Constants" },
           { value: "analyst-tables",              label: "Analyst Tables" },
           { value: "reference-ranges",            label: "Reference Ranges" },
@@ -59,13 +58,6 @@ describe("admin sidebar — buildNavGroups() canonical structure", () => {
         label: "Brand & Appearance",
         sections: [
           { value: "brand", label: "Brand Settings" },
-        ],
-      },
-      {
-        id: "reports",
-        label: "Reports & Exports",
-        sections: [
-          { value: "exports", label: "All Exports" },
         ],
       },
       {

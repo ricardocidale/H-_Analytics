@@ -6,7 +6,20 @@ import {
   isResourcesLegacySection,
   type AdminSection,
 } from "@/components/admin/AdminSidebar";
-import { setAiIntelligenceSection } from "@/lib/ai-intelligence-nav";
+import {
+  setAiIntelligenceSection,
+  setResourcesCatalogKindHint,
+  type ResourcesCatalogKind,
+} from "@/lib/ai-intelligence-nav";
+
+// admin-cleanup #7 — map collapsed legacy resources keys to the matching
+// internal Catalog tab kind so old deep links land on the right sub-tab.
+const LEGACY_RESOURCES_TO_KIND: Record<string, ResourcesCatalogKind> = {
+  "resources-apis":       "api",
+  "resources-sources":    "source",
+  "resources-benchmarks": "benchmark",
+  "resources-models":     "model",
+};
 
 let currentSection: AdminSection = "defaults-management-company";
 const listeners = new Set<() => void>();
@@ -25,7 +38,16 @@ export function setAdminSection(section: AdminSection | string) {
   // legacy keys before they hit the admin section map and route the user
   // there with the right AI Intelligence section pre-selected.
   if (typeof section === "string" && isResourcesLegacySection(section)) {
-    setAiIntelligenceSection(section);
+    // The 4 catalog leaves (apis/sources/benchmarks/models) collapsed into
+    // a single "resources" entry with internal tabs; "resources-tables"
+    // (Market Data) stays a separate leaf. Map legacy keys forward.
+    const target = section === "resources-tables" ? "resources-tables" : "resources";
+    // Preserve sub-tab fidelity for legacy deep links: stash the matching
+    // kind so ResourcesAdminPage opens on the right inner tab. One-shot;
+    // consumed on mount.
+    const kindHint = LEGACY_RESOURCES_TO_KIND[section];
+    if (kindHint) setResourcesCatalogKindHint(kindHint);
+    setAiIntelligenceSection(target);
     if (typeof window !== "undefined" && !window.location.pathname.startsWith("/ai-intelligence")) {
       navigate("/ai-intelligence");
     }
