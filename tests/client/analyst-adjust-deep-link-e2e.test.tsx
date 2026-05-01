@@ -106,7 +106,7 @@ function makeVerdictForField(fieldId: string) {
       },
     ],
     voice: voice(
-      `${fieldId} sits below Gaspar's range`,
+      `${fieldId} sits below Gustavo's range`,
       "Take another look at the funding plan.",
     ),
     actions: [

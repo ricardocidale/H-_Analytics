@@ -1,9 +1,9 @@
 /**
- * Gaspar — orchestrator identity.
+ * Gustavo — orchestrator identity.
  *
- * The orchestrator (formerly "The Analyst") is humanized as Gaspar so that
+ * The orchestrator (formerly "The Analyst") is humanized as Gustavo so that
  * activity logs, narration, and admin-facing UX read as a named team
- * rather than a faceless pipeline. Gaspar coordinates the 12 Specialists
+ * rather than a faceless pipeline. Gustavo coordinates the 12 Specialists
  * declared in `engine/analyst/registry/specialist-catalog.ts`.
  *
  * This module is the SINGLE source of truth for the orchestrator persona.
@@ -17,9 +17,9 @@ export interface OrchestratorIdentity {
    * on each Specialist so callsites can treat orchestrator and Specialists
    * uniformly when rendering badges / log prefixes.
    */
-  readonly humanName: "Gaspar";
+  readonly humanName: "Gustavo";
   /** Back-compat alias for `humanName`. */
-  readonly name: "Gaspar";
+  readonly name: "Gustavo";
   /** Persona role line for activity-log subheadings. */
   readonly role: "Orchestrator";
   /**
@@ -35,7 +35,7 @@ export interface OrchestratorIdentity {
   /** 1-line description rendered above the orchestrator dashboard. */
   readonly description: string;
   /**
-   * Voice doctrine for narration produced under Gaspar's name. Used by
+   * Voice doctrine for narration produced under Gustavo's name. Used by
    * prompt builders and copy reviewers so the persona reads consistently
    * across activity logs, refresh theaters, and status banners.
    */
@@ -56,7 +56,7 @@ export interface OrchestratorIdentity {
 /**
  * Synthetic specialistId reserved for the orchestrator. The Phase-3 admin
  * identity routes accept this id alongside the catalog-declared specialist
- * ids so Gaspar's humanName/gender can be edited through the same surface.
+ * ids so Gustavo's humanName/gender can be edited through the same surface.
  */
 export const ORCHESTRATOR_SPECIALIST_ID = "gaspar" as const;
 
@@ -155,8 +155,8 @@ export function resolveSpecialistIdentity(
 }
 
 export const GASPAR_IDENTITY: OrchestratorIdentity = {
-  humanName: "Gaspar",
-  name: "Gaspar",
+  humanName: "Gustavo",
+  name: "Gustavo",
   role: "Orchestrator",
   gender: "male",
   logKey: "gaspar",

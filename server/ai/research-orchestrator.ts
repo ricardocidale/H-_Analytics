@@ -388,8 +388,8 @@ export async function* orchestrateResearch(
   // ── Phase 1: Parallel analyst panels ──
 
   yield { type: "phase", data: "Launching parallel research panels…" };
-  yield { type: "phase", data: `Gaspar dispatching quantitative panel (${ANALYST_A_MODEL})` };
-  yield { type: "phase", data: `Gaspar dispatching market-strategy panel (${ANALYST_B_MODEL})` };
+  yield { type: "phase", data: `Gustavo dispatching quantitative panel (${ANALYST_A_MODEL})` };
+  yield { type: "phase", data: `Gustavo dispatching market-strategy panel (${ANALYST_B_MODEL})` };
 
   let propertyUrlContext = "";
   if (params.propertyId && isVectorStoreAvailable()) {
@@ -417,7 +417,7 @@ export async function* orchestrateResearch(
 
   const bothFailed = !!panelA.error && !!panelB.error;
   if (bothFailed) {
-    yield { type: "error", data: "ORCHESTRATOR_BOTH_FAILED: Both research panels failed — Gaspar falling back to single-model research." };
+    yield { type: "error", data: "ORCHESTRATOR_BOTH_FAILED: Both research panels failed — Gustavo falling back to single-model research." };
     return;
   }
 

@@ -71,13 +71,13 @@ describe("Phase 3 (#453) — narrateSpecialistHandoff: pronoun + name propagatio
     expect(out).toBe("Helena Souza finished their tax bulletin diff.");
   });
 
-  it("Gaspar (orchestrator) defaults to 'his' as a male persona", async () => {
+  it("Gustavo (orchestrator) defaults to 'his' as a male persona", async () => {
     (storage.getIdentityOverride as ReturnType<typeof vi.fn>).mockResolvedValue(null);
     const out = await narrateSpecialistHandoff(orchestrator, "synthesis");
-    expect(out).toBe("Gaspar finished his synthesis.");
+    expect(out).toBe("Gustavo finished his synthesis.");
   });
 
-  it("Gaspar can be flipped to female via override and pronoun follows", async () => {
+  it("Gustavo can be flipped to female via override and pronoun follows", async () => {
     (storage.getIdentityOverride as ReturnType<typeof vi.fn>).mockResolvedValue({
       specialistId: orchestrator,
       humanName: null,
@@ -86,7 +86,7 @@ describe("Phase 3 (#453) — narrateSpecialistHandoff: pronoun + name propagatio
       updatedAt: new Date(),
     });
     const out = await narrateSpecialistHandoff(orchestrator, "synthesis");
-    expect(out).toBe("Gaspar finished her synthesis.");
+    expect(out).toBe("Gustavo finished her synthesis.");
   });
 
   it("unknown specialist id falls back to a neutral, pronoun-free line and never throws", async () => {
