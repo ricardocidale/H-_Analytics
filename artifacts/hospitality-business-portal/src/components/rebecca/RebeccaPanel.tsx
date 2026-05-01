@@ -10,11 +10,11 @@ import { RebeccaInsightBanner, useRebeccaInsightStore } from "./RebeccaInsightBa
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Send,
-  X,
-  RotateCcw,
+  ArrowUp,
+  PanelRightClose,
+  SquarePen,
   Mail,
-  Flag,
+  TriangleAlert,
   History,
   Zap,
   AlignLeft,
@@ -480,31 +480,34 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
               >
                 <ChevronRight className="w-2.5 h-2.5 text-foreground/60" />
               </button>
-        <div className="px-5 pt-4 pb-3 border-b border-border/40 shrink-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <RebeccaAvatar size="md" />
+        <div className="px-4 pt-3.5 pb-3 border-b border-border/40 shrink-0 bg-primary/[0.04]">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-3 min-w-0">
+              <RebeccaAvatar size="lg" />
               <div className="min-w-0">
-                <h2 className="text-sm font-semibold" data-testid="rebecca-panel-title">
+                <h2 className="text-sm font-semibold leading-tight" data-testid="rebecca-panel-title">
                   {displayName}
                 </h2>
-                <p className="text-[11px] mt-0 text-muted-foreground">
-                  Norfolk AI Analytics
+                <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
+                  AI Analytics Assistant
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5 shrink-0">
+              {/* Past conversations */}
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7"
                 onClick={() => setHistoryOpen(true)}
-                title="Past conversations"
-                aria-label="Past conversations"
+                title="Conversation history"
+                aria-label="Conversation history"
                 data-testid="button-rebecca-history"
               >
                 <History className="w-3.5 h-3.5" />
               </Button>
+
+              {/* Contextual: email summary + report issue */}
               {messages.length > 0 && conversationId && (
                 <>
                   <Button
@@ -512,8 +515,8 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                     size="icon"
                     className="h-7 w-7"
                     onClick={() => setEmailOpen(true)}
-                    title="Email summary"
-                    aria-label="Email summary"
+                    title="Email conversation summary"
+                    aria-label="Email conversation summary"
                     data-testid="button-rebecca-email"
                   >
                     <Mail className="w-3.5 h-3.5" />
@@ -523,36 +526,41 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                     size="icon"
                     className="h-7 w-7"
                     onClick={() => setFeedbackOpen(true)}
-                    title="Report issue"
-                    aria-label="Report issue"
+                    title="Report an issue"
+                    aria-label="Report an issue"
                     data-testid="button-rebecca-feedback"
                   >
-                    <Flag className="w-3.5 h-3.5" />
+                    <TriangleAlert className="w-3.5 h-3.5" />
                   </Button>
                 </>
               )}
+
+              {/* New conversation */}
               {messages.length > 0 && (
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7"
                   onClick={handleClearChat}
-                  title="New conversation"
-                  aria-label="New conversation"
+                  title="Start new conversation"
+                  aria-label="Start new conversation"
                   data-testid="button-rebecca-clear"
                 >
-                  <RotateCcw className="w-3.5 h-3.5" />
+                  <SquarePen className="w-3.5 h-3.5" />
                 </Button>
               )}
+
+              {/* Collapse panel */}
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7"
                 onClick={() => closeAll()}
-                aria-label="Close Rebecca"
+                title="Collapse panel"
+                aria-label="Collapse panel"
                 data-testid="button-rebecca-close"
               >
-                <X className="w-3.5 h-3.5" />
+                <PanelRightClose className="w-3.5 h-3.5" />
               </Button>
             </div>
           </div>
@@ -716,7 +724,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
               data-testid="button-rebecca-send"
               aria-label="Send message"
             >
-              <Send className="w-3.5 h-3.5" />
+              <ArrowUp className="w-3.5 h-3.5" />
             </Button>
           </div>
         </div>
