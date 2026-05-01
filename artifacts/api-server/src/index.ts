@@ -554,11 +554,7 @@ async function runSchemaMigrations() {
     await markMigrationApplied("scenario_system_unique_001");
   }
 
-  if (!(await isMigrationApplied("drop_marcela_columns_001"))) {
-    const { runDropMarcelaColumns } = await import("./migrations/drop-marcela-columns");
-    await runDropMarcelaColumns();
-    await markMigrationApplied("drop_marcela_columns_001");
-  }
+  // drop_marcela_columns_001 consolidated into 0031_batch2_drops.sql (Phase C batch 2)
 
   if (!(await isMigrationApplied("seed_external_integrations_001"))) {
     const { seedExternalIntegrations } = await import("./migrations/seed-external-integrations");
@@ -584,11 +580,7 @@ async function runSchemaMigrations() {
     await markMigrationApplied("source_call_logs_001");
   }
 
-  if (!(await isMigrationApplied("drop_engine_suggested_lines_001"))) {
-    const { runDropEngineSuggestedLines001 } = await import("./migrations/drop-engine-suggested-lines-001");
-    await runDropEngineSuggestedLines001();
-    await markMigrationApplied("drop_engine_suggested_lines_001");
-  }
+  // drop_engine_suggested_lines_001 consolidated into 0031_batch2_drops.sql (Phase C batch 2)
 
   if (!(await isMigrationApplied("property_urls_001"))) {
     const { runPropertyUrlsMigration } = await import("./migrations/property-urls-001");
