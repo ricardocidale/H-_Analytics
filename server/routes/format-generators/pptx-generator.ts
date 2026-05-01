@@ -1,5 +1,6 @@
 import type { ReportDefinition, FormattedValue } from "../../report/types";
 import type { ThemeColorMap } from "../../theme-resolver";
+import { ASSUMPTIONS_TITLE_PREFIX } from "../../report/assumption-sections";
 
 function fmtPptxValue(fv: FormattedValue): string {
   return fv.text;
@@ -20,6 +21,10 @@ export async function generatePptxFromReport(report: ReportDefinition): Promise<
   const strip = (hex: string) => hex.replace(/^#/, "");
 
   for (const section of report.sections) {
+    // Assumption sections are graphics-incompatible (long key/value tables);
+    // textual formats (PDF/Excel/CSV) carry them, slide formats skip.
+    if (section.title.startsWith(ASSUMPTIONS_TITLE_PREFIX)) continue;
+
     const slide = pres.addSlide();
 
     const isProfileSection = section.kind === "table" && section.years.length === 1 && section.years[0] === "Value";

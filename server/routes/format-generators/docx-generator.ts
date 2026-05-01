@@ -1,5 +1,6 @@
 import { BRAND } from "../premium-export-prompts";
 import type { ReportDefinition, FormattedValue } from "../../report/types";
+import { ASSUMPTIONS_TITLE_PREFIX } from "../../report/assumption-sections";
 
 export async function generateDocxFromReport(report: ReportDefinition): Promise<Buffer> {
   const docxLib = await import("docx");
@@ -38,6 +39,9 @@ export async function generateDocxFromReport(report: ReportDefinition): Promise<
   }));
 
   for (const section of report.sections) {
+    // Assumption sections live in textual exports (PDF/Excel/CSV) only.
+    if (section.title.startsWith(ASSUMPTIONS_TITLE_PREFIX)) continue;
+
     const isProfileSection = section.kind === "table" && section.years.length === 1 && section.years[0] === "Value";
 
     if (isProfileSection && section.kind === "table") {
