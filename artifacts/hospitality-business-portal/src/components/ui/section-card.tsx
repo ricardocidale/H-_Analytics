@@ -28,7 +28,7 @@ export function SectionCard({
   className,
 }: SectionCardProps) {
   return (
-    <div ref={sectionRef} id={id} className="scroll-mt-24">
+    <div ref={sectionRef} id={id} className="scroll-mt-16">
       <Card
         className={cn(
           "bg-card border-border shadow-sm",
