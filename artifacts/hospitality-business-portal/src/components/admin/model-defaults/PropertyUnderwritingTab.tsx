@@ -36,6 +36,7 @@ import {
   DEFAULT_COST_RATE_INSURANCE,
   DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_LAND_VALUE_PERCENT,
+  PLATFORM_FEE_RATES,
 } from "@shared/constants";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 
@@ -769,7 +770,7 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
         <div className="space-y-2">
           <Label className="label-text text-foreground flex items-center gap-1.5">
             Platform Fee Rate (%)
-            <InfoTooltip text="Blended OTA commission rate (Airbnb 15.5% / VRBO 8% / Booking 15%). Users can override per property on the property edit page." />
+            <InfoTooltip text={`Blended OTA commission rate (Airbnb ${PLATFORM_FEE_RATES.airbnb * 100}% / VRBO ${PLATFORM_FEE_RATES.vrbo * 100}% / Booking ${PLATFORM_FEE_RATES.booking * 100}%). Users can override per property on the property edit page.`} />
           </Label>
           <div className="flex gap-2 items-center">
             <Input

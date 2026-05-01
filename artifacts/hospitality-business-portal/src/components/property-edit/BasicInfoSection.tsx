@@ -11,7 +11,7 @@
  * ratios the engine applies by default.
  */
 import { useState, useCallback, useRef, useEffect } from "react";
-import { PROPERTY_STATUS_VALUES } from "@shared/constants";
+import { PROPERTY_STATUS_VALUES, DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE, PLATFORM_FEE_RATES } from "@shared/constants";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -301,7 +301,7 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
                 <div className="space-y-2">
                   <Label className="label-text text-foreground flex items-center gap-1.5">
                     Platform Fee Rate (%)
-                    <InfoTooltip text="Blended Airbnb / VRBO / Booking.com commission as % of room revenue. Default 14% = Airbnb 15.5% / VRBO 8% / Booking 15% blended. Set to 0 for direct-booking only." />
+                    <InfoTooltip text={`Blended Airbnb / VRBO / Booking.com commission as % of room revenue. Default ${DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE * 100}% = Airbnb ${PLATFORM_FEE_RATES.airbnb * 100}% / VRBO ${PLATFORM_FEE_RATES.vrbo * 100}% / Booking ${PLATFORM_FEE_RATES.booking * 100}% blended. Set to 0 for direct-booking only.`} />
                   </Label>
                   <Input
                     type="number"
@@ -309,7 +309,7 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
                     min="0"
                     max="100"
                     value={draft.platformFeeRate != null ? +(draft.platformFeeRate * 100).toFixed(2) : ""}
-                    placeholder="14"
+                    placeholder={String(DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE * 100)}
                     onChange={(e) => {
                       const raw = parseFloat(e.target.value);
                       onChange("platformFeeRate", isNaN(raw) ? null : raw / 100);

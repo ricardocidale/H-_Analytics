@@ -18,6 +18,12 @@
 export const DEFAULT_VRBO_FULL_SERVICE_MGMT_FEE_RATE = 0.25;
 /** STR listing-only mgmt fee — Evolve Core tier (owner arranges cleaning + maintenance). */
 export const DEFAULT_VRBO_OWNER_MANAGED_MGMT_FEE_RATE = 0.10;
+/** Airbnb host-only service fee (2026, standard host). Source: Airbnb Help Centre. */
+export const DEFAULT_AIRBNB_PLATFORM_FEE_RATE = 0.155;
+/** VRBO/Expedia host service fee (2026). Source: Vrbo Help Centre. */
+export const DEFAULT_VRBO_PLATFORM_FEE_RATE = 0.08;
+/** Booking.com host commission (2026, standard). Source: Booking.com partner portal. */
+export const DEFAULT_BOOKING_PLATFORM_FEE_RATE = 0.15;
 /** Blended STR channel commission (Airbnb 15.5% / VRBO 8% / Booking 15% at 60/30/10 mix). */
 export const DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE = 0.14;
 
@@ -242,9 +248,9 @@ export const BUSINESS_MODEL_DEFAULTS: Record<BusinessModelType, BusinessModelDef
 };
 
 export const PLATFORM_FEE_RATES = {
-  airbnb: 0.155,  // 15.5% host-only fee (Airbnb)
-  vrbo: 0.08,     // 8% host fee (VRBO/Expedia)
-  booking: 0.15,  // 15% commission (Booking.com)
-  direct: 0,      // 0% for direct bookings
-  blended: 0.14,  // 14% blended average across platforms
+  airbnb:  DEFAULT_AIRBNB_PLATFORM_FEE_RATE,
+  vrbo:    DEFAULT_VRBO_PLATFORM_FEE_RATE,
+  booking: DEFAULT_BOOKING_PLATFORM_FEE_RATE,
+  direct:  0,  // 0 = no platform intermediary; structural floor
+  blended: DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE,
 } as const;
