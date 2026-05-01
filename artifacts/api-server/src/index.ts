@@ -524,11 +524,7 @@ async function runSchemaMigrations() {
     await markMigrationApplied("can_manage_scenarios_001");
   }
 
-  if (!(await isMigrationApplied("appearance_defaults_001"))) {
-    const { runAppearanceDefaults001 } = await import("./migrations/appearance-defaults-001");
-    await runAppearanceDefaults001();
-    await markMigrationApplied("appearance_defaults_001");
-  }
+  // appearance_defaults_001 consolidated into 0034_batch6_ga_columns.sql (Phase C batch 6)
 
   if (!(await isMigrationApplied("fk_hardening_001"))) {
     const { runFkHardening001 } = await import("./migrations/fk-hardening-001");
@@ -641,29 +637,9 @@ async function runSchemaMigrations() {
     await markMigrationApplied("property_dd_001");
   }
 
-  if (!(await isMigrationApplied("specialist_observed_missing_001"))) {
-    const { runSpecialistObservedMissing001 } = await import(
-      "./migrations/specialist-observed-missing-001"
-    );
-    await runSpecialistObservedMissing001();
-    await markMigrationApplied("specialist_observed_missing_001");
-  }
-
-  if (!(await isMigrationApplied("specialist_recommendation_events_001"))) {
-    const { runSpecialistRecommendationEvents001 } = await import(
-      "./migrations/specialist-recommendation-events-001"
-    );
-    await runSpecialistRecommendationEvents001();
-    await markMigrationApplied("specialist_recommendation_events_001");
-  }
-
-  if (!(await isMigrationApplied("specialist_recommendation_counters_001"))) {
-    const { runSpecialistRecommendationCounters001 } = await import(
-      "./migrations/specialist-recommendation-counters-001"
-    );
-    await runSpecialistRecommendationCounters001();
-    await markMigrationApplied("specialist_recommendation_counters_001");
-  }
+  // specialist_observed_missing_001, specialist_recommendation_events_001,
+  // specialist_recommendation_counters_001 consolidated into
+  // 0033_batch4_specialists.sql (Phase C batch 4)
 
   // specialist_multi_model_001 — columns now owned by Drizzle migration
   // 0022_specialist_llm_overrides.sql. Runtime patch removed; existing DBs
@@ -741,17 +717,8 @@ async function runSchemaMigrations() {
     await markMigrationApplied("drop_company_fk_001");
   }
 
-  if (!(await isMigrationApplied("rebecca_opt_out_001"))) {
-    const { runRebeccaOptOut001 } = await import("./migrations/rebecca-opt-out-001");
-    await runRebeccaOptOut001();
-    await markMigrationApplied("rebecca_opt_out_001");
-  }
-
-  if (!(await isMigrationApplied("rebecca_fixtures_001"))) {
-    const { runRebeccaFixtures001 } = await import("./migrations/rebecca-fixtures-001");
-    await runRebeccaFixtures001();
-    await markMigrationApplied("rebecca_fixtures_001");
-  }
+  // rebecca_opt_out_001, rebecca_fixtures_001 consolidated into
+  // 0032_batch3_rebecca.sql (Phase C batch 3)
 
   // app_name_001 consolidated into 0030_phase_c_batch_1.sql (Phase C batch 1)
 
@@ -785,11 +752,7 @@ async function runSchemaMigrations() {
     await markMigrationApplied("storage_drift_sweep_runs_001");
   }
 
-  if (!(await isMigrationApplied("rebecca_fixture_replay_001"))) {
-    const { runRebeccaFixtureReplay001 } = await import("./migrations/rebecca-fixture-replay-001");
-    await runRebeccaFixtureReplay001();
-    await markMigrationApplied("rebecca_fixture_replay_001");
-  }
+  // rebecca_fixture_replay_001 consolidated into 0032_batch3_rebecca.sql (Phase C batch 3)
 
   // Task #573 — collapse legacy duplicates and add the
   // assumption_guidance_unique constraint declared in
@@ -830,11 +793,7 @@ async function runSchemaMigrations() {
     await markMigrationApplied("audit_unique_constraints_001");
   }
 
-  if (!(await isMigrationApplied("funding_cascade_001"))) {
-    const { runFundingCascade001 } = await import("./migrations/funding-cascade-001");
-    await runFundingCascade001();
-    await markMigrationApplied("funding_cascade_001");
-  }
+  // funding_cascade_001 consolidated into 0034_batch6_ga_columns.sql (Phase C batch 6)
 
   if (!(await isMigrationApplied("cache_entries_001"))) {
     const { runCacheEntries001 } = await import("./migrations/cache-entries-001");

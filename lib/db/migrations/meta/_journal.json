@@ -204,6 +204,27 @@
       "when": 1746144001000,
       "tag": "0031_batch2_drops",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1746144002000,
+      "tag": "0032_batch3_rebecca",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1746144003000,
+      "tag": "0033_batch4_specialists",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1746144004000,
+      "tag": "0034_batch6_ga_columns",
+      "breakpoints": true
     }
   ]
 }
