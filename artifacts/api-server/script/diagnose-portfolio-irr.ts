@@ -2,10 +2,11 @@
  * diagnose-portfolio-irr.ts — verified baseline IRR diagnostic for the seed portfolio.
  *
  * Runs `generatePropertyProForma` + exit valuation + `computeIRR` on every
- * property in `SEED_INITIAL_PROPERTIES`, with the same defaults the seed
- * importer uses, so the output reflects the engine's full pipeline including
- * occupancy ramp, pre-opening burn, refinancing, debt service, and exit
- * proceeds. Replaces hand-calc baselines that omit those mechanics.
+ * active and pipeline seed property, with the same defaults the seed importer
+ * uses. Each property's global.modelStartDate is set to its acquisitionDate so
+ * the full PROJECTION_YEARS window is anchored to the property's own timeline —
+ * not wasted on dead months before acquisition (which would understate IRR for
+ * pipeline properties with future acquisition dates).
  *
  * Run: tsx script/diagnose-portfolio-irr.ts (from artifacts/api-server/)
  */
@@ -30,6 +31,7 @@ import {
   SEED_PROPERTY_DEFAULTS,
   SEED_INITIAL_PROPERTIES,
   SEED_MEDELLIN_DUPLEX,
+  SEED_SYNC_PROPERTIES,
 } from "../src/seeds/property-data";
 
 const PROJECTION_YEARS = PROJECTION_MONTHS / MONTHS_PER_YEAR;
@@ -41,9 +43,9 @@ const HEALTHY_BAND_HIGH = 0.50;
 // Currency formatting precision (USD cents) for the exit waterfall round.
 const USD_CENTS_PRECISION = 2;
 
-function buildGlobal(): GlobalInput {
+function buildGlobal(modelStartDate: string = DEFAULT_MODEL_START_DATE): GlobalInput {
   return {
-    modelStartDate: DEFAULT_MODEL_START_DATE,
+    modelStartDate,
     projectionYears: PROJECTION_YEARS,
     inflationRate: getFactoryNumber("inflationRate", "United States"),
     fixedCostEscalationRate: getFactoryNumber("inflationRate", "United States"),
@@ -98,7 +100,7 @@ function fmtUsd(x: number): string {
   return `${x.toFixed(0)}`;
 }
 
-function diagnoseProperty(seedProperty: Record<string, unknown>, global: GlobalInput): void {
+function diagnoseProperty(seedProperty: Record<string, unknown>, baseGlobal: GlobalInput): void {
   const merged = { ...SEED_PROPERTY_DEFAULTS, ...seedProperty } as PropertyInput & {
     name?: string;
     purchasePrice: number;
@@ -110,6 +112,14 @@ function diagnoseProperty(seedProperty: Record<string, unknown>, global: GlobalI
     exitCapRate?: number | null;
     dispositionCommission?: number | null;
   };
+
+  // Anchor modelStartDate to the property's own acquisitionDate so the full
+  // PROJECTION_YEARS window is used for this property's timeline rather than
+  // wasted on dead months between a shared epoch and the actual acquisition.
+  const propertyModelStart = (merged.acquisitionDate as string | undefined) ?? baseGlobal.modelStartDate;
+  const global: GlobalInput = propertyModelStart !== baseGlobal.modelStartDate
+    ? { ...baseGlobal, modelStartDate: propertyModelStart }
+    : baseGlobal;
 
   const monthly = generatePropertyProForma(merged, global, PROJECTION_MONTHS);
   const { yearlyCashFlow, yearlyRefiProceeds, yearlyAnoi, finalDebtOutstanding, stabilizedAnoi } =
@@ -169,16 +179,28 @@ function diagnoseProperty(seedProperty: Record<string, unknown>, global: GlobalI
 }
 
 function main(): void {
-  const global = buildGlobal();
-  // Active portfolio = SEED_INITIAL_PROPERTIES (6 hospitality assets) + SEED_MEDELLIN_DUPLEX
-  // (single-unit luxury STR, separately seeded — see SEED_MEDELLIN_DUPLEX comment block).
+  const baseGlobal = buildGlobal();
+
+  // ── Active portfolio ─────────────────────────────────────────────────────
+  // SEED_INITIAL_PROPERTIES (6 hospitality assets) + SEED_MEDELLIN_DUPLEX
+  // (single-unit luxury STR, separately seeded).
   const activeProperties = [...SEED_INITIAL_PROPERTIES, SEED_MEDELLIN_DUPLEX];
   console.log(`\nPortfolio IRR Diagnostic — ${activeProperties.length} active properties`);
   console.log(`Healthy band: ${(HEALTHY_BAND_LOW * 100).toFixed(0)}%–${(HEALTHY_BAND_HIGH * 100).toFixed(0)}% IRR`);
-  console.log(`Projection: ${PROJECTION_YEARS}y (${PROJECTION_MONTHS} months) starting ${DEFAULT_MODEL_START_DATE}\n`);
+  console.log(`Projection: ${PROJECTION_YEARS}y per property (modelStartDate anchored to acquisitionDate)\n`);
   for (const prop of activeProperties) {
-    diagnoseProperty(prop as Record<string, unknown>, global);
+    diagnoseProperty(prop as Record<string, unknown>, baseGlobal);
   }
+
+  // ── Pipeline properties ──────────────────────────────────────────────────
+  // SEED_SYNC_PROPERTIES — 5 properties in acquisition pipeline (2026-2028).
+  // modelStartDate is set to each property's acquisitionDate so the full
+  // PROJECTION_YEARS window covers the property's own 10-year horizon.
+  console.log(`\n── Pipeline (${SEED_SYNC_PROPERTIES.length} properties) ──────────────────────────────────────────\n`);
+  for (const prop of SEED_SYNC_PROPERTIES) {
+    diagnoseProperty(prop as Record<string, unknown>, baseGlobal);
+  }
+
   console.log("");
 }
 
