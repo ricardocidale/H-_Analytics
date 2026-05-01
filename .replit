@@ -7,3 +7,7 @@ externalPort = 80
 [[ports]]
 localPort = 23636
 externalPort = 3001
+
+[nix]
+channel = "stable-25_05"
+packages = ["fontconfig", "freetype", "ghostscript", "glib", "harfbuzz", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "pango", "tcl", "tk", "xcodebuild", "zlib"]
