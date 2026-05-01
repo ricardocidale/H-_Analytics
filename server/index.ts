@@ -877,6 +877,12 @@ async function runSchemaMigrations() {
     await runReferenceRange001();
     await markMigrationApplied("reference_range_001");
   }
+
+  if (!(await isMigrationApplied("fk_indexes_002"))) {
+    const { runFkIndexes002 } = await import("./migrations/fk-indexes-002");
+    await runFkIndexes002();
+    await markMigrationApplied("fk_indexes_002");
+  }
 }
 
 async function runSeeds() {
