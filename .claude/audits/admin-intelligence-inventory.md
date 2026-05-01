@@ -25,7 +25,7 @@
 | 8 | ✅ Resolved | ~~**Market Data tables** and **Resources → Benchmarks** display overlapping benchmark data.~~ Investigation (admin-cleanup-8) confirmed they are *not* duplicates: Resources → Benchmark Slugs is the admin-managed registry of which benchmark *slugs* exist (`/api/admin/resources?kind=benchmark`), while Market Data holds the actual *values* refreshed by The Analyst (`/api/admin/market-data-tables/*`). Renamed the catalog tab to "Benchmark Slugs" and cross-linked the two subtitles. |
 | 9 | 🟡 Overlap | **Resources → Models** registry and **Steady State → LLM Defaults** both touch the same LLM config — unclear which is source-of-truth. |
 | 10 | 🟡 Wrapper | **PeopleTab** is a 21-line wrapper around `UsersTab` — pointless indirection. |
-| 11 | 🟡 Unclear | **Vector Search Latency** purpose unclear — possible debug artifact left in production. |
+| 11 | ✅ Resolved | ~~**Vector Search Latency** purpose unclear.~~ Confirmed production-meaningful: sits in `intelligence-vector-store.ts` alongside real prod routes (index-assets, reindex, clear). pgvector latency degrades Rebecca RAG quality — operationally relevant. Keep. |
 
 **Surfaces that are clean** (~78% of audited surfaces): Steady State → Mgmt Co/Property Underwriting/Constants/DD Template/Analyst Tables/Reference Ranges/Benchmarks; Admin → Users/Scenarios/Brand/Notifications/Sidebar Visibility/Database/Activity/Verification/Observability/QA Sandbox; AI Intel → System Health, Specialist Workflow/Sources/Resource Assignments/Audit tabs.
 
@@ -43,9 +43,9 @@
 | Steady State | Constants (`ModelConstantsTab`) | Apply/discard Specialist-authored authority constants | ✅ wired | — | Keep |
 | Steady State | Analyst Tables | Commit/discard Analyst table proposals | ✅ wired | — | Keep |
 | Steady State | Reference Ranges | CRUD reference ranges for Analyst LLM context | ✅ wired | — | Keep |
-| Steady State | Hospitality Benchmarks | Edit industry benchmarks | ✅ wired | Possibly overlaps Reference Ranges (different table, same purpose?) | Verify semantic boundary, document in tab description |
+| Steady State | Hospitality Benchmarks | Edit admin-seeded industry benchmark values (ADR, occupancy, cap rates) that seed LLM context | ✅ wired | ✅ **Resolved** — NOT duplicate of Reference Ranges: `hospitality_benchmarks` = admin-editable seeds; `reference_range` = Specialist-authored deterministic ranges. Different tables, different trust levels. | Keep; add description clarifying "admin-editable seeds" vs Specialist-authored ranges |
 | Steady State | DD Template | DD workstream templates | ✅ wired | — | Keep |
-| Steady State | LLM Defaults | Vendor/model defaults for Research, Operations, Assistants, Exports | ⚠️ partial | Overlaps Specialist `LlmConfigTab` (per-Specialist) AND `Resources → Models` registry | Single-owner: pick one writer surface |
+| Steady State | LLM Defaults | Per-research-tab global model defaults (`research_config.tabDefaults`) | ✅ wired | ✅ **Resolved** — 3-tier cascade: Resources→Models = inventory (what exists), LLM Defaults = global default (which one), Specialist LlmConfig = per-Specialist override (now disabled). Not duplicates. | Rename "LLM Defaults" → "Research LLM Config" to clarify it governs research tabs, not model inventory |
 | Properties | Required Fields | Read-only rollup linking to per-Specialist tabs | ✅ wired | — | Keep |
 | Users | All Users (`PeopleTab` → `UsersTab`) | User CRUD | ✅ wired | `PeopleTab` is thin wrapper | Merge wrapper into target |
 | Scenarios | All Scenarios + Default Assignments | Scenario CRUD + defaults | ✅ wired | — | Keep |
@@ -86,7 +86,7 @@
 | Resources | Models (`ResourcesTab kind="model"`) | LLM provider+secret wiring | ⚠️ overlap | Steady State → LLM Defaults | Pick one source-of-truth |
 | System | System Health | Engine dashboard | ✅ wired | — | Keep |
 | System | Scheduled Research | Cron schedules for Specialist runs | 🔴 **RULE VIOLATION** | — | **Strip cron, make manual-run-only** (per `analyst-trigger-discipline.md`) |
-| System | Vector Search Latency | pgvector p50/p95 trends | ⚠️ unclear | — | Verify if production-monitored; if debug artifact, kill |
+| System | Vector Search Latency | pgvector p50/p95 trends for Rebecca RAG quality monitoring | ✅ wired | ✅ **Resolved** — production-meaningful alongside real vector-store routes. Not a debug artifact. | Keep |
 
 ---
 
@@ -126,8 +126,8 @@ Per `specialists-are-dev-defined-only.md` §3, **admins cannot edit Specialist p
 
 ### 🟡 Investigate before deciding
 10. LLM Defaults vs Specialist LlmConfig vs Resources → Models — three surfaces, unclear ownership.
-11. Vector Search Latency — kill if debug artifact.
-12. Hospitality Benchmarks vs Reference Ranges — document boundary or consolidate.
+11. ✅ Vector Search Latency — kept (production-meaningful for Rebecca RAG monitoring).
+12. ✅ Hospitality Benchmarks vs Reference Ranges — distinct: `hospitality_benchmarks` = admin-editable seeds; `reference_range` = Specialist-authored deterministic ranges. Keep both; improve tab descriptions.
 13. Gaspar entry — distinct view or drop.
 
 ### ✅ Keep as-is
