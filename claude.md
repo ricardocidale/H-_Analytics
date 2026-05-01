@@ -25,6 +25,7 @@ lib/
 scripts/        Shared utility scripts (@workspace/scripts)
 references/     ADRs and per-feature design notes
 .local/tasks/   Task plans, audit documents, session notes
+docs/solutions/ Documented solutions, organized by category with YAML frontmatter (module, tags, problem_type)
 ```
 
 ---
