@@ -1,3 +1,5 @@
+import { RetrievalManifestEntry } from "../ai/rebecca-context-contract";
+
 /**
  * Task #551 — Single registration point for the "Sources used" panel.
  *
@@ -158,6 +160,42 @@ export function collectChatSources(inputs: ChatRetrievalInputs): ChatSourceUsed[
         weight: inputs.uploadedFiles.weight,
       });
     }
+  }
+
+  return finalizeSourcesUsed(sourcesUsed);
+}
+
+/**
+ * Maps RetrievalManifestEntry[] to ChatSourceUsed[] based on enabled sources and weights.
+ * 
+ * Takes RetrievalManifestEntry[] and the enabled/weight settings
+ * Filters to enabled sources only
+ * Maps entries to ChatSourceUsed shape
+ * Calls finalizeSourcesUsed() to dedup+sort
+ */
+export function collectChatSourcesFromManifest(
+  entries: RetrievalManifestEntry[],
+  settings: { [K in keyof ChatRetrievalInputs]: { enabled: boolean; weight: number } }
+): ChatSourceUsed[] {
+  const sourcesUsed: ChatSourceUsed[] = [];
+
+  for (const entry of entries) {
+    const setting = settings[entry.sourceKey as keyof ChatRetrievalInputs];
+    
+    // If we have a setting for this sourceKey, check if it's enabled
+    if (setting && !setting.enabled) {
+      continue;
+    }
+
+    // Default weight to 100 if not found in settings (e.g. portfolio, field-context)
+    const weight = setting ? setting.weight : 100;
+
+    sourcesUsed.push({
+      title: entry.title || entry.itemId || "Source",
+      namespace: entry.namespace,
+      score: entry.score ?? 0,
+      weight: entry.weight ?? weight,
+    });
   }
 
   return finalizeSourcesUsed(sourcesUsed);

@@ -693,6 +693,12 @@ async function runSchemaMigrations() {
     await markMigrationApplied("pipeline_n1_global_models_001");
   }
 
+  if (!(await isMigrationApplied("vector_chunks_gin_001"))) {
+    const { runVectorChunksGin001 } = await import("./migrations/vector-chunks-gin-001");
+    await runVectorChunksGin001();
+    await markMigrationApplied("vector_chunks_gin_001");
+  }
+
   // P6f — seed admin_resources with model rows (LLM Config dropdowns) and
   // source/api/benchmark rows adapted from the legacy source_registry.
   if (!(await isMigrationApplied("admin_resources_005"))) {

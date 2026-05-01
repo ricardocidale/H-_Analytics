@@ -119,6 +119,24 @@ export const analystCooldowns = pgTable("analyst_cooldowns", {
 });
 export type AnalystCooldown = typeof analystCooldowns.$inferSelect;
 
+export const rebeccaContextContractTurns = pgTable("rebecca_context_contract_turns", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  conversationId: integer("conversation_id").references(() => rebeccaConversations.id, { onDelete: "cascade" }),
+  messageId: integer("message_id").references(() => rebeccaMessages.id, { onDelete: "set null" }),
+  userId: integer("user_id").references(() => users.id, { onDelete: "set null" }),
+  contract: jsonb("contract").$type<any>().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("rebecca_ctx_contract_conv_idx").on(table.conversationId, table.createdAt),
+  index("rebecca_ctx_contract_contract_idx").on(table.contract),
+]);
+
+export const insertRebeccaContextContractTurnSchema = createInsertSchema(rebeccaContextContractTurns).pick({
+  conversationId: true, messageId: true, userId: true, contract: true,
+});
+export type RebeccaContextContractTurn = typeof rebeccaContextContractTurns.$inferSelect;
+export type InsertRebeccaContextContractTurn = z.infer<typeof insertRebeccaContextContractTurnSchema>;
+
 export const insertResearchRunSchema = createInsertSchema(researchRuns).pick({
   userId: true, entityType: true, entityId: true, scenarioId: true,
   tier: true, status: true, completedAt: true, durationMs: true,

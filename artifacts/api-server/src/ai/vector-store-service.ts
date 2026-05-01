@@ -81,6 +81,90 @@ export interface QueryMatch {
   metadata: Record<string, string | number | boolean>;
 }
 
+/**
+ * Exact metadata filter query — no embedding needed. Uses jsonb @> containment.
+ * Returns chunks matching ALL supplied filter keys within the namespace.
+ */
+export async function queryByMetadataExact(
+  namespace: VectorNamespace,
+  filters: Record<string, unknown>,
+  limit = 10,
+): Promise<QueryMatch[]> {
+  if (!isVectorStoreAvailable()) return [];
+  await ensureStore();
+
+  const sql = `
+    SELECT id, metadata, 1.0 AS score
+      FROM vector_chunks
+     WHERE namespace = $1
+       AND metadata @> $2::jsonb
+     LIMIT $3`;
+  
+  const { rows } = await pool.query<{
+    id: string;
+    metadata: Record<string, string | number | boolean>;
+  }>(sql, [namespace, JSON.stringify(filters), limit]);
+
+  return rows.map((r) => ({
+    id: r.id,
+    score: 1.0,
+    metadata: r.metadata ?? {},
+  }));
+}
+
+export type HybridQueryResult = {
+  mode: "exact" | "semantic" | "none";
+  matches: QueryMatch[];
+};
+
+/**
+ * Try exact metadata filter first; fall back to semantic if no exact hits.
+ * Returns the mode used so callers can record it on the manifest entry.
+ */
+export async function hybridQuery(params: {
+  namespace: VectorNamespace;
+  exactFilters: Record<string, unknown>;
+  semanticQuery: string;
+  topK?: number;
+}): Promise<HybridQueryResult> {
+  // 1. Try exact match
+  const exactMatches = await queryByMetadataExact(
+    params.namespace,
+    params.exactFilters,
+    params.topK ?? 10,
+  );
+
+  if (exactMatches.length > 0) {
+    return {
+      mode: "exact",
+      matches: exactMatches,
+    };
+  }
+
+  // 2. Fall back to semantic match
+  const semanticMatches = await queryChunks(
+    params.namespace,
+    params.semanticQuery,
+    params.topK ?? 8,
+    // We don't necessarily want to apply the same filters to the semantic query
+    // unless the caller wants to. For "assumption-guidance", we might want to
+    // fall back to a broader semantic search if no exact match for (entityId, entityType, assumptionKey)
+    // is found.
+  );
+
+  if (semanticMatches.length > 0) {
+    return {
+      mode: "semantic",
+      matches: semanticMatches,
+    };
+  }
+
+  return {
+    mode: "none",
+    matches: [],
+  };
+}
+
 // ── Availability ──────────────────────────────────────────────────────────────
 
 let _storeReady: boolean | null = null;

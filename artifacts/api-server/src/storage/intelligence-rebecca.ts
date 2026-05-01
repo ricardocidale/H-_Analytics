@@ -3,6 +3,7 @@ import {
   rebeccaFeedback, rebeccaGuardrails,
   rebeccaKnowledgeBase, rebeccaKnowledgeHistory,
   rebeccaPreviewFixtures,
+  rebeccaContextContractTurns,
   type RebeccaConversation, type InsertRebeccaConversation,
   type RebeccaMessage, type InsertRebeccaMessage,
   type RebeccaEmail, type InsertRebeccaEmail,
@@ -422,6 +423,28 @@ export class IntelligenceRebeccaStorage {
       .where(eq(rebeccaPreviewFixtures.id, id))
       .returning();
     return row;
+  }
+
+  async logRebeccaContextContractTurn(data: {
+    conversationId?: number | null;
+    messageId?: number | null;
+    userId: number;
+    contract: any;
+  }): Promise<void> {
+    try {
+      await db.insert(rebeccaContextContractTurns)
+        .values({
+          conversationId: data.conversationId ?? null,
+          messageId: data.messageId ?? null,
+          userId: data.userId,
+          contract: data.contract,
+        } as typeof rebeccaContextContractTurns.$inferInsert);
+    } catch (err) {
+      logger.warn(
+        `logRebeccaContextContractTurn failed: ${err instanceof Error ? err.message : String(err)}`,
+        "intelligence-rebecca"
+      );
+    }
   }
 
   async getRebeccaKBStats(): Promise<{ total: number; active: number; byCategory: Record<string, number> }> {

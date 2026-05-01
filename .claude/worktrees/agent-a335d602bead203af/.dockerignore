@@ -1,0 +1,7 @@
+node_modules
+.git
+.local
+attached_assets
+screenshots
+tmp
+*.log

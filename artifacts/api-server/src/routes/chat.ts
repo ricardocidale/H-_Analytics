@@ -15,7 +15,7 @@ import { logger } from "../logger";
 import { buildRebeccaContext } from "../ai/rebecca-context-builder";
 import { PAGE_LABELS, VALID_PAGE_KEYS, OBSERVATION_DELIMITER } from "@shared/rebecca-pages";
 import type { PageKey } from "@shared/rebecca-pages";
-import { retrieveDocumentContext, multiNamespaceQuery } from "../ai/vector-store-service";
+import { retrieveDocumentContext, multiNamespaceQuery, hybridQuery } from "../ai/vector-store-service";
 import { retrieveRelevantChunks } from "../ai/knowledge-base";
 import { searchAssets, buildAssetContext, type AssetMatch } from "../ai/asset-intelligence";
 import { RESPONSE_MODE_CONFIG, DEFAULT_SYSTEM_PROMPT, SPANISH_MULTILINGUAL_OVERLAY, detectLanguage, generateFollowUpChips, deriveContextType, deriveContextKey } from "./chat-prompts";
@@ -24,11 +24,13 @@ import { logActivity, parseRouteId } from "./helpers";
 import { MAX_MESSAGE_LENGTH, MAX_HISTORY_LENGTH } from "../constants";
 import {
   collectChatSources,
+  collectChatSourcesFromManifest,
   type DocumentHit,
   type KnowledgeBaseHit,
   type ResearchHit,
   type AssetHit,
 } from "./chat-sources";
+import { buildContextContract, type RetrievalManifestEntry } from "../ai/rebecca-context-contract";
 
 const fieldContextSchema = z.object({
   entityType: z.enum(["property", "company"]),
@@ -436,23 +438,10 @@ export function register(app: Express) {
       ].join("\n");
 
       // Task #539 / #551 — every retrieval branch fills a typed slot on
-      // `retrievalBuckets` instead of pushing directly to a sources array.
-      // The single `collectChatSources(...)` call below then becomes the
-      // sole registration point for the "Sources used" preview panel:
-      // forgetting to wire a new RAG branch into a slot is a TypeScript
-      // error, and the unit tests in tests/server/chat-sources.test.ts
-      // assert that every populated slot ends up in the response.
-      const retrievalBuckets: {
-        documents: DocumentHit[];
-        knowledgeBase: KnowledgeBaseHit[];
-        research: ResearchHit[];
-        uploadedFiles: AssetHit[];
-      } = {
-        documents: [],
-        knowledgeBase: [],
-        research: [],
-        uploadedFiles: [],
-      };
+      // `manifest` instead of pushing directly to a sources array.
+      // The single `collectChatSourcesFromManifest(...)` call below then becomes the
+      // sole registration point for the "Sources used" preview panel.
+      const manifest: RetrievalManifestEntry[] = [];
 
       // Task #532 — track which Knowledge & Sources blocks actually
       // contributed content this turn so the admin Test Chat can show
@@ -466,6 +455,15 @@ export function register(app: Express) {
         uploadedFiles: false,
         webSearch: false,
       };
+
+      // Task #532 — admin-only payload describing exactly which Knowledge &
+      // Sources blocks made it into the system prompt for this turn. The
+      // Test Chat preview renders this as a badge list so admins can spot a
+      // toggle silently dropping a block. Derived from the same `sources`
+      // object passed to `assembleSystemPrompt`.
+      const blocksIncluded = isAdmin
+        ? computeBlocksIncluded(blockPresence, rebeccaSettings.sources)
+        : undefined;
 
       let documentContextBlock = "";
       try {
@@ -483,10 +481,13 @@ export function register(app: Express) {
           documentContextBlock = `\n\nRELEVANT DOCUMENTS:\n${docLines.join("\n\n")}`;
           blockPresence.documents = true;
           for (const d of docResults) {
-            retrievalBuckets.documents.push({
-              propertyName: d.propertyName,
-              documentType: d.documentType,
+            manifest.push({
+              sourceKey: "documents",
+              namespace: "documents",
+              itemId: `property:${docPropertyId}:${d.documentType}`,
+              title: `${d.propertyName} — ${d.documentType}`,
               score: d.score,
+              retrievalMode: "semantic",
             });
           }
         }
@@ -500,7 +501,31 @@ export function register(app: Express) {
         const wantResearch = rebeccaSettings.sources.research.enabled;
         const [kbChunks, multiResults] = await Promise.all([
           wantKB ? retrieveRelevantChunks(message, 4) : Promise.resolve([] as Awaited<ReturnType<typeof retrieveRelevantChunks>>),
-          wantResearch ? multiNamespaceQuery(message, ["research-history", "assumption-guidance"], 4) : Promise.resolve([] as Awaited<ReturnType<typeof multiNamespaceQuery>>),
+          wantResearch ? (async () => {
+            // Task #T002: Hybrid retrieval for assumption-guidance
+            let guidanceMatches: any[] = [];
+            let guidanceMode: "exact" | "semantic" | "none" = "none";
+
+            if (fieldCtx?.entityType && fieldCtx?.entityId) {
+              const hybridResult = await hybridQuery({
+                namespace: "assumption-guidance",
+                exactFilters: {
+                  entityType: fieldCtx.entityType,
+                  entityId: fieldCtx.entityId,
+                  ...(fieldCtx.fieldKey ? { assumptionKey: fieldCtx.fieldKey } : {}),
+                },
+                semanticQuery: message,
+                topK: 5,
+              });
+              guidanceMatches = hybridResult.matches.map(m => ({ ...m, namespace: "assumption-guidance", retrievalMode: hybridResult.mode }));
+            } else {
+              guidanceMatches = (await multiNamespaceQuery(message, ["assumption-guidance"], 4)).map(m => ({ ...m, retrievalMode: "semantic" }));
+            }
+
+            const historyMatches = (await multiNamespaceQuery(message, ["research-history"], 4)).map(m => ({ ...m, retrievalMode: "semantic" }));
+            
+            return [...guidanceMatches, ...historyMatches];
+          })() : Promise.resolve([] as any[]),
         ]);
 
         const ragParts: string[] = [];
@@ -513,10 +538,13 @@ export function register(app: Express) {
           if (ragChars + entry.length > MAX_RAG_CHARS) break;
           ragParts.push(entry);
           ragChars += entry.length;
-          retrievalBuckets.knowledgeBase.push({
-            title: chunk.title,
-            source: chunk.source,
+          manifest.push({
+            sourceKey: "knowledgeBase",
+            namespace: "knowledge-base",
+            itemId: (chunk as any).id,
+            title: chunk.title || chunk.source || "Knowledge entry",
             score: chunk.score,
+            retrievalMode: "semantic",
           });
           blockPresence.knowledgeBase = true;
         }
@@ -545,11 +573,13 @@ export function register(app: Express) {
           if (ragChars + entry.length > MAX_RAG_CHARS) break;
           ragParts.push(entry);
           ragChars += entry.length;
-          retrievalBuckets.research.push({
-            id: String(match.id),
+          manifest.push({
+            sourceKey: "research",
+            namespace: match.namespace as any,
+            itemId: String(match.id),
             title,
-            namespace: match.namespace,
             score: match.score,
+            retrievalMode: (match as any).retrievalMode || "semantic",
           });
           blockPresence.research = true;
         }
@@ -576,12 +606,13 @@ export function register(app: Express) {
             assetContextBlock = "\n\n" + buildAssetContext(matchedAssets);
             blockPresence.uploadedFiles = true;
             for (const asset of matchedAssets) {
-              retrievalBuckets.uploadedFiles.push({
-                id: asset.id,
-                type: asset.type,
-                caption: asset.caption,
-                propertyName: asset.propertyName,
+              manifest.push({
+                sourceKey: "uploadedFiles",
+                namespace: "uploaded-files",
+                itemId: String(asset.id),
+                title: asset.caption?.trim() || `${asset.type[0].toUpperCase()}${asset.type.slice(1)} #${asset.id}`,
                 score: asset.score,
+                retrievalMode: "semantic",
               });
             }
           }
@@ -628,6 +659,24 @@ export function register(app: Express) {
         } catch (err: unknown) {
           logger.warn(`Failed to build Rebecca field context: ${(err instanceof Error ? err.message : String(err))}`, "chat");
         }
+      }
+
+      if (contextBlock) {
+        manifest.push({
+          sourceKey: "portfolio",
+          namespace: "portfolio",
+          title: "Portfolio Context",
+          retrievalMode: "injected",
+        });
+      }
+
+      if (rebeccaFieldBlock) {
+        manifest.push({
+          sourceKey: "field-context",
+          namespace: "field-context",
+          title: "Field-Specific Research",
+          retrievalMode: "injected",
+        });
       }
 
       const contextType = deriveContextType(fieldCtx);
@@ -784,36 +833,15 @@ export function register(app: Express) {
 
       // Task #539 / #551 — single registration point for the "Sources used"
       // panel. Each retrieval branch above filled its slot on
-      // `retrievalBuckets`; this call applies the configured weights,
+      // `manifest`; this call applies the configured weights,
       // dedupes by (namespace, title), and sorts by weighted score.
       // Task #550 — compute this BEFORE persisting the assistant message so
       // the sorted list can be saved on the message metadata and shown in
       // the saved Rebecca chat too (not just the admin Test Chat preview).
-      const sourcesUsedSorted = collectChatSources({
-        documents: {
-          enabled: rebeccaSettings.sources.documents.enabled,
-          weight: rebeccaSettings.sources.documents.weight,
-          results: retrievalBuckets.documents,
-        },
-        knowledgeBase: {
-          enabled: rebeccaSettings.sources.knowledgeBase.enabled,
-          weight: rebeccaSettings.sources.knowledgeBase.weight,
-          chunks: retrievalBuckets.knowledgeBase,
-        },
-        research: {
-          enabled: rebeccaSettings.sources.research.enabled,
-          weight: rebeccaSettings.sources.research.weight,
-          matches: retrievalBuckets.research,
-        },
-        uploadedFiles: {
-          enabled: rebeccaSettings.sources.uploadedFiles.enabled,
-          weight: rebeccaSettings.sources.uploadedFiles.weight,
-          assets: retrievalBuckets.uploadedFiles,
-        },
-      });
+      const sourcesUsedSorted = collectChatSourcesFromManifest(manifest, rebeccaSettings.sources);
 
       if (!isPreview) {
-        await storage.addRebeccaMessage({
+        const assistantMessage = await storage.addRebeccaMessage({
           conversationId,
           role: "assistant",
           content: responseText,
@@ -827,6 +855,20 @@ export function register(app: Express) {
             sources: sourcesUsedSorted,
           },
         });
+
+        void storage.logRebeccaContextContractTurn({
+          conversationId: conversationId ?? undefined,
+          messageId: assistantMessage.id,
+          userId,
+          contract: buildContextContract({
+            conversationId: conversationId ?? undefined,
+            messageId: assistantMessage.id,
+            userId,
+            requestContext: { contextType, contextKey, currentPage: currentPage ?? undefined, entityType: fieldCtx?.entityType, entityId: fieldCtx?.entityId },
+            manifest,
+            promptBlocksIncluded: blocksIncluded ?? [],
+          }),
+        }).catch(err => logger.warn(`Context contract logging failed: ${err instanceof Error ? err.message : String(err)}`, "chat"));
       }
 
       const totalMessages = dbHistory.length + 2;
@@ -838,10 +880,8 @@ export function register(app: Express) {
       // Test Chat preview renders this as a badge list so admins can spot a
       // toggle silently dropping a block. Derived from the same `sources`
       // object passed to `assembleSystemPrompt`.
-      const blocksIncluded = isAdmin
-        ? computeBlocksIncluded(blockPresence, rebeccaSettings.sources)
-        : undefined;
-
+      // (Moved up)
+      
       res.json({
         response: responseText,
         conversationId,
