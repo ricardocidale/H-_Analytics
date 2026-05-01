@@ -20,6 +20,7 @@ import {
   AlignLeft,
   BookOpen,
   ChevronRight,
+  ChevronsLeft,
 } from "lucide-react";
 import { RebeccaEmailPreview } from "./RebeccaEmailPreview";
 import { RebeccaFeedbackForm } from "./RebeccaFeedbackForm";
@@ -107,7 +108,7 @@ function parseObservationField(obs: string): { message: string; fieldKey?: strin
 }
 
 export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
-  const { activePanel, rebeccaContext, closeAll } = usePanelManager();
+  const { activePanel, rebeccaContext, closeAll, openRebecca } = usePanelManager();
   const isOpen = activePanel === "rebecca";
   const [location] = useLocation();
   const currentPage = rebeccaContext?.currentPage ?? derivePageLabel(location);
@@ -728,6 +729,28 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
         />
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Pull-tab: visible only when the panel is closed */}
+      <AnimatePresence>
+        {!isOpen && (
+          <motion.button
+            key="rebecca-pull-tab"
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+            onClick={() => openRebecca()}
+            aria-label={`Open ${displayName}`}
+            data-testid="button-rebecca-pull-tab"
+            className="fixed right-0 top-[62%] -translate-y-1/2 z-[48] flex flex-col items-center justify-center gap-1.5 h-14 w-8 rounded-l-md border border-r-0 border-border bg-card text-muted-foreground shadow-md hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+          >
+            <ChevronsLeft className="w-3.5 h-3.5" />
+            <span className="text-[9px] font-medium tracking-wide leading-none [writing-mode:vertical-rl] rotate-180 select-none">
+              {displayName}
+            </span>
+          </motion.button>
         )}
       </AnimatePresence>
 
