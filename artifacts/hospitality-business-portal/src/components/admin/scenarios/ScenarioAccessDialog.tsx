@@ -118,8 +118,11 @@ export function ScenarioAccessDialog({ open, onOpenChange, scenario, users }: Sc
               <div className="space-y-1.5">
                 {scenario.accessGrants.map(grant => (
                   <div key={grant.id} className="flex items-center justify-between bg-muted/50 rounded px-3 py-2">
-                    <span className="text-sm">
+                    <span className="text-sm flex items-center gap-2">
                       {getGranteeLabel(grant.granteeId)}
+                      <span className="text-xs font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                        {grant.grantType}
+                      </span>
                     </span>
                     <Button
                       variant="ghost"
