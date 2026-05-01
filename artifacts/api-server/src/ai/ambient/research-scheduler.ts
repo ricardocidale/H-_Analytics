@@ -8,12 +8,8 @@ import { getAnthropicClient, getOpenAIClient, getGeminiClient, normalizeModelId 
 import { DEFAULT_RESEARCH_MODEL } from "../resolve-llm";
 import type { ResearchConfig, LlmVendor, ScheduledResearchWorkflow, ContextLlmConfig } from "@workspace/db";
 
-let schedulerInterval: ReturnType<typeof setInterval> | null = null;
-let startupTimeout: ReturnType<typeof setTimeout> | null = null;
 let isRunning = false;
 
-const CHECK_INTERVAL_MS = 15 * 60 * 1000;
-const STARTUP_DELAY_MS = 30 * 1000;
 const BATCH_ID_PREFIX = "BATCH:";
 
 function extractBatchId(lastRunError: string | null | undefined): string | null {
@@ -427,37 +423,12 @@ async function runWorkflowSync(workflow: ScheduledResearchWorkflow): Promise<boo
 }
 
 export function startResearchScheduler(): void {
-  logger.info(
-    `Starting — initial check in ${STARTUP_DELAY_MS / 1000}s, then every ${CHECK_INTERVAL_MS / 60000} min`,
-    "research-scheduler",
-  );
-
-  startupTimeout = setTimeout(async () => {
-    startupTimeout = null;
-    try {
-      await runScheduledCheckCycle();
-    } catch (err: unknown) {
-      logger.error(`Initial check failed: ${err instanceof Error ? err.message : String(err)}`, "research-scheduler");
-    }
-
-    schedulerInterval = setInterval(async () => {
-      try {
-        await runScheduledCheckCycle();
-      } catch (err: unknown) {
-        logger.error(`Periodic check failed: ${err instanceof Error ? err.message : String(err)}`, "research-scheduler");
-      }
-    }, CHECK_INTERVAL_MS);
-  }, STARTUP_DELAY_MS);
+  // Auto-scheduling disabled — UI is "Manual runs only."
+  // Workflows execute via POST /api/admin/scheduled-research/:id/run or
+  // the run-tracker's manual cycle trigger.
+  logger.info("Auto-scheduling disabled — manual runs only", "research-scheduler");
 }
 
 export function stopResearchScheduler(): void {
-  if (startupTimeout) {
-    clearTimeout(startupTimeout);
-    startupTimeout = null;
-  }
-  if (schedulerInterval) {
-    clearInterval(schedulerInterval);
-    schedulerInterval = null;
-  }
-  logger.info("Stopped", "research-scheduler");
+  logger.info("Stopped (no-op — auto-scheduling is disabled)", "research-scheduler");
 }
