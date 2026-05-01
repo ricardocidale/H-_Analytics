@@ -6,7 +6,7 @@
  * No inline arithmetic.
  */
 import { executeComputationTool } from "@calc/dispatch";
-import type { Property } from "@shared/schema/index.js";
+import type { Property } from "@workspace/db";
 import { logger } from "../logger";
 
 export function buildPropertyContext(properties: Property[]): string {

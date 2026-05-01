@@ -4,7 +4,7 @@ import { requireAdmin, validatePassword , getAuthUser, sanitizeEmail } from "../
 import { userResponse, createUserSchema, logAndSendError, logActivity, parseParamId } from "../helpers";
 import { fromZodError } from "zod-validation-error";
 import { hashPassword } from "../../auth";
-import { VALID_USER_ROLES } from "@shared/schema/index.js";
+import { VALID_USER_ROLES } from "@workspace/db";
 import { UserRole } from "@shared/constants";
 import { z } from "zod";
 import { sendInvitationEmail } from "../../integrations/resend";

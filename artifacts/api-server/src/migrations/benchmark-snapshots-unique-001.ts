@@ -1,7 +1,7 @@
 /**
  * Audit follow-up — Add the `benchmark_snapshots_snapshot_key_unique`
  * UNIQUE constraint declared by Drizzle in
- * `shared/schema/intelligence-v2.ts`:
+ * `lib/db/src/schema/intelligence-v2.ts`:
  *
  *   snapshotKey: text("snapshot_key").notNull().unique()
  *

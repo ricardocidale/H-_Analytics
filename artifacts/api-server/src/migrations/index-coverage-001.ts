@@ -5,12 +5,12 @@
  * future operators get them through the standard migration path (rather than
  * relying on ad-hoc `db:push` or manual psql).
  *
- * Three FK covering indexes that were declared in shared/schema/notifications.ts
+ * Three FK covering indexes that were declared in lib/db/src/schema/notifications.ts
  * but never built (db:push drift): event_type, status, created_at, alert_rule_id,
  * property_id on notification_logs.
  *
  * One genuinely-missing FK covering index: scenario_shares.granted_by (added to
- * shared/schema/scenarios.ts in the same change set).
+ * lib/db/src/schema/scenarios.ts in the same change set).
  *
  * All idempotent — safe to re-run, safe on DBs that already had them built
  * via the manual SQL push that bridged the gap on the live Neon DB.

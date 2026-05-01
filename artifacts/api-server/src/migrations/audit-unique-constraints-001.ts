@@ -1,6 +1,6 @@
 /**
  * Audit follow-up — Add the remaining single-column UNIQUE constraints
- * declared in `shared/schema/**` but never applied to the live DB.
+ * declared in `lib/db/src/schema/**` but never applied to the live DB.
  *
  * Same regression class as Task #573 / #715 / `benchmark-snapshots-unique-001`:
  * Drizzle's schema declares `.unique()` on these columns, but a stale prod
@@ -8,14 +8,14 @@
  * with one truncate prompt per missing constraint.
  *
  * Targets (each verified clean of duplicates at audit time):
- *   - properties.stable_key                   (shared/schema/properties.ts)
- *   - media_assets.filename                   (shared/schema/media-assets.ts)
- *   - source_registry.service_key             (shared/schema/intelligence-v2.ts)
- *   - pipeline_policies.policy_key            (shared/schema/intelligence-v2.ts)
- *   - scheduled_research_workflows.workflow_key (shared/schema/intelligence-v2.ts)
- *   - external_integrations.service_key       (shared/schema/integrations.ts)
- *   - capital_raise_benchmarks.dimension_key  (shared/schema/intelligence.ts)
- *   - exit_multiples.dimension_key            (shared/schema/intelligence.ts)
+ *   - properties.stable_key                   (lib/db/src/schema/properties.ts)
+ *   - media_assets.filename                   (lib/db/src/schema/media-assets.ts)
+ *   - source_registry.service_key             (lib/db/src/schema/intelligence-v2.ts)
+ *   - pipeline_policies.policy_key            (lib/db/src/schema/intelligence-v2.ts)
+ *   - scheduled_research_workflows.workflow_key (lib/db/src/schema/intelligence-v2.ts)
+ *   - external_integrations.service_key       (lib/db/src/schema/integrations.ts)
+ *   - capital_raise_benchmarks.dimension_key  (lib/db/src/schema/intelligence.ts)
+ *   - exit_multiples.dimension_key            (lib/db/src/schema/intelligence.ts)
  *
  * Each constraint is added behind a pg_constraint probe so the migration
  * is idempotent on dev DBs that already have it (created via
@@ -47,7 +47,7 @@ const TARGETS: Target[] = [
   { table: "capital_raise_benchmarks", columns: ["dimension_key"], constraintName: "capital_raise_benchmarks_dimension_key_unique" },
   { table: "exit_multiples", columns: ["dimension_key"], constraintName: "exit_multiples_dimension_key_unique" },
   // Multi-column UNIQUE constraints
-  // (shared/schema/intelligence-v2.ts:642, scenarios.ts:85, scenarios.ts:100)
+  // (lib/db/src/schema/intelligence-v2.ts:642, scenarios.ts:85, scenarios.ts:100)
   { table: "hospitality_benchmarks", columns: ["metric_key", "country", "source_year"], constraintName: "hospitality_benchmarks_metric_country_year" },
   { table: "scenario_property_overrides", columns: ["scenario_id", "property_name"], constraintName: "spo_scenario_property_unique" },
   { table: "scenario_shares", columns: ["scenario_id", "target_type", "target_id"], constraintName: "scenario_shares_unique_grant" },

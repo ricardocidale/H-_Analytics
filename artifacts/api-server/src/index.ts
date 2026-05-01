@@ -806,7 +806,7 @@ async function runSchemaMigrations() {
 
   // Task #573 — collapse legacy duplicates and add the
   // assumption_guidance_unique constraint declared in
-  // shared/schema/intelligence-v2.ts so `npm run db:push` no longer
+  // lib/db/src/schema/intelligence-v2.ts so `npm run db:push` no longer
   // prompts for a destructive truncate in non-TTY environments.
   if (!(await isMigrationApplied("assumption_guidance_dedupe_001"))) {
     const { runAssumptionGuidanceDedupe001 } = await import(
@@ -818,7 +818,7 @@ async function runSchemaMigrations() {
 
   // Audit follow-up — same regression class as Task #573, this time on
   // benchmark_snapshots.snapshot_key (declared `.unique()` in
-  // shared/schema/intelligence-v2.ts but never applied to the live DB).
+  // lib/db/src/schema/intelligence-v2.ts but never applied to the live DB).
   // Without this, `npm run db:push` blocks on a destructive truncate
   // prompt in non-TTY environments and the Task #715 CI gate fails.
   if (!(await isMigrationApplied("benchmark_snapshots_unique_001"))) {
@@ -830,7 +830,7 @@ async function runSchemaMigrations() {
   }
 
   // Audit follow-up — sweep the remaining single-column UNIQUE constraints
-  // declared in shared/schema/** but never applied to the live DB
+  // declared in lib/db/src/schema/** but never applied to the live DB
   // (properties.stable_key, media_assets.filename, source_registry.service_key,
   // pipeline_policies.policy_key, scheduled_research_workflows.workflow_key,
   // external_integrations.service_key, capital_raise_benchmarks.dimension_key,
@@ -1081,7 +1081,7 @@ function indexPropertiesToVectorStoreAsync() {
   (async () => {
     try {
       const { indexPropertyProfile } = await import("./ai/vector-store-service");
-      const { properties: propertiesTable } = await import("@shared/schema");
+      const { properties: propertiesTable } = await import("@workspace/db");
       const { db: database } = await import("./db");
       const allProps = await database.select().from(propertiesTable);
       for (const p of allProps) {

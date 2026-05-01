@@ -1,7 +1,7 @@
 /**
  * PropertyDdStorage — hospitality due-diligence template + per-property
  * checklist instances. See `shared/dd-template.ts` for the canonical
- * catalog and `shared/schema/property-dd.ts` for the table shapes.
+ * catalog and `lib/db/src/schema/property-dd.ts` for the table shapes.
  *
  * The catalog is mirrored into `dd_template_items` on first read; admins
  * can edit per-row defaults via the Constants admin tab without a code

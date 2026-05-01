@@ -48,7 +48,7 @@ export type PromotionResearchValues = Record<string, PromotionValueEntry | unkno
  * in Analyst but % in Property) are deliberately excluded.
  *
  * Keep this in sync with CANONICAL_RESEARCH_FIELDS in synthesis-schema.ts and
- * the Property column definitions in shared/schema/properties.ts.
+ * the Property column definitions in lib/db/src/schema/properties.ts.
  */
 export const ANALYST_FIELD_TO_PROPERTY_COLUMN: Partial<
   Record<CanonicalResearchField, keyof Property>

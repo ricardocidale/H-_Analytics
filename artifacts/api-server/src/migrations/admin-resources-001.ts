@@ -5,14 +5,14 @@
  * Safe to run repeatedly, safe on existing prod DBs where the tables were
  * created out-of-band.
  *
- * Tables (mirrors shared/schema/admin-resource.ts Drizzle definitions):
+ * Tables (mirrors lib/db/src/schema/admin-resource.ts Drizzle definitions):
  *   - admin_resources
  *   - admin_resource_versions
  *   - audit_break_glass_overrides
  *   - specialist_assignments
  *
  * Index policy: this migration creates the canonical `_uniq`-named unique
- * indexes that the Drizzle schema (shared/schema/admin-resource.ts) declares,
+ * indexes that the Drizzle schema (lib/db/src/schema/admin-resource.ts) declares,
  * so fresh DBs are constraint-safe even before `db:push` runs. The DROP IF
  * EXISTS lines clean up legacy duplicate names from earlier revisions of this
  * file (which created the same column tuples under `_idx` / `_unique` aliases
@@ -46,7 +46,7 @@ export async function runAdminResources001(): Promise<void> {
       updated_at timestamp NOT NULL DEFAULT now()
     )
   `);
-  // Canonical unique index (mirrors shared/schema/admin-resource.ts).
+  // Canonical unique index (mirrors lib/db/src/schema/admin-resource.ts).
   await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS admin_resources_kind_slug_uniq ON admin_resources (kind, slug)`);
   // Drop legacy duplicate name created by earlier revisions of this file.
   await db.execute(sql`DROP INDEX IF EXISTS admin_resources_kind_slug_idx`);
@@ -66,7 +66,7 @@ export async function runAdminResources001(): Promise<void> {
       changed_at timestamp NOT NULL DEFAULT now()
     )
   `);
-  // Canonical unique index (mirrors shared/schema/admin-resource.ts).
+  // Canonical unique index (mirrors lib/db/src/schema/admin-resource.ts).
   await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS admin_resource_versions_resource_version_uniq ON admin_resource_versions (resource_id, version)`);
   // Drop legacy duplicate name created by earlier revisions of this file.
   await db.execute(sql`DROP INDEX IF EXISTS admin_resource_versions_unique`);
@@ -103,7 +103,7 @@ export async function runAdminResources001(): Promise<void> {
       synced_at timestamp NOT NULL DEFAULT now()
     )
   `);
-  // Canonical unique index (mirrors shared/schema/admin-resource.ts EXACTLY —
+  // Canonical unique index (mirrors lib/db/src/schema/admin-resource.ts EXACTLY —
   // raw columns, no COALESCE; NULL-distinct semantics by design so multiple
   // role-less assignments are allowed).
   await db.execute(sql`

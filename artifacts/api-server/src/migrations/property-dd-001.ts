@@ -2,7 +2,7 @@
  * Task #811 — Hospitality Due-Diligence Checklist tables.
  *
  * Idempotent: every CREATE uses IF NOT EXISTS.  Mirrors the Drizzle
- * definitions in `shared/schema/property-dd.ts` (tables, indexes, FKs,
+ * definitions in `lib/db/src/schema/property-dd.ts` (tables, indexes, FKs,
  * and CHECK constraints) so a fresh DB has the tables before `db:push`
  * runs and existing environments where the tables were created
  * out-of-band stay safe.

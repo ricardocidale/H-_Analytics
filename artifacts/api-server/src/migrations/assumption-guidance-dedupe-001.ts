@@ -1,7 +1,7 @@
 /**
  * Task #573 — Dedupe `assumption_guidance` rows so the
  * `assumption_guidance_unique` constraint declared in
- * `shared/schema/intelligence-v2.ts` can be applied, unblocking the
+ * `lib/db/src/schema/intelligence-v2.ts` can be applied, unblocking the
  * non-interactive `npm run db:push` flow.
  *
  * Drizzle declares:

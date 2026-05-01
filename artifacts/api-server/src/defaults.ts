@@ -2,7 +2,7 @@
  * server/defaults.ts — DB-backed reader for the Steady State → Defaults page.
  *
  * The `model_defaults` table holds the admin-managed seed values that become
- * a user's starting assumptions (see `shared/schema/model-defaults.ts`). The
+ * a user's starting assumptions (see `lib/db/src/schema/model-defaults.ts`). The
  * downstream financial engine is **pure** — it cannot touch I/O. So this
  * module is the boundary layer: server code calls `resolveDefault` once at
  * the edge of a request, turns the result into a typed overlay, and hands

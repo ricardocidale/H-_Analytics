@@ -9,7 +9,7 @@
  * IRS publications, and HVS fee surveys.
  *
  * How these are used:
- *   - The database schema (shared/schema.ts) references them as column defaults
+ *   - The database schema (lib/db/src/schema/) references them as column defaults
  *   - The financial engine uses them as fallbacks when a property hasn't
  *     overridden a particular rate
  *   - The verification checker compares calculated values against these defaults

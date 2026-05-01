@@ -6,6 +6,8 @@
     "types": ["node"],
     "paths": {
       "@shared/*": ["./src/shared/*"],
+      "@workspace/db": ["../../lib/db/src"],
+      "@workspace/db/*": ["../../lib/db/src/*"],
       "@engine": ["../../lib/engine/src"],
       "@engine/*": ["../../lib/engine/src/*"],
       "@calc": ["../../lib/calc/src"],
