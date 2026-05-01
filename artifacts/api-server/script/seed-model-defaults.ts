@@ -25,6 +25,7 @@ import { resolve } from "path";
 import { sql } from "drizzle-orm";
 import { db } from "../src/db";
 import { modelDefaults } from "@workspace/db";
+import { DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE } from "../src/shared/constants-business-models";
 import {
   DEFAULT_MODEL_START_DATE,
   DEFAULT_COMPANY_OPS_START_DATE,
@@ -178,6 +179,10 @@ export const SPECS: SeedSpec[] = [
   { key: "occupancyRampMonths",         card: "property_defaults", value: DEFAULT_OCCUPANCY_RAMP_MONTHS,     unit: "months", label: "Occupancy ramp duration" },
   { key: "occupancyGrowthStep",         card: "property_defaults", value: DEFAULT_OCCUPANCY_GROWTH_STEP,     unit: "%",      label: "Occupancy growth step per period" },
   { key: "propertyInflationRate",       card: "property_defaults", value: DEFAULT_PROPERTY_INFLATION_RATE,   unit: "%",      label: "Property-level cost inflation (annual)" },
+  // STR platform fee — blended Airbnb 15.5% / VRBO 8% / Booking 15%.
+  // Universal scope (businessType=null) so it applies to all archetypes
+  // until admin adds a businessType-scoped override row.
+  { key: "platformFeeRate",             card: "property_defaults", value: DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE, unit: "%", label: "STR platform fee rate (Airbnb/VRBO/Booking blended)" },
 ];
 
 export function toDefaultKey(card: CardKey, key: string): string {
