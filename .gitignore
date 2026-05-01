@@ -48,3 +48,12 @@ Thumbs.db
 .cache/
 .local/
 artifacts/api-server/logs/api-costs.jsonl
+
+# Keep the repo root clean — screenshots and debug dumps belong in attached_assets/ or screenshots/
+/*.png
+/*.jpg
+/*.jpeg
+/*.webp
+/COST-MONITOR*
+/screenshots/**
+!/screenshots/README.md
