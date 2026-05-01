@@ -117,6 +117,7 @@ const EXCLUDED_FILE_PATTERNS: readonly RegExp[] = [
   /^server\/migrations\//,           // generated SQL/data migrations
   /^server\/ai\/regenerate-market-data\.ts$/, // LLM prompt templates — literals are example values for the LLM, not code logic
   /^server\/ai\/specialists\/.*-orchestrator-adapter\.ts$/, // benchmark fixture arrays for LLM prompting context — literals are data
+  /^server\/routes\/chat-prompts\.ts$/, // LLM system prompt strings — numerics are prose instructions, not code values
 ];
 
 // Literal values that are NEVER a magic number under any circumstance:

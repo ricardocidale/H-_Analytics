@@ -270,10 +270,10 @@ export async function buildRebeccaContext(
         }
         return 0;
       })();
-      autoGreeting = `I see you're looking at **${fieldLabel}** for **${entityName}**. The current research suggests a range of **${low} – ${high}** (confidence: ${match.confidence ?? "unknown"})${compCount > 0 ? `, based on ${compCount} comparable properties` : ""}. What would you like to know?`;
+      autoGreeting = `**${fieldLabel}** for ${entityName} — The Analyst's range is **${low}–${high}**${compCount > 0 ? `, drawn from ${compCount} comparables` : ""}. Here's the real question: where does your number land in that band, and can you defend it to an LP?`;
     } else {
       fieldContext = `Field: ${fieldLabel} (${fieldKey})\nNo research guidance available yet for this field.`;
-      autoGreeting = `I see you're interested in **${fieldLabel}** for **${entityName}**. There's no research guidance available yet for this specific field. I can still help you understand typical ranges and considerations for this metric. What would you like to know?`;
+      autoGreeting = `No research data yet on **${fieldLabel}** for ${entityName}. That's the honest answer. What's your current thinking on this number — and what are you anchoring it to?`;
     }
   }
 
