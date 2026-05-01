@@ -318,9 +318,6 @@ function Router() {
             <ProtectedRoute component={MapView} />
           </FinancialErrorBoundary>
         </Route>
-        <Route path="/checker-manual">
-          <Redirect to="/help" />
-        </Route>
         <Route path="/compare">
           <Redirect to="/analysis" />
         </Route>

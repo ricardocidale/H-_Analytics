@@ -7,7 +7,7 @@
  *
  *   • UsersTab        – CRUD for user accounts, role assignment, password resets
  *                       of interest (investors, partners, stakeholders)
- *   • ActivityTab     – login audit log, activity feed, and checker usage analytics
+ *   • ActivityTab     – login audit log, activity feed, and sharing log
  *   • VerificationTab – independent GAAP financial verification with PDF export
  *   • DatabaseTab     – view database entity counts and populate production with seed data
  */

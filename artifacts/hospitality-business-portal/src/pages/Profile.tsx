@@ -231,7 +231,7 @@ export default function Profile() {
                   </div>
                 </div>
                 <Link href="/help">
-                  <Button variant="default" data-testid="button-checker-manual">
+                  <Button variant="default" data-testid="button-help-manual">
                     <IconClipboardCheck className="w-4 h-4" />
                     Open Manual
                   </Button>

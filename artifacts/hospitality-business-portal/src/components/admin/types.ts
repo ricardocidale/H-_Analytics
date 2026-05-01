@@ -46,7 +46,7 @@ export interface LoginLog {
 }
 
 export type AdminView = "users" | "activity" | "verification" | "themes" | "branding" | "sidebar" | "database";
-export type ActivitySubView = "login" | "feed" | "sharing" | "checker";
+export type ActivitySubView = "login" | "feed" | "sharing";
 
 export interface ActivityLogEntry {
   id: number;
@@ -60,30 +60,6 @@ export interface ActivityLogEntry {
   metadata: Record<string, any> | null;
   ipAddress: string | null;
   createdAt: string;
-}
-
-export interface CheckerSummary {
-  id: number;
-  email: string;
-  name: string | null;
-  totalActions: number;
-  lastActive: string | null;
-  verificationRuns: number;
-  manualViews: number;
-  exports: number;
-}
-
-export interface CheckerActivityData {
-  checkers: CheckerSummary[];
-  summary: {
-    totalActions: number;
-    verificationRuns: number;
-    manualViews: number;
-    exports: number;
-    pageVisits: number;
-    roleChanges: number;
-  };
-  recentActivity: ActivityLogEntry[];
 }
 
 export interface VerificationHistoryEntry {

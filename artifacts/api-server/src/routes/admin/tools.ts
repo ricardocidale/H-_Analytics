@@ -312,56 +312,6 @@ export function registerToolRoutes(app: Express) {
     }
   });
 
-  app.get("/api/admin/checker-activity", requireAdmin, async (_req, res) => {
-    try {
-      const allUsers = await storage.getAllUsers();
-      const checkerUsers = allUsers.filter((u: any) => isAdminRole(u.role));
-      let totalActions = 0, verificationRuns = 0, manualViews = 0, exports = 0, pageVisits = 0, roleChanges = 0;
-      const recentActivity: any[] = [];
-
-      // Fetch all user logs in parallel instead of sequentially (N+1 fix)
-      const userLogs = await Promise.all(
-        checkerUsers.map(user => storage.getActivityLogs({ userId: user.id, limit: 100 }))
-      );
-
-      const checkers = checkerUsers.map((user, i) => {
-        const logs = userLogs[i];
-        const userActions = logs.length;
-        const userVerifications = logs.filter((l: any) => l.action === "run-verification").length;
-        const userManualViews = logs.filter((l: any) => l.action === "view-manual" || l.entityType === "manual").length;
-        const userExports = logs.filter((l: any) => l.action?.includes("export")).length;
-
-        totalActions += userActions;
-        verificationRuns += userVerifications;
-        manualViews += userManualViews;
-        exports += userExports;
-
-        recentActivity.push(...logs.slice(0, 10));
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email,
-          totalActions: userActions,
-          lastActive: logs[0]?.createdAt ?? null,
-          verificationRuns: userVerifications,
-          manualViews: userManualViews,
-          exports: userExports,
-        };
-      });
-
-      recentActivity.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-      res.json({
-        checkers,
-        summary: { totalActions, verificationRuns, manualViews, exports, pageVisits, roleChanges },
-        recentActivity: recentActivity.slice(0, 50),
-      });
-    } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch checker activity", error);
-    }
-  });
-
   app.post("/api/admin/seed-production", requireAdmin, async (req, res) => {
     try {
       const { runFillOnlySync: fill } = await import("../../syncHelpers");

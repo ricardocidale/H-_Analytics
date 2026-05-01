@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { IconClock, IconActivity, IconFileCheck, IconShare } from "@/components/icons";
-import type { User, LoginLog, ActivityLogEntry, CheckerActivityData, ActiveSession, ActivitySubView } from "../types";
+import { IconClock, IconActivity, IconShare } from "@/components/icons";
+import type { User, LoginLog, ActivityLogEntry, ActiveSession, ActivitySubView } from "../types";
 import { ActivityLogList } from "./ActivityLogList";
 import { ActivityFeed } from "./ActivityFeed";
-import { CheckerActivity } from "./CheckerActivity";
 import { SharingLog } from "./SharingLog";
 
 export default function ActivityTab() {
@@ -43,16 +42,6 @@ export default function ActivityTab() {
       if (!res.ok) throw new Error("Failed to fetch activity logs");
       return res.json();
     },
-  });
-
-  const { data: checkerActivity } = useQuery<CheckerActivityData>({
-    queryKey: ["admin", "checker-activity"],
-    queryFn: async () => {
-      const res = await fetch("/api/admin/checker-activity", { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch checker activity");
-      return res.json();
-    },
-    enabled: activitySubTab === "checker",
   });
 
   const { data: activeSessionsList } = useQuery<ActiveSession[]>({
@@ -97,16 +86,6 @@ export default function ActivityTab() {
           <IconShare className="w-4 h-4 mr-2" />
           Sharing Log
         </Button>
-        <Button
-          variant={activitySubTab === "checker" ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setActivitySubTab("checker")}
-          className="rounded-lg font-display"
-          data-testid="button-activity-subtab-checker"
-        >
-          <IconFileCheck className="w-4 h-4 mr-2" />
-          Checker Activity
-        </Button>
       </div>
 
       {activitySubTab === "login" && (
@@ -134,9 +113,6 @@ export default function ActivityTab() {
       )}
       {activitySubTab === "sharing" && (
         <SharingLog users={users} />
-      )}
-      {activitySubTab === "checker" && (
-        <CheckerActivity checkerActivity={checkerActivity} />
       )}
     </div>
   );

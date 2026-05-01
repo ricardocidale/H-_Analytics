@@ -98,10 +98,6 @@ function useBreadcrumbs(): BreadcrumbEntry[] {
       { label: "Dashboard", href: "/" },
       { label: "Help" },
     ],
-    "/checker-manual": [
-      { label: "Dashboard", href: "/" },
-      { label: "Checker Manual" },
-    ],
     "/admin": [
       { label: "Dashboard", href: "/" },
       { label: "Admin Settings" },
