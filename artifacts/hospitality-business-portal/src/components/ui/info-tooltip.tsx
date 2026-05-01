@@ -54,6 +54,8 @@ export function InfoTooltip({ text, formula, light = false, side = "top", manual
         {manualSection && (
           <a
             href={`/help#${manualSection}`}
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center gap-1 mt-1.5 text-[10px] text-primary hover:text-primary/80 transition-colors"
             data-testid="info-tooltip-manual-link"
             onClick={(e) => e.stopPropagation()}
