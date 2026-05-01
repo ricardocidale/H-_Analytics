@@ -15,8 +15,8 @@ session without the ability to spin up clean Postgres instances.
 ## Tally
 
 - **74 runtime migration files total** (excluding `consolidated-schema.ts`).
-- **51 PURE_DDL** — only structural changes. Primary consolidation candidates.
-- **18 MIXED** — DDL + data-fix in one file. Must be split before consolidation.
+- **52 PURE_DDL** — only structural changes. Primary consolidation candidates.
+- **17 MIXED** — DDL + data-fix in one file. Must be split before consolidation.
 - **5 DATA_FIX** — only data mutation. **Stay as runtime migrations** — they don't belong in Drizzle's migration history.
 - **0 UNKNOWN** — every file successfully classified.
 
