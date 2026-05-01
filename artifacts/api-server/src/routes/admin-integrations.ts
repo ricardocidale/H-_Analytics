@@ -8,7 +8,7 @@ import { getGeospatialHealthCheck } from "../integrations/geospatial";
 import { getDocumentAIHealthCheck } from "../integrations/document-ai";
 import { getMarketIntelligenceAggregator } from "../services/MarketIntelligenceAggregator";
 import { logActivity, logAndSendError, cachePatternSchema, parseRouteId } from "./helpers";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import { insertExternalIntegrationSchema, updateExternalIntegrationSchema } from "@workspace/db";
 import { storage } from "../storage";
 
@@ -171,7 +171,7 @@ export function register(app: Express) {
     try {
       const parsed = cachePatternSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
       const { pattern } = parsed.data;
       if (pattern) {
@@ -212,7 +212,7 @@ export function register(app: Express) {
   app.post("/api/admin/ext-integrations", requireAdmin, async (req: Request, res: Response) => {
     try {
       const parsed = insertExternalIntegrationSchema.safeParse(req.body);
-      if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error).message });
+      if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       const row = await storage.createExternalIntegration(parsed.data);
       logActivity(req, "create-integration", "integration", row.id, row.name);
       res.status(201).json(row);
@@ -226,7 +226,7 @@ export function register(app: Express) {
       const id = parseRouteId(req.params.id);
       if (!id) return res.status(400).json({ error: "Invalid ID" });
       const parsed = updateExternalIntegrationSchema.safeParse(req.body);
-      if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error).message });
+      if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       const row = await storage.updateExternalIntegration(id, parsed.data);
       if (!row) return res.status(404).json({ error: "Integration not found" });
       logActivity(req, "update-integration", "integration", row.id, row.name);

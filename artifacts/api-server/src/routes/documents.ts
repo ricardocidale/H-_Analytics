@@ -8,7 +8,7 @@ import { DOCUMENT_TEMPLATES, renderTemplate } from "../document-ai/templates";
 import { getStorageProvider } from "../providers/storage";
 import { randomUUID } from "crypto";
 import { z } from "zod";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import { MAX_DOC_SIZE } from "../constants";
 import { DEFAULT_EXIT_CAP_RATE } from "@shared/constants";
 import { resolveDefault } from "../defaults";
@@ -201,7 +201,7 @@ export function register(app: Express) {
       if (!fieldId) return res.status(400).json({ error: "Invalid field ID" });
       const validation = fieldStatusSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
       const { status } = validation.data;
 
@@ -262,7 +262,7 @@ export function register(app: Express) {
       if (!extractionId) return res.status(400).json({ error: "Invalid extraction ID" });
       const validation = fieldStatusSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
       const { status } = validation.data;
 

@@ -40,7 +40,7 @@ import { formatMoney } from "@/lib/financialEngine";
 import { cn } from "@/lib/utils";
 import { FIELD_REGISTRY } from "@shared/field-registry";
 import type { PropertyResponse, GlobalResponse } from "@/lib/api/types";
-import type { ExitScenarioResult } from "../../../../calc/analysis/exit-scenarios";
+import type { ExitScenarioResult, ExitHorizonResult, TerminalVsCostPoint } from "@calc/analysis/exit-scenarios";
 
 interface Props {
   property: PropertyResponse;
@@ -115,7 +115,7 @@ function ScenarioCard({ scenario }: { scenario: ExitScenarioResult }) {
   const colors = SCENARIO_COLORS[scenario.scenario.key]!;
   const chartData = useMemo(
     () =>
-      scenario.chartSeries.map((p) => ({
+      scenario.chartSeries.map((p: TerminalVsCostPoint) => ({
         year: `Yr ${p.year}`,
         TerminalValue: p.terminalValue,
         CumulativeCost: p.cumulativeCost,
@@ -146,7 +146,7 @@ function ScenarioCard({ scenario }: { scenario: ExitScenarioResult }) {
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left py-2 pr-2 font-medium text-muted-foreground">Metric</th>
-                {scenario.horizons.map((h) => (
+                {scenario.horizons.map((h: ExitHorizonResult) => (
                   <th
                     key={h.horizonYears}
                     className="text-right py-2 px-2 font-medium text-muted-foreground"
@@ -160,7 +160,7 @@ function ScenarioCard({ scenario }: { scenario: ExitScenarioResult }) {
             <tbody>
               <tr className="border-b border-border/50">
                 <td className="py-2 pr-2 text-muted-foreground">Sale Price</td>
-                {scenario.horizons.map((h) => (
+                {scenario.horizons.map((h: ExitHorizonResult) => (
                   <td
                     key={h.horizonYears}
                     className="text-right py-2 px-2 tabular-nums"
@@ -172,7 +172,7 @@ function ScenarioCard({ scenario }: { scenario: ExitScenarioResult }) {
               </tr>
               <tr className="border-b border-border/50">
                 <td className="py-2 pr-2 text-muted-foreground">Selling Costs</td>
-                {scenario.horizons.map((h) => (
+                {scenario.horizons.map((h: ExitHorizonResult) => (
                   <td
                     key={h.horizonYears}
                     className="text-right py-2 px-2 tabular-nums"
@@ -184,7 +184,7 @@ function ScenarioCard({ scenario }: { scenario: ExitScenarioResult }) {
               </tr>
               <tr className="border-b border-border/50">
                 <td className="py-2 pr-2 text-muted-foreground">Loan Balance</td>
-                {scenario.horizons.map((h) => (
+                {scenario.horizons.map((h: ExitHorizonResult) => (
                   <td
                     key={h.horizonYears}
                     className="text-right py-2 px-2 tabular-nums"
@@ -196,7 +196,7 @@ function ScenarioCard({ scenario }: { scenario: ExitScenarioResult }) {
               </tr>
               <tr className="border-b border-border/50">
                 <td className="py-2 pr-2 text-muted-foreground">Net Proceeds</td>
-                {scenario.horizons.map((h) => (
+                {scenario.horizons.map((h: ExitHorizonResult) => (
                   <td
                     key={h.horizonYears}
                     className="text-right py-2 px-2 tabular-nums"
@@ -208,7 +208,7 @@ function ScenarioCard({ scenario }: { scenario: ExitScenarioResult }) {
               </tr>
               <tr className="border-b border-border/50">
                 <td className="py-2 pr-2 text-muted-foreground">Total Cash Invested</td>
-                {scenario.horizons.map((h) => (
+                {scenario.horizons.map((h: ExitHorizonResult) => (
                   <td
                     key={h.horizonYears}
                     className="text-right py-2 px-2 tabular-nums"
@@ -220,7 +220,7 @@ function ScenarioCard({ scenario }: { scenario: ExitScenarioResult }) {
               </tr>
               <tr className="border-b border-border/50">
                 <td className="py-2 pr-2 text-muted-foreground">Profit / Loss</td>
-                {scenario.horizons.map((h) => (
+                {scenario.horizons.map((h: ExitHorizonResult) => (
                   <td
                     key={h.horizonYears}
                     className={cn("text-right py-2 px-2 tabular-nums", profitClass(h.profitLoss))}
@@ -232,7 +232,7 @@ function ScenarioCard({ scenario }: { scenario: ExitScenarioResult }) {
               </tr>
               <tr>
                 <td className="py-2 pr-2 text-muted-foreground">Annualized ROI</td>
-                {scenario.horizons.map((h) => (
+                {scenario.horizons.map((h: ExitHorizonResult) => (
                   <td
                     key={h.horizonYears}
                     className={cn("text-right py-2 px-2 tabular-nums", profitClass(h.annualizedRoi))}
@@ -376,7 +376,7 @@ export default function ExitScenariosSection({ property, global }: Props) {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {scenarios.map((s) => (
+        {scenarios.map((s: ExitScenarioResult) => (
           <ScenarioCard key={s.scenario.key} scenario={s} />
         ))}
       </div>

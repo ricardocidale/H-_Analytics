@@ -1,7 +1,7 @@
 import { type Express } from "express";
 import { requireAdmin } from "../../auth";
 import { updateServiceTemplateSchema, insertServiceTemplateSchema } from "@workspace/db";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import { storage } from "../../storage";
 import { invalidateComputeCache } from "../../finance/cache";
 import { logAndSendError, logActivity, parseParamId } from "../helpers";
@@ -26,7 +26,7 @@ export function registerServiceRoutes(app: Express) {
     try {
       const validation = insertServiceTemplateSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
       const template = await storage.createServiceTemplate(validation.data);
       invalidateComputeCache();
@@ -44,7 +44,7 @@ export function registerServiceRoutes(app: Express) {
 
       const validation = updateServiceTemplateSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
 
       const template = await storage.updateServiceTemplate(id, validation.data);

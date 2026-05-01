@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAdmin } from "../auth";
 import { updateRenderSettingSchema } from "@workspace/db";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import { logAndSendError } from "./helpers";
 import fs from "node:fs";
 import path from "node:path";
@@ -37,7 +37,7 @@ export function register(app: Express) {
       const styleKey = req.params.styleKey as string;
       const parsed = updateRenderSettingSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
 
       const updated = await storage.updateRenderSetting(styleKey, parsed.data);

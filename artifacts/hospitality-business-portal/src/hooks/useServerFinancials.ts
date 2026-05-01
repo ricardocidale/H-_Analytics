@@ -319,7 +319,7 @@ export interface ServerExitScenariosResult {
   computedAt: string;
   outputHash: string;
   projectionYears: number;
-  exitScenarios: import("../../../calc/analysis/exit-scenarios").ExitScenariosOutput;
+  exitScenarios: import("@calc/analysis/exit-scenarios").ExitScenariosOutput;
 }
 
 /**

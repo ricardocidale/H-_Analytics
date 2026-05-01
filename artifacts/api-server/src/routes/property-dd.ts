@@ -14,7 +14,7 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, requireAdmin, checkPropertyAccess, getAuthUser } from "../auth";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import { logActivity, logAndSendError, parseRouteId, sendError } from "./helpers";
 import { logger } from "../logger";
 import {
@@ -75,7 +75,7 @@ export function register(app: Express) {
       }
 
       const parsed = updatePropertyDdItemSchema.safeParse(req.body);
-      if (!parsed.success) return sendError(res, 400, fromZodError(parsed.error).message);
+      if (!parsed.success) return sendError(res, 400, fromZodError(parsed.error as any).message);
 
       const row = await storage.updatePropertyDdItem(itemId, parsed.data);
       const summary = await storage.getPropertyDdSummary(propertyId);
@@ -153,7 +153,7 @@ export function register(app: Express) {
       const id = parseRouteId(req.params.id);
       if (!id) return sendError(res, 400, "Invalid id");
       const parsed = updateDdTemplateItemSchema.safeParse(req.body);
-      if (!parsed.success) return sendError(res, 400, fromZodError(parsed.error).message);
+      if (!parsed.success) return sendError(res, 400, fromZodError(parsed.error as any).message);
       const row = await storage.updateDdTemplateItem(id, parsed.data);
       if (!row) return sendError(res, 404, "Template item not found");
       logActivity(req, "dd:template:update", "dd-template", id, null, { fields: Object.keys(parsed.data) });

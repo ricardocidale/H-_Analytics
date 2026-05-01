@@ -2,7 +2,7 @@ import { type Express, type Request, type Response } from "express";
 import { storage } from "../../storage";
 import { requireAdmin, validatePassword , getAuthUser, sanitizeEmail } from "../../auth";
 import { userResponse, createUserSchema, logAndSendError, logActivity, parseParamId } from "../helpers";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import { hashPassword } from "../../auth";
 import { VALID_USER_ROLES } from "@workspace/db";
 import { UserRole } from "@shared/constants";
@@ -41,7 +41,7 @@ export function registerUserRoutes(app: Express) {
     try {
       const validation = createUserSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
 
       const existingUser = await storage.getUserByEmail(validation.data.email);
@@ -94,7 +94,7 @@ export function registerUserRoutes(app: Express) {
       if (await guardSuperAdmin(id, req, res)) return;
       const parsed = updateUserSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
       const { email, firstName, lastName, company, title, role, canManageScenarios } = parsed.data;
 
@@ -193,7 +193,7 @@ export function registerUserRoutes(app: Express) {
       if (await guardSuperAdmin(id, req, res)) return;
       const parsed = z.object({ password: z.string().min(6) }).safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
       const { password } = parsed.data;
       const pwValidationResult = validatePassword(password);
@@ -215,7 +215,7 @@ export function registerUserRoutes(app: Express) {
       if (id === null) return;
       const parsed = z.object({ themeId: z.number().nullable() }).safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
       const { themeId } = parsed.data;
       await storage.updateUserSelectedTheme(id, themeId ?? null);
@@ -236,7 +236,7 @@ export function registerUserRoutes(app: Express) {
     try {
       const validation = invitationSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
 
       const { emails, role, message } = validation.data;

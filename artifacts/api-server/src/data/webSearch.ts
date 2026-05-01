@@ -44,7 +44,8 @@ export async function webSearch(
       return [];
     }
 
-    const data = await response.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = await response.json() as any;
     return (data.items || []).map((item: any) => ({
       title: item.title,
       url: item.link,

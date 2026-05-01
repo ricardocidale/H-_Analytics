@@ -71,7 +71,8 @@ export class WalkScoreService extends BaseIntegrationService {
       });
 
       const response = await this.fetchWithTimeout(`${BASE_URL}?${query}`);
-      const data = await response.json();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await response.json() as any;
 
       if (data.status !== 1 && data.status !== 2) {
         this.warn(`Walk Score API returned status ${data.status} for ${params.address}`);

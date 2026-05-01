@@ -71,6 +71,7 @@ export function RadialGauge({
                   </text>
                 );
               }
+              return null;
             }}
           />
         </PolarRadiusAxis>

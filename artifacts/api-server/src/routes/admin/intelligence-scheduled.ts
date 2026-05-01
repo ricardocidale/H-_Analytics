@@ -4,7 +4,7 @@ import { requireAdmin } from "../../auth";
 import { logAndSendError, logActivity, parseRouteId } from "../helpers";
 import { insertScheduledResearchWorkflowSchema } from "@workspace/db";
 import type { InsertScheduledResearchWorkflow } from "@workspace/db";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import { executeScheduledWorkflow } from "../../ai/ambient/research-scheduler";
 
 export function registerScheduledResearchRoutes(app: Express) {
@@ -21,7 +21,7 @@ export function registerScheduledResearchRoutes(app: Express) {
     try {
       const validation = insertScheduledResearchWorkflowSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
       const workflow = await storage.upsertScheduledResearchWorkflow(validation.data);
       logActivity(req, "create-scheduled-workflow", "scheduled_research", workflow.id, workflow.name);
@@ -41,7 +41,7 @@ export function registerScheduledResearchRoutes(app: Express) {
 
       const validation = insertScheduledResearchWorkflowSchema.partial().safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
 
       const data: Record<string, unknown> = { ...validation.data, workflowKey: existing.workflowKey };

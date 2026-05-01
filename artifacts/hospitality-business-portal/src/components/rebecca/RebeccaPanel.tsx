@@ -163,6 +163,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
       const timer = setTimeout(() => inputRef.current?.focus(), 100);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [isOpen]);
 
   useEffect(() => {

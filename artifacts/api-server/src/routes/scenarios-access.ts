@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, getAuthUser } from "../auth";
 import type { ComputedResultsSnapshot } from "@workspace/db";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import { z } from "zod";
 import { logActivity, logAndSendError } from "./helpers";
 import { computePortfolioProjection } from "../finance/service";
@@ -168,7 +168,7 @@ export function registerScenarioAccessRoutes(app: Express) {
       const user = getAuthUser(req);
       const validation = grantAccessSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
 
       const { granteeId, scenarioId } = validation.data;
@@ -202,7 +202,7 @@ export function registerScenarioAccessRoutes(app: Express) {
       const user = getAuthUser(req);
       const validation = revokeAccessSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
 
       const { granteeId, scenarioId } = validation.data;

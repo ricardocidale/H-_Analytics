@@ -7,7 +7,7 @@ import {
   logAndSendError,
   parseRouteId,
 } from "../helpers";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import type { ResearchConfig } from "@workspace/db";
 
 export function registerResearchMetaRoutes(app: Express) {
@@ -156,7 +156,7 @@ export function registerResearchMetaRoutes(app: Express) {
     try {
       const validation = researchQuestionCreateSchema.safeParse(req.body);
       if (!validation.success)
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       const q = await storage.createResearchQuestion({
         question: validation.data.question,
       });
@@ -170,7 +170,7 @@ export function registerResearchMetaRoutes(app: Express) {
     try {
       const validation = researchQuestionPatchSchema.safeParse(req.body);
       if (!validation.success)
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       const id = parseRouteId(req.params.id);
       if (!id) return res.status(400).json({ error: "Invalid ID" });
       const q = await storage.updateResearchQuestion(id, validation.data.question);

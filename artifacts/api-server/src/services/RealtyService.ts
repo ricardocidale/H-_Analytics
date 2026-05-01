@@ -174,7 +174,7 @@ export class RealtyService extends BaseIntegrationService {
         body: JSON.stringify(body),
       });
 
-      const data: RealtyApiResponse = await response.json();
+      const data = await response.json() as RealtyApiResponse;
 
       if (data.errors?.length) {
         this.warn(`API errors: ${data.errors.map((e) => e.message).join(", ")}`);

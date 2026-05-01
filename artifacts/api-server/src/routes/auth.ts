@@ -16,7 +16,7 @@ import {
 import { loginSchema, adminLoginSchema, userResponse, logAndSendError } from "./helpers";
 import { ensureDefaultScenario } from "./scenario-helpers";
 import { z } from "zod";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import { isAdminRole } from "@shared/constants";
 import seedUsersConfig from "../seed-users.json" with { type: "json" };
 
@@ -157,7 +157,7 @@ export function register(app: Express) {
     try {
       const validation = updateProfileSchema.safeParse(req.body);
       if (!validation.success) {
-        const error = fromZodError(validation.error);
+        const error = fromZodError(validation.error as any);
         return res.status(400).json({ error: error.message });
       }
       
@@ -200,7 +200,7 @@ export function register(app: Express) {
     try {
       const validation = changePasswordSchema.safeParse(req.body);
       if (!validation.success) {
-        const error = fromZodError(validation.error);
+        const error = fromZodError(validation.error as any);
         return res.status(400).json({ error: error.message });
       }
 
@@ -232,7 +232,7 @@ export function register(app: Express) {
       const schema = z.object({ hide: z.boolean() });
       const validation = schema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
       await storage.updateUserHideTourPrompt(getAuthUser(req).id, validation.data.hide);
       res.json({ hideTourPrompt: validation.data.hide });
@@ -250,7 +250,7 @@ export function register(app: Express) {
       });
       const validation = schema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
       const user = await storage.updateUserAppearance(getAuthUser(req).id, {
         colorMode: validation.data.colorMode,
@@ -268,7 +268,7 @@ export function register(app: Express) {
       const schema = z.object({ themeId: z.number().nullable() });
       const validation = schema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
       if (validation.data.themeId !== null) {
         const theme = await storage.getDesignTheme(validation.data.themeId);

@@ -89,7 +89,8 @@ class GeospatialIntegration extends BaseIntegrationService {
     return this.execute("geocodeAddress", async () => {
       const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_MAPS_API_KEY}`;
       const response = await fetchWithTimeout(url, {}, 10_000);
-      const data = await response.json();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await response.json() as any;
 
       if (data.status === "OK" && data.results?.length > 0) {
         const location = data.results[0].geometry.location;
@@ -111,7 +112,8 @@ class GeospatialIntegration extends BaseIntegrationService {
         url += `&components=country:${encodeURIComponent(countryBias)}`;
       }
       const response = await fetchWithTimeout(url, {}, 10_000);
-      const data = await response.json();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await response.json() as any;
 
       if (data.status === "OK" && data.predictions) {
         return data.predictions.map((p: any) => ({
@@ -131,7 +133,8 @@ class GeospatialIntegration extends BaseIntegrationService {
     return this.execute("placeDetails", async () => {
       const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(placeId)}&fields=geometry,formatted_address,address_components&key=${GOOGLE_MAPS_API_KEY}`;
       const response = await fetchWithTimeout(url, {}, 10_000);
-      const data = await response.json();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await response.json() as any;
 
       if (data.status === "OK" && data.result) {
         const result = data.result;
@@ -177,7 +180,8 @@ class GeospatialIntegration extends BaseIntegrationService {
         const googleType = POI_TYPE_MAP[poiType];
         const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radiusMeters}&type=${googleType}&key=${GOOGLE_MAPS_API_KEY}`;
         const response = await fetchWithTimeout(url, {}, 10_000);
-        const data = await response.json();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await response.json() as any;
 
         if (data.status === "OK" && data.results) {
           for (const place of data.results.slice(0, 10)) {

@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { requireAuth, requireAdmin, isApiRateLimited, getAuthUser, checkPropertyAccess } from "../auth";
 import { getStorageProvider } from "../providers/storage";
 import { logActivity, logAndSendError, uploadRequestSchema, processImageSchema, bulkProcessPhotosSchema } from "./helpers";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import { randomUUID } from "crypto";
 import { processImage, type CropRegion } from "../image/pipeline";
 import { storage } from "../storage";
@@ -27,7 +27,7 @@ export function register(app: Express) {
     try {
       const validation = uploadRequestSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
       const { name, size, contentType, entityType, entityId } = validation.data;
 
@@ -99,7 +99,7 @@ export function register(app: Express) {
     try {
       const validation = processImageSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
       const { propertyId, photoId, imageUrl, crop } = validation.data;
 
@@ -160,7 +160,7 @@ export function register(app: Express) {
 
       const parsed = bulkProcessPhotosSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
 
       const { propertyId } = parsed.data;

@@ -1,4 +1,3 @@
-// @ts-expect-error — canvas-confetti ships no type declarations
 import confetti from "canvas-confetti";
 
 function getConfettiColors() {

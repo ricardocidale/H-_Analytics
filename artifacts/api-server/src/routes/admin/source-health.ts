@@ -4,7 +4,7 @@ import { logAndSendError, logActivity } from "../helpers";
 import { storage } from "../../storage";
 import { checkAllSources, checkSourceHealth } from "../../ai/source-health-checker";
 import { z } from "zod";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 
 const patchSourceSchema = z.object({
   isActive: z.boolean().optional(),
@@ -57,7 +57,7 @@ export function registerSourceHealthRoutes(app: Express) {
       const serviceKey = String(req.params.serviceKey);
       const parsed = patchSourceSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
 
       // Find the source by serviceKey

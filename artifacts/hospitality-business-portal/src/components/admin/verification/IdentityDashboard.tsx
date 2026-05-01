@@ -13,7 +13,7 @@ import { generatePropertyProForma } from "@/lib/financialEngine";
 import { MONTHS_PER_YEAR } from "@/lib/constants";
 import { validateFinancialIdentities } from "@calc/validation/financial-identities";
 import { DEFAULT_ROUNDING } from "@calc/shared/utils";
-import type { MonthlyFinancials } from "@/../../engine/types";
+import type { MonthlyFinancials } from "@engine/types";
 
 type GlobalsLike = { projectionYears?: number; [key: string]: unknown };
 type PropertyLike = { id: number; name: string; [key: string]: unknown };

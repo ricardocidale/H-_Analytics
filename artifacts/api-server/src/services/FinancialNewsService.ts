@@ -84,7 +84,8 @@ export class FinancialNewsService extends BaseIntegrationService {
       const response = await this.fetchWithTimeout(url, {
         headers: rapidApiHeaders(CNBC_HOST, "tertiary"),
       });
-      const data = await response.json();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await response.json() as any;
 
       const articles: any[] = data?.data ?? data?.articles ?? data?.items ?? [];
       return articles.slice(0, 10).map((a: any) => ({
@@ -108,7 +109,8 @@ export class FinancialNewsService extends BaseIntegrationService {
       const response = await this.fetchWithTimeout(url, {
         headers: rapidApiHeaders(BLOOMBERG_HOST, "tertiary"),
       });
-      const data = await response.json();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await response.json() as any;
 
       const articles: any[] = data?.stories ?? data?.data ?? data?.articles ?? [];
       return articles.slice(0, 10).map((a: any) => ({

@@ -20,7 +20,7 @@
  */
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import { storage } from "../../storage";
 import { requireAdmin } from "../../auth";
 import { logAndSendError, logActivity } from "../helpers";
@@ -230,7 +230,7 @@ export function registerAdminAnalystTableRoutes(app: Express) {
   app.patch("/api/admin/analyst-refresh-settings", requireAdmin, async (req, res) => {
     try {
       const parsed = settingsPatchSchema.safeParse(req.body);
-      if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error).message });
+      if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       const settings = await storage.updateAnalystRefreshSettings(parsed.data);
       logActivity(req, "update-analyst-refresh-settings", "settings", null, "analyst-refresh", parsed.data);
       res.json(settings);
@@ -347,7 +347,7 @@ export function registerAdminAnalystTableRoutes(app: Express) {
         return res.status(400).json({ error: `Unknown table id: ${tableId}` });
       }
       const parsed = commitSchema.safeParse(req.body);
-      if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error).message });
+      if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error as any).message });
 
       const now = new Date();
       const defaultUnit = tableId === "exit_multiples" ? "x_revenue" : "usd";
@@ -392,7 +392,7 @@ export function registerAdminAnalystTableRoutes(app: Express) {
         return res.status(400).json({ error: `Unknown table id: ${tableId}` });
       }
       const parsed = discardSchema.safeParse(req.body);
-      if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error).message });
+      if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       await storage.finalizeAnalystRefreshAuditLog(parsed.data.auditId, {
         status: "aborted",
         finishedAt: new Date(),

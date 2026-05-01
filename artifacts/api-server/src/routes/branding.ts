@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, requireAdmin , getAuthUser } from "../auth";
 import { insertLogoSchema, insertDesignThemeSchema } from "@workspace/db";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import { logger } from "../logger";
 import { fullName, logAndSendError, parseRouteId } from "./helpers";
 import { z } from "zod";
@@ -124,7 +124,7 @@ export function register(app: Express) {
     try {
       const validation = insertLogoSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
       const logo = await storage.createLogo(validation.data);
       res.status(201).json(logo);
@@ -184,7 +184,7 @@ export function register(app: Express) {
       });
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
       if (parsed.data.appLogoId) {
         await storage.setAppLogo(parsed.data.appLogoId);
@@ -243,7 +243,7 @@ export function register(app: Express) {
     try {
       const validation = insertDesignThemeSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
       const theme = await storage.createDesignTheme(validation.data);
       res.status(201).json(theme);
@@ -271,7 +271,7 @@ export function register(app: Express) {
       const existing = await storage.getDesignTheme(id);
       const parsed = updateDesignThemeSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
       const isSettingDefault = parsed.data.isDefault === true;
       if (existing?.isSystem && !isSettingDefault) {

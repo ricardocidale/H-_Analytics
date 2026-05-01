@@ -25,7 +25,7 @@
  */
 import type { Express } from "express";
 import { z } from "zod";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import { storage } from "../../storage";
 import { requireAdmin, requireSuperAdmin } from "../../auth";
 import { logAndSendError, logActivity } from "../helpers";
@@ -53,7 +53,7 @@ const rollbackSchema = z.object({
 });
 
 const listQuerySchema = z.object({
-  kind: ResourceKindSchema.optional(),
+  kind: (ResourceKindSchema as any).optional(),
 });
 
 const idParamSchema = z.object({
@@ -66,7 +66,7 @@ export function registerAdminResourceRoutes(app: Express) {
     try {
       const parsed = listQuerySchema.safeParse(req.query);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
       const rows = await storage.listAdminResources(parsed.data.kind);
       // Wrap in an arrow so Array.map's `index` arg doesn't bind to `now`.
@@ -93,7 +93,7 @@ export function registerAdminResourceRoutes(app: Express) {
     try {
       const parsed = insertAdminResourceSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
       // Reject duplicates explicitly (cleaner than catching the unique-index error).
       const existing = await storage.getAdminResourceBySlug(parsed.data.kind, parsed.data.slug);
@@ -127,7 +127,7 @@ export function registerAdminResourceRoutes(app: Express) {
       const { id } = idParamSchema.parse(req.params);
       const parsed = updateResourceSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
       const actorId = req.user!.id;
       const row = await storage.updateAdminResource(id, parsed.data, actorId);
@@ -146,7 +146,7 @@ export function registerAdminResourceRoutes(app: Express) {
       const { id } = idParamSchema.parse(req.params);
       const parsed = rollbackSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
       const actorId = req.user!.id;
       const row = await storage.rollbackAdminResource(id, parsed.data.targetVersion, actorId);
@@ -302,8 +302,8 @@ export function registerAdminResourceRoutes(app: Express) {
   });
   const breakGlassCreateBody = z.object({
     specialistId: z.string().min(1),
-    assignmentKind: ResourceKindSchema,
-    assignmentSlug: ResourceSlugSchema,
+    assignmentKind: ResourceKindSchema as any,
+    assignmentSlug: ResourceSlugSchema as any,
     assignmentRole: z.string().min(1).nullable().optional(),
     overrideResourceId: z.number().int().positive().nullable().optional(),
     reason: z.string().min(8),
@@ -314,7 +314,7 @@ export function registerAdminResourceRoutes(app: Express) {
     try {
       const parsed = breakGlassListQuery.safeParse(req.query);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
       const rows = await storage.listBreakGlassOverrides(parsed.data.specialistId);
       res.json(rows);
@@ -327,7 +327,7 @@ export function registerAdminResourceRoutes(app: Express) {
     try {
       const parsed = breakGlassCreateBody.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
       const actorId = req.user!.id;
       if (parsed.data.expiresAt.getTime() <= Date.now()) {

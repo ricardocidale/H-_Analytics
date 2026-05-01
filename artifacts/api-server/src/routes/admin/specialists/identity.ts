@@ -13,7 +13,7 @@
  * (e.g. spelling change) while leaving gender at the catalog default.
  */
 import type { Express } from "express";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import { storage } from "../../../storage";
 import { requireAdmin } from "../../../auth";
 import { logAndSendError } from "../../helpers";

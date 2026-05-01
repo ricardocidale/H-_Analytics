@@ -17,7 +17,7 @@
  */
 import type { Express, Request, Response } from "express";
 import { z } from "zod";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import { requireAdmin } from "../../auth";
 import { logAndSendError, parseRouteId } from "../helpers";
 import { referenceRangeStorage } from "../../storage/reference-range";
@@ -92,7 +92,7 @@ export function registerAdminReferenceRangeRoutes(app: Express) {
   app.get("/api/admin/reference-ranges", requireAdmin, async (req: Request, res: Response) => {
     const parsed = listFilterSchema.safeParse(req.query);
     if (!parsed.success) {
-      return res.status(400).json({ error: fromZodError(parsed.error).toString() });
+      return res.status(400).json({ error: fromZodError(parsed.error as any).toString() });
     }
     try {
       const rows = await referenceRangeStorage.list(parsed.data);
@@ -132,7 +132,7 @@ export function registerAdminReferenceRangeRoutes(app: Express) {
   app.post("/api/admin/reference-ranges", requireAdmin, async (req: Request, res: Response) => {
     const parsed = insertReferenceRangeSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: fromZodError(parsed.error).toString() });
+      return res.status(400).json({ error: fromZodError(parsed.error as any).toString() });
     }
     const adminId = (req.user as { email?: string; id?: number })?.email ?? String((req.user as { id?: number })?.id ?? "admin");
     const data = { ...parsed.data, verifiedBy: parsed.data.verifiedBy ?? adminId };
@@ -157,7 +157,7 @@ export function registerAdminReferenceRangeRoutes(app: Express) {
     }
     const parsed = updateBodySchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: fromZodError(parsed.error).toString() });
+      return res.status(400).json({ error: fromZodError(parsed.error as any).toString() });
     }
     if (Object.keys(parsed.data).length === 0) {
       return res.status(400).json({ error: "No fields to update" });

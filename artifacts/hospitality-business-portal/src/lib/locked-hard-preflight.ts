@@ -1,7 +1,7 @@
 import {
   getLockedHardCandidateFields,
   type LockedHardCandidateField,
-} from "../../../engine/analyst/registry/specialist-catalog";
+} from "@engine/analyst/registry/specialist-catalog";
 
 export interface MissingFieldDescriptor {
   key: string;

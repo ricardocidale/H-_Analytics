@@ -99,7 +99,7 @@ export class XoteloService extends BaseIntegrationService {
             "x-rapidapi-host": "xotelo-hotel-prices.p.rapidapi.com",
           },
         });
-        const data: XoteloApiResponse = await response.json();
+        const data = await response.json() as XoteloApiResponse;
         if (data.error) {
           this.warn(`Search error: ${JSON.stringify(data.error)}`);
           return [];
@@ -128,7 +128,7 @@ export class XoteloService extends BaseIntegrationService {
         });
         const url = `${BASE_URL}/rates?${params}`;
         const response = await this.fetchWithTimeout(url);
-        const data: XoteloApiResponse = await response.json();
+        const data = await response.json() as XoteloApiResponse;
         if (data.error) {
           this.warn(`Rates error for ${hotelKey}: ${data.error}`);
           return null;
@@ -169,7 +169,7 @@ export class XoteloService extends BaseIntegrationService {
         });
         const url = `${BASE_URL}/list?${params}`;
         const response = await this.fetchWithTimeout(url);
-        const data: XoteloApiResponse = await response.json();
+        const data = await response.json() as XoteloApiResponse;
         if (data.error) {
           this.warn(`List error for ${locationKey}: ${data.error}`);
           return [];

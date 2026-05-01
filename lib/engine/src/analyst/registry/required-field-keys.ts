@@ -52,7 +52,7 @@ export const FUNDING_VALID_REQUIRED_FIELD_KEYS = [
  * Saved-row keys are columns of `global_assumptions` (shared/schema/config.ts).
  */
 import type { RevenueInputs } from "../../watchdog/revenueEvaluator";
-import type { globalAssumptions } from "../../../shared/schema/config";
+import type { globalAssumptions } from "@workspace/db/schema/config";
 
 type GlobalAssumptionsRow = typeof globalAssumptions.$inferSelect;
 

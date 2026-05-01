@@ -102,7 +102,7 @@ export class FREDService extends BaseIntegrationService {
     });
 
     const response = await this.fetchWithTimeout(`${FRED_BASE_URL}?${params}`);
-    const data = await response.json();
+    const data = await response.json() as any;
     const obs = data.observations?.find((o: FredObservation) => o.value !== ".");
 
     if (!obs) return null;
@@ -127,7 +127,7 @@ export class FREDService extends BaseIntegrationService {
 
     try {
       const response = await this.fetchWithTimeout(`${FRED_BASE_URL}?${params}`);
-      const data = await response.json();
+      const data = await response.json() as any;
 
       return (data.observations ?? [])
         .filter((o: FredObservation) => o.value !== ".")

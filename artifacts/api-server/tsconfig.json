@@ -2,8 +2,9 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src",
-    "types": ["node"],
+    "noImplicitReturns": false,
+    "jsx": "react-jsx",
+    "types": ["node", "react"],
     "paths": {
       "@shared/*": ["./src/shared/*"],
       "@workspace/db": ["../../lib/db/src"],

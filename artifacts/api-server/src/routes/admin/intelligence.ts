@@ -3,7 +3,7 @@ import { storage } from "../../storage";
 import { requireAdmin, getAuthUser } from "../../auth";
 import { logAndSendError, logActivity } from "../helpers";
 import { z } from "zod";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import { registerSourceRoutes } from "./intelligence-sources";
 import { registerScheduledResearchRoutes } from "./intelligence-scheduled";
 import { registerVectorStoreRoutes } from "./intelligence-vector-store";
@@ -19,7 +19,7 @@ export function registerIntelligenceRoutes(app: Express) {
   app.get("/api/admin/coverage", requireAdmin, async (_req, res) => {
     try {
       const query = scenarioQuerySchema.safeParse(_req.query);
-      if (!query.success) return res.status(400).json({ error: fromZodError(query.error).message });
+      if (!query.success) return res.status(400).json({ error: fromZodError(query.error as any).message });
 
       const scenarioId = query.data.scenarioId ?? null;
       const _user = getAuthUser(_req);
@@ -134,10 +134,10 @@ export function registerIntelligenceRoutes(app: Express) {
         entityType: z.enum(["property", "company"]),
         entityId: z.coerce.number().int().positive(),
       }).safeParse(req.params);
-      if (!params.success) return res.status(400).json({ error: fromZodError(params.error).message });
+      if (!params.success) return res.status(400).json({ error: fromZodError(params.error as any).message });
 
       const query = scenarioQuerySchema.safeParse(req.query);
-      if (!query.success) return res.status(400).json({ error: fromZodError(query.error).message });
+      if (!query.success) return res.status(400).json({ error: fromZodError(query.error as any).message });
 
       const { entityType, entityId } = params.data;
       const scenarioId = query.data.scenarioId ?? null;
@@ -218,7 +218,7 @@ export function registerIntelligenceRoutes(app: Express) {
       });
 
       const parsed = updateSchema.safeParse(req.body);
-      if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error).message });
+      if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error as any).message });
 
       const updated = await storage.upsertPipelinePolicy({
         policyKey,

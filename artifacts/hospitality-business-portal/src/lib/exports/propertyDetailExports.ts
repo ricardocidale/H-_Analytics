@@ -243,7 +243,7 @@ export function handlePPTXExport(ctx: PropertyExportContext, customFilename?: st
   }, global?.companyName || APP_BRAND_NAME, customFilename, ctx.brandingData?.themeColors ?? undefined);
 }
 
-export function handleExport(ctx: PropertyExportContext, exportType: string, orientation: 'landscape' | 'portrait', version: ExportVersion, customFilename?: string) {
+export function handleExport(ctx: PropertyExportContext, exportType: string, orientation: 'landscape' | 'portrait', version: ExportVersion, customFilename?: string): Promise<void> | void {
   if (exportType === 'pdf') {
     return exportUnifiedPDF(ctx, orientation, version, customFilename);
   } else if (exportType === 'chart') {

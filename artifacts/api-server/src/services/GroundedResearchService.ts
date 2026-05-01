@@ -149,7 +149,8 @@ export class GroundedResearchService extends BaseIntegrationService {
       }),
     });
 
-    const data = await response.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await response.json() as any;
 
     const sources: CitedSource[] = (data.results ?? []).map((r: any) => ({
       title: r.title || "Source",

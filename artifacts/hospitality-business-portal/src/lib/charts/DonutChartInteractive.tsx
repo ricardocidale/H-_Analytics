@@ -135,6 +135,7 @@ export function DonutChartInteractive({
                       </text>
                     );
                   }
+                  return null;
                 }}
               />
             </Pie>

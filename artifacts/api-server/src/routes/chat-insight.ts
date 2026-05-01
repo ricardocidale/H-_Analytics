@@ -8,7 +8,7 @@ import { logApiCost, estimateCost } from "../middleware/cost-logger";
 import { resolveLlm, getVendorService } from "../ai/resolve-llm";
 import { logger } from "../logger";
 import type { ResearchConfig } from "@workspace/db";
-import { multiNamespaceQuery } from "../ai/vector-store-service";
+import { multiNamespaceQuery, type MultiNamespaceMatch } from "../ai/vector-store-service";
 
 const insightRequestSchema = z.object({
   noiMargin: z.number(),
@@ -33,8 +33,8 @@ export function registerInsightRoute(app: Express) {
       const summaryQuery = `boutique hotel portfolio NOI margin ${(noiMargin * 100).toFixed(1)}% IRR ${(portfolioIRR * 100).toFixed(1)}% ${propertyCount} properties revenue $${Math.round(year1Revenue).toLocaleString()}`;
 
       const [benchmarkMatches, researchMatches] = await Promise.all([
-        multiNamespaceQuery(summaryQuery, ["comparables", "assumption-guidance"], 4).catch(() => []),
-        multiNamespaceQuery(summaryQuery, ["research-history"], 3).catch(() => []),
+        multiNamespaceQuery(summaryQuery, ["comparables", "assumption-guidance"], 4).catch((): MultiNamespaceMatch[] => []),
+        multiNamespaceQuery(summaryQuery, ["research-history"], 3).catch((): MultiNamespaceMatch[] => []),
       ]);
 
       let ragContext = "";

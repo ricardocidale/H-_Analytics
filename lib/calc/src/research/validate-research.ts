@@ -111,6 +111,7 @@ const BOUNDS_BY_MODEL: Record<BusinessModelType, BoundsSet> = {
   hotel: HOTEL_BOUNDS,
   lodge: LODGE_BOUNDS,
   vrbo: VRBO_BOUNDS,
+  vrbo_owner_managed: VRBO_BOUNDS,
 };
 
 function getBounds(businessModel?: string): BoundsSet {

@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, requireAdmin, checkPropertyAccess, checkPropertyEditAccess, getAuthUser } from "../auth";
 import { insertPropertySchema, updatePropertySchema, type GlobalAssumptions, type ResearchValueEntry } from "@workspace/db";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import { z } from "zod";
 import { logActivity, logAndSendError, parseRouteId } from "./helpers";
 import { generateLocationAwareResearchValues } from "../data/researchSeeds";
@@ -76,7 +76,7 @@ export function register(app: Express) {
     try {
       const validation = insertPropertySchema.safeParse(req.body);
       if (!validation.success) {
-        const error = fromZodError(validation.error);
+        const error = fromZodError(validation.error as any);
         return res.status(400).json({ error: error.message });
       }
 
@@ -261,7 +261,7 @@ export function register(app: Express) {
 
       const validation = updatePropertySchema.safeParse(req.body);
       if (!validation.success) {
-        const error = fromZodError(validation.error);
+        const error = fromZodError(validation.error as any);
         return res.status(400).json({ error: error.message });
       }
       const merged = { ...existingProp, ...validation.data };
@@ -543,7 +543,7 @@ export function register(app: Express) {
       }
       const parsed = feeCategoryBatchSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
       const categories = parsed.data;
       // Run all category updates/creates in parallel (independent rows)

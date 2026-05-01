@@ -157,6 +157,7 @@ function GuidedWalkthrough() {
       }, 800);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [user, shownThisSession, setShownThisSession, setShowPrompt]);
 
   const handleAcceptTour = useCallback(() => {

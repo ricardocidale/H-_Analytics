@@ -14,7 +14,7 @@
  * `storage.updateSpecialistConfigSection` → return `toConfigView`).
  */
 import type { Express } from "express";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import { storage } from "../../../storage";
 import { requireAdmin } from "../../../auth";
 import { aiRateLimit } from "../../../middleware/rate-limit";
@@ -52,7 +52,7 @@ export function registerConfigRoutes(app: Express) {
       const { recordRecommendationEventSchema } = await import("@workspace/db");
       const parsed = recordRecommendationEventSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
       // Validate fieldKey against the catalog candidate-fields list — admins
       // can only act on declared candidates, never arbitrary strings.

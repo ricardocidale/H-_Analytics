@@ -9,7 +9,7 @@ import type {
   Scenario,
 } from "@workspace/db";
 
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import { z } from "zod";
 import { logActivity, logAndSendError, createScenarioSchema, MAX_SCENARIOS_PER_USER, fullName, parseRouteId } from "./helpers";
 import { logger } from "../logger";
@@ -201,7 +201,7 @@ export function register(app: Express) {
       const user = getAuthUser(req);
       const validation = createScenarioSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
 
       const manualCount = await storage.countManualScenarios(user.id);
@@ -258,7 +258,7 @@ export function register(app: Express) {
 
       const validation = updateScenarioSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
 
       const scenario = await storage.updateScenario(id, validation.data);
@@ -401,7 +401,7 @@ export function register(app: Express) {
     try {
       const validation = importScenarioSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
 
       const user = getAuthUser(req);
@@ -452,7 +452,7 @@ export function register(app: Express) {
     try {
       const validation = shareScenarioSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
 
       const { recipientEmail, mode, scenarioId } = validation.data;
@@ -577,7 +577,7 @@ export function register(app: Express) {
 
       const validation = compareBatchSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
 
       const { scenarioIds, baseScenarioId } = validation.data;
@@ -729,7 +729,7 @@ export function register(app: Express) {
 
       const validation = updateTagsSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
 
       const scenario = await storage.updateScenario(id, { tags: validation.data.tags });

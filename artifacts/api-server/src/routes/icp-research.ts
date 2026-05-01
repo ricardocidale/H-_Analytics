@@ -3,7 +3,7 @@ import { storage } from "../storage";
 import { requireAuth, isApiRateLimited , getAuthUser } from "../auth";
 import { isAdminRole } from "@shared/constants";
 import { logActivity, logAndSendError, icpGenerateSchema, icpExportSchema } from "./helpers";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import { getAnthropicClient, normalizeModelId } from "../ai/clients";
 import { DEFAULT_RESEARCH_MODEL } from "../ai/resolve-llm";
 import { logApiCost, estimateCost } from "../middleware/cost-logger";

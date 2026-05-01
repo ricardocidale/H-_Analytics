@@ -67,6 +67,7 @@ export function DonutChart({
                   </text>
                 );
               }
+              return null;
             }}
           />
         </Pie>

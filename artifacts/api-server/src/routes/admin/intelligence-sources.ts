@@ -3,7 +3,7 @@ import { storage } from "../../storage";
 import { requireAdmin } from "../../auth";
 import { logAndSendError, logActivity, parseRouteId } from "../helpers";
 import { z } from "zod";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 
 export function registerSourceRoutes(app: Express) {
   app.get("/api/admin/source-registry", requireAdmin, async (_req, res) => {
@@ -33,7 +33,7 @@ export function registerSourceRoutes(app: Express) {
         isActive: z.boolean().optional(),
       });
       const parsed = bodySchema.safeParse(req.body);
-      if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error).message });
+      if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       const created = await storage.createSourceRegistryEntry(parsed.data);
       logActivity(req, "create-source", "source_registry", created.id, created.name);
       res.status(201).json(created);
@@ -62,7 +62,7 @@ export function registerSourceRoutes(app: Express) {
         isActive: z.boolean().optional(),
       });
       const parsed = bodySchema.safeParse(req.body);
-      if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error).message });
+      if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error as any).message });
 
       const updated = await storage.updateSourceRegistryEntry(id, parsed.data);
       if (!updated) return res.status(404).json({ error: "Source not found" });

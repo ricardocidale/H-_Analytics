@@ -80,6 +80,9 @@ function buildIncomeStatement(yearly: YearlyPropertyFinancials[], years: string[
 
     row("Departmental Expenses", [], { isHeader: true }),
     row("Rooms Expense", yearlyValues(yearly, "expenseRooms"), { indent: 1 }),
+    ...(yearly.some(y => y.expensePlatformFees > 0) ? [
+      row("Platform Fees", yearlyValues(yearly, "expensePlatformFees"), { indent: 1 }),
+    ] : []),
     row("F&B Expense", yearlyValues(yearly, "expenseFB"), { indent: 1 }),
     row("Events Expense", yearlyValues(yearly, "expenseEvents"), { indent: 1 }),
     row("Other Expense", yearlyValues(yearly, "expenseOther"), { indent: 1 }),

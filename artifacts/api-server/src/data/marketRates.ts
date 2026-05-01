@@ -96,7 +96,8 @@ export async function fetchFredRate(seriesId: string): Promise<{ value: number; 
       return null;
     }
 
-    const data = await response.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = await response.json() as any;
     const obs: FredObservation | undefined = data.observations?.[0];
     if (!obs || obs.value === ".") return null;
 
@@ -135,7 +136,8 @@ export async function fetchFrankfurterRate(targetCurrency: string): Promise<{ va
     }
 
     frankfurterWarned.delete(targetCurrency);
-    const data = await response.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = await response.json() as any;
     const rate = data.rates?.[targetCurrency];
     if (rate == null) return null;
 

@@ -12,7 +12,7 @@ import type {
   StrOrdinanceEvent,
   SupplyProjectStatus,
   StrDirection,
-} from "./schema/intelligence-v2";
+} from "@workspace/db/schema/intelligence-v2";
 
 // ─── Pipeline pressure scoring ───────────────────────────────────────────────
 

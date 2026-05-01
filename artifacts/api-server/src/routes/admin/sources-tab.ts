@@ -23,7 +23,7 @@
  */
 import type { Express, Request } from "express";
 import { z } from "zod";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import { storage } from "../../storage";
 import { requireAdmin } from "../../auth";
 import { logActivity, logAndSendError } from "../helpers";
@@ -59,7 +59,7 @@ const specialistIdParamSchema = z.object({
 });
 
 const replaceConnectionsBody = z.object({
-  targets: z.array(ConnectionTargetSchema),
+  targets: z.array(ConnectionTargetSchema as any),
 });
 
 interface SourceCardView {
@@ -272,7 +272,7 @@ export function registerSourcesTabRoutes(app: Express) {
       const { id } = idParamSchema.parse(req.params);
       const parsed = replaceConnectionsBody.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
       const exists = await storage.getAdminResourceById(id);
       if (!exists) return res.status(404).json({ error: "Resource not found" });

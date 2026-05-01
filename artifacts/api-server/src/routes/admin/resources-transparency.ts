@@ -22,7 +22,7 @@
  */
 import type { Express } from "express";
 import { z } from "zod";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import { storage } from "../../storage";
 import { requireAdmin } from "../../auth";
 import { logAndSendError } from "../helpers";
@@ -42,7 +42,7 @@ import { specialistDisplayName } from "@workspace/db";
 import { recomputeAndRecordSpecialistQuality } from "../../ai/research-quality";
 import type { SpecialistResearchQualitySnapshotRow } from "@workspace/db";
 
-const listQuerySchema = z.object({ kind: ResourceKindSchema.optional() });
+const listQuerySchema = z.object({ kind: (ResourceKindSchema as any).optional() });
 const idParamSchema = z.object({ id: z.coerce.number().int().positive() });
 const QUALITY_TTL_MS = 6 * 60 * 60 * 1000; // 6h: snapshots auto-recompute on read.
 
@@ -177,7 +177,7 @@ export function registerResourceTransparencyRoutes(app: Express) {
     try {
       const parsed = listQuerySchema.safeParse(req.query);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
       const rows = await storage.listAdminResources(parsed.data.kind);
       const now = new Date();
@@ -292,7 +292,7 @@ export function registerResourceTransparencyRoutes(app: Express) {
     try {
       const parsed = listQuerySchema.safeParse(req.query);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
       const rows = await storage.listAdminResources(parsed.data.kind);
       const now = new Date();

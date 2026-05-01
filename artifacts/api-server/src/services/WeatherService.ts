@@ -59,7 +59,8 @@ export class WeatherService extends BaseIntegrationService {
       const response = await this.fetchWithTimeout(url, {
         headers: rapidApiHeaders(HOST, "primary"),
       });
-      const data = await response.json();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await response.json() as any;
 
       if (!data?.current) return null;
 
@@ -113,7 +114,8 @@ export class WeatherService extends BaseIntegrationService {
         const response = await this.fetchWithTimeout(url, {
           headers: rapidApiHeaders(HOST, "primary"),
         });
-        const data = await response.json();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await response.json() as any;
         const day = data?.forecast?.forecastday?.[0]?.day;
         if (!day) return null;
 

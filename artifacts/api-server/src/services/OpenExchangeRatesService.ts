@@ -52,7 +52,8 @@ export class OpenExchangeRatesService extends BaseIntegrationService {
     try {
       const url = `${BASE_URL}/latest.json?app_id=${this.appId}&base=USD&symbols=${PORTFOLIO_SYMBOLS}`;
       const response = await this.fetchWithTimeout(url);
-      const data = await response.json();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = await response.json() as any;
 
       if (!data?.rates) {
         this.warn("No rates in OpenExchangeRates response");

@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, requireAdmin, getAuthUser } from "../auth";
 import { insertGlobalAssumptionsSchema, updateServiceTemplateSchema } from "@workspace/db";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import { logActivity, logAndSendError, parseParamId } from "./helpers";
 import { z } from "zod";
 import { invalidateComputeCache } from "../finance/cache";
@@ -104,7 +104,7 @@ export function register(app: Express) {
     try {
       const validation = rebeccaPatchSchema.safeParse(req.body);
       if (!validation.success) {
-        const error = fromZodError(validation.error);
+        const error = fromZodError(validation.error as any);
         return res.status(400).json({ error: error.message });
       }
       const current = await storage.getGlobalAssumptions(getAuthUser(req).id);
@@ -147,7 +147,7 @@ export function register(app: Express) {
       // Validate req.body first, then merge with current — prevents prototype pollution
       const bodyValidation = insertGlobalAssumptionsSchema.partial().safeParse(req.body);
       if (!bodyValidation.success) {
-        const error = fromZodError(bodyValidation.error);
+        const error = fromZodError(bodyValidation.error as any);
         return res.status(400).json({ error: error.message });
       }
       // Task #379: certain values are canonically owned by the Model
@@ -167,7 +167,7 @@ export function register(app: Express) {
 
       const validation = insertGlobalAssumptionsSchema.safeParse(merged);
       if (!validation.success) {
-        const error = fromZodError(validation.error);
+        const error = fromZodError(validation.error as any);
         return res.status(400).json({ error: error.message });
       }
       
@@ -259,7 +259,7 @@ export function register(app: Express) {
     try {
       const parsed = saveTabSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
       const { tabKey, patch, fundingInputs, unsave } = parsed.data;
       const userId = getAuthUser(req).id;
@@ -288,7 +288,7 @@ export function register(app: Express) {
 
       const validation = insertGlobalAssumptionsSchema.partial().safeParse(merged);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
       const fullValidation = insertGlobalAssumptionsSchema.safeParse(merged);
       const dataToWrite = fullValidation.success ? fullValidation.data : (merged as Record<string, unknown>);
@@ -454,7 +454,7 @@ export function register(app: Express) {
     try {
       const parsed = assumptionChangeLogSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
       const { previousValue, newValue, ...rest } = parsed.data;
       await storage.logAssumptionChange({
@@ -503,7 +503,7 @@ export function register(app: Express) {
     try {
       const parsed = acknowledgmentSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
       const row = await storage.upsertAcknowledgment({
         ...parsed.data,
@@ -546,7 +546,7 @@ export function register(app: Express) {
     try {
       const validation = appearanceDefaultsSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
       const current = await storage.getGlobalAssumptions(getAuthUser(req).id);
       if (!current) {
@@ -584,7 +584,7 @@ export function register(app: Express) {
 
       const validation = updateServiceTemplateSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
 
       const template = await storage.updateServiceTemplate(id, validation.data);

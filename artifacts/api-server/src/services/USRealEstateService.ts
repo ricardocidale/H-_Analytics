@@ -115,7 +115,7 @@ export class USRealEstateService extends BaseIntegrationService {
         },
       });
 
-      const data: PropertyDetailResponse = await response.json();
+      const data = await response.json() as PropertyDetailResponse;
       const historicalSets = data.data?.estimates?.historical_values;
       if (!historicalSets?.length) {
         this.log(`No value history for property ${propertyId}`);
@@ -184,7 +184,7 @@ export class USRealEstateService extends BaseIntegrationService {
         },
       });
 
-      const data: ForSaleResponse = await response.json();
+      const data = await response.json() as ForSaleResponse;
       const cities = data.data?.geo?.recommended_cities?.geos ?? [];
       if (!cities.length) {
         this.log(`No median data for ${city}, ${stateCode}`);

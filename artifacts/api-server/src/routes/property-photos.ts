@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, requireAdmin, checkPropertyAccess, getAuthUser } from "../auth";
 import { insertPropertyPhotoSchema, updatePropertyPhotoSchema } from "@workspace/db";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import { logAndSendError, parseRouteId } from "./helpers";
 import { fetchWithTimeout } from "../lib/fetch-with-timeout";
 import { z } from "zod";
@@ -148,7 +148,7 @@ export function register(app: Express) {
         propertyId,
       });
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
 
       const photo = await storage.addPropertyPhoto(parsed.data);
@@ -199,7 +199,7 @@ export function register(app: Express) {
       }
       const parsed = updatePropertyPhotoSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
 
       const existingPhoto = await storage.getPhotoById(photoId);
@@ -268,7 +268,7 @@ export function register(app: Express) {
       const schema = z.object({ orderedIds: z.array(z.number()) });
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
 
       await storage.reorderPhotos(propertyId, parsed.data.orderedIds);
@@ -295,7 +295,7 @@ export function register(app: Express) {
       });
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
       const { photoIds, destinationPropertyId, mode } = parsed.data;
 

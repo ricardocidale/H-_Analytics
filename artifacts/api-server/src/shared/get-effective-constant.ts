@@ -23,8 +23,8 @@
  * NOTE: This helper does no IO.
  */
 
-import type { ModelConstantOverride } from "./schema/model-constants";
-import type { ModelConstant } from "./schema/model-canonicals";
+import type { ModelConstantOverride } from "@workspace/db/schema/model-constants";
+import type { ModelConstant } from "@workspace/db/schema/model-canonicals";
 import { MODEL_CONSTANTS_REGISTRY, getFactoryValue } from "./model-constants-registry";
 
 export type ResolvedSource = "manual" | "analyst" | "factory";

@@ -11,7 +11,7 @@
  * re-derived in each function.
  */
 
-import type { Property } from "./schema";
+import type { Property } from "@workspace/db/schema/properties";
 
 // ─── Public narrative interfaces ──────────────────────────────────────────────
 

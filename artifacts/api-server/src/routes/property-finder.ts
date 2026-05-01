@@ -8,7 +8,7 @@ import {
   computePriceHistoryRollups,
   type PriceEvent,
 } from "@shared/price-history";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import { logActivity, logAndSendError, prospectiveNotesSchema, parseRouteId } from "./helpers";
 import { z } from "zod";
 import { logger } from "../logger";
@@ -199,7 +199,7 @@ export function register(app: Express) {
     try {
       const validation = insertProspectivePropertySchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
 
       const property = await storage.addProspectiveProperty({
@@ -229,7 +229,7 @@ export function register(app: Express) {
     try {
       const parsed = prospectiveNotesSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
       const id = parseRouteId(req.params.id);
       if (!id) return res.status(400).json({ error: "Invalid ID" });
@@ -275,7 +275,7 @@ export function register(app: Express) {
       if (!id) return res.status(400).json({ error: "Invalid ID" });
       const parsed = priceEventInputSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
       const property = await storage.addProspectivePriceEvent(id, getAuthUser(req).id, parsed.data);
       if (!property) return res.status(404).json({ error: "Property not found" });
@@ -297,7 +297,7 @@ export function register(app: Express) {
       if (!eventId) return res.status(400).json({ error: "Invalid event ID" });
       const parsed = priceEventPatchSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error).message });
+        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
       }
       const property = await storage.updateProspectivePriceEvent(
         id,
@@ -482,7 +482,7 @@ export function register(app: Express) {
     try {
       const validation = insertSavedSearchSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
 
       const search = await storage.addSavedSearch({

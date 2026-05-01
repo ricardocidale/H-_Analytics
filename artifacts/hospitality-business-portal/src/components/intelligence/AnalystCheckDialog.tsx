@@ -34,7 +34,7 @@ import type {
   AnalystVerdict,
   VerdictAction,
   VerdictActionKind,
-} from "../../../../engine/analyst/contracts/verdict";
+} from "@engine/analyst/contracts/verdict";
 
 export interface AnalystCheckDialogProps {
   open: boolean;

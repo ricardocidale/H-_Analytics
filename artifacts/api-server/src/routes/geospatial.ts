@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { requireAuth, isApiRateLimited, getAuthUser, checkPropertyAccess } from "../auth";
 import { geocodeSchema, logAndSendError, parseRouteId } from "./helpers";
 import { fetchWithTimeout } from "../lib/fetch-with-timeout";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import {
   geocodeAddress,
   placesAutocomplete,
@@ -21,7 +21,7 @@ export function register(app: Express) {
       }
       const validation = geocodeSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
 
       const coords = await geocodeAddress(validation.data.address);

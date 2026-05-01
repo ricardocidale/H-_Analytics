@@ -108,7 +108,7 @@ export class AlphaVantageService extends BaseIntegrationService {
         });
 
         const res  = await this.fetchWithTimeout(url, { headers: rapidApiHeaders(HOST, "tertiary") });
-        const data = await res.json();
+        const data = await res.json() as any;
 
         const series: Record<string, Record<string, string>> = data?.["Weekly Time Series"] ?? {};
         const dates = Object.keys(series).sort().reverse();
@@ -152,7 +152,7 @@ export class AlphaVantageService extends BaseIntegrationService {
       try {
         const url = `${BASE_URL}?` + new URLSearchParams({ function: "REAL_GDP", interval: "quarterly", datatype: "json" });
         const res  = await this.fetchWithTimeout(url, { headers: rapidApiHeaders(HOST, "tertiary") });
-        const data = await res.json();
+        const data = await res.json() as any;
 
         const series: { date: string; value: string }[] = data?.data ?? [];
         if (series.length < 2) return null;
@@ -173,7 +173,7 @@ export class AlphaVantageService extends BaseIntegrationService {
       try {
         const url = `${BASE_URL}?` + new URLSearchParams({ function: "INFLATION", datatype: "json" });
         const res  = await this.fetchWithTimeout(url, { headers: rapidApiHeaders(HOST, "tertiary") });
-        const data = await res.json();
+        const data = await res.json() as any;
 
         const series: { date: string; value: string }[] = data?.data ?? [];
         if (!series.length) return null;

@@ -3,7 +3,7 @@ import { storage } from "../../storage";
 import { requireAdmin , getAuthUser } from "../../auth";
 import { logAndSendError, logActivity, parseParamId } from "../helpers";
 import { z } from "zod";
-import { fromZodError } from "zod-validation-error";
+import { fromZodError } from "zod-validation-error/v3";
 import { updateScenarioSchema } from "@workspace/db";
 
 const createAdminScenarioSchema = z.object({
@@ -63,7 +63,7 @@ export function registerAdminScenarioRoutes(app: Express) {
     try {
       const validation = createAdminScenarioSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
 
       const user = await storage.getUserById(validation.data.userId);
@@ -92,7 +92,7 @@ export function registerAdminScenarioRoutes(app: Express) {
 
       const validation = updateScenarioSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
 
       const scenario = await storage.updateScenario(id, validation.data);
@@ -210,7 +210,7 @@ export function registerAdminScenarioRoutes(app: Express) {
 
       const validation = accessGrantSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
 
       const { targetType, targetId } = validation.data;
@@ -239,7 +239,7 @@ export function registerAdminScenarioRoutes(app: Express) {
 
       const validation = accessGrantSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error).message });
+        return res.status(400).json({ error: fromZodError(validation.error as any).message });
       }
 
       const { targetType, targetId } = validation.data;
