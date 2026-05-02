@@ -1,0 +1,747 @@
+/**
+ * Server-side JSX slide components for satori rendering (Track 2 image-PPTX).
+ *
+ * Each component accepts the full slide payload and renders a 1920×1080 slide
+ * matching the canonical L+B design: #1C2B1E dark bg, #257D41 green accent,
+ * #FFF9F5 cream, EB Garamond headers, Poppins body.
+ *
+ * Important: satori supports a restricted CSS subset — no grid, no :hover,
+ * no calc(), no gap shorthand on older satori versions. Use flexbox only.
+ */
+
+import React from "react";
+
+// ── Canonical L+B colors (mirror COLORS in property-slides/slideUtils.ts) ──
+const C = {
+  bg: "#1C2B1E",
+  bgDark: "#151f16",
+  accent: "#257D41",
+  sage: "#7AAA88",
+  cream: "#FFF9F5",
+  muted: "#9FBCA4",
+  white: "#FFFFFF",
+  dimWhite: "rgba(255,249,245,0.85)",
+  faintWhite: "rgba(255,249,245,0.55)",
+} as const;
+
+// ── Slide dimensions ──────────────────────────────────────────────────────
+const W = 1920;
+const H = 1080;
+
+// ── Shared types ──────────────────────────────────────────────────────────
+
+export interface SlidePhoto {
+  url?: string;
+  base64?: string;
+  isHero: boolean;
+  sortOrder: number;
+}
+
+export interface YearlyIS {
+  year: number;
+  revenueTotal: number;
+  totalExpenses: number;
+  noi: number;
+  gop: number;
+  operationalMonthsInYear: number;
+}
+
+export interface YearlyCF {
+  year: number;
+  debtService: number;
+  netCashFlowToInvestors: number;
+  cumulativeCashFlow: number;
+  exitValue: number;
+}
+
+export interface SlideFinancials {
+  yearlyIS: YearlyIS[];
+  yearlyCF: YearlyCF[];
+  loanAmount: number;
+  loanLtv: number;
+  annualDebtService: number;
+  irr?: number;
+  equityMultiple?: number;
+  exitCapRate?: number;
+}
+
+export interface SlideProperty {
+  id: number;
+  name: string;
+  city: string;
+  stateProvince: string;
+  county: string;
+  country: string;
+  purchasePrice: number;
+  roomCount: number;
+  startAdr: number;
+  maxOccupancy: number;
+  businessModel: string;
+  hospitalityType: string;
+  qualityTier: string;
+  description: string;
+  acquisitionStatus: string;
+  isHistoric?: boolean | string;
+  renovationScope?: string;
+  exitCapRate?: number;
+}
+
+export interface SiblingProperty {
+  id: number;
+  name: string;
+  city?: string;
+  stateProvince?: string;
+  purchasePrice?: number;
+  hospitalityType?: string;
+  heroPhotoBase64?: string;
+}
+
+export interface VisionText {
+  cinematicCaption: string;
+  visionHeadline: string;
+  visionBullet1: string;
+  visionBullet2: string;
+  badgeText: string;
+  descriptionParagraph: string;
+  investmentModelConcept: string;
+  marketRationale: string;
+  reason1Label: string; reason1Detail: string;
+  reason2Label: string; reason2Detail: string;
+  reason3Label: string; reason3Detail: string;
+  closingLine: string;
+  transformationDescription: string;
+  operationalModelText: string;
+  revenueBullet: string;
+  programmingBullet: string;
+  operationalParagraph: string;
+}
+
+export interface SlidePayload {
+  property: SlideProperty;
+  photos: SlidePhoto[];
+  financials: SlideFinancials;
+  siblings: SiblingProperty[];
+  visionText: VisionText;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+
+function fmtCurrency(n: number | null | undefined): string {
+  if (n == null || n === 0) return "—";
+  const v = Math.round(n);
+  if (Math.abs(v) >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(v) >= 1_000) return `$${(v / 1_000).toFixed(0)}K`;
+  return `$${v}`;
+}
+
+function fmtPct(n: number | null | undefined): string {
+  if (n == null) return "—";
+  return `${Math.round(n * 100)}%`;
+}
+
+function photoSrc(photo: SlidePhoto | undefined): string | null {
+  if (!photo) return null;
+  if (photo.base64 && photo.base64.length > 0) {
+    const prefix = photo.base64.startsWith("data:") ? "" : "data:image/jpeg;base64,";
+    return `${prefix}${photo.base64}`;
+  }
+  return null;
+}
+
+function getStableYear(yearlyIS: YearlyIS[]): YearlyIS | undefined {
+  return (
+    yearlyIS.find(y => y.operationalMonthsInYear >= 12 && y.revenueTotal > 0) ??
+    yearlyIS[2] ??
+    yearlyIS[0]
+  );
+}
+
+function typeLabel(p: SlideProperty): string {
+  const m = ((p.hospitalityType ?? "") + (p.businessModel ?? "")).toLowerCase();
+  if (m.includes("retreat")) return "Retreat Center";
+  if (m.includes("vrbo") || m.includes("vacation")) return "Luxury Vacation Rental";
+  if (m.includes("boutique") || m.includes("hotel")) return "Boutique Hotel";
+  if (m.includes("bnb")) return "Bed & Breakfast";
+  if (m.includes("motel")) return "Boutique Motel";
+  if (m.includes("resort")) return "Boutique Resort";
+  return "Hospitality Property";
+}
+
+function statusLabel(s: string): string {
+  const MAP: Record<string, string> = {
+    active: "Acquisition Target",
+    pipeline: "Pipeline",
+    closed: "Acquired",
+    operating: "Operating",
+    disposed: "Disposed",
+  };
+  return MAP[s.toLowerCase()] ?? "Pipeline";
+}
+
+// ── Shared sub-components ─────────────────────────────────────────────────
+
+function PhotoBg({ photo, style }: { photo: SlidePhoto | undefined; style?: React.CSSProperties }) {
+  const src = photoSrc(photo);
+  return (
+    <div style={{ position: "absolute", inset: 0, overflow: "hidden", ...style }}>
+      {src ? (
+        <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+      ) : (
+        <div style={{ width: "100%", height: "100%", background: C.bgDark, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <span style={{ fontFamily: "Garamond, serif", fontSize: 48, color: C.muted, letterSpacing: "0.3em" }}>L+B</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LbBadge({ x = 48, y = 40 }: { x?: number; y?: number }) {
+  return (
+    <div style={{ position: "absolute", top: y, left: x, display: "flex", flexDirection: "column" }}>
+      <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, fontWeight: 400, letterSpacing: "0.35em", color: C.accent, textTransform: "uppercase" }}>
+        L+B ANALYTICS
+      </span>
+    </div>
+  );
+}
+
+function PageNumber({ n }: { n: number }) {
+  return (
+    <div style={{ position: "absolute", bottom: 28, right: 48, display: "flex", alignItems: "center" }}>
+      <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, color: C.muted, letterSpacing: "0.12em" }}>
+        PAGE {n}
+      </span>
+    </div>
+  );
+}
+
+function GreenRule({ y = 640 }: { y?: number }) {
+  return (
+    <div style={{ position: "absolute", top: y, left: 0, right: 0, height: 2, background: C.accent, opacity: 0.45 }} />
+  );
+}
+
+// ── Slide 1 — Property Spotlight ─────────────────────────────────────────
+
+export function Slide1({ p }: { p: SlidePayload }) {
+  const { property, photos, visionText } = p;
+  const hero = photos.find(ph => ph.isHero) ?? photos[0];
+  const secondary = photos.find(ph => !ph.isHero) ?? photos[1];
+  const type = typeLabel(property);
+  const status = statusLabel(property.acquisitionStatus);
+  const revpar = (property.startAdr ?? 0) * (property.maxOccupancy ?? 0.7);
+
+  return (
+    <div style={{ width: W, height: H, background: C.bg, display: "flex", position: "relative", overflow: "hidden" }}>
+      {/* LEFT — hero photo (55%) */}
+      <div style={{ position: "relative", width: "55%", height: "100%" }}>
+        <PhotoBg photo={hero} />
+        {/* Gradient overlay */}
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "40%", background: "linear-gradient(to top, rgba(28,43,30,0.96) 0%, transparent 100%)" }} />
+        {/* Caption */}
+        <div style={{ position: "absolute", bottom: 60, left: 48, right: 32, display: "flex", flexDirection: "column" }}>
+          <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, letterSpacing: "0.22em", color: C.muted, textTransform: "uppercase", marginBottom: 8 }}>
+            {visionText.cinematicCaption || `${property.roomCount} KEYS · ${type.toUpperCase()}`}
+          </span>
+        </div>
+        <LbBadge />
+      </div>
+
+      {/* RIGHT — data panel (45%) */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "44px 56px 44px 48px" }}>
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, letterSpacing: "0.3em", color: C.accent, textTransform: "uppercase", marginBottom: 6 }}>
+          INVESTMENT SPOTLIGHT
+        </span>
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, color: C.muted, letterSpacing: "0.1em", marginBottom: 4 }}>
+          {status}: {property.city}, {property.stateProvince}
+        </span>
+        <span style={{ fontFamily: "Garamond, serif", fontSize: 34, fontWeight: 700, color: C.cream, lineHeight: 1.15, marginBottom: 6 }}>
+          {property.name.toUpperCase()} · {type.toUpperCase()}
+        </span>
+
+        <div style={{ width: 48, height: 2, background: C.accent, marginBottom: 16 }} />
+
+        {/* Vision headline + bullets */}
+        <span style={{ fontFamily: "Garamond, serif", fontSize: 18, color: C.cream, fontStyle: "italic", marginBottom: 10 }}>
+          {visionText.visionHeadline}
+        </span>
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 13, color: C.dimWhite, marginBottom: 6 }}>• {visionText.visionBullet1}</span>
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 13, color: C.dimWhite, marginBottom: 14 }}>• {visionText.visionBullet2}</span>
+
+        {/* Description */}
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.faintWhite, lineHeight: 1.6, marginBottom: 20 }}>
+          {visionText.descriptionParagraph}
+        </span>
+
+        {/* Specs grid */}
+        <div style={{ display: "flex", flexDirection: "row", flexWrap: "wrap", marginBottom: 20 }}>
+          {[
+            ["ASKING PRICE", fmtCurrency(property.purchasePrice)],
+            ["KEYS", String(property.roomCount || "—")],
+            ["ADR", fmtCurrency(property.startAdr)],
+            ["OCC", fmtPct(property.maxOccupancy)],
+            ["RevPAR", fmtCurrency(revpar)],
+            ["TYPE", type],
+          ].map(([label, value]) => (
+            <div key={label} style={{ display: "flex", flexDirection: "column", marginRight: 28, marginBottom: 12 }}>
+              <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 9, letterSpacing: "0.18em", color: C.muted, textTransform: "uppercase", marginBottom: 3 }}>{label}</span>
+              <span style={{ fontFamily: "Garamond, serif", fontSize: 17, color: C.cream }}>{value}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Badge */}
+        <div style={{ display: "flex" }}>
+          <div style={{ background: C.accent, padding: "5px 16px", borderRadius: 2 }}>
+            <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 10, letterSpacing: "0.2em", color: C.white, textTransform: "uppercase" }}>
+              {visionText.badgeText || type.toUpperCase()}
+            </span>
+          </div>
+        </div>
+
+        {/* Secondary photo thumbnail */}
+        {photoSrc(secondary) && (
+          <div style={{ position: "absolute", bottom: 44, right: 56, width: 200, height: 120, borderRadius: 3, overflow: "hidden", border: `1px solid rgba(37,125,65,0.3)` }}>
+            <PhotoBg photo={secondary} />
+          </div>
+        )}
+      </div>
+
+      <GreenRule y={H - 60} />
+      <PageNumber n={1} />
+    </div>
+  );
+}
+
+// ── Slide 2 — Alt View / Photo Gallery ───────────────────────────────────
+
+export function Slide2({ p }: { p: SlidePayload }) {
+  const { property, photos, visionText, financials } = p;
+  const stable = getStableYear(financials.yearlyIS);
+  const renovBudget = Math.round((property.purchasePrice ?? 0) * 0.15);
+  const panelPhotos = photos.filter(ph => !ph.isHero).slice(0, 4);
+  const type = typeLabel(property);
+
+  return (
+    <div style={{ width: W, height: H, background: C.bg, display: "flex", position: "relative", overflow: "hidden" }}>
+      {/* LEFT — data panel */}
+      <div style={{ width: 520, display: "flex", flexDirection: "column", padding: "44px 40px 44px 48px", flexShrink: 0 }}>
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, letterSpacing: "0.3em", color: C.accent, textTransform: "uppercase", marginBottom: 6 }}>
+          INVESTMENT SPOTLIGHT
+        </span>
+        <span style={{ fontFamily: "Garamond, serif", fontSize: 26, fontWeight: 700, color: C.cream, lineHeight: 1.2, marginBottom: 8 }}>
+          {property.name.toUpperCase()}
+        </span>
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.muted, marginBottom: 16 }}>
+          {property.city}, {property.stateProvince}
+        </span>
+
+        <div style={{ width: 40, height: 2, background: C.accent, marginBottom: 16 }} />
+
+        {/* Specs */}
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, letterSpacing: "0.12em", color: C.sage, marginBottom: 8 }}>Property Specs</span>
+        {[
+          ["Purchase Price", fmtCurrency(property.purchasePrice)],
+          ["Renovation Budget", fmtCurrency(renovBudget)],
+          ["Total Investment", fmtCurrency((property.purchasePrice ?? 0) + renovBudget)],
+          ["Stabilized Revenue", fmtCurrency(stable?.revenueTotal)],
+          ["Projected NOI", fmtCurrency(stable?.noi)],
+          ["Est. IRR", fmtPct(financials.irr)],
+        ].map(([label, val]) => (
+          <div key={label} style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", marginBottom: 6 }}>
+            <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.muted }}>{label}</span>
+            <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.cream }}>{val}</span>
+          </div>
+        ))}
+
+        <div style={{ width: "100%", height: 1, background: "rgba(37,125,65,0.3)", marginTop: 12, marginBottom: 16 }} />
+
+        {/* Operational vision */}
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, letterSpacing: "0.12em", color: C.sage, marginBottom: 8 }}>The Vision</span>
+        <span style={{ fontFamily: "Garamond, serif", fontSize: 14, color: C.cream, fontStyle: "italic", marginBottom: 8 }}>
+          Operational Model: {visionText.operationalModelText}
+        </span>
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.dimWhite, marginBottom: 4 }}>• {visionText.revenueBullet}</span>
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.dimWhite }}>• {visionText.programmingBullet}</span>
+      </div>
+
+      {/* RIGHT — 2×2 photo grid */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: 16 }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "row", marginBottom: 8 }}>
+          {[panelPhotos[0], panelPhotos[1]].map((ph, i) => (
+            <div key={i} style={{ flex: 1, position: "relative", borderRadius: 3, overflow: "hidden", marginLeft: i > 0 ? 8 : 0 }}>
+              <PhotoBg photo={ph} />
+            </div>
+          ))}
+        </div>
+        <div style={{ flex: 1, display: "flex", flexDirection: "row" }}>
+          {[panelPhotos[2], panelPhotos[3]].map((ph, i) => (
+            <div key={i} style={{ flex: 1, position: "relative", borderRadius: 3, overflow: "hidden", marginLeft: i > 0 ? 8 : 0 }}>
+              <PhotoBg photo={ph} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <LbBadge x={48} y={H - 50} />
+      <GreenRule y={H - 60} />
+      <PageNumber n={2} />
+    </div>
+  );
+}
+
+// ── Slide 3 — Investment Model ────────────────────────────────────────────
+
+export function Slide3({ p }: { p: SlidePayload }) {
+  const { property, photos, visionText } = p;
+  const hero = photos.find(ph => ph.isHero) ?? photos[0];
+  const secondary = photos[1] ?? photos[0];
+  const tertiary = photos[2] ?? photos[0];
+  const type = typeLabel(property);
+
+  return (
+    <div style={{ width: W, height: H, background: C.bg, display: "flex", position: "relative", overflow: "hidden" }}>
+      {/* LEFT — large photo panel */}
+      <div style={{ width: 480, position: "relative", flexShrink: 0 }}>
+        <PhotoBg photo={hero} />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, transparent 60%, rgba(28,43,30,0.95) 100%)" }} />
+      </div>
+
+      {/* CENTER — medium photo */}
+      <div style={{ width: 340, position: "relative", flexShrink: 0 }}>
+        <PhotoBg photo={secondary} />
+        <div style={{ position: "absolute", inset: 0, background: "rgba(28,43,30,0.4)" }} />
+      </div>
+
+      {/* RIGHT — data content */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "44px 48px 44px 40px" }}>
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, letterSpacing: "0.3em", color: C.accent, textTransform: "uppercase", marginBottom: 6 }}>
+          INVESTMENT MODEL
+        </span>
+        <span style={{ fontFamily: "Garamond, serif", fontSize: 26, fontWeight: 700, color: C.cream, lineHeight: 1.2, marginBottom: 4 }}>
+          {property.city.toUpperCase()}, {property.stateProvince.toUpperCase()} · {type.toUpperCase()}
+        </span>
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.muted, marginBottom: 16 }}>
+          The L+B model applied to {type.toLowerCase()} assets in {property.city}, {property.stateProvince}
+        </span>
+
+        <div style={{ width: 40, height: 2, background: C.accent, marginBottom: 16 }} />
+
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, color: C.sage, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>The Concept</span>
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 13, color: C.dimWhite, lineHeight: 1.6, marginBottom: 16 }}>
+          {visionText.investmentModelConcept}
+        </span>
+
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, color: C.sage, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>Why This Property?</span>
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 13, color: C.dimWhite, lineHeight: 1.6, marginBottom: 16 }}>
+          {visionText.marketRationale}
+        </span>
+
+        {/* 3 Reasons */}
+        {[
+          [visionText.reason1Label, visionText.reason1Detail],
+          [visionText.reason2Label, visionText.reason2Detail],
+          [visionText.reason3Label, visionText.reason3Detail],
+        ].map(([label, detail], i) => (
+          <div key={i} style={{ display: "flex", flexDirection: "column", marginBottom: 10 }}>
+            <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.cream, fontWeight: 600, marginBottom: 2 }}>{label}</span>
+            <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, color: C.muted, lineHeight: 1.5 }}>{detail}</span>
+          </div>
+        ))}
+
+        <div style={{ marginTop: 16, padding: "10px 16px", borderLeft: `3px solid ${C.accent}` }}>
+          <span style={{ fontFamily: "Garamond, serif", fontSize: 15, color: C.cream, fontStyle: "italic" }}>{visionText.closingLine}</span>
+        </div>
+      </div>
+
+      <LbBadge x={48} y={40} />
+      <GreenRule y={H - 60} />
+      <PageNumber n={3} />
+    </div>
+  );
+}
+
+// ── Slide 4 — Pipeline / Market Context ──────────────────────────────────
+
+export function Slide4({ p }: { p: SlidePayload }) {
+  const { property, photos, siblings } = p;
+  const hero = photos.find(ph => ph.isHero) ?? photos[0];
+  const state = property.stateProvince;
+  const type = typeLabel(property);
+  const allCards = [{ property, photo: hero, isPrimary: true }, ...siblings.slice(0, 4).map(s => ({ sibling: s, isPrimary: false }))];
+
+  return (
+    <div style={{ width: W, height: H, background: C.bg, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
+      {/* Header */}
+      <div style={{ padding: "36px 56px 24px 56px", display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" }}>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, letterSpacing: "0.3em", color: C.accent, textTransform: "uppercase", marginBottom: 4 }}>
+            PROPERTY PIPELINE
+          </span>
+          <span style={{ fontFamily: "Garamond, serif", fontSize: 28, color: C.cream }}>
+            {state.toUpperCase()} PORTFOLIO OVERVIEW
+          </span>
+        </div>
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.muted }}>
+          {property.name} and {siblings.length} related {siblings.length === 1 ? "property" : "properties"}
+        </span>
+      </div>
+
+      {/* Cards row */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "row", padding: "0 40px 48px 40px" }}>
+        {/* Primary card — this property, larger */}
+        <div style={{ width: 440, marginRight: 20, position: "relative", borderRadius: 4, overflow: "hidden", border: `1px solid rgba(37,125,65,0.5)` }}>
+          <PhotoBg photo={hero} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(28,43,30,0.95) 35%, transparent 100%)" }} />
+          <div style={{ position: "absolute", bottom: 24, left: 20, right: 20, display: "flex", flexDirection: "column" }}>
+            <div style={{ background: C.accent, padding: "3px 10px", display: "flex", width: "fit-content", marginBottom: 8 }}>
+              <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 9, letterSpacing: "0.2em", color: C.white, textTransform: "uppercase" }}>{type}</span>
+            </div>
+            <span style={{ fontFamily: "Garamond, serif", fontSize: 20, color: C.cream, marginBottom: 4 }}>{property.name}</span>
+            <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, color: C.muted, marginBottom: 4 }}>{property.city}, {state}</span>
+            <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 14, color: C.sage }}>{fmtCurrency(property.purchasePrice)}</span>
+          </div>
+        </div>
+
+        {/* Sibling cards */}
+        {[0, 1, 2, 3].map(idx => {
+          const sib = siblings[idx];
+          const sibPhoto: SlidePhoto | undefined = sib?.heroPhotoBase64
+            ? { base64: sib.heroPhotoBase64, isHero: true, sortOrder: 0 }
+            : undefined;
+          return (
+            <div key={idx} style={{ flex: 1, marginRight: idx < 3 ? 12 : 0, position: "relative", borderRadius: 4, overflow: "hidden", border: `1px solid rgba(156,188,164,0.2)` }}>
+              {sib ? (
+                <>
+                  <PhotoBg photo={sibPhoto} />
+                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(28,43,30,0.9) 50%, transparent 100%)" }} />
+                  <div style={{ position: "absolute", bottom: 16, left: 14, right: 14, display: "flex", flexDirection: "column" }}>
+                    <span style={{ fontFamily: "Garamond, serif", fontSize: 15, color: C.cream, marginBottom: 3 }}>{sib.name}</span>
+                    <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 10, color: C.muted, marginBottom: 3 }}>{sib.city}{sib.stateProvince ? `, ${sib.stateProvince}` : ""}</span>
+                    <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.sage }}>{fmtCurrency(sib.purchasePrice)}</span>
+                  </div>
+                </>
+              ) : (
+                <div style={{ width: "100%", height: "100%", background: "rgba(28,43,30,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: "rgba(156,188,164,0.4)", letterSpacing: "0.12em" }}>COMING SOON</span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <GreenRule y={H - 60} />
+      <PageNumber n={4} />
+    </div>
+  );
+}
+
+// ── Slide 5 — Financial Snapshot ─────────────────────────────────────────
+
+export function Slide5({ p }: { p: SlidePayload }) {
+  const { property, financials, visionText } = p;
+  const stable = getStableYear(financials.yearlyIS);
+  const renovBudget = Math.round((property.purchasePrice ?? 0) * 0.15);
+  const totalInvestment = (property.purchasePrice ?? 0) + renovBudget;
+  const grossMargin = stable && stable.revenueTotal > 0 ? (stable.gop / stable.revenueTotal) : null;
+  const ebitdaPct = stable && stable.revenueTotal > 0 ? (stable.noi / stable.revenueTotal) : null;
+  const ltv = financials.loanLtv > 0 ? `${Math.round(financials.loanLtv * 100)}%` : "65%";
+  const stableLabel = stable ? `Year ${stable.year}` : "Yr 3";
+
+  const transformRows = [
+    ["Feature", "Existing", "Proposed"],
+    ["Guest Capacity", `${Math.max(1, property.roomCount - 2)} Guests`, `${property.roomCount} Keys / ${property.roomCount * 2} Guests`],
+    ["Event Space", "Limited", "Curated venue spaces"],
+    ["Lodging", "Standard rooms", `${property.roomCount} boutique-designed keys`],
+    ["Amenities", "Basic", "Curated experiential amenities"],
+  ];
+
+  const snapshotRows = [
+    ["Occupancy", fmtPct(property.maxOccupancy)],
+    ["ADR", fmtCurrency(property.startAdr)],
+    ["RevPAR", fmtCurrency((property.startAdr ?? 0) * (property.maxOccupancy ?? 0.7))],
+    ["Revenue", fmtCurrency(stable?.revenueTotal)],
+    ["Variable Costs", fmtCurrency(stable?.totalExpenses)],
+    ["Gross Margin", fmtPct(grossMargin)],
+    ["EBITDA %", fmtPct(ebitdaPct)],
+  ];
+
+  return (
+    <div style={{ width: W, height: H, background: C.bg, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
+      {/* Header */}
+      <div style={{ padding: "32px 56px 20px 56px", display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" }}>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, letterSpacing: "0.3em", color: C.accent, textTransform: "uppercase", marginBottom: 4 }}>
+            FINANCIAL SNAPSHOT
+          </span>
+          <span style={{ fontFamily: "Garamond, serif", fontSize: 26, color: C.cream }}>
+            The Transformation Plan — {property.name}
+          </span>
+        </div>
+      </div>
+
+      {/* Content: transformation table left, metrics right */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "row", padding: "0 40px 48px 40px" }}>
+        {/* LEFT — transformation + vision */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", marginRight: 32 }}>
+          <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.dimWhite, lineHeight: 1.6, marginBottom: 20 }}>
+            {visionText.transformationDescription}
+          </span>
+
+          {/* Transformation table */}
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {transformRows.map((row, ri) => (
+              <div key={ri} style={{ display: "flex", flexDirection: "row", padding: "7px 0", borderBottom: ri < transformRows.length - 1 ? `1px solid rgba(156,188,164,0.15)` : "none", background: ri === 0 ? "rgba(37,125,65,0.2)" : ri % 2 === 0 ? "rgba(255,249,245,0.04)" : "transparent" }}>
+                {row.map((cell, ci) => (
+                  <span key={ci} style={{ flex: ci === 0 ? 0.8 : 1, fontFamily: "Poppins, sans-serif", fontSize: ri === 0 ? 10 : 12, color: ri === 0 ? C.sage : ci === 0 ? C.cream : C.dimWhite, fontWeight: ri === 0 || ci === 0 ? 600 : 400, paddingLeft: 8 }}>
+                    {cell}
+                  </span>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* RIGHT — stable year snapshot + financing */}
+        <div style={{ width: 380, display: "flex", flexDirection: "column" }}>
+          <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, letterSpacing: "0.12em", color: C.sage, textTransform: "uppercase", marginBottom: 12 }}>
+            Snapshot of Stable Year ({stableLabel})
+          </span>
+          <div style={{ display: "flex", flexDirection: "column", marginBottom: 24 }}>
+            {snapshotRows.map(([label, val], ri) => (
+              <div key={ri} style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid rgba(156,188,164,0.1)` }}>
+                <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.muted }}>{label}</span>
+                <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.cream }}>{val}</span>
+              </div>
+            ))}
+          </div>
+
+          <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, letterSpacing: "0.12em", color: C.sage, textTransform: "uppercase", marginBottom: 12 }}>
+            Financing Summary
+          </span>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {[
+              ["Purchase Price", fmtCurrency(property.purchasePrice)],
+              ["Renovation Budget", fmtCurrency(renovBudget)],
+              ["Total Investment", fmtCurrency(totalInvestment)],
+              [`Loan Amount (${ltv})`, fmtCurrency(financials.loanAmount)],
+              ["Annual Debt Service", fmtCurrency(financials.annualDebtService)],
+            ].map(([label, val], ri) => (
+              <div key={ri} style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", padding: "5px 0", borderBottom: `1px solid rgba(156,188,164,0.1)` }}>
+                <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.muted }}>{label}</span>
+                <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: ri === 2 ? C.cream : C.dimWhite, fontWeight: ri === 2 ? 600 : 400 }}>{val}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Key metrics badge */}
+          <div style={{ marginTop: 20, padding: "12px 16px", background: "rgba(37,125,65,0.12)", borderLeft: `3px solid ${C.accent}` }}>
+            <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, color: C.sage, marginBottom: 6, display: "block" }}>Key Investor Metrics*</span>
+            <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.cream, display: "block", marginBottom: 3 }}>Gross Margin: {fmtPct(grossMargin)}</span>
+            <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.cream, display: "block", marginBottom: 6 }}>EBITDA ({stableLabel}): {fmtPct(ebitdaPct)}</span>
+            <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 10, color: C.muted }}>* Projections for first full stabilized year</span>
+          </div>
+        </div>
+      </div>
+
+      <GreenRule y={H - 60} />
+      <PageNumber n={5} />
+    </div>
+  );
+}
+
+// ── Slide 6 — Income Statement ────────────────────────────────────────────
+
+export function Slide6({ p }: { p: SlidePayload }) {
+  const { property, financials } = p;
+  const years = financials.yearlyIS.slice(0, 5);
+  const stable = getStableYear(financials.yearlyIS);
+  const stableNoi = stable?.noi ?? 0;
+  const exitVal = financials.yearlyCF[financials.yearlyCF.length - 1]?.exitValue ?? 0;
+  const totalReturn = financials.yearlyCF.reduce((a, y) => a + (y.netCashFlowToInvestors ?? 0), 0) + exitVal;
+  const exitCap = financials.exitCapRate ?? property.exitCapRate ?? 0.07;
+  const initialEquity = financials.loanAmount > 0
+    ? (property.purchasePrice ?? 0) - financials.loanAmount
+    : property.purchasePrice ?? 0;
+
+  const isRows = [
+    ["Revenue", years.map(y => fmtCurrency(y.revenueTotal))],
+    ["Operating Expenses", years.map(y => fmtCurrency(y.totalExpenses))],
+    ["NOI", years.map(y => fmtCurrency(y.noi))],
+    ["Debt Service", financials.yearlyCF.slice(0, 5).map(y => fmtCurrency(y.debtService))],
+    ["Net Cash Flow", financials.yearlyCF.slice(0, 5).map(y => fmtCurrency(y.netCashFlowToInvestors))],
+    ["Cumulative CF", financials.yearlyCF.slice(0, 5).map(y => fmtCurrency(y.cumulativeCashFlow))],
+  ];
+
+  const investorRows = [
+    ["IRR (5yr)", fmtPct(financials.irr)],
+    ["Equity Multiple", financials.equityMultiple != null ? `${financials.equityMultiple.toFixed(2)}×` : "—"],
+    ["Stabilized NOI", fmtCurrency(stableNoi)],
+    ["Exit Cap Rate", fmtPct(exitCap)],
+    ["Exit Value (Yr 5)", fmtCurrency(exitVal)],
+    ["Total Return", fmtCurrency(totalReturn)],
+    ["Initial Equity", fmtCurrency(initialEquity)],
+  ];
+
+  return (
+    <div style={{ width: W, height: H, background: C.bg, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
+      {/* Header */}
+      <div style={{ padding: "32px 56px 16px 56px", display: "flex", flexDirection: "column" }}>
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, letterSpacing: "0.3em", color: C.accent, textTransform: "uppercase", marginBottom: 4 }}>
+          5-YEAR CONSOLIDATED PRO FORMA INCOME STATEMENT
+        </span>
+        <span style={{ fontFamily: "Garamond, serif", fontSize: 22, color: C.cream }}>
+          {property.name}
+        </span>
+      </div>
+
+      {/* Content */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "row", padding: "0 40px 48px 40px" }}>
+        {/* LEFT — IS table */}
+        <div style={{ flex: 1, marginRight: 32 }}>
+          {/* Year headers */}
+          <div style={{ display: "flex", flexDirection: "row", padding: "8px 0", background: "rgba(28,43,30,0.8)", borderBottom: `1px solid ${C.accent}`, marginBottom: 4 }}>
+            <span style={{ flex: 1.4, fontFamily: "Poppins, sans-serif", fontSize: 10, color: C.sage, paddingLeft: 8 }}>Item</span>
+            {years.map((y, i) => (
+              <span key={i} style={{ flex: 1, fontFamily: "Poppins, sans-serif", fontSize: 10, color: C.cream, textAlign: "right", paddingRight: 8 }}>Yr {i + 1}</span>
+            ))}
+          </div>
+          {isRows.map(([label, vals], ri) => (
+            <div key={ri} style={{ display: "flex", flexDirection: "row", padding: "6px 0", background: ri % 2 === 0 ? "rgba(255,249,245,0.03)" : "transparent", borderBottom: `1px solid rgba(156,188,164,0.08)` }}>
+              <span style={{ flex: 1.4, fontFamily: "Poppins, sans-serif", fontSize: 11, color: ri < 2 ? C.dimWhite : C.cream, paddingLeft: 8, fontWeight: ri === 2 ? 600 : 400 }}>{label}</span>
+              {(vals as string[]).map((v, vi) => (
+                <span key={vi} style={{ flex: 1, fontFamily: "Poppins, sans-serif", fontSize: 11, color: ri === 2 ? C.sage : C.dimWhite, textAlign: "right", paddingRight: 8 }}>{v}</span>
+              ))}
+            </div>
+          ))}
+        </div>
+
+        {/* RIGHT — investor metrics */}
+        <div style={{ width: 320, display: "flex", flexDirection: "column" }}>
+          <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, letterSpacing: "0.12em", color: C.sage, textTransform: "uppercase", marginBottom: 12 }}>
+            Key Investor Metrics
+          </span>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {investorRows.map(([label, val], ri) => (
+              <div key={ri} style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", padding: "8px 12px", background: ri % 2 === 0 ? "rgba(255,249,245,0.04)" : "transparent", borderBottom: `1px solid rgba(156,188,164,0.1)` }}>
+                <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.muted }}>{label}</span>
+                <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 13, color: ri < 2 ? C.cream : C.dimWhite, fontWeight: ri < 2 ? 600 : 400 }}>{val}</span>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginTop: 24, padding: "12px 16px", background: "rgba(37,125,65,0.12)", borderLeft: `3px solid ${C.accent}` }}>
+            <span style={{ fontFamily: "Garamond, serif", fontSize: 14, color: C.cream, fontStyle: "italic", lineHeight: 1.6 }}>
+              5-year pro forma based on H+ Analytics projection engine.
+              Projections are estimates; actual results may vary.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <GreenRule y={H - 60} />
+      <PageNumber n={6} />
+    </div>
+  );
+}

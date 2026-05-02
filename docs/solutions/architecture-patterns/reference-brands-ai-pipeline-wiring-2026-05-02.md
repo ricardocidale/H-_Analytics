@@ -35,6 +35,11 @@ Three AI surfaces needed to see this data:
 3. **Rebecca KB** (`indexKnowledgeBase`) — the semantic search index should include brand
    summaries so Rebecca can surface them via natural language queries.
 
+> **Note — voice assistant scope**: This app has one AI assistant: **Rebecca** (semantic KB
+> search). Marcela was removed from this codebase (see `migrations/drop-marcela-columns.ts`).
+> Do not add Marcela/Convai/ElevenLabs voice tool registrations here. Gap 4 in the original
+> handoff brief is permanently closed.
+
 The complication: `handleToolCall` in `research-tool-prompts.ts` is historically pure
 (synchronous prompt builders + compute tools). Adding a live DB call there would violate
 ADR-007, which forbids DB imports in the prompt-builder and funding-builder layers.
