@@ -148,6 +148,15 @@ function extractLiterals(filePath: string): Set<string> {
 
     line = stripLineComment(line);
 
+    // Strip string literals so digits embedded in color strings ("rgba(28,43,30,0.05)"),
+    // CSS dimension strings ("0.18em"), and other quoted values are not counted as
+    // standalone numeric literals.  We replace matched strings with empty quotes so
+    // adjacent tokens don't accidentally merge.
+    line = line
+      .replace(/"(?:[^"\\]|\\.)*"/g, '""')
+      .replace(/'(?:[^'\\]|\\.)*'/g, "''")
+      .replace(/`(?:[^`\\]|\\.)*`/g, "``");
+
     // Extract all numeric literals: integer and decimal forms
     // Excludes numbers immediately preceded by letters (e.g., css "12px", hex "0x")
     const matches = line.matchAll(/(?<![a-zA-Z_$0-9#])(\d+(?:\.\d+)?)(?![a-zA-Z_%])/g);

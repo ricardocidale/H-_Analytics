@@ -25,6 +25,10 @@ import React from "react";
 // definitions are deliberately mirrored.
 const CREAM_CANVAS = "#FFF9F5";
 const SAGE_CANVAS  = "#9FBCA4";
+// Default exit cap rate used when neither financials nor property provides one.
+// Shared with hybrid-renderer.ts to avoid cross-file literal duplication.
+export const SLIDE_EXIT_CAP_RATE_FALLBACK = 0.07;
+
 export const SLIDE_BACKGROUNDS: Record<number, string> = {
   1: CREAM_CANVAS,
   2: CREAM_CANVAS,
@@ -763,7 +767,7 @@ export function Slide6({ p }: { p: SlidePayload }) {
   const stableNoi = stable?.noi ?? 0;
   const exitVal = financials.yearlyCF[financials.yearlyCF.length - 1]?.exitValue ?? 0;
   const totalReturn = financials.yearlyCF.reduce((a, y) => a + (y.netCashFlowToInvestors ?? 0), 0) + exitVal;
-  const exitCap = financials.exitCapRate ?? property.exitCapRate ?? 0.07;
+  const exitCap = financials.exitCapRate ?? property.exitCapRate ?? SLIDE_EXIT_CAP_RATE_FALLBACK;
   const initialEquity = financials.loanAmount > 0
     ? (property.purchasePrice ?? 0) - financials.loanAmount
     : property.purchasePrice ?? 0;

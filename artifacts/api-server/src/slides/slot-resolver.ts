@@ -5,6 +5,7 @@
  */
 
 import type { SlidePayload } from "./slide-jsx";
+import { DEFAULT_MAX_OCCUPANCY, DEFAULT_START_OCCUPANCY } from "@shared/constants";
 
 // ── Formatting helpers (mirrors slide-jsx.tsx private fns) ───────────────────
 
@@ -330,7 +331,7 @@ export function resolveSlotTable(
     case "Table 3": {
       // Snapshot of stable year 9×2
       const stableOcc = stable && stable.availableRooms > 0
-        ? Math.min(0.85, Math.max(0.55, stable.soldRooms / stable.availableRooms))
+        ? Math.min(DEFAULT_MAX_OCCUPANCY, Math.max(DEFAULT_START_OCCUPANCY, stable.soldRooms / stable.availableRooms))
         : (property.maxOccupancy ?? 0.7);
       const stableAdr    = stable?.cleanAdr ?? property.startAdr ?? 0;
       const stableRevpar = stableAdr * stableOcc;

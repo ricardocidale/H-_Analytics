@@ -19,6 +19,7 @@ import sharp from "sharp";
 import satori from "satori";
 import React from "react";
 import type { SlidePayload } from "./slide-jsx";
+import { SLIDE_EXIT_CAP_RATE_FALLBACK } from "./slide-jsx";
 import {
   resolveSlotText,
   resolveSlotPhoto,
@@ -330,7 +331,7 @@ function buildSlide6InvestorJsx(payload: SlidePayload, width: number, height: nu
   const stableNoi = stable?.noi ?? 0;
   const exitVal = financials.yearlyCF[financials.yearlyCF.length - 1]?.exitValue ?? 0;
   const totalReturn = financials.yearlyCF.reduce((a, y) => a + (y.netCashFlowToInvestors ?? 0), 0) + exitVal;
-  const exitCap = financials.exitCapRate ?? property.exitCapRate ?? 0.07;
+  const exitCap = financials.exitCapRate ?? property.exitCapRate ?? SLIDE_EXIT_CAP_RATE_FALLBACK;
   const initialEquity = financials.loanAmount > 0
     ? (property.purchasePrice ?? 0) - financials.loanAmount
     : property.purchasePrice ?? 0;
