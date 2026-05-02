@@ -19,7 +19,7 @@ H+ Analytics is a hospitality-sector financial analytics platform. Asset manager
 
 Each artifact has a corresponding Replit workflow. To restart a service, use `restart_workflow` with the artifact name. Never run `pnpm dev` at the workspace root — workflows manage env vars (`PORT`, `BASE_PATH`) that the root script cannot wire up.
 
-Stale `.claude/worktrees/agent-*/artifacts/...` workflows from old task agents may appear in the workflow list. They are permanently failed; never restart them. Only the four canonical `artifacts/*` workflows above are live.
+If old task-agent sessions leave behind `.claude/worktrees/agent-*/` directories, they get re-registered as duplicate artifacts (same `previewPath`) and pollute the workflow picker, which also breaks `verifyAndReplaceArtifactToml` with `DUPLICATE_PREVIEW_PATH`. Clean them up with `git worktree remove --force` (or `rm -rf` the dir + `git worktree prune`) so only the four canonical `artifacts/*` workflows above remain.
 
 ## Shared proxy routing
 
