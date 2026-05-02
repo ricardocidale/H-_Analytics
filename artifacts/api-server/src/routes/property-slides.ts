@@ -85,6 +85,29 @@ async function getSlideRow(propertyId: number): Promise<SlideRow | null> {
   return (rows.rows[0] as unknown as SlideRow | undefined) ?? null;
 }
 
+/**
+ * Atomically transition a row to status='generating'.
+ * Returns true if the transition succeeded, false if already generating.
+ * Uses a conditional UPSERT so concurrent requests cannot both win.
+ */
+async function tryMarkGenerating(
+  propertyId: number,
+  triggeredBy: string,
+): Promise<boolean> {
+  const result = await db.execute(sql`
+    INSERT INTO property_slide_decks (property_id, status, triggered_by, error_message, updated_at)
+    VALUES (${propertyId}, 'generating', ${triggeredBy}, null, NOW())
+    ON CONFLICT (property_id) DO UPDATE SET
+      status       = 'generating',
+      triggered_by = EXCLUDED.triggered_by,
+      error_message = null,
+      updated_at   = NOW()
+    WHERE property_slide_decks.status != 'generating'
+    RETURNING property_id
+  `);
+  return (result.rowCount ?? 0) > 0;
+}
+
 async function upsertSlideRow(patch: Partial<SlideRow> & { property_id: number }): Promise<void> {
   await db.execute(sql`
     INSERT INTO property_slide_decks (property_id, status, r2_key, file_size_bytes, generated_at, triggered_by, error_message, updated_at)
@@ -400,7 +423,12 @@ async function generateAndStore(
       status: "error",
       error_message: message.slice(0, SLIDE_ERROR_MSG_MAX_LENGTH),
       triggered_by: triggeredBy,
-    }).catch(() => {});
+    }).catch((dbErr: unknown) => {
+      logger.error(
+        `[property-slides] Failed to record error state for property ${propertyId}: ${dbErr}`,
+        "property-slides",
+      );
+    });
   } finally {
     if (tmpPath) await fs.unlink(tmpPath).catch(() => {});
   }
@@ -411,9 +439,9 @@ async function generateAndStore(
 /**
  * GET /api/slides/status
  * Returns generation status for all properties that have a row.
- * Used by the LB Slides admin page to show per-card status and freshness.
+ * Admin-only — used by the LB Slides admin page.
  */
-router.get("/api/slides/status", requireAuth, async (_req: Request, res: Response) => {
+router.get("/api/slides/status", requireAdmin, async (_req: Request, res: Response) => {
   try {
     const rows = await db.execute(
       sql`SELECT property_id, status, r2_key, file_size_bytes, generated_at, triggered_by, error_message, updated_at
@@ -443,9 +471,9 @@ router.get("/api/slides/status", requireAuth, async (_req: Request, res: Respons
 
 /**
  * GET /api/properties/:id/slides/status
- * Single-property status — used for polling during generation.
+ * Single-property status — used for polling during generation. Admin-only.
  */
-router.get("/api/properties/:id/slides/status", requireAuth, async (req: Request, res: Response) => {
+router.get("/api/properties/:id/slides/status", requireAdmin, async (req: Request, res: Response) => {
   const propertyId = parseRouteId(req.params.id);
   if (!propertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
   try {
@@ -481,19 +509,11 @@ router.post("/api/properties/:id/slides/generate", requireAdmin, async (req: Req
   const triggeredBy = user?.email ?? user?.id?.toString() ?? "admin";
 
   try {
-    // Check not already generating
-    const existing = await getSlideRow(propertyId);
-    if (existing?.status === "generating") {
+    // Atomically transition to 'generating' — returns false if already in progress
+    const claimed = await tryMarkGenerating(propertyId, triggeredBy);
+    if (!claimed) {
       return res.status(HTTP_409_CONFLICT).json({ error: "Generation already in progress" });
     }
-
-    // Mark generating immediately
-    await upsertSlideRow({
-      property_id: propertyId,
-      status: "generating",
-      triggered_by: triggeredBy,
-      error_message: null,
-    });
 
     // Kick off async — intentionally not awaited
     void generateAndStore(propertyId, user?.id, triggeredBy);
@@ -509,8 +529,9 @@ router.post("/api/properties/:id/slides/generate", requireAdmin, async (req: Req
 /**
  * GET /api/properties/:id/slides
  * Download the stored PPTX from R2. Returns 409 with status if not yet generated.
+ * Admin-only.
  */
-router.get("/api/properties/:id/slides", requireAuth, async (req: Request, res: Response) => {
+router.get("/api/properties/:id/slides", requireAdmin, async (req: Request, res: Response) => {
   const propertyId = parseRouteId(req.params.id);
   if (!propertyId) {
     return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
