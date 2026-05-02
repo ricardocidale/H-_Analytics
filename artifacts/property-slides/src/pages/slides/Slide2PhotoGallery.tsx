@@ -20,7 +20,7 @@ export default function Slide2PhotoGallery() {
   const irr = financials?.irr;
   const horizon = yearlyIS.length || 5;
 
-  const renovBudget = Math.round(price * 0.35);
+  const renovBudget = financials?.renovationBudget ?? 0;
   const totalInv = price + renovBudget;
 
   const panelPhotos = photos.slice(2, 6);

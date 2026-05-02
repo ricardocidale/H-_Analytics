@@ -348,7 +348,7 @@ def build_slide5(slide, prop: dict, financials: dict, vt: dict) -> None:
                 ("RevPAR",         format_currency(stable_revpar)),
                 ("Revenue",        format_currency(stable_rev)),
                 ("Operating Exp.", format_currency(stable_exp)),
-                ("Gross Margin",   format_pct(gross_margin)),
+                ("GOP Margin",     format_pct(gross_margin)),
                 ("EBITDA",         format_pct(ebitda_pct)),
                 ("",               ""),
             ]
@@ -386,7 +386,7 @@ def build_slide5(slide, prop: dict, financials: dict, vt: dict) -> None:
     irr = financials.get("irr") or 0
     irr_line = f"  IRR ({len(yearly_is)}yr): {format_pct(irr)}" if irr else ""
     safe_set(slide, "TextBox 9",
-             f"Key Investor Metrics*\n  Gross Margin: {format_pct(gross_margin)}\n  EBITDA ({stable_yr_label}): {format_pct(ebitda_pct)}{irr_line}\n* Projections for first full stabilized year")
+             f"Key Investor Metrics*\n  GOP Margin: {format_pct(gross_margin)}\n  EBITDA ({stable_yr_label}): {format_pct(ebitda_pct)}{irr_line}\n* Projections for first full stabilized year")
     safe_set(slide, "Text 19", "PAGE 5", page_hint=True)
 
 

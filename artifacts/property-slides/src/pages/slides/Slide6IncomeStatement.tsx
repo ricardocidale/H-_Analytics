@@ -97,7 +97,9 @@ export default function Slide6IncomeStatement() {
 
   const stableNOI = yearlyIS[stableIdx]?.noi ?? 0;
   const exitValue = stableNOI > 0 ? stableNOI / exitCapRate : 0;
-  const equity = (price + Math.round(price * 0.35)) - loanAmount;
+  const renovation = financials?.renovationBudget ?? 0;
+  const totalInv = price + renovation;
+  const equity = totalInv - loanAmount;
   const horizon = yearlyIS.length || 5;
 
   const years = yearlyIS.length > 0
@@ -271,7 +273,7 @@ export default function Slide6IncomeStatement() {
 
           {[
             ["Purchase Price", fmtCurrency(price)],
-            ["Total Investment", fmtCurrency(price + Math.round(price * 0.35))],
+            ["Total Investment", fmtCurrency(totalInv)],
             ["Equity Invested", fmtCurrency(equity)],
             ["Loan Amount", fmtCurrency(loanAmount)],
             ["LTV", fmtPct(loanLtv)],

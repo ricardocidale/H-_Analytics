@@ -91,7 +91,7 @@ export default function Slide5FinancialSnapshot() {
   const equityMultiple = financials?.equityMultiple;
   const exitCapRate = financials?.exitCapRate ?? property?.exitCapRate ?? 0.055;
   const exitValue = stableNOI > 0 ? stableNOI / exitCapRate : 0;
-  const renovation = Math.round(price * 0.35);
+  const renovation = financials?.renovationBudget ?? 0;
   const totalInv = price + renovation;
   const equity = totalInv - loanAmount;
 

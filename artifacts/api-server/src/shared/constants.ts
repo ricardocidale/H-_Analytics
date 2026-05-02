@@ -445,3 +445,16 @@ export const DEFAULT_PROPERTY_DEFAULTS_SPECIALIST_MODEL = "claude-opus-4-7";
 export const DEFAULT_PROPERTY_DEFAULTS_QUANT_PANEL_MODEL = "gemini-2.5-flash";
 export const DEFAULT_PROPERTY_DEFAULTS_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
 export const DEFAULT_PROPERTY_DEFAULTS_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";
+
+// ──────────────────────────────────────────────────────────
+// RENOVATION BUDGET CONSTANTS
+// Used by the property-slides renderer (Track 2) to mirror Track 1
+// (scripts/src/renovation_budget.py). Source: hplus-renovation-benchmarks skill.
+// Tier per-key cost values stay local to the consumer (renderer-internal table);
+// these are the cross-cutting percentage / floor constants.
+// ──────────────────────────────────────────────────────────
+
+export const RENOV_HISTORIC_PREMIUM = 0.20;   // +20% per-key uplift for historic preservation work
+export const RENOV_CONTINGENCY      = 0.18;   // 18% contingency on subtotal
+export const RENOV_MAX_PCT_OF_PRICE = 0.80;   // Guardrail: budget ≤ 80% of purchase price
+export const RENOV_MIN_PER_KEY      = 25_000; // Guardrail: minimum $25k per key

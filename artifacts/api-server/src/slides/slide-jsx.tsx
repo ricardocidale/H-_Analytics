@@ -666,7 +666,7 @@ export function Slide5({ p }: { p: SlidePayload }) {
     ["RevPAR", fmtCurrency(stableRevpar)],
     ["Revenue", fmtCurrency(stable?.revenueTotal)],
     ["Variable Costs", fmtCurrency(stable?.totalExpenses)],
-    ["Gross Margin", fmtPct(grossMargin)],
+    ["GOP Margin", fmtPct(grossMargin)],
     ["EBITDA %", fmtPct(ebitdaPct)],
   ];
 
@@ -741,7 +741,7 @@ export function Slide5({ p }: { p: SlidePayload }) {
           {/* Key metrics badge */}
           <div style={{ display: "flex", flexDirection: "column", marginTop: 20, padding: "12px 16px", background: "rgba(37,125,65,0.15)", borderLeft: `3px solid ${C.accent}` }}>
             <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, color: C.accent, marginBottom: 6, display: "block" }}>Key Investor Metrics*</span>
-            <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.darkBg, display: "block", marginBottom: 3 }}>Gross Margin: {fmtPct(grossMargin)}</span>
+            <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.darkBg, display: "block", marginBottom: 3 }}>GOP Margin: {fmtPct(grossMargin)}</span>
             <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.darkBg, display: "block", marginBottom: 6 }}>EBITDA ({stableLabel}): {fmtPct(ebitdaPct)}</span>
             <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 10, color: C.sage }}>* Projections for first full stabilized year</span>
           </div>

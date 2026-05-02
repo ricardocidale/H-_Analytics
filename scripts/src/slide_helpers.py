@@ -450,15 +450,9 @@ def clamp_occupancy(occ: float) -> float:
     return max(0.55, min(0.85, occ))
 
 
-def clamp_renovation_budget(purchase_price: float, budget: int, room_count: int) -> int:
-    """
-    Guard rails from hplus-renovation-benchmarks:
-    - Max: 80% of purchase price
-    - Min: $25,000 * room_count
-    """
-    max_budget = int(purchase_price * 0.80)
-    min_budget = int(25_000 * max(1, room_count))
-    return max(min_budget, min(max_budget, budget))
+# clamp_renovation_budget lives in renovation_budget.py (single source of truth).
+# A previous duplicate with a swapped parameter signature (purchase_price, budget, room_count)
+# was deleted from this module to prevent silent miscalls.
 
 
 # ── Status label helpers ──────────────────────────────────────────────────────

@@ -37,6 +37,7 @@ export interface SlideFinancials {
   irr?: number;
   equityMultiple?: number;
   exitCapRate?: number;
+  renovationBudget?: number;
 }
 
 export interface SlideProperty {
