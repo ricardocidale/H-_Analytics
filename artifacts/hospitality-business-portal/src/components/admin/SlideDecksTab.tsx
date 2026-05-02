@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { IconDownload, IconPresentation, IconAlertCircle, IconCheckCircle2, IconExternalLink } from "@/components/icons";
 import { Loader2 } from "@/components/icons/themed-icons";
@@ -27,6 +27,7 @@ interface PropertyRow {
 
 interface SlideStatus {
   propertyId: number;
+  format: "pptx" | "image";
   status: "idle" | "generating" | "ready" | "error";
   fileSizeBytes: number | null;
   generatedAt: string | null;
@@ -230,11 +231,7 @@ type DownloadState = "idle" | "loading" | "done" | "error";
 
 export default function SlideDecksTab() {
   const queryClient = useQueryClient();
-  const [downloadStates, setDownloadStates] = useState<Record<number, DownloadState>>({});
-  // Tracks property IDs auto-queued on load so we don't re-trigger on re-renders
-  const autoQueuedRef = useRef(new Set<number>());
-  // Tracks which IDs are currently auto-generating (for UI spinner state)
-  const [autoGeneratingIds, setAutoGeneratingIds] = useState(new Set<number>());
+  const [downloadStates, setDownloadStates] = useState<Record<string, DownloadState>>({});
 
   // Properties list
   const { data: properties, isLoading: propsLoading, isError: propsError } = useQuery<PropertyRow[]>({
@@ -253,46 +250,12 @@ export default function SlideDecksTab() {
     },
   });
 
-  const statusMap = new Map<number, SlideStatus>(
-    (slideStatuses ?? []).map(s => [s.propertyId, s]),
+  // Key by "${propertyId}-${format}" so each format is looked up independently
+  const statusMap = new Map<string, SlideStatus>(
+    (slideStatuses ?? []).map(s => [`${s.propertyId}-${s.format}`, s]),
   );
 
-  // Auto-generate all slides that aren't ready or already generating when the page loads.
-  // Fires once per property — the autoQueuedRef guard prevents re-triggering on re-renders.
-  useEffect(() => {
-    if (!properties || !slideStatuses) return;
-    const toQueue = properties.filter(p => {
-      if (autoQueuedRef.current.has(p.id)) return false;
-      const s = statusMap.get(p.id);
-      return !s || (s.status !== "ready" && s.status !== "generating");
-    });
-    if (toQueue.length === 0) return;
-    toQueue.forEach(p => autoQueuedRef.current.add(p.id));
-    setAutoGeneratingIds(prev => {
-      const next = new Set(prev);
-      toQueue.forEach(p => next.add(p.id));
-      return next;
-    });
-    // Fire generate requests in parallel; server-side tryMarkGenerating guards against races
-    Promise.allSettled(
-      toQueue.map(p =>
-        fetch(`/api/properties/${p.id}/slides/generate`, { method: "POST", credentials: "include" })
-          .then(r => r.json())
-          .finally(() => {
-            setAutoGeneratingIds(prev => {
-              const next = new Set(prev);
-              next.delete(p.id);
-              return next;
-            });
-          }),
-      ),
-    ).then(() => {
-      void queryClient.invalidateQueries({ queryKey: ["/api/slides/status"] });
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [properties, slideStatuses]);
-
-  // Generate mutation (manual re-generate from button)
+  // Generate mutation (manual re-generate from Analyst button — generates both formats)
   const generateMutation = useMutation({
     mutationFn: async (propertyId: number) => {
       const resp = await fetch(`/api/properties/${propertyId}/slides/generate`, {
@@ -310,14 +273,15 @@ export default function SlideDecksTab() {
     },
   });
 
-  function setDownloadState(id: number, state: DownloadState) {
-    setDownloadStates(prev => ({ ...prev, [id]: state }));
+  function setDownloadState(key: string, state: DownloadState) {
+    setDownloadStates(prev => ({ ...prev, [key]: state }));
   }
 
-  async function handleDownload(propertyId: number, propertyName: string) {
-    setDownloadState(propertyId, "loading");
+  async function handleDownload(propertyId: number, propertyName: string, format: "pptx" | "image") {
+    const key = `${propertyId}-${format}`;
+    setDownloadState(key, "loading");
     try {
-      const resp = await fetch(`/api/properties/${propertyId}/slides`, {
+      const resp = await fetch(`/api/properties/${propertyId}/slides?format=${format}`, {
         credentials: "include",
       });
       if (!resp.ok) {
@@ -326,7 +290,7 @@ export default function SlideDecksTab() {
       }
       const blob = await resp.blob();
       const slug = propertyName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-      const filename = `${slug}-slides.pptx`;
+      const filename = format === "image" ? `${slug}-slides-images.pptx` : `${slug}-slides.pptx`;
 
       const win = window as unknown as Record<string, unknown>;
       if (typeof win["showSaveFilePicker"] === "function") {
@@ -351,16 +315,16 @@ export default function SlideDecksTab() {
         URL.revokeObjectURL(url);
       }
 
-      setDownloadState(propertyId, "done");
-      setTimeout(() => setDownloadState(propertyId, "idle"), 4_000);
+      setDownloadState(key, "done");
+      setTimeout(() => setDownloadState(key, "idle"), 4_000);
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
-        setDownloadState(propertyId, "idle");
+        setDownloadState(key, "idle");
         return;
       }
-      console.error(`Slide download failed for property ${propertyId}:`, err);
-      setDownloadState(propertyId, "error");
-      setTimeout(() => setDownloadState(propertyId, "idle"), 6_000);
+      console.error(`Slide download failed for property ${propertyId} format ${format}:`, err);
+      setDownloadState(key, "error");
+      setTimeout(() => setDownloadState(key, "idle"), 6_000);
     }
   }
 
@@ -396,18 +360,24 @@ export default function SlideDecksTab() {
       <div>
         <h2 className="text-xl font-semibold text-foreground">Property Slide Decks</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          6-slide investor decks are manifested automatically — download any deck below, or use <strong>Analyst</strong> to regenerate.
+          6-slide investor decks are pre-generated at startup — download any deck below, or use <strong>Analyst</strong> to regenerate.
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {properties.map(p => {
-          const slide = statusMap.get(p.id);
-          const dlState = downloadStates[p.id] ?? "idle";
+          const pptxStatus = statusMap.get(`${p.id}-pptx`);
+          const imageStatus = statusMap.get(`${p.id}-image`);
+          const dlStatePptx = downloadStates[`${p.id}-pptx`] ?? "idle";
+          const dlStateImage = downloadStates[`${p.id}-image`] ?? "idle";
           const acqStatus = (p.acquisitionStatus ?? p.status)?.toLowerCase() ?? "pipeline";
-          const isGenerating = slide?.status === "generating" || generateMutation.variables === p.id || autoGeneratingIds.has(p.id);
-          const isReady = slide?.status === "ready";
-          const freshness = freshnessFromStatus(slide);
+          const isGenerating =
+            pptxStatus?.status === "generating" ||
+            imageStatus?.status === "generating" ||
+            generateMutation.variables === p.id;
+          const isPptxReady = pptxStatus?.status === "ready";
+          const isImageReady = imageStatus?.status === "ready";
+          const freshness = freshnessFromStatus(pptxStatus);
 
           return (
             <Card key={p.id} className="flex flex-col border border-border/60 hover:border-border transition-colors overflow-hidden p-0">
@@ -425,37 +395,64 @@ export default function SlideDecksTab() {
                   </Badge>
                 </div>
 
-                {/* Slide status line */}
-                <SlideStatusBadge slide={slide} />
+                {/* Two status badge rows */}
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] text-muted-foreground w-10">PPTX</span>
+                    <SlideStatusBadge slide={pptxStatus} />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] text-muted-foreground w-10">Images</span>
+                    <SlideStatusBadge slide={imageStatus} />
+                  </div>
+                </div>
 
-                {/* Action row: Analyst (generate) + Download */}
+                {/* Action row: Analyst (regenerates both) + two download buttons */}
                 <div className="flex items-center gap-2">
                   <AnalystButton
                     onClick={() => generateMutation.mutate(p.id)}
                     isRunning={isGenerating}
                     disabled={isGenerating}
-                    suffix={isReady ? "Regenerate" : "Generate"}
+                    suffix={isPptxReady || isImageReady ? "Regenerate" : "Generate"}
                     runningLabel="Manifesting…"
                     size="sm"
                     freshnessStatus={freshness}
-                    className="flex-1"
                   />
+                </div>
+                <div className="flex items-center gap-2">
                   <Button
                     size="sm"
                     variant="outline"
-                    disabled={!isReady || dlState === "loading"}
-                    onClick={() => handleDownload(p.id, p.name)}
+                    disabled={!isPptxReady || dlStatePptx === "loading"}
+                    onClick={() => handleDownload(p.id, p.name, "pptx")}
                     className="gap-1.5 flex-1"
-                    title={isReady ? "Download PPTX" : "Generate slides first"}
+                    title={isPptxReady ? "Download editable PPTX" : "Generate slides first"}
                   >
-                    {dlState === "loading" ? (
+                    {dlStatePptx === "loading" ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : dlState === "done" ? (
+                    ) : dlStatePptx === "done" ? (
                       <IconCheckCircle2 className="h-3.5 w-3.5 text-green-500" />
                     ) : (
                       <IconDownload className="h-3.5 w-3.5" />
                     )}
-                    {dlState === "loading" ? "Saving…" : dlState === "done" ? "Saved" : "Download"}
+                    {dlStatePptx === "loading" ? "Saving…" : dlStatePptx === "done" ? "Saved" : "Download PPTX"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!isImageReady || dlStateImage === "loading"}
+                    onClick={() => handleDownload(p.id, p.name, "image")}
+                    className="gap-1.5 flex-1"
+                    title={isImageReady ? "Download image-locked PPTX" : "Generate slides first"}
+                  >
+                    {dlStateImage === "loading" ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : dlStateImage === "done" ? (
+                      <IconCheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                    ) : (
+                      <IconDownload className="h-3.5 w-3.5" />
+                    )}
+                    {dlStateImage === "loading" ? "Saving…" : dlStateImage === "done" ? "Saved" : "Download Images"}
                   </Button>
                 </div>
 
