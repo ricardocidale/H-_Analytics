@@ -437,6 +437,12 @@ export function register(app: Express) {
         if (photo.imageData) {
           sourceBuffer = Buffer.from(photo.imageData, "base64");
         } else if (photo.imageUrl.startsWith("http")) {
+          const enhUrl = new URL(photo.imageUrl);
+          const allowedHosts = ["objectstorage.replit.com", "replitusercontent.com", "storage.googleapis.com"];
+          const isAllowed = allowedHosts.some(h => enhUrl.hostname === h || enhUrl.hostname.endsWith(`.${h}`));
+          if (!isAllowed) {
+            return res.status(HTTP_400_BAD_REQUEST).json({ error: "Cannot resolve source image for enhancement" });
+          }
           const imgRes = await fetchWithTimeout(photo.imageUrl, undefined, 30_000);
           if (!imgRes.ok) {
             return res.status(HTTP_400_BAD_REQUEST).json({ error: "Failed to fetch source image" });

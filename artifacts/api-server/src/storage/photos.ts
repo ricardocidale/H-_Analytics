@@ -2,6 +2,8 @@ import { propertyPhotos, properties, type PropertyPhoto, type InsertPropertyPhot
 import { db } from "../db";
 import { eq, and, asc, inArray, sql } from "drizzle-orm";
 import { stripAutoFields } from "./utils";
+import { getStorageProviderAsync } from "../providers/storage";
+import { logger } from "../logger";
 
 export class PhotoStorage {
   async getPropertyPhotos(propertyId: number): Promise<PropertyPhoto[]> {
