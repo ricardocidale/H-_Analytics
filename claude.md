@@ -44,7 +44,7 @@ docs/solutions/ Documented solutions, organized by category with YAML frontmatte
 | Frontend build | Vite |
 | Backend build | esbuild (CJS bundle) |
 | File storage | Cloudflare R2 |
-| Auth | Pluggable via `AUTH_PROVIDER` — Google OAuth (production default) or Replit OIDC; both implementations live behind the adapter in `artifacts/api-server/src/providers/auth/` |
+| Auth | Two parallel sign-in paths: (1) `AUTH_PROVIDER` adapter in `artifacts/api-server/src/providers/auth/` selects `replit` (Replit OIDC, default) or `local` (email + password); (2) Google OAuth routes at `/api/auth/google` + `/api/auth/google/callback` (`artifacts/api-server/src/routes/google-auth.ts`) run alongside whichever provider is selected. Production users sign in with Google. |
 | AI providers | OpenAI, Anthropic, Gemini (all called via direct SDKs with first-party API keys — not via a Replit broker) |
 | Observability | Sentry |
 | Project tracking | Linear (integration: `conn_linear_01KN0GFMPXYQYH0QYYEXNKZ0GG`) |
@@ -100,7 +100,7 @@ Health endpoint: `GET /api/health/live` (not `/api/healthz`).
 
 **Required production env vars on Railway** — every value must be set as a Railway service variable (no Replit-managed broker is reachable in production):
 
-`POSTGRES_URL` (Neon), `SESSION_SECRET`, `TOKEN_ENCRYPTION_KEY`, `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET` / `R2_PUBLIC_URL` (Cloudflare R2), `STORAGE_PROVIDER=r2`, `AUTH_PROVIDER=google`, `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` (Google OAuth), `OPENAI_API_KEY` + `OPENAI_EMBEDDING_KEY` (OpenAI), `ANTHROPIC_API_KEY` (Anthropic), `AI_INTEGRATIONS_GEMINI_API_KEY` (Gemini), `FRED_API_KEY` (FRED), `RESEND_API_KEY` (email), `SENTRY_DSN` (Sentry), `NODE_ENV=production`. The `PASSWORD_*` fallbacks are optional dev shortcuts and should be **omitted** in production.
+`POSTGRES_URL` (Neon), `SESSION_SECRET`, `TOKEN_ENCRYPTION_KEY`, `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET` / `R2_PUBLIC_URL` (Cloudflare R2), `STORAGE_PROVIDER=r2`, `AUTH_PROVIDER` set to `replit` or `local` (the only two values the adapter accepts — see `artifacts/api-server/src/providers/auth/index.ts`; setting it to anything else throws at boot), `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` (Google OAuth — production users sign in here, mounted at `/api/auth/google`), `OPENAI_API_KEY` + `OPENAI_EMBEDDING_KEY` (OpenAI), `ANTHROPIC_API_KEY` (Anthropic), `AI_INTEGRATIONS_GEMINI_API_KEY` (Gemini), `FRED_API_KEY` (FRED), `RESEND_API_KEY` (email), `SENTRY_DSN` (Sentry), `NODE_ENV=production`. The `PASSWORD_*` fallbacks are optional dev shortcuts and should be **omitted** in production.
 
 **External services this app depends on** (all owned by the user, all reachable from Railway with the secrets above — none are Replit-managed):
 
@@ -108,7 +108,7 @@ Health endpoint: `GET /api/health/live` (not `/api/healthz`).
 |---|---|---|
 | Primary database + pgvector | **Neon Postgres** | `POSTGRES_URL` |
 | Object storage (uploads, generated PPTX, photo assets) | **Cloudflare R2** | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL` |
-| User auth | **Google OAuth** | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
+| User auth | **Google OAuth** (primary), Replit OIDC (legacy / dev) | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
 | LLMs | **OpenAI, Anthropic, Gemini** (direct SDKs) | `OPENAI_API_KEY`, `OPENAI_EMBEDDING_KEY`, `ANTHROPIC_API_KEY`, `AI_INTEGRATIONS_GEMINI_API_KEY` |
 | Macro economic data | **FRED (St. Louis Fed)** | `FRED_API_KEY` |
 | Transactional email | **Resend** | `RESEND_API_KEY` |
