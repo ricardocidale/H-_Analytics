@@ -226,6 +226,8 @@ const imageStatus = statusMap.get(`${p.id}-image`);
 
 - `claude.md` § "LB Slides — per-property PPTX + image-PPTX generator" — full
   architecture, DB schema, API routes, generation pipeline
+- `docs/solutions/architecture-patterns/two-format-slide-deck-generation-2026-05-02.md`
+  — server-side generation pipeline (satori+sharp+pptxgenjs, DB schema, boot pre-generation)
 - `docs/solutions/architecture-patterns/reference-brands-ai-pipeline-wiring-2026-05-02.md`
   — companion pattern doc for the AI side of the same feature set
 - `artifacts/hospitality-business-portal/src/components/admin/SlideDecksTab.tsx`

@@ -196,5 +196,7 @@ const deps = { getReferenceBrands: () => storage.getReferenceBrands() };
 - `artifacts/api-server/src/ai/kb-content.ts` — `buildReferenceBrandsKbDoc` pure formatter
 - `artifacts/api-server/src/ai/knowledge-base.ts` — indexing call with try/catch guard
 - `.claude/tools/get-reference-brands.json` — Anthropic tool schema
+- `docs/solutions/logic-errors/reference-brands-dropped-from-llm-prompt-2026-05-02.md`
+  — the specific prompt-drop bug (context field computed, never consumed by buildMarketPanelUserPrompt)
 - `docs/handoffs/reference-brands-orchestrator-specialists.md` — original CC handoff brief (superseded)
 - ADR-007 — funding/prompt-builder purity contract
