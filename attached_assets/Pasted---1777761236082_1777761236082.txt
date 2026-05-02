@@ -1,0 +1,96 @@
+                                                                                                                                                                                                                                             
+● Here is the complete updated prompt to paste into Replit — includes the financial-to-slides wiring audit as a seventh subagent:                                                                                                              
+  artifacts/client/src/components/InvestmentAnalysis.tsx
+  artifacts/client/src/components/SensitivityAnalysis.tsx
+
+  ANTI-SCOPE — do not touch or auto-fix anything. Do not modify slides templates, PPTX files, or database migrations.
+
+  ---
+  SPAWN 7 PARALLEL SUBAGENTS, one per domain. Each reads only its assigned files and returns its own punch list. Merge all results at the end, deduplicate, sort by severity.
+
+  ---
+  Subagent 1 — NOI & Revenue Model
+  Read all files in lib/calc/src/ that touch revenue, income, vacancy, expenses, NOI. Audit:
+  - Is NOI = (Gross Revenue × occupancy) − OpEx? Are all expense categories included?
+  - Is vacancy applied consistently (deduction, not a multiplier error)?
+  - Are annual vs monthly units consistent throughout?
+  - Are management fees, reserves, capex correctly treated as OpEx vs capex?
+
+  Subagent 2 — Cash Flow & Debt Service
+  Read all files in lib/calc/src/ and artifacts/api-server/src/finance/ touching cash flow, debt, amortization, DSCR. Audit:
+  - Is levered cash flow = NOI − debt service (P+I)?
+  - Is amortization computed correctly (standard mortgage amortization)?
+  - Is DSCR = NOI / debt service (not levered CF / debt service)?
+  - Sign conventions: cash outflows negative, inflows positive, consistently?
+  - Year 0: are acquisition costs (purchase price, closing costs, equity deployed) correctly in year-0 cash flow?
+
+  Subagent 3 — IRR Calculation
+  Find the IRR implementation (likely lib/calc/src/). Audit:
+  - Is cash flow array: [-equity, CF_yr1, CF_yr2, ..., CF_final + exit_proceeds]?
+  - Is year-0 equity the actual equity invested (not total purchase price)?
+  - Is exit proceeds = (exit NOI / exit cap rate) − remaining loan balance − selling costs?
+  - Are there edge cases where IRR returns NaN or Infinity (all-positive CFs, no sign change)?
+
+  Subagent 4 — Depreciation & Tax
+  Find all depreciation and tax logic. Audit:
+  - Is straight-line depreciation applied to building value only (not land)?
+  - Is depreciable life correct (27.5 yrs residential, 39 yrs commercial)?
+  - Is depreciation recapture computed at exit (25% rate on accumulated depreciation)?
+  - For any non-US properties: is local tax treatment applied separately from US rules?
+
+  Subagent 5 — Exit & Equity Multiples
+  Find exit scenario and multiple logic (MOIC, equity multiple, CoC). Audit:
+  - Exit value: is exitCapRate applied to year-N NOI (not year-0)?
+  - Are selling costs (commissions, closing) deducted from exit proceeds?
+  - Cash-on-cash: is it levered CF / initial equity (not total value)?
+  - Is there a scenario where totalInitialEquity = 0 causing division by zero?
+
+  Subagent 6 — Sensitivity & Projection
+  Read SensitivityAnalysis.tsx and any server-side sensitivity endpoint. Audit:
+  - Are sensitivity ranges applied correctly (e.g., ±10% cap rate)?
+  - Are projection year counts consistent (5-yr model = indices 0–4, not 0–5)?
+  - Are there any ?? 0 fallbacks that silently zero out a financial metric instead of propagating undefined?
+
+  ---
+  Subagent 7 — Financial Engine → Slides Data Wiring (CRITICAL PATH)
+
+  This is the most important subagent. We have been working for 2 days on a canonical slide deck (attached_assets/L+B_Property_Slides_02_*.pptx). Slides 5 and 6 are financial tables. The pipeline is:
+
+  financial engine (lib/calc/src + api-server/src/finance)
+    → SlidePayload assembled in the API route                                                                                                                                                                                   
+    → slot-resolver.ts (maps payload fields to slide slots)                                                                                                                                                                     
+    → hybrid-renderer.ts (composites the final JPEG)                                                                                                                                                                            
+                                                                                                                                                                                                                                
+  Audit the ENTIRE data path end-to-end:                                                                                                                                                                                                       
+                                                                                                                                                                                                                                
+  1. API route → SlidePayload: Find where SlidePayload is assembled (likely in artifacts/api-server/src/slides/ or an adjacent route file). Verify every financial field on the payload — NOI, IRR, MOIC, equity invested, exit                
+  cap rate,edebt service, cash-on-cash, 5-yr projectionss— is populatedyfromothe actual calculated result (from lib/calc/src or artifacts/api-server/src/finance), NOT from raw property record fields or hardcoded fallbacks.
+  2. slot-resolver.ts: For every slot that renders a financial number (NOI, IRR, MOIC, cap rate, annual cash flow, equity, exit value, etc.):                                                                                                  
+    - Is it reading from the correct field on SlidePayload?                                                                                                                                                                     
+    - Are any slots falling through to a ?? someHardcodedNumber that would override the calculated value?                                                                                                                                      
+    - Is the number formatted correctly (currency, percentage, decimal places) before being passed to the renderer?                                                                                                                            
+    - Are there slots that are supposed to show calculated values but are currently reading directly from property.* raw fields instead?                                                                                        
+  3. hybrid-renderer.ts: For Slides 5–6 financial tables:                                                                                                                                                                                      
+    - Are all table cells receiving their values from slot-resolver output?                                                                                                                                                                    
+    - Is there any place where a cell is hardcoded or duplicated from a non-financial source?                                                                                                                                   
+    - Note: if (el.slot_kind === "table") continue; — if this line still exists, flag it as CRITICAL because it means all table slots in Slides 5–6 are silently skipped and the tables render empty.                                          
+  4. Unit/scale consistency check: Trace one number (e.g., NOI) from calculation → SlidePayload field → slot-resolver → rendered text. Is it in the same unit and scale at every step? (e.g., not dollars in one place and      
+  thousands-of-dollars in another)                                                                                                                                                                                                             
+  5. Missing fields: Are there any financial metrics that appear in Slides 5–6 of the canonical PPTX but have no corresponding slot in slot-resolver.ts, meaning they will never be populated?                                                 
+                                                                                                                                                                                                                                
+  ---      ─           ─  ─          ─  ─      ─ ─   ─  ─         ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  OUTPUT FORMAT (merge all 7 subagent results into one list):                                                                                                                                                                   
+──  ─      ─           ─  ─          ─  ─      ─ ─   ─  ─         ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  CRITICALs permissions on (shift+tab to cycle) · esc to interrupt
+    artifacts/api-server/src/slides/hybrid-renderer.ts:NNN | table slots skipped with `continue` → Slides 5-6 financial tables render empty
+    ...                                                                                                                                                                                                                         
+  
+  HIGH                                                                                                                                                                                                                          
+    artifacts/api-server/src/slides/slot-resolver.ts:NNN | NOI slot reads property.netOperatingIncome (raw DB field) instead of calculatedNOI → stale/incorrect value on slide
+    ...                                                                                                                                                                                                                         
+  
+  MEDIUM                                                                                                                                                                                                                        
+    lib/calc/src/irr.ts:47 | no guard for all-positive cash flow array → IRR returns NaN silently
+    ...                                                                                                                                                                                                                         
+  
+  No code changes. Punch list only. If a subagent finds nothing wrong in its domain, say so explicitly.           
