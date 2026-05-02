@@ -193,7 +193,8 @@ async function resolvePhotoBytes(photo: {
       return { base64: result.buffer.toString("base64"), isHero: photo.isHero, sortOrder: photo.sortOrder, caption: photo.caption ?? undefined };
     }
     return null;
-  } catch {
+  } catch (err) {
+    logger.warn(`[resolvePhotoBytes] failed for ${photo.imageUrl}: ${err}`, "property-slides");
     return null;
   }
 }
@@ -220,7 +221,8 @@ async function buildSlidePayload(propertyId: number, userId: number | undefined,
   const resolvedPhotos = (
     await Promise.all(sortedPhotos.slice(0, MAX_PHOTOS).map(resolvePhotoBytes))
   ).filter(Boolean) as Array<{ base64: string; isHero: boolean; sortOrder: number }>;
-  logger.info(`[slides-debug] property ${propertyId}: ${resolvedPhotos.length} photos resolved, hero=${resolvedPhotos.find(p => p.isHero)?.base64?.slice(0,8)}`, "property-slides");
+  const mainHero = resolvedPhotos.find(p => p.isHero) ?? resolvedPhotos[0];
+  const slide4HeroBase64 = mainHero?.base64 ? await shrinkForCard(mainHero.base64) : undefined;
 
   // Portfolio properties for slide 4 — all properties sorted by acquisition date
   // (matching the front-end Properties page order), excluding current, capped at 5
@@ -252,7 +254,12 @@ async function buildSlidePayload(propertyId: number, userId: number | undefined,
           sortOrder: hero.sortOrder ?? 0,
           caption: hero.caption,
         });
-        if (resolved?.base64) heroPhotoBase64 = await shrinkForCard(resolved.base64);
+        if (resolved?.base64) {
+          heroPhotoBase64 = await shrinkForCard(resolved.base64);
+          logger.info(`[slides-debug] sibling ${pr.id} resolved=${resolved.base64.slice(0,8)} shrunk=${heroPhotoBase64?.slice(0,8) ?? "FAIL"}`, "property-slides");
+        } else {
+          logger.info(`[slides-debug] sibling ${pr.id} resolved=NULL url=${hero?.imageUrl}`, "property-slides");
+        }
       }
       const prRec = pr as Record<string, unknown>;
       return {
@@ -363,6 +370,7 @@ async function buildSlidePayload(propertyId: number, userId: number | undefined,
     siblings: siblings as unknown as SlidePayload["siblings"],
     visionText,
     improvements,
+    slide4HeroBase64,
     _propertyName: property.name,
   };
 }

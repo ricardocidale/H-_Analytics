@@ -130,6 +130,7 @@ export interface SlidePayload {
   siblings: SiblingProperty[];
   visionText: VisionText;
   improvements: PropertyImprovement[];
+  slide4HeroBase64?: string;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -496,17 +497,13 @@ function PortfolioCard({ prop, isCurrent }: { prop: SiblingProperty | null; isCu
       </div>
     );
   }
-  const bgSrc = prop.heroPhotoBase64 ? photoSrc({ base64: prop.heroPhotoBase64, isHero: true, sortOrder: 0 }) : null;
+  const photo: SlidePhoto | undefined = prop.heroPhotoBase64
+    ? { base64: prop.heroPhotoBase64, isHero: true, sortOrder: 0 }
+    : undefined;
 
   return (
-    <div style={{
-      display: "flex", flex: 1, position: "relative", borderRadius: 4, overflow: "hidden",
-      border: isCurrent ? `1px solid ${C.accent}` : "1px solid rgba(156,188,164,0.15)",
-      backgroundImage: bgSrc ? `url(${bgSrc})` : undefined,
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-      backgroundColor: C.bgDark,
-    }}>
+    <div style={{ display: "flex", flex: 1, position: "relative", borderRadius: 4, overflow: "hidden", border: isCurrent ? `1px solid ${C.accent}` : "1px solid rgba(156,188,164,0.15)" }}>
+      <PhotoBg photo={photo} />
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(15,22,16,0.96) 30%, rgba(15,22,16,0.2) 100%)" }} />
       {isCurrent && (
         <div style={{ position: "absolute", top: 10, right: 10, background: C.accent, padding: "2px 8px", display: "flex", borderRadius: 2 }}>
@@ -530,10 +527,8 @@ function PortfolioCard({ prop, isCurrent }: { prop: SiblingProperty | null; isCu
 }
 
 export function Slide4({ p }: { p: SlidePayload }) {
-  const { property, photos, siblings } = p;
-  const hero = photos.find(ph => ph.isHero) ?? photos[0];
+  const { property, siblings, slide4HeroBase64 } = p;
 
-  // Build the current property as a SiblingProperty card (first position)
   const currentAsCard: SiblingProperty = {
     id: property.id,
     name: property.name,
@@ -542,7 +537,7 @@ export function Slide4({ p }: { p: SlidePayload }) {
     purchasePrice: property.purchasePrice,
     hospitalityType: property.hospitalityType || property.businessModel,
     acquisitionStatus: property.acquisitionStatus,
-    heroPhotoBase64: hero?.base64,
+    heroPhotoBase64: slide4HeroBase64,
   };
 
   // Portfolio: current property + siblings, capped at 6

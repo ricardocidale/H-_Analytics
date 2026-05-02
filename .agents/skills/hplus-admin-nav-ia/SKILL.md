@@ -2,10 +2,10 @@
 name: hplus-admin-nav-ia
 description: >
   H+ Admin navigation information architecture — where Sources, Resources, APIs,
-  benchmarks, market data, knowledge-related sections, and Constants belong in the
-  admin UI. Load before any task that touches the Admin sidebar, AI Intelligence
-  sidebar, adds a new admin section, or places data-source or API management
-  anywhere in the admin UI.
+  benchmarks, market data, knowledge-related sections, Constants, Specialists,
+  LLMs, and AI Agents belong in the admin UI. Load before any task that touches
+  the Admin sidebar, AI Intelligence sidebar, adds a new admin section, or places
+  data-source, API, Specialist, or LLM management anywhere in the admin UI.
 ---
 
 # H+ Admin Navigation IA
@@ -21,7 +21,7 @@ clarified by the product owner and must not be relitigated.
 | Area | URL | Sidebar file | Purpose |
 |------|-----|-------------|---------|
 | **Admin** | `/admin` | `AdminSidebar.tsx` | Operational management — users, scenarios, brand, financial defaults, sources, integrations |
-| **AI Intelligence** | `/ai-intelligence` | `AiIntelligenceSidebar.tsx` | AI agent configuration — Specialist personas, Rebecca assistant, research orchestration |
+| **AI Intelligence** | `/ai-intelligence` | `AiIntelligenceSidebar.tsx` | AI agent configuration — Specialists directory, Rebecca assistant, Gustavo orchestrator, LLMs, research tooling |
 
 The "AI" item in the Admin sidebar navigates from Admin → AI Intelligence.
 
@@ -82,30 +82,45 @@ Admin  (/admin)
 └── AI ──────────────────────────────────── navigates to /ai-intelligence
     │
     └── AI Intelligence  (/ai-intelligence)
-        │   [Proposed order — confirm with product owner before implementing]
         │
-        ├── Rebecca AI Assistant          ← first: user-facing AI most admins configure
-        │   ├── Configuration
-        │   ├── Knowledge Base            ← ONLY home for KB (platform docs Rebecca reads)
-        │   └── Conversations
+        ├── AI Agents                     ← section grouping the two AI agents
+        │   │
+        │   ├── Rebecca                   ← conversational AI assistant
+        │   │   ├── Configuration
+        │   │   ├── Knowledge Base        ← ONLY home for KB (platform docs Rebecca reads)
+        │   │   └── Conversations
+        │   │
+        │   └── Gustavo                   ← Analyst orchestrator — informational page only
+        │       • Explains Gustavo's role as Analyst Orchestrator
+        │       • 🟢/🔴 status icon: is Gustavo deployed and working?
+        │       • Last health check: timestamp from internal activity log
+        │       • READ-ONLY: no interactive controls whatsoever for admin
+        │       • Styled like a specialist detail panel but with no actions
         │
-        ├── The Analyst → Gustavo         ← orchestrator (humanName = Gustavo)
-        │   [logKey = "gaspar" — internal only, never shown in UI]
+        ├── Specialists                   ← single accordion-table page
+        │   │   All research specialists listed by human name + function
+        │   │   Collapsible accordion rows — one row per specialist
+        │   │   Each collapsed row shows: name, function/domain, status icon
+        │   │   Each expanded row shows (ALL READ-ONLY, admin cannot interact):
+        │   │     • LLMs used — display labels only
+        │   │       (to manage LLMs → go to LLMs section below)
+        │   │     • Sources used — display labels only
+        │   │       (to manage sources → go to Admin → Sources)
+        │   │     • APIs used — display labels only
+        │   │     • Last called: timestamp from internal activity log
+        │   │     • [Run Analyst] button — health-checks this specialist:
+        │   │         verifies it is deployed and responding
+        │   │         records result + timestamp in internal activity log
+        │   │
+        │   NOTE: replaces the old individual group menu items
+        │   (Management Company, Property, Photos, Portfolio Ops no longer
+        │   appear as separate sidebar items — all specialists live here)
         │
-        ├── Management Company
-        │   ├── Funding Intelligence
-        │   ├── Revenue Intelligence
-        │   └── ICP Intelligence
-        │
-        ├── Property
-        │   ├── Risk Intelligence
-        │   └── Executive Summary
-        │
-        ├── Photos
-        │   └── Photo Enhancer & Renders
-        │
-        ├── Portfolio Ops
-        │   └── Portfolio Watchdog
+        ├── LLMs                          ← the ONLY place to manage LLM configuration
+        │                                   Model names, endpoints, API key references,
+        │                                   rate limits, fallback chain
+        │                                   (LLMs shown in Specialists panel link here
+        │                                   conceptually but admin cannot click from there)
         │
         ├── Resources Builder → Letícia
         │
@@ -119,11 +134,14 @@ Admin  (/admin)
 
 NOTES:
 - "Constants & Authority Sources" group is REMOVED from AI Intelligence entirely.
-  The 4 Specialists' DATA (tax constants, macro indicators, depreciation schedules,
-  reporting conventions) lives in Admin → Sources → Tables. Their [Run Analyst] buttons
-  in Sources trigger the relevant Specialist directly — no separate AI Intelligence
-  entry is needed.
-- AI Intelligence menu order above is PROPOSED — product owner must confirm before build
+  Its DATA (tax constants, macro indicators, depreciation, reporting conventions)
+  lives in Admin → Sources → Tables. The [Run Analyst] buttons there trigger the
+  relevant Specialist directly.
+- The old individual Specialist group menu items (Management Company, Property,
+  Photos, Portfolio Ops) are REPLACED by the single "Specialists" accordion page.
+- Rebecca moved from a standalone "Rebecca AI Assistant" item into "AI Agents" group.
+- Gustavo moved from a standalone "The Analyst" item into "AI Agents" group as an
+  informational-only page.
 ```
 
 ---
@@ -154,6 +172,81 @@ Placement: status icon LEFT of the source label, timestamp and button RIGHT-alig
 
 ---
 
+## Internal activity log (cross-cutting requirement)
+
+A system-wide activity log must record all verification and regeneration events across the
+admin UI. This log is the single source of truth for "last called" / "last verified" timestamps
+shown throughout Sources, Specialists, Gustavo's panel, and System Health.
+
+**Events that write to the log:**
+- Specialist health check triggered from the Specialists accordion [Run Analyst] button
+- Source regeneration triggered from any [Run Analyst] button in Sources → Tables / Market Research / Comparables
+- Gustavo orchestrator health check
+- Scheduled research run completions (System → Scheduled Research)
+- Any other Analyst verification process in the admin UI
+
+**Log entry shape (minimum):**
+```
+{
+  timestamp: ISO datetime,
+  actor: "admin" | "scheduler" | "system",
+  target_type: "specialist" | "source" | "orchestrator" | "scheduled_run",
+  target_id: string,       // specialist ID, source slug, "gaspar", etc.
+  action: "health_check" | "regenerate" | "verify",
+  result: "success" | "error" | "timeout",
+  detail: string           // error message or summary
+}
+```
+
+**Where timestamps surface:**
+- Specialists page → expanded row → "Last called: X ago"
+- Sources → Tables / Market Research → "Last regenerated: X ago"
+- Gustavo's AI Agents page → "Last health check: X ago"
+- System → System Health → per-component status
+
+The log is append-only. Retention policy TBD.
+
+---
+
+## Specialists page UX requirements
+
+The Specialists accordion page (`AI Intelligence → Specialists`) shows all research
+Specialists in a single scrollable list. Rules:
+
+### Read-only display for all resource references
+- LLMs, Sources, and APIs shown in an expanded specialist row are **display-only labels**
+- No links, no click-throughs, no edit controls from the Specialists page
+- To manage LLMs: navigate to `AI Intelligence → LLMs`
+- To manage Sources: navigate to `Admin → Sources`
+- Admin cannot configure or invoke resources from the Specialists page
+
+### Analyst button scope
+- The [Run Analyst] button in each expanded specialist row performs a **health check only**:
+  verifies the specialist is deployed and responding
+- It does NOT regenerate source data (that lives in Admin → Sources)
+- It does NOT modify LLM settings (that lives in AI Intelligence → LLMs)
+- Result is written to the internal activity log and shown as "Last called: X ago"
+
+### Gustavo is NOT in the Specialists accordion
+- Gustavo (orchestrator) has his own dedicated page under AI Agents → Gustavo
+- Rebecca (conversational assistant) is NOT a research specialist and is NOT in this list
+- Only research Specialists appear in the accordion
+
+---
+
+## Gustavo's page UX requirements
+
+`AI Intelligence → AI Agents → Gustavo` is a read-only informational page. Rules:
+
+- Describes Gustavo's role as Analyst Orchestrator (how he dispatches and coordinates Specialists)
+- Shows a 🟢/🔴 status icon: is the orchestrator deployed and healthy?
+- Shows "Last health check: X ago" from the internal activity log
+- **No interactive controls whatsoever** — no buttons, no forms, no edit fields
+- Styled similarly to a Specialist expanded detail panel but with zero actions
+- Admin can READ this page; they cannot DO anything from it
+
+---
+
 ## Hard rules
 
 ### Rule 1 — Sources belongs ONLY in the Admin sidebar
@@ -164,16 +257,12 @@ Never label any sub-item or page inside AI Intelligence as "Sources".
 
 ### Rule 2 — Tables under Sources holds ALL structured/grid data
 
-`Admin → Sources → Tables` is the home for every structured data table the app uses,
-including all data previously grouped under "Constants & Authority Sources":
+`Admin → Sources → Tables` is the home for every structured data table the app uses:
 
 - Benchmark tables: Capital Raise ranges, Exit Multiples ranges, Reference Brands
 - Market data: ADR index, labor rates, F&B data, seasonal calendars
 - Country economic data (inflation, FX rate, GDP growth, interest rate per country)
-- **Tax constants** (IRS rates, country tax authority data) ← formerly Constants group
-- **Macro indicators** (FRED, World Bank — GDP, CPI, interest) ← formerly Constants group
-- **Depreciation schedules** (MACRS, IRS asset class lives) ← formerly Constants group
-- **Reporting conventions** (GAAP / USALI standard references) ← formerly Constants group
+- Tax constants, Macro indicators, Depreciation schedules, Reporting conventions
 - Model financial defaults (numbers used in the financial engine)
 - Any other reference or lookup table
 
@@ -183,7 +272,6 @@ If it is structured grid/table data the app reads from → it belongs under **So
 
 If a source type is more than row/column data (e.g. research text, synthesized findings),
 it gets its own sub-item under Sources at the same level as Tables — not nested inside Tables.
-Example: Market Research is vector text chunks and sits as `Sources → Market Research`.
 
 ### Rule 3 — Resources → APIs has a live test button
 
@@ -195,15 +283,13 @@ Example: Market Research is vector text chunks and sits as `Sources → Market R
 ### Rule 4 — One destination = one menu item (strict hierarchical tree)
 
 **A hierarchical menu tree must never contain two items that navigate to the same destination.**
-This is a hard UX rule with no exceptions.
 
-If you find yourself placing the same label in two parts of the tree, the tree is wrong —
-resolve it by picking one canonical home and removing all duplicates:
-
-- Platform documentation Rebecca reads → `Rebecca AI Assistant → Knowledge Base` only
+- Platform documentation Rebecca reads → `AI Agents → Rebecca → Knowledge Base` only
 - External/authority data the app reads → `Sources → [appropriate sub-item]` only
 - Analyst-generated output → `AI Intelligence → Assumption Guidance` only
-- Specialist configuration → `AI Intelligence → [group] → [Specialist]` only
+- Specialist read-only directory → `AI Intelligence → Specialists` only
+- LLM management → `AI Intelligence → LLMs` only
+- Orchestrator info → `AI Intelligence → AI Agents → Gustavo` only
 
 "Knowledge Registry" is **removed**. Never recreate it.
 
@@ -215,7 +301,7 @@ is deprecated and being reorganised. Do not add new things labelled "Catalog" in
 ### Rule 6 — Legacy redirect
 
 `"sources" → "data-sources"` in `SECTION_REDIRECTS` inside `AdminSidebar.tsx` is a stale legacy
-alias. When implementing the new Sources section, update this to point to the new canonical
+alias. When implementing the new Sources section, update this to point to the canonical
 Sources → Tables page.
 
 ### Rule 7 — Orchestrator is Gustavo, not Gaspar
@@ -231,15 +317,35 @@ narration theater — the orchestrator's name is **Gustavo**.
 Never write "Gaspar" in any user-facing string. Use `GASPAR_IDENTITY.humanName` or
 `ORCHESTRATOR_HUMAN_NAME` (both resolve to "Gustavo") at every callsite.
 
-### Rule 8 — "Constants & Authority Sources" is renamed "Model Constants" in AI Intelligence
+### Rule 8 — "Constants & Authority Sources" is fully removed from AI Intelligence
 
-The AI Intelligence sidebar group previously labelled "Constants & Authority Sources" must
-be renamed to **"Model Constants"** (or similar that does not include "Sources" or "Constants"
-as data labels — those belong in Admin → Sources → Tables).
+This group is gone entirely. Its DATA lives in Admin → Sources → Tables. The 4 Specialists
+who produced that data are now listed in the Specialists accordion page like all other
+Specialists. No separate group or menu item for them in AI Intelligence.
 
-The DATA these 4 Specialists produce lives in Admin → Sources → Tables.
-Their CONFIGURATION (persona, prompts, LLM settings) stays in AI Intelligence under the
-renamed group.
+### Rule 9 — Specialists page replaces all individual Specialist group menu items
+
+The old per-domain group items (Management Company, Property, Photos, Portfolio Ops) no longer
+exist as sidebar navigation entries. All research Specialists are accessed through the single
+`AI Intelligence → Specialists` accordion page.
+
+### Rule 10 — Specialists page is strictly read-only for resource references
+
+LLMs, Sources, and APIs displayed within an expanded Specialist row are display labels only.
+Admins cannot click, configure, or invoke them from the Specialists page.
+- To manage LLMs → `AI Intelligence → LLMs`
+- To manage Sources → `Admin → Sources`
+
+### Rule 11 — Gustavo's page has no interactive controls
+
+`AI Agents → Gustavo` is informational only. No buttons (except status display), no forms,
+no edit fields. The only "action" is the automatic status check that fires on page load.
+
+### Rule 12 — LLMs is the only place in AI Intelligence to manage LLM configuration
+
+LLM model names, endpoints, API key references, rate limits, and fallback chains are managed
+exclusively in `AI Intelligence → LLMs`. Never add LLM configuration controls to the
+Specialists page, Gustavo's page, or anywhere else in AI Intelligence.
 
 ---
 
