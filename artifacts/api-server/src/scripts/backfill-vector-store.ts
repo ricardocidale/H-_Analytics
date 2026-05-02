@@ -28,6 +28,9 @@ import {
   indexDocumentExtraction,
   indexToKnowledgeBase,
   indexAssumptionGuidance,
+  listVectorIds,
+  pruneOrphanedVectors,
+  cleanupPropertyVectors,
 } from "../ai/vector-store-service";
 import { db } from "../db";
 import { companies } from "@workspace/db";
@@ -139,6 +142,48 @@ async function backfillProperties(): Promise<{ ok: number; fail: number }> {
     );
     if (r === null) fail++; else ok++;
   }
+
+  // Prune orphaned property vectors: any `property:N` vector whose underlying
+  // property row no longer exists or has been archived.
+  //
+  // 1. Direct prune of the `properties` namespace via `pruneOrphanedVectors`
+  //    guarantees `vectorCount("properties") === active properties` after
+  //    every backfill, even if `--only=properties` is used.
+  // 2. For each orphaned property id we additionally call
+  //    `cleanupPropertyVectors` so related rows in the assumption-guidance,
+  //    documents, scenarios, and research-history namespaces are also
+  //    removed.
+  const activeIds = new Set(props.map((p) => p.id));
+  const validVectorIds = props.map((p) => `property:${p.id}`);
+
+  const existingIds = await safeRun("list properties vector ids", () =>
+    listVectorIds("properties"),
+  );
+  const orphanPropertyIds: number[] = [];
+  if (existingIds) {
+    for (const vid of existingIds) {
+      const m = /^property:(\d+)$/.exec(vid);
+      if (!m) continue;
+      const id = Number(m[1]);
+      if (!activeIds.has(id)) orphanPropertyIds.push(id);
+    }
+  }
+
+  await safeRun("prune orphaned properties", () =>
+    pruneOrphanedVectors("properties", validVectorIds),
+  );
+
+  if (orphanPropertyIds.length > 0) {
+    logger.info(
+      `[backfill] properties: cleaning related vectors for ${orphanPropertyIds.length} orphaned property id(s): ${orphanPropertyIds.join(", ")}`,
+    );
+    for (const id of orphanPropertyIds) {
+      await safeRun(`cleanup property vectors ${id}`, () =>
+        cleanupPropertyVectors(id),
+      );
+    }
+  }
+
   return { ok, fail };
 }
 
@@ -173,6 +218,13 @@ async function backfillScenarios(): Promise<{ ok: number; fail: number }> {
     );
     if (r === null) fail++; else ok++;
   }
+
+  // Prune orphaned scenario vectors (scenario rows that have been hard-deleted).
+  const validScenarioIds = scenarios.map((s) => `scenario:${s.id}`);
+  await safeRun("prune orphaned scenarios", () =>
+    pruneOrphanedVectors("scenarios", validScenarioIds),
+  );
+
   return { ok, fail };
 }
 

@@ -542,32 +542,105 @@ export async function deleteNamespace(namespace: VectorNamespace): Promise<void>
   }
 }
 
+/**
+ * Return all vector IDs in a namespace. Useful for backfill/cleanup jobs that
+ * need to detect orphaned rows (vectors whose underlying entity no longer
+ * exists in the relational store).
+ */
+export async function listVectorIds(namespace: VectorNamespace): Promise<string[]> {
+  if (!isVectorStoreAvailable()) return [];
+  await ensureStore();
+  const { rows } = await pool.query<{ id: string }>(
+    `SELECT id FROM vector_chunks WHERE namespace = $1`,
+    [namespace],
+  );
+  return rows.map((r) => r.id);
+}
+
+/**
+ * Delete all vectors in a namespace whose id is NOT in `validIds`.
+ *
+ * Intended for namespaces with a single deterministic id format (e.g.
+ * `properties` → `property:<id>`, `scenarios` → `scenario:<id>`). Do NOT use
+ * on namespaces with multi-format ids unless every live id is included in
+ * `validIds`, otherwise valid rows will be deleted.
+ *
+ * Returns the number of rows deleted.
+ */
+export async function pruneOrphanedVectors(
+  namespace: VectorNamespace,
+  validIds: string[],
+): Promise<number> {
+  if (!isVectorStoreAvailable()) return 0;
+  await ensureStore();
+  const { rows } = await pool.query<{ count: string }>(
+    `WITH deleted AS (
+       DELETE FROM vector_chunks
+        WHERE namespace = $1
+          AND NOT (id = ANY($2::text[]))
+        RETURNING 1
+     )
+     SELECT COUNT(*)::text AS count FROM deleted`,
+    [namespace, validIds],
+  );
+  const removed = Number(rows[0]?.count ?? 0);
+  if (removed > 0) {
+    logger.info(
+      `Pruned ${removed} orphaned vector(s) from namespace "${namespace}"`,
+      "vector-store",
+    );
+  }
+  return removed;
+}
+
 export async function cleanupPropertyVectors(propertyId: number): Promise<void> {
   if (!isVectorStoreAvailable()) return;
   await ensureStore();
 
-  const namespacesToClean: VectorNamespace[] = [
+  // Namespaces whose ids start with `property:<id>` (properties + guidance).
+  // For these we can match by id prefix safely.
+  const idPrefixNamespaces: VectorNamespace[] = [
     "properties",
     "research-history",
     "assumption-guidance",
-    "documents",
-    "scenarios",
   ];
-
   const prefix = `property:${propertyId}`;
   const exactIds = [
     `property:${propertyId}`,
     `guidance:property:${propertyId}`,
-    `scenario:${propertyId}`,
   ];
 
-  for (const ns of namespacesToClean) {
+  for (const ns of idPrefixNamespaces) {
     try {
       await pool.query(
         `DELETE FROM vector_chunks
           WHERE namespace = $1
             AND (id LIKE $2 OR id = ANY($3::text[]))`,
         [ns, `${prefix}%`, exactIds],
+      );
+    } catch (err: unknown) {
+      logger.warn(
+        `Vector cleanup for namespace ${ns} (property ${propertyId}) failed: ${err instanceof Error ? err.message : err}`,
+        "vector-store",
+      );
+    }
+  }
+
+  // Documents and scenarios are keyed by their own ids (extractionId,
+  // scenarioId), not by propertyId — so a `scenario:${propertyId}` rule would
+  // incorrectly delete an unrelated scenario whose id happens to equal the
+  // propertyId. Match via metadata containment instead.
+  const metadataPropertyNamespaces: VectorNamespace[] = [
+    "documents",
+    "scenarios",
+  ];
+  for (const ns of metadataPropertyNamespaces) {
+    try {
+      await pool.query(
+        `DELETE FROM vector_chunks
+          WHERE namespace = $1
+            AND metadata @> $2::jsonb`,
+        [ns, JSON.stringify({ propertyId })],
       );
     } catch (err: unknown) {
       logger.warn(
