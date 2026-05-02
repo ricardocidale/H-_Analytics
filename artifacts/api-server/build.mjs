@@ -122,7 +122,7 @@ async function buildAll() {
       "puppeteer-core",
       "electron",
     ],
-    sourcemap: "linked",
+    sourcemap: process.env.NODE_ENV === "production" ? false : "linked",
     plugins: [
       pathAliasPlugin({
         "@shared": path.resolve(artifactDir, "src/shared"),
