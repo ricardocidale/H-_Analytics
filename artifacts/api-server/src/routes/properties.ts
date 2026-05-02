@@ -299,6 +299,29 @@ export function register(app: Express) {
       const suggestion = suggestStarRating(merged as Parameters<typeof suggestStarRating>[0]);
       const updateData: Record<string, unknown> = { ...validation.data, starRatingSuggested: suggestion.rating };
 
+      // Hero-photo write-path drift guard.
+      //
+      // `properties.image_url` is a *cache* of the current hero `property_photos`
+      // row's `imageUrl`. Direct writes to `properties.image_url` (e.g. from the
+      // legacy "Change Photo" overlay button or the Photos page picker) bypass
+      // `setHeroPhoto`, so the album never learns about the new URL and the
+      // cache silently drifts away from the album. Once the album row's
+      // canonical URL changes (e.g. a binary migration to `/api/media/...`),
+      // the stale cache 404s and the property has no hero.
+      //
+      // Intercept those writes here: strip `imageUrl` from the property update
+      // and instead route the change through `addPropertyPhoto` +
+      // `setHeroPhoto`, which is the same path the album-aware Photos page
+      // picker uses. `setHeroPhoto` updates `properties.image_url` itself, so
+      // the cache and album stay equal by construction.
+      const incomingImageUrl = typeof validation.data.imageUrl === "string"
+        ? validation.data.imageUrl.trim()
+        : null;
+      const heroSyncUrl = incomingImageUrl && incomingImageUrl !== existingProp.imageUrl
+        ? incomingImageUrl
+        : null;
+      delete updateData.imageUrl;
+
       const STALENESS_TRIGGER_KEYS = [
         "starRating", "startAdr", "hospitalityType", "businessModel",
         "roomCount", "city", "stateProvince", "country",
@@ -313,9 +336,42 @@ export function register(app: Express) {
         updateData.lastAssumptionChangeAt = new Date();
       }
 
-      const property = await storage.updateProperty(propertyId, updateData);
+      let property = await storage.updateProperty(propertyId, updateData);
       if (!property) {
         return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
+      }
+
+      // Apply the hero-photo write through the album (see drift-guard comment
+      // above). Reuse an existing photo row when the URL is already in the
+      // album; otherwise add it as a new row. `setHeroPhoto` mirrors the new
+      // hero's `imageUrl` back onto `properties.image_url`.
+      //
+      // We surface a 500 if the hero sync fails: the user requested a new
+      // hero, the property update succeeded, but the album/cache could not be
+      // brought back in sync — leaving things in the same drifted state this
+      // task #934 was meant to eliminate. Failing loudly is the only way to
+      // prevent silent drift from re-introducing itself.
+      if (heroSyncUrl) {
+        try {
+          const albumPhotos = await storage.getPropertyPhotos(propertyId);
+          const matching = albumPhotos.find(p => p.imageUrl === heroSyncUrl);
+          const heroPhotoId = matching
+            ? matching.id
+            : (await storage.addPropertyPhoto({ propertyId, imageUrl: heroSyncUrl })).id;
+          await storage.setHeroPhoto(propertyId, heroPhotoId);
+          // Re-read so the response reflects the freshly mirrored image_url
+          // (the first updateProperty call deliberately stripped imageUrl).
+          const refreshed = await storage.getProperty(propertyId);
+          if (refreshed) property = refreshed;
+        } catch (err: unknown) {
+          logger.error(
+            `Hero-photo sync failed for property ${propertyId}: ${err instanceof Error ? err.message : err}`,
+            "properties",
+          );
+          return res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({
+            error: "Property updated but hero photo could not be synced. Please retry.",
+          });
+        }
       }
 
       // Phase 5C-task-2: supersede stale guidance when material inputs change

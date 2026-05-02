@@ -9,7 +9,7 @@
  *
  * Used in the AddPropertyDialog and property edit forms.
  */
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -61,6 +61,15 @@ export function AIImagePicker({
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [pendingImage, setPendingImage] = useState<{ src: string; name: string; type: string; originalFile: File } | null>(null);
+  // Whether the current `imageUrl` failed to load (404, network error, etc).
+  // When true the picker drops back to its empty-state (upload/generate/url
+  // mode) so users have a way to set a new image; otherwise a broken preview
+  // pane traps the picker with no way forward. Reset whenever `imageUrl`
+  // changes so a successful retry redisplays the preview.
+  const [imageLoadFailed, setImageLoadFailed] = useState(false);
+  useEffect(() => {
+    setImageLoadFailed(false);
+  }, [imageUrl]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -207,9 +216,14 @@ export function AIImagePicker({
         )}
       </div>
 
-      {imageUrl ? (
+      {imageUrl && !imageLoadFailed ? (
         <div className={cn("relative w-full rounded-lg overflow-hidden border", isLight ? "border-border" : "border-border", aspectClass)}>
-          <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0.3"; }} />
+          <img
+            src={imageUrl}
+            alt="Preview"
+            className="w-full h-full object-cover"
+            onError={() => setImageLoadFailed(true)}
+          />
           <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2" onClick={handleRemove} data-testid={`${testId}-remove`}>
             <X className="w-4 h-4" />
           </Button>

@@ -112,6 +112,16 @@ export function register(app: Express) {
       if (photo.imageUrl?.startsWith("/objects/")) {
         return res.redirect(302, photo.imageUrl);
       }
+      // Defensive redirect: if the row's canonical imageUrl is *anywhere else*
+      // (e.g. `/api/media/photo-N.png`, an https:// thumbnail, etc.) and is not
+      // self-referential, follow it. This unbreaks any stale cached reference
+      // — including `properties.image_url` cached as `/api/property-photos/<id>/image`
+      // pointing at a row whose binary has since been moved to `/api/media/...`
+      // — without depending on a one-off backfill having already run.
+      const selfPath = `/api/property-photos/${photoId}/image`;
+      if (photo.imageUrl && photo.imageUrl !== selfPath) {
+        return res.redirect(302, photo.imageUrl);
+      }
       if (photo.imageData) {
         const buffer = Buffer.from(photo.imageData, "base64");
         res.set({

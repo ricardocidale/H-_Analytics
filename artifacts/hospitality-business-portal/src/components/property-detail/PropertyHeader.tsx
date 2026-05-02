@@ -25,9 +25,14 @@ import { usePropertyPhotos } from "@/lib/api";
 export default function PropertyHeader({ property, propertyId, heroCaption, onPhotoUploadComplete }: PropertyHeaderProps) {
   const { data: photos = [] } = usePropertyPhotos(propertyId);
   const heroPhoto = photos.find(p => p.isHero);
+  // Always derive the hero src from the hero photo row when one exists, so a
+  // stale `properties.image_url` cache (e.g. legacy `/api/property-photos/:id/image`
+  // pointing at a row whose binary has since moved to `/api/media/...`) cannot
+  // produce a broken hero. Only fall back to `property.imageUrl` when the
+  // album has no hero row at all (brand-new property with no photos yet).
   const heroSrc = heroPhoto?.enhancedImageData
     ? `/api/property-photos/${heroPhoto.id}/enhanced-image`
-    : property.imageUrl;
+    : (heroPhoto?.imageUrl ?? property.imageUrl);
   const isEnhanced = !!heroPhoto?.enhancedImageData;
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
@@ -63,7 +68,7 @@ export default function PropertyHeader({ property, propertyId, heroCaption, onPh
           )}
           <PropertyPhotoUpload
             propertyId={propertyId}
-            currentImageUrl={property.imageUrl}
+            currentImageUrl={heroPhoto?.imageUrl ?? property.imageUrl}
             onUploadComplete={onPhotoUploadComplete}
           />
         </HeroImage>

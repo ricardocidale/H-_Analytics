@@ -1,6 +1,6 @@
 import Layout from "@/components/Layout";
 import { AnimatedPage } from "@/components/graphics/AnimatedPage";
-import { useProperty } from "@/lib/api";
+import { useProperty, useAddPropertyPhoto, useSetHeroPhoto, usePropertyPhotos } from "@/lib/api";
 import { PropertyImagePicker, PhotoAlbumGrid } from "@/features/property-images";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "@/components/icons/themed-icons";
@@ -15,17 +15,30 @@ export default function PropertyPhotos() {
   const queryClient = useQueryClient();
 
   const { data: property, isLoading, isError } = useProperty(propertyId);
+  const { data: photos = [] } = usePropertyPhotos(propertyId);
+  const addPhoto = useAddPropertyPhoto();
+  const setHero = useSetHeroPhoto();
 
+  // Hero changes route through the photo album:
+  //   1. If the chosen URL already lives in the album, just promote that row.
+  //   2. Otherwise, add a new photo row for the URL and promote it.
+  // `setHeroPhoto` (server-side) demotes any existing hero AND mirrors the new
+  // hero's `imageUrl` onto `properties.image_url`, so the cache and the album
+  // stay equal — no PUT-imageUrl shortcut, no drift.
   const handleImageChange = async (url: string) => {
-    const res = await fetch(`/api/properties/${propertyId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ imageUrl: url }),
-    });
-    if (res.ok) {
-      queryClient.invalidateQueries({ queryKey: ["/api/properties", propertyId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/properties"] });
+    const existing = photos.find(p => p.imageUrl === url);
+    let photoId = existing?.id;
+    if (!photoId) {
+      const created = await addPhoto.mutateAsync({
+        propertyId,
+        imageUrl: url,
+        skipProcessing: true,
+      });
+      photoId = created.id;
     }
+    await setHero.mutateAsync({ propertyId, photoId });
+    queryClient.invalidateQueries({ queryKey: ["/api/properties", propertyId] });
+    queryClient.invalidateQueries({ queryKey: ["/api/properties"] });
   };
 
   if (isLoading) {

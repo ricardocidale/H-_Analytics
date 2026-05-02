@@ -125,8 +125,11 @@ export function HeroImage({
       {/* Gradient overlay */}
       {overlay !== "none" && <div className={cn("absolute inset-0 pointer-events-none", overlayClass)} />}
 
-      {/* Caption overlay */}
-      {caption && (
+      {/* Caption overlay — only when there is an actual image to caption.
+          Without this guard the caption (e.g. "AI generated · realistic-luxury")
+          floats over the empty fallback gradient when the hero src 404s,
+          which is misleading: it suggests an image is present when none is. */}
+      {hasImage && caption && (
         <div className="absolute bottom-0 inset-x-0 px-3 pb-2 pointer-events-none">
           <span className="text-xs text-white/80 font-medium drop-shadow-md italic">{caption}</span>
         </div>
