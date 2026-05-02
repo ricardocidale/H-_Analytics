@@ -16,6 +16,7 @@ import { computeBreakevenTargets } from "@calc/analysis/breakeven-targets";
 import { storage } from "../storage";
 import { resolveDefault } from "../defaults";
 import type { PropertyInput, GlobalInput } from "@engine/types";
+import { propertyEquityInvested } from "@engine/debt/equityCalculations";
 import {
   DEFAULT_COST_RATE_INSURANCE,
   DEFAULT_EXIT_CAP_RATE,
@@ -128,8 +129,7 @@ function runScenario(
     const debtAtExit = financials[financials.length - 1]?.debtOutstanding ?? 0;
     exitValue += Math.max(0, netExit - debtAtExit);
 
-    const ltv = (prop.acquisitionLTV as number | null) ?? 0;
-    totalInitialEquity += prop.purchasePrice * (1 - ltv);
+    totalInitialEquity += propertyEquityInvested(prop);
   }
 
   const irrFlows = [-totalInitialEquity, ...annualCashFlows];
