@@ -34,7 +34,7 @@ export function HeatMapSection({ heatmapRef, heatMapMetric, onMetricChange, cell
                 className={`px-3 py-1.5 text-xs font-semibold ${heatMapMetric === m ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
                 data-testid={`button-heatmap-metric-${m}`}
               >
-                {m === "irr" ? "IRR" : m === "noi" ? "NOI" : "NOI Margin"}
+                {m === "irr" ? "IRR" : m === "noi" ? "NOI" : "Equity Multiple"}
               </Button>
             ))}
           </div>
@@ -46,8 +46,11 @@ export function HeatMapSection({ heatmapRef, heatMapMetric, onMetricChange, cell
           colLabels={colLabels}
           rowAxisLabel="Occupancy Shock"
           colAxisLabel="ADR Growth Shock"
-          valueLabel={heatMapMetric === "irr" ? "IRR" : heatMapMetric === "noi" ? "NOI" : "NOI Margin"}
-          breakeven={heatMapMetric === "irr" ? 0.15 : heatMapMetric === "noi" ? 0 : 0.3}
+          valueLabel={heatMapMetric === "irr" ? "IRR" : heatMapMetric === "noi" ? "NOI" : "Equity Multiple"}
+          // Audit Task #967 — equity-multiple breakeven is 1.0× (investor
+          // gets their equity back). IRR breakeven 15 % and NOI breakeven 0
+          // are pre-existing thresholds.
+          breakeven={heatMapMetric === "irr" ? 0.15 : heatMapMetric === "noi" ? 0 : 1.0}
           valueFormat={
             heatMapMetric === "irr"
               ? (v) => `${(v * 100).toFixed(1)}%`
@@ -58,7 +61,10 @@ export function HeatMapSection({ heatmapRef, heatMapMetric, onMetricChange, cell
                     if (abs >= 1e3) return `$${(v / 1e3).toFixed(0)}K`;
                     return `$${v.toFixed(0)}`;
                   }
-                : (v) => `${(v * 100).toFixed(1)}%`
+                // Audit Task #967 — render MOIC as e.g. "1.85x" instead of
+                // the previous percent formatting (which corresponded to
+                // the buggy NOI-margin metric).
+                : (v) => `${v.toFixed(2)}x`
           }
         />
       </div>
