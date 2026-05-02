@@ -131,6 +131,7 @@
     "artifacts/api-server/src/services/WorldBankService.ts",
     "artifacts/api-server/src/shared/constants.ts",
     "artifacts/api-server/src/shared/market-intelligence-pipeline.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "artifacts/api-server/src/storage/property-dd.ts",
     "artifacts/api-server/src/storage/specialist-config.ts",
     "artifacts/api-server/src/svg-charts.ts",
@@ -296,6 +297,7 @@
     "artifacts/api-server/src/services/FREDService.ts",
     "artifacts/api-server/src/services/RealtyService.ts",
     "artifacts/api-server/src/shared/constants.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "artifacts/api-server/src/storage/render-settings.ts",
     "artifacts/api-server/src/svg-charts.ts",
     "artifacts/api-server/src/syncHelpers.ts",
@@ -422,6 +424,7 @@
     "artifacts/api-server/src/services/WeatherService.ts",
     "artifacts/api-server/src/shared/constants.ts",
     "artifacts/api-server/src/storage/admin-resource/health-checks.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "artifacts/api-server/src/svg-charts.ts",
     "artifacts/api-server/src/syncHelpers.ts",
     "artifacts/api-server/src/theme-resolver.ts",
@@ -515,6 +518,7 @@
     "artifacts/api-server/src/seeds/research.ts",
     "artifacts/api-server/src/services/ApifyService.ts",
     "artifacts/api-server/src/services/RapidApiHospitalityService.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "artifacts/api-server/src/storage/reference-range.ts",
     "artifacts/api-server/src/svg-charts.ts",
     "artifacts/api-server/src/syncHelpers.ts",
@@ -574,6 +578,7 @@
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "artifacts/api-server/src/seeds/research.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "artifacts/api-server/src/svg-charts.ts",
     "artifacts/api-server/src/syncHelpers.ts",
     "lib/calc/src/analysis/structure-comparison.ts",
@@ -715,6 +720,7 @@
     "artifacts/api-server/src/services/XoteloService.ts",
     "artifacts/api-server/src/shared/constants.ts",
     "artifacts/api-server/src/storage/calc-audit.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "artifacts/api-server/src/storage/intelligence/research-runs.ts",
     "artifacts/api-server/src/svg-charts.ts",
     "artifacts/api-server/src/syncHelpers.ts",
@@ -775,6 +781,7 @@
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "artifacts/api-server/src/seeds/research.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/shared/src/constants-funding.ts",
     "lib/shared/src/countryDefaults.ts"
   ],
@@ -816,6 +823,7 @@
     "artifacts/api-server/src/seeds/research.ts",
     "artifacts/api-server/src/services/ApifyService.ts",
     "artifacts/api-server/src/services/RapidApiHospitalityService.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "artifacts/api-server/src/table-renderer.ts",
     "lib/shared/src/constants-benchmarks.ts",
     "lib/shared/src/constants-funding.ts",
@@ -941,6 +949,7 @@
     "artifacts/api-server/src/seeds/market-rates.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/research.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "artifacts/api-server/src/svg-charts.ts",
     "lib/calc/src/research/validate-research.ts",
     "lib/shared/src/constants-benchmarks.ts",
@@ -1047,6 +1056,7 @@
     "artifacts/api-server/src/storage/admin-resource/quality-snapshots.ts",
     "artifacts/api-server/src/storage/calc-audit.ts",
     "artifacts/api-server/src/storage/intelligence/constants/sources.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "artifacts/api-server/src/storage/specialist-config.ts",
     "artifacts/api-server/src/svg-charts.ts",
     "lib/calc/src/research/validate-research.ts",
@@ -1087,6 +1097,7 @@
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/research.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "artifacts/api-server/src/svg-charts.ts",
     "lib/shared/src/constants-benchmarks.ts",
     "lib/shared/src/regulatory/profiles-europe.ts",
@@ -1136,6 +1147,7 @@
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "artifacts/api-server/src/seeds/research.ts",
     "artifacts/api-server/src/shared/constants.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/calc/src/analysis/stress-test.ts",
     "lib/calc/src/research/validate-research.ts",
     "lib/engine/src/helpers/stress-scenarios.ts",
@@ -1301,6 +1313,7 @@
     "artifacts/api-server/src/data/researchSeeds.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/shared/src/countryDefaults.ts",
     "lib/shared/src/regulatory/profiles-europe.ts"
   ],
@@ -1331,6 +1344,7 @@
     "artifacts/api-server/src/seeds/properties.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "artifacts/api-server/src/seeds/research.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/shared/src/regulatory/profiles-europe.ts",
     "lib/shared/src/regulatory/profiles-latam.ts",
     "lib/shared/src/regulatory/profiles-na.ts"
@@ -1561,6 +1575,7 @@
     "artifacts/api-server/src/data/researchSeeds.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/research.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/calc/src/research/validate-research.ts",
     "lib/engine/src/analyst/cognitive/verdict-reconstructor.ts",
     "lib/shared/src/companyBenchmarks.ts",
@@ -1668,6 +1683,7 @@
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/properties.ts",
     "artifacts/api-server/src/seeds/research.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/calc/src/analysis/breakeven-targets.ts",
     "lib/calc/src/research/validate-research.ts",
     "lib/engine/src/helpers/default-resolver.ts",
@@ -1702,6 +1718,7 @@
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "artifacts/api-server/src/seeds/research.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/calc/src/research/validate-research.ts",
     "lib/shared/src/companyBenchmarks.ts"
   ],
@@ -1732,6 +1749,7 @@
     "artifacts/api-server/src/services/MarketIntelligenceAggregator.ts",
     "artifacts/api-server/src/storage/activity.ts",
     "artifacts/api-server/src/storage/intelligence-rebecca.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/calc/src/research/validate-research.ts",
     "lib/engine/src/analyst/registry/specialist-catalog.ts",
     "lib/engine/src/helpers/default-resolver.ts",
@@ -1772,6 +1790,12 @@
     "artifacts/api-server/src/storage/render-settings.ts",
     "lib/shared/src/regulatory/profiles-europe.ts"
   ],
+  "110": [
+    "artifacts/api-server/src/pdf/chart-render.tsx",
+    "artifacts/api-server/src/pdf/table-render.tsx",
+    "artifacts/api-server/src/seeds/market-data-tables.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts"
+  ],
   "120": [
     "artifacts/api-server/src/ai/icp/config-builder.ts",
     "artifacts/api-server/src/ai/property-vision.ts",
@@ -1796,9 +1820,16 @@
   "130": [
     "artifacts/api-server/src/ai/exit-vertical-suggestion.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/engine/src/helpers/default-resolver.ts",
     "lib/shared/src/constants-benchmarks.ts",
     "lib/shared/src/regulatory/profiles-latam.ts"
+  ],
+  "140": [
+    "artifacts/api-server/src/pdf/table-render.tsx",
+    "artifacts/api-server/src/routes/icp-research-helpers.ts",
+    "artifacts/api-server/src/seeds/market-data-tables.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts"
   ],
   "145": [
     "artifacts/api-server/src/seeds/market-data-tables.ts",
@@ -1820,6 +1851,7 @@
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/properties.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/calc/src/analysis/stress-test.ts",
     "lib/engine/src/helpers/default-resolver.ts"
   ],
@@ -1827,6 +1859,7 @@
     "artifacts/api-server/src/data/researchSeeds.ts",
     "artifacts/api-server/src/report/svg-charts.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/engine/src/helpers/default-resolver.ts"
   ],
   "168": [
@@ -1856,9 +1889,16 @@
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/shared/constants.ts",
     "artifacts/api-server/src/storage/activity.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/engine/src/helpers/default-resolver.ts",
     "lib/shared/src/constants.ts",
     "lib/shared/src/price-history.ts"
+  ],
+  "185": [
+    "artifacts/api-server/src/data/researchSeeds.ts",
+    "artifacts/api-server/src/routes/property-photos.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
+    "lib/shared/src/constants-benchmarks.ts"
   ],
   "200": [
     "artifacts/api-server/src/ai/analyst-watchdog.ts",
@@ -1918,6 +1958,7 @@
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "artifacts/api-server/src/storage/activity.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "artifacts/api-server/src/storage/intelligence/research-runs.ts",
     "lib/calc/src/analysis/reserves-brand-bundle.ts",
     "lib/calc/src/analysis/scenario-compare.ts",
@@ -1939,10 +1980,17 @@
     "artifacts/api-server/src/routes/properties-urls.ts",
     "artifacts/api-server/src/routes/research/meta.ts"
   ],
+  "202": [
+    "artifacts/api-server/src/routes/admin/model-constants.ts",
+    "artifacts/api-server/src/routes/admin/observability.ts",
+    "artifacts/api-server/src/routes/property-slides.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts"
+  ],
   "210": [
     "artifacts/api-server/src/calculation-checker/index.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/research.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/calc/src/validation/financial-identities.ts"
   ],
   "220": [
@@ -1950,6 +1998,7 @@
     "artifacts/api-server/src/report/svg-charts.ts",
     "artifacts/api-server/src/routes/export-generate.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/calc/src/validation/financial-identities.ts",
     "lib/engine/src/helpers/default-resolver.ts",
     "lib/shared/src/regulatory/profiles-europe.ts"
@@ -1958,6 +2007,7 @@
     "artifacts/api-server/src/data/researchSeeds.ts",
     "artifacts/api-server/src/notifications/constants-refresh-failure-digest.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "artifacts/api-server/src/svg-charts.ts"
   ],
   "250": [
@@ -1971,6 +2021,7 @@
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "artifacts/api-server/src/shared/constants.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/engine/src/helpers/default-resolver.ts",
     "lib/shared/src/constants.ts",
     "lib/shared/src/regulatory/profiles-europe.ts"
@@ -1988,12 +2039,25 @@
     "artifacts/api-server/src/report/svg-charts.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts"
   ],
+  "275": [
+    "artifacts/api-server/src/data/researchSeeds.ts",
+    "artifacts/api-server/src/seeds/market-rates.ts",
+    "artifacts/api-server/src/seeds/property-data.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts"
+  ],
   "280": [
     "artifacts/api-server/src/data/researchSeeds.ts",
     "artifacts/api-server/src/jobs/scheduler-run-tracker.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
-    "artifacts/api-server/src/seeds/reference-ranges.ts"
+    "artifacts/api-server/src/seeds/reference-ranges.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts"
+  ],
+  "285": [
+    "artifacts/api-server/src/seeds/market-data-tables.ts",
+    "artifacts/api-server/src/seeds/reference-ranges.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
+    "lib/shared/src/constants-benchmarks.ts"
   ],
   "300": [
     "artifacts/api-server/src/ai/comparables/web-enricher.ts",
@@ -2014,6 +2078,7 @@
     "artifacts/api-server/src/routes/property-slides.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/engine/src/helpers/default-resolver.ts",
     "lib/shared/src/regulatory/profiles-europe.ts"
   ],
@@ -2022,6 +2087,7 @@
     "artifacts/api-server/src/pdf/chart-render.tsx",
     "artifacts/api-server/src/routes/rebecca.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/shared/src/constants-benchmarks.ts"
   ],
   "350": [
@@ -2034,6 +2100,7 @@
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/engine/src/helpers/default-resolver.ts"
   ],
   "360": [
@@ -2053,6 +2120,7 @@
     "artifacts/api-server/src/pdf/chart-render.tsx",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/shared/src/constants-benchmarks.ts"
   ],
   "400": [
@@ -2152,6 +2220,7 @@
     "artifacts/api-server/src/seeds/properties.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "artifacts/api-server/src/shared/market-intelligence-pipeline.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/engine/src/helpers/default-resolver.ts",
     "lib/shared/src/market-intelligence-pipeline.ts"
   ],
@@ -2447,7 +2516,8 @@
     "artifacts/api-server/src/pdf-styles.ts",
     "artifacts/api-server/src/routes/chat-prompts.ts",
     "artifacts/api-server/src/routes/chat.ts",
-    "artifacts/api-server/src/seeds/reference-ranges.ts"
+    "artifacts/api-server/src/seeds/reference-ranges.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts"
   ],
   "1024": [
     "artifacts/api-server/src/constants.ts",
@@ -2815,6 +2885,7 @@
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "artifacts/api-server/src/shared/constants.ts",
     "artifacts/api-server/src/shared/market-intelligence-pipeline.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/calc/src/analysis/reserves-brand-bundle.ts",
     "lib/engine/src/analyst/quality/quality-scorer.ts",
     "lib/shared/src/constants-benchmarks.ts",
@@ -3050,6 +3121,7 @@
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "artifacts/api-server/src/shared/constants.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/calc/src/validation/assumption-consistency.ts",
     "lib/shared/src/constants-benchmarks.ts",
     "lib/shared/src/constants.ts"
@@ -3157,6 +3229,7 @@
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "artifacts/api-server/src/shared/constants.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/shared/src/constants-benchmarks.ts",
     "lib/shared/src/constants-business-models.ts",
     "lib/shared/src/constants-funding.ts",
@@ -3173,6 +3246,7 @@
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "artifacts/api-server/src/storage/intelligence/constants/sources.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/shared/src/constants-benchmarks.ts",
     "lib/shared/src/constants-property-defaults-benchmarks.ts"
   ],
@@ -3300,8 +3374,15 @@
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/shared/src/constants-benchmarks.ts",
     "lib/shared/src/constants-property-defaults-benchmarks.ts"
+  ],
+  "0.62": [
+    "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-orchestrator-adapter.ts",
+    "artifacts/api-server/src/seeds/market-data-tables.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
+    "lib/shared/src/constants-benchmarks.ts"
   ],
   "0.55": [
     "artifacts/api-server/src/ai/guidance/extractor.ts",
@@ -3541,6 +3622,16 @@
     "artifacts/api-server/src/seeds/hospitality-benchmarks.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts"
   ],
+  "0.82": [
+    "artifacts/api-server/src/ai/analyst-table-refresh.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-company-orchestrator-adapter.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-compensation-orchestrator-adapter.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-overhead-orchestrator-adapter.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-orchestrator-adapter.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
+    "artifacts/api-server/src/seeds/property-data.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts"
+  ],
   "5.5": [
     "artifacts/api-server/src/ai/company-data-injector.ts",
     "artifacts/api-server/src/ai/kb-content.ts",
@@ -3571,14 +3662,6 @@
     "artifacts/api-server/src/ai/specialists/mgmt-co-company-orchestrator-adapter.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-orchestrator-adapter.ts",
     "artifacts/api-server/src/ai/specialists/property-risk-orchestrator-adapter.ts",
-    "artifacts/api-server/src/seeds/property-data.ts"
-  ],
-  "0.82": [
-    "artifacts/api-server/src/ai/specialists/mgmt-co-company-orchestrator-adapter.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-compensation-orchestrator-adapter.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-overhead-orchestrator-adapter.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-orchestrator-adapter.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
     "artifacts/api-server/src/seeds/property-data.ts"
   ],
   "1.8": [

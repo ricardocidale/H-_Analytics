@@ -20,6 +20,14 @@ author = "agent"
 task = "workflow.run"
 args = "check:spinner-contrast"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "check:replit-independence"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "check:magic-numbers"
+
 [[workflows.workflow]]
 name = "check:spinner-contrast"
 author = "agent"
@@ -27,6 +35,28 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:spinner-contrast"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "check:replit-independence"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:replit-independence"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "check:magic-numbers"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:magic-numbers"
 
 [workflows.workflow.metadata]
 isValidation = true
