@@ -2,7 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Sun, Moon, Monitor, Sparkles } from "lucide-react";
+import { IconMonitor, IconSparkles } from "@/components/icons";
+import { Sun, Moon } from "@/components/icons/themed-icons";
 
 type ColorModeDefault = "light" | "auto" | "dark";
 type BgAnimationDefault = "enabled" | "auto" | "disabled";
@@ -58,7 +59,7 @@ export function AppearanceDefaultsSection() {
       <CardHeader className="pb-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center">
-            <Monitor className="w-5 h-5 text-primary" />
+            <IconMonitor className="w-5 h-5 text-primary" />
           </div>
           <div>
             <CardTitle className="text-lg font-display text-foreground">Appearance Defaults</CardTitle>
@@ -74,7 +75,7 @@ export function AppearanceDefaultsSection() {
           <div className="grid grid-cols-3 gap-3">
             {([
               { value: "light" as ColorModeDefault, label: "Light", icon: Sun, preview: "bg-white border-border" },
-              { value: "auto" as ColorModeDefault, label: "Auto", icon: Monitor, preview: "bg-gradient-to-r from-white to-zinc-800 border-border" },
+              { value: "auto" as ColorModeDefault, label: "Auto", icon: IconMonitor, preview: "bg-gradient-to-r from-white to-zinc-800 border-border" },
               { value: "dark" as ColorModeDefault, label: "Dark", icon: Moon, preview: "bg-zinc-900 border-zinc-700" },
             ]).map(({ value, label, icon: Icon, preview }) => {
               const active = colorMode === value;
@@ -125,8 +126,8 @@ export function AppearanceDefaultsSection() {
           <Label className="text-foreground text-sm font-medium">Background Animation</Label>
           <div className="grid grid-cols-3 gap-3">
             {([
-              { value: "enabled" as BgAnimationDefault, label: "Enabled", icon: Sparkles },
-              { value: "auto" as BgAnimationDefault, label: "Auto", icon: Monitor },
+              { value: "enabled" as BgAnimationDefault, label: "Enabled", icon: IconSparkles },
+              { value: "auto" as BgAnimationDefault, label: "Auto", icon: IconMonitor },
               { value: "disabled" as BgAnimationDefault, label: "Disabled", icon: null },
             ]).map(({ value, label, icon: Icon }) => {
               const active = bgAnimation === value;

@@ -16,7 +16,7 @@ import {
   IconRefreshCw,
 } from "@/components/icons";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { Search } from "lucide-react";
+import { Search } from "@/components/icons/themed-icons";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { motion, AnimatePresence } from "framer-motion";

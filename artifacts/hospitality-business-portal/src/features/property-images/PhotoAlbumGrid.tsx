@@ -18,8 +18,8 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ImagePlus, Sparkles, Images, Trash2 } from "@/components/icons/themed-icons";
-import { LayoutGrid, GalleryHorizontal, FolderInput, CheckSquare, Square } from "lucide-react";
+import { ImagePlus, Sparkles, Images, Trash2, GalleryHorizontal, FolderInput, CheckSquare } from "@/components/icons/themed-icons";
+import { IconLayoutGrid, IconSquare } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
@@ -266,7 +266,7 @@ export function PhotoAlbumGrid({
                     : "bg-background text-muted-foreground hover:bg-muted"
                 )}
               >
-                <LayoutGrid className="w-3.5 h-3.5" />
+                <IconLayoutGrid className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => setViewMode("carousel")}
@@ -312,7 +312,7 @@ export function PhotoAlbumGrid({
               {selectedIds.size === photos.length && photos.length > 0 ? (
                 <CheckSquare className="w-3.5 h-3.5" />
               ) : (
-                <Square className="w-3.5 h-3.5" />
+                <IconSquare className="w-3.5 h-3.5" />
               )}
               {selectedIds.size === photos.length && photos.length > 0 ? "Clear selection" : "Select all"}
             </button>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, CheckCircle2, SkipForward } from "lucide-react";
+import { RefreshCw, CheckCircle2, SkipForward } from "@/components/icons/themed-icons";
 
 interface StaleWorkflow {
   id: number;

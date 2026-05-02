@@ -6,18 +6,8 @@ import { RelaxationTrailStepper, type RelaxationStep } from "./RelaxationTrailSt
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import {
-  ArrowDownRight,
-  ArrowUpRight,
-  Clock,
-  FileText,
-  RefreshCw,
-  Shield,
-  TrendingUp,
-  Lock,
-  X as XIcon,
-  Minus,
-} from "lucide-react";
+import { IconArrowUpRight, IconTrendingUp } from "@/components/icons";
+import { ArrowDownRight, Clock, FileText, RefreshCw, Shield, Lock, X as XIcon, Minus } from "@/components/icons/themed-icons";
 
 interface GuidanceRecord {
   id: number;
@@ -454,7 +444,7 @@ function ImpactTab({ record, currentValue }: { record: GuidanceRecord; currentVa
           <div className="text-center flex flex-col items-center">
             <div className="text-xs text-muted-foreground mb-1">Change</div>
             <div className={cn("text-base font-semibold flex items-center gap-0.5", isPositive ? "text-green-600" : "text-red-500")}>
-              {isPositive ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+              {isPositive ? <IconArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
               {deltaPct !== 0 ? `${Math.abs(deltaPct).toFixed(1)}%` : "—"}
             </div>
           </div>
@@ -466,7 +456,7 @@ function ImpactTab({ record, currentValue }: { record: GuidanceRecord; currentVa
       </div>
 
       <div className="rounded-md bg-muted/30 p-3 text-xs text-muted-foreground flex items-start gap-2">
-        <TrendingUp className="h-4 w-4 shrink-0 mt-0.5 text-accent-pop" />
+        <IconTrendingUp className="h-4 w-4 shrink-0 mt-0.5 text-accent-pop" />
         <div>
           Applying the recommended value would {isPositive ? "increase" : "decrease"} this assumption
           by <strong>{fmt(Math.abs(delta))}</strong>. Downstream metrics (NOI, GOP, cash flow) will recalculate

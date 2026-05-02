@@ -10,7 +10,10 @@ import {
 } from "../ai/specialists/mgmt-co-funding-runner";
 import { getCannedLpComparables } from "../ai/specialists/mgmt-co-funding-orchestrator-adapter";
 import { withFundingDefaults } from "../finance/apply-funding-defaults";
-import type { FundingPromptInputContext } from "../ai/specialists/mgmt-co-funding-prompt-input-builder";
+import type {
+  FundingPromptInputContext,
+  ReferenceBrandSummary,
+} from "../ai/specialists/mgmt-co-funding-prompt-input-builder";
 import type { CapitalRaiseInputs } from "@engine/watchdog/capitalRaiseEvaluator";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 import { DEFAULT_RUNWAY_NEED_MONTHS_PLACEHOLDER } from "@shared/constants-funding";
@@ -601,12 +604,26 @@ async function runFundingV1Path(userId: number) {
     runwayNeedMonths: DEFAULT_RUNWAY_NEED_MONTHS_PLACEHOLDER,
   };
 
+  // Fetch reference brands and project to the slim summary shape. The
+  // builder (ADR-007) owns no DB imports, so the route does the mapping.
+  const rawBrands = await storage.getReferenceBrands();
+  const referenceBrands: ReferenceBrandSummary[] = rawBrands.map((b) => ({
+    brandName: b.brandName,
+    niche: b.niche ?? null,
+    adrUsd: b.adrUsd ?? null,
+    occupancyPct: b.occupancyPct ?? null,
+    revparUsd: b.revparUsd ?? null,
+    propertyCount: b.propertyCount ?? null,
+    geographicFocus: b.geographicFocus ?? null,
+  }));
+
   const ctx: FundingPromptInputContext = {
     inputs,
     persona,
     portfolio,
     icpModel,
     priorVerdicts: [], // v1: no composition; G6-P3 wires verdict-cache reads
+    referenceBrands: referenceBrands.length > 0 ? referenceBrands : undefined,
   };
 
   const comparables = getCannedLpComparables();

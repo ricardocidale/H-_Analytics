@@ -11,7 +11,8 @@ import {
   MAX_RAG_CONTEXT_CHARS,
   KB_MIN_CONFIDENCE,
 } from "../constants";
-import { extractMethodologyContent, extractVerificationManualContent, extractPlatformGuide } from "./kb-content";
+import { extractMethodologyContent, extractVerificationManualContent, extractPlatformGuide, buildReferenceBrandsKbDoc } from "./kb-content";
+import { storage } from "../storage";
 import { isVectorStoreAvailable, upsertChunks, queryChunks, vectorCount } from "./vector-store-service";
 
 const EMBEDDING_MODEL = "text-embedding-3-small";
@@ -150,6 +151,19 @@ export async function indexKnowledgeBase(): Promise<{ chunksIndexed: number; tim
 
     const assetChunks = await loadAttachedAssets();
     allChunks.push(...assetChunks);
+
+    // reference_brands — curated boutique brand comp-set data indexed so
+    // Rebecca can surface brand benchmarks via semantic search. Fetched from
+    // storage here (not in kb-content.ts) to keep the formatter pure.
+    try {
+      const refBrands = await storage.getReferenceBrands();
+      if (refBrands.length > 0) {
+        allChunks.push(...buildReferenceBrandsKbDoc(refBrands));
+        logger.info(`KB: added ${refBrands.length} reference brand chunks`, "knowledge-base");
+      }
+    } catch (err: unknown) {
+      logger.warn(`KB: reference brands fetch failed — skipping (${String(err)})`, "knowledge-base");
+    }
 
     logger.info(`${allChunks.length} chunks extracted, generating embeddings...`, "knowledge-base");
 

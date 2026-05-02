@@ -8,7 +8,8 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Archive, Pencil, Plus, RotateCcw, Sparkles } from "lucide-react";
+import { IconPencil, IconPlus, IconSparkles } from "@/components/icons";
+import { Archive, RotateCcw } from "@/components/icons/themed-icons";
 import { Card } from "@/components/ui/card";
 import {
   Select,
@@ -472,7 +473,7 @@ export default function ReferenceRangesTab() {
                   onClick={openCreate}
                   data-testid="button-new-range"
                 >
-                  <Plus className="h-3.5 w-3.5 mr-1.5" />
+                  <IconPlus className="h-3.5 w-3.5 mr-1.5" />
                   New Range
                 </Button>
                 <Button
@@ -482,7 +483,7 @@ export default function ReferenceRangesTab() {
                   disabled={analystStep !== null}
                   data-testid="button-ask-analyst"
                 >
-                  <Sparkles className="h-3.5 w-3.5 mr-1.5 text-primary-foreground" />
+                  <IconSparkles className="h-3.5 w-3.5 mr-1.5 text-primary-foreground" />
                   Ask The Analyst
                 </Button>
               </div>
@@ -506,7 +507,7 @@ export default function ReferenceRangesTab() {
               role="status"
               aria-live="polite"
             >
-              <Sparkles
+              <IconSparkles
                 className={`h-3.5 w-3.5 text-primary ${analystBusy ? "animate-pulse" : ""}`}
               />
               <span data-testid={`text-analyst-step-${analystStep}`}>
@@ -522,7 +523,7 @@ export default function ReferenceRangesTab() {
               role="status"
               aria-live="polite"
             >
-              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+              <IconSparkles className="h-3.5 w-3.5 text-amber-500" />
               <span data-testid="text-analyst-error">{analystError}</span>
             </div>
           )}
@@ -737,7 +738,7 @@ export default function ReferenceRangesTab() {
                               aria-label="Edit"
                               data-testid={`button-edit-${row.id}`}
                             >
-                              <Pencil className="h-3.5 w-3.5" />
+                              <IconPencil className="h-3.5 w-3.5" />
                             </Button>
                             <Button
                               size="icon"

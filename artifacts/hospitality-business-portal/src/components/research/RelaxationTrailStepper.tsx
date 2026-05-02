@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { CheckCircle2, Circle, ChevronDown, ChevronUp } from "lucide-react";
+import { CheckCircle2, Circle, ChevronDown, ChevronUp } from "@/components/icons/themed-icons";
 import * as React from "react";
 
 interface RelaxationStep {

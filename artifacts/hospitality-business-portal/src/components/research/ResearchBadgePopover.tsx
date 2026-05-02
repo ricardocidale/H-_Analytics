@@ -7,7 +7,7 @@ import {
 import { ResearchBadge, type ResearchBadgeProps } from "@/components/ui/research-badge";
 import { usePanelManager, type GuidanceContext } from "@/lib/panel-manager";
 import { cn } from "@/lib/utils";
-import { BarChart3, MessageCircle, Zap } from "lucide-react";
+import { IconBarChart3, IconMessageCircle, IconZap } from "@/components/icons";
 
 interface ResearchBadgePopoverProps extends ResearchBadgeProps {
   guidanceContext?: GuidanceContext;
@@ -76,7 +76,7 @@ function ResearchBadgePopover({
       >
         <div className="flex flex-col gap-0.5">
           <PopoverAction
-            icon={<Zap className="h-3.5 w-3.5" />}
+            icon={<IconZap className="h-3.5 w-3.5" />}
             label="Apply Value"
             description="Use recommended midpoint"
             onClick={handleApply}
@@ -84,7 +84,7 @@ function ResearchBadgePopover({
           />
           {guidanceContext && (
             <PopoverAction
-              icon={<BarChart3 className="h-3.5 w-3.5" />}
+              icon={<IconBarChart3 className="h-3.5 w-3.5" />}
               label="View Details"
               description="Range, comps & provenance"
               onClick={handleViewDetails}
@@ -92,7 +92,7 @@ function ResearchBadgePopover({
             />
           )}
           <PopoverAction
-            icon={<MessageCircle className="h-3.5 w-3.5" />}
+            icon={<IconMessageCircle className="h-3.5 w-3.5" />}
             label="Ask Rebecca"
             description="Get conversational guidance"
             onClick={handleAskRebecca}

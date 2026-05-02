@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
-import { TrendingUp, TrendingDown, Minus, Lightbulb, Clock } from "lucide-react";
+import { IconTrendingUp, IconTrendingDown } from "@/components/icons";
+import { Minus, Lightbulb, Clock } from "@/components/icons/themed-icons";
 import type {
   StatBlockData,
   CompareBlockData,
@@ -27,10 +28,10 @@ function deltaIcon(delta?: string) {
   if (!delta) return null;
   const lower = delta.toLowerCase();
   if (lower.includes("+") || lower.includes("up") || lower.includes("↑")) {
-    return <TrendingUp className="w-3 h-3 text-emerald-500" />;
+    return <IconTrendingUp className="w-3 h-3 text-emerald-500" />;
   }
   if (lower.includes("-") || lower.includes("down") || lower.includes("↓")) {
-    return <TrendingDown className="w-3 h-3 text-red-400" />;
+    return <IconTrendingDown className="w-3 h-3 text-red-400" />;
   }
   return <Minus className="w-3 h-3 text-muted-foreground" />;
 }

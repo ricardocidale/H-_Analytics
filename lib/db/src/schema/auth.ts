@@ -43,7 +43,7 @@ export const VALID_USER_ROLES = ["super_admin", "admin", "user"] as const;
 export type UserRole = typeof VALID_USER_ROLES[number];
 
 export const insertUserSchema = z.object({
-  email: z.string(),
+  email: z.string().email(),
   passwordHash: z.string().nullable().optional(),
   role: z.enum(VALID_USER_ROLES).optional().default("user"),
   firstName: z.string().nullable().optional(),

@@ -11,7 +11,7 @@ import { Loader2 } from "@/components/icons/themed-icons";
 import { IconMail, IconSend, IconTrash } from "@/components/icons";
 import { UserRole } from "@shared/constants";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { IconAlertCircle, IconCheckCircle2, IconXCircle } from "@/components/icons";
 
 interface InviteResult {
   email: string;
@@ -153,7 +153,7 @@ export default function InviteUsersDialog({
                     animate={{ scale: [1, 1.8, 1.5] }}
                     transition={{ delay: 0.3, duration: 0.8, ease: "easeOut" }}
                   />
-                  <CheckCircle2 className="w-16 h-16 text-emerald-500 relative z-10" />
+                  <IconCheckCircle2 className="w-16 h-16 text-emerald-500 relative z-10" />
                 </div>
               </motion.div>
 
@@ -193,9 +193,9 @@ export default function InviteUsersDialog({
                       transition={{ delay: 0.7 + i * 0.08, duration: 0.25 }}
                       data-testid={`invite-result-${r.email}`}
                     >
-                      {r.status === "created" && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
-                      {r.status === "existing" && <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />}
-                      {r.status === "failed" && <XCircle className="w-4 h-4 text-destructive shrink-0" />}
+                      {r.status === "created" && <IconCheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
+                      {r.status === "existing" && <IconAlertCircle className="w-4 h-4 text-amber-500 shrink-0" />}
+                      {r.status === "failed" && <IconXCircle className="w-4 h-4 text-destructive shrink-0" />}
                       <span className="truncate flex-1">{r.email}</span>
                       <Badge
                         variant={r.status === "created" ? "default" : r.status === "existing" ? "secondary" : "destructive"}

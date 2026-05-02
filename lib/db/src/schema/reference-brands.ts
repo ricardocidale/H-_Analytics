@@ -18,6 +18,7 @@
 import { pgTable, text, real, integer, timestamp, jsonb, boolean, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { researchRuns } from "./intelligence-v2";
 
 export const referenceBrands = pgTable("reference_brands", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
@@ -59,12 +60,13 @@ export const referenceBrands = pgTable("reference_brands", {
   // ── Lifecycle ─────────────────────────────────────────────────
   lastRefreshedAt: timestamp("last_refreshed_at"),
   /** research_runs.id for the run that last replaced this row. */
-  refreshedByRunId: integer("refreshed_by_run_id"),
+  refreshedByRunId: integer("refreshed_by_run_id").references(() => researchRuns.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   index("reference_brands_name_idx").on(table.brandName),
   index("reference_brands_refreshed_idx").on(table.lastRefreshedAt),
+  index("reference_brands_refreshed_by_run_id_idx").on(table.refreshedByRunId),
 ]);
 
 export const insertReferenceBrandSchema = createInsertSchema(referenceBrands).pick({

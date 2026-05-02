@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { motion, AnimatePresence } from "framer-motion";
-import { Lightbulb, X, MessageCircle } from "lucide-react";
+import { Lightbulb, X } from "@/components/icons/themed-icons";
+import { IconMessageCircle } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { RebeccaAvatar } from "./RebeccaAvatar";
 import { cn } from "@/lib/utils";
@@ -114,7 +115,7 @@ export function RebeccaInsightBanner({ onAskRebecca, className }: RebeccaInsight
                     className="h-6 px-2 mt-1 text-[11px] text-primary hover:text-primary gap-1"
                     data-testid="button-insight-ask"
                   >
-                    <MessageCircle className="w-3 h-3" />
+                    <IconMessageCircle className="w-3 h-3" />
                     Ask Rebecca about this
                   </Button>
                 )}

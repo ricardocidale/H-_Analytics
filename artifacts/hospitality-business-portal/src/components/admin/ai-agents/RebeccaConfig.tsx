@@ -1,5 +1,5 @@
 import { useState, useEffect, type ComponentType } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown } from "@/components/icons/themed-icons";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";

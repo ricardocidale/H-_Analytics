@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { usePanelManager } from "@/lib/panel-manager";
@@ -9,19 +9,17 @@ import { RebeccaMarkdown } from "./RebeccaMarkdown";
 import { RebeccaInsightBanner, useRebeccaInsightStore } from "./RebeccaInsightBanner";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { IconHistory, IconZap, IconBookOpen } from "@/components/icons";
 import {
   ArrowUp,
   PanelRightClose,
   SquarePen,
   Mail,
   TriangleAlert,
-  History,
-  Zap,
   AlignLeft,
-  BookOpen,
   ChevronRight,
   ChevronsLeft,
-} from "lucide-react";
+} from "@/components/icons/themed-icons";
 import { RebeccaEmailPreview } from "./RebeccaEmailPreview";
 import { RebeccaFeedbackForm } from "./RebeccaFeedbackForm";
 import { RebeccaConversationHistory } from "./RebeccaConversationHistory";
@@ -55,10 +53,10 @@ function nextMsgId(role: string) {
 
 type ResponseMode = "concise" | "standard" | "detailed";
 
-const RESPONSE_MODES: { value: ResponseMode; label: string; icon: typeof Zap; tip: string }[] = [
-  { value: "concise", label: "Concise", icon: Zap, tip: "Quick, to-the-point answers" },
+const RESPONSE_MODES: { value: ResponseMode; label: string; icon: React.ElementType; tip: string }[] = [
+  { value: "concise", label: "Concise", icon: IconZap, tip: "Quick, to-the-point answers" },
   { value: "standard", label: "Standard", icon: AlignLeft, tip: "Balanced analysis" },
-  { value: "detailed", label: "Detailed", icon: BookOpen, tip: "Deep-dive analysis" },
+  { value: "detailed", label: "Detailed", icon: IconBookOpen, tip: "Deep-dive analysis" },
 ];
 
 function getStoredMode(): ResponseMode {
@@ -504,7 +502,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                 aria-label="Conversation history"
                 data-testid="button-rebecca-history"
               >
-                <History className="w-3.5 h-3.5" />
+                <IconHistory className="w-3.5 h-3.5" />
               </Button>
 
               {/* Contextual: email summary + report issue */}

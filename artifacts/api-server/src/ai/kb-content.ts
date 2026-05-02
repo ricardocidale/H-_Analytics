@@ -1,3 +1,5 @@
+import type { ReferenceBrand } from "@workspace/db";
+
 export interface KBChunk {
   title: string;
   content: string;
@@ -693,6 +695,77 @@ All benchmark values are stored in benchmark_snapshots and refreshed periodicall
     source: "Platform Guide",
     category: "guide",
   });
+
+  return chunks;
+}
+
+/**
+ * Format the reference_brands table rows into KB chunks for vector indexing.
+ *
+ * Pure function — no I/O. The caller (indexKnowledgeBase) fetches brands from
+ * storage and passes them here. This keeps kb-content.ts free of runtime deps.
+ *
+ * Produces two chunks:
+ *   1. A compact markdown table of all brands (for broad comp-set queries)
+ *   2. One chunk per brand with full narrative detail (for targeted brand lookups)
+ */
+export function buildReferenceBrandsKbDoc(brands: ReferenceBrand[]): KBChunk[] {
+  if (brands.length === 0) return [];
+
+  const chunks: KBChunk[] = [];
+
+  const fmtPct = (v: number | null) => (v != null ? `${(v * 100).toFixed(0)}%` : "n/a");
+  const fmtUsd = (v: number | null) => (v != null ? `$${v.toLocaleString("en-US")}` : "n/a");
+
+  const tableRows = brands
+    .map(
+      (b) =>
+        `| ${b.brandName} | ${b.niche ?? "n/a"} | ${b.propertyCount ?? "?"} props | ${fmtUsd(b.adrUsd)} ADR | ${fmtPct(b.occupancyPct)} occ | ${fmtUsd(b.revparUsd)} RevPAR | ${b.geographicFocus ?? "n/a"} |`,
+    )
+    .join("\n");
+
+  chunks.push({
+    title: "Reference Hospitality Brands — Comp Set Overview",
+    content: `The platform maintains a curated database of ${brands.length} boutique and lifestyle hospitality brands for competitive benchmarking. Use this table to anchor ADR, occupancy, RevPAR, and positioning analysis.
+
+| Brand | Niche | Scale | ADR | Occupancy | RevPAR | Markets |
+|---|---|---|---|---|---|---|
+${tableRows}
+
+These brands are refreshed periodically by the Analyst research system. Data year varies by brand — use as orientation-grade benchmarks, not audited figures.`,
+    source: "reference_brands",
+    category: "reference",
+  });
+
+  for (const b of brands) {
+    const lines: string[] = [
+      `**${b.brandName}**`,
+      b.positioningSummary ? `Positioning: ${b.positioningSummary}` : null,
+      b.guestSegment ? `Guest segment: ${b.guestSegment}` : null,
+      b.niche ? `Niche: ${b.niche}` : null,
+      b.geographicFocus ? `Markets: ${b.geographicFocus}` : null,
+      b.ownershipModel ? `Ownership: ${b.ownershipModel}` : null,
+      b.propertyCount != null ? `Properties: ${b.propertyCount}` : null,
+      b.keyCountMin != null || b.keyCountMax != null
+        ? `Key count range: ${b.keyCountMin ?? "?"} – ${b.keyCountMax ?? "?"}`
+        : null,
+      b.adrUsd != null ? `ADR: ${fmtUsd(b.adrUsd)}` : null,
+      b.occupancyPct != null ? `Occupancy: ${fmtPct(b.occupancyPct)}` : null,
+      b.revparUsd != null ? `RevPAR: ${fmtUsd(b.revparUsd)}` : null,
+      b.revenueRangeLowUsd != null || b.revenueRangeHighUsd != null
+        ? `Revenue range: ${fmtUsd(b.revenueRangeLowUsd)} – ${fmtUsd(b.revenueRangeHighUsd)}`
+        : null,
+      b.acquisitionContext ? `M&A / funding: ${b.acquisitionContext}` : null,
+      b.description ? `\n${b.description}` : null,
+    ].filter(Boolean) as string[];
+
+    chunks.push({
+      title: `Reference Brand: ${b.brandName}`,
+      content: lines.join("\n"),
+      source: "reference_brands",
+      category: "reference",
+    });
+  }
 
   return chunks;
 }

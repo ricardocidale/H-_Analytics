@@ -1,4 +1,4 @@
-import { Sparkles } from "lucide-react";
+import { IconSparkles } from "@/components/icons";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import {
   Tooltip,
@@ -96,7 +96,7 @@ export function AnalystActionButton({
                 className,
               )}
             >
-              <Sparkles
+              <IconSparkles
                 className={cn(
                   "h-4 w-4",
                   running && "animate-pulse",

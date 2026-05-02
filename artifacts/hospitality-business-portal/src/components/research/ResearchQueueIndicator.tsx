@@ -1,6 +1,7 @@
 import { useResearchQueue } from "@/lib/research-queue";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, Clock, CheckCircle } from "lucide-react";
+import { IconCheckCircle } from "@/components/icons";
+import { Loader2, Clock } from "@/components/icons/themed-icons";
 import { cn } from "@/lib/utils";
 
 interface ResearchQueueIndicatorProps {
@@ -53,7 +54,7 @@ export function ResearchQueueIndicator({ className }: ResearchQueueIndicatorProp
         )}
         {activeItems.length === 0 && queuedItems.length === 0 && recentComplete.length > 0 && (
           <>
-            <CheckCircle className="w-3 h-3" />
+            <IconCheckCircle className="w-3 h-3" />
             <span>{recentComplete.length} complete</span>
           </>
         )}

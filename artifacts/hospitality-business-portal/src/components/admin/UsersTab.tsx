@@ -4,8 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconUserPlus, IconSend } from "@/components/icons";
-import { HelpCircle } from "lucide-react";
+import { IconUserPlus, IconSend, IconHelpCircle } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminUsers } from "./hooks";
 import { useAuth } from "@/lib/auth";
@@ -230,7 +229,7 @@ export default function UsersTab() {
               <CardTitle className="text-base font-semibold text-foreground">User Management</CardTitle>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <HelpCircle className="w-4 h-4 text-muted-foreground/50 cursor-help" />
+                  <IconHelpCircle className="w-4 h-4 text-muted-foreground/50 cursor-help" />
                 </TooltipTrigger>
                 <TooltipContent side="right" className="text-xs max-w-[280px]">
                   Only users listed here can log in. There is no public sign-up — every user must be added or invited by an admin. Hover over role badges and icons on each card to learn what they do.

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Download, Presentation, Loader2, AlertCircle, CheckCircle2, ExternalLink } from "lucide-react";
+import { IconDownload, IconPresentation, IconAlertCircle, IconCheckCircle2, IconExternalLink } from "@/components/icons";
+import { Loader2 } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -207,7 +208,7 @@ function SlideStatusBadge({ slide }: { slide: SlideStatus | undefined }) {
   if (slide.status === "error") {
     return (
       <span className="flex items-center gap-1 text-[11px] text-destructive" title={slide.errorMessage ?? undefined}>
-        <AlertCircle className="h-3 w-3" />
+        <IconAlertCircle className="h-3 w-3" />
         Error — click Analyst to retry
       </span>
     );
@@ -215,7 +216,7 @@ function SlideStatusBadge({ slide }: { slide: SlideStatus | undefined }) {
   if (slide.status === "ready") {
     return (
       <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-        <CheckCircle2 className="h-3 w-3 text-green-500" />
+        <IconCheckCircle2 className="h-3 w-3 text-green-500" />
         Generated {formatGeneratedAt(slide.generatedAt)}{formatBytes(slide.fileSizeBytes)}
       </span>
     );
@@ -375,7 +376,7 @@ export default function SlideDecksTab() {
   if (propsError || !properties) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground">
-        <AlertCircle className="h-8 w-8 text-destructive" />
+        <IconAlertCircle className="h-8 w-8 text-destructive" />
         <p>Failed to load properties. Reload the page to try again.</p>
       </div>
     );
@@ -384,7 +385,7 @@ export default function SlideDecksTab() {
   if (properties.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground">
-        <Presentation className="h-10 w-10 opacity-30" />
+        <IconPresentation className="h-10 w-10 opacity-30" />
         <p className="text-sm">No properties found. Add a property to generate slides.</p>
       </div>
     );
@@ -450,9 +451,9 @@ export default function SlideDecksTab() {
                     {dlState === "loading" ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     ) : dlState === "done" ? (
-                      <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                      <IconCheckCircle2 className="h-3.5 w-3.5 text-green-500" />
                     ) : (
-                      <Download className="h-3.5 w-3.5" />
+                      <IconDownload className="h-3.5 w-3.5" />
                     )}
                     {dlState === "loading" ? "Saving…" : dlState === "done" ? "Saved" : "Download"}
                   </Button>
@@ -465,7 +466,7 @@ export default function SlideDecksTab() {
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors py-0.5"
                 >
-                  <ExternalLink className="h-3 w-3" />
+                  <IconExternalLink className="h-3 w-3" />
                   View slides
                 </a>
               </CardContent>

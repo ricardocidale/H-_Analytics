@@ -1,6 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronRight, Diamond } from "lucide-react";
+import { ChevronDown, ChevronRight, Diamond } from "@/components/icons/themed-icons";
 
 interface BenchmarkMetric {
   key: string;

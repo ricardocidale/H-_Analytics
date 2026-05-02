@@ -28,7 +28,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Check } from "lucide-react";
+import { Check } from "@/components/icons/themed-icons";
 import { IconSparkles } from "@/components/icons";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { useUpdateAdminConfig } from "@/lib/api";

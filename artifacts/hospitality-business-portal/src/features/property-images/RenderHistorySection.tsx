@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, History, Loader2, AlertCircle, CheckCircle2, XCircle, RefreshCw } from "lucide-react";
+import { IconHistory, IconAlertCircle, IconRefreshCw } from "@/components/icons";
+import { ChevronDown, ChevronRight, Loader2, CheckCircle2, XCircle } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -97,7 +98,7 @@ export function RenderHistorySection({ propertyId, className }: RenderHistorySec
       >
         <div className="flex items-center gap-2">
           {open ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
-          <History className="w-4 h-4 text-primary" />
+          <IconHistory className="w-4 h-4 text-primary" />
           <span className="text-sm font-semibold">Render history</span>
           {open && runs.length > 0 && (
             <span className="text-xs text-muted-foreground" data-testid="text-render-count">
@@ -124,7 +125,7 @@ export function RenderHistorySection({ propertyId, className }: RenderHistorySec
               disabled={isFetching}
               data-testid="button-refresh-render-history"
             >
-              <RefreshCw className={cn("w-3 h-3", isFetching && "animate-spin")} />
+              <IconRefreshCw className={cn("w-3 h-3", isFetching && "animate-spin")} />
               Refresh
             </Button>
           </div>
@@ -136,7 +137,7 @@ export function RenderHistorySection({ propertyId, className }: RenderHistorySec
             </div>
           ) : error ? (
             <div className="flex items-center gap-2 py-3 text-xs text-red-600" data-testid="state-render-history-error">
-              <AlertCircle className="w-3.5 h-3.5" />
+              <IconAlertCircle className="w-3.5 h-3.5" />
               {error instanceof Error ? error.message : "Failed to load render history"}
             </div>
           ) : runs.length === 0 ? (

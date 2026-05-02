@@ -2,7 +2,8 @@ import * as React from "react";
 import { ResearchBadgePopover } from "./ResearchBadgePopover";
 import { RangeIndicator } from "./RangeIndicator";
 import { cn } from "@/lib/utils";
-import { Lock, AlertCircle } from "lucide-react";
+import { IconAlertCircle } from "@/components/icons";
+import { Lock } from "@/components/icons/themed-icons";
 import type { GuidanceContext } from "@/lib/panel-manager";
 import type { ResearchBadgeProps } from "@/components/ui/research-badge";
 
@@ -61,7 +62,7 @@ function ResearchContextFieldLabel({
 
         {state === "stale" && (
           <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-amber-600 bg-amber-50 dark:bg-amber-500/10 dark:text-amber-400 px-1.5 py-0.5 rounded" data-testid="state-stale">
-            <AlertCircle className="h-2.5 w-2.5" />
+            <IconAlertCircle className="h-2.5 w-2.5" />
             Stale
           </span>
         )}

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ImageIcon } from "lucide-react";
+import { ImageIcon } from "@/components/icons/themed-icons";
 import { cn } from "@/lib/utils";
 import type { Components } from "react-markdown";
 import { parseRichBlocks } from "./rich-block-parser";

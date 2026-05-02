@@ -2,8 +2,9 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { loadSkill, loadToolDefinitions, validateSkillFolders } from "./research-resources.js";
 import { buildUserPrompt } from "./research-prompt-builders.js";
-import { handleToolCall } from "./research-tool-prompts.js";
+import { handleToolCall, type ResearchToolDeps } from "./research-tool-prompts.js";
 import type { ResearchClient } from "./research-client.js";
+import { storage } from "../storage.js";
 
 export type { ResearchParams } from "./research-prompt-builders.js";
 
@@ -53,8 +54,11 @@ export async function* generateResearchWithToolsStream(
       break;
     }
 
+    const deps: ResearchToolDeps = {
+      getReferenceBrands: () => storage.getReferenceBrands(),
+    };
     const results = await Promise.all(
-      response.toolCalls.map((tc) => handleToolCall(tc.name, tc.input))
+      response.toolCalls.map((tc) => handleToolCall(tc.name, tc.input, deps))
     );
 
     const newMessages = client.buildToolResultMessage(

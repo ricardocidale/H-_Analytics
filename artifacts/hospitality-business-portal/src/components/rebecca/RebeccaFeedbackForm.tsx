@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Loader2, CheckCircle2, AlertTriangle } from "@/components/icons/themed-icons";
 import { useToast } from "@/hooks/use-toast";
 
 const CATEGORIES = [

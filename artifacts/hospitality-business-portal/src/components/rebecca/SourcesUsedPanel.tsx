@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown } from "@/components/icons/themed-icons";
 
 export type ChatSourceUsed = {
   title: string;

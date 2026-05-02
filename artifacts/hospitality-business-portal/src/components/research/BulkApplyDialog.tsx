@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { Check, Undo2 } from "lucide-react";
+import { Check, Undo2 } from "@/components/icons/themed-icons";
 import { useToast } from "@/hooks/use-toast";
 
 interface GuidanceItem {

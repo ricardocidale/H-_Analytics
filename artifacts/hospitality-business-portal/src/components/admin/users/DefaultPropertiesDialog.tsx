@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { useToast } from "@/hooks/use-toast";
 import { useProperties } from "@/lib/api";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight } from "@/components/icons/themed-icons";
 
 interface DefaultPropertiesDialogProps {
   open: boolean;

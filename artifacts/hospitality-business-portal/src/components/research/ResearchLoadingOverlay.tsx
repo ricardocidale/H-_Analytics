@@ -1,18 +1,19 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Loader2, TrendingUp, BarChart3, Building2, Search, Database, Brain, Globe, Zap } from "lucide-react";
+import { IconTrendingUp, IconBarChart3, IconBuilding2, IconDatabase, IconBrain, IconGlobe, IconZap } from "@/components/icons";
+import { Loader2, Search } from "@/components/icons/themed-icons";
 import { ThinkingRing, StreamPulse } from "@/components/ui/ai-loader";
 
 const RESEARCH_TIPS = [
-  { icon: TrendingUp, text: "Studying market trends and comparable properties..." },
-  { icon: BarChart3, text: "Cross-referencing industry benchmarks..." },
-  { icon: Building2, text: "Reviewing how similar properties perform..." },
+  { icon: IconTrendingUp, text: "Studying market trends and comparable properties..." },
+  { icon: IconBarChart3, text: "Cross-referencing industry benchmarks..." },
+  { icon: IconBuilding2, text: "Reviewing how similar properties perform..." },
   { icon: Search, text: "Checking recent transactions in your market..." },
-  { icon: Database, text: "Weighing multiple data sources..." },
-  { icon: Brain, text: "Getting a second opinion from independent sources..." },
-  { icon: Globe, text: "Pulling current macro rates from FRED..." },
-  { icon: Zap, text: "Forming a view on your assumptions..." },
+  { icon: IconDatabase, text: "Weighing multiple data sources..." },
+  { icon: IconBrain, text: "Getting a second opinion from independent sources..." },
+  { icon: IconGlobe, text: "Pulling current macro rates from FRED..." },
+  { icon: IconZap, text: "Forming a view on your assumptions..." },
 ];
 
 interface ResearchLoadingOverlayProps {
@@ -71,7 +72,7 @@ function PulsingOrb() {
         animate={{ scale: [0.95, 1.08, 0.95] }}
         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
       >
-        <Brain className="w-5 h-5 text-accent-pop" />
+        <IconBrain className="w-5 h-5 text-accent-pop" />
       </motion.div>
     </div>
   );

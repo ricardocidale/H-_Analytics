@@ -4,7 +4,7 @@
  * volume in the last hour. The banner is informational; it doesn't block
  * the admin from continuing.
  */
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "@/components/icons/themed-icons";
 
 export default function SuspiciousActivityBanner({ active }: { active: boolean }) {
   if (!active) return null;

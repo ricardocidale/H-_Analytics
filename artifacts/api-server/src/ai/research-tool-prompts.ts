@@ -1,4 +1,17 @@
 import { executeComputationTool } from "@calc/dispatch";
+import type { ReferenceBrand } from "@workspace/db";
+
+/**
+ * Optional dependency injection for async data sources.
+ *
+ * handleToolCall is historically pure (prompt builders + compute tools).
+ * `get_reference_brands` needs live DB data; we receive a fetcher via deps
+ * so the caller controls the storage layer and this module stays import-free
+ * of the server runtime. Legacy callers omit deps and get a graceful fallback.
+ */
+export interface ResearchToolDeps {
+  getReferenceBrands?: () => Promise<ReferenceBrand[]>;
+}
 
 type ToolPromptBuilder = (input: Record<string, any>) => string;
 
@@ -52,7 +65,24 @@ const TOOL_PROMPTS: Record<string, ToolPromptBuilder> = {
     `Marketing context: ${input.location}, property level: ${input.property_level || "luxury"}. Research hospitality marketing costs, digital spend, OTA commissions, and direct booking costs for this property level. Provide marketingCostRate as % of total revenue.`,
 };
 
-export async function handleToolCall(name: string, input: Record<string, any>): Promise<string> {
+export async function handleToolCall(
+  name: string,
+  input: Record<string, any>,
+  deps?: ResearchToolDeps,
+): Promise<string> {
+  // get_reference_brands — live DB data via DI fetcher; no DB import here.
+  // Legacy callers omit deps and get a graceful "not available" fallback.
+  if (name === "get_reference_brands") {
+    if (!deps?.getReferenceBrands) {
+      return "Reference brand data is not available in this research context. Proceed with general market knowledge.";
+    }
+    const brands = await deps.getReferenceBrands();
+    if (brands.length === 0) {
+      return "No reference brands have been configured yet. Proceed with general market knowledge.";
+    }
+    return JSON.stringify(brands, null, 2);
+  }
+
   // Web search — calls external API, requires async
   if (name === "web_search") {
     const { webSearch } = await import("../data/webSearch.js");

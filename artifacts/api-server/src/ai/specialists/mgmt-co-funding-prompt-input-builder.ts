@@ -160,6 +160,25 @@ export interface PriorVerdictRef {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// Reference brand summary (local copy — ADR-007 §1: no DB imports here)
+
+/**
+ * Slim summary of a reference brand for prompt injection.
+ * Fields are a subset of `ReferenceBrand` from `@workspace/db`, mapped by
+ * the route layer before passing into the context. Keeping this local keeps
+ * the builder import-free of the server runtime per ADR-007.
+ */
+export interface ReferenceBrandSummary {
+  brandName: string;
+  niche: string | null;
+  adrUsd: number | null;
+  occupancyPct: number | null;
+  revparUsd: number | null;
+  propertyCount: number | null;
+  geographicFocus: string | null;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // Prompt-input pack
 
 export interface FundingPromptInputContext {
@@ -170,6 +189,12 @@ export interface FundingPromptInputContext {
   icpModel?: IcpModelProfile | null;
   /** Composition references; empty in G1's first run. */
   priorVerdicts?: readonly PriorVerdictRef[];
+  /**
+   * Curated reference brand comp-set from the platform database.
+   * Orientation-grade — the Prompt Engineer must propagate the
+   * referenceDisclaimer so the LLM stage doesn't over-weight these figures.
+   */
+  referenceBrands?: readonly ReferenceBrandSummary[];
 }
 
 export interface FundingPromptInput {
@@ -186,6 +211,12 @@ export interface FundingPromptInput {
   priorVerdicts: readonly PriorVerdictRef[];
   /** Specialist intent string consumed verbatim by the Prompt Engineer. */
   intent: string;
+  /**
+   * Reference brand comp-set passed from the route layer.
+   * Undefined when none are configured. Prompt Engineer must apply the
+   * orientation-grade disclaimer when surfacing these to the LLM.
+   */
+  referenceBrands?: readonly ReferenceBrandSummary[];
 }
 
 const FUNDING_INTENT =
@@ -210,6 +241,7 @@ export function buildFundingPromptInput(
     currentValues,
     priorVerdicts: ctx.priorVerdicts ?? [],
     intent: FUNDING_INTENT,
+    referenceBrands: ctx.referenceBrands,
   };
 }
 

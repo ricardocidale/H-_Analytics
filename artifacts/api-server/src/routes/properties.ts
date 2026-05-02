@@ -22,6 +22,7 @@ import { isAdminRole } from "@shared/constants";
 import { invalidateComputeCache } from "../finance/cache";
 import { buildPropertyDefaultsFromRegistry } from "@shared/field-registry";
 import { logger } from "../logger";
+import { cleanupPropertyVectors } from "../ai/vector-store-service";
 import { WalkScoreService } from "../services/WalkScoreService";
 import { validateFieldChanges, computeFieldAlerts } from "../ai/analyst-watchdog";
 import { suggestStarRating } from "../ai/context-pack/star-rating";
@@ -484,6 +485,9 @@ export function register(app: Express) {
       await storage.deleteProperty(id, user.id);
       invalidateComputeCache();
       logActivity(req, "archive", "property", id, property.name);
+      cleanupPropertyVectors(id).catch((err: unknown) =>
+        logger.warn(`Vector cleanup failed for property ${id}: ${err instanceof Error ? err.message : String(err)}`, "properties"),
+      );
 
       res.json({ success: true });
     } catch (error: unknown) {

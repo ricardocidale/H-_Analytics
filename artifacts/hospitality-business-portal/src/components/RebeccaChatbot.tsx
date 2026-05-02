@@ -4,7 +4,7 @@ import { IconMessageCircle } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { History } from "lucide-react";
+import { IconHistory } from "@/components/icons";
 import { RebeccaAvatar } from "./rebecca/RebeccaAvatar";
 import { RebeccaTypingIndicator } from "./rebecca/RebeccaTypingIndicator";
 import { RebeccaMarkdown } from "./rebecca/RebeccaMarkdown";
@@ -175,7 +175,7 @@ export function RebeccaChatbot({ displayName = "Rebecca" }: RebeccaChatbotProps)
                 title="Past conversations"
                 data-testid="button-chatbot-history"
               >
-                <History className="w-3.5 h-3.5" />
+                <IconHistory className="w-3.5 h-3.5" />
               </Button>
               <Button
                 variant="ghost"

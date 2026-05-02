@@ -4,7 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Calendar, Play, CheckCircle2, XCircle, Clock, Hourglass } from "lucide-react";
+import { IconCalendar, IconPlay } from "@/components/icons";
+import { CheckCircle2, XCircle, Clock, Hourglass } from "@/components/icons/themed-icons";
 import { apiRequest } from "@/lib/queryClient";
 
 interface ScheduledWorkflow {
@@ -103,7 +104,7 @@ export default function ScheduledResearchPanel() {
   return (
     <div className="space-y-6" data-testid="scheduled-research-panel">
       <Alert data-testid="alert-manual-runs-only">
-        <Calendar className="w-4 h-4" />
+        <IconCalendar className="w-4 h-4" />
         <AlertTitle>Manual runs only</AlertTitle>
         <AlertDescription>
           Per <code>analyst-trigger-discipline.md</code>, scheduled
@@ -113,7 +114,7 @@ export default function ScheduledResearchPanel() {
       </Alert>
 
       <div className="flex items-center gap-3">
-        <Calendar className="w-5 h-5 text-primary" />
+        <IconCalendar className="w-5 h-5 text-primary" />
         <div>
           <h3 className="text-sm font-semibold text-foreground">
             {workflows.length} Registered Task{workflows.length !== 1 ? "s" : ""}
@@ -179,7 +180,7 @@ export default function ScheduledResearchPanel() {
                       {isRunning ? (
                         <div className="animate-spin w-3.5 h-3.5 border-2 border-accent-pop border-t-transparent rounded-full" />
                       ) : (
-                        <Play className="w-3.5 h-3.5" />
+                        <IconPlay className="w-3.5 h-3.5" />
                       )}
                       Run Now
                     </Button>
@@ -193,7 +194,7 @@ export default function ScheduledResearchPanel() {
         {workflows.length === 0 && (
           <Card className="border-dashed">
             <CardContent className="py-8 text-center">
-              <Calendar className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
+              <IconCalendar className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">No registered research tasks</p>
               <p className="text-xs text-muted-foreground/60 mt-1">
                 Tasks are dev-registered in source code.

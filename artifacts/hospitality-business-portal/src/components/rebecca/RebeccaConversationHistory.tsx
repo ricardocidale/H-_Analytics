@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Clock, MessageCircle, ChevronLeft, Building2, Briefcase, HelpCircle } from "lucide-react";
+import { IconMessageCircle, IconBuilding2, IconBriefcase, IconHelpCircle } from "@/components/icons";
+import { Clock, ChevronLeft } from "@/components/icons/themed-icons";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -44,10 +45,10 @@ function contextLabel(c: ConversationSummary): string {
 }
 
 function ContextIcon({ type }: { type: string }) {
-  if (type === "property") return <Building2 className="w-3.5 h-3.5" />;
-  if (type === "company") return <Briefcase className="w-3.5 h-3.5" />;
-  if (type === "field") return <HelpCircle className="w-3.5 h-3.5" />;
-  return <MessageCircle className="w-3.5 h-3.5" />;
+  if (type === "property") return <IconBuilding2 className="w-3.5 h-3.5" />;
+  if (type === "company") return <IconBriefcase className="w-3.5 h-3.5" />;
+  if (type === "field") return <IconHelpCircle className="w-3.5 h-3.5" />;
+  return <IconMessageCircle className="w-3.5 h-3.5" />;
 }
 
 export function RebeccaConversationHistory({
@@ -105,7 +106,7 @@ export function RebeccaConversationHistory({
             )}
             {!loading && conversations.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground gap-2 px-6">
-                <MessageCircle className="w-8 h-8 opacity-30" />
+                <IconMessageCircle className="w-8 h-8 opacity-30" />
                 <p className="text-sm">No past conversations yet.</p>
                 <p className="text-xs">Your chats with Rebecca will appear here.</p>
               </div>

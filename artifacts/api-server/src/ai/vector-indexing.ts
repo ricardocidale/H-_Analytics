@@ -4,6 +4,7 @@ import {
   isEmbeddingAvailable,
   upsertChunks,
   queryChunks,
+  pruneResearchHistory,
   type VectorChunk,
   type QueryMatch,
 } from "./vector-store-service";
@@ -67,7 +68,9 @@ export async function indexResearchResult(params: {
   const bm = params.businessModel ?? "hotel";
   const qt = params.qualityTier ?? "";
   const pm = params.pricingModel ?? "per_room";
-  const id   = `research:${params.type}:${params.location.toLowerCase().replace(/\s+/g, "-")}:${Date.now()}`;
+  const encodedLocation = params.location.toLowerCase().replace(/\s+/g, "-");
+  await pruneResearchHistory(params.type, encodedLocation);
+  const id   = `research:${params.type}:${encodedLocation}:${Date.now()}`;
   // Enriched text for better embedding — includes entity context
   const entityContext = [qt, bm, pm, params.country, params.marketTier, params.locationType].filter(Boolean).join(" ");
   const text = `${params.location} ${params.propertyType} ${entityContext} ${params.type} research\n\n${params.summary}`;

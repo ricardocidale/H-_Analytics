@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Target, TrendingUp } from "lucide-react";
+import { IconTarget, IconTrendingUp } from "@/components/icons";
+import { ChevronDown, ChevronUp } from "@/components/icons/themed-icons";
 import type { RebeccaContext } from "@/lib/panel-manager";
 import { cn } from "@/lib/utils";
 
@@ -35,7 +36,7 @@ export function RebeccaContextCard({ context }: RebeccaContextCardProps) {
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <Target className="w-3.5 h-3.5 text-primary shrink-0" />
+          <IconTarget className="w-3.5 h-3.5 text-primary shrink-0" />
           <span className="text-xs font-medium truncate" data-testid="rebecca-context-field">
             {context.fieldName}
           </span>
@@ -64,7 +65,7 @@ export function RebeccaContextCard({ context }: RebeccaContextCardProps) {
           )}
           {hasRange && (
             <div className="flex items-center gap-2 text-xs">
-              <TrendingUp className="w-3 h-3 text-muted-foreground shrink-0" />
+              <IconTrendingUp className="w-3 h-3 text-muted-foreground shrink-0" />
               <span className="text-muted-foreground">Range:</span>
               <span className="font-medium" data-testid="rebecca-context-range">
                 {formatRate(context.guidanceLow)} — {formatRate(context.guidanceMid)} — {formatRate(context.guidanceHigh)}

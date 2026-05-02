@@ -99,6 +99,20 @@ export const propertyDdItems = pgTable(
   ],
 );
 
+export const insertPropertyDdItemSchema = z.object({
+  propertyId: z.number().int().positive(),
+  templateItemKey: z.string().min(1),
+  workstream: z.enum(DD_WORKSTREAMS),
+  label: z.string().min(1).max(500),
+  isStopGate: z.boolean().optional().default(false),
+  sortOrder: z.number().int().min(0).optional().default(0),
+  status: z.enum(DD_STATUSES).optional().default("not_started"),
+  ownerUserId: z.number().int().positive().nullable().optional(),
+  ownerName: z.string().max(200).nullable().optional(),
+});
+
+export type InsertPropertyDdItem = z.infer<typeof insertPropertyDdItemSchema>;
+
 export const updatePropertyDdItemSchema = z.object({
   status: z.enum(DD_STATUSES).optional(),
   ownerUserId: z.number().int().positive().nullable().optional(),

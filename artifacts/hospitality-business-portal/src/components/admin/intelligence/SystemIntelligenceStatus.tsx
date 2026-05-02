@@ -2,7 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Cpu, Cloud, AlertTriangle, CheckCircle2, XCircle, RefreshCw, Trash2 } from "lucide-react";
+import { IconCpu, IconRefreshCw } from "@/components/icons";
+import { Cloud, AlertTriangle, CheckCircle2, XCircle, Trash2 } from "@/components/icons/themed-icons";
 import { useState } from "react";
 
 interface LlmVendorStatus {
@@ -190,7 +191,7 @@ export default function SystemIntelligenceStatus() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Cpu className="w-4 h-4 text-primary" />
+              <IconCpu className="w-4 h-4 text-primary" />
               Knowledge Learning
             </CardTitle>
           </CardHeader>
@@ -259,7 +260,7 @@ export default function SystemIntelligenceStatus() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Cpu className="w-4 h-4 text-primary" />
+                <IconCpu className="w-4 h-4 text-primary" />
                 Vector Store Namespaces — pgvector Index
               </CardTitle>
               <Button
@@ -269,7 +270,7 @@ export default function SystemIntelligenceStatus() {
                 className="h-7 text-xs"
                 data-testid="btn-refresh-vector-store-stats"
               >
-                <RefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh
+                <IconRefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh
               </Button>
             </div>
           </CardHeader>
@@ -314,7 +315,7 @@ export default function SystemIntelligenceStatus() {
                               onClick={() => reindexMutation.mutate(ns)}
                               data-testid={`btn-reindex-${ns}`}
                             >
-                              <RefreshCw className={`w-3 h-3 mr-1 ${isReindexing ? "animate-spin" : ""}`} />
+                              <IconRefreshCw className={`w-3 h-3 mr-1 ${isReindexing ? "animate-spin" : ""}`} />
                               {isReindexing ? "Indexing..." : "Re-index"}
                             </Button>
                             <Button

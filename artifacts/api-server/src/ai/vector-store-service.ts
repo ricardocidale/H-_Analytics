@@ -568,6 +568,32 @@ export async function cleanupPropertyVectors(propertyId: number): Promise<void> 
   logger.info(`Cleaned vector store entries for property ${propertyId}`, "vector-store");
 }
 
+/**
+ * Prune stale research-history entries for a given entity before a new one
+ * is inserted. Keeps the namespace from growing without bound across
+ * repeated regeneration cycles for the same location+type.
+ */
+export async function pruneResearchHistory(
+  type: "property" | "company" | "global",
+  encodedLocation: string,
+): Promise<void> {
+  if (!isVectorStoreAvailable()) return;
+  try {
+    await ensureStore();
+    await pool.query(
+      `DELETE FROM vector_chunks
+        WHERE namespace = 'research-history'
+          AND id LIKE $1`,
+      [`research:${type}:${encodedLocation}:%`],
+    );
+  } catch (err: unknown) {
+    logger.warn(
+      `pruneResearchHistory failed for ${type}:${encodedLocation}: ${err instanceof Error ? err.message : err}`,
+      "vector-store",
+    );
+  }
+}
+
 export async function getTotalVectorCount(): Promise<number> {
   if (!isVectorStoreAvailable()) return 0;
   try {

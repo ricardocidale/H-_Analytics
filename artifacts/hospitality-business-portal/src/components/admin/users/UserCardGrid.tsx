@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ArrowUp, ArrowDown, ArrowUpDown } from "@/components/icons/themed-icons";
 import { IconPeople, IconTrash, IconKey, IconPencil, IconBuilding2, IconHome } from "@/components/icons";
-import { HelpCircle } from "lucide-react";
+import { IconHelpCircle } from "@/components/icons";
 import type { User } from "../types";
 import { UserRole, isAdminRole } from "@shared/constants";
 import type { SortField, SortDir } from "./types";
@@ -184,7 +184,7 @@ export default function UserCardGrid({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <button type="button" className="inline-flex cursor-help" aria-label="Scenario help">
-                          <HelpCircle className="w-3 h-3 text-muted-foreground/50" />
+                          <IconHelpCircle className="w-3 h-3 text-muted-foreground/50" />
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="right" className="text-xs max-w-[220px]">

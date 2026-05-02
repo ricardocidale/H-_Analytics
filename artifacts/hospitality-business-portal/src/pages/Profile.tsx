@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconUser, IconEye, IconEyeOff, IconKey, IconClipboardCheck, IconPalette } from "@/components/icons";
+import { IconUser, IconEye, IconEyeOff, IconKey, IconClipboardCheck, IconPalette, IconMonitor, IconSparkles } from "@/components/icons";
 import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 import { SaveButton } from "@/components/ui/save-button";
 import { PageHeader } from "@/components/ui/page-header";
@@ -20,7 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { Link } from "wouter";
 import type { ColorMode, BgAnimation, FontPreference, AppearanceDefaults } from "@/lib/theme/appearance";
 import { applyColorMode, applyFont, applyBgAnimation, startOsColorModeListener, resolveColorMode, resolveFontPreference, resolveBgAnimation } from "@/lib/theme/appearance";
-import { Sun, Moon, Monitor, Sparkles } from "lucide-react";
+import { Sun, Moon } from "@/components/icons/themed-icons";
 
 export default function Profile() {
   const { toast } = useToast();
@@ -339,7 +339,7 @@ export default function Profile() {
             <Card className="bg-card border-border shadow-sm">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center gap-2 text-foreground">
-                  <Monitor className="w-5 h-5 text-primary" />
+                  <IconMonitor className="w-5 h-5 text-primary" />
                   Appearance
                 </CardTitle>
               </CardHeader>
@@ -349,7 +349,7 @@ export default function Profile() {
                   <div className="grid grid-cols-3 gap-3">
                     {([
                       { value: "light" as ColorMode, label: "Light", icon: Sun, preview: "bg-white border-border" },
-                      { value: "auto" as ColorMode, label: "Auto", icon: Monitor, preview: "bg-gradient-to-r from-white to-zinc-800 border-border" },
+                      { value: "auto" as ColorMode, label: "Auto", icon: IconMonitor, preview: "bg-gradient-to-r from-white to-zinc-800 border-border" },
                       { value: "dark" as ColorMode, label: "Dark", icon: Moon, preview: "bg-zinc-900 border-zinc-700" },
                     ] as const).map(({ value, label, icon: Icon, preview }) => {
                       const active = resolveColorMode(user?.colorMode as ColorMode | null, appearanceDefaults?.defaultColorMode as ColorMode | null) === value;
@@ -400,8 +400,8 @@ export default function Profile() {
                   <Label className="text-foreground text-sm font-medium">Background Animation</Label>
                   <div className="grid grid-cols-3 gap-3">
                     {([
-                      { value: "enabled" as BgAnimation, label: "Enabled", icon: Sparkles },
-                      { value: "auto" as BgAnimation, label: "Auto", icon: Monitor },
+                      { value: "enabled" as BgAnimation, label: "Enabled", icon: IconSparkles },
+                      { value: "auto" as BgAnimation, label: "Auto", icon: IconMonitor },
                       { value: "disabled" as BgAnimation, label: "Disabled", icon: null },
                     ] as const).map(({ value, label, icon: Icon }) => {
                       const active = resolveBgAnimation(user?.bgAnimation as BgAnimation | null, appearanceDefaults?.defaultBgAnimation as BgAnimation | null) === value;

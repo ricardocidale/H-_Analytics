@@ -9,7 +9,7 @@
  */
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/components/icons/themed-icons";
 
 const DEFAULT_NARRATION = [
   "Pulling the latest capital-raise benchmark databases…",

@@ -101,11 +101,11 @@ export const notificationLogs = pgTable("notification_logs", {
 ]);
 
 export const insertNotificationLogSchema = z.object({
-  eventType: z.string(),
-  channel: z.string(),
+  eventType: z.enum(NOTIFICATION_EVENT_TYPES),
+  channel: z.enum(NOTIFICATION_CHANNELS),
   recipient: z.string().nullable().optional(),
   subject: z.string().nullable().optional(),
-  status: z.string().optional().default("pending"),
+  status: z.string().default("pending"),
   errorMessage: z.string().nullable().optional(),
   metadata: z.record(z.string(), z.unknown()).nullable().optional(),
   alertRuleId: z.number().nullable().optional(),

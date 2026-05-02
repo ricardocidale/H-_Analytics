@@ -637,6 +637,14 @@ async function runSchemaMigrations() {
     await runPropertyPhotosHeroUnique001();
     await markMigrationApplied("property_photos_hero_unique_001");
   }
+
+  if (!(await isMigrationApplied("reference_brands_run_fk_001"))) {
+    const { runReferenceBrandsRunFk001 } = await import(
+      "./migrations/reference-brands-run-fk-001"
+    );
+    await runReferenceBrandsRunFk001();
+    await markMigrationApplied("reference_brands_run_fk_001");
+  }
 }
 
 async function runSeeds() {

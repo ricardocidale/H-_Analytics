@@ -3,7 +3,7 @@ import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/ui/page-header";
 import { Tabs, TabsContent, CurrentThemeTab } from "@/components/ui/tabs";
 import { IconFileCheck, IconActivity } from "@/components/icons";
-import { Share2 } from "lucide-react";
+import { Share2 } from "@/components/icons/themed-icons";
 import { useAuth } from "@/lib/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import UserManual from "./user-manual";
