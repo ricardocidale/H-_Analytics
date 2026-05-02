@@ -27,7 +27,7 @@ function emailActionUrl(link: string | undefined): string | undefined {
 
 async function logNotification(
   event: NotificationEvent,
-  channel: string,
+  channel: "email",
   status: string,
   extra: { recipient?: string; subject?: string; errorMessage?: string; alertRuleId?: number; retryCount?: number } = {}
 ) {
