@@ -95,7 +95,7 @@ Skills are process documents that guide AI agents. See `claude.md` § "Agent & S
 
 > **AI assistant scope**: This app has one AI assistant — **Rebecca** (semantic KB search). Marcela was removed. See `claude.md` § "AI assistant — Rebecca only".
 
-> **LB Slides** (DB schema, API routes, image rendering, Python generator, admin UI): see `claude.md` § "LB Slides — per-property PPTX + image-PPTX generator".
+> **LB Slides** (DB schema, API routes, image rendering, Python generator, admin UI): see `claude.md` § "LB Slides — per-property PPTX + image-PPTX generator". The canonical template path is centralized in `scripts/src/canonical_template.py` — never hardcode it. Two prior canonicals live in `attached_assets/archive/`.
 
 > **Canonical page archetypes**: see `claude.md` § "Canonical Page Archetypes".
 

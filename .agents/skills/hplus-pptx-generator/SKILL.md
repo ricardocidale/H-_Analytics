@@ -164,6 +164,10 @@ On error (non-zero exit + stderr):
 
 `attached_assets/L+B_Property_Slides_02_1777743268816.pptx` — READ ONLY. Never modify. (Current canonical, swapped 2026-05-02 PM. Two prior canonicals — `L+B_Property_Slides_1777637870265.pptx` and `L+B_Property_Slides_1777738821984.pptx` — moved to `attached_assets/archive/` so they don't interfere.)
 
+**Single source of truth for the path:** `scripts/src/canonical_template.py` exports `CANONICAL_PPTX_FILENAME` and `CANONICAL_PPTX_PATH`. All Python scripts that read the template (`generate_property_slides.py`, `extract_slot_recipe.py`, `render_slide_backgrounds.py`) import from this module. **To swap to a new canonical template, change one line in `canonical_template.py` and move the superseded file into `attached_assets/archive/`.** Do not hardcode the filename anywhere else.
+
+**Renders and photos in the current canonical are confirmed correct (2026-05-02 PM)** — no swap or replacement is needed for any image asset. Only the data fields (vision text, finance figures, property name, photos per property) get filled in by the generator.
+
 ### Recent canonical fixes (applied to `_02_` template)
 
 These are baked into the new canonical and should NOT be re-applied or "re-fixed" by the generator:
