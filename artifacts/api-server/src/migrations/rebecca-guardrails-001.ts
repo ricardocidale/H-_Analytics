@@ -13,18 +13,6 @@ const DEFAULT_GUARDRAILS = [
 ];
 
 export async function runRebeccaGuardrails001(): Promise<void> {
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS rebecca_guardrails (
-      id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-      label text NOT NULL,
-      rule text NOT NULL,
-      sort_order integer NOT NULL DEFAULT 0,
-      is_active boolean NOT NULL DEFAULT true,
-      created_at timestamp DEFAULT now() NOT NULL,
-      updated_at timestamp DEFAULT now() NOT NULL
-    )
-  `);
-
   const existing = await db.execute(sql`SELECT COUNT(*)::int AS count FROM rebecca_guardrails`);
   const row = existing.rows?.[0] as { count: number } | undefined;
   const count = row?.count ?? 0;

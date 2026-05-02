@@ -1,23 +1,15 @@
 /**
- * slide-recipe-001 — Create slide_recipe_elements table and seed from JSON inventory.
+ * slide-recipe-001 — Idempotent seed for slide_recipe_elements from JSON inventory.
  *
- * Idempotent: CREATE TABLE/INDEX use IF NOT EXISTS; seed skips if rows exist.
- *
- * Table: slide_recipe_elements
- *   Full inventory of every shape on each of the 6 canonical L+B PPTX slides
- *   (287 total). is_slot=true marks per-property data slots; is_slot=false marks
- *   static template content (page numbers, brand labels, decorative images, etc.).
- *
- * Indexes:
- *   - B-tree on (slide_num, z_order) and (slide_num, name) for shape lookups
- *   - B-tree on (is_slot, kind) for slot filtering
- *   - HNSW on embedding (vector_cosine_ops) — partial (WHERE embedding IS NOT NULL)
+ * The schema (table, B-tree indexes, HNSW vector index) is owned by Drizzle
+ * migrations. This seed only loads the per-shape inventory for the 6 canonical
+ * L+B PPTX slides from `scripts/src/slide-slot-recipe.json` and skips if rows
+ * already exist.
  */
 
 import path from "path";
 import fs from "fs";
-import { db, pool } from "../db";
-import { sql } from "drizzle-orm";
+import { pool } from "../db";
 import { logger } from "../logger";
 
 const TAG = "[migration] slide-recipe-001";
@@ -97,85 +89,7 @@ async function seedElements(allRows: Array<{ slideNum: number; el: RecipeElement
 }
 
 export async function runSlideRecipe001(): Promise<void> {
-  // ── 1. Ensure pgvector extension ─────────────────────────────────────────
-  await db.execute(sql`CREATE EXTENSION IF NOT EXISTS vector`);
-
-  // ── 2. Create table ───────────────────────────────────────────────────────
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS slide_recipe_elements (
-      id              integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-      slide_num       integer NOT NULL,
-      z_order         integer NOT NULL,
-      name            text NOT NULL,
-      shape_type      text NOT NULL,
-      kind            text NOT NULL,
-      is_slot         boolean NOT NULL DEFAULT false,
-      slot_kind       text,
-
-      left_px         real NOT NULL,
-      top_px          real NOT NULL,
-      width_px        real NOT NULL,
-      height_px       real NOT NULL,
-      left_pct        real NOT NULL,
-      top_pct         real NOT NULL,
-      width_pct       real NOT NULL,
-      height_pct      real NOT NULL,
-      left_emu        integer NOT NULL,
-      top_emu         integer NOT NULL,
-      width_emu       integer NOT NULL,
-      height_emu      integer NOT NULL,
-
-      fill_type       text,
-      fill_color_hex  text,
-
-      template_text   text,
-      font_name       text,
-      font_size_pt    real,
-      bold            boolean,
-      italic          boolean,
-      color_hex       text,
-      alignment       text,
-      paragraphs      jsonb,
-
-      image_content_type  text,
-      image_size_bytes    integer,
-      image_width_px      integer,
-      image_height_px     integer,
-
-      table_rows      integer,
-      table_cols      integer,
-      table_cells     jsonb,
-
-      is_page_number  boolean NOT NULL DEFAULT false,
-      embedding       vector(1536),
-      extracted_at    timestamptz NOT NULL DEFAULT now()
-    )
-  `);
-
-  // ── 3. B-tree indexes ─────────────────────────────────────────────────────
-  await db.execute(sql`
-    CREATE INDEX IF NOT EXISTS sre_slide_num_z_order_idx
-    ON slide_recipe_elements (slide_num, z_order)
-  `);
-  await db.execute(sql`
-    CREATE INDEX IF NOT EXISTS sre_slide_num_name_idx
-    ON slide_recipe_elements (slide_num, name)
-  `);
-  await db.execute(sql`
-    CREATE INDEX IF NOT EXISTS sre_is_slot_kind_idx
-    ON slide_recipe_elements (is_slot, kind)
-  `);
-
-  // ── 4. HNSW vector index (partial — only rows with embeddings) ────────────
-  await db.execute(sql`
-    CREATE INDEX IF NOT EXISTS sre_embedding_hnsw_idx
-    ON slide_recipe_elements
-    USING hnsw (embedding vector_cosine_ops)
-    WITH (m = 16, ef_construction = 64)
-    WHERE embedding IS NOT NULL
-  `);
-
-  // ── 5. Seed from slide-slot-recipe.json ───────────────────────────────────
+  // Skip if already seeded.
   const { rows: countRows } = await pool.query<{ n: string }>(
     "SELECT COUNT(*)::text AS n FROM slide_recipe_elements"
   );
@@ -191,7 +105,7 @@ export async function runSlideRecipe001(): Promise<void> {
   );
   if (!fs.existsSync(recipePath)) {
     logger.warn(
-      `${TAG}: recipe JSON not found at ${recipePath} — table created but not seeded. ` +
+      `${TAG}: recipe JSON not found at ${recipePath} — skipping seed. ` +
       `Run scripts/src/extract_slot_recipe.py then restart the server to seed.`
     );
     return;

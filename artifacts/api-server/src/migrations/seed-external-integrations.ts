@@ -1,25 +1,6 @@
 import { db } from "../db";
 import { externalIntegrations } from "@workspace/db";
-import { sql } from "drizzle-orm";
 import { log } from "../logger";
-
-async function ensureTable() {
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS external_integrations (
-      id SERIAL PRIMARY KEY,
-      kind TEXT NOT NULL,
-      service_key TEXT NOT NULL UNIQUE,
-      name TEXT NOT NULL,
-      source_type TEXT NOT NULL,
-      credential_env_var TEXT,
-      host TEXT,
-      is_enabled BOOLEAN NOT NULL DEFAULT true,
-      is_subscribed BOOLEAN NOT NULL DEFAULT true,
-      notes TEXT,
-      sort_order INTEGER NOT NULL DEFAULT 0
-    )
-  `);
-}
 
 const DEFAULTS = [
   { kind: "api", serviceKey: "fred", name: "Federal Reserve (FRED)", sourceType: "Direct API", credentialEnvVar: "FRED_API_KEY", host: "api.stlouisfed.org", isEnabled: true, isSubscribed: true, notes: "SOFR, Treasury rates, CPI, economic series", sortOrder: 1 },
@@ -47,8 +28,6 @@ const DEFAULTS = [
 ] as const;
 
 export async function seedExternalIntegrations() {
-  await ensureTable();
-
   const existing = await db.select({ id: externalIntegrations.id }).from(externalIntegrations).limit(1);
   if (existing.length > 0) {
     log("external_integrations already seeded, skipping", "migration");
