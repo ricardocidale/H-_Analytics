@@ -15,14 +15,18 @@ import React from "react";
 import satori from "satori";
 import PptxGenJsImport from "pptxgenjs";
 import { renderHybridSlide } from "./hybrid-renderer.js";
-import { Slide4, Slide5, Slide6 } from "./slide-jsx.js";
+import { Slide1, Slide2, Slide3, Slide4, Slide5, Slide6 } from "./slide-jsx.js";
 import { getSlideFonts } from "./fonts.js";
 import type { SlidePayload } from "./slide-jsx.js";
 import { resolveSlotPhoto, type RecipeElement } from "./slot-resolver.js";
 
-// tsx ESM interop: pptxgenjs exports { default: PptxGenJS } in native ESM
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const PptxGenJs = (PptxGenJsImport as any).default ?? PptxGenJsImport;
+// tsx ESM interop: pptxgenjs publishes both an ESM default export and a CJS
+// module.exports. Depending on the loader, the import binding may already BE
+// the constructor or it may be wrapped under `.default`. Narrow with a typed
+// shape rather than `any` so we keep type safety on the call below.
+type PptxGenJsCtor = typeof PptxGenJsImport;
+const pptxImport = PptxGenJsImport as PptxGenJsCtor & { default?: PptxGenJsCtor };
+const PptxGenJs: PptxGenJsCtor = pptxImport.default ?? pptxImport;
 
 // ── Generate a solid-color test JPEG large enough for sharp to resize ────────
 // 200×150 pixels — small but valid. Each photo gets a distinct hue so we can
@@ -240,19 +244,27 @@ const slideLabels = ["Slide 1 (hybrid)", "Slide 2 (hybrid)", "Slide 3 (hybrid)",
 const allSlides: Buffer[] = [];
 let pptxFailed = false;
 
+// Per-slide JSX fallback components, indexed by 1-based slide number. When the
+// hybrid renderer returns null/undefined we fall back to the matching JSX
+// component for THAT slide — never a different one. (Bug fix: the previous
+// implementation rendered Slide5 JSX as the fallback for slides 1/2/3, which
+// produced the wrong slide content if the hybrid path failed.)
+const SLIDE_JSX_FALLBACKS: Record<number, React.FC<{ p: SlidePayload }>> = {
+  1: Slide1, 2: Slide2, 3: Slide3, 4: Slide4, 5: Slide5, 6: Slide6,
+};
+
 for (let i = 0; i < 6; i++) {
   const slideNum = i + 1;
+  const Fallback = SLIDE_JSX_FALLBACKS[slideNum];
   process.stdout.write(`  ${slideLabels[i]} ... `);
   try {
     let buf: Buffer;
     if (slideNum === 4) {
-      buf = await renderJsxSlide(React.createElement(Slide4, { p: FIXTURE }));
-    } else if (slideNum === 6) {
-      buf = await renderHybridSlide(6, FIXTURE, fonts) ??
-            await renderJsxSlide(React.createElement(Slide6, { p: FIXTURE }));
+      // Slide 4 is JSX-only by design — no hybrid renderer for it.
+      buf = await renderJsxSlide(React.createElement(Fallback, { p: FIXTURE }));
     } else {
       buf = await renderHybridSlide(slideNum, FIXTURE, fonts) ??
-            await renderJsxSlide(React.createElement(Slide5, { p: FIXTURE }));
+            await renderJsxSlide(React.createElement(Fallback, { p: FIXTURE }));
     }
     allSlides.push(buf);
     console.log(`PASS  (${(buf.length / 1024).toFixed(0)} KB)`);
