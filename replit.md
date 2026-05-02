@@ -45,39 +45,17 @@ Skills are process documents that guide AI agents. See `claude.md` § "Agent & S
 | Skill | Use when |
 |---|---|
 | `ui-page-patterns` | Building or revising any page — finds canonical examples, enforces loading/empty/error states, action-button discipline, tab URL sync |
-| `embedded-ai-agent` | Adding or extending a chatbot / analyst panel (e.g. Rebecca) |
+| `embedded-ai-agent` | Adding or extending Rebecca (the only AI assistant in this app) |
 | `replit-independence` | Adding any npm package, env var, or host-specific call — ensures the codebase stays portable |
 | `norfolk-code-review` | Before opening a PR — runs project-tuned review personas |
 | `hplus-pptx-generator` | Extending or debugging the LB Slides PPTX generator |
+| `hplus-slide-mapping` | Shape-name ↔ data-field mapping for all 6 LB Slides template slides |
 
-### Canonical page archetypes (UI reference)
+> **AI assistant scope**: This app has one AI assistant — **Rebecca** (semantic KB search). Marcela was removed. See `claude.md` § "AI assistant — Rebecca only".
 
-## LB Slides admin page
+> **LB Slides** (DB schema, API routes, image rendering, Python generator, admin UI): see `claude.md` § "LB Slides — per-property PPTX + image-PPTX generator".
 
-Admin sidebar → **LB Slides** renders `SlideDecksTab` — a card grid of all properties.
-
-**Two download formats per property:**
-- **Download PPTX** (Track 1): editable PPTX matching the L+B template exactly
-- **Download Images** (Track 2): image-PPTX where each slide = one full-slide-size PNG (locked, identical appearance)
-
-**Pre-generation:** Both formats are generated proactively at server startup for all properties with no `ready` record. Admins should NOT need to click "Generate" on first visit. Manual regeneration is available (slow is OK; quality is the priority).
-
-**Image rendering (Track 2):** Use **satori + @resvg/resvg-js** (JSX → SVG → PNG, zero native deps). **Never Puppeteer/Playwright** — too heavy for Railway.
-
-**DB:** `property_slide_deck_variants` table with composite PK `(property_id, format)` where `format IN ('pptx', 'image')`. Replaces old single-row `property_slide_decks` table.
-
-**Generator:** Python subprocess `scripts/src/generate_property_slides.py`, template `attached_assets/L+B_Property_Slides_1777637870265.pptx` (slides 0–5). `python-pptx` and `Pillow` installed via `uv`. Shape mapping in `.agents/skills/hplus-slide-mapping/SKILL.md`.
-
----
-
-## Canonical page archetypes
-
-Two archetypes cover 95% of app pages:
-
-- **Report/Presentation** — tabs + export actions, read-only data display. Canonical: `artifacts/hospitality-business-portal/src/pages/PropertyDetail.tsx`
-- **Form/Editor** — tabs + per-tab Save + AnalystButton, user edits structured data. Canonical: `artifacts/hospitality-business-portal/src/pages/CompanyAssumptions.tsx`
-
-Always read the relevant canonical page before building a new one.
+> **Canonical page archetypes**: see `claude.md` § "Canonical Page Archetypes".
 
 ## Secrets configured in this Repl
 

@@ -97,6 +97,10 @@ Health endpoint: `GET /api/health/live` (not `/api/healthz`).
 - When passing a compiled `@workspace/db` schema type to a Zod function that expects `ZodTypeAny`, cast `as any` — the compiled `.d.ts` types don't satisfy the current Zod structural check.
 - Cast `.error as any` when calling `fromZodError(...)` in route files to avoid the `ZodError<SpecificType>` not assignable to `ZodError` mismatch.
 
+### AI assistant — Rebecca only
+
+This app has exactly one AI assistant: **Rebecca** — a semantic KB-search chatbot backed by pgvector + OpenAI embeddings. Marcela (ElevenLabs / Convai voice assistant) was removed from this codebase (`migrations/drop-marcela-columns.ts`). **Do not add Marcela, Convai, or ElevenLabs integrations.** Use the `embedded-ai-agent` skill for any Rebecca extension work.
+
 ### Specialists
 
 Specialists are **dev-defined only** — see `.claude/rules/specialists-are-dev-defined-only.md`. Admins are operators, not authors. No admin UI should expose specialist creation or editing.
@@ -158,6 +162,15 @@ The "LB Slides" feature generates two formats of a 6-slide investor deck per pro
 - `.agents/skills/hplus-renovation-benchmarks/` — deterministic renovation budget ranges
 - `.agents/skills/hplus-vision-templates/` — deterministic vision text fallback templates
 
+### `reference_brands` AI pipeline wiring
+
+The `reference_brands` table is wired into three AI surfaces:
+1. **Research orchestrator** — `get_reference_brands` tool (DI pattern on `handleToolCall`)
+2. **Funding Specialist** — orientation-grade comp-set injected into the Prompt Engineer user prompt
+3. **Rebecca KB** — brand summaries indexed at rebuild time via `buildReferenceBrandsKbDoc()`
+
+ADR-007 §1 applies: prompt-builder and funding-builder layers are DB-import-free; the route layer does all fetching. Full pattern: `docs/solutions/architecture-patterns/reference-brands-ai-pipeline-wiring-2026-05-02.md`.
+
 ### Known issues to address
 
 - **Email-existence leak** at `POST /api/scenarios/shares` — returns 404 "No user found with that email address", leaking whether an email exists. Should return a generic 404.
@@ -167,6 +180,19 @@ The "LB Slides" feature generates two formats of a 6-slide investor deck per pro
 ### Shared proxy routing
 
 All traffic is routed by path through a shared reverse proxy. Services must handle their full base path. Never call service ports directly in application code or curl — always go through `localhost:80/<path>`.
+
+---
+
+## Canonical Page Archetypes
+
+Two archetypes cover ~95% of app pages. Always read the relevant canonical page before building a new one.
+
+| Archetype | Use when | Canonical file |
+|---|---|---|
+| **Report / Presentation** | Tabs + export actions, read-only data display | `artifacts/hospitality-business-portal/src/pages/PropertyDetail.tsx` |
+| **Form / Editor** | Tabs + per-tab Save + AnalystButton, user edits structured data | `artifacts/hospitality-business-portal/src/pages/CompanyAssumptions.tsx` |
+
+Use the `ui-page-patterns` skill before building or revising any page.
 
 ---
 
@@ -246,3 +272,13 @@ vendor/
 **Replit Agent:** Type the skill name as a command. Example: `use the ui-page-patterns skill`.
 
 **Full index:** See `.agents/skills/README.md`.
+
+---
+
+## Recent Significant Changes
+
+| Date | Change |
+|---|---|
+| 2026-05-02 | `reference_brands` table wired into research orchestrator (tool DI), Funding Specialist PE prompt, and Rebecca KB. See solution doc. |
+| 2026-05-02 | `property_slide_deck_variants` table added (replaces `property_slide_decks`); dual-format generation — Track 1 PPTX + Track 2 image-PPTX via satori. |
+| 2026-05-02 | Marcela removed from codebase. Rebecca is the only AI assistant. Gap 4 permanently closed. |

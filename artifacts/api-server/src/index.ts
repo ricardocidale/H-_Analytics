@@ -25,7 +25,7 @@ import cookieParser from "cookie-parser";
 import compression from "compression";
 import { registerRoutes } from "./legacyRoutes";
 import { registerImageRoutes } from "./routes/images";
-import { propertySlidesRouter } from "./routes/property-slides";
+import { propertySlidesRouter, preGenerateAllSlides } from "./routes/property-slides";
 import { buildContentSecurityPolicy } from "./csp";
 import { getAuthProvider } from "./providers/auth";
 import { createServer } from "http";
@@ -234,6 +234,19 @@ app.use((req, res, next) => {
             runSeedsSafely().catch(err => {
               serverLog(
                 `Seeds completed with warnings (server continues serving): ${err instanceof Error ? err.message : err}`,
+                "startup",
+                "warn",
+              );
+            });
+          });
+
+          // ── Phase 2c: Slide deck pre-generation ─────────────────────────
+          // Runs AFTER migrations to guarantee property_slide_deck_variants
+          // exists. Fully backgrounded — never blocks or kills the server.
+          setImmediate(() => {
+            preGenerateAllSlides().catch(err => {
+              serverLog(
+                `[slide-pregen] Background pre-generation failed: ${err instanceof Error ? err.message : err}`,
                 "startup",
                 "warn",
               );
