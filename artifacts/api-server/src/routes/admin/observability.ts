@@ -10,6 +10,7 @@ import {
 } from "../../jobs/scheduler-run-tracker";
 import { logger } from "../../logger";
 import { SCHEDULER_HISTORY_STRIP } from "@workspace/db";
+import { HTTP_202_ACCEPTED } from "../../constants";
 
 /**
  * Task #528 — How long after the last sweep we flag the drift panel as stale.
@@ -116,7 +117,7 @@ export function registerObservabilityRoutes(app: Express) {
         const msg = err instanceof Error ? err.message : String(err);
         logger.warn(`[observability] Run-now failed for ${key}: ${msg}`);
       });
-    res.status(202).json({ accepted: true, schedulerKey: key, schedulerLabel: def.label });
+    res.status(HTTP_202_ACCEPTED).json({ accepted: true, schedulerKey: key, schedulerLabel: def.label });
   });
 
   // Task #528 — last storage-drift sweep result for the Observability panel.

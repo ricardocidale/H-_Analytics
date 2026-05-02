@@ -68,6 +68,9 @@ export const HTTP_200_OK = 200;
 /** HTTP 201 Created — resource was successfully created */
 export const HTTP_201_CREATED = 201;
 
+/** HTTP 202 Accepted — request accepted for async processing; client should poll */
+export const HTTP_202_ACCEPTED = 202;
+
 /** HTTP 204 No Content — success with no response body */
 export const HTTP_204_NO_CONTENT = 204;
 
@@ -192,6 +195,26 @@ export const MAX_RAG_CONTEXT_CHARS = 4000;
 
 /** Minimum cosine-similarity score for RAG chunk inclusion */
 export const KB_MIN_CONFIDENCE = 0.50;
+
+// ---------------------------------------------------------------------------
+// Chart / PDF rendering
+// ---------------------------------------------------------------------------
+
+/**
+ * Vertical headroom multiplier for SVG bar-chart Y-axis.
+ * The chart's global max value is scaled up by this factor so the tallest
+ * bar never touches the top edge of the chart area.
+ * Also used as the reciprocal (1 / CHART_HEADROOM_FACTOR) when converting
+ * a Y-pixel back to a data value for axis label placement.
+ */
+export const CHART_HEADROOM_FACTOR = 1.08;
+
+/**
+ * Compact line-height ratio used for dense text blocks in PDF layouts
+ * (e.g. cover-company headings). Tighter than normal prose (1.4–1.6) to
+ * keep multi-line headings visually compact on a fixed-height cover page.
+ */
+export const PDF_COMPACT_LINE_HEIGHT = 1.08;
 
 // ---------------------------------------------------------------------------
 // AI generation limits

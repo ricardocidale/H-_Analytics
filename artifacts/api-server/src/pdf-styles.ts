@@ -1,5 +1,6 @@
 
 import { type ThemeColorMap, resolveThemeColors, adjustHex } from "./theme-resolver";
+import { PDF_COMPACT_LINE_HEIGHT } from "./constants";
 
 export function buildPdfStylesheet(
   data: { orientation?: string; colors?: ThemeColorMap; densePagination?: boolean }
@@ -86,7 +87,7 @@ body {
 .cover-company {
   font-size: ${isL ? "40pt" : "34pt"};
   font-weight: 800; color: ${WHITE};
-  letter-spacing: -0.5px; line-height: 1.08;
+  letter-spacing: -0.5px; line-height: ${PDF_COMPACT_LINE_HEIGHT};
   margin-bottom: 6mm;
 }
 .cover-rule {

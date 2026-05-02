@@ -35,6 +35,7 @@ import { computeIRR } from "@analytics/returns/irr";
 import { generatePropertyVisionText } from "../ai/property-vision";
 import { parseRouteId } from "./helpers";
 import {
+  HTTP_202_ACCEPTED,
   HTTP_400_BAD_REQUEST,
   HTTP_409_CONFLICT,
   HTTP_500_INTERNAL_SERVER_ERROR,
@@ -522,7 +523,7 @@ router.post("/api/properties/:id/slides/generate", requireAdmin, async (req: Req
     // Kick off async — intentionally not awaited
     void generateAndStore(propertyId, user?.id, triggeredBy);
 
-    return res.status(202).json({ status: "generating", propertyId });
+    return res.status(HTTP_202_ACCEPTED).json({ status: "generating", propertyId });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Failed to start generation";
     logger.error(`Slide generate error for property ${propertyId}: ${message}`, "property-slides");

@@ -1,6 +1,7 @@
 import { BRAND } from "./routes/premium-export-prompts";
 import type { ThemeColorMap, PdfTemplateData } from "./theme-resolver";
 import { adjustHex, esc, fmtCompact, pageHeader } from "./theme-resolver";
+import { CHART_HEADROOM_FACTOR } from "./constants";
 
 export function buildChartPalette(colors?: ThemeColorMap): string[] {
   if (colors?.chart?.length) {
@@ -84,7 +85,7 @@ export function renderLineChartSection(section: LineChartSection, d: PdfTemplate
       if (typeof v === "number" && Math.abs(v) > globalMax) globalMax = Math.abs(v);
     }
   }
-  globalMax *= 1.08;
+  globalMax *= CHART_HEADROOM_FACTOR;
 
   const chartGrid = d.colors?.gray || BRAND.BORDER_HEX;
   const chartLabel = d.colors?.lightGray || BRAND.MUTED_HEX;
@@ -96,7 +97,7 @@ export function renderLineChartSection(section: LineChartSection, d: PdfTemplate
     const y = padT + (plotH / gridN) * g;
     const gVal = globalMax - (globalMax / gridN) * g;
     gridSvg += `<line x1="${padL}" y1="${y}" x2="${svgW - padR}" y2="${y}" stroke="#${chartGrid}" stroke-width="0.7"/>`;
-    gridSvg += `<text x="${padL - 8}" y="${y + 4}" text-anchor="end" fill="#${chartLabel}" font-size="9" font-weight="500" font-family="Helvetica,Arial,sans-serif">${fmtCompact(gVal * (1 / 1.08))}</text>`;
+    gridSvg += `<text x="${padL - 8}" y="${y + 4}" text-anchor="end" fill="#${chartLabel}" font-size="9" font-weight="500" font-family="Helvetica,Arial,sans-serif">${fmtCompact(gVal / CHART_HEADROOM_FACTOR)}</text>`;
   }
 
   let xLabels = "";

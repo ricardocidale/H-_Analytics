@@ -1,4 +1,5 @@
 import type { ChartSeries, DesignTokens } from "./types";
+import { CHART_HEADROOM_FACTOR } from "../constants";
 
 function fmtCompact(v: number): string {
   if (v === 0) return "$0";
@@ -60,7 +61,7 @@ export function renderChartSvg(
       if (typeof v === "number" && Math.abs(v) > globalMax) globalMax = Math.abs(v);
     }
   }
-  globalMax *= 1.08;
+  globalMax *= CHART_HEADROOM_FACTOR;
   const gridN = 5;
 
   const parts: string[] = [];
@@ -70,7 +71,7 @@ export function renderChartSvg(
     const y = padT + (plotH / gridN) * g;
     const gVal = globalMax - (globalMax / gridN) * g;
     parts.push(`<line x1="${padL}" y1="${y}" x2="${svgW - padR}" y2="${y}" stroke="${tokens.border}" stroke-width="0.7"/>`);
-    parts.push(`<text x="${padL - 8}" y="${y + 3}" font-size="8" text-anchor="end" fill="${tokens.border}">${esc(fmtCompact(gVal / 1.08))}</text>`);
+    parts.push(`<text x="${padL - 8}" y="${y + 3}" font-size="8" text-anchor="end" fill="${tokens.border}">${esc(fmtCompact(gVal / CHART_HEADROOM_FACTOR))}</text>`);
   }
 
   parts.push(`<line x1="${padL}" y1="${padT + plotH}" x2="${svgW - padR}" y2="${padT + plotH}" stroke="${tokens.border}" stroke-width="1"/>`);

@@ -3,6 +3,7 @@ import { Page, View, Text, Svg, Line, Circle, Path, G } from "@react-pdf/rendere
 import { type PdfTheme } from "./theme";
 import type { LayoutHints } from "./design-pass";
 import { PAGE_LANDSCAPE, PAGE_PORTRAIT, PageHeader, PageFooter } from "./theme-mappers";
+import { CHART_HEADROOM_FACTOR } from "../constants";
 
 export function fmtCompact(v: number): string {
   if (v === 0) return "$0";
@@ -60,7 +61,7 @@ export function ChartSvgBody({ series, years, theme, isLandscape, hints }: {
       if (typeof v === "number" && Math.abs(v) > globalMax) globalMax = Math.abs(v);
     }
   }
-  globalMax *= 1.08;
+  globalMax *= CHART_HEADROOM_FACTOR;
   const gridN = 5;
   const legendItemWidth = isLandscape ? 150 : 110;
 
@@ -73,7 +74,7 @@ export function ChartSvgBody({ series, years, theme, isLandscape, hints }: {
           return (
             <G key={`grid-${g}`}>
               <Line x1={padL} y1={y} x2={svgW - padR} y2={y} stroke={theme.border} strokeWidth={0.7} />
-              <Text x={padL - 8} y={y + 3} style={{ fontSize: 8, textAnchor: "end" }} fill={theme.foreground}>{fmtCompact(gVal / 1.08)}</Text>
+              <Text x={padL - 8} y={y + 3} style={{ fontSize: 8, textAnchor: "end" }} fill={theme.foreground}>{fmtCompact(gVal / CHART_HEADROOM_FACTOR)}</Text>
             </G>
           );
         })}

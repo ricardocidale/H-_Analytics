@@ -51,6 +51,7 @@ import {
 import { CONSTANTS_TAB_PATH } from "../../notifications/constants-overdue-digest";
 import {
   HTTP_200_OK,
+  HTTP_202_ACCEPTED,
   HTTP_400_BAD_REQUEST,
   HTTP_401_UNAUTHORIZED,
   HTTP_403_FORBIDDEN,
@@ -1180,7 +1181,7 @@ export function registerModelConstantsRoutes(app: Express) {
     const lockKey = inflightKey(k, c, s);
     if (inflightRefreshFromEmail.has(lockKey)) {
       return res
-        .status(202)
+        .status(HTTP_202_ACCEPTED)
         .type("html")
         .send(
           renderActionPage({

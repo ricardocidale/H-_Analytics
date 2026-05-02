@@ -1980,12 +1980,6 @@
     "artifacts/api-server/src/routes/properties-urls.ts",
     "artifacts/api-server/src/routes/research/meta.ts"
   ],
-  "202": [
-    "artifacts/api-server/src/routes/admin/model-constants.ts",
-    "artifacts/api-server/src/routes/admin/observability.ts",
-    "artifacts/api-server/src/routes/property-slides.ts",
-    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts"
-  ],
   "210": [
     "artifacts/api-server/src/calculation-checker/index.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
@@ -3678,11 +3672,5 @@
     "artifacts/api-server/src/routes/rebecca.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts"
-  ],
-  "1.08": [
-    "artifacts/api-server/src/pdf-styles.ts",
-    "artifacts/api-server/src/pdf/chart-render.tsx",
-    "artifacts/api-server/src/report/svg-charts.ts",
-    "artifacts/api-server/src/svg-charts.ts"
   ]
 }
