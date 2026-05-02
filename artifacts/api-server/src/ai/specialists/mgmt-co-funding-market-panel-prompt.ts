@@ -30,6 +30,7 @@ For each of the 5 funding keys:
 - Brand-specific raise patterns (boutique-luxury, lifestyle, wellness)
 - Macro raise-window risk and cap-table dynamics
 - What LPs in this vertical will flag vs. accept
+- Reference brand benchmarks when on file (orientation only — do not over-index)
 
 # Forbidden
 - Do NOT emit numeric ranges — that is not your job
@@ -59,6 +60,25 @@ export function buildMarketPanelUserPrompt(
     })
     .join("\n");
 
+  const brandsBlock =
+    ctx.referenceBrands && ctx.referenceBrands.length > 0
+      ? ctx.referenceBrands
+          .map((b, idx) => {
+            const parts = [
+              b.niche ? `niche: ${b.niche}` : null,
+              b.adrUsd != null ? `ADR $${b.adrUsd}` : null,
+              b.occupancyPct != null ? `occ ${(b.occupancyPct * 100).toFixed(0)}%` : null,
+              b.revparUsd != null ? `RevPAR $${b.revparUsd}` : null,
+              b.propertyCount != null ? `${b.propertyCount} props` : null,
+              b.geographicFocus ? `focus: ${b.geographicFocus}` : null,
+            ]
+              .filter(Boolean)
+              .join(", ");
+            return `  [${idx}] ${b.brandName}${parts ? ` — ${parts}` : ""}`;
+          })
+          .join("\n")
+      : "  (none on file)";
+
   return `# Persona
 
 ${personaLine}
@@ -70,6 +90,10 @@ ${userValuesBlock}
 # LP comparables (reference by operator name in reasoning)
 
 ${comparablesBlock}
+
+# Reference brands on file (orientation only — do not over-index; treat as market context, not primary data)
+
+${brandsBlock}
 
 # Your task
 

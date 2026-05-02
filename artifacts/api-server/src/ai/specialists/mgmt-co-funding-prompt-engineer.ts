@@ -117,6 +117,23 @@ export function buildPromptEngineerUserPrompt(
           .join("\n")
       : "  (no LP comparables available)";
 
+  const referenceBrandsBlock =
+    ctx.referenceBrands && ctx.referenceBrands.length > 0
+      ? `\n# Reference brand comp-set (orientation-grade — treat as directional only, not authoritative benchmarks)\n` +
+        ctx.referenceBrands
+          .map(
+            (b) =>
+              `  ${b.brandName}` +
+              (b.niche ? ` (${b.niche})` : "") +
+              (b.geographicFocus ? ` — ${b.geographicFocus}` : "") +
+              (b.adrUsd != null ? `, ADR $${b.adrUsd.toFixed(0)}` : "") +
+              (b.occupancyPct != null ? `, occ ${(b.occupancyPct * 100).toFixed(0)}%` : "") +
+              (b.revparUsd != null ? `, RevPAR $${b.revparUsd.toFixed(0)}` : "") +
+              (b.propertyCount != null ? `, ${b.propertyCount} props` : ""),
+          )
+          .join("\n")
+      : "";
+
   const regressBlock = regressContext
     ? `\n# Prior synthesis pass failed — produce DIFFERENT addenda\n` +
       `Prior quantAddendum sent:\n${regressContext.priorQuantAddendum}\n\n` +
@@ -134,6 +151,7 @@ ${inputsBlock}
 
 # LP comparable set (${comparables.length} rows — representative subset shown)
 ${compBlock}
+${referenceBrandsBlock}
 ${regressBlock}
 # Your task
 Produce targeted quantAddendum and marketAddendum for this specific operator. Focus on what makes this operator's situation unusual relative to the generic boutique-luxury case. Be concise and specific — these addenda will be prepended to panel system prompts.`;

@@ -606,16 +606,23 @@ async function runFundingV1Path(userId: number) {
 
   // Fetch reference brands and project to the slim summary shape. The
   // builder (ADR-007) owns no DB imports, so the route does the mapping.
-  const rawBrands = await storage.getReferenceBrands();
-  const referenceBrands: ReferenceBrandSummary[] = rawBrands.map((b) => ({
-    brandName: b.brandName,
-    niche: b.niche ?? null,
-    adrUsd: b.adrUsd ?? null,
-    occupancyPct: b.occupancyPct ?? null,
-    revparUsd: b.revparUsd ?? null,
-    propertyCount: b.propertyCount ?? null,
-    geographicFocus: b.geographicFocus ?? null,
-  }));
+  // Non-fatal: a DB failure here must not degrade the entire Funding run —
+  // brand data is orientation-grade only (see FundingPromptInputContext JSDoc).
+  let referenceBrands: ReferenceBrandSummary[] = [];
+  try {
+    const rawBrands = await storage.getReferenceBrands();
+    referenceBrands = rawBrands.map((b) => ({
+      brandName: b.brandName,
+      niche: b.niche ?? null,
+      adrUsd: b.adrUsd ?? null,
+      occupancyPct: b.occupancyPct ?? null,
+      revparUsd: b.revparUsd ?? null,
+      propertyCount: b.propertyCount ?? null,
+      geographicFocus: b.geographicFocus ?? null,
+    }));
+  } catch {
+    // Non-fatal: proceed without brand comp-set rather than blocking verdict
+  }
 
   const ctx: FundingPromptInputContext = {
     inputs,
