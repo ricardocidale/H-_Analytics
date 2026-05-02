@@ -4,22 +4,30 @@
  * Verifies that:
  *   1. The script file exists and is valid TypeScript (importable).
  *   2. The script passes (exits 0) against the committed codebase — meaning
- *      no Loader2 spinners with `text-accent-pop` live inside a dark-fill
- *      Button (variant="default" or variant="destructive").
+ *      no Loader2 spinners with `text-accent-pop` and no icon components with
+ *      non-white colour classes live inside a dark-fill Button
+ *      (variant="default" or variant="destructive").
  *   3. The script fails (exits 1) when a synthetic violation is injected into
  *      a temp file — ensuring the detection logic is actually exercised.
  *
  * CANONICAL FIX REMINDER
  * ----------------------
- * If this test fails on the committed codebase, fix the violating file(s) by
- * replacing `text-accent-pop` with `text-white` on the Loader2:
+ * Guard 1 (Loader2): Replace `text-accent-pop` with `text-white` on the Loader2:
  *
  *   Before:
  *     <Loader2 className="w-4 h-4 animate-spin text-accent-pop" />
- *
  *   After:
  *     {/* Spinner on bg-primary (sage); text-white keeps WCAG 3:1 contrast. *\/}
  *     <Loader2 className="w-4 h-4 animate-spin text-white" />
+ *
+ * Guard 2 (Icons): Replace the non-white colour with `text-white` or remove it:
+ *
+ *   Before:
+ *     <PlusIcon className="w-4 h-4 text-muted-foreground" />
+ *   After:
+ *     <PlusIcon className="w-4 h-4 text-white" />
+ *     — or —
+ *     <PlusIcon className="w-4 h-4" />  {/* inherits text-primary-foreground *\/}
  */
 
 import { describe, it, expect } from "vitest";
@@ -250,6 +258,210 @@ describe("check-spinner-contrast", () => {
       const { stdout, status } = runCheck();
       expect(status).toBe(0);
       expect(stdout).toContain("PASS");
+    } finally {
+      fs.unlinkSync(tmpFile);
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // Guard 2: Icon components with non-white colours inside dark Buttons
+  // ---------------------------------------------------------------------------
+
+  it("catches an icon component with text-accent-pop inside a dark default Button", () => {
+    const srcDir = path.join(
+      WORKSPACE_ROOT,
+      "artifacts/hospitality-business-portal/src"
+    );
+    const tmpFile = path.join(srcDir, "_icon-contrast-test-accent-fixture.tsx");
+    const badJsx = [
+      "// AUTO-GENERATED TEST FIXTURE — deleted after test",
+      "export function Fixture() {",
+      "  return (",
+      '    <Button variant="default">',
+      '      <PlusIcon className="w-4 h-4 text-accent-pop" />',
+      "    </Button>",
+      "  );",
+      "}",
+    ].join("\n");
+
+    try {
+      fs.writeFileSync(tmpFile, badJsx, "utf8");
+      const { stderr, status } = runCheck();
+      expect(status).toBe(1);
+      expect(stderr).toContain("VIOLATION");
+      expect(stderr).toContain("_icon-contrast-test-accent-fixture.tsx");
+    } finally {
+      fs.unlinkSync(tmpFile);
+    }
+  });
+
+  it("catches an icon component with text-muted-foreground inside a destructive Button", () => {
+    const srcDir = path.join(
+      WORKSPACE_ROOT,
+      "artifacts/hospitality-business-portal/src"
+    );
+    const tmpFile = path.join(srcDir, "_icon-contrast-test-muted-fixture.tsx");
+    const badJsx = [
+      "// AUTO-GENERATED TEST FIXTURE — deleted after test",
+      "export function Fixture() {",
+      "  return (",
+      "    <Button",
+      '      variant="destructive"',
+      "      onClick={() => {}}",
+      "    >",
+      '      <TrashIcon className="w-4 h-4 text-muted-foreground" />',
+      "    </Button>",
+      "  );",
+      "}",
+    ].join("\n");
+
+    try {
+      fs.writeFileSync(tmpFile, badJsx, "utf8");
+      const { stderr, status } = runCheck();
+      expect(status).toBe(1);
+      expect(stderr).toContain("VIOLATION");
+      expect(stderr).toContain("_icon-contrast-test-muted-fixture.tsx");
+    } finally {
+      fs.unlinkSync(tmpFile);
+    }
+  });
+
+  it("does NOT flag icon components with text-white inside dark Buttons", () => {
+    const srcDir = path.join(
+      WORKSPACE_ROOT,
+      "artifacts/hospitality-business-portal/src"
+    );
+    const tmpFile = path.join(srcDir, "_icon-contrast-test-white-ok-fixture.tsx");
+    const okJsx = [
+      "// AUTO-GENERATED TEST FIXTURE — deleted after test",
+      "export function Fixture() {",
+      "  return (",
+      '    <Button variant="default">',
+      '      <PlusIcon className="w-4 h-4 text-white" />',
+      "    </Button>",
+      "  );",
+      "}",
+    ].join("\n");
+
+    try {
+      fs.writeFileSync(tmpFile, okJsx, "utf8");
+      const { stdout, status } = runCheck();
+      expect(status).toBe(0);
+      expect(stdout).toContain("PASS");
+    } finally {
+      fs.unlinkSync(tmpFile);
+    }
+  });
+
+  it("does NOT flag icon components with text-current inside dark Buttons", () => {
+    const srcDir = path.join(
+      WORKSPACE_ROOT,
+      "artifacts/hospitality-business-portal/src"
+    );
+    const tmpFile = path.join(srcDir, "_icon-contrast-test-current-ok-fixture.tsx");
+    const okJsx = [
+      "// AUTO-GENERATED TEST FIXTURE — deleted after test",
+      "export function Fixture() {",
+      "  return (",
+      '    <Button variant="default">',
+      '      <SaveIcon className="w-4 h-4 text-current" />',
+      "    </Button>",
+      "  );",
+      "}",
+    ].join("\n");
+
+    try {
+      fs.writeFileSync(tmpFile, okJsx, "utf8");
+      const { stdout, status } = runCheck();
+      expect(status).toBe(0);
+      expect(stdout).toContain("PASS");
+    } finally {
+      fs.unlinkSync(tmpFile);
+    }
+  });
+
+  it("does NOT flag icon components with non-white colours outside dark Buttons", () => {
+    const srcDir = path.join(
+      WORKSPACE_ROOT,
+      "artifacts/hospitality-business-portal/src"
+    );
+    const tmpFile = path.join(srcDir, "_icon-contrast-test-ghost-ok-fixture.tsx");
+    const okJsx = [
+      "// AUTO-GENERATED TEST FIXTURE — deleted after test",
+      "export function Fixture() {",
+      "  return (",
+      "    <>",
+      '      <Button variant="ghost"><PlusIcon className="w-4 h-4 text-muted-foreground" /></Button>',
+      '      <Button variant="outline"><TrashIcon className="w-4 h-4 text-accent-pop" /></Button>',
+      '      <div><SearchIcon className="w-4 h-4 text-muted-foreground" /></div>',
+      "    </>",
+      "  );",
+      "}",
+    ].join("\n");
+
+    try {
+      fs.writeFileSync(tmpFile, okJsx, "utf8");
+      const { stdout, status } = runCheck();
+      expect(status).toBe(0);
+      expect(stdout).toContain("PASS");
+    } finally {
+      fs.unlinkSync(tmpFile);
+    }
+  });
+
+  it("catches a Lucide-prefixed icon with non-white colour inside a dark Button", () => {
+    // Validates that the Lucide* naming pattern is covered by Guard 2.
+    const srcDir = path.join(
+      WORKSPACE_ROOT,
+      "artifacts/hospitality-business-portal/src"
+    );
+    const tmpFile = path.join(srcDir, "_icon-contrast-test-lucide-fixture.tsx");
+    const badJsx = [
+      "// AUTO-GENERATED TEST FIXTURE — deleted after test",
+      "export function Fixture() {",
+      "  return (",
+      '    <Button variant="default">',
+      '      <LucidePlus className="w-4 h-4 text-accent-pop" />',
+      "    </Button>",
+      "  );",
+      "}",
+    ].join("\n");
+
+    try {
+      fs.writeFileSync(tmpFile, badJsx, "utf8");
+      const { stderr, status } = runCheck();
+      expect(status).toBe(1);
+      expect(stderr).toContain("VIOLATION");
+      expect(stderr).toContain("_icon-contrast-test-lucide-fixture.tsx");
+    } finally {
+      fs.unlinkSync(tmpFile);
+    }
+  });
+
+  it("catches an Icon-prefixed icon with non-white colour inside a dark Button", () => {
+    // Validates that the Icon* naming pattern (e.g. <IconSave>) is covered by Guard 2.
+    const srcDir = path.join(
+      WORKSPACE_ROOT,
+      "artifacts/hospitality-business-portal/src"
+    );
+    const tmpFile = path.join(srcDir, "_icon-contrast-test-iconprefix-fixture.tsx");
+    const badJsx = [
+      "// AUTO-GENERATED TEST FIXTURE — deleted after test",
+      "export function Fixture() {",
+      "  return (",
+      '    <Button variant="destructive">',
+      '      <IconTrash className="w-4 h-4 text-muted-foreground" />',
+      "    </Button>",
+      "  );",
+      "}",
+    ].join("\n");
+
+    try {
+      fs.writeFileSync(tmpFile, badJsx, "utf8");
+      const { stderr, status } = runCheck();
+      expect(status).toBe(1);
+      expect(stderr).toContain("VIOLATION");
+      expect(stderr).toContain("_icon-contrast-test-iconprefix-fixture.tsx");
     } finally {
       fs.unlinkSync(tmpFile);
     }

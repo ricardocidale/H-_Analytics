@@ -1,6 +1,10 @@
 /**
  * check-spinner-contrast.ts
  *
+ * Two guards in one script:
+ *
+ * GUARD 1 — Loader2 spinners with `text-accent-pop` inside dark Buttons
+ * -----------------------------------------------------------------------
  * Detects Loader2 spinners with `text-accent-pop` nested inside a Button that
  * renders with a dark / coloured fill:
  *
@@ -11,14 +15,37 @@
  * `text-white` matches the button label colour and clears WCAG 3:1 for
  * non-text UI on every theme.
  *
- * CANONICAL FIX
- * -------------
+ * CANONICAL FIX (Guard 1)
+ * -----------------------
  *   Before (invisible on dark button):
  *     <Loader2 className="w-4 h-4 animate-spin text-accent-pop" />
  *
  *   After:
  *     {/* Spinner sits on bg-primary (sage); text-white keeps WCAG 3:1. *\/}
  *     <Loader2 className="w-4 h-4 animate-spin text-white" />
+ *
+ * GUARD 2 — Icon components with non-white colour classes inside dark Buttons
+ * ---------------------------------------------------------------------------
+ * Detects decorative SVG icon components (e.g. <SaveIcon, <PlusIcon, <Lucide*,
+ * <Icon*) that carry an explicit non-white / non-inherited colour class
+ * (e.g. `text-accent-pop`, `text-muted-foreground`) inside the same dark-fill
+ * buttons.  These silently fail the WCAG 3:1 non-text contrast requirement for
+ * interactive elements.
+ *
+ * Safe colours (excluded from the check):
+ *   text-white    — explicitly correct on dark fills
+ *   text-current  — inherits the button's text-primary-foreground (safe)
+ *   text-inherit  — same inheritance chain (safe)
+ *
+ * CANONICAL FIX (Guard 2)
+ * -----------------------
+ *   Before (low-contrast icon on sage/red button):
+ *     <PlusIcon className="w-4 h-4 text-muted-foreground" />
+ *
+ *   After (remove or replace with safe colour):
+ *     <PlusIcon className="w-4 h-4 text-white" />
+ *     — or just remove the explicit colour so the icon inherits text-primary-foreground —
+ *     <PlusIcon className="w-4 h-4" />
  *
  * DETECTION STRATEGY
  * ------------------
@@ -27,7 +54,7 @@
  *
  *   Form A — single-line props:
  *     <Button variant="default" onClick={...}>
- *       <Loader2 className="... text-accent-pop ..." />
+ *       <SomeIcon className="... text-accent-pop ..." />
  *     </Button>
  *
  *   Form B — multi-line props (variant on its own line):
@@ -35,17 +62,36 @@
  *       variant="default"
  *       onClick={...}
  *     >
- *       <Loader2 className="... text-accent-pop ..." />
+ *       <SomeIcon className="... text-muted-foreground ..." />
  *     </Button>
  *
- * Algorithm for each Loader2 + text-accent-pop match:
- *   1. Gather up to CONTEXT_LINES lines above the spinner in the file.
+ * Algorithm for each matching icon / spinner line:
+ *   1. Gather up to CONTEXT_LINES lines above the element in the file.
  *   2. Search (right-to-left in that window) for a `<Button` open-tag that:
  *        a. Has variant="default" or variant="destructive" on the SAME line
  *           OR within the next 8 lines (covering multi-line prop forms).
  *        b. Is NOT closed by a `</Button>` between the button open and the
- *           spinner line — meaning the spinner really is inside the button.
+ *           icon line — meaning the icon really is inside the button.
  *   3. If such a button is found → VIOLATION.
+ *
+ * KNOWN LIMITATIONS
+ * -----------------
+ * 1. Icon-name heuristic: Guard 2 only matches component names that end in
+ *    "Icon" (e.g. <PlusIcon>), start with "Icon" (e.g. <IconSave>), or start
+ *    with "Lucide" (e.g. <LucideCheck>).  Icon components that use short names
+ *    without these affixes (e.g. a bare <Plus /> from an icon library) will not
+ *    be detected.  This is a known gap; the heuristic covers the naming
+ *    convention used consistently in this codebase.
+ *
+ * 2. Safe-colour allowlist: Guard 2 excludes text-white, text-current, and
+ *    text-inherit.  If a design-system semantic token such as
+ *    text-primary-foreground is used directly on an icon inside a dark button
+ *    it will be flagged even though it is technically safe (the token resolves
+ *    to white on dark fills).  Add the file to ALLOWED_FILES if this occurs.
+ *
+ * 3. Single-line scope: both guards operate one source line at a time for the
+ *    element being checked.  A colour class spread across a multi-line cn()
+ *    call will not be detected.
  *
  * FALSE-POSITIVE ESCAPE HATCH
  * ---------------------------
@@ -118,6 +164,27 @@ const SKIP_DIRS = new Set([
  *   <Loader2 className={cn("animate-spin text-accent-pop", extra)} />
  */
 const LOADER2_ACCENT_POP_RE = /<Loader2[^>]*text-accent-pop/;
+
+/**
+ * Matches icon-component JSX elements that carry an explicit non-white,
+ * non-inherited colour class.  An icon component is any of:
+ *
+ *   • PascalCase name ending in "Icon"  e.g. <PlusIcon, <GripVerticalIcon
+ *   • Name starting with "Icon"         e.g. <IconSave, <IconTrash
+ *   • Name starting with "Lucide"       e.g. <LucideCheck, <LucidePlus
+ *
+ * The colour is "non-white / non-inherited" when the className contains a
+ * `text-*` class that is NOT one of:
+ *   text-white   (explicitly safe on dark fills)
+ *   text-current (inherits the button's text-primary-foreground — safe)
+ *   text-inherit (same inheritance chain — safe)
+ *
+ * The negative-lookahead `(?!white\b|current\b|inherit\b)` excludes those
+ * three safe tokens while still matching things like `text-accent-pop`,
+ * `text-muted-foreground`, `text-foreground`, `text-primary`, etc.
+ */
+const ICON_NONWHITE_RE =
+  /<(?:[A-Z][a-zA-Z]*Icon|Icon[A-Z][a-zA-Z]*|Lucide[A-Z][a-zA-Z]*)\b[^>]*\btext-(?!white\b|current\b|inherit\b)\w/;
 
 /**
  * Matches `<Button` on a line, anchored to catch only the opening JSX tag
@@ -323,22 +390,30 @@ for (const scanDir of SCAN_DIRS) {
     const lines = fs.readFileSync(absPath, "utf8").split("\n");
 
     for (let i = 0; i < lines.length; i++) {
-      if (!LOADER2_ACCENT_POP_RE.test(lines[i])) continue;
+      // --- Guard 1: Loader2 with text-accent-pop ---
+      if (LOADER2_ACCENT_POP_RE.test(lines[i])) {
+        const start = Math.max(0, i - CONTEXT_LINES);
+        const spinnerPos = lines[i].search(LOADER2_ACCENT_POP_RE);
+        const spinnerLinePrefix = lines[i].slice(0, spinnerPos);
+        const context = [...lines.slice(start, i), spinnerLinePrefix];
 
-      // Collect the preceding context window.  Include only the part of the
-      // spinner's own line that appears BEFORE <Loader2, so that a Button
-      // that opens and closes on the same line (e.g.
-      //   <Button variant="default"><Loader2 className="text-accent-pop" /></Button>
-      // ) is still detected: the prefix "<Button variant="default">" has no
-      // matching </Button>, so findEnclosingDarkButton correctly flags it.
-      const start = Math.max(0, i - CONTEXT_LINES);
-      const spinnerPos = lines[i].search(LOADER2_ACCENT_POP_RE);
-      const spinnerLinePrefix = lines[i].slice(0, spinnerPos);
-      const context = [...lines.slice(start, i), spinnerLinePrefix];
+        if (findEnclosingDarkButton(context) !== -1 || findEnclosingSaveButton(context)) {
+          console.error(`VIOLATION  ${rel}:${i + 1}  ${lines[i].trim()}`);
+          violations++;
+        }
+      }
 
-      if (findEnclosingDarkButton(context) !== -1 || findEnclosingSaveButton(context)) {
-        console.error(`VIOLATION  ${rel}:${i + 1}  ${lines[i].trim()}`);
-        violations++;
+      // --- Guard 2: Icon component with non-white colour inside dark Button ---
+      if (ICON_NONWHITE_RE.test(lines[i])) {
+        const start = Math.max(0, i - CONTEXT_LINES);
+        const iconPos = lines[i].search(ICON_NONWHITE_RE);
+        const iconLinePrefix = lines[i].slice(0, iconPos);
+        const context = [...lines.slice(start, i), iconLinePrefix];
+
+        if (findEnclosingDarkButton(context) !== -1 || findEnclosingSaveButton(context)) {
+          console.error(`VIOLATION (icon-contrast)  ${rel}:${i + 1}  ${lines[i].trim()}`);
+          violations++;
+        }
       }
     }
   }
@@ -346,7 +421,7 @@ for (const scanDir of SCAN_DIRS) {
 
 if (violations === 0) {
   console.log(
-    "check:spinner-contrast  PASS — no text-accent-pop spinners inside dark-fill buttons"
+    "check:spinner-contrast  PASS — no contrast violations in dark-fill buttons"
   );
   process.exit(0);
 } else {
@@ -354,16 +429,17 @@ if (violations === 0) {
     `\ncheck:spinner-contrast  FAIL — ${violations} violation(s) found`
   );
   console.error("");
-  console.error("FIX: Replace `text-accent-pop` with `text-white` on the Loader2.");
-  console.error(
-    "     text-white matches the button label and clears WCAG 3:1 on every theme."
-  );
+  console.error("Guard 1 fix (Loader2): Replace `text-accent-pop` with `text-white` on the Loader2.");
+  console.error("Guard 2 fix (Icons):   Replace the non-white colour class with `text-white`");
+  console.error("                       or remove it so the icon inherits text-primary-foreground.");
   console.error("");
-  console.error("EXAMPLE:");
+  console.error("EXAMPLES:");
   console.error(
     "  {/* Spinner sits on bg-primary (sage); text-white keeps WCAG 3:1 contrast. */}"
   );
   console.error('  <Loader2 className="w-4 h-4 animate-spin text-white" />');
+  console.error('  <PlusIcon className="w-4 h-4 text-white" />');
+  console.error('  <PlusIcon className="w-4 h-4" />  {/* inherits text-primary-foreground */}');
   console.error("");
   console.error(
     "To allow a specific file permanently, add it to ALLOWED_FILES in"
