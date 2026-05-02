@@ -17,6 +17,10 @@ const FONT_URLS = {
     "https://fonts.gstatic.com/s/poppins/v21/pxiByp8kv8JHgFVrLDz8Z11lFc-K.woff",
   poppinsRegular:
     "https://fonts.gstatic.com/s/poppins/v21/pxiEyp8kv8JHgFVrJJfecg.woff",
+  robotoRegular:
+    "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff",
+  robotoBold:
+    "https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc9.woff",
 };
 
 interface FontCache {
@@ -24,6 +28,8 @@ interface FontCache {
   garamondBold: ArrayBuffer;
   poppinsLight: ArrayBuffer;
   poppinsRegular: ArrayBuffer;
+  robotoRegular: ArrayBuffer;
+  robotoBold: ArrayBuffer;
 }
 
 let cache: FontCache | null = null;
@@ -41,15 +47,17 @@ async function fetchFont(url: string, name: string): Promise<ArrayBuffer> {
 }
 
 async function loadFonts(): Promise<FontCache> {
-  const [garamondRegular, garamondBold, poppinsLight, poppinsRegular] =
+  const [garamondRegular, garamondBold, poppinsLight, poppinsRegular, robotoRegular, robotoBold] =
     await Promise.all([
       fetchFont(FONT_URLS.garamondRegular, "EB Garamond Regular"),
       fetchFont(FONT_URLS.garamondBold, "EB Garamond Bold"),
       fetchFont(FONT_URLS.poppinsLight, "Poppins Light"),
       fetchFont(FONT_URLS.poppinsRegular, "Poppins Regular"),
+      fetchFont(FONT_URLS.robotoRegular, "Roboto Regular"),
+      fetchFont(FONT_URLS.robotoBold, "Roboto Bold"),
     ]);
   logger.info("[slide-fonts] Fonts loaded for satori renderer");
-  return { garamondRegular, garamondBold, poppinsLight, poppinsRegular };
+  return { garamondRegular, garamondBold, poppinsLight, poppinsRegular, robotoRegular, robotoBold };
 }
 
 export async function getSlideFonts(): Promise<FontCache> {
