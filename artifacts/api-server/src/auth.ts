@@ -56,6 +56,7 @@ declare global {
       hideTourPrompt: boolean;
       canManageScenarios: boolean;
       rebeccaOptOut: boolean;
+      rebeccaRailOpen: boolean;
       createdAt: Date;
       updatedAt: Date;
     }

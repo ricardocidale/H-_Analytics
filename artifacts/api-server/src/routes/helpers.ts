@@ -48,6 +48,7 @@ export function userResponse(u: any, extra?: Record<string, any>) {
     hideTourPrompt: u.hideTourPrompt ?? false,
     canManageScenarios: u.canManageScenarios ?? true,
     rebeccaOptOut: u.rebeccaOptOut ?? false,
+    rebeccaRailOpen: u.rebeccaRailOpen ?? false,
     colorMode: u.colorMode ?? null,
     bgAnimation: u.bgAnimation ?? null,
     fontPreference: u.fontPreference ?? null,

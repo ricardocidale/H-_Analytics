@@ -94,7 +94,6 @@ export interface GlobalResponse {
   preferredLlm: string;
   // Rebecca AI
   rebeccaEnabled: boolean;
-  rebeccaV2: boolean;
   rebeccaDisplayName: string;
   rebeccaSystemPrompt: string | null;
   // Display Settings

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { usePanelManager } from "@/lib/panel-manager";
+import { usePanelManager, isRebeccaRailVisible } from "@/lib/panel-manager";
 import { RebeccaContextCard } from "./RebeccaContextCard";
 import { RebeccaAvatar } from "./RebeccaAvatar";
 import { RebeccaTypingIndicator } from "./RebeccaTypingIndicator";
@@ -106,8 +106,8 @@ function parseObservationField(obs: string): { message: string; fieldKey?: strin
 }
 
 export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
-  const { activePanel, rebeccaContext, closeAll, openRebecca } = usePanelManager();
-  const isOpen = activePanel === "rebecca";
+  const { rebeccaContext, closeRebecca, openRebecca } = usePanelManager();
+  const isOpen = usePanelManager(isRebeccaRailVisible);
   const [location] = useLocation();
   const currentPage = rebeccaContext?.currentPage ?? derivePageLabel(location);
   const addInsight = useRebeccaInsightStore(s => s.addInsight);
@@ -135,7 +135,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
         '[role="dialog"][data-state="open"], [data-radix-popper-content-wrapper] [data-state="open"]'
       );
       if (nested) return;
-      closeAll();
+      closeRebecca();
     };
     const onPointerDown = (e: PointerEvent) => {
       // On desktop (md+) the panel is a docked rail — don't close on outside click
@@ -146,7 +146,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
       // Ignore clicks inside any portalled overlay (sub-sheets/dialogs/popovers)
       const el = target as HTMLElement;
       if (el.closest?.('[role="dialog"], [data-radix-popper-content-wrapper], [data-state="open"][data-side]')) return;
-      closeAll();
+      closeRebecca();
     };
     document.addEventListener("keydown", onKey);
     // Outside-click to close only on mobile (desktop uses header button / collapse tab / Escape)
@@ -155,7 +155,53 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
       document.removeEventListener("keydown", onKey);
       document.removeEventListener("pointerdown", onPointerDown);
     };
-  }, [isOpen, closeAll]);
+  }, [isOpen, closeRebecca]);
+
+  // Mobile focus trap + focus restoration. The mobile sheet behaves modally
+  // (covers the page with a backdrop), so we trap Tab/Shift+Tab within the
+  // panel and restore focus to the previously-focused element on close.
+  useEffect(() => {
+    if (!isOpen) return;
+    if (typeof window === "undefined" || window.innerWidth >= 768) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+
+    const getFocusable = (): HTMLElement[] => {
+      const root = panelRef.current;
+      if (!root) return [];
+      const nodes = root.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      return Array.from(nodes).filter((el) => el.offsetParent !== null || el === document.activeElement);
+    };
+
+    const onTrap = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const focusables = getFocusable();
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (e.shiftKey) {
+        if (active === first || !panelRef.current?.contains(active)) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (active === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", onTrap);
+    return () => {
+      document.removeEventListener("keydown", onTrap);
+      if (previouslyFocused && typeof previouslyFocused.focus === "function") {
+        try { previouslyFocused.focus(); } catch { /* ignore */ }
+      }
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -450,13 +496,13 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               aria-hidden="true"
-              onClick={() => closeAll()}
+              onClick={() => closeRebecca()}
             />
             <motion.div
               ref={panelRef}
               role="dialog"
               aria-label={displayName}
-              aria-modal="false"
+              aria-modal={typeof window !== "undefined" && window.innerWidth < 768 ? "true" : "false"}
               initial={{ x: "100%" }}
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
@@ -470,13 +516,15 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
               )}
               data-testid="rebecca-panel"
             >
-              {/* Desktop collapse tab on the left edge */}
+              {/* Desktop collapse tab on the left edge of the open panel */}
               <button
-                onClick={() => closeAll()}
-                className="hidden md:flex absolute -left-3 top-1/2 -translate-y-1/2 z-10 h-14 w-3 items-center justify-center rounded-l-md bg-border/70 hover:bg-muted-foreground/30 transition-colors cursor-pointer"
-                aria-label="Close Rebecca panel"
+                onClick={() => closeRebecca()}
+                className="hidden md:flex absolute -left-7 top-1/2 -translate-y-1/2 z-10 h-16 w-7 items-center justify-center rounded-l-md bg-primary text-primary-foreground shadow-md hover:bg-primary/90 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                aria-label="Collapse Rebecca panel"
+                data-testid="button-rebecca-collapse-tab"
+                title="Collapse"
               >
-                <ChevronRight className="w-2.5 h-2.5 text-foreground/60" />
+                <ChevronRight className="w-4 h-4" />
               </button>
         <div className="px-4 pt-3.5 pb-3 border-b border-border/40 shrink-0 bg-primary/[0.04]">
           <div className="flex items-center justify-between gap-2">
@@ -553,7 +601,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7"
-                onClick={() => closeAll()}
+                onClick={() => closeRebecca()}
                 title="Collapse panel"
                 aria-label="Collapse panel"
                 data-testid="button-rebecca-close"
@@ -750,10 +798,10 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
             onClick={() => openRebecca()}
             aria-label={`Open ${displayName}`}
             data-testid="button-rebecca-pull-tab"
-            className="fixed right-0 top-[62%] -translate-y-1/2 z-[48] flex flex-col items-center justify-center gap-1.5 h-14 w-8 rounded-l-md border border-r-0 border-border bg-card text-muted-foreground shadow-md hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+            className="hidden md:flex fixed right-0 top-1/2 -translate-y-1/2 z-[48] flex-col items-center justify-center gap-1.5 h-20 w-9 rounded-l-md bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
-            <ChevronsLeft className="w-3.5 h-3.5" />
-            <span className="text-[9px] font-medium tracking-wide leading-none [writing-mode:vertical-rl] rotate-180 select-none">
+            <ChevronsLeft className="w-4 h-4" />
+            <span className="text-[10px] font-semibold tracking-wide leading-none [writing-mode:vertical-rl] rotate-180 select-none">
               {displayName}
             </span>
           </motion.button>

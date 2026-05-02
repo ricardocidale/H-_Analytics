@@ -761,6 +761,7 @@ async function runSeeds() {
     { name: "admin-resources-004", run: async () => { const { runAdminResources004 } = await import("./migrations/admin-resources-004"); await runAdminResources004(); } },
     { name: "slide-recipe", run: async () => { const { runSlideRecipe001 } = await import("./migrations/slide-recipe-001"); await runSlideRecipe001(); } },
     { name: "admin-resources-005", run: async () => { const { runAdminResources005 } = await import("./migrations/admin-resources-005"); await runAdminResources005(); } },
+    { name: "rebecca-rail-open", run: async () => { const { runRebeccaRailOpen001 } = await import("./migrations/rebecca-rail-open-001"); await runRebeccaRailOpen001(); } },
   ];
 
   const results = await Promise.allSettled(seedTasks.map(t => t.run()));

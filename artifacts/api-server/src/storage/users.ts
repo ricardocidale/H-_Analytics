@@ -57,7 +57,7 @@ export class UserStorage {
     });
   }
 
-  async updateUserProfile(id: number, data: { firstName?: string; lastName?: string; email?: string; company?: string; title?: string; canManageScenarios?: boolean; rebeccaOptOut?: boolean }): Promise<User> {
+  async updateUserProfile(id: number, data: { firstName?: string; lastName?: string; email?: string; company?: string; title?: string; canManageScenarios?: boolean; rebeccaOptOut?: boolean; rebeccaRailOpen?: boolean }): Promise<User> {
     const [user] = await db
       .update(users)
       .set({ ...stripAutoFields(data as Record<string, unknown>), updatedAt: new Date() })
@@ -167,6 +167,7 @@ export class UserStorage {
           hideTourPrompt: users.hideTourPrompt,
           canManageScenarios: users.canManageScenarios,
           rebeccaOptOut: users.rebeccaOptOut,
+          rebeccaRailOpen: users.rebeccaRailOpen,
           colorMode: users.colorMode,
           bgAnimation: users.bgAnimation,
           fontPreference: users.fontPreference,

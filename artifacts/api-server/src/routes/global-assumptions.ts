@@ -7,7 +7,6 @@ import { logActivity, logAndSendError, parseParamId } from "./helpers";
 import { z } from "zod";
 import { invalidateComputeCache } from "../finance/cache";
 import { logger } from "../logger";
-import { flag } from "../feature-flags";
 import { stripCanonicalDenylistedFields } from "./global-assumptions-denylist";
 import { rebeccaSettingsPatchSchema, mergeRebeccaSettings } from "@shared/rebecca-settings";
 import { withFundingDefaults } from "../finance/apply-funding-defaults";
@@ -84,7 +83,7 @@ export function register(app: Express) {
       const overlaid = assumptions
         ? await withFundingDefaults(assumptions)
         : assumptions;
-      res.json({ ...overlaid, companyLogoUrl, rebeccaV2: flag("REBECCA_V2") });
+      res.json({ ...overlaid, companyLogoUrl });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch global assumptions", error);
     }

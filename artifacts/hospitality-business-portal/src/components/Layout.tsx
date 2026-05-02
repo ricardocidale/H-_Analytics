@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { Search } from "@/components/icons/themed-icons";
 
 import { IconMenu, IconLogOut, IconDashboard, IconProperties, IconBriefcase, IconShield, IconProfile, IconScenarios, IconPropertyFinder, IconAnalysis, IconMapPin, IconHelp, IconCompass, IconMessageCircle } from "@/components/icons";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -25,11 +25,10 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown } from "@/components/icons/themed-icons";
 
 import GuidedWalkthrough, { useWalkthroughStore } from "@/components/GuidedWalkthrough";
-import { RebeccaChatbot } from "@/components/RebeccaChatbot";
 import { ResearchQueueIndicator } from "@/components/research/ResearchQueueIndicator";
 import { GuidanceSideSheet } from "@/components/research/GuidanceSideSheet";
 import { RebeccaPanel } from "@/components/rebecca/RebeccaPanel";
-import { usePanelManager } from "@/lib/panel-manager";
+import { usePanelManager, isRebeccaRailVisible } from "@/lib/panel-manager";
 
 import { applyThemeColors, resetThemeColors, type ThemeColor as DesignColor } from "@/lib/theme";
 import { applyColorMode, applyFont, applyBgAnimation, startOsColorModeListener, stopOsColorModeListener, resolveColorMode, resolveFontPreference, resolveBgAnimation } from "@/lib/theme/appearance";
@@ -72,13 +71,16 @@ function ScenarioIndicator() {
 }
 
 function RebeccaHeaderButton({ displayName }: { displayName: string }) {
-  const { openRebecca, activePanel } = usePanelManager();
-  const isActive = activePanel === "rebecca";
+  const isActive = usePanelManager(isRebeccaRailVisible);
   return (
     <Button
       variant="ghost"
       size="icon"
-      onClick={() => isActive ? usePanelManager.getState().closeAll() : openRebecca()}
+      onClick={() => {
+        const s = usePanelManager.getState();
+        if (isRebeccaRailVisible(s)) s.closeRebecca();
+        else s.openRebecca();
+      }}
       className={cn("h-8 w-8 relative", isActive && "bg-primary/10")}
       data-testid="button-rebecca-toggle"
       title={displayName}
@@ -191,8 +193,43 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
   const { user, isAdmin, requestLogout } = useAuth();
   const { data: global } = useGlobalAssumptions();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { activePanel } = usePanelManager();
-  const rebeccaRailOpen = activePanel === "rebecca";
+  const rebeccaRailOpen = usePanelManager(isRebeccaRailVisible);
+  const rebeccaRailUserPref = usePanelManager((s) => s.rebeccaRailUserPref);
+  const rebeccaHydrated = usePanelManager((s) => s.hydrated);
+  const rebeccaEnabled = !!global?.rebeccaEnabled && !user?.rebeccaOptOut;
+
+  // Reset hydration when the logged-in user changes (logout / re-login as
+  // a different user in the same SPA session) so the next pass re-hydrates
+  // the rail preference from the new user's server record.
+  const lastHydratedUserId = useRef<number | null>(null);
+  useEffect(() => {
+    const currentId = user?.id ?? null;
+    if (lastHydratedUserId.current !== null && lastHydratedUserId.current !== currentId) {
+      usePanelManager.getState().resetHydration();
+    }
+    lastHydratedUserId.current = currentId;
+  }, [user?.id]);
+
+  // Hydrate the rail's open/closed preference from the server-side user record.
+  useEffect(() => {
+    if (!user || rebeccaHydrated) return;
+    usePanelManager.getState().hydrate(!!user.rebeccaRailOpen);
+  }, [user, rebeccaHydrated]);
+
+  // Persist changes to the rail open/closed preference back to the server (debounced).
+  useEffect(() => {
+    if (!user || !rebeccaHydrated) return;
+    if (rebeccaRailUserPref === !!user.rebeccaRailOpen) return;
+    const handle = window.setTimeout(() => {
+      void fetch("/api/profile", {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rebeccaRailOpen: rebeccaRailUserPref }),
+      }).catch(() => { /* best-effort; UI already reflects state */ });
+    }, 400);
+    return () => window.clearTimeout(handle);
+  }, [rebeccaRailUserPref, rebeccaHydrated, user]);
 
   const { data: myBranding } = useQuery<{ logoUrl: string | null; themeName: string | null; themeColors: DesignColor[] | null; groupCompanyName: string | null }>({
     queryKey: ["my-branding"],
@@ -470,10 +507,8 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
             </Button>
             <ResearchQueueIndicator className="hidden sm:flex" />
             <NotificationCenter />
-            {!!global?.rebeccaEnabled && !user?.rebeccaOptOut && (
-              global?.rebeccaV2
-                ? <RebeccaHeaderButton displayName={global?.rebeccaDisplayName || "Rebecca"} />
-                : <RebeccaChatbot displayName={global?.rebeccaDisplayName || "Rebecca"} />
+            {rebeccaEnabled && (
+              <RebeccaHeaderButton displayName={global?.rebeccaDisplayName || "Rebecca"} />
             )}
           </div>
         </header>
@@ -521,7 +556,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
       <CommandPalette />
       <GuidedWalkthrough />
       <GuidanceSideSheet />
-      {!!global?.rebeccaEnabled && !user?.rebeccaOptOut && !!global?.rebeccaV2 && (
+      {rebeccaEnabled && (
         <RebeccaPanel displayName={global?.rebeccaDisplayName || "Rebecca"} />
       )}
     </div>
