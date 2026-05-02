@@ -112,17 +112,16 @@ Admin  (/admin)
         │   │         verifies it is deployed and responding
         │   │         records result + timestamp in internal activity log
         │   │
-        │   NOTE: replaces the old individual group menu items
-        │   (Management Company, Property, Photos, Portfolio Ops no longer
-        │   appear as separate sidebar items — all specialists live here)
+        │   NOTE: replaces ALL old individual Specialist group menu items.
+        │   Management Company, Property, Photos, Portfolio Ops, and
+        │   Resources Builder (Letícia) no longer appear as separate sidebar
+        │   items — every Specialist lives in this accordion.
         │
         ├── LLMs                          ← the ONLY place to manage LLM configuration
         │                                   Model names, endpoints, API key references,
         │                                   rate limits, fallback chain
         │                                   (LLMs shown in Specialists panel link here
         │                                   conceptually but admin cannot click from there)
-        │
-        ├── Resources Builder → Letícia
         │
         ├── Assumption Guidance           ← Analyst-generated calibration output
         │                                   (research run output — not a source)

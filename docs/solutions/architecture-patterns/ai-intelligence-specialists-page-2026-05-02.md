@@ -81,7 +81,7 @@ The following items are **removed** from the sidebar:
   Portfolio Ops, and previously Constants-related Specialists)
 - Gustavo (orchestrator) does NOT appear here — he has his own AI Agents → Gustavo page
 - Rebecca (assistant) does NOT appear here — she is an AI agent, not a research Specialist
-- Letícia (Resources Builder) may appear if treated as a Specialist — TBD per product owner
+- Letícia (Resources Builder) IS a Specialist and appears in the accordion alongside all other Specialists. She has no separate sidebar item.
 
 ## Why This Matters
 
