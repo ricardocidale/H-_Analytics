@@ -199,8 +199,8 @@ def build_slide2(slide, prop: dict, photos: list[bytes | None], vt: dict, financ
     safe_set(slide, "Text 19", vt.get("revenueBullet") or "Revenue Mix: Rooms, F&B, Programming, Events")
     safe_set(slide, "Text 19", "PAGE 2", page_hint=True)
 
-    # 4-panel photos
-    panel_names = ["Image 13", "Image 22", "Image 33", "Image 44"]
+    # Panel photos — shape names confirmed by position inspection of the canonical PPTX
+    panel_names = ["Picture 35", "Picture 41", "Image 12", "Image 26", "Picture 66"]
     for i, pname in enumerate(panel_names):
         safe_photo(slide, pname, photo_or_none(photos, i + 2))
 

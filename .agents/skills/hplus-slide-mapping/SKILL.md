@@ -74,7 +74,13 @@ Same property, different photo layout. Four column panels. Operational focus.
 | Text 20 | Programming / experience model bullet |
 | Text 22 | Longer operational description paragraph |
 | Text 19 *(PAGE)* | `"PAGE 2"` |
-| Image 13, Image 22, Image 33, Image 44 | Photos 3–6 from property photo list (panel photos) |
+| Picture 35 | Photos[2] — left hero panel (top-left, ~770×544 px) |
+| Picture 41 | Photos[3] — left secondary panel (bottom-left, ~764×331 px) |
+| Image 12 | Photos[4] — wide top-right panel (~1050×287 px) |
+| Image 26 | Photos[5] — center-right panel (~520×482 px) |
+| Picture 66 | Photos[6] — far-right square panel (~489×489 px) |
+
+**Note:** `Image 13`, `Image 22`, `Image 33`, `Image 44` are 9×9 px decorative bullet/icon elements — not photos. The original SKILL.md listed them incorrectly as panel photo targets.
 
 ---
 

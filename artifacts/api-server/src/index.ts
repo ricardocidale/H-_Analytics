@@ -666,6 +666,12 @@ async function runSchemaMigrations() {
     await runPropertySlideDeckVariants001();
     await markMigrationApplied("property_slide_deck_variants_001");
   }
+
+  if (!(await isMigrationApplied("slide_recipe_001"))) {
+    const { runSlideRecipe001 } = await import("./migrations/slide-recipe-001");
+    await runSlideRecipe001();
+    await markMigrationApplied("slide_recipe_001");
+  }
 }
 
 async function runSeeds() {
