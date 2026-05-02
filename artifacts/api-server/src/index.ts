@@ -567,11 +567,7 @@ async function runSchemaMigrations() {
 
   // drop_marcela_columns_001 consolidated into 0031_batch2_drops.sql (Phase C batch 2)
 
-  if (!(await isMigrationApplied("seed_external_integrations_001"))) {
-    const { seedExternalIntegrations } = await import("./migrations/seed-external-integrations");
-    await seedExternalIntegrations();
-    await markMigrationApplied("seed_external_integrations_001");
-  }
+  // seed_external_integrations_001 → moved to runSeeds() seedTasks (idempotent: skips if rows exist)
 
   // photo_image_data_001, scenario_access_001, source_call_logs_001, property_urls_001
   // consolidated into 0036_batch7_pure_ddl.sql (Phase C batch 7)
@@ -580,29 +576,15 @@ async function runSchemaMigrations() {
 
   // enhanced_photo_001 consolidated into 0030_phase_c_batch_1.sql (Phase C batch 1)
 
-  if (!(await isMigrationApplied("rebecca_guardrails_001"))) {
-    const { runRebeccaGuardrails001 } = await import("./migrations/rebecca-guardrails-001");
-    await runRebeccaGuardrails001();
-    await markMigrationApplied("rebecca_guardrails_001");
-  }
-
-  if (!(await isMigrationApplied("rebecca_kb_001"))) {
-    const { runRebeccaKB001 } = await import("./migrations/rebecca-kb-001");
-    await runRebeccaKB001();
-    await markMigrationApplied("rebecca_kb_001");
-  }
+  // rebecca_guardrails_001 → moved to runSeeds() seedTasks (ON CONFLICT DO NOTHING)
+  // rebecca_kb_001 → moved to runSeeds() seedTasks (skips if rows exist)
 
   // rebecca_language_001 consolidated into 0030_phase_c_batch_1.sql (Phase C batch 1)
-  // Note: this block was also missing markMigrationApplied, which is fixed by removal.
 
   // calc_audit_001, admin_resources_001, admin_resources_002, admin_resources_003,
   // property_dd_001 consolidated into 0036_batch7_pure_ddl.sql (Phase C batch 7)
 
-  if (!(await isMigrationApplied("admin_resources_004"))) {
-    const { runAdminResources004 } = await import("./migrations/admin-resources-004");
-    await runAdminResources004();
-    await markMigrationApplied("admin_resources_004");
-  }
+  // admin_resources_004 → moved to runSeeds() seedTasks (ON CONFLICT DO NOTHING)
 
   // specialist_observed_missing_001, specialist_recommendation_events_001,
   // specialist_recommendation_counters_001 consolidated into
@@ -712,11 +694,7 @@ async function runSchemaMigrations() {
     await markMigrationApplied("property_slide_deck_variants_001");
   }
 
-  if (!(await isMigrationApplied("slide_recipe_001"))) {
-    const { runSlideRecipe001 } = await import("./migrations/slide-recipe-001");
-    await runSlideRecipe001();
-    await markMigrationApplied("slide_recipe_001");
-  }
+  // slide_recipe_001 → moved to runSeeds() seedTasks (skips if rows exist)
 
   if (!(await isMigrationApplied("sync_property_assumptions_001"))) {
     const { runSyncPropertyAssumptions001 } = await import("./migrations/sync-property-assumptions-001");
@@ -804,6 +782,11 @@ async function runSeeds() {
     { name: "model-constants", run: () => seedModelConstants({ silent: true }) },
     { name: "model-defaults", run: () => seedModelDefaults({ silent: true }) },
     { name: "reference-brands", run: async () => { const result = await storage.seedReferenceBrandsIfEmpty(); if (result.seeded) serverLog(`[seed:reference-brands] seeded ${result.count} brands`, "startup", "info"); } },
+    { name: "external-integrations", run: async () => { const { seedExternalIntegrations } = await import("./migrations/seed-external-integrations"); await seedExternalIntegrations(); } },
+    { name: "rebecca-guardrails", run: async () => { const { runRebeccaGuardrails001 } = await import("./migrations/rebecca-guardrails-001"); await runRebeccaGuardrails001(); } },
+    { name: "rebecca-kb", run: async () => { const { runRebeccaKB001 } = await import("./migrations/rebecca-kb-001"); await runRebeccaKB001(); } },
+    { name: "admin-resources-004", run: async () => { const { runAdminResources004 } = await import("./migrations/admin-resources-004"); await runAdminResources004(); } },
+    { name: "slide-recipe", run: async () => { const { runSlideRecipe001 } = await import("./migrations/slide-recipe-001"); await runSlideRecipe001(); } },
   ];
 
   const results = await Promise.allSettled(seedTasks.map(t => t.run()));
