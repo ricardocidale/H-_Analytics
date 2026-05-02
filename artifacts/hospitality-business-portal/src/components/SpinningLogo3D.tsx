@@ -2,27 +2,29 @@ import { APP_BRAND_NAME } from "@shared/constants";
 import logoImg from "@/assets/h-logo-glass.png";
 
 export default function SpinningLogo3D({ size = 192, onClick }: { size?: number; onClick?: () => void }) {
+  const isInteractive = Boolean(onClick);
   return (
     <div
       style={{
         width: size,
         height: size,
-        cursor: onClick ? "pointer" : "default",
+        cursor: isInteractive ? "pointer" : "default",
         perspective: "200px",
       }}
-      onClick={onClick}
-      role={onClick ? "button" : undefined}
-      tabIndex={onClick ? 0 : undefined}
+      onClick={isInteractive ? onClick : undefined}
+      role={isInteractive ? "button" : undefined}
+      tabIndex={isInteractive ? 0 : undefined}
       onKeyDown={
-        onClick
+        isInteractive
           ? (e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
-                onClick();
+                onClick?.();
               }
             }
           : undefined
       }
+      aria-hidden={isInteractive ? undefined : true}
       data-testid="logo-login"
     >
       <img
