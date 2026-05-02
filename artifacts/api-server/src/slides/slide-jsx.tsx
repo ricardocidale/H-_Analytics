@@ -34,28 +34,37 @@ export const SLIDE_BACKGROUNDS: Record<number, string> = {
   6: SAGE_CANVAS,
 };
 
-// ── Canonical L+B colors (mirror COLORS in property-slides/slideUtils.ts) ──
+// ── Canonical L+B colors — post-consolidation (`_02_` template) ──
+// Mirror of SLIDE_COLORS in scripts/src/slide_helpers.py — keep both in sync.
+// The `_02_` PPTX consolidated near-duplicate sage/dark-green hex values:
+//   #5A7A62 + #7AAA88 + theme accent2 #9FBBA5  →  #9FBCA4  (single sage)
+//   #1F3A2A + #2E4A35                         →  #1C2B1E  (single dark green)
+//   #7C837A (Slide 2 tag-line second run)     →  #9FBCA4
+// The Track-1 python-pptx generator and Track-2 satori renderer must agree.
 const C = {
-  // Legacy dark-green panel (still used inside photo overlays, header bands,
-  // and badges where a dark backdrop creates contrast for white text).
-  bg: "#1C2B1E",
-  bgDark: "#151f16",
-  accent: "#257D41",
-  sage: "#7AAA88",
-  cream: "#FFF9F5",
-  muted: "#9FBCA4",
-  white: "#FFFFFF",
-  dimWhite: "rgba(255,249,245,0.85)",
-  faintWhite: "rgba(255,249,245,0.55)",
+  // Core L+B palette (six swatches).
+  darkBg:     "#1C2B1E", // deep forest green — header/footer bands, dark cards, primary text
+  accent:     "#257D41", // forest green — headlines, body bullets, page number
+  sage:       "#9FBCA4", // muted sage — eyebrows, captions, subtitle, tagline
+  cream:      "#FFF9F5", // warm ivory — slide canvas, cream-on-dark text
+  mint:       "#C8E8D0", // mint — Slide 4 subtitle header (introduced in `_02_`)
+  white:      "#FFFFFF",
 
-  // Light-canvas readable colors. Use these on slides where the canvas is
-  // cream or sage and text needs dark-on-light contrast.
-  canvasText:   "#1C2B1E",            // primary text (titles, values)
-  canvasBody:   "#2A4030",            // body text
-  canvasMuted:  "#5A7A62",            // secondary labels
-  canvasRule:   "rgba(28,43,30,0.15)",// dividers/borders
-  canvasZebra:  "rgba(28,43,30,0.04)",// alternating row bg
-  canvasHeader: "rgba(37,125,65,0.2)",// table-header band
+  // Semantic aliases used across Slide 4–6 components.
+  bg:         "#1C2B1E", // alias of darkBg, kept for legacy callsites
+  canvasText: "#1C2B1E", // primary text on cream/sage canvas
+  canvasMuted:"#9FBCA4", // secondary labels on cream/sage canvas (collapsed from old #5A7A62)
+  canvasBody: "#1C2B1E", // body text on cream canvas — was #2A4030; shift to darkBg approved by palette consolidation
+  muted:      "#9FBCA4", // legacy alias — same value as `sage` post-consolidation
+
+  // Computed rgba helpers (not palette swatches — translucent overlays derived from
+  // the core palette). Kept as standalone tokens so satori does not have to compose
+  // rgba() at render time.
+  dimWhite:     "rgba(255,249,245,0.85)", // 85% cream — overlay text
+  faintWhite:   "rgba(255,249,245,0.55)", // 55% cream — caption/byline overlay
+  canvasRule:   "rgba(28,43,30,0.15)",    // 15% darkBg — dividers/borders
+  canvasZebra:  "rgba(28,43,30,0.04)",    //  4% darkBg — alternating row bg
+  canvasHeader: "rgba(37,125,65,0.20)",   // 20% accent — table-header band
 } as const;
 
 // ── Slide dimensions ──────────────────────────────────────────────────────
@@ -237,7 +246,7 @@ function PhotoBg({ photo, style }: { photo: SlidePhoto | undefined; style?: Reac
       {src ? (
         <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
       ) : (
-        <div style={{ width: "100%", height: "100%", background: C.bgDark, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: "100%", height: "100%", background: C.darkBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <span style={{ fontFamily: "Garamond, serif", fontSize: 48, color: C.muted, letterSpacing: "0.3em" }}>L+B</span>
         </div>
       )}

@@ -17,7 +17,7 @@ Read that file when you need exact details. This skill distills the most actiona
 
 - **Position:** 2 of 6 (template_index `1`)
 - **Dimensions:** 960 × 540 pt (16:9)
-- **Governing design system:** **L+B palette** (same as Slide 1; Office theme XML is dormant on Slides 1–4, all colors are direct hex). See Slide 1's "Palette drift" note about near-duplicate hex values across the deck — Slide 2's `#7C837A` tag-line color is one of the flagged drift candidates.
+- **Governing design system:** **L+B palette** (same as Slide 1; Office theme XML is dormant on Slides 1–4, all colors are direct hex). The `_02_` canonical consolidated three near-duplicate sage/dark-green hex values into `#9FBCA4` and `#1C2B1E`; Slide 2's old `#7C837A` tag-line second run is now `#9FBCA4` along with the rest.
 - **Effective canvas color:** `#FFF9F5` (warm ivory cream) — inferred, identical to Slide 1
 - **Composition:** **Structural clone of Slide 1.** Same chrome (header band, footer band, three right-column cards) and most divider rules / bullet-dot rasters at identical x/y. The deltas — Vision dot y-shift (295/324/350 vs Slide 1's 295/313/338), price-block removal, photo caption band moved up ~13pt, subtitle font size, tag-line color split, and the live-photo-over-placeholder pattern — are documented in full in the next section. A rebuilder should clone the Slide-1 template and apply those deltas, not re-author from scratch.
 
@@ -45,17 +45,18 @@ All chrome raster assets (header band, footer band, card backgrounds, specs divi
 
 ---
 
-## Color palette — L+B (same as Slide 1, plus one Slide-2-only color)
+## Color palette — L+B (post-consolidation, identical to Slide 1)
+
+After the `_02_` consolidation, Slide 2's palette is identical to Slide 1's — the previously Slide-2-only `#7C837A` tag-line second run was collapsed into `#9FBCA4` along with `#5A7A62` and `#7AAA88`.
 
 | Hex | Role |
 |---|---|
-| `#FFF9F5` | Cream background + cream-on-dark text |
-| `#1C2B1E` | Deep green-black (used in Slide 1 tag-line; Slide 2 uses `#7C837A` instead in second tag-line run) |
-| `#257D41` | Forest green (headlines, body bullets, page number) |
-| `#7AAA88` | Lighter sage (vision bullets) |
-| `#9FBCA4` | Muted green (eyebrows — Slide 1 only; no eyebrow card on Slide 2) |
-| `#5A7A62` | Muted sage (subtitle, tagline) |
-| `#7C837A` | Warm gray-green (Slide 2 tag-line second run only — new to Slide 2; flagged in Slide 1's palette-drift table as a likely-unintended near-duplicate of `#7AAA88` mid sage) |
+| `#1C2B1E` | Deep forest green — backgrounds, primary text, tag-line first run |
+| `#257D41` | Forest green — headlines, body bullets, page number, tag-line second run accent |
+| `#9FBCA4` | Muted sage — subtitle, tagline, captions (collapses old `#5A7A62` + `#7AAA88` + `#7C837A`) |
+| `#FFF9F5` | Warm ivory — slide canvas, cream-on-dark text |
+| `#C8E8D0` | Mint — Slide 4 subtitle header (not used on Slide 2; listed for palette completeness) |
+| `#FFFFFF` | White — table fills, header text on dark bg |
 
 ---
 
@@ -140,4 +141,4 @@ From Section 7 of the source file:
 - `.agents/skills/hplus-pptx-generator/SKILL.md` — full generator architecture and extension guide
 - `scripts/src/generate_property_slides.py` — Python generator that writes Slide 2
 - `scripts/src/slide-slot-recipe.json` — machine-readable slot recipe consumed by the api-server hybrid renderer
-- `attached_assets/L+B_Property_Slides_1777738821984.pptx` — current canonical template (as of 2026-05-02)
+- `attached_assets/L+B_Property_Slides_02_1777743268816.pptx` — current canonical template (as of 2026-05-02 PM). Two prior canonicals (`_1777738821984.pptx`, `_1777637870265.pptx`) live in `attached_assets/archive/`. Path is centralized in `scripts/src/canonical_template.py` — never hardcode the filename.

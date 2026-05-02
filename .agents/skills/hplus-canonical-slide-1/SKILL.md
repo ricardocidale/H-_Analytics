@@ -23,28 +23,20 @@ Read that file when you need exact details. This skill distills the most actiona
 
 ---
 
-## Color palette — L+B
+## Color palette — L+B (post-consolidation, `_02_` template)
 
-These are the L+B brand colors. On this slide they are written as direct sRGB values — no scheme/theme references, so the embedded Office theme is dormant for Slides 1–4. (Slides 5–6 introduce a real L+B `theme1.xml` with `accent1=#257D41` / `accent2=#9FBBA5`; out of scope for this skill.)
+These are the L+B brand colors. On this slide they are written as direct sRGB values — no scheme/theme references, so the embedded Office theme is dormant for Slides 1–4. (Slides 5–6 introduce a real L+B `theme1.xml` with `accent1=#257D41` / `accent2=#9FBCA4`.)
 
-> **Palette drift across the deck.** A deck-wide color audit found near-duplicate hex values that almost certainly should consolidate to a single canonical color but currently drift by 1–2 channel units. When generating new slides or reconciling existing ones, prefer the canonical column over its drift cousins:
->
-> | Canonical | Drift cousins seen elsewhere | Notes |
-> |---|---|---|
-> | `#1C2B1E` (dark band on Slides 1, 3) | `#1F3A2A` (Slide 4 card BG), `#2E4A35` (Slide 3 secondary band) | All three are "deep forest green"; pick one |
-> | `#9FBCA4` (sage; Slides 1, 3, 4, 5, 6) | `#9FBBA5` (Slide 5/6 theme `accent2`) | Differ by 1 unit in green and blue — almost certainly unintended |
-> | `#7AAA88` (mid sage; Slides 1, 2, 3) | `#7C837A` (Slide 2 only — warm gray-sage tag-line second run) | Slide 2 introduces a near-duplicate; verify it was intentional before propagating |
->
-> Source: deck-wide analysis at `attached_assets/Pasted-This-means-slide-5-Rectangle-1-scheme-accent1-renders-a_1777742569305.txt`.
+The `_02_1777743268816.pptx` canonical collapsed three near-duplicate sage/dark-green hex values via XML find/replace: `#5A7A62` and `#7AAA88` → `#9FBCA4`, and `#1F3A2A` → `#1C2B1E`. The post-consolidation palette is five colors plus white, all listed below.
 
 | Hex | Role |
 |---|---|
-| `#FFF9F5` | Cream background + cream-on-dark text |
-| `#1C2B1E` | Deep green-black (price text, dark card backgrounds) |
-| `#257D41` | Forest green (headlines, body bullets, page number) |
-| `#7AAA88` | Lighter sage (vision bullets) |
-| `#9FBCA4` | Muted green ("ASKING PRICE" eyebrow) |
-| `#5A7A62` | Muted sage (subtitle, tagline) |
+| `#1C2B1E` | Deep forest green — backgrounds (header/footer bands, dark card BG), primary text |
+| `#257D41` | Forest green — headlines, body bullets, page number |
+| `#9FBCA4` | Muted sage — eyebrows, card fills, captions, subtitle, tagline (collapses old `#5A7A62` + `#7AAA88` + theme `accent2 #9FBBA5`) |
+| `#FFF9F5` | Warm ivory — slide canvas, cream-on-dark text |
+| `#C8E8D0` | Mint — Slide 4 subtitle header (introduced in `_02_`) |
+| `#FFFFFF` | White — table data-row alternating fills, header text on dark bg |
 
 ---
 
@@ -176,4 +168,4 @@ Until then: **trust the extraction in this skill for visual layout, coordinates,
 - `.agents/skills/hplus-pptx-generator/SKILL.md` — full generator architecture and extension guide
 - `scripts/src/generate_property_slides.py` — Python generator that writes Slide 1
 - `scripts/src/slide-slot-recipe.json` — machine-readable slot recipe consumed by the api-server hybrid renderer
-- `attached_assets/L+B_Property_Slides_1777738821984.pptx` — current canonical template (as of 2026-05-02)
+- `attached_assets/L+B_Property_Slides_02_1777743268816.pptx` — current canonical template (as of 2026-05-02 PM). Two prior canonicals (`_1777738821984.pptx`, `_1777637870265.pptx`) live in `attached_assets/archive/`. Path is centralized in `scripts/src/canonical_template.py` — never hardcode the filename.

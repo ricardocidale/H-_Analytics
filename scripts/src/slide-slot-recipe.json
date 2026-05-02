@@ -911,7 +911,7 @@
           "font_size_pt": null,
           "bold": null,
           "italic": true,
-          "color_hex": "#5A7A62",
+          "color_hex": "#9FBCA4",
           "alignment": "left",
           "paragraphs": [
             {
@@ -921,7 +921,7 @@
               "font_size_pt": null,
               "bold": null,
               "italic": true,
-              "color_hex": "#5A7A62"
+              "color_hex": "#9FBCA4"
             }
           ]
         },
@@ -1075,7 +1075,7 @@
           "font_size_pt": 8.6,
           "bold": null,
           "italic": true,
-          "color_hex": "#5A7A62",
+          "color_hex": "#9FBCA4",
           "alignment": "left",
           "paragraphs": [
             {
@@ -1085,7 +1085,7 @@
               "font_size_pt": 8.6,
               "bold": null,
               "italic": true,
-              "color_hex": "#5A7A62"
+              "color_hex": "#9FBCA4"
             }
           ]
         },
@@ -1567,7 +1567,7 @@
           "font_size_pt": 9.0,
           "bold": true,
           "italic": null,
-          "color_hex": "#7AAA88",
+          "color_hex": "#9FBCA4",
           "alignment": "left",
           "paragraphs": [
             {
@@ -1577,7 +1577,7 @@
               "font_size_pt": 9.0,
               "bold": true,
               "italic": null,
-              "color_hex": "#7AAA88"
+              "color_hex": "#9FBCA4"
             }
           ]
         },
@@ -1608,7 +1608,7 @@
           "font_size_pt": 9.0,
           "bold": true,
           "italic": null,
-          "color_hex": "#7AAA88",
+          "color_hex": "#9FBCA4",
           "alignment": "left",
           "paragraphs": [
             {
@@ -1618,7 +1618,7 @@
               "font_size_pt": 9.0,
               "bold": true,
               "italic": null,
-              "color_hex": "#7AAA88"
+              "color_hex": "#9FBCA4"
             }
           ]
         },
@@ -1649,7 +1649,7 @@
           "font_size_pt": 9.0,
           "bold": true,
           "italic": null,
-          "color_hex": "#7AAA88",
+          "color_hex": "#9FBCA4",
           "alignment": "left",
           "paragraphs": [
             {
@@ -1659,7 +1659,7 @@
               "font_size_pt": 9.0,
               "bold": true,
               "italic": null,
-              "color_hex": "#7AAA88"
+              "color_hex": "#9FBCA4"
             }
           ]
         },
@@ -1911,22 +1911,22 @@
           "height_emu": 142876,
           "fill_type": "background",
           "kind": "text",
-          "template_text": "PAGE 17",
+          "template_text": "PAGE 21",
           "paragraph_count": 1,
           "font_name": "Georgia",
           "font_size_pt": 6.8,
-          "bold": false,
-          "italic": false,
+          "bold": null,
+          "italic": null,
           "color_hex": "#257D41",
           "alignment": "right",
           "paragraphs": [
             {
-              "text": "PAGE 17",
+              "text": "PAGE 21",
               "alignment": "right",
               "font_name": "Georgia",
               "font_size_pt": 6.8,
-              "bold": false,
-              "italic": false,
+              "bold": null,
+              "italic": null,
               "color_hex": "#257D41"
             }
           ],
@@ -2839,7 +2839,7 @@
           "font_size_pt": null,
           "bold": null,
           "italic": true,
-          "color_hex": "#5A7A62",
+          "color_hex": "#9FBCA4",
           "alignment": "left",
           "paragraphs": [
             {
@@ -2849,7 +2849,7 @@
               "font_size_pt": null,
               "bold": null,
               "italic": true,
-              "color_hex": "#5A7A62"
+              "color_hex": "#9FBCA4"
             }
           ]
         },
@@ -2962,7 +2962,7 @@
           "font_size_pt": 10.0,
           "bold": null,
           "italic": true,
-          "color_hex": "#5A7A62",
+          "color_hex": "#9FBCA4",
           "alignment": "left",
           "paragraphs": [
             {
@@ -2972,7 +2972,7 @@
               "font_size_pt": 10.0,
               "bold": null,
               "italic": true,
-              "color_hex": "#5A7A62"
+              "color_hex": "#9FBCA4"
             }
           ]
         },
@@ -3331,7 +3331,7 @@
           "font_size_pt": 9.0,
           "bold": true,
           "italic": null,
-          "color_hex": "#7AAA88",
+          "color_hex": "#9FBCA4",
           "alignment": "left",
           "paragraphs": [
             {
@@ -3341,7 +3341,7 @@
               "font_size_pt": 9.0,
               "bold": true,
               "italic": null,
-              "color_hex": "#7AAA88"
+              "color_hex": "#9FBCA4"
             }
           ]
         },
@@ -3372,7 +3372,7 @@
           "font_size_pt": 9.0,
           "bold": true,
           "italic": null,
-          "color_hex": "#7AAA88",
+          "color_hex": "#9FBCA4",
           "alignment": "left",
           "paragraphs": [
             {
@@ -3382,7 +3382,7 @@
               "font_size_pt": 9.0,
               "bold": true,
               "italic": null,
-              "color_hex": "#7AAA88"
+              "color_hex": "#9FBCA4"
             }
           ]
         },
@@ -3413,7 +3413,7 @@
           "font_size_pt": 9.0,
           "bold": true,
           "italic": null,
-          "color_hex": "#7AAA88",
+          "color_hex": "#9FBCA4",
           "alignment": "left",
           "paragraphs": [
             {
@@ -3423,7 +3423,7 @@
               "font_size_pt": 9.0,
               "bold": true,
               "italic": null,
-              "color_hex": "#7AAA88"
+              "color_hex": "#9FBCA4"
             }
           ]
         },
@@ -3489,22 +3489,22 @@
           "height_emu": 142876,
           "fill_type": "background",
           "kind": "text",
-          "template_text": "PAGE 17",
+          "template_text": "PAGE 22",
           "paragraph_count": 1,
           "font_name": "Georgia",
           "font_size_pt": 6.8,
-          "bold": false,
-          "italic": false,
+          "bold": null,
+          "italic": null,
           "color_hex": "#257D41",
           "alignment": "right",
           "paragraphs": [
             {
-              "text": "PAGE 17",
+              "text": "PAGE 22",
               "alignment": "right",
               "font_name": "Georgia",
               "font_size_pt": 6.8,
-              "bold": false,
-              "italic": false,
+              "bold": null,
+              "italic": null,
               "color_hex": "#257D41"
             }
           ],
@@ -4982,7 +4982,7 @@
           "font_size_pt": null,
           "bold": null,
           "italic": true,
-          "color_hex": "#5A7A62",
+          "color_hex": "#9FBCA4",
           "alignment": "left",
           "paragraphs": [
             {
@@ -4992,7 +4992,7 @@
               "font_size_pt": null,
               "bold": null,
               "italic": true,
-              "color_hex": "#5A7A62"
+              "color_hex": "#9FBCA4"
             }
           ]
         },
@@ -5228,7 +5228,7 @@
           "font_size_pt": 8.2,
           "bold": null,
           "italic": true,
-          "color_hex": "#5A7A62",
+          "color_hex": "#9FBCA4",
           "alignment": "left",
           "paragraphs": [
             {
@@ -5238,7 +5238,7 @@
               "font_size_pt": 8.2,
               "bold": null,
               "italic": true,
-              "color_hex": "#5A7A62"
+              "color_hex": "#9FBCA4"
             }
           ]
         },
@@ -5556,7 +5556,7 @@
           "font_size_pt": 7.5,
           "bold": null,
           "italic": true,
-          "color_hex": "#5A7A62",
+          "color_hex": "#9FBCA4",
           "alignment": "left",
           "paragraphs": [
             {
@@ -5566,7 +5566,7 @@
               "font_size_pt": 7.5,
               "bold": null,
               "italic": true,
-              "color_hex": "#5A7A62"
+              "color_hex": "#9FBCA4"
             }
           ]
         },
@@ -5638,7 +5638,7 @@
           "font_size_pt": 9.0,
           "bold": true,
           "italic": null,
-          "color_hex": "#7AAA88",
+          "color_hex": "#9FBCA4",
           "alignment": "left",
           "paragraphs": [
             {
@@ -5648,7 +5648,7 @@
               "font_size_pt": 9.0,
               "bold": true,
               "italic": null,
-              "color_hex": "#7AAA88"
+              "color_hex": "#9FBCA4"
             }
           ]
         },
@@ -5720,7 +5720,7 @@
           "font_size_pt": 9.0,
           "bold": true,
           "italic": null,
-          "color_hex": "#7AAA88",
+          "color_hex": "#9FBCA4",
           "alignment": "left",
           "paragraphs": [
             {
@@ -5730,7 +5730,7 @@
               "font_size_pt": 9.0,
               "bold": true,
               "italic": null,
-              "color_hex": "#7AAA88"
+              "color_hex": "#9FBCA4"
             }
           ]
         },
@@ -5802,7 +5802,7 @@
           "font_size_pt": 9.0,
           "bold": true,
           "italic": null,
-          "color_hex": "#7AAA88",
+          "color_hex": "#9FBCA4",
           "alignment": "left",
           "paragraphs": [
             {
@@ -5812,7 +5812,7 @@
               "font_size_pt": 9.0,
               "bold": true,
               "italic": null,
-              "color_hex": "#7AAA88"
+              "color_hex": "#9FBCA4"
             }
           ]
         },
@@ -5919,22 +5919,22 @@
           "height_emu": 142876,
           "fill_type": "background",
           "kind": "text",
-          "template_text": "PAGE 18",
+          "template_text": "PAGE 23",
           "paragraph_count": 1,
           "font_name": "Poppins ExtraLight",
           "font_size_pt": 6.8,
-          "bold": false,
-          "italic": false,
+          "bold": null,
+          "italic": null,
           "color_hex": "#257D41",
           "alignment": "right",
           "paragraphs": [
             {
-              "text": "PAGE 18",
+              "text": "PAGE 23",
               "alignment": "right",
               "font_name": "Poppins ExtraLight",
               "font_size_pt": 6.8,
-              "bold": false,
-              "italic": false,
+              "bold": null,
+              "italic": null,
               "color_hex": "#257D41"
             }
           ],
@@ -6312,7 +6312,7 @@
           "font_size_pt": 16.0,
           "bold": true,
           "italic": true,
-          "color_hex": "#257D41",
+          "color_hex": "#FFF9F5",
           "alignment": "left",
           "paragraphs": [
             {
@@ -6322,7 +6322,7 @@
               "font_size_pt": 16.0,
               "bold": true,
               "italic": true,
-              "color_hex": "#257D41"
+              "color_hex": "#FFF9F5"
             }
           ]
         },
@@ -6353,7 +6353,7 @@
           "font_size_pt": null,
           "bold": false,
           "italic": true,
-          "color_hex": "#5A7A62",
+          "color_hex": "#C8E8D0",
           "alignment": "left",
           "paragraphs": [
             {
@@ -6363,7 +6363,7 @@
               "font_size_pt": null,
               "bold": false,
               "italic": true,
-              "color_hex": "#5A7A62"
+              "color_hex": "#C8E8D0"
             }
           ]
         },
@@ -6552,25 +6552,26 @@
           "height_emu": 142876,
           "fill_type": "background",
           "kind": "text",
-          "template_text": "17",
+          "template_text": "PAGE 24",
           "paragraph_count": 1,
-          "font_name": "Poppins ExtraLight",
-          "font_size_pt": 8.0,
-          "bold": true,
-          "italic": false,
-          "color_hex": "#FFF9F5",
+          "font_name": "Georgia",
+          "font_size_pt": 6.8,
+          "bold": null,
+          "italic": null,
+          "color_hex": "#257D41",
           "alignment": "right",
           "paragraphs": [
             {
-              "text": "17",
+              "text": "PAGE 24",
               "alignment": "right",
-              "font_name": "Poppins ExtraLight",
-              "font_size_pt": 8.0,
-              "bold": true,
-              "italic": false,
-              "color_hex": "#FFF9F5"
+              "font_name": "Georgia",
+              "font_size_pt": 6.8,
+              "bold": null,
+              "italic": null,
+              "color_hex": "#257D41"
             }
-          ]
+          ],
+          "is_page_number": true
         },
         {
           "z_order": 18,
@@ -6644,7 +6645,7 @@
           "width_emu": 3848100,
           "height_emu": 2540000,
           "fill_type": "solid",
-          "fill_color_hex": "#1F3A2A",
+          "fill_color_hex": "#1C2B1E",
           "kind": "text",
           "template_text": "",
           "paragraph_count": 1,
@@ -6908,7 +6909,7 @@
           "width_emu": 3848100,
           "height_emu": 2540000,
           "fill_type": "solid",
-          "fill_color_hex": "#1F3A2A",
+          "fill_color_hex": "#1C2B1E",
           "kind": "text",
           "template_text": "",
           "paragraph_count": 1,
@@ -7172,7 +7173,7 @@
           "width_emu": 3848100,
           "height_emu": 2540000,
           "fill_type": "solid",
-          "fill_color_hex": "#1F3A2A",
+          "fill_color_hex": "#1C2B1E",
           "kind": "text",
           "template_text": "",
           "paragraph_count": 1,
@@ -7436,7 +7437,7 @@
           "width_emu": 3848100,
           "height_emu": 2540000,
           "fill_type": "solid",
-          "fill_color_hex": "#1F3A2A",
+          "fill_color_hex": "#1C2B1E",
           "kind": "text",
           "template_text": "",
           "paragraph_count": 1,
@@ -7700,7 +7701,7 @@
           "width_emu": 3848100,
           "height_emu": 2540000,
           "fill_type": "solid",
-          "fill_color_hex": "#1F3A2A",
+          "fill_color_hex": "#1C2B1E",
           "kind": "text",
           "template_text": "",
           "paragraph_count": 1,
@@ -7964,7 +7965,7 @@
           "width_emu": 3848100,
           "height_emu": 2540000,
           "fill_type": "solid",
-          "fill_color_hex": "#1F3A2A",
+          "fill_color_hex": "#1C2B1E",
           "kind": "text",
           "template_text": "",
           "paragraph_count": 1,
@@ -8701,7 +8702,7 @@
                 "fill_color_hex": null
               },
               {
-                "text": "$960.,000",
+                "text": "$960,000",
                 "fill_color_hex": null
               }
             ],
@@ -8764,7 +8765,7 @@
           "font_size_pt": null,
           "bold": true,
           "italic": null,
-          "color_hex": null,
+          "color_hex": "#1C2B1E",
           "alignment": "left",
           "paragraphs": [
             {
@@ -8774,7 +8775,7 @@
               "font_size_pt": null,
               "bold": true,
               "italic": null,
-              "color_hex": null
+              "color_hex": "#1C2B1E"
             },
             {
               "text": "Gross Margin: 60%",
@@ -8783,7 +8784,7 @@
               "font_size_pt": null,
               "bold": null,
               "italic": null,
-              "color_hex": null
+              "color_hex": "#1C2B1E"
             },
             {
               "text": "EBITDA (2028): 36%",
@@ -8792,7 +8793,7 @@
               "font_size_pt": null,
               "bold": null,
               "italic": null,
-              "color_hex": null
+              "color_hex": "#1C2B1E"
             },
             {
               "text": "* Projections are for the first full year of stabilized operations and are based on the finalized financial assumptions.",
@@ -8801,7 +8802,7 @@
               "font_size_pt": 12.0,
               "bold": null,
               "italic": true,
-              "color_hex": null
+              "color_hex": "#1C2B1E"
             }
           ]
         },
@@ -8912,22 +8913,22 @@
           "height_emu": 142876,
           "fill_type": "background",
           "kind": "text",
-          "template_text": "PAGE 13",
+          "template_text": "PAGE 25",
           "paragraph_count": 1,
           "font_name": "Georgia",
           "font_size_pt": 6.8,
-          "bold": false,
-          "italic": false,
+          "bold": null,
+          "italic": null,
           "color_hex": "#257D41",
           "alignment": "right",
           "paragraphs": [
             {
-              "text": "PAGE 13",
+              "text": "PAGE 25",
               "alignment": "right",
               "font_name": "Georgia",
               "font_size_pt": 6.8,
-              "bold": false,
-              "italic": false,
+              "bold": null,
+              "italic": null,
               "color_hex": "#257D41"
             }
           ],

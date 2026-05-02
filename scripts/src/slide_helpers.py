@@ -22,14 +22,16 @@ from lxml import etree
 
 # ── Brand colours ────────────────────────────────────────────────────────────
 
+# L+B canonical palette — post-consolidation (_02_ template, 2026-05-02).
+# Single source of truth for Track 1 (python-pptx generator).
+# Keep in sync with the C object in artifacts/api-server/src/slides/slide-jsx.tsx.
 SLIDE_COLORS = {
-    "dark_bg":    RGBColor(0x1C, 0x2B, 0x1E),
-    "accent":     RGBColor(0x25, 0x7D, 0x41),
-    "sage":       RGBColor(0x7A, 0xAA, 0x88),
-    "cream":      RGBColor(0xFF, 0xF9, 0xF5),
-    "muted":      RGBColor(0x9F, 0xBC, 0xA4),
-    "white":      RGBColor(0xFF, 0xFF, 0xFF),
-    "near_black": RGBColor(0x1C, 0x2B, 0x1E),
+    "dark_bg":  RGBColor(0x1C, 0x2B, 0x1E),  # deep forest green — backgrounds, primary text
+    "accent":   RGBColor(0x25, 0x7D, 0x41),  # forest green — headlines, bullets, page number
+    "sage":     RGBColor(0x9F, 0xBC, 0xA4),  # muted sage — eyebrows, card fills, captions
+    "cream":    RGBColor(0xFF, 0xF9, 0xF5),  # warm ivory — slide canvas, cream-on-dark text
+    "mint":     RGBColor(0xC8, 0xE8, 0xD0),  # mint — Slide 4 subtitle header
+    "white":    RGBColor(0xFF, 0xFF, 0xFF),
 }
 
 # ── Slide cloning ─────────────────────────────────────────────────────────────
@@ -325,7 +327,7 @@ def add_styled_table(
             run.text = str(cell_text)
             run.font.size = Pt(body_font_size)
             run.font.bold = (ci == 0)
-            run.font.color.rgb = SLIDE_COLORS["near_black"]
+            run.font.color.rgb = SLIDE_COLORS["dark_bg"]
 
     return table_shape
 

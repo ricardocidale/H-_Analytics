@@ -63,6 +63,19 @@ export function getMarketInsight(city: string, state: string): string {
   return `Growing boutique hospitality market in ${city || state}`;
 }
 
+/**
+ * Canonical L+B colors — post-consolidation (`_02_` template, 2026-05-02).
+ *
+ * MUST be kept in sync with:
+ *  - `C` in `artifacts/api-server/src/slides/slide-jsx.tsx` (Track 2 satori renderer)
+ *  - `SLIDE_COLORS` in `scripts/src/slide_helpers.py` (Track 1 python-pptx generator)
+ *
+ * The `_02_1777743268816.pptx` canonical collapsed three near-duplicate
+ * sage / dark-green hex values via XML find/replace:
+ *   #5A7A62 + #7AAA88 + theme accent2 #9FBBA5  →  #9FBCA4  (single sage)
+ *   #1F3A2A + #2E4A35                          →  #1C2B1E  (single dark green)
+ *   #7C837A (Slide 2 tag-line)                 →  #9FBCA4
+ */
 export const COLORS = {
   /**
    * Canonical L+B sage canvas — used as the slide canvas for the financial
@@ -71,18 +84,24 @@ export const COLORS = {
    * per-slide mapping.
    */
   slideBg: "#9FBCA4",
-  /** Legacy dark-green panel — kept for header bands and badges only. */
+  /** Deep forest green — header/footer bands, dark cards, primary text. */
   darkBg: "#1C2B1E",
   accent: "#257D41",
-  sage: "#7AAA88",
+  /** Muted sage — eyebrows, captions, subtitle, tagline (collapsed from #7AAA88). */
+  sage: "#9FBCA4",
   cream: "#FFF9F5",
+  /** Mint — Slide 4 subtitle header (introduced in `_02_`). */
+  mint: "#C8E8D0",
+  /** Legacy alias — same value as `sage` post-consolidation. */
   muted: "#9FBCA4",
+  /** Alias of darkBg — kept for legacy callsites. */
   nearBlack: "#1C2B1E",
-  /** Secondary text on sage canvas. */
-  mutedDark: "#5A7A62",
-  /** Body text on sage canvas. */
-  bodyDark: "#2A4030",
+  /** Secondary text on sage canvas (collapsed from #5A7A62). */
+  mutedDark: "#9FBCA4",
+  /** Body text on sage canvas — was #2A4030; shift to darkBg approved by palette consolidation. */
+  bodyDark: "#1C2B1E",
   white: "#FFFFFF",
+  /** Derived UI border (not part of canonical palette — preserved for in-app preview chrome). */
   lightBorder: "#E8EDE9",
 } as const;
 

@@ -1,0 +1,141 @@
+From: Claude Code                                                                                                                                                                                                                            
+  To: Replit Agent                                                                                                                                                                                                                             
+  Date: 2026-05-02 PM
+  Branch: feat/fix-slide-backgrounds                                                                                                                                                                                                           
+                                                                                         
+  ---                     
+  Status coming in                                                                                                                                                                                                                             
+                  
+  CC just committed fix(api-server): static.ts boot crash — serveStatic() now warns + returns early instead of throwing when dist/public is absent. That one action item from the last handoff is done. Everything below is new work.          
+                                                                                         
+  ---                                                                                                                                                                                                                                          
+  1 · Verify slot recipe + backgrounds are from _02_ template                            
+                                                                                                                                                                                                                                               
+  The background JPEGs and slot recipe in the repo were generated at 16:26 today. If Replit swapped the canonical to _02_ after that, they need regenerating. Confirm with:
+                                                                                                                                                                                                                                               
+  python3 -c "                                                                                                                                                                                                                                 
+  import sys; sys.path.insert(0,'scripts/src')
+  from canonical_template import CANONICAL_PPTX_PATH                                                                                                                                                                                           
+  from pptx import Presentation                                                          
+  prs = Presentation(str(CANONICAL_PPTX_PATH))                                                                                                                                                                                                 
+  # Slide 4 header should be cream #FFF9F5 in _02_ — if slide 4 bg is wrong, regenerate                                                                                                                                                        
+  print('template:', CANONICAL_PPTX_PATH.name)   
+  "                                                                                                                                                                                                                                            
+                                                                                                                                                                                                                                               
+  If the filename isn't _02_1777743268816.pptx, stop and fix canonical_template.py first. If it is, regenerate:                                                                                                                                
+                                                                                                                                                                                                                                               
+  python3 scripts/src/extract_slot_recipe.py                                                                                                                                                                                                   
+  python3 scripts/src/render_slide_backgrounds.py                                                                                                                                                                                              
+  git add scripts/src/slide-slot-recipe.json scripts/src/slide-backgrounds/
+                                                                                                                                                                                                                                               
+  ---                                                                                    
+  2 · Palette unification — slide_helpers.py
+                                                                                                                                                                                                                                               
+  Current SLIDE_COLORS (line 25) has two problems: near_black is a duplicate of dark_bg, and sage still points to the old #7AAA88 that was collapsed in _02_. Post-consolidation canonical palette is five colors plus white:
+                                                                                                                                                                                                                                               
+  Replace the entire SLIDE_COLORS dict:                                                  
+                                                 
+  # L+B canonical palette — post-consolidation (_02_ template, 2026-05-02).                                                                                                                                                                    
+  # Single source of truth for Track 1 (python-pptx generator).                                                                                                                                                                                
+  # Keep in sync with the C object in artifacts/api-server/src/slides/slide-jsx.tsx.                                                                                                                                                           
+  SLIDE_COLORS = {                                                                                                                                                                                                                             
+      "dark_bg":  RGBColor(0x1C, 0x2B, 0x1E),  # deep forest green — backgrounds, primary text                                                                                                                                                 
+      "accent":   RGBColor(0x25, 0x7D, 0x41),  # forest green — headlines, bullets, page number                                                                                                                                                
+      "sage":     RGBColor(0x9F, 0xBC, 0xA4),  # muted sage — eyebrows, card fills, captions                                                                                                                                                   
+      "cream":    RGBColor(0xFF, 0xF9, 0xF5),  # warm ivory — slide canvas, cream-on-dark text                                                                                                                                                 
+      "mint":     RGBColor(0xC8, 0xE8, 0xD0),  # mint — Slide 4 subtitle header                                                                                                                                                                
+      "white":    RGBColor(0xFF, 0xFF, 0xFF),                                                                                                                                                                                                  
+  }                                                                                                                                                                                                                                            
+                                                                                                                                                                                                                                               
+  Then fix the one internal usage of the removed key — line 328 uses "near_black" for table data-row text:                                                                                                                                     
+                                                                                                                                                                                                                                               
+  # line 328: was SLIDE_COLORS["near_black"]                                                                                                                                                                                                   
+  run.font.color.rgb = SLIDE_COLORS["dark_bg"]                                                                                                                                                                                                 
+                                                 
+  ---                                                                                                                                                                                                                                          
+  3 · Palette unification — slide-jsx.tsx                                                                                                                                                                                                      
+                                         
+  The C object (around line 38) still has four stale or unvetted values. Replace the block:                                                                                                                                                    
+                                                                                         
+  // L+B canonical palette — post-consolidation (_02_ template, 2026-05-02).                                                                                                                                                                   
+  // Keep in sync with SLIDE_COLORS in scripts/src/slide_helpers.py.
+  const C = {                                                                                                                                                                                                                                  
+    // Core five                                                                         
+    darkBg:     "#1C2B1E",   // deep forest green                                                                                                                                                                                              
+    accent:     "#257D41",   // forest green                                             
+    sage:       "#9FBCA4",   // muted sage (collapsed from #7AAA88 + #5A7A62)                                                                                                                                                                  
+    cream:      "#FFF9F5",   // warm ivory canvas                                        
+    mint:       "#C8E8D0",   // Slide 4 subtitle header                                                                                                                                                                                        
+    white:      "#FFFFFF",                                                               
+                                                                                                                                                                                                                                               
+    // Semantic aliases used by Slide 4–6 components                                     
+    bg:         "#1C2B1E",   // alias for darkBg (card backgrounds)                                                                                                                                                                            
+    canvasText: "#1C2B1E",   // primary text on cream canvas                             
+    canvasMuted:"#9FBCA4",   // secondary labels (was #5A7A62, now collapsed)                                                                                                                                                                  
+  };                                             
+                                                                                                                                                                                                                                               
+  Before committing: grep for every usage of the old keys (bgDark, canvasBody, C.sage where it was #7AAA88) in the component JSX and make sure nothing goes visually wrong. Key risk: if any Slide 4–6 component uses C.canvasBody for body    
+  text, its color shifts from #2A4030 to #1C2B1E (slightly darker — acceptable). If C.bgDark (#151f16) was used as a near-black fallback, replace with C.darkBg.                                                                               
+                                                                                                                                                                                                                                               
+  ---                                                                                                                                                                                                                                          
+  4 · Fix hplus-slide-mapping SKILL.md — Slide 3 hero shape name                         
+                                                                                                                                                                                                                                               
+  The Slide 3 mapping still says Image 5 for the hero photo. The new canonical template names it Picture 46. One-line fix in .agents/skills/hplus-slide-mapping/SKILL.md:
+                          
+  | Image 5  | Hero photo (large left panel …) |                                                                                                                                                                                               
+  →                       
+  | Picture 46 | Hero photo (large left panel …) |                                                                                                                                                                                             
+                                                                                         
+  ---                                                                                                                                                                                                                                          
+  5 · Prune defunct colors from Slide 1 + 2 skill files                                  
+                                                                                                                                                                                                                                               
+  .agents/skills/hplus-canonical-slide-1/SKILL.md and …/hplus-canonical-slide-2/SKILL.md both still list #5A7A62, #7AAA88, and #7C837A in their palette tables with "drift cousin" notes. Those colors no longer exist in _02_ — they were     
+  collapsed into #9FBCA4. Prune the palette table in each skill to the post-consolidation five colors. Slide 2's #7C837A tag-line note can also be removed since it was consolidated.
+                                                                                                                                                                                                                                               
+  ---                                                                                    
+  6 · Pixel-diff smoke test script (nice to have if cycles allow)                                                                                                                                                                              
+                                                                                         
+  Create scripts/src/verify_canonical_match.py that:                                                                                                                                                                                           
+  1. Runs the generator against a fixture property (use the Hazelnis data from the existing attached asset)
+  2. Converts each slide of the output PPTX to PNG (via LibreOffice headless or python-pptx slide render)                                                                                                                                      
+  3. Compares key spot-color samples at known coordinates (header band, card backgrounds) against expected hex values
+  4. Prints PASS/FAIL per slide                                                                                                                                                                                                                
+                                                                                                                                                                                                                                               
+  If LibreOffice isn't available in the Replit environment, skip rendering and just assert that each shape in the output has the expected text + color attributes using python-pptx directly (no image render needed).                         
+                                                                                                                                                                                                                                               
+  ---                                                                                                                                                                                                                                          
+  Verification before declaring done                                                                                                                                                                                                           
+                                                                                                                                                                                                                                               
+  # 1. Slot recipe + backgrounds from _02_                                                                                                                                                                                                     
+  python3 -c "import json; r=json.load(open('scripts/src/slide-slot-recipe.json')); print(len(r['slides']), 'slides,', sum(len(s['elements']) for s in r['slides'].values()), 'elements')"                                                     
+  # expect: 6 slides, ~266 elements                                                                                                                                                                                                            
+                                                 
+  # 2. SLIDE_COLORS no stale keys                                                                                                                                                                                                              
+  python3 -c "                                                                                                                                                                                                                                 
+  import sys; sys.path.insert(0,'scripts/src')                                                                                                                                                                                                 
+  from slide_helpers import SLIDE_COLORS                                                                                                                                                                                                       
+  assert 'near_black' not in SLIDE_COLORS, 'near_black still present'                                                                                                                                                                          
+  assert 'sage' in SLIDE_COLORS and str(SLIDE_COLORS['sage']) == '9FBCA4', 'sage not canonical'
+  assert 'mint' in SLIDE_COLORS, 'mint missing'                                                                                                                                                                                                
+  print('SLIDE_COLORS ok:', list(SLIDE_COLORS))  
+  "                                                                                                                                                                                                                                            
+                                                                                                                                                                                                                                               
+  # 3. Typecheck clean                                                                                                                                                                                                                         
+  pnpm run typecheck                                                                                                                                                                                                                           
+                                                                                                                                                                                                                                               
+  # 4. Generator still runs                                                              
+  python3 -c "
+  import sys, json; sys.path.insert(0,'scripts/src')                                                                                                                                                                                           
+  from canonical_template import CANONICAL_PPTX_PATH
+  assert CANONICAL_PPTX_PATH.exists()                                                                                                                                                                                                          
+  print('template ok')                                                                                                                                                                                                                         
+  "                                              
+                                                                                                                                                                                                                                               
+  ---                                                                                                                                                                                                                                          
+  Do NOT touch
+                                                                                                                                                                                                                                               
+  - artifacts/api-server/src/static.ts — just fixed by CC                                
+  - Re-apply any palette / page-number / slide-5 fixes to the PPTX or generator — already baked in _02_
+  - build.mjs externals, Railway Dockerfile, healthcheck path                                                                                                                                                                                  
+  - Create skills for slides 3, 4, 5, 6          
+  - Hardcode the canonical PPTX filename anywhere — always import from canonical_template.py     

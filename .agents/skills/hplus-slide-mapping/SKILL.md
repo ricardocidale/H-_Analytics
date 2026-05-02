@@ -8,7 +8,7 @@ description: Canonical H+ Analytics field → L+B PPTX shape name mapping for al
 Template: `attached_assets/L+B_Property_Slides_02_1777743268816.pptx` (current canonical, swapped 2026-05-02 PM; prior `_1777738821984.pptx` and `_1777637870265.pptx` moved to `attached_assets/archive/`)
 Output: 6 slides per property (template slides 1–6; slide 7 "The Ask" is EXCLUDED).
 Slide size: 13.33" × 7.50"
-Colors: dark bg `#1C2B1E`, accent green `#257D41`, sage `#7AAA88`, cream `#FFF9F5`, muted `#9FBCA4`
+Colors (post-consolidation L+B palette, `_02_` template): dark bg `#1C2B1E`, accent green `#257D41`, sage `#9FBCA4`, cream `#FFF9F5`, mint `#C8E8D0`
 
 ---
 
@@ -115,7 +115,7 @@ Adapted from the Cartagena global expansion slide. Shows the L+B model applied t
 | Text 23 | `reason3_detail` |
 | Text 24 | `closingLine` — one-sentence investment thesis |
 | Text 19 *(PAGE)* | `"PAGE 3"` |
-| Image 5 | Hero photo (large left panel, 4.48"×6.23") |
+| Picture 46 | Hero photo (large left panel, 4.48"×6.23") |
 | Image 9 | Secondary photo (center panel, 5.31"×6.44") |
 | Image 24 | Tertiary photo (right panel, 3.23"×6.44") |
 
