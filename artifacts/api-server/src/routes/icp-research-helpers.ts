@@ -1,4 +1,5 @@
 import type { ResearchSourceEntry } from "@workspace/db";
+import { PDF_REPORT_GRAY_RGB } from "../constants";
 
 export interface IcpLocationCity {
   name: string;
@@ -395,7 +396,7 @@ export async function exportReportPdf(
 
   const addFooter = (pageNum: number) => {
     doc.setFontSize(7);
-    doc.setTextColor(140, 140, 140);
+    doc.setTextColor(PDF_REPORT_GRAY_RGB, PDF_REPORT_GRAY_RGB, PDF_REPORT_GRAY_RGB);
     doc.text(`Page ${pageNum}`, pageW / 2, pageH - 8, { align: "center" });
     doc.text(new Date(report.generatedAt).toLocaleDateString(), pageW - margin, pageH - 8, { align: "right" });
   };

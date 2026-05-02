@@ -3,7 +3,9 @@ import { Page, View, Text } from "@react-pdf/renderer";
 import { type PdfTheme } from "./theme";
 import type { TableRow as IRTableRow } from "../report/types";
 import type { LayoutHints } from "./design-pass";
+import { PDF_LANDSCAPE_LABEL_WIDTH_PX } from "../constants";
 import { PAGE_LANDSCAPE, PAGE_PORTRAIT, PageHeader, PageFooter } from "./theme-mappers";
+import { PDF_PORTRAIT_LABEL_WIDTH_PX } from "../constants";
 
 export const DENSITY_PADDING: Record<string, string> = {
   cramped: "3 6",
@@ -21,9 +23,9 @@ interface TableRenderProps {
 
 export function TableBody({ years, rows, theme, isLandscape, hints }: TableRenderProps) {
   const colWidth = isLandscape
-    ? (PAGE_LANDSCAPE[0] - 120 - 140) / Math.max(years.length, 1)
-    : (PAGE_PORTRAIT[0] - 100 - 110) / Math.max(years.length, 1);
-  const labelWidth = isLandscape ? 140 : 110;
+    ? (PAGE_LANDSCAPE[0] - 120 - PDF_LANDSCAPE_LABEL_WIDTH_PX) / Math.max(years.length, 1)
+    : (PAGE_PORTRAIT[0] - 100 - PDF_PORTRAIT_LABEL_WIDTH_PX) / Math.max(years.length, 1);
+  const labelWidth = isLandscape ? PDF_LANDSCAPE_LABEL_WIDTH_PX : PDF_PORTRAIT_LABEL_WIDTH_PX;
   const dataFontSize = Math.round(11 * hints.globalFontSizeScale);
   const headerFontSize = Math.round(12 * hints.globalFontSizeScale);
   const cellPadding = DENSITY_PADDING[hints.tableDensity] || "6 10";

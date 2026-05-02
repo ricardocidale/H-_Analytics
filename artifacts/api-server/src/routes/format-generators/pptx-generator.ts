@@ -1,6 +1,7 @@
 import type { ReportDefinition, FormattedValue } from "../../report/types";
 import type { ThemeColorMap } from "../../theme-resolver";
 import { ASSUMPTIONS_TITLE_PREFIX } from "../../report/assumption-sections";
+import { PPTX_FOOTER_Y_OFFSET_IN } from "../../constants";
 
 function fmtPptxValue(fv: FormattedValue): string {
   return fv.text;
@@ -176,7 +177,7 @@ export async function generatePptxFromReport(report: ReportDefinition): Promise<
 
     slide.addShape("rect", { x: 0, y: SLIDE_H - 0.35, w: SLIDE_W, h: 0.01, fill: { color: strip(t.secondary) } });
     slide.addText(`${report.cover.companyName} \u2014 Confidential`, {
-      x: 0.3, y: SLIDE_H - 0.32, w: 5, h: 0.25,
+      x: 0.3, y: SLIDE_H - PPTX_FOOTER_Y_OFFSET_IN, w: 5, h: 0.25,
       fontSize: 7, fontFace: "Arial", color: strip(t.border), italic: true,
     });
   }
@@ -360,7 +361,7 @@ export async function generatePptxBuffer(aiResult: any, data: { companyName?: st
       fill: { color: tc.sage },
     });
     slide.addText(`${data.companyName} \u2014 Confidential`, {
-      x: 0.3, y: SLIDE_H - 0.32, w: 5, h: 0.25,
+      x: 0.3, y: SLIDE_H - PPTX_FOOTER_Y_OFFSET_IN, w: 5, h: 0.25,
       fontSize: 7, fontFace: "Arial", color: tc.lightGray, italic: true,
     });
   }

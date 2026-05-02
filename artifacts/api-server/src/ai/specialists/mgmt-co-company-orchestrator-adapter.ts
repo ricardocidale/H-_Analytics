@@ -9,6 +9,7 @@
  */
 
 import type { Evidence } from "@engine/analyst/contracts/verdict";
+import { BENCHMARK_COMPANY_TAX_RATE_MID } from "../../constants";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Comparable shape
@@ -55,7 +56,7 @@ export function getCannedCompanyComparables(): readonly CompanyComparableRow[] {
       propertyCount: 5,
       baseManagementFee: 0.07,
       incentiveManagementFee: 0.10,
-      companyTaxRate: 0.24,
+      companyTaxRate: BENCHMARK_COMPANY_TAX_RATE_MID,
       costOfEquity: 0.18,
       vintage: 2023,
       source: "HVS Latam ManCo Survey 2023 (illustrative)",
@@ -165,7 +166,7 @@ export function getCannedCompanyComparables(): readonly CompanyComparableRow[] {
       propertyCount: 22,
       baseManagementFee: 0.09,
       incentiveManagementFee: 0.12,
-      companyTaxRate: 0.24,
+      companyTaxRate: BENCHMARK_COMPANY_TAX_RATE_MID,
       costOfEquity: 0.16,
       vintage: 2024,
       source: "HVS European ManCo Index 2024 (illustrative)",

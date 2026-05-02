@@ -28,6 +28,7 @@ import {
 } from "@shared/constants";
 import { DEFAULT_STAFF_SALARY, DEFAULT_TRAVEL_PER_CLIENT, DEFAULT_IT_LICENSE_PER_CLIENT } from "@shared/constants-staffing";
 import { getFactoryNumber } from "@shared/model-constants-registry";
+import { SEED_OPERATING_RESERVE_USD, SEED_PARTNER_COMP_PHASE1_USD, SEED_PARTNER_COMP_FINAL_USD } from "./constants";
 
 // Audit #319 R4 / #406: registry-backed factory baselines.
 // inflationRate US = 0.03; taxRate US = 0.21 (federal corporate, replaces legacy 0.30).
@@ -61,7 +62,7 @@ export const SEED_GLOBAL_ASSUMPTIONS = {
   professionalServicesStart: DEFAULT_PROFESSIONAL_SERVICES_START,
   techInfraStart: DEFAULT_TECH_INFRA_START,
   businessInsuranceStart: DEFAULT_BUSINESS_INSURANCE_START,
-  standardAcqPackage: { monthsToOps: 6, purchasePrice: 3800000, preOpeningCosts: 200000, operatingReserve: 250000, buildingImprovements: 1200000 },
+  standardAcqPackage: { monthsToOps: 6, purchasePrice: 3800000, preOpeningCosts: 200000, operatingReserve: SEED_OPERATING_RESERVE_USD, buildingImprovements: 1200000 },
   debtAssumptions: SEED_DEBT_ASSUMPTIONS,
   commissionRate: DEFAULT_COMMISSION_RATE,
   fixedCostEscalationRate: SEED_INFLATION_RATE,
@@ -81,8 +82,8 @@ export const SEED_GLOBAL_ASSUMPTIONS = {
   otherExpenseRate: DEFAULT_OTHER_EXPENSE_RATE,
   utilitiesVariableSplit: DEFAULT_UTILITIES_VARIABLE_SPLIT,
   partnerCompYear1: 540000, partnerCompYear2: 540000, partnerCompYear3: 540000,
-  partnerCompYear4: 600000, partnerCompYear5: 600000, partnerCompYear6: 700000,
-  partnerCompYear7: 700000, partnerCompYear8: 800000, partnerCompYear9: 800000, partnerCompYear10: 900000,
+  partnerCompYear4: SEED_PARTNER_COMP_PHASE1_USD, partnerCompYear5: SEED_PARTNER_COMP_PHASE1_USD, partnerCompYear6: 700000,
+  partnerCompYear7: 700000, partnerCompYear8: 800000, partnerCompYear9: 800000, partnerCompYear10: SEED_PARTNER_COMP_FINAL_USD,
   partnerCountYear1: 3, partnerCountYear2: 3, partnerCountYear3: 3, partnerCountYear4: 3, partnerCountYear5: 3,
   partnerCountYear6: 3, partnerCountYear7: 3, partnerCountYear8: 3, partnerCountYear9: 3, partnerCountYear10: 3,
 };

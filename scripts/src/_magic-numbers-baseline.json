@@ -1790,12 +1790,6 @@
     "artifacts/api-server/src/storage/render-settings.ts",
     "lib/shared/src/regulatory/profiles-europe.ts"
   ],
-  "110": [
-    "artifacts/api-server/src/pdf/chart-render.tsx",
-    "artifacts/api-server/src/pdf/table-render.tsx",
-    "artifacts/api-server/src/seeds/market-data-tables.ts",
-    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts"
-  ],
   "120": [
     "artifacts/api-server/src/ai/icp/config-builder.ts",
     "artifacts/api-server/src/ai/property-vision.ts",
@@ -1824,12 +1818,6 @@
     "lib/engine/src/helpers/default-resolver.ts",
     "lib/shared/src/constants-benchmarks.ts",
     "lib/shared/src/regulatory/profiles-latam.ts"
-  ],
-  "140": [
-    "artifacts/api-server/src/pdf/table-render.tsx",
-    "artifacts/api-server/src/routes/icp-research-helpers.ts",
-    "artifacts/api-server/src/seeds/market-data-tables.ts",
-    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts"
   ],
   "145": [
     "artifacts/api-server/src/seeds/market-data-tables.ts",
@@ -2026,12 +2014,6 @@
     "artifacts/api-server/src/routes/helpers.ts",
     "artifacts/api-server/src/routes/icp-research-helpers.ts",
     "artifacts/api-server/src/theme-resolver.ts"
-  ],
-  "260": [
-    "artifacts/api-server/src/data/researchSeeds.ts",
-    "artifacts/api-server/src/pdf/chart-render.tsx",
-    "artifacts/api-server/src/report/svg-charts.ts",
-    "artifacts/api-server/src/seeds/market-data-tables.ts"
   ],
   "275": [
     "artifacts/api-server/src/data/researchSeeds.ts",
@@ -2290,6 +2272,7 @@
     "artifacts/api-server/src/routes/portfolio-risk.ts",
     "artifacts/api-server/src/routes/properties-urls.ts",
     "artifacts/api-server/src/routes/property-dd.ts",
+    "artifacts/api-server/src/routes/property-slides.ts",
     "artifacts/api-server/src/routes/rebecca.ts",
     "artifacts/api-server/src/routes/regulatory.ts",
     "artifacts/api-server/src/routes/render-settings.ts",
@@ -2536,12 +2519,6 @@
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts"
   ],
-  "1500": [
-    "artifacts/api-server/src/constants.ts",
-    "artifacts/api-server/src/routes/market-signals.ts",
-    "artifacts/api-server/src/seeds/reference-ranges.ts",
-    "lib/calc/src/research/validate-research.ts"
-  ],
   "5000": [
     "artifacts/api-server/src/ai/comparables/web-enricher.ts",
     "artifacts/api-server/src/ai/guidance/extractor.ts",
@@ -2580,29 +2557,23 @@
     "artifacts/api-server/src/shared/constants.ts",
     "lib/shared/src/constants.ts"
   ],
-  "50000": [
-    "artifacts/api-server/src/routes/admin/tools.ts",
-    "artifacts/api-server/src/routes/ai.ts",
-    "artifacts/api-server/src/seeds/market-data-tables.ts",
-    "artifacts/api-server/src/seeds/reference-ranges.ts"
-  ],
   "250000": [
+    "artifacts/api-server/src/constants.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/properties.ts",
-    "artifacts/api-server/src/seeds/property-data.ts",
-    "artifacts/api-server/src/syncHelpers.ts"
+    "artifacts/api-server/src/seeds/property-data.ts"
   ],
   "600000": [
+    "artifacts/api-server/src/constants.ts",
     "artifacts/api-server/src/seeds/properties.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
-    "artifacts/api-server/src/seeds/reference-ranges.ts",
-    "artifacts/api-server/src/syncHelpers.ts"
+    "artifacts/api-server/src/seeds/reference-ranges.ts"
   ],
   "900000": [
     "artifacts/api-server/src/ai/specialists/mgmt-co-compensation-prompt.ts",
+    "artifacts/api-server/src/constants.ts",
     "artifacts/api-server/src/seeds/properties.ts",
-    "artifacts/api-server/src/seeds/reference-ranges.ts",
-    "artifacts/api-server/src/syncHelpers.ts"
+    "artifacts/api-server/src/seeds/reference-ranges.ts"
   ],
   "1000000": [
     "artifacts/api-server/src/ai/icp/config-builder.ts",
@@ -2943,12 +2914,6 @@
     "lib/shared/src/countryDefaults.ts",
     "lib/shared/src/market-intelligence-pipeline.ts",
     "lib/shared/src/price-history.ts"
-  ],
-  "0.32": [
-    "artifacts/api-server/src/ai/risk/benchmarks.ts",
-    "artifacts/api-server/src/routes/format-generators/pptx-generator.ts",
-    "lib/calc/src/research/property-metrics.ts",
-    "lib/shared/src/constants-revenue-benchmarks.ts"
   ],
   "0.22": [
     "artifacts/api-server/src/ai/confidence-scorer.ts",
@@ -3501,12 +3466,6 @@
     "lib/shared/src/constants-staffing.ts",
     "lib/shared/src/rebecca-settings.ts"
   ],
-  "0.055": [
-    "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-orchestrator-adapter.ts",
-    "artifacts/api-server/src/ai/specialists/property-risk-orchestrator-adapter.ts",
-    "artifacts/api-server/src/seeds/property-data.ts",
-    "lib/shared/src/constants-operating-structures-data.ts"
-  ],
   "0.4": [
     "artifacts/api-server/src/ai/analyst-scoped-runner.ts",
     "artifacts/api-server/src/ai/comparables/query-builder.ts",
@@ -3573,12 +3532,6 @@
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "artifacts/api-server/src/shared/constants.ts",
     "lib/shared/src/constants.ts"
-  ],
-  "0.24": [
-    "artifacts/api-server/src/ai/specialists/mgmt-co-company-orchestrator-adapter.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
-    "artifacts/api-server/src/seeds/property-data.ts",
-    "lib/shared/src/countryDefaults.ts"
   ],
   "3.5": [
     "artifacts/api-server/src/ai/analyst-table-refresh.ts",

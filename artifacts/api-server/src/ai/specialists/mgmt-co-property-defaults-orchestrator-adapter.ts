@@ -11,6 +11,7 @@
  */
 
 import type { Evidence } from "@engine/analyst/contracts/verdict";
+import { BENCHMARK_SALES_COMMISSION_RATE_LOW } from "../../constants";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Comparable shape
@@ -70,7 +71,7 @@ export function getCannedPropertyDefaultsComparables(): readonly PropertyDefault
       eventExpenseRate: 0.60,
       otherExpenseRate: 0.52,
       utilitiesVariableSplit: 0.62,
-      salesCommissionRate: 0.055,
+      salesCommissionRate: BENCHMARK_SALES_COMMISSION_RATE_LOW,
       vintage: 2024,
       source: "Kalibri Labs Direct Booking Study 2024 (illustrative)",
     },

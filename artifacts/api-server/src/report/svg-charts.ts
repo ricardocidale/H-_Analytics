@@ -1,5 +1,5 @@
 import type { ChartSeries, DesignTokens } from "./types";
-import { CHART_HEADROOM_FACTOR } from "../constants";
+import { CHART_HEADROOM_FACTOR, CHART_SVG_LANDSCAPE_HEIGHT_PX } from "../constants";
 
 function fmtCompact(v: number): string {
   if (v === 0) return "$0";
@@ -50,7 +50,7 @@ export function renderChartSvg(
   if (!series.length || !years.length) return "";
 
   const svgW = opts?.width ?? 700;
-  const svgH = opts?.height ?? 260;
+  const svgH = opts?.height ?? CHART_SVG_LANDSCAPE_HEIGHT_PX;
   const padL = 70, padR = 30, padT = 20, padB = 50;
   const plotW = svgW - padL - padR;
   const plotH = svgH - padT - padB;

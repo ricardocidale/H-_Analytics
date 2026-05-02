@@ -6,6 +6,7 @@ import { logAndSendError, logActivity } from "../helpers";
 import { readFile } from "fs/promises";
 import { resolve } from "path";
 import { isAdminRole } from "@shared/constants";
+import { MAX_ADMIN_QUERY_OFFSET } from "../../constants";
 import { execFile } from "child_process";
 import { VERIFY_PHASES, allProofFilePaths } from "../../../script/lib/verify-phases";
 
@@ -508,7 +509,7 @@ export function registerToolRoutes(app: Express) {
         from: from ? new Date(from as string) : undefined,
         to: to ? new Date(to as string) : undefined,
         limit: Math.min(limit ? Number(limit) : 50, 500),
-        offset: Math.min(offset ? Number(offset) : 0, 50000),
+        offset: Math.min(offset ? Number(offset) : 0, MAX_ADMIN_QUERY_OFFSET),
       });
       res.json(logs.map((l: any) => ({
         ...l,
@@ -534,7 +535,7 @@ export function registerToolRoutes(app: Express) {
         from: from ? new Date(from as string) : undefined,
         to: to ? new Date(to as string) : undefined,
         limit: Math.min(limit ? Number(limit) : 100, 500),
-        offset: Math.min(offset ? Number(offset) : 0, 50000),
+        offset: Math.min(offset ? Number(offset) : 0, MAX_ADMIN_QUERY_OFFSET),
       });
       res.json(logs.map((l: any) => ({
         ...l,

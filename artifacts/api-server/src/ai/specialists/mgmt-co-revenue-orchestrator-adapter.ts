@@ -16,6 +16,7 @@
  */
 
 import type { Evidence } from "@engine/analyst/contracts/verdict";
+import { BENCHMARK_FB_SHARE_FRACTION_STD } from "../../constants";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Comparable shape
@@ -76,7 +77,7 @@ export function getCannedRevenueComparables(): readonly RevenueComparableRow[] {
       vertical: "boutique-luxury",
       roomCount: 120,
       marketingRateFraction: 0.07,
-      fbShareFraction: 0.24,
+      fbShareFraction: BENCHMARK_FB_SHARE_FRACTION_STD,
       eventsShareFraction: 0.08,
       otherShareFraction: 0.03,
       cateringBoostFraction: 0.04,

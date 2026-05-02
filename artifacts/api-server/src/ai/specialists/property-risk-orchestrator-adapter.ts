@@ -21,6 +21,7 @@
  */
 
 import type { Evidence } from "@engine/analyst/contracts/verdict";
+import { BENCHMARK_INFLATION_RATE_EM_MID } from "../../constants";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Dimension key constants (single dimension for v1)
@@ -94,7 +95,7 @@ export function getCannedInflationComparables(): readonly InflationComparableRow
       vintage: 2024,
       sector: "all-items",
       low: 0.040,
-      mid: 0.055,
+      mid: BENCHMARK_INFLATION_RATE_EM_MID,
       high: 0.075,
       source: "IMF WEO Emerging Market Economies CPI",
       asOf: "2024-10-01",

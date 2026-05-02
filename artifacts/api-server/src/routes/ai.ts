@@ -8,7 +8,7 @@ import { storage } from "../storage";
 import { resolveLlm, getVendorService } from "../ai/resolve-llm";
 import { logger } from "../logger";
 import type { ResearchConfig } from "@workspace/db";
-import { HTTP_503_SERVICE_UNAVAILABLE } from "../constants";
+import { HTTP_503_SERVICE_UNAVAILABLE, MAX_AI_PROMPT_INPUT_CHARS } from "../constants";
 
 const rewriteSchema = z.object({
   text: z.string().min(1).max(5000),
@@ -72,7 +72,7 @@ Rewritten description:`;
   });
 
   const optimizeSchema = z.object({
-    prompt: z.string().min(1).max(50000),
+    prompt: z.string().min(1).max(MAX_AI_PROMPT_INPUT_CHARS),
   });
 
   app.post("/api/ai/optimize-prompt", requireAuth, aiRateLimit(10), async (req: Request, res: Response) => {

@@ -4,13 +4,15 @@
  * in one module so updating a benchmark propagates everywhere consistently.
  */
 
+import { BENCHMARK_FB_COST_RATE } from "../../constants";
+
 export const BENCHMARKS = {
   luxuryADR: 396.40,
   boutiqueADR: 245.00,
   luxuryOccupancy: 0.682,
   boutiqueOccupancy: 0.705,
   avgCostRateRooms: 0.36,
-  avgCostRateFB: 0.32,
+  avgCostRateFB: BENCHMARK_FB_COST_RATE,
   avgCostRateAdmin: 0.09,
   avgCostRateMarketing: 0.06,
   avgCostRatePropertyOps: 0.05,

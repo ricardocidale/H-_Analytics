@@ -24,6 +24,7 @@ import {
   computeStrTrend,
 } from "@shared/market-intelligence-pipeline";
 import { z } from "zod";
+import { MARKET_SIGNAL_SQFT_FALLBACK } from "../constants";
 
 const computeQuerySchema = z.object({
   baselineRevpar: z.coerce.number().nonnegative().optional(),
@@ -148,6 +149,6 @@ function estimateSubmarketInventory(
 ): number {
   const subjectRooms = Number(property?.roomCount ?? 0);
   const projectKeys = projects.reduce((sum, p) => sum + (p.keyCount ?? 0), 0);
-  const fallback = subjectRooms > 0 ? subjectRooms * 30 : 1500;
+  const fallback = subjectRooms > 0 ? subjectRooms * 30 : MARKET_SIGNAL_SQFT_FALLBACK;
   return Math.max(fallback, projectKeys);
 }

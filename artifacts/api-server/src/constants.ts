@@ -216,6 +216,32 @@ export const CHART_HEADROOM_FACTOR = 1.08;
  */
 export const PDF_COMPACT_LINE_HEIGHT = 1.08;
 
+/**
+ * SVG chart height used when the PDF page is landscape-oriented (px).
+ * Portrait charts use a taller 300 px height (set at the call site).
+ * Also used as the default fallback height for standalone SVG chart renders
+ * where no explicit height is provided.
+ */
+export const CHART_SVG_LANDSCAPE_HEIGHT_PX = 260;
+
+/**
+ * Label column width for portrait-orientation PDF tables and chart legends (px).
+ * The landscape equivalent is `PDF_LANDSCAPE_LABEL_WIDTH_PX` (140 px).
+ */
+export const PDF_PORTRAIT_LABEL_WIDTH_PX = 110;
+
+/**
+ * Maximum pagination offset allowed on admin activity-log query endpoints.
+ * Guards against unreasonably deep scans of the activity_log table.
+ */
+export const MAX_ADMIN_QUERY_OFFSET = 50000;
+
+/**
+ * Maximum character length for the prompt field on the AI optimize-prompt endpoint.
+ * Prevents oversized payloads from reaching the LLM.
+ */
+export const MAX_AI_PROMPT_INPUT_CHARS = 50000;
+
 // ---------------------------------------------------------------------------
 // AI generation limits
 // ---------------------------------------------------------------------------
@@ -229,8 +255,86 @@ export const AI_EXEC_SUMMARY_SECTION_MAX_TOKENS = 1200;
 /** Max tokens for full executive-summary generation */
 export const AI_EXEC_SUMMARY_FULL_MAX_TOKENS = 1500;
 
+/**
+ * Fallback submarket inventory estimate (keys) used in market-signal calculations
+ * when neither subject room count nor pipeline project data is available.
+ */
+export const MARKET_SIGNAL_SQFT_FALLBACK = 1500;
+
+/**
+ * Default operating reserve (USD) used in the seed acquisition package template.
+ * Represents a typical pre-opening cash cushion for a standard boutique property.
+ */
+export const SEED_OPERATING_RESERVE_USD = 250000;
+
+/**
+ * Starting annual partner compensation (USD) used in the seed company model
+ * (years 4–5 of the 10-year projection).
+ */
+export const SEED_PARTNER_COMP_PHASE1_USD = 600000;
+
+/**
+ * Peak annual partner compensation (USD) used in the seed company model
+ * (year 10 of the 10-year projection).
+ */
+export const SEED_PARTNER_COMP_FINAL_USD = 900000;
+
+/**
+ * Vertical offset (inches) from the bottom of a PowerPoint slide to the
+ * confidentiality footer text row.
+ */
+export const PPTX_FOOTER_Y_OFFSET_IN = 0.32;
+
 /** Max tokens for ambient background research scheduler */
 export const AI_AMBIENT_RESEARCH_MAX_TOKENS = 6144;
+
+// ─── Benchmark defaults (orchestrator adapter baselines) ─────────────────────
+
+/**
+ * Benchmark average F&B cost-rate used in the hotel risk model
+ * (Operator Benchmarks — illustrative mid-tier, US/EUR markets).
+ */
+export const BENCHMARK_FB_COST_RATE = 0.32;
+
+/**
+ * Low-tier sales-commission-rate benchmark for boutique hotel properties.
+ * Used as the representative low value in the property-defaults
+ * benchmark array (Kalibri Labs / STR illustrative data).
+ */
+export const BENCHMARK_SALES_COMMISSION_RATE_LOW = 0.055;
+
+/**
+ * Mid-point CPI benchmark for Emerging Market economies (IMF WEO 2024).
+ * Applied as the representative "mid" value in the risk-orchestrator
+ * inflation comparables array.
+ */
+export const BENCHMARK_INFLATION_RATE_EM_MID = 0.055;
+
+/**
+ * Mid-tier benchmark corporate tax rate applied to companies in markets
+ * such as UK/Canada within the mgmt-co company model.
+ */
+export const BENCHMARK_COMPANY_TAX_RATE_MID = 0.24;
+
+/**
+ * Standard F&B share fraction (as a decimal) used as the representative
+ * baseline entry in the revenue-orchestrator benchmark array.
+ */
+export const BENCHMARK_FB_SHARE_FRACTION_STD = 0.24;
+
+// ─── PDF report layout ────────────────────────────────────────────────────────
+
+/**
+ * Column label width (px) in landscape-mode PDF tables where the full
+ * landscape page width is distributed across label + data columns.
+ */
+export const PDF_LANDSCAPE_LABEL_WIDTH_PX = 140;
+
+/**
+ * RGB component value (0-255) used for secondary/muted gray text in
+ * PDF reports (i.e. `setTextColor(PDF_REPORT_GRAY_RGB, PDF_REPORT_GRAY_RGB, PDF_REPORT_GRAY_RGB)`).
+ */
+export const PDF_REPORT_GRAY_RGB = 140;
 
 /** Max tokens for ICP research generation */
 export const AI_ICP_RESEARCH_MAX_TOKENS = 12000;

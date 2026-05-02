@@ -3,7 +3,7 @@ import { Page, View, Text, Svg, Line, Circle, Path, G } from "@react-pdf/rendere
 import { type PdfTheme } from "./theme";
 import type { LayoutHints } from "./design-pass";
 import { PAGE_LANDSCAPE, PAGE_PORTRAIT, PageHeader, PageFooter } from "./theme-mappers";
-import { CHART_HEADROOM_FACTOR } from "../constants";
+import { CHART_HEADROOM_FACTOR, CHART_SVG_LANDSCAPE_HEIGHT_PX, PDF_PORTRAIT_LABEL_WIDTH_PX } from "../constants";
 
 export function fmtCompact(v: number): string {
   if (v === 0) return "$0";
@@ -49,7 +49,7 @@ export function ChartSvgBody({ series, years, theme, isLandscape, hints }: {
   hints: LayoutHints;
 }) {
   const svgW = isLandscape ? 700 : 440;
-  const svgH = isLandscape ? 260 : 300;
+  const svgH = isLandscape ? CHART_SVG_LANDSCAPE_HEIGHT_PX : 300;
   const padL = 70, padR = 30, padT = 20, padB = 50;
   const plotW = svgW - padL - padR;
   const plotH = svgH - padT - padB;
@@ -63,7 +63,7 @@ export function ChartSvgBody({ series, years, theme, isLandscape, hints }: {
   }
   globalMax *= CHART_HEADROOM_FACTOR;
   const gridN = 5;
-  const legendItemWidth = isLandscape ? 150 : 110;
+  const legendItemWidth = isLandscape ? 150 : PDF_PORTRAIT_LABEL_WIDTH_PX;
 
   return (
     <View style={{ alignItems: "center", justifyContent: "center" }}>
