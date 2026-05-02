@@ -121,6 +121,16 @@ async function buildAll() {
       "puppeteer",
       "puppeteer-core",
       "electron",
+      // Heavy doc/media libraries — externalized to keep the production
+      // bundle small. Each must remain in `dependencies` (not devDeps) so
+      // pnpm installs them in the deployed container at runtime.
+      "@react-pdf/renderer",
+      "pptxgenjs",
+      "xlsx",
+      "docx",
+      "satori",
+      "jspdf",
+      "archiver",
     ],
     sourcemap: process.env.NODE_ENV === "production" ? false : "linked",
     plugins: [

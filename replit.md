@@ -25,9 +25,22 @@ Stale `.claude/worktrees/agent-*/artifacts/...` workflows from old task agents m
 
 All traffic is routed by path through a shared reverse proxy on `localhost:80`. Services must handle their full base path. Never call service ports directly in application code or curl — always go through `localhost:80/<path>`.
 
+## Deployment target
+
+`.replit` `[deployment].deploymentTarget = "vm"` (the UI calls this **Reserved VM**). The api-server is a long-running Express process with a heavy boot path (migrations, vector index warm-up, scheduler) and an in-memory cache layer, so autoscale's per-request lifecycle does not fit. Reserved VM is also the only target that cleanly serves the published H+ Analytics SPA + `/api` from a single container without scale-to-zero cold starts.
+
+Do **not** flip this back to `autoscale` without:
+1. Moving all in-memory caches to Postgres / Redis.
+2. Confirming the api-server bundle stays under autoscale's image limit (~32 MB compressed).
+3. Switching the startup probe from `/api/health/live` to a path that responds before migrations run, or migrations will time out the probe.
+
 ## Health endpoint
 
-`GET /api/health/live` (not `/api/healthz`). This is the path the autoscale startup probe must point at — see `[services.production.health.startup]` in `artifacts/api-server/.replit-artifact/artifact.toml`. Drift here causes silent republish failures (probe times out ~2.5 min after "Creating Autoscale service").
+`GET /api/health/live` (not `/api/healthz`). This is the path the deployment startup probe must point at — see `[services.production.health.startup]` in `artifacts/api-server/.replit-artifact/artifact.toml`. The server registers `/api/health/live` synchronously before `httpServer.listen()`, then defers migrations + seeds + vector indexing + scheduler boot to `setImmediate`, so liveness becomes reachable within seconds of process start. Drift in the probe path causes silent republish failures.
+
+## Production bundle
+
+`artifacts/api-server/build.mjs` externalizes large doc/media libraries (`@react-pdf/renderer`, `pptxgenjs`, `xlsx`, `docx`, `satori`, `jspdf`, `archiver`) so they are loaded from `node_modules` at runtime instead of being inlined into `dist/index.mjs`. Result: the bundle dropped from ~32 MB → ~20 MB. Each of these packages must remain in `dependencies` (not `devDependencies`) so pnpm installs them in the deployed container. If you add another heavy package that is only used on a small number of code paths, externalize it the same way.
 
 ## pnpm workspace
 
