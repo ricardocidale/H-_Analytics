@@ -46,7 +46,7 @@ function firstSentence(text: string, maxLen = 70): string {
   return sentence.length <= maxLen ? sentence : sentence.slice(0, maxLen).trimEnd() + "…";
 }
 
-function stableYear(yearlyIS: SlidePayload["financials"]["yearlyIS"]) {
+export function stableYear(yearlyIS: SlidePayload["financials"]["yearlyIS"]) {
   return (
     yearlyIS.find(y => y.operationalMonthsInYear >= 12 && y.revenueTotal > 0) ??
     yearlyIS[2] ?? yearlyIS[0]
@@ -112,6 +112,11 @@ export function resolveSlotText(
     }
     case 3: return resolveSlide3(name, isPage, property, visionText, type);
     case 4: return resolveSlide4(name, isPage, property, p.siblings);
+    case 5: {
+      const stable = stableYear(financials.yearlyIS);
+      return resolveSlide5(name, isPage, property, visionText, financials, stable);
+    }
+    case 6: return resolveSlide6(name, isPage, property);
     default: return null;
   }
 }
@@ -243,6 +248,123 @@ function resolveSlide4(
     case "Text 3": return `${p.stateProvince.toUpperCase()} PORTFOLIO OVERVIEW`;
     default: return null;
   }
+}
+
+function resolveSlide5(
+  name: string,
+  isPage: boolean,
+  p: SlidePayload["property"],
+  v: SlidePayload["visionText"],
+  fin: SlidePayload["financials"],
+  stable: ReturnType<typeof stableYear>,
+): string | null {
+  if (isPage) return "PAGE 5";
+  const stableYr = stable?.year ?? 2028;
+  const grossMargin = stable && stable.revenueTotal > 0 ? stable.gop / stable.revenueTotal : null;
+  const ebitdaPct   = stable && stable.revenueTotal > 0 ? stable.noi / stable.revenueTotal : null;
+  switch (name) {
+    case "TextBox 2":
+      return `The Transformation Plan — ${p.name}`;
+    case "Rectangle 1":
+      return `Snapshot of Stable Year (${stableYr})`;
+    case "TextBox 9":
+      return `Key Investor Metrics — GOP Margin: ${fmtPct(grossMargin)}   EBITDA (${stableYr}): ${fmtPct(ebitdaPct)}\n* Projections are for the first full year of stabilized operations and are based on the finalized financial assumptions.`;
+    case "Text 19":
+      return "PAGE 5";
+    default:
+      return null;
+  }
+}
+
+function resolveSlide6(
+  name: string,
+  isPage: boolean,
+  p: SlidePayload["property"],
+): string | null {
+  if (name === "Slide Number Placeholder 1") return "6";
+  if (isPage) return "PAGE 6";
+  switch (name) {
+    case "Rectangle 1":
+      return `5-Year Consolidated Pro Forma Income Statement\n${p.name}`;
+    default:
+      return null;
+  }
+}
+
+// ── Table resolver ───────────────────────────────────────────────────────────
+
+/**
+ * Returns the cell grid for a table slot, or null if none.
+ * Currently only Slide 5 has structured table slots in the recipe;
+ * Slide 6's "tables" are picture-slot placeholders synthesized in the hybrid
+ * renderer (see renderHybridSlide).
+ *
+ * If a table slot can't be resolved to data, callers fall back to "—" cells.
+ */
+export function resolveSlotTable(
+  slideNum: number,
+  el: RecipeElement,
+  p: SlidePayload,
+): string[][] | null {
+  if (slideNum !== 5) return null;
+  const { property, financials, improvements } = p;
+  const stable = stableYear(financials.yearlyIS);
+
+  switch (el.name) {
+    case "Table 4": {
+      // Transformation table 5×3
+      const header: string[] = ["Feature", "Existing", "Proposed"];
+      const data = improvements.length > 0
+        ? improvements.slice(0, 4).map(i => [i.feature, i.existing, i.proposed])
+        : [
+            ["Guest Capacity", `${Math.max(1, property.roomCount - 2)} Guests`, `${property.roomCount} Keys`],
+            ["Event Space",    "Limited",                                       "Curated venue spaces"],
+            ["Lodging",        "Standard rooms",                                `${property.roomCount} boutique-designed keys`],
+            ["Amenities",      "Basic",                                         "Curated experiential amenities"],
+          ];
+      const rows: string[][] = [header, ...data];
+      while (rows.length < (el.rows ?? 5)) rows.push(["—", "—", "—"]);
+      return rows;
+    }
+
+    case "Table 3": {
+      // Snapshot of stable year 9×2
+      const stableOcc = stable && stable.availableRooms > 0
+        ? Math.min(0.85, Math.max(0.55, stable.soldRooms / stable.availableRooms))
+        : (property.maxOccupancy ?? 0.7);
+      const stableAdr    = stable?.cleanAdr ?? property.startAdr ?? 0;
+      const stableRevpar = stableAdr * stableOcc;
+      const grossMargin  = stable && stable.revenueTotal > 0 ? stable.gop / stable.revenueTotal : null;
+      const ebitdaPct    = stable && stable.revenueTotal > 0 ? stable.noi / stable.revenueTotal : null;
+      return [
+        ["Item",           "Value"],
+        ["Occupancy",      fmtPct(stableOcc)],
+        ["ADR",            fmtCurrency(stableAdr)],
+        ["RevPAR",         fmtCurrency(stableRevpar)],
+        ["Revenue",        fmtCurrency(stable?.revenueTotal)],
+        ["Variable Costs", fmtCurrency(stable?.totalExpenses)],
+        ["GOP Margin",     fmtPct(grossMargin)],
+        ["EBITDA",         fmtPct(ebitdaPct)],
+        ["",               ""],
+      ];
+    }
+
+    case "Table 10": {
+      // Financing summary 6×2
+      const renov    = financials.renovationBudget;
+      const totalInv = (property.purchasePrice ?? 0) + renov;
+      const ltvPct   = financials.loanLtv > 0 ? `${Math.round(financials.loanLtv * 100)}%` : "65%";
+      return [
+        ["Financing Summary",         ""],
+        ["Purchase Price",            fmtCurrency(property.purchasePrice)],
+        ["Renovation Budget",         fmtCurrency(renov)],
+        ["Total Investment",          fmtCurrency(totalInv)],
+        [`Loan Amount (${ltvPct})`,   fmtCurrency(financials.loanAmount)],
+        ["Annual Debt Service",       fmtCurrency(financials.annualDebtService)],
+      ];
+    }
+  }
+  return null;
 }
 
 // ── Photo resolver ───────────────────────────────────────────────────────────
