@@ -199,10 +199,14 @@ async function resolvePhotoBytes(photo: {
   }
 }
 
+/** Thumbnail dimensions for property card previews embedded in slide decks. */
+const CARD_THUMBNAIL_WIDTH = 480;
+const CARD_THUMBNAIL_HEIGHT = 320;
+
 async function shrinkForCard(base64: string): Promise<string> {
   try {
     const buf = Buffer.from(base64, "base64");
-    const small = await sharp(buf).resize(480, 320, { fit: "cover" }).jpeg({ quality: 82 }).toBuffer();
+    const small = await sharp(buf).resize(CARD_THUMBNAIL_WIDTH, CARD_THUMBNAIL_HEIGHT, { fit: "cover" }).jpeg({ quality: 82 }).toBuffer();
     return small.toString("base64");
   } catch {
     return base64;

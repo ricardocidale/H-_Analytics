@@ -131,6 +131,7 @@
     "artifacts/api-server/src/shared/constants.ts",
     "artifacts/api-server/src/shared/market-intelligence-pipeline.ts",
     "artifacts/api-server/src/slides/image-renderer.ts",
+    "artifacts/api-server/src/slides/improvement-suggestions.ts",
     "artifacts/api-server/src/slides/slide-jsx.tsx",
     "artifacts/api-server/src/slides/slot-resolver.ts",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
@@ -300,6 +301,7 @@
     "artifacts/api-server/src/services/RealtyService.ts",
     "artifacts/api-server/src/shared/constants.ts",
     "artifacts/api-server/src/slides/image-renderer.ts",
+    "artifacts/api-server/src/slides/improvement-suggestions.ts",
     "artifacts/api-server/src/slides/slide-jsx.tsx",
     "artifacts/api-server/src/slides/slot-resolver.ts",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
@@ -1081,6 +1083,7 @@
     "artifacts/api-server/src/services/AmadeusService.ts",
     "artifacts/api-server/src/services/FinancialNewsService.ts",
     "artifacts/api-server/src/services/RealtyService.ts",
+    "artifacts/api-server/src/slides/portfolio-renders.ts",
     "artifacts/api-server/src/slides/slide-jsx.tsx",
     "artifacts/api-server/src/slides/slot-resolver.ts",
     "artifacts/api-server/src/storage/activity.ts",
@@ -1935,6 +1938,7 @@
     "artifacts/api-server/src/routes/properties.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/shared/constants.ts",
+    "artifacts/api-server/src/slides/portfolio-renders.ts",
     "artifacts/api-server/src/storage/activity.ts",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/engine/src/helpers/default-resolver.ts",
@@ -2124,6 +2128,7 @@
   "320": [
     "artifacts/api-server/src/data/researchSeeds.ts",
     "artifacts/api-server/src/pdf/chart-render.tsx",
+    "artifacts/api-server/src/routes/property-slides.ts",
     "artifacts/api-server/src/routes/rebecca.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/slides/slide-jsx.tsx",
@@ -2385,12 +2390,6 @@
     "artifacts/api-server/src/routes/specialist-photo-enhancer.ts",
     "artifacts/api-server/src/routes/uploads.ts",
     "artifacts/api-server/src/scripts/generate-medellin-renders.ts"
-  ],
-  "440": [
-    "artifacts/api-server/src/data/researchSeeds.ts",
-    "artifacts/api-server/src/pdf/chart-render.tsx",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
-    "artifacts/api-server/src/svg-charts.ts"
   ],
   "450": [
     "artifacts/api-server/src/data/researchSeeds.ts",
@@ -2677,7 +2676,6 @@
     "artifacts/api-server/src/routes/format-generators/pptx-generator.ts",
     "artifacts/api-server/src/routes/research/generate-persist-guidance.ts",
     "artifacts/api-server/src/scripts/backfill-vector-store.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "artifacts/api-server/src/storage/intelligence/constants/sources.ts",
     "lib/calc/src/analysis/break-even.ts"
   ],
@@ -2791,7 +2789,6 @@
     "artifacts/api-server/src/scripts/backfill-vector-store.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "artifacts/api-server/src/shared/market-intelligence-pipeline.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "artifacts/api-server/src/svg-charts.ts",
     "lib/analytics/src/returns/irr.ts",
     "lib/calc/src/analysis/capex-reserve.ts",

@@ -11,6 +11,9 @@ import { logger } from "../logger";
 
 export type { PropertyImprovement };
 
+/** Maximum improvements to keep from the LLM response (slide renders 4; keep one spare). */
+const IMPROVEMENT_RESPONSE_LIMIT = 5;
+
 function typeLabel(p: SlideProperty): string {
   const m = ((p.hospitalityType ?? "") + (p.businessModel ?? "")).toLowerCase();
   if (m.includes("retreat")) return "retreat center";
@@ -44,7 +47,7 @@ Generate exactly 4 improvement areas that will transform this specific property 
 1. Specific to this property's type, location, and characteristics — not generic
 2. Financially compelling (revenue-generating or cost-reducing)
 3. Realistic given the purchase price and property description
-4. Brief: "existing" in 3–5 words, "proposed" in 4–8 words
+4. Brief: "existing" in three to five words, "proposed" in four to eight words
 
 Return ONLY a valid JSON array with no explanation:
 [
@@ -68,7 +71,7 @@ Return ONLY a valid JSON array with no explanation:
     const parsed = JSON.parse(match[0]) as PropertyImprovement[];
     if (!Array.isArray(parsed) || parsed.length === 0) throw new Error("Empty array");
 
-    return parsed.slice(0, 5);
+    return parsed.slice(0, IMPROVEMENT_RESPONSE_LIMIT);
   } catch (err) {
     logger.warn(`[improvement-suggestions] LLM failed for "${property.name}": ${err}`, "slides");
     return fallbackImprovements(property);

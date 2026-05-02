@@ -13,6 +13,12 @@ import { logger } from "../logger";
 import { randomUUID } from "crypto";
 import type { Property } from "@workspace/db";
 
+/** Properties with ≤ this many keys are described as "intimate, residential scale". */
+const INTIMATE_PROPERTY_KEY_THRESHOLD = 20;
+
+/** Max characters of property description appended to the render prompt. */
+const DESCRIPTION_PROMPT_CHARS = 180;
+
 function buildRenderPrompt(property: Property): string {
   const p = property as Record<string, unknown>;
   const type = ((p.hospitalityType ?? property.businessModel ?? "") as string).toLowerCase();
@@ -46,7 +52,7 @@ function buildRenderPrompt(property: Property): string {
     parts.push("historic architecture with preserved period details, thoughtful character renovation");
   }
 
-  if (property.roomCount && property.roomCount <= 20) {
+  if (property.roomCount && property.roomCount <= INTIMATE_PROPERTY_KEY_THRESHOLD) {
     parts.push(`intimate ${property.roomCount}-key property, residential scale`);
   } else if (property.roomCount) {
     parts.push(`${property.roomCount} guest rooms, substantial boutique hotel`);
@@ -61,8 +67,8 @@ function buildRenderPrompt(property: Property): string {
     parts.push("thoughtfully renovated exterior, boutique character, welcoming entrance");
   }
 
-  if (property.description && property.description.length > 20) {
-    parts.push(property.description.slice(0, 180).replace(/\n/g, " "));
+  if (property.description && property.description.length > INTIMATE_PROPERTY_KEY_THRESHOLD) {
+    parts.push(property.description.slice(0, DESCRIPTION_PROMPT_CHARS).replace(/\n/g, " "));
   }
 
   parts.push(
