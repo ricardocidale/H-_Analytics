@@ -22,6 +22,7 @@ import SuspiciousActivityBanner from "./SuspiciousActivityBanner";
 import { AnalystActionButton } from "@/components/analyst";
 import { useFirstVisitBenchmarkSeed } from "@/hooks/useFirstVisitBenchmarkSeed";
 import ReferenceBrandsGrid, { type BrandSummary } from "./ReferenceBrandsGrid";
+import { shouldOpenDiffDialog, buildAutoCommitToastDescription } from "@/lib/analyst-refresh-helpers";
 
 type Range = {
   dimensionKey: string;
@@ -119,13 +120,13 @@ export default function AnalystTables() {
       return (await res.json()) as RefreshResponse;
     },
     onSuccess: (payload) => {
-      if (payload.autoCommitted) {
+      if (!shouldOpenDiffDialog(payload)) {
         // Auto-committed tables (e.g. reference_brands) skip the diff dialog —
         // brands are already live in the DB, just refresh the table list.
         setTheaterTable(null);
         toast({
           title: "Brands updated",
-          description: `${payload.proposedRanges.length} reference brands auto-committed to the database.`,
+          description: buildAutoCommitToastDescription(payload),
         });
         qc.invalidateQueries({ queryKey: ["/api/admin/analyst-tables"] });
       } else {
