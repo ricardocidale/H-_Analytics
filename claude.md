@@ -11,7 +11,7 @@ artifacts/
   hospitality-business-portal/   React + Vite frontend  (previewPath: /)
   api-server/                    Express 5 API          (previewPath: /api)
   mockup-sandbox/                Design sandbox         (previewPath: /__mockup/)
-  property-slides/               Slide deck viewer      (previewPath: /slides)
+  property-slides/               Slide deck viewer      (previewPath: /property-slides/)
 lib/
   shared/       Constants, types, Zod schemas shared across all packages
   db/           Drizzle ORM schema + migration runner
@@ -255,15 +255,18 @@ vendor/
 
 ### Key project-specific skills
 
+> Wording in this table is mirrored in `replit.md` § "Key skills". Keep them identical — drift here is a bug per the `agent-memory-files` skill.
+
 | Skill | When to use |
 |---|---|
-| `norfolk-code-review` | Any PR on this repo — wraps `ce-code-review` with hospitality/Drizzle personas |
-| `ui-page-patterns` | Building or fixing any UI page — enforces canonical page archetypes |
-| `embedded-ai-agent` | Adding or extending any AI chatbot / analyst panel (e.g. Rebecca) |
+| `ui-page-patterns` | Building or fixing any UI page — enforces canonical archetypes, loading/empty/error states, action-button discipline, tab URL sync |
+| `embedded-ai-agent` | Adding or extending Rebecca (the only AI assistant in this app) |
 | `replit-independence` | Adding any dependency, env var, or deployment-affecting change |
-| `architecture-decision-records` | Any irreversible technical decision that future contributors might re-litigate |
+| `norfolk-code-review` | Before opening a PR — wraps `ce-code-review` with hospitality/Drizzle personas |
+| `architecture-decision-records` | Any irreversible technical decision future contributors might re-litigate |
 | `hplus-pptx-generator` | Extending or debugging the LB Slides PPTX generator |
-| `hplus-slide-mapping` | Mapping data fields to slide shapes in the L+B template |
+| `hplus-slide-mapping` | Shape-name ↔ data-field mapping for all 6 LB Slides template slides |
+| `agent-memory-files` | Editing `claude.md` or `replit.md` — keep them harmonized |
 
 ### How to invoke
 
@@ -279,6 +282,8 @@ vendor/
 
 | Date | Change |
 |---|---|
+| 2026-05-02 | Autoscale startup probe path corrected from `/api/healthz` (404, no such route) to `/api/health/live` in `artifacts/api-server/.replit-artifact/artifact.toml` — fixed the silent-fail republish loop. |
+| 2026-05-02 | `claude.md` and `replit.md` harmonized per the `agent-memory-files` skill. Property-slides previewPath corrected from stale `/slides` to canonical `/property-slides/`. |
 | 2026-05-02 | `reference_brands` table wired into research orchestrator (tool DI), Funding Specialist PE prompt, and Rebecca KB. See solution doc. |
 | 2026-05-02 | `property_slide_deck_variants` table added (replaces `property_slide_decks`); dual-format generation — Track 1 PPTX + Track 2 image-PPTX via satori. |
 | 2026-05-02 | Marcela removed from codebase. Rebecca is the only AI assistant. Gap 4 permanently closed. |

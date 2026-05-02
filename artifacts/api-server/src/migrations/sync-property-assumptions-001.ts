@@ -64,6 +64,12 @@ interface PropertyAssumptions {
   acquisitionInterestRate?: number | null;
   acquisitionTermYears?: number | null;
   acquisitionClosingCostRate?: number | null;
+  businessModel?: string | null;
+  hospitalityType?: string | null;
+  baseManagementFeeRate?: number | null;
+  incentiveManagementFeeRate?: number | null;
+  platformFeeRate?: number | null;
+  costRateInsurance?: number | null;
 }
 
 // Fully-resolved values per src/seeds/property-data.ts (property-specific
