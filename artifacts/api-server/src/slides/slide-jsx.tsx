@@ -496,13 +496,17 @@ function PortfolioCard({ prop, isCurrent }: { prop: SiblingProperty | null; isCu
       </div>
     );
   }
-  const photo: SlidePhoto | undefined = prop.heroPhotoBase64
-    ? { base64: prop.heroPhotoBase64, isHero: true, sortOrder: 0 }
-    : undefined;
+  const bgSrc = prop.heroPhotoBase64 ? photoSrc({ base64: prop.heroPhotoBase64, isHero: true, sortOrder: 0 }) : null;
 
   return (
-    <div style={{ display: "flex", flex: 1, position: "relative", borderRadius: 4, overflow: "hidden", border: isCurrent ? `1px solid ${C.accent}` : "1px solid rgba(156,188,164,0.15)" }}>
-      <PhotoBg photo={photo} />
+    <div style={{
+      display: "flex", flex: 1, position: "relative", borderRadius: 4, overflow: "hidden",
+      border: isCurrent ? `1px solid ${C.accent}` : "1px solid rgba(156,188,164,0.15)",
+      backgroundImage: bgSrc ? `url(${bgSrc})` : undefined,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      backgroundColor: C.bgDark,
+    }}>
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(15,22,16,0.96) 30%, rgba(15,22,16,0.2) 100%)" }} />
       {isCurrent && (
         <div style={{ position: "absolute", top: 10, right: 10, background: C.accent, padding: "2px 8px", display: "flex", borderRadius: 2 }}>

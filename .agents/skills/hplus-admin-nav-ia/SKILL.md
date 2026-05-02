@@ -107,14 +107,6 @@ Admin  (/admin)
         ├── Portfolio Ops
         │   └── Portfolio Watchdog
         │
-        ├── Model Constants               ← renamed from "Constants & Authority Sources"
-        │   │   [Specialists who PRODUCE the data now in Admin → Sources → Tables]
-        │   │   [Group renamed — "Sources" and "Constants" labels belong in Admin]
-        │   ├── Tax Authority Research
-        │   ├── Macro Indicators Research
-        │   ├── Depreciation Schedule Research
-        │   └── Reporting Conventions Research
-        │
         ├── Resources Builder → Letícia
         │
         ├── Assumption Guidance           ← Analyst-generated calibration output
@@ -126,12 +118,11 @@ Admin  (/admin)
             └── Vector Search Latency
 
 NOTES:
-- "Constants & Authority Sources" renamed to "Model Constants" in AI Intelligence
-  because "Sources" and "Constants" as data labels now live exclusively in Admin → Sources
-- The DATA produced by the 4 Constants specialists lives in Admin → Sources → Tables
-  (tax constants, macro indicators, depreciation schedules, reporting conventions)
-- The SPECIALIST CONFIGURATION for those same 4 specialists stays in AI Intelligence
-  under "Model Constants" — so admins can manage their prompts, identity, and LLM config
+- "Constants & Authority Sources" group is REMOVED from AI Intelligence entirely.
+  The 4 Specialists' DATA (tax constants, macro indicators, depreciation schedules,
+  reporting conventions) lives in Admin → Sources → Tables. Their [Run Analyst] buttons
+  in Sources trigger the relevant Specialist directly — no separate AI Intelligence
+  entry is needed.
 - AI Intelligence menu order above is PROPOSED — product owner must confirm before build
 ```
 

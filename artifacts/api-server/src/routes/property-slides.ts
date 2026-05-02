@@ -16,6 +16,7 @@
  */
 
 import { Router, type Request, type Response } from "express";
+import sharp from "sharp";
 import { spawn } from "child_process";
 import * as fs from "fs/promises";
 import * as path from "path";
@@ -197,6 +198,16 @@ async function resolvePhotoBytes(photo: {
   }
 }
 
+async function shrinkForCard(base64: string): Promise<string> {
+  try {
+    const buf = Buffer.from(base64, "base64");
+    const small = await sharp(buf).resize(480, 320, { fit: "cover" }).jpeg({ quality: 82 }).toBuffer();
+    return small.toString("base64");
+  } catch {
+    return base64;
+  }
+}
+
 async function buildSlidePayload(propertyId: number, userId: number | undefined, projYears: number): Promise<SlidePayload & { _propertyName: string }> {
   const property = await storage.getProperty(propertyId);
   if (!property) throw new Error("Property not found");
@@ -241,7 +252,7 @@ async function buildSlidePayload(propertyId: number, userId: number | undefined,
           sortOrder: hero.sortOrder ?? 0,
           caption: hero.caption,
         });
-        heroPhotoBase64 = resolved?.base64;
+        if (resolved?.base64) heroPhotoBase64 = await shrinkForCard(resolved.base64);
       }
       const prRec = pr as Record<string, unknown>;
       return {
