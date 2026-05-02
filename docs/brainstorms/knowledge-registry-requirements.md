@@ -39,17 +39,21 @@ The `research-history`, `documents`, `scenarios`, and `properties` namespaces ar
 
 The Knowledge Registry lives inside the existing **AI Intelligence** section (`/ai-intelligence`), accessible via the "AI" item in the main Admin sidebar.
 
+> **Critical:** "Sources" is an Admin sidebar section and must NOT appear anywhere inside AI Intelligence. See §10 and `.agents/skills/hplus-admin-nav-ia/SKILL.md`.
+
 A new **"Knowledge Registry"** group is added to `AiIntelligenceSidebar.tsx` with two entries:
 
 ```
 AI Intelligence (/ai-intelligence)
 │
 └── Knowledge Registry               ← NEW group
-    ├── Sources     — overview of all 8 assets, one collapsible panel each
-    └── Country Data — dedicated full-screen grid for country economic data
+    ├── Knowledge Assets  — all 8 AI knowledge assets (vector namespaces + benchmark tables)
+    └── Country Data      — dedicated full-screen grid for country economic data
 ```
 
 `AiIntelligenceSection` type adds: `"knowledge-registry"` and `"knowledge-registry-country-data"`.
+
+Country Economic Data and all benchmark/constants tables are also visible under **Admin → Sources → Tables** — that is the admin's primary place to view and manage all structured data. The Knowledge Registry view in AI Intelligence is the AI-specific view with Analyst regeneration controls.
 
 ---
 
@@ -222,17 +226,19 @@ pnpm --filter @workspace/api-spec run codegen
 
 ## 10. Related but Separate: Admin Sidebar Sources & Resources
 
-The following features are **not** part of the Knowledge Registry. They belong in the Admin sidebar (`/admin`) as separate top-level sections:
+The following features belong in the Admin sidebar (`/admin`) as separate top-level sections. They are **not** part of the Knowledge Registry and the word "Sources" must NOT appear inside AI Intelligence.
 
 ### Admin → Sources
 
-A top-level Admin sidebar section exposing every type of raw input the app uses in its work and research:
+A top-level Admin sidebar section. **This is the only place in the app labelled "Sources".** Sub-items:
 
 | Sub-item | Contents |
 |----------|---------|
-| **Tables** | Structured data tables (benchmark slugs, reference tables, lookup data) |
+| **Tables** | ALL structured data tables the app uses: country economic data, constants/defaults tables, benchmark tables (Capital Raise, Exit Multiples, Reference Brands), reference lookup tables, market data |
 | **Links** | External URLs referenced or scraped as research inputs |
 | **Files** | Admin-uploaded documents (PDFs, CSVs, reference docs) used as knowledge source material |
+
+Country Economic Data lives under **Sources → Tables**. Constants and defaults tables live under **Sources → Tables**. All benchmark data lives under **Sources → Tables**.
 
 ### Admin → Resources → APIs
 

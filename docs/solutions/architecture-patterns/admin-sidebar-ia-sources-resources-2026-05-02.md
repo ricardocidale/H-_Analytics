@@ -29,16 +29,23 @@ Repeated clarification was needed across multiple sessions about where "Sources"
 
 The Admin sidebar (`AdminSidebar.tsx`, route `/admin`) has two distinct top-level sections for external data and integrations. These are **Admin sidebar sections**, not AI Intelligence sections.
 
-### Sources (Admin sidebar — top-level section)
+### Sources (Admin sidebar — top-level section — ONLY location for "Sources" in the app)
 
-A dedicated **Sources** section in the Admin sidebar surfaces every type of input the app uses in its work and research. Sub-items:
+A dedicated **Sources** section in the Admin sidebar. **This label belongs exclusively to the Admin sidebar. Do not create anything labelled "Sources" inside `/ai-intelligence`.**
+
+Sub-items:
 
 | Sub-item | What it contains |
 |----------|-----------------|
-| **Tables** | Structured data tables used by the app (benchmark tables, reference tables, lookup data) |
+| **Tables** | ALL structured data tables the app uses: country economic data, constants/defaults tables, benchmark tables (Capital Raise, Exit Multiples, Reference Brands), reference lookup tables, market data |
 | **Links** | External URLs the app references or scrapes as research inputs |
 | **Files** | Documents uploaded by the admin (PDFs, CSVs, reference docs) used as knowledge sources |
-| *(additional sub-items as needed)* | Any other category of source material the app draws from |
+
+**Tables is intentionally broad** — every structured table in the system lives here, including:
+- Country economic data (inflation rate, FX rate, GDP growth, interest rate per country)
+- Constants and financial defaults (the numbers used in the financial engine)
+- Benchmark ranges (Capital Raise, Exit Multiples, Reference Brands)
+- Any other reference or lookup table the app reads from
 
 All content here is **read-only for viewing**; admin can upload files and add links, but does not edit the underlying data — regeneration is done via the Analyst button pattern.
 
