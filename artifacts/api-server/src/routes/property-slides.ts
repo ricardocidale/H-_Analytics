@@ -592,6 +592,51 @@ async function resolveHeroImageBuffer(
   }
 }
 
+/**
+ * Resolve the highest-available-resolution hero image for a property,
+ * trying each candidate URL in descending quality order and falling back
+ * to the next one when a fetch fails. Returns null only when every
+ * candidate has been exhausted.
+ *
+ * Candidate priority for the PowerPoint editing workflow:
+ *   1. variants.original — the unmodified upload (highest fidelity)
+ *   2. variants.full     — ~2400px webp
+ *   3. variants.hero     — ~1600px webp
+ *   4. variants.card     — ~800px webp
+ *   5. hero photo's own imageUrl (covers DB-served originals)
+ *   6. property's denormalized imageUrl (legacy fallback — current behavior)
+ */
+async function resolveBestHeroImageBuffer(
+  property: { id: number; imageUrl?: string | null },
+): Promise<{ buffer: Buffer; ext: string } | null> {
+  const candidates: string[] = [];
+
+  try {
+    const hero = await storage.getHeroPhoto(property.id);
+    if (hero) {
+      const variants = hero.variants ?? {};
+      if (variants.original) candidates.push(variants.original);
+      if (variants.full) candidates.push(variants.full);
+      if (variants.hero) candidates.push(variants.hero);
+      if (variants.card) candidates.push(variants.card);
+      if (hero.imageUrl) candidates.push(hero.imageUrl);
+    }
+  } catch (err) {
+    logger.warn(`[hero-zip] getHeroPhoto failed for property ${property.id}: ${err}`, "property-slides");
+  }
+
+  if (property.imageUrl) candidates.push(property.imageUrl);
+
+  const seen = new Set<string>();
+  for (const url of candidates) {
+    if (seen.has(url)) continue;
+    seen.add(url);
+    const result = await resolveHeroImageBuffer(url);
+    if (result) return result;
+  }
+  return null;
+}
+
 // ── Routes ────────────────────────────────────────────────────────────────
 
 /**
@@ -625,10 +670,10 @@ router.get("/api/properties/hero-images/zip", requireAdmin, async (_req: Request
     archive.pipe(res);
 
     for (const prop of props) {
-      const heroUrl = (prop as Record<string, unknown>).imageUrl as string | undefined | null;
-      if (!heroUrl) continue;
-
-      const resolved = await resolveHeroImageBuffer(heroUrl);
+      const resolved = await resolveBestHeroImageBuffer({
+        id: prop.id,
+        imageUrl: (prop as Record<string, unknown>).imageUrl as string | undefined | null,
+      });
       if (!resolved) continue;
 
       const safeName = prop.name.replace(/[^a-zA-Z0-9\s-]/g, "").trim().replace(/\s+/g, "-");
