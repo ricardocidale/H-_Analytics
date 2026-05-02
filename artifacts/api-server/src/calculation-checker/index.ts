@@ -95,7 +95,8 @@ export function runIndependentVerification(
       const totalOperatingExpenses =
         m.expenseRooms + m.expenseFB + m.expenseEvents + m.expenseOther +
         m.expenseMarketing + m.expensePropertyOps + m.expenseUtilitiesVar +
-        m.expenseAdmin + m.expenseIT + m.expenseUtilitiesFixed + m.expenseInsurance + m.expenseOtherCosts;
+        m.expenseAdmin + m.expenseIT + m.expenseUtilitiesFixed + m.expenseInsurance + m.expenseOtherCosts +
+        m.expensePlatformFees + m.expensePreOpening;
 
       checks.push(check(
         "GOP = Revenue - OpEx",

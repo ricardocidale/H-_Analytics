@@ -28,6 +28,12 @@ import { storage } from "../storage";
 import { db } from "../db";
 import { getStorageProvider, getStorageProviderAsync } from "../providers/storage";
 import { recomputeSinglePropertyAndStamp } from "../finance/recompute";
+import {
+  RENOV_HISTORIC_PREMIUM,
+  RENOV_CONTINGENCY,
+  RENOV_MAX_PCT_OF_PRICE,
+  RENOV_MIN_PER_KEY,
+} from "@shared/constants";
 import { aggregateUnifiedByYear } from "@engine/aggregation/yearlyAggregator";
 import { calculateLoanParams, getAcquisitionYear } from "@engine/debt/loanCalculations";
 import { withModelConstants } from "../finance/apply-model-constants";
@@ -225,10 +231,8 @@ const RENOV_COST_PER_KEY = {
 } as const;
 type RenovTier = keyof typeof RENOV_COST_PER_KEY;
 
-const RENOV_HISTORIC_PREMIUM = 0.20;
-const RENOV_CONTINGENCY = 0.18;
-const RENOV_MAX_PCT_OF_PRICE = 0.80;
-const RENOV_MIN_PER_KEY = 25_000;
+// RENOV_HISTORIC_PREMIUM, RENOV_CONTINGENCY, RENOV_MAX_PCT_OF_PRICE, RENOV_MIN_PER_KEY
+// are imported from "@shared/constants" — keeps a single source of truth across the engine.
 
 function selectRenovTier(qualityTier: string, hospitalityType: string, renovationScope: string): RenovTier {
   const qt = qualityTier.toLowerCase();
@@ -362,14 +366,14 @@ async function buildSlidePayload(propertyId: number, userId: number | undefined,
     annualDebtService = loan.monthlyPayment * 12;
     const initialEquity = loan.equityInvested > 0 ? loan.equityInvested : (property.purchasePrice ?? 0);
     if (unified.yearlyCF.length > 0 && initialEquity > 0) {
-      const operatingFlows = unified.yearlyCF.map(y => y.netCashFlowToInvestors ?? 0);
-      const lastRow = unified.yearlyCF[unified.yearlyCF.length - 1];
-      operatingFlows[operatingFlows.length - 1] =
-        (operatingFlows[operatingFlows.length - 1] ?? 0) + (lastRow?.exitValue ?? 0);
-      const irrResult = computeIRR([-initialEquity, ...operatingFlows]);
+      // netCashFlowToInvestors already has: equity deducted in acquisition year, exitValue
+      // added in last year. Use the vector directly — no prepending or appending.
+      const irrFlows = unified.yearlyCF.map(y => y.netCashFlowToInvestors ?? 0);
+      const irrResult = computeIRR(irrFlows);
       irr = irrResult?.irr_annualized ?? undefined;
-      const totalReturn = operatingFlows.reduce((a, b) => a + b, 0);
-      equityMultiple = totalReturn / initialEquity;
+      // MOIC: add back equity (already deducted in acq-year flow) to get gross cash returned
+      const netSum = irrFlows.reduce((a, b) => a + b, 0);
+      equityMultiple = (netSum + initialEquity) / initialEquity;
     }
   } catch (e) {
     logger.warn(`Finance compute failed for slides (empty financials): ${e}`, "property-slides");
@@ -897,12 +901,11 @@ router.get("/api/properties/:id/slides/view", requireAuth, async (req: Request, 
       annualDebtService = loan.monthlyPayment * 12;
       const initialEquity = loan.equityInvested > 0 ? loan.equityInvested : (property.purchasePrice ?? 0);
       if (unified.yearlyCF.length > 0 && initialEquity > 0) {
-        const opFlows = unified.yearlyCF.map(y => y.netCashFlowToInvestors ?? 0);
-        const lastRow = unified.yearlyCF[unified.yearlyCF.length - 1];
-        opFlows[opFlows.length - 1] = (opFlows[opFlows.length - 1] ?? 0) + (lastRow?.exitValue ?? 0);
-        const irrResult = computeIRR([-initialEquity, ...opFlows]);
+        const irrFlows = unified.yearlyCF.map(y => y.netCashFlowToInvestors ?? 0);
+        const irrResult = computeIRR(irrFlows);
         irr = irrResult?.irr_annualized ?? undefined;
-        equityMultiple = opFlows.reduce((a, b) => a + b, 0) / initialEquity;
+        const netSum = irrFlows.reduce((a, b) => a + b, 0);
+        equityMultiple = (netSum + initialEquity) / initialEquity;
       }
     } catch (e) {
       logger.warn(`Finance compute failed for slide view ${propertyId}: ${e}`, "property-slides");
