@@ -172,6 +172,12 @@ export function computeStressTest(input: StressTestInput): StressTestOutput {
     if (stressed_noi < worstNOI) worstNOI = stressed_noi;
     if (stressed_exit_value < worstExit) worstExit = stressed_exit_value;
 
+    // Severity convention (do not "fix" without re-reading): noi_impact_pct is
+    // SIGNED — negative for adverse stress (stressed_NOI < base_NOI). The
+    // STRESS_SEVERITY_* constants are also negative thresholds (-5, -15, -30).
+    // So `noi_impact_pct > -5` means "less negative than -5" = mild = "low",
+    // and falling through to the else branch (very negative) = worst = "critical".
+    // Mapping matches the doc comment at the top of the file (low <5%, … critical >30%).
     let severity: "low" | "moderate" | "severe" | "critical";
     if (noi_impact_pct > STRESS_SEVERITY_MODERATE_PCT) severity = "low";
     else if (noi_impact_pct > STRESS_SEVERITY_SEVERE_PCT) severity = "moderate";
