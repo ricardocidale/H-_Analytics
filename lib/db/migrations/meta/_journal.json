@@ -253,6 +253,13 @@
       "when": 1746144008000,
       "tag": "0038_batch9_drop_company_fk",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1746144009000,
+      "tag": "0039_users_rebecca_rail_open",
+      "breakpoints": true
     }
   ]
 }

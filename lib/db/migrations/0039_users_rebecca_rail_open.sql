@@ -1,0 +1,18 @@
+-- 0039_users_rebecca_rail_open.sql
+--
+-- Adds the `rebecca_rail_open` column to `users`. The Drizzle schema in
+-- `lib/db/src/schema/auth.ts` has declared this column for some time, and
+-- every Drizzle-generated SELECT against `users` includes it in the
+-- column list. On environments where the artifact-local startup
+-- migration `artifacts/api-server/src/migrations/rebecca-rail-open-001.ts`
+-- never successfully applied (it is wrapped in `Promise.allSettled` and
+-- only logs a "skipped — will retry next boot" warn on failure), the
+-- table was missing this column and *every* `getUserByEmail` query
+-- failed — including the dev-auth-bypass admin lookup, which silently
+-- forced the H+ Analytics preview back to the login screen even though
+-- DEV_SKIP_AUTH was on. (Task #961.)
+--
+-- Idempotent: `IF NOT EXISTS` makes this safe to re-apply on every
+-- environment, including those where the artifact-local seed task
+-- already added the column.
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "rebecca_rail_open" boolean DEFAULT false NOT NULL;
