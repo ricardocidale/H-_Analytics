@@ -31,8 +31,8 @@ Market Research to Admin → Sources, or remain in AI Intelligence for AI-specif
 | Asset | Backing System | Confirmed home | Status |
 |-------|---------------|----------------|--------|
 | Market Research | `vector_chunks` — `market-research` | Admin → Sources → Market Research | **Confirmed** |
+| Comparables | `vector_chunks` — `comparables` | Admin → Sources → Market Research → Comparables | **Confirmed** |
 | Knowledge Base | `vector_chunks` — `knowledge-base` | TBD | Pending |
-| Comparables | `vector_chunks` — `comparables` | TBD | Pending |
 | Assumption Guidance | `vector_chunks` — `assumption-guidance` | TBD | Pending |
 
 ### Structured tables (Admin → Sources → Tables)

@@ -44,10 +44,9 @@ Admin  (/admin)
 │   │                     • Constants & financial defaults
 │   │                     • Any other reference / lookup table the app reads from
 │   │
-│   ├── Market Research — research content that is MORE than grid data:
-│   │                     synthesized research text, analysis, findings
-│   │                     (stored as vector chunks in market-research namespace)
-│   │                     [if purely tabular → move under Tables instead]
+│   ├── Market Research — synthesized research text, analysis, findings
+│   │   │                 (vector chunks — more than grid data)
+│   │   └── Comparables — comparable properties/deals (sub-item of Market Research)
 │   │
 │   ├── Links           — external URLs the app references or scrapes as research inputs
 │   └── Files           — documents uploaded by admin (PDFs, CSVs, reference docs)
@@ -82,10 +81,10 @@ Admin  (/admin)
             ├── Scheduled Research
             └── Vector Search Latency
 
-OPEN QUESTION: Knowledge Base, Comparables, and Assumption Guidance are the
-same kind of content as Market Research (vector text chunks). If Market Research
-belongs under Admin → Sources, these likely do too — which would make Knowledge
-Registry in AI Intelligence empty. Confirm before implementing.
+OPEN QUESTION: Knowledge Base and Assumption Guidance are the same kind of
+content as Market Research (vector text chunks). Confirm whether they also move
+to Admin → Sources or stay in AI Intelligence. Comparables is confirmed as a
+sub-item under Sources → Market Research.
 ```
 
 ---
