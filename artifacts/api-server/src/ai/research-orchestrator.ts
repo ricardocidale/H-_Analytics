@@ -33,13 +33,13 @@ import { loadSkill } from "./research-resources";
 import { retrieveSimilarResearch, indexResearchResult, isVectorStoreAvailable } from "./vector-store-service";
 
 import { loggerFor } from "../logger";
-import { GASPAR_IDENTITY } from "@engine/analyst/identity";
+import { ORCHESTRATOR_IDENTITY } from "@engine/analyst/identity";
 
 // Orchestrator-side log channel — Gaspar narrates panel + synthesis
 // failures so the activity stream reads as `[gaspar] …` instead of
 // the legacy `[orchestrator] …`. Specialist-owned errors should use
 // their own loggerFor(humanName) channel (Phase 4).
-const gasparLog = loggerFor(GASPAR_IDENTITY.logKey);
+const gasparLog = loggerFor(ORCHESTRATOR_IDENTITY.logKey);
 import { AI_GENERATION_TIMEOUT_MS } from "../constants";
 
 // ── Model defaults (used when caller does not supply resolved overrides) ──────

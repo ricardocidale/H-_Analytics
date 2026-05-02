@@ -27,7 +27,7 @@ vi.mock('../logger', () => ({
 }));
 
 vi.mock('@engine/analyst/identity', () => ({
-  GASPAR_IDENTITY: { logKey: 'gaspar', name: 'Gaspar' },
+  ORCHESTRATOR_IDENTITY: { logKey: 'gaspar', name: 'Gaspar' },
 }));
 
 vi.mock('../ai/clients', () => ({

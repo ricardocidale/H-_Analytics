@@ -17,12 +17,12 @@
  */
 import { getOpenAIClient } from "./clients";
 import { loggerFor } from "../logger";
-import { GASPAR_IDENTITY } from "@engine/analyst/identity";
+import { ORCHESTRATOR_IDENTITY } from "@engine/analyst/identity";
 
 // Table-refresh runs as Gaspar dispatching specialist tools — narrate
 // the path under his persona so admin logs read uniformly with the rest
 // of the orchestrator surface.
-const refreshLog = loggerFor(GASPAR_IDENTITY.logKey);
+const refreshLog = loggerFor(ORCHESTRATOR_IDENTITY.logKey);
 import { storage } from "../storage";
 import type { CapitalRaiseBenchmark, ExitMultiple, ReferenceBrand, InsertReferenceBrand } from "@workspace/db";
 

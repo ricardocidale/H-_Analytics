@@ -44,7 +44,7 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { SPECIALIST_CATALOG } from "@engine/analyst/registry/specialist-catalog";
 import {
-  GASPAR_IDENTITY,
+  ORCHESTRATOR_IDENTITY,
   ORCHESTRATOR_SPECIALIST_ID,
 } from "@engine/analyst/identity";
 import type { Subject } from "@shared/schema/specialist";
@@ -159,7 +159,7 @@ export function resolveSpecialistDisplay(
   // orchestrator id and still get a clean persona-first row.
   if (id === ORCHESTRATOR_SPECIALIST_ID) {
     const liveName = liveHumanNames.get(id);
-    const humanName = liveName ?? GASPAR_IDENTITY.humanName;
+    const humanName = liveName ?? ORCHESTRATOR_IDENTITY.humanName;
     return {
       id,
       humanName,

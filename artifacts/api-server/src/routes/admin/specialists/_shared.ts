@@ -23,7 +23,7 @@ import type {
   SpecialistWorkflowOverrides,
 } from "@workspace/db";
 import {
-  GASPAR_IDENTITY,
+  ORCHESTRATOR_IDENTITY,
   ORCHESTRATOR_SPECIALIST_ID,
   type IdentityCatalogDefault,
 } from "@engine/analyst/identity";
@@ -49,7 +49,7 @@ export const identityHistoryQuerySchema = z.object({
  */
 export function getIdentityCatalogDefault(id: string): IdentityCatalogDefault | null {
   if (id === ORCHESTRATOR_SPECIALIST_ID) {
-    return { humanName: GASPAR_IDENTITY.humanName, gender: GASPAR_IDENTITY.gender };
+    return { humanName: ORCHESTRATOR_IDENTITY.humanName, gender: ORCHESTRATOR_IDENTITY.gender };
   }
   const def = getSpecialistById(id);
   if (!def) return null;

@@ -46,7 +46,7 @@ import { runProbe } from "../../jobs/probes";
 import { specialistDisplayName } from "@workspace/db";
 import { SPECIALIST_CATALOG } from "@engine/analyst/registry/specialist-catalog";
 import {
-  GASPAR_IDENTITY,
+  ORCHESTRATOR_IDENTITY,
   ORCHESTRATOR_SPECIALIST_ID,
 } from "@engine/analyst/identity";
 
@@ -296,7 +296,7 @@ export function registerSourcesTabRoutes(app: Express) {
       const targets = [
         {
           target: ANALYST_CONNECTION_TARGET,
-          label: `${GASPAR_IDENTITY.humanName} (The Analyst)`,
+          label: `${ORCHESTRATOR_IDENTITY.humanName} (The Analyst)`,
           group: "analyst" as const,
         },
         ...SPECIALIST_CATALOG.map((d) => ({

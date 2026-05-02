@@ -27,13 +27,13 @@ import {
 } from "@shared/constants";
 import { validateAllAssumptions, validateAssumptionRange, computeDataQuality, meetsConvictionFloor, insufficientDataMessage } from "./benchmark-lookups";
 import { loggerFor } from "../logger";
-import { GASPAR_IDENTITY } from "@engine/analyst/identity";
+import { ORCHESTRATOR_IDENTITY } from "@engine/analyst/identity";
 
 // The watchdog runs as Gaspar (the orchestrator persona) — it reconciles
 // the team's outputs against staleness/consistency rules, no single
 // Specialist owns it. Routing through the persona-prefixed helper keeps
 // the activity log readable: `[gaspar] Analyst staleness check: …`.
-const watchdogLog = loggerFor(GASPAR_IDENTITY.logKey);
+const watchdogLog = loggerFor(ORCHESTRATOR_IDENTITY.logKey);
 
 // Fields where country_defaults is authoritative — deviation > threshold = auto-flag
 const HARD_FLOOR_FIELDS: Array<{

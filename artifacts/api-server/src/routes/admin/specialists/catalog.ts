@@ -26,7 +26,7 @@ import {
 } from "@workspace/db";
 import { PREREQUISITES } from "@engine/analyst/registry/prerequisites";
 import {
-  GASPAR_IDENTITY,
+  ORCHESTRATOR_IDENTITY,
   ORCHESTRATOR_SPECIALIST_ID,
   resolveSpecialistIdentity,
 } from "@engine/analyst/identity";
@@ -87,17 +87,17 @@ export function registerCatalogRoutes(app: Express) {
       });
       const gasparOverride = overrideById.get(ORCHESTRATOR_SPECIALIST_ID) ?? null;
       const gasparResolved = resolveSpecialistIdentity(
-        { humanName: GASPAR_IDENTITY.humanName, gender: GASPAR_IDENTITY.gender },
+        { humanName: ORCHESTRATOR_IDENTITY.humanName, gender: ORCHESTRATOR_IDENTITY.gender },
         gasparOverride,
       );
       const gasparRow = {
         id: ORCHESTRATOR_SPECIALIST_ID,
         letter: "G",
-        realName: GASPAR_IDENTITY.humanName,
-        displayName: GASPAR_IDENTITY.role,
+        realName: ORCHESTRATOR_IDENTITY.humanName,
+        displayName: ORCHESTRATOR_IDENTITY.role,
         humanName: gasparResolved.humanName,
         gender: gasparResolved.gender,
-        description: GASPAR_IDENTITY.description,
+        description: ORCHESTRATOR_IDENTITY.description,
         subject: "orchestrator" as const,
         capabilities: [] as string[],
         status: "built" as const,
@@ -179,18 +179,18 @@ export function registerCatalogRoutes(app: Express) {
       if (id === ORCHESTRATOR_SPECIALIST_ID) {
         const override = await storage.getIdentityOverride(id);
         const resolved = resolveSpecialistIdentity(
-          { humanName: GASPAR_IDENTITY.humanName, gender: GASPAR_IDENTITY.gender },
+          { humanName: ORCHESTRATOR_IDENTITY.humanName, gender: ORCHESTRATOR_IDENTITY.gender },
           override,
         );
         return res.json({
           definition: {
             id: ORCHESTRATOR_SPECIALIST_ID,
             letter: "G",
-            realName: GASPAR_IDENTITY.humanName,
-            displayName: GASPAR_IDENTITY.role,
+            realName: ORCHESTRATOR_IDENTITY.humanName,
+            displayName: ORCHESTRATOR_IDENTITY.role,
             humanName: resolved.humanName,
             gender: resolved.gender,
-            description: GASPAR_IDENTITY.description,
+            description: ORCHESTRATOR_IDENTITY.description,
             subject: "orchestrator",
             // Gaspar declares no editable capability tabs — the synthetic
             // Identity tab (added unconditionally by SpecialistPage) is the

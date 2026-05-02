@@ -13,7 +13,7 @@
  */
 import { storage } from "../storage";
 import {
-  GASPAR_IDENTITY,
+  ORCHESTRATOR_IDENTITY,
   ORCHESTRATOR_SPECIALIST_ID,
   pronounSet,
   resolveSpecialistIdentity,
@@ -26,7 +26,7 @@ import { getSpecialistById } from "@engine/analyst/registry/specialist-catalog";
 
 function catalogFor(id: string): IdentityCatalogDefault | null {
   if (id === ORCHESTRATOR_SPECIALIST_ID) {
-    return { humanName: GASPAR_IDENTITY.humanName, gender: GASPAR_IDENTITY.gender };
+    return { humanName: ORCHESTRATOR_IDENTITY.humanName, gender: ORCHESTRATOR_IDENTITY.gender };
   }
   const def = getSpecialistById(id);
   return def ? { humanName: def.humanName, gender: def.gender } : null;
@@ -54,7 +54,7 @@ export async function getEffectiveSpecialistIdentity(
 export async function getEffectiveOrchestratorIdentity(): Promise<ResolvedIdentity> {
   const override = await storage.getIdentityOverride(ORCHESTRATOR_SPECIALIST_ID);
   return resolveSpecialistIdentity(
-    { humanName: GASPAR_IDENTITY.humanName, gender: GASPAR_IDENTITY.gender },
+    { humanName: ORCHESTRATOR_IDENTITY.humanName, gender: ORCHESTRATOR_IDENTITY.gender },
     override,
   );
 }
