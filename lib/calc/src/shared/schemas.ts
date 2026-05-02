@@ -555,7 +555,14 @@ export const depreciationBasisSchema = z.object({
   purchase_price: z.number().positive(),
   land_value_pct: z.number().min(0).max(1),
   building_improvements: z.number().min(0).optional(),
-  depreciation_years: z.number().int().positive().optional(),
+  // Audit Task #966 — must allow non-integer lives (US residential = 27.5).
+  depreciation_years: z.number().positive().optional(),
+  // Audit Task #966 — drives the (country, category) lookup. Free-form
+  // string accepts BusinessModel / HospitalityType from
+  // `lib/db/src/schema/properties.ts` or the canonical IRS categories
+  // ("residential" / "commercial" / "non_residential").
+  property_type: z.string().min(1).optional(),
+  country: z.string().min(1).optional(),
 });
 
 export const debtCapacitySchema = z.object({

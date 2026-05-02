@@ -182,6 +182,22 @@ export const DEFAULT_LAND_VALUE_PERCENT = 0.25;
  */
 export const DEPRECIATION_YEARS = 39;
 
+/**
+ * US nonresidential real property — IRS Publication 946 / IRC §168(e)(2)(A).
+ * Hotels, lodges, and other commercial buildings depreciate straight-line
+ * over 39 years. Same value as `DEPRECIATION_YEARS`; named explicitly so
+ * the (country, property-type) lookup in
+ * `lib/calc/src/research/depreciation-basis.ts` reads as IRS-sourced.
+ */
+export const DEPRECIATION_YEARS_US_NON_RESIDENTIAL = 39;
+
+/**
+ * US residential rental property — IRS Publication 946 / IRC §168(e)(2)(A).
+ * Single-family rentals, multi-family, and other "dwelling units" used
+ * for residential rental depreciate straight-line over 27.5 years.
+ */
+export const DEPRECIATION_YEARS_US_RESIDENTIAL = 27.5;
+
 // ──────────────────────────────────────────────────────────
 // TIME CONSTANTS
 // ──────────────────────────────────────────────────────────
