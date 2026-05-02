@@ -131,6 +131,26 @@ async function buildAll() {
       "satori",
       "jspdf",
       "archiver",
+      // AI SDK clients — only loaded on AI request paths. Externalizing
+      // keeps the production bundle small. Each must remain in
+      // `dependencies` so pnpm installs them at runtime.
+      "@ai-sdk/anthropic",
+      "@ai-sdk/google",
+      "@ai-sdk/openai",
+      "@anthropic-ai/sdk",
+      "@google/genai",
+      "@perplexity-ai/perplexity_ai",
+      "openai",
+      "ai",
+      // Heavy reference-data library (~8 MB of bundled JSON for every
+      // country/state/city). Only used by `src/routes/geo.ts`. Must remain
+      // in `dependencies` so pnpm installs it at runtime.
+      "country-state-city",
+      // Observability / auth runtime SDKs — keep external so the bundle
+      // stays under the 10 MB target. All remain in `dependencies` so
+      // pnpm installs them in the deployed container at runtime.
+      "@sentry/*",
+      "google-auth-library",
     ],
     sourcemap: process.env.NODE_ENV === "production" ? false : "linked",
     plugins: [
