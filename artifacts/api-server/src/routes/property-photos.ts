@@ -16,6 +16,7 @@ import {
   HTTP_400_BAD_REQUEST,
   HTTP_403_FORBIDDEN,
   HTTP_404_NOT_FOUND,
+  HTTP_413_PAYLOAD_TOO_LARGE,
   HTTP_429_TOO_MANY_REQUESTS,
 } from "../constants";
 
@@ -149,6 +150,11 @@ export function register(app: Express) {
       const property = await checkPropertyAccess(getAuthUser(req), propertyId);
       if (!property) {
         return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+      }
+
+      const MAX_IMAGE_DATA_BYTES = 10 * 1024 * 1024; // 10 MB original ≈ 13.3 MB base64
+      if (typeof req.body.imageData === "string" && req.body.imageData.length > Math.ceil(MAX_IMAGE_DATA_BYTES * 4 / 3)) {
+        return res.status(HTTP_413_PAYLOAD_TOO_LARGE).json({ error: "Image too large. Maximum size is 10 MB." });
       }
 
       const parsed = insertPropertyPhotoSchema.safeParse({

@@ -83,6 +83,7 @@ export class PhotoStorage {
 
   async deletePropertyPhoto(id: number): Promise<void> {
     let urlToDelete: string | null = null;
+    let mediaFilenameToDelete: string | null = null;
 
     await db.transaction(async (tx) => {
       const [photo] = await tx.select().from(propertyPhotos)
@@ -91,13 +92,19 @@ export class PhotoStorage {
 
       await tx.delete(propertyPhotos).where(eq(propertyPhotos.id, id));
 
-      // Only consider deleting from object storage for /objects/ paths (not API-served or external URLs)
       if (photo.imageUrl?.startsWith("/objects/")) {
         const refs = await tx.select({ id: propertyPhotos.id })
           .from(propertyPhotos)
           .where(eq(propertyPhotos.imageUrl, photo.imageUrl))
           .limit(1);
         if (refs.length === 0) urlToDelete = photo.imageUrl;
+      } else if (photo.imageUrl?.startsWith("/api/media/")) {
+        const filename = photo.imageUrl.slice("/api/media/".length);
+        const refs = await tx.select({ id: propertyPhotos.id })
+          .from(propertyPhotos)
+          .where(eq(propertyPhotos.imageUrl, photo.imageUrl))
+          .limit(1);
+        if (refs.length === 0) mediaFilenameToDelete = filename;
       }
 
       if (photo.isHero) {
@@ -123,6 +130,14 @@ export class PhotoStorage {
         await sp.delete(urlToDelete);
       } catch (err: unknown) {
         logger.warn(`deletePropertyPhoto: failed to delete ${urlToDelete} from object storage: ${err instanceof Error ? err.message : String(err)}`, "photo-storage");
+      }
+    }
+
+    if (mediaFilenameToDelete) {
+      try {
+        await db.execute(sql`DELETE FROM media_assets WHERE filename = ${mediaFilenameToDelete}`);
+      } catch (err: unknown) {
+        logger.warn(`deletePropertyPhoto: failed to delete media_asset ${mediaFilenameToDelete}: ${err instanceof Error ? err.message : String(err)}`, "photo-storage");
       }
     }
   }

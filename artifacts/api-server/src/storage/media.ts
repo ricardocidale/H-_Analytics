@@ -23,6 +23,7 @@ interface RawMediaRow extends Record<string, unknown> {
 
 export interface MediaStorage {
   getMediaByFilename(filename: string): Promise<MediaAssetRow | null>;
+  deleteMediaByFilename(filename: string): Promise<void>;
 }
 
 export class MediaStorageImpl implements MediaStorage {
@@ -41,5 +42,9 @@ export class MediaStorageImpl implements MediaStorage {
       sizeBytes: row.size_bytes,
       sha256: row.sha256,
     };
+  }
+
+  async deleteMediaByFilename(filename: string): Promise<void> {
+    await db.execute(sql`DELETE FROM media_assets WHERE filename = ${filename}`);
   }
 }

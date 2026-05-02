@@ -496,6 +496,7 @@ export const insertPropertySchema = createInsertSchema(properties).pick({
   flaggedFieldCount: true,
   validationReason: true,
 }).extend({
+  imageUrl: z.string().min(1, "imageUrl is required"),
   startOccupancy: z.number().min(0).max(1),
   maxOccupancy: z.number().min(0).max(1),
   occupancyGrowthStep: z.number().min(0).max(1),
