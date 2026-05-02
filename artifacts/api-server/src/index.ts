@@ -603,6 +603,14 @@ async function runSchemaMigrations() {
   // icp_model_tier_001 consolidated into 0030_phase_c_batch_1.sql (Phase C batch 1)
 
   // fk_indexes_002 consolidated into 0036_batch7_pure_ddl.sql (Phase C batch 7)
+
+  if (!(await isMigrationApplied("property_slide_decks_001"))) {
+    const { runPropertySlideDecks001 } = await import(
+      "./migrations/property-slide-decks-001"
+    );
+    await runPropertySlideDecks001();
+    await markMigrationApplied("property_slide_decks_001");
+  }
 }
 
 async function runSeeds() {

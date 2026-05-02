@@ -659,7 +659,7 @@ export function register(app: Express) {
             name: f.name,
             description: f.description,
             settings: f.settings as Record<string, unknown>,
-            turns: f.turns as Array<{ role: "user" | "assistant"; content: string }>,
+            turns: f.turns as Array<{ role: "user" | "assistant"; content: string; ts: number }>,
           },
         })),
       };
