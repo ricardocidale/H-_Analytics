@@ -206,7 +206,7 @@ export default function PropertyMarketResearch() {
               }}
             />
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-primary/10 p-1 rounded-xl">
+              <TabsList className="justify-start bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-primary/10 p-1 rounded-xl">
                 <TabsTrigger value="market" className="gap-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg text-xs">
                   <IconMapPin className="w-3.5 h-3.5" /> Market
                 </TabsTrigger>

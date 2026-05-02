@@ -213,7 +213,7 @@ export default function CompanyResearch() {
                   transition={{ duration: 0.25 }}
                 >
                   <Tabs defaultValue={SUB_TABS[activeGroup][0].value} className="w-full">
-                    <TabsList className="flex flex-wrap h-auto gap-1 bg-card/60 backdrop-blur border border-border rounded-lg p-1">
+                    <TabsList className="flex flex-wrap justify-start h-auto gap-1 bg-card/60 backdrop-blur border border-border rounded-lg p-1">
                       {SUB_TABS[activeGroup].map(tab => (
                         <TabsTrigger
                           key={tab.value}
