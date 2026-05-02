@@ -6,14 +6,10 @@
  */
 
 import { getAnthropicClient } from "../ai/clients";
-import type { SlideProperty } from "./slide-jsx";
+import type { SlideProperty, PropertyImprovement } from "./slide-jsx";
 import { logger } from "../logger";
 
-export interface PropertyImprovement {
-  feature: string;
-  existing: string;
-  proposed: string;
-}
+export type { PropertyImprovement };
 
 function typeLabel(p: SlideProperty): string {
   const m = ((p.hospitalityType ?? "") + (p.businessModel ?? "")).toLowerCase();

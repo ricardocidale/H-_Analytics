@@ -93,7 +93,14 @@ export interface SiblingProperty {
   stateProvince?: string;
   purchasePrice?: number;
   hospitalityType?: string;
+  acquisitionStatus?: string;
   heroPhotoBase64?: string;
+}
+
+export interface PropertyImprovement {
+  feature: string;
+  existing: string;
+  proposed: string;
 }
 
 export interface VisionText {
@@ -122,6 +129,7 @@ export interface SlidePayload {
   financials: SlideFinancials;
   siblings: SiblingProperty[];
   visionText: VisionText;
+  improvements: PropertyImprovement[];
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -461,74 +469,111 @@ export function Slide3({ p }: { p: SlidePayload }) {
   );
 }
 
-// ── Slide 4 — Pipeline / Market Context ──────────────────────────────────
+// ── Slide 4 — Portfolio Overview ─────────────────────────────────────────
+// Uniform 3-column × 2-row grid showing up to 6 H+ portfolio properties,
+// sorted by acquisition date (same order as the Properties page in the app).
+
+function statusBadgeLabel(s?: string): string {
+  const MAP: Record<string, string> = {
+    active: "Acquisition Target", pipeline: "Pipeline",
+    closed: "Acquired", operating: "Operating", disposed: "Disposed",
+  };
+  return MAP[(s ?? "pipeline").toLowerCase()] ?? "Pipeline";
+}
+
+function PortfolioCard({ prop, isCurrent }: { prop: SiblingProperty | null; isCurrent?: boolean }) {
+  if (!prop) {
+    return (
+      <div style={{ display: "flex", flex: 1, position: "relative", borderRadius: 4, overflow: "hidden", border: "1px solid rgba(156,188,164,0.1)", background: "rgba(28,43,30,0.3)", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, color: "rgba(156,188,164,0.3)", letterSpacing: "0.15em" }}>COMING SOON</span>
+      </div>
+    );
+  }
+  const photo: SlidePhoto | undefined = prop.heroPhotoBase64
+    ? { base64: prop.heroPhotoBase64, isHero: true, sortOrder: 0 }
+    : undefined;
+
+  return (
+    <div style={{ display: "flex", flex: 1, position: "relative", borderRadius: 4, overflow: "hidden", border: isCurrent ? `1px solid ${C.accent}` : "1px solid rgba(156,188,164,0.15)" }}>
+      <PhotoBg photo={photo} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(15,22,16,0.96) 30%, rgba(15,22,16,0.2) 100%)" }} />
+      {isCurrent && (
+        <div style={{ position: "absolute", top: 10, right: 10, background: C.accent, padding: "2px 8px", display: "flex", borderRadius: 2 }}>
+          <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 8, color: C.white, letterSpacing: "0.15em" }}>THIS PROPERTY</span>
+        </div>
+      )}
+      <div style={{ position: "absolute", bottom: 14, left: 14, right: 14, display: "flex", flexDirection: "column" }}>
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 8, color: C.sage, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 3 }}>
+          {statusBadgeLabel(prop.acquisitionStatus)}
+        </span>
+        <span style={{ fontFamily: "Garamond, serif", fontSize: 15, color: C.cream, lineHeight: 1.2, marginBottom: 3 }}>{prop.name}</span>
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 10, color: C.muted, marginBottom: 3 }}>
+          {[prop.city, prop.stateProvince].filter(Boolean).join(", ")}
+        </span>
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.sage, fontWeight: 600 }}>
+          {fmtCurrency(prop.purchasePrice)}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 export function Slide4({ p }: { p: SlidePayload }) {
   const { property, photos, siblings } = p;
   const hero = photos.find(ph => ph.isHero) ?? photos[0];
-  const state = property.stateProvince;
-  const type = typeLabel(property);
-  const allCards = [{ property, photo: hero, isPrimary: true }, ...siblings.slice(0, 4).map(s => ({ sibling: s, isPrimary: false }))];
+
+  // Build the current property as a SiblingProperty card (first position)
+  const currentAsCard: SiblingProperty = {
+    id: property.id,
+    name: property.name,
+    city: property.city,
+    stateProvince: property.stateProvince,
+    purchasePrice: property.purchasePrice,
+    hospitalityType: property.hospitalityType || property.businessModel,
+    acquisitionStatus: property.acquisitionStatus,
+    heroPhotoBase64: hero?.base64,
+  };
+
+  // Portfolio: current property + siblings, capped at 6
+  const allCards: (SiblingProperty | null)[] = [currentAsCard, ...siblings.slice(0, 5)];
+  while (allCards.length < 6) allCards.push(null);
+  const row1 = allCards.slice(0, 3);
+  const row2 = allCards.slice(3, 6);
+  const CARD_GAP = 16;
 
   return (
     <div style={{ width: W, height: H, background: C.bg, display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
       {/* Header */}
-      <div style={{ padding: "36px 56px 24px 56px", display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" }}>
+      <div style={{ padding: "30px 56px 18px 56px", display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" }}>
         <div style={{ display: "flex", flexDirection: "column" }}>
           <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, letterSpacing: "0.3em", color: C.accent, textTransform: "uppercase", marginBottom: 4 }}>
             PROPERTY PIPELINE
           </span>
-          <span style={{ fontFamily: "Garamond, serif", fontSize: 28, color: C.cream }}>
-            {state.toUpperCase()} PORTFOLIO OVERVIEW
+          <span style={{ fontFamily: "Garamond, serif", fontSize: 26, color: C.cream }}>
+            H+ Portfolio Overview
           </span>
         </div>
         <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.muted }}>
-          {property.name} and {siblings.length} related {siblings.length === 1 ? "property" : "properties"}
+          {allCards.filter(Boolean).length} properties · {property.name} highlighted
         </span>
       </div>
 
-      {/* Cards row */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "row", padding: "0 40px 48px 40px" }}>
-        {/* Primary card — this property, larger */}
-        <div style={{ display: "flex", width: 440, marginRight: 20, position: "relative", borderRadius: 4, overflow: "hidden", border: `1px solid rgba(37,125,65,0.5)` }}>
-          <PhotoBg photo={hero} />
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(28,43,30,0.95) 35%, transparent 100%)" }} />
-          <div style={{ position: "absolute", bottom: 24, left: 20, right: 20, display: "flex", flexDirection: "column" }}>
-            <div style={{ background: C.accent, padding: "3px 10px", display: "flex", width: "fit-content", marginBottom: 8 }}>
-              <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 9, letterSpacing: "0.2em", color: C.white, textTransform: "uppercase" }}>{type}</span>
+      {/* 3×2 card grid — explicit margins instead of gap (satori compatibility) */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: `0 40px 48px 40px` }}>
+        <div style={{ display: "flex", flexDirection: "row", flex: 1, marginBottom: CARD_GAP }}>
+          {row1.map((card, i) => (
+            <div key={i} style={{ display: "flex", flex: 1, marginRight: i < 2 ? CARD_GAP : 0 }}>
+              <PortfolioCard prop={card} isCurrent={i === 0} />
             </div>
-            <span style={{ fontFamily: "Garamond, serif", fontSize: 20, color: C.cream, marginBottom: 4 }}>{property.name}</span>
-            <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, color: C.muted, marginBottom: 4 }}>{property.city}, {state}</span>
-            <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 14, color: C.sage }}>{fmtCurrency(property.purchasePrice)}</span>
-          </div>
+          ))}
         </div>
-
-        {/* Sibling cards */}
-        {[0, 1, 2, 3].map(idx => {
-          const sib = siblings[idx];
-          const sibPhoto: SlidePhoto | undefined = sib?.heroPhotoBase64
-            ? { base64: sib.heroPhotoBase64, isHero: true, sortOrder: 0 }
-            : undefined;
-          return (
-            <div key={idx} style={{ display: "flex", flex: 1, marginRight: idx < 3 ? 12 : 0, position: "relative", borderRadius: 4, overflow: "hidden", border: `1px solid rgba(156,188,164,0.2)` }}>
-              {sib ? (
-                <>
-                  <PhotoBg photo={sibPhoto} />
-                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(28,43,30,0.9) 50%, transparent 100%)" }} />
-                  <div style={{ position: "absolute", bottom: 16, left: 14, right: 14, display: "flex", flexDirection: "column" }}>
-                    <span style={{ fontFamily: "Garamond, serif", fontSize: 15, color: C.cream, marginBottom: 3 }}>{sib.name}</span>
-                    <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 10, color: C.muted, marginBottom: 3 }}>{sib.city}{sib.stateProvince ? `, ${sib.stateProvince}` : ""}</span>
-                    <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.sage }}>{fmtCurrency(sib.purchasePrice)}</span>
-                  </div>
-                </>
-              ) : (
-                <div style={{ width: "100%", height: "100%", background: "rgba(28,43,30,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: "rgba(156,188,164,0.4)", letterSpacing: "0.12em" }}>COMING SOON</span>
-                </div>
-              )}
+        <div style={{ display: "flex", flexDirection: "row", flex: 1 }}>
+          {row2.map((card, i) => (
+            <div key={i + 3} style={{ display: "flex", flex: 1, marginRight: i < 2 ? CARD_GAP : 0 }}>
+              <PortfolioCard prop={card} />
             </div>
-          );
-        })}
+          ))}
+        </div>
       </div>
 
       <GreenRule y={H - 60} />
@@ -540,7 +585,7 @@ export function Slide4({ p }: { p: SlidePayload }) {
 // ── Slide 5 — Financial Snapshot ─────────────────────────────────────────
 
 export function Slide5({ p }: { p: SlidePayload }) {
-  const { property, financials, visionText } = p;
+  const { property, financials, visionText, improvements } = p;
   const stable = getStableYear(financials.yearlyIS);
   const renovBudget = Math.round((property.purchasePrice ?? 0) * 0.15);
   const totalInvestment = (property.purchasePrice ?? 0) + renovBudget;
@@ -549,12 +594,17 @@ export function Slide5({ p }: { p: SlidePayload }) {
   const ltv = financials.loanLtv > 0 ? `${Math.round(financials.loanLtv * 100)}%` : "65%";
   const stableLabel = stable ? `Year ${stable.year}` : "Yr 3";
 
-  const transformRows = [
+  const transformRows: string[][] = [
     ["Feature", "Existing", "Proposed"],
-    ["Guest Capacity", `${Math.max(1, property.roomCount - 2)} Guests`, `${property.roomCount} Keys / ${property.roomCount * 2} Guests`],
-    ["Event Space", "Limited", "Curated venue spaces"],
-    ["Lodging", "Standard rooms", `${property.roomCount} boutique-designed keys`],
-    ["Amenities", "Basic", "Curated experiential amenities"],
+    ...(improvements.length > 0
+      ? improvements.slice(0, 4).map(imp => [imp.feature, imp.existing, imp.proposed])
+      : [
+          ["Guest Capacity", `${Math.max(1, property.roomCount - 2)} Guests`, `${property.roomCount} Keys`],
+          ["Event Space", "Limited", "Curated venue spaces"],
+          ["Lodging", "Standard rooms", `${property.roomCount} boutique-designed keys`],
+          ["Amenities", "Basic", "Curated experiential amenities"],
+        ]
+    ),
   ];
 
   const snapshotRows = [

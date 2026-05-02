@@ -32,6 +32,8 @@ import { withModelConstants } from "../finance/apply-model-constants";
 import { computeIRR } from "@analytics/returns/irr";
 import { generatePropertyVisionText, buildPropertyVisionFallback } from "../ai/property-vision";
 import { renderImagePptx, type SlidePayload } from "../slides/image-renderer";
+import { generatePropertyImprovements } from "../slides/improvement-suggestions";
+import { ensurePortfolioRenders } from "../slides/portfolio-renders";
 import { parseRouteId } from "./helpers";
 import {
   HTTP_202_ACCEPTED,
@@ -198,22 +200,52 @@ async function buildSlidePayload(propertyId: number, userId: number | undefined,
     await Promise.all(sortedPhotos.slice(0, MAX_PHOTOS).map(resolvePhotoBytes))
   ).filter(Boolean) as Array<{ base64: string; isHero: boolean; sortOrder: number }>;
 
+  // Portfolio properties for slide 4 — all properties sorted by acquisition date
+  // (matching the front-end Properties page order), excluding current, capped at 5
+  // (current property occupies card 1, so siblings fill cards 2–6).
   let siblings: Array<Record<string, unknown>> = [];
-  if (userId) {
-    try {
-      const allProps = await storage.getAllProperties(userId);
-      siblings = allProps
-        .filter(p => p.id !== propertyId && p.stateProvince === property.stateProvince)
-        .slice(0, SIBLING_LIMIT)
-        .map(p => ({
-          id: p.id, name: p.name, city: p.city, stateProvince: p.stateProvince,
-          purchasePrice: p.purchasePrice,
-          hospitalityType: (p as Record<string, unknown>).hospitalityType ?? p.businessModel,
-          acquisitionStatus: (p as Record<string, unknown>).acquisitionStatus,
-        }));
-    } catch (e) {
-      logger.warn(`Failed to fetch siblings for property ${propertyId}: ${e}`, "property-slides");
-    }
+  try {
+    const allProps = await storage.getAllProperties(userId);
+    const sorted = [...allProps]
+      .filter(pr => pr.id !== propertyId)
+      .sort((a, b) => {
+        const da = (a as Record<string, unknown>).acquisitionDate as string | null;
+        const db_ = (b as Record<string, unknown>).acquisitionDate as string | null;
+        if (!da && !db_) return 0;
+        if (!da) return 1;
+        if (!db_) return -1;
+        return da.localeCompare(db_);
+      })
+      .slice(0, SIBLING_LIMIT);
+
+    siblings = await Promise.all(sorted.map(async (pr) => {
+      const hero = await storage.getHeroPhoto(pr.id);
+      let heroPhotoBase64: string | undefined;
+      if (hero) {
+        const resolved = await resolvePhotoBytes({
+          id: hero.id,
+          imageData: hero.imageData,
+          imageUrl: hero.imageUrl,
+          isHero: true,
+          sortOrder: hero.sortOrder ?? 0,
+          caption: hero.caption,
+        });
+        heroPhotoBase64 = resolved?.base64;
+      }
+      const prRec = pr as Record<string, unknown>;
+      return {
+        id: pr.id,
+        name: pr.name,
+        city: pr.city,
+        stateProvince: pr.stateProvince,
+        purchasePrice: pr.purchasePrice,
+        hospitalityType: prRec.hospitalityType ?? pr.businessModel,
+        acquisitionStatus: prRec.acquisitionStatus,
+        heroPhotoBase64,
+      };
+    }));
+  } catch (e) {
+    logger.warn(`Failed to fetch portfolio properties for property ${propertyId}: ${e}`, "property-slides");
   }
 
   let yearlyIS: unknown[] = [];
@@ -265,14 +297,6 @@ async function buildSlidePayload(propertyId: number, userId: number | undefined,
   }
 
   const p = property as Record<string, unknown>;
-  const visionText = await generatePropertyVisionText({
-    id: property.id, name: property.name, city: property.city, stateProvince: property.stateProvince,
-    county: p.county as string | null, country: property.country, purchasePrice: property.purchasePrice,
-    roomCount: property.roomCount, startAdr: property.startAdr, maxOccupancy: property.maxOccupancy,
-    businessModel: property.businessModel, hospitalityType: p.hospitalityType as string | null,
-    qualityTier: p.qualityTier as string | null, description: property.description,
-    acquisitionStatus: p.acquisitionStatus as string | null,
-  });
 
   const propertyShape = {
     id: property.id, name: property.name,
@@ -291,6 +315,19 @@ async function buildSlidePayload(propertyId: number, userId: number | undefined,
     exitCapRate: (p.exitCapRate ?? SLIDES_DEFAULT_EXIT_CAP_RATE) as number,
   };
 
+  // LLM-generated content — run concurrently
+  const [visionText, improvements] = await Promise.all([
+    generatePropertyVisionText({
+      id: property.id, name: property.name, city: property.city, stateProvince: property.stateProvince,
+      county: p.county as string | null, country: property.country, purchasePrice: property.purchasePrice,
+      roomCount: property.roomCount, startAdr: property.startAdr, maxOccupancy: property.maxOccupancy,
+      businessModel: property.businessModel, hospitalityType: p.hospitalityType as string | null,
+      qualityTier: p.qualityTier as string | null, description: property.description,
+      acquisitionStatus: p.acquisitionStatus as string | null,
+    }),
+    generatePropertyImprovements(propertyShape),
+  ]);
+
   return {
     property: propertyShape,
     photos: resolvedPhotos,
@@ -302,6 +339,7 @@ async function buildSlidePayload(propertyId: number, userId: number | undefined,
     },
     siblings: siblings as unknown as SlidePayload["siblings"],
     visionText,
+    improvements,
     _propertyName: property.name,
   };
 }
@@ -384,6 +422,16 @@ async function generateTrack2(
   triggeredBy: string,
 ): Promise<void> {
   try {
+    // Ensure all portfolio properties have renders before building the payload.
+    // This may call Replicate for properties that have no hero photo.
+    try {
+      const allProps = await storage.getAllProperties(userId);
+      const portfolioIds = allProps.map(pr => pr.id);
+      await ensurePortfolioRenders(portfolioIds);
+    } catch (renderErr) {
+      logger.warn(`[property-slides] ensurePortfolioRenders failed (continuing): ${renderErr}`, "property-slides");
+    }
+
     const payload = await buildSlidePayload(propertyId, userId, PROJ_YEARS_DEFAULT);
     const pptxBuffer = await renderImagePptx(payload);
 
