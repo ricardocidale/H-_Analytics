@@ -79,10 +79,10 @@ interface SlideRow {
 }
 
 async function getSlideRow(propertyId: number): Promise<SlideRow | null> {
-  const rows = await db.execute<SlideRow>(
+  const rows = await db.execute(
     sql`SELECT * FROM property_slide_decks WHERE property_id = ${propertyId}`,
   );
-  return (rows.rows[0] as SlideRow | undefined) ?? null;
+  return (rows.rows[0] as unknown as SlideRow | undefined) ?? null;
 }
 
 async function upsertSlideRow(patch: Partial<SlideRow> & { property_id: number }): Promise<void> {
@@ -415,21 +415,24 @@ async function generateAndStore(
  */
 router.get("/api/slides/status", requireAuth, async (_req: Request, res: Response) => {
   try {
-    const rows = await db.execute<SlideRow>(
+    const rows = await db.execute(
       sql`SELECT property_id, status, r2_key, file_size_bytes, generated_at, triggered_by, error_message, updated_at
           FROM property_slide_decks
           ORDER BY property_id`,
     );
     return res.json(
-      rows.rows.map((r) => ({
-        propertyId: r.property_id,
-        status: r.status,
-        r2Key: r.r2_key,
-        fileSizeBytes: r.file_size_bytes,
-        generatedAt: r.generated_at,
-        triggeredBy: r.triggered_by,
-        errorMessage: r.error_message,
-      })),
+      rows.rows.map((r) => {
+        const row = r as unknown as SlideRow;
+        return {
+          propertyId: row.property_id,
+          status: row.status,
+          r2Key: row.r2_key,
+          fileSizeBytes: row.file_size_bytes,
+          generatedAt: row.generated_at,
+          triggeredBy: row.triggered_by,
+          errorMessage: row.error_message,
+        };
+      }),
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Failed to fetch slide status";
