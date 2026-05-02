@@ -5,6 +5,7 @@ import {
   upsertChunks,
   queryChunks,
   pruneResearchHistory,
+  deleteNamespace,
   type VectorChunk,
   type QueryMatch,
 } from "./vector-store-service";
@@ -733,9 +734,10 @@ export async function indexMarketResearchReport(report: MarketResearch): Promise
       const text = extractSectionText(value);
       if (!text) continue;
 
+      const sectionText = text.slice(0, SECTION_MAX_CHARS);
       chunks.push({
         id: `market-research:${report.id}:${key}`,
-        text: `${label} — ${keyToLabel(key)}\n\n${text.slice(0, SECTION_MAX_CHARS)}`,
+        text: `${label} — ${keyToLabel(key)}\n\n${sectionText}`,
         metadata: {
           reportId:     report.id,
           propertyId:   report.propertyId ?? 0,
@@ -744,6 +746,7 @@ export async function indexMarketResearchReport(report: MarketResearch): Promise
           sectionTitle: keyToLabel(key),
           sectionIndex: idx++,
           chunkType:    "section",
+          content:      sectionText.slice(0, 2_000),
         },
       });
     }
@@ -776,8 +779,23 @@ export async function indexAllMarketResearch(): Promise<{ indexed: number; skipp
   );
   const existing = Number((countResult as unknown as Array<{ count: string }>)[0]?.count ?? "0");
   if (existing > 0) {
-    logger.info(`[market-research] Namespace has ${existing} chunks — skipping backfill`, "vector-store");
-    return { indexed: 0, skipped: 0 };
+    // Detect chunks missing metadata.content (pre-fix vectors). If any are
+    // missing, clear the namespace and re-index so retrieval keeps working.
+    const missingResult = await db.execute<{ count: string }>(
+      sql`SELECT COUNT(*)::text AS count FROM vector_chunks
+           WHERE namespace = 'market-research'
+             AND (metadata->>'content' IS NULL OR metadata->>'content' = '')`,
+    );
+    const missing = Number((missingResult as unknown as Array<{ count: string }>)[0]?.count ?? "0");
+    if (missing === 0) {
+      logger.info(`[market-research] Namespace has ${existing} chunks — skipping backfill`, "vector-store");
+      return { indexed: 0, skipped: 0 };
+    }
+    logger.info(
+      `[market-research] ${missing}/${existing} chunks missing metadata.content — clearing namespace and re-indexing`,
+      "vector-store",
+    );
+    await deleteNamespace("market-research");
   }
 
   const reports = await db.select().from(marketResearch).limit(500);
@@ -822,7 +840,7 @@ export async function retrieveMarketResearchContext(params: {
         propertyId:   Number(m.metadata.propertyId),
         type:         String(m.metadata.type),
         sectionTitle: String(m.metadata.sectionTitle),
-        content:      m.text,
+        content:      String(m.metadata.content ?? ""),
         score:        m.score,
       }));
   } catch (err: unknown) {
