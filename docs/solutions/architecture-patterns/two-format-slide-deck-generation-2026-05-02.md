@@ -1,6 +1,7 @@
 ---
 title: "Two-format slide deck generation: editable PPTX + image-locked PPTX on Railway"
 date: 2026-05-02
+last_updated: 2026-05-02
 category: architecture-patterns
 module: slides
 problem_type: architecture_pattern
@@ -10,6 +11,7 @@ applies_when:
   - "Generating presentation files server-side on a memory-constrained host (e.g. Railway)"
   - "Requiring both an editable deck for internal use and a pixel-perfect locked deck for external distribution"
   - "Puppeteer/Playwright/headless Chromium is too heavy for the deployment environment"
+  - "Three coexisting slide artifacts exist and you need to know which one is a generator vs a viewer"
 related_components:
   - database
   - background_job
@@ -49,6 +51,29 @@ Constraints that shaped the solution:
   JPEG output. (session history)
 
 ## Guidance
+
+### System topology: three coexisting artifacts, non-overlapping roles
+
+The codebase contains three "slide deck" artifacts. They are not competing implementations — each
+fills a role the others cannot.
+
+| System | Path | Role | Writes to R2? | Writes to `property_slide_deck_variants`? |
+|--------|------|------|:---:|:---:|
+| **Browser viewer** | `artifacts/property-slides/` | Visual reference — renders the L+B design in the browser for designers/developers | ✗ | ✗ |
+| **Track 1: Python PPTX** | `property-slides.ts:346` (`generateTrack1`) | Produces an editable `.pptx` via python-pptx | ✓ | ✓ (`format='pptx'`) |
+| **Track 2: Image PPTX** | `property-slides.ts:381` (`generateTrack2`) | Produces a pixel-locked `.pptx` via satori + sharp + pptxgenjs | ✓ | ✓ (`format='image'`) |
+
+**The browser viewer (`artifacts/property-slides/`) is not a generator.** It is a standalone Vite
+SPA. It contains no calls to Python, satori, or R2. It never reads or writes `property_slide_deck_variants`.
+It is navigated by designers to verify that generated slides match the L+B aesthetic target.
+
+The browser viewer has its own React slide components under
+`artifacts/property-slides/src/pages/slides/`. These are **separate files** from the server-side
+satori components in `artifacts/api-server/src/slides/slide-jsx.tsx`. Editing the browser
+components does not affect generation and vice versa.
+
+**No fourth system should be built.** The two download formats are complete. Remaining work is
+visual fidelity of Track 1 and Track 2 output against the L+B template — not new system creation.
 
 ### Two-pipeline architecture with a format discriminator table
 
@@ -254,3 +279,4 @@ setImmediate(() => generateBoth(propertyId, "property-update"));
 - `artifacts/api-server/src/routes/property-slides.ts` — generation routes and pre-generation export
 - `lib/db/src/schema/property-slide-decks.ts` — Drizzle schema for `property_slide_deck_variants`
 - `.agents/skills/hplus-slide-mapping/SKILL.md` — shape mapping authoritative reference for Track 1
+- `artifacts/property-slides/src/` — browser viewer: `App.tsx` (shell), `slideLoader.ts` (manifest), `src/pages/slides/` (viewer-only components, independent from `slide-jsx.tsx`)
