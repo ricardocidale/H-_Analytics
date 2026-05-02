@@ -1,5 +1,5 @@
 /**
- * Hybrid compositing renderer for slides 1–4.
+ * Hybrid compositing renderer for slides 1–3.
  *
  * For each slide:
  *   1. Load pre-rendered background JPEG (template decorative elements)
@@ -7,7 +7,7 @@
  *   3. Render all text elements (slots + static) as a single transparent satori overlay
  *   4. Composite overlay onto background → final JPEG
  *
- * Slides 5–6 are not handled here (table-heavy; delegated to legacy satori JSX renderer).
+ * Slides 4–6 are not handled here; delegated to the satori JSX renderer.
  */
 
 import path from "path";
@@ -38,7 +38,7 @@ let _recipe: SlideRecipeFile | null = null;
 
 function loadRecipe(): SlideRecipeFile {
   if (_recipe) return _recipe;
-  const p = path.resolve(__dirname, "../../../../scripts/src/slide-slot-recipe.json");
+  const p = path.resolve(process.cwd(), "../../scripts/src/slide-slot-recipe.json");
   if (!fs.existsSync(p)) {
     throw new Error(`[hybrid-renderer] slide-slot-recipe.json not found at ${p}`);
   }
@@ -53,8 +53,8 @@ const _bgCache = new Map<number, Buffer>();
 function loadBackground(slideNum: number): Buffer | null {
   if (_bgCache.has(slideNum)) return _bgCache.get(slideNum)!;
   const p = path.resolve(
-    __dirname,
-    `../../../../scripts/src/slide-backgrounds/slide-${slideNum}-bg.jpg`,
+    process.cwd(),
+    `../../scripts/src/slide-backgrounds/slide-${slideNum}-bg.jpg`,
   );
   if (!fs.existsSync(p)) return null;
   const buf = fs.readFileSync(p);
@@ -100,7 +100,7 @@ interface TextItem {
 
 async function renderTextOverlay(
   items: TextItem[],
-  fonts: Awaited<ReturnType<typeof getSlideFonts>>,
+  fonts: ReturnType<typeof getSlideFonts>,
 ): Promise<Buffer> {
   const sorted = [...items].sort((a, b) => a.el.z_order - b.el.z_order);
 
@@ -136,7 +136,7 @@ async function renderTextOverlay(
   );
 
   const root = React.createElement("div", {
-    style: { position: "relative" as const, width: SLIDE_W, height: SLIDE_H, overflow: "hidden" as const },
+    style: { display: "flex" as const, position: "relative" as const, width: SLIDE_W, height: SLIDE_H, overflow: "hidden" as const },
   }, ...children);
 
   const svg = await satori(root, { width: SLIDE_W, height: SLIDE_H, fonts: fontDefs });
@@ -152,7 +152,7 @@ async function renderTextOverlay(
 export async function renderHybridSlide(
   slideNum: number,
   payload: SlidePayload,
-  fonts: Awaited<ReturnType<typeof getSlideFonts>>,
+  fonts: ReturnType<typeof getSlideFonts>,
 ): Promise<Buffer | null> {
   const bg = loadBackground(slideNum);
   if (!bg) {

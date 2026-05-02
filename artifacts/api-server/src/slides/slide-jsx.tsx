@@ -183,7 +183,7 @@ function statusLabel(s: string): string {
 function PhotoBg({ photo, style }: { photo: SlidePhoto | undefined; style?: React.CSSProperties }) {
   const src = photoSrc(photo);
   return (
-    <div style={{ position: "absolute", inset: 0, overflow: "hidden", ...style }}>
+    <div style={{ display: "flex", position: "absolute", inset: 0, overflow: "hidden", ...style }}>
       {src ? (
         <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
       ) : (
@@ -234,7 +234,7 @@ export function Slide1({ p }: { p: SlidePayload }) {
   return (
     <div style={{ width: W, height: H, background: C.bg, display: "flex", position: "relative", overflow: "hidden" }}>
       {/* LEFT — hero photo (55%) */}
-      <div style={{ position: "relative", width: "55%", height: "100%" }}>
+      <div style={{ display: "flex", position: "relative", width: "55%", height: "100%" }}>
         <PhotoBg photo={hero} />
         {/* Gradient overlay */}
         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "40%", background: "linear-gradient(to top, rgba(28,43,30,0.96) 0%, transparent 100%)" }} />
@@ -292,7 +292,7 @@ export function Slide1({ p }: { p: SlidePayload }) {
 
         {/* Badge */}
         <div style={{ display: "flex" }}>
-          <div style={{ background: C.accent, padding: "5px 16px", borderRadius: 2 }}>
+          <div style={{ display: "flex", background: C.accent, padding: "5px 16px", borderRadius: 2 }}>
             <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 10, letterSpacing: "0.2em", color: C.white, textTransform: "uppercase" }}>
               {visionText.badgeText || type.toUpperCase()}
             </span>
@@ -301,7 +301,7 @@ export function Slide1({ p }: { p: SlidePayload }) {
 
         {/* Secondary photo thumbnail */}
         {photoSrc(secondary) && (
-          <div style={{ position: "absolute", bottom: 44, right: 56, width: 200, height: 120, borderRadius: 3, overflow: "hidden", border: `1px solid rgba(37,125,65,0.3)` }}>
+          <div style={{ display: "flex", position: "absolute", bottom: 44, right: 56, width: 200, height: 120, borderRadius: 3, overflow: "hidden", border: `1px solid rgba(37,125,65,0.3)` }}>
             <PhotoBg photo={secondary} />
           </div>
         )}
@@ -369,14 +369,14 @@ export function Slide2({ p }: { p: SlidePayload }) {
       <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: 16 }}>
         <div style={{ flex: 1, display: "flex", flexDirection: "row", marginBottom: 8 }}>
           {[panelPhotos[0], panelPhotos[1]].map((ph, i) => (
-            <div key={i} style={{ flex: 1, position: "relative", borderRadius: 3, overflow: "hidden", marginLeft: i > 0 ? 8 : 0 }}>
+            <div key={i} style={{ display: "flex", flex: 1, position: "relative", borderRadius: 3, overflow: "hidden", marginLeft: i > 0 ? 8 : 0 }}>
               <PhotoBg photo={ph} />
             </div>
           ))}
         </div>
         <div style={{ flex: 1, display: "flex", flexDirection: "row" }}>
           {[panelPhotos[2], panelPhotos[3]].map((ph, i) => (
-            <div key={i} style={{ flex: 1, position: "relative", borderRadius: 3, overflow: "hidden", marginLeft: i > 0 ? 8 : 0 }}>
+            <div key={i} style={{ display: "flex", flex: 1, position: "relative", borderRadius: 3, overflow: "hidden", marginLeft: i > 0 ? 8 : 0 }}>
               <PhotoBg photo={ph} />
             </div>
           ))}
@@ -402,13 +402,13 @@ export function Slide3({ p }: { p: SlidePayload }) {
   return (
     <div style={{ width: W, height: H, background: C.bg, display: "flex", position: "relative", overflow: "hidden" }}>
       {/* LEFT — large photo panel */}
-      <div style={{ width: 480, position: "relative", flexShrink: 0 }}>
+      <div style={{ display: "flex", width: 480, position: "relative", flexShrink: 0 }}>
         <PhotoBg photo={hero} />
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, transparent 60%, rgba(28,43,30,0.95) 100%)" }} />
       </div>
 
       {/* CENTER — medium photo */}
-      <div style={{ width: 340, position: "relative", flexShrink: 0 }}>
+      <div style={{ display: "flex", width: 340, position: "relative", flexShrink: 0 }}>
         <PhotoBg photo={secondary} />
         <div style={{ position: "absolute", inset: 0, background: "rgba(28,43,30,0.4)" }} />
       </div>
@@ -449,7 +449,7 @@ export function Slide3({ p }: { p: SlidePayload }) {
           </div>
         ))}
 
-        <div style={{ marginTop: 16, padding: "10px 16px", borderLeft: `3px solid ${C.accent}` }}>
+        <div style={{ display: "flex", marginTop: 16, padding: "10px 16px", borderLeft: `3px solid ${C.accent}` }}>
           <span style={{ fontFamily: "Garamond, serif", fontSize: 15, color: C.cream, fontStyle: "italic" }}>{visionText.closingLine}</span>
         </div>
       </div>
@@ -490,7 +490,7 @@ export function Slide4({ p }: { p: SlidePayload }) {
       {/* Cards row */}
       <div style={{ flex: 1, display: "flex", flexDirection: "row", padding: "0 40px 48px 40px" }}>
         {/* Primary card — this property, larger */}
-        <div style={{ width: 440, marginRight: 20, position: "relative", borderRadius: 4, overflow: "hidden", border: `1px solid rgba(37,125,65,0.5)` }}>
+        <div style={{ display: "flex", width: 440, marginRight: 20, position: "relative", borderRadius: 4, overflow: "hidden", border: `1px solid rgba(37,125,65,0.5)` }}>
           <PhotoBg photo={hero} />
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(28,43,30,0.95) 35%, transparent 100%)" }} />
           <div style={{ position: "absolute", bottom: 24, left: 20, right: 20, display: "flex", flexDirection: "column" }}>
@@ -510,7 +510,7 @@ export function Slide4({ p }: { p: SlidePayload }) {
             ? { base64: sib.heroPhotoBase64, isHero: true, sortOrder: 0 }
             : undefined;
           return (
-            <div key={idx} style={{ flex: 1, marginRight: idx < 3 ? 12 : 0, position: "relative", borderRadius: 4, overflow: "hidden", border: `1px solid rgba(156,188,164,0.2)` }}>
+            <div key={idx} style={{ display: "flex", flex: 1, marginRight: idx < 3 ? 12 : 0, position: "relative", borderRadius: 4, overflow: "hidden", border: `1px solid rgba(156,188,164,0.2)` }}>
               {sib ? (
                 <>
                   <PhotoBg photo={sibPhoto} />
@@ -636,7 +636,7 @@ export function Slide5({ p }: { p: SlidePayload }) {
           </div>
 
           {/* Key metrics badge */}
-          <div style={{ marginTop: 20, padding: "12px 16px", background: "rgba(37,125,65,0.12)", borderLeft: `3px solid ${C.accent}` }}>
+          <div style={{ display: "flex", flexDirection: "column", marginTop: 20, padding: "12px 16px", background: "rgba(37,125,65,0.12)", borderLeft: `3px solid ${C.accent}` }}>
             <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, color: C.sage, marginBottom: 6, display: "block" }}>Key Investor Metrics*</span>
             <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.cream, display: "block", marginBottom: 3 }}>Gross Margin: {fmtPct(grossMargin)}</span>
             <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.cream, display: "block", marginBottom: 6 }}>EBITDA ({stableLabel}): {fmtPct(ebitdaPct)}</span>
@@ -699,7 +699,7 @@ export function Slide6({ p }: { p: SlidePayload }) {
       {/* Content */}
       <div style={{ flex: 1, display: "flex", flexDirection: "row", padding: "0 40px 48px 40px" }}>
         {/* LEFT — IS table */}
-        <div style={{ flex: 1, marginRight: 32 }}>
+        <div style={{ display: "flex", flexDirection: "column", flex: 1, marginRight: 32 }}>
           {/* Year headers */}
           <div style={{ display: "flex", flexDirection: "row", padding: "8px 0", background: "rgba(28,43,30,0.8)", borderBottom: `1px solid ${C.accent}`, marginBottom: 4 }}>
             <span style={{ flex: 1.4, fontFamily: "Poppins, sans-serif", fontSize: 10, color: C.sage, paddingLeft: 8 }}>Item</span>
@@ -731,7 +731,7 @@ export function Slide6({ p }: { p: SlidePayload }) {
             ))}
           </div>
 
-          <div style={{ marginTop: 24, padding: "12px 16px", background: "rgba(37,125,65,0.12)", borderLeft: `3px solid ${C.accent}` }}>
+          <div style={{ display: "flex", marginTop: 24, padding: "12px 16px", background: "rgba(37,125,65,0.12)", borderLeft: `3px solid ${C.accent}` }}>
             <span style={{ fontFamily: "Garamond, serif", fontSize: 14, color: C.cream, fontStyle: "italic", lineHeight: 1.6 }}>
               5-year pro forma based on H+ Analytics projection engine.
               Projections are estimates; actual results may vary.

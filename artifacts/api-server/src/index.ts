@@ -28,6 +28,7 @@ import { registerImageRoutes } from "./routes/images";
 import { propertySlidesRouter, preGenerateAllSlides } from "./routes/property-slides";
 import { indexKnowledgeBase } from "./ai/knowledge-base";
 import { indexAllAssets } from "./ai/asset-intelligence";
+import { indexAllMarketResearch } from "./ai/vector-indexing";
 import { buildContentSecurityPolicy } from "./csp";
 import { getAuthProvider } from "./providers/auth";
 import { createServer } from "http";
@@ -273,6 +274,16 @@ app.use((req, res, next) => {
                 if (assets.photos > 0 || assets.logos > 0) {
                   serverLog(
                     `[knowledge-base] Assets indexed: ${assets.photos} photos, ${assets.logos} logos`,
+                    "startup",
+                    "info",
+                  );
+                }
+                return indexAllMarketResearch();
+              })
+              .then(research => {
+                if (research.indexed > 0) {
+                  serverLog(
+                    `[market-research] Backfilled ${research.indexed} reports into vector store`,
                     "startup",
                     "info",
                   );

@@ -1,27 +1,14 @@
 /**
  * Font loader for satori slide renderer.
- *
- * Downloads EB Garamond (serif headers) and Poppins ExtraLight (body) from
- * Google Fonts CDN on first use and caches the ArrayBuffers in module scope.
- * Falls back to placeholder buffers so generation never hard-fails on network.
+ * Reads local WOFF files bundled at src/slides/fonts/.
+ * Falls back to empty buffers so generation never hard-fails on a missing file.
  */
 
+import path from "path";
+import fs from "fs";
 import { logger } from "../logger";
 
-const FONT_URLS = {
-  garamondRegular:
-    "https://fonts.gstatic.com/s/ebgaramond/v27/SlGDmQSNjdsmc35JDF1K5GRwSDo_ZA.woff",
-  garamondBold:
-    "https://fonts.gstatic.com/s/ebgaramond/v27/SlGUmQSNjdsmc35JDF1K5GRweDo_ZQ.woff",
-  poppinsLight:
-    "https://fonts.gstatic.com/s/poppins/v21/pxiByp8kv8JHgFVrLDz8Z11lFc-K.woff",
-  poppinsRegular:
-    "https://fonts.gstatic.com/s/poppins/v21/pxiEyp8kv8JHgFVrJJfecg.woff",
-  robotoRegular:
-    "https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff",
-  robotoBold:
-    "https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmWUlfBBc9.woff",
-};
+const FONTS_DIR = path.resolve(process.cwd(), "src/slides/fonts");
 
 interface FontCache {
   garamondRegular: ArrayBuffer;
@@ -33,39 +20,28 @@ interface FontCache {
 }
 
 let cache: FontCache | null = null;
-let loadPromise: Promise<FontCache> | null = null;
 
-async function fetchFont(url: string, name: string): Promise<ArrayBuffer> {
+function readFont(filename: string): ArrayBuffer {
+  const p = path.join(FONTS_DIR, filename);
   try {
-    const resp = await fetch(url, { signal: AbortSignal.timeout(10_000) });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    return await resp.arrayBuffer();
-  } catch (err) {
-    logger.warn(`[slide-fonts] Failed to fetch ${name}: ${err}. Using empty buffer.`);
+    const buf = fs.readFileSync(p);
+    return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
+  } catch {
+    logger.warn(`[slide-fonts] Cannot read ${filename} — using empty buffer`);
     return new ArrayBuffer(0);
   }
 }
 
-async function loadFonts(): Promise<FontCache> {
-  const [garamondRegular, garamondBold, poppinsLight, poppinsRegular, robotoRegular, robotoBold] =
-    await Promise.all([
-      fetchFont(FONT_URLS.garamondRegular, "EB Garamond Regular"),
-      fetchFont(FONT_URLS.garamondBold, "EB Garamond Bold"),
-      fetchFont(FONT_URLS.poppinsLight, "Poppins Light"),
-      fetchFont(FONT_URLS.poppinsRegular, "Poppins Regular"),
-      fetchFont(FONT_URLS.robotoRegular, "Roboto Regular"),
-      fetchFont(FONT_URLS.robotoBold, "Roboto Bold"),
-    ]);
-  logger.info("[slide-fonts] Fonts loaded for satori renderer");
-  return { garamondRegular, garamondBold, poppinsLight, poppinsRegular, robotoRegular, robotoBold };
-}
-
-export async function getSlideFonts(): Promise<FontCache> {
+export function getSlideFonts(): FontCache {
   if (cache) return cache;
-  if (loadPromise) return loadPromise;
-  loadPromise = loadFonts().then((c) => {
-    cache = c;
-    return c;
-  });
-  return loadPromise;
+  cache = {
+    garamondRegular: readFont("EBGaramond-Regular.woff"),
+    garamondBold:    readFont("EBGaramond-Bold.woff"),
+    poppinsLight:    readFont("Poppins-Light.woff"),
+    poppinsRegular:  readFont("Poppins-Regular.woff"),
+    robotoRegular:   readFont("Roboto-Regular.woff"),
+    robotoBold:      readFont("Roboto-Bold.woff"),
+  };
+  logger.info("[slide-fonts] Fonts loaded from local WOFF files");
+  return cache;
 }

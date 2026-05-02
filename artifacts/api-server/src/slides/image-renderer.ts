@@ -32,7 +32,7 @@ const PPTX_H_IN  = 7.5;
 
 async function renderJsxToJpeg(
   element: React.ReactElement,
-  fonts: Awaited<ReturnType<typeof getSlideFonts>>,
+  fonts: ReturnType<typeof getSlideFonts>,
 ): Promise<Buffer> {
   const fontDefs = [
     { name: "Garamond", data: fonts.garamondRegular, weight: 400 as const, style: "normal" as const },
@@ -64,7 +64,7 @@ async function generateBlankSlideJpeg(slideNum: number, propertyName: string): P
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export async function renderImagePptx(payload: SlidePayload): Promise<Buffer> {
-  const fonts = await getSlideFonts();
+  const fonts = getSlideFonts();
   logger.info("[image-renderer] Rendering 6 slides (hybrid 1–3, satori 4–6)");
 
   const jpegBuffers = await Promise.all([

@@ -8,6 +8,10 @@ import {
   type VectorChunk,
   type QueryMatch,
 } from "./vector-store-service";
+import { db } from "../db";
+import { sql } from "drizzle-orm";
+import { marketResearch } from "@workspace/db";
+import type { MarketResearch } from "@workspace/db";
 
 const DOC_MAX_CHARS = 100_000;
 
@@ -623,4 +627,209 @@ export async function indexToKnowledgeBase(id: string, text: string, metadata: R
     text: text.slice(0, 8_000),
     metadata: { ...metadata, content: text.slice(0, 2_000) },
   }]);
+}
+
+// ── Market Research Indexing ─────────────────────────────────────────────────
+// Chunks each saved market_research report by section for semantic retrieval.
+// Rebecca can pull relevant report sections when answering questions about
+// a property's market, competition, or demand drivers.
+//
+// Content format: top-level keys like `marketOverview`, `adrAnalysis`, etc.,
+// each containing an object with at least a `summary` string. Private keys
+// (prefixed with `_`) and non-text keys are skipped.
+
+const SECTION_MAX_CHARS = 3_000;
+/** Minimum character count for a section body to be worth embedding. */
+const MIN_SECTION_CHARS = 50;
+/** Cosine similarity threshold for market-research chunk retrieval. */
+const MARKET_RESEARCH_SCORE_THRESHOLD = 0.45;
+
+// Keys that are metadata containers, not narrative text. Always skip these.
+const SKIP_SECTION_KEYS = new Set([
+  "rawResponse", "_validation", "_marketIntelligence", "_webSources", "_researchValues",
+  "keyMetrics", "sources", "generatedAt", "workflowName", "scheduledWorkflow",
+]);
+
+// Preferred object fields to extract narrative text from, checked in order.
+const TEXT_FIELD_NAMES = [
+  "summary", "body", "narrative", "rationale", "makeVsBuyGuidance",
+  "analysis", "description", "overview", "guidance",
+];
+
+/** Minimum length for an individual array item string to be worth including. */
+const MIN_ARRAY_ITEM_CHARS = 20;
+
+/**
+ * Extracts indexable text from a section value. Handles the varied content
+ * formats used across property, company, and global market research reports:
+ *   - Plain string (e.g. report 3 `html`)
+ *   - Object with a known narrative field (e.g. `{ summary: "..." }`, `{ rationale: "..." }`)
+ *   - Object with any long string field as fallback
+ *   - String array (e.g. `keyRisks: ["...", "..."]`) — joined with ". "
+ *   - Array of objects — collects the first string field from each item
+ */
+function extractSectionText(value: unknown): string | null {
+  if (typeof value === "string") {
+    return value.length >= MIN_SECTION_CHARS ? value : null;
+  }
+
+  if (!value || typeof value !== "object") return null;
+
+  if (Array.isArray(value)) {
+    const parts: string[] = [];
+    for (const item of value) {
+      if (typeof item === "string" && item.length >= MIN_ARRAY_ITEM_CHARS) {
+        parts.push(item);
+      } else if (item && typeof item === "object" && !Array.isArray(item)) {
+        const obj = item as Record<string, unknown>;
+        // Take the first string field long enough to be meaningful
+        for (const v of Object.values(obj)) {
+          if (typeof v === "string" && v.length >= MIN_ARRAY_ITEM_CHARS) {
+            parts.push(v);
+            break;
+          }
+        }
+      }
+    }
+    const joined = parts.join(". ");
+    return joined.length >= MIN_SECTION_CHARS ? joined : null;
+  }
+
+  // Plain object — check known narrative fields first, then any long string field
+  const obj = value as Record<string, unknown>;
+  for (const field of TEXT_FIELD_NAMES) {
+    if (typeof obj[field] === "string" && (obj[field] as string).length >= MIN_SECTION_CHARS) {
+      return obj[field] as string;
+    }
+  }
+  // Fallback: any string value long enough to be meaningful
+  for (const v of Object.values(obj)) {
+    if (typeof v === "string" && v.length >= MIN_SECTION_CHARS) return v;
+  }
+
+  return null;
+}
+
+/** Converts a camelCase key into a readable label: "marketOverview" → "Market Overview" */
+function keyToLabel(key: string): string {
+  return key.replace(/([A-Z])/g, " $1").replace(/^./, s => s.toUpperCase()).trim();
+}
+
+export async function indexMarketResearchReport(report: MarketResearch): Promise<void> {
+  if (!isVectorStoreAvailable() || !isEmbeddingAvailable()) return;
+
+  try {
+    const content = report.content as Record<string, unknown> | null;
+    if (!content || typeof content !== "object") return;
+
+    const chunks: VectorChunk[] = [];
+    const label = report.title ?? `${report.type} research`;
+    let idx = 0;
+
+    for (const [key, value] of Object.entries(content)) {
+      // Skip private/system keys and known non-text containers
+      if (key.startsWith("_") || SKIP_SECTION_KEYS.has(key)) continue;
+
+      const text = extractSectionText(value);
+      if (!text) continue;
+
+      chunks.push({
+        id: `market-research:${report.id}:${key}`,
+        text: `${label} — ${keyToLabel(key)}\n\n${text.slice(0, SECTION_MAX_CHARS)}`,
+        metadata: {
+          reportId:     report.id,
+          propertyId:   report.propertyId ?? 0,
+          userId:       report.userId ?? 0,
+          type:         report.type ?? "property",
+          sectionTitle: keyToLabel(key),
+          sectionIndex: idx++,
+          chunkType:    "section",
+        },
+      });
+    }
+
+    if (chunks.length === 0) return;
+
+    await upsertChunks("market-research", chunks);
+    logger.info(
+      `Indexed market research report ${report.id} (${report.type}): ${chunks.length} chunks`,
+      "vector-store",
+    );
+  } catch (err: unknown) {
+    logger.warn(
+      `Failed to index market research report ${report.id}: ${err instanceof Error ? err.message : err}`,
+      "vector-store",
+    );
+  }
+}
+
+/**
+ * Backfills all existing market_research rows into the market-research
+ * vector namespace. Skips if the namespace already has vectors — safe to
+ * call on every restart (idempotent existence check prevents re-embedding).
+ */
+export async function indexAllMarketResearch(): Promise<{ indexed: number; skipped: number }> {
+  if (!isVectorStoreAvailable() || !isEmbeddingAvailable()) return { indexed: 0, skipped: 0 };
+
+  const countResult = await db.execute<{ count: string }>(
+    sql`SELECT COUNT(*)::text AS count FROM vector_chunks WHERE namespace = 'market-research'`,
+  );
+  const existing = Number((countResult as unknown as Array<{ count: string }>)[0]?.count ?? "0");
+  if (existing > 0) {
+    logger.info(`[market-research] Namespace has ${existing} chunks — skipping backfill`, "vector-store");
+    return { indexed: 0, skipped: 0 };
+  }
+
+  const reports = await db.select().from(marketResearch).limit(500);
+  let indexed = 0;
+  let skipped = 0;
+
+  for (const report of reports) {
+    // Skip reports with no content at all; let indexMarketResearchReport handle
+    // the actual section-key scanning for everything else.
+    if (!report.content || typeof report.content !== "object") { skipped++; continue; }
+    await indexMarketResearchReport(report);
+    indexed++;
+  }
+
+  return { indexed, skipped };
+}
+
+export async function retrieveMarketResearchContext(params: {
+  query: string;
+  propertyId?: number;
+  type?: "property" | "company" | "global";
+  topK?: number;
+}): Promise<Array<{
+  reportId: number;
+  propertyId: number;
+  type: string;
+  sectionTitle: string;
+  content: string;
+  score: number;
+}>> {
+  if (!isVectorStoreAvailable()) return [];
+
+  try {
+    const matches = await queryChunks("market-research", params.query, params.topK ?? 5);
+
+    return matches
+      .filter(m => m.score > MARKET_RESEARCH_SCORE_THRESHOLD)
+      .filter(m => !params.propertyId || Number(m.metadata.propertyId) === params.propertyId)
+      .filter(m => !params.type || m.metadata.type === params.type)
+      .map(m => ({
+        reportId:     Number(m.metadata.reportId),
+        propertyId:   Number(m.metadata.propertyId),
+        type:         String(m.metadata.type),
+        sectionTitle: String(m.metadata.sectionTitle),
+        content:      m.text,
+        score:        m.score,
+      }));
+  } catch (err: unknown) {
+    logger.warn(
+      `Failed to retrieve market research context: ${err instanceof Error ? err.message : err}`,
+      "vector-store",
+    );
+    return [];
+  }
 }

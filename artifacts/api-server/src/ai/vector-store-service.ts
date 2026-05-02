@@ -60,7 +60,8 @@ export type VectorNamespace =
   | "assumption-guidance"
   | "documents"
   | "scenarios"
-  | "properties";
+  | "properties"
+  | "market-research";
 
 export const ALL_NAMESPACES: VectorNamespace[] = [
   "knowledge-base",
@@ -70,6 +71,7 @@ export const ALL_NAMESPACES: VectorNamespace[] = [
   "documents",
   "scenarios",
   "properties",
+  "market-research",
 ];
 
 export interface VectorChunk {

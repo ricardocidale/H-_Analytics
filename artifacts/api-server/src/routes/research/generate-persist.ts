@@ -21,6 +21,7 @@ import {
   persistPropertyGuidance,
   persistCompanyGuidance,
 } from "./generate-persist-guidance";
+import { indexMarketResearchReport } from "../../ai/vector-indexing";
 
 export interface PersistResearchInput {
   req: Request;
@@ -145,13 +146,19 @@ export async function persistResearchOutput(
       "research",
     );
   } else {
-    await storage.upsertMarketResearch({
+    const savedReport = await storage.upsertMarketResearch({
       userId: getAuthUser(req).id,
       propertyId,
       type,
       title: `${type === "property" ? "Property" : type === "company" ? "Company" : "Global"} Research`,
       content: parsed,
     });
+    indexMarketResearchReport(savedReport).catch(err =>
+      logger.warn(
+        `[market-research] Index after persist failed: ${err instanceof Error ? err.message : err}`,
+        "vector-store",
+      ),
+    );
   }
 
   logActivity(req, "generate", "market_research", propertyId, type);
