@@ -21,6 +21,7 @@ import RefreshDiffDialog from "./RefreshDiffDialog";
 import SuspiciousActivityBanner from "./SuspiciousActivityBanner";
 import { AnalystActionButton } from "@/components/analyst";
 import { useFirstVisitBenchmarkSeed } from "@/hooks/useFirstVisitBenchmarkSeed";
+import ReferenceBrandsGrid, { type BrandSummary } from "./ReferenceBrandsGrid";
 
 type Range = {
   dimensionKey: string;
@@ -48,6 +49,8 @@ type TableRow = {
   id: string;
   label: string;
   ranges: Range[];
+  /** Full brand detail rows — only present for the reference_brands table. */
+  brands?: BrandSummary[];
   sourceCount: number;
   tokensUsedLastRefresh: number | null;
   lastRefreshedAt: string | null;
@@ -342,15 +345,21 @@ export default function AnalystTables() {
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-              {t.ranges.map(r => (
-                <div key={r.dimensionKey} className="border rounded p-2 text-xs" data-testid={`range-${t.id}-${r.dimensionKey}`}>
-                  <div className="font-medium">{r.label}</div>
-                  <div className="text-muted-foreground">
-                    {r.valueLow ?? "—"} / {r.valueMid ?? "—"} / {r.valueHigh ?? "—"} <span className="opacity-60">({r.unit})</span>
-                  </div>
+            <div className="mt-4">
+              {t.brands != null ? (
+                <ReferenceBrandsGrid brands={t.brands} />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {t.ranges.map(r => (
+                    <div key={r.dimensionKey} className="border rounded p-2 text-xs" data-testid={`range-${t.id}-${r.dimensionKey}`}>
+                      <div className="font-medium">{r.label}</div>
+                      <div className="text-muted-foreground">
+                        {r.valueLow ?? "—"} / {r.valueMid ?? "—"} / {r.valueHigh ?? "—"} <span className="opacity-60">({r.unit})</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
 
             {t.recentRefreshes.length > 0 && (

@@ -136,6 +136,19 @@ export function registerAdminAnalystTableRoutes(app: Express) {
         }>;
         let lastRefreshedAt: Date | null;
         let sourceCount: number;
+        // Full brand detail rows — only set for reference_brands; undefined for
+        // other tables so their range-grid rendering is unaffected.
+        let brandDetails: Array<{
+          id: number;
+          brandName: string;
+          niche: string | null;
+          adrUsd: number | null;
+          occupancyPct: number | null;
+          revparUsd: number | null;
+          propertyCount: number | null;
+          geographicFocus: string | null;
+          description: string | null;
+        }> | undefined;
 
         if (id === "reference_brands") {
           const summary = await storage.getReferenceBrandsSummary();
@@ -148,6 +161,17 @@ export function registerAdminAnalystTableRoutes(app: Express) {
             valueLow: b.keyCountMin ?? null,
             valueMid: b.propertyCount ?? null,
             valueHigh: b.keyCountMax ?? null,
+          }));
+          brandDetails = summary.rows.map(b => ({
+            id: b.id,
+            brandName: b.brandName,
+            niche: b.niche ?? null,
+            adrUsd: b.adrUsd ?? null,
+            occupancyPct: b.occupancyPct ?? null,
+            revparUsd: b.revparUsd ?? null,
+            propertyCount: b.propertyCount ?? null,
+            geographicFocus: b.geographicFocus ?? null,
+            description: b.description ?? null,
           }));
         } else {
           const summary = id === "capital_raise_benchmarks"
@@ -218,6 +242,7 @@ export function registerAdminAnalystTableRoutes(app: Express) {
           id,
           label: TABLE_LABELS[id],
           ranges,
+          brands: brandDetails,
           sourceCount,
           tokensUsedLastRefresh,
           lastRefreshedAt,
