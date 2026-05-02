@@ -13,6 +13,15 @@ export interface SensitivityScenarioResult {
   avgNOIMargin: number;
   exitValue: number;
   irr: number;
+  /**
+   * Audit Task #967 — true equity multiple (MOIC) for the scenario:
+   *   totalDistributions / totalEquityInvested
+   * computed via `computeEquityMultiple` from `@calc/returns/equity-multiple`.
+   * Both server `runScenario` and the client fallback `runScenario` populate
+   * this; the heatmap reads it directly. Returns 0 when equity invested is
+   * zero (rendered as "—" by the heatmap cell).
+   */
+  equityMultipleValue: number;
 }
 
 export interface SensitivityTornadoItem {

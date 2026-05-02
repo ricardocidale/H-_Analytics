@@ -6,6 +6,8 @@ import { generatePropertyProForma } from "@/lib/financialEngine";
 import { PROJECTION_YEARS, DEFAULT_EXIT_CAP_RATE, DEFAULT_COMMISSION_RATE, DEFAULT_COST_RATE_INSURANCE, MONTHS_PER_YEAR } from "@/lib/constants";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 import { computeIRR } from "@analytics/returns/irr.js";
+import { computeEquityMultiple } from "@calc/returns/equity-multiple";
+import { DEFAULT_ROUNDING } from "@calc/shared/utils";
 import { propertyEquityInvested } from "@/lib/financial/equityCalculations";
 import type { SensitivityResponse } from "@shared/sensitivity-types";
 import { PageHeader } from "@/components/ui/page-header";
@@ -128,7 +130,13 @@ export default function SensitivityAnalysis({ embedded }: { embedded?: boolean }
       irrFlows[irrFlows.length - 1] += exitValue;
       const irr = totalInitialEquity > 0 ? calculateIRR(irrFlows) : 0;
       const avgNOIMargin = totalRevenue > 0 ? (totalNOI / totalRevenue) * 100 : 0;
-      return { totalRevenue, totalNOI, totalCashFlow, avgNOIMargin, exitValue, irr };
+      // Audit Task #967 — true equity multiple (MOIC). Mirrors the server
+      // implementation in `artifacts/api-server/src/finance/sensitivity.ts`
+      // so the offline fallback path matches the server response shape.
+      const equityMultipleValue = totalInitialEquity > 0
+        ? computeEquityMultiple({ cash_flows: irrFlows, rounding_policy: DEFAULT_ROUNDING }).equity_multiple
+        : 0;
+      return { totalRevenue, totalNOI, totalCashFlow, avgNOIMargin, exitValue, irr, equityMultipleValue };
     },
     [properties, global, selectedPropertyId, projectionMonths]
   );
@@ -240,7 +248,10 @@ export default function SensitivityAnalysis({ embedded }: { embedded?: boolean }
         if (result) {
           if (heatMapMetric === "irr") value = result.irr;
           else if (heatMapMetric === "noi") value = result.totalNOI;
-          else value = result.totalRevenue > 0 ? result.totalNOI / result.totalRevenue : 0;
+          // Audit Task #967 — read true MOIC from runScenario instead of
+          // computing NOI margin (totalNOI / totalRevenue) inline. Matches
+          // the server heatmap loop in `finance/sensitivity.ts`.
+          else value = result.equityMultipleValue;
         }
         cells.push({
           row: ri, col: ci,

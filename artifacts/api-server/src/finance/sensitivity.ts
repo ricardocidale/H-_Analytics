@@ -13,6 +13,8 @@ import { generatePropertyProForma } from "./core/property-pipeline";
 import { withModelConstants } from "./apply-model-constants";
 import { computeIRR } from "@analytics/returns/irr";
 import { computeBreakevenTargets } from "@calc/analysis/breakeven-targets";
+import { computeEquityMultiple } from "@calc/returns/equity-multiple";
+import { DEFAULT_ROUNDING } from "@calc/shared/utils";
 import { storage } from "../storage";
 import { resolveDefault } from "../defaults";
 import type { PropertyInput, GlobalInput } from "@engine/types";
@@ -138,7 +140,18 @@ function runScenario(
   const irr = irrResult?.irr_periodic ?? 0;
   const avgNOIMargin = totalRevenue > 0 ? (totalNOI / totalRevenue) * 100 : 0;
 
-  return { totalRevenue, totalNOI, totalCashFlow, avgNOIMargin, exitValue, irr };
+  // Audit Task #967 — true equity multiple (MOIC) = totalDistributions /
+  // totalEquityInvested. Reuses `computeEquityMultiple` so the formula stays
+  // single-sourced. The cash flow vector built above already encodes the
+  // initial equity outflow (negative) and per-year distributions plus the
+  // terminal exit proceeds (positives) — exactly the convention the
+  // calculator expects. Divide-by-zero (no equity invested) returns 0,
+  // which renders as "—" in the heatmap cell.
+  const equityMultipleValue = totalInitialEquity > 0
+    ? computeEquityMultiple({ cash_flows: irrFlows, rounding_policy: DEFAULT_ROUNDING }).equity_multiple
+    : 0;
+
+  return { totalRevenue, totalNOI, totalCashFlow, avgNOIMargin, exitValue, irr, equityMultipleValue };
 }
 
 // ─── Breakeven Targets bundle (single-property reverse solve) ─────────────────
@@ -376,15 +389,16 @@ export async function computeSensitivityAnalysis(
         projectionYears,
         resolved,
       );
-      const equityMultipleValue = result.totalRevenue > 0
-        ? result.totalNOI / result.totalRevenue
-        : 0;
+      // Audit Task #967 — read true MOIC from runScenario (computed via
+      // `computeEquityMultiple`). Previous code computed NOI margin
+      // (totalNOI / totalRevenue) here and mislabelled it as the equity
+      // multiple, which was wrong by an order of magnitude.
       cells.push({
         row: ri, col: ci,
         rowLabel: rowLabels[ri], colLabel: colLabels[ci],
         irrValue:             result.irr,
         noiValue:             result.totalNOI,
-        equityMultipleValue,
+        equityMultipleValue: result.equityMultipleValue,
       });
     }
   }
