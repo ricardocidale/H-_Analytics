@@ -209,23 +209,16 @@ export async function renderHybridSlide(
   }
 
   // ── Composite: background → photos → text overlay ───────────────────────
-  let pipeline = sharp(bg);
-
-  // Sort photos by z_order (low = composited first = behind later photos)
-  const sortedPhotos = photoOverlays; // already appended in random order; sharp composites left-to-right in the input array
-
   const textOverlayBuf = textItems.length > 0
     ? await renderTextOverlay(textItems, fonts)
     : null;
 
   const allOverlays: sharp.OverlayOptions[] = [
-    ...sortedPhotos,
+    ...photoOverlays,
     ...(textOverlayBuf ? [{ input: textOverlayBuf, left: 0, top: 0 }] : []),
   ];
 
-  if (allOverlays.length > 0) {
-    pipeline = pipeline.composite(allOverlays);
-  }
-
-  return pipeline.jpeg({ quality: 92 }).toBuffer();
+  const base = sharp(bg);
+  const composited = allOverlays.length > 0 ? base.composite(allOverlays) : base;
+  return composited.jpeg({ quality: 92 }).toBuffer();
 }

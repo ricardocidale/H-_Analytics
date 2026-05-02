@@ -95,16 +95,20 @@ export function resolveSlotText(
 ): string | null {
   const { property, visionText, financials } = p;
   const type = typeLabel(property);
-  const status = statusLabel(property.acquisitionStatus);
-  const renovBudget = Math.round((property.purchasePrice ?? 0) * 0.15);
-  const stable = stableYear(financials.yearlyIS);
-  const revpar = (property.startAdr ?? 0) * (property.maxOccupancy ?? 0.7);
   const name = el.name;
   const isPage = el.is_page_number === true;
 
   switch (slideNum) {
-    case 1: return resolveSlide1(name, isPage, property, visionText, type, status, revpar);
-    case 2: return resolveSlide2(name, isPage, property, visionText, financials, type, renovBudget, stable);
+    case 1: {
+      const status = statusLabel(property.acquisitionStatus);
+      const revpar = (property.startAdr ?? 0) * (property.maxOccupancy ?? 0.7);
+      return resolveSlide1(name, isPage, property, visionText, type, status, revpar);
+    }
+    case 2: {
+      const renovBudget = Math.round((property.purchasePrice ?? 0) * 0.15);
+      const stable = stableYear(financials.yearlyIS);
+      return resolveSlide2(name, isPage, property, visionText, financials, type, renovBudget, stable);
+    }
     case 3: return resolveSlide3(name, isPage, property, visionText, type);
     case 4: return resolveSlide4(name, isPage, property, p.siblings);
     default: return null;
