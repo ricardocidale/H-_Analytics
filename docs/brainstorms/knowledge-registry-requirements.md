@@ -1,8 +1,8 @@
 # Knowledge Registry — Requirements
 
-**Status:** Ready for implementation  
-**Date:** 2026-05-02  
-**Source:** ce-brainstorm session + architect analysis
+**Status:** Ready for implementation
+**Date:** 2026-05-02
+**Source:** ce-brainstorm session + architect analysis + product owner clarification
 
 ---
 
@@ -10,7 +10,9 @@
 
 Every AI knowledge asset in H+ Analytics — vector namespaces, benchmark tables, country economic data — lives in a different system with no unified place to see it, understand it, or regenerate it. Admins cannot answer basic questions like "what does the AI actually know about comparables?" or "when was the country inflation data last updated?" without digging into code or the database directly.
 
-The Knowledge Registry gives every AI knowledge asset a human-readable home in the admin UI: a single section where each asset is visible as a purpose-built table, explained in plain language, and regenerable via the canonical Analyst button. Nothing is editable by hand — the Analyst is the only update path.
+The Knowledge Registry gives every AI knowledge asset a human-readable home in the **AI Intelligence** admin area: a single section where each asset is visible as a purpose-built table, explained in plain language, and regenerable via the canonical Analyst button. Nothing is editable by hand — the Analyst is the only update path.
+
+> **Important navigation note:** The Knowledge Registry is an AI Intelligence section (`/ai-intelligence`), not the Admin sidebar. "Sources" and "Resources" as Admin sidebar top-level sections are separate features — see §10 below and the skill at `.agents/skills/hplus-admin-nav-ia/SKILL.md`.
 
 ---
 
@@ -26,7 +28,8 @@ All 7 knowledge assets are in scope from the start:
 | 4 | Assumption Guidance | `vector_chunks` — `assumption-guidance` namespace | Text chunks (cards) |
 | 5 | Benchmark: Capital Raise | `analyst_table_ranges` — `capital_raise` | Numeric ranges grid |
 | 6 | Benchmark: Exit Multiples | `analyst_table_ranges` — `exit_multiples` | Numeric ranges grid |
-| 7 | Country Economic Data | Structured table (new) | Country × metric grid |
+| 7 | Benchmark: Reference Brands | `analyst_table_ranges` — `reference_brands` | Card grid |
+| 8 | Country Economic Data | Structured table (new) | Country × metric grid |
 
 The `research-history`, `documents`, `scenarios`, and `properties` namespaces are excluded — they are operational/transactional data, not knowledge assets managed by the Analyst.
 
@@ -34,19 +37,17 @@ The `research-history`, `documents`, `scenarios`, and `properties` namespaces ar
 
 ## 3. Navigation
 
-The Knowledge Registry lives inside the existing **AI Intelligence** section (`/ai-intelligence`), accessible via the "AI" item in the main admin sidebar.
+The Knowledge Registry lives inside the existing **AI Intelligence** section (`/ai-intelligence`), accessible via the "AI" item in the main Admin sidebar.
 
 A new **"Knowledge Registry"** group is added to `AiIntelligenceSidebar.tsx` with two entries:
 
 ```
-Knowledge Registry
-  ├── Sources          (overview table — all 7 assets at a glance)
-  └── Country Data     (dedicated full-screen grid for country economic data)
+AI Intelligence (/ai-intelligence)
+│
+└── Knowledge Registry               ← NEW group
+    ├── Sources     — overview of all 8 assets, one collapsible panel each
+    └── Country Data — dedicated full-screen grid for country economic data
 ```
-
-The four vector-namespace assets (Market Research, Knowledge Base, Comparables, Assumption Guidance) and the two existing benchmark tables (Capital Raise, Exit Multiples) are surfaced **on the Sources overview page** — one expandable panel per asset.
-
-Country Economic Data gets its own dedicated sub-page because the grid (N countries × M metrics) is too wide to collapse into a single-asset panel alongside the others.
 
 `AiIntelligenceSection` type adds: `"knowledge-registry"` and `"knowledge-registry-country-data"`.
 
@@ -54,7 +55,7 @@ Country Economic Data gets its own dedicated sub-page because the grid (N countr
 
 ## 4. The `knowledge_registry` Control-Plane Table
 
-A new database table `knowledge_registry` acts as the metadata backbone for all 7 assets. It is seeded from code (like `source-registry.ts`) and never edited by hand or by the admin UI.
+A new database table `knowledge_registry` acts as the metadata backbone for all 8 assets. It is seeded from code (like `source-registry.ts`) and never edited by hand or by the admin UI.
 
 ### Schema
 
@@ -66,7 +67,7 @@ knowledge_registry (
   how_built           text NOT NULL,             -- "how the Analyst builds/rebuilds it"
   source_description  text NOT NULL,             -- "what sources the Analyst draws from"
   renewal_mechanism   text NOT NULL,             -- "On-demand via Analyst button"
-  asset_type          text NOT NULL,             -- "vector_namespace" | "benchmark_table" | "country_data"
+  asset_type          text NOT NULL,             -- "vector_namespace" | "benchmark_table" | "benchmark_brands" | "country_data"
   asset_ref           text NOT NULL,             -- namespace slug or table id
   last_refreshed_at   timestamptz,               -- updated on every successful Analyst run
   created_at          timestamptz DEFAULT now()
@@ -102,11 +103,14 @@ Seeds are defined in `artifacts/api-server/src/seeds/knowledge-registry.ts` and 
 
 Content viewer is **type-specific**, selected by `asset_type`:
 
-**`vector_namespace`** — Text Chunk Cards  
-A paginated list of the most-recently-upserted chunks from the namespace. Each card shows: chunk text (truncated to ~200 chars), metadata tags (source, date if present), similarity score is omitted (this is a browse view, not a search). Pagination: 20 per page. Read-only.
+**`vector_namespace`** — Text Chunk Cards
+A paginated list of the most-recently-upserted chunks from the namespace. Each card shows: chunk text (truncated to ~200 chars), metadata tags (source, date if present). Pagination: 20 per page. Read-only.
 
-**`benchmark_table`** — Ranges Grid  
-Reuses the existing `AnalystTables` range display: a compact table with columns Low / Mid / High, one row per dimension. Read-only (no inline edit). The full diff/commit/discard dialog is only reachable via the Analyst theater, not from the overview panel.
+**`benchmark_table`** — Ranges Grid
+Reuses the existing `AnalystTables` range display: a compact table with columns Low / Mid / High, one row per dimension. Read-only (no inline edit).
+
+**`benchmark_brands`** — Card Grid
+Reuses the existing `ReferenceBrandsGrid` component. Read-only card grid of reference hotel brands with their key attributes.
 
 **`country_data`** — Link out to dedicated Country Data sub-page (see §6).
 
@@ -130,10 +134,11 @@ POST /api/admin/knowledge-registry/:id/regenerate
 On success:
 - `knowledge_registry.last_refreshed_at` is updated.
 - The backing store (vector namespace or benchmark table or country data table) is updated with the new data.
-- The result becomes canonical immediately — no manual commit step for vector namespaces (they replace on upsert). Benchmark tables keep the existing diff/commit/discard flow.
+- Vector namespaces: replace on upsert (no manual commit step).
+- Benchmark tables: keep the existing diff/commit/discard flow.
 - The asset panel refreshes its chunk count and freshness badge.
 
-**No background auto-refresh.** The Analyst button is the only update path. No scheduled jobs, no watchdog auto-commit for knowledge registry assets.
+**No background auto-refresh.** The Analyst button is the only update path.
 
 ---
 
@@ -143,11 +148,9 @@ On success:
 
 ### 6.1 Purpose
 
-Admins need to see the actual numbers used in financial calculations (inflation rate, FX rate, GDP growth, interest rate) for each country in the system. This data currently has no dedicated UI.
+Admins need to see the actual numbers used in financial calculations (inflation rate, FX rate, GDP growth, interest rate) for each country in the system.
 
 ### 6.2 Data Model
-
-A new structured table `country_economic_data` stores the current canonical values:
 
 ```sql
 country_economic_data (
@@ -164,13 +167,13 @@ country_economic_data (
 )
 ```
 
-Initial countries: US, MX, CO, BR, and any other countries already present in the financial model. Seeded with last-known values; empty cells are shown as "—" with a "missing" badge.
+Initial countries: US, MX, CO, BR. Seeded with last-known values; empty cells shown as "—" with a "missing" badge.
 
 ### 6.3 Layout
 
 - Page header: "Country Economic Data" + subtitle + last-regenerated timestamp.
-- A single wide table: rows = countries, columns = Inflation Rate / FX Rate / GDP Growth / Interest Rate / Sourced At / Source Notes.
-- Freshness indicator per row (fresh / stale / missing based on `sourced_at`).
+- Wide table: rows = countries, columns = Inflation Rate / FX Rate / GDP Growth / Interest Rate / Sourced At / Source Notes.
+- Freshness indicator per row.
 - Global **Analyst** button at top-right: regenerates all countries in one run.
 - Table is read-only. No inline editing.
 
@@ -180,7 +183,7 @@ Initial countries: US, MX, CO, BR, and any other countries already present in th
 POST /api/admin/knowledge-registry/country-economic-data/regenerate
 ```
 
-The Analyst fetches current figures from FRED (inflation, interest rates for US), Frankfurter ECB (FX rates), and IMF/World Bank estimates (GDP growth, international rates). Each country row is updated atomically. `sourced_at` reflects when each country's data was fetched.
+Fetches current figures from FRED (US inflation/interest rates), Frankfurter ECB (FX rates), and IMF/World Bank estimates (GDP growth, international rates).
 
 ---
 
@@ -196,8 +199,7 @@ All endpoints under `/api/admin/knowledge-registry`.
 | GET | `/country-economic-data` | All country rows with current values |
 | POST | `/country-economic-data/regenerate` | Trigger full country data refresh |
 
-Route file: `artifacts/api-server/src/routes/admin/knowledge-registry.ts`  
-Registered in the main router alongside `analyst-tables.ts` and `intelligence-sources.ts`.
+Route file: `artifacts/api-server/src/routes/admin/knowledge-registry.ts`
 
 ---
 
@@ -209,76 +211,83 @@ New paths added to `artifacts/api-spec/openapi.yaml`. After editing the spec, ru
 pnpm --filter @workspace/api-spec run codegen
 ```
 
-This generates typed React Query hooks used by the frontend components.
-
 ---
 
 ## 9. Rebecca & Specialist Access
 
-### Rebecca
-
-Rebecca's chat (`knowledge-base` namespace) is unaffected by this feature. The Knowledge Registry is an admin-only read/regenerate surface. Rebecca continues to query `knowledge-base` via `queryChunks` as today.
-
-When the admin regenerates the `knowledge-base` asset via the registry, the new chunks replace the old ones in `vector_chunks` — Rebecca's next query automatically uses the new data. No additional wiring needed.
-
-### Specialists
-
-Each Specialist already has a resource connections table (`resource_specialist_connections` or equivalent) that maps which namespaces they can query. The Knowledge Registry does not change this mapping — it surfaces it read-only in the asset metadata footer as "Used by: [Specialist names]".
-
-A future task (post-registry) can add a dedicated "Specialists" tab to each asset panel to manage these connections.
+- **Rebecca** continues to query `knowledge-base` via `queryChunks` as today. When the admin regenerates the `knowledge-base` asset via the registry, the new chunks replace the old ones and Rebecca's next query automatically uses the new data.
+- **Specialists** — namespace access mappings are unchanged. The metadata footer shows "Used by: [Specialist names]" read-only.
 
 ---
 
-## 10. Permissions & Access Control
+## 10. Related but Separate: Admin Sidebar Sources & Resources
+
+The following features are **not** part of the Knowledge Registry. They belong in the Admin sidebar (`/admin`) as separate top-level sections:
+
+### Admin → Sources
+
+A top-level Admin sidebar section exposing every type of raw input the app uses in its work and research:
+
+| Sub-item | Contents |
+|----------|---------|
+| **Tables** | Structured data tables (benchmark slugs, reference tables, lookup data) |
+| **Links** | External URLs referenced or scraped as research inputs |
+| **Files** | Admin-uploaded documents (PDFs, CSVs, reference docs) used as knowledge source material |
+
+### Admin → Resources → APIs
+
+A top-level Admin sidebar section with an **APIs** sub-item. The APIs page is a testable registry: every external API the app calls, with full description, endpoint, auth key reference, rate limit, status badge, and a **live Test button** that fires a real request and shows the response.
+
+These are separate implementation tasks from the Knowledge Registry. See `.agents/skills/hplus-admin-nav-ia/SKILL.md` for the full navigation IA and hard rules.
+
+---
+
+## 11. Permissions & Access Control
 
 - **Admin role:** Read asset metadata, view content, trigger regeneration via Analyst button. No inline edit of any value.
-- **No other roles** can access `/ai-intelligence` — the existing middleware gate remains unchanged.
-- The Analyst button is the only write path. Regeneration is logged in the existing audit trail system.
+- Existing middleware gate for `/ai-intelligence` remains unchanged.
 
 ---
 
-## 11. Freshness Logic
-
-Consistent with AnalystTables:
+## 12. Freshness Logic
 
 | Status | Condition |
 |--------|-----------|
 | `missing` | `last_refreshed_at` is null OR chunk/row count is 0 |
-| `stale` | `last_refreshed_at` is older than `global_cadence_days` (default: 30) |
-| `fresh` | `last_refreshed_at` within cadence AND count > 0 |
+| `stale` | `last_refreshed_at` older than `global_cadence_days` (default: 30) |
+| `fresh` | Within cadence AND count > 0 |
 
-The same `globalCadenceDays` setting used by AnalystTables applies to the Knowledge Registry (shared setting, not per-asset).
+Same `globalCadenceDays` setting used by AnalystTables applies here (shared, not per-asset).
 
 ---
 
-## 12. What Does NOT Change
+## 13. What Does NOT Change
 
-- `AnalystTables.tsx` and its endpoints are untouched. The two existing benchmark tables (Capital Raise, Exit Multiples) are surfaced in the Knowledge Registry overview **in addition** to remaining in their current "Market Data" section. They are not migrated away from AnalystTables.
-- The existing "Resources → Market Data" sidebar entry and its full AnalystTables page remain as-is.
-- Vector namespace management (reindex, stats) in `intelligence-vector-store.ts` is untouched.
-- `source-registry.ts` and the "Resources → Catalog" page are untouched.
+- `AnalystTables.tsx` and its endpoints are untouched. The benchmark tables remain in "Market Data" and are additionally mirrored in the Knowledge Registry overview.
+- Vector namespace management in `intelligence-vector-store.ts` is untouched.
+- `source-registry.ts` and the existing "Resources → Catalog" page in AI Intelligence are untouched.
 - Rebecca's chat interface and configuration are untouched.
 
 ---
 
-## 13. Implementation Order
+## 14. Implementation Order
 
-1. **DB migrations** — `knowledge_registry` table + `country_economic_data` table.
-2. **Seeds** — `knowledge-registry.ts` seed file for all 7 assets.
-3. **API routes** — `knowledge-registry.ts` route file, GET list + GET detail + POST regenerate + country data endpoints.
-4. **OpenAPI spec** — new paths + codegen run.
-5. **Frontend: Sources overview page** — `KnowledgeRegistry.tsx` component with asset panels, type-specific content viewers, metadata footers, Analyst button wiring.
-6. **Frontend: Country Data sub-page** — `CountryEconomicData.tsx` component with the wide grid.
-7. **Sidebar wiring** — add `knowledge-registry` and `knowledge-registry-country-data` sections to `AiIntelligenceSidebar.tsx` and the `AiIntelligenceSection` union type; wire rendering in `AiIntelligence.tsx`.
-8. **Regeneration logic** — implement Analyst prompts and data-write handlers for each asset type (vector namespace upsert, benchmark table diff flow, country data row update).
+1. **DB migrations** — `knowledge_registry` table + `country_economic_data` table
+2. **Seeds** — `knowledge-registry.ts` seed file for all 8 assets
+3. **API routes** — `knowledge-registry.ts` route file
+4. **OpenAPI spec** — new paths + codegen run
+5. **Frontend: Sources overview page** — `KnowledgeRegistry.tsx` with asset panels, type-specific content viewers, Analyst button wiring
+6. **Frontend: Country Data sub-page** — `CountryEconomicData.tsx`
+7. **Sidebar wiring** — new sections in `AiIntelligenceSidebar.tsx` and `AiIntelligence.tsx`
+8. **Regeneration logic** — Analyst prompts and data-write handlers per asset type
 
-Each step is independently shippable. Steps 1–4 (backend) can be done in parallel with step 5–7 (frontend shell with loading states).
+Steps 1–4 (backend) are parallelizable with steps 5–7 (frontend shell with loading states).
 
 ---
 
-## 14. Open Questions (Deferred)
+## 15. Open Questions (Deferred)
 
-- **Reference Brands** (`benchmark_table` id `reference_brands`): the existing `ReferenceBrandsGrid` renders a card grid, not a ranges table. The Knowledge Registry panel for this asset should use the same `ReferenceBrandsGrid` component. Confirm this is desired before step 5 begins.
-- **Per-asset cadence**: today cadence is global. A future task could add per-asset override. Not in scope for v1.
-- **Specialist connection management**: surfacing which Specialists use which namespace is read-only in v1. Editing those connections from the registry panel is a post-v1 task.
-- **Country scope**: initial list is US, MX, CO, BR. Confirm final list before step 1 (migration determines column count vs. row-per-country design — row-per-country is already specified above and is flexible).
+- **Per-asset cadence**: today cadence is global. Per-asset override is post-v1.
+- **Specialist connection management**: read-only in v1. Editing connections from the registry panel is post-v1.
+- **Country scope**: US, MX, CO, BR confirmed as initial set. Confirm before step 1.
+- **Admin sidebar Sources & Resources**: separate implementation tasks; not blocked on Knowledge Registry.
