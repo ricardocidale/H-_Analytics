@@ -21,6 +21,7 @@ interface PropertyRow {
   status?: string | null;
   purchasePrice?: number | null;
   roomCount?: number | null;
+  imageUrl?: string | null;
 }
 
 interface SlideStatus {
@@ -120,9 +121,21 @@ function SlideRender({ property }: { property: PropertyRow }) {
       className="relative w-full overflow-hidden rounded-t-[3px]"
       style={{ aspectRatio: "16 / 9", background: SLIDE_BG }}
     >
+      {property.imageUrl && (
+        <img
+          src={property.imageUrl}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+        />
+      )}
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{ background: `radial-gradient(ellipse 70% 60% at 80% 10%, ${accentFaint}, transparent 70%)` }}
+        style={{
+          background: property.imageUrl
+            ? "rgba(0,0,0,0.45)"
+            : `radial-gradient(ellipse 70% 60% at 80% 10%, ${accentFaint}, transparent 70%)`,
+        }}
       />
       <div
         className="absolute left-0 top-0 bottom-0 w-[3px] rounded-sm"
