@@ -2342,6 +2342,7 @@
     "artifacts/api-server/src/routes/portfolio-risk.ts",
     "artifacts/api-server/src/routes/premium-exports.ts",
     "artifacts/api-server/src/routes/properties-urls.ts",
+    "artifacts/api-server/src/routes/property-slides.ts",
     "artifacts/api-server/src/routes/rebecca.ts",
     "artifacts/api-server/src/routes/reserves-brand.ts",
     "artifacts/api-server/src/routes/risk-intelligence.ts",
