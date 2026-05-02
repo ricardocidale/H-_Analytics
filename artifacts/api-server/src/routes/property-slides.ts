@@ -209,6 +209,7 @@ async function buildSlidePayload(propertyId: number, userId: number | undefined,
   const resolvedPhotos = (
     await Promise.all(sortedPhotos.slice(0, MAX_PHOTOS).map(resolvePhotoBytes))
   ).filter(Boolean) as Array<{ base64: string; isHero: boolean; sortOrder: number }>;
+  logger.info(`[slides-debug] property ${propertyId}: ${resolvedPhotos.length} photos resolved, hero=${resolvedPhotos.find(p => p.isHero)?.base64?.slice(0,8)}`, "property-slides");
 
   // Portfolio properties for slide 4 — all properties sorted by acquisition date
   // (matching the front-end Properties page order), excluding current, capped at 5
@@ -254,6 +255,7 @@ async function buildSlidePayload(propertyId: number, userId: number | undefined,
         heroPhotoBase64,
       };
     }));
+    logger.info(`[slides-debug] ${siblings.length} siblings: ${siblings.map(s => `${(s as Record<string,unknown>).name}:${(s as Record<string,unknown>).heroPhotoBase64 ? ((s as Record<string,unknown>).heroPhotoBase64 as string).slice(0,8) : "NO_PHOTO"}`).join(', ')}`, "property-slides");
   } catch (e) {
     logger.warn(`Failed to fetch portfolio properties for property ${propertyId}: ${e}`, "property-slides");
   }

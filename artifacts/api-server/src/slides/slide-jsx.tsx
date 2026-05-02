@@ -147,11 +147,18 @@ function fmtPct(n: number | null | undefined): string {
   return `${Math.round(n * 100)}%`;
 }
 
+function detectMime(b64: string): string {
+  if (b64.startsWith("iVBOR")) return "image/png";
+  if (b64.startsWith("UklGR")) return "image/webp";
+  if (b64.startsWith("R0lG"))  return "image/gif";
+  return "image/jpeg";
+}
+
 function photoSrc(photo: SlidePhoto | undefined): string | null {
   if (!photo) return null;
   if (photo.base64 && photo.base64.length > 0) {
-    const prefix = photo.base64.startsWith("data:") ? "" : "data:image/jpeg;base64,";
-    return `${prefix}${photo.base64}`;
+    if (photo.base64.startsWith("data:")) return photo.base64;
+    return `data:${detectMime(photo.base64)};base64,${photo.base64}`;
   }
   return null;
 }
