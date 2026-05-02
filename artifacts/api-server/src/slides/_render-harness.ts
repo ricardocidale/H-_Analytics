@@ -12,6 +12,7 @@ import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
 import { renderHybridSlide } from "./hybrid-renderer.js";
+import { renderImagePptx } from "../slides/image-renderer.js";
 import { getSlideFonts } from "./fonts.js";
 import type { SlidePayload } from "./slide-jsx.js";
 import { resolveSlotPhoto, type RecipeElement } from "./slot-resolver.js";
@@ -206,3 +207,17 @@ for (const [label, slideNum, shapeName, expected] of routingChecks) {
 console.log(`\nRouting: ${routingPassed} passed, ${failed - (4 - passed)} failed`);
 if (failed > 0) process.exit(1);
 console.log("\nAll checks passed.");
+
+// ── Generate full PPTX (all 6 slides) ────────────────────────────────────────
+console.log("\nGenerating full PPTX (6 slides)...");
+try {
+  const pptxBuf = await renderImagePptx(FIXTURE);
+  const pptxPath = path.join(OUT_DIR, "hazelnis-smoke.pptx");
+  fs.writeFileSync(pptxPath, pptxBuf);
+  console.log(`  PPTX written: ${pptxPath} (${(pptxBuf.length / 1024).toFixed(0)} KB)`);
+  console.log(`\nRun the Python inspector next:`);
+  console.log(`  python3 scripts/src/inspect-slides.py ${pptxPath}`);
+} catch (err) {
+  console.error(`  PPTX generation FAILED: ${err}`);
+  process.exit(1);
+}
