@@ -40,6 +40,13 @@ RUN pnpm install --frozen-lockfile
 # Copy full source tree (respects .dockerignore).
 COPY . .
 
+# Vite requires PORT and BASE_PATH at build time.
+# Defaults are fine for a standard single-origin Railway deployment.
+ARG PORT=5000
+ARG BASE_PATH=/
+ENV PORT=$PORT
+ENV BASE_PATH=$BASE_PATH
+
 # Build everything: typecheck + per-package builds.
 RUN pnpm run build
 
@@ -58,6 +65,12 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 # The esbuild bundle externalises native modules (@aws-sdk/*, sharp, etc.)
 # so we must also carry along the relevant node_modules.
 COPY --from=build /app/artifacts/api-server/dist ./artifacts/api-server/dist
+
+# Frontend SPA — served by the API server via serveStatic()
+COPY --from=build /app/artifacts/hospitality-business-portal/dist/public ./artifacts/api-server/dist/public
+
+# Production seed SQL — loaded at first boot to sync canonical data
+COPY --from=build /app/dist/seed-production.sql ./dist/seed-production.sql
 
 # Copy the production node_modules from the build stage.
 # pnpm stores everything under the root node_modules with symlinks into
