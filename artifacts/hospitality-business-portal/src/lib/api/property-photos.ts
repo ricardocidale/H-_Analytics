@@ -183,6 +183,10 @@ export function useMovePhotos() {
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({ queryKey: ["propertyPhotos", vars.sourcePropertyId] });
       queryClient.invalidateQueries({ queryKey: ["propertyPhotos", vars.destinationPropertyId] });
+      // Moving photos can promote a new hero on either side, which changes
+      // the imageUrl resolved by GET /api/properties (used by the Property
+      // Hero Images admin tab). Invalidate so the hero grid stays accurate.
+      queryClient.invalidateQueries({ queryKey: ["properties"] });
     },
   });
 }

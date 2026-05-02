@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { IconDownload, IconAlertCircle, IconImage } from "@/components/icons";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { IconDownload, IconAlertCircle, IconImage, IconRefreshCw } from "@/components/icons";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -61,6 +61,11 @@ function HeroCard({ property }: { property: PropertyRow }) {
       <div className="relative w-full bg-muted" style={{ aspectRatio: "4 / 3" }}>
         {hasImage ? (
           <img
+            // Use the imageUrl as part of the key so React swaps the <img>
+            // element when the hero changes — guarantees an immediate visual
+            // update after a set-hero or photo upload, even if the browser
+            // would otherwise reuse a cached frame.
+            key={property.imageUrl ?? "none"}
             src={property.imageUrl!}
             alt={property.name}
             className="absolute inset-0 w-full h-full object-cover"
@@ -102,13 +107,46 @@ function HeroCard({ property }: { property: PropertyRow }) {
   );
 }
 
+async function fetchProperties(): Promise<PropertyRow[]> {
+  const resp = await fetch("/api/properties", { credentials: "include" });
+  if (!resp.ok) throw new Error(`Failed to load properties (HTTP ${resp.status})`);
+  return resp.json();
+}
+
+function formatRelative(ts: number | null): string {
+  if (!ts) return "just now";
+  const diffSec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if (diffSec < 5) return "just now";
+  if (diffSec < 60) return `${diffSec}s ago`;
+  const min = Math.floor(diffSec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  return `${hr}h ago`;
+}
+
 export default function PropertyHeroImagesTab() {
+  const queryClient = useQueryClient();
   const [zipState, setZipState] = useState<"idle" | "loading" | "done" | "error">("idle");
 
-  const { data: properties, isLoading, isError } = useQuery<PropertyRow[]>({
-    queryKey: ["/api/properties"],
+  // NOTE: queryKey aligned with `useProperties()` in lib/api/properties.ts so
+  // the existing `invalidateAllFinancialQueries` (called from set-hero, add,
+  // delete, move-photos, etc.) automatically refreshes this hero grid. Also
+  // refetch on tab focus so admins flipping back from the photo album see
+  // the new hero immediately.
+  const { data: properties, isLoading, isError, isFetching, refetch, dataUpdatedAt } = useQuery<PropertyRow[]>({
+    queryKey: ["properties"],
+    queryFn: fetchProperties,
     staleTime: 30_000,
+    refetchOnWindowFocus: true,
   });
+
+  // Tick every 30 seconds so the "Updated Xs/m ago" label stays current
+  // without being noisy.
+  const [, setNow] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(n => n + 1), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
 
   async function handleDownloadAll() {
     setZipState("loading");
@@ -134,6 +172,13 @@ export default function PropertyHeroImagesTab() {
       setZipState("error");
       setTimeout(() => setZipState("idle"), 6_000);
     }
+  }
+
+  function handleRefresh() {
+    // Invalidate so any peer caches (e.g. portfolio cards reading the same
+    // ["properties"] key) also pick up fresh imageUrl values.
+    queryClient.invalidateQueries({ queryKey: ["properties"] });
+    void refetch();
   }
 
   if (isLoading) {
@@ -164,6 +209,9 @@ export default function PropertyHeroImagesTab() {
   }
 
   const withImage = properties.filter(p => Boolean(p.imageUrl));
+  const updatedLabel = isFetching
+    ? "Refreshing…"
+    : `Updated ${formatRelative(dataUpdatedAt || null)}`;
 
   return (
     <div className="space-y-6">
@@ -174,21 +222,49 @@ export default function PropertyHeroImagesTab() {
             {withImage.length} of {properties.length} properties have a hero image.
             Download individually or grab all as a ZIP.
           </p>
+          <p
+            className="text-xs text-muted-foreground/80 mt-1 flex items-center gap-1.5"
+            data-testid="text-hero-grid-freshness"
+          >
+            {isFetching && <Loader2 className="h-3 w-3 animate-spin" />}
+            <span>{updatedLabel}</span>
+            <span className="opacity-50">·</span>
+            <span>Auto-refreshes when you change a hero in the photo album.</span>
+          </p>
         </div>
 
-        <Button
-          variant="outline"
-          disabled={withImage.length === 0 || zipState === "loading"}
-          onClick={handleDownloadAll}
-          className="gap-2 shrink-0"
-        >
-          {zipState === "loading" ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <IconDownload className="h-4 w-4" />
-          )}
-          {zipState === "loading" ? "Building ZIP…" : zipState === "done" ? "Downloaded" : zipState === "error" ? "Failed — retry" : "Download All as ZIP"}
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isFetching}
+            className="gap-1.5"
+            title="Refresh hero images"
+            data-testid="button-refresh-hero-grid"
+          >
+            {isFetching ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <IconRefreshCw className="h-3.5 w-3.5" />
+            )}
+            {isFetching ? "Refreshing…" : "Refresh"}
+          </Button>
+
+          <Button
+            variant="outline"
+            disabled={withImage.length === 0 || zipState === "loading"}
+            onClick={handleDownloadAll}
+            className="gap-2"
+          >
+            {zipState === "loading" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <IconDownload className="h-4 w-4" />
+            )}
+            {zipState === "loading" ? "Building ZIP…" : zipState === "done" ? "Downloaded" : zipState === "error" ? "Failed — retry" : "Download All as ZIP"}
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
