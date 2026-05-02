@@ -29,6 +29,7 @@ export * from "./scheduler-runs";
 export * from "./storage-drift-sweep-runs";
 export * from "./cache";
 export * from "./reference-brands";
+export * from "./property-slide-decks";
 // NOTE: ./replit-billing is intentionally NOT re-exported. Billing telemetry
 // lives in the dev_internal Postgres schema and is strictly dev tooling.
 // Dev scripts import it directly: `from "@shared/schema/replit-billing"`.

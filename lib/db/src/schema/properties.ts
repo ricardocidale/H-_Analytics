@@ -495,6 +495,10 @@ export const insertPropertySchema = createInsertSchema(properties).pick({
   lastValidatedAt: true,
   flaggedFieldCount: true,
   validationReason: true,
+}).extend({
+  startOccupancy: z.number().min(0).max(1),
+  maxOccupancy: z.number().min(0).max(1),
+  occupancyGrowthStep: z.number().min(0).max(1),
 });
 
 export const HOSPITALITY_TYPES = ["hotel", "resort", "boutique_hotel", "business_hotel", "wellness_resort", "conference_hotel", "extended_stay", "vrbo", "lodge"] as const;

@@ -82,12 +82,23 @@ export class PhotoStorage {
   }
 
   async deletePropertyPhoto(id: number): Promise<void> {
+    let urlToDelete: string | null = null;
+
     await db.transaction(async (tx) => {
       const [photo] = await tx.select().from(propertyPhotos)
         .where(eq(propertyPhotos.id, id));
       if (!photo) return;
 
       await tx.delete(propertyPhotos).where(eq(propertyPhotos.id, id));
+
+      // Only consider deleting from object storage for /objects/ paths (not API-served or external URLs)
+      if (photo.imageUrl?.startsWith("/objects/")) {
+        const refs = await tx.select({ id: propertyPhotos.id })
+          .from(propertyPhotos)
+          .where(eq(propertyPhotos.imageUrl, photo.imageUrl))
+          .limit(1);
+        if (refs.length === 0) urlToDelete = photo.imageUrl;
+      }
 
       if (photo.isHero) {
         const remaining = await tx.select().from(propertyPhotos)
@@ -105,6 +116,15 @@ export class PhotoStorage {
         }
       }
     });
+
+    if (urlToDelete) {
+      try {
+        const sp = await getStorageProviderAsync();
+        await sp.delete(urlToDelete);
+      } catch (err: unknown) {
+        logger.warn(`deletePropertyPhoto: failed to delete ${urlToDelete} from object storage: ${err instanceof Error ? err.message : String(err)}`, "photo-storage");
+      }
+    }
   }
 
   async setHeroPhoto(propertyId: number, photoId: number): Promise<void> {
