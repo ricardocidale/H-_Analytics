@@ -597,15 +597,7 @@ async function runSchemaMigrations() {
   // pipeline_n1_global_models_001, vector_chunks_gin_001 consolidated into
   // 0036_batch7_pure_ddl.sql (Phase C batch 7)
 
-  // P6f — seed admin_resources with model rows (LLM Config dropdowns) and
-  // source/api/benchmark rows adapted from the legacy source_registry.
-  if (!(await isMigrationApplied("admin_resources_005"))) {
-    const { runAdminResources005 } = await import(
-      "./migrations/admin-resources-005"
-    );
-    await runAdminResources005();
-    await markMigrationApplied("admin_resources_005");
-  }
+  // admin_resources_005 → moved to runSeeds() seedTasks (ON CONFLICT DO NOTHING)
 
   // properties_financials_computed_at_001 consolidated into
   // 0035_batch5_standalone_tables.sql (Phase C batch 5)
@@ -646,53 +638,10 @@ async function runSchemaMigrations() {
 
   // fk_indexes_002 consolidated into 0036_batch7_pure_ddl.sql (Phase C batch 7)
 
-  if (!(await isMigrationApplied("property_slide_decks_001"))) {
-    const { runPropertySlideDecks001 } = await import(
-      "./migrations/property-slide-decks-001"
-    );
-    await runPropertySlideDecks001();
-    await markMigrationApplied("property_slide_decks_001");
-  }
-
-  if (!(await isMigrationApplied("property_slide_decks_002"))) {
-    const { runPropertySlideDecks002 } = await import(
-      "./migrations/property-slide-decks-002"
-    );
-    await runPropertySlideDecks002();
-    await markMigrationApplied("property_slide_decks_002");
-  }
-
-  if (!(await isMigrationApplied("reference_brands_001"))) {
-    const { runReferenceBrands001 } = await import(
-      "./migrations/reference-brands-001"
-    );
-    await runReferenceBrands001();
-    await markMigrationApplied("reference_brands_001");
-  }
-
-  if (!(await isMigrationApplied("property_photos_hero_unique_001"))) {
-    const { runPropertyPhotosHeroUnique001 } = await import(
-      "./migrations/property-photos-hero-unique-001"
-    );
-    await runPropertyPhotosHeroUnique001();
-    await markMigrationApplied("property_photos_hero_unique_001");
-  }
-
-  if (!(await isMigrationApplied("reference_brands_run_fk_001"))) {
-    const { runReferenceBrandsRunFk001 } = await import(
-      "./migrations/reference-brands-run-fk-001"
-    );
-    await runReferenceBrandsRunFk001();
-    await markMigrationApplied("reference_brands_run_fk_001");
-  }
-
-  if (!(await isMigrationApplied("property_slide_deck_variants_001"))) {
-    const { runPropertySlideDeckVariants001 } = await import(
-      "./migrations/property-slide-deck-variants-001"
-    );
-    await runPropertySlideDeckVariants001();
-    await markMigrationApplied("property_slide_deck_variants_001");
-  }
+  // property_slide_decks_001, property_slide_decks_002, reference_brands_001,
+  // property_photos_hero_unique_001, reference_brands_run_fk_001,
+  // property_slide_deck_variants_001 → consolidated into
+  // 0029_batch10_slide_decks_and_constraints.sql (Phase C batch 10)
 
   // slide_recipe_001 → moved to runSeeds() seedTasks (skips if rows exist)
 
@@ -787,6 +736,7 @@ async function runSeeds() {
     { name: "rebecca-kb", run: async () => { const { runRebeccaKB001 } = await import("./migrations/rebecca-kb-001"); await runRebeccaKB001(); } },
     { name: "admin-resources-004", run: async () => { const { runAdminResources004 } = await import("./migrations/admin-resources-004"); await runAdminResources004(); } },
     { name: "slide-recipe", run: async () => { const { runSlideRecipe001 } = await import("./migrations/slide-recipe-001"); await runSlideRecipe001(); } },
+    { name: "admin-resources-005", run: async () => { const { runAdminResources005 } = await import("./migrations/admin-resources-005"); await runAdminResources005(); } },
   ];
 
   const results = await Promise.allSettled(seedTasks.map(t => t.run()));
