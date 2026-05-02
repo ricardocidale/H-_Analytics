@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Download, Presentation, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Download, Presentation, Loader2, AlertCircle, CheckCircle2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -457,6 +457,17 @@ export default function SlideDecksTab() {
                     {dlState === "loading" ? "Saving…" : dlState === "done" ? "Saved" : "Download"}
                   </Button>
                 </div>
+
+                {/* View slides link */}
+                <a
+                  href={`/property-slides/?propertyId=${p.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors py-0.5"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  View slides
+                </a>
               </CardContent>
             </Card>
           );

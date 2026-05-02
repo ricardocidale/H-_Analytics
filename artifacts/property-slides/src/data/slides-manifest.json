@@ -1,10 +1,50 @@
 [
   {
-    "id": "a7f3d2c1-8b4e-4f5a-9c6d-2e1b3a7f5c8d",
+    "id": "f1a2b3c4-d5e6-7890-abcd-ef1234567801",
     "position": 1,
-    "filepath": "src/pages/slides/PropertyDeck.tsx",
-    "title": "L+B Property Portfolio",
-    "description": "Interactive property investment slide deck fetching live data from the H+ Analytics API.",
-    "speakerNotes": ""
+    "filepath": "src/pages/slides/Slide1PropertySpotlight.tsx",
+    "title": "Property Spotlight",
+    "description": "Hero photo with property specs, asking price, and investment vision.",
+    "speakerNotes": "Introduce the property — name, location, type, asking price. Walk through the vision bullets."
+  },
+  {
+    "id": "f1a2b3c4-d5e6-7890-abcd-ef1234567802",
+    "position": 2,
+    "filepath": "src/pages/slides/Slide2PhotoGallery.tsx",
+    "title": "Photo Gallery",
+    "description": "Four-column photo gallery with property specs and operational vision on the right.",
+    "speakerNotes": "Show the property through photos. Highlight the transformation potential."
+  },
+  {
+    "id": "f1a2b3c4-d5e6-7890-abcd-ef1234567803",
+    "position": 3,
+    "filepath": "src/pages/slides/Slide3InvestmentModel.tsx",
+    "title": "Investment Model",
+    "description": "Stacked photo panel with The Concept, Strategic Details, and Why This Property / Model.",
+    "speakerNotes": "Deep-dive into the investment thesis. Explain the model, the market, and the three reasons this works."
+  },
+  {
+    "id": "f1a2b3c4-d5e6-7890-abcd-ef1234567804",
+    "position": 4,
+    "filepath": "src/pages/slides/Slide4Pipeline.tsx",
+    "title": "Pipeline",
+    "description": "Five-card property pipeline grid showing this property plus comparable portfolio assets.",
+    "speakerNotes": "Context: this property sits within a broader pipeline of curated boutique assets."
+  },
+  {
+    "id": "f1a2b3c4-d5e6-7890-abcd-ef1234567805",
+    "position": 5,
+    "filepath": "src/pages/slides/Slide5FinancialSnapshot.tsx",
+    "title": "Financial Snapshot",
+    "description": "Three-column financial snapshot: Transformation Plan, Financing Summary, and Investment Narrative.",
+    "speakerNotes": "Walk through the numbers: transformation cost, financing structure, and key financial ratios."
+  },
+  {
+    "id": "f1a2b3c4-d5e6-7890-abcd-ef1234567806",
+    "position": 6,
+    "filepath": "src/pages/slides/Slide6IncomeStatement.tsx",
+    "title": "Income Statement",
+    "description": "5-year pro forma income statement table with investor key metrics sidebar.",
+    "speakerNotes": "5-year projection: revenue, expenses, NOI, debt service, cash flow, exit value. IRR and equity multiple on the right."
   }
 ]

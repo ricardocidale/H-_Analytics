@@ -25,6 +25,7 @@ import cookieParser from "cookie-parser";
 import compression from "compression";
 import { registerRoutes } from "./legacyRoutes";
 import { registerImageRoutes } from "./routes/images";
+import { propertySlidesRouter } from "./routes/property-slides";
 import { buildContentSecurityPolicy } from "./csp";
 import { getAuthProvider } from "./providers/auth";
 import { createServer } from "http";
@@ -187,6 +188,7 @@ app.use((req, res, next) => {
   await initStorageProvider();
 
   registerImageRoutes(app);
+  app.use(propertySlidesRouter);
   const { registerGoogleAuthRoutes } = await import("./routes/google-auth");
   registerGoogleAuthRoutes(app);
   await registerRoutes(httpServer, app);
@@ -494,71 +496,18 @@ async function runSchemaMigrations() {
     label: "data-fixes",
   });
 
-  if (!(await isMigrationApplied("db_hygiene_001"))) {
-    const { runDbHygiene001 } = await import("./migrations/db-hygiene-001");
-    await runDbHygiene001();
-    await markMigrationApplied("db_hygiene_001");
-  }
+  // db_hygiene_001, fix_shared_ownership, role_partner_to_user_001,
+  // role_checker_investor_to_user_001, property_notnull_001 consolidated into
+  // 0037_batch8_datafix_and_unique.sql (Phase C batch 8)
 
-  if (!(await isMigrationApplied("fix_shared_ownership"))) {
-    const { fixLegacyOwnership } = await import("./migrations/fix-shared-ownership");
-    await fixLegacyOwnership();
-    await markMigrationApplied("fix_shared_ownership");
-  }
+  // can_manage_scenarios_001, fk_hardening_001, scenario_overrides_001
+  // consolidated into 0036_batch7_pure_ddl.sql (Phase C batch 7)
 
-  if (!(await isMigrationApplied("role_partner_to_user_001"))) {
-    const { migratePartnerToUser } = await import("./migrations/role-partner-to-user-001");
-    await migratePartnerToUser();
-    await markMigrationApplied("role_partner_to_user_001");
-  }
+  // appearance_defaults_001 consolidated into 0034_batch6_ga_columns.sql (Phase C batch 6)
 
-  if (!(await isMigrationApplied("role_checker_investor_to_user_001"))) {
-    const { migrateCheckerInvestorToUser } = await import("./migrations/role-checker-investor-to-user-001");
-    await migrateCheckerInvestorToUser();
-    await markMigrationApplied("role_checker_investor_to_user_001");
-  }
+  // scenario_system_unique_001 consolidated into 0036_batch7_pure_ddl.sql (Phase C batch 7)
 
-  if (!(await isMigrationApplied("can_manage_scenarios_001"))) {
-    const { runCanManageScenarios001 } = await import("./migrations/can-manage-scenarios-001");
-    await runCanManageScenarios001();
-    await markMigrationApplied("can_manage_scenarios_001");
-  }
-
-  if (!(await isMigrationApplied("appearance_defaults_001"))) {
-    const { runAppearanceDefaults001 } = await import("./migrations/appearance-defaults-001");
-    await runAppearanceDefaults001();
-    await markMigrationApplied("appearance_defaults_001");
-  }
-
-  if (!(await isMigrationApplied("fk_hardening_001"))) {
-    const { runFkHardening001 } = await import("./migrations/fk-hardening-001");
-    await runFkHardening001();
-    await markMigrationApplied("fk_hardening_001");
-  }
-
-  if (!(await isMigrationApplied("scenario_overrides_001"))) {
-    const { runScenarioOverrides001 } = await import("./migrations/scenario-overrides-001");
-    await runScenarioOverrides001();
-    await markMigrationApplied("scenario_overrides_001");
-  }
-
-  if (!(await isMigrationApplied("property_notnull_001"))) {
-    const { runPropertyNotNullMigration } = await import("./migrations/property-notnull-001");
-    await runPropertyNotNullMigration();
-    await markMigrationApplied("property_notnull_001");
-  }
-
-  if (!(await isMigrationApplied("scenario_system_unique_001"))) {
-    const { runScenarioSystemUnique001 } = await import("./migrations/scenario-system-unique-001");
-    await runScenarioSystemUnique001();
-    await markMigrationApplied("scenario_system_unique_001");
-  }
-
-  if (!(await isMigrationApplied("drop_marcela_columns_001"))) {
-    const { runDropMarcelaColumns } = await import("./migrations/drop-marcela-columns");
-    await runDropMarcelaColumns();
-    await markMigrationApplied("drop_marcela_columns_001");
-  }
+  // drop_marcela_columns_001 consolidated into 0031_batch2_drops.sql (Phase C batch 2)
 
   if (!(await isMigrationApplied("seed_external_integrations_001"))) {
     const { seedExternalIntegrations } = await import("./migrations/seed-external-integrations");
@@ -566,35 +515,10 @@ async function runSchemaMigrations() {
     await markMigrationApplied("seed_external_integrations_001");
   }
 
-  if (!(await isMigrationApplied("photo_image_data_001"))) {
-    const { runPhotoImageData001 } = await import("./migrations/photo-image-data-001");
-    await runPhotoImageData001();
-    await markMigrationApplied("photo_image_data_001");
-  }
+  // photo_image_data_001, scenario_access_001, source_call_logs_001, property_urls_001
+  // consolidated into 0036_batch7_pure_ddl.sql (Phase C batch 7)
 
-  if (!(await isMigrationApplied("scenario_access_001"))) {
-    const { runScenarioAccess001 } = await import("./migrations/scenario-access-001");
-    await runScenarioAccess001();
-    await markMigrationApplied("scenario_access_001");
-  }
-
-  if (!(await isMigrationApplied("source_call_logs_001"))) {
-    const { runSourceCallLogs001 } = await import("./migrations/source-call-logs-001");
-    await runSourceCallLogs001();
-    await markMigrationApplied("source_call_logs_001");
-  }
-
-  if (!(await isMigrationApplied("drop_engine_suggested_lines_001"))) {
-    const { runDropEngineSuggestedLines001 } = await import("./migrations/drop-engine-suggested-lines-001");
-    await runDropEngineSuggestedLines001();
-    await markMigrationApplied("drop_engine_suggested_lines_001");
-  }
-
-  if (!(await isMigrationApplied("property_urls_001"))) {
-    const { runPropertyUrlsMigration } = await import("./migrations/property-urls-001");
-    await runPropertyUrlsMigration();
-    await markMigrationApplied("property_urls_001");
-  }
+  // drop_engine_suggested_lines_001 consolidated into 0031_batch2_drops.sql (Phase C batch 2)
 
   // enhanced_photo_001 consolidated into 0030_phase_c_batch_1.sql (Phase C batch 1)
 
@@ -613,29 +537,8 @@ async function runSchemaMigrations() {
   // rebecca_language_001 consolidated into 0030_phase_c_batch_1.sql (Phase C batch 1)
   // Note: this block was also missing markMigrationApplied, which is fixed by removal.
 
-  if (!(await isMigrationApplied("calc_audit_001"))) {
-    const { runCalcAudit001 } = await import("./migrations/calc-audit-001");
-    await runCalcAudit001();
-    await markMigrationApplied("calc_audit_001");
-  }
-
-  if (!(await isMigrationApplied("admin_resources_001"))) {
-    const { runAdminResources001 } = await import("./migrations/admin-resources-001");
-    await runAdminResources001();
-    await markMigrationApplied("admin_resources_001");
-  }
-
-  if (!(await isMigrationApplied("admin_resources_002"))) {
-    const { runAdminResources002 } = await import("./migrations/admin-resources-002");
-    await runAdminResources002();
-    await markMigrationApplied("admin_resources_002");
-  }
-
-  if (!(await isMigrationApplied("admin_resources_003"))) {
-    const { runAdminResources003 } = await import("./migrations/admin-resources-003");
-    await runAdminResources003();
-    await markMigrationApplied("admin_resources_003");
-  }
+  // calc_audit_001, admin_resources_001, admin_resources_002, admin_resources_003,
+  // property_dd_001 consolidated into 0036_batch7_pure_ddl.sql (Phase C batch 7)
 
   if (!(await isMigrationApplied("admin_resources_004"))) {
     const { runAdminResources004 } = await import("./migrations/admin-resources-004");
@@ -643,54 +546,16 @@ async function runSchemaMigrations() {
     await markMigrationApplied("admin_resources_004");
   }
 
-  if (!(await isMigrationApplied("property_dd_001"))) {
-    const { runPropertyDd001 } = await import("./migrations/property-dd-001");
-    await runPropertyDd001();
-    await markMigrationApplied("property_dd_001");
-  }
+  // specialist_observed_missing_001, specialist_recommendation_events_001,
+  // specialist_recommendation_counters_001 consolidated into
+  // 0033_batch4_specialists.sql (Phase C batch 4)
 
-  if (!(await isMigrationApplied("specialist_observed_missing_001"))) {
-    const { runSpecialistObservedMissing001 } = await import(
-      "./migrations/specialist-observed-missing-001"
-    );
-    await runSpecialistObservedMissing001();
-    await markMigrationApplied("specialist_observed_missing_001");
-  }
+  // specialist_multi_model_001 — columns now owned by Drizzle migration
+  // 0022_specialist_llm_overrides.sql. Runtime patch removed; existing DBs
+  // have the migration key recorded in _applied_migrations.
 
-  if (!(await isMigrationApplied("specialist_recommendation_events_001"))) {
-    const { runSpecialistRecommendationEvents001 } = await import(
-      "./migrations/specialist-recommendation-events-001"
-    );
-    await runSpecialistRecommendationEvents001();
-    await markMigrationApplied("specialist_recommendation_events_001");
-  }
-
-  if (!(await isMigrationApplied("specialist_recommendation_counters_001"))) {
-    const { runSpecialistRecommendationCounters001 } = await import(
-      "./migrations/specialist-recommendation-counters-001"
-    );
-    await runSpecialistRecommendationCounters001();
-    await markMigrationApplied("specialist_recommendation_counters_001");
-  }
-
-  if (!(await isMigrationApplied("specialist_multi_model_001"))) {
-    const { runSpecialistMultiModel001 } = await import(
-      "./migrations/specialist-multi-model-001"
-    );
-    await runSpecialistMultiModel001();
-    await markMigrationApplied("specialist_multi_model_001");
-  }
-
-  // P6e — wire global N+1 model defaults to admin_resources (4 nullable FK
-  // columns on pipeline_policies so admins can configure default orchestrator
-  // models without a code deploy).
-  if (!(await isMigrationApplied("pipeline_n1_global_models_001"))) {
-    const { runPipelineN1GlobalModels001 } = await import(
-      "./migrations/pipeline-n1-global-models-001"
-    );
-    await runPipelineN1GlobalModels001();
-    await markMigrationApplied("pipeline_n1_global_models_001");
-  }
+  // pipeline_n1_global_models_001, vector_chunks_gin_001 consolidated into
+  // 0036_batch7_pure_ddl.sql (Phase C batch 7)
 
   // P6f — seed admin_resources with model rows (LLM Config dropdowns) and
   // source/api/benchmark rows adapted from the legacy source_registry.
@@ -702,164 +567,67 @@ async function runSchemaMigrations() {
     await markMigrationApplied("admin_resources_005");
   }
 
-  // Phase 4 — Task #454. `properties.financials_computed_at` is the
-  // single source of truth for "this property's numbers are fresh as of
-  // T". Specialist gating (engine/analyst/registry/prerequisite-registry.ts
-  // → all-properties-financials-computed) depends on this column.
-  // Non-destructive: ADD COLUMN IF NOT EXISTS.
-  if (!(await isMigrationApplied("properties_financials_computed_at_001"))) {
-    const { db: dbRef } = await import("./db");
-    const { sql: sqlTag } = await import("drizzle-orm");
-    await dbRef.execute(sqlTag`
-      ALTER TABLE properties
-        ADD COLUMN IF NOT EXISTS financials_computed_at timestamp
-    `);
-    await markMigrationApplied("properties_financials_computed_at_001");
-  }
+  // properties_financials_computed_at_001 consolidated into
+  // 0035_batch5_standalone_tables.sql (Phase C batch 5)
 
-  // Task #442 — one-shot backfill so the
-  // `all-properties-financials-computed` prerequisite (engine/analyst/
-  // registry/prerequisite-registry.ts) doesn't false-positive every
-  // existing property as stale on first deploy. Idempotent: only fills
-  // rows where the column is still null, so it's safe across re-runs and
-  // never clobbers a freshly-stamped timestamp from a real recompute.
-  if (!(await isMigrationApplied("financials_computed_at_backfill_001"))) {
-    const { runFinancialsComputedAtBackfill001 } = await import(
-      "./migrations/financials-computed-at-backfill-001"
-    );
-    await runFinancialsComputedAtBackfill001();
-    await markMigrationApplied("financials_computed_at_backfill_001");
-  }
+  // financials_computed_at_backfill_001, app_logo_001 consolidated into
+  // 0037_batch8_datafix_and_unique.sql (Phase C batch 8)
 
   // scenario_service_templates_001 consolidated: its DDL (ADD COLUMN service_templates
   // on scenarios) was already shipped via 0010_scenario_service_templates.sql in the
   // Drizzle migration path. Runtime gate removed as part of Phase C batch 1.
 
-  if (!(await isMigrationApplied("app_logo_001"))) {
-    const { runAppLogo001 } = await import("./migrations/app-logo-001");
-    await runAppLogo001();
-    await markMigrationApplied("app_logo_001");
-  }
+  // drop_company_fk_001 consolidated into 0038_batch9_drop_company_fk.sql (Phase C batch 9)
 
-  if (!(await isMigrationApplied("drop_company_fk_001"))) {
-    const { run: runDropCompanyFk } = await import("./migrations/drop-company-fk-001");
-    await runDropCompanyFk(drizzleDb);
-    await markMigrationApplied("drop_company_fk_001");
-  }
-
-  if (!(await isMigrationApplied("rebecca_opt_out_001"))) {
-    const { runRebeccaOptOut001 } = await import("./migrations/rebecca-opt-out-001");
-    await runRebeccaOptOut001();
-    await markMigrationApplied("rebecca_opt_out_001");
-  }
-
-  if (!(await isMigrationApplied("rebecca_fixtures_001"))) {
-    const { runRebeccaFixtures001 } = await import("./migrations/rebecca-fixtures-001");
-    await runRebeccaFixtures001();
-    await markMigrationApplied("rebecca_fixtures_001");
-  }
+  // rebecca_opt_out_001, rebecca_fixtures_001 consolidated into
+  // 0032_batch3_rebecca.sql (Phase C batch 3)
 
   // app_name_001 consolidated into 0030_phase_c_batch_1.sql (Phase C batch 1)
 
-  if (!(await isMigrationApplied("market_data_tables_001"))) {
-    const { runMarketDataTables001 } = await import("./migrations/market-data-tables-001");
-    await runMarketDataTables001();
-    await markMigrationApplied("market_data_tables_001");
-  }
+  // market_data_tables_001 consolidated into 0035_batch5_standalone_tables.sql (Phase C batch 5)
 
-  if (!(await isMigrationApplied("index_coverage_001"))) {
-    const { runIndexCoverage001 } = await import("./migrations/index-coverage-001");
-    await runIndexCoverage001();
-    await markMigrationApplied("index_coverage_001");
-  }
+  // index_coverage_001 consolidated into 0036_batch7_pure_ddl.sql (Phase C batch 7)
 
-  if (!(await isMigrationApplied("scheduler_runs_001"))) {
-    const { runSchedulerRuns001 } = await import("./migrations/scheduler-runs-001");
-    await runSchedulerRuns001();
-    await markMigrationApplied("scheduler_runs_001");
-  }
+  // scheduler_runs_001, scheduler_runs_002, storage_drift_sweep_runs_001
+  // consolidated into 0035_batch5_standalone_tables.sql (Phase C batch 5)
 
-  if (!(await isMigrationApplied("scheduler_runs_002"))) {
-    const { runSchedulerRuns002 } = await import("./migrations/scheduler-runs-002");
-    await runSchedulerRuns002();
-    await markMigrationApplied("scheduler_runs_002");
-  }
+  // rebecca_fixture_replay_001 consolidated into 0032_batch3_rebecca.sql (Phase C batch 3)
 
-  if (!(await isMigrationApplied("storage_drift_sweep_runs_001"))) {
-    const { runStorageDriftSweepRuns001 } = await import("./migrations/storage-drift-sweep-runs-001");
-    await runStorageDriftSweepRuns001();
-    await markMigrationApplied("storage_drift_sweep_runs_001");
-  }
+  // assumption_guidance_dedupe_001, benchmark_snapshots_unique_001,
+  // audit_unique_constraints_001 consolidated into
+  // 0037_batch8_datafix_and_unique.sql (Phase C batch 8)
 
-  if (!(await isMigrationApplied("rebecca_fixture_replay_001"))) {
-    const { runRebeccaFixtureReplay001 } = await import("./migrations/rebecca-fixture-replay-001");
-    await runRebeccaFixtureReplay001();
-    await markMigrationApplied("rebecca_fixture_replay_001");
-  }
+  // funding_cascade_001 consolidated into 0034_batch6_ga_columns.sql (Phase C batch 6)
 
-  // Task #573 — collapse legacy duplicates and add the
-  // assumption_guidance_unique constraint declared in
-  // lib/db/src/schema/intelligence-v2.ts so `npm run db:push` no longer
-  // prompts for a destructive truncate in non-TTY environments.
-  if (!(await isMigrationApplied("assumption_guidance_dedupe_001"))) {
-    const { runAssumptionGuidanceDedupe001 } = await import(
-      "./migrations/assumption-guidance-dedupe-001"
-    );
-    await runAssumptionGuidanceDedupe001();
-    await markMigrationApplied("assumption_guidance_dedupe_001");
-  }
-
-  // Audit follow-up — same regression class as Task #573, this time on
-  // benchmark_snapshots.snapshot_key (declared `.unique()` in
-  // lib/db/src/schema/intelligence-v2.ts but never applied to the live DB).
-  // Without this, `npm run db:push` blocks on a destructive truncate
-  // prompt in non-TTY environments and the Task #715 CI gate fails.
-  if (!(await isMigrationApplied("benchmark_snapshots_unique_001"))) {
-    const { runBenchmarkSnapshotsUnique001 } = await import(
-      "./migrations/benchmark-snapshots-unique-001"
-    );
-    await runBenchmarkSnapshotsUnique001();
-    await markMigrationApplied("benchmark_snapshots_unique_001");
-  }
-
-  // Audit follow-up — sweep the remaining single-column UNIQUE constraints
-  // declared in lib/db/src/schema/** but never applied to the live DB
-  // (properties.stable_key, media_assets.filename, source_registry.service_key,
-  // pipeline_policies.policy_key, scheduled_research_workflows.workflow_key,
-  // external_integrations.service_key, capital_raise_benchmarks.dimension_key,
-  // exit_multiples.dimension_key). Same fix pattern.
-  if (!(await isMigrationApplied("audit_unique_constraints_001"))) {
-    const { runAuditUniqueConstraints001 } = await import(
-      "./migrations/audit-unique-constraints-001"
-    );
-    await runAuditUniqueConstraints001();
-    await markMigrationApplied("audit_unique_constraints_001");
-  }
-
-  if (!(await isMigrationApplied("funding_cascade_001"))) {
-    const { runFundingCascade001 } = await import("./migrations/funding-cascade-001");
-    await runFundingCascade001();
-    await markMigrationApplied("funding_cascade_001");
-  }
-
-  if (!(await isMigrationApplied("cache_entries_001"))) {
-    const { runCacheEntries001 } = await import("./migrations/cache-entries-001");
-    await runCacheEntries001();
-    await markMigrationApplied("cache_entries_001");
-  }
+  // cache_entries_001, reference_range_001 consolidated into
+  // 0035_batch5_standalone_tables.sql (Phase C batch 5)
 
   // icp_model_tier_001 consolidated into 0030_phase_c_batch_1.sql (Phase C batch 1)
 
-  if (!(await isMigrationApplied("reference_range_001"))) {
-    const { runReferenceRange001 } = await import("./migrations/reference-range-001");
-    await runReferenceRange001();
-    await markMigrationApplied("reference_range_001");
+  // fk_indexes_002 consolidated into 0036_batch7_pure_ddl.sql (Phase C batch 7)
+
+  if (!(await isMigrationApplied("property_slide_decks_001"))) {
+    const { runPropertySlideDecks001 } = await import(
+      "./migrations/property-slide-decks-001"
+    );
+    await runPropertySlideDecks001();
+    await markMigrationApplied("property_slide_decks_001");
   }
 
-  if (!(await isMigrationApplied("fk_indexes_002"))) {
-    const { runFkIndexes002 } = await import("./migrations/fk-indexes-002");
-    await runFkIndexes002();
-    await markMigrationApplied("fk_indexes_002");
+  if (!(await isMigrationApplied("property_slide_decks_002"))) {
+    const { runPropertySlideDecks002 } = await import(
+      "./migrations/property-slide-decks-002"
+    );
+    await runPropertySlideDecks002();
+    await markMigrationApplied("property_slide_decks_002");
+  }
+
+  if (!(await isMigrationApplied("reference_brands_001"))) {
+    const { runReferenceBrands001 } = await import(
+      "./migrations/reference-brands-001"
+    );
+    await runReferenceBrands001();
+    await markMigrationApplied("reference_brands_001");
   }
 }
 
@@ -941,6 +709,7 @@ async function runSeeds() {
     // defaults from shared/constants.ts. Safe to run on every boot.
     { name: "model-constants", run: () => seedModelConstants({ silent: true }) },
     { name: "model-defaults", run: () => seedModelDefaults({ silent: true }) },
+    { name: "reference-brands", run: async () => { const result = await storage.seedReferenceBrandsIfEmpty(); if (result.seeded) serverLog(`[seed:reference-brands] seeded ${result.count} brands`, "startup", "info"); } },
   ];
 
   const results = await Promise.allSettled(seedTasks.map(t => t.run()));

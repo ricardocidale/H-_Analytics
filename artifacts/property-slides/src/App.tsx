@@ -16,6 +16,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 
 import { slides } from "@/slideLoader";
+import { PropertyProvider } from "@/context/PropertyContext";
 
 function getSlideIndex(pathname: string): number {
   const match = pathname.match(/^\/slide(\d+)$/);
@@ -193,6 +194,8 @@ function SlideViewer() {
 
   const base = import.meta.env.BASE_URL.replace(/\/$/, "");
   const firstPosition = slides.length > 0 ? slides[0].position : 1;
+  const propertyId = new URLSearchParams(window.location.search).get("propertyId") ?? "";
+  const qs = propertyId ? `?propertyId=${encodeURIComponent(propertyId)}` : "";
 
   return (
     <div
@@ -201,7 +204,7 @@ function SlideViewer() {
     >
       <iframe
         ref={iframeRef}
-        src={`${base}/slide${firstPosition}`}
+        src={`${base}/slide${firstPosition}${qs}`}
         style={{ width: dims.width, height: dims.height, border: "none" }}
         onLoad={() => iframeRef.current?.focus()}
         title="Slide viewer"
@@ -246,6 +249,6 @@ export default function App() {
   }, [navigate]);
 
   if (location === "/") return <SlideViewer />;
-  if (location === "/allslides") return <AllSlides />;
-  return <SlideEditor />;
+  if (location === "/allslides") return <PropertyProvider><AllSlides /></PropertyProvider>;
+  return <PropertyProvider><SlideEditor /></PropertyProvider>;
 }
