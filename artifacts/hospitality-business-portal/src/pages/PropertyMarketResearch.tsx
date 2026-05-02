@@ -157,8 +157,8 @@ export default function PropertyMarketResearch() {
 
           {!hasResearch && !isGenerating && (
             <div className={`${card} p-12 text-center`}>
-              <div className="w-20 h-20 mx-auto mb-6 rounded-lg bg-primary/10 flex items-center justify-center">
-                <IconBookOpen className="w-10 h-10 text-primary" />
+              <div className="w-20 h-20 mx-auto mb-6 rounded-lg bg-accent-pop/10 flex items-center justify-center">
+                <IconBookOpen className="w-10 h-10 text-accent-pop" />
               </div>
               <h3 className="text-xl font-display text-foreground mb-3">No Market Research Yet</h3>
               <p className="text-sm text-muted-foreground mb-6 max-w-lg mx-auto leading-relaxed">

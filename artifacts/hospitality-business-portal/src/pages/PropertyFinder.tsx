@@ -322,8 +322,8 @@ export default function PropertyFinder() {
 
         {!searchData && !searchError && !isSearching && (
           <div className="bg-card rounded-lg shadow-sm border border-border p-16 text-center">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <Search className="w-8 h-8 text-primary/40" />
+            <div className="w-16 h-16 rounded-full bg-accent-pop/10 flex items-center justify-center mx-auto mb-4">
+              <Search className="w-8 h-8 text-accent-pop/40" />
             </div>
             <p className="text-muted-foreground font-medium">Search for Properties</p>
             <p className="text-muted-foreground text-sm mt-1">
@@ -349,8 +349,8 @@ export default function PropertyFinder() {
             </div>
           ) : favorites.length === 0 ? (
             <div className="bg-card rounded-lg shadow-sm border border-border p-12 text-center">
-              <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
-                <IconHeart className="w-7 h-7 text-primary/30" />
+              <div className="w-14 h-14 rounded-full bg-accent-pop/10 flex items-center justify-center mx-auto mb-3">
+                <IconHeart className="w-7 h-7 text-accent-pop/30" />
               </div>
               <p className="text-muted-foreground font-medium">No Saved Properties</p>
               <p className="text-muted-foreground text-sm mt-1">
