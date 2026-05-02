@@ -25,22 +25,38 @@ If old task-agent sessions leave behind `.claude/worktrees/agent-*/` directories
 
 All traffic is routed by path through a shared reverse proxy on `localhost:80`. Services must handle their full base path. Never call service ports directly in application code or curl — always go through `localhost:80/<path>`.
 
-## Deployment target
+## Deployment target — Railway (NOT Replit Publish)
 
-`.replit` `[deployment].deploymentTarget = "vm"` (the UI calls this **Reserved VM**). The api-server is a long-running Express process with a heavy boot path (migrations, vector index warm-up, scheduler) and an in-memory cache layer, so autoscale's per-request lifecycle does not fit. Reserved VM is also the only target that cleanly serves the published H+ Analytics SPA + `/api` from a single container without scale-to-zero cold starts.
+**Production runs on Railway, not on Replit.** Replit Publish (both `autoscale` and `vm` / Reserved VM) failed for this app — see `claude.md` § "Production Deployment" for the full deploy contract, including the required Railway service env vars.
 
-Do **not** flip this back to `autoscale` without:
-1. Moving all in-memory caches to Postgres / Redis.
-2. Confirming the api-server bundle stays under autoscale's image limit (~32 MB compressed).
-3. Switching the startup probe from `/api/health/live` to a path that responds before migrations run, or migrations will time out the probe.
+- Production wiring lives in `Dockerfile` (root) + `railway.toml` (root). Healthcheck is `GET /api/health/live` with a 300 s timeout.
+- The legacy `.replit` `[deployment]` block and the `artifacts/api-server/.replit-artifact/artifact.toml` `[services.production]` block are kept for the workflow tooling but are **not** the production path. Do **not** add new code that depends on them, and do **not** call `suggest_deploy()` for this project.
+- Replit Workspace is for **dev preview, code review, and task agents only**. Shipping happens via `git push` → Railway build.
+
+## External services (none Replit-managed)
+
+Every infrastructure dep this app uses is an external service the user already pays for. Do not provision Replit-managed equivalents (Replit Database, Replit Object Storage, Replit Auth) — they would split the source of truth from production Railway. Use the `prefer-external-dependencies` skill before any infrastructure-shaped tool call.
+
+| Concern | Service | Secrets |
+|---|---|---|
+| Database + pgvector | **Neon Postgres** | `POSTGRES_URL` |
+| Object storage | **Cloudflare R2** | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL` |
+| User auth | **Google OAuth** | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
+| LLMs | **OpenAI, Anthropic, Gemini** (direct SDKs) | `OPENAI_API_KEY`, `OPENAI_EMBEDDING_KEY`, `ANTHROPIC_API_KEY`, `AI_INTEGRATIONS_GEMINI_API_KEY` |
+| Macro data | **FRED** | `FRED_API_KEY` |
+| Email | **Resend** | `RESEND_API_KEY` |
+| Error monitoring | **Sentry** | `SENTRY_DSN` |
+| Project tracking | **Linear** | Replit connector `conn_linear_01KN0GFMPXYQYH0QYYEXNKZ0GG` (broker only — falls back to plain env vars) |
+| Source control / API | **GitHub** | `GITHUB_PAT` |
+| Hosting | **Railway** (Docker) | configured via `railway.toml` |
 
 ## Health endpoint
 
-`GET /api/health/live` (not `/api/healthz`). This is the path the deployment startup probe must point at — see `[services.production.health.startup]` in `artifacts/api-server/.replit-artifact/artifact.toml`. The server registers `/api/health/live` synchronously before `httpServer.listen()`, then defers migrations + seeds + vector indexing + scheduler boot to `setImmediate`, so liveness becomes reachable within seconds of process start. Drift in the probe path causes silent republish failures.
+`GET /api/health/live` (not `/api/healthz`). This is the path Railway's `healthcheckPath` must point at (already configured in `railway.toml`). The server registers `/api/health/live` synchronously before `httpServer.listen()`, then defers migrations + seeds + vector indexing + scheduler boot to `setImmediate`, so liveness becomes reachable within seconds of process start. Drift in the probe path causes silent republish failures.
 
 ## Production bundle
 
-`artifacts/api-server/build.mjs` externalizes large doc/media libraries (`@react-pdf/renderer`, `pptxgenjs`, `xlsx`, `docx`, `satori`, `jspdf`, `archiver`) so they are loaded from `node_modules` at runtime instead of being inlined into `dist/index.mjs`. Result: the bundle dropped from ~32 MB → ~20 MB. Each of these packages must remain in `dependencies` (not `devDependencies`) so pnpm installs them in the deployed container. If you add another heavy package that is only used on a small number of code paths, externalize it the same way.
+`artifacts/api-server/build.mjs` externalizes large doc/media libraries (`@react-pdf/renderer`, `pptxgenjs`, `xlsx`, `docx`, `satori`, `jspdf`, `archiver`) **plus** the AI SDKs (`@ai-sdk/*`, `@anthropic-ai/sdk`, `@google/genai`, `@perplexity-ai/perplexity_ai`, `openai`, `ai`), `country-state-city`, `@sentry/*`, and `google-auth-library`. They are loaded from `node_modules` at runtime instead of being inlined into `dist/index.mjs`. Result: the bundle dropped from ~32 MB → ~7.5 MB. Each of these packages must remain in `dependencies` (not `devDependencies`) so pnpm installs them in the Railway runtime container. If you add another heavy package that is only used on a small number of code paths, externalize it the same way.
 
 ## pnpm workspace
 
@@ -68,6 +84,7 @@ Skills are process documents that guide AI agents. See `claude.md` § "Agent & S
 | `ui-page-patterns` | Building or fixing any UI page — enforces canonical archetypes, loading/empty/error states, action-button discipline, tab URL sync |
 | `embedded-ai-agent` | Adding or extending Rebecca (the only AI assistant in this app) |
 | `replit-independence` | Adding any dependency, env var, or deployment-affecting change |
+| `prefer-external-dependencies` | Before any infrastructure-shaped tool call — the project uses Neon Postgres, Cloudflare R2, Google OAuth, direct OpenAI/Anthropic/Gemini SDKs; never provision Replit-managed equivalents |
 | `norfolk-code-review` | Before opening a PR — wraps `ce-code-review` with hospitality/Drizzle personas |
 | `architecture-decision-records` | Any irreversible technical decision future contributors might re-litigate |
 | `hplus-pptx-generator` | Extending or debugging the LB Slides PPTX generator |
@@ -79,8 +96,10 @@ Skills are process documents that guide AI agents. See `claude.md` § "Agent & S
 
 > **Canonical page archetypes**: see `claude.md` § "Canonical Page Archetypes".
 
-## Secrets present in this Repl
+## Secrets present in this Repl (dev)
 
-`POSTGRES_URL`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `TOKEN_ENCRYPTION_KEY`, `OPENAI_EMBEDDING_KEY`, `FRED_API_KEY`, `GITHUB_PAT`, `GOOGLE_CLIENT_SECRET`.
+`POSTGRES_URL` (Neon), `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` (Cloudflare R2), `TOKEN_ENCRYPTION_KEY`, `OPENAI_EMBEDDING_KEY`, `FRED_API_KEY`, `GITHUB_PAT`, `GOOGLE_CLIENT_SECRET`.
 
-For the **full** env-var contract used by the api-server (including `DATABASE_URL`, `STORAGE_PROVIDER`, `AUTH_PROVIDER`, `NODE_ENV`, `SESSION_SECRET`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `R2_PUBLIC_URL`), see `claude.md` § "Environment Variables (api-server)".
+These point at the **same external services** the production Railway deployment uses (Neon, Cloudflare R2, Google OAuth, OpenAI). Do not swap any of them for a Replit-managed equivalent — that would split dev from prod.
+
+For the **full** env-var contract used by the api-server (including `DATABASE_URL`, `STORAGE_PROVIDER`, `AUTH_PROVIDER`, `NODE_ENV`, `SESSION_SECRET`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `R2_PUBLIC_URL`, `SENTRY_DSN`, `RESEND_API_KEY`), see `claude.md` § "Environment Variables (api-server)" and § "Production Deployment".

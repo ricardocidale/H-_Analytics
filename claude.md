@@ -44,10 +44,12 @@ docs/solutions/ Documented solutions, organized by category with YAML frontmatte
 | Frontend build | Vite |
 | Backend build | esbuild (CJS bundle) |
 | File storage | Cloudflare R2 |
-| Auth | Replit Auth (OpenID Connect + PKCE) |
-| AI providers | OpenAI, Anthropic, Gemini |
+| Auth | Pluggable via `AUTH_PROVIDER` — Google OAuth (production default) or Replit OIDC; both implementations live behind the adapter in `artifacts/api-server/src/providers/auth/` |
+| AI providers | OpenAI, Anthropic, Gemini (all called via direct SDKs with first-party API keys — not via a Replit broker) |
 | Observability | Sentry |
 | Project tracking | Linear (integration: `conn_linear_01KN0GFMPXYQYH0QYYEXNKZ0GG`) |
+| Hosting (production) | **Railway** via `Dockerfile` + `railway.toml` — see "Production Deployment" below |
+| Hosting (dev preview) | Replit Workspace (workflows + shared proxy on `localhost:80`) — **preview only**, not used to publish |
 
 ---
 
@@ -79,6 +81,45 @@ Health endpoint: `GET /api/health/live` (not `/api/healthz`).
 | `GITHUB_PAT` | GitHub integration |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth |
 | `OPENAI_EMBEDDING_KEY` | Separate embedding key |
+
+---
+
+## Production Deployment
+
+**Production runs on Railway, not on Replit.** Replit Publish (both `autoscale` and Reserved VM) failed for this app — see Task #942 history and `docs/solutions/integration-issues/dev-login-empty-body-edge-proxy-2026-05-02.md` for the edge-proxy / bundle-size root causes that pushed us off Replit Publish for good.
+
+**Wiring (already in repo, do not duplicate):**
+
+| File | Purpose |
+|---|---|
+| `Dockerfile` | Two-stage Node 20 + pnpm build. Builds all packages, ships the api-server bundle plus the SPA at `dist/public`, runs `node artifacts/api-server/dist/index.mjs`. |
+| `railway.toml` | `builder = "dockerfile"`, `healthcheckPath = "/api/health/live"`, `healthcheckTimeout = 300`, `restartPolicyType = "ON_FAILURE"`. |
+| `artifacts/api-server/build.mjs` | Externalises heavy deps (AI SDKs, doc/media libs, country-state-city, Sentry, google-auth-library) so the bundle stays ~7.5 MB and pnpm installs the rest in the runtime container. |
+
+**Single-container model:** the api-server serves both `/api/*` and the SPA (`serveStatic` mounts `artifacts/api-server/dist/public`). One Railway service, one port (`$PORT`), no separate frontend deployment.
+
+**Required production env vars on Railway** — every value must be set as a Railway service variable (no Replit-managed broker is reachable in production):
+
+`POSTGRES_URL` (Neon), `SESSION_SECRET`, `TOKEN_ENCRYPTION_KEY`, `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET` / `R2_PUBLIC_URL` (Cloudflare R2), `STORAGE_PROVIDER=r2`, `AUTH_PROVIDER=google`, `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` (Google OAuth), `OPENAI_API_KEY` + `OPENAI_EMBEDDING_KEY` (OpenAI), `ANTHROPIC_API_KEY` (Anthropic), `AI_INTEGRATIONS_GEMINI_API_KEY` (Gemini), `FRED_API_KEY` (FRED), `RESEND_API_KEY` (email), `SENTRY_DSN` (Sentry), `NODE_ENV=production`. The `PASSWORD_*` fallbacks are optional dev shortcuts and should be **omitted** in production.
+
+**External services this app depends on** (all owned by the user, all reachable from Railway with the secrets above — none are Replit-managed):
+
+| Concern | Service | Secrets |
+|---|---|---|
+| Primary database + pgvector | **Neon Postgres** | `POSTGRES_URL` |
+| Object storage (uploads, generated PPTX, photo assets) | **Cloudflare R2** | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL` |
+| User auth | **Google OAuth** | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
+| LLMs | **OpenAI, Anthropic, Gemini** (direct SDKs) | `OPENAI_API_KEY`, `OPENAI_EMBEDDING_KEY`, `ANTHROPIC_API_KEY`, `AI_INTEGRATIONS_GEMINI_API_KEY` |
+| Macro economic data | **FRED (St. Louis Fed)** | `FRED_API_KEY` |
+| Transactional email | **Resend** | `RESEND_API_KEY` |
+| Error monitoring | **Sentry** | `SENTRY_DSN` |
+| Project / issue tracking | **Linear** | `conn_linear_01KN0GFMPXYQYH0QYYEXNKZ0GG` (Replit connector — broker only, falls back to plain env vars) |
+| Source control / API | **GitHub** | `GITHUB_PAT` |
+| Hosting | **Railway** (Docker) | configured via `railway.toml` |
+
+**Rule of thumb:** every infrastructure dependency this app uses is an **external service the user already pays for**. Do not provision Replit-managed equivalents (Replit Database, Replit Object Storage, Replit Auth) — they would split the source of truth from production and break Railway. Use the `prefer-external-dependencies` skill before reaching for any Replit setup tool.
+
+**Replit's role going forward:** dev workspace and code-review surface only. Do **not** rely on `.replit` `[deployment]`, `artifact.toml [services.production]`, or `suggest_deploy()` for shipping. Those blocks may stay in the repo for the workflow tooling, but production ships through `git push` → Railway build via the `Dockerfile`.
 
 ---
 
@@ -262,6 +303,7 @@ vendor/
 | `ui-page-patterns` | Building or fixing any UI page — enforces canonical archetypes, loading/empty/error states, action-button discipline, tab URL sync |
 | `embedded-ai-agent` | Adding or extending Rebecca (the only AI assistant in this app) |
 | `replit-independence` | Adding any dependency, env var, or deployment-affecting change |
+| `prefer-external-dependencies` | Before any infrastructure-shaped tool call — the project uses Neon Postgres, Cloudflare R2, Google OAuth, direct OpenAI/Anthropic/Gemini SDKs; never provision Replit-managed equivalents |
 | `norfolk-code-review` | Before opening a PR — wraps `ce-code-review` with hospitality/Drizzle personas |
 | `architecture-decision-records` | Any irreversible technical decision future contributors might re-litigate |
 | `hplus-pptx-generator` | Extending or debugging the LB Slides PPTX generator |
@@ -282,7 +324,10 @@ vendor/
 
 | Date | Change |
 |---|---|
-| 2026-05-02 | Autoscale startup probe path corrected from `/api/healthz` (404, no such route) to `/api/health/live` in `artifacts/api-server/.replit-artifact/artifact.toml` — fixed the silent-fail republish loop. |
+| 2026-05-02 | **Production hosting moved to Railway.** Replit Publish (both autoscale and Reserved VM) repeatedly failed; the project now ships via `Dockerfile` + `railway.toml` (single container, api-server serves SPA + `/api`, healthcheck `/api/health/live`). All infra is external (Neon Postgres, Cloudflare R2, Google OAuth, direct OpenAI/Anthropic/Gemini SDKs). Replit Workspace is dev-preview only. See "Production Deployment" section. |
+| 2026-05-02 | Centralised safe response parsing in `queryClient.ts` (Tasks #943, #944) — `Unexpected end of JSON input` toasts replaced with `"Login failed (HTTP 502 Bad Gateway)"`-style messages. Root cause of the empty body was the Replit deploy edge proxy, not the Express app — another reason production moved off Replit. |
+| 2026-05-02 | api-server bundle reduced from ~32 MB → ~7.5 MB by externalising AI SDKs, doc/media libs, country-state-city, Sentry, and google-auth-library in `build.mjs` (Tasks #942, #948). |
+| 2026-05-02 | Autoscale startup probe path corrected from `/api/healthz` (404, no such route) to `/api/health/live` in `artifacts/api-server/.replit-artifact/artifact.toml` — fixed the silent-fail republish loop. (Kept for posterity; production no longer uses this path since the move to Railway.) |
 | 2026-05-02 | `claude.md` and `replit.md` harmonized per the `agent-memory-files` skill. Property-slides previewPath corrected from stale `/slides` to canonical `/property-slides/`. |
 | 2026-05-02 | `reference_brands` table wired into research orchestrator (tool DI), Funding Specialist PE prompt, and Rebecca KB. See solution doc. |
 | 2026-05-02 | `property_slide_deck_variants` table added (replaces `property_slide_decks`); dual-format generation — Track 1 PPTX + Track 2 image-PPTX via satori. |
