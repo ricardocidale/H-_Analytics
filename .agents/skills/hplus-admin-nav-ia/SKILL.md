@@ -2,9 +2,9 @@
 name: hplus-admin-nav-ia
 description: >
   H+ Admin navigation information architecture — where Sources, Resources, APIs,
-  and knowledge-related sections belong in the admin UI. Load before any task
-  that touches the Admin sidebar, adds a new admin section, or places data-source
-  or API management anywhere in the admin UI.
+  benchmarks, market data, and knowledge-related sections belong in the admin UI.
+  Load before any task that touches the Admin sidebar, adds a new admin section,
+  or places data-source or API management anywhere in the admin UI.
 ---
 
 # H+ Admin Navigation IA
@@ -20,7 +20,7 @@ the product owner and must not be relitigated.
 | Area | URL | Sidebar file | Purpose |
 |------|-----|-------------|---------|
 | **Admin** | `/admin` | `AdminSidebar.tsx` | Operational management — users, scenarios, brand, financial defaults, sources, integrations |
-| **AI Intelligence** | `/ai-intelligence` | `AiIntelligenceSidebar.tsx` | AI agent configuration — Specialist setup, Rebecca chat, knowledge assets, research orchestration |
+| **AI Intelligence** | `/ai-intelligence` | `AiIntelligenceSidebar.tsx` | AI agent configuration — Specialist setup, Rebecca chat, vector knowledge assets, research orchestration |
 
 The "AI" item in the Admin sidebar navigates from Admin → AI Intelligence.
 
@@ -35,9 +35,13 @@ Admin  (/admin)
 │   (users, activity, scenarios, brand, Steady State / model defaults, etc.)
 │
 ├── Sources                               ← top-level Admin sidebar section
-│   ├── Tables   — ALL structured data tables used by the app:
-│   │              country economic data, constants/defaults tables,
-│   │              benchmark tables, reference lookup tables, market data
+│   │                                       ONLY place in the app labelled "Sources"
+│   ├── Tables   — ALL structured data tables, including:
+│   │              • Country economic data (inflation, FX, GDP, interest rate per country)
+│   │              • Constants & financial defaults (numbers used in the financial engine)
+│   │              • Benchmark tables (Capital Raise, Exit Multiples, Reference Brands)
+│   │              • Market data (ADR index, labor rates, F&B, seasonal calendars)
+│   │              • Any other reference / lookup table the app reads from
 │   ├── Links    — external URLs the app references or scrapes as research inputs
 │   └── Files    — documents uploaded by admin (PDFs, CSVs, reference docs)
 │
@@ -61,12 +65,19 @@ Admin  (/admin)
         │   ├── Knowledge Base
         │   └── Conversations
         │
-        ├── Knowledge Registry            ← AI Intelligence section (scope TBD)
-        │   └── [sub-items TBD — NOT called "Sources"]
+        ├── Knowledge Registry            ← AI Intelligence section
+        │   └── [vector knowledge namespaces: text chunks the AI reads —
+        │         Market Research, Knowledge Base, Comparables, Assumption Guidance]
         │
-        └── Resources (existing)
-            ├── Catalog      — slug/wire-up registry (APIs, Sources, Benchmark Slugs, Models tabs)
-            └── Market Data  — AnalystTables: Capital Raise, Exit Multiples, Reference Brands
+        └── System
+            ├── System Health
+            ├── Scheduled Research
+            └── Vector Search Latency
+
+NOTE: The old "Resources → Catalog / Market Data" group in AI Intelligence
+is being reorganised. Market Data and all benchmark tables move to
+Admin → Sources → Tables. "Catalog" as a label in AI Intelligence does not
+have a clear meaning and should not be used.
 ```
 
 ---
@@ -77,18 +88,19 @@ Admin  (/admin)
 
 **Sources is an Admin sidebar top-level section. It does not appear anywhere inside `/ai-intelligence`.**
 
-Any sub-item or page labelled "Sources" inside the AI Intelligence area is wrong. Do not create one.
+Never label any sub-item or page inside AI Intelligence as "Sources".
 
 ### Rule 2 — Tables under Sources holds ALL structured data
 
-`Admin → Sources → Tables` is the home for every structured data table the app uses in its work and research:
+`Admin → Sources → Tables` is the home for every structured data table the app uses:
 
 - Country economic data (inflation, FX rate, GDP growth, interest rate per country)
-- Constants and defaults tables (the numbers used in financial calculations)
-- Benchmark tables (Capital Raise ranges, Exit Multiples ranges, Reference Brands)
-- Reference and lookup tables of any kind
+- Constants and financial defaults (numbers used in the financial engine)
+- Benchmark tables: Capital Raise ranges, Exit Multiples ranges, Reference Brands
+- Market data: ADR index, labor rates, F&B data, seasonal calendars
+- Any other reference or lookup table
 
-If it is a structured data table that the app reads from, it belongs under **Sources → Tables**.
+If it is a structured data table the app reads from → it belongs under **Sources → Tables**.
 
 ### Rule 3 — Resources → APIs has a live test button
 
@@ -97,23 +109,35 @@ If it is a structured data table that the app reads from, it belongs under **Sou
 - Status badge (active / inactive / unreachable)
 - **Test button** — fires a real request, shows response status + sample output in-page
 
-### Rule 4 — Knowledge Registry naming
+### Rule 4 — Knowledge Registry is for vector/text knowledge only
 
-The AI Intelligence section may have a "Knowledge Registry" area for AI-synthesised knowledge assets (vector namespaces, AI research outputs). Its sub-items must **not** be called "Sources" — that name is reserved for the Admin sidebar section. Use "Knowledge Assets", "AI Knowledge", or another distinct label.
+`AI Intelligence → Knowledge Registry` surfaces the AI's text-based knowledge namespaces:
+vector chunk collections the AI reads when answering questions (Market Research, Knowledge Base,
+Comparables, Assumption Guidance). These cannot be shown as a simple data grid — they are
+text chunks with embeddings. Sub-items are NOT called "Sources".
 
-### Rule 5 — Legacy redirect
+### Rule 5 — "Catalog" is not a label to use in AI Intelligence
 
-`"sources" → "data-sources"` in `SECTION_REDIRECTS` inside `AdminSidebar.tsx` is a stale legacy alias. When implementing the new Sources section, update this redirect to point to the new canonical Sources page (`"sources-tables"` or whichever section value is chosen).
+The old "Resources → Catalog" tab in AI Intelligence (APIs / Sources / Benchmark Slugs / Models)
+is being deprecated and reorganised. Do not add new things labelled "Catalog" in AI Intelligence.
+
+### Rule 6 — Legacy redirect
+
+`"sources" → "data-sources"` in `SECTION_REDIRECTS` inside `AdminSidebar.tsx` is a stale legacy
+alias. When implementing the new Sources section, update this to point to the new canonical
+Sources → Tables page.
 
 ---
 
 ## Relevant files
 
-- `artifacts/hospitality-business-portal/src/components/admin/AdminSidebar.tsx` — Admin sidebar nav groups, `AdminSection` union type, `SECTION_REDIRECTS`
-- `artifacts/hospitality-business-portal/src/pages/Admin.tsx` — renders the component for each `AdminSection`
-- `artifacts/hospitality-business-portal/src/components/ai-intelligence/AiIntelligenceSidebar.tsx` — AI Intelligence sidebar, `AiIntelligenceSection` union type
-- `artifacts/hospitality-business-portal/src/pages/AiIntelligence.tsx` — renders the component for each `AiIntelligenceSection`
+- `artifacts/hospitality-business-portal/src/components/admin/AdminSidebar.tsx` — `AdminSection` union type, `SECTION_REDIRECTS`, nav groups
+- `artifacts/hospitality-business-portal/src/pages/Admin.tsx` — renders component per `AdminSection`
+- `artifacts/hospitality-business-portal/src/components/admin/resources/ResourcesAdminPage.tsx` — old Catalog page (4 tabs: APIs / Sources / Benchmark Slugs / Models) — being reorganised
+- `artifacts/hospitality-business-portal/src/components/ai-intelligence/AiIntelligenceSidebar.tsx` — `AiIntelligenceSection` union type
+- `artifacts/hospitality-business-portal/src/pages/AiIntelligence.tsx` — renders component per `AiIntelligenceSection`
+- `artifacts/hospitality-business-portal/src/components/admin/intelligence/AnalystTables.tsx` — existing benchmark table Analyst UI (moves to Sources → Tables)
 - `artifacts/api-server/src/routes/admin/intelligence-sources.ts` — existing source registry API routes
 - `artifacts/api-server/src/seeds/source-registry.ts` — existing seed pattern for external API/source entries
-- `docs/brainstorms/knowledge-registry-requirements.md` — Knowledge Registry feature spec (AI Intelligence area)
+- `docs/brainstorms/knowledge-registry-requirements.md` — Knowledge Registry feature spec
 - `docs/solutions/architecture-patterns/admin-sidebar-ia-sources-resources-2026-05-02.md` — compound knowledge doc

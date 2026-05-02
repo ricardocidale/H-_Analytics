@@ -18,20 +18,29 @@ The Knowledge Registry gives every AI knowledge asset a human-readable home in t
 
 ## 2. Scope
 
-All 7 knowledge assets are in scope from the start:
+### Knowledge Registry (AI Intelligence — vector namespaces only)
 
-| # | Asset | Backing System | Content Type |
-|---|-------|---------------|--------------|
-| 1 | Market Research | `vector_chunks` — `market-research` namespace | Text chunks (cards) |
-| 2 | Knowledge Base | `vector_chunks` — `knowledge-base` namespace | Text chunks (cards) |
-| 3 | Comparables | `vector_chunks` — `comparables` namespace | Text chunks (cards) |
-| 4 | Assumption Guidance | `vector_chunks` — `assumption-guidance` namespace | Text chunks (cards) |
-| 5 | Benchmark: Capital Raise | `analyst_table_ranges` — `capital_raise` | Numeric ranges grid |
-| 6 | Benchmark: Exit Multiples | `analyst_table_ranges` — `exit_multiples` | Numeric ranges grid |
-| 7 | Benchmark: Reference Brands | `analyst_table_ranges` — `reference_brands` | Card grid |
-| 8 | Country Economic Data | Structured table (new) | Country × metric grid |
+| # | Asset | Backing System | Content Type | Admin home |
+|---|-------|---------------|--------------|------------|
+| 1 | Market Research | `vector_chunks` — `market-research` namespace | Text chunks | AI Intelligence → Knowledge Registry |
+| 2 | Knowledge Base | `vector_chunks` — `knowledge-base` namespace | Text chunks | AI Intelligence → Knowledge Registry |
+| 3 | Comparables | `vector_chunks` — `comparables` namespace | Text chunks | AI Intelligence → Knowledge Registry |
+| 4 | Assumption Guidance | `vector_chunks` — `assumption-guidance` namespace | Text chunks | AI Intelligence → Knowledge Registry |
 
-The `research-history`, `documents`, `scenarios`, and `properties` namespaces are excluded — they are operational/transactional data, not knowledge assets managed by the Analyst.
+### Structured tables (Admin → Sources → Tables)
+
+These are NOT in the Knowledge Registry. They live in the Admin sidebar under Sources → Tables:
+
+| Asset | Backing System | Admin home |
+|-------|---------------|------------|
+| Benchmark: Capital Raise | `analyst_table_ranges` — `capital_raise` | Admin → Sources → Tables |
+| Benchmark: Exit Multiples | `analyst_table_ranges` — `exit_multiples` | Admin → Sources → Tables |
+| Benchmark: Reference Brands | `analyst_table_ranges` — `reference_brands` | Admin → Sources → Tables |
+| Country Economic Data | `country_economic_data` (new table) | Admin → Sources → Tables |
+| Constants & financial defaults | existing model constants | Admin → Sources → Tables |
+| Market data (ADR, labor, F&B) | `analyst_table_ranges` + related | Admin → Sources → Tables |
+
+The `research-history`, `documents`, `scenarios`, and `properties` namespaces are excluded from the Knowledge Registry — they are operational/transactional data.
 
 ---
 
@@ -39,21 +48,25 @@ The `research-history`, `documents`, `scenarios`, and `properties` namespaces ar
 
 The Knowledge Registry lives inside the existing **AI Intelligence** section (`/ai-intelligence`), accessible via the "AI" item in the main Admin sidebar.
 
-> **Critical:** "Sources" is an Admin sidebar section and must NOT appear anywhere inside AI Intelligence. See §10 and `.agents/skills/hplus-admin-nav-ia/SKILL.md`.
+> **Critical:** "Sources" is an Admin sidebar section and must NOT appear anywhere inside AI Intelligence. Benchmarks, market data, and country economic data all live under Admin → Sources → Tables. See §10 and `.agents/skills/hplus-admin-nav-ia/SKILL.md`.
 
-A new **"Knowledge Registry"** group is added to `AiIntelligenceSidebar.tsx` with two entries:
+A new **"Knowledge Registry"** group is added to `AiIntelligenceSidebar.tsx`. It contains the AI's **vector/text knowledge namespaces** — the text chunks the AI reads when answering questions. These are distinct from structured data tables (which live in Admin → Sources → Tables) because they are text with embeddings, not rows and columns.
 
 ```
 AI Intelligence (/ai-intelligence)
 │
 └── Knowledge Registry               ← NEW group
-    ├── Knowledge Assets  — all 8 AI knowledge assets (vector namespaces + benchmark tables)
-    └── Country Data      — dedicated full-screen grid for country economic data
+    └── [vector namespaces — Market Research, Knowledge Base,
+          Comparables, Assumption Guidance — text chunk viewer
+          + Analyst regeneration button per namespace]
 ```
 
-`AiIntelligenceSection` type adds: `"knowledge-registry"` and `"knowledge-registry-country-data"`.
+`AiIntelligenceSection` type adds: `"knowledge-registry"`.
 
-Country Economic Data and all benchmark/constants tables are also visible under **Admin → Sources → Tables** — that is the admin's primary place to view and manage all structured data. The Knowledge Registry view in AI Intelligence is the AI-specific view with Analyst regeneration controls.
+**What moves OUT of the Knowledge Registry (vs earlier drafts):**
+- Benchmark tables (Capital Raise, Exit Multiples, Reference Brands) → Admin → Sources → Tables
+- Country Economic Data → Admin → Sources → Tables
+- Constants / financial defaults → Admin → Sources → Tables
 
 ---
 
