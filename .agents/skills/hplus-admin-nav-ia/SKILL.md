@@ -36,14 +36,21 @@ Admin  (/admin)
 │
 ├── Sources                               ← top-level Admin sidebar section
 │   │                                       ONLY place in the app labelled "Sources"
-│   ├── Tables   — ALL structured data tables, including:
-│   │              • Country economic data (inflation, FX, GDP, interest rate per country)
-│   │              • Constants & financial defaults (numbers used in the financial engine)
-│   │              • Benchmark tables (Capital Raise, Exit Multiples, Reference Brands)
-│   │              • Market data (ADR index, labor rates, F&B, seasonal calendars)
-│   │              • Any other reference / lookup table the app reads from
-│   ├── Links    — external URLs the app references or scrapes as research inputs
-│   └── Files    — documents uploaded by admin (PDFs, CSVs, reference docs)
+│   │
+│   ├── Tables          — ALL structured/grid data, including:
+│   │                     • Benchmarks (Capital Raise, Exit Multiples, Reference Brands)
+│   │                     • Market data (ADR index, labor rates, F&B, seasonal calendars)
+│   │                     • Country economic data (inflation, FX, GDP, interest rate)
+│   │                     • Constants & financial defaults
+│   │                     • Any other reference / lookup table the app reads from
+│   │
+│   ├── Market Research — research content that is MORE than grid data:
+│   │                     synthesized research text, analysis, findings
+│   │                     (stored as vector chunks in market-research namespace)
+│   │                     [if purely tabular → move under Tables instead]
+│   │
+│   ├── Links           — external URLs the app references or scrapes as research inputs
+│   └── Files           — documents uploaded by admin (PDFs, CSVs, reference docs)
 │
 ├── Resources                             ← top-level Admin sidebar section
 │   └── APIs     — full API registry with live test button (see below)
@@ -65,19 +72,20 @@ Admin  (/admin)
         │   ├── Knowledge Base
         │   └── Conversations
         │
-        ├── Knowledge Registry            ← AI Intelligence section
-        │   └── [vector knowledge namespaces: text chunks the AI reads —
-        │         Market Research, Knowledge Base, Comparables, Assumption Guidance]
+        ├── Knowledge Registry            ← AI Intelligence section (scope TBD)
+        │   └── [remaining vector namespaces if any stay here:
+        │         Knowledge Base, Comparables, Assumption Guidance —
+        │         confirm whether these also move to Admin → Sources]
         │
         └── System
             ├── System Health
             ├── Scheduled Research
             └── Vector Search Latency
 
-NOTE: The old "Resources → Catalog / Market Data" group in AI Intelligence
-is being reorganised. Market Data and all benchmark tables move to
-Admin → Sources → Tables. "Catalog" as a label in AI Intelligence does not
-have a clear meaning and should not be used.
+OPEN QUESTION: Knowledge Base, Comparables, and Assumption Guidance are the
+same kind of content as Market Research (vector text chunks). If Market Research
+belongs under Admin → Sources, these likely do too — which would make Knowledge
+Registry in AI Intelligence empty. Confirm before implementing.
 ```
 
 ---
@@ -90,17 +98,24 @@ have a clear meaning and should not be used.
 
 Never label any sub-item or page inside AI Intelligence as "Sources".
 
-### Rule 2 — Tables under Sources holds ALL structured data
+### Rule 2 — Tables under Sources holds ALL structured/grid data
 
 `Admin → Sources → Tables` is the home for every structured data table the app uses:
 
-- Country economic data (inflation, FX rate, GDP growth, interest rate per country)
-- Constants and financial defaults (numbers used in the financial engine)
 - Benchmark tables: Capital Raise ranges, Exit Multiples ranges, Reference Brands
 - Market data: ADR index, labor rates, F&B data, seasonal calendars
+- Country economic data (inflation, FX rate, GDP growth, interest rate per country)
+- Constants and financial defaults (numbers used in the financial engine)
 - Any other reference or lookup table
 
-If it is a structured data table the app reads from → it belongs under **Sources → Tables**.
+If it is a structured grid/table the app reads from → it belongs under **Sources → Tables**.
+
+### Rule 2b — Non-table source content sits alongside Tables, not inside it
+
+If a source type is more than row/column data (e.g. research text, synthesized findings,
+documents), it gets its own sub-item under Sources at the same level as Tables — not nested
+inside Tables. Example: Market Research is vector text chunks (synthesized research) and
+therefore sits as `Sources → Market Research`, not `Sources → Tables → Market Research`.
 
 ### Rule 3 — Resources → APIs has a live test button
 
@@ -109,12 +124,16 @@ If it is a structured data table the app reads from → it belongs under **Sourc
 - Status badge (active / inactive / unreachable)
 - **Test button** — fires a real request, shows response status + sample output in-page
 
-### Rule 4 — Knowledge Registry is for vector/text knowledge only
+### Rule 4 — Knowledge Registry scope is unresolved pending product decision
 
-`AI Intelligence → Knowledge Registry` surfaces the AI's text-based knowledge namespaces:
-vector chunk collections the AI reads when answering questions (Market Research, Knowledge Base,
-Comparables, Assumption Guidance). These cannot be shown as a simple data grid — they are
-text chunks with embeddings. Sub-items are NOT called "Sources".
+Market Research (vector text chunks) has been confirmed to belong under Admin → Sources,
+not AI Intelligence. Knowledge Base, Comparables, and Assumption Guidance are the same
+kind of content. Until confirmed otherwise, treat their placement as an open question:
+they may move to Admin → Sources as well, which would leave Knowledge Registry in
+AI Intelligence with nothing — or they may stay in AI Intelligence for AI-specific reasons.
+
+Do NOT add new items to Knowledge Registry until this is resolved. Sub-items must NOT
+be called "Sources".
 
 ### Rule 5 — "Catalog" is not a label to use in AI Intelligence
 

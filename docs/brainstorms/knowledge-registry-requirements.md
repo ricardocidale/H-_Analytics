@@ -18,14 +18,22 @@ The Knowledge Registry gives every AI knowledge asset a human-readable home in t
 
 ## 2. Scope
 
-### Knowledge Registry (AI Intelligence — vector namespaces only)
+### Vector namespace placement — OPEN QUESTION
 
-| # | Asset | Backing System | Content Type | Admin home |
-|---|-------|---------------|--------------|------------|
-| 1 | Market Research | `vector_chunks` — `market-research` namespace | Text chunks | AI Intelligence → Knowledge Registry |
-| 2 | Knowledge Base | `vector_chunks` — `knowledge-base` namespace | Text chunks | AI Intelligence → Knowledge Registry |
-| 3 | Comparables | `vector_chunks` — `comparables` namespace | Text chunks | AI Intelligence → Knowledge Registry |
-| 4 | Assumption Guidance | `vector_chunks` — `assumption-guidance` namespace | Text chunks | AI Intelligence → Knowledge Registry |
+Market Research is confirmed to belong under **Admin → Sources → Market Research**
+(same level as Tables, not inside it — because it is synthesized research text, not
+a simple grid). It is stored as vector chunks in the `market-research` namespace.
+
+Knowledge Base, Comparables, and Assumption Guidance are the same kind of content
+(vector text chunks). Their placement is **not yet confirmed** — they may follow
+Market Research to Admin → Sources, or remain in AI Intelligence for AI-specific reasons.
+
+| Asset | Backing System | Confirmed home | Status |
+|-------|---------------|----------------|--------|
+| Market Research | `vector_chunks` — `market-research` | Admin → Sources → Market Research | **Confirmed** |
+| Knowledge Base | `vector_chunks` — `knowledge-base` | TBD | Pending |
+| Comparables | `vector_chunks` — `comparables` | TBD | Pending |
+| Assumption Guidance | `vector_chunks` — `assumption-guidance` | TBD | Pending |
 
 ### Structured tables (Admin → Sources → Tables)
 
