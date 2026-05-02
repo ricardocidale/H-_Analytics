@@ -17,13 +17,15 @@ Read that file when you need exact details. This skill distills the most actiona
 
 - **Position:** 1 of 6 (template_index `0`)
 - **Dimensions:** 960 × 540 pt (16:9)
-- **Layout / master:** "DEFAULT" layout on "Office Theme" master (NOT the SeedLegals master)
+- **Governing design system:** **L+B palette** (named below). The PPTX file's theme XML happens to report a "DEFAULT" layout on an "Office Theme" master — that's a python-pptx artifact, not a meaningful design choice. Treat L+B as the source-of-truth for colors and typography; the embedded Office theme is inert.
 - **Effective canvas color:** `#FFF9F5` (warm ivory cream); confirm via `slideMaster1.xml <p:bg>` if regenerating
 - **Composition:** ~70% raster (header band, footer band, card backgrounds, divider lines, bullet dots, decorative icons are all baked-in PNG/JPG fragments) + ~30% live text shapes overlaid on top. Signature of a Canva/Figma/PDF export pasted into PowerPoint.
 
 ---
 
-## Color palette (hardcoded sRGB — no theme colors)
+## Color palette — L+B
+
+These are the L+B brand colors. They are written into the PPTX as direct sRGB values (not via theme references), so the embedded Office theme can be ignored.
 
 | Hex | Role |
 |---|---|
@@ -119,7 +121,7 @@ These are baked into the canonical template. Do NOT silently "fix" them in the g
 
 From Section 7 of the source file:
 
-1. Set slide 960 × 540, apply DEFAULT layout
+1. Set slide 960 × 540 (L+B design system; the layout name in the PPTX XML — "DEFAULT" — is irrelevant)
 2. Set slide background to `#FFF9F5` (or confirm via master)
 3. Place full-bleed dark-green bar `0,0,960,44` (~`#1C2B1E`)
 4. Place full-bleed dark-green bar `0,507,960,33`

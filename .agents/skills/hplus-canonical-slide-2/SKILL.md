@@ -17,7 +17,7 @@ Read that file when you need exact details. This skill distills the most actiona
 
 - **Position:** 2 of 6 (template_index `1`)
 - **Dimensions:** 960 × 540 pt (16:9)
-- **Layout / master:** "DEFAULT" layout on "Office Theme" master (same as Slide 1)
+- **Governing design system:** **L+B palette** (same as Slide 1). The PPTX file reports the same "DEFAULT" / "Office Theme" master values as Slide 1 — both are inert; L+B governs.
 - **Effective canvas color:** `#FFF9F5` (warm ivory cream) — inferred, identical to Slide 1
 - **Composition:** **Structural clone of Slide 1.** Same chrome (header band, footer band, three right-column cards) and most divider rules / bullet-dot rasters at identical x/y. The deltas — Vision dot y-shift (295/324/350 vs Slide 1's 295/313/338), price-block removal, photo caption band moved up ~13pt, subtitle font size, tag-line color split, and the live-photo-over-placeholder pattern — are documented in full in the next section. A rebuilder should clone the Slide-1 template and apply those deltas, not re-author from scratch.
 
@@ -45,7 +45,7 @@ All chrome raster assets (header band, footer band, card backgrounds, specs divi
 
 ---
 
-## Color palette (same as Slide 1)
+## Color palette — L+B (same as Slide 1, plus one Slide-2-only color)
 
 | Hex | Role |
 |---|---|
