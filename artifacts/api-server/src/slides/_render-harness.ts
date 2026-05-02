@@ -10,22 +10,25 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import sharp from "sharp";
 import { renderHybridSlide } from "./hybrid-renderer.js";
 import { getSlideFonts } from "./fonts.js";
 import type { SlidePayload } from "./slide-jsx.js";
 
-// ── Minimal 1×1 JPEG (white pixel) for photo slots ─────────────────────────
-// Avoids needing real photos; still exercises the full sharp resize path.
-const WHITE_PIXEL_JPEG_B64 =
-  "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8U" +
-  "HRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgN" +
-  "DRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIy" +
-  "MjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAA" +
-  "AAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/EABQRAQAAAAAAAAAAAAAAA" +
-  "AAAAP/aAAwDAQACEQMRAD8AJQAB/9k=";
+// ── Generate a solid-color test JPEG large enough for sharp to resize ────────
+// 200×150 pixels — small but valid. Each photo gets a distinct hue so we can
+// verify visually that the correct photo appears in the correct slot.
+async function makeTestJpegB64(r: number, g: number, b: number): Promise<string> {
+  const buf = await sharp({
+    create: { width: 200, height: 150, channels: 3, background: { r, g, b } },
+  })
+    .jpeg({ quality: 80 })
+    .toBuffer();
+  return buf.toString("base64");
+}
 
-function photoEntry(isHero: boolean, sortOrder: number) {
-  return { base64: WHITE_PIXEL_JPEG_B64, isHero, sortOrder };
+function photoEntry(base64: string, isHero: boolean, sortOrder: number) {
+  return { base64, isHero, sortOrder };
 }
 
 // ── Fixture payload (Hazelnis-style boutique hotel) ─────────────────────────
