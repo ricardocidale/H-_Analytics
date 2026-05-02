@@ -3053,6 +3053,12 @@
     "artifacts/api-server/src/syncHelpers.ts",
     "lib/shared/src/constants-staffing.ts"
   ],
+  "27.5": [
+    "artifacts/api-server/src/ai/kb-content.ts",
+    "artifacts/api-server/src/seeds/reference-ranges.ts",
+    "artifacts/api-server/src/shared/constants.ts",
+    "lib/shared/src/constants.ts"
+  ],
   "0.8": [
     "artifacts/api-server/src/ai/asset-intelligence.ts",
     "artifacts/api-server/src/ai/benchmark-lookups.ts",

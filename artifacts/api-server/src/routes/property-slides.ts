@@ -583,17 +583,20 @@ export async function preGenerateAllSlides(): Promise<void> {
       const batch = toGenerate.slice(i, i + CONCURRENCY);
       await Promise.allSettled(
         batch.map(async (prop) => {
-          const formats: SlideFormat[] = [];
-          if (!readySet.has(`${prop.id}:pptx`)) formats.push("pptx");
-          if (!readySet.has(`${prop.id}:image`)) formats.push("image");
-
-          for (const fmt of formats) {
+          // Claim each format before generating — only run generation for
+          // formats we successfully claimed (prevents duplicate generation
+          // on concurrent boot or mid-generation restart).
+          const claimedFormats: SlideFormat[] = [];
+          for (const fmt of (["pptx", "image"] as SlideFormat[])) {
+            if (readySet.has(`${prop.id}:${fmt}`)) continue;
             const claimed = await tryMarkGenerating(prop.id, fmt, "startup");
-            if (!claimed) continue;
+            if (claimed) claimedFormats.push(fmt);
           }
+          if (claimedFormats.length === 0) return;
+
           await Promise.allSettled([
-            formats.includes("pptx") ? generateTrack1(prop.id, undefined, "startup") : Promise.resolve(),
-            formats.includes("image") ? generateTrack2(prop.id, undefined, "startup") : Promise.resolve(),
+            claimedFormats.includes("pptx") ? generateTrack1(prop.id, undefined, "startup") : Promise.resolve(),
+            claimedFormats.includes("image") ? generateTrack2(prop.id, undefined, "startup") : Promise.resolve(),
           ]);
         }),
       );
