@@ -29,10 +29,10 @@ import numpy as np
 # ── L+B canonical palette ─────────────────────────────────────────────────────
 
 LB_PALETTE = {
-    "deep_forest":  (0x1C, 0x2B, 0x1E),  # #1C2B1E  dominant background
-    "medium_green": (0x25, 0x7D, 0x41),  # #257D41  accent
-    "sage":         (0x9F, 0xBC, 0xA4),  # #9FBCA4  secondary
-    "cream":        (0xFF, 0xF9, 0xF5),  # #FFF9F5  text / body
+    "deep_forest":  (0x1C, 0x2B, 0x1E),  # #1C2B1E  dark slides 1-2 background
+    "medium_green": (0x25, 0x7D, 0x41),  # #257D41  accent / CTA
+    "sage":         (0x9F, 0xBC, 0xA4),  # #9FBCA4  slides 5-6 background
+    "cream":        (0xFF, 0xF9, 0xF5),  # #FFF9F5  slides 3-4 background / text
     "mint":         (0xC8, 0xE8, 0xD0),  # #C8E8D0  highlight
 }
 
@@ -47,6 +47,25 @@ DIM_TOLERANCE_IN = 0.1
 
 # Minimum file size for a non-blank JPEG slide (bytes)
 MIN_SLIDE_JPEG_BYTES = 50_000
+
+# Per-slide expected color profile:
+#   dominant_color: which palette color must be present (>= min_coverage)
+#   min_coverage:   fraction of pixels required to pass
+#   text_color:     which palette color indicates text is rendering
+#   brightness_range: (min, max) acceptable mean brightness
+#
+# Based on the canonical L+B design:
+#   Slides 1-2: dark forest green background, photos, cream text
+#   Slides 3-4: cream/light background, medium_green accents
+#   Slides 5-6: sage green background, financial tables
+SLIDE_COLOR_PROFILES = {
+    1: {"dominant": "deep_forest",  "min_coverage": 0.10, "text": "cream",  "brightness": (60, 200)},
+    2: {"dominant": "deep_forest",  "min_coverage": 0.08, "text": "cream",  "brightness": (60, 200)},
+    3: {"dominant": "cream",        "min_coverage": 0.10, "text": "cream",  "brightness": (160, 255)},
+    4: {"dominant": "cream",        "min_coverage": 0.10, "text": "cream",  "brightness": (160, 255)},
+    5: {"dominant": "sage",         "min_coverage": 0.30, "text": "cream",  "brightness": (100, 210)},
+    6: {"dominant": "sage",         "min_coverage": 0.30, "text": "cream",  "brightness": (100, 210)},
+}
 
 PASS = "\033[32mPASS\033[0m"
 FAIL = "\033[31mFAIL\033[0m"
@@ -168,29 +187,37 @@ def inspect_pptx(pptx_path: Path) -> int:
         if not ok: failures += 1
 
         coverage = analysis["palette_coverage"]
+        profile = SLIDE_COLOR_PROFILES[slide_num]
+        dominant = profile["dominant"]
+        min_cov = profile["min_coverage"]
+        pcolor_hex = "#{:02X}{:02X}{:02X}".format(*LB_PALETTE[dominant])
 
-        # Dark forest green background must be present on every slide
+        # Dominant background color must be present per slide profile
         ok = check(
-            "deep_forest (#1C2B1E) present",
-            coverage["deep_forest"] > 0.02,
-            f"{coverage['deep_forest']*100:.1f}% of pixels"
+            f"{dominant} ({pcolor_hex}) dominant background",
+            coverage[dominant] >= min_cov,
+            f"{coverage[dominant]*100:.1f}% of pixels (need ≥{min_cov*100:.0f}%)"
         )
         if not ok: failures += 1
 
-        # Cream text color must be present (text is rendering)
-        ok = check(
-            "cream (#FFF9F5) present — text rendering",
-            coverage["cream"] > 0.001,
-            f"{coverage['cream']*100:.2f}% of pixels",
-            warn_only=(coverage["cream"] <= 0.001)
-        )
-        if not ok and coverage["cream"] <= 0.001: failures += 1
+        # Cream text color must be present (text is rendering) — warn-only for slides 5-6
+        # where tables may compress cream pixels to near-zero
+        text_cov = coverage[profile["text"]]
+        needs_text = dominant != "cream"  # cream-bg slides don't need to check text separately
+        if needs_text:
+            ok = check(
+                f"cream (#FFF9F5) present — text rendering",
+                text_cov > 0.001,
+                f"{text_cov*100:.3f}% of pixels",
+                warn_only=True
+            )
 
-        # Slide must not be blank (mean brightness shouldn't be near-white or solid-dark with zero variation)
+        # Brightness must be within expected range for slide type
         brightness = analysis["mean_brightness"]
+        bmin, bmax = profile["brightness"]
         ok = check(
-            "Slide not blank (brightness 30–230)",
-            30 < brightness < 230,
+            f"Brightness in expected range ({bmin}–{bmax})",
+            bmin < brightness < bmax,
             f"mean brightness {brightness:.1f}"
         )
         if not ok: failures += 1

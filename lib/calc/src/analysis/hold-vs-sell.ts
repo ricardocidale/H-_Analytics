@@ -50,6 +50,7 @@ import {
   DEFAULT_COMMISSION_RATE,
   DEFAULT_CAPITAL_GAINS_RATE,
   DEFAULT_DEP_RECAPTURE_RATE,
+  DEFAULT_LAND_VALUE_PERCENT,
   HOLD_VS_SELL_INDIFFERENCE_PCT,
 } from "@shared/constants";
 import { getFactoryNumber } from "@shared/model-constants-registry";
@@ -69,6 +70,14 @@ export interface HoldVsSellInput {
   annual_capex?: number;
   annual_debt_service?: number;
   original_cost_basis?: number;
+  /**
+   * Land value as a fraction of cost basis (0–1). Land does NOT depreciate, so
+   * only the building portion (`costBasis × (1 − land_value_pct)`) is the
+   * depreciable basis. If omitted, defaults to DEFAULT_LAND_VALUE_PERCENT (0.25)
+   * — the same conservative US-typical hospitality default used by the engine
+   * (`lib/engine/src/property/property-engine.ts`) and the verification suite.
+   */
+  land_value_pct?: number;
   capital_gains_rate?: number;
   depreciation_recapture_rate?: number;
   accumulated_depreciation?: number;
@@ -119,6 +128,14 @@ export function computeHoldVsSell(input: HoldVsSellInput): HoldVsSellOutput {
   const depRecapRate = input.depreciation_recapture_rate ?? DEFAULT_DEP_RECAPTURE_RATE;
   const accDepreciation = input.accumulated_depreciation ?? 0;
   const costBasis = input.original_cost_basis ?? input.current_market_value;
+  // Land does not depreciate (IRC §168 / IRS Pub 946). The depreciable basis is
+  // building value only. If the caller does not supply land_value_pct we default
+  // to DEFAULT_LAND_VALUE_PERCENT (0.25), the same conservative hospitality
+  // default the engine uses everywhere else (resolve-assumptions, loanCalculations,
+  // property-engine, verification suite). Failing loud here would silently break
+  // the dispatch contract for callers that have not yet been updated.
+  const landPct = input.land_value_pct ?? DEFAULT_LAND_VALUE_PERCENT;
+  const buildingBasis = r(costBasis * (1 - landPct));
 
   const projected_noi: number[] = [];
   const projected_fcf: number[] = [];
@@ -137,7 +154,11 @@ export function computeHoldVsSell(input: HoldVsSellInput): HoldVsSellOutput {
   const terminal_value = futureExitCap > 0 ? r(terminal_noi / futureExitCap) : 0;
   const terminalCommission = r(terminal_value * commRate);
   // Audit #319 R4: registry-backed factory baseline.
-  const holdYearsDepreciation = r(accDepreciation + (costBasis / getFactoryNumber('depreciationYears')) * input.remaining_hold_years);
+  // Project additional depreciation over the remaining hold period using the
+  // BUILDING basis only — land never depreciates. (Bug fix: previously used the
+  // full costBasis, which silently overstated depreciation, recapture tax, and
+  // capital-gains tax in every hold-vs-sell decision.)
+  const holdYearsDepreciation = r(accDepreciation + (buildingBasis / getFactoryNumber('depreciationYears')) * input.remaining_hold_years);
   const terminalAdjBasis = r(Math.max(0, costBasis - holdYearsDepreciation));
   const terminalGain = r(Math.max(0, terminal_value - terminalCommission - terminalAdjBasis));
   const terminalDepRecapTax = r(Math.min(terminalGain, holdYearsDepreciation) * depRecapRate);

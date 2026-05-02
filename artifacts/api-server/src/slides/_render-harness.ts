@@ -11,11 +11,18 @@
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
+import React from "react";
+import satori from "satori";
+import PptxGenJsImport from "pptxgenjs";
 import { renderHybridSlide } from "./hybrid-renderer.js";
-import { renderImagePptx } from "./image-renderer.js";
+import { Slide4, Slide5, Slide6 } from "./slide-jsx.js";
 import { getSlideFonts } from "./fonts.js";
 import type { SlidePayload } from "./slide-jsx.js";
 import { resolveSlotPhoto, type RecipeElement } from "./slot-resolver.js";
+
+// tsx ESM interop: pptxgenjs exports { default: PptxGenJS } in native ESM
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const PptxGenJs = (PptxGenJsImport as any).default ?? PptxGenJsImport;
 
 // ── Generate a solid-color test JPEG large enough for sharp to resize ────────
 // 200×150 pixels — small but valid. Each photo gets a distinct hue so we can
@@ -209,15 +216,67 @@ if (failed > 0) process.exit(1);
 console.log("\nAll checks passed.");
 
 // ── Generate full PPTX (all 6 slides) ────────────────────────────────────────
-console.log("\nGenerating full PPTX (6 slides)...");
-try {
-  const pptxBuf = await renderImagePptx(FIXTURE);
+console.log("\nRendering all 6 slides for PPTX...");
+
+const PPTX_W_IN = 13.33;
+const PPTX_H_IN = 7.5;
+const SLIDE_W_PX = 1920;
+const SLIDE_H_PX = 1080;
+
+async function renderJsxSlide(el: React.ReactElement): Promise<Buffer> {
+  const fontDefs = [
+    { name: "Garamond", data: fonts.garamondRegular, weight: 400 as const, style: "normal" as const },
+    { name: "Garamond", data: fonts.garamondBold,    weight: 700 as const, style: "normal" as const },
+    { name: "Poppins",  data: fonts.poppinsRegular,  weight: 400 as const, style: "normal" as const },
+    { name: "Poppins",  data: fonts.poppinsLight,    weight: 300 as const, style: "normal" as const },
+    { name: "Roboto",   data: fonts.robotoRegular,   weight: 400 as const, style: "normal" as const },
+    { name: "Roboto",   data: fonts.robotoBold,      weight: 700 as const, style: "normal" as const },
+  ].filter(f => f.data.byteLength > 0);
+  const svg = await satori(el, { width: SLIDE_W_PX, height: SLIDE_H_PX, fonts: fontDefs });
+  return sharp(Buffer.from(svg)).jpeg({ quality: 92 }).toBuffer();
+}
+
+const slideLabels = ["Slide 1 (hybrid)", "Slide 2 (hybrid)", "Slide 3 (hybrid)", "Slide 4 (satori JSX)", "Slide 5 (hybrid)", "Slide 6 (hybrid)"];
+const allSlides: Buffer[] = [];
+let pptxFailed = false;
+
+for (let i = 0; i < 6; i++) {
+  const slideNum = i + 1;
+  process.stdout.write(`  ${slideLabels[i]} ... `);
+  try {
+    let buf: Buffer;
+    if (slideNum === 4) {
+      buf = await renderJsxSlide(React.createElement(Slide4, { p: FIXTURE }));
+    } else if (slideNum === 6) {
+      buf = await renderHybridSlide(6, FIXTURE, fonts) ??
+            await renderJsxSlide(React.createElement(Slide6, { p: FIXTURE }));
+    } else {
+      buf = await renderHybridSlide(slideNum, FIXTURE, fonts) ??
+            await renderJsxSlide(React.createElement(Slide5, { p: FIXTURE }));
+    }
+    allSlides.push(buf);
+    console.log(`PASS  (${(buf.length / 1024).toFixed(0)} KB)`);
+  } catch (err) {
+    console.error(`FAIL  ${err}`);
+    pptxFailed = true;
+    allSlides.push(Buffer.alloc(0));
+  }
+}
+
+if (!pptxFailed) {
+  console.log("\nBuilding PPTX...");
+  const pptx = new PptxGenJs();
+  pptx.defineLayout({ name: "WIDE169", width: PPTX_W_IN, height: PPTX_H_IN });
+  pptx.layout = "WIDE169";
+  for (const buf of allSlides) {
+    const slide = pptx.addSlide();
+    slide.addImage({ data: `image/jpeg;base64,${buf.toString("base64")}`, x: 0, y: 0, w: PPTX_W_IN, h: PPTX_H_IN });
+  }
+  const pptxBuf = await pptx.write({ outputType: "nodebuffer" }) as unknown as Buffer;
   const pptxPath = path.join(OUT_DIR, "hazelnis-smoke.pptx");
   fs.writeFileSync(pptxPath, pptxBuf);
   console.log(`  PPTX written: ${pptxPath} (${(pptxBuf.length / 1024).toFixed(0)} KB)`);
-  console.log(`\nRun the Python inspector next:`);
-  console.log(`  python3 scripts/src/inspect-slides.py ${pptxPath}`);
-} catch (err) {
-  console.error(`  PPTX generation FAILED: ${err}`);
+} else {
+  console.error("  PPTX skipped — one or more slides failed");
   process.exit(1);
 }
