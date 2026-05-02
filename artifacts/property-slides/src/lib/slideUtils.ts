@@ -64,15 +64,43 @@ export function getMarketInsight(city: string, state: string): string {
 }
 
 export const COLORS = {
+  /**
+   * Canonical L+B sage canvas — used as the slide canvas for the financial
+   * pages (slides 5–6). Slides 1–4 use cream (`COLORS.cream`) per the
+   * canonical L+B template. See `SLIDE_BACKGROUNDS` below for the full
+   * per-slide mapping.
+   */
+  slideBg: "#9FBCA4",
+  /** Legacy dark-green panel — kept for header bands and badges only. */
   darkBg: "#1C2B1E",
   accent: "#257D41",
   sage: "#7AAA88",
   cream: "#FFF9F5",
   muted: "#9FBCA4",
   nearBlack: "#1C2B1E",
+  /** Secondary text on sage canvas. */
+  mutedDark: "#5A7A62",
+  /** Body text on sage canvas. */
+  bodyDark: "#2A4030",
   white: "#FFFFFF",
   lightBorder: "#E8EDE9",
 } as const;
+
+/**
+ * Per-slide canonical canvas backgrounds (1–6) — mirrors the L+B master
+ * backgrounds in the canonical property-slides PPTX template:
+ * 1–3 cream property spotlight, 4 decorative (cream fallback), 5–6 sage
+ * financial pages. Kept in sync with SLIDE_BACKGROUNDS in
+ * artifacts/api-server/src/slides/slide-jsx.tsx.
+ */
+export const SLIDE_BACKGROUNDS: Record<number, string> = {
+  1: COLORS.cream,
+  2: COLORS.cream,
+  3: COLORS.cream,
+  4: COLORS.cream,
+  5: COLORS.slideBg,
+  6: COLORS.slideBg,
+};
 
 export const FONTS = {
   serif: "'EB Garamond', 'Georgia', serif",

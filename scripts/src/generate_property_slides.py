@@ -27,7 +27,6 @@ import json
 import os
 import sys
 import time
-import copy
 import io
 from pathlib import Path
 
@@ -521,20 +520,29 @@ def main() -> None:
         json.dump({"error": f"Failed to open template: {e}"}, sys.stderr)
         sys.exit(1)
 
-    out_prs = Presentation()
-    # Match template slide dimensions
-    out_prs.slide_width = template_prs.slide_width
-    out_prs.slide_height = template_prs.slide_height
-    # Copy all slide layouts from template
-    out_prs.slide_master._element.remove(out_prs.slide_master._element[0])
+    # Base out_prs on the canonical template itself so the L+B slide-master
+    # backgrounds (sage / cream / decorative panels) are preserved when we
+    # clone slides into it. Then strip out the original slides and rebuild.
+    # Without this, out_prs would use a blank Office master and every cloned
+    # slide whose background isn't directly set would render as plain white.
     try:
-        from pptx.oxml.ns import qn
-        for layout in template_prs.slide_master.slide_layouts:
-            out_prs.slide_master.slide_layouts._sldLayoutIdLst.append(
-                copy.deepcopy(layout._element)
-            )
-    except Exception:
-        pass
+        out_prs = Presentation(str(TEMPLATE_PATH))
+    except Exception as e:
+        json.dump({"error": f"Failed to open template for output: {e}"}, sys.stderr)
+        sys.exit(1)
+
+    # Strip the template's existing slides; we'll re-clone them in order.
+    sld_id_lst = out_prs.slides._sldIdLst
+    for sld_id in list(sld_id_lst):
+        rId = sld_id.get(
+            "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id"
+        )
+        if rId:
+            try:
+                out_prs.part.drop_rel(rId)
+            except Exception:
+                pass
+        sld_id_lst.remove(sld_id)
 
     slide_builders = [
         lambda s: build_slide1(s, prop, photos, vt),

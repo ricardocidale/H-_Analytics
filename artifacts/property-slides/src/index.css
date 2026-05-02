@@ -39,7 +39,7 @@ body,
 }
 
 body {
-  background: var(--forest);
+  background: var(--slide-bg);
   color: var(--slide-text);
 }
 

@@ -16,6 +16,7 @@ import React from "react";
 import { getSlideFonts } from "./fonts";
 import {
   Slide4, Slide5, Slide6,
+  SLIDE_BACKGROUNDS,
   type SlidePayload,
 } from "./slide-jsx";
 import { renderHybridSlide } from "./hybrid-renderer";
@@ -53,10 +54,11 @@ async function renderJsxToJpeg(
 }
 
 async function generateBlankSlideJpeg(slideNum: number, propertyName: string): Promise<Buffer> {
+  const bg = SLIDE_BACKGROUNDS[slideNum] ?? "#9FBCA4";
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${SLIDE_W_PX}" height="${SLIDE_H_PX}">
-    <rect width="${SLIDE_W_PX}" height="${SLIDE_H_PX}" fill="#1C2B1E"/>
+    <rect width="${SLIDE_W_PX}" height="${SLIDE_H_PX}" fill="${bg}"/>
     <text x="${SLIDE_W_PX / 2}" y="${SLIDE_H_PX / 2}" text-anchor="middle" font-size="48"
-      fill="#9FBCA4" font-family="sans-serif">${propertyName} — Slide ${slideNum}</text>
+      fill="#1C2B1E" font-family="sans-serif">${propertyName} — Slide ${slideNum}</text>
   </svg>`;
   return sharp(Buffer.from(svg)).jpeg({ quality: 90 }).toBuffer();
 }

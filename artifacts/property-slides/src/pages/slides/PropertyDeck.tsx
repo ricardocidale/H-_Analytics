@@ -57,26 +57,26 @@ function CoverSlide({ total }: { total: number }) {
   return (
     <div
       className="w-screen h-screen overflow-hidden relative flex flex-col"
-      style={{ background: "#1C2B1E" }}
+      style={{ background: "#FFF9F5" }}
     >
       <div
         className="absolute inset-0"
         style={{
-          background: "radial-gradient(ellipse at 30% 60%, #2A4030 0%, #1C2B1E 60%)",
+          background: "radial-gradient(ellipse at 30% 60%, #F4EDE3 0%, #FFF9F5 60%)",
         }}
       />
 
       <div
-        className="absolute top-0 right-0 w-[40vw] h-[40vw] rounded-full opacity-5"
+        className="absolute top-0 right-0 w-[40vw] h-[40vw] rounded-full opacity-10"
         style={{
           background: "#257D41",
           transform: "translate(20%, -20%)",
         }}
       />
       <div
-        className="absolute bottom-0 left-0 w-[30vw] h-[30vw] rounded-full opacity-5"
+        className="absolute bottom-0 left-0 w-[30vw] h-[30vw] rounded-full opacity-10"
         style={{
-          background: "#7AAA88",
+          background: "#1C2B1E",
           transform: "translate(-30%, 30%)",
         }}
       />
@@ -85,27 +85,27 @@ function CoverSlide({ total }: { total: number }) {
         <div className="flex items-center gap-[1.5vw]">
           <div
             className="text-[2.2vw] tracking-[0.4em] font-bold"
-            style={{ fontFamily: "Poppins, system-ui, sans-serif", color: "#257D41", fontWeight: 200 }}
+            style={{ fontFamily: "Poppins, system-ui, sans-serif", color: "#1C2B1E", fontWeight: 200 }}
           >
             L+B
           </div>
           <div
             className="h-[0.1vh] flex-1"
-            style={{ background: "#5A7A62", opacity: 0.6 }}
+            style={{ background: "#5A7A62", opacity: 0.4 }}
           />
         </div>
 
         <div className="flex-1 flex flex-col justify-center">
           <div
             className="text-[1.6vw] tracking-[0.25em] mb-[3vh]"
-            style={{ fontFamily: "Poppins, system-ui, sans-serif", color: "#9FBCA4", fontWeight: 200 }}
+            style={{ fontFamily: "Poppins, system-ui, sans-serif", color: "#5A7A62", fontWeight: 200 }}
           >
             INVESTMENT PORTFOLIO
           </div>
 
           <div
             className="text-[6.5vw] leading-[1.08] mb-[4vh]"
-            style={{ fontFamily: "EB Garamond, Georgia, serif", color: "#FFFFFF", fontWeight: 400 }}
+            style={{ fontFamily: "EB Garamond, Georgia, serif", color: "#1C2B1E", fontWeight: 400 }}
           >
             Property
             <div style={{ color: "#257D41" }}>Overview</div>
@@ -113,12 +113,12 @@ function CoverSlide({ total }: { total: number }) {
 
           <div
             className="h-[0.3vh] w-[8vw] mb-[4vh]"
-            style={{ background: "#257D41" }}
+            style={{ background: "#1C2B1E" }}
           />
 
           <div
             className="text-[1.8vw]"
-            style={{ fontFamily: "Poppins, system-ui, sans-serif", color: "#9FBCA4", fontWeight: 200 }}
+            style={{ fontFamily: "Poppins, system-ui, sans-serif", color: "#2A4030", fontWeight: 200 }}
           >
             {total} {total === 1 ? "Property" : "Properties"} · Portfolio Review 2026
           </div>
@@ -383,12 +383,12 @@ function LoadingSlide() {
   return (
     <div
       className="w-screen h-screen overflow-hidden relative flex items-center justify-center"
-      style={{ background: "#1C2B1E" }}
+      style={{ background: "#FFF9F5" }}
     >
       <div className="flex flex-col items-center gap-[2vh]">
         <div
           className="text-[2.5vw] tracking-[0.3em]"
-          style={{ fontFamily: "Poppins, system-ui, sans-serif", color: "#7AAA88", fontWeight: 200 }}
+          style={{ fontFamily: "Poppins, system-ui, sans-serif", color: "#1C2B1E", fontWeight: 200 }}
         >
           L+B
         </div>
@@ -407,23 +407,23 @@ function AuthPromptSlide() {
   return (
     <div
       className="w-screen h-screen overflow-hidden relative flex flex-col items-center justify-center"
-      style={{ background: "#1C2B1E" }}
+      style={{ background: "#FFF9F5" }}
     >
       <div
         className="text-[2.5vw] tracking-[0.3em] mb-[3vh]"
-        style={{ fontFamily: "Poppins, system-ui, sans-serif", color: "#7AAA88", fontWeight: 200 }}
+        style={{ fontFamily: "Poppins, system-ui, sans-serif", color: "#1C2B1E", fontWeight: 200 }}
       >
         L+B
       </div>
       <div
         className="text-[3vw] mb-[2vh]"
-        style={{ fontFamily: "EB Garamond, Georgia, serif", color: "#FFFFFF", fontWeight: 400 }}
+        style={{ fontFamily: "EB Garamond, Georgia, serif", color: "#1C2B1E", fontWeight: 400 }}
       >
         Authentication Required
       </div>
       <div
         className="text-[1.8vw] text-center max-w-[50vw]"
-        style={{ fontFamily: "Poppins, system-ui, sans-serif", color: "#9FBCA4", fontWeight: 200 }}
+        style={{ fontFamily: "Poppins, system-ui, sans-serif", color: "#2A4030", fontWeight: 200 }}
       >
         Open the H+ Analytics app to sign in, then return to this deck to view the portfolio.
       </div>
@@ -435,23 +435,23 @@ function EmptySlide() {
   return (
     <div
       className="w-screen h-screen overflow-hidden relative flex flex-col items-center justify-center"
-      style={{ background: "#1C2B1E" }}
+      style={{ background: "#FFF9F5" }}
     >
       <div
         className="text-[2.5vw] tracking-[0.3em] mb-[3vh]"
-        style={{ fontFamily: "Poppins, system-ui, sans-serif", color: "#7AAA88", fontWeight: 200 }}
+        style={{ fontFamily: "Poppins, system-ui, sans-serif", color: "#1C2B1E", fontWeight: 200 }}
       >
         L+B
       </div>
       <div
         className="text-[3vw] mb-[2vh]"
-        style={{ fontFamily: "EB Garamond, Georgia, serif", color: "#FFFFFF", fontWeight: 400 }}
+        style={{ fontFamily: "EB Garamond, Georgia, serif", color: "#1C2B1E", fontWeight: 400 }}
       >
         No Properties Found
       </div>
       <div
         className="text-[1.8vw]"
-        style={{ fontFamily: "Poppins, system-ui, sans-serif", color: "#9FBCA4", fontWeight: 200 }}
+        style={{ fontFamily: "Poppins, system-ui, sans-serif", color: "#2A4030", fontWeight: 200 }}
       >
         Add properties in the H+ Analytics app to populate this deck.
       </div>
