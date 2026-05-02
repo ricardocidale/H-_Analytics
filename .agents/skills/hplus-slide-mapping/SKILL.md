@@ -5,7 +5,7 @@ description: Canonical H+ Analytics field → L+B PPTX shape name mapping for al
 
 # H+ Analytics → L+B PPTX Shape Mapping
 
-Template: `attached_assets/L+B_Property_Slides_1777637870265.pptx`
+Template: `attached_assets/L+B_Property_Slides_1777738821984.pptx` (current canonical, swapped 2026-05-02; previously `_1777637870265.pptx`)
 Output: 6 slides per property (template slides 1–6; slide 7 "The Ask" is EXCLUDED).
 Slide size: 13.33" × 7.50"
 Colors: dark bg `#1C2B1E`, accent green `#257D41`, sage `#7AAA88`, cream `#FFF9F5`, muted `#9FBCA4`

@@ -38,7 +38,7 @@ Both formats must be generated proactively at server startup for all properties 
 
 ## Quality Requirement
 
-Track 1 PPTX must match the canonical template `attached_assets/L+B_Property_Slides_1777637870265.pptx` exactly: colors, fonts, layout, proportions. When any data field is missing or null, **derive it** (vision generator, renovation benchmarks, computed formulas). Never leave a shape blank or with placeholder text.
+Track 1 PPTX must match the canonical template `attached_assets/L+B_Property_Slides_1777738821984.pptx` exactly: colors, fonts, layout, proportions. When any data field is missing or null, **derive it** (vision generator, renovation benchmarks, computed formulas). Never leave a shape blank or with placeholder text.
 
 ## DB Schema
 
@@ -162,7 +162,7 @@ On error (non-zero exit + stderr):
 
 ## Template Source
 
-`attached_assets/L+B_Property_Slides_1777637870265.pptx` — READ ONLY. Never modify.
+`attached_assets/L+B_Property_Slides_1777738821984.pptx` — READ ONLY. Never modify. (Canonical template, swapped 2026-05-02.)
 
 Slide indexes used: 0, 1, 2, 3, 4, 5 (0-indexed). Slide 6 (index 6) = "The Ask" — SKIP.
 
