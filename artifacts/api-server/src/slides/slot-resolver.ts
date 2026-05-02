@@ -273,7 +273,7 @@ export function resolveSlotPhoto(
       else if (shapeName === "Picture 66") photo = nonHero[4];
       break;
     case 3:
-      if (shapeName === "Image 5")  photo = hero;
+      if (shapeName === "Picture 46")  photo = hero;
       else if (shapeName === "Image 9")  photo = secondary;
       else if (shapeName === "Image 24") photo = nonHero[1] ?? secondary;
       break;

@@ -24,7 +24,7 @@ from pptx.dml.color import RGBColor
 
 SCRIPT_DIR = Path(__file__).parent
 WORKSPACE = SCRIPT_DIR.parent.parent
-PPTX_PATH = WORKSPACE / "attached_assets" / "L+B_Property_Slides_1777637870265.pptx"
+PPTX_PATH = WORKSPACE / "attached_assets" / "L+B_Property_Slides_1777738821984.pptx"
 RECIPE_PATH = SCRIPT_DIR / "slide-slot-recipe.json"
 OUT_DIR = SCRIPT_DIR / "slide-backgrounds"
 
@@ -120,7 +120,8 @@ def main() -> None:
     for snum_str, slide_data in recipe["slides"].items():
         slide_idx = int(snum_str) - 1
         slot_photo_names_by_slide[slide_idx] = {
-            s["name"] for s in slide_data["slots"] if s["kind"] == "picture"
+            e["name"] for e in slide_data["elements"]
+            if e.get("is_slot") and e.get("slot_kind") == "picture"
         }
 
     prs = Presentation(str(PPTX_PATH))

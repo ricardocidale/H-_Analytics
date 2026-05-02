@@ -62,8 +62,8 @@ from renovation_budget import (
     get_stable_year_label,
 )
 
-TEMPLATE_PATH = Path(__file__).parent.parent.parent / "attached_assets" / "L+B_Property_Slides_1777637870265.pptx"
-SLIDE_COUNT = 6  # Slides 0–5 only; slide 6 (The Ask) is EXCLUDED
+TEMPLATE_PATH = Path(__file__).parent.parent.parent / "attached_assets" / "L+B_Property_Slides_1777738821984.pptx"
+SLIDE_COUNT = 6
 
 
 def load_input() -> dict:
@@ -239,13 +239,13 @@ def build_slide3(slide, prop: dict, photos: list[bytes | None], vt: dict) -> Non
     safe_set(slide, "Text 23", vt.get("reason3Detail") or "Model can replicate to 2–3 additional sites without brand dilution.")
     safe_set(slide, "Text 19", "PAGE 3", page_hint=True)
 
-    safe_photo(slide, "Image 5", photo_or_none(photos, 0))
+    safe_photo(slide, "Picture 46", photo_or_none(photos, 0))
     safe_photo(slide, "Image 9", photo_or_none(photos, 1))
     safe_photo(slide, "Image 24", photo_or_none(photos, 2))
 
 
 def build_slide4(slide, prop: dict, siblings: list[dict], photos: list[bytes | None]) -> None:
-    """Market Context / Pipeline — this property + siblings."""
+    """Market Context / Pipeline — 6-card grid layout (new canonical template)."""
     city = prop.get("city") or ""
     state = prop.get("stateProvince") or prop.get("country") or ""
     name = prop.get("name") or "Property"
@@ -254,17 +254,16 @@ def build_slide4(slide, prop: dict, siblings: list[dict], photos: list[bytes | N
     safe_set(slide, "Text 0", f"Market Context: {state} Pipeline")
     safe_set(slide, "Text 1", f"{name} and {n_siblings} related {'property' if n_siblings == 1 else 'properties'}")
     safe_set(slide, "Text 2", "PROPERTY PIPELINE")
-    safe_set(slide, "Text 3", f"{state.upper()} PORTFOLIO OVERVIEW")
     safe_set(slide, "Text 19", "PAGE 4", page_hint=True)
 
-    # Primary property card (card slot 1)
+    # Primary property card (slot 1, photo Picture 6)
     price = prop.get("purchasePrice") or 0
     type_label = get_type_label(prop)
     _set_pipeline_card(slide, 1, name, city, state, price, type_label, prop.get("acquisitionStatus"))
-    safe_photo(slide, "Image Card1", photo_or_none(photos, 0))
+    safe_photo(slide, "Picture 6", photo_or_none(photos, 0))
 
-    # Sibling cards (slots 2–5)
-    for i, sibling in enumerate(siblings[:4]):
+    # Sibling cards (slots 2–6, photos Picture 7–11)
+    for i, sibling in enumerate(siblings[:5]):
         slot = i + 2
         sib_city = sibling.get("city") or ""
         sib_state = sibling.get("stateProvince") or ""
@@ -275,17 +274,17 @@ def build_slide4(slide, prop: dict, siblings: list[dict], photos: list[bytes | N
         _set_pipeline_card(slide, slot, sib_name, sib_city, sib_state, sib_price, sib_type, sib_status)
         sib_photo = decode_photo(sibling) if isinstance(sibling.get("heroPhotoBase64"), str) else None
         if sib_photo:
-            safe_photo(slide, f"Image Card{slot}", sib_photo)
+            safe_photo(slide, f"Picture {slot + 5}", sib_photo)
 
 
 def _set_pipeline_card(slide, slot: int, name: str, city: str, state: str, price: float, type_label: str, status: str | None) -> None:
-    """Set text for a pipeline card at position slot (1-indexed)."""
+    """Set text for a pipeline card at position slot (1-indexed). Shape names: 'Card N Field'."""
     status_short, _ = get_status_labels(status)
-    safe_set(slide, f"Card{slot}Name", name)
-    safe_set(slide, f"Card{slot}Location", f"{city}, {state}" if city else state)
-    safe_set(slide, f"Card{slot}Price", format_currency(price))
-    safe_set(slide, f"Card{slot}Type", type_label)
-    safe_set(slide, f"Card{slot}Status", status_short)
+    safe_set(slide, f"Card {slot} Title", name)
+    safe_set(slide, f"Card {slot} Desc", f"{city}, {state}" if city else state)
+    safe_set(slide, f"Card {slot} Value", format_currency(price))
+    safe_set(slide, f"Card {slot} Label", type_label)
+    safe_set(slide, f"Card {slot} Badge", status_short)
 
 
 def build_slide5(slide, prop: dict, financials: dict, vt: dict) -> None:

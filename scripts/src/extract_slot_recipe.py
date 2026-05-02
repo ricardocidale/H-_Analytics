@@ -23,7 +23,7 @@ from pptx.enum.text import PP_ALIGN
 
 SCRIPT_DIR = Path(__file__).parent
 WORKSPACE = SCRIPT_DIR.parent.parent
-PPTX_PATH = WORKSPACE / "attached_assets" / "L+B_Property_Slides_1777637870265.pptx"
+PPTX_PATH = WORKSPACE / "attached_assets" / "L+B_Property_Slides_1777738821984.pptx"
 OUTPUT_PATH = SCRIPT_DIR / "slide-slot-recipe.json"
 
 CANVAS_W = 1920
@@ -37,7 +37,6 @@ SlotKind = Literal["text", "picture", "table"]
 # These shapes carry per-property data. All other shapes are static template content.
 # Must stay in sync with the shape names used in generate_property_slides.py.
 # Canonical field→shape mapping: .agents/skills/hplus-slide-mapping/SKILL.md
-# Slide 7 ("The Ask", index 6) is always excluded from generation.
 SLOT_NAMES: dict[int, dict[SlotKind, list[str]]] = {
     0: {
         "text": [
@@ -65,11 +64,19 @@ SLOT_NAMES: dict[int, dict[SlotKind, list[str]]] = {
             "Text 18", "Text 19", "Text 20", "Text 21", "Text 22",
             "Text 23", "Text 24",
         ],
-        "picture": ["Image 5", "Image 9", "Image 24"],
+        "picture": ["Picture 46", "Image 9", "Image 24"],
     },
     3: {
-        "text": ["Text 0", "Text 1", "Text 2", "Text 3", "Text 19"],
-        "picture": [],
+        "text": [
+            "Text 0", "Text 1", "Text 2", "Text 19",
+            "Card 1 Badge", "Card 1 Title", "Card 1 Desc", "Card 1 Label", "Card 1 Value",
+            "Card 2 Badge", "Card 2 Title", "Card 2 Desc", "Card 2 Label", "Card 2 Value",
+            "Card 3 Badge", "Card 3 Title", "Card 3 Desc", "Card 3 Label", "Card 3 Value",
+            "Card 4 Badge", "Card 4 Title", "Card 4 Desc", "Card 4 Label", "Card 4 Value",
+            "Card 5 Badge", "Card 5 Title", "Card 5 Desc", "Card 5 Label", "Card 5 Value",
+            "Card 6 Badge", "Card 6 Title", "Card 6 Desc", "Card 6 Label", "Card 6 Value",
+        ],
+        "picture": ["Picture 6", "Picture 7", "Picture 8", "Picture 9", "Picture 10", "Picture 11"],
     },
     4: {
         "text": ["TextBox 2", "Rectangle 1", "TextBox 9", "Text 19"],

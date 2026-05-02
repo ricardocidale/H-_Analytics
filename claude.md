@@ -185,7 +185,7 @@ The "LB Slides" feature generates two formats of a 6-slide investor deck per pro
 
 **Python generator:** `scripts/src/generate_property_slides.py`
 - Helpers: `scripts/src/slide_helpers.py`, `scripts/src/renovation_budget.py`
-- Template: `attached_assets/L+B_Property_Slides_1777637870265.pptx` (slides 0–5, index 6 excluded)
+- Template: `attached_assets/L+B_Property_Slides_1777738821984.pptx` (slides 0–5, index 6 excluded). Replaced the prior `_1777637870265.pptx` template on 2026-05-02 — the slide-slot-recipe was re-extracted at the same time so the hybrid Track-2 renderer stays aligned. If you swap the template again, run `python3 scripts/src/extract_slot_recipe.py` and restart the api-server in lockstep.
 - Runtime deps: `python-pptx`, `Pillow` (installed via `uv`, managed by the `python3` module)
 - Quality requirement: shape mapping must follow `hplus-slide-mapping` skill exactly — all 6 slides, all shape names, all data fields
 
