@@ -2238,41 +2238,11 @@
     "artifacts/api-server/src/routes/structure-comparison.ts",
     "artifacts/api-server/src/routes/uploads.ts"
   ],
-  "405": [
-    "artifacts/api-server/src/ai/llm-health-probe.ts",
-    "artifacts/api-server/src/constants.ts",
-    "artifacts/api-server/src/routes/admin/exports.ts",
-    "artifacts/api-server/src/routes/admin/specialists/config.ts",
-    "artifacts/api-server/src/routes/admin/specialists/identity.ts",
-    "artifacts/api-server/src/routes/admin/specialists/runtime.ts",
-    "artifacts/api-server/src/routes/rebecca.ts"
-  ],
-  "409": [
-    "artifacts/api-server/src/constants.ts",
-    "artifacts/api-server/src/middleware/analyst-refresh-guards.ts",
-    "artifacts/api-server/src/routes/admin/reference-ranges.ts",
-    "artifacts/api-server/src/routes/admin/scenarios.ts",
-    "artifacts/api-server/src/routes/properties-urls.ts",
-    "artifacts/api-server/src/routes/rebecca.ts"
-  ],
-  "413": [
-    "artifacts/api-server/src/constants.ts",
-    "artifacts/api-server/src/routes/export-generate.ts",
-    "artifacts/api-server/src/routes/premium-exports.ts",
-    "artifacts/api-server/src/routes/uploads.ts"
-  ],
   "420": [
     "artifacts/api-server/src/data/researchSeeds.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "lib/shared/src/constants-benchmarks.ts"
-  ],
-  "422": [
-    "artifacts/api-server/src/constants.ts",
-    "artifacts/api-server/src/routes/chat.ts",
-    "artifacts/api-server/src/routes/export-generate.ts",
-    "artifacts/api-server/src/routes/portfolio-risk.ts",
-    "artifacts/api-server/src/routes/scenario-helpers.ts"
   ],
   "429": [
     "artifacts/api-server/src/constants.ts",
@@ -2391,16 +2361,6 @@
     "lib/shared/src/regulatory/profiles-europe.ts",
     "lib/shared/src/regulatory/profiles-latam.ts"
   ],
-  "503": [
-    "artifacts/api-server/src/constants.ts",
-    "artifacts/api-server/src/routes/ai.ts",
-    "artifacts/api-server/src/routes/analyst-admin.ts",
-    "artifacts/api-server/src/routes/chat.ts",
-    "artifacts/api-server/src/routes/health.ts",
-    "artifacts/api-server/src/routes/hotel-rates.ts",
-    "artifacts/api-server/src/routes/research/web-search.ts",
-    "lib/shared/src/regulatory/profiles-europe.ts"
-  ],
   "550": [
     "artifacts/api-server/src/data/researchSeeds.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
@@ -2511,23 +2471,10 @@
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts"
   ],
-  "1440": [
-    "artifacts/api-server/src/notifications/engine.ts",
-    "artifacts/api-server/src/routes/format-generators/docx-generator.ts",
-    "artifacts/api-server/src/shared/constants.ts",
-    "lib/shared/src/constants.ts"
-  ],
   "1500": [
     "artifacts/api-server/src/constants.ts",
     "artifacts/api-server/src/routes/market-signals.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
-    "lib/calc/src/research/validate-research.ts"
-  ],
-  "3000": [
-    "artifacts/api-server/src/routes/chat.ts",
-    "artifacts/api-server/src/seeds/properties.ts",
-    "artifacts/api-server/src/seeds/reference-ranges.ts",
-    "artifacts/api-server/src/syncHelpers.ts",
     "lib/calc/src/research/validate-research.ts"
   ],
   "5000": [
@@ -2550,9 +2497,7 @@
     "artifacts/api-server/src/ai/icp/config-builder.ts",
     "artifacts/api-server/src/constants.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
-    "artifacts/api-server/src/seeds/properties.ts",
     "artifacts/api-server/src/shared/constants.ts",
-    "artifacts/api-server/src/syncHelpers.ts",
     "lib/shared/src/constants.ts"
   ],
   "24000": [

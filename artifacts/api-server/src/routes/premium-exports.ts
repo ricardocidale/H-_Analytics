@@ -15,7 +15,7 @@ import { generatePptxFromReport } from "./format-generators/pptx-generator";
 import { generateDocxFromReport } from "./format-generators/docx-generator";
 import { buildExportData } from "../report/server-export-data";
 import { logActivity } from "./helpers";
-import { HTTP_413_PAYLOAD_TOO_LARGE } from "../constants";
+import { HTTP_413_PAYLOAD_TOO_LARGE, HTTP_504_GATEWAY_TIMEOUT } from "../constants";
 
 const exportRowSchema = z.object({
   category: z.string(),
@@ -273,7 +273,7 @@ export function register(app: Express) {
       logger.error(`Error: ${errorMsg} ${error instanceof Error ? error.stack || "" : ""}`, "premium-export");
       const format = typeof req.body?.format === "string" ? req.body.format : "unknown";
       if (errorMsg.includes("timed out")) {
-        return res.status(504).json({ error: `Export timed out generating ${format.toUpperCase()}. Please try again.`, format });
+        return res.status(HTTP_504_GATEWAY_TIMEOUT).json({ error: `Export timed out generating ${format.toUpperCase()}. Please try again.`, format });
       }
       res.status(500).json({ error: "Premium export generation failed. Please try again.", format });
     }

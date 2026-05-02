@@ -68,6 +68,7 @@ import type { PropertyDefaultsInputs } from "@engine/watchdog/propertyDefaultsEv
 import { DEFAULT_PROPERTY_DEFAULTS_BENCHMARKS } from "@shared/constants-property-defaults-benchmarks";
 import { storage } from "../storage";
 import { logger } from "../logger";
+import { HTTP_503_SERVICE_UNAVAILABLE } from "../constants";
 
 const ANALYST_COOLDOWN_MS = 60 * 1000;
 
@@ -437,7 +438,7 @@ export async function analystRefreshHandler(req: Request, res: Response) {
         // No legacy fallback for property scope. Return a structured
         // "unavailable" response so the client shows the empty state +
         // "Ask the Analyst" CTA rather than a hard error.
-        return res.status(503).json({
+        return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({
           code: "TIER1_UNAVAILABLE",
           message: "The Analyst is temporarily unavailable. Try again in a moment.",
         });

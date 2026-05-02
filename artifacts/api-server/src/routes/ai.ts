@@ -8,6 +8,7 @@ import { storage } from "../storage";
 import { resolveLlm, getVendorService } from "../ai/resolve-llm";
 import { logger } from "../logger";
 import type { ResearchConfig } from "@workspace/db";
+import { HTTP_503_SERVICE_UNAVAILABLE } from "../constants";
 
 const rewriteSchema = z.object({
   text: z.string().min(1).max(5000),
@@ -64,7 +65,7 @@ Rewritten description:`;
       const msg = error instanceof Error ? error.message : String(error);
       logger.error(`AI rewrite error: ${msg}`, "ai");
       if (msg === "Gemini API key not configured") {
-        return res.status(503).json({ error: "AI service is not available" });
+        return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({ error: "AI service is not available" });
       }
       res.status(500).json({ error: "Failed to rewrite description" });
     }

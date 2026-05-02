@@ -25,7 +25,7 @@ import {
   DEFAULT_PROFESSIONAL_SERVICES_START,
   DEFAULT_TECH_INFRA_START,
 } from "@shared/constants";
-import { DEFAULT_STAFF_SALARY } from "@shared/constants-staffing";
+import { DEFAULT_STAFF_SALARY, DEFAULT_TRAVEL_PER_CLIENT, DEFAULT_IT_LICENSE_PER_CLIENT } from "@shared/constants-staffing";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 
 // Task #403 (follow-up to Audit #406): the seeded `companyTaxRate` for the
@@ -129,8 +129,8 @@ export async function seedGlobalAssumptions() {
     professionalServicesStart: DEFAULT_PROFESSIONAL_SERVICES_START,
     techInfraStart: DEFAULT_TECH_INFRA_START,
     businessInsuranceStart: DEFAULT_BUSINESS_INSURANCE_START,
-    travelCostPerClient: 12000,
-    itLicensePerClient: 3000,
+    travelCostPerClient: DEFAULT_TRAVEL_PER_CLIENT,
+    itLicensePerClient: DEFAULT_IT_LICENSE_PER_CLIENT,
     marketingRate: 0.05,
     miscOpsRate: 0.03,
     commissionRate: DEFAULT_COMMISSION_RATE,

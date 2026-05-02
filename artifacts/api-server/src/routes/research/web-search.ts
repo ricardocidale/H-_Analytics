@@ -12,6 +12,7 @@ import {
   isWebResearchAvailable,
   type WebResearchRequest,
 } from "../../ai/web-research";
+import { HTTP_503_SERVICE_UNAVAILABLE } from "../../constants";
 
 export function registerResearchWebSearchRoutes(app: Express) {
   // ────────────────────────────────────────────────────────────
@@ -55,7 +56,7 @@ export function registerResearchWebSearchRoutes(app: Express) {
       }
 
       if (!isWebResearchAvailable()) {
-        return res.status(503).json({
+        return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({
           error:
             "No web research providers configured (set PERPLEXITY_API_KEY or TAVILY_API_KEY)",
         });

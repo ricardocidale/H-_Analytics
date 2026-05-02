@@ -2,6 +2,9 @@ import { BRAND } from "../premium-export-prompts";
 import type { ReportDefinition, FormattedValue } from "../../report/types";
 import { ASSUMPTIONS_TITLE_PREFIX } from "../../report/assumption-sections";
 
+// OOXML/DOCX measurement unit: 1 inch = 1440 twips (twentieths of a point: 72pt × 20)
+const DOCX_TWIPS_PER_INCH = 1440;
+
 export async function generateDocxFromReport(report: ReportDefinition): Promise<Buffer> {
   const docxLib = await import("docx");
   const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle, ShadingType } = docxLib;
@@ -213,7 +216,7 @@ export async function generateDocxFromReport(report: ReportDefinition): Promise<
 
   const docDocument = new Document({
     sections: [{
-      properties: { page: { margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } },
+      properties: { page: { margin: { top: DOCX_TWIPS_PER_INCH, right: DOCX_TWIPS_PER_INCH, bottom: DOCX_TWIPS_PER_INCH, left: DOCX_TWIPS_PER_INCH } } },
       children,
     }],
   });
@@ -385,7 +388,7 @@ export async function generateDocxBuffer(aiResult: any, data: { companyName?: st
 
   const docDocument = new Document({
     sections: [{
-      properties: { page: { margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } },
+      properties: { page: { margin: { top: DOCX_TWIPS_PER_INCH, right: DOCX_TWIPS_PER_INCH, bottom: DOCX_TWIPS_PER_INCH, left: DOCX_TWIPS_PER_INCH } } },
       children,
     }],
   });

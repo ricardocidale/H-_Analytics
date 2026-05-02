@@ -12,7 +12,7 @@ import type {
 import { computeFullDiff, reconstructScenarioProperties } from "../scenarios/diff-engine";
 import { computePortfolioProjection } from "../finance/service";
 import { applyModelConstantsToGlobals } from "../finance/apply-model-constants";
-import { PG_UNIQUE_VIOLATION_CODE } from "../constants";
+import { PG_UNIQUE_VIOLATION_CODE, HTTP_422_UNPROCESSABLE_ENTITY } from "../constants";
 import type { ModelConstantOverride } from "@workspace/db";
 import { logger } from "../logger";
 
@@ -225,12 +225,12 @@ export function validateLoadSnapshot(
   const snapshotFeeCats = scenario.feeCategories;
 
   if (snapshotProps.length === 0) {
-    return { error: { status: 422, message: "Scenario snapshot contains no properties" }, snapshotProps, snapshotPropNames, orphanedFeeCategories: [], orphanedPhotos: [] };
+    return { error: { status: HTTP_422_UNPROCESSABLE_ENTITY, message: "Scenario snapshot contains no properties" }, snapshotProps, snapshotPropNames, orphanedFeeCategories: [], orphanedPhotos: [] };
   }
 
   const invalidProps = snapshotProps.filter(p => !p.name || typeof p.name !== "string");
   if (invalidProps.length > 0) {
-    return { error: { status: 422, message: `Scenario snapshot contains ${invalidProps.length} property(ies) without a valid name` }, snapshotProps, snapshotPropNames, orphanedFeeCategories: [], orphanedPhotos: [] };
+    return { error: { status: HTTP_422_UNPROCESSABLE_ENTITY, message: `Scenario snapshot contains ${invalidProps.length} property(ies) without a valid name` }, snapshotProps, snapshotPropNames, orphanedFeeCategories: [], orphanedPhotos: [] };
   }
 
   const validFeeKeys = new Set<string>([

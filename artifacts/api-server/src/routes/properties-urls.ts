@@ -5,6 +5,7 @@ import { fromZodError } from "zod-validation-error/v3";
 import { z } from "zod";
 import { logActivity, logAndSendError, parseRouteId } from "./helpers";
 import { logger } from "../logger";
+import { HTTP_409_CONFLICT } from "../constants";
 
 const httpUrlSchema = z.string().url().max(2048).refine(
   (val) => { try { const u = new URL(val); return u.protocol === "http:" || u.protocol === "https:"; } catch { return false; } },
@@ -140,7 +141,7 @@ export function registerPropertyUrlRoutes(app: Express) {
       }
       const existing = await storage.getPropertyUrls(propertyId);
       if (existing.some(u => u.url === parsed.data.url)) {
-        return res.status(409).json({ error: "URL already exists for this property" });
+        return res.status(HTTP_409_CONFLICT).json({ error: "URL already exists for this property" });
       }
       const row = await storage.addPropertyUrl({
         propertyId,

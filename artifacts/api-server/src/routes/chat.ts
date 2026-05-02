@@ -21,7 +21,7 @@ import { searchAssets, buildAssetContext, type AssetMatch } from "../ai/asset-in
 import { RESPONSE_MODE_CONFIG, DEFAULT_SYSTEM_PROMPT, SPANISH_MULTILINGUAL_OVERLAY, detectLanguage, generateFollowUpChips, deriveContextType, deriveContextKey } from "./chat-prompts";
 import { registerInsightRoute } from "./chat-insight";
 import { logActivity, parseRouteId } from "./helpers";
-import { MAX_MESSAGE_LENGTH, MAX_HISTORY_LENGTH } from "../constants";
+import { MAX_MESSAGE_LENGTH, MAX_HISTORY_LENGTH, HTTP_422_UNPROCESSABLE_ENTITY, HTTP_503_SERVICE_UNAVAILABLE } from "../constants";
 import {
   collectChatSources,
   collectChatSourcesFromManifest,
@@ -905,10 +905,10 @@ export function register(app: Express) {
         // Admin-policy refusal (e.g. webSearch toggle blocking Perplexity
         // and no viable fallback). Surface the actionable message verbatim
         // so the user sees what to change instead of a generic 500.
-        return res.status(422).json({ error: msg });
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: msg });
       }
       if (msg.includes("API key not configured")) {
-        return res.status(503).json({ error: "Chat service is not available" });
+        return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({ error: "Chat service is not available" });
       }
       res.status(500).json({ error: "Failed to generate response" });
     }

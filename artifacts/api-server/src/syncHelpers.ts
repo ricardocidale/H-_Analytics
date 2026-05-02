@@ -26,7 +26,7 @@ import {
   DEFAULT_PROFESSIONAL_SERVICES_START,
   DEFAULT_TECH_INFRA_START,
 } from "@shared/constants";
-import { DEFAULT_STAFF_SALARY } from "@shared/constants-staffing";
+import { DEFAULT_STAFF_SALARY, DEFAULT_TRAVEL_PER_CLIENT, DEFAULT_IT_LICENSE_PER_CLIENT } from "@shared/constants-staffing";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 
 // Audit #319 R4 / #406: registry-backed factory baselines.
@@ -53,8 +53,8 @@ export const SEED_GLOBAL_ASSUMPTIONS = {
   staffTier2MaxProperties: 6,
   staffTier2Fte: 4.5,
   staffTier3Fte: 7.0,
-  travelCostPerClient: 12000,
-  itLicensePerClient: 3000,
+  travelCostPerClient: DEFAULT_TRAVEL_PER_CLIENT,
+  itLicensePerClient: DEFAULT_IT_LICENSE_PER_CLIENT,
   marketingRate: 0.05,
   miscOpsRate: 0.03,
   officeLeaseStart: DEFAULT_OFFICE_LEASE_START,

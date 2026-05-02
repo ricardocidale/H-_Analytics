@@ -5,6 +5,7 @@ import { getMarketIntelligenceAggregator } from "../services/MarketIntelligenceA
 import { aiRateLimit } from "../middleware/rate-limit";
 import { storage } from "../storage";
 import { z } from "zod";
+import { HTTP_503_SERVICE_UNAVAILABLE } from "../constants";
 
 const searchSchema = z.object({
   query: z.string().min(1).max(200),
@@ -112,7 +113,7 @@ export function register(app: Express) {
 
       const amadeus = getMarketIntelligenceAggregator().getAmadeusService();
       if (!amadeus.isAvailable()) {
-        return res.status(503).json({ error: "Amadeus API not configured. Set AMADEUS_CLIENT_ID and AMADEUS_CLIENT_SECRET." });
+        return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({ error: "Amadeus API not configured. Set AMADEUS_CLIENT_ID and AMADEUS_CLIENT_SECRET." });
       }
 
       // Load property to get lat/lng and quality tier
@@ -146,7 +147,7 @@ export function register(app: Express) {
 
       const amadeus = getMarketIntelligenceAggregator().getAmadeusService();
       if (!amadeus.isAvailable()) {
-        return res.status(503).json({ error: "Amadeus API not configured. Set AMADEUS_CLIENT_ID and AMADEUS_CLIENT_SECRET." });
+        return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({ error: "Amadeus API not configured. Set AMADEUS_CLIENT_ID and AMADEUS_CLIENT_SECRET." });
       }
 
       const { cityCode, chk_in, chk_out } = parsed.data;

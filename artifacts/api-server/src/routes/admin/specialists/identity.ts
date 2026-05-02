@@ -29,6 +29,7 @@ import {
   identityHistoryQuerySchema,
   getIdentityCatalogDefault,
 } from "./_shared";
+import { HTTP_405_METHOD_NOT_ALLOWED } from "../../../constants";
 
 export function registerIdentityRoutes(app: Express) {
   app.get("/api/admin/specialists/:id/identity", requireAdmin, async (req, res) => {
@@ -61,11 +62,11 @@ export function registerIdentityRoutes(app: Express) {
   // UI no longer calls this endpoint. Kept as 405 so any direct API callers get an
   // explicit signal rather than a silent hang.
   app.put("/api/admin/specialists/:id/identity", requireAdmin, (_req, res) => {
-    res.status(405).json({ error: "Specialist identity is dev-defined. Edit the catalog and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
+    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Specialist identity is dev-defined. Edit the catalog and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
   });
 
   app.delete("/api/admin/specialists/:id/identity", requireAdmin, (_req, res) => {
-    res.status(405).json({ error: "Specialist identity is dev-defined. Edit the catalog and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
+    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Specialist identity is dev-defined. Edit the catalog and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
   });
 
   app.get("/api/admin/specialists/:id/identity/history", requireAdmin, async (req, res) => {

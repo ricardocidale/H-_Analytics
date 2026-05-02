@@ -24,6 +24,7 @@ import {
   type ProbeStatus,
 } from "@workspace/db";
 import { idParamSchema, toConfigView } from "./_shared";
+import { HTTP_405_METHOD_NOT_ALLOWED } from "../../../constants";
 import { getSpecialistGlobalLlmDefaults } from "../../../ai/specialist-llm-resolver";
 
 export function registerRuntimeRoutes(app: Express) {
@@ -31,7 +32,7 @@ export function registerRuntimeRoutes(app: Express) {
   // CadenceCard (/cadence endpoint below) remains admin-tunable — scheduling cadence
   // is operational config, not Specialist definition.
   app.put("/api/admin/specialists/:id/runtime", requireAdmin, (_req, res) => {
-    res.status(405).json({ error: "Specialist runtime config is dev-defined. Edit the catalog and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
+    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Specialist runtime config is dev-defined. Edit the catalog and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
   });
 
   // ── Update Refresh Cadence (Constants Specialists only) ─────────

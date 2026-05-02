@@ -20,7 +20,7 @@ import { z } from "zod";
 import { fromZodError } from "zod-validation-error/v3";
 import { requireAdmin } from "../../auth";
 import { logAndSendError, parseRouteId } from "../helpers";
-import { PG_UNIQUE_VIOLATION_CODE } from "../../constants";
+import { PG_UNIQUE_VIOLATION_CODE, HTTP_409_CONFLICT } from "../../constants";
 import { referenceRangeStorage } from "../../storage/reference-range";
 import {
   REFERENCE_RANGE_DOMAINS,
@@ -142,7 +142,7 @@ export function registerAdminReferenceRangeRoutes(app: Express) {
       res.status(201).json(row);
     } catch (err: unknown) {
       if (isUniqueViolation(err)) {
-        return res.status(409).json({
+        return res.status(HTTP_409_CONFLICT).json({
           error: "A reference range with the same domain, metric key, jurisdiction, and year already exists.",
         });
       }
@@ -171,7 +171,7 @@ export function registerAdminReferenceRangeRoutes(app: Express) {
       res.json(row);
     } catch (err: unknown) {
       if (isUniqueViolation(err)) {
-        return res.status(409).json({
+        return res.status(HTTP_409_CONFLICT).json({
           error: "A reference range with the same domain, metric key, jurisdiction, and year already exists.",
         });
       }

@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from "express";
 import { storage } from "../storage";
 import { getCacheStatus } from "../finance/cache";
 import { logger } from "../logger";
+import { HTTP_503_SERVICE_UNAVAILABLE } from "../constants";
 
 interface HealthCheck {
   status: "ok" | "error" | "degraded";
@@ -19,13 +20,13 @@ router.get("/api/health/ready", async (_req: Request, res: Response) => {
   try {
     const health = await storage.getDbHealth();
     if (!health.migrationsReady) {
-      res.status(503).json({ status: "not_ready", db: "connected", migrations: "pending" });
+      res.status(HTTP_503_SERVICE_UNAVAILABLE).json({ status: "not_ready", db: "connected", migrations: "pending" });
       return;
     }
     res.json({ status: "ready", db: "connected", migrations: "complete" });
   } catch (err: unknown) {
     logger.error(`Readiness check failed: ${err instanceof Error ? err.message : err}`, "health");
-    res.status(503).json({ status: "not_ready", db: "disconnected", migrations: "unknown" });
+    res.status(HTTP_503_SERVICE_UNAVAILABLE).json({ status: "not_ready", db: "disconnected", migrations: "unknown" });
   }
 });
 
@@ -70,7 +71,7 @@ router.get("/api/health/deep", async (_req: Request, res: Response) => {
   }
 
   const allOk = Object.values(checks).every((c: HealthCheck) => c.status === "ok");
-  res.status(allOk ? 200 : 503).json({ status: allOk ? "healthy" : "degraded", checks });
+  res.status(allOk ? 200 : HTTP_503_SERVICE_UNAVAILABLE).json({ status: allOk ? "healthy" : "degraded", checks });
 });
 
 export default router;
