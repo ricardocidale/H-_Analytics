@@ -47,6 +47,7 @@ import * as analystAdminRoutes from "./routes/analyst-admin";
 import * as specialistPhotoEnhancerRoutes from "./routes/specialist-photo-enhancer";
 import * as propertyDdRoutes from "./routes/property-dd";
 import * as marketSignalsRoutes from "./routes/market-signals";
+import { propertySlidesRouter } from "./routes/property-slides";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -55,6 +56,7 @@ export async function registerRoutes(
   registerObjectRoutes(app);
 
   app.use(healthRouter);
+  app.use(propertySlidesRouter);
 
   authRoutes.register(app);
   propertyRoutes.register(app);

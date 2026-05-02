@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Download, Presentation, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 
 type DownloadState = "idle" | "loading" | "done" | "error";
 
@@ -12,6 +12,7 @@ interface PropertyRow {
   name: string;
   city?: string | null;
   stateProvince?: string | null;
+  country?: string | null;
   businessModel?: string | null;
   hospitalityType?: string | null;
   acquisitionStatus?: string | null;
@@ -49,6 +50,106 @@ function typeLabel(p: PropertyRow): string {
   return p.businessModel ?? "Hospitality";
 }
 
+// Deterministic accent hue per property so each slide render looks distinct
+function accentHue(id: number): number {
+  const HUES = [220, 195, 260, 175, 240, 210, 185, 250];
+  return HUES[id % HUES.length];
+}
+
+function SlideRender({ property }: { property: PropertyRow }) {
+  const location = [property.city, property.stateProvince].filter(Boolean).join(", ");
+  const label = typeLabel(property);
+  const hue = accentHue(property.id);
+  const accentColor = `hsl(${hue}, 65%, 55%)`;
+  const accentFaint = `hsla(${hue}, 65%, 55%, 0.18)`;
+
+  return (
+    // 16:9 aspect ratio render — full width, locked ratio
+    <div
+      className="relative w-full overflow-hidden rounded-t-[3px]"
+      style={{ aspectRatio: "16 / 9", background: "#0f1621" }}
+    >
+      {/* subtle radial glow from top-right */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `radial-gradient(ellipse 70% 60% at 80% 10%, ${accentFaint}, transparent 70%)`,
+        }}
+      />
+
+      {/* thin accent stripe down the left edge */}
+      <div
+        className="absolute left-0 top-0 bottom-0 w-[3px] rounded-sm"
+        style={{ background: `linear-gradient(to bottom, ${accentColor}, transparent)` }}
+      />
+
+      {/* bottom-left corner rule line (echoes L+B layout) */}
+      <div
+        className="absolute bottom-[22%] left-[6%] right-[20%] h-[1px] opacity-40"
+        style={{ background: accentColor }}
+      />
+
+      {/* top label — type */}
+      <div
+        className="absolute top-[12%] left-[8%] text-[6px] font-semibold tracking-[0.18em] uppercase"
+        style={{ color: accentColor, fontFamily: "system-ui, sans-serif", letterSpacing: "0.16em" }}
+      >
+        {label}
+      </div>
+
+      {/* property name */}
+      <div
+        className="absolute left-[8%] right-[10%]"
+        style={{
+          top: "26%",
+          color: "#f0f4ff",
+          fontFamily: "system-ui, sans-serif",
+          fontSize: property.name.length > 22 ? "9px" : "11px",
+          fontWeight: 700,
+          lineHeight: 1.25,
+          letterSpacing: "0.01em",
+        }}
+      >
+        {property.name}
+      </div>
+
+      {/* location */}
+      {location && (
+        <div
+          className="absolute left-[8%]"
+          style={{
+            top: "50%",
+            color: "rgba(190,210,240,0.75)",
+            fontFamily: "system-ui, sans-serif",
+            fontSize: "6px",
+            letterSpacing: "0.06em",
+          }}
+        >
+          {location}
+        </div>
+      )}
+
+      {/* stats row */}
+      <div
+        className="absolute left-[8%] flex items-center gap-[8px]"
+        style={{ bottom: "14%", fontFamily: "system-ui, sans-serif", fontSize: "5.5px", color: "rgba(190,210,240,0.6)" }}
+      >
+        {property.roomCount && <span>{property.roomCount} keys</span>}
+        {property.purchasePrice && <span>{formatPrice(property.purchasePrice)}</span>}
+        <span>6 slides</span>
+      </div>
+
+      {/* L+B wordmark echo — bottom right */}
+      <div
+        className="absolute bottom-[10%] right-[6%] font-bold opacity-25"
+        style={{ fontSize: "7px", color: "#fff", fontFamily: "system-ui, sans-serif", letterSpacing: "0.12em" }}
+      >
+        L+B
+      </div>
+    </div>
+  );
+}
+
 function DownloadButton({ propertyId, propertyName, state, onDownload }: {
   propertyId: number;
   propertyName: string;
@@ -61,7 +162,7 @@ function DownloadButton({ propertyId, propertyName, state, onDownload }: {
       variant={state === "done" ? "outline" : "default"}
       disabled={state === "loading"}
       onClick={() => onDownload(propertyId, propertyName)}
-      className="gap-2 min-w-[140px]"
+      className="gap-2 w-full"
     >
       {state === "loading" && <Loader2 className="h-4 w-4 animate-spin" />}
       {state === "done" && <CheckCircle2 className="h-4 w-4 text-green-500" />}
@@ -104,8 +205,7 @@ export default function SlideDecksTab() {
       const slug = propertyName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
       const filename = `${slug}-slides.pptx`;
 
-      // Use the native OS save dialog when available (Chrome / Edge)
-      // showSaveFilePicker is not yet in the TypeScript lib; access via unknown cast
+      // Native OS save dialog (Chrome / Edge)
       const win = window as unknown as Record<string, unknown>;
       if (typeof win["showSaveFilePicker"] === "function") {
         const showSaveFilePicker = win["showSaveFilePicker"] as (opts: unknown) => Promise<{
@@ -124,7 +224,7 @@ export default function SlideDecksTab() {
         await writable.write(blob);
         await writable.close();
       } else {
-        // Fallback: anchor-click download (Firefox, Safari)
+        // Fallback: anchor-click (Firefox, Safari)
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement("a");
         anchor.href = url;
@@ -138,7 +238,6 @@ export default function SlideDecksTab() {
       setDownloadState(propertyId, "done");
       setTimeout(() => setDownloadState(propertyId, "idle"), 4_000);
     } catch (err) {
-      // User dismissed the native save dialog — not an error
       if (err instanceof DOMException && err.name === "AbortError") {
         setDownloadState(propertyId, "idle");
         return;
@@ -189,15 +288,16 @@ export default function SlideDecksTab() {
         {properties.map(p => {
           const state = downloadStates[p.id] ?? "idle";
           const status = p.acquisitionStatus?.toLowerCase() ?? "pipeline";
-          const location = [p.city, p.stateProvince].filter(Boolean).join(", ");
 
           return (
-            <Card key={p.id} className="flex flex-col border border-border/60 hover:border-border transition-colors">
-              <CardHeader className="pb-3">
+            <Card key={p.id} className="flex flex-col border border-border/60 hover:border-border transition-colors overflow-hidden p-0">
+              {/* slide render — full bleed at top */}
+              <SlideRender property={p} />
+
+              <CardContent className="flex flex-col gap-3 p-4">
+                {/* name + status */}
                 <div className="flex items-start justify-between gap-2">
-                  <CardTitle className="text-base font-semibold leading-tight line-clamp-2">
-                    {p.name}
-                  </CardTitle>
+                  <p className="text-sm font-semibold leading-tight line-clamp-2">{p.name}</p>
                   <Badge
                     variant="outline"
                     className={`text-[11px] shrink-0 border-0 font-medium ${STATUS_STYLES[status] ?? STATUS_STYLES["pipeline"]}`}
@@ -205,34 +305,13 @@ export default function SlideDecksTab() {
                     {statusLabel(p.acquisitionStatus)}
                   </Badge>
                 </div>
-                {location && (
-                  <p className="text-xs text-muted-foreground mt-0.5">{location}</p>
-                )}
-              </CardHeader>
 
-              <CardContent className="flex flex-col gap-3 pt-0 flex-1">
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                  {p.roomCount && (
-                    <span>{p.roomCount} keys</span>
-                  )}
-                  <span>{typeLabel(p)}</span>
-                  {p.purchasePrice && (
-                    <span>{formatPrice(p.purchasePrice)}</span>
-                  )}
-                </div>
-
-                <div className="text-xs text-muted-foreground/70 italic">
-                  6 slides · L+B template · live financial data
-                </div>
-
-                <div className="mt-auto pt-1">
-                  <DownloadButton
-                    propertyId={p.id}
-                    propertyName={p.name}
-                    state={state}
-                    onDownload={handleDownload}
-                  />
-                </div>
+                <DownloadButton
+                  propertyId={p.id}
+                  propertyName={p.name}
+                  state={state}
+                  onDownload={handleDownload}
+                />
               </CardContent>
             </Card>
           );
