@@ -1,0 +1,201 @@
+SLIDE 1 — Sul Monte Investment Spotlight
+0. Slide-Level Metadata
+Slide ID: 262#0, position: 1 of 6
+Dimensions: 960 × 540 pt (16:9)
+Layout / master: "DEFAULT" layout on "Office Theme" master (the deck has two masters; this slide does not use the SeedLegals master)
+Theme palette: dk1 #000000, dk2 #44546A, lt1 #FFFFFF, lt2 #E7E6E6, accent1 #4472C4, accent2 #ED7D31, accent3 #A5A5A5, accent4 #FFC000, accent5 #5B9BD5, accent6 #70AD47 — but the slide does NOT use any of these colors. All visible color is hardcoded srgb.
+Theme fonts: irrelevant — slide overrides with hardcoded Poppins ExtraLight and Georgia everywhere.
+Reconstruction note: the slide is essentially a pre-rendered image-based layout — almost every visual element (header band, body cards, decorative icons, divider lines, dot bullets) is a raster image fragment, not a native shape. Live text shapes are overlaid on top. This is the signature of a Canva, Figma, or PDF export pasted into PowerPoint. A faithful rebuild needs the original raster assets OR a redesign using native shapes — see Section 6.
+1. Background & Background-Acting Elements
+True slide background
+Solid fill, foreground color did not return through Office.js → inherited from master. Inferred effective canvas color: #FFF9F5 (warm ivory/cream) based on the body-text card colors and "FFF9F5" being the recurring "on-dark" text color used throughout. UNKNOWN — confirm by reading the master's <p:bg> directly.
+Background-acting raster images (full-bleed or zone-defining)
+Shape	id	Position (l, t, w, h) pt	Role
+Image 2	4	0, 0, 960, 44	Top header bar, full slide width — dark olive/forest-green background for the page title
+Image 37	39	0, 507, 960, 33	Bottom footer bar, full slide width — same dark green band
+Image 5	7	17, 51, 389, 276	Large left-side hero photo (chateau exterior — inferred from "stone-and-timber chateau" copy)
+Image 6	8	17, 51, 389, 276	Duplicate sitting exactly on top of Image 5 — likely a tinted/duotone overlay or accidental duplicate
+Picture 2	1026	16, 331, 387, 168	Lower-left secondary photo (likely interior or grounds)
+Image 11	13	419, 51, 525, 53	Right-column title card background (block behind "Sul Monte" headline area)
+Image 12	14	419, 110, 525, 143	Right-column specs card background (block behind "Property Specs" content)
+Image 26	28	419, 258, 260, 241	Right-column vision card background (block behind "The Vision" content)
+Picture 68	69	687, 247, 265, 255	Bottom-right photo (pool / amenity, inferred from caption)
+Z-order: these large raster images are rendered first by PowerPoint (back-to-front in shape collection order). Live text shapes are appended later in the list and therefore render on top.
+
+Decorative raster fragments (tiny images acting as bullets, dots, dividers, icons)
+Likely all bullet dots and divider lines flattened during export:
+
+id	Position	Size	Inferred role
+5	21, 7	3 × 29	Vertical accent bar in header, left side
+6	837, 19	5 × 5	Small dot, top-right of header
+7	23, 306	186 × 15	Caption underline / accent under hero photo
+15	419, 110	525 × 23	"Property Specs" header strip (dark band inside specs card)
+16	429, 117	6 × 8	Small icon/marker inside specs header
+17, 19, 21, 23, 25	429, {140,157,175,193,210}, 504 × 18	Five horizontal divider lines under each spec bullet line	
+18, 20, 22, 24, 26	429, {146,164,182,199,217}, 5 × 5	Five bullet dots for spec list	
+27	429, 235, 5 × 5	Dot for sixth spec line ("Asking …")	
+29	419, 258, 260 × 23	"The Vision" header strip	
+30	429, 266, 8 × 8	Marker in vision header	
+31, 33	429, {288, 306}, ~234 × 18	Vision divider underlines	
+32, 34, 35	429, {295, 313, 338}, 5 × 5	Vision bullet dots	
+38	706, 482, 118 × 15	Caption underline (bottom-right)	
+40	21, 514, 20 × 20	Footer icon (page-number badge)	
+41	27, 520, 8 × 8	Inner dot of footer icon	
+9	23, 306, 186 × 15	Hero-photo caption rule	
+12	29, 471, 221 × 18	Photo caption rule (lower-left)	
+3	883, 524, 5 × 5	Footer dot	
+10	894, 524, 5 × 5	Footer dot	
+These are all raster — UNKNOWN exact pixel content; their purpose is inferred from size, position, and the live text overlays.
+
+Effective background color per region
+Header band (y 0–44): dark forest green (visually ~#1C2B1E to #0F2118, matching the dark-text body color used elsewhere)
+Footer band (y 507–540): same dark forest green
+Body canvas (y 44–507): cream #FFF9F5
+Right-column cards: each has its own raster background — Specs and Vision cards appear to be the dark green color (because their headers "Property Specs" and "The Vision" are written in #FFF9F5 cream-on-dark)
+Title card (Image 11): appears lighter — possibly a green-tinted band — because the live "Sul Monte" headline is written in green #257D41 (would not be readable on dark green)
+2. Shape Inventory — Live Text Shapes (z-order: rendered after all images)
+All text shapes have type: GeometricShape (text boxes). Listed top-to-bottom by visual position.
+
+Header (y 0–44)
+Shape 44 "Text 0" — 33, 7, 718, 16
+
+Text: Pipeline Spotlight: Belleayre Mountain, NY
+Font: Georgia, 16pt, bold + italic, character spacing 11, line-height 15.68pt
+Color: #257D41 (forest green) — on dark green header band → likely poor contrast
+⚠️ The text says "Belleayre Mountain, NY" but the slide content is about "Sul Monte" — possible stale/template text
+Shape 45 "Text 1" — 33, 24, 614, 12
+
+Text: Active acquisition target — Western Catskills, Delaware County
+Font: Georgia, default size (UNKNOWN — sz not specified, so inherits master ≈ 18pt), italic, line-height 12.38pt
+Color: #5A7A62 (muted sage)
+Shape 46 "Text 2" — 847, 17, 162, 10
+
+Text: INVESTMENT SPOTLIGHT
+Font: Poppins ExtraLight, 6.75pt, bold, character spacing 43 (very wide tracking)
+Color: #257D41 (green)
+⚠️ Width 162 starts at x=847 → extends to x=1009, which is off-slide (slide width 960). Likely right-aligned visually but bounding box overflows.
+Hero photo caption (y ~306)
+Shape 47 "Text 3" — 25, 306, 328, 15
+
+Text: SUL MONTE · 1926 STONE-AND-TIMBER CHATEAU
+Font: Microsoft YaHei, 6.75pt, character spacing 38
+Color: #FFF9F5 (cream — meant to sit on dark photo overlay)
+Pool/amenity caption (y ~482)
+Shape 65 "Text 21" — 713, 482, 172, 15
+
+Text: HEATED SALT-WATER POOL · 61+ PRIVATE ACRES
+Font: Microsoft YaHei, 6.75pt, character spacing 38
+Color: #FFF9F5
+Right-column title card (y ~51–96)
+Shape 49 "Text 5" — 429, 60, 227, 21
+
+Text: Sul Monte
+Font: Poppins ExtraLight, 21pt, bold, char spacing 17, line-height 21pt
+Color: #257D41
+Shape 50 "Text 6" — 429, 83, 462, 13
+
+Text: Former 1920s Estate of Amelita Galli-Curci
+Font: Poppins ExtraLight, 8.63pt, italic
+Color: #5A7A62
+Shape 51 "Text 7" — 836, 59, 97, 10 — right-aligned
+
+Text: ASKING PRICE
+Font: Poppins ExtraLight, 6.75pt, bold, char spacing 43
+Color: #9FBCA4 (muted green)
+Shape 52 "Text 8" — 789, 69, 144, 17 — right-aligned
+
+Text: $3.25M
+Font: Poppins ExtraLight, 15pt, bold
+Color: #1C2B1E (deep green-black)
+Shape 53 "Text 9" — 684, 85, 249, 12 — right-aligned
+
+Text: Target Acquisition: $2.3M
+Font: Poppins ExtraLight, 7.88pt, bold
+Color: #257D41
+Specs card (y ~110–250)
+Shape 54 "Text 10" — 441, 114, 158, 14 — header
+
+Text: Property Specs
+Font: Poppins ExtraLight, 12pt, bold, char spacing 15
+Color: #FFF9F5 (cream on the dark specs-card header strip)
+Specs body lines — all Poppins ExtraLight, 9pt, bold, color #257D41, line-height 11.7pt, left-aligned:
+
+Shape	id	Position	Text
+Text 11	55	440, 143, 425, 12	61+ Private Acres in Western Catskills
+Text 12	56	440, 160, 533, 12	1926 Stone-and-Timber Chateau (8,200+ sq ft)
+Text 13	57	440, 178, 274, 12	8 Bedrooms, 7 Full Baths
+Text 14	58	440, 196, 400, 12	Heated Salt-Water Pool & Indoor Sauna
+Text 15	59	440, 213, 378, 12	Studio/Guest House (ADU Conversion)
+Text 16	60	440, 231, 511, 12	`Asking: $3.25M
+Vision card (y ~258–360)
+Shape 61 "Text 17" — 443, 263, 113, 14
+
+Text: The Vision
+Font: Poppins ExtraLight, 12pt, bold, char spacing 15
+Color: #FFF9F5 (cream on dark header strip)
+Vision bullets — Poppins ExtraLight, 9pt, bold, color #7AAA88 (lighter sage), line-height 11.7pt:
+
+Shape	id	Position	Text
+Text 18	62	440, 291, 551, 12	`Post-Purchase Expansion: 20 Keys
+Text 19	63	440, 309, 217, 21	Year-Round Demand: Skiing, Hiking, Cultural Calendar
+Text 20	64	440, 335, 228, 23	Anchored Programming: Curated Retreats & Community Off-sites
+⚠️ Shape 63 is only 217pt wide but text says "Year-Round Demand: Skiing, Hiking, Cultural Calendar" — text likely wraps or overflows. Shape 64 likewise narrow (228pt) for its content.
+
+Photo-strip caption (y ~471)
+Shape 48 "Text 4" — 35, 472, 325, 15
+
+Text: CURATED GUEST EXPERIENCE
+Font: Poppins ExtraLight, 6.75pt, italic, char spacing 32
+Color: #FFF9F5
+Footer (y ~507–540)
+Shape 66 "Text 22" — 48, 517, 1339, 14 — width 1339pt extends 427pt off-slide right edge
+
+Text: appears empty or single trailing string (read returned no <a:t> content from the truncated read above — UNKNOWN content; verify)
+⚠️ Severely oversized bounding box
+Shape 2 "Text 19" — 804, 520, 135, 11 — right-aligned
+
+Text: PAGE 17
+Font: Georgia, 6.75pt, char spacing 76 (very wide)
+Color: #257D41 with 40% alpha (so effective color blended with dark footer ≈ desaturated green-tinted)
+⚠️ "PAGE 17" on a 6-slide deck — leftover from a longer source document
+3. Spatial Relationships
+Two-column layout: left column photos at x=16–406 (~390pt wide), right column info cards at x=419–944 (~525pt wide)
+Photos stack vertically: hero at y=51–327, secondary at y=331–499
+Right column stacks three cards: Title (51–104), Specs (110–253), Vision (258–499)
+Bottom-right photo (Picture 68) overlaps the Vision card's footprint — Vision card extends 419–679 horizontally; photo at 687–952 sits beside, not over
+Header and footer are full-bleed, body content respects an inner padding of ~16pt left, ~16pt right
+4. Visual Hierarchy & Reading Order
+"Sul Monte" headline (largest text, 21pt, green) — focal point
+"$3.25M" asking price (15pt bold, top-right)
+Property Specs / The Vision card headers (12pt bold cream-on-dark)
+Body bullets in green
+Photo captions and header/footer micro-copy (6.75pt) — peripheral
+5. Visibility & Legibility Audit
+Shape 44 "Pipeline Spotlight" header text (#257D41 green on dark-green band) — contrast ratio likely <3:1, fails WCAG AA
+Shape 46 "INVESTMENT SPOTLIGHT" at 6.75pt — far below the 14pt readability floor; readable only because of wide tracking and high contrast
+All caption text at 6.75pt (Shapes 47, 51, 65, 48, 2) — sub-readable on a projected slide; acceptable only as printed-document micro-copy
+Shape 46 bounding box overflows the right edge by 49pt
+Shape 66 footer overflows by 427pt
+Shape 63 "Year-Round Demand…" and Shape 64 "Anchored Programming…" — text content is wider than declared shape width; will wrap to multiple lines or overflow
+Image 5 / Image 6 — duplicate hero photos stacked at identical coordinates; one is redundant or one is a tinted overlay (UNKNOWN which)
+Header text mismatch: "Pipeline Spotlight: Belleayre Mountain, NY" but slide is about Sul Monte — likely stale template copy from a prior pipeline asset
+"PAGE 17" in footer — wrong page number for a 6-slide deck
+6. Ambiguity & Reconstruction Risk Flags
+The slide is ~70% raster. Every dark band, every divider line, every bullet dot, every dark card background is a baked-in PNG/JPG. A rebuilder who tries to recreate from this spec without the source rasters will get the text right but the visual chrome wrong.
+No theme colors used — every color is hardcoded sRGB. Preserve hex exactly.
+Fonts: Poppins ExtraLight is custom (not stock with PowerPoint), Georgia is system, Microsoft YaHei is Windows-only (will fall back on Mac/web)
+Two duplicate hero images (Image 5 + Image 6) — investigate whether one is an overlay
+Many text bounding boxes are smaller than their content — when rebuilt with native shapes, they will reflow; widths must be increased
+Background fill of slide 1 not directly readable via Office.js — confirm by inspecting slideMaster1.xml <p:bg> directly
+7. Reconstruction Recipe
+Set slide 960 × 540, apply DEFAULT layout
+Set slide background to #FFF9F5 (or confirm master)
+Place full-bleed dark-green bar 0,0,960,44 (forest green ~#1C2B1E)
+Place full-bleed dark-green bar 0,507,960,33
+Place hero photo asset at 17,51,389,276
+Place secondary photo at 16,331,387,168
+Place pool photo at 687,247,265,255
+Place three right-column card backgrounds (Title 419,51 / Specs 419,110 / Vision 419,258) — Specs and Vision should have a dark header strip ~23pt tall in dark green
+Place all native bullet dots (5×5pt) and divider rules (504pt × 18pt) — convert raster fragments to native shapes
+Place every text shape from Section 2 with the exact font/size/weight/color/spacing recorded
+Fix flagged issues: correct header copy, correct page number, widen overflowing shapes, resolve duplicate hero image

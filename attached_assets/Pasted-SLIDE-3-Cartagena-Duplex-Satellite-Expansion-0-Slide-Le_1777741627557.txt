@@ -1,0 +1,242 @@
+SLIDE 3 — Cartagena Duplex / Satellite Expansion
+0. Slide-Level Metadata
+Slide ID: 265#0, position: 3 of 6 (currently selected by the user)
+Dimensions: 960 × 540 pt
+Layout / master: DEFAULT layout on Office Theme master (same as slides 1–2)
+Theme: same palette, unused — every color is hardcoded sRGB
+Reconstruction note: Slide 3 has a different layout family from slides 1–2. Where slides 1/2 use a 2-column "photo + 3 stacked cards" structure, slide 3 uses 4 horizontal zones: a small photo top-left, a center "concept" card, a tall right-side "Why This Model?" card, and a bottom tag-line. It also introduces two full-bleed background images stacked at origin (something slides 1/2 do not have).
+1. Background & Background-Acting Elements
+True slide background
+Solid fill, color UNKNOWN via API → most likely the same inherited cream #FFF9F5 (consistent with the deck), but two full-bleed images on top render any inherited color invisible.
+Full-bleed background images (these define what the user actually sees as "background")
+Shape	id	Position (l, t, w, h)	Role
+Image 0	2	0, 0, 960, 540	Full-slide background image #1 — likely the Cartagena ambient photo (city walls, sea, or duplex-architecture context)
+Image 1	3	0, 0, 960, 540	Full-slide background image #2 stacked exactly on top — almost certainly a translucent overlay (cream wash, gradient, or dark vignette) used to dim Image 0 so foreground content reads. UNKNOWN — could also be a duplicate accidental upload.
+These are the two most important elements on the slide: they define the perceived background. A rebuilder MUST preserve both (or replicate as image + overlay rectangle with alpha).
+
+Header / footer chrome (same as slides 1–2)
+Shape	id	Position	Role
+Image 2	4	0, 0, 960, 44	Top dark-green header bar
+Image 41	43	0, 507, 960, 33	Bottom dark-green footer bar
+Image 3	5	21, 7, 3, 29	Header left accent bar
+Image 4	6	855, 19, 5, 5	Header dot — note: x=855 vs. 837 on slides 1/2 (shifted right)
+Image 42	44	21, 514, 20, 20	Footer page-number badge
+Image 43	45	27, 520, 8, 8	Inner dot of footer badge
+Image 41	74	883, 524, 5, 5	Footer dot
+"Concept" card (center-column, x ~345–728)
+Shape	id	Position	Role
+Image 9	11	345, 44, 383, 464	Center card outer container — full-height card from y=44 to y=508, the right-edge spans into the header bar (top=44 = exactly under the header bar at y=0–44)
+Image 10	12	353, 51, 369, 54	Top header strip of center card
+Image 11	13	363, 60, 4, 5	Tiny accent inside center-card header
+Image 12	14	353, 110, 369, 213	Mid-section strategic-details card body
+Image 13	15	353, 110, 369, 23	"Strategic Details" header strip (dark band)
+Image 14	16	363, 118, 6, 8	Header marker
+Image 15, 17, 19, 21	17, 19, 21, 23	363, {139, 157, 186, 210}, 348 × {18, 29, 18, 18}	Four divider rules — the second one (Image 17) is 29pt tall vs. usual 18pt, suggesting a 2-line text row
+Image 16, 18, 20, 23, 22	18, 20, 22, 25, 24	363, {146, 180, 210, 246, 280}, 5 × 5	Five bullet dots at varied y-positions (suggests irregular row heights)
+Right-side "Why This Model?" card (x 728–961)
+Shape	id	Position	Role
+Image 24	26	728, 44, 233, 464	Right card outer container (same y-range as center card)
+Image 25	27	734, 51, 210, 45	Top strip of right card (title area "World Heritage" overlay)
+Image 26	28	743, 60, 27, 27	Decorative badge / icon (likely a circular World Heritage seal)
+Image 27	29	751, 68, 11, 11	Inner dot of the badge
+Image 28	30	734, 101, 210, 398	Right card body container
+Image 29	31	734, 101, 210, 29	"Why This Model?" header strip (dark green)
+Image 30	32	744, 112, 8, 8	Header marker
+Image 31	33	734, 130, 210, 369	Inner content area
+Image 32	34	743, 138, 192, 47	First sub-card / row block (background tile for first reason)
+Image 33	35	750, 145, 18, 18	First reason's icon container (round)
+Image 34	36	756, 151, 6, 6	Inner dot of icon
+Image 35	37	743, 191, 192, 48	Second reason block
+Image 36	38	750, 198, 18, 18	Second icon
+Image 37	39	756, 204, 7, 6	Inner dot
+Image 38	40	743, 245, 192, 59	Third reason block (taller — 59pt)
+Image 39	41	750, 252, 18, 18	Third icon
+Image 40	42	756, 258, 5, 6	Inner dot
+So the right card has three reason rows, each ~50–60pt tall, with a circular icon on the left and text to its right.
+
+Hero photo (top-left)
+Picture 46 — id 47 — 13, 54, 323, 215
+
+A single live photograph in the upper-left, tucked under the header bar
+Z-ordered last in the shape list (renders on top)
+Photo-strip caption underline
+Image 7 — id 9 — 23, 479, 194, 15
+
+Underline rule beneath the lower-left caption text
+Effective background color per region
+Header band (y 0–44): dark forest green
+Footer band (y 507–540): dark forest green
+Hero-photo zone (x 13–336, y 54–269): actual photo content
+Center-card zone (x 345–728, y 44–508): appears as a cream/light-overlay panel based on its content (text written in green/dark, suggesting light background within the card)
+Right-card zone (x 728–961, y 44–508): dark green card based on cream #FFF9F5 text used inside ("World Heritage", "Why This Model?", reason-row titles in lighter sage #7AAA88)
+Bottom-left ambient zone (x 0–345, y 269–507): shows through to the full-slide background image — likely the dimmed Cartagena ambient photo
+2. Live Text Shapes
+Header
+Shape 48 "Text 0" — 33, 7, 1026, 16 — width 1026 overflows slide right by 66pt
+
+Text: Satellite Expansion: The Cartagena Duplex (Proof of Concept)
+Font: Georgia, 16pt, bold + italic, char spacing 11
+Color: #257D41 on dark-green band → ⚠️ low contrast
+Shape 49 "Text 1" — 33, 25, 960, 12 — width 960 overflows by 0 (just touches edge)
+
+Text: The Brand Engine applied to high-yield residential assets — a managed 'What If' Airbnb experience
+Font: Georgia, default size (UNKNOWN, master), italic
+Color: #5A7A62
+Shape 50 "Text 2" — 865, 17, 130, 10 — overflows by 35pt
+
+Text: GLOBAL EXPANSION
+Font: Poppins ExtraLight, 6.75pt, bold, char spacing 43
+Color: #257D41
+Lower-left photo caption
+Shape 51 "Text 3" — 29, 479, 317, 15
+
+Text: CARTAGENA, COLOMBIA · LUXURY DUPLEX VISION
+Font: Poppins ExtraLight, 6.75pt, char spacing 38
+Color: #FFF9F5 (sits on the dimmed background-image zone)
+"World Heritage" overlay (sits on the photo / between the photo and the right card)
+Shape 53 "Text 5" — 262, 62, 60, 30 — center-aligned, 2-line text
+
+Text: World\nHeritage (literal newline embedded)
+Font: Poppins ExtraLight, 9.75pt, bold, line-height 10.73pt
+Color: #FFF9F5
+⚠️ Sits at x 262–322, which is on the hero photo (photo extends to x=336). This is a label badge OVER the photo.
+Center "Concept" card
+Shape 54 "Text 6" — 370, 58, 348, 10 — header label
+
+Text: THE CONCEPT
+Font: Poppins ExtraLight, 6.38pt, bold, char spacing 51 (very wide)
+Color: #9FBCA4 (muted sage)
+Shape 55 "Text 7" — 363, 70, 359, 13
+
+Text: Not a hotel — a managed, brand-integrated 'What If' Airbnb experience.
+Font: Poppins ExtraLight, 9.6pt, bold + italic
+Color: #257D41
+Shape 56 "Text 8" — 363, 86, 634, 12 — width 634 extends past center-card right edge (722)
+
+Text: O.P.R.E. model: Other People's Real Estate + Managed Service Fee
+Font: Poppins ExtraLight, 8.25pt, italic
+Color: #5A7A62
+⚠️ Bounding box overflows the center card by ~275pt to the right; visually likely truncates or wraps
+Shape 57 "Text 9" — 375, 115, 191, 14
+
+Text: Strategic Details
+Font: Poppins ExtraLight, 9.38pt, bold, char spacing 15
+Color: #FFF9F5 (cream on dark-green strip)
+Strategic Details rows — each row has a small label (Italic dark green #2E4A35) + value (bold green #257D41), 9pt Poppins ExtraLight:
+
+Shape	id	Position	Label	Value
+Text 10	58	374, 142, 342 × 18	Location:	Cartagena, Colombia
+Text 11	59	374, 177, 338 × 23	Market Insight:	4.5M+ annual tourists, surging demand for curated high-end short-term rentals (multi-line)
+Text 12	60	374, 212, 334 × 15	Asset Type:	Duplex — residential, not commercial; lower barrier, higher flexibility
+Text 13	61	374, 247, 332 × 15	Strategy:	Managed Asset (O.P.R.E.) + Managed Service Fee — brand earns without owning
+Text 14	62	374, 277, 713 × 12	Structure:	One investor, one property — lean, fast, and replicable (Microsoft YaHei font, not Poppins — inconsistent)
+⚠️ Shape 62 width 713 overflows the center-card right edge by 339pt — text will run far beyond the card visually ⚠️ Shape 62 uses Microsoft YaHei for both label and value — every other Strategic Details row uses Poppins ExtraLight. Font inconsistency.
+
+Right "Why This Model?" card
+Shape 63 "Text 15" — 777, 58, 176, 10
+
+Text: The Brand Travels
+Font: Poppins ExtraLight, 8.63pt, bold
+Color: #257D41
+⚠️ Sits at y=58 — above the right card's header strip (y=101). This is in the title area of the right card (overlapping with "World Heritage" badge zone)
+Shape 64 "Text 16" — 777, 70, 158, 20
+
+Text: Proving the 'What If' Demand Engine scales across asset types & geographies
+Font: Poppins ExtraLight, 7.5pt, italic, line-height 9.75pt → wraps to 2 lines in 158pt width
+Color: #5A7A62
+Shape 65 "Text 17" — 758, 108, 189, 16
+
+Text: Why This Model?
+Font: Poppins ExtraLight, 10.5pt, bold, char spacing 8
+Color: #FFF9F5 (cream on dark-green header strip of right card)
+⚠️ x=758 — sits 24pt to the LEFT of the card's left edge (734). Bounding box leaks left of the card
+Three reason rows — each is [heading line in sage 7AAA88 / 9pt bold] + [body line in dark green 2E4A35 / 8.25pt italic]:
+
+Heading shape	id	Position	Heading
+Text 18	66	776, 144, 389 × 12	Rapid scaling with low capital entry (Microsoft YaHei font!)
+Text 20	68	776, 197, 152 × 23	High brand visibility in an international lifestyle hub
+Text 22	70	776, 251, 152 × 23	Proof of concept for the 'What If' Demand Engine
+Body shape	id	Position	Body
+Text 19	67	776, 157, 152 × 22	No ownership required — managed service model keeps capital light.
+Text 21	69	776, 224, 159 × 12	Cartagena puts 'What If' on the global map.
+Text 23	71	776, 276, 152 × 22	Residential setting validates the model beyond retreat venues.
+⚠️ Shape 66 has width 389pt and uses Microsoft YaHei font, while the other two heading shapes are Poppins ExtraLight, 152pt wide. Width 389 extends 245pt past the card right edge (944) — overflow. ⚠️ All three heading shapes only 152–159pt wide for 5–8 word phrases → they wrap to 2 lines. The card body container expects this (rows are 47–59pt tall).
+
+Bottom tag-line
+Shape 72 "Text 24" — 48, 517, 907, 14
+
+Two-run text:
+Run 1: One duplex. One investor. One proof. (Poppins ExtraLight, 9pt, bold + italic, color #257D41 green)
+Run 2: — The 'What If' brand engine, applied globally. (Poppins ExtraLight, 9pt, italic, color #1C2B1E near-black)
+Position is inside the dark-green footer band (y 507–540) → text at y 517 with 9pt size needs to be cream on dark, but it's green on dark → ⚠️ contrast issue
+Footer page number
+Shape 52 "Text 19" — 804, 520, 135, 11 — right-aligned
+
+Two-run text: PAGE 1 + 8 (the "8" is in a separate run)
+Effectively reads: PAGE 18
+Font: Poppins ExtraLight (note: slides 1/2 used Georgia here — inconsistent), 6.75pt, char spacing 76
+Color: #257D41 at 40% alpha
+⚠️ "PAGE 18" on slide 3 of a 6-slide deck — same stale-source pattern as slides 1/2
+3. Spatial Relationships
+Three-column layout (slide 3 is unique vs. slides 1–2):
+Left zone (x 0–336): hero photo + ambient background-image area below
+Center card (x 345–728)
+Right card (x 728–961)
+All three cards align top at y=44 (under header bar) and bottom at y=507 (above footer)
+Center card has internal padding ~10pt and dark "Strategic Details" header strip
+Right card has internal padding ~9pt, with three reason-row blocks evenly distributed (rows start y=138, 191, 245 — gaps of 53–54pt)
+Hero photo (13, 54, 323, 215) is the only "left-zone" content — below it (y 269–479) the full-bleed background image shows through
+4. Visual Hierarchy & Reading Order
+Center card "Not a hotel — a managed, brand-integrated 'What If' Airbnb experience." (9.6pt bold italic green) — narrative hook
+"World Heritage" badge over photo
+Right card "Why This Model?" header (10.5pt cream bold)
+"Strategic Details" rows in center card
+Three reason rows in right card
+Bottom tag-line "One duplex. One investor. One proof."
+Hero photo provides emotional context (Cartagena scenery)
+5. Visibility & Legibility Audit
+Image 0 + Image 1 stacked at origin: confirm whether Image 1 is intentional overlay or duplicate. If overlay, its alpha and color matter for perceived background hue.
+Header text "Satellite Expansion…" green on dark green band → low contrast (same issue as slides 1/2)
+Bottom tag-line (Shape 72) at y 517 sits inside the dark-green footer band, but the text is colored #257D41 and #1C2B1E — both dark-on-dark. Contrast ratio likely <2:1. Will be unreadable.
+All 6.75–8.25pt micro-copy: sub-readable when projected
+Multiple bounding-box overflows:
+Shape 48 (header) width 1026 → 66pt off slide
+Shape 50 (GLOBAL EXPANSION) → 35pt off slide
+Shape 56 (O.P.R.E. line) → 275pt off center card
+Shape 62 (Structure row) → 339pt off center card
+Shape 66 (Rapid scaling heading) → 245pt off right card
+Font inconsistency: Shape 62 (Structure row) and Shape 66 (Rapid scaling…) use Microsoft YaHei while their siblings use Poppins ExtraLight. These will render with visibly different letterforms.
+Shape 65 "Why This Model?" at x=758, but right-card starts at x=734 → text bounding box leaks 24pt left of the card frame. Likely OK visually but indicates sloppy alignment.
+"PAGE 18" wrong on a 6-slide deck (slides 1–2 had "PAGE 17"; the source document was clearly a longer deck and these slides were extracted)
+No price/cost data on slide 3: this is intentional — it's a strategy/concept slide, not a property card
+6. Ambiguity & Reconstruction Risk Flags
+Two stacked full-bleed background images — biggest unknown. The rebuilder MUST get both. UNKNOWN whether Image 1 is an overlay or a duplicate. Inspect by extracting both files from the .pptx zip.
+Slide 3 is structurally different from slides 1–2 (3 columns, full-bleed bg, center+right cards instead of stacked-cards). Cannot use slide-1 template as a starting point.
+The "World Heritage" badge (Shape 53 with circular Image 26 + Image 27 at 743,60) is over the right-side card area, NOT over the hero photo. UNKNOWN if it's a UNESCO/World-Heritage callout for Cartagena.
+Rasterized chrome: same caveat as slides 1/2 — every dark band, header strip, bullet dot, divider line is a baked-in PNG. Center card's "Strategic Details" strip and right card's three reason-row tiles (Image 32/35/38) are rasters, not native shapes.
+All text colors are hardcoded, no theme references — preserve hex exactly: #257D41, #FFF9F5, #5A7A62, #9FBCA4, #7AAA88, #2E4A35, #1C2B1E
+Mixed fonts in body: Poppins ExtraLight is dominant; Microsoft YaHei appears on Shape 62 and Shape 66 — likely accidental (someone pasted text from another source). Decide whether to standardize on Poppins.
+Shape 64 width 158pt for a 78-character sentence — definitely wraps to 2+ lines
+7. Reconstruction Recipe
+Set slide 960 × 540, DEFAULT layout
+Place Image 0 (full-bleed Cartagena background) at 0,0,960,540
+Place Image 1 (overlay/wash) at 0,0,960,540 above it
+Place dark-green header bar (Image 2) at 0,0,960,44 — z-order above bg images
+Place dark-green footer bar (Image 41) at 0,507,960,33
+Place hero photo (Picture 46) at 13,54,323,215
+Place center-card chrome assets: container (345,44,383,464), title strip (353,51,369,54), Strategic Details panel (353,110,369,213) with dark header strip and 5 divider rules + 5 bullet dots
+Place right-card chrome assets: container (728,44,233,464), top "World Heritage" badge area, header strip "Why This Model?", three reason-row tiles at y=138, 191, 245 each with circular icon
+Add "World Heritage" 2-line text label centered at 262,62,60,30 (cream)
+Add header text shapes (47, 49, 50)
+Add lower-left photo caption (Shape 51)
+Add center-card text shapes (54–62) with the exact mixed run colors recorded
+Add right-card text shapes (63–71): "The Brand Travels" subtitle, Why This Model? header, three reason heading+body pairs
+Add bottom tag-line (Shape 72) — but fix it: re-color to cream on dark, or move out of the footer band
+Fix flagged issues:
+Header text overflow (Shape 48 width 1026 → trim to ≤960)
+Center-card text overflows (Shapes 56, 62)
+Right-card text overflows (Shape 66)
+Font inconsistency: change Shapes 62 and 66 to Poppins ExtraLight
+"PAGE 18" → "PAGE 3"
+Header green-on-green low contrast
+Bottom tag-line dark-on-dark contrast

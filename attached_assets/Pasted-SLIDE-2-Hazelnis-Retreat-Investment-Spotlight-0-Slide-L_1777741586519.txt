@@ -1,0 +1,184 @@
+SLIDE 2 — Hazelnis Retreat Investment Spotlight
+0. Slide-Level Metadata
+Slide ID: 360#4156486089, position: 2 of 6
+Dimensions: 960 × 540 pt
+Layout / master: same DEFAULT layout on Office Theme master as slide 1
+Theme: same as slide 1 (palette and fonts defined but unused; everything is hardcoded)
+Reconstruction note: Slide 2 is a structural clone of Slide 1. Same chrome (header, footer, three right-column cards), same divider rules and bullet dot rasters at identical x/y. Only photos, headlines, and body bullets differ. A rebuilder should produce a single template and instantiate it twice.
+1. Background & Background-Acting Elements
+True slide background
+Solid fill, color UNKNOWN via API → inferred #FFF9F5 cream, identical to slide 1.
+Background-acting raster images
+Shape	id	Position (l, t, w, h)	Role
+Image 2	4	0, 0, 960, 44	Top dark-green header bar (full bleed)
+Image 37	39	0, 507, 960, 33	Bottom dark-green footer bar (full bleed)
+Image 5	7	17, 51, 389, 276	Left hero photo placeholder (raster)
+Picture 35	36	20, 52, 385, 272	Live photo on top of the placeholder — the actual hero image (likely the retreat exterior)
+Picture 41	42	20, 332, 382, 166	Lower-left secondary photo (interior or grounds)
+Picture 66	67	690, 258, 244, 244	Bottom-right photo (pool/recreation per caption)
+Image 11	13	419, 51, 525, 53	Right column "title" card background
+Image 12	14	419, 110, 525, 143	Right column "Property Specs" card background
+Image 13	15	419, 110, 525, 23	Dark header strip inside Specs card
+Image 26	28	419, 258, 260, 241	Right column "The Vision" card background
+Image 27	29	419, 258, 260, 23	Dark header strip inside Vision card
+⚠️ Image 5 (placeholder) and Picture 35 (real photo) are two stacked images at nearly identical coordinates — same duplicate-image pattern as slide 1, but here clearly intentional: the placeholder is a baked-in canvas and Picture 35 is the swappable photo on top.
+
+Decorative raster fragments (bullet dots, divider lines, header accents)
+Identical to slide 1, with one exception (Vision section dot moved from y=313 to y=324 to accommodate longer body copy):
+
+id	Position	Size	Role
+5	21, 7	3 × 29	Header left accent bar
+6	837, 19	5 × 5	Header dot
+16	429, 117	6 × 8	Specs header marker
+17, 19, 21, 23, 25	429, {140, 157, 175, 193, 210}, 504 × 18	5 specs divider rules	
+18, 20, 22, 24, 26	429, {146, 164, 182, 199, 217}, 5 × 5	5 specs bullet dots	
+27	429, 235, 5 × 5	6th specs dot	
+30	429, 266, 8 × 8	Vision header marker	
+31, 33	429, {288, 306}, ~234 × 18	Vision divider rules	
+32, 34, 35	429, {295, 324, 350}, 5 × 5	Vision bullet dots	
+9	31, 294, 186 × 15	Hero-photo caption underline	
+12	31, 469, 221 × 18	Lower-photo caption underline	
+38	704, 469, 118 × 15	Pool caption underline	
+40	21, 514, 20 × 20	Footer page-number badge	
+41	27, 520, 8 × 8	Inner dot of footer badge	
+3	883, 524, 5 × 5	Footer dot	
+10	894, 524, 5 × 5	Footer dot	
+Effective background color per region
+Identical to slide 1 — dark green header band, dark green footer band, cream #FFF9F5 body, dark-green-headed cards on the right.
+
+2. Live Text Shapes
+Header
+Shape 44 "Text 0" — 33, 7, 718, 16
+
+Text: Hazelnis Retreat — Loch Sheldrake, NY (split across two runs; "Hazelnis" carries err="1" spell-check flag)
+Font: Georgia, 16pt, bold + italic, char spacing 11, line-height 15.68pt
+Color: #257D41 on dark green band → ⚠️ low contrast
+Shape 45 "Text 1" — 33, 24, 614, 12
+
+Text: Western Catskills — Sullivan County
+Font: Georgia, default size (UNKNOWN, inherits master), italic
+Color: #5A7A62
+Shape 46 "Text 2" — 847, 17, 162, 10 — overflows slide right edge by 49pt
+
+Text: INVESTMENT SPOTLIGHT
+Font: Poppins ExtraLight, 6.75pt, bold, char spacing 43
+Color: #257D41
+Hero photo caption (y ~294)
+Shape 47 "Text 3" — 33, 294, 328, 15
+
+Text: HAZELNIS RETREAT — LOCH SHELDRAKE ESTATE
+Font: Microsoft YaHei, 6.75pt, char spacing 38
+Color: #FFF9F5
+Right column — title card (y ~51–96)
+Shape 49 "Text 5" — 429, 60, 227, 21
+
+Text: Hazelnis Retreat (in two runs; "Hazelnis" with err="1")
+Font: Poppins ExtraLight, 21pt, bold, char spacing 17
+Color: #257D41
+Shape 50 "Text 6" — 429, 83, 462, 13
+
+Text: Private Catskills estate positioned for intimate retreat experiences
+Font: Poppins ExtraLight, 10pt, italic (note: 10pt vs slide 1's 8.63pt — slightly larger)
+Color: #5A7A62
+⚠️ Slide 1 had right-aligned "ASKING PRICE / $3.25M / Target Acquisition" block here. Slide 2 has none of that. No price information at all.
+Specs card (y ~110–250)
+Shape 54 "Text 10" — 441, 114, 158, 14
+
+Text: Property Specs
+Font: Poppins ExtraLight, 12pt, bold, char spacing 15
+Color: #FFF9F5 (cream on dark header strip)
+Specs body lines — all Poppins ExtraLight, 9pt, bold, color #257D41, line-height 11.7pt:
+
+Shape	id	Position	Text
+Text 11	55	440, 143	9.86 Private Acres in the Western Catskills
+Text 12	56	440, 160	4,474 Sq Ft Residence with Distinctive Architectural Character
+Text 13	57	440, 178	`3 Bedrooms
+Text 14	58	440, 196	Indoor Pool & Spa-Style Recreation Space
+Text 15	59	440, 213	Multiple Gathering Areas & Open Grounds for Programming
+Text 16	60	440, 231	Ample Parking with Multi-Car Garage
+⚠️ Slide 1's last specs line was the price line ("Asking: $3.25M | Target Acquisition: $2.3M") — slide 2 replaces it with a property feature ("Ample Parking…"). Pricing has been removed from the spec list.
+
+Vision card (y ~258–370)
+Shape 61 "Text 17" — 443, 263, 113, 14
+
+Text: The Vision
+Font: Poppins ExtraLight, 12pt, bold, char spacing 15
+Color: #FFF9F5
+Vision bullets — Poppins ExtraLight, 9pt, bold, color #7AAA88 (sage):
+
+Shape	id	Position	Text
+Text 18	62	440, 291, 221 × 24	Transform into a boutique retreat property supporting 20–30 guest experiences
+Text 19	63	440, 321, 217 × 21	Year-Round Demand: Skiing, Hiking, Cultural Calendar
+Text 20	64	440, 346, 228 × 23	Anchored Programming: Curated Retreats & Community Off-sites
+⚠️ All three bullets have width 217–228pt, but text is 50–80 chars long. Will wrap to multiple lines and is the reason Shape 18's container is 24pt tall (not 12pt like specs single-liners). Vision dot positions (y 295, 324, 350) confirm three rows of wrapped text.
+
+⚠️ The Vision tag-line shape from slide 1 (Shape 64 "A historic estate with a proven cultural legacy…") does not exist on slide 2 — but a similar concluding line (A secluded Catskills estate with the space, character, and natural setting…) appears at 440, 346, 228 × 23 as the third bullet's row OR as Shape 64 below the Vision card. UNKNOWN which — Shape 64's text reads A secluded Catskills estate / with the space, character, and natural setting to support immersive retreat experiences. (two runs, first in #257D41, second in #7C837A warm gray-green) — this is the closing tag-line, equivalent to slide 1's Shape 64. Correction: shape 64 IS the tag-line (color #7C837A for second run, italic) — re-positioned compared to slide 1.
+
+Photo strip captions
+Shape 48 "Text 4" — 39, 471, 325, 15
+
+Text: INTIMATE GATHERING ENVIRONMENT
+Font: Poppins ExtraLight, 6.75pt, italic, char spacing 32
+Color: #FFF9F5
+Shape 65 "Text 21" — 710, 469, 172, 15
+
+Text: INDOOR POOL & RECREATION SPACE
+Font: Microsoft YaHei, 6.75pt, char spacing 38
+Color: #FFF9F5
+Footer
+Shape 66 "Text 22" — 48, 517, 805, 15 — text content was empty in read result OR wasn't returned; UNKNOWN
+
+Note: width 805pt is in-bounds (vs slide 1's 1339pt overflow), but content unclear
+Shape 2 "Text 19" — 804, 520, 135, 11 — right-aligned
+
+Text: PAGE 17 ⚠️ same wrong-page-number stale value as slide 1
+Font: Georgia, 6.75pt, char spacing 76
+Color: #257D41 at 40% alpha
+3. Spatial Relationships
+Identical column layout to slide 1: left photos (x 16–406), right cards (x 419–944)
+Photo grid: hero (51–324), secondary (332–498), pool (258–502)
+Card stack: title (51–104), specs (110–253), vision (258–499)
+Vision card and pool photo are side-by-side at y 258 — Vision occupies x 419–679, photo 690–934
+Footer photo captions sit at y 469–487 (slide 1 had them at y 482) — bands on slide 2 are 13pt higher than slide 1
+4. Visual Hierarchy & Reading Order
+"Hazelnis Retreat" headline (21pt green) — focal point
+Italic subtitle "Private Catskills estate…" (10pt sage)
+Card headers "Property Specs" / "The Vision" (12pt cream-on-dark)
+Body bullets (9pt green / sage)
+Photo captions and footer micro-copy (6.75pt)
+No price callout on slide 2 (slide 1 had $3.25M / $2.3M prominently). Big information difference.
+
+5. Visibility & Legibility Audit
+Header "Hazelnis Retreat — Loch Sheldrake, NY": green on dark-green band → low contrast (same issue as slide 1)
+All 6.75pt micro-copy: sub-readable on projected slide
+Shape 46 (INVESTMENT SPOTLIGHT) overflows slide right by 49pt
+Vision card bullets (Shapes 62, 63, 64) all narrower than their content → text wraps; visual height is ~2 lines per bullet
+"PAGE 17" wrong page number on a 6-slide deck
+"Hazelnis" flagged as misspelled (err="1" on both Shape 44 and Shape 49) — likely intended spelling, but note for review
+Picture 35 + Image 5 stack — Picture 35 (385×272) sits on Image 5 (389×276), 2pt smaller → Image 5 functions as a 2pt frame/border around the live photo. Intentional.
+6. Ambiguity & Reconstruction Risk Flags
+No pricing data on slide 2 — explicitly absent vs. slide 1. Could be intentional (this property's price is TBD) or a stale incomplete clone.
+Same chrome rasters as slide 1 — Image 11/12/13/14/15/16/17 and decorative dots are byte-identical assets reused. Rebuilder must reuse the same media files, not duplicate.
+Picture 35 / 41 / 66 are unique to slide 2 (the actual property photos)
+Shape 66 footer text content not visible from the read — could be empty or could be something I missed; verify by reading directly
+Shape 64 closing tag-line color split: first run green #257D41, second run warm gray-green #7C837A (not the #1C2B1E deep-green used on slide 1's tag-line)
+All other typography and color rules identical to slide 1 — Poppins ExtraLight everywhere, no theme colors, hardcoded hex
+7. Reconstruction Recipe
+Start from the slide-1 template
+Swap the three photo assets: hero (Picture 35), secondary (Picture 41), pool/amenity (Picture 66)
+Change header to Hazelnis Retreat — Loch Sheldrake, NY / Western Catskills — Sullivan County
+Change title-card headline to Hazelnis Retreat (Shape 49) and subtitle (Shape 50, 10pt italic) to the property description
+Remove the right-aligned price block from the title card (Shapes 51, 52, 53 from slide 1 do not appear on slide 2)
+Replace specs bullet text (Shapes 55–60) with the slide-2 spec list
+Replace vision bullet text (Shapes 62, 63, 64) with slide-2 vision content; tag-line gets two-run colors #257D41 then #7C837A
+Replace the three photo captions
+Fix flagged issues: wrong page number, header overflow, narrow vision bullet shapes
+Moving to slide 3 (the currently selected slide).
+
+
+Inspect slide 3 shapes
+Slide 3 has a different layout — three columns instead of two. Two full-bleed background images (Image 0 + Image 1, both 960×540 stacked at origin) suggesting a full-slide background image with overlay. Let me read all the text shapes.
+
+
+Read 25 slides
+I have everything for slide 3. Writing it up.
