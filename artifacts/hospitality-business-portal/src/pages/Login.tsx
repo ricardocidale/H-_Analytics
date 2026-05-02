@@ -22,6 +22,40 @@ const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
   google_id_mismatch: "This Google account doesn't match the one previously linked. Contact your administrator.",
 };
 
+/**
+ * Reads a non-OK fetch response and returns a human-readable error message,
+ * tolerating empty bodies, HTML error pages, and other non-JSON content
+ * (e.g. proxy 502s, gateway timeouts, misrouted requests). Prefers the
+ * server's `error` field when the body parses as JSON; otherwise falls back
+ * to a status-based message with a short body excerpt when available.
+ */
+async function readErrorMessage(response: Response, fallback: string): Promise<string> {
+  let bodyText = "";
+  try {
+    bodyText = await response.text();
+  } catch {
+    // Body may already be consumed or unreadable; fall through.
+  }
+  if (bodyText) {
+    try {
+      const parsed = JSON.parse(bodyText) as { error?: unknown };
+      if (parsed && typeof parsed.error === "string" && parsed.error.trim()) {
+        return parsed.error;
+      }
+    } catch {
+      // Not JSON — fall through to the status-based message below.
+    }
+  }
+  const statusLabel = response.statusText
+    ? `${response.status} ${response.statusText}`
+    : `${response.status}`;
+  const excerpt = bodyText.trim().slice(0, 200);
+  if (excerpt && !/^<!?doctype|^<html/i.test(excerpt)) {
+    return `${fallback} (HTTP ${statusLabel}): ${excerpt}`;
+  }
+  return `${fallback} (HTTP ${statusLabel})`;
+}
+
 function GoogleIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
@@ -87,8 +121,7 @@ export default function Login() {
         credentials: "include",
       });
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Admin login failed");
+        throw new Error(await readErrorMessage(response, "Admin login failed"));
       }
       window.location.href = "/";
     } catch (error: unknown) {

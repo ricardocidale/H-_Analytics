@@ -57,6 +57,22 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+/**
+ * Tries to parse a fetch response body as JSON, returning `null` on empty
+ * bodies or non-JSON content (e.g. proxy 502 HTML pages, gateway timeouts,
+ * misrouted requests). Lets callers degrade to a status-based error message
+ * instead of throwing the cryptic "Unexpected end of JSON input" error.
+ */
+function safeParseJson(text: string): { error?: unknown; [key: string]: unknown } | null {
+  if (!text) return null;
+  try {
+    const value = JSON.parse(text);
+    return value && typeof value === "object" ? (value as { error?: unknown }) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   
@@ -83,11 +99,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ email, password }),
         credentials: "include",
       });
+      const bodyText = await res.text().catch(() => "");
+      const parsed = safeParseJson(bodyText);
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Login failed");
+        const fromBody = parsed && typeof parsed.error === "string" && parsed.error.trim()
+          ? parsed.error
+          : null;
+        const statusLabel = res.statusText ? `${res.status} ${res.statusText}` : `${res.status}`;
+        const excerpt = bodyText.trim().slice(0, 200);
+        const detail = !fromBody && excerpt && !/^<!?doctype|^<html/i.test(excerpt)
+          ? `: ${excerpt}`
+          : "";
+        throw new Error(fromBody ?? `Login failed (HTTP ${statusLabel})${detail}`);
       }
-      return res.json();
+      return parsed ?? {};
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
