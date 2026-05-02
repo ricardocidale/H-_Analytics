@@ -88,6 +88,7 @@ const PROPERTY_ASSUMPTIONS: PropertyAssumptions[] = [
     exitCapRate: 0.10, taxRate: 0.35,
     type: "Full Equity", willRefinance: "Yes",
     refinanceLtv: 0.75, refinanceInterestRate: 0.09, refinanceTermYears: 25, refinanceClosingCostRate: 0.03,
+    baseManagementFeeRate: 0.085, incentiveManagementFeeRate: 0.12,
   },
   {
     name: "Loch Sheldrake",
@@ -101,6 +102,7 @@ const PROPERTY_ASSUMPTIONS: PropertyAssumptions[] = [
     exitCapRate: 0.09, taxRate: 0.25,
     type: "Full Equity", willRefinance: "Yes",
     refinanceLtv: 0.75, refinanceInterestRate: 0.09, refinanceTermYears: 25, refinanceClosingCostRate: 0.03,
+    baseManagementFeeRate: 0.085, incentiveManagementFeeRate: 0.12,
   },
   {
     name: "Belleayre Mountain",
@@ -114,6 +116,7 @@ const PROPERTY_ASSUMPTIONS: PropertyAssumptions[] = [
     exitCapRate: 0.085, taxRate: 0.25,
     type: "Full Equity", willRefinance: "Yes",
     refinanceLtv: 0.75, refinanceInterestRate: 0.09, refinanceTermYears: 25, refinanceClosingCostRate: 0.03,
+    baseManagementFeeRate: 0.085, incentiveManagementFeeRate: 0.12,
   },
   {
     name: "Scott's House",
@@ -127,6 +130,7 @@ const PROPERTY_ASSUMPTIONS: PropertyAssumptions[] = [
     exitCapRate: 0.085, taxRate: 0.22,
     type: "Financed",
     acquisitionLtv: 0.60, acquisitionInterestRate: 0.07, acquisitionTermYears: 25, acquisitionClosingCostRate: 0.025,
+    baseManagementFeeRate: 0.085, incentiveManagementFeeRate: 0.12,
   },
   {
     name: "Lakeview Haven Lodge",
@@ -140,6 +144,7 @@ const PROPERTY_ASSUMPTIONS: PropertyAssumptions[] = [
     exitCapRate: 0.08, taxRate: 0.22,
     type: "Financed",
     acquisitionLtv: 0.65, acquisitionInterestRate: 0.07, acquisitionTermYears: 25, acquisitionClosingCostRate: 0.025,
+    baseManagementFeeRate: 0.085, incentiveManagementFeeRate: 0.12,
   },
   {
     name: "San Diego",
@@ -153,6 +158,22 @@ const PROPERTY_ASSUMPTIONS: PropertyAssumptions[] = [
     exitCapRate: 0.09, taxRate: 0.35,
     type: "Financed",
     acquisitionLtv: 0.60, acquisitionInterestRate: 0.095, acquisitionTermYears: 25, acquisitionClosingCostRate: 0.02,
+    baseManagementFeeRate: 0.085, incentiveManagementFeeRate: 0.12,
+  },
+  // ── SEED_MEDELLIN_DUPLEX (vrbo_owner_managed — distinct cost model)
+  {
+    name: "Medellin Duplex",
+    startAdr: 1200, adrGrowthRate: 0.04,
+    startOccupancy: 0.30, maxOccupancy: 0.50, occupancyRampMonths: 4, stabilizationMonths: 12, occupancyGrowthStep: 0.04,
+    purchasePrice: 800000, buildingImprovements: 150000, preOpeningCosts: 15000, operatingReserve: 60000, roomCount: 1,
+    costRateRooms: 0.06, costRateFB: 0, costRateAdmin: 0, costRateMarketing: 0,
+    costRatePropertyOps: 0.04, costRateUtilities: 0.04, costRateTaxes: 0.018,
+    costRateIT: 0, costRateFFE: 0.03, costRateOther: 0, costRateInsurance: 0.025,
+    revShareEvents: 0, revShareFB: 0, revShareOther: 0, cateringBoostPercent: 0,
+    exitCapRate: 0.095, taxRate: 0.35,
+    type: "Full Equity", willRefinance: "No",
+    businessModel: "vrbo_owner_managed", hospitalityType: "extended_stay",
+    baseManagementFeeRate: 0.10, incentiveManagementFeeRate: 0, platformFeeRate: 0.14,
   },
   // ── SEED_SYNC_PROPERTIES (pipeline properties — defaults + per-property overrides)
   // Unoverridden fields use SEED_PROPERTY_DEFAULTS resolved values.
@@ -168,6 +189,7 @@ const PROPERTY_ASSUMPTIONS: PropertyAssumptions[] = [
     exitCapRate: 0.08, taxRate: 0.25,
     type: "Full Equity", willRefinance: "Yes",
     refinanceLtv: 0.75, refinanceInterestRate: 0.09, refinanceTermYears: 25, refinanceClosingCostRate: 0.03,
+    baseManagementFeeRate: 0.085, incentiveManagementFeeRate: 0.12,
   },
   {
     name: "Eden Summit Lodge",
@@ -181,6 +203,7 @@ const PROPERTY_ASSUMPTIONS: PropertyAssumptions[] = [
     exitCapRate: 0.085, taxRate: 0.22,
     type: "Full Equity", willRefinance: "Yes",
     refinanceLtv: 0.75, refinanceInterestRate: 0.09, refinanceTermYears: 25, refinanceClosingCostRate: 0.03,
+    baseManagementFeeRate: 0.085, incentiveManagementFeeRate: 0.12,
   },
   {
     name: "Austin Hillside",
@@ -194,6 +217,7 @@ const PROPERTY_ASSUMPTIONS: PropertyAssumptions[] = [
     exitCapRate: 0.085, taxRate: 0.22,
     type: "Full Equity", willRefinance: "Yes",
     refinanceLtv: 0.75, refinanceInterestRate: 0.09, refinanceTermYears: 25, refinanceClosingCostRate: 0.03,
+    baseManagementFeeRate: 0.085, incentiveManagementFeeRate: 0.12,
   },
   {
     name: "Casa Medellín",
@@ -207,6 +231,7 @@ const PROPERTY_ASSUMPTIONS: PropertyAssumptions[] = [
     exitCapRate: 0.095, taxRate: 0.25,
     type: "Financed",
     acquisitionLtv: 0.60, acquisitionInterestRate: 0.095, acquisitionTermYears: 25, acquisitionClosingCostRate: 0.02,
+    baseManagementFeeRate: 0.085, incentiveManagementFeeRate: 0.12,
   },
   {
     name: "Blue Ridge Manor",
@@ -220,6 +245,7 @@ const PROPERTY_ASSUMPTIONS: PropertyAssumptions[] = [
     exitCapRate: 0.09, taxRate: 0.25,
     type: "Financed",
     acquisitionLtv: 0.60, acquisitionInterestRate: 0.09, acquisitionTermYears: 25, acquisitionClosingCostRate: 0.02,
+    baseManagementFeeRate: 0.085, incentiveManagementFeeRate: 0.12,
   },
 ];
 
@@ -268,7 +294,13 @@ export async function runSyncPropertyAssumptions001(): Promise<void> {
           acquisition_ltv               = ${p.acquisitionLtv ?? null},
           acquisition_interest_rate     = ${p.acquisitionInterestRate ?? null},
           acquisition_term_years        = ${p.acquisitionTermYears ?? null},
-          acquisition_closing_cost_rate = ${p.acquisitionClosingCostRate ?? null}
+          acquisition_closing_cost_rate = ${p.acquisitionClosingCostRate ?? null},
+          base_management_fee_rate      = ${p.baseManagementFeeRate ?? null},
+          incentive_management_fee_rate = ${p.incentiveManagementFeeRate ?? null},
+          platform_fee_rate             = ${p.platformFeeRate ?? null},
+          cost_rate_insurance           = ${p.costRateInsurance ?? null},
+          business_model                = COALESCE(${p.businessModel ?? null}, business_model),
+          hospitality_type              = COALESCE(${p.hospitalityType ?? null}, hospitality_type)
         WHERE name = ${p.name}
       `);
 
