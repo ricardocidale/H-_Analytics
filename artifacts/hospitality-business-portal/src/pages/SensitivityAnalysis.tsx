@@ -6,6 +6,7 @@ import { generatePropertyProForma } from "@/lib/financialEngine";
 import { PROJECTION_YEARS, DEFAULT_EXIT_CAP_RATE, DEFAULT_COMMISSION_RATE, DEFAULT_COST_RATE_INSURANCE, MONTHS_PER_YEAR } from "@/lib/constants";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 import { computeIRR } from "@analytics/returns/irr.js";
+import { propertyEquityInvested } from "@/lib/financial/equityCalculations";
 import type { SensitivityResponse } from "@shared/sensitivity-types";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
@@ -120,7 +121,7 @@ export default function SensitivityAnalysis({ embedded }: { embedded?: boolean }
         const debtAtExit = financials[financials.length - 1]?.debtOutstanding ?? 0;
         exitValue += Math.max(0, netExit - debtAtExit);
 
-        totalInitialEquity += prop.purchasePrice * (1 - ((prop as Record<string, unknown>).acquisitionLTV as number ?? 0));
+        totalInitialEquity += propertyEquityInvested(prop);
       }
 
       const irrFlows = [-totalInitialEquity, ...annualCashFlows];

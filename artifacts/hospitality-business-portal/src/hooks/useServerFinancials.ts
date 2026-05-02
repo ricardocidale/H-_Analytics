@@ -138,9 +138,9 @@ function mapToDashboardFinancials(
     0,
   );
   const totalCashReturned = consolidatedFlows.reduce((sum, cf) => sum + cf, 0);
-  const midProjectionEquity = Array.from({ length: projectionYears }, (_, y) => getEquityInvestmentForYear(y + 1))
-    .reduce((sum, eq) => sum + eq, 0);
-  const equityMultiple = totalInitialEquity > 0 ? (totalCashReturned + midProjectionEquity) / totalInitialEquity : 0;
+  // netCashFlowToInvestors already has equity deducted in each acquisition year.
+  // Add back totalInitialEquity to convert net-of-equity sum to gross distributions.
+  const equityMultiple = totalInitialEquity > 0 ? (totalCashReturned + totalInitialEquity) / totalInitialEquity : 0;
 
   const operatingCashFlows = Array.from({ length: projectionYears }, (_, y) =>
     allPropertyYearlyCF.reduce((sum, propYearly) => sum + (propYearly[y]?.atcf ?? 0), 0),

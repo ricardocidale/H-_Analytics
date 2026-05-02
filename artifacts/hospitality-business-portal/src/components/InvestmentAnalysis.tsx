@@ -112,9 +112,9 @@ export function InvestmentAnalysis({
   );
 
   const totalCashReturnedIA = consolidatedFlowsIA.reduce((sum, cf) => sum + cf, 0);
-  const midProjectionEquityIA = Array.from({ length: projectionYears }, (_, y) => getEquityInvestmentForYear(y + 1))
-    .reduce((sum, eq) => sum + eq, 0);
-  const equityMultipleIA = totalInitialEquityIA > 0 ? (totalCashReturnedIA + midProjectionEquityIA) / totalInitialEquityIA : 0;
+  // netCashFlowToInvestors already has equity deducted in each acquisition year.
+  // Add back totalInitialEquityIA to convert net-of-equity sum to gross distributions.
+  const equityMultipleIA = totalInitialEquityIA > 0 ? (totalCashReturnedIA + totalInitialEquityIA) / totalInitialEquityIA : 0;
 
   const operatingCashFlowsIA = Array.from({ length: projectionYears }, (_, y) =>
     allPropertyYearlyCF.reduce((sum, propYearly) => sum + (propYearly[y]?.atcf ?? 0), 0)
