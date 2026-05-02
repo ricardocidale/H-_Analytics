@@ -174,7 +174,12 @@ export const SEED_INITIAL_PROPERTIES = [
     occupancyRampMonths: 9,
     stabilizationMonths: 36,
     occupancyGrowthStep: 0.05,
-    type: "Full Equity",
+    // Engine note: acquisitionLTV is only applied when type = "Financed".
+    // Full Equity properties return loan amount = 0 regardless of LTV stored.
+    // This property carries acquisition leverage — type must be "Financed".
+    type: "Financed",
+    acquisitionLTV: 0.60,
+    acquisitionInterestRate: 0.095,
     willRefinance: "Yes",
     refinanceDate: "2029-12-01",
     refinanceLTV: 0.75,
@@ -229,7 +234,12 @@ export const SEED_INITIAL_PROPERTIES = [
     occupancyRampMonths: 4,
     stabilizationMonths: 18,
     occupancyGrowthStep: 0.05,
-    type: "Full Equity",
+    // Engine note: acquisitionLTV is only applied when type = "Financed".
+    // Full Equity properties return loan amount = 0 regardless of LTV stored.
+    // This property carries acquisition leverage — type must be "Financed".
+    type: "Financed",
+    acquisitionLTV: 0.65,
+    acquisitionInterestRate: 0.075,
     willRefinance: "Yes",
     refinanceDate: "2030-05-01",
     refinanceLTV: 0.75,
@@ -284,7 +294,12 @@ export const SEED_INITIAL_PROPERTIES = [
     occupancyRampMonths: 12,
     stabilizationMonths: 36,
     occupancyGrowthStep: 0.05,
-    type: "Full Equity",
+    // Engine note: acquisitionLTV is only applied when type = "Financed".
+    // Full Equity properties return loan amount = 0 regardless of LTV stored.
+    // This property carries acquisition leverage — type must be "Financed".
+    type: "Financed",
+    acquisitionLTV: 0.65,
+    acquisitionInterestRate: 0.075,
     willRefinance: "Yes",
     refinanceDate: "2030-09-01",
     refinanceLTV: 0.75,
