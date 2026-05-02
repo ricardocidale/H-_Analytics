@@ -64,6 +64,7 @@ export function FavoritesStar({ item, className }: { item: FavoriteItem; classNa
     <Button
       variant="ghost"
       size="icon"
+      aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
       data-testid={`button-favorite-${item.id}`}
       onClick={(e) => {
         e.preventDefault();

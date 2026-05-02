@@ -18,6 +18,7 @@ interface PropertyRow {
   businessModel?: string | null;
   hospitalityType?: string | null;
   acquisitionStatus?: string | null;
+  status?: string | null;
   purchasePrice?: number | null;
   roomCount?: number | null;
 }
@@ -36,6 +37,7 @@ interface SlideStatus {
 const STATUS_STYLES: Record<string, string> = {
   active:    "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
   pipeline:  "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  planned:   "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
   closed:    "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
   operating: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
   disposed:  "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
@@ -98,6 +100,13 @@ function formatBytes(n: number | null): string {
 }
 
 // ── Slide render thumbnail ─────────────────────────────────────────────────
+// These are slide template colors, not app design tokens — intentionally
+// standalone so the thumbnail mirrors the actual PPTX output.
+const SLIDE_BG = "#0f1621";
+const SLIDE_TEXT_PRIMARY = "#f0f4ff";
+const SLIDE_TEXT_MUTED = "rgba(190,210,240,0.75)";
+const SLIDE_TEXT_FAINT = "rgba(190,210,240,0.6)";
+const SLIDE_BRAND_LABEL = "rgba(255,255,255,0.25)";
 
 function SlideRender({ property }: { property: PropertyRow }) {
   const location = [property.city, property.stateProvince].filter(Boolean).join(", ");
@@ -109,7 +118,7 @@ function SlideRender({ property }: { property: PropertyRow }) {
   return (
     <div
       className="relative w-full overflow-hidden rounded-t-[3px]"
-      style={{ aspectRatio: "16 / 9", background: "#0f1621" }}
+      style={{ aspectRatio: "16 / 9", background: SLIDE_BG }}
     >
       <div
         className="absolute inset-0 pointer-events-none"
@@ -133,7 +142,7 @@ function SlideRender({ property }: { property: PropertyRow }) {
         className="absolute left-[8%] right-[10%]"
         style={{
           top: "26%",
-          color: "#f0f4ff",
+          color: SLIDE_TEXT_PRIMARY,
           fontFamily: "system-ui, sans-serif",
           fontSize: property.name.length > 22 ? "9px" : "11px",
           fontWeight: 700,
@@ -145,14 +154,14 @@ function SlideRender({ property }: { property: PropertyRow }) {
       {location && (
         <div
           className="absolute left-[8%]"
-          style={{ top: "50%", color: "rgba(190,210,240,0.75)", fontFamily: "system-ui, sans-serif", fontSize: "6px" }}
+          style={{ top: "50%", color: SLIDE_TEXT_MUTED, fontFamily: "system-ui, sans-serif", fontSize: "6px" }}
         >
           {location}
         </div>
       )}
       <div
         className="absolute left-[8%] flex items-center gap-[8px]"
-        style={{ bottom: "14%", fontFamily: "system-ui, sans-serif", fontSize: "5.5px", color: "rgba(190,210,240,0.6)" }}
+        style={{ bottom: "14%", fontFamily: "system-ui, sans-serif", fontSize: "5.5px", color: SLIDE_TEXT_FAINT }}
       >
         {property.roomCount && <span>{property.roomCount} keys</span>}
         {property.purchasePrice && <span>{formatPrice(property.purchasePrice)}</span>}
@@ -160,7 +169,7 @@ function SlideRender({ property }: { property: PropertyRow }) {
       </div>
       <div
         className="absolute bottom-[10%] right-[6%] font-bold opacity-25"
-        style={{ fontSize: "7px", color: "#fff", fontFamily: "system-ui, sans-serif", letterSpacing: "0.12em" }}
+        style={{ fontSize: "7px", color: SLIDE_BRAND_LABEL, fontFamily: "system-ui, sans-serif", letterSpacing: "0.12em" }}
       >
         L+B
       </div>
@@ -342,7 +351,7 @@ export default function SlideDecksTab() {
         {properties.map(p => {
           const slide = statusMap.get(p.id);
           const dlState = downloadStates[p.id] ?? "idle";
-          const acqStatus = p.acquisitionStatus?.toLowerCase() ?? "pipeline";
+          const acqStatus = (p.acquisitionStatus ?? p.status)?.toLowerCase() ?? "pipeline";
           const isGenerating = slide?.status === "generating" || generateMutation.variables === p.id;
           const isReady = slide?.status === "ready";
           const freshness = freshnessFromStatus(slide);
@@ -359,7 +368,7 @@ export default function SlideDecksTab() {
                     variant="outline"
                     className={`text-[11px] shrink-0 border-0 font-medium ${STATUS_STYLES[acqStatus] ?? STATUS_STYLES["pipeline"]}`}
                   >
-                    {statusLabel(p.acquisitionStatus)}
+                    {statusLabel(p.acquisitionStatus ?? p.status)}
                   </Badge>
                 </div>
 

@@ -50,6 +50,7 @@ export function TagInput({
                 type="button"
                 variant="ghost"
                 size="icon"
+                aria-label={`Remove ${tag}`}
                 data-testid={`button-remove-${testIdPrefix}-${tag}`}
                 onClick={() => onChange(tags.filter((t) => t !== tag))}
                 className="h-4 w-4 hover:text-destructive transition-colors"

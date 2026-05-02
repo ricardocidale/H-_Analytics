@@ -66,6 +66,7 @@ function TourPromptDialog({ onAccept, onDecline }: { onAccept: () => void; onDec
         <Button
           variant="ghost"
           size="icon"
+          aria-label="Close tour prompt"
           onClick={() => onDecline(dontOffer)}
           className="absolute top-4 right-4 text-muted-foreground/40 hover:text-foreground/70"
           data-testid="button-tour-prompt-close"
@@ -278,6 +279,7 @@ function GuidedWalkthrough() {
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Close tour"
             onClick={handleSkip}
             className="text-muted-foreground/40 hover:text-foreground/70 -mt-0.5 -mr-0.5 shrink-0 h-auto w-auto p-0.5"
             data-testid="button-close-tour"

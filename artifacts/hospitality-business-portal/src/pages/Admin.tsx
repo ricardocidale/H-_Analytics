@@ -71,7 +71,7 @@ const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: strin
   verification:          { title: "Verification",             subtitle: "Independent GAAP financial audit and compliance" },
   database:              { title: "Database",                  subtitle: "Entity monitoring, seed data, and canonical sync" },
   observability:         { title: "Observability",             subtitle: "Background scheduler health, last-cycle summaries, and stale-warnings" },
-  "lb-slides":           { title: "LB Slides",                 subtitle: "Generate and download per-property L+B investor slide decks (6 slides, PPTX)" },
+  "slide-decks":         { title: "LB Slides",                 subtitle: "Generate and download per-property L+B investor slide decks (6 slides, PPTX)" },
 
   // AI Research → Specialists (P5). The page header *title* for these
   // sections is computed dynamically from the catalog + the live
@@ -247,7 +247,7 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "sidebar-visibility": return <SidebarVisibilityTab />;
     case "verification":     return <VerificationTab />;
     case "database":         return <DatabaseTab />;
-    case "lb-slides":        return <SlideDecksTab />;
+    case "slide-decks":      return <SlideDecksTab />;
     case "observability":    return <ObservabilityTab />;
     default: {
       if (isSpecialistSection(section)) {

@@ -111,6 +111,7 @@ export default function NotificationCenter() {
       <Button
         variant="ghost"
         size="icon"
+        aria-label="Toggle notifications"
         data-testid="button-notifications"
         onClick={() => setOpen((o) => !o)}
         className="relative w-10 h-10 bg-sidebar-accent hover:bg-sidebar-border"

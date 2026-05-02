@@ -98,6 +98,7 @@ export function SourcesSection({
                 <Button
                   variant="ghost"
                   size="icon"
+                  aria-label={`Remove ${source.name}`}
                   onClick={() => remove(idx)}
                   className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive h-6 w-6"
                 >

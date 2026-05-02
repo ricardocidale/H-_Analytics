@@ -281,6 +281,9 @@ function Router() {
         <Route path="/admin/icp-studio">
           <Redirect to="/admin" />
         </Route>
+        <Route path="/admin/lb-slides">
+          <Redirect to="/admin#slide-decks" />
+        </Route>
         <Route path="/icp">
           <IcpRedirect />
         </Route>

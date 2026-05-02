@@ -17,7 +17,7 @@ interface MoneyProps {
 export function Money({ amount, className }: MoneyProps) {
   const isNegative = amount < 0;
   return (
-    <span className={cn(isNegative && "text-destructive", className)}>
+    <span className={cn("font-mono tabular-nums", isNegative && "text-destructive", className)}>
       {formatMoney(amount)}
     </span>
   );
