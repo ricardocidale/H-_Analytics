@@ -54,9 +54,19 @@ Skills are process documents that guide AI agents. See `claude.md` § "Agent & S
 
 ## LB Slides admin page
 
+Admin sidebar → **LB Slides** renders `SlideDecksTab` — a card grid of all properties.
 
+**Two download formats per property:**
+- **Download PPTX** (Track 1): editable PPTX matching the L+B template exactly
+- **Download Images** (Track 2): image-PPTX where each slide = one full-slide-size PNG (locked, identical appearance)
 
-Admin sidebar → **LB Slides** renders `SlideDecksTab` — a card grid of all properties, each with a "Download Slides" button that calls `GET /api/properties/:id/slides`. The route runs the finance engine, generates vision text via Claude, then spawns a Python subprocess (`scripts/src/generate_property_slides.py`) that writes a `.pptx` to a temp path and returns it. `python-pptx` and `Pillow` are installed via `uv` (the `python3` module). Template: `attached_assets/L+B_Property_Slides_1777637870265.pptx`.
+**Pre-generation:** Both formats are generated proactively at server startup for all properties with no `ready` record. Admins should NOT need to click "Generate" on first visit. Manual regeneration is available (slow is OK; quality is the priority).
+
+**Image rendering (Track 2):** Use **satori + @resvg/resvg-js** (JSX → SVG → PNG, zero native deps). **Never Puppeteer/Playwright** — too heavy for Railway.
+
+**DB:** `property_slide_deck_variants` table with composite PK `(property_id, format)` where `format IN ('pptx', 'image')`. Replaces old single-row `property_slide_decks` table.
+
+**Generator:** Python subprocess `scripts/src/generate_property_slides.py`, template `attached_assets/L+B_Property_Slides_1777637870265.pptx` (slides 0–5). `python-pptx` and `Pillow` installed via `uv`. Shape mapping in `.agents/skills/hplus-slide-mapping/SKILL.md`.
 
 ---
 

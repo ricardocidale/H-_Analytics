@@ -13,13 +13,39 @@ Generates a 6-slide per-property PPTX from the L+B template.
 ## Architecture
 
 ```
-scripts/src/generate_property_slides.py   ← main generator (stdin JSON → stdout JSON)
+scripts/src/generate_property_slides.py   ← Track 1: PPTX generator (stdin JSON → stdout JSON)
 scripts/src/slide_helpers.py              ← deterministic helper functions
 scripts/src/renovation_budget.py          ← renovation budget calculator
-artifacts/api-server/src/routes/property-slides.ts  ← Express route
+artifacts/api-server/src/routes/property-slides.ts  ← Express route (both tracks)
 artifacts/api-server/src/ai/property-vision.ts      ← LLM + fallback vision text
+artifacts/api-server/src/slides/image-renderer.ts   ← Track 2: satori slide → PNG renderer
 artifacts/hospitality-business-portal/src/components/admin/SlideDecksTab.tsx  ← admin UI
 ```
+
+## Two Formats (Track 1 + Track 2)
+
+**Track 1 — PPTX (editable):**
+Python generator writes text/image shapes into template slides via `python-pptx`. Stored in R2 as `slides/pptx/property-{id}.pptx`.
+
+**Track 2 — Image-PPTX (locked):**
+Each slide is one full-slide PNG inserted into a new PPTX. Each slide rendered server-side using **satori + @resvg/resvg-js** (JSX → SVG → PNG). Stored in R2 as `slides/image/property-{id}.pptx`.
+
+**NEVER use Puppeteer, Playwright, or headless Chromium for Track 2** — too heavy for Railway (~300MB). satori has zero native dependencies.
+
+## Pre-Generation
+
+Both formats must be generated proactively at server startup for all properties that have no `ready` entry in `property_slide_deck_variants`. Admin LB Slides page is a download page — admins must not need to trigger generation on first visit.
+
+## Quality Requirement
+
+Track 1 PPTX must match the canonical template `attached_assets/L+B_Property_Slides_1777637870265.pptx` exactly: colors, fonts, layout, proportions. When any data field is missing or null, **derive it** (vision generator, renovation benchmarks, computed formulas). Never leave a shape blank or with placeholder text.
+
+## DB Schema
+
+`property_slide_deck_variants` — composite PK `(property_id, format)`:
+- `format`: `'pptx'` | `'image'`
+- `status`: `'idle'` | `'generating'` | `'ready'` | `'error'`
+- `r2_key`, `file_size_bytes`, `generated_at`, `triggered_by`, `error_message`, `updated_at`
 
 ---
 

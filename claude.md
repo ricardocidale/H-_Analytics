@@ -107,13 +107,29 @@ Specialists are **dev-defined only** — see `.claude/rules/specialists-are-dev-
 - `canManageScenarios` is a boolean orthogonal to role — see the architecture audit at `.local/tasks/task-800.md`.
 - Dual share tables exist: `scenario_access` (enforcement) and `scenario_shares` (admin tracking). Both must be kept in sync.
 
-### LB Slides — per-property PPTX generator
+### LB Slides — per-property PPTX + image-PPTX generator
 
-The "LB Slides" feature generates a 6-slide investor deck per property using the L+B PowerPoint template. Slide 7 ("The Ask") is always excluded.
+The "LB Slides" feature generates two formats of a 6-slide investor deck per property using the L+B PowerPoint template. Slide 7 ("The Ask") is always excluded.
 
-**Entry point:** Admin sidebar → "LB Slides" → per-property "Download Slides" button.
+**Two formats (Track 1 and Track 2):**
+- **Track 1 — PPTX** (editable): Python `generate_property_slides.py` writes shapes into template slides. Must match the canonical template exactly — colors, fonts, layout. When data is missing, always derive (vision generator, renovation benchmarks, computed values) — never leave a placeholder blank.
+- **Track 2 — Image-PPTX** (locked): Same 6 slides, but each slide contains one full-slide-size PNG as the only element (looks identical; immune to font/layout issues in PPTX viewers). PNG rendering uses **satori + @resvg/resvg-js** (JSX → SVG → PNG, zero native deps). **Never use Puppeteer, Playwright, or headless Chromium** — too heavy for Railway (~300MB). LibreOffice headless (`soffice --headless --convert-to png`) is an acceptable fallback if available.
 
-**API route:** `GET /api/properties/:id/slides` (registered in `routes/index.ts`)
+**Pre-generation (critical):**
+- Both formats are pre-generated at server startup for all properties that have no `ready` variant.
+- Admin LB Slides page is **primarily a download page** — admins should not need to click "Generate" on first visit.
+- Admin CAN trigger manual regeneration with a visible wait. Generation can be slow — quality over speed.
+
+**DB schema:** `property_slide_deck_variants` table (replaces old `property_slide_decks`):
+- Composite PK: `(property_id, format)` — `format IN ('pptx', 'image')`
+- Columns: `property_id` FK→properties.id (cascade delete), `format`, `status` ('idle'|'generating'|'ready'|'error'), `r2_key`, `file_size_bytes`, `generated_at`, `triggered_by`, `error_message`, `updated_at`
+- Migration: copy old `property_slide_decks` rows as `format='pptx'`, drop old table
+
+**API routes:**
+- `POST /api/properties/:id/slides/generate` — trigger generation (both formats)
+- `GET /api/properties/:id/slides/status` — poll status per format
+- `GET /api/properties/:id/slides?format=pptx` — download PPTX
+- `GET /api/properties/:id/slides?format=image` — download image-PPTX
 - Source: `artifacts/api-server/src/routes/property-slides.ts`
 - Auth: `requireAuth` guard
 - Finance: uses `recomputeSinglePropertyAndStamp` → `aggregateUnifiedByYear` (same path as finance.ts)
@@ -126,8 +142,13 @@ The "LB Slides" feature generates a 6-slide investor deck per property using the
 - Helpers: `scripts/src/slide_helpers.py`, `scripts/src/renovation_budget.py`
 - Template: `attached_assets/L+B_Property_Slides_1777637870265.pptx` (slides 0–5, index 6 excluded)
 - Runtime deps: `python-pptx`, `Pillow` (installed via `uv`, managed by the `python3` module)
+- Quality requirement: shape mapping must follow `hplus-slide-mapping` skill exactly — all 6 slides, all shape names, all data fields
 
 **Admin UI:** `artifacts/hospitality-business-portal/src/components/admin/SlideDecksTab.tsx`
+- Card grid per property with property photo background
+- Two download buttons per ready card: **Download PPTX** (Track 1) + **Download Images** (Track 2)
+- Regenerate button (Analyst-style) for manual re-run of both formats
+- "View Slides" icon opens `/slides/?propertyId={id}` in new tab
 - Queries `/api/properties` for the card grid
 - `AdminSection` type includes `"slide-decks"`, nav group `id: "lb-slides"`, label `"LB Slides"`
 
