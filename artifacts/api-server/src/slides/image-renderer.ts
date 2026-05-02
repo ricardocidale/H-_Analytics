@@ -92,15 +92,25 @@ export async function renderImagePptx(payload: SlidePayload): Promise<Buffer> {
       return generateBlankSlideJpeg(4, payload.property.name);
     }),
 
-    renderHybridSlide(5, payload, fonts).catch(err => {
-      logger.warn(`[image-renderer] Slide 5 hybrid failed: ${err} — falling back to satori JSX`);
-      return renderJsxToJpeg(React.createElement(Slide5, { p: payload }), fonts);
-    }).then(buf => buf ?? generateBlankSlideJpeg(5, payload.property.name)),
+    renderHybridSlide(5, payload, fonts)
+      .catch(err => {
+        logger.warn(`[image-renderer] Slide 5 hybrid threw: ${err} — falling back to satori JSX`);
+        return null;
+      })
+      .then(buf => buf ?? renderJsxToJpeg(React.createElement(Slide5, { p: payload }), fonts).catch(err => {
+        logger.warn(`[image-renderer] Slide 5 satori fallback also failed: ${err} — using blank`);
+        return generateBlankSlideJpeg(5, payload.property.name);
+      })),
 
-    renderHybridSlide(6, payload, fonts).catch(err => {
-      logger.warn(`[image-renderer] Slide 6 hybrid failed: ${err} — falling back to satori JSX`);
-      return renderJsxToJpeg(React.createElement(Slide6, { p: payload }), fonts);
-    }).then(buf => buf ?? generateBlankSlideJpeg(6, payload.property.name)),
+    renderHybridSlide(6, payload, fonts)
+      .catch(err => {
+        logger.warn(`[image-renderer] Slide 6 hybrid threw: ${err} — falling back to satori JSX`);
+        return null;
+      })
+      .then(buf => buf ?? renderJsxToJpeg(React.createElement(Slide6, { p: payload }), fonts).catch(err => {
+        logger.warn(`[image-renderer] Slide 6 satori fallback also failed: ${err} — using blank`);
+        return generateBlankSlideJpeg(6, payload.property.name);
+      })),
   ]);
 
   logger.info("[image-renderer] All slides rendered — building PPTX");

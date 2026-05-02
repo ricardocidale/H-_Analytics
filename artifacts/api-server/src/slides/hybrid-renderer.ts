@@ -241,19 +241,27 @@ async function renderSlotPng(
 
 function buildSlide6IsTableJsx(payload: SlidePayload, width: number, height: number): React.ReactElement {
   const { financials } = payload;
-  const years = financials.yearlyIS.slice(0, 5);
-  const cf = financials.yearlyCF.slice(0, 5);
+  const YEAR_COUNT = 5;
+  const years = financials.yearlyIS.slice(0, YEAR_COUNT);
+  const cf = financials.yearlyCF.slice(0, YEAR_COUNT);
+
+  // Pad row to YEAR_COUNT columns with "—" for missing years.
+  const pad = (arr: string[]): string[] => {
+    const out = arr.slice(0, YEAR_COUNT);
+    while (out.length < YEAR_COUNT) out.push("—");
+    return out;
+  };
 
   const rows: Array<[string, string[], boolean]> = [
-    ["Revenue",            years.map(y => fmtCurrency(y.revenueTotal)),           false],
-    ["Operating Expenses", years.map(y => fmtCurrency(y.totalExpenses)),          false],
-    ["NOI",                years.map(y => fmtCurrency(y.noi)),                    true],
-    ["Debt Service",       cf.map(y => fmtCurrency(y.debtService)),               false],
-    ["Net Cash Flow",      cf.map(y => fmtCurrency(y.netCashFlowToInvestors)),    false],
-    ["Cumulative CF",      cf.map(y => fmtCurrency(y.cumulativeCashFlow)),        false],
+    ["Revenue",            pad(years.map(y => fmtCurrency(y.revenueTotal))),        false],
+    ["Operating Expenses", pad(years.map(y => fmtCurrency(y.totalExpenses))),       false],
+    ["NOI",                pad(years.map(y => fmtCurrency(y.noi))),                 true],
+    ["Debt Service",       pad(cf.map(y => fmtCurrency(y.debtService))),            false],
+    ["Net Cash Flow",      pad(cf.map(y => fmtCurrency(y.netCashFlowToInvestors))), false],
+    ["Cumulative CF",      pad(cf.map(y => fmtCurrency(y.cumulativeCashFlow))),     false],
   ];
 
-  const headerYears = years.length > 0 ? years.map((_, i) => `Yr ${i + 1}`) : ["Yr 1", "Yr 2", "Yr 3", "Yr 4", "Yr 5"];
+  const headerYears = Array.from({ length: YEAR_COUNT }, (_, i) => `Yr ${i + 1}`);
 
   return React.createElement("div", {
     style: {
