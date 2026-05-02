@@ -17,7 +17,7 @@ Read that file when you need exact details. This skill distills the most actiona
 
 - **Position:** 2 of 6 (template_index `1`)
 - **Dimensions:** 960 × 540 pt (16:9)
-- **Governing design system:** **L+B palette** (same as Slide 1). The PPTX file reports the same "DEFAULT" / "Office Theme" master values as Slide 1 — both are inert; L+B governs.
+- **Governing design system:** **L+B palette** (same as Slide 1; Office theme XML is dormant on Slides 1–4, all colors are direct hex). See Slide 1's "Palette drift" note about near-duplicate hex values across the deck — Slide 2's `#7C837A` tag-line color is one of the flagged drift candidates.
 - **Effective canvas color:** `#FFF9F5` (warm ivory cream) — inferred, identical to Slide 1
 - **Composition:** **Structural clone of Slide 1.** Same chrome (header band, footer band, three right-column cards) and most divider rules / bullet-dot rasters at identical x/y. The deltas — Vision dot y-shift (295/324/350 vs Slide 1's 295/313/338), price-block removal, photo caption band moved up ~13pt, subtitle font size, tag-line color split, and the live-photo-over-placeholder pattern — are documented in full in the next section. A rebuilder should clone the Slide-1 template and apply those deltas, not re-author from scratch.
 
@@ -55,7 +55,7 @@ All chrome raster assets (header band, footer band, card backgrounds, specs divi
 | `#7AAA88` | Lighter sage (vision bullets) |
 | `#9FBCA4` | Muted green (eyebrows — Slide 1 only; no eyebrow card on Slide 2) |
 | `#5A7A62` | Muted sage (subtitle, tagline) |
-| `#7C837A` | Warm gray-green (Slide 2 tag-line second run only — new to Slide 2) |
+| `#7C837A` | Warm gray-green (Slide 2 tag-line second run only — new to Slide 2; flagged in Slide 1's palette-drift table as a likely-unintended near-duplicate of `#7AAA88` mid sage) |
 
 ---
 

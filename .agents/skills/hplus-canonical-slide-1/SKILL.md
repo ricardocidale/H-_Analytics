@@ -17,7 +17,7 @@ Read that file when you need exact details. This skill distills the most actiona
 
 - **Position:** 1 of 6 (template_index `0`)
 - **Dimensions:** 960 × 540 pt (16:9)
-- **Governing design system:** **L+B palette** (named below). The PPTX file's theme XML happens to report a "DEFAULT" layout on an "Office Theme" master — that's a python-pptx artifact, not a meaningful design choice. Treat L+B as the source-of-truth for colors and typography; the embedded Office theme is inert.
+- **Governing design system:** **L+B palette** (named below). On Slides 1–4 (including this one) the embedded Office theme is dormant — every color is written as a direct sRGB hex value, never via a scheme reference. On Slides 5–6 a real L+B `theme1.xml` is present (`accent1=#257D41`, `accent2=#9FBBA5`) and IS referenced by some shapes. Either way, treat L+B as the canonical design system; the colors documented here are the L+B brand colors.
 - **Effective canvas color:** `#FFF9F5` (warm ivory cream); confirm via `slideMaster1.xml <p:bg>` if regenerating
 - **Composition:** ~70% raster (header band, footer band, card backgrounds, divider lines, bullet dots, decorative icons are all baked-in PNG/JPG fragments) + ~30% live text shapes overlaid on top. Signature of a Canva/Figma/PDF export pasted into PowerPoint.
 
@@ -25,7 +25,17 @@ Read that file when you need exact details. This skill distills the most actiona
 
 ## Color palette — L+B
 
-These are the L+B brand colors. They are written into the PPTX as direct sRGB values (not via theme references), so the embedded Office theme can be ignored.
+These are the L+B brand colors. On this slide they are written as direct sRGB values — no scheme/theme references, so the embedded Office theme is dormant for Slides 1–4. (Slides 5–6 introduce a real L+B `theme1.xml` with `accent1=#257D41` / `accent2=#9FBBA5`; out of scope for this skill.)
+
+> **Palette drift across the deck.** A deck-wide color audit found near-duplicate hex values that almost certainly should consolidate to a single canonical color but currently drift by 1–2 channel units. When generating new slides or reconciling existing ones, prefer the canonical column over its drift cousins:
+>
+> | Canonical | Drift cousins seen elsewhere | Notes |
+> |---|---|---|
+> | `#1C2B1E` (dark band on Slides 1, 3) | `#1F3A2A` (Slide 4 card BG), `#2E4A35` (Slide 3 secondary band) | All three are "deep forest green"; pick one |
+> | `#9FBCA4` (sage; Slides 1, 3, 4, 5, 6) | `#9FBBA5` (Slide 5/6 theme `accent2`) | Differ by 1 unit in green and blue — almost certainly unintended |
+> | `#7AAA88` (mid sage; Slides 1, 2, 3) | `#7C837A` (Slide 2 only — warm gray-sage tag-line second run) | Slide 2 introduces a near-duplicate; verify it was intentional before propagating |
+>
+> Source: deck-wide analysis at `attached_assets/Pasted-This-means-slide-5-Rectangle-1-scheme-accent1-renders-a_1777742569305.txt`.
 
 | Hex | Role |
 |---|---|
