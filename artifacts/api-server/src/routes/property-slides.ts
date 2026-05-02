@@ -175,11 +175,12 @@ async function resolvePhotoBytes(photo: {
   if (!url) return null;
   try {
     const port = process.env.PORT ?? "8080";
+    // Only fetch from the internal API server — external URLs are rejected to
+    // prevent SSRF. Photos should always be served through our own /api/photos
+    // endpoint; any other origin indicates unexpected data in the DB.
     const fetchUrl = url.startsWith("/api/")
       ? `http://localhost:${port}${url}`
-      : url.startsWith("http")
-        ? url
-        : null;
+      : null;
     if (!fetchUrl) return null;
     const resp = await fetch(fetchUrl, { signal: AbortSignal.timeout(8_000) });
     if (!resp.ok) return null;

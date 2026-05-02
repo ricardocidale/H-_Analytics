@@ -611,6 +611,14 @@ async function runSchemaMigrations() {
     await runPropertySlideDecks001();
     await markMigrationApplied("property_slide_decks_001");
   }
+
+  if (!(await isMigrationApplied("property_slide_decks_002"))) {
+    const { runPropertySlideDecks002 } = await import(
+      "./migrations/property-slide-decks-002"
+    );
+    await runPropertySlideDecks002();
+    await markMigrationApplied("property_slide_decks_002");
+  }
 }
 
 async function runSeeds() {
