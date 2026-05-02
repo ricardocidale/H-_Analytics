@@ -193,7 +193,8 @@ export function DdTemplateTab() {
                       data-testid={`button-save-${item.key}`}
                     >
                       {updateMutation.isPending ? (
-                        <Loader2 className="w-3 h-3 animate-spin text-accent-pop mr-1" />
+                        // white spinner: this Save sits on the dark default-variant fill where amber text-accent-pop fails 3:1 contrast.
+                        <Loader2 className="w-3 h-3 animate-spin text-white mr-1" />
                       ) : null}
                       Save
                     </Button>

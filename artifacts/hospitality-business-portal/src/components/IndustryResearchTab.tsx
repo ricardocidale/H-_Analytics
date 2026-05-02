@@ -357,7 +357,8 @@ export function IndustryResearchTab() {
                 }}
                 data-testid="button-add-research-question"
               >
-                {createQuestion.isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop" /> : <IconPlus className="w-4 h-4" />}
+                {/* white spinner: this Add sits on the dark default-variant fill where amber text-accent-pop fails 3:1 contrast. */}
+                {createQuestion.isPending ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <IconPlus className="w-4 h-4" />}
               </Button>
             </div>
           </div>

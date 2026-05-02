@@ -451,7 +451,8 @@ export function LlmDefaultsTab() {
             className="gap-2"
             data-testid="button-save-llm-defaults"
           >
-            {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop" /> : <IconSave className="w-4 h-4" />}
+            {/* white spinner: this Save sits on the dark `bg-primary` default-variant fill where amber text-accent-pop only hits ~1.7:1 (~1.2:1 in the dark theme). */}
+            {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <IconSave className="w-4 h-4" />}
             Save
           </Button>
         </div>

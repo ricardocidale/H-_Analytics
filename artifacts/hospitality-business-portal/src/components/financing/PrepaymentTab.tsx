@@ -127,7 +127,8 @@ export function PrepaymentTab() {
           )}
 
           <Button size="lg" className="w-full md:w-auto" onClick={calculate} disabled={loading} data-testid="button-prepay-calculate">
-            {loading ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop mr-2" /> : <IconShield className="w-4 h-4 mr-2" />}
+            {/* white spinner: this Calculate sits on the dark default-variant fill where amber text-accent-pop fails 3:1 contrast. */}
+            {loading ? <Loader2 className="w-4 h-4 animate-spin text-white mr-2" /> : <IconShield className="w-4 h-4 mr-2" />}
             Calculate Prepayment Cost
           </Button>
         </div>

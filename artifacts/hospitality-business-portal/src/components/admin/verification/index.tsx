@@ -355,7 +355,8 @@ export default function VerificationTab() {
               data-testid="button-run-selected"
               size="sm"
             >
-              {runSuites.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop mr-1.5" /> : <IconPlayCircle className="w-3.5 h-3.5 mr-1.5" />}
+              {/* white spinner: this Run sits on the dark default-variant fill where amber text-accent-pop fails 3:1 contrast. */}
+              {runSuites.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white mr-1.5" /> : <IconPlayCircle className="w-3.5 h-3.5 mr-1.5" />}
               Run Selected
             </Button>
             <Button

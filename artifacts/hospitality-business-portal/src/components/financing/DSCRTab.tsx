@@ -101,7 +101,8 @@ export function DSCRTab() {
         variant="default"
         data-testid="button-dscr-calculate"
       >
-        {loading ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop mr-2 inline" /> : <IconCalculator className="w-4 h-4 mr-2 inline" />}
+        {/* white spinner: this Calculate sits on the dark default-variant fill where amber text-accent-pop fails 3:1 contrast. */}
+        {loading ? <Loader2 className="w-4 h-4 animate-spin text-white mr-2 inline" /> : <IconCalculator className="w-4 h-4 mr-2 inline" />}
         Calculate Max Loan
       </Button>
       {error && <p className="text-destructive text-sm">{error}</p>}

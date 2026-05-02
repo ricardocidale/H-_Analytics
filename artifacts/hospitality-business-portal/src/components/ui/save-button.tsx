@@ -57,7 +57,11 @@ export function SaveButton({
       data-testid={testId}
     >
       {isPending ? (
-        <Loader2 className="w-4 h-4 animate-spin text-accent-pop" />
+        // Spinner sits on `bg-primary` (sage) / dark variant fills, where the
+        // amber `text-accent-pop` only hits ~1.7:1 contrast and dips to ~1.2:1
+        // on the dark theme's lighter primary. `text-white` matches the button
+        // foreground and clears WCAG 3:1 for non-text UI on every theme.
+        <Loader2 className="w-4 h-4 animate-spin text-white" />
       ) : (
         <IconSave className="w-4 h-4" />
       )}

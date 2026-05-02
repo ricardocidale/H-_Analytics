@@ -269,7 +269,8 @@ export function DeleteConfirmDialog({ deleteConfirmId, onOpenChange, themeName, 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button variant="destructive" onClick={onDelete} disabled={isPending}>
-            {isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop" /> : <IconTrash className="w-4 h-4" />}
+            {/* white spinner: this Delete sits on the destructive (red) variant fill where amber text-accent-pop only hits ~2.7:1 contrast. */}
+            {isPending ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <IconTrash className="w-4 h-4" />}
             Delete Theme
           </Button>
         </DialogFooter>

@@ -267,7 +267,8 @@ export function IcpResearchSection({ enabled, onToggle }: IcpResearchSectionProp
             </div>
             <div className="flex items-center gap-2">
               <Button size="sm" variant="default" onClick={h.handleGenerateResearch} disabled={h.isGenerating} className="text-xs h-8 gap-1.5" data-testid="button-generate-research">
-                {h.isGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop" /> : <IconRefreshCw className="w-3.5 h-3.5" />}
+                {/* white spinner: this Generate sits on the dark default-variant fill where amber text-accent-pop fails 3:1 contrast. */}
+                {h.isGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white" /> : <IconRefreshCw className="w-3.5 h-3.5" />}
                 {h.isGenerating ? "Consulting..." : h.report ? "Ask Again" : "Consult"}
               </Button>
             </div>
@@ -411,7 +412,8 @@ export function IcpResearchSection({ enabled, onToggle }: IcpResearchSectionProp
             </div>
             <div className="flex items-center gap-2">
               <Button size="sm" variant="default" onClick={h.handleGenerateResearch} disabled={h.isGenerating} className="text-xs h-8 gap-1.5" data-testid="button-regenerate-markdown">
-                {h.isGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop" /> : <IconRefreshCw className="w-3.5 h-3.5" />}
+                {/* white spinner: this Regenerate sits on the dark default-variant fill where amber text-accent-pop fails 3:1 contrast. */}
+                {h.isGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white" /> : <IconRefreshCw className="w-3.5 h-3.5" />}
                 {h.isGenerating ? "Generating..." : h.researchMarkdown ? "Regenerate" : "Generate"}
               </Button>
               <Button size="sm" variant="outline" onClick={h.handleExportMarkdown} disabled={!h.researchMarkdown} className="text-xs h-8 gap-1.5" data-testid="button-export-markdown">
