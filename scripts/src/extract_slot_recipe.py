@@ -27,6 +27,18 @@ from canonical_template import CANONICAL_PPTX_PATH
 PPTX_PATH = CANONICAL_PPTX_PATH
 OUTPUT_PATH = SCRIPT_DIR / "slide-slot-recipe.json"
 
+# Semantic ID map: slide_idx (0-based) → shape_name → semantic_id.
+# Loaded from slide-semantic-map.json so shape names can change on template
+# swap without touching this script or slot-resolver.ts.
+_semantic_map_path = SCRIPT_DIR / "slide-semantic-map.json"
+_raw_sem_map: dict = json.loads(_semantic_map_path.read_text(encoding="utf-8"))
+# Convert 1-based string keys to 0-based int keys to match slide_idx.
+SEMANTIC_ID_MAP: dict[int, dict[str, str]] = {
+    int(k) - 1: v
+    for k, v in _raw_sem_map.items()
+    if k.isdigit()
+}
+
 CANVAS_W = 1920
 CANVAS_H = 1080
 EMU_PER_INCH = 914400
@@ -259,12 +271,14 @@ def _shape_type_name(shape_type) -> str:
 
 
 def extract_element(shape, z_order: int, slide_w: int, slide_h: int,
-                    kind_by_name: dict[str, SlotKind]) -> dict:
+                    kind_by_name: dict[str, SlotKind],
+                    sem_by_name: dict[str, str]) -> dict:
     stype = shape.shape_type
     stype_name = _shape_type_name(stype)
 
     slot_kind = kind_by_name.get(shape.name)
     is_slot = slot_kind is not None
+    semantic_id = sem_by_name.get(shape.name) if is_slot else None
 
     element: dict = {
         "z_order": z_order,
@@ -273,6 +287,7 @@ def extract_element(shape, z_order: int, slide_w: int, slide_h: int,
         "shape_type_name": stype_name,
         "is_slot": is_slot,
         "slot_kind": slot_kind,
+        "semantic_id": semantic_id,
         **_geometry(shape, slide_w, slide_h),
     }
 
@@ -330,9 +345,10 @@ def main() -> None:
             for name in names
         }
 
+        sem_by_name: dict[str, str] = SEMANTIC_ID_MAP.get(slide_idx, {})
         elements = []
         for z_order, shape in enumerate(slide.shapes):
-            el = extract_element(shape, z_order, slide_w, slide_h, kind_by_name)
+            el = extract_element(shape, z_order, slide_w, slide_h, kind_by_name, sem_by_name)
             elements.append(el)
 
         slot_count = sum(1 for e in elements if e["is_slot"])

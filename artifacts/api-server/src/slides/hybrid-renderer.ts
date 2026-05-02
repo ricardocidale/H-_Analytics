@@ -466,7 +466,7 @@ export async function renderHybridSlide(
   const pictureSlots = elements.filter(el => el.is_slot && el.slot_kind === "picture");
 
   await Promise.all(pictureSlots.map(async (el) => {
-    const buf = resolveSlotPhoto(slideNum, el.name, payload.photos);
+    const buf = resolveSlotPhoto(slideNum, el, payload.photos);
     if (!buf) return;
     try {
       const resized = await sharp(buf)

@@ -60,6 +60,8 @@ export interface RecipeElement {
   name: string;
   is_slot: boolean;
   slot_kind: string | null;
+  /** Stable content identifier — survives PPTX template swaps. Set by extract_slot_recipe.py via slide-semantic-map.json. */
+  semantic_id?: string | null;
   is_page_number?: boolean;
   template_text?: string | null;
   kind: string;
@@ -82,6 +84,79 @@ export interface RecipeElement {
   rows?: number | null;
   cols?: number | null;
   cells?: Array<Array<{ text: string; fill_color_hex: string | null }>> | null;
+}
+
+// ---------------------------------------------------------------------------
+// Semantic ID lookup (runtime fallback until recipe JSON is regenerated with
+// semantic_ids embedded by extract_slot_recipe.py).
+// Source of truth for shape_name→semantic_id is scripts/src/slide-semantic-map.json.
+// ---------------------------------------------------------------------------
+
+// prettier-ignore
+const SHAPE_TO_SEMANTIC: Record<number, Record<string, string>> = {
+  1: {
+    "Picture 68": "hero_photo",       "Picture 2":  "secondary_photo",
+    "Text 0": "s1_page_header",       "Text 1":  "s1_location_subheader",
+    "Text 2": "s1_section_label",     "Text 3":  "s1_property_badge",
+    "Text 4": "s1_cinematic_caption", "Text 5":  "s1_property_name_large",
+    "Text 6": "s1_short_description", "Text 7":  "s1_asking_price_label",
+    "Text 8": "s1_asking_price_value","Text 9":  "s1_target_acquisition",
+    "Text 10":"s1_specs_header",      "Text 11": "s1_room_count",
+    "Text 12":"s1_adr",               "Text 13": "s1_occupancy",
+    "Text 14":"s1_revpar",            "Text 15": "s1_property_type",
+    "Text 16":"s1_asking_price_inline","Text 17": "s1_vision_header",
+    "Text 18":"s1_vision_headline",   "Text 19": "s1_vision_bullet_1",
+    "Text 20":"s1_vision_bullet_2",   "Text 21": "s1_type_badge",
+    "Text 22":"s1_description_paragraph",
+  },
+  2: {
+    "Picture 35":"gallery_photo_1",   "Picture 41":"gallery_photo_2",
+    "Image 12":  "gallery_photo_3",   "Image 26":  "gallery_photo_4",
+    "Picture 66":"gallery_photo_5",
+    "Text 0": "s2_property_header",   "Text 1":  "s2_location_subheader",
+    "Text 2": "s2_section_label",     "Text 3":  "s2_property_estate_badge",
+    "Text 5": "s2_property_name_large","Text 6": "s2_operational_model_text",
+    "Text 10":"s2_specs_header",      "Text 11": "s2_purchase_price",
+    "Text 12":"s2_renovation_budget", "Text 13": "s2_total_investment",
+    "Text 14":"s2_stabilized_revenue","Text 15": "s2_projected_noi",
+    "Text 16":"s2_irr",               "Text 17": "s2_vision_header",
+    "Text 18":"s2_operational_model_label","Text 19":"s2_revenue_bullet",
+    "Text 20":"s2_programming_bullet","Text 22": "s2_operational_paragraph",
+  },
+  3: {
+    "Picture 46":"hero_photo",        "Image 9":   "secondary_photo",
+    "Image 24":  "tertiary_photo",
+    "Text 0": "s3_investment_model_header","Text 1":"s3_model_subheader",
+    "Text 2": "s3_section_label",     "Text 3":  "s3_location_type_badge",
+    "Text 5": "s3_model_label",       "Text 6":  "s3_concept_header",
+    "Text 7": "s3_investment_model_concept","Text 8":"s3_model_type",
+    "Text 9": "s3_strategic_details_header","Text 10":"s3_location_detail",
+    "Text 11":"s3_market_detail",     "Text 12": "s3_asset_type",
+    "Text 13":"s3_strategy",          "Text 14": "s3_structure",
+    "Text 15":"s3_why_property_header","Text 16": "s3_market_rationale",
+    "Text 17":"s3_why_model_header",  "Text 18": "s3_reason_1_label",
+    "Text 19":"s3_reason_1_detail",   "Text 20": "s3_reason_2_label",
+    "Text 21":"s3_reason_2_detail",   "Text 22": "s3_reason_3_label",
+    "Text 23":"s3_reason_3_detail",   "Text 24": "s3_closing_line",
+  },
+  4: {
+    "Picture 6": "hero_photo",        "Picture 7": "sibling_photo_1",
+    "Picture 8": "sibling_photo_2",   "Picture 9": "sibling_photo_3",
+    "Picture 10":"sibling_photo_4",   "Picture 11":"sibling_photo_5",
+  },
+  5: {
+    "Table 4": "s5_transformation_table","Table 3":"s5_stable_year_snapshot",
+    "Table 10":"s5_financing_summary",
+  },
+  6: {
+    "Picture 4":"s6_is_table_image",  "Picture 6":"s6_investor_metrics_image",
+  },
+};
+
+/** Returns the semantic_id for a slot — prefers the recipe-embedded value,
+ *  falls back to the TypeScript lookup until the recipe is regenerated. */
+function semanticId(slideNum: number, el: RecipeElement): string | null {
+  return el.semantic_id ?? SHAPE_TO_SEMANTIC[slideNum]?.[el.name] ?? null;
 }
 
 // ── Main resolver ────────────────────────────────────────────────────────────
@@ -372,38 +447,32 @@ export function resolveSlotTable(
 
 /**
  * Returns the Buffer for a photo slot, or null if unavailable.
- * Shape names are matched per the canonical SKILL.md photo mapping.
+ * Routes by semantic_id so shape names are opaque to this function —
+ * update scripts/src/slide-semantic-map.json when loading a new template.
  */
 export function resolveSlotPhoto(
   slideNum: number,
-  shapeName: string,
+  el: RecipeElement,
   photos: SlidePayload["photos"],
 ): Buffer | null {
   const hero = photos.find(ph => ph.isHero) ?? photos[0];
   const nonHero = photos.filter(ph => !ph.isHero);
   const secondary = nonHero[0] ?? photos[1];
 
+  const sem = semanticId(slideNum, el);
   let photo;
-  switch (slideNum) {
-    case 1:
-      if (shapeName === "Picture 68") photo = hero;
-      else if (shapeName === "Picture 2") photo = secondary;
-      break;
-    case 2:
-      if (shapeName === "Picture 35") photo = nonHero[0];
-      else if (shapeName === "Picture 41") photo = nonHero[1];
-      else if (shapeName === "Image 12")   photo = nonHero[2];
-      else if (shapeName === "Image 26")   photo = nonHero[3];
-      else if (shapeName === "Picture 66") photo = nonHero[4];
-      break;
-    case 3:
-      if (shapeName === "Picture 46")  photo = hero;
-      else if (shapeName === "Image 9")  photo = secondary;
-      else if (shapeName === "Image 24") photo = nonHero[1] ?? secondary;
-      break;
-    case 4:
-      if (shapeName === "Picture 68" || shapeName === "Picture 2") photo = hero;
-      break;
+  switch (sem) {
+    case "hero_photo":      photo = hero; break;
+    case "secondary_photo": photo = secondary; break;
+    case "tertiary_photo":  photo = nonHero[1] ?? secondary; break;
+    case "gallery_photo_1": photo = nonHero[0]; break;
+    case "gallery_photo_2": photo = nonHero[1]; break;
+    case "gallery_photo_3": photo = nonHero[2]; break;
+    case "gallery_photo_4": photo = nonHero[3]; break;
+    case "gallery_photo_5": photo = nonHero[4]; break;
+    // s6_is_table_image / s6_investor_metrics_image are synthesized in
+    // hybrid-renderer.ts — they do not map to a property photo here.
+    default: return null;
   }
 
   if (!photo) return null;
