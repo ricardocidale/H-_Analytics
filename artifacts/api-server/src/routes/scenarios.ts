@@ -37,6 +37,7 @@ import {
 } from "./scenario-helpers";
 import { registerScenarioAccessRoutes } from "./scenarios-access";
 import {
+  HTTP_200_OK,
   HTTP_201_CREATED,
   HTTP_400_BAD_REQUEST,
   HTTP_403_FORBIDDEN,
@@ -472,7 +473,7 @@ export function register(app: Express) {
 
       const recipient = await storage.getUserByEmail(recipientEmail);
       if (!recipient) {
-        return res.status(HTTP_404_NOT_FOUND).json({ error: "Recipient not found" });
+        return res.status(HTTP_200_OK).json({ shares: [], recipientName: null });
       }
 
       const sharer = getAuthUser(req);

@@ -86,13 +86,8 @@ export function ShareScenarioDialog({
       setStep("success");
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "Failed to share scenario";
-      if (msg.includes("No user found")) {
-        setEmailError("No user found with that email address");
-        setStep("enter");
-      } else {
-        toast({ title: "Error", description: msg, variant: "destructive" });
-        setStep("enter");
-      }
+      toast({ title: "Error", description: msg, variant: "destructive" });
+      setStep("enter");
     }
   };
 
