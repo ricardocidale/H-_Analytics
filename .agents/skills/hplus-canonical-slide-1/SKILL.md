@@ -158,6 +158,7 @@ Until then: **trust the extraction in this skill for visual layout, coordinates,
 ## Cross-references
 
 - `attached_assets/Pasted-SLIDE-1-Sul-Monte-Investment-Spotlight-0-Slide-Level-Me_1777741401797.txt` — full 200-line source extraction
+- `.agents/skills/hplus-canonical-slide-2/SKILL.md` — Slide 2 visual spec (structural twin; only deltas differ)
 - `.agents/skills/hplus-slide-mapping/SKILL.md` — H+ field → shape-name table for Slide 1 (and slides 2–6)
 - `.agents/skills/hplus-slide-recipe/SKILL.md` — slot-recipe JSON format and re-extraction procedure
 - `.agents/skills/hplus-pptx-generator/SKILL.md` — full generator architecture and extension guide

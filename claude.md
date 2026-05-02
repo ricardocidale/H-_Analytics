@@ -250,7 +250,9 @@ Use the `ui-page-patterns` skill before building or revising any page.
 | `.agents/skills/hplus-pptx-generator/SKILL.md` | LB Slides full architecture + extension guide |
 | `.agents/skills/hplus-slide-mapping/SKILL.md` | Shape-name ↔ data-field mapping for all 6 slides |
 | `.agents/skills/hplus-canonical-slide-1/SKILL.md` | Slide 1 visual spec: coords, colors, fonts, raster/native composition, known issues |
+| `.agents/skills/hplus-canonical-slide-2/SKILL.md` | Slide 2 visual spec: structural twin of Slide 1, with explicit deltas (no price block, photo placeholders, color shifts) |
 | `attached_assets/Pasted-SLIDE-1-Sul-Monte-Investment-Spotlight-0-Slide-Level-Me_1777741401797.txt` | Full 200-line source extraction backing the slide-1 skill |
+| `attached_assets/Pasted-SLIDE-2-Hazelnis-Retreat-Investment-Spotlight-0-Slide-L_1777741586519.txt` | Full 183-line source extraction backing the slide-2 skill |
 
 ---
 
@@ -311,6 +313,7 @@ vendor/
 | `hplus-pptx-generator` | Extending or debugging the LB Slides PPTX generator |
 | `hplus-slide-mapping` | Shape-name ↔ data-field mapping for all 6 LB Slides template slides |
 | `hplus-canonical-slide-1` | Slide 1 visual spec — coords, colors, fonts, known issues; load when generating, debugging, or rebuilding Slide 1 |
+| `hplus-canonical-slide-2` | Slide 2 visual spec — structural twin of Slide 1 with documented deltas; load when generating, debugging, or rebuilding Slide 2 |
 | `agent-memory-files` | Editing `claude.md` or `replit.md` — keep them harmonized |
 
 ### How to invoke
