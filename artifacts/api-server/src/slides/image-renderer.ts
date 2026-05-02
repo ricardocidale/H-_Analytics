@@ -1,9 +1,9 @@
 /**
  * Track 2 image-PPTX renderer.
  *
- * Slides 1–4: hybrid compositing — pre-rendered template background JPEG +
+ * Slides 1–3: hybrid compositing — pre-rendered template background JPEG +
  *   per-property photo slots + satori text overlay positioned via recipe.
- * Slides 5–6: full satori JSX (table-heavy; backgrounds are near-solid).
+ * Slides 4–6: full satori JSX (slide 4 needs positional sibling cards; 5–6 table-heavy).
  *
  * Packages all 6 slide JPEGs into a PPTX via pptxgenjs, one full-slide image
  * per PPTX slide.  No Puppeteer, no Playwright, no headless Chromium.
@@ -15,7 +15,7 @@ import PptxGenJs from "pptxgenjs";
 import React from "react";
 import { getSlideFonts } from "./fonts";
 import {
-  Slide5, Slide6,
+  Slide4, Slide5, Slide6,
   type SlidePayload,
 } from "./slide-jsx";
 import { renderHybridSlide } from "./hybrid-renderer";
@@ -65,10 +65,10 @@ async function generateBlankSlideJpeg(slideNum: number, propertyName: string): P
 
 export async function renderImagePptx(payload: SlidePayload): Promise<Buffer> {
   const fonts = await getSlideFonts();
-  logger.info("[image-renderer] Rendering 6 slides (hybrid 1–4, satori 5–6)");
+  logger.info("[image-renderer] Rendering 6 slides (hybrid 1–3, satori 4–6)");
 
   const jpegBuffers = await Promise.all([
-    // Slides 1–4: hybrid compositing
+    // Slides 1–3: hybrid compositing
     renderHybridSlide(1, payload, fonts).catch(err => {
       logger.warn(`[image-renderer] Slide 1 hybrid failed: ${err} — using blank`);
       return generateBlankSlideJpeg(1, payload.property.name);
@@ -84,12 +84,12 @@ export async function renderImagePptx(payload: SlidePayload): Promise<Buffer> {
       return generateBlankSlideJpeg(3, payload.property.name);
     }).then(buf => buf ?? generateBlankSlideJpeg(3, payload.property.name)),
 
-    renderHybridSlide(4, payload, fonts).catch(err => {
-      logger.warn(`[image-renderer] Slide 4 hybrid failed: ${err} — using blank`);
+    // Slides 4–6: full satori JSX
+    renderJsxToJpeg(React.createElement(Slide4, { p: payload }), fonts).catch(err => {
+      logger.warn(`[image-renderer] Slide 4 satori failed: ${err} — using blank`);
       return generateBlankSlideJpeg(4, payload.property.name);
-    }).then(buf => buf ?? generateBlankSlideJpeg(4, payload.property.name)),
+    }),
 
-    // Slides 5–6: full satori JSX
     renderJsxToJpeg(React.createElement(Slide5, { p: payload }), fonts).catch(err => {
       logger.warn(`[image-renderer] Slide 5 satori failed: ${err} — using blank`);
       return generateBlankSlideJpeg(5, payload.property.name);
