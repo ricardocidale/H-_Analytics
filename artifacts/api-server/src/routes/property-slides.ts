@@ -24,7 +24,7 @@ import { requireAuth, requireAdmin, getAuthUser } from "../auth";
 import { logger } from "../logger";
 import { storage } from "../storage";
 import { db } from "../db";
-import { getStorageProvider } from "../providers/storage";
+import { getStorageProvider, getStorageProviderAsync } from "../providers/storage";
 import { recomputeSinglePropertyAndStamp } from "../finance/recompute";
 import { aggregateUnifiedByYear } from "@engine/aggregation/yearlyAggregator";
 import { calculateLoanParams, getAcquisitionYear } from "@engine/debt/loanCalculations";
@@ -176,12 +176,22 @@ async function resolvePhotoBytes(photo: {
   if (!url) return null;
   try {
     const port = process.env.PORT ?? "8080";
-    const fetchUrl = url.startsWith("/api/") ? `http://localhost:${port}${url}` : null;
-    if (!fetchUrl) return null;
-    const resp = await fetch(fetchUrl, { signal: AbortSignal.timeout(8_000) });
-    if (!resp.ok) return null;
-    const buf = Buffer.from(await resp.arrayBuffer());
-    return { base64: buf.toString("base64"), isHero: photo.isHero, sortOrder: photo.sortOrder, caption: photo.caption ?? undefined };
+    if (url.startsWith("/api/")) {
+      // DB-backed photo served via authenticated endpoint — fetch internally
+      const resp = await fetch(`http://localhost:${port}${url}`, { signal: AbortSignal.timeout(8_000) });
+      if (!resp.ok) return null;
+      const buf = Buffer.from(await resp.arrayBuffer());
+      return { base64: buf.toString("base64"), isHero: photo.isHero, sortOrder: photo.sortOrder, caption: photo.caption ?? undefined };
+    }
+    if (url.startsWith("/objects/")) {
+      // Object storage key — download directly without HTTP round-trip
+      const key = url.slice("/objects/".length);
+      const storageProvider = await getStorageProviderAsync();
+      const result = await storageProvider.downloadBuffer(key);
+      if (!result) return null;
+      return { base64: result.buffer.toString("base64"), isHero: photo.isHero, sortOrder: photo.sortOrder, caption: photo.caption ?? undefined };
+    }
+    return null;
   } catch {
     return null;
   }

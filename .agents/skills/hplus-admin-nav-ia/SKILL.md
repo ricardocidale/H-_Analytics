@@ -68,23 +68,22 @@ Admin  (/admin)
         │
         ├── Rebecca AI Assistant
         │   ├── Configuration
-        │   ├── Knowledge Base
+        │   ├── Knowledge Base            ← ONLY home for KB (platform docs Rebecca reads)
         │   └── Conversations
         │
-        ├── Knowledge Registry            ← AI Intelligence section (scope TBD)
-        │   └── [remaining vector namespaces if any stay here:
-        │         Knowledge Base, Comparables, Assumption Guidance —
-        │         confirm whether these also move to Admin → Sources]
+        ├── Assumption Guidance           ← Analyst-generated calibration guidance
+        │                                   (output of research runs, not a source)
         │
         └── System
             ├── System Health
             ├── Scheduled Research
             └── Vector Search Latency
 
-OPEN QUESTION: Knowledge Base and Assumption Guidance are the same kind of
-content as Market Research (vector text chunks). Confirm whether they also move
-to Admin → Sources or stay in AI Intelligence. Comparables is confirmed as a
-sub-item under Sources → Market Research.
+NOTE: "Knowledge Registry" is removed. It had no unique content:
+- Knowledge Base belongs under Rebecca AI Assistant (its only home)
+- Comparables belongs under Admin → Sources → Market Research
+- Market Research belongs under Admin → Sources
+- Assumption Guidance is Analyst output → lives in AI Intelligence, not Sources
 ```
 
 ---
@@ -123,16 +122,22 @@ therefore sits as `Sources → Market Research`, not `Sources → Tables → Mar
 - Status badge (active / inactive / unreachable)
 - **Test button** — fires a real request, shows response status + sample output in-page
 
-### Rule 4 — Knowledge Registry scope is unresolved pending product decision
+### Rule 4 — One destination = one menu item (strict hierarchical tree)
 
-Market Research (vector text chunks) has been confirmed to belong under Admin → Sources,
-not AI Intelligence. Knowledge Base, Comparables, and Assumption Guidance are the same
-kind of content. Until confirmed otherwise, treat their placement as an open question:
-they may move to Admin → Sources as well, which would leave Knowledge Registry in
-AI Intelligence with nothing — or they may stay in AI Intelligence for AI-specific reasons.
+**A hierarchical menu tree must never contain two items that navigate to the same destination.**
+This is a hard UX rule with no exceptions.
 
-Do NOT add new items to Knowledge Registry until this is resolved. Sub-items must NOT
-be called "Sources".
+If you find yourself placing the same label (e.g. "Knowledge Base") in two different
+parts of the tree, the tree is wrong — resolve it by picking one canonical home and
+removing all duplicates. The canonical home is whichever location matches the item's
+primary purpose:
+
+- Platform documentation Rebecca reads → `Rebecca AI Assistant → Knowledge Base` only
+- External data the app reads → `Sources → [appropriate sub-item]` only
+- Analyst-generated output → `AI Intelligence → [item under Analyst or its own section]` only
+
+"Knowledge Registry" is **removed**. It had no unique content that wasn't already
+owned by another section. Never recreate it.
 
 ### Rule 5 — "Catalog" is not a label to use in AI Intelligence
 
