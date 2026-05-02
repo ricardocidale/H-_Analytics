@@ -49,6 +49,7 @@ export interface AnalystButtonProps {
   pulse?: boolean;
   className?: string;
   dataTestId?: string;
+  runningLabel?: string;
 }
 
 const SIZE_CONFIG: Record<AnalystButtonSize, { btn: string; icon: string; loader: number }> = {
@@ -80,14 +81,10 @@ export function AnalystButton({
   pulse = false,
   className,
   dataTestId = "button-analyst",
+  runningLabel = "Studying…",
 }: AnalystButtonProps) {
   const cfg = SIZE_CONFIG[size];
-  // "Studying…" is the canonical wait verb from the brand-voice approved
-  // list (`.claude/brand-voice-guidelines.md` §6). Never "Consulting…",
-  // never "Thinking…", never "Processing…" — those read as software,
-  // not as a sharp colleague at work. The single horizontal ellipsis
-  // (U+2026) is intentional; do not regress to three dots.
-  const label = isRunning ? "Studying…" : suffix ? `Analyst — ${suffix}` : "Analyst";
+  const label = isRunning ? runningLabel : suffix ? `Analyst — ${suffix}` : "Analyst";
 
   const button = (
     <Button

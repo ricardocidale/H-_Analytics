@@ -25,6 +25,7 @@ import cookieParser from "cookie-parser";
 import compression from "compression";
 import { registerRoutes } from "./legacyRoutes";
 import { registerImageRoutes } from "./routes/images";
+import { propertySlidesRouter } from "./routes/property-slides";
 import { buildContentSecurityPolicy } from "./csp";
 import { getAuthProvider } from "./providers/auth";
 import { createServer } from "http";
@@ -187,6 +188,7 @@ app.use((req, res, next) => {
   await initStorageProvider();
 
   registerImageRoutes(app);
+  app.use(propertySlidesRouter);
   const { registerGoogleAuthRoutes } = await import("./routes/google-auth");
   registerGoogleAuthRoutes(app);
   await registerRoutes(httpServer, app);

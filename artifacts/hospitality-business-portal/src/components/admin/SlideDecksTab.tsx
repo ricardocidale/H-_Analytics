@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Download, Presentation, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -230,6 +230,10 @@ type DownloadState = "idle" | "loading" | "done" | "error";
 export default function SlideDecksTab() {
   const queryClient = useQueryClient();
   const [downloadStates, setDownloadStates] = useState<Record<number, DownloadState>>({});
+  // Tracks property IDs auto-queued on load so we don't re-trigger on re-renders
+  const autoQueuedRef = useRef(new Set<number>());
+  // Tracks which IDs are currently auto-generating (for UI spinner state)
+  const [autoGeneratingIds, setAutoGeneratingIds] = useState(new Set<number>());
 
   // Properties list
   const { data: properties, isLoading: propsLoading, isError: propsError } = useQuery<PropertyRow[]>({
@@ -252,7 +256,42 @@ export default function SlideDecksTab() {
     (slideStatuses ?? []).map(s => [s.propertyId, s]),
   );
 
-  // Generate mutation
+  // Auto-generate all slides that aren't ready or already generating when the page loads.
+  // Fires once per property — the autoQueuedRef guard prevents re-triggering on re-renders.
+  useEffect(() => {
+    if (!properties || !slideStatuses) return;
+    const toQueue = properties.filter(p => {
+      if (autoQueuedRef.current.has(p.id)) return false;
+      const s = statusMap.get(p.id);
+      return !s || (s.status !== "ready" && s.status !== "generating");
+    });
+    if (toQueue.length === 0) return;
+    toQueue.forEach(p => autoQueuedRef.current.add(p.id));
+    setAutoGeneratingIds(prev => {
+      const next = new Set(prev);
+      toQueue.forEach(p => next.add(p.id));
+      return next;
+    });
+    // Fire generate requests in parallel; server-side tryMarkGenerating guards against races
+    Promise.allSettled(
+      toQueue.map(p =>
+        fetch(`/api/properties/${p.id}/slides/generate`, { method: "POST", credentials: "include" })
+          .then(r => r.json())
+          .finally(() => {
+            setAutoGeneratingIds(prev => {
+              const next = new Set(prev);
+              next.delete(p.id);
+              return next;
+            });
+          }),
+      ),
+    ).then(() => {
+      void queryClient.invalidateQueries({ queryKey: ["/api/slides/status"] });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [properties, slideStatuses]);
+
+  // Generate mutation (manual re-generate from button)
   const generateMutation = useMutation({
     mutationFn: async (propertyId: number) => {
       const resp = await fetch(`/api/properties/${propertyId}/slides/generate`, {
@@ -356,7 +395,7 @@ export default function SlideDecksTab() {
       <div>
         <h2 className="text-xl font-semibold text-foreground">Property Slide Decks</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Click <strong>Analyst</strong> to generate a 6-slide investor deck — stored and ready to download on demand.
+          6-slide investor decks are manifested automatically — download any deck below, or use <strong>Analyst</strong> to regenerate.
         </p>
       </div>
 
@@ -365,7 +404,7 @@ export default function SlideDecksTab() {
           const slide = statusMap.get(p.id);
           const dlState = downloadStates[p.id] ?? "idle";
           const acqStatus = (p.acquisitionStatus ?? p.status)?.toLowerCase() ?? "pipeline";
-          const isGenerating = slide?.status === "generating" || generateMutation.variables === p.id;
+          const isGenerating = slide?.status === "generating" || generateMutation.variables === p.id || autoGeneratingIds.has(p.id);
           const isReady = slide?.status === "ready";
           const freshness = freshnessFromStatus(slide);
 
@@ -395,6 +434,7 @@ export default function SlideDecksTab() {
                     isRunning={isGenerating}
                     disabled={isGenerating}
                     suffix={isReady ? "Regenerate" : "Generate"}
+                    runningLabel="Manifesting…"
                     size="sm"
                     freshnessStatus={freshness}
                     className="flex-1"
