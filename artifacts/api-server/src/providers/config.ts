@@ -47,3 +47,19 @@ export function isProductionDeployment(): boolean {
   if (process.env.REPLIT_DEPLOYMENT === "1") return true;
   return false;
 }
+
+/**
+ * Check if running in a published Replit deployment (as opposed to the
+ * Replit workspace dev preview).
+ *
+ * This is intentionally STRICTER than `isProductionDeployment()`: the dev
+ * preview can run with `NODE_ENV=production` (e.g. when serving the built
+ * web bundle), but `REPLIT_DEPLOYMENT` is only set to "1" by Replit on a
+ * published deployment. Use this signal for dev-only conveniences (such as
+ * the logo quick-login on the login screen) that must NEVER be reachable
+ * in production but should still work in the dev preview regardless of
+ * how the artifact was built.
+ */
+export function isPublishedDeployment(): boolean {
+  return process.env.REPLIT_DEPLOYMENT === "1";
+}

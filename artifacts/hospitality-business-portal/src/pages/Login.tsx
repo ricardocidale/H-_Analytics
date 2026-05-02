@@ -43,6 +43,21 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  // Whether the dev-only logo quick-login should be wired up. Determined by
+  // the server (gated on REPLIT_DEPLOYMENT) so we get the right answer in the
+  // Replit dev preview even when the web bundle was built with NODE_ENV=production.
+  const [devLoginAvailable, setDevLoginAvailable] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/public/dev-login-available")
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => {
+        if (!cancelled && data?.available === true) setDevLoginAvailable(true);
+      })
+      .catch(() => { /* ignore: stays disabled */ });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -143,7 +158,7 @@ export default function Login() {
                   <div style={{ filter: "drop-shadow(0 0 14px rgba(var(--primary-rgb),0.35))" }}>
                     <SpinningLogo3D
                       size={96}
-                      onClick={import.meta.env.DEV ? handleAdminLogin : undefined}
+                      onClick={devLoginAvailable ? handleAdminLogin : undefined}
                     />
                   </div>
                   <div>

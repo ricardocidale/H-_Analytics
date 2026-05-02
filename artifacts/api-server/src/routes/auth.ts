@@ -19,6 +19,7 @@ import { z } from "zod";
 import { fromZodError } from "zod-validation-error/v3";
 import { isAdminRole } from "@shared/constants";
 import seedUsersConfig from "../seed-users.json" with { type: "json" };
+import { isPublishedDeployment } from "../providers/config";
 import {
   HTTP_400_BAD_REQUEST,
   HTTP_401_UNAUTHORIZED,
@@ -98,25 +99,40 @@ export function register(app: Express) {
     }
   });
 
+  // Public — no auth required. Tells the login page whether the
+  // logo quick-login affordance should be wired up. Mirrors the gate on
+  // the dev-login route below so the client and server stay in sync
+  // regardless of how the web bundle was built.
+  app.get("/api/public/dev-login-available", (_req, res) => {
+    res.json({ available: !isPublishedDeployment() });
+  });
+
   app.post("/api/auth/dev-login", async (req, res) => {
     try {
-      if (process.env.NODE_ENV === "production") {
+      // Gate on REPLIT_DEPLOYMENT (set only on published deployments) rather
+      // than NODE_ENV, because the dev preview can serve a built bundle with
+      // NODE_ENV=production. The published deployment is the only place this
+      // route must be unreachable.
+      if (isPublishedDeployment()) {
         return res.status(HTTP_403_FORBIDDEN).json({ error: "Dev login disabled in production" });
       }
-      const adminSeed = seedUsersConfig.users.find(u => isAdminRole(u.role));
+      // Pin the dev-login target to the first super_admin entry (Ricardo).
+      // Using `super_admin` rather than the broader `isAdminRole` keeps this
+      // deterministic even if other admin-tier users are added later.
+      const adminSeed = seedUsersConfig.users.find(u => u.role === "super_admin");
       if (!adminSeed) {
-        return res.status(HTTP_401_UNAUTHORIZED).json({ error: "No admin user configured" });
+        return res.status(HTTP_401_UNAUTHORIZED).json({ error: "No super_admin user configured in seed-users.json" });
       }
       const user = await storage.getUserByEmail(adminSeed.email);
       if (!user) {
-        return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Admin user not found" });
+        return res.status(HTTP_401_UNAUTHORIZED).json({ error: `Super admin user ${adminSeed.email} not found in DB — run seeds` });
       }
       if (!user.passwordHash) {
-        return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Please sign in with Google" });
+        return res.status(HTTP_401_UNAUTHORIZED).json({ error: `Super admin ${adminSeed.email} has no password hash — sign in with Google or seed a password` });
       }
       const adminPassword = process.env[adminSeed.envVar] || process.env.PASSWORD_DEFAULT;
       if (!adminPassword) {
-        return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Admin password not configured in env" });
+        return res.status(HTTP_401_UNAUTHORIZED).json({ error: `Admin password env var ${adminSeed.envVar} (or PASSWORD_DEFAULT) is not set` });
       }
       const clientIp = req.ip || req.socket.remoteAddress || "unknown";
       await handleCredentialLogin(adminSeed.email, adminPassword, clientIp, res);
