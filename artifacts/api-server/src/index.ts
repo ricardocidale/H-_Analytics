@@ -378,6 +378,18 @@ app.use((req, res, next) => {
         serverLog(`[legacy-storage-url-audit] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
       });
 
+      // ── Phase 3i: Nightly hero-photo URL audit (Task #937) ────────
+      // Compares each property's `properties.image_url` cache against
+      // its album hero (with the resync script's first-photo-by-id
+      // fallback) and HEAD-checks the resolved URL. Emails on-call
+      // admins with the affected property IDs and current/expected URLs
+      // when drift or non-200 responses appear.
+      import("./jobs/hero-photo-url-audit").then(({ startHeroPhotoUrlAuditScheduler }) => {
+        startHeroPhotoUrlAuditScheduler();
+      }).catch(err => {
+        serverLog(`[hero-photo-url-audit] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+      });
+
       const intervalHandles: NodeJS.Timeout[] = [];
 
       // ── Graceful shutdown handler ────────
@@ -416,6 +428,12 @@ app.use((req, res, next) => {
         try {
           const { stopLegacyStorageUrlAuditScheduler } = await import("./jobs/legacy-storage-url-audit");
           stopLegacyStorageUrlAuditScheduler();
+        } catch {
+          /* best-effort — module may not have loaded yet */
+        }
+        try {
+          const { stopHeroPhotoUrlAuditScheduler } = await import("./jobs/hero-photo-url-audit");
+          stopHeroPhotoUrlAuditScheduler();
         } catch {
           /* best-effort — module may not have loaded yet */
         }

@@ -28,6 +28,7 @@ export const NOTIFICATION_EVENT_TYPES = [
   "LEGACY_STORAGE_URLS_FOUND",
   "SCHEDULER_STALE",
   "PERENNIAL_RECOMMENDATIONS_DIGEST",
+  "HERO_PHOTO_URL_BROKEN",
 ] as const;
 export type NotificationEventType = typeof NOTIFICATION_EVENT_TYPES[number];
 

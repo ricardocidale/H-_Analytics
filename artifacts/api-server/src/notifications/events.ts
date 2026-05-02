@@ -44,6 +44,7 @@ export function getEventLabel(type: NotificationEventType): string {
     LEGACY_STORAGE_URLS_FOUND: "Legacy Storage URLs Detected in Database",
     SCHEDULER_STALE: "Background Scheduler Stale",
     PERENNIAL_RECOMMENDATIONS_DIGEST: "Perennial Specialist Recommendations Never Promoted",
+    HERO_PHOTO_URL_BROKEN: "Property Hero Photo URL Broken",
   };
   return labels[type] || type;
 }

@@ -85,6 +85,13 @@ export const SCHEDULER_REGISTRY = [
     description:
       "Nightly walk of every text/varchar/jsonb column in the public schema for legacy Replit Object Storage URL shapes (Task #534). Alerts admins when new bad rows reappear after the R2 cutover.",
   },
+  {
+    key: "hero-photo-url-audit",
+    label: "Hero Photo URL Audit",
+    cycleIntervalMs: 24 * 60 * 60 * 1000, // 24h
+    description:
+      "Nightly check that every property's cached hero URL (`properties.image_url`) matches the album hero (with the same first-photo-by-id fallback the resync script uses) and that the resolved URL still serves. Alerts on-call admins with the affected property IDs and the current/expected URLs (Task #937).",
+  },
 ] as const;
 
 export type SchedulerKey = (typeof SCHEDULER_REGISTRY)[number]["key"];
@@ -184,6 +191,10 @@ export const SCHEDULER_DISPATCH: Record<SchedulerKey, () => Promise<unknown>> = 
   "legacy-storage-url-audit": async () => {
     const mod = await import("./legacy-storage-url-audit");
     return mod.runLegacyStorageUrlAuditCycle();
+  },
+  "hero-photo-url-audit": async () => {
+    const mod = await import("./hero-photo-url-audit");
+    return mod.runHeroPhotoUrlAuditCycle();
   },
 };
 
