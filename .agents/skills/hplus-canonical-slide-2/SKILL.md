@@ -110,7 +110,7 @@ These mirror Slide 1 for the chrome elements, with Slide-2-specific items added:
 2. **No pricing on Slide 2.** `Text 7`/`Text 8`/`Text 9` (ASKING PRICE / price / target) and `Text 16` price line are absent. Could be intentional (property's price is TBD) or a stale incomplete clone — verify with stakeholders before "fixing."
 3. **`Text 22` footer content unclear.** Bounding box is in-bounds (805pt vs Slide 1's 1339pt overflow), but actual text content was not returned in the extraction. Verify by reading the PPTX directly.
 4. **Vision bullets wrap.** All three Vision bullet shapes are 217–228pt wide for content of 50–80 chars. They will wrap to 2 lines. The dot y-positions (295, 324, 350) confirm three rows of wrapped text.
-5. **Same Slide-1 issues persist:** `Text 0` green-on-dark-green low contrast; `Text 2` overflows right edge by 49pt; `"PAGE 17"` wrong page number on a 6-slide deck; 6.75pt micro-copy sub-readable on projected slides.
+5. **Same Slide-1 issues persist:** `Text 0` green-on-dark-green low contrast; `Text 2` overflows right edge by 49pt; `"PAGE 22"` wrong page number on a 6-slide deck (Slide 2's stale value in the running 21→26 sequence — see Slide 1's "Page number wrong" note); 6.75pt micro-copy sub-readable on projected slides.
 6. **"Hazelnis" flagged as misspelled** (`err="1"` on both `Text 0` and `Text 5` runs in the source XML). Likely intended spelling, but flag for editorial review.
 
 ---

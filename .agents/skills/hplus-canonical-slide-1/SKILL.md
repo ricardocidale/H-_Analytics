@@ -116,7 +116,7 @@ These are baked into the canonical template. Do NOT silently "fix" them in the g
 
 1. **Duplicate hero photos.** `Image 5` and `Image 6` sit at identical coordinates `17,51,389,276`. One is likely a tinted/duotone overlay; the other is the source photo. UNKNOWN which is which until inspected.
 2. **Header copy mismatch.** `Text 0` reads `"Pipeline Spotlight: Belleayre Mountain, NY"` even on the Sul Monte slide — likely stale template copy. The Python generator overwrites this per property, but the master template has the wrong text.
-3. **Page number wrong.** Footer reads `"PAGE 17"` on a 6-slide deck — leftover from a longer source document. Generator overwrites to `"PAGE 1"`.
+3. **Page number wrong.** Footer reads `"PAGE 21"` on a 6-slide deck — leftover from a longer source document. The full deck's stale page numbers run sequentially 21 → 22 → 23 → 24 → 25 → 26 across Slides 1–6 (i.e., this 6-slide template was extracted from pages 21–26 of a larger source document). Generator overwrites to `"PAGE 1"` (and would overwrite the rest to `"PAGE 2"`–`"PAGE 6"` if/when those slides go through the same path).
 4. **Bounding box overflows.**
    - `Text 2` ("INVESTMENT SPOTLIGHT"): width 162pt at x=847 → extends to x=1009 (49pt past slide right edge of 960)
    - `Text 22` (footer): width 1339pt at x=48 → extends 427pt past slide right edge
