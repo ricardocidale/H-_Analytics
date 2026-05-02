@@ -28,7 +28,7 @@ const SLIDE_H_PX = 1080;
 const PPTX_W_IN  = 13.33;
 const PPTX_H_IN  = 7.5;
 
-// ── Satori JSX renderer (used for slides 5–6) ────────────────────────────────
+// ── Satori JSX renderer (used for slides 4–6) ────────────────────────────────
 
 async function renderJsxToJpeg(
   element: React.ReactElement,
