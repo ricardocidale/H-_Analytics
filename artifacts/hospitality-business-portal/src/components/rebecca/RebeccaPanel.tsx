@@ -18,7 +18,7 @@ import {
   TriangleAlert,
   AlignLeft,
   ChevronRight,
-  ChevronsLeft,
+  ChevronLeft,
 } from "@/components/icons/themed-icons";
 import { RebeccaEmailPreview } from "./RebeccaEmailPreview";
 import { RebeccaFeedbackForm } from "./RebeccaFeedbackForm";
@@ -798,12 +798,10 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
             onClick={() => openRebecca()}
             aria-label={`Open ${displayName}`}
             data-testid="button-rebecca-pull-tab"
-            className="hidden md:flex fixed right-0 top-1/2 -translate-y-1/2 z-[48] flex-col items-center justify-center gap-1.5 h-20 w-9 rounded-l-md bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="hidden md:flex fixed right-0 top-1/2 -translate-y-1/2 z-[48] flex-col items-center justify-center gap-1 h-16 w-10 rounded-l-md bg-primary text-primary-foreground shadow-lg ring-1 ring-primary/30 hover:bg-primary/90 hover:scale-[1.03] active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
-            <ChevronsLeft className="w-4 h-4" />
-            <span className="text-[10px] font-semibold tracking-wide leading-none [writing-mode:vertical-rl] rotate-180 select-none">
-              {displayName}
-            </span>
+            <RebeccaAvatar size="sm" className="shadow-none ring-0 bg-primary-foreground text-primary" />
+            <ChevronLeft className="w-3 h-3 opacity-80" aria-hidden="true" />
           </motion.button>
         )}
       </AnimatePresence>
