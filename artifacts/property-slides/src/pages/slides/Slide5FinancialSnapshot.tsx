@@ -9,7 +9,7 @@ function TableHeader({ children }: { children: React.ReactNode }) {
         fontSize: 9,
         fontWeight: 600,
         letterSpacing: "0.18em",
-        color: COLORS.muted,
+        color: COLORS.sage,
         textTransform: "uppercase",
         marginBottom: 6,
         paddingBottom: 4,
@@ -48,7 +48,7 @@ function TableRow({
         style={{
           fontFamily: FONTS.sans,
           fontSize: 8.5,
-          color: highlight ? COLORS.white : COLORS.muted,
+          color: highlight ? COLORS.white : COLORS.sage,
           fontWeight: highlight ? 600 : 300,
         }}
       >
@@ -121,7 +121,7 @@ export default function Slide5FinancialSnapshot() {
                 fontSize: 9,
                 fontWeight: 600,
                 letterSpacing: "0.28em",
-                color: COLORS.muted,
+                color: COLORS.sage,
                 textTransform: "uppercase",
                 marginBottom: 3,
               }}
@@ -144,7 +144,7 @@ export default function Slide5FinancialSnapshot() {
             <div style={{ fontFamily: FONTS.sans, fontSize: 9.5, color: COLORS.sage }}>
               {city}{city && state ? `, ${state}` : state}
             </div>
-            <div style={{ fontFamily: FONTS.sans, fontSize: 9, color: COLORS.muted, marginTop: 2 }}>
+            <div style={{ fontFamily: FONTS.sans, fontSize: 9, color: COLORS.sage, marginTop: 2 }}>
               Stabilized Year {stableIdx + 1} · {horizon}-year horizon
             </div>
           </div>
@@ -216,7 +216,7 @@ export default function Slide5FinancialSnapshot() {
             style={{
               fontFamily: FONTS.sans,
               fontSize: 9,
-              color: COLORS.muted,
+              color: COLORS.sage,
               lineHeight: 1.6,
               marginBottom: 14,
             }}
@@ -231,7 +231,7 @@ export default function Slide5FinancialSnapshot() {
               fontFamily: FONTS.sans,
               fontSize: 9,
               fontWeight: 600,
-              color: COLORS.muted,
+              color: COLORS.sage,
               letterSpacing: "0.2em",
               textTransform: "uppercase",
               marginBottom: 8,
@@ -246,7 +246,7 @@ export default function Slide5FinancialSnapshot() {
           ].map((bullet, i) => (
             <div key={i} style={{ display: "flex", gap: 6, marginBottom: 5, alignItems: "flex-start" }}>
               <span style={{ color: COLORS.accent, fontSize: 10, flexShrink: 0, marginTop: 0 }}>▸</span>
-              <span style={{ fontFamily: FONTS.sans, fontSize: 8.5, color: COLORS.muted, lineHeight: 1.4 }}>{bullet}</span>
+              <span style={{ fontFamily: FONTS.sans, fontSize: 8.5, color: COLORS.sage, lineHeight: 1.4 }}>{bullet}</span>
             </div>
           ))}
 

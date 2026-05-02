@@ -50,16 +50,7 @@ const C = {
   mint:       "#C8E8D0", // mint — Slide 4 subtitle header (introduced in `_02_`)
   white:      "#FFFFFF",
 
-  // Semantic aliases used across Slide 4–6 components.
-  bg:         "#1C2B1E", // alias of darkBg, kept for legacy callsites
-  canvasText: "#1C2B1E", // primary text on cream/sage canvas
-  canvasMuted:"#9FBCA4", // secondary labels on cream/sage canvas (collapsed from old #5A7A62)
-  canvasBody: "#1C2B1E", // body text on cream canvas — was #2A4030; shift to darkBg approved by palette consolidation
-  muted:      "#9FBCA4", // legacy alias — same value as `sage` post-consolidation
-
-  // Computed rgba helpers (not palette swatches — translucent overlays derived from
-  // the core palette). Kept as standalone tokens so satori does not have to compose
-  // rgba() at render time.
+  // Computed rgba helpers (translucent overlays — NOT palette swatches).
   dimWhite:     "rgba(255,249,245,0.85)", // 85% cream — overlay text
   faintWhite:   "rgba(255,249,245,0.55)", // 55% cream — caption/byline overlay
   canvasRule:   "rgba(28,43,30,0.15)",    // 15% darkBg — dividers/borders
@@ -247,7 +238,7 @@ function PhotoBg({ photo, style }: { photo: SlidePhoto | undefined; style?: Reac
         <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
       ) : (
         <div style={{ width: "100%", height: "100%", background: C.darkBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <span style={{ fontFamily: "Garamond, serif", fontSize: 48, color: C.muted, letterSpacing: "0.3em" }}>L+B</span>
+          <span style={{ fontFamily: "Garamond, serif", fontSize: 48, color: C.sage, letterSpacing: "0.3em" }}>L+B</span>
         </div>
       )}
     </div>
@@ -267,7 +258,7 @@ function LbBadge({ x = 48, y = 40 }: { x?: number; y?: number }) {
 function PageNumber({ n }: { n: number }) {
   return (
     <div style={{ position: "absolute", bottom: 28, right: 48, display: "flex", alignItems: "center" }}>
-      <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, color: C.muted, letterSpacing: "0.12em" }}>
+      <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, color: C.sage, letterSpacing: "0.12em" }}>
         PAGE {n}
       </span>
     </div>
@@ -291,7 +282,7 @@ export function Slide1({ p }: { p: SlidePayload }) {
   const revpar = (property.startAdr ?? 0) * (property.maxOccupancy ?? 0.7);
 
   return (
-    <div style={{ width: W, height: H, background: C.bg, display: "flex", position: "relative", overflow: "hidden" }}>
+    <div style={{ width: W, height: H, background: C.darkBg, display: "flex", position: "relative", overflow: "hidden" }}>
       {/* LEFT — hero photo (55%) */}
       <div style={{ display: "flex", position: "relative", width: "55%", height: "100%" }}>
         <PhotoBg photo={hero} />
@@ -299,7 +290,7 @@ export function Slide1({ p }: { p: SlidePayload }) {
         <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "40%", background: "linear-gradient(to top, rgba(28,43,30,0.96) 0%, transparent 100%)" }} />
         {/* Caption */}
         <div style={{ position: "absolute", bottom: 60, left: 48, right: 32, display: "flex", flexDirection: "column" }}>
-          <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, letterSpacing: "0.22em", color: C.muted, textTransform: "uppercase", marginBottom: 8 }}>
+          <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, letterSpacing: "0.22em", color: C.sage, textTransform: "uppercase", marginBottom: 8 }}>
             {visionText.cinematicCaption || `${property.roomCount} KEYS · ${type.toUpperCase()}`}
           </span>
         </div>
@@ -311,7 +302,7 @@ export function Slide1({ p }: { p: SlidePayload }) {
         <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, letterSpacing: "0.3em", color: C.accent, textTransform: "uppercase", marginBottom: 6 }}>
           INVESTMENT SPOTLIGHT
         </span>
-        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, color: C.muted, letterSpacing: "0.1em", marginBottom: 4 }}>
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, color: C.sage, letterSpacing: "0.1em", marginBottom: 4 }}>
           {status}: {property.city}, {property.stateProvince}
         </span>
         <span style={{ fontFamily: "Garamond, serif", fontSize: 34, fontWeight: 700, color: C.cream, lineHeight: 1.15, marginBottom: 6 }}>
@@ -343,7 +334,7 @@ export function Slide1({ p }: { p: SlidePayload }) {
             ["TYPE", type],
           ].map(([label, value]) => (
             <div key={label} style={{ display: "flex", flexDirection: "column", marginRight: 28, marginBottom: 12 }}>
-              <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 9, letterSpacing: "0.18em", color: C.muted, textTransform: "uppercase", marginBottom: 3 }}>{label}</span>
+              <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 9, letterSpacing: "0.18em", color: C.sage, textTransform: "uppercase", marginBottom: 3 }}>{label}</span>
               <span style={{ fontFamily: "Garamond, serif", fontSize: 17, color: C.cream }}>{value}</span>
             </div>
           ))}
@@ -382,7 +373,7 @@ export function Slide2({ p }: { p: SlidePayload }) {
   const type = typeLabel(property);
 
   return (
-    <div style={{ width: W, height: H, background: C.bg, display: "flex", position: "relative", overflow: "hidden" }}>
+    <div style={{ width: W, height: H, background: C.darkBg, display: "flex", position: "relative", overflow: "hidden" }}>
       {/* LEFT — data panel */}
       <div style={{ width: 520, display: "flex", flexDirection: "column", padding: "44px 40px 44px 48px", flexShrink: 0 }}>
         <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, letterSpacing: "0.3em", color: C.accent, textTransform: "uppercase", marginBottom: 6 }}>
@@ -391,7 +382,7 @@ export function Slide2({ p }: { p: SlidePayload }) {
         <span style={{ fontFamily: "Garamond, serif", fontSize: 26, fontWeight: 700, color: C.cream, lineHeight: 1.2, marginBottom: 8 }}>
           {property.name.toUpperCase()}
         </span>
-        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.muted, marginBottom: 16 }}>
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.sage, marginBottom: 16 }}>
           {property.city}, {property.stateProvince}
         </span>
 
@@ -408,7 +399,7 @@ export function Slide2({ p }: { p: SlidePayload }) {
           ["Est. IRR", fmtPct(financials.irr)],
         ].map(([label, val]) => (
           <div key={label} style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", marginBottom: 6 }}>
-            <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.muted }}>{label}</span>
+            <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.sage }}>{label}</span>
             <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.cream }}>{val}</span>
           </div>
         ))}
@@ -459,7 +450,7 @@ export function Slide3({ p }: { p: SlidePayload }) {
   const type = typeLabel(property);
 
   return (
-    <div style={{ width: W, height: H, background: C.bg, display: "flex", position: "relative", overflow: "hidden" }}>
+    <div style={{ width: W, height: H, background: C.darkBg, display: "flex", position: "relative", overflow: "hidden" }}>
       {/* LEFT — large photo panel */}
       <div style={{ display: "flex", width: 480, position: "relative", flexShrink: 0 }}>
         <PhotoBg photo={hero} />
@@ -480,7 +471,7 @@ export function Slide3({ p }: { p: SlidePayload }) {
         <span style={{ fontFamily: "Garamond, serif", fontSize: 26, fontWeight: 700, color: C.cream, lineHeight: 1.2, marginBottom: 4 }}>
           {property.city.toUpperCase()}, {property.stateProvince.toUpperCase()} · {type.toUpperCase()}
         </span>
-        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.muted, marginBottom: 16 }}>
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.sage, marginBottom: 16 }}>
           The L+B model applied to {type.toLowerCase()} assets in {property.city}, {property.stateProvince}
         </span>
 
@@ -504,7 +495,7 @@ export function Slide3({ p }: { p: SlidePayload }) {
         ].map(([label, detail], i) => (
           <div key={i} style={{ display: "flex", flexDirection: "column", marginBottom: 10 }}>
             <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.cream, fontWeight: 600, marginBottom: 2 }}>{label}</span>
-            <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, color: C.muted, lineHeight: 1.5 }}>{detail}</span>
+            <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, color: C.sage, lineHeight: 1.5 }}>{detail}</span>
           </div>
         ))}
 
@@ -536,7 +527,7 @@ function PortfolioCard({ prop, isCurrent }: { prop: SiblingProperty | null; isCu
   if (!prop) {
     return (
       <div style={{ display: "flex", flex: 1, position: "relative", borderRadius: 4, overflow: "hidden", border: `1px solid ${C.canvasRule}`, background: "rgba(28,43,30,0.08)", alignItems: "center", justifyContent: "center" }}>
-        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, color: C.canvasMuted, letterSpacing: "0.15em" }}>COMING SOON</span>
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, color: C.sage, letterSpacing: "0.15em" }}>COMING SOON</span>
       </div>
     );
   }
@@ -558,7 +549,7 @@ function PortfolioCard({ prop, isCurrent }: { prop: SiblingProperty | null; isCu
           {statusBadgeLabel(prop.acquisitionStatus)}
         </span>
         <span style={{ fontFamily: "Garamond, serif", fontSize: 15, color: C.cream, lineHeight: 1.2, marginBottom: 3 }}>{prop.name}</span>
-        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 10, color: C.muted, marginBottom: 3 }}>
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 10, color: C.sage, marginBottom: 3 }}>
           {[prop.city, prop.stateProvince].filter(Boolean).join(", ")}
         </span>
         <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.sage, fontWeight: 600 }}>
@@ -598,11 +589,11 @@ export function Slide4({ p }: { p: SlidePayload }) {
           <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, letterSpacing: "0.3em", color: C.accent, textTransform: "uppercase", marginBottom: 4 }}>
             PROPERTY PIPELINE
           </span>
-          <span style={{ fontFamily: "Garamond, serif", fontSize: 26, color: C.canvasText }}>
+          <span style={{ fontFamily: "Garamond, serif", fontSize: 26, color: C.darkBg }}>
             H+ Portfolio Overview
           </span>
         </div>
-        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.canvasMuted }}>
+        <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.sage }}>
           {allCards.filter(Boolean).length} properties · {property.name} highlighted
         </span>
       </div>
@@ -674,7 +665,7 @@ export function Slide5({ p }: { p: SlidePayload }) {
           <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, letterSpacing: "0.3em", color: C.accent, textTransform: "uppercase", marginBottom: 4 }}>
             FINANCIAL SNAPSHOT
           </span>
-          <span style={{ fontFamily: "Garamond, serif", fontSize: 26, color: C.canvasText }}>
+          <span style={{ fontFamily: "Garamond, serif", fontSize: 26, color: C.darkBg }}>
             The Transformation Plan — {property.name}
           </span>
         </div>
@@ -684,7 +675,7 @@ export function Slide5({ p }: { p: SlidePayload }) {
       <div style={{ flex: 1, display: "flex", flexDirection: "row", padding: "0 40px 48px 40px" }}>
         {/* LEFT — transformation + vision */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", marginRight: 32 }}>
-          <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.canvasBody, lineHeight: 1.6, marginBottom: 20 }}>
+          <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.darkBg, lineHeight: 1.6, marginBottom: 20 }}>
             {visionText.transformationDescription}
           </span>
 
@@ -693,7 +684,7 @@ export function Slide5({ p }: { p: SlidePayload }) {
             {transformRows.map((row, ri) => (
               <div key={ri} style={{ display: "flex", flexDirection: "row", padding: "7px 0", borderBottom: ri < transformRows.length - 1 ? `1px solid ${C.canvasRule}` : "none", background: ri === 0 ? C.canvasHeader : ri % 2 === 0 ? C.canvasZebra : "transparent" }}>
                 {row.map((cell, ci) => (
-                  <span key={ci} style={{ flex: ci === 0 ? 0.8 : 1, fontFamily: "Poppins, sans-serif", fontSize: ri === 0 ? 10 : 12, color: ri === 0 ? C.canvasText : ci === 0 ? C.canvasText : C.canvasBody, fontWeight: ri === 0 || ci === 0 ? 600 : 400, paddingLeft: 8 }}>
+                  <span key={ci} style={{ flex: ci === 0 ? 0.8 : 1, fontFamily: "Poppins, sans-serif", fontSize: ri === 0 ? 10 : 12, color: ri === 0 ? C.darkBg : ci === 0 ? C.darkBg : C.darkBg, fontWeight: ri === 0 || ci === 0 ? 600 : 400, paddingLeft: 8 }}>
                     {cell}
                   </span>
                 ))}
@@ -710,8 +701,8 @@ export function Slide5({ p }: { p: SlidePayload }) {
           <div style={{ display: "flex", flexDirection: "column", marginBottom: 24 }}>
             {snapshotRows.map(([label, val], ri) => (
               <div key={ri} style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${C.canvasRule}` }}>
-                <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.canvasMuted }}>{label}</span>
-                <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.canvasText }}>{val}</span>
+                <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.sage }}>{label}</span>
+                <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.darkBg }}>{val}</span>
               </div>
             ))}
           </div>
@@ -728,8 +719,8 @@ export function Slide5({ p }: { p: SlidePayload }) {
               ["Annual Debt Service", fmtCurrency(financials.annualDebtService)],
             ].map(([label, val], ri) => (
               <div key={ri} style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", padding: "5px 0", borderBottom: `1px solid ${C.canvasRule}` }}>
-                <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.canvasMuted }}>{label}</span>
-                <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: ri === 2 ? C.canvasText : C.canvasBody, fontWeight: ri === 2 ? 600 : 400 }}>{val}</span>
+                <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.sage }}>{label}</span>
+                <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: ri === 2 ? C.darkBg : C.darkBg, fontWeight: ri === 2 ? 600 : 400 }}>{val}</span>
               </div>
             ))}
           </div>
@@ -737,9 +728,9 @@ export function Slide5({ p }: { p: SlidePayload }) {
           {/* Key metrics badge */}
           <div style={{ display: "flex", flexDirection: "column", marginTop: 20, padding: "12px 16px", background: "rgba(37,125,65,0.15)", borderLeft: `3px solid ${C.accent}` }}>
             <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, color: C.accent, marginBottom: 6, display: "block" }}>Key Investor Metrics*</span>
-            <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.canvasText, display: "block", marginBottom: 3 }}>Gross Margin: {fmtPct(grossMargin)}</span>
-            <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.canvasText, display: "block", marginBottom: 6 }}>EBITDA ({stableLabel}): {fmtPct(ebitdaPct)}</span>
-            <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 10, color: C.canvasMuted }}>* Projections for first full stabilized year</span>
+            <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.darkBg, display: "block", marginBottom: 3 }}>Gross Margin: {fmtPct(grossMargin)}</span>
+            <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.darkBg, display: "block", marginBottom: 6 }}>EBITDA ({stableLabel}): {fmtPct(ebitdaPct)}</span>
+            <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 10, color: C.sage }}>* Projections for first full stabilized year</span>
           </div>
         </div>
       </div>
@@ -790,7 +781,7 @@ export function Slide6({ p }: { p: SlidePayload }) {
         <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 11, letterSpacing: "0.3em", color: C.accent, textTransform: "uppercase", marginBottom: 4 }}>
           5-YEAR CONSOLIDATED PRO FORMA INCOME STATEMENT
         </span>
-        <span style={{ fontFamily: "Garamond, serif", fontSize: 22, color: C.canvasText }}>
+        <span style={{ fontFamily: "Garamond, serif", fontSize: 22, color: C.darkBg }}>
           {property.name}
         </span>
       </div>
@@ -800,7 +791,7 @@ export function Slide6({ p }: { p: SlidePayload }) {
         {/* LEFT — IS table */}
         <div style={{ display: "flex", flexDirection: "column", flex: 1, marginRight: 32 }}>
           {/* Year headers — dark band keeps an intentional brand accent */}
-          <div style={{ display: "flex", flexDirection: "row", padding: "8px 0", background: C.bg, borderBottom: `1px solid ${C.accent}`, marginBottom: 4 }}>
+          <div style={{ display: "flex", flexDirection: "row", padding: "8px 0", background: C.darkBg, borderBottom: `1px solid ${C.accent}`, marginBottom: 4 }}>
             <span style={{ flex: 1.4, fontFamily: "Poppins, sans-serif", fontSize: 10, color: C.sage, paddingLeft: 8 }}>Item</span>
             {years.map((y, i) => (
               <span key={i} style={{ flex: 1, fontFamily: "Poppins, sans-serif", fontSize: 10, color: C.cream, textAlign: "right", paddingRight: 8 }}>Yr {i + 1}</span>
@@ -808,9 +799,9 @@ export function Slide6({ p }: { p: SlidePayload }) {
           </div>
           {isRows.map(([label, vals], ri) => (
             <div key={ri} style={{ display: "flex", flexDirection: "row", padding: "6px 0", background: ri % 2 === 0 ? C.canvasZebra : "transparent", borderBottom: `1px solid ${C.canvasRule}` }}>
-              <span style={{ flex: 1.4, fontFamily: "Poppins, sans-serif", fontSize: 11, color: ri < 2 ? C.canvasBody : C.canvasText, paddingLeft: 8, fontWeight: ri === 2 ? 600 : 400 }}>{label}</span>
+              <span style={{ flex: 1.4, fontFamily: "Poppins, sans-serif", fontSize: 11, color: ri < 2 ? C.darkBg : C.darkBg, paddingLeft: 8, fontWeight: ri === 2 ? 600 : 400 }}>{label}</span>
               {(vals as string[]).map((v, vi) => (
-                <span key={vi} style={{ flex: 1, fontFamily: "Poppins, sans-serif", fontSize: 11, color: ri === 2 ? C.accent : C.canvasBody, textAlign: "right", paddingRight: 8, fontWeight: ri === 2 ? 600 : 400 }}>{v}</span>
+                <span key={vi} style={{ flex: 1, fontFamily: "Poppins, sans-serif", fontSize: 11, color: ri === 2 ? C.accent : C.darkBg, textAlign: "right", paddingRight: 8, fontWeight: ri === 2 ? 600 : 400 }}>{v}</span>
               ))}
             </div>
           ))}
@@ -824,14 +815,14 @@ export function Slide6({ p }: { p: SlidePayload }) {
           <div style={{ display: "flex", flexDirection: "column" }}>
             {investorRows.map(([label, val], ri) => (
               <div key={ri} style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", padding: "8px 12px", background: ri % 2 === 0 ? C.canvasZebra : "transparent", borderBottom: `1px solid ${C.canvasRule}` }}>
-                <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.canvasMuted }}>{label}</span>
-                <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 13, color: ri < 2 ? C.canvasText : C.canvasBody, fontWeight: ri < 2 ? 600 : 400 }}>{val}</span>
+                <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.sage }}>{label}</span>
+                <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 13, color: ri < 2 ? C.darkBg : C.darkBg, fontWeight: ri < 2 ? 600 : 400 }}>{val}</span>
               </div>
             ))}
           </div>
 
           <div style={{ display: "flex", marginTop: 24, padding: "12px 16px", background: "rgba(37,125,65,0.15)", borderLeft: `3px solid ${C.accent}` }}>
-            <span style={{ fontFamily: "Garamond, serif", fontSize: 14, color: C.canvasText, fontStyle: "italic", lineHeight: 1.6 }}>
+            <span style={{ fontFamily: "Garamond, serif", fontSize: 14, color: C.darkBg, fontStyle: "italic", lineHeight: 1.6 }}>
               5-year pro forma based on H+ Analytics projection engine.
               Projections are estimates; actual results may vary.
             </span>

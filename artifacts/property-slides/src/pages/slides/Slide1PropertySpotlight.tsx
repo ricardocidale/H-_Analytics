@@ -5,7 +5,7 @@ function PhotoPanel({ url, alt }: { url?: string; alt?: string }) {
   if (!url) {
     return (
       <div className="w-full h-full flex items-center justify-center" style={{ background: "#111d13" }}>
-        <span style={{ fontFamily: FONTS.sans, color: COLORS.muted, fontSize: 24, letterSpacing: "0.2em" }}>L+B</span>
+        <span style={{ fontFamily: FONTS.sans, color: COLORS.sage, fontSize: 24, letterSpacing: "0.2em" }}>L+B</span>
       </div>
     );
   }
@@ -40,7 +40,7 @@ export default function Slide1PropertySpotlight() {
   if (loading && !property) {
     return (
       <div className="w-screen h-screen flex items-center justify-center" style={{ background: COLORS.darkBg }}>
-        <span style={{ fontFamily: FONTS.sans, color: COLORS.muted, fontSize: 20 }}>Loading…</span>
+        <span style={{ fontFamily: FONTS.sans, color: COLORS.sage, fontSize: 20 }}>Loading…</span>
       </div>
     );
   }
@@ -72,7 +72,7 @@ export default function Slide1PropertySpotlight() {
               fontSize: 11,
               fontWeight: 400,
               letterSpacing: "0.22em",
-              color: COLORS.muted,
+              color: COLORS.sage,
               textTransform: "uppercase",
               marginBottom: 8,
             }}
@@ -113,7 +113,7 @@ export default function Slide1PropertySpotlight() {
               fontSize: 10,
               fontWeight: 600,
               letterSpacing: "0.28em",
-              color: COLORS.muted,
+              color: COLORS.sage,
               textTransform: "uppercase",
             }}
           >
@@ -148,12 +148,12 @@ export default function Slide1PropertySpotlight() {
           >
             {typeLabel}
           </span>
-          <span style={{ color: COLORS.muted, margin: "0 8px" }}>·</span>
+          <span style={{ color: COLORS.sage, margin: "0 8px" }}>·</span>
           <span
             style={{
               fontFamily: FONTS.sans,
               fontSize: 11,
-              color: COLORS.muted,
+              color: COLORS.sage,
               letterSpacing: "0.06em",
             }}
           >
@@ -166,7 +166,7 @@ export default function Slide1PropertySpotlight() {
           style={{
             fontFamily: FONTS.sans,
             fontSize: 11,
-            color: COLORS.muted,
+            color: COLORS.sage,
             letterSpacing: "0.04em",
             marginBottom: 16,
           }}
@@ -184,7 +184,7 @@ export default function Slide1PropertySpotlight() {
               fontFamily: FONTS.sans,
               fontSize: 9,
               fontWeight: 600,
-              color: COLORS.muted,
+              color: COLORS.sage,
               letterSpacing: "0.22em",
               textTransform: "uppercase",
               marginBottom: 4,
@@ -215,7 +215,7 @@ export default function Slide1PropertySpotlight() {
               fontFamily: FONTS.sans,
               fontSize: 9,
               fontWeight: 600,
-              color: COLORS.muted,
+              color: COLORS.sage,
               letterSpacing: "0.22em",
               textTransform: "uppercase",
               marginBottom: 8,
@@ -260,7 +260,7 @@ export default function Slide1PropertySpotlight() {
               fontFamily: FONTS.sans,
               fontSize: 9,
               fontWeight: 600,
-              color: COLORS.muted,
+              color: COLORS.sage,
               letterSpacing: "0.22em",
               textTransform: "uppercase",
               marginBottom: 6,
@@ -287,7 +287,7 @@ export default function Slide1PropertySpotlight() {
           {visionText?.visionBullet1 && (
             <div style={{ display: "flex", gap: 6, marginBottom: 3, alignItems: "flex-start" }}>
               <span style={{ color: COLORS.accent, fontSize: 10, marginTop: 1, flexShrink: 0 }}>▸</span>
-              <span style={{ fontFamily: FONTS.sans, fontSize: 9, color: COLORS.muted, lineHeight: 1.4 }}>
+              <span style={{ fontFamily: FONTS.sans, fontSize: 9, color: COLORS.sage, lineHeight: 1.4 }}>
                 {visionText.visionBullet1}
               </span>
             </div>
@@ -296,7 +296,7 @@ export default function Slide1PropertySpotlight() {
           {visionText?.visionBullet2 && (
             <div style={{ display: "flex", gap: 6, marginBottom: 8, alignItems: "flex-start" }}>
               <span style={{ color: COLORS.accent, fontSize: 10, marginTop: 1, flexShrink: 0 }}>▸</span>
-              <span style={{ fontFamily: FONTS.sans, fontSize: 9, color: COLORS.muted, lineHeight: 1.4 }}>
+              <span style={{ fontFamily: FONTS.sans, fontSize: 9, color: COLORS.sage, lineHeight: 1.4 }}>
                 {visionText.visionBullet2}
               </span>
             </div>

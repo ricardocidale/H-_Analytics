@@ -40,7 +40,7 @@ function PropertyCard({ name, city, state, price, typeLabel, statusLabel, photoU
               justifyContent: "center",
             }}
           >
-            <span style={{ fontFamily: FONTS.sans, color: COLORS.muted, fontSize: isPrimary ? 14 : 10, letterSpacing: "0.2em" }}>L+B</span>
+            <span style={{ fontFamily: FONTS.sans, color: COLORS.sage, fontSize: isPrimary ? 14 : 10, letterSpacing: "0.2em" }}>L+B</span>
           </div>
         )}
         {/* Status badge */}
@@ -59,7 +59,7 @@ function PropertyCard({ name, city, state, price, typeLabel, statusLabel, photoU
               fontFamily: FONTS.sans,
               fontSize: 7,
               fontWeight: 600,
-              color: isPrimary ? COLORS.accent : COLORS.muted,
+              color: isPrimary ? COLORS.accent : COLORS.sage,
               letterSpacing: "0.12em",
               textTransform: "uppercase",
             }}
@@ -84,7 +84,7 @@ function PropertyCard({ name, city, state, price, typeLabel, statusLabel, photoU
           {name}
         </div>
         {location && (
-          <div style={{ fontFamily: FONTS.sans, fontSize: 8, color: COLORS.muted, marginBottom: 3 }}>
+          <div style={{ fontFamily: FONTS.sans, fontSize: 8, color: COLORS.sage, marginBottom: 3 }}>
             {location}
           </div>
         )}
@@ -174,7 +174,7 @@ export default function Slide4Pipeline() {
                 fontSize: 9,
                 fontWeight: 600,
                 letterSpacing: "0.28em",
-                color: COLORS.muted,
+                color: COLORS.sage,
                 textTransform: "uppercase",
                 marginBottom: 4,
               }}
@@ -244,7 +244,7 @@ export default function Slide4Pipeline() {
             fontFamily: FONTS.sans,
             fontSize: 9,
             fontWeight: 600,
-            color: COLORS.muted,
+            color: COLORS.sage,
             letterSpacing: "0.18em",
             textTransform: "uppercase",
           }}

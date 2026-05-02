@@ -37,7 +37,7 @@ This is the most useful section for Slide-2 tasks. If you understand Slide 1, yo
 | **Subtitle (`Text 6`) font size** | 8.63pt italic | 10pt italic (slightly larger) |
 | **Vision bullet dot y-positions** | `295, 313, 338` | `295, 324, 350` (shifted to accommodate longer wrapped text) |
 | **Vision bullet 1 (`Text 18`) container height** | ~12pt (single line) | ~24pt (two lines — text "Transform into a boutique retreat property supporting 20–30 guest experiences" wraps) |
-| **Vision card closing tag-line color** | Single deep-green `#1C2B1E` run | Two-run split: `#257D41` then `#7C837A` (warm gray-green) |
+| **Vision card closing tag-line color** | Single deep-green `#1C2B1E` run | Two-run split: `#257D41` then `#9FBCA4` (muted sage — was `#7C837A` pre-`_02_`) |
 | **Photo caption y-positions** | y=482 | y=469–487 (bands sit ~13pt higher than Slide 1) |
 | **`Text 22` footer textbox width** | 1339pt (overflows 427pt past slide edge) | 805pt (in-bounds) — but text content unclear from extraction |
 
@@ -126,7 +126,7 @@ From Section 7 of the source file:
 4. Change title-card headline (`Text 5`) and 10pt italic tagline (`Text 6`)
 5. **Remove the price block** (`Text 7`/`Text 8`/`Text 9`) — these shapes do not exist on Slide 2
 6. Replace specs bullet text (`Text 11`–`Text 16`) with the Slide 2 spec list (no price line; all property features)
-7. Replace vision bullet text (`Text 18`/`Text 19`/`Text 20`) — closing tag-line gets two-run colors `#257D41` then `#7C837A`
+7. Replace vision bullet text (`Text 18`/`Text 19`/`Text 20`) — closing tag-line gets two-run colors `#257D41` then `#9FBCA4` (muted sage — was `#7C837A` pre-`_02_` consolidation)
 8. Replace the three photo captions (`Text 3`, `Text 4`, `Text 21`)
 9. Fix flagged issues only if user approves: wrong page number, header overflow, narrow Vision bullet shapes
 

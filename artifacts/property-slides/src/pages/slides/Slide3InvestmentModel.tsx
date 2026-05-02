@@ -28,7 +28,7 @@ export default function Slide3InvestmentModel() {
             <img src={p0.url} alt="" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           ) : (
             <div style={{ width: "100%", height: "100%", background: "#111d13", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ fontFamily: FONTS.sans, color: COLORS.muted, fontSize: 16, letterSpacing: "0.2em" }}>L+B</span>
+              <span style={{ fontFamily: FONTS.sans, color: COLORS.sage, fontSize: 16, letterSpacing: "0.2em" }}>L+B</span>
             </div>
           )}
           {/* "L+B Model" overlay badge */}
@@ -79,7 +79,7 @@ export default function Slide3InvestmentModel() {
               fontSize: 9,
               fontWeight: 600,
               letterSpacing: "0.28em",
-              color: COLORS.muted,
+              color: COLORS.sage,
               textTransform: "uppercase",
               marginBottom: 4,
             }}
@@ -113,7 +113,7 @@ export default function Slide3InvestmentModel() {
               fontSize: 9,
               fontWeight: 600,
               letterSpacing: "0.22em",
-              color: COLORS.muted,
+              color: COLORS.sage,
               textTransform: "uppercase",
               marginBottom: 6,
             }}
@@ -145,7 +145,7 @@ export default function Slide3InvestmentModel() {
               fontSize: 9,
               fontWeight: 600,
               letterSpacing: "0.22em",
-              color: COLORS.muted,
+              color: COLORS.sage,
               textTransform: "uppercase",
               marginBottom: 6,
             }}
@@ -170,7 +170,7 @@ export default function Slide3InvestmentModel() {
               }}
             >
               <span style={{ fontFamily: FONTS.sans, fontSize: 9, color: COLORS.sage, fontWeight: 300, flexShrink: 0, minWidth: 60 }}>{label}:</span>
-              <span style={{ fontFamily: FONTS.sans, fontSize: 9, color: COLORS.muted, lineHeight: 1.3 }}>{value}</span>
+              <span style={{ fontFamily: FONTS.sans, fontSize: 9, color: COLORS.sage, lineHeight: 1.3 }}>{value}</span>
             </div>
           ))}
         </div>
@@ -183,14 +183,14 @@ export default function Slide3InvestmentModel() {
               fontSize: 9,
               fontWeight: 600,
               letterSpacing: "0.22em",
-              color: COLORS.muted,
+              color: COLORS.sage,
               textTransform: "uppercase",
               marginBottom: 5,
             }}
           >
             Why This Property?
           </div>
-          <div style={{ fontFamily: FONTS.sans, fontSize: 9.5, color: COLORS.muted, lineHeight: 1.5 }}>
+          <div style={{ fontFamily: FONTS.sans, fontSize: 9.5, color: COLORS.sage, lineHeight: 1.5 }}>
             {visionText?.marketRationale ?? `Boutique supply constrained in ${city}; demand growing from drive-market leisure.`}
           </div>
         </div>
@@ -203,7 +203,7 @@ export default function Slide3InvestmentModel() {
               fontSize: 9,
               fontWeight: 600,
               letterSpacing: "0.22em",
-              color: COLORS.muted,
+              color: COLORS.sage,
               textTransform: "uppercase",
               marginBottom: 6,
             }}
@@ -232,7 +232,7 @@ export default function Slide3InvestmentModel() {
               </div>
               <div>
                 <div style={{ fontFamily: FONTS.sans, fontSize: 9, fontWeight: 600, color: COLORS.white, marginBottom: 2 }}>{label}</div>
-                <div style={{ fontFamily: FONTS.sans, fontSize: 8.5, color: COLORS.muted, lineHeight: 1.4 }}>{detail}</div>
+                <div style={{ fontFamily: FONTS.sans, fontSize: 8.5, color: COLORS.sage, lineHeight: 1.4 }}>{detail}</div>
               </div>
             </div>
           ))}

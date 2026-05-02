@@ -47,7 +47,7 @@ export default function Slide2PhotoGallery() {
                 fontSize: 9,
                 fontWeight: 600,
                 letterSpacing: "0.28em",
-                color: COLORS.muted,
+                color: COLORS.sage,
                 textTransform: "uppercase",
                 marginBottom: 4,
               }}
@@ -81,7 +81,7 @@ export default function Slide2PhotoGallery() {
               style={{
                 fontFamily: FONTS.sans,
                 fontSize: 9,
-                color: COLORS.muted,
+                color: COLORS.sage,
                 letterSpacing: "0.05em",
                 marginTop: 2,
               }}
@@ -117,7 +117,7 @@ export default function Slide2PhotoGallery() {
                 borderRight: i < 3 ? "2px solid rgba(28,43,30,0.8)" : "none",
               }}
             >
-              <span style={{ fontFamily: FONTS.sans, color: COLORS.muted, fontSize: 12, opacity: 0.5 }}>L+B</span>
+              <span style={{ fontFamily: FONTS.sans, color: COLORS.sage, fontSize: 12, opacity: 0.5 }}>L+B</span>
             </div>
           ))}
         </div>
@@ -141,7 +141,7 @@ export default function Slide2PhotoGallery() {
               fontSize: 9,
               fontWeight: 600,
               letterSpacing: "0.22em",
-              color: COLORS.muted,
+              color: COLORS.sage,
               textTransform: "uppercase",
               marginBottom: 10,
             }}
@@ -167,7 +167,7 @@ export default function Slide2PhotoGallery() {
                 borderBottom: "1px solid rgba(159,188,164,0.15)",
               }}
             >
-              <span style={{ fontFamily: FONTS.sans, fontSize: 9, color: COLORS.muted, fontWeight: 300 }}>{label}</span>
+              <span style={{ fontFamily: FONTS.sans, fontSize: 9, color: COLORS.sage, fontWeight: 300 }}>{label}</span>
               <span style={{ fontFamily: FONTS.serif, fontSize: 11, color: COLORS.white }}>{value}</span>
             </div>
           ))}
@@ -182,7 +182,7 @@ export default function Slide2PhotoGallery() {
               fontSize: 9,
               fontWeight: 600,
               letterSpacing: "0.22em",
-              color: COLORS.muted,
+              color: COLORS.sage,
               textTransform: "uppercase",
               marginBottom: 8,
             }}
@@ -208,7 +208,7 @@ export default function Slide2PhotoGallery() {
           {visionText?.revenueBullet && (
             <div style={{ display: "flex", gap: 5, marginBottom: 4, alignItems: "flex-start" }}>
               <span style={{ color: COLORS.accent, fontSize: 9, flexShrink: 0, marginTop: 1 }}>▸</span>
-              <span style={{ fontFamily: FONTS.sans, fontSize: 8.5, color: COLORS.muted, lineHeight: 1.4 }}>
+              <span style={{ fontFamily: FONTS.sans, fontSize: 8.5, color: COLORS.sage, lineHeight: 1.4 }}>
                 {visionText.revenueBullet}
               </span>
             </div>
@@ -217,7 +217,7 @@ export default function Slide2PhotoGallery() {
           {visionText?.programmingBullet && (
             <div style={{ display: "flex", gap: 5, marginBottom: 10, alignItems: "flex-start" }}>
               <span style={{ color: COLORS.accent, fontSize: 9, flexShrink: 0, marginTop: 1 }}>▸</span>
-              <span style={{ fontFamily: FONTS.sans, fontSize: 8.5, color: COLORS.muted, lineHeight: 1.4 }}>
+              <span style={{ fontFamily: FONTS.sans, fontSize: 8.5, color: COLORS.sage, lineHeight: 1.4 }}>
                 {visionText.programmingBullet}
               </span>
             </div>

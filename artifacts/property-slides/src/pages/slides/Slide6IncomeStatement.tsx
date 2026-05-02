@@ -25,7 +25,7 @@ function HeaderCell({ children, year }: { children?: React.ReactNode; year?: boo
         fontFamily: FONTS.sans,
         fontSize: 8,
         fontWeight: 600,
-        color: year ? COLORS.accent : COLORS.muted,
+        color: year ? COLORS.accent : COLORS.sage,
         letterSpacing: year ? "0.05em" : "0.12em",
         textAlign: "right",
         padding: "4px 8px 4px 4px",
@@ -47,7 +47,7 @@ function LabelCell({ children, sub }: { children: React.ReactNode; sub?: boolean
         fontFamily: FONTS.sans,
         fontSize: 8.5,
         fontWeight: sub ? 300 : 400,
-        color: sub ? "rgba(159,188,164,0.7)" : COLORS.muted,
+        color: sub ? "rgba(159,188,164,0.7)" : COLORS.sage,
         padding: "3px 4px",
         paddingLeft: sub ? 12 : 0,
         whiteSpace: "nowrap",
@@ -129,7 +129,7 @@ export default function Slide6IncomeStatement() {
                 fontSize: 9,
                 fontWeight: 600,
                 letterSpacing: "0.28em",
-                color: COLORS.muted,
+                color: COLORS.sage,
                 textTransform: "uppercase",
                 marginBottom: 3,
               }}
@@ -152,7 +152,7 @@ export default function Slide6IncomeStatement() {
             <div style={{ fontFamily: FONTS.sans, fontSize: 9, color: COLORS.sage }}>
               {city}{city && state ? `, ${state}` : state}
             </div>
-            <div style={{ fontFamily: FONTS.sans, fontSize: 8.5, color: COLORS.muted, marginTop: 2 }}>
+            <div style={{ fontFamily: FONTS.sans, fontSize: 8.5, color: COLORS.sage, marginTop: 2 }}>
               {horizon}-year pro forma · Stabilized Year {stableIdx + 1}
             </div>
           </div>
@@ -259,7 +259,7 @@ export default function Slide6IncomeStatement() {
               fontSize: 9,
               fontWeight: 600,
               letterSpacing: "0.18em",
-              color: COLORS.muted,
+              color: COLORS.sage,
               textTransform: "uppercase",
               marginBottom: 6,
               paddingBottom: 4,
@@ -287,7 +287,7 @@ export default function Slide6IncomeStatement() {
                 borderBottom: "1px solid rgba(159,188,164,0.1)",
               }}
             >
-              <span style={{ fontFamily: FONTS.sans, fontSize: 8.5, color: COLORS.muted, fontWeight: 300 }}>{label}</span>
+              <span style={{ fontFamily: FONTS.sans, fontSize: 8.5, color: COLORS.sage, fontWeight: 300 }}>{label}</span>
               <span style={{ fontFamily: FONTS.serif, fontSize: 10, color: "rgba(255,249,245,0.85)" }}>{value}</span>
             </div>
           ))}
@@ -314,7 +314,7 @@ export default function Slide6IncomeStatement() {
                 paddingRight: highlight ? 6 : 0,
               }}
             >
-              <span style={{ fontFamily: FONTS.sans, fontSize: 8.5, color: highlight ? COLORS.white : COLORS.muted, fontWeight: highlight ? 600 : 300 }}>{label}</span>
+              <span style={{ fontFamily: FONTS.sans, fontSize: 8.5, color: highlight ? COLORS.white : COLORS.sage, fontWeight: highlight ? 600 : 300 }}>{label}</span>
               <span style={{ fontFamily: FONTS.serif, fontSize: highlight ? 11 : 10, color: highlight ? COLORS.white : "rgba(255,249,245,0.85)" }}>{value}</span>
             </div>
           ))}

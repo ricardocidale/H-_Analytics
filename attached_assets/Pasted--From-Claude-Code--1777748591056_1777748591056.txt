@@ -1,0 +1,92 @@
+  From: Claude Code                                                                                                                                                                                                                            
+  To: Replit Agent 
+  Re: Palette unification do-over — three specific defects to fix                                                                                                                                                                              
+                                                                                         
+  Do not implement anything until you have read every file mentioned and confirmed the current state matches what's described here. If it doesn't, report the discrepancy before touching code.
+                                                 
+  ---                                            
+  Defect 1 — hplus-canonical-slide-2/SKILL.md: stale #7C837A survives in actionable sections                                                                                                                                                   
+                                                                                                                                                                                                                                               
+  The palette table (line 56) correctly says #7C837A was collapsed into #9FBCA4. But the two sections a generator actually reads when building Slide 2 still carry the old value:                                                              
+                                                                                                                                                                                                                                               
+  - Line 40 (delta table): Two-run split: #257D41 then #7C837A (warm gray-green) — this is the "what to implement" row                                                                                                                         
+  - Line 129 (reconstruction recipe): closing tag-line gets two-run colors #257D41 then #7C837A
+                                                                                                                                                                                                                                               
+  These are contradicted by the same file's palette table. An agent reading the recipe will use #7C837A. Fix both lines to #9FBCA4. Do not touch lines 20 or 50 (those are historical-context prose and are correct as-is).                    
+                                                                                                                                                                                                                                               
+  ---                                                                                                                                                                                                                                          
+  Defect 2 — slideUtils.ts COLORS: 12 keys for 6 canonical colors                                                                                                                                                                              
+                                                                 
+  Python's SLIDE_COLORS has exactly 6 keys. slideUtils.ts COLORS now has 12:                                                                                                                                                                   
+                                                                                         
+  slideBg, darkBg, accent, sage, cream, mint, muted, nearBlack, mutedDark, bodyDark, white, lightBorder                                                                                                                                        
+  
+  Five of those are pure aliases with no distinct value:                                                                                                                                                                                       
+  - slideBg = "#9FBCA4" — same as sage                                                   
+  - muted = "#9FBCA4" — same as sage                                                                                                                                                                                                           
+  - mutedDark = "#9FBCA4" — same as sage                                                                                                                                                                                                       
+  - nearBlack = "#1C2B1E" — same as darkBg
+  - bodyDark = "#1C2B1E" — same as darkBg                                                                                                                                                                                                      
+                                                                                         
+  The consolidation task was to eliminate parallel hex literals. Adding five alias keys that map to the same hex is the same problem with extra steps. lightBorder: "#E8EDE9" is the one legitimate extra — it's a UI-only color not in the    
+  canonical palette, keep it.
+                                                                                                                                                                                                                                               
+  What to do:                                                                            
+  1. Read every callsite of COLORS.slideBg, COLORS.muted, COLORS.mutedDark, COLORS.nearBlack, COLORS.bodyDark in the property-slides package — grep first, list the count                                                                      
+  2. Challenge: if any of those callsites have a semantic reason to use a distinct name (e.g. a table "body dark" that you'd want to change independently from darkBg), flag it before removing the alias
+  3. If no semantic reason exists, remove the five alias keys and update callsites to COLORS.sage or COLORS.darkBg respectively                                                                                                                
+  4. Target: 7 keys (darkBg, accent, sage, cream, mint, white, lightBorder)                                                    
+                                                                                                                                                                                                                                               
+  ---                                                                                    
+  Defect 3 — slide-jsx.tsx C object: 5 alias keys on top of 6 canonical                                                                                                                                                                        
+                                                                                                                                                                                                                                               
+  The C object has 11 meaningful keys (plus 5 rgba helpers which are fine):                                                                                                                                                                    
+                                                                                                                                                                                                                                               
+  darkBg, accent, sage, cream, mint, white  ← canonical 6                                
+  bg, canvasText, canvasBody, canvasMuted, muted  ← 5 aliases, all duplicate values                                                                                                                                                            
+                                                                                                                                                                                                                                               
+  - bg = "#1C2B1E" = darkBg                      
+  - canvasText = "#1C2B1E" = darkBg                                                                                                                                                                                                            
+  - canvasBody = "#1C2B1E" = darkBg                                                                                                                                                                                                            
+  - canvasMuted = "#9FBCA4" = sage                                                                                                                                                                                                             
+  - muted = "#9FBCA4" = sage                                                                                                                                                                                                                   
+                                                                                                                                                                                                                                               
+  What to do:                                    
+  1. Grep every C\.bg\b, C\.canvasText, C\.canvasBody, C\.canvasMuted, C\.muted usage in slide-jsx.tsx — list the line numbers and what each one renders                                                                                       
+  2. Challenge: if any alias serves a genuinely different semantic purpose (e.g. a slot that should drift independently from the canonical), flag it                                                                                           
+  3. Remove aliases with no semantic distinction; update callsites to C.darkBg or C.sage                                                            
+  4. Target: 6 canonical keys + 5 rgba helpers = 11 total, zero duplicates                                                                                                                                                                     
+                                                                                                                                                                                                                                               
+  ---                                            
+  Subagent strategy                                                                                                                                                                                                                            
+                                                                                                                                                                                                                                               
+  Use up to 6 subagents for independent work:                                                                                                                                                                                                  
+                                                                                                                                                                                                                                               
+  - Agent 1: Defect 1 — skill file line fixes (tiny, no callsite risk)                                                                                                                                                                         
+  - Agent 2: Defect 2 — grep all slideUtils.ts COLORS alias callsites, report back before touching anything
+  - Agent 3: Defect 3 — grep all C.* alias callsites in slide-jsx.tsx, report back before touching anything                                                                                                                                    
+  - Agents 2 and 3 report findings; you review, then dispatch fix agents                                                                                                                                                                       
+                          
+  Agents 2 and 3 must report before any edits happen. Do not parallelize the grep-and-fix in one pass — that's what produced aliases instead of removals last time.                                                                            
+                                                                                         
+  ---                                                                                                                                                                                                                                          
+  Verification                                                                                                                                                                                                                                 
+                                                                                                                                                                                                                                               
+  # After fixes: all three mirrors must have the same key count for canonical colors                                                                                                                                                           
+  python3 -c "                                                                           
+  import sys; sys.path.insert(0,'scripts/src')   
+  from slide_helpers import SLIDE_COLORS
+  print('Python keys:', sorted(SLIDE_COLORS.keys()))                                                                                                                                                                                           
+  # expect: ['accent', 'cream', 'dark_bg', 'mint', 'sage', 'white']
+  "                                                                                                                                                                                                                                            
+                                                                                         
+  # No stale drift values anywhere in slide code                                                                                                                                                                                               
+  grep -rn "#7AAA88\|#5A7A62\|#7C837A\|#1F3A2A\|#2E4A35\|#9FBBA5" \                                                                                                                                                                            
+    scripts/src/slide_helpers.py \
+    artifacts/api-server/src/slides/slide-jsx.tsx \                                                                                                                                                                                            
+    artifacts/property-slides/src/lib/slideUtils.ts \                                    
+    .agents/skills/hplus-canonical-slide-1/SKILL.md \                                                                                                                                                                                          
+    .agents/skills/hplus-canonical-slide-2/SKILL.md                                                                                                                                                                                            
+  # expect: zero matches (comment-only references in historical prose are acceptable — grep for those separately)                                                                                                                              
+                                                                                                                                                                                                                                               
+  pnpm run typecheck         

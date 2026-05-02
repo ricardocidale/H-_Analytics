@@ -69,37 +69,18 @@ export function getMarketInsight(city: string, state: string): string {
  * MUST be kept in sync with:
  *  - `C` in `artifacts/api-server/src/slides/slide-jsx.tsx` (Track 2 satori renderer)
  *  - `SLIDE_COLORS` in `scripts/src/slide_helpers.py` (Track 1 python-pptx generator)
- *
- * The `_02_1777743268816.pptx` canonical collapsed three near-duplicate
- * sage / dark-green hex values via XML find/replace:
- *   #5A7A62 + #7AAA88 + theme accent2 #9FBBA5  →  #9FBCA4  (single sage)
- *   #1F3A2A + #2E4A35                          →  #1C2B1E  (single dark green)
- *   #7C837A (Slide 2 tag-line)                 →  #9FBCA4
  */
 export const COLORS = {
-  /**
-   * Canonical L+B sage canvas — used as the slide canvas for the financial
-   * pages (slides 5–6). Slides 1–4 use cream (`COLORS.cream`) per the
-   * canonical L+B template. See `SLIDE_BACKGROUNDS` below for the full
-   * per-slide mapping.
-   */
-  slideBg: "#9FBCA4",
-  /** Deep forest green — header/footer bands, dark cards, primary text. */
+  /** Deep forest green — header/footer bands, primary text. */
   darkBg: "#1C2B1E",
+  /** Forest green — headlines, body bullets, page number. */
   accent: "#257D41",
-  /** Muted sage — eyebrows, captions, subtitle, tagline (collapsed from #7AAA88). */
+  /** Muted sage — eyebrows, captions, subtitle, tagline (also used as canvas for slides 5–6). */
   sage: "#9FBCA4",
+  /** Warm ivory — slide canvas for slides 1–4. */
   cream: "#FFF9F5",
   /** Mint — Slide 4 subtitle header (introduced in `_02_`). */
   mint: "#C8E8D0",
-  /** Legacy alias — same value as `sage` post-consolidation. */
-  muted: "#9FBCA4",
-  /** Alias of darkBg — kept for legacy callsites. */
-  nearBlack: "#1C2B1E",
-  /** Secondary text on sage canvas (collapsed from #5A7A62). */
-  mutedDark: "#9FBCA4",
-  /** Body text on sage canvas — was #2A4030; shift to darkBg approved by palette consolidation. */
-  bodyDark: "#1C2B1E",
   white: "#FFFFFF",
   /** Derived UI border (not part of canonical palette — preserved for in-app preview chrome). */
   lightBorder: "#E8EDE9",
@@ -117,8 +98,8 @@ export const SLIDE_BACKGROUNDS: Record<number, string> = {
   2: COLORS.cream,
   3: COLORS.cream,
   4: COLORS.cream,
-  5: COLORS.slideBg,
-  6: COLORS.slideBg,
+  5: COLORS.sage,
+  6: COLORS.sage,
 };
 
 export const FONTS = {
