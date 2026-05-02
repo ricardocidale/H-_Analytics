@@ -36,6 +36,7 @@
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",
     "ai": "^6.0.170",
+    "archiver": "^7.0.1",
     "bcryptjs": "^3.0.3",
     "compression": "^1.8.1",
     "connect-pg-simple": "^10.0.0",
@@ -74,6 +75,7 @@
     "zod-validation-error": "^5.0.0"
   },
   "devDependencies": {
+    "@types/archiver": "^7.0.0",
     "@types/bcryptjs": "^3.0.0",
     "@types/compression": "^1.8.1",
     "@types/connect-pg-simple": "^7.0.3",

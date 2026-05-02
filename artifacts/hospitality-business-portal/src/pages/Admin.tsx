@@ -36,6 +36,7 @@ const QASandbox = lazy(() => import("@/components/admin/intelligence/QASandbox")
 const ScheduledResearchPanel = lazy(() => import("@/components/admin/intelligence/ScheduledResearchPanel"));
 const BrandTab = lazy(() => import("@/components/admin/BrandTab"));
 const SlideDecksTab = lazy(() => import("@/components/admin/SlideDecksTab"));
+const PropertyHeroImagesTab = lazy(() => import("@/components/admin/PropertyHeroImagesTab"));
 const EngineDashboard = lazy(() => import("@/components/admin/intelligence/EngineDashboard"));
 const DataSourcesTab = lazy(() => import("@/components/admin/intelligence/DataSourcesTab"));
 const PipelineConfigTab = lazy(() => import("@/components/admin/intelligence/PipelineConfigTab"));
@@ -72,6 +73,7 @@ const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: strin
   database:              { title: "Database",                  subtitle: "Entity monitoring, seed data, and canonical sync" },
   observability:         { title: "Observability",             subtitle: "Background scheduler health, last-cycle summaries, and stale-warnings" },
   "slide-decks":         { title: "LB Slides",                 subtitle: "Generate and download per-property L+B investor slide decks (6 slides, PPTX)" },
+  "property-heroes":     { title: "Property Heroes",           subtitle: "View and download hero images for all properties, individually or as a ZIP" },
 
   // AI Research → Specialists (P5). The page header *title* for these
   // sections is computed dynamically from the catalog + the live
@@ -248,6 +250,7 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "verification":     return <VerificationTab />;
     case "database":         return <DatabaseTab />;
     case "slide-decks":      return <SlideDecksTab />;
+    case "property-heroes":  return <PropertyHeroImagesTab />;
     case "observability":    return <ObservabilityTab />;
     default: {
       if (isSpecialistSection(section)) {

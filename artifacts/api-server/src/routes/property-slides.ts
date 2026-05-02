@@ -17,6 +17,7 @@
 
 import { Router, type Request, type Response } from "express";
 import sharp from "sharp";
+import archiver from "archiver";
 import { spawn } from "child_process";
 import * as fs from "fs/promises";
 import * as path from "path";
@@ -549,7 +550,101 @@ export async function preGenerateAllSlides(): Promise<void> {
   }
 }
 
+// ── Hero image resolution helper ───────────────────────────────────────────
+
+async function resolveHeroImageBuffer(
+  imageUrl: string,
+): Promise<{ buffer: Buffer; ext: string } | null> {
+  try {
+    const port = process.env.PORT ?? "8080";
+
+    if (imageUrl.startsWith("/objects/")) {
+      const key = imageUrl.slice("/objects/".length);
+      const sp = await getStorageProviderAsync();
+      const result = await sp.downloadBuffer(key);
+      if (!result) return null;
+      const lower = key.toLowerCase();
+      const ext = lower.endsWith(".jpg") || lower.endsWith(".jpeg") ? "jpg"
+        : lower.endsWith(".webp") ? "webp"
+        : lower.endsWith(".gif") ? "gif"
+        : "png";
+      return { buffer: result.buffer, ext };
+    }
+
+    if (imageUrl.startsWith("/api/")) {
+      const resp = await fetch(`http://localhost:${port}${imageUrl}`, {
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!resp.ok) return null;
+      const buf = Buffer.from(await resp.arrayBuffer());
+      const contentType = resp.headers.get("content-type") ?? "";
+      const ext = contentType.includes("jpeg") || contentType.includes("jpg") ? "jpg"
+        : contentType.includes("webp") ? "webp"
+        : contentType.includes("gif") ? "gif"
+        : "png";
+      return { buffer: buf, ext };
+    }
+
+    return null;
+  } catch (err) {
+    logger.warn(`[hero-zip] resolveHeroImageBuffer failed for ${imageUrl}: ${err}`, "property-slides");
+    return null;
+  }
+}
+
 // ── Routes ────────────────────────────────────────────────────────────────
+
+/**
+ * GET /api/properties/hero-images/zip
+ * Streams a ZIP of all property hero images, one file per property,
+ * named {sanitized-property-name}.{ext}. Properties with no hero image
+ * are silently skipped. Response is streamed so it doesn't time out on
+ * large portfolios.
+ *
+ * IMPORTANT: this literal route must appear before /api/properties/:id/*
+ * so Express does not match "hero-images" as an :id param.
+ */
+router.get("/api/properties/hero-images/zip", requireAdmin, async (_req: Request, res: Response) => {
+  try {
+    const props = await storage.getAllProperties();
+    if (!props || props.length === 0) {
+      return res.status(404).json({ error: "No properties found" });
+    }
+
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", 'attachment; filename="property-hero-images.zip"');
+    res.setHeader("Cache-Control", "no-store");
+
+    const archive = archiver("zip", { zlib: { level: 5 } });
+
+    archive.on("error", (err) => {
+      logger.error(`[hero-zip] archiver error: ${err.message}`, "property-slides");
+      if (!res.headersSent) res.status(500).json({ error: "ZIP generation failed" });
+    });
+
+    archive.pipe(res);
+
+    for (const prop of props) {
+      const heroUrl = (prop as Record<string, unknown>).imageUrl as string | undefined | null;
+      if (!heroUrl) continue;
+
+      const resolved = await resolveHeroImageBuffer(heroUrl);
+      if (!resolved) continue;
+
+      const safeName = prop.name.replace(/[^a-zA-Z0-9\s-]/g, "").trim().replace(/\s+/g, "-");
+      const filename = `${safeName}.${resolved.ext}`;
+      archive.append(resolved.buffer, { name: filename });
+    }
+
+    await archive.finalize();
+    return res;
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "ZIP generation failed";
+    logger.error(`[hero-zip] error: ${message}`, "property-slides");
+    if (!res.headersSent) return res.status(500).json({ error: message });
+    return res;
+  }
+});
 
 router.get("/api/slides/status", requireAdmin, async (_req: Request, res: Response) => {
   try {

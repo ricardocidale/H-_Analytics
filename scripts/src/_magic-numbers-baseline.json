@@ -529,6 +529,7 @@
     "artifacts/api-server/src/services/ApifyService.ts",
     "artifacts/api-server/src/services/RapidApiHospitalityService.ts",
     "artifacts/api-server/src/slides/hybrid-renderer.ts",
+    "artifacts/api-server/src/slides/improvement-suggestions.ts",
     "artifacts/api-server/src/slides/slide-jsx.tsx",
     "artifacts/api-server/src/slides/slot-resolver.ts",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
