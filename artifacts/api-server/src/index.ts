@@ -645,6 +645,14 @@ async function runSchemaMigrations() {
     await runReferenceBrandsRunFk001();
     await markMigrationApplied("reference_brands_run_fk_001");
   }
+
+  if (!(await isMigrationApplied("property_slide_deck_variants_001"))) {
+    const { runPropertySlideDeckVariants001 } = await import(
+      "./migrations/property-slide-deck-variants-001"
+    );
+    await runPropertySlideDeckVariants001();
+    await markMigrationApplied("property_slide_deck_variants_001");
+  }
 }
 
 async function runSeeds() {
