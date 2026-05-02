@@ -40,15 +40,26 @@ RUN pnpm install --frozen-lockfile
 # Copy full source tree (respects .dockerignore).
 COPY . .
 
-# Vite requires PORT and BASE_PATH at build time.
-# Defaults are fine for a standard single-origin Railway deployment.
+# Vite requires PORT and BASE_PATH at build time. Each frontend artifact has
+# a different base path (the API server proxies them at distinct sub-paths in
+# production), so we build them one-by-one with the correct BASE_PATH set per
+# build instead of relying on a single workspace-wide value.
 ARG PORT=5000
-ARG BASE_PATH=/
 ENV PORT=$PORT
-ENV BASE_PATH=$BASE_PATH
 
-# Build everything: typecheck + per-package builds.
-RUN pnpm run build
+# Typecheck the whole workspace once (composite libs + leaf packages).
+RUN pnpm run typecheck
+
+# Build each frontend artifact with its own BASE_PATH.
+#   - hospitality-business-portal -> served at "/"
+#   - property-slides             -> served at "/property-slides/"
+#   - mockup-sandbox              -> served at "/__mockup/"
+RUN BASE_PATH=/ pnpm --filter @workspace/hospitality-business-portal run build
+RUN BASE_PATH=/property-slides/ pnpm --filter @workspace/property-slides run build
+RUN BASE_PATH=/__mockup/ pnpm --filter mockup-sandbox run build
+
+# Build the API server bundle last (depends on lib builds via tsc).
+RUN pnpm --filter @workspace/api-server run build
 
 # ============================================================
 # Runtime stage
@@ -66,8 +77,13 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 # so we must also carry along the relevant node_modules.
 COPY --from=build /app/artifacts/api-server/dist ./artifacts/api-server/dist
 
-# Frontend SPA — served by the API server via serveStatic()
+# Frontend SPAs — served by the API server via serveStatic()
+#   - hospitality-business-portal -> ./artifacts/api-server/dist/public            (mounted at "/")
+#   - property-slides             -> ./artifacts/api-server/dist/property-slides   (mounted at "/property-slides/")
+#   - mockup-sandbox              -> ./artifacts/api-server/dist/mockup-sandbox    (mounted at "/__mockup/")
 COPY --from=build /app/artifacts/hospitality-business-portal/dist/public ./artifacts/api-server/dist/public
+COPY --from=build /app/artifacts/property-slides/dist/public             ./artifacts/api-server/dist/property-slides
+COPY --from=build /app/artifacts/mockup-sandbox/dist                     ./artifacts/api-server/dist/mockup-sandbox
 
 # Production seed SQL — loaded at first boot to sync canonical data
 COPY --from=build /app/dist/seed-production.sql ./dist/seed-production.sql

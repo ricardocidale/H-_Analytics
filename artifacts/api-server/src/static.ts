@@ -1,8 +1,42 @@
-import express, { type Express } from "express";
+import express, { type Express, type Request, type Response } from "express";
 import fs from "fs";
 import path from "path";
 
+/**
+ * Serve the bundled frontend SPAs.
+ *
+ * In production we ship three SPAs inside the same container, each at its own
+ * sub-path (matching the artifact.toml `previewPath` used in development):
+ *
+ *   - hospitality-business-portal -> "/"                 (./public)
+ *   - property-slides             -> "/property-slides/" (./property-slides)
+ *   - mockup-sandbox              -> "/__mockup/"        (./mockup-sandbox)
+ *
+ * Each SPA gets its own static asset mount and its own catch-all index.html
+ * fallback so client-side routing works inside the sub-app.
+ */
 export function serveStatic(app: Express) {
+  const subApps = [
+    { mount: "/property-slides", dir: path.resolve(__dirname, "property-slides") },
+    { mount: "/__mockup",        dir: path.resolve(__dirname, "mockup-sandbox") },
+  ];
+
+  for (const { mount, dir } of subApps) {
+    if (!fs.existsSync(dir)) {
+      console.warn(
+        `[static] Sub-app build not found at ${dir} — skipping mount at ${mount}.`,
+      );
+      continue;
+    }
+
+    app.use(mount, express.static(dir, { maxAge: 0 }));
+
+    app.use(`${mount}/{*path}`, (_req: Request, res: Response) => {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.sendFile(path.resolve(dir, "index.html"));
+    });
+  }
+
   const distPath = path.resolve(__dirname, "public");
   if (!fs.existsSync(distPath)) {
     console.warn(

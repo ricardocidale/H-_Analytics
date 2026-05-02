@@ -1,8 +1,24 @@
 # Migration from Replit — Developer Guide
 
-**Status:** Infrastructure complete; final cut-over is a manual step the operator runs when moving to a self-hosted environment.
+**Status:** Infrastructure complete and the production container now bundles **all three frontend artifacts** (H+ Analytics, Property Slides, Mockup Sandbox); final Railway cut-over is a manual step the operator runs.
 
-**Date:** 2026-05-01
+**Date:** 2026-05-02
+
+---
+
+## What ships in the production container
+
+The single Docker image produced by `Dockerfile` serves three SPAs from the API server (single origin), each at the same sub-path used in development:
+
+| Artifact | Mounted at | Source dir in image |
+|---|---|---|
+| `hospitality-business-portal` | `/` | `artifacts/api-server/dist/public` |
+| `property-slides`             | `/property-slides/` | `artifacts/api-server/dist/property-slides` |
+| `mockup-sandbox`              | `/__mockup/` | `artifacts/api-server/dist/mockup-sandbox` |
+
+Each SPA is built with its own `BASE_PATH` so Vite emits the right asset URLs, and each gets its own `index.html` SPA fallback in `artifacts/api-server/src/static.ts`. The API itself remains under `/api/*`.
+
+> **Note on Mockup Sandbox in production:** Mockup Sandbox is a designer/preview surface and is included in the production image only because the operator chose to ship it. If you decide to make it dev-only later, drop the `BASE_PATH=/__mockup/ pnpm --filter mockup-sandbox run build` line and the corresponding `COPY` in `Dockerfile`, and remove the `/__mockup` block in `static.ts`.
 
 ---
 
@@ -115,6 +131,119 @@ These files serve no purpose outside Replit and can be removed once the migratio
 ### Provider index update
 
 In `artifacts/api-server/src/providers/index.ts` (or wherever the provider factory lives), remove the `isReplit()` branch and wire the S3 storage provider and your replacement auth provider as the defaults.
+
+---
+
+## Railway operator runbook (this task)
+
+The infrastructure changes for Railway are complete in the repo (Dockerfile bundles all three SPAs, `railway.toml` is in place, healthcheck path `/api/health/live`). The remaining work is operator-only — it requires Railway account access, the dev DB connection string, and the chosen storage/auth credentials. Run these steps in order from your local machine.
+
+### 1. Provision Railway Postgres
+
+In the existing Railway project, click **+ New → Database → PostgreSQL**. Capture two connection strings from the Postgres service's **Connect** tab:
+
+- `DATABASE_URL` (private, `*.railway.internal`) — used by the app service.
+- The **public** connection string — used **once** for the data copy below, then forgotten.
+
+### 2. Apply schema
+
+From your machine, point Drizzle at the new public Railway URL and push the schema:
+
+```bash
+DATABASE_URL='<railway-public-url>' \
+  pnpm --filter @workspace/db exec drizzle-kit push
+```
+
+Verify all migrations from `lib/db/migrations/` (through `0039_users_rebecca_rail_open.sql`) are present:
+
+```bash
+psql '<railway-public-url>' -c "\\dt" | wc -l
+psql '<railway-public-url>' -c "select count(*) from drizzle.__drizzle_migrations;"
+```
+
+### 3. Copy data from dev DB into Railway DB
+
+Use `pg_dump --data-only` so the freshly-pushed schema is preserved. Disable triggers during restore so FK ordering does not matter:
+
+```bash
+# Dump data from dev (no DDL, no owner, no ACL).
+pg_dump \
+  --data-only \
+  --no-owner \
+  --no-acl \
+  --disable-triggers \
+  --format=custom \
+  --file=dev-data.dump \
+  '<dev-database-url>'
+
+# Restore into Railway public URL.
+pg_restore \
+  --data-only \
+  --no-owner \
+  --no-acl \
+  --disable-triggers \
+  --single-transaction \
+  --dbname='<railway-public-url>' \
+  dev-data.dump
+```
+
+Sanity-check row counts on the largest tables:
+
+```bash
+for t in users companies properties scenarios financial_assumptions; do
+  echo -n "$t  dev="; psql '<dev-database-url>' -tAc "select count(*) from $t"
+  echo -n "$t  rwy="; psql '<railway-public-url>' -tAc "select count(*) from $t"
+done
+```
+
+### 4. Connect Railway service to the repo
+
+In the Railway project, **+ New → GitHub Repo → this repo**. Railway picks up `railway.toml`, builds from `Dockerfile`, and probes `/api/health/live`. No build command override is needed.
+
+### 5. Set production env vars in Railway
+
+On the app service's **Variables** tab, set everything from the "Environment variables to add (new host)" section above. Two specifics for Railway:
+
+- `DATABASE_URL` — paste the **internal** Railway connection string (the `*.railway.internal` one), not the public one.
+- `PORT` — Railway injects this automatically; do **not** override it. The app reads `process.env.PORT` and the Dockerfile defaults to 5000 only as a build-time fallback.
+
+Also set every AI provider key you actually use in production (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `PERPLEXITY_API_KEY`), the Sentry DSN (`SENTRY_DSN`), and storage variables for the chosen provider (S3, R2, or GCS). Do **not** carry over `REPL_ID` / `REPL_SLUG` / `REPLIT_DOMAINS` / `REPLIT_DEV_DOMAIN` / `REPLIT_INTERNAL_APP_DOMAIN` / `REPLIT_DEPLOYMENT`.
+
+If you intentionally want to keep Replit OIDC for the first cut-over (e.g. to avoid swapping auth providers in the same change), set `REPL_ID` and `ISSUER_URL=https://replit.com/oidc` and note that decision below.
+
+### 6. Object storage cut-over
+
+Provision the bucket on the chosen provider, set the env vars from step 5, then verify a round-trip after first deploy:
+
+- Upload a property photo from the running app.
+- Download a generated slide deck (`/api/properties/:id/slides`).
+
+If existing dev assets must be present in production, mirror the bucket — e.g. for S3:
+
+```bash
+aws s3 sync s3://<dev-bucket> s3://<prod-bucket>
+```
+
+### 7. First deploy + smoke test
+
+Trigger the deploy (push to the connected branch, or `railway up` via CLI). Watch the **Deployments → Logs** tab for the build and runtime stages. Once the healthcheck flips green, smoke-test the public Railway URL:
+
+- `GET /api/health/live` returns 200.
+- `/` loads the H+ Analytics login.
+- `/property-slides/` loads the slides shell.
+- `/__mockup/` loads the mockup sandbox shell (only if you kept it in the image — see the note in *What ships in the production container*).
+- Log in, open the property list, open a property, generate a slide deck, view a chart.
+- Confirm Sentry receives a test event (or that an intentional error appears in the Sentry project).
+
+### 8. Record the result
+
+After a successful deploy, fill in the placeholders below in this doc:
+
+- **Railway public URL:** `https://<service>.up.railway.app` *(operator to fill)*
+- **Storage provider chosen:** `s3` / `r2` / `gcs` *(operator to fill)*
+- **OIDC provider chosen:** Replit (kept for cut-over) / `<new provider>` *(operator to fill)*
+- **Cut-over date:** *(operator to fill)*
+- **Deviations from this runbook:** *(operator to fill, or "none")*
 
 ---
 
