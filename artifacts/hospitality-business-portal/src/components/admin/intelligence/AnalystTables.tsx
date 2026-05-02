@@ -11,7 +11,7 @@
  */
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, ApiError } from "@/lib/queryClient";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -202,28 +202,18 @@ export default function AnalystTables() {
     },
     onError: (err: Error) => {
       setWatchdogRunningId(null);
-      // apiRequest throws Error("<status>: <body>"). For our 429 the body is
-      // JSON with { error: "RATE_LIMITED", retryAfter, message }, so pull the
-      // retryAfter out and render a friendlier "wait N seconds" toast. All
-      // other failures fall back to the raw error message.
+      // apiRequest throws an `ApiError` carrying the parsed body. For our 429
+      // the body is JSON with { error: "RATE_LIMITED", retryAfter, message },
+      // so pull the retryAfter out and render a friendlier "wait N seconds"
+      // toast. All other failures fall back to the centralized error message.
       let title = "Watchdog run failed";
       let description = err.message;
-      if (err.message.startsWith("429:")) {
-        const jsonStart = err.message.indexOf("{");
-        if (jsonStart !== -1) {
-          try {
-            const body = JSON.parse(err.message.slice(jsonStart)) as {
-              retryAfter?: number;
-              message?: string;
-            };
-            if (typeof body.retryAfter === "number") {
-              title = "Slow down";
-              description =
-                body.message ?? `Please wait ${body.retryAfter}s before forcing another watchdog cycle.`;
-            }
-          } catch {
-            // Fall through to the default description.
-          }
+      if (err instanceof ApiError && err.status === 429) {
+        const body = (err.body ?? {}) as { retryAfter?: number; message?: string };
+        if (typeof body.retryAfter === "number") {
+          title = "Slow down";
+          description =
+            body.message ?? `Please wait ${body.retryAfter}s before forcing another watchdog cycle.`;
         }
       }
       toast({ title, description, variant: "destructive" });

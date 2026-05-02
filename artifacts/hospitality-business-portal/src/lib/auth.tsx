@@ -21,6 +21,7 @@ import { createContext, useContext, useState, useCallback, ReactNode } from "rea
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { UserRole, isAdminRole } from "@shared/constants";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
+import { apiRequest, safeReadJson } from "@/lib/queryClient";
 
 interface User {
   id: number;
@@ -57,25 +58,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-/**
- * Tries to parse a fetch response body as JSON, returning `null` on empty
- * bodies or non-JSON content (e.g. proxy 502 HTML pages, gateway timeouts,
- * misrouted requests). Lets callers degrade to a status-based error message
- * instead of throwing the cryptic "Unexpected end of JSON input" error.
- */
-function safeParseJson(text: string): { error?: unknown; [key: string]: unknown } | null {
-  if (!text) return null;
-  try {
-    const value = JSON.parse(text);
-    return value && typeof value === "object" ? (value as { error?: unknown }) : null;
-  } catch {
-    return null;
-  }
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  
+
   const { data, isLoading, refetch: refetchQuery } = useQuery({
     queryKey: ["auth", "me"],
     queryFn: async () => {
@@ -84,8 +69,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (res.status === 401) return null;
         throw new Error("Failed to fetch user");
       }
-      const data = await res.json();
-      return data.user as User;
+      const body = await safeReadJson<{ user?: User }>(res);
+      return body?.user ?? null;
     },
     retry: false,
     staleTime: 5 * 60 * 1000,
@@ -93,26 +78,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginMutation = useMutation({
     mutationFn: async ({ email, password }: { email: string; password: string }) => {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-        credentials: "include",
+      // `apiRequest` throws an `ApiError` whose `message` is already a clean
+      // human-readable string built from the server's `error` field or a
+      // `"Login failed (HTTP …)"` style fallback for empty / HTML responses.
+      const res = await apiRequest("POST", "/api/auth/login", { email, password }, {
+        fallbackMessage: "Login failed",
       });
-      const bodyText = await res.text().catch(() => "");
-      const parsed = safeParseJson(bodyText);
-      if (!res.ok) {
-        const fromBody = parsed && typeof parsed.error === "string" && parsed.error.trim()
-          ? parsed.error
-          : null;
-        const statusLabel = res.statusText ? `${res.status} ${res.statusText}` : `${res.status}`;
-        const excerpt = bodyText.trim().slice(0, 200);
-        const detail = !fromBody && excerpt && !/^<!?doctype|^<html/i.test(excerpt)
-          ? `: ${excerpt}`
-          : "";
-        throw new Error(fromBody ?? `Login failed (HTTP ${statusLabel})${detail}`);
-      }
-      return parsed ?? {};
+      return (await safeReadJson(res)) ?? {};
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
@@ -121,11 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Logout failed");
+      await apiRequest("POST", "/api/auth/logout");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["auth", "me"] });

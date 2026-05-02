@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import bgImage from "@/assets/hotel-party.jpg";
 import SpinningLogo3D from "@/components/SpinningLogo3D";
 import { applyThemeColors, resetThemeColors } from "@/lib/theme";
+import { apiRequest } from "@/lib/queryClient";
 
 const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
   no_account: "No account found for this Google email. Contact your administrator for access.",
@@ -21,40 +22,6 @@ const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
   email_not_verified: "Your Google email is not verified. Please verify it and try again.",
   google_id_mismatch: "This Google account doesn't match the one previously linked. Contact your administrator.",
 };
-
-/**
- * Reads a non-OK fetch response and returns a human-readable error message,
- * tolerating empty bodies, HTML error pages, and other non-JSON content
- * (e.g. proxy 502s, gateway timeouts, misrouted requests). Prefers the
- * server's `error` field when the body parses as JSON; otherwise falls back
- * to a status-based message with a short body excerpt when available.
- */
-async function readErrorMessage(response: Response, fallback: string): Promise<string> {
-  let bodyText = "";
-  try {
-    bodyText = await response.text();
-  } catch {
-    // Body may already be consumed or unreadable; fall through.
-  }
-  if (bodyText) {
-    try {
-      const parsed = JSON.parse(bodyText) as { error?: unknown };
-      if (parsed && typeof parsed.error === "string" && parsed.error.trim()) {
-        return parsed.error;
-      }
-    } catch {
-      // Not JSON — fall through to the status-based message below.
-    }
-  }
-  const statusLabel = response.statusText
-    ? `${response.status} ${response.statusText}`
-    : `${response.status}`;
-  const excerpt = bodyText.trim().slice(0, 200);
-  if (excerpt && !/^<!?doctype|^<html/i.test(excerpt)) {
-    return `${fallback} (HTTP ${statusLabel}): ${excerpt}`;
-  }
-  return `${fallback} (HTTP ${statusLabel})`;
-}
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -115,14 +82,12 @@ export default function Login() {
   const handleAdminLogin = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/auth/dev-login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
+      // `apiRequest` throws an `ApiError` whose `message` is already a clean
+      // human-readable string built from the server's `error` field or a
+      // `"Admin login failed (HTTP …)"` style fallback for empty / HTML responses.
+      await apiRequest("POST", "/api/auth/dev-login", undefined, {
+        fallbackMessage: "Admin login failed",
       });
-      if (!response.ok) {
-        throw new Error(await readErrorMessage(response, "Admin login failed"));
-      }
       window.location.href = "/";
     } catch (error: unknown) {
       toast({
