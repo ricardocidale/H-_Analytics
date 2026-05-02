@@ -12,7 +12,7 @@ import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
 import { renderHybridSlide } from "./hybrid-renderer.js";
-import { renderImagePptx } from "../slides/image-renderer.js";
+import { renderImagePptx } from "./image-renderer.js";
 import { getSlideFonts } from "./fonts.js";
 import type { SlidePayload } from "./slide-jsx.js";
 import { resolveSlotPhoto, type RecipeElement } from "./slot-resolver.js";
