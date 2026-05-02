@@ -63,8 +63,10 @@ export function HeatMapSection({ heatmapRef, heatMapMetric, onMetricChange, cell
                   }
                 // Audit Task #967 — render MOIC as e.g. "1.85x" instead of
                 // the previous percent formatting (which corresponded to
-                // the buggy NOI-margin metric).
-                : (v) => `${v.toFixed(2)}x`
+                // the buggy NOI-margin metric). Guard/zero-equity scenarios
+                // (where `runScenario` returns 0) render as "—" rather
+                // than a misleading "0.00x".
+                : (v) => (v > 0 ? `${v.toFixed(2)}x` : "—")
           }
         />
       </div>

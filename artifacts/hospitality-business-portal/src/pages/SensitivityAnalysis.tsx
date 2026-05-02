@@ -230,7 +230,13 @@ export default function SensitivityAnalysis({ embedded }: { embedded?: boolean }
             row: c.row, col: c.col,
             rowLabel: c.rowLabel, colLabel: c.colLabel,
             value,
-            passes: heatMapMetric === "irr" ? value >= 0.15 : value > 0,
+            // Audit Task #967 — equity-multiple "passes" means MOIC ≥ 1.0×
+            // (investor at least gets their equity back). IRR uses the
+            // 15 % hurdle and NOI uses positive cash.
+            passes:
+              heatMapMetric === "irr"            ? value >= 0.15 :
+              heatMapMetric === "equityMultiple" ? value >= 1.0  :
+              value > 0,
           };
         }),
       };
@@ -257,7 +263,11 @@ export default function SensitivityAnalysis({ embedded }: { embedded?: boolean }
           row: ri, col: ci,
           rowLabel: rowLabels[ri], colLabel: colLabels[ci],
           value,
-          passes: heatMapMetric === "irr" ? value >= 0.15 : value > 0,
+          // Audit Task #967 — equity-multiple "passes" means MOIC ≥ 1.0×.
+          passes:
+            heatMapMetric === "irr"            ? value >= 0.15 :
+            heatMapMetric === "equityMultiple" ? value >= 1.0  :
+            value > 0,
         });
       }
     }
