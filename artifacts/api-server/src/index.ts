@@ -674,6 +674,21 @@ async function runSchemaMigrations() {
     await runSyncPropertyAssumptions001();
     await markMigrationApplied("sync_property_assumptions_001");
   }
+
+  // Task #971 — missing FK indexes. Uses CREATE INDEX CONCURRENTLY (which
+  // cannot run inside a transaction), so it lives here as a runtime patch
+  // rather than as a numbered Drizzle SQL migration. Idempotent.
+  if (!(await isMigrationApplied("fk_indexes_003"))) {
+    const { runFkIndexes003 } = await import("./migrations/fk-indexes-003");
+    const { allApplied } = await runFkIndexes003();
+    // Only mark applied when every target index was created. If a table was
+    // skipped (e.g. rebecca_context_contract_turns provisioned later by
+    // rebecca-context-contract-001), retry on the next boot rather than
+    // silently masking schema drift.
+    if (allApplied) {
+      await markMigrationApplied("fk_indexes_003");
+    }
+  }
 }
 
 async function runSeeds() {

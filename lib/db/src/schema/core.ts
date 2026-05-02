@@ -74,7 +74,10 @@ export const businessBrands = pgTable("business_brands", {
   logoId: integer("logo_id").references(() => logos.id, { onDelete: "set null" }),
   isDefault: boolean("is_default").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  // FK index (Task #971): support ON DELETE SET NULL cascade from logos.
+  index("business_brands_logo_id_idx").on(table.logoId),
+]);
 
 export const insertBusinessBrandSchema = z.object({
   name: z.string().min(1),

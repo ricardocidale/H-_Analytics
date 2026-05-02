@@ -26,5 +26,15 @@ export async function runRebeccaContextContract001(): Promise<void> {
       ON rebecca_context_contract_turns USING gin (contract)
   `);
 
+  // Task #971: FK indexes on message_id / user_id (ON DELETE SET NULL).
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS rebecca_ctx_contract_message_idx
+      ON rebecca_context_contract_turns (message_id)
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS rebecca_ctx_contract_user_idx
+      ON rebecca_context_contract_turns (user_id)
+  `);
+
   logger.info(`${TAG} rebecca_context_contract_turns ready`);
 }

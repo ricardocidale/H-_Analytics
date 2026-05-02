@@ -129,6 +129,9 @@ export const rebeccaContextContractTurns = pgTable("rebecca_context_contract_tur
 }, (table) => [
   index("rebecca_ctx_contract_conv_idx").on(table.conversationId, table.createdAt),
   index("rebecca_ctx_contract_contract_idx").on(table.contract),
+  // FK indexes (Task #971): support ON DELETE SET NULL cascades.
+  index("rebecca_ctx_contract_message_idx").on(table.messageId),
+  index("rebecca_ctx_contract_user_idx").on(table.userId),
 ]);
 
 export const insertRebeccaContextContractTurnSchema = createInsertSchema(rebeccaContextContractTurns).pick({
@@ -227,6 +230,10 @@ export const assumptionChangeLog = pgTable("assumption_change_log", {
   index("assumption_change_log_field_idx").on(table.fieldName),
   index("assumption_change_log_source_idx").on(table.changeSource),
   index("assumption_change_log_created_idx").on(table.createdAt),
+  // FK indexes (Task #971): support ON DELETE SET NULL cascades.
+  index("assumption_change_log_scenario_idx").on(table.scenarioId),
+  index("assumption_change_log_user_idx").on(table.userId),
+  index("assumption_change_log_research_run_idx").on(table.researchRunId),
 ]);
 
 export const insertAssumptionChangeLogSchema = createInsertSchema(assumptionChangeLog).pick({
@@ -435,6 +442,8 @@ export const integrationKeyRotations = pgTable("integration_key_rotations", {
   notes: text("notes"),
 }, (table) => [
   index("integration_key_rotations_service_idx").on(table.serviceKey),
+  // FK index (Task #971): support ON DELETE SET NULL cascade from users.
+  index("integration_key_rotations_rotated_by_idx").on(table.rotatedBy),
 ]);
 
 export const insertIntegrationKeyRotationSchema = createInsertSchema(integrationKeyRotations).pick({

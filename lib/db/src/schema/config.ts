@@ -339,6 +339,9 @@ export const globalAssumptions = pgTable("global_assumptions", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   index("global_assumptions_user_id_idx").on(table.userId),
+  // FK indexes (Task #971): support ON DELETE SET NULL cascades from logos.
+  index("global_assumptions_company_logo_id_idx").on(table.companyLogoId),
+  index("global_assumptions_asset_logo_id_idx").on(table.assetLogoId),
   check("ga_projection_years_range", sql`${table.projectionYears} >= 1 AND ${table.projectionYears} <= 30`),
   check("ga_inflation_rate_range", sql`${table.inflationRate} >= 0 AND ${table.inflationRate} <= 1`),
   check("ga_base_mgmt_fee_range", sql`${table.baseManagementFee} >= 0 AND ${table.baseManagementFee} <= 1`),
