@@ -22,9 +22,10 @@ from PIL import Image
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 
+from canonical_template import CANONICAL_PPTX_PATH
+
 SCRIPT_DIR = Path(__file__).parent
-WORKSPACE = SCRIPT_DIR.parent.parent
-PPTX_PATH = WORKSPACE / "attached_assets" / "L+B_Property_Slides_1777738821984.pptx"
+PPTX_PATH = CANONICAL_PPTX_PATH
 RECIPE_PATH = SCRIPT_DIR / "slide-slot-recipe.json"
 OUT_DIR = SCRIPT_DIR / "slide-backgrounds"
 

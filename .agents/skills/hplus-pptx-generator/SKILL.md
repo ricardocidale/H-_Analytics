@@ -38,7 +38,7 @@ Both formats must be generated proactively at server startup for all properties 
 
 ## Quality Requirement
 
-Track 1 PPTX must match the canonical template `attached_assets/L+B_Property_Slides_1777738821984.pptx` exactly: colors, fonts, layout, proportions. When any data field is missing or null, **derive it** (vision generator, renovation benchmarks, computed formulas). Never leave a shape blank or with placeholder text.
+Track 1 PPTX must match the canonical template `attached_assets/L+B_Property_Slides_02_1777743268816.pptx` exactly: colors, fonts, layout, proportions. When any data field is missing or null, **derive it** (vision generator, renovation benchmarks, computed formulas). Never leave a shape blank or with placeholder text.
 
 ## DB Schema
 
@@ -162,7 +162,29 @@ On error (non-zero exit + stderr):
 
 ## Template Source
 
-`attached_assets/L+B_Property_Slides_1777738821984.pptx` — READ ONLY. Never modify. (Canonical template, swapped 2026-05-02.)
+`attached_assets/L+B_Property_Slides_02_1777743268816.pptx` — READ ONLY. Never modify. (Current canonical, swapped 2026-05-02 PM. Two prior canonicals — `L+B_Property_Slides_1777637870265.pptx` and `L+B_Property_Slides_1777738821984.pptx` — moved to `attached_assets/archive/` so they don't interfere.)
+
+### Recent canonical fixes (applied to `_02_` template)
+
+These are baked into the new canonical and should NOT be re-applied or "re-fixed" by the generator:
+
+- **Slide 5 typo:** Variable Costs cell `$960.,000` → `$960,000` (Table id=4, row 5 col 1).
+- **Slide 5 invisible text:** Key Investor Metrics block (TextBox id=10) was `schemeClr=bg1` (white) on cream — now all four paragraphs + bullet markers are `#1C2B1E`.
+- **Stale page numbers:** Footers were `PAGE 17 / 17 / 18 / 17 / (none)` — replaced with `PAGE 21 / 22 / 23 / 24 / 25` (Slide 6 left untouched, no original page label). The numbers are still stale (it's a 6-slide deck), but now consistent. Generator continues to overwrite to `PAGE 1`–`PAGE 6` per slide.
+- **Slide 4 header contrast:** "Strategic Market Selection: The Global Pipeline" was `#257D41` accent green on the dark-green band → now `#FFF9F5` cream.
+- **Slide 4 subtitle contrast:** "Properties under consideration — next phase of brand expansion" was muted sage → now mint `#C8E8D0`.
+- **Palette consolidation (all 6 slides) via XML find/replace** — three near-duplicates collapsed:
+  - `#5A7A62` → `#9FBCA4`
+  - `#7AAA88` → `#9FBCA4`
+  - `#1F3A2A` → `#1C2B1E`
+  - Result: a single sage (`#9FBCA4`) and a single dark green (`#1C2B1E`) across the deck. Slide 2's `#7C837A` warm gray-sage tag-line second run was NOT consolidated.
+
+### Open canonical issues (awaiting product input — do NOT auto-fix)
+
+- **Slide 4 cards 1 & 4** read "Full Equity (65% acq. leverage @ 7.5%)" — contradictory. Need: full equity or 65% LTV?
+- **Slide 4 Loch Sheldrake card** says "20 rooms" but description is a 10-acre estate w/ octagonal main house — likely placeholder. Need: correct room count.
+- **Slide 5 property has no name** — header just says "Property Overview". Need: property name.
+- **Slide 6 P&L pro forma table** is empty/placeholder. Need: 5-year revenue, COGS, opex, EBITDA figures.
 
 Slide indexes used: 0, 1, 2, 3, 4, 5 (0-indexed). Slide 6 (index 6) = "The Ask" — SKIP.
 

@@ -62,7 +62,9 @@ from renovation_budget import (
     get_stable_year_label,
 )
 
-TEMPLATE_PATH = Path(__file__).parent.parent.parent / "attached_assets" / "L+B_Property_Slides_1777738821984.pptx"
+from canonical_template import CANONICAL_PPTX_PATH
+
+TEMPLATE_PATH = CANONICAL_PPTX_PATH
 SLIDE_COUNT = 6
 
 

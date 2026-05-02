@@ -22,8 +22,9 @@ from pptx import Presentation
 from pptx.enum.text import PP_ALIGN
 
 SCRIPT_DIR = Path(__file__).parent
-WORKSPACE = SCRIPT_DIR.parent.parent
-PPTX_PATH = WORKSPACE / "attached_assets" / "L+B_Property_Slides_1777738821984.pptx"
+from canonical_template import CANONICAL_PPTX_PATH
+
+PPTX_PATH = CANONICAL_PPTX_PATH
 OUTPUT_PATH = SCRIPT_DIR / "slide-slot-recipe.json"
 
 CANVAS_W = 1920
