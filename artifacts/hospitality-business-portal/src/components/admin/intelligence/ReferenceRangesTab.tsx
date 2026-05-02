@@ -483,7 +483,7 @@ export default function ReferenceRangesTab() {
                   disabled={analystStep !== null}
                   data-testid="button-ask-analyst"
                 >
-                  <IconSparkles className="h-3.5 w-3.5 mr-1.5 text-primary-foreground" />
+                  <IconSparkles className="h-3.5 w-3.5 mr-1.5" />
                   Ask The Analyst
                 </Button>
               </div>
