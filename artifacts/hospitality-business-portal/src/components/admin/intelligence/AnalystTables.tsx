@@ -64,6 +64,7 @@ type ListResponse = {
 type RefreshResponse = {
   tableId: string;
   auditId: number;
+  autoCommitted?: boolean;
   proposedRanges: Range[];
   narration: string[];
   sourceCount: number;
@@ -115,7 +116,18 @@ export default function AnalystTables() {
       return (await res.json()) as RefreshResponse;
     },
     onSuccess: (payload) => {
-      setPendingRefresh(payload);
+      if (payload.autoCommitted) {
+        // Auto-committed tables (e.g. reference_brands) skip the diff dialog —
+        // brands are already live in the DB, just refresh the table list.
+        setTheaterTable(null);
+        toast({
+          title: "Brands updated",
+          description: `${payload.proposedRanges.length} reference brands auto-committed to the database.`,
+        });
+        qc.invalidateQueries({ queryKey: ["/api/admin/analyst-tables"] });
+      } else {
+        setPendingRefresh(payload);
+      }
     },
     onError: (err: Error) => {
       setTheaterTable(null);

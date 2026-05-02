@@ -691,6 +691,7 @@ async function runSeeds() {
     // defaults from shared/constants.ts. Safe to run on every boot.
     { name: "model-constants", run: () => seedModelConstants({ silent: true }) },
     { name: "model-defaults", run: () => seedModelDefaults({ silent: true }) },
+    { name: "reference-brands", run: async () => { const result = await storage.seedReferenceBrandsIfEmpty(); if (result.seeded) serverLog(`[seed:reference-brands] seeded ${result.count} brands`, "startup", "info"); } },
   ];
 
   const results = await Promise.allSettled(seedTasks.map(t => t.run()));

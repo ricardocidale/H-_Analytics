@@ -43,9 +43,12 @@ import type { PropertyInput, GlobalInput } from "@engine/types";
 
 const router = Router();
 
+// Path explanation: __dirname at runtime = artifacts/api-server/dist/ (esbuild CJS banner).
+// 3 levels up: dist → api-server → artifacts → workspace root.
+// 4 levels would go above the workspace root. See commit b44a3823 for the fix history.
 const SCRIPT_PATH = path.resolve(
   __dirname,
-  "../../../../scripts/src/generate_property_slides.py",
+  "../../../scripts/src/generate_property_slides.py",
 );
 const PYTHON_TIMEOUT_MS = 120_000;
 const MAX_PHOTOS = 8;

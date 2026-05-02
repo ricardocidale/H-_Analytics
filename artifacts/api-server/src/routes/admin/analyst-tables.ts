@@ -32,7 +32,7 @@ import {
   ANALYST_TABLE_ALLOW_LIST,
   type AnalystTableId,
 } from "../../middleware/analyst-refresh-guards";
-import { researchCapitalRaiseBenchmarks, researchExitMultiples } from "../../ai/analyst-table-refresh";
+import { researchCapitalRaiseBenchmarks, researchExitMultiples, researchReferenceBrands } from "../../ai/analyst-table-refresh";
 import { runCapitalRaiseWatchdogCycle } from "../../ai/ambient/capital-raise-watchdog";
 import { narrateSpecialistHandoff } from "../../lib/specialist-identity-resolver";
 import type { AnalystRefreshAuditLog } from "@workspace/db";
@@ -40,6 +40,7 @@ import type { AnalystRefreshAuditLog } from "@workspace/db";
 const TABLE_LABELS: Record<AnalystTableId, string> = {
   capital_raise_benchmarks: "Capital Raise Benchmarks",
   exit_multiples: "Exit Multiples",
+  reference_brands: "Reference Brands",
 };
 
 // User-Agent stamped on audit-log rows written by the Capital-Raise Watchdog
@@ -117,6 +118,7 @@ function takeWatchdogRateSlot(adminId: number, now: number = Date.now()): number
 const TABLE_OWNER_SPECIALIST_ID: Record<AnalystTableId, string> = {
   capital_raise_benchmarks: "mgmt-co.funding",
   exit_multiples: "mgmt-co.funding",
+  reference_brands: "mgmt-co.funding",
 };
 
 export function registerAdminAnalystTableRoutes(app: Express) {
@@ -128,10 +130,41 @@ export function registerAdminAnalystTableRoutes(app: Express) {
 
       const cadenceMs = settings.globalCadenceDays * 24 * 60 * 60 * 1000;
       for (const id of ANALYST_TABLE_ALLOW_LIST) {
-        const summary = id === "capital_raise_benchmarks"
-          ? await storage.getCapitalRaiseBenchmarkSummary()
-          : await storage.getExitMultiplesSummary();
-        const lastRefreshedAt = summary.lastRefreshedAt;
+        let ranges: Array<{
+          dimensionKey: string; label: string; unit: string;
+          valueLow: number | null; valueMid: number | null; valueHigh: number | null;
+        }>;
+        let lastRefreshedAt: Date | null;
+        let sourceCount: number;
+
+        if (id === "reference_brands") {
+          const summary = await storage.getReferenceBrandsSummary();
+          lastRefreshedAt = summary.lastRefreshedAt;
+          sourceCount = summary.sourceCount;
+          ranges = summary.rows.map(b => ({
+            dimensionKey: `brand_${b.id}`,
+            label: b.niche ? `${b.brandName} · ${b.niche}` : b.brandName,
+            unit: "properties",
+            valueLow: b.keyCountMin ?? null,
+            valueMid: b.propertyCount ?? null,
+            valueHigh: b.keyCountMax ?? null,
+          }));
+        } else {
+          const summary = id === "capital_raise_benchmarks"
+            ? await storage.getCapitalRaiseBenchmarkSummary()
+            : await storage.getExitMultiplesSummary();
+          lastRefreshedAt = summary.lastRefreshedAt;
+          sourceCount = summary.sourceCount;
+          ranges = summary.rows.map(r => ({
+            dimensionKey: r.dimensionKey,
+            label: r.label,
+            unit: r.unit,
+            valueLow: r.valueLow,
+            valueMid: r.valueMid,
+            valueHigh: r.valueHigh,
+          }));
+        }
+
         const ageMs = lastRefreshedAt ? Date.now() - lastRefreshedAt.getTime() : null;
         const freshness =
           lastRefreshedAt == null ? "missing" :
@@ -184,15 +217,8 @@ export function registerAdminAnalystTableRoutes(app: Express) {
         tables.push({
           id,
           label: TABLE_LABELS[id],
-          ranges: summary.rows.map(r => ({
-            dimensionKey: r.dimensionKey,
-            label: r.label,
-            unit: r.unit,
-            valueLow: r.valueLow,
-            valueMid: r.valueMid,
-            valueHigh: r.valueHigh,
-          })),
-          sourceCount: summary.sourceCount,
+          ranges,
+          sourceCount,
           tokensUsedLastRefresh,
           lastRefreshedAt,
           freshness,
@@ -259,9 +285,15 @@ export function registerAdminAnalystTableRoutes(app: Express) {
       const tableId = req.params.id as AnalystTableId;
       const auditId = res.locals.analystRefreshAuditId as number | undefined;
       try {
-        const llmResult = tableId === "capital_raise_benchmarks"
-          ? await researchCapitalRaiseBenchmarks(await storage.getCapitalRaiseBenchmarks())
-          : await researchExitMultiples(await storage.getExitMultiples());
+        let llmResult;
+        if (tableId === "capital_raise_benchmarks") {
+          llmResult = await researchCapitalRaiseBenchmarks(await storage.getCapitalRaiseBenchmarks());
+        } else if (tableId === "exit_multiples") {
+          llmResult = await researchExitMultiples(await storage.getExitMultiples());
+        } else {
+          // reference_brands: auto-commits to DB inside researchReferenceBrands
+          llmResult = await researchReferenceBrands(await storage.getReferenceBrands(), auditId);
+        }
 
         if (auditId) {
           await storage.finalizeAnalystRefreshAuditLog(auditId, {
@@ -302,9 +334,12 @@ export function registerAdminAnalystTableRoutes(app: Express) {
             "analyst-refresh",
           );
         }
+        // reference_brands uses full-replace auto-commit; skip diff/review dialog
+        const autoCommitted = "autoCommitted" in llmResult ? llmResult.autoCommitted : false;
         res.json({
           tableId,
           auditId,
+          autoCommitted,
           proposedRanges: llmResult.proposedRanges,
           narration: narrationLines,
           sourceCount: llmResult.sourceCount,
@@ -345,6 +380,13 @@ export function registerAdminAnalystTableRoutes(app: Express) {
       const tableId = req.params.id;
       if (!ANALYST_TABLE_ALLOW_LIST.includes(tableId as AnalystTableId)) {
         return res.status(400).json({ error: `Unknown table id: ${tableId}` });
+      }
+      // reference_brands auto-commits inside the refresh handler; there is no
+      // staged diff to commit separately. Reject early to prevent misrouting.
+      if (tableId === "reference_brands") {
+        return res.status(409).json({
+          error: "reference_brands is an auto-committed table; commit/discard endpoints are not supported. Use the /refresh endpoint instead.",
+        });
       }
       const parsed = commitSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error as any).message });
@@ -390,6 +432,12 @@ export function registerAdminAnalystTableRoutes(app: Express) {
       const tableId = req.params.id;
       if (!ANALYST_TABLE_ALLOW_LIST.includes(tableId as AnalystTableId)) {
         return res.status(400).json({ error: `Unknown table id: ${tableId}` });
+      }
+      // reference_brands auto-commits; no staged state to discard.
+      if (tableId === "reference_brands") {
+        return res.status(409).json({
+          error: "reference_brands is an auto-committed table; commit/discard endpoints are not supported.",
+        });
       }
       const parsed = discardSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error as any).message });

@@ -22,7 +22,7 @@ import { storage } from "../storage";
 import { logger } from "../logger";
 import { csrfTokenFor } from "../auth";
 
-export const ANALYST_TABLE_ALLOW_LIST = ["capital_raise_benchmarks", "exit_multiples"] as const;
+export const ANALYST_TABLE_ALLOW_LIST = ["capital_raise_benchmarks", "exit_multiples", "reference_brands"] as const;
 export type AnalystTableId = typeof ANALYST_TABLE_ALLOW_LIST[number];
 
 export const RATE_LIMIT_PER_HOUR = 10;
