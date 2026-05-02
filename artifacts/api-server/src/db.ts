@@ -17,7 +17,35 @@ const { Pool } = pg;
 // Resolution: POSTGRES_URL ?? DATABASE_URL — see shared/db-url.ts for the
 // rationale (Replit reserves DATABASE_URL for its managed Helium Postgres,
 // so the Neon/Vercel cutover routes through POSTGRES_URL).
-const connectionString = requireDbUrl();
+const connectionString = normalizeSslMode(requireDbUrl());
+
+/**
+ * Upgrade legacy `sslmode=require|prefer|verify-ca` to `sslmode=verify-full`
+ * in production. `pg-connection-string` (and `pg` v9) will stop treating the
+ * legacy modes as aliases for verify-full and adopt libpq semantics, which
+ * silently DOWNGRADES Neon TLS to no cert verification. Locking it to
+ * `verify-full` here pins current behavior and makes the next pg major a
+ * no-op. We deliberately leave dev/CI alone because local Postgres often
+ * runs without a verifiable certificate.
+ *
+ * Do NOT remove this — see Task #949.
+ */
+function normalizeSslMode(url: string): string {
+  if (process.env.NODE_ENV !== "production") return url;
+  try {
+    const parsed = new URL(url);
+    const mode = parsed.searchParams.get("sslmode");
+    if (mode && (mode === "require" || mode === "prefer" || mode === "verify-ca")) {
+      parsed.searchParams.set("sslmode", "verify-full");
+      return parsed.toString();
+    }
+    return url;
+  } catch {
+    // If the URL isn't parseable by WHATWG URL, leave it alone — pg will
+    // surface a clearer error than we could.
+    return url;
+  }
+}
 
 export const pool = new Pool({
   connectionString,

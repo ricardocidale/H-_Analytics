@@ -36,7 +36,14 @@ async function buildAll() {
   await rm(distDir, { recursive: true, force: true });
 
   await esbuild({
-    entryPoints: [path.resolve(artifactDir, "src/index.ts")],
+    // `instrument.ts` is a separate entry so it can be loaded via
+    // `node --import ./dist/instrument.mjs ./dist/index.mjs` BEFORE express
+    // is imported. Without this, Sentry's express auto-instrumentation is
+    // silently disabled and we lose HTTP spans / per-request error context.
+    entryPoints: [
+      path.resolve(artifactDir, "src/index.ts"),
+      path.resolve(artifactDir, "src/instrument.ts"),
+    ],
     platform: "node",
     bundle: true,
     format: "esm",
@@ -151,6 +158,14 @@ async function buildAll() {
       // pnpm installs them in the deployed container at runtime.
       "@sentry/*",
       "google-auth-library",
+      // Express MUST stay external. Sentry's express auto-instrumentation
+      // (OpenTelemetry + import-in-the-middle) can only wrap a real package
+      // import at runtime — when express is bundled and inlined, IITM never
+      // sees an `import "express"` statement and we get
+      // `[Sentry] express is not instrumented` on every boot. See Task #949
+      // and src/instrument.ts. Express is in `dependencies` so pnpm installs
+      // it in the deployed container.
+      "express",
     ],
     sourcemap: process.env.NODE_ENV === "production" ? false : "linked",
     plugins: [

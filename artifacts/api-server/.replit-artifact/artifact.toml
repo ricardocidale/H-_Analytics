@@ -21,8 +21,17 @@ args = ["pnpm", "--filter", "@workspace/api-server", "run", "build"]
 NODE_ENV = "production"
 
 [services.production.run]
-# we don't run through pnpm to make startup faster in production
-args = ["node", "--enable-source-maps", "artifacts/api-server/dist/index.mjs"]
+# we don't run through pnpm to make startup faster in production.
+# `--import .../instrument.mjs` runs Sentry.init() BEFORE express is loaded so
+# OpenTelemetry can wrap it (otherwise: `[Sentry] express is not instrumented`
+# on every boot and HTTP spans are silently dropped). See src/instrument.ts.
+args = [
+  "node",
+  "--enable-source-maps",
+  "--import",
+  "./artifacts/api-server/dist/instrument.mjs",
+  "artifacts/api-server/dist/index.mjs",
+]
 
 [services.production.run.env]
 PORT = "8080"

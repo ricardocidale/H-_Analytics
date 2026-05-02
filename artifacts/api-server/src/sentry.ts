@@ -2,33 +2,17 @@ import * as Sentry from "@sentry/node";
 import type { Express, Request, Response, NextFunction } from "express";
 import { FinancialCalculationError } from "@shared/errors";
 import { log } from "./logger";
-import { isProductionDeployment } from "./providers/config";
 
 const DSN = process.env.SENTRY_DSN;
-const isProduction = isProductionDeployment();
 
-let initialized = false;
-
+/**
+ * Sentry.init() now lives in `./instrument.ts` and runs via
+ * `node --import ./dist/instrument.mjs ./dist/index.mjs` BEFORE express is
+ * imported. This function is kept as a no-op so any stray callers don't
+ * accidentally double-init; remove once we're sure nothing imports it.
+ */
 export function initSentry() {
-  if (!DSN || initialized) return;
-  initialized = true;
-
-  Sentry.init({
-    dsn: DSN,
-    environment: isProduction ? "production" : "development",
-    tracesSampleRate: isProduction ? 0.2 : 1.0,
-    integrations: [Sentry.expressIntegration()],
-    beforeSend(event) {
-      const err = event.exception?.values?.[0];
-      if (err?.type === "FinancialCalculationError") {
-        const tags = (err as { mechanism?: { data?: Record<string, string> } }).mechanism?.data;
-        if (tags) {
-          event.tags = { ...event.tags, ...tags };
-        }
-      }
-      return event;
-    },
-  });
+  // intentionally empty — see ./instrument.ts
 }
 
 export function sentryRequestHandler() {

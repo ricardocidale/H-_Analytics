@@ -36,7 +36,7 @@ import { authMiddleware, requireAuth, seedAdminUser, cleanupRateLimitMaps } from
 import { storage } from "./storage";
 import { log as serverLog } from "./logger";
 import { hasDbUrl } from "@shared/db-url";
-import { initSentry, sentryRequestHandler, setupSentryExpressErrorHandler } from "./sentry";
+import { sentryRequestHandler, setupSentryExpressErrorHandler } from "./sentry";
 import {
   COMPRESSION_THRESHOLD_BYTES,
   CACHE_MAX_AGE_SECONDS,
@@ -53,7 +53,8 @@ import {
 
 const contentSecurityPolicy = buildContentSecurityPolicy();
 
-initSentry();
+// Sentry.init() runs from ./instrument.ts via `node --import` BEFORE express
+// is loaded — see that file for the rationale. Do not call initSentry() here.
 
 const app = express();
 const httpServer = createServer(app);
