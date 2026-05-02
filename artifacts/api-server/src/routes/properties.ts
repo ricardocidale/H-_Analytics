@@ -54,10 +54,30 @@ export function register(app: Express) {
         if (!catsByProperty.has(c.propertyId)) catsByProperty.set(c.propertyId, []);
         catsByProperty.get(c.propertyId)!.push({ name: c.name, rate: c.rate, isActive: c.isActive });
       }
-      const enriched = props.map(p => ({
-        ...p,
-        feeCategories: catsByProperty.get(p.id) ?? [],
-      }));
+
+      // For properties with no primary imageUrl, resolve the best available photo:
+      // prefer the hero photo, then fall back to the first photo by sort order.
+      const missingImageIds = props.filter(p => !p.imageUrl).map(p => p.id);
+      const photosByProperty = missingImageIds.length > 0
+        ? await storage.getPhotosByProperties(missingImageIds)
+        : {};
+
+      const enriched = props.map(p => {
+        let resolvedImageUrl: string | null = p.imageUrl ?? null;
+        if (!resolvedImageUrl && photosByProperty[p.id]?.length) {
+          const photos = photosByProperty[p.id];
+          // Prefer hero photo URL; if hero has no URL, fall through to first
+          // photo with a non-null URL in sort order.
+          const hero = photos.find(ph => ph.isHero && ph.imageUrl);
+          const firstWithUrl = photos.find(ph => ph.imageUrl);
+          resolvedImageUrl = (hero ?? firstWithUrl)?.imageUrl ?? null;
+        }
+        return {
+          ...p,
+          imageUrl: resolvedImageUrl,
+          feeCategories: catsByProperty.get(p.id) ?? [],
+        };
+      });
       res.json(enriched);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch properties", error);
