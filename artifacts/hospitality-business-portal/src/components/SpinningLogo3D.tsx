@@ -1,7 +1,17 @@
 import { APP_BRAND_NAME } from "@shared/constants";
 import logoImg from "@/assets/h-logo-glass.png";
 
-export default function SpinningLogo3D({ size = 192, onClick }: { size?: number; onClick?: () => void }) {
+export default function SpinningLogo3D({
+  size = 192,
+  onClick,
+  title,
+  ariaLabel,
+}: {
+  size?: number;
+  onClick?: () => void;
+  title?: string;
+  ariaLabel?: string;
+}) {
   const isInteractive = Boolean(onClick);
   return (
     <div
@@ -25,6 +35,8 @@ export default function SpinningLogo3D({ size = 192, onClick }: { size?: number;
           : undefined
       }
       aria-hidden={isInteractive ? undefined : true}
+      aria-label={isInteractive ? ariaLabel : undefined}
+      title={isInteractive ? title : undefined}
       data-testid="logo-login"
     >
       <img

@@ -155,11 +155,24 @@ export default function Login() {
 
                 {/* Logo + heading */}
                 <div className="flex flex-col items-center text-center gap-2 mb-1">
-                  <div style={{ filter: "drop-shadow(0 0 14px rgba(var(--primary-rgb),0.35))" }}>
+                  <div
+                    className="group relative flex flex-col items-center"
+                    style={{ filter: "drop-shadow(0 0 14px rgba(var(--primary-rgb),0.35))" }}
+                  >
                     <SpinningLogo3D
                       size={96}
                       onClick={devLoginAvailable ? handleAdminLogin : undefined}
+                      title={devLoginAvailable ? "Dev preview: click to sign in as super admin" : undefined}
+                      ariaLabel={devLoginAvailable ? "Dev quick sign-in as super admin" : undefined}
                     />
+                    {devLoginAvailable && (
+                      <span
+                        className="pointer-events-none absolute -bottom-4 text-[10px] uppercase tracking-[0.15em] text-muted-foreground/60 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
+                        data-testid="text-dev-quick-login-hint"
+                      >
+                        Dev quick sign-in
+                      </span>
+                    )}
                   </div>
                   <div>
                     <h1 className="text-2xl font-bold font-display tracking-tight" data-testid="text-welcome">
