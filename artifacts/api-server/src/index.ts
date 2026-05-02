@@ -717,6 +717,12 @@ async function runSchemaMigrations() {
     await runSlideRecipe001();
     await markMigrationApplied("slide_recipe_001");
   }
+
+  if (!(await isMigrationApplied("sync_property_assumptions_001"))) {
+    const { runSyncPropertyAssumptions001 } = await import("./migrations/sync-property-assumptions-001");
+    await runSyncPropertyAssumptions001();
+    await markMigrationApplied("sync_property_assumptions_001");
+  }
 }
 
 async function runSeeds() {

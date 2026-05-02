@@ -346,6 +346,20 @@ LLM model names, endpoints, API key references, rate limits, and fallback chains
 exclusively in `AI Intelligence → LLMs`. Never add LLM configuration controls to the
 Specialists page, Gustavo's page, or anywhere else in AI Intelligence.
 
+### Rule 13 — LLMs page uses workflow cards (accordion), not an LLM registry
+
+The LLMs page shows **LLM workflows** — each card represents a specific job/use-case
+that uses one or more LLMs. It is NOT a flat list of LLM models or vendors.
+See the full spec: `docs/solutions/architecture-patterns/llms-page-workflow-cards-spec-2026-05-02.md`
+
+Key requirements per card:
+- Vendor(s) + model selection dropdown per vendor (Analyst recommendation highlighted IN the dropdown)
+- Save button (saves vendor/model preference) + Analyst button (regenerates lists + tests the workflow)
+- Prompt display (literal text or construction description; may be multiple prompts)
+- Specialists involved (⚠ warning flag if none assigned)
+- Status icon + last updated timestamp
+- Dirty-state guard: leaving unsaved card triggers Save / Discard / Keep editing dialog
+
 ---
 
 ## Relevant files
@@ -364,3 +378,5 @@ Specialists page, Gustavo's page, or anywhere else in AI Intelligence.
 - `docs/solutions/architecture-patterns/admin-sidebar-ia-sources-resources-2026-05-02.md` — compound knowledge doc
 - `docs/solutions/architecture-patterns/no-duplicate-menu-items-hierarchical-nav-2026-05-02.md` — one-destination rule
 - `docs/solutions/architecture-patterns/sources-ux-status-analyst-button-2026-05-02.md` — Sources UX requirements
+- `docs/solutions/architecture-patterns/llms-page-workflow-cards-spec-2026-05-02.md` — LLMs page full spec (workflow accordion, vendor/model dropdowns, Analyst recommendation, Save, dirty-state guard, prompt display, specialist warning)
+- `docs/solutions/architecture-patterns/ai-intelligence-specialists-page-2026-05-02.md` — Specialists accordion page spec

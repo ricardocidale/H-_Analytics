@@ -256,9 +256,6 @@ async function buildSlidePayload(propertyId: number, userId: number | undefined,
         });
         if (resolved?.base64) {
           heroPhotoBase64 = await shrinkForCard(resolved.base64);
-          logger.info(`[slides-debug] sibling ${pr.id} resolved=${resolved.base64.slice(0,8)} shrunk=${heroPhotoBase64?.slice(0,8) ?? "FAIL"}`, "property-slides");
-        } else {
-          logger.info(`[slides-debug] sibling ${pr.id} resolved=NULL url=${hero?.imageUrl}`, "property-slides");
         }
       }
       const prRec = pr as Record<string, unknown>;
@@ -273,7 +270,6 @@ async function buildSlidePayload(propertyId: number, userId: number | undefined,
         heroPhotoBase64,
       };
     }));
-    logger.info(`[slides-debug] ${siblings.length} siblings: ${siblings.map(s => `${(s as Record<string,unknown>).name}:${(s as Record<string,unknown>).heroPhotoBase64 ? ((s as Record<string,unknown>).heroPhotoBase64 as string).slice(0,8) : "NO_PHOTO"}`).join(', ')}`, "property-slides");
   } catch (e) {
     logger.warn(`Failed to fetch portfolio properties for property ${propertyId}: ${e}`, "property-slides");
   }
