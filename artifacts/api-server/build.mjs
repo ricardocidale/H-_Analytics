@@ -166,6 +166,12 @@ async function buildAll() {
       // and src/instrument.ts. Express is in `dependencies` so pnpm installs
       // it in the deployed container.
       "express",
+      // pg MUST stay external for the same reason as express: Sentry's
+      // postgresIntegration() (OpenTelemetry + import-in-the-middle) can only
+      // wrap a real package import at runtime. If pg is bundled, IITM never
+      // sees an `import "pg"` and we lose per-query spans, slow-query traces,
+      // and DB error context in Sentry. See Task #952. pg is in `dependencies`.
+      "pg",
     ],
     sourcemap: process.env.NODE_ENV === "production" ? false : "linked",
     plugins: [

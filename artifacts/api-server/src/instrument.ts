@@ -22,7 +22,12 @@ if (DSN) {
     dsn: DSN,
     environment: isProduction ? "production" : "development",
     tracesSampleRate: isProduction ? 0.2 : 1.0,
-    integrations: [Sentry.expressIntegration()],
+    // postgresIntegration() is also auto-added by Sentry's default
+    // getAutoPerformanceIntegrations() when tracing is enabled, but we list it
+    // explicitly so the intent is obvious and a future SDK refactor can't
+    // silently drop it. See Task #952 — pg must also stay external in
+    // build.mjs for OpenTelemetry's import-in-the-middle hook to wrap it.
+    integrations: [Sentry.expressIntegration(), Sentry.postgresIntegration()],
     beforeSend(event) {
       const err = event.exception?.values?.[0];
       if (err?.type === "FinancialCalculationError") {
