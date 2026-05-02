@@ -43,8 +43,17 @@ export async function bootstrapDrizzleMigrationState(): Promise<void> {
   const journalPath = path.join(migrationsDir, "meta/_journal.json");
   const journal = JSON.parse(fs.readFileSync(journalPath, "utf-8"));
 
-  const priorEntries: Array<{ tag: string; when: number }> = journal.entries.filter(
-    (e: { tag: string; when: number }) => !e.tag.startsWith("0004")
+  // Only pre-mark the 4 original migrations that were applied before Drizzle
+  // migration tracking was introduced (idx 0–3: brainy_mother_askani,
+  // optional_password_hash, db_integrity_hardening, add_business_insurance).
+  // Migration idx 4 (0004_consolidated_schema) and everything after it must
+  // NOT be pre-marked here — they need to execute normally via migrate().
+  // Pre-marking any entry beyond idx 3 causes Drizzle to silently skip those
+  // migrations on existing databases, which was the root cause of the missing
+  // reference_brands table (0028_reference_brands was pre-marked and never ran).
+  const LEGACY_MIGRATION_CUTOFF_IDX = 4;
+  const priorEntries: Array<{ idx: number; tag: string; when: number }> = journal.entries.filter(
+    (e: { idx: number; tag: string; when: number }) => e.idx < LEGACY_MIGRATION_CUTOFF_IDX
   );
 
   for (const entry of priorEntries) {
@@ -56,7 +65,7 @@ export async function bootstrapDrizzleMigrationState(): Promise<void> {
     );
   }
 
-  logger.info(`[${TAG}] Legacy DB detected — bootstrapped Drizzle migration state with ${priorEntries.length} prior migrations`);
+  logger.info(`[${TAG}] Legacy DB detected — bootstrapped Drizzle migration state with ${priorEntries.length} prior migrations (idx 0–${LEGACY_MIGRATION_CUTOFF_IDX - 1}; Drizzle will apply the rest)`);
 }
 
 export async function runDataFixes(): Promise<void> {
