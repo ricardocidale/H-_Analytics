@@ -8,7 +8,8 @@
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
     "check:replit-independence": "pnpm --filter @workspace/scripts run check:replit-independence",
-    "check:magic-numbers": "pnpm --filter @workspace/scripts run check:magic-numbers"
+    "check:magic-numbers": "pnpm --filter @workspace/scripts run check:magic-numbers",
+    "check:spinner-contrast": "pnpm --filter @workspace/scripts run check:spinner-contrast"
   },
   "private": true,
   "devDependencies": {

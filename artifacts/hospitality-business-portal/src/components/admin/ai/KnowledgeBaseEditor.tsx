@@ -585,7 +585,7 @@ export default function KnowledgeBaseEditor() {
                               disabled={deleteMutation.isPending}
                               data-testid={`button-confirm-delete-kb-${entry.id}`}
                             >
-                              {deleteMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin text-accent-pop" /> : "Delete"}
+                              {deleteMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin text-white" /> : "Delete"}
                             </Button>
                             <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => setDeletingId(null)} data-testid={`button-cancel-delete-kb-${entry.id}`}>No</Button>
                           </div>

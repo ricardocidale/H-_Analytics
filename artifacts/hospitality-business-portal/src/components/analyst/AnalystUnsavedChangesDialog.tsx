@@ -108,7 +108,7 @@ export function AnalystUnsavedChangesDialog({
               >
                 {isSaving ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin text-accent-pop" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin text-white" />
                     Saving…
                   </>
                 ) : (

@@ -191,7 +191,7 @@ export function DeletedScenariosSection() {
                       data-testid="button-cleanup-expired"
                     >
                       {purgeExpired.isPending ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop mr-1" />
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-white mr-1" />
                       ) : (
                         <IconTrash className="w-3.5 h-3.5 mr-1" />
                       )}

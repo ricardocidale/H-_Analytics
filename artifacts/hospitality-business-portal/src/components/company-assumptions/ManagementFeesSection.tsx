@@ -410,7 +410,7 @@ export default function ManagementFeesSection({ formData, onChange, global, prop
               disabled={deleteMutation.isPending}
               data-testid="button-confirm-delete-service"
             >
-              {deleteMutation.isPending && <Loader2 className="w-4 h-4 animate-spin text-accent-pop mr-1" />}
+              {deleteMutation.isPending && <Loader2 className="w-4 h-4 animate-spin text-white mr-1" />}
               Delete
             </Button>
           </DialogFooter>

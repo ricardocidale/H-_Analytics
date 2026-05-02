@@ -91,7 +91,7 @@ export function SharedScenariosCard({ actions }: SharedScenariosCardProps) {
                           data-testid={`button-load-shared-scenario-${scenario.id}`}
                         >
                           {loadIsPending ? (
-                            <Loader2 className="w-4 h-4 animate-spin text-accent-pop" />
+                            <Loader2 className="w-4 h-4 animate-spin text-white" />
                           ) : (
                             <IconFolderOpen className="w-4 h-4" />
                           )}

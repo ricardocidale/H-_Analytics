@@ -309,7 +309,7 @@ export function IcpContent({ onSaveStateChange }: IcpContentProps) {
                         className="text-xs h-8 gap-1.5"
                         data-testid="button-save-definition"
                       >
-                        {updateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop" /> : null}
+                        {updateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white" /> : null}
                         Save
                       </Button>
                       <Button

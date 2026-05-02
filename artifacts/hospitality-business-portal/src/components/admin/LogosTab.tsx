@@ -445,7 +445,7 @@ export default function LogosTab() {
             data-testid="button-confirm-delete-logo"
             className="flex items-center gap-2"
           >
-            {deleteLogoMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop" /> : <IconTrash className="w-4 h-4" />}
+            {deleteLogoMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <IconTrash className="w-4 h-4" />}
             Delete
           </Button>
         </DialogFooter>

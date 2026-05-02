@@ -131,7 +131,7 @@ export default function CompanyResearch() {
                   disabled={isGenerating}
                   data-testid="button-regenerate-all"
                 >
-                  {isGenerating ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop" /> : <IconRefreshCw className="w-4 h-4" />}
+                  {isGenerating ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <IconRefreshCw className="w-4 h-4" />}
                   {isGenerating ? "Generating..." : "Regenerate All"}
                 </Button>
                 {hasCompany && !isGenerating && (
