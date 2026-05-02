@@ -14,6 +14,7 @@ import sharp from "sharp";
 import { renderHybridSlide } from "./hybrid-renderer.js";
 import { getSlideFonts } from "./fonts.js";
 import type { SlidePayload } from "./slide-jsx.js";
+import { resolveSlotPhoto, type RecipeElement } from "./slot-resolver.js";
 
 // ── Generate a solid-color test JPEG large enough for sharp to resize ────────
 // 200×150 pixels — small but valid. Each photo gets a distinct hue so we can
@@ -165,4 +166,43 @@ for (const slideNum of HYBRID_SLIDES) {
 }
 
 console.log(`\nSmoke test: ${passed} passed, ${failed} failed`);
+
+// ── Semantic ID routing assertions ───────────────────────────────────────────
+// Verify that resolveSlotPhoto delivers the CORRECT buffer for each slot.
+// Hero photo = buf from heroB64; gallery photos = distinct non-hero buffers.
+console.log("\nVerifying semantic_id routing...");
+
+const heroExpected  = Buffer.from(heroB64, "base64");
+const gallery1Expected = Buffer.from(p1B64, "base64");
+const gallery5Expected = Buffer.from(p5B64, "base64");
+
+function makeEl(name: string): RecipeElement {
+  return { name, is_slot: true, slot_kind: "picture", kind: "picture", z_order: 0, left_px: 0, top_px: 0, width_px: 100, height_px: 100 };
+}
+
+const routingChecks: Array<[string, number, string, Buffer]> = [
+  ["Slide 1 hero (Picture 68)",      1, "Picture 68",  heroExpected],
+  ["Slide 3 hero (Picture 46)",      3, "Picture 46",  heroExpected],
+  ["Slide 4 hero (Picture 6)",       4, "Picture 6",   heroExpected],
+  ["Slide 2 gallery[0] (Picture 35)",2, "Picture 35",  gallery1Expected],
+  ["Slide 2 gallery[4] (Picture 66)",2, "Picture 66",  gallery5Expected],
+];
+
+let routingPassed = 0;
+for (const [label, slideNum, shapeName, expected] of routingChecks) {
+  const buf = resolveSlotPhoto(slideNum, makeEl(shapeName), FIXTURE.photos);
+  if (!buf) {
+    console.error(`  FAIL  ${label}: returned null`);
+    failed++;
+  } else if (!buf.equals(expected)) {
+    console.error(`  FAIL  ${label}: wrong photo returned (${buf.length} bytes, expected ${expected.length})`);
+    failed++;
+  } else {
+    console.log(`  PASS  ${label}`);
+    routingPassed++;
+  }
+}
+
+console.log(`\nRouting: ${routingPassed} passed, ${failed - (4 - passed)} failed`);
 if (failed > 0) process.exit(1);
+console.log("\nAll checks passed.");
