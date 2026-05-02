@@ -132,7 +132,7 @@ def build_slide1(slide, prop: dict, photos: list[bytes | None], vt: dict) -> Non
     safe_set(slide, "Text 6", desc[:70] if desc else f"{type_label} in {city}, {state}")
     safe_set(slide, "Text 7", "ASKING PRICE")
     safe_set(slide, "Text 8", format_currency(price))
-    target = prop.get("targetAcquisitionPrice") or int(price * 0.90) if price else 0
+    target = prop.get("targetAcquisitionPrice") or int(price * 0.85) if price else 0
     safe_set(slide, "Text 9", f"Target Acquisition: {format_currency(target)}")
     safe_set(slide, "Text 10", "Property Specs")
     safe_set(slide, "Text 11", f"{rooms} Keys / Guest Rooms")

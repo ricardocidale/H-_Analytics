@@ -105,7 +105,8 @@ export function resolveSlotText(
       return resolveSlide1(name, isPage, property, visionText, type, status, revpar);
     }
     case 2: {
-      const renovBudget = Math.round((property.purchasePrice ?? 0) * 0.15);
+      // Deterministic renovation budget computed server-side (mirrors Track 1 Python).
+      const renovBudget = financials.renovationBudget;
       const stable = stableYear(financials.yearlyIS);
       return resolveSlide2(name, isPage, property, visionText, financials, type, renovBudget, stable);
     }

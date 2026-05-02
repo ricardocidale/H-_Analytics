@@ -1,0 +1,388 @@
+  From: Claude Code
+  To: Replit Agent
+  Re: Palette unification do-over — three specific defects to fix
+
+  Do not implement anything until you have read every file mentioned and confirmed the current
+  state matches what's described here. If it doesn't, report the discrepancy before touching
+  code.
+
+  ---
+  Defect 1 — hplus-canonical-slide-2/SKILL.md: stale #7C837A survives in actionable sections
+
+  The palette table (line 56) correctly says #7C837A was collapsed into #9FBCA4. But the two
+  sections a generator actually reads when building Slide 2 still carry the old value:
+
+  - Line 40 (delta table): Two-run split: #257D41 then #7C837A (warm gray-green) — this is the
+  "what to implement" row
+  - Line 129 (reconstruction recipe): closing tag-line gets two-run colors #257D41 then #7C837A
+
+  Theseiareicontradicted by the same file's palette table. An agent reading the recipe will use                                                                                                                                                
+   #7C837A. Fix both lines to #9FBCA4. Do not touch lines 20 or 50 (those are                                                                                                                                                                  
+  historical-context prose andrare correctvas-is).ame key count for canonical colors                                                                                                                                                           
+  python3 -c "                                                                           
+  ---ort sys; sys.path.insert(0,'scripts/src')   
+  Defectl2d—_slideUtils.tstCOLORS:C12Okeys for 6 canonical colors
+  print('Python keys:', sorted(SLIDE_COLORS.keys()))                                                                                                                                                                                           
+  Python's:SLIDE_COLORS'hasaexactlyr6_keys.'slideUtils.ts,COLORSenow has 12:
+  "                                                                                                                                                                                                                                            
+  slideBg, darkBg, accent, sage, cream, mint, muted, nearBlack, mutedDark, bodyDark, white,
+  lightBorderdrift values anywhere in slide code                                                                                                                                                                                               
+  grep -rn "#7AAA88\|#5A7A62\|#7C837A\|#1F3A2A\|#2E4A35\|#9FBBA5" \                                                                                                                                                                            
+  Fiveroftthose/aredpurelaliases with no distinct value:
+  - slideBgt=/"#9FBCA4"r—ssamelasesageide-jsx.tsx \                                                                                                                                                                                            
+  - muteda=t"#9FBCA4"y—ssamesasrsageb/slideUtils.ts \                                    
+  - mutedDarkk=l"#9FBCA4"c—nsameaasssage-1/SKILL.md \                                                                                                                                                                                          
+  - nearBlackk=l"#1C2B1E"c—nsameaassdarkBg/SKILL.md                                                                                                                                                                                            
+  - bodyDarkz=r"#1C2B1E" —csamenasodarkBgferences in historical prose are acceptable — grep for those separately)                                                                                                                              
+                                                                                                                                                                                                                                               
+  Themconsolidationktask was to eliminate parallel hex literals. Adding five alias keys that
+  map to the same hex is the same problem with extra steps. lightBorder: "#E8EDE9" is the one                                                                                                                                                  
+✻ legitimatefextra —3it's a UI-only color not in the canonical palette, keep it.                                                                                                                                                               
+                                                                                                                                                                                                                                               
+※ WhatptoUdo:ying the L+B color palette across the slide generator's three code mirrors. Replit is doing a do-over to remove alias keys and fix two stale hex values in the Slide 2 skill file. (disable recaps in /config)                    
+  1. Read every callsite of COLORS.slideBg, COLORS.muted, COLORS.mutedDark, COLORS.nearBlack,                                                                                                                                                  
+  COLORS.bodyDark,in thenproperty-slides package — grep first, list the count
+  2.DChallenge:nifaanyeofsthosebcallsites havetaesemantic reason to use a distinct name (e.g. a                                                                                                                                                
+   table "body dark" that you'd want to change independently from darkBg), flag it before
+──removing─the─alias───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 3.fIfenohsemanticareasonhexists,mremoverthehfivemaliasakeysuandtupdateicallsites to
+──COLORS.sage─or─COLORS.darkBg─respectively────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  4. Target:p7rkeysi(darkBg,saccent,bsage,ycream, mint, white, lightBorder)
+
+  ---
+  Defect 3 — slide-jsx.tsx C object: 5 alias keys on top of 6 canonical
+
+  The C object has 11 meaningful keys (plus 5 rgba helpers which are fine):
+
+  darkBg, accent, sage, cream, mint, white  ← canonical 6
+  bg, canvasText, canvasBody, canvasMuted, muted  ← 5 aliases, all duplicate values
+
+  - bg = "#1C2B1E" = darkBg
+  - canvasText = "#1C2B1E" = darkBg
+  - canvasBody = "#1C2B1E" = darkBg
+  - canvasMuted = "#9FBCA4" = sage
+  - muted = "#9FBCA4" = sage
+
+  What to do:
+  1. Grep every C\.bg\b, C\.canvasText, C\.canvasBody, C\.canvasMuted, C\.muted usage in
+  slide-jsx.tsx — list the line numbers and what each one renders
+  2. Challenge: if any alias serves a genuinely different semantic purpose (e.g. a slot that
+  should drift independently from the canonical), flag it
+  3. Remove aliases with no semantic distinction; update callsites to C.darkBg or C.sage
+  4. Target: 6 canonical keys + 5 rgba helpers = 11 total, zero duplicates
+
+  ---
+  Subagent strategy
+
+  Use up to 6 subagents for independent work:
+
+  - Agent 1: Defect 1 — skill file line fixes (tiny, no callsite risk)
+  - Agent 2: Defect 2 — grep all slideUtils.ts COLORS alias callsites, report back before
+  touching anything
+  - Agent 3: Defect 3 — grep all C.* alias callsites in slide-jsx.tsx, report back before
+  touching anything
+  - Agents 2 and 3 report findings; you review, then dispatch fix agents
+
+  Agents 2 and 3 must report before any edits happen. Do not parallelize the grep-and-fix in
+  one pass — that's what produced aliases instead of removals last time.
+
+  ---
+  Verification
+
+  # After fixes: all three mirrors must have the same key count for canonical colors
+  python3 -c "
+  import sys; sys.path.insert(0,'scripts/src')
+  from slide_helpers import SLIDE_COLORS
+  print('Python keys:', sorted(SLIDE_COLORS.keys()))
+  # expect: ['accent', 'cream', 'dark_bg', 'mint', 'sage', 'white']
+  "
+
+  # No stale drift values anywhere in slide code
+  grep -rn "#7AAA88\|#5A7A62\|#7C837A\|#1F3A2A\|#2E4A35\|#9FBBA5" \
+    scripts/src/slide_helpers.py \
+    artifacts/api-server/src/slides/slide-jsx.tsx \
+    artifacts/property-slides/src/lib/slideUtils.ts \
+    .agents/skills/hplus-canonical-slide-1/SKILL.md \
+    .agents/skills/hplus-canonical-slide-2/SKILL.md
+  # expect: zero matches (comment-only references in historical prose are acceptable — grep for
+   those separately)
+
+  pnpm run typecheck
+
+✻ Cogitated for 1m 43s
+
+※ recap: Unifying the L+B color palette across the slide generator's three code mirrors. Replit
+   is doing a do-over to remove alias keys and fix two stale hex values in the Slide 2 skill
+  file. (disable recaps in /config)
+
+❯ refine the slide algorithms and make sure the numbers are suybstitued in and are correct.
+  Major audit in financial enginees and deternmionirtics tools from app and servver sdie, and
+  dependencies contract. Plan all that and send to replit to perform. Replit is done so check
+  the work                                                                                     
+                                                                                              
+● Let me read the key financial engine files before planning.                                  
+                                                                                               
+  Searched for 9 patterns, read 3 files (ctrl+o to expand)                                     
+                                                                                               
+● Bash(sed -n '190,320p' artifacts/api-server/src/slides/slide-jsx.tsx)
+  ⎿  }                                                                                         
+                                                                                         
+     function photoSrc(photo: SlidePhoto | undefined): string | null {                         
+     … +66 lines (ctrl+o to expand)                                                            
+                                                                                               
+  Searched for 1 pattern (ctrl+o to expand)                                                    
+                                                                                               
+● Bash(sed -n '320,450p' artifacts/api-server/src/slides/slide-jsx.tsx)                        
+  ⎿          {/* Description */}                                                               
+             <span style={{ fontFamily: "Poppins, sans-serif", fontSize: 12, color: C.fain     
+     tWhite, lineHeight: 1.6, marginBottom: 20 }}>                                             
+     … +74 lines (ctrl+o to expand)                                                            
+                                                                                               
+  Searched for 1 pattern (ctrl+o to expand)                                                    
+                                                    
+● Bash(sed -n '450,580p' artifacts/api-server/src/slides/slide-jsx.tsx)                        
+  ⎿    const type = typeLabel(property);                                                       
+   
+       return (                                                                                
+     … +79 lines (ctrl+o to expand)                                                      
+                                                                                               
+  Searched for 1 pattern, read 1 file (ctrl+o to expand)                                       
+                                                    
+● Now I have a complete picture. Let me write the precise handoff.                             
+                                                                                               
+  ---                                               
+  From: Claude Code — financial engine audit                                                   
+  To: Replit Agent                                                                             
+  Date: 2026-05-02 PM                                                                          
+  Branch: feat/fix-slide-backgrounds                                                           
+                                                                                               
+  Before touching a single line: have each subagent read the file it owns and confirm the state
+   below matches what it actually sees. If anything diverges from this description, stop and   
+  report the discrepancy.                                                                      
+   
+  ---                                                                                          
+  What was audited                                                                       
+                                                                                               
+  Full read of generate_property_slides.py, slide_helpers.py, renovation_budget.py,      
+  property-slides.ts (route), slide-jsx.tsx, and
+  lib/engine/src/aggregation/yearlyAggregator.ts. Four real bugs found, three cosmetic
+  divergences, one spec mismatch.
+                                                                                               
+  ---
+  Bugs (numbers are wrong in at least one track)                                               
+                                                                                         
+  Bug 1 — Track 2 renovation budget is hardcoded 15% of purchase price
+                          
+  File: artifacts/api-server/src/slides/slide-jsx.tsx
+  Lines: 630 (Slide 2), 630 (Slide 5 — same pattern)
+                                                                                               
+  const renovBudget = Math.round((property.purchasePrice ?? 0) * 0.15);                        
+                                                                                               
+  Track 1 Python uses the deterministic get_renovation_budget() function (tier × room_count ×  
+  contingency). For a 20-room upscale property at $3.25M the Python algorithm produces ~$2.6M;
+  the 15% flat rate produces $487K. These are completely different numbers — an investor       
+  reading Track 1 vs Track 2 for the same property sees a $2.1M discrepancy in renovation      
+  budget.
+                                                                                               
+  Fix: The financials object passed to the satori renderer doesn't currently carry       
+  renovationBudget. Add it to the payload at the buildSlidePayload call site in the route,
+  computed server-side using the same formula as Track 1:
+                                                                                               
+  // In property-slides.ts buildSlidePayload (or equivalent assembler):
+  import { getRenovationBudget, clampRenovationBudget } from                                   
+  "../../scripts/src/renovation_budget";  // NOT an option — Python-only                 
+                                                 
+  Since renovation_budget.py is Python, the server-side equivalent must be reimplemented in    
+  TypeScript or the route should compute it with the same logic and pass it in financials. The 
+  logic is simple enough to port: tier lookup by qualityTier/hospitalityType, cost-per-key ×   
+  roomCount × (1 + historicPremium) × (1 + contingency), clamped to [25k×rooms,                
+  0.8×purchasePrice].                                                                    
+                                                                                               
+  Challenge for Agent 1: Before writing anything — read renovation_budget.py fully and confirm
+  the tiers, rates, and clamping logic. Then reimplement those exact values in a new function
+  computeRenovationBudget(property) inside property-slides.ts (no new file). Pass the result as
+   financials.renovationBudget in the payload. Update Slide 2 and Slide 5 in slide-jsx.tsx to  
+  use financials.renovationBudget instead of the hardcoded 15%.
+                                                                                               
+  ---                                                                                    
+  Bug 2 — Track 2 Slide 5 snapshot uses input assumptions instead of stable-year computed
+  values                                                                                 
+                                                 
+  File: artifacts/api-server/src/slides/slide-jsx.tsx, lines 651–653
+                                                                                               
+  ["Occupancy", fmtPct(property.maxOccupancy)],  
+  ["ADR",       fmtCurrency(property.startAdr)],                                               
+  ["RevPAR",    fmtCurrency((property.startAdr ?? 0) * (property.maxOccupancy ?? 0.7))],       
+                                                 
+  Track 1 (Slide 5, build_slide5) computes these from the stable year:                         
+  - stable_occ = soldRooms / availableRooms (clamped 0.55–0.85)                                
+  - stable_adr = stable.get("cleanAdr") or prop.startAdr       
+  - stable_revpar = stable_adr × stable_occ                                                    
+                                                                                         
+  For a ramp-up property, Year 1 might be 45% occupied at $280 ADR; the stable year might be   
+  72% at $340 ADR. Track 2 would show 72% / $280 / $201.60 while Track 1 shows 72% / $340 /
+  $244.80.                                                                                     
+                                                                                               
+  Fix: YearlyPropertyFinancials from yearlyAggregator.ts exports cleanAdr, soldRooms,          
+  availableRooms. These are already present on the yearlyIS rows in the payload. Compute them  
+  in Slide 5:                                                                                  
+                                                                                               
+  // Replace the hardcoded lines with:
+  const stableOcc = stable && stable.availableRooms > 0                                        
+    ? Math.min(0.85, Math.max(0.55, stable.soldRooms / stable.availableRooms))           
+    : (property.maxOccupancy ?? 0.7);            
+  const stableAdr = stable?.cleanAdr ?? property.startAdr ?? 0;
+  const stableRevpar = stableAdr * stableOcc;                                                  
+  // Then use stableOcc, stableAdr, stableRevpar in the snapshotRows array                     
+                                                                                               
+  Challenge for Agent 2: Read yearlyAggregator.ts lines 36–50 and confirm cleanAdr, soldRooms, 
+  availableRooms, operationalMonthsInYear are all present on the YearlyPropertyFinancials
+  interface AND are present in the yearlyIS rows that flow through to slide-jsx.tsx. Then      
+  confirm slide-jsx.tsx's YearlyIS type definition (around line 80) includes those fields — if 
+  it doesn't, add them. Then apply the fix.                                                    
+                                                                                               
+  ---                                                                                    
+  Bug 3 — format_currency(0) returns "N/A" in Track 1 for legitimate zero values
+                          
+  File: scripts/src/slide_helpers.py, line 414   
+
+  if value is None or value == 0:                                                              
+      return "N/A"                               
+                                                                                               
+  In the Slide 6 5-year income statement, Year 1 may have $0 revenue (pre-opening ramp) or $0  
+  net cash flow. Those cells currently show "N/A" in Track 1. Track 2 returns "—" for zero.
+  Neither is ideal but they're inconsistent with each other and "N/A" implies missing data, not
+   zero.                                                                                       
+   
+  Fix: Change Track 1 to use "—" as the null sentinel (matching Track 2), and only return "—"  
+  for None, not for 0. Zero revenue is a valid data point:                               
+
+  def format_currency(value: float | int | None, short: bool = False) -> str:                  
+      if value is None:   
+          return "—"                                                                           
+      if value == 0:                                                                     
+          return "$0"                                                                          
+      ...
+                                                                                               
+  Also fix format_currency_short which has the same bug (returns "N/A" for 0 at its own null
+  check — line 427 has no explicit null check but inherits from format_currency).
+
+  Challenge for Agent 3: grep every callsite of format_currency in both Python files. Confirm  
+  none of them rely on "N/A" as a control value (i.e., no if "N/A" in text: type checks). Then
+  apply the fix.                                                                               
+                                                                                               
+  ---
+  Bug 4 — Slide 1 target acquisition price uses 90% of asking, skill spec says 85%             
+                                                                                         
+  File: scripts/src/generate_property_slides.py, line 135
+
+  target = prop.get("targetAcquisitionPrice") or int(price * 0.90) if price else 0             
+                          
+  hplus-slide-mapping says: f"Target Acquisition: {format_currency(property.purchasePrice *    
+  0.85)}". The fallback should be 85% (15% below asking), not 90%.                       
+                                                                                               
+  Fix: Change 0.90 → 0.85.                                                                     
+                                                                                               
+  ---                                                                                          
+  Cosmetic divergences (visible but not wrong-number severity)                           
+                                                              
+  C1 — format_currency M-suffix formatting differs between tracks
+                          
+  - Python: $3M for round millions, $3.2M for non-round (1 decimal, Python's banker's rounding)
+  - TypeScript: $3.0M for round millions, $3.3M for non-round (always 1 decimal, JS standard
+  rounding)                                                                                    
+  - For $3,250,000: Python → $3.2M, TypeScript → $3.3M (banker vs standard rounding, 5 rounds  
+  differently)                                                                                 
+                                                                                               
+  Fix Python to match TypeScript convention: always show 1 decimal for M, use round(m, 1) not
+  f"{m:.1f}":                                                                                  
+                                                                                         
+  def format_currency(value: float | int | None, short: bool = False) -> str:                  
+      if value is None: return "—"                                                       
+      if value == 0: return "$0"                                                               
+      v = float(value)                                                                   
+      if short: return format_currency_short(v)
+      if abs(v) >= 1_000_000:                                                                  
+          m = round(v / 1_000_000, 1)            
+          return f"${m}M"          # Python: 3.25→3.2 (banker), need consistent                
+      ...                                                                                      
+                                                 
+  Actually the cleanest fix: replace f"{m:.1f}M" with f"${m:.1f}M" using round() first: m =    
+  round(v / 1_000_000, 1); return f"${m}M" — this gives $3.2M from Python. JS toFixed(1) gives 
+  $3.3M for 3.25. The rounding is inherently different at the .25 boundary in Python vs JS. The
+   practical fix: both tracks should round to 1 decimal consistently. Use Python round(3.25, 1)
+   = 3.2 (banker's) vs JS (3.25).toFixed(1) = "3.3". These will only diverge at exact .x5
+  values. Accept this as a known limitation and document it — do not try to force identical    
+  output across languages.                                                               
+
+  Skip C1. Not worth the complexity for a .05 rounding difference.
+                                                 
+  C2 — format_currency null labels: Python "N/A" vs TypeScript "—"
+                                                                                               
+  Fixed by Bug 3 above (Python switches to "—").
+                                                                                               
+  C3 — Track 2 Slide 5 grossMargin uses stable.gop vs Track 1's compute_gross_margin(revenue,
+  totalExpenses)                                                                               
+                                                                                         
+  Track 1: (revenueTotal - totalExpenses) / revenueTotal                                       
+  Track 2: gop / revenueTotal                                                            
+                                                                                               
+  If gop = revenueTotal - totalExpenses in the engine, they agree. If totalExpenses in the     
+  engine excludes some items that are included in the gop denominator, they'll differ. Agent 4
+  should read yearlyAggregator.ts around line 420 and confirm whether gop equals revenueTotal -
+   totalExpenses or if they diverge. Report the finding before changing anything.              
+   
+  ---                                                                                          
+  Subagent strategy (use all 6)                                                          
+                               
+  - Agent 1: Bug 1 — renovation budget: port Python algorithm to TS, add to payload, update
+  slide-jsx.tsx           
+  - Agent 2: Bug 2 — stable-year metrics: read yearlyAggregator types, add missing fields to   
+  YearlyIS type, fix Slide 5 snapshot rows
+  - Agent 3: Bug 3 + Bug 4 — format_currency zero + target price fallback: grep callsites      
+  first, then fix                                                                        
+  - Agent 4: C3 investigation — read yearlyAggregator, determine if gop ==                     
+  revenueTotal-totalExpenses, report only (no code unless they match)                    
+  - Agent 5: Run pnpm run typecheck after Agents 1–3 complete; fix any type errors             
+  - Agent 6: Read the final state of all changed files and produce a 1-page diff summary 
+                                                                                               
+  Agents 1, 2, 3, 4 can run in parallel. Agent 5 waits for 1–3. Agent 6 waits for 5.     
+                                                                                               
+  ---                                                                                          
+  Verification                                                                                 
+                                                                                               
+  # After all fixes:                                                                           
+  pnpm run typecheck  # must be clean                                                    
+                                                 
+  # Python format_currency spot checks:
+  python3 -c "                                                                                 
+  import sys; sys.path.insert(0,'scripts/src')
+  from slide_helpers import format_currency, format_pct                                        
+  assert format_currency(None) == '—', format_currency(None)                             
+  assert format_currency(0) == '\$0', format_currency(0)                                       
+  assert format_currency(3_250_000) in ['\$3.2M', '\$3.3M'], format_currency(3_250_000)  
+  assert format_currency(500_000) == '\$500,000', format_currency(500_000)                     
+  assert format_pct(None) == '—', format_pct(None)
+  assert format_pct(0.72) == '72%', format_pct(0.72)                                           
+  print('format checks: ok')                                                                   
+  "                                                                                            
+                                                                                               
+  # Renovation budget sanity (20 rooms, upscale, $3.25M property):                       
+  python3 -c "                                                                                 
+  import sys; sys.path.insert(0,'scripts/src')                                           
+  from renovation_budget import get_renovation_budget, clamp_renovation_budget                 
+  b = get_renovation_budget(20, 'upscale', 'hotel', None, False)                         
+  b2 = clamp_renovation_budget(b, 3_250_000, 20)                                               
+  print(f'reno budget (20 rooms, upscale): \${b:,} → clamped: \${b2:,}')                       
+  assert b2 > 400_000, f'budget too low: {b2}'  # sanity: > $400K for 20 rooms
+  assert b2 < 3_000_000, f'budget too high: {b2}'  # sanity: < purchase price * 0.8            
+  print('reno budget: ok')                                                                     
+  "                                                                                            
+                                                                                               
+  ---                                                                                          
+  Do NOT touch                                                                                 
+                                                                                               
+  - static.ts — just fixed                                                               
+  - Palette constants (palette work is done)
+  - Any shape names or template paths            
+  - Skills for slides 3–6 

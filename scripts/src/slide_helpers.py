@@ -410,10 +410,16 @@ def build_transformation_plan(
 # ── Formatting ────────────────────────────────────────────────────────────────
 
 def format_currency(value: float | int | None, short: bool = False) -> str:
-    """Format a dollar value. Short=True uses 'M' or 'K' suffix."""
-    if value is None or value == 0:
-        return "N/A"
+    """Format a dollar value. Short=True uses 'M' or 'K' suffix.
+
+    None → "—" (missing data sentinel, matches Track 2 / TypeScript convention).
+    0 → "$0" (zero is a valid data point — pre-opening revenue, dry-year cash flow).
+    """
+    if value is None:
+        return "—"
     v = float(value)
+    if v == 0:
+        return "$0"
     if short:
         return format_currency_short(v)
     if abs(v) >= 1_000_000:
@@ -433,9 +439,9 @@ def format_currency_short(value: float) -> str:
 
 
 def format_pct(value: float | None) -> str:
-    """Format 0–1 fraction as percentage string."""
+    """Format 0–1 fraction as percentage string. None → "—" (matches Track 2)."""
     if value is None:
-        return "N/A"
+        return "—"
     return f"{round(float(value) * 100)}%"
 
 

@@ -214,6 +214,54 @@ async function shrinkForCard(base64: string): Promise<string> {
   }
 }
 
+// ── Renovation budget (TS mirror of scripts/src/renovation_budget.py) ──────
+// Source: hplus-renovation-benchmarks skill. Mid-point estimates, contingency,
+// historic premium, and clamp bounds must stay in sync with the Python module.
+const RENOV_COST_PER_KEY = {
+  soft: 33_500,
+  upscale: 110_000,
+  upper_upscale: 195_000,
+  luxury: 415_000,
+} as const;
+type RenovTier = keyof typeof RENOV_COST_PER_KEY;
+
+const RENOV_HISTORIC_PREMIUM = 0.20;
+const RENOV_CONTINGENCY = 0.18;
+const RENOV_MAX_PCT_OF_PRICE = 0.80;
+const RENOV_MIN_PER_KEY = 25_000;
+
+function selectRenovTier(qualityTier: string, hospitalityType: string, renovationScope: string): RenovTier {
+  const qt = qualityTier.toLowerCase();
+  const ht = hospitalityType.toLowerCase();
+  const rs = renovationScope.toLowerCase();
+  if (rs === "light" || rs === "cosmetic") return "soft";
+  if (qt.includes("luxury") || ht.includes("luxury")) return "luxury";
+  if (qt.includes("upper") || ht.includes("upper")) return "upper_upscale";
+  if (qt.includes("upscale") || ht.includes("boutique") || ht.includes("hotel")) return "upscale";
+  return "upscale";
+}
+
+function computeRenovationBudget(input: {
+  roomCount?: number | null;
+  purchasePrice?: number | null;
+  qualityTier?: string | null;
+  hospitalityType?: string | null;
+  renovationScope?: string | null;
+  isHistoric?: boolean | string | null;
+}): number {
+  const rooms = Math.max(0, input.roomCount ?? 0);
+  const tier = selectRenovTier(input.qualityTier ?? "", input.hospitalityType ?? "", input.renovationScope ?? "");
+  const isHistoric = input.isHistoric === true || input.isHistoric === "true";
+  const perKey = Math.round(RENOV_COST_PER_KEY[tier] * (isHistoric ? 1 + RENOV_HISTORIC_PREMIUM : 1));
+  const subtotal = rooms * perKey;
+  const contingency = Math.round(subtotal * RENOV_CONTINGENCY);
+  const budget = subtotal + contingency;
+  const purchasePrice = input.purchasePrice ?? 0;
+  const maxB = purchasePrice > 0 ? Math.round(purchasePrice * RENOV_MAX_PCT_OF_PRICE) : budget;
+  const minB = RENOV_MIN_PER_KEY * Math.max(1, rooms);
+  return Math.max(minB, Math.min(maxB, budget));
+}
+
 async function buildSlidePayload(propertyId: number, userId: number | undefined, projYears: number): Promise<SlidePayload & { _propertyName: string }> {
   const property = await storage.getProperty(propertyId);
   if (!property) throw new Error("Property not found");
@@ -346,6 +394,8 @@ async function buildSlidePayload(propertyId: number, userId: number | undefined,
     exitCapRate: (p.exitCapRate ?? SLIDES_DEFAULT_EXIT_CAP_RATE) as number,
   };
 
+  const renovationBudget = computeRenovationBudget(propertyShape);
+
   // LLM-generated content — run concurrently
   const [visionText, improvements] = await Promise.all([
     generatePropertyVisionText({
@@ -365,7 +415,7 @@ async function buildSlidePayload(propertyId: number, userId: number | undefined,
     financials: {
       yearlyIS: yearlyIS as SlidePayload["financials"]["yearlyIS"],
       yearlyCF: yearlyCF as SlidePayload["financials"]["yearlyCF"],
-      loanAmount, loanLtv, annualDebtService, irr, equityMultiple,
+      loanAmount, loanLtv, annualDebtService, irr, equityMultiple, renovationBudget,
       exitCapRate: (p.exitCapRate ?? SLIDES_DEFAULT_EXIT_CAP_RATE) as number,
     },
     siblings: siblings as unknown as SlidePayload["siblings"],
@@ -859,6 +909,14 @@ router.get("/api/properties/:id/slides/view", requireAuth, async (req: Request, 
     }
 
     const pv = property as Record<string, unknown>;
+    const renovationBudget = computeRenovationBudget({
+      roomCount: property.roomCount,
+      purchasePrice: property.purchasePrice,
+      qualityTier: pv.qualityTier as string | null,
+      hospitalityType: pv.hospitalityType as string | null,
+      renovationScope: pv.renovationScope as string | null,
+      isHistoric: pv.isHistoric as boolean | string | null,
+    });
     const visionInput = { id: property.id, name: property.name, city: property.city, stateProvince: property.stateProvince, county: pv.county as string | null, country: property.country, purchasePrice: property.purchasePrice, roomCount: property.roomCount, startAdr: property.startAdr, maxOccupancy: property.maxOccupancy, businessModel: property.businessModel, hospitalityType: pv.hospitalityType as string | null, qualityTier: pv.qualityTier as string | null, description: property.description, acquisitionStatus: pv.acquisitionStatus as string | null };
     const visionText = await Promise.race([
       generatePropertyVisionText(visionInput),
@@ -869,7 +927,7 @@ router.get("/api/properties/:id/slides/view", requireAuth, async (req: Request, 
     return res.json({
       property: { id: property.id, name: property.name, city: property.city ?? "", stateProvince: property.stateProvince ?? "", county: (pv.county ?? "") as string, country: property.country ?? "", purchasePrice: property.purchasePrice ?? 0, roomCount: property.roomCount ?? 0, startAdr: property.startAdr ?? 0, maxOccupancy: property.maxOccupancy ?? SLIDES_DEFAULT_MAX_OCCUPANCY, businessModel: property.businessModel ?? "hotel", hospitalityType: (pv.hospitalityType ?? "") as string, qualityTier: (pv.qualityTier ?? "") as string, description: property.description ?? "", acquisitionStatus: (pv.acquisitionStatus ?? "pipeline") as string, isHistoric: pv.isHistoric ?? false, renovationScope: (pv.renovationScope ?? "") as string, exitCapRate: (pv.exitCapRate ?? SLIDES_DEFAULT_EXIT_CAP_RATE) as number },
       photos,
-      financials: { yearlyIS, yearlyCF, loanAmount, loanLtv, annualDebtService, irr, equityMultiple, exitCapRate: (pv.exitCapRate ?? SLIDES_DEFAULT_EXIT_CAP_RATE) as number },
+      financials: { yearlyIS, yearlyCF, loanAmount, loanLtv, annualDebtService, irr, equityMultiple, renovationBudget, exitCapRate: (pv.exitCapRate ?? SLIDES_DEFAULT_EXIT_CAP_RATE) as number },
       siblings,
       visionText,
     });

@@ -78,6 +78,9 @@ export interface YearlyIS {
   noi: number;
   gop: number;
   operationalMonthsInYear: number;
+  soldRooms: number;
+  availableRooms: number;
+  cleanAdr: number;
 }
 
 export interface YearlyCF {
@@ -94,6 +97,7 @@ export interface SlideFinancials {
   loanAmount: number;
   loanLtv: number;
   annualDebtService: number;
+  renovationBudget: number;
   irr?: number;
   equityMultiple?: number;
   exitCapRate?: number;
@@ -368,7 +372,8 @@ export function Slide1({ p }: { p: SlidePayload }) {
 export function Slide2({ p }: { p: SlidePayload }) {
   const { property, photos, visionText, financials } = p;
   const stable = getStableYear(financials.yearlyIS);
-  const renovBudget = Math.round((property.purchasePrice ?? 0) * 0.15);
+  // Deterministic renovation budget computed server-side (mirrors Track 1 Python).
+  const renovBudget = financials.renovationBudget;
   const panelPhotos = photos.filter(ph => !ph.isHero).slice(0, 4);
   const type = typeLabel(property);
 
@@ -627,12 +632,20 @@ export function Slide4({ p }: { p: SlidePayload }) {
 export function Slide5({ p }: { p: SlidePayload }) {
   const { property, financials, visionText, improvements } = p;
   const stable = getStableYear(financials.yearlyIS);
-  const renovBudget = Math.round((property.purchasePrice ?? 0) * 0.15);
+  // Deterministic renovation budget computed server-side (mirrors Track 1 Python).
+  const renovBudget = financials.renovationBudget;
   const totalInvestment = (property.purchasePrice ?? 0) + renovBudget;
   const grossMargin = stable && stable.revenueTotal > 0 ? (stable.gop / stable.revenueTotal) : null;
   const ebitdaPct = stable && stable.revenueTotal > 0 ? (stable.noi / stable.revenueTotal) : null;
   const ltv = financials.loanLtv > 0 ? `${Math.round(financials.loanLtv * 100)}%` : "65%";
   const stableLabel = stable ? `Year ${stable.year}` : "Yr 3";
+
+  // Stable-year metrics from engine (matches Track 1 build_slide5: clamp_occupancy + cleanAdr).
+  const stableOcc = stable && stable.availableRooms > 0
+    ? Math.min(0.85, Math.max(0.55, stable.soldRooms / stable.availableRooms))
+    : (property.maxOccupancy ?? 0.7);
+  const stableAdr = stable?.cleanAdr ?? property.startAdr ?? 0;
+  const stableRevpar = stableAdr * stableOcc;
 
   const transformRows: string[][] = [
     ["Feature", "Existing", "Proposed"],
@@ -648,9 +661,9 @@ export function Slide5({ p }: { p: SlidePayload }) {
   ];
 
   const snapshotRows = [
-    ["Occupancy", fmtPct(property.maxOccupancy)],
-    ["ADR", fmtCurrency(property.startAdr)],
-    ["RevPAR", fmtCurrency((property.startAdr ?? 0) * (property.maxOccupancy ?? 0.7))],
+    ["Occupancy", fmtPct(stableOcc)],
+    ["ADR", fmtCurrency(stableAdr)],
+    ["RevPAR", fmtCurrency(stableRevpar)],
     ["Revenue", fmtCurrency(stable?.revenueTotal)],
     ["Variable Costs", fmtCurrency(stable?.totalExpenses)],
     ["Gross Margin", fmtPct(grossMargin)],
