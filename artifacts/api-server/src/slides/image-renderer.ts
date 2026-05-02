@@ -1,11 +1,12 @@
 /**
  * Track 2 image-PPTX renderer.
  *
- * Renders all 6 slides as full-slide PNGs using satori (JSX → SVG) + sharp
- * (SVG → PNG), then packages them into a PPTX with pptxgenjs where each
- * slide contains exactly one image element sized to the full slide.
+ * Slides 1–4: hybrid compositing — pre-rendered template background JPEG +
+ *   per-property photo slots + satori text overlay positioned via recipe.
+ * Slides 5–6: full satori JSX (table-heavy; backgrounds are near-solid).
  *
- * No Puppeteer, no Playwright, no headless Chromium.
+ * Packages all 6 slide JPEGs into a PPTX via pptxgenjs, one full-slide image
+ * per PPTX slide.  No Puppeteer, no Playwright, no headless Chromium.
  */
 
 import satori from "satori";
@@ -14,31 +15,32 @@ import PptxGenJs from "pptxgenjs";
 import React from "react";
 import { getSlideFonts } from "./fonts";
 import {
-  Slide1, Slide2, Slide3, Slide4, Slide5, Slide6,
+  Slide5, Slide6,
   type SlidePayload,
 } from "./slide-jsx";
+import { renderHybridSlide } from "./hybrid-renderer";
 import { logger } from "../logger";
 
 export type { SlidePayload };
 
-// Slide canvas dimensions
 const SLIDE_W_PX = 1920;
 const SLIDE_H_PX = 1080;
-// PPTX slide dimensions in inches (13.33 × 7.50 is the standard 16:9 template)
-const PPTX_W_IN = 13.33;
-const PPTX_H_IN = 7.5;
+const PPTX_W_IN  = 13.33;
+const PPTX_H_IN  = 7.5;
 
-async function renderSlideToJpeg(
+// ── Satori JSX renderer (used for slides 5–6) ────────────────────────────────
+
+async function renderJsxToJpeg(
   element: React.ReactElement,
   fonts: Awaited<ReturnType<typeof getSlideFonts>>,
 ): Promise<Buffer> {
   const fontDefs = [
     { name: "Garamond", data: fonts.garamondRegular, weight: 400 as const, style: "normal" as const },
-    { name: "Garamond", data: fonts.garamondBold, weight: 700 as const, style: "normal" as const },
-    { name: "Poppins", data: fonts.poppinsRegular, weight: 400 as const, style: "normal" as const },
-    { name: "Poppins", data: fonts.poppinsLight, weight: 300 as const, style: "normal" as const },
-    { name: "Roboto", data: fonts.robotoRegular, weight: 400 as const, style: "normal" as const },
-    { name: "Roboto", data: fonts.robotoBold, weight: 700 as const, style: "normal" as const },
+    { name: "Garamond", data: fonts.garamondBold,    weight: 700 as const, style: "normal" as const },
+    { name: "Poppins",  data: fonts.poppinsRegular,  weight: 400 as const, style: "normal" as const },
+    { name: "Poppins",  data: fonts.poppinsLight,    weight: 300 as const, style: "normal" as const },
+    { name: "Roboto",   data: fonts.robotoRegular,   weight: 400 as const, style: "normal" as const },
+    { name: "Roboto",   data: fonts.robotoBold,      weight: 700 as const, style: "normal" as const },
   ].filter(f => f.data.byteLength > 0);
 
   const svg = await satori(element, {
@@ -47,35 +49,7 @@ async function renderSlideToJpeg(
     fonts: fontDefs,
   });
 
-  return sharp(Buffer.from(svg))
-    .jpeg({ quality: 92 })
-    .toBuffer();
-}
-
-export async function renderImagePptx(payload: SlidePayload): Promise<Buffer> {
-  const fonts = await getSlideFonts();
-  logger.info("[image-renderer] Rendering 6 slides to JPEG via satori + sharp");
-
-  const slideComponents = [
-    React.createElement(Slide1, { p: payload }),
-    React.createElement(Slide2, { p: payload }),
-    React.createElement(Slide3, { p: payload }),
-    React.createElement(Slide4, { p: payload }),
-    React.createElement(Slide5, { p: payload }),
-    React.createElement(Slide6, { p: payload }),
-  ];
-
-  const jpegBuffers = await Promise.all(
-    slideComponents.map((el, i) =>
-      renderSlideToJpeg(el, fonts).catch((err) => {
-        logger.warn(`[image-renderer] Slide ${i + 1} render failed: ${err} — using blank`);
-        return generateBlankSlideJpeg(i + 1, payload.property.name);
-      }),
-    ),
-  );
-
-  logger.info("[image-renderer] All slides rendered — building PPTX");
-  return buildImagePptx(jpegBuffers, payload.property.name);
+  return sharp(Buffer.from(svg)).jpeg({ quality: 92 }).toBuffer();
 }
 
 async function generateBlankSlideJpeg(slideNum: number, propertyName: string): Promise<Buffer> {
@@ -87,6 +61,52 @@ async function generateBlankSlideJpeg(slideNum: number, propertyName: string): P
   return sharp(Buffer.from(svg)).jpeg({ quality: 90 }).toBuffer();
 }
 
+// ── Main export ───────────────────────────────────────────────────────────────
+
+export async function renderImagePptx(payload: SlidePayload): Promise<Buffer> {
+  const fonts = await getSlideFonts();
+  logger.info("[image-renderer] Rendering 6 slides (hybrid 1–4, satori 5–6)");
+
+  const jpegBuffers = await Promise.all([
+    // Slides 1–4: hybrid compositing
+    renderHybridSlide(1, payload, fonts).catch(err => {
+      logger.warn(`[image-renderer] Slide 1 hybrid failed: ${err} — using blank`);
+      return generateBlankSlideJpeg(1, payload.property.name);
+    }).then(buf => buf ?? generateBlankSlideJpeg(1, payload.property.name)),
+
+    renderHybridSlide(2, payload, fonts).catch(err => {
+      logger.warn(`[image-renderer] Slide 2 hybrid failed: ${err} — using blank`);
+      return generateBlankSlideJpeg(2, payload.property.name);
+    }).then(buf => buf ?? generateBlankSlideJpeg(2, payload.property.name)),
+
+    renderHybridSlide(3, payload, fonts).catch(err => {
+      logger.warn(`[image-renderer] Slide 3 hybrid failed: ${err} — using blank`);
+      return generateBlankSlideJpeg(3, payload.property.name);
+    }).then(buf => buf ?? generateBlankSlideJpeg(3, payload.property.name)),
+
+    renderHybridSlide(4, payload, fonts).catch(err => {
+      logger.warn(`[image-renderer] Slide 4 hybrid failed: ${err} — using blank`);
+      return generateBlankSlideJpeg(4, payload.property.name);
+    }).then(buf => buf ?? generateBlankSlideJpeg(4, payload.property.name)),
+
+    // Slides 5–6: full satori JSX
+    renderJsxToJpeg(React.createElement(Slide5, { p: payload }), fonts).catch(err => {
+      logger.warn(`[image-renderer] Slide 5 satori failed: ${err} — using blank`);
+      return generateBlankSlideJpeg(5, payload.property.name);
+    }),
+
+    renderJsxToJpeg(React.createElement(Slide6, { p: payload }), fonts).catch(err => {
+      logger.warn(`[image-renderer] Slide 6 satori failed: ${err} — using blank`);
+      return generateBlankSlideJpeg(6, payload.property.name);
+    }),
+  ]);
+
+  logger.info("[image-renderer] All slides rendered — building PPTX");
+  return buildImagePptx(jpegBuffers, payload.property.name);
+}
+
+// ── PPTX builder (unchanged) ──────────────────────────────────────────────────
+
 async function buildImagePptx(jpegBuffers: Buffer[], propertyName: string): Promise<Buffer> {
   const pptx = new PptxGenJs();
   pptx.defineLayout({ name: "WIDE169", width: PPTX_W_IN, height: PPTX_H_IN });
@@ -94,11 +114,9 @@ async function buildImagePptx(jpegBuffers: Buffer[], propertyName: string): Prom
 
   for (const jpgBuf of jpegBuffers) {
     const slide = pptx.addSlide();
-    const base64 = jpgBuf.toString("base64");
     slide.addImage({
-      data: `image/jpeg;base64,${base64}`,
-      x: 0,
-      y: 0,
+      data: `image/jpeg;base64,${jpgBuf.toString("base64")}`,
+      x: 0, y: 0,
       w: PPTX_W_IN,
       h: PPTX_H_IN,
     });

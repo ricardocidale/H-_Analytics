@@ -1,7 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
 import { logger } from "../logger";
-import { getOpenAIClient } from "./clients";
 import {
   KB_MIN_PARAGRAPH_LENGTH,
   KB_MAX_TITLE_LENGTH,
@@ -13,7 +12,7 @@ import {
 } from "../constants";
 import { extractMethodologyContent, extractVerificationManualContent, extractPlatformGuide, buildReferenceBrandsKbDoc } from "./kb-content";
 import { storage } from "../storage";
-import { isVectorStoreAvailable, upsertChunks, queryChunks, vectorCount } from "./vector-store-service";
+import { isVectorStoreAvailable, upsertChunks, queryChunks, vectorCount, embed, embedBatch } from "./vector-store-service";
 
 const EMBEDDING_MODEL = "text-embedding-3-small";
 const CHUNK_SIZE = 800;
@@ -87,24 +86,12 @@ async function loadAttachedAssets(): Promise<{ title: string; content: string; s
 }
 
 async function generateEmbedding(text: string): Promise<number[]> {
-  const response = await getOpenAIClient().embeddings.create({
-    model: EMBEDDING_MODEL,
-    input: text.slice(0, KB_EMBEDDING_MAX_LENGTH),
-  });
-  return response.data[0].embedding;
+  return embed(text.slice(0, KB_EMBEDDING_MAX_LENGTH));
 }
 
 async function generateEmbeddings(texts: string[]): Promise<number[][]> {
-  const results: number[][] = [];
-  for (let i = 0; i < texts.length; i += KB_EMBEDDING_BATCH_SIZE) {
-    const batch = texts.slice(i, i + KB_EMBEDDING_BATCH_SIZE).map(t => t.slice(0, KB_EMBEDDING_MAX_LENGTH));
-    const response = await getOpenAIClient().embeddings.create({
-      model: EMBEDDING_MODEL,
-      input: batch,
-    });
-    results.push(...response.data.map((d: { embedding: number[] }) => d.embedding));
-  }
-  return results;
+  const truncated = texts.map(t => t.slice(0, KB_EMBEDDING_MAX_LENGTH));
+  return embedBatch(truncated);
 }
 
 export function cosineSimilarity(a: number[], b: number[]): number {

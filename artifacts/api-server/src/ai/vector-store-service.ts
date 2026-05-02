@@ -26,22 +26,25 @@ function getEmbeddingClient(): OpenAI | null {
   if (_embeddingAvailable === false) return null;
   if (_embeddingClient) return _embeddingClient;
 
+  // IMPORTANT: always pass baseURL explicitly to prevent the OpenAI SDK from
+  // reading OPENAI_BASE_URL from the environment. On Replit, OPENAI_BASE_URL
+  // is set to the AI proxy which does NOT support the /embeddings endpoint
+  // (returns 400). We must bypass that proxy for embedding calls.
+  const DIRECT_BASE = "https://api.openai.com/v1";
+
   const directKey = process.env.OPENAI_EMBEDDING_KEY || process.env.OPENAI_API_KEY;
   if (directKey) {
-    _embeddingClient = new OpenAI({ apiKey: directKey });
-    _embeddingAvailable = true;
-    return _embeddingClient;
-  }
-
-  const integrationKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
-  const integrationBase = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
-  if (integrationKey && !integrationBase) {
-    _embeddingClient = new OpenAI({ apiKey: integrationKey });
+    logger.info(
+      `[embedding-client] Using ${process.env.OPENAI_EMBEDDING_KEY ? "OPENAI_EMBEDDING_KEY" : "OPENAI_API_KEY"} → ${DIRECT_BASE}`,
+      "vector-store",
+    );
+    _embeddingClient = new OpenAI({ apiKey: directKey, baseURL: DIRECT_BASE });
     _embeddingAvailable = true;
     return _embeddingClient;
   }
 
   _embeddingAvailable = false;
+  logger.warn("[embedding-client] No direct OpenAI key found — embeddings disabled", "vector-store");
   return null;
 }
 

@@ -187,7 +187,7 @@ export async function runSlideRecipe001(): Promise<void> {
 
   const recipePath = path.resolve(
     __dirname,
-    "../../../scripts/src/slide-slot-recipe.json"
+    "../../../../scripts/src/slide-slot-recipe.json"
   );
   if (!fs.existsSync(recipePath)) {
     logger.warn(

@@ -26,6 +26,8 @@ import compression from "compression";
 import { registerRoutes } from "./legacyRoutes";
 import { registerImageRoutes } from "./routes/images";
 import { propertySlidesRouter, preGenerateAllSlides } from "./routes/property-slides";
+import { indexKnowledgeBase } from "./ai/knowledge-base";
+import { indexAllAssets } from "./ai/asset-intelligence";
 import { buildContentSecurityPolicy } from "./csp";
 import { getAuthProvider } from "./providers/auth";
 import { createServer } from "http";
@@ -251,6 +253,38 @@ app.use((req, res, next) => {
                 "warn",
               );
             });
+          });
+
+          // ── Phase 2d: Knowledge-base vector indexing ─────────────────────
+          // Indexes Rebecca's knowledge base into pgvector if the namespace is
+          // empty (first boot or after a re-index wipe). The indexKnowledgeBase()
+          // function is idempotent — it skips if vectors already exist.
+          setImmediate(() => {
+            indexKnowledgeBase()
+              .then(result => {
+                serverLog(
+                  `[knowledge-base] Indexed ${result.chunksIndexed} chunks in ${result.timeMs}ms`,
+                  "startup",
+                  "info",
+                );
+                return indexAllAssets();
+              })
+              .then(assets => {
+                if (assets.photos > 0 || assets.logos > 0) {
+                  serverLog(
+                    `[knowledge-base] Assets indexed: ${assets.photos} photos, ${assets.logos} logos`,
+                    "startup",
+                    "info",
+                  );
+                }
+              })
+              .catch(err => {
+                serverLog(
+                  `[knowledge-base] Startup indexing failed (non-fatal): ${err instanceof Error ? err.message : err}`,
+                  "startup",
+                  "warn",
+                );
+              });
           });
         })
         .catch(err => {
