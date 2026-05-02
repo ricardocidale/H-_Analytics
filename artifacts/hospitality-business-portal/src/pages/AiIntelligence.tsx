@@ -41,6 +41,10 @@ const FernandaRenderConsolePage = lazy(
 const MarketDataTablesPage = lazy(
   () => import("@/pages/ai-intelligence/MarketDataTablesPage"),
 );
+const GustavoInfoPage = lazy(() => import("@/pages/ai-intelligence/GustavoInfoPage"));
+const SpecialistsDirectoryPage = lazy(() => import("@/pages/ai-intelligence/SpecialistsDirectoryPage"));
+const LlmWorkflowsPage = lazy(() => import("@/pages/ai-intelligence/LlmWorkflowsPage"));
+const AssumptionGuidancePage = lazy(() => import("@/pages/ai-intelligence/AssumptionGuidancePage"));
 
 const REBECCA_SUB_TAB: Partial<Record<AiIntelligenceSection, string>> = {
   "ai-agents":      "configuration",
@@ -61,7 +65,11 @@ const sectionMeta: Record<AiIntelligenceSection, { title: string; subtitle: stri
   "vector-bench":        { title: "Vector Search Latency", subtitle: "pgvector / HNSW p50 and p95 query latency over time" },
   "resources":             { title: "Resources · Catalog",            subtitle: "Admin-managed registries of which APIs, sources, benchmark slugs, and models exist. Benchmark *values* live in Market Data." },
   "resources-tables":      { title: "Market Data · Reference Tables", subtitle: "Actual benchmark and market data values (ADR index, labor rates, F&B, seasonal calendars) refreshed by The Analyst. The slug registry lives in Catalog → Benchmark Slugs." },
-  "analyst-orchestrator":  { title: "Gaspar · The Analyst",    subtitle: "Orchestrator persona that routes work across the 12 Specialists." },
+  "analyst-orchestrator":  { title: "Gustavo · The Analyst",   subtitle: "Orchestrator persona that routes work across the Specialist team." },
+  "gustavo":               { title: "Gustavo · Analyst Orchestrator", subtitle: "Routes research tasks to the Specialist team and coordinates all intelligence gathering" },
+  "specialists":           { title: "Specialists",              subtitle: "Research Specialists powering H+ Analytics — verify deployment and run health checks" },
+  "llm-workflows":         { title: "LLMs",                     subtitle: "Language model configuration for each research workflow — vendor, model, and Analyst recommendations" },
+  "assumption-guidance":   { title: "Assumption Guidance",      subtitle: "Analyst-generated calibration insights — suggested ranges and sources for financial assumptions" },
   "specialist-mgmt-co-funding":            { title: "Funding Intelligence",         subtitle: "" },
   "specialist-mgmt-co-revenue":            { title: "Revenue Intelligence",         subtitle: "" },
   "specialist-mgmt-co-compensation":       { title: "Compensation Intelligence",    subtitle: "" },
@@ -120,15 +128,24 @@ function specialistMeta(
 // Page header for the orchestrator section. The role label ("The Analyst")
 // is the marketing copy used throughout the AI Intelligence surface and
 // stays fixed; only the persona name in front of it tracks the Identity-
-// tab override so a Gaspar rename shows up here without a page reload.
-// The orchestrator fallback (Gaspar) is wired into the shared resolver,
-// so a future rename of the orchestrator default flows through here
-// automatically.
+// tab override so a rename shows up here without a page reload.
 function orchestratorMeta(humanNameById: Map<string, string>): { title: string; subtitle: string } {
   const display = resolveSpecialistDisplay(ORCHESTRATOR_SPECIALIST_ID, humanNameById);
   return {
     title: `${display.humanName} · The Analyst`,
     subtitle: sectionMeta["analyst-orchestrator"].subtitle,
+  };
+}
+
+// Page header for Gustavo's read-only info page. Uses the same persona-first
+// resolution chain as orchestratorMeta but pairs with the "Analyst Orchestrator"
+// role label (not "The Analyst") to distinguish the info view from the
+// legacy analyst-orchestrator SpecialistPage which it supersedes in the nav.
+function gustavoMeta(humanNameById: Map<string, string>): { title: string; subtitle: string } {
+  const display = resolveSpecialistDisplay(ORCHESTRATOR_SPECIALIST_ID, humanNameById);
+  return {
+    title: `${display.humanName} · Analyst Orchestrator`,
+    subtitle: sectionMeta["gustavo"].subtitle,
   };
 }
 
@@ -160,6 +177,10 @@ function SectionContent({ section }: { section: AiIntelligenceSection }) {
     case "resources-tables":     return <MarketDataTablesPage />;
     case "analyst-orchestrator": return <SpecialistPage specialistId={ORCHESTRATOR_SPECIALIST_ID} />;
     case "specialist-photos-photo-enhancer": return <FernandaRenderConsolePage />;
+    case "gustavo":           return <GustavoInfoPage />;
+    case "specialists":       return <SpecialistsDirectoryPage />;
+    case "llm-workflows":     return <LlmWorkflowsPage />;
+    case "assumption-guidance": return <AssumptionGuidancePage />;
     default: {
       if (isSpecialistSection(section)) {
         return <SpecialistPage specialistId={SPECIALIST_SECTION_TO_ID[section]} />;
@@ -180,6 +201,10 @@ const VALID_SECTIONS = new Set<AiIntelligenceSection>([
   "ai-agents",
   "knowledge-base",
   "conversations",
+  "gustavo",
+  "specialists",
+  "llm-workflows",
+  "assumption-guidance",
   "engine-health",
   "scheduled-research",
   "vector-bench",
@@ -234,7 +259,9 @@ export default function AiIntelligence() {
     ? specialistMeta(activeSection, humanNameById)
     : activeSection === "analyst-orchestrator"
       ? orchestratorMeta(humanNameById)
-      : sectionMeta[activeSection];
+      : activeSection === "gustavo"
+        ? gustavoMeta(humanNameById)
+        : sectionMeta[activeSection];
 
   // Persona-first browser tab title: matches the in-app PageHeader so
   // admins glancing at the tab strip see the human name first ("Ana ·

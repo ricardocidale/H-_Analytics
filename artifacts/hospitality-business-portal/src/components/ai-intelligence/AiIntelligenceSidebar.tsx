@@ -11,49 +11,55 @@ import {
   SidebarMenuSubItem,
   SidebarProvider,
 } from "@/components/ui/sidebar";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { setAiIntelligenceTabHint } from "@/lib/ai-intelligence-nav";
 import {
   IconHelpCircle,
-  IconBriefcase,
-  IconProperties,
-  IconImage,
-  IconLayers,
   IconBot,
   IconBrain,
   IconBookOpen,
   IconMessageSquare,
-  IconDatabase,
   IconSettingsGear,
   IconGauge,
   IconTimer,
   IconShield,
+  IconPeople,
+  IconCpu,
+  IconActivity,
 } from "@/components/icons";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { SPECIALIST_SECTION_TO_ID } from "@/components/admin/AdminSidebar";
 import type { SpecialistSection } from "@/components/admin/AdminSidebar";
-import { resolveSpecialistDisplay } from "@/components/specialists";
 import { ORCHESTRATOR_SPECIALIST_ID } from "@engine/analyst/identity";
 
 interface SpecialistListItem {
   id: string;
   humanName?: string | null;
-  /**
-   * Task #502 — true iff this Specialist's `specialist_configs` row has
-   * any non-null override of the global N+1 model defaults, the multi-
-   * model toggle, or the global pipeline-policy workflow knobs. Drives
-   * the "Overrides" badge on the sidebar row.
-   */
   hasLlmOverrides?: boolean;
 }
 
+/**
+ * Canonical section union for the AI Intelligence sidebar.
+ *
+ * New sections added for the restructured nav (hplus-admin-nav-ia):
+ *   "gustavo"            — Gustavo's read-only orchestrator info page (AI Agents group)
+ *   "specialists"        — All 16 research Specialists in one accordion directory
+ *   "llm-workflows"      — LLM workflow cards (the only place to manage LLM config)
+ *   "assumption-guidance"— Analyst-generated calibration insights
+ *
+ * Legacy SpecialistSection values (specialist-mgmt-co-funding, etc.) are kept in
+ * the union for URL deep-link backward compat — they are no longer exposed in the
+ * sidebar nav but the routing in AiIntelligence.tsx still handles them.
+ */
 export type AiIntelligenceSection =
   | SpecialistSection
   | "analyst-orchestrator"
   | "ai-agents"
   | "knowledge-base"
   | "conversations"
+  | "gustavo"
+  | "specialists"
+  | "llm-workflows"
+  | "assumption-guidance"
   | "engine-health"
   | "scheduled-research"
   | "vector-bench"
@@ -64,19 +70,12 @@ interface SectionItem {
   value: AiIntelligenceSection;
   label: string;
   /**
-   * Quieter secondary line shown beneath the primary label. Used by
-   * Specialist rows to keep the role label (e.g. "Funding Intelligence")
-   * visible while leading with the human name (e.g. "Ana"). Optional
-   * because non-Specialist rows (Rebecca, Resources, System) are
-   * already keyed by role and have no persona name to surface.
+   * Quieter secondary line beneath the primary label. Used by persona-named
+   * items (Gustavo) to keep the role label visible while leading with the
+   * human name. See specialist-persona-naming skill.
    */
   secondary?: string;
   icon: React.ComponentType<{ className?: string }>;
-  /**
-   * Optional native-tooltip text rendered as the row's `title` attribute.
-   * Used to describe what a section actually contains when the label
-   * alone (e.g. "Market Data") doesn't tell the whole story.
-   */
   tooltip?: string;
 }
 
@@ -88,172 +87,79 @@ interface NavGroup {
 }
 
 /**
- * Sidebar copy for a Specialist row: lead with the human name, fall back
- * to displayName / realName when the catalog hasn't been migrated yet.
- * The role label rides along as the secondary line so admins can still
- * trace the slug at a glance.
+ * Canonical AI Intelligence nav tree (hplus-admin-nav-ia):
  *
- * Task #633 — `liveHumanNameById` carries the override-resolved humanName
- * from `/api/admin/specialists` so renaming a Specialist via the Identity
- * tab updates the sidebar row without a page reload. While the query is
- * in flight (or if it fails), we fall back to the static catalog
- * `humanName`, mirroring how Gaspar's row already behaves.
+ *   AI Agents
+ *     Configuration  (Rebecca)
+ *     Knowledge Base (Rebecca)
+ *     Conversations  (Rebecca)
+ *     Gustavo        (orchestrator info — read-only)
+ *   Specialists       (all 16 in one accordion)
+ *   LLMs              (workflow cards)
+ *   Assumption Guidance
+ *   System
+ *     System Health
+ *     Scheduled Research
+ *     Vector Search Latency
  *
- * The resolution chain itself lives in `resolveSpecialistDisplay`
- * (`@/components/specialists`) so this sidebar, the page-header builder
- * in `AiIntelligence.tsx`, and the `<SpecialistName />` component all
- * agree on what name to lead with. See
- * `.agents/skills/specialist-persona-naming/SKILL.md` for the rule.
+ * Removed: per-domain specialist groups (Management Company, Property, Photos,
+ * Portfolio Ops, Constants & Authority Sources, Resources Builder, Resources).
+ * Removed: standalone "The Analyst" entry.
  */
-function specialistRow(
-  specialistId: string,
-  fallbackPrimary: string,
-  liveHumanNameById: Map<string, string>,
-): { primary: string; secondary?: string } {
-  const display = resolveSpecialistDisplay(specialistId, liveHumanNameById);
-  // Unknown id — preserve the caller's literal fallback (e.g. "Funding")
-  // instead of echoing the slug through, so a stale or mistyped id
-  // still shows the human-meaningful label the sidebar config intended.
-  if (!display.isCatalogEntry) return { primary: fallbackPrimary };
-  if (display.humanName && display.humanName !== display.role) {
-    return { primary: display.humanName, secondary: display.role };
-  }
-  return { primary: display.role };
-}
-
-function specialistSection(
-  value: AiIntelligenceSection,
-  specialistId: string,
-  fallbackPrimary: string,
-  icon: React.ComponentType<{ className?: string }>,
-  liveHumanNameById: Map<string, string>,
-): SectionItem {
-  const { primary, secondary } = specialistRow(specialistId, fallbackPrimary, liveHumanNameById);
-  return { value, label: primary, secondary, icon };
-}
-
-function buildNavGroups(
-  gasparHumanName: string,
-  liveHumanNameById: Map<string, string>,
-): NavGroup[] {
+function buildNavGroups(gustavoHumanName: string): NavGroup[] {
   return [
     {
-      // Task #496 — Gaspar (the Analyst orchestrator) gets a top-level
-      // sidebar entry so admins can reach the Sources tab on the Analyst
-      // page directly. Routes through the same SpecialistPage as the 12
-      // catalog Specialists; the orchestrator id ("gaspar") is resolved
-      // server-side to the `analyst` connection target.
-      //
-      // Task #465 — the primary label is sourced from the `/api/admin/
-      // specialists` list endpoint (which already prepends a synthetic
-      // Gaspar row with the override-resolved humanName) so that renaming
-      // Gaspar in the Identity tab updates the sidebar immediately. The
-      // role label "Orchestrator" rides along as the secondary line so the
-      // entry mirrors the persona-first / role-second layout used by the
-      // 12 catalog Specialists.
-      id: "analyst",
-      label: "The Analyst",
-      icon: IconBrain,
+      id: "ai-agents",
+      label: "AI Agents",
+      icon: IconBot,
       sections: [
+        { value: "ai-agents",      label: "Configuration",   icon: IconBot          },
+        { value: "knowledge-base", label: "Knowledge Base",  icon: IconBookOpen     },
+        { value: "conversations",  label: "Conversations",   icon: IconMessageSquare },
         {
-          value: "analyst-orchestrator",
-          label: gasparHumanName,
-          secondary: "Orchestrator",
+          value: "gustavo",
+          label: gustavoHumanName,
+          secondary: "Analyst Orchestrator",
           icon: IconBrain,
         },
       ],
     },
     {
-      id: "management-company",
-      label: "Management Company",
-      icon: IconBriefcase,
-      sections: [
-        specialistSection("specialist-mgmt-co-funding",          "mgmt-co.funding",          "Funding",          IconBriefcase, liveHumanNameById),
-        specialistSection("specialist-mgmt-co-revenue",          "mgmt-co.revenue",          "Revenue",          IconBriefcase, liveHumanNameById),
-        specialistSection("specialist-mgmt-co-icp-intelligence", "mgmt-co.icp-intelligence", "ICP Intelligence", IconBriefcase, liveHumanNameById),
-      ],
-    },
-    {
-      id: "property",
-      label: "Property",
-      icon: IconProperties,
-      sections: [
-        specialistSection("specialist-property-risk-intelligence", "property.risk-intelligence", "Risk Intelligence",  IconProperties, liveHumanNameById),
-        specialistSection("specialist-property-executive-summary", "property.executive-summary", "Executive Summary", IconProperties, liveHumanNameById),
-      ],
-    },
-    {
-      id: "photos",
-      label: "Photos",
-      icon: IconImage,
-      sections: [
-        // Fernanda owns both photo enhancement and the render pipeline
-        // as two jobs of one Specialist. Manual render controls live
-        // inside her SpecialistPage (Runtime tab) — no separate entry.
-        specialistSection("specialist-photos-photo-enhancer", "photos.photo-enhancer", "Photo Enhancer & Renders", IconImage, liveHumanNameById),
-      ],
-    },
-    {
-      id: "portfolio-ops",
-      label: "Portfolio Ops",
-      icon: IconLayers,
-      sections: [
-        specialistSection("specialist-portfolio-ops-watchdog", "portfolio-ops.watchdog", "Portfolio Watchdog", IconLayers, liveHumanNameById),
-      ],
-    },
-    {
-      // Constants & Authority Sources — Helena, Isadora, Júlia, Kamila each
-      // own a slice of the Model Constants registry. Surfacing them in the
-      // sidebar by human name makes the authority-sourced layer reachable
-      // the same way the mgmt-co / property specialists are.
-      id: "constants",
-      label: "Constants & Authority Sources",
-      icon: IconDatabase,
-      sections: [
-        specialistSection("specialist-constants-tax-research",          "constants.tax-research",          "Tax Authority Research",         IconDatabase, liveHumanNameById),
-        specialistSection("specialist-constants-macro-research",        "constants.macro-research",        "Macro Indicators Research",      IconDatabase, liveHumanNameById),
-        specialistSection("specialist-constants-depreciation-research", "constants.depreciation-research", "Depreciation Schedule Research", IconDatabase, liveHumanNameById),
-        specialistSection("specialist-constants-reporting-research",    "constants.reporting-research",    "Reporting Conventions Research", IconDatabase, liveHumanNameById),
-      ],
-    },
-    {
-      // Letícia (Resource Builder, letter L) is a catalog stub — her admin
-      // surface ships later — but she is now reachable from the sidebar by
-      // human name like the other Specialists. Clicking through lands on
-      // the SpecialistPage stub, which still shows the new summary panel.
-      id: "resources-builder",
-      label: "Resources Builder",
-      icon: IconLayers,
-      sections: [
-        specialistSection("specialist-resources-builder", "resources.builder", "Resource Builder", IconLayers, liveHumanNameById),
-      ],
-    },
-    {
-      id: "rebecca",
-      label: "Rebecca AI Assistant",
-      icon: IconBot,
-      sections: [
-        { value: "ai-agents",      label: "Configuration",   icon: IconBot },
-        { value: "knowledge-base", label: "Knowledge Base",  icon: IconBookOpen },
-        { value: "conversations",  label: "Conversations",   icon: IconMessageSquare },
-      ],
-    },
-    {
-      id: "resources",
-      label: "Resources",
-      icon: IconLayers,
+      id: "specialists",
+      label: "Specialists",
+      icon: IconPeople,
       sections: [
         {
-          value: "resources",
-          label: "Catalog",
-          icon: IconLayers,
-          tooltip: "APIs, Sources, Benchmarks, and Models — wire-up registry for Specialists",
+          value: "specialists",
+          label: "Specialists",
+          icon: IconPeople,
+          tooltip: "All 16 research Specialists — verify deployment, review configuration, run health checks",
         },
+      ],
+    },
+    {
+      id: "llms",
+      label: "LLMs",
+      icon: IconCpu,
+      sections: [
         {
-          value: "resources-tables",
-          label: "Market Data",
-          icon: IconDatabase,
-          tooltip: "Industry benchmarks, ADR index, labor rates, F&B, and seasonal calendars — refreshed by The Analyst",
+          value: "llm-workflows",
+          label: "LLMs",
+          icon: IconCpu,
+          tooltip: "Language model configuration for each research workflow — the only place to manage LLM settings",
+        },
+      ],
+    },
+    {
+      id: "assumption-guidance",
+      label: "Assumption Guidance",
+      icon: IconActivity,
+      sections: [
+        {
+          value: "assumption-guidance",
+          label: "Assumption Guidance",
+          icon: IconActivity,
+          tooltip: "Analyst-generated calibration insights — suggested ranges with sources for financial assumptions",
         },
       ],
     },
@@ -262,9 +168,9 @@ function buildNavGroups(
       label: "System",
       icon: IconSettingsGear,
       sections: [
-        { value: "engine-health",      label: "System Health",         icon: IconGauge },
-        { value: "scheduled-research", label: "Scheduled Research",    icon: IconTimer },
-        { value: "vector-bench",       label: "Vector Search Latency", icon: IconBrain },
+        { value: "engine-health",      label: "System Health",         icon: IconGauge  },
+        { value: "scheduled-research", label: "Scheduled Research",    icon: IconTimer  },
+        { value: "vector-bench",       label: "Vector Search Latency", icon: IconBrain  },
       ],
     },
   ];
@@ -274,7 +180,12 @@ function getGroupForSection(section: AiIntelligenceSection, groups: NavGroup[]):
   for (const group of groups) {
     if (group.sections.some((s) => s.value === section)) return group.id;
   }
-  return "management-company";
+  // Legacy specialist deep links → highlight Specialists group so the sidebar
+  // still responds visually even though individual specialist rows are gone.
+  if (section in SPECIALIST_SECTION_TO_ID || section === "analyst-orchestrator") {
+    return "specialists";
+  }
+  return "ai-agents";
 }
 
 interface AiIntelligenceSidebarProps {
@@ -283,48 +194,24 @@ interface AiIntelligenceSidebarProps {
 }
 
 export function AiIntelligenceSidebarNav({ activeSection, onSectionChange }: AiIntelligenceSidebarProps) {
-  // Pull the current Specialist list so every Specialist entry (Gaspar
-  // plus the 12 sub-Specialists) reflects any Identity-tab rename without
-  // a page reload. The IdentityTab already invalidates the
-  // ["/api/admin/specialists"] query on save, so the sidebar updates the
-  // moment the override is persisted. Falls back to the static catalog
-  // `humanName` (and to "Gaspar" for the orchestrator) while the query is
-  // in flight or if the request fails — see Task #633.
+  // Pull the live Specialist list so Gustavo's sidebar label reflects any
+  // Identity-tab rename without a page reload. Falls back to "Gustavo"
+  // (the canonical human name — NOT "Gaspar" which is the internal system
+  // ID only). See hplus-admin-nav-ia Rule 7.
   const { data: specialists } = useQuery<SpecialistListItem[]>({
     queryKey: ["/api/admin/specialists"],
   });
-  const gasparHumanName = useMemo(() => {
+
+  const gustavoHumanName = useMemo(() => {
     const row = specialists?.find((s) => s.id === ORCHESTRATOR_SPECIALIST_ID);
-    return row?.humanName?.trim() || "Gaspar";
+    return row?.humanName?.trim() || "Gustavo";
   }, [specialists]);
-  // Task #633 — map of Specialist id → override-resolved humanName for the
-  // 12 sub-Specialists. Empty/whitespace-only overrides are skipped so the
-  // catalog `humanName` fallback inside `specialistRow` still wins.
-  const liveHumanNameById = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const s of specialists ?? []) {
-      const trimmed = s.humanName?.trim();
-      if (trimmed) map.set(s.id, trimmed);
-    }
-    return map;
-  }, [specialists]);
+
   const navGroups = useMemo(
-    () => buildNavGroups(gasparHumanName, liveHumanNameById),
-    [gasparHumanName, liveHumanNameById],
+    () => buildNavGroups(gustavoHumanName),
+    [gustavoHumanName],
   );
   const activeGroup = getGroupForSection(activeSection, navGroups);
-
-  // Task #502 — quick lookup of `hasLlmOverrides` keyed by Specialist id so
-  // the per-row "Overrides" badge can render in O(1) inside the map below.
-  // Specialists not present in the list (e.g. while the query is loading
-  // or because the row is the synthetic Gaspar one) default to "no badge".
-  const overrideById = useMemo(() => {
-    const map = new Map<string, boolean>();
-    for (const s of specialists ?? []) {
-      if (s.hasLlmOverrides) map.set(s.id, true);
-    }
-    return map;
-  }, [specialists]);
 
   return (
     <SidebarProvider
@@ -371,24 +258,14 @@ export function AiIntelligenceSidebarNav({ activeSection, onSectionChange }: AiI
                       {group.sections.map((section) => {
                         const isActive = activeSection === section.value;
                         const Icon = section.icon;
-                        // Task #502 — when this row corresponds to one of
-                        // the 12 catalog Specialists, look up its override
-                        // status and render a small clickable "Overrides"
-                        // badge that jumps the user to the LLM Config tab.
-                        const specialistId = section.value in SPECIALIST_SECTION_TO_ID
-                          ? SPECIALIST_SECTION_TO_ID[section.value as keyof typeof SPECIALIST_SECTION_TO_ID]
-                          : null;
-                        const hasOverride = specialistId
-                          ? overrideById.get(specialistId) === true
-                          : false;
                         return (
-                          <SidebarMenuSubItem key={section.value} className="relative">
+                          <SidebarMenuSubItem key={section.value}>
                             <SidebarMenuSubButton
                               isActive={isActive}
                               onClick={() => onSectionChange(section.value)}
                               data-testid={`ai-intelligence-nav-${section.value}`}
                               title={section.tooltip}
-                              className={`cursor-pointer ${section.secondary ? "h-auto py-1.5" : ""} ${hasOverride ? "pr-16" : ""}`}
+                              className={`cursor-pointer ${section.secondary ? "h-auto py-1.5" : ""}`}
                             >
                               <Icon className="size-4 shrink-0" />
                               {section.secondary ? (
@@ -410,45 +287,6 @@ export function AiIntelligenceSidebarNav({ activeSection, onSectionChange }: AiI
                                 <span className="truncate flex-1">{section.label}</span>
                               )}
                             </SidebarMenuSubButton>
-                            {/*
-                              The "Overrides" badge is a clickable
-                              control of its own (deep-links to the LLM
-                              Config tab) so it must NOT nest inside the
-                              SidebarMenuSubButton, which Radix renders
-                              as an <a>. Nested interactive elements are
-                              invalid HTML and produce inconsistent click
-                              behavior across browsers. We render the
-                              badge as an absolutely-positioned sibling
-                              inside the <li> instead — visually inline,
-                              structurally a peer of the row anchor.
-                            */}
-                            {hasOverride && specialistId && (
-                              <TooltipProvider>
-                                <Tooltip delayDuration={200}>
-                                  <TooltipTrigger asChild>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setAiIntelligenceTabHint(specialistId, "llm-config");
-                                        onSectionChange(section.value);
-                                      }}
-                                      className="absolute right-1.5 top-1/2 -translate-y-1/2 z-10 inline-flex items-center rounded-sm border border-amber-400/40 bg-amber-400/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-300 hover:bg-amber-400/20 hover:text-amber-200"
-                                      data-testid={`ai-intelligence-nav-${section.value}-overrides-badge`}
-                                      aria-label="Has LLM overrides — open LLM Config tab"
-                                    >
-                                      Overrides
-                                    </button>
-                                  </TooltipTrigger>
-                                  <TooltipContent side="right">
-                                    <p className="text-xs">
-                                      This Specialist diverges from the global LLM defaults.
-                                      Click to jump to its LLM Config tab.
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            )}
                           </SidebarMenuSubItem>
                         );
                       })}
