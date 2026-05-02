@@ -57,14 +57,7 @@ const FIXTURE: SlidePayload = {
     renovationScope: "light",
     exitCapRate: 0.075,
   },
-  photos: [
-    photoEntry(true, 0),
-    photoEntry(false, 1),
-    photoEntry(false, 2),
-    photoEntry(false, 3),
-    photoEntry(false, 4),
-    photoEntry(false, 5),
-  ],
+  photos: [], // populated at runtime with generated test images
   financials: {
     yearlyIS: [
       { year: 2025, revenueTotal: 420_000, totalExpenses: 260_000, noi: 160_000, gop: 175_000, operationalMonthsInYear: 8, soldRooms: 2_400, availableRooms: 3_504, cleanAdr: 285 },
@@ -123,6 +116,26 @@ const FIXTURE: SlidePayload = {
 
 const OUT_DIR = "/tmp/slide-smoke";
 fs.mkdirSync(OUT_DIR, { recursive: true });
+
+// Generate distinct-color test photos (hero=green, others=blue shades)
+console.log("Generating test photos...");
+const [heroB64, p1B64, p2B64, p3B64, p4B64, p5B64] = await Promise.all([
+  makeTestJpegB64(60, 140, 80),   // hero: forest green
+  makeTestJpegB64(80, 120, 200),  // gallery 1: blue
+  makeTestJpegB64(100, 100, 220), // gallery 2: medium blue
+  makeTestJpegB64(120, 80, 240),  // gallery 3: indigo
+  makeTestJpegB64(140, 60, 200),  // gallery 4: violet
+  makeTestJpegB64(160, 40, 180),  // gallery 5: purple
+]);
+
+FIXTURE.photos = [
+  photoEntry(heroB64, true, 0),
+  photoEntry(p1B64, false, 1),
+  photoEntry(p2B64, false, 2),
+  photoEntry(p3B64, false, 3),
+  photoEntry(p4B64, false, 4),
+  photoEntry(p5B64, false, 5),
+];
 
 const fonts = getSlideFonts();
 const HYBRID_SLIDES = [1, 2, 3, 5] as const;
