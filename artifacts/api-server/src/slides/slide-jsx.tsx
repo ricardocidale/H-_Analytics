@@ -64,7 +64,7 @@ const C = {
   faintWhite:   "rgba(255,249,245,0.55)", // 55% cream — caption/byline overlay
   canvasRule:   "rgba(28,43,30,0.15)",    // 15% darkBg — dividers/borders
   canvasZebra:  "rgba(28,43,30,0.04)",    //  4% darkBg — alternating row bg
-  canvasHeader: "rgba(37,125,65,0.20)",   // 20% accent — table-header band
+  canvasHeader: "rgba(37,125,65,0.2)",    // 20% accent — table-header band
 } as const;
 
 // ── Slide dimensions ──────────────────────────────────────────────────────
