@@ -27,6 +27,7 @@ import { registerRoutes } from "./legacyRoutes";
 import { registerImageRoutes } from "./routes/images";
 import { propertySlidesRouter } from "./routes/property-slides";
 import { propertyDeckPdfRouter } from "./routes/property-deck-pdf";
+import { propertyDeckSlideRouter } from "./routes/property-deck-slide";
 import { internalDeckPayloadRouter } from "./routes/internal-deck-payload";
 import { indexKnowledgeBase } from "./ai/knowledge-base";
 import { indexAllAssets } from "./ai/asset-intelligence";
@@ -196,6 +197,7 @@ app.use((req, res, next) => {
   registerImageRoutes(app);
   app.use(propertySlidesRouter);
   app.use(propertyDeckPdfRouter);
+  app.use(propertyDeckSlideRouter);
   app.use(internalDeckPayloadRouter);
   const { registerGoogleAuthRoutes } = await import("./routes/google-auth");
   registerGoogleAuthRoutes(app);

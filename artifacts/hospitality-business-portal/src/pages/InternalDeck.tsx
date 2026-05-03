@@ -100,6 +100,17 @@ export default function InternalDeck() {
     const usp = new URLSearchParams(window.location.search);
     return usp.get("token") ?? "";
   }, []);
+  // Optional ?slide=N filter (1..TOTAL_SLIDES). When set, only that slide is
+  // rendered — used by the per-slide PDF endpoint so Playwright captures a
+  // 1-page PDF, and by anything that wants to embed a single slide.
+  const slideFilter = useMemo<number | null>(() => {
+    const usp = new URLSearchParams(window.location.search);
+    const raw = usp.get("slide");
+    if (!raw) return null;
+    const n = Number(raw);
+    if (!Number.isInteger(n) || n < 1 || n > TOTAL_SLIDES) return null;
+    return n;
+  }, []);
 
   const { data, error } = useDeckPayload(params?.propertyId, token);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -173,13 +184,13 @@ export default function InternalDeck() {
           .deck-root { display: block !important; padding: 0 !important; gap: 0 !important; width: ${SLIDE_WIDTH_PX}px; }
         }
       `}</style>
-      <div ref={rootRef} className="deck-root" data-deck-total={TOTAL_SLIDES}>
-        <div className="deck-page"><Slide1 p={data} /></div>
-        <div className="deck-page"><Slide2 p={data} /></div>
-        <div className="deck-page"><Slide3 p={data} /></div>
-        <div className="deck-page"><Slide4 p={data} /></div>
-        <div className="deck-page"><Slide5 p={data} /></div>
-        <div className="deck-page"><Slide6 p={data} /></div>
+      <div ref={rootRef} className="deck-root" data-deck-total={TOTAL_SLIDES} data-slide-filter={slideFilter ?? "all"}>
+        {(slideFilter === null || slideFilter === 1) && <div className="deck-page"><Slide1 p={data} /></div>}
+        {(slideFilter === null || slideFilter === 2) && <div className="deck-page"><Slide2 p={data} /></div>}
+        {(slideFilter === null || slideFilter === 3) && <div className="deck-page"><Slide3 p={data} /></div>}
+        {(slideFilter === null || slideFilter === 4) && <div className="deck-page"><Slide4 p={data} /></div>}
+        {(slideFilter === null || slideFilter === 5) && <div className="deck-page"><Slide5 p={data} /></div>}
+        {(slideFilter === null || slideFilter === 6) && <div className="deck-page"><Slide6 p={data} /></div>}
       </div>
     </>
   );

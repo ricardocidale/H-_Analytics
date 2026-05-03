@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { IconDownload, IconPresentation, IconAlertCircle, IconCheckCircle2 } from "@/components/icons";
+import { Link } from "wouter";
+import { IconDownload, IconPresentation, IconAlertCircle, IconCheckCircle2, IconLayers } from "@/components/icons";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -336,6 +337,17 @@ export default function SlideDecksTab() {
                     )}
                     {dlStatePdf === "done" ? "Saved" : "Download PDF"}
                   </Button>
+                  <Link href={`/admin/lb-slides/${p.id}`}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5"
+                      title="Open per-slide view: download or regenerate each of the six slides independently"
+                    >
+                      <IconLayers className="h-3.5 w-3.5" />
+                      Slides
+                    </Button>
+                  </Link>
                 </div>
               </CardContent>
             </Card>
