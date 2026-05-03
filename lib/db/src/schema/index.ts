@@ -28,6 +28,7 @@ export * from "./media-assets";
 export * from "./scheduler-runs";
 export * from "./storage-drift-sweep-runs";
 export * from "./cache";
+export * from "./property-deck-payloads";
 export * from "./reference-brands";
 export * from "./property-slide-decks";
 // NOTE: ./replit-billing is intentionally NOT re-exported. Billing telemetry

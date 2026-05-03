@@ -126,6 +126,10 @@
     "0031_drop_unused_indexes": {
       "status": "self-idempotent",
       "reason": "Task #973 audit-driven cleanup of unused indexes. All 45 statements are DROP INDEX IF EXISTS — re-running via migrate() is a no-op."
+    },
+    "0032_property_deck_payloads": {
+      "status": "self-idempotent",
+      "reason": "CREATE TABLE IF NOT EXISTS property_deck_payloads — sidecar editor table for the L+B canonical 6-slide investor deck. Re-running via migrate() is a no-op."
     }
   }
 }

@@ -29,6 +29,7 @@ import { propertySlidesRouter } from "./routes/property-slides";
 import { propertyDeckPdfRouter } from "./routes/property-deck-pdf";
 import { propertyDeckSlideRouter } from "./routes/property-deck-slide";
 import { internalDeckPayloadRouter } from "./routes/internal-deck-payload";
+import { propertyDeckPayloadRouter } from "./routes/property-deck-payload";
 import { indexKnowledgeBase } from "./ai/knowledge-base";
 import { indexAllAssets } from "./ai/asset-intelligence";
 import { indexAllMarketResearch } from "./ai/vector-indexing";
@@ -199,6 +200,7 @@ app.use((req, res, next) => {
   app.use(propertyDeckPdfRouter);
   app.use(propertyDeckSlideRouter);
   app.use(internalDeckPayloadRouter);
+  app.use(propertyDeckPayloadRouter);
   const { registerGoogleAuthRoutes } = await import("./routes/google-auth");
   registerGoogleAuthRoutes(app);
   await registerRoutes(httpServer, app);

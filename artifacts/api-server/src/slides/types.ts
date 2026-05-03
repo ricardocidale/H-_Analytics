@@ -105,7 +105,17 @@ export interface SlidePayload {
   photos: SlidePhoto[];
   financials: SlideFinancials;
   siblings: SiblingProperty[];
+  /** @deprecated legacy LLM shape — being removed once the new renderers land (T008). Use deckPayloadV2 + deterministic templates instead. */
   visionText: VisionText;
+  /** @deprecated legacy LLM shape — being removed once the new renderers land (T008). */
   improvements: PropertyImprovement[];
+  /**
+   * Editor-authored sidecar copy from `property_deck_payloads`. Holds the
+   * human-only and LLM-draft+human-approved slots for the new 6-slide
+   * canonical renderer. Always present — `EMPTY_DECK_PAYLOAD_V2` when no
+   * editor row exists yet. Renderers fall back to deterministic per-slot
+   * templates for any missing slot.
+   */
+  deckPayloadV2: import("@shared/deck-payload-v2").DeckPayloadV2;
   slide4HeroBase64?: string;
 }
