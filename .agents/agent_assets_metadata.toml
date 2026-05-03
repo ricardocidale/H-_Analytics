@@ -77,3 +77,45 @@ id = "sqX4KplAkI3ynk2TwlCSR"
 uri = "file://attached_assets/property_target_template_lola_ber_1773007685945.pptx"
 type = "slides"
 title = "Property Target Template (Lola Ber, March 8)"
+
+[[outputs]]
+id = "Ntq4fMDIqlvQTPfRIXwzm"
+uri = "file://exports/decks/scott-s-house.pdf"
+type = "pdf"
+title = "Scott's House — Ogden Valley, Utah"
+
+[[outputs]]
+id = "HAzP7FR6HYW7Bedi831EZ"
+uri = "file://exports/decks/loch-sheldrake.pdf"
+type = "pdf"
+title = "Loch Sheldrake"
+
+[[outputs]]
+id = "Xw18h9R-ZqCnRQWeXIqkw"
+uri = "file://exports/decks/san-diego.pdf"
+type = "pdf"
+title = "San Diego"
+
+[[outputs]]
+id = "b56s9xgrdu2NI3GCaMtEe"
+uri = "file://exports/decks/lakeview-haven-lodge.pdf"
+type = "pdf"
+title = "Lakeview Haven Lodge"
+
+[[outputs]]
+id = "K9B4frIsZU9303WAAJU_o"
+uri = "file://exports/decks/jano-grande-ranch.pdf"
+type = "pdf"
+title = "Jano Grande Ranch"
+
+[[outputs]]
+id = "_dGMD_4QHp5d466Et10k8"
+uri = "file://exports/decks/belleayre-mountain.pdf"
+type = "pdf"
+title = "Belleayre Mountain"
+
+[[outputs]]
+id = "sMToxBClvKInOw8r_TtpC"
+uri = "file://exports/decks/medellin-duplex.pdf"
+type = "pdf"
+title = "Medellin Duplex"
