@@ -14,3 +14,5 @@ temp
 *.zip
 *.tar.gz
 attached_assets
+artifacts/*/dist
+lib/*/dist
