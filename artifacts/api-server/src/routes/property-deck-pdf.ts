@@ -36,13 +36,16 @@ import {
   HTTP_500_INTERNAL_SERVER_ERROR,
 } from "../constants";
 
+import {
+  PDF_RENDER_TIMEOUT_MS,
+  DECK_READY_POLL_TIMEOUT_MS,
+  DECK_VIEWPORT_WIDTH,
+  DECK_VIEWPORT_HEIGHT,
+  PDF_CONTENT_TYPE,
+} from "../slides/deck-render-constants";
+
 const router = Router();
 
-const PDF_RENDER_TIMEOUT_MS = 90 * 1000;
-const DECK_READY_POLL_TIMEOUT_MS = 60 * 1000;
-const DECK_VIEWPORT_WIDTH = 1920;
-const DECK_VIEWPORT_HEIGHT = 1080;
-const PDF_CONTENT_TYPE = "application/pdf";
 const PDF_FORMAT = "pdf" as const;
 const SLIDE_ERROR_MSG_MAX_LENGTH = 500;
 
