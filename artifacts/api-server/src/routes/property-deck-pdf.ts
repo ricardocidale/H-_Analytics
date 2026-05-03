@@ -29,6 +29,7 @@ import { parseRouteId } from "./helpers";
 import { getBrowser } from "../slides/playwright-browser";
 import { getStorageProviderAsync } from "../providers/storage";
 import { signDeckToken } from "../slides/internal-token";
+import { DECK_LOGIC_VERSION } from "../slides/deck-logic-version";
 import {
   HTTP_400_BAD_REQUEST,
   HTTP_404_NOT_FOUND,
@@ -54,8 +55,15 @@ interface PdfVariantRow {
   generated_at: Date | null;
 }
 
+/**
+ * R2 cache key. Includes DECK_LOGIC_VERSION so that bumping the version
+ * (LLM model swap, prompt change, layout change, schema change) targets a
+ * different key — the existing variant row's r2_key no longer matches what
+ * the current code expects, isCacheFresh treats the entry as stale, and the
+ * deck regenerates against the new pipeline. Old keys orphan in R2 (cheap).
+ */
 function pdfR2Key(propertyId: number): string {
-  return `slides/pdf/property-${propertyId}.pdf`;
+  return `slides/pdf/${DECK_LOGIC_VERSION}/property-${propertyId}.pdf`;
 }
 
 function slugify(name: string): string {
@@ -105,16 +113,24 @@ async function upsertPdfVariantRow(args: {
 }
 
 /**
- * Cache is fresh iff a ready row exists with an r2 key and was generated
- * after every property timestamp that should invalidate it.
+ * Cache is fresh iff:
+ *   1. A ready row exists with an r2 key and a generated_at timestamp.
+ *   2. The row's r2_key matches the key the current code would write to —
+ *      a mismatch means DECK_LOGIC_VERSION has bumped since the row was
+ *      written, so the cached PDF was produced by stale pipeline logic
+ *      (LLM model, prompt, layout, or schema change). See deck-logic-version.ts.
+ *   3. generated_at is newer than every property timestamp that invalidates
+ *      it (property.updatedAt, property.financialsComputedAt).
  */
 function isCacheFresh(
   row: PdfVariantRow | null,
+  propertyId: number,
   property: { updatedAt?: Date | string | null; financialsComputedAt?: Date | string | null },
 ): boolean {
   if (!row) return false;
   if (row.status !== "ready") return false;
   if (!row.r2_key || !row.generated_at) return false;
+  if (row.r2_key !== pdfR2Key(propertyId)) return false;
 
   const cachedAt = new Date(row.generated_at).getTime();
   const stamps: number[] = [];
@@ -222,7 +238,7 @@ router.get(
       if (
         existing &&
         existing.r2_key &&
-        isCacheFresh(existing, property as { updatedAt?: Date | null; financialsComputedAt?: Date | null })
+        isCacheFresh(existing, propertyId, property as { updatedAt?: Date | null; financialsComputedAt?: Date | null })
       ) {
         const cached = await sp.downloadBuffer(existing.r2_key).catch(() => null);
         if (cached?.buffer) {

@@ -40,6 +40,10 @@ args = "check:production-image"
 task = "workflow.run"
 args = "check:migration-guards"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "check:types-mirror"
+
 [[workflows.workflow]]
 name = "check:spinner-contrast"
 author = "agent"
@@ -102,6 +106,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:migration-guards"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "check:types-mirror"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:types-mirror"
 
 [workflows.workflow.metadata]
 outputType = "console"

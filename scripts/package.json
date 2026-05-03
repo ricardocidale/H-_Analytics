@@ -10,6 +10,7 @@
     "check:magic-numbers": "tsx ./src/check-magic-numbers.ts",
     "check:migration-guards": "tsx ./src/check-migration-guards.ts",
     "check:spinner-contrast": "tsx ./src/check-spinner-contrast.ts",
+    "check:types-mirror": "tsx ./src/check-types-mirror.ts",
     "check:production-image": "tsx ./src/check-production-image.ts",
     "sync-db-to-railway": "tsx ./src/sync-db-to-railway.ts",
     "test": "vitest run",
