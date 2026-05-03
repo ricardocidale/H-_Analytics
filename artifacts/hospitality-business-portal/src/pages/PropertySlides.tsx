@@ -46,6 +46,7 @@ import { Slide1, Slide2, Slide3, Slide4, Slide5, Slide6 } from "@/features/inter
 import { SLIDE_HEIGHT_PX, SLIDE_WIDTH_PX } from "@/features/internal-deck/theme";
 import "@/features/internal-deck/fonts.css";
 import type { SlidePayload } from "@/features/internal-deck/types";
+import { Slide1EditorPanel } from "@/features/internal-deck/editor/Slide1EditorPanel";
 import { useToast } from "@/hooks/use-toast";
 
 // ── Slide registry ────────────────────────────────────────────────────────
@@ -92,7 +93,7 @@ interface PropertyRow {
   name: string;
 }
 
-type ViewMode = "grid" | "carousel";
+type ViewMode = "grid" | "carousel" | "edit";
 
 function downloadViaAnchor(url: string, filename: string): void {
   const a = document.createElement("a");
@@ -435,6 +436,18 @@ export default function PropertySlides() {
           >
             Carousel
           </button>
+          <button
+            type="button"
+            onClick={() => setView("edit")}
+            className={`px-3 py-1.5 border-l border-border transition-colors ${
+              view === "edit"
+                ? "bg-primary text-primary-foreground"
+                : "bg-background hover:bg-muted"
+            }`}
+            aria-pressed={view === "edit"}
+          >
+            Edit copy
+          </button>
         </div>
       </div>
 
@@ -475,6 +488,41 @@ export default function PropertySlides() {
 
       {payload && view === "carousel" && (
         <SlidesCarousel payload={payload} actions={actions} />
+      )}
+
+      {view === "edit" && (
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto]">
+          <Slide1EditorPanel propertyId={propertyId} />
+          {payload && (
+            <Card className="border border-border/60 self-start sticky top-4 overflow-hidden p-0">
+              <div className="px-4 py-3 border-b border-border/60">
+                <p className="text-sm font-semibold leading-tight">Live preview — Slide 1</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Currently shows the legacy renderer. The new renderer that
+                  consumes editor copy lands in the next slice (T004).
+                </p>
+              </div>
+              <div
+                className="relative bg-[#0f1621] overflow-hidden"
+                style={{ width: THUMB_WIDTH_PX, height: THUMB_HEIGHT_PX }}
+              >
+                <div
+                  style={{
+                    width: SLIDE_WIDTH_PX,
+                    height: SLIDE_HEIGHT_PX,
+                    transform: `scale(${THUMB_SCALE})`,
+                    transformOrigin: "top left",
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                  }}
+                >
+                  <Slide1 p={payload} />
+                </div>
+              </div>
+            </Card>
+          )}
+        </div>
       )}
     </div>
   );
