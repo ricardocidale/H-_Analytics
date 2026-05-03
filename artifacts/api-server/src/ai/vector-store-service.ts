@@ -82,6 +82,7 @@ export interface VectorChunk {
 
 export interface QueryMatch {
   id: string;
+  text: string;
   score: number;
   text: string;
   metadata: Record<string, string | number | boolean>;
@@ -114,6 +115,7 @@ export async function queryByMetadataExact(
 
   return rows.map((r) => ({
     id: r.id,
+    text: r.text ?? "",
     score: 1.0,
     text: r.text ?? "",
     metadata: r.metadata ?? {},
@@ -392,7 +394,7 @@ export async function queryChunks(
       metadata: Record<string, string | number | boolean>;
       score: number;
     }>(sql, [namespace, literal, JSON.stringify(filter), topK]);
-    return rows.map((r) => ({ id: r.id, score: (Number.isFinite(Number(r.score)) ? Number(r.score) : 0), text: r.text ?? "", metadata: r.metadata ?? {} }));
+    return rows.map((r) => ({ id: r.id, text: r.text ?? "", score: (Number.isFinite(Number(r.score)) ? Number(r.score) : 0), metadata: r.metadata ?? {} }));
   }
 
   const sql = `
@@ -407,7 +409,7 @@ export async function queryChunks(
     metadata: Record<string, string | number | boolean>;
     score: number;
   }>(sql, [namespace, literal, topK]);
-  return rows.map((r) => ({ id: r.id, score: (Number.isFinite(Number(r.score)) ? Number(r.score) : 0), text: r.text ?? "", metadata: r.metadata ?? {} }));
+  return rows.map((r) => ({ id: r.id, text: r.text ?? "", score: (Number.isFinite(Number(r.score)) ? Number(r.score) : 0), metadata: r.metadata ?? {} }));
 }
 
 export async function deleteVectors(
@@ -469,6 +471,7 @@ export async function multiNamespaceQuery(
         }
         return rows.map((r) => ({
           id: r.id,
+          text: r.text ?? "",
           score: (Number.isFinite(Number(r.score)) ? Number(r.score) : 0),
           text: r.text ?? "",
           metadata: r.metadata ?? {},
