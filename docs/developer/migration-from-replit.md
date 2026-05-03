@@ -145,55 +145,40 @@ In the existing Railway project, click **+ New → Database → PostgreSQL**. Ca
 - `DATABASE_URL` (private, `*.railway.internal`) — used by the app service.
 - The **public** connection string — used **once** for the data copy below, then forgotten.
 
-### 2. Apply schema
+### 2 & 3. Apply schema and copy data (one command)
 
-From your machine, point Drizzle at the new public Railway URL and push the schema:
+The schema push, data-only `pg_dump` / `pg_restore`, and row-count sanity check
+are wrapped by a single workspace script. From your machine, with `pg_dump`,
+`pg_restore`, and `psql` on PATH:
 
 ```bash
-DATABASE_URL='<railway-public-url>' \
-  pnpm --filter @workspace/db exec drizzle-kit push
+pnpm --filter @workspace/scripts run sync-db-to-railway -- \
+  --source '<dev-database-url>' \
+  --target '<railway-public-url>'
 ```
 
-Verify all migrations from `lib/db/migrations/` (through `0039_users_rebecca_rail_open.sql`) are present:
+What it does:
+
+1. Runs `drizzle-kit push` against the target so the schema (through the latest
+   migration in `lib/db/migrations/`) is in place.
+2. Runs `pg_dump --data-only --no-owner --no-acl --disable-triggers
+   --format=custom` against the source.
+3. Runs `pg_restore --data-only --no-owner --no-acl --disable-triggers
+   --single-transaction` into the target.
+4. Prints a row-count diff for the major tables (`users`, `companies`,
+   `properties`, `scenarios`, `scenario_results`, `financial_assumptions`,
+   `model_constants`, `model_defaults`, `property_slide_decks`).
+
+Useful flags: `--skip-schema`, `--skip-data` (e.g. for a periodic data-only
+refresh of staging), `--keep-dump`, `--dump-file <path>`. You can also set
+`SOURCE_DATABASE_URL` / `TARGET_DATABASE_URL` in the environment instead of
+passing the flags.
+
+If you prefer to verify the schema state manually after the push:
 
 ```bash
 psql '<railway-public-url>' -c "\\dt" | wc -l
 psql '<railway-public-url>' -c "select count(*) from drizzle.__drizzle_migrations;"
-```
-
-### 3. Copy data from dev DB into Railway DB
-
-Use `pg_dump --data-only` so the freshly-pushed schema is preserved. Disable triggers during restore so FK ordering does not matter:
-
-```bash
-# Dump data from dev (no DDL, no owner, no ACL).
-pg_dump \
-  --data-only \
-  --no-owner \
-  --no-acl \
-  --disable-triggers \
-  --format=custom \
-  --file=dev-data.dump \
-  '<dev-database-url>'
-
-# Restore into Railway public URL.
-pg_restore \
-  --data-only \
-  --no-owner \
-  --no-acl \
-  --disable-triggers \
-  --single-transaction \
-  --dbname='<railway-public-url>' \
-  dev-data.dump
-```
-
-Sanity-check row counts on the largest tables:
-
-```bash
-for t in users companies properties scenarios financial_assumptions; do
-  echo -n "$t  dev="; psql '<dev-database-url>' -tAc "select count(*) from $t"
-  echo -n "$t  rwy="; psql '<railway-public-url>' -tAc "select count(*) from $t"
-done
 ```
 
 ### 4. Connect Railway service to the repo
