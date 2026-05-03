@@ -783,15 +783,40 @@ async function runSeeds() {
   results.forEach((r, i) => {
     const name = seedTasks[i].name;
     if (r.status === "rejected") {
+      // Surface seed/migration failures at error level — these previously
+      // logged as "skipped … will retry next boot" warnings, which let real
+      // schema drift (e.g. a missing column) hide in the dev workflow log
+      // until the first request blew up. The schema probe below is the
+      // safety net, but the error log makes the cause obvious.
       serverLog(
-        `[seed:${name}] skipped (will retry next boot): ${r.reason instanceof Error ? r.reason.message : r.reason}`,
+        `[seed:${name}] FAILED (will retry next boot): ${r.reason instanceof Error ? r.reason.message : r.reason}`,
         "startup",
-        "warn",
+        "error",
       );
     } else {
       serverLog(`[seed:${name}] ok`, "startup", "info");
     }
   });
+
+  // Auto-heal / drift detector. Runs after the idempotent seed/migration
+  // steps so any newly-added column has a chance to be created normally;
+  // if a known column is still missing (e.g. the rebecca-rail-open seed
+  // failed silently against the dev DB), the probe runs the healing
+  // ALTER itself. If a required column is missing and we have no heal
+  // for it, boot aborts loudly instead of letting login queries 500.
+  try {
+    const { runSchemaProbe } = await import("./migrations/schema-probe");
+    await runSchemaProbe();
+    serverLog(`[seed:schema-probe] ok`, "startup", "info");
+  } catch (err: unknown) {
+    serverLog(
+      `[seed:schema-probe] FAILED: ${err instanceof Error ? err.message : String(err)}`,
+      "startup",
+      "error",
+    );
+    // Schema drift is fatal — refuse to start the API on a broken schema.
+    process.exit(1);
+  }
 
   await seedCompanies().catch(err => {
     serverLog(`[seed:companies] skipped: ${err instanceof Error ? err.message : err}`, "startup", "warn");
