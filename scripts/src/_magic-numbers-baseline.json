@@ -107,11 +107,8 @@
     "artifacts/api-server/src/services/WorldBankService.ts",
     "artifacts/api-server/src/shared/constants.ts",
     "artifacts/api-server/src/shared/market-intelligence-pipeline.ts",
-    "artifacts/api-server/src/slides/image-renderer.ts",
     "artifacts/api-server/src/slides/improvement-suggestions.ts",
     "artifacts/api-server/src/slides/internal-token.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
-    "artifacts/api-server/src/slides/slot-resolver.ts",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "artifacts/api-server/src/storage/specialist-config.ts",
     "artifacts/api-server/src/svg-charts.ts",
@@ -243,12 +240,8 @@
     "artifacts/api-server/src/services/FREDService.ts",
     "artifacts/api-server/src/services/RealtyService.ts",
     "artifacts/api-server/src/shared/constants.ts",
-    "artifacts/api-server/src/slides/hybrid-renderer.ts",
-    "artifacts/api-server/src/slides/image-renderer.ts",
     "artifacts/api-server/src/slides/improvement-suggestions.ts",
     "artifacts/api-server/src/slides/internal-token.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
-    "artifacts/api-server/src/slides/slot-resolver.ts",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "artifacts/api-server/src/storage/render-settings.ts",
     "artifacts/api-server/src/svg-charts.ts",
@@ -341,10 +334,6 @@
     "artifacts/api-server/src/services/OpenExchangeRatesService.ts",
     "artifacts/api-server/src/services/WeatherService.ts",
     "artifacts/api-server/src/shared/constants.ts",
-    "artifacts/api-server/src/slides/hybrid-renderer.ts",
-    "artifacts/api-server/src/slides/image-renderer.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
-    "artifacts/api-server/src/slides/slot-resolver.ts",
     "artifacts/api-server/src/storage/admin-resource/health-checks.ts",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "artifacts/api-server/src/svg-charts.ts",
@@ -410,7 +399,6 @@
     "artifacts/api-server/src/seeds/photos.ts",
     "artifacts/api-server/src/services/ApifyService.ts",
     "artifacts/api-server/src/services/RapidApiHospitalityService.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "artifacts/api-server/src/storage/reference-range.ts",
     "lib/analytics/src/returns/irr.ts",
@@ -457,7 +445,6 @@
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/photos.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/calc/src/analysis/structure-comparison.ts",
     "lib/engine/src/company/company-engine.ts",
@@ -579,7 +566,6 @@
     "artifacts/api-server/src/services/RapidApiHospitalityService.ts",
     "artifacts/api-server/src/services/XoteloService.ts",
     "artifacts/api-server/src/shared/constants.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "artifacts/api-server/src/storage/calc-audit.ts",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "artifacts/api-server/src/storage/intelligence/research-runs.ts",
@@ -622,8 +608,6 @@
     "artifacts/api-server/src/routes/property-slides.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/photos.ts",
-    "artifacts/api-server/src/slides/hybrid-renderer.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/shared/src/constants-funding.ts"
   ],
@@ -635,7 +619,6 @@
     "artifacts/api-server/src/pdf-styles.ts",
     "artifacts/api-server/src/routes/icp-research-helpers.ts",
     "artifacts/api-server/src/seeds/photos.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "lib/shared/src/constants-benchmarks.ts"
   ],
   "14": [
@@ -654,7 +637,6 @@
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/services/ApifyService.ts",
     "artifacts/api-server/src/services/RapidApiHospitalityService.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "artifacts/api-server/src/table-renderer.ts",
     "lib/shared/src/constants-benchmarks.ts",
@@ -692,7 +674,6 @@
     "artifacts/api-server/src/services/RapidApiHospitalityService.ts",
     "artifacts/api-server/src/services/RealtyService.ts",
     "artifacts/api-server/src/shared/constants.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "lib/analytics/src/returns/irr.ts",
     "lib/calc/src/analysis/stress-test.ts",
     "lib/calc/src/research/validate-research.ts",
@@ -720,8 +701,6 @@
     "artifacts/api-server/src/routes/property-photos.ts",
     "artifacts/api-server/src/routes/ssrf-guard.ts",
     "artifacts/api-server/src/seeds/production-sql.ts",
-    "artifacts/api-server/src/slides/hybrid-renderer.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "artifacts/api-server/src/storage/reference-range.ts",
     "artifacts/api-server/src/theme-resolver.ts",
     "lib/shared/src/companyBenchmarks.ts",
@@ -731,8 +710,7 @@
   "17": [
     "artifacts/api-server/src/ai/kb-content.ts",
     "artifacts/api-server/src/services/ApifyService.ts",
-    "artifacts/api-server/src/services/RapidApiHospitalityService.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx"
+    "artifacts/api-server/src/services/RapidApiHospitalityService.ts"
   ],
   "18": [
     "artifacts/api-server/src/ai/analyst-table-refresh.ts",
@@ -754,7 +732,6 @@
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/market-rates.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/calc/src/research/validate-research.ts",
     "lib/shared/src/constants-benchmarks.ts",
@@ -845,9 +822,6 @@
     "artifacts/api-server/src/services/AmadeusService.ts",
     "artifacts/api-server/src/services/FinancialNewsService.ts",
     "artifacts/api-server/src/services/RealtyService.ts",
-    "artifacts/api-server/src/slides/hybrid-renderer.ts",
-    "artifacts/api-server/src/slides/portfolio-renders.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "artifacts/api-server/src/storage/activity.ts",
     "artifacts/api-server/src/storage/admin-resource/quality-snapshots.ts",
     "artifacts/api-server/src/storage/calc-audit.ts",
@@ -877,8 +851,6 @@
     "artifacts/api-server/src/routes/format-generators/pptx-generator.ts",
     "artifacts/api-server/src/routes/icp-research-helpers.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
-    "artifacts/api-server/src/slides/hybrid-renderer.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/shared/src/constants-benchmarks.ts"
   ],
@@ -929,8 +901,7 @@
     "artifacts/api-server/src/data/researchSeeds.ts",
     "artifacts/api-server/src/pdf/pagination.ts",
     "artifacts/api-server/src/routes/icp-research-helpers.ts",
-    "artifacts/api-server/src/seeds/market-data-tables.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx"
+    "artifacts/api-server/src/seeds/market-data-tables.ts"
   ],
   "28": [
     "artifacts/api-server/src/ai/kb-content.ts",
@@ -943,7 +914,6 @@
     "artifacts/api-server/src/routes/format-generators/pptx-generator.ts",
     "artifacts/api-server/src/routes/icp-research-helpers.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "lib/engine/src/analyst/cognitive/verdict-reconstructor.ts"
   ],
   "30": [
@@ -1031,8 +1001,6 @@
     "artifacts/api-server/src/notifications/constants-action-token.ts",
     "artifacts/api-server/src/routes/ssrf-guard.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
-    "artifacts/api-server/src/slides/hybrid-renderer.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "lib/shared/src/companyBenchmarks.ts"
   ],
   "33": [
@@ -1044,7 +1012,6 @@
   "34": [
     "artifacts/api-server/src/ai/kb-content.ts",
     "artifacts/api-server/src/data/researchSeeds.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "lib/shared/src/constants-benchmarks.ts"
   ],
   "35": [
@@ -1115,7 +1082,6 @@
     "artifacts/api-server/src/routes/icp-research-helpers.ts",
     "artifacts/api-server/src/routes/premium-exports.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "lib/calc/src/research/validate-research.ts",
     "lib/shared/src/analyst-conviction.ts",
     "lib/shared/src/constants-benchmarks.ts",
@@ -1145,7 +1111,6 @@
     "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
     "artifacts/api-server/src/notifications/scheduler-stale-alert.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "lib/shared/src/constants-benchmarks.ts",
     "lib/shared/src/constants-funding.ts"
   ],
@@ -1209,7 +1174,6 @@
     "artifacts/api-server/src/seeds/properties.ts",
     "artifacts/api-server/src/seeds/source-registry.ts",
     "artifacts/api-server/src/services/AmadeusService.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "artifacts/api-server/src/storage/activity.ts",
     "artifacts/api-server/src/storage/admin-resource/health-checks.ts",
     "artifacts/api-server/src/storage/documents.ts",
@@ -1294,7 +1258,6 @@
     "artifacts/api-server/src/report/svg-charts.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/shared/constants.ts",
-    "artifacts/api-server/src/slides/slot-resolver.ts",
     "artifacts/api-server/src/storage/admin-resource/quality-snapshots.ts",
     "artifacts/api-server/src/svg-charts.ts",
     "lib/shared/src/analyst-conviction.ts",
@@ -1392,7 +1355,6 @@
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "artifacts/api-server/src/services/ApifyService.ts",
     "artifacts/api-server/src/services/MarketIntelligenceAggregator.ts",
-    "artifacts/api-server/src/slides/image-renderer.ts",
     "artifacts/api-server/src/storage/activity.ts",
     "artifacts/api-server/src/storage/intelligence-rebecca.ts",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
@@ -1406,8 +1368,6 @@
   ],
   "92": [
     "artifacts/api-server/src/ai/specialists/mgmt-co-compensation-orchestrator-adapter.ts",
-    "artifacts/api-server/src/slides/hybrid-renderer.ts",
-    "artifacts/api-server/src/slides/image-renderer.ts",
     "lib/shared/src/constants-benchmarks.ts"
   ],
   "95": [
@@ -1441,7 +1401,6 @@
     "artifacts/api-server/src/routes/research/generate-prompt.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/source-registry.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "lib/engine/src/helpers/default-resolver.ts",
     "lib/shared/src/rebecca-settings.ts"
   ],
@@ -1498,7 +1457,6 @@
     "artifacts/api-server/src/routes/properties.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/shared/constants.ts",
-    "artifacts/api-server/src/slides/portfolio-renders.ts",
     "artifacts/api-server/src/storage/activity.ts",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/engine/src/helpers/default-resolver.ts",
@@ -1563,7 +1521,6 @@
     "artifacts/api-server/src/scripts/backfill-vector-store.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "artifacts/api-server/src/storage/activity.ts",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "artifacts/api-server/src/storage/intelligence/research-runs.ts",
@@ -1649,8 +1606,6 @@
     "artifacts/api-server/src/routes/icp-research-helpers.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
-    "artifacts/api-server/src/slides/hybrid-renderer.ts",
-    "artifacts/api-server/src/slides/image-renderer.ts",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/engine/src/helpers/default-resolver.ts"
   ],
@@ -1660,14 +1615,12 @@
     "artifacts/api-server/src/routes/property-slides.ts",
     "artifacts/api-server/src/routes/rebecca.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/shared/src/constants-benchmarks.ts"
   ],
   "340": [
     "artifacts/api-server/src/data/researchSeeds.ts",
     "artifacts/api-server/src/pdf/pagination.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts"
   ],
   "350": [
@@ -1695,7 +1648,6 @@
     "artifacts/api-server/src/pdf/chart-render.tsx",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/shared/src/constants-benchmarks.ts"
   ],
@@ -1795,9 +1747,6 @@
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "artifacts/api-server/src/shared/market-intelligence-pipeline.ts",
-    "artifacts/api-server/src/slides/hybrid-renderer.ts",
-    "artifacts/api-server/src/slides/image-renderer.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/engine/src/helpers/default-resolver.ts",
     "lib/shared/src/market-intelligence-pipeline.ts"
@@ -2035,9 +1984,7 @@
     "artifacts/api-server/src/routes/export-generate.ts",
     "artifacts/api-server/src/routes/geospatial.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
-    "artifacts/api-server/src/seeds/properties.ts",
-    "artifacts/api-server/src/slides/hybrid-renderer.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx"
+    "artifacts/api-server/src/seeds/properties.ts"
   ],
   "700": [
     "artifacts/api-server/src/ai/context-pack/luxury-classifier.ts",
@@ -2048,9 +1995,6 @@
     "artifacts/api-server/src/pdf/chart-render.tsx",
     "artifacts/api-server/src/report/svg-charts.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
-    "artifacts/api-server/src/slides/hybrid-renderer.ts",
-    "artifacts/api-server/src/slides/image-renderer.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "artifacts/api-server/src/svg-charts.ts"
   ],
   "800": [
@@ -2094,10 +2038,7 @@
     "artifacts/api-server/src/routes/property-photos.ts"
   ],
   "1080": [
-    "artifacts/api-server/src/routes/property-deck-pdf.ts",
-    "artifacts/api-server/src/slides/hybrid-renderer.ts",
-    "artifacts/api-server/src/slides/image-renderer.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx"
+    "artifacts/api-server/src/routes/property-deck-pdf.ts"
   ],
   "1200": [
     "artifacts/api-server/src/ai/icp/config-builder.ts",
@@ -2114,10 +2055,7 @@
     "lib/shared/src/constants.ts"
   ],
   "1920": [
-    "artifacts/api-server/src/routes/property-deck-pdf.ts",
-    "artifacts/api-server/src/slides/hybrid-renderer.ts",
-    "artifacts/api-server/src/slides/image-renderer.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx"
+    "artifacts/api-server/src/routes/property-deck-pdf.ts"
   ],
   "5000": [
     "artifacts/api-server/src/ai/comparables/web-enricher.ts",
@@ -2387,7 +2325,6 @@
     "artifacts/api-server/src/finance/sensitivity.ts",
     "artifacts/api-server/src/routes/property-slides.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "lib/calc/src/analysis/exit-scenarios.ts",
     "lib/calc/src/research/property-metrics.ts",
     "lib/shared/src/constants-business-models.ts",
@@ -2437,7 +2374,6 @@
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "artifacts/api-server/src/shared/constants.ts",
     "artifacts/api-server/src/shared/market-intelligence-pipeline.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/calc/src/analysis/reserves-brand-bundle.ts",
     "lib/engine/src/analyst/quality/quality-scorer.ts",
@@ -2658,8 +2594,6 @@
     "artifacts/api-server/src/pdf/chart-render.tsx",
     "artifacts/api-server/src/routes/format-generators/pptx-generator.ts",
     "artifacts/api-server/src/routes/research/generate-persist-guidance.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
-    "artifacts/api-server/src/slides/slot-resolver.ts",
     "lib/engine/src/analyst/cognitive/verdict-reconstructor.ts",
     "lib/shared/src/companyBenchmarks.ts",
     "lib/shared/src/rebecca-settings.ts"
@@ -2686,8 +2620,6 @@
     "artifacts/api-server/src/routes/format-generators/pptx-generator.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
-    "artifacts/api-server/src/slides/hybrid-renderer.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "lib/engine/src/analyst/contracts/verdict.ts",
     "lib/shared/src/companyBenchmarks.ts"
   ],
@@ -2713,8 +2645,6 @@
     "artifacts/api-server/src/pdf/chart-render.tsx",
     "artifacts/api-server/src/seeds/hospitality-benchmarks.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
-    "artifacts/api-server/src/slides/hybrid-renderer.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "lib/shared/src/companyBenchmarks.ts"
   ],
   "0.65": [
@@ -2910,7 +2840,6 @@
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "artifacts/api-server/src/shared/constants.ts",
     "artifacts/api-server/src/shared/market-intelligence-pipeline.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "lib/shared/src/constants-benchmarks.ts",
     "lib/shared/src/constants-business-models.ts",
     "lib/shared/src/constants-funding.ts",
@@ -3013,7 +2942,6 @@
     "artifacts/api-server/src/report/svg-charts.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "lib/shared/src/constants-funding.ts"
   ],
   "0.45": [
@@ -3024,7 +2952,6 @@
     "artifacts/api-server/src/routes/format-generators/pptx-generator.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "lib/shared/src/constants-funding.ts"
   ],
   "4.5": [
@@ -3094,7 +3021,6 @@
     "artifacts/api-server/src/routes/properties-urls.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "artifacts/api-server/src/shared/constants.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx",
     "lib/shared/src/constants.ts"
   ],
   "4.0": [
@@ -3154,8 +3080,7 @@
     "artifacts/api-server/src/data/researchSeeds.ts",
     "artifacts/api-server/src/pdf/theme-mappers.tsx",
     "artifacts/api-server/src/routes/format-generators/pptx-generator.ts",
-    "artifacts/api-server/src/seeds/reference-ranges.ts",
-    "artifacts/api-server/src/slides/image-renderer.ts"
+    "artifacts/api-server/src/seeds/reference-ranges.ts"
   ],
   "0.075": [
     "artifacts/api-server/src/ai/specialists/mgmt-co-company-orchestrator-adapter.ts",
@@ -3172,16 +3097,13 @@
   "1.4": [
     "artifacts/api-server/src/data/researchSeeds.ts",
     "artifacts/api-server/src/pdf-styles.ts",
-    "artifacts/api-server/src/seeds/market-data-tables.ts",
-    "artifacts/api-server/src/slides/hybrid-renderer.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx"
+    "artifacts/api-server/src/seeds/market-data-tables.ts"
   ],
   "1.6": [
     "artifacts/api-server/src/document-ai/templates.ts",
     "artifacts/api-server/src/integrations/resend.ts",
     "artifacts/api-server/src/pdf-styles.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
-    "artifacts/api-server/src/seeds/reference-ranges.ts",
-    "artifacts/api-server/src/slides/slide-jsx.tsx"
+    "artifacts/api-server/src/seeds/reference-ranges.ts"
   ]
 }

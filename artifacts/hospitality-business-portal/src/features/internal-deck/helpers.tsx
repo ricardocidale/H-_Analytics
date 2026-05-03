@@ -1,6 +1,6 @@
 /**
  * helpers.tsx — Shared formatters and sub-components used across the six
- * deck slides. Mirrors the helpers in api-server/src/slides/slide-jsx.tsx.
+ * investor deck slides.
  */
 import React from "react";
 import { C, FONT_SANS, FONT_SERIF } from "./theme";

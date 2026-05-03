@@ -1,7 +1,7 @@
 /**
  * theme.ts — Shared colors, slide canvas dimensions, and font-family tokens
- * for the internal investor deck. Mirrors the satori canvas (1920×1080) and
- * the canonical L+B palette.
+ * for the internal investor deck. 1920×1080 canvas matches the canonical
+ * L+B palette.
  */
 
 export const SLIDE_WIDTH_PX = 1920;
@@ -21,7 +21,7 @@ export const SLIDE_BACKGROUNDS: Record<number, string> = {
   6: SAGE_CANVAS,
 };
 
-/** L+B palette — must match SLIDE_COLORS in api-server/src/slides/slide-jsx.tsx. */
+/** L+B palette — canonical for the investor deck. */
 export const C = {
   darkBg: "#1C2B1E",
   accent: "#257D41",

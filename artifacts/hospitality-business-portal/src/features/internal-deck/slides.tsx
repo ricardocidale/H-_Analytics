@@ -1,8 +1,6 @@
 /**
- * slides.tsx — Six React slide components for the internal investor deck,
- * ported from artifacts/api-server/src/slides/slide-jsx.tsx (the soon-to-be-
- * deleted satori renderer). Layout, dimensions, and palette match exactly so
- * the printed PDF reproduces the canonical L+B design.
+ * slides.tsx — Six React slide components for the internal investor deck.
+ * Canonical layout, dimensions, and palette for the L+B printed PDF.
  *
  * Each Slide renders a 1920×1080 canvas at native pixel dimensions; the
  * surrounding page in pages/InternalDeck.tsx applies @page sizing for print.

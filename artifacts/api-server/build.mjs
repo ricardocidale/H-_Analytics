@@ -135,7 +135,6 @@ async function buildAll() {
       "pptxgenjs",
       "xlsx",
       "docx",
-      "satori",
       "jspdf",
       "archiver",
       // AI SDK clients — only loaded on AI request paths. Externalizing

@@ -6,13 +6,13 @@
  *
  * Routes:
  *   GET  /api/slides/status                     — all variants status (admin)
- *   GET  /api/properties/:id/slides/status      — single-property both-format status
- *   POST /api/properties/:id/slides/generate    — trigger (re)generation of both formats
- *   GET  /api/properties/:id/slides             — download (?format=pptx|image)
+ *   GET  /api/properties/:id/slides/status      — single-property PPTX status
+ *   POST /api/properties/:id/slides/generate    — trigger PPTX (re)generation
+ *   GET  /api/properties/:id/slides             — download editable PPTX
  *   GET  /api/properties/:id/slides/view        — JSON payload for slide viewer
  *
- * Track 1 — PPTX: Python generator → editable PPTX matching L+B template
- * Track 2 — Image: satori+sharp → PNG-per-slide image-PPTX (locked)
+ * PPTX track: Python generator → editable PPTX matching L+B template.
+ * The investor PDF track lives in `property-deck-pdf.ts` (Playwright).
  */
 
 import { Router, type Request, type Response } from "express";
@@ -39,10 +39,8 @@ import { calculateLoanParams, getAcquisitionYear } from "@engine/debt/loanCalcul
 import { withModelConstants } from "../finance/apply-model-constants";
 import { computeIRR } from "@analytics/returns/irr";
 import { generatePropertyVisionText, buildPropertyVisionFallback } from "../ai/property-vision";
-import { renderImagePptx } from "../slides/image-renderer";
 import type { SlidePayload } from "../slides/types";
 import { generatePropertyImprovements } from "../slides/improvement-suggestions";
-import { ensurePortfolioRenders } from "../slides/portfolio-renders";
 import { parseRouteId } from "./helpers";
 import {
   HTTP_202_ACCEPTED,
@@ -71,14 +69,11 @@ const SLIDES_DEFAULT_AMORTIZATION_YEARS = 25;
 const SLIDES_DEFAULT_MAX_OCCUPANCY = 0.70;
 const SLIDES_DEFAULT_EXIT_CAP_RATE = 0.07;
 
-const r2Key = (propertyId: number, format: SlideFormat) =>
-  format === "pptx"
-    ? `slides/pptx/property-${propertyId}.pptx`
-    : `slides/image/property-${propertyId}.pptx`;
+const r2Key = (propertyId: number) => `slides/pptx/property-${propertyId}.pptx`;
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
-type SlideFormat = "pptx" | "image";
+type SlideFormat = "pptx";
 
 interface VariantRow {
   property_id: number;
@@ -480,7 +475,7 @@ async function generateTrack1(
     tmpPath = result.path;
 
     const fileBuffer = await fs.readFile(tmpPath);
-    const key = r2Key(propertyId, "pptx");
+    const key = r2Key(propertyId);
     await getStorageProvider().uploadBuffer(
       key, fileBuffer,
       "application/vnd.openxmlformats-officedocument.presentationml.presentation",
@@ -503,62 +498,10 @@ async function generateTrack1(
   }
 }
 
-async function generateTrack2(
-  propertyId: number,
-  userId: number | undefined,
-  triggeredBy: string,
-): Promise<void> {
-  try {
-    // Ensure all portfolio properties have renders before building the payload.
-    // This may call Replicate for properties that have no hero photo.
-    try {
-      const allProps = await storage.getAllProperties(userId);
-      const portfolioIds = allProps.map(pr => pr.id);
-      await ensurePortfolioRenders(portfolioIds);
-    } catch (renderErr) {
-      logger.warn(`[property-slides] ensurePortfolioRenders failed (continuing): ${renderErr}`, "property-slides");
-    }
-
-    const payload = await buildSlidePayload(propertyId, userId, PROJ_YEARS_DEFAULT);
-    const pptxBuffer = await renderImagePptx(payload);
-
-    const key = r2Key(propertyId, "image");
-    await getStorageProvider().uploadBuffer(
-      key, pptxBuffer,
-      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    );
-    await upsertVariantRow({
-      property_id: propertyId, format: "image", status: "ready",
-      r2_key: key, file_size_bytes: pptxBuffer.length,
-      generated_at: new Date(), triggered_by: triggeredBy, error_message: null,
-    });
-    logger.info(`[property-slides] Image-PPTX ready for property ${propertyId} (${pptxBuffer.length}B → ${key})`);
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    logger.error(`[property-slides] Track 2 failed for ${propertyId}: ${message}`);
-    await upsertVariantRow({
-      property_id: propertyId, format: "image", status: "error",
-      error_message: message.slice(0, SLIDE_ERROR_MSG_MAX_LENGTH), triggered_by: triggeredBy,
-    }).catch(() => {});
-  }
-}
-
-async function generateBoth(
-  propertyId: number,
-  userId: number | undefined,
-  triggeredBy: string,
-): Promise<void> {
-  logger.info(`[property-slides] Starting both-format generation for property ${propertyId}`);
-  await Promise.all([
-    generateTrack1(propertyId, userId, triggeredBy),
-    generateTrack2(propertyId, userId, triggeredBy),
-  ]);
-}
-
 // ── Startup pre-generation ────────────────────────────────────────────────
 
 /**
- * Pre-generate slides for all properties that have no `ready` variant.
+ * Pre-generate PPTX for all properties that have no `ready` variant.
  * Runs concurrently with a parallelism limit of 2 (quality over speed).
  * Called at server startup — fully backgrounded, never throws to caller.
  */
@@ -568,13 +511,13 @@ export async function preGenerateAllSlides(): Promise<void> {
     if (!properties || properties.length === 0) return;
 
     const existingRows = await getAllVariantRows();
-    const readySet = new Set(existingRows.filter(r => r.status === "ready").map(r => `${r.property_id}:${r.format}`));
-
-    const toGenerate = properties.filter(
-      p => !readySet.has(`${p.id}:pptx`) || !readySet.has(`${p.id}:image`),
+    const readySet = new Set(
+      existingRows.filter(r => r.status === "ready" && r.format === "pptx").map(r => r.property_id),
     );
+
+    const toGenerate = properties.filter(p => !readySet.has(p.id));
     if (toGenerate.length === 0) {
-      logger.info("[property-slides] Pre-gen: all properties already have ready variants");
+      logger.info("[property-slides] Pre-gen: all properties already have ready PPTX");
       return;
     }
     logger.info(`[property-slides] Pre-gen: queuing ${toGenerate.length} properties`);
@@ -584,21 +527,9 @@ export async function preGenerateAllSlides(): Promise<void> {
       const batch = toGenerate.slice(i, i + CONCURRENCY);
       await Promise.allSettled(
         batch.map(async (prop) => {
-          // Claim each format before generating — only run generation for
-          // formats we successfully claimed (prevents duplicate generation
-          // on concurrent boot or mid-generation restart).
-          const claimedFormats: SlideFormat[] = [];
-          for (const fmt of (["pptx", "image"] as SlideFormat[])) {
-            if (readySet.has(`${prop.id}:${fmt}`)) continue;
-            const claimed = await tryMarkGenerating(prop.id, fmt, "startup");
-            if (claimed) claimedFormats.push(fmt);
-          }
-          if (claimedFormats.length === 0) return;
-
-          await Promise.allSettled([
-            claimedFormats.includes("pptx") ? generateTrack1(prop.id, undefined, "startup") : Promise.resolve(),
-            claimedFormats.includes("image") ? generateTrack2(prop.id, undefined, "startup") : Promise.resolve(),
-          ]);
+          const claimed = await tryMarkGenerating(prop.id, "pptx", "startup");
+          if (!claimed) return;
+          await generateTrack1(prop.id, undefined, "startup");
         }),
       );
     }
@@ -775,14 +706,11 @@ router.get("/api/properties/:id/slides/status", requireAdmin, async (req: Reques
   const propertyId = parseRouteId(req.params.id);
   if (!propertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
   try {
-    const [pptxRow, imageRow] = await Promise.all([
-      getVariantRow(propertyId, "pptx"),
-      getVariantRow(propertyId, "image"),
-    ]);
-    const toStatus = (row: VariantRow | null, fmt: SlideFormat) => row
-      ? { propertyId: row.property_id, format: fmt, status: row.status, fileSizeBytes: row.file_size_bytes, generatedAt: row.generated_at, triggeredBy: row.triggered_by, errorMessage: row.error_message }
-      : { propertyId, format: fmt, status: "idle", fileSizeBytes: null, generatedAt: null, triggeredBy: null, errorMessage: null };
-    return res.json([toStatus(pptxRow, "pptx"), toStatus(imageRow, "image")]);
+    const pptxRow = await getVariantRow(propertyId, "pptx");
+    const status = pptxRow
+      ? { propertyId: pptxRow.property_id, format: "pptx" as const, status: pptxRow.status, fileSizeBytes: pptxRow.file_size_bytes, generatedAt: pptxRow.generated_at, triggeredBy: pptxRow.triggered_by, errorMessage: pptxRow.error_message }
+      : { propertyId, format: "pptx" as const, status: "idle", fileSizeBytes: null, generatedAt: null, triggeredBy: null, errorMessage: null };
+    return res.json([status]);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Failed to fetch status";
     return res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: message });
@@ -797,16 +725,12 @@ router.post("/api/properties/:id/slides/generate", requireAdmin, async (req: Req
   const triggeredBy = user?.email ?? user?.id?.toString() ?? "admin";
 
   try {
-    const [claimedPptx, claimedImage] = await Promise.all([
-      tryMarkGenerating(propertyId, "pptx", triggeredBy),
-      tryMarkGenerating(propertyId, "image", triggeredBy),
-    ]);
-
-    if (!claimedPptx && !claimedImage) {
-      return res.status(HTTP_409_CONFLICT).json({ error: "Generation already in progress for both formats" });
+    const claimed = await tryMarkGenerating(propertyId, "pptx", triggeredBy);
+    if (!claimed) {
+      return res.status(HTTP_409_CONFLICT).json({ error: "Generation already in progress" });
     }
 
-    void generateBoth(propertyId, user?.id, triggeredBy);
+    void generateTrack1(propertyId, user?.id, triggeredBy);
 
     return res.status(HTTP_202_ACCEPTED).json({ status: "generating", propertyId });
   } catch (err: unknown) {
@@ -820,24 +744,22 @@ router.get("/api/properties/:id/slides", requireAdmin, async (req: Request, res:
   const propertyId = parseRouteId(req.params.id);
   if (!propertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
 
-  const format: SlideFormat = req.query.format === "image" ? "image" : "pptx";
-
   try {
-    const row = await getVariantRow(propertyId, format);
+    const row = await getVariantRow(propertyId, "pptx");
 
     if (!row || row.status !== "ready" || !row.r2_key) {
       const status = row?.status ?? "idle";
       return res.status(HTTP_409_CONFLICT).json({
         error: status === "generating"
-          ? `${format === "image" ? "Image slides" : "Slides"} are being generated — try again shortly`
-          : `${format === "image" ? "Image slides" : "Slides"} not yet generated`,
+          ? "Slides are being generated — try again shortly"
+          : "Slides not yet generated",
         status,
       });
     }
 
     const property = await storage.getProperty(propertyId);
     const slug = property ? slugify(property.name) : `property-${propertyId}`;
-    const filename = format === "image" ? `${slug}-slides-images.pptx` : `${slug}-slides.pptx`;
+    const filename = `${slug}-slides.pptx`;
 
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.presentationml.presentation");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);

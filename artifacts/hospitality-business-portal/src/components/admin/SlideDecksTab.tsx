@@ -25,7 +25,7 @@ interface PropertyRow {
   imageUrl?: string | null;
 }
 
-type SlideFormat = "pptx" | "image" | "pdf";
+type SlideFormat = "pptx" | "pdf";
 
 interface SlideStatus {
   propertyId: number;
@@ -296,9 +296,6 @@ export default function SlideDecksTab() {
     if (format === "pdf") {
       filename = `${slug}-deck.pdf`;
       url = `/api/properties/${propertyId}/deck.pdf`;
-    } else if (format === "image") {
-      filename = `${slug}-slides-images.pptx`;
-      url = `/api/properties/${propertyId}/slides?format=image`;
     } else {
       filename = `${slug}-slides.pptx`;
       url = `/api/properties/${propertyId}/slides?format=pptx`;
@@ -340,26 +337,22 @@ export default function SlideDecksTab() {
       <div>
         <h2 className="text-xl font-semibold text-foreground">Property Slide Decks</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Investor PDF renders on demand from the live deck route — clicking <strong>Download PDF</strong> regenerates if the property or financials have changed since the cache was written. Editable PPTX and image-locked PPTX are still pre-generated at startup.
+          Investor PDF renders on demand from the live deck route — clicking <strong>Download PDF</strong> regenerates if the property or financials have changed since the cache was written. Editable PPTX is pre-generated at startup.
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {properties.map(p => {
           const pptxStatus = statusMap.get(`${p.id}-pptx`);
-          const imageStatus = statusMap.get(`${p.id}-image`);
           const pdfStatus = statusMap.get(`${p.id}-pdf`);
           const dlStatePptx = downloadStates[`${p.id}-pptx`] ?? "idle";
-          const dlStateImage = downloadStates[`${p.id}-image`] ?? "idle";
           const dlStatePdf = downloadStates[`${p.id}-pdf`] ?? "idle";
           const acqStatus = (p.acquisitionStatus ?? p.status)?.toLowerCase() ?? "pipeline";
           const isGenerating =
             pptxStatus?.status === "generating" ||
-            imageStatus?.status === "generating" ||
             pdfStatus?.status === "generating" ||
             generateMutation.variables === p.id;
           const isPptxReady = pptxStatus?.status === "ready";
-          const isImageReady = imageStatus?.status === "ready";
           const freshness = freshnessFromStatus(pptxStatus);
 
           return (
@@ -378,7 +371,7 @@ export default function SlideDecksTab() {
                   </Badge>
                 </div>
 
-                {/* Three status badge rows */}
+                {/* Two status badge rows */}
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10px] text-muted-foreground w-10">PDF</span>
@@ -388,19 +381,15 @@ export default function SlideDecksTab() {
                     <span className="text-[10px] text-muted-foreground w-10">PPTX</span>
                     <SlideStatusBadge slide={pptxStatus} />
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-muted-foreground w-10">Images</span>
-                    <SlideStatusBadge slide={imageStatus} />
-                  </div>
                 </div>
 
-                {/* Action row: Analyst (regenerates both) + two download buttons */}
+                {/* Action row: Analyst (regenerates PPTX) + two download buttons */}
                 <div className="flex items-center gap-2">
                   <AnalystButton
                     onClick={() => generateMutation.mutate(p.id)}
                     isRunning={isGenerating}
                     disabled={isGenerating}
-                    suffix={isPptxReady || isImageReady ? "Regenerate" : "Generate"}
+                    suffix={isPptxReady ? "Regenerate" : "Generate"}
                     runningLabel="Manifesting…"
                     size="sm"
                     freshnessStatus={freshness}
@@ -437,21 +426,6 @@ export default function SlideDecksTab() {
                       <IconDownload className="h-3.5 w-3.5" />
                     )}
                     {dlStatePptx === "done" ? "Saved" : "Download PPTX"}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={!isImageReady}
-                    onClick={() => handleDownload(p.id, p.name, "image")}
-                    className="gap-1.5 flex-1"
-                    title={isImageReady ? "Download image-locked PPTX" : "Generate slides first"}
-                  >
-                    {dlStateImage === "done" ? (
-                      <IconCheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-                    ) : (
-                      <IconDownload className="h-3.5 w-3.5" />
-                    )}
-                    {dlStateImage === "done" ? "Saved" : "Download Images"}
                   </Button>
                 </div>
               </CardContent>

@@ -6,8 +6,8 @@
  * actual font files are bundled with the portal artifact and served from
  * `/src/assets/fonts/` (Vite handles asset URL rewriting at build time).
  *
- * Fonts mirror the satori slide renderer (api-server/src/slides/fonts/) so
- * the printed PDF matches the canonical L+B design.
+ * Fonts are the canonical L+B set (EB Garamond, Poppins, Roboto) used by
+ * the printed investor PDF.
  */
 
 @font-face {

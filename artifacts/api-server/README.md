@@ -40,7 +40,7 @@ Plus the per-user demo passwords (`PASSWORD_*`) used by the dev-style auth fallb
 
 `build.mjs` keeps the bundle small by externalizing large doc/media libraries that are loaded lazily on a few routes:
 
-- `@react-pdf/renderer`, `pptxgenjs`, `xlsx`, `docx`, `satori`, `jspdf`, `archiver`
+- `@react-pdf/renderer`, `pptxgenjs`, `xlsx`, `docx`, `jspdf`, `archiver`
 
 If you add another heavy package and find the bundle growing, add it to the `external` array in `build.mjs` **and** make sure it is listed under `dependencies` (not `devDependencies`) so pnpm installs it in the deployed container.
 
