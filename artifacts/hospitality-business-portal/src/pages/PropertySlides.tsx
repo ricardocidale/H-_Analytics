@@ -222,7 +222,7 @@ function SlideThumbCard({
   actions: ReturnType<typeof useSlideActions>;
 }) {
   return (
-    <Card className="flex flex-col overflow-hidden p-0">
+    <Card className="flex flex-col border border-border/60 hover:border-border transition-colors overflow-hidden p-0">
       <div
         className="relative bg-[#0f1621] overflow-hidden"
         style={{ width: THUMB_WIDTH_PX, height: THUMB_HEIGHT_PX, maxWidth: "100%" }}
@@ -272,9 +272,9 @@ function SlidesCarousel({
       <CarouselContent>
         {SLIDES.map(s => (
           <CarouselItem key={s.n} className="basis-full">
-            <Card className="flex flex-col overflow-hidden p-0">
-              <div className="px-4 py-3 border-b">
-                <p className="text-sm font-semibold">{s.title}</p>
+            <Card className="flex flex-col border border-border/60 hover:border-border transition-colors overflow-hidden p-0">
+              <div className="px-4 py-3 border-b border-border/60">
+                <p className="text-sm font-semibold leading-tight">{s.title}</p>
               </div>
               {/*
                 Centered large preview. Outer container reserves the post-scale
@@ -459,7 +459,7 @@ export default function PropertySlides() {
       )}
 
       {payload && view === "grid" && (
-        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {SLIDES.map(s => (
             <SlideThumbCard
               key={s.n}

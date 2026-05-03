@@ -1,7 +1,6 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { IconDownload, IconPresentation, IconAlertCircle, IconCheckCircle2, IconLayers } from "@/components/icons";
+import { IconPresentation, IconAlertCircle, IconLayers } from "@/components/icons";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,18 +23,6 @@ interface PropertyRow {
   imageUrl?: string | null;
 }
 
-type SlideFormat = "pdf";
-
-interface SlideStatus {
-  propertyId: number;
-  format: SlideFormat;
-  status: "idle" | "generating" | "ready" | "error";
-  fileSizeBytes: number | null;
-  generatedAt: string | null;
-  triggeredBy: string | null;
-  errorMessage: string | null;
-}
-
 // ── Constants ─────────────────────────────────────────────────────────────
 
 const STATUS_STYLES: Record<string, string> = {
@@ -46,15 +33,6 @@ const STATUS_STYLES: Record<string, string> = {
   operating: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
   disposed:  "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
 };
-
-function downloadViaAnchor(url: string, filename: string): void {
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  document.body.removeChild(anchor);
-}
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -83,19 +61,6 @@ function typeLabel(p: PropertyRow): string {
 function accentHue(id: number): number {
   const HUES = [220, 195, 260, 175, 240, 210, 185, 250];
   return HUES[id % HUES.length];
-}
-
-function formatGeneratedAt(iso: string | null): string {
-  if (!iso) return "Never";
-  const d = new Date(iso);
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-}
-
-function formatBytes(n: number | null): string {
-  if (!n) return "";
-  if (n >= 1_000_000) return ` · ${(n / 1_000_000).toFixed(1)} MB`;
-  if (n >= 1_000) return ` · ${Math.round(n / 1_000)} KB`;
-  return ` · ${n} B`;
 }
 
 // ── Slide render thumbnail ─────────────────────────────────────────────────
@@ -188,76 +153,14 @@ function SlideRender({ property }: { property: PropertyRow }) {
   );
 }
 
-// ── Slide status badge ─────────────────────────────────────────────────────
-
-function SlideStatusBadge({ slide }: { slide: SlideStatus | undefined }) {
-  if (!slide || slide.status === "idle") {
-    return <span className="text-[11px] text-muted-foreground">Renders on download</span>;
-  }
-  if (slide.status === "generating") {
-    return (
-      <span className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400">
-        <Loader2 className="h-3 w-3 animate-spin" />
-        Rendering…
-      </span>
-    );
-  }
-  if (slide.status === "error") {
-    return (
-      <span className="flex items-center gap-1 text-[11px] text-destructive" title={slide.errorMessage ?? undefined}>
-        <IconAlertCircle className="h-3 w-3" />
-        Render failed — try downloading again
-      </span>
-    );
-  }
-  if (slide.status === "ready") {
-    return (
-      <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-        <IconCheckCircle2 className="h-3 w-3 text-green-500" />
-        Cached {formatGeneratedAt(slide.generatedAt)}{formatBytes(slide.fileSizeBytes)}
-      </span>
-    );
-  }
-  return null;
-}
-
 // ── Main component ─────────────────────────────────────────────────────────
 
-type DownloadState = "idle" | "done";
-
 export default function SlideDecksTab() {
-  const [downloadStates, setDownloadStates] = useState<Record<number, DownloadState>>({});
-
   // Properties list
   const { data: properties, isLoading: propsLoading, isError: propsError } = useQuery<PropertyRow[]>({
     queryKey: ["/api/properties"],
     staleTime: 30_000,
   });
-
-  // PDF cache status — single GET on mount; PDF renders on demand so no polling.
-  const { data: slideStatuses } = useQuery<SlideStatus[]>({
-    queryKey: ["/api/slides/status"],
-    staleTime: 3_000,
-  });
-
-  const statusMap = new Map<number, SlideStatus>(
-    (slideStatuses ?? [])
-      .filter(s => s.format === "pdf")
-      .map(s => [s.propertyId, s]),
-  );
-
-  function setDownloadState(propertyId: number, state: DownloadState) {
-    setDownloadStates(prev => ({ ...prev, [propertyId]: state }));
-  }
-
-  function handleDownload(propertyId: number, propertyName: string) {
-    const slug = propertyName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    const filename = `${slug}-deck.pdf`;
-    const url = `/api/properties/${propertyId}/deck.pdf`;
-    downloadViaAnchor(url, filename);
-    setDownloadState(propertyId, "done");
-    setTimeout(() => setDownloadState(propertyId, "idle"), 4_000);
-  }
 
   if (propsLoading) {
     return (
@@ -291,14 +194,12 @@ export default function SlideDecksTab() {
       <div>
         <h2 className="text-xl font-semibold text-foreground">Property Slide Decks</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Investor PDF renders on demand from the live deck route. Clicking <strong>Download PDF</strong> regenerates if the property or financials have changed since the cache was written.
+          Click <strong>Slides</strong> on any property to open the per-slide view. Each of the six slides downloads as its own 1-page PDF from there.
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {properties.map(p => {
-          const pdfStatus = statusMap.get(p.id);
-          const dlStatePdf = downloadStates[p.id] ?? "idle";
           const acqStatus = (p.acquisitionStatus ?? p.status)?.toLowerCase() ?? "pipeline";
 
           return (
@@ -317,31 +218,12 @@ export default function SlideDecksTab() {
                   </Badge>
                 </div>
 
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] text-muted-foreground w-10">PDF</span>
-                  <SlideStatusBadge slide={pdfStatus} />
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="default"
-                    onClick={() => handleDownload(p.id, p.name)}
-                    className="gap-1.5 flex-1"
-                    title="Download investor PDF (renders on demand if needed)"
-                  >
-                    {dlStatePdf === "done" ? (
-                      <IconCheckCircle2 className="h-3.5 w-3.5" />
-                    ) : (
-                      <IconDownload className="h-3.5 w-3.5" />
-                    )}
-                    {dlStatePdf === "done" ? "Saved" : "Download PDF"}
-                  </Button>
-                  <Link href={`/admin/lb-slides/${p.id}`}>
+                <div className="flex items-center">
+                  <Link href={`/admin/lb-slides/${p.id}`} className="flex-1">
                     <Button
                       size="sm"
-                      variant="outline"
-                      className="gap-1.5"
+                      variant="default"
+                      className="gap-1.5 w-full"
                       title="Open per-slide view: download or regenerate each of the six slides independently"
                     >
                       <IconLayers className="h-3.5 w-3.5" />
