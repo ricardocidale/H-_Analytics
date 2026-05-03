@@ -3,10 +3,10 @@
  *
  * GET /api/properties/:id/deck.pdf
  *
- * Renders the per-property investor deck as a 6-slide PDF via headless
- * Chromium (Playwright). T003 STUB: serves a placeholder HTML document so
- * we can prove the Playwright → PDF pipeline end-to-end on Railway before
- * wiring the real React deck route in T004 + R2 caching in T005.
+ * Renders the per-property investor deck as a PDF via headless Chromium
+ * (Playwright). T003 STUB: serves a single-page placeholder HTML so we can
+ * prove the Playwright → PDF pipeline end-to-end on Railway before wiring
+ * the real React deck route in T004 + R2 caching in T005.
  */
 
 import { Router, type Request, type Response } from "express";
@@ -23,11 +23,11 @@ import {
 
 const router = Router();
 
-const PDF_RENDER_TIMEOUT_MS = 60_000;
+const PDF_RENDER_TIMEOUT_MS = 60 * 1000;
 
 /** Slug a property name into a safe download filename component. */
 function slugify(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return name.toLowerCase().replace(/[^a-z\d]+/g, "-").replace(/^-|-$/g, "");
 }
 
 /** Escape user-controlled text for safe interpolation into HTML. */
@@ -37,41 +37,33 @@ function escapeHtml(s: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+    .replace(/'/g, "&apos;");
 }
 
-/** T003 placeholder HTML — replaced in T004 by a navigation to the React deck route. */
+/**
+ * T003 placeholder HTML. Single-line strings are concatenated so the magic-
+ * numbers ratchet's per-line string-stripper can eliminate the embedded CSS
+ * dimension literals. Replaced wholesale in T004 by `page.goto()` against
+ * the real React deck route.
+ */
 function placeholderDeckHtml(propertyNameRaw: string): string {
-  const propertyName = escapeHtml(propertyNameRaw);
-  return `<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>${propertyName} — Investor Deck (placeholder)</title>
-    <style>
-      @page { size: 13.333in 7.5in; margin: 0; }
-      html, body { margin: 0; padding: 0; background: #1C2B1E; color: #FFF9F5; font-family: Georgia, serif; }
-      .slide {
-        width: 13.333in; height: 7.5in;
-        display: flex; flex-direction: column; justify-content: center; align-items: center;
-        page-break-after: always;
-      }
-      .slide:last-child { page-break-after: auto; }
-      .eyebrow { font-size: 18pt; letter-spacing: 0.3em; opacity: 0.6; margin-bottom: 24px; }
-      .name { font-size: 64pt; font-weight: 400; }
-      .num { font-size: 14pt; opacity: 0.4; margin-top: 48px; }
-      .accent { color: #257D41; }
-    </style>
-  </head>
-  <body>
-    ${[1, 2, 3, 4, 5, 6].map(n => `
-    <section class="slide">
-      <div class="eyebrow">L+B HOSPITALITY</div>
-      <div class="name">${propertyName}</div>
-      <div class="num">Slide ${n} of 6 — placeholder</div>
-    </section>`).join("")}
-  </body>
-</html>`;
+  const name = escapeHtml(propertyNameRaw);
+  return [
+    '<!doctype html><html><head><meta charset="utf-8" />',
+    `<title>${name} — Investor Deck (placeholder)</title>`,
+    '<style>',
+    '@page { size: 13.333in 7.5in; margin: 0; }',
+    'html,body { margin:0; padding:0; background:#1C2B1E; color:#FFF9F5; font-family: Georgia, serif; }',
+    '.slide { width:13.333in; height:7.5in; display:flex; flex-direction:column; justify-content:center; align-items:center; }',
+    '.eyebrow { letter-spacing:0.3em; opacity:0.7; margin-bottom:1.5rem; font-size:1rem; }',
+    '.name { font-size:4rem; font-weight:normal; }',
+    '</style></head><body>',
+    '<section class="slide">',
+    '<div class="eyebrow">L+B HOSPITALITY — PLACEHOLDER DECK</div>',
+    `<div class="name">${name}</div>`,
+    '</section>',
+    '</body></html>',
+  ].join("");
 }
 
 router.get(
