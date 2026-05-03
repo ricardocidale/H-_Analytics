@@ -1,8 +1,7 @@
 import { type Express, type Request, type Response } from "express";
 import { storage } from "../../storage";
 import { requireAdmin, validatePassword , getAuthUser, sanitizeEmail } from "../../auth";
-import { userResponse, createUserSchema, logAndSendError, logActivity, parseParamId } from "../helpers";
-import { fromZodError } from "zod-validation-error/v3";
+import { userResponse, createUserSchema, logAndSendError, logActivity, parseParamId, zodErrorMessage } from "../helpers";
 import { hashPassword } from "../../auth";
 import { VALID_USER_ROLES } from "@workspace/db";
 import { UserRole } from "@shared/constants";
@@ -47,7 +46,7 @@ export function registerUserRoutes(app: Express) {
     try {
       const validation = createUserSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       }
 
       const existingUser = await storage.getUserByEmail(validation.data.email);
@@ -100,7 +99,7 @@ export function registerUserRoutes(app: Express) {
       if (await guardSuperAdmin(id, req, res)) return;
       const parsed = updateUserSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
       }
       const { email, firstName, lastName, company, title, role, canManageScenarios } = parsed.data;
 
@@ -199,7 +198,7 @@ export function registerUserRoutes(app: Express) {
       if (await guardSuperAdmin(id, req, res)) return;
       const parsed = z.object({ password: z.string().min(6) }).safeParse(req.body);
       if (!parsed.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
       }
       const { password } = parsed.data;
       const pwValidationResult = validatePassword(password);
@@ -221,7 +220,7 @@ export function registerUserRoutes(app: Express) {
       if (id === null) return;
       const parsed = z.object({ themeId: z.number().nullable() }).safeParse(req.body);
       if (!parsed.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
       }
       const { themeId } = parsed.data;
       await storage.updateUserSelectedTheme(id, themeId ?? null);
@@ -242,7 +241,7 @@ export function registerUserRoutes(app: Express) {
     try {
       const validation = invitationSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       }
 
       const { emails, role, message } = validation.data;

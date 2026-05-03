@@ -1,14 +1,13 @@
 import type { Express } from "express";
 import { requireAuth, isApiRateLimited, checkPropertyAccess, getAuthUser } from "../auth";
 import { storage } from "../storage";
-import { logActivity, logAndSendError, parseRouteId } from "./helpers";
+import { logActivity, logAndSendError, parseRouteId, zodErrorMessage } from "./helpers";
 import { DocumentAIService } from "../integrations/document-ai";
 import { mapExtractionToFields, getConfidenceLevel } from "../document-ai/field-mapper";
 import { DOCUMENT_TEMPLATES, renderTemplate } from "../document-ai/templates";
 import { getStorageProvider } from "../providers/storage";
 import { randomUUID } from "crypto";
 import { z } from "zod";
-import { fromZodError } from "zod-validation-error/v3";
 import {
   MAX_DOC_SIZE,
   HTTP_400_BAD_REQUEST,
@@ -209,7 +208,7 @@ export function register(app: Express) {
       if (!fieldId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid field ID" });
       const validation = fieldStatusSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       }
       const { status } = validation.data;
 
@@ -270,7 +269,7 @@ export function register(app: Express) {
       if (!extractionId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid extraction ID" });
       const validation = fieldStatusSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       }
       const { status } = validation.data;
 

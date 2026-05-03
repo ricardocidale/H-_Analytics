@@ -14,11 +14,10 @@
  * `storage.updateSpecialistConfigSection` → return `toConfigView`).
  */
 import type { Express } from "express";
-import { fromZodError } from "zod-validation-error/v3";
 import { storage } from "../../../storage";
 import { requireAdmin } from "../../../auth";
 import { aiRateLimit } from "../../../middleware/rate-limit";
-import { logActivity, logAndSendError } from "../../helpers";
+import { logActivity, logAndSendError, zodErrorMessage } from "../../helpers";
 import {
   getSpecialistById,
   getLockedHardCandidateKeys,
@@ -53,7 +52,7 @@ export function registerConfigRoutes(app: Express) {
       const { recordRecommendationEventSchema } = await import("@workspace/db");
       const parsed = recordRecommendationEventSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(400).json({ error: zodErrorMessage(parsed.error) });
       }
       // Validate fieldKey against the catalog candidate-fields list — admins
       // can only act on declared candidates, never arbitrary strings.

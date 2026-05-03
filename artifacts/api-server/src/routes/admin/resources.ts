@@ -25,10 +25,9 @@
  */
 import type { Express } from "express";
 import { z } from "zod";
-import { fromZodError } from "zod-validation-error/v3";
 import { storage } from "../../storage";
 import { requireAdmin, requireSuperAdmin } from "../../auth";
-import { logAndSendError, logActivity } from "../helpers";
+import { logAndSendError, logActivity, zodErrorMessage } from "../helpers";
 import {
   ResourceKindSchema,
   ResourceSlugSchema,
@@ -74,7 +73,7 @@ export function registerAdminResourceRoutes(app: Express) {
     try {
       const parsed = listQuerySchema.safeParse(req.query);
       if (!parsed.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
       }
       const rows = await storage.listAdminResources(parsed.data.kind);
       // Wrap in an arrow so Array.map's `index` arg doesn't bind to `now`.
@@ -101,7 +100,7 @@ export function registerAdminResourceRoutes(app: Express) {
     try {
       const parsed = insertAdminResourceSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
       }
       // Reject duplicates explicitly (cleaner than catching the unique-index error).
       const existing = await storage.getAdminResourceBySlug(parsed.data.kind, parsed.data.slug);
@@ -135,7 +134,7 @@ export function registerAdminResourceRoutes(app: Express) {
       const { id } = idParamSchema.parse(req.params);
       const parsed = updateResourceSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
       }
       const actorId = req.user!.id;
       const row = await storage.updateAdminResource(id, parsed.data, actorId);
@@ -154,7 +153,7 @@ export function registerAdminResourceRoutes(app: Express) {
       const { id } = idParamSchema.parse(req.params);
       const parsed = rollbackSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
       }
       const actorId = req.user!.id;
       const row = await storage.rollbackAdminResource(id, parsed.data.targetVersion, actorId);
@@ -322,7 +321,7 @@ export function registerAdminResourceRoutes(app: Express) {
     try {
       const parsed = breakGlassListQuery.safeParse(req.query);
       if (!parsed.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
       }
       const rows = await storage.listBreakGlassOverrides(parsed.data.specialistId);
       res.json(rows);
@@ -335,7 +334,7 @@ export function registerAdminResourceRoutes(app: Express) {
     try {
       const parsed = breakGlassCreateBody.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
       }
       const actorId = req.user!.id;
       if (parsed.data.expiresAt.getTime() <= Date.now()) {

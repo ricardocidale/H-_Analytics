@@ -4,7 +4,7 @@ import { requireAdmin, requireAuth , getAuthUser } from "../auth";
 import { isAdminRole } from "@shared/constants";
 import { runVerificationWithEngine } from "../calculationChecker";
 import { withModelConstants } from "../finance/apply-model-constants";
-import { logActivity, logAndSendError, parseRouteId } from "./helpers";
+import { logActivity, logAndSendError, parseRouteId, zodErrorMessage } from "./helpers";
 import { logger } from "../logger";
 import * as calcSchemas from "@calc/shared/schemas";
 import { computeDCF } from "@calc/returns/dcf-npv";
@@ -19,7 +19,6 @@ import { verifyExport } from "@calc/validation/export-verification";
 import { consolidateStatements } from "@calc/analysis/consolidation";
 import { compareScenarios } from "@calc/analysis/scenario-compare";
 import { computeBreakEven } from "@calc/analysis/break-even";
-import { fromZodError } from "zod-validation-error/v3";
 import {
   HTTP_400_BAD_REQUEST,
   HTTP_404_NOT_FOUND,
@@ -207,7 +206,7 @@ export function register(app: Express) {
   app.post("/api/calc/dcf", requireAuth, async (req, res) => {
     try {
       const validation = calcSchemas.dcfSchema.safeParse(req.body);
-      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
+      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       const result = computeDCF({ ...validation.data, rounding_policy: DEFAULT_ROUNDING });
       res.json(result);
     } catch (_error: unknown) {
@@ -218,7 +217,7 @@ export function register(app: Express) {
   app.post("/api/calc/irr-vector", requireAuth, async (req, res) => {
     try {
       const validation = calcSchemas.irrVectorSchema.safeParse(req.body);
-      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
+      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       const result = buildIRRVector(validation.data);
       res.json(result);
     } catch (_error: unknown) {
@@ -229,7 +228,7 @@ export function register(app: Express) {
   app.post("/api/calc/equity-multiple", requireAuth, async (req, res) => {
     try {
       const validation = calcSchemas.equityMultipleSchema.safeParse(req.body);
-      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
+      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       const result = computeEquityMultiple({ ...validation.data, rounding_policy: DEFAULT_ROUNDING });
       res.json({ equityMultiple: result });
     } catch (_error: unknown) {
@@ -240,7 +239,7 @@ export function register(app: Express) {
   app.post("/api/calc/exit-valuation", requireAuth, async (req, res) => {
     try {
       const validation = calcSchemas.exitValuationSchema.safeParse(req.body);
-      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
+      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       const result = computeExitValuation({ ...validation.data, rounding_policy: DEFAULT_ROUNDING });
       res.json(result);
     } catch (_error: unknown) {
@@ -251,7 +250,7 @@ export function register(app: Express) {
   app.post("/api/calc/validate-identities", requireAdmin, async (req, res) => {
     try {
       const validation = calcSchemas.financialIdentitiesSchema.safeParse(req.body);
-      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
+      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       const result = validateFinancialIdentities({ ...validation.data, rounding_policy: DEFAULT_ROUNDING });
       res.json(result);
     } catch (_error: unknown) {
@@ -262,7 +261,7 @@ export function register(app: Express) {
   app.post("/api/calc/check-funding-gates", requireAdmin, async (req, res) => {
     try {
       const validation = calcSchemas.fundingGatesSchema.safeParse(req.body);
-      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
+      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       const result = checkFundingGates(validation.data);
       res.json(result);
     } catch (_error: unknown) {
@@ -273,7 +272,7 @@ export function register(app: Express) {
   app.post("/api/calc/reconcile-schedule", requireAdmin, async (req, res) => {
     try {
       const validation = calcSchemas.scheduleReconcileSchema.safeParse(req.body);
-      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
+      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       const result = reconcileSchedule(validation.data);
       res.json(result);
     } catch (_error: unknown) {
@@ -284,7 +283,7 @@ export function register(app: Express) {
   app.post("/api/calc/check-consistency", requireAdmin, async (req, res) => {
     try {
       const validation = calcSchemas.assumptionConsistencySchema.safeParse(req.body);
-      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
+      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       // Inject admin-managed exit-multiple ranges from the analyst
       // intelligence store unless the caller already supplied them
       // (tests/dispatch may pass them inline).
@@ -316,7 +315,7 @@ export function register(app: Express) {
   app.post("/api/calc/verify-export", requireAdmin, async (req, res) => {
     try {
       const validation = calcSchemas.exportVerificationSchema.safeParse(req.body);
-      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
+      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       const result = verifyExport(validation.data);
       res.json(result);
     } catch (_error: unknown) {
@@ -327,7 +326,7 @@ export function register(app: Express) {
   app.post("/api/calc/consolidate", requireAuth, async (req, res) => {
     try {
       const validation = calcSchemas.consolidationSchema.safeParse(req.body);
-      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
+      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       const result = consolidateStatements({ ...validation.data, rounding_policy: DEFAULT_ROUNDING });
       res.json(result);
     } catch (_error: unknown) {
@@ -338,7 +337,7 @@ export function register(app: Express) {
   app.post("/api/calc/compare-scenarios", requireAuth, async (req, res) => {
     try {
       const validation = calcSchemas.scenarioCompareSchema.safeParse(req.body);
-      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
+      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       const result = compareScenarios(validation.data);
       res.json(result);
     } catch (_error: unknown) {
@@ -349,7 +348,7 @@ export function register(app: Express) {
   app.post("/api/calc/break-even", requireAuth, async (req, res) => {
     try {
       const validation = calcSchemas.breakEvenSchema.safeParse(req.body);
-      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
+      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       const result = computeBreakEven(validation.data);
       res.json(result);
     } catch (_error: unknown) {

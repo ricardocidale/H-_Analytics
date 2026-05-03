@@ -17,9 +17,8 @@ import type { Express } from "express";
 import { storage } from "../../storage";
 import { requireAdmin } from "../../auth";
 import { getAuthUser } from "../../auth";
-import { logAndSendError } from "../helpers";
+import { logAndSendError, zodErrorMessage } from "../helpers";
 import { z } from "zod";
-import { fromZodError } from "zod-validation-error/v3";
 import {
   refreshMarketDataTable,
   type MarketDataTableName,
@@ -152,7 +151,7 @@ export function registerMarketDataTableRoutes(app: Express) {
 
     const parsed = refreshBodySchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+      return res.status(400).json({ error: zodErrorMessage(parsed.error) });
     }
 
     const user = getAuthUser(req);

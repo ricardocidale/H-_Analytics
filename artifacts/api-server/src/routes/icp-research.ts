@@ -3,8 +3,7 @@ import { storage } from "../storage";
 import { requireAuth, isApiRateLimited , getAuthUser } from "../auth";
 import { isAdminRole } from "@shared/constants";
 import { AI_ICP_RESEARCH_MAX_TOKENS } from "../constants";
-import { logActivity, logAndSendError, icpGenerateSchema, icpExportSchema } from "./helpers";
-import { fromZodError } from "zod-validation-error/v3";
+import { logActivity, logAndSendError, icpGenerateSchema, icpExportSchema, zodErrorMessage } from "./helpers";
 import { getAnthropicClient, normalizeModelId } from "../ai/clients";
 import { DEFAULT_RESEARCH_MODEL } from "../ai/resolve-llm";
 import { logApiCost, estimateCost } from "../middleware/cost-logger";
@@ -29,7 +28,7 @@ export function register(app: Express) {
       }
 
       const bodyValidation = icpGenerateSchema.safeParse(req.body);
-      if (!bodyValidation.success) return res.status(400).json({ error: fromZodError(bodyValidation.error).message });
+      if (!bodyValidation.success) return res.status(400).json({ error: zodErrorMessage(bodyValidation.error) });
 
       const ga = await storage.getGlobalAssumptions(getAuthUser(req).id);
       if (!ga) return res.status(404).json({ error: "No global assumptions found" });
@@ -124,7 +123,7 @@ export function register(app: Express) {
   app.post("/api/research/icp/export", requireAuth, async (req, res) => {
     try {
       const bodyValidation = icpExportSchema.safeParse(req.body);
-      if (!bodyValidation.success) return res.status(400).json({ error: fromZodError(bodyValidation.error).message });
+      if (!bodyValidation.success) return res.status(400).json({ error: zodErrorMessage(bodyValidation.error) });
       const { format, orientation } = bodyValidation.data;
 
       const ga = await storage.getGlobalAssumptions(getAuthUser(req).id);

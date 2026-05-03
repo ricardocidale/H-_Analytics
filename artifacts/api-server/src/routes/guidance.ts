@@ -2,10 +2,9 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, getAuthUser, checkPropertyAccess } from "../auth";
 import { isAdminRole } from "@shared/constants";
-import { logAndSendError, logActivity } from "./helpers";
+import { logAndSendError, logActivity, zodErrorMessage } from "./helpers";
 import { logger } from "../logger";
 import { z } from "zod";
-import { fromZodError } from "zod-validation-error/v3";
 import { buildPropertyContextPack } from "../ai/context-pack/property-pack";
 import { buildCompanyContextPack } from "../ai/context-pack/company-pack";
 import { assembleResearchPrompt } from "../ai/prompt/assemble-research-prompt";
@@ -65,7 +64,7 @@ export function register(app: Express) {
   app.get("/api/guidance/coverage/:entityType/:entityId", requireAuth, async (req, res) => {
     try {
       const params = entityParamsSchema.safeParse(req.params);
-      if (!params.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(params.error as any).message });
+      if (!params.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(params.error) });
 
       const { entityType, entityId } = params.data;
       if (!(await checkEntityAccess(getAuthUser(req), entityType, entityId))) {
@@ -73,7 +72,7 @@ export function register(app: Express) {
       }
 
       const query = guidanceQuerySchema.safeParse(req.query);
-      if (!query.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(query.error as any).message });
+      if (!query.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(query.error) });
 
       const scenarioId = query.data.scenarioId ?? null;
       const guidance = await storage.getAssumptionGuidance(scenarioId, entityType, entityId);
@@ -103,7 +102,7 @@ export function register(app: Express) {
   app.get("/api/guidance/:entityType/:entityId", requireAuth, async (req, res) => {
     try {
       const params = entityParamsSchema.safeParse(req.params);
-      if (!params.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(params.error as any).message });
+      if (!params.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(params.error) });
 
       const { entityType, entityId } = params.data;
       if (!(await checkEntityAccess(getAuthUser(req), entityType, entityId))) {
@@ -111,7 +110,7 @@ export function register(app: Express) {
       }
 
       const query = guidanceQuerySchema.safeParse(req.query);
-      if (!query.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(query.error as any).message });
+      if (!query.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(query.error) });
 
       const scenarioId = query.data.scenarioId ?? null;
       const guidance = await storage.getAssumptionGuidance(scenarioId, entityType, entityId);
@@ -139,7 +138,7 @@ export function register(app: Express) {
   app.get("/api/guidance/:entityType/:entityId/confidence", requireAuth, async (req, res) => {
     try {
       const params = entityParamsSchema.safeParse(req.params);
-      if (!params.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(params.error as any).message });
+      if (!params.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(params.error) });
 
       const { entityType, entityId } = params.data;
       if (!(await checkEntityAccess(getAuthUser(req), entityType, entityId))) {
@@ -147,7 +146,7 @@ export function register(app: Express) {
       }
 
       const query = guidanceQuerySchema.safeParse(req.query);
-      if (!query.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(query.error as any).message });
+      if (!query.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(query.error) });
 
       const scenarioId = query.data.scenarioId ?? null;
       const guidance = await storage.getAssumptionGuidance(scenarioId, entityType, entityId);
@@ -162,7 +161,7 @@ export function register(app: Express) {
   app.get("/api/guidance/:entityType/:entityId/:assumptionKey", requireAuth, async (req, res) => {
     try {
       const params = entityParamsSchema.safeParse(req.params);
-      if (!params.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(params.error as any).message });
+      if (!params.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(params.error) });
 
       const { entityType, entityId } = params.data;
       const assumptionKey = String(req.params.assumptionKey);
@@ -171,7 +170,7 @@ export function register(app: Express) {
       }
 
       const query = guidanceQuerySchema.safeParse(req.query);
-      if (!query.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(query.error as any).message });
+      if (!query.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(query.error) });
 
       const scenarioId = query.data.scenarioId ?? null;
       const guidance = await storage.getAssumptionGuidance(scenarioId, entityType, entityId);
@@ -192,7 +191,7 @@ export function register(app: Express) {
   app.post("/api/guidance/decision", requireAuth, async (req, res) => {
     try {
       const validation = guidanceDecisionSchema.safeParse(req.body);
-      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
+      if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
 
       const { assumptionGuidanceId, action, previousValue, newValue } = validation.data;
       const user = getAuthUser(req);
@@ -242,7 +241,7 @@ export function register(app: Express) {
   app.get("/api/research/runs", requireAuth, async (req, res) => {
     try {
       const query = researchRunsQuerySchema.safeParse(req.query);
-      if (!query.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(query.error as any).message });
+      if (!query.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(query.error) });
 
       const { entityType, entityId } = query.data;
       if (!(await checkEntityAccess(getAuthUser(req), entityType, entityId))) {
@@ -267,7 +266,7 @@ export function register(app: Express) {
     try {
       const parsed = tier2Schema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
       }
       const { entityType, entityId, assumptionKeys, scenarioId } = parsed.data;
       const user = getAuthUser(req);

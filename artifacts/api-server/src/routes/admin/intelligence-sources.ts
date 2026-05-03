@@ -1,9 +1,8 @@
 import type { Express } from "express";
 import { storage } from "../../storage";
 import { requireAdmin } from "../../auth";
-import { logAndSendError, logActivity, parseRouteId } from "../helpers";
+import { logAndSendError, logActivity, parseRouteId, zodErrorMessage } from "../helpers";
 import { z } from "zod";
-import { fromZodError } from "zod-validation-error/v3";
 import {
   HTTP_201_CREATED,
   HTTP_400_BAD_REQUEST,
@@ -38,7 +37,7 @@ export function registerSourceRoutes(app: Express) {
         isActive: z.boolean().optional(),
       });
       const parsed = bodySchema.safeParse(req.body);
-      if (!parsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
+      if (!parsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
       const created = await storage.createSourceRegistryEntry(parsed.data);
       logActivity(req, "create-source", "source_registry", created.id, created.name);
       res.status(HTTP_201_CREATED).json(created);
@@ -67,7 +66,7 @@ export function registerSourceRoutes(app: Express) {
         isActive: z.boolean().optional(),
       });
       const parsed = bodySchema.safeParse(req.body);
-      if (!parsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
+      if (!parsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
 
       const updated = await storage.updateSourceRegistryEntry(id, parsed.data);
       if (!updated) return res.status(HTTP_404_NOT_FOUND).json({ error: "Source not found" });

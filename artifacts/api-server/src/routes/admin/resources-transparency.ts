@@ -22,10 +22,9 @@
  */
 import type { Express } from "express";
 import { z } from "zod";
-import { fromZodError } from "zod-validation-error/v3";
 import { storage } from "../../storage";
 import { requireAdmin } from "../../auth";
-import { logAndSendError } from "../helpers";
+import { logAndSendError, zodErrorMessage } from "../helpers";
 import {
   ResourceKindSchema,
   type ResourceKind,
@@ -40,6 +39,7 @@ import {
 } from "@engine/analyst/registry/specialist-catalog";
 import { specialistDisplayName } from "@workspace/db";
 import { recomputeAndRecordSpecialistQuality } from "../../ai/research-quality";
+import { logger, formatError } from "../../logger";
 import type { SpecialistResearchQualitySnapshotRow } from "@workspace/db";
 
 const listQuerySchema = z.object({ kind: (ResourceKindSchema as any).optional() });
@@ -177,7 +177,7 @@ export function registerResourceTransparencyRoutes(app: Express) {
     try {
       const parsed = listQuerySchema.safeParse(req.query);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(400).json({ error: zodErrorMessage(parsed.error) });
       }
       const rows = await storage.listAdminResources(parsed.data.kind);
       const now = new Date();
@@ -211,7 +211,7 @@ export function registerResourceTransparencyRoutes(app: Express) {
           stale.slice(0, 8).map((sid) =>
             recomputeAndRecordSpecialistQuality(sid).catch((e: unknown) => {
               // Never let one bad specialist block the whole page render.
-              console.warn(`[transparency] quality recompute failed for ${sid}:`, e);
+              logger.warn(`quality recompute failed for ${sid}: ${formatError(e)}`, "transparency");
             }),
           ),
         );
@@ -292,7 +292,7 @@ export function registerResourceTransparencyRoutes(app: Express) {
     try {
       const parsed = listQuerySchema.safeParse(req.query);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(400).json({ error: zodErrorMessage(parsed.error) });
       }
       const rows = await storage.listAdminResources(parsed.data.kind);
       const now = new Date();
@@ -545,7 +545,7 @@ export function registerResourceTransparencyRoutes(app: Express) {
         .object({ limit: z.coerce.number().int().min(1).max(100).optional() })
         .safeParse(req.query);
       if (!limitParsed.success) {
-        return res.status(400).json({ error: fromZodError(limitParsed.error).message });
+        return res.status(400).json({ error: zodErrorMessage(limitParsed.error) });
       }
       // Default to 30 — the nightly recompute job appends one row per day,
       // so 30 ≈ the last 30 days of scores. Task #540: makes slow-burn
@@ -592,7 +592,7 @@ export function registerResourceTransparencyRoutes(app: Express) {
         .object({ limit: z.coerce.number().int().min(1).max(100).optional() })
         .safeParse(req.query);
       if (!limitParsed.success) {
-        return res.status(400).json({ error: fromZodError(limitParsed.error).message });
+        return res.status(400).json({ error: zodErrorMessage(limitParsed.error) });
       }
       const limit = limitParsed.data.limit ?? 30;
 

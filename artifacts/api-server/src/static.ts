@@ -1,6 +1,7 @@
 import express, { type Express, type Request, type Response } from "express";
 import fs from "fs";
 import path from "path";
+import { logger } from "./logger";
 
 /**
  * Serve the bundled frontend SPAs.
@@ -21,8 +22,9 @@ export function serveStatic(app: Express) {
 
   for (const { mount, dir } of subApps) {
     if (!fs.existsSync(dir)) {
-      console.warn(
-        `[static] Sub-app build not found at ${dir} — skipping mount at ${mount}.`,
+      logger.warn(
+        `Sub-app build not found at ${dir} — skipping mount at ${mount}.`,
+        "static",
       );
       continue;
     }
@@ -37,8 +39,9 @@ export function serveStatic(app: Express) {
 
   const distPath = path.resolve(__dirname, "public");
   if (!fs.existsSync(distPath)) {
-    console.warn(
-      `[static] Frontend build not found at ${distPath} — static asset serving disabled. API routes remain active.`,
+    logger.warn(
+      `Frontend build not found at ${distPath} — static asset serving disabled. API routes remain active.`,
+      "static",
     );
     return;
   }

@@ -1,9 +1,8 @@
 import type { Express } from "express";
 import { storage } from "../../storage";
 import { requireAdmin, requireAuth } from "../../auth";
-import { logAndSendError, logActivity, parseRouteId } from "../helpers";
+import { logAndSendError, logActivity, parseRouteId, zodErrorMessage } from "../helpers";
 import { z } from "zod";
-import { fromZodError } from "zod-validation-error/v3";
 import { getAuthUser } from "../../auth";
 
 const filterQuerySchema = z.object({
@@ -31,7 +30,7 @@ export function registerHospitalityBenchmarkRoutes(app: Express) {
   app.get("/api/admin/hospitality-benchmarks", requireAdmin, async (req, res) => {
     try {
       const query = filterQuerySchema.safeParse(req.query);
-      if (!query.success) return res.status(400).json({ error: fromZodError(query.error as any).message });
+      if (!query.success) return res.status(400).json({ error: zodErrorMessage(query.error) });
 
       const benchmarks = await storage.getHospitalityBenchmarks(query.data);
       res.json(benchmarks);
@@ -47,7 +46,7 @@ export function registerHospitalityBenchmarkRoutes(app: Express) {
       if (!id) return res.status(400).json({ error: "Invalid ID" });
 
       const parsed = updateBenchmarkSchema.safeParse(req.body);
-      if (!parsed.success) return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+      if (!parsed.success) return res.status(400).json({ error: zodErrorMessage(parsed.error) });
 
       const existing = await storage.getHospitalityBenchmarkById(id);
       if (!existing) return res.status(404).json({ error: "Benchmark not found" });
@@ -70,7 +69,7 @@ export function registerHospitalityBenchmarkRoutes(app: Express) {
   app.get("/api/hospitality-benchmarks", requireAuth, async (req, res) => {
     try {
       const query = filterQuerySchema.safeParse(req.query);
-      if (!query.success) return res.status(400).json({ error: fromZodError(query.error as any).message });
+      if (!query.success) return res.status(400).json({ error: zodErrorMessage(query.error) });
 
       const benchmarks = await storage.getHospitalityBenchmarks({
         ...query.data,

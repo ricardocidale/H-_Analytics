@@ -1,8 +1,7 @@
 import type { Express } from "express";
 import { requireAuth, requireAdmin , getAuthUser } from "../auth";
-import { logAndSendError, parseRouteId } from "./helpers";
+import { logAndSendError, parseRouteId, zodErrorMessage } from "./helpers";
 import { insertAlertRuleSchema } from "@workspace/db";
-import { fromZodError } from "zod-validation-error/v3";
 import { z } from "zod";
 import { storage } from "../storage";
 import { testResendConnection, sendReportShareEmail, sendScenarioSummaryEmail, sendNotificationEmail } from "../integrations/resend";
@@ -27,7 +26,7 @@ export function register(app: Express) {
     try {
       const validation = insertAlertRuleSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error as any).message });
+        return res.status(400).json({ error: zodErrorMessage(validation.error) });
       }
       const rule = await storage.createAlertRule(validation.data);
       res.status(201).json(rule);
@@ -40,7 +39,7 @@ export function register(app: Express) {
     try {
       const validation = insertAlertRuleSchema.partial().safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error as any).message });
+        return res.status(400).json({ error: zodErrorMessage(validation.error) });
       }
       const id = parseRouteId(req.params.id);
       if (!id) return res.status(400).json({ error: "Invalid rule ID" });
@@ -127,7 +126,7 @@ export function register(app: Express) {
       ]);
       const validation = z.record(z.string(), z.string().nullable()).safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error as any).message });
+        return res.status(400).json({ error: zodErrorMessage(validation.error) });
       }
       const updates = validation.data;
       const invalidKeys = Object.keys(updates).filter(k => !ALLOWED_SETTING_KEYS.has(k));
@@ -161,7 +160,7 @@ export function register(app: Express) {
         enabled: z.boolean().optional().default(true),
       }).safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error as any).message });
+        return res.status(400).json({ error: zodErrorMessage(validation.error) });
       }
       const { eventType, channel, enabled } = validation.data;
       await storage.upsertNotificationPreference(getAuthUser(req).id, eventType, channel, enabled);
@@ -265,7 +264,7 @@ export function register(app: Express) {
         attachmentFilename: z.string().optional(),
       }).safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error as any).message });
+        return res.status(400).json({ error: zodErrorMessage(validation.error) });
       }
       const { to, propertyName, metrics, message, attachmentBase64, attachmentFilename } = validation.data;
 
@@ -294,7 +293,7 @@ export function register(app: Express) {
         message: z.string().optional(),
       }).safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error as any).message });
+        return res.status(400).json({ error: zodErrorMessage(validation.error) });
       }
       const { to, scenarios, message } = validation.data;
 

@@ -13,10 +13,9 @@ import {
   hashPassword,
   getAuthUser
 } from "../auth";
-import { loginSchema, adminLoginSchema, userResponse, logAndSendError } from "./helpers";
+import { loginSchema, adminLoginSchema, userResponse, logAndSendError, zodErrorMessage } from "./helpers";
 import { ensureDefaultScenario } from "./scenario-helpers";
 import { z } from "zod";
-import { fromZodError } from "zod-validation-error/v3";
 import { isAdminRole } from "@shared/constants";
 import seedUsersConfig from "../seed-users.json" with { type: "json" };
 import { isPublishedDeployment } from "../providers/config";
@@ -183,8 +182,7 @@ export function register(app: Express) {
     try {
       const validation = updateProfileSchema.safeParse(req.body);
       if (!validation.success) {
-        const error = fromZodError(validation.error as any);
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: error.message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       }
       
       const updates: { firstName?: string; lastName?: string; email?: string; company?: string; title?: string; rebeccaOptOut?: boolean; rebeccaRailOpen?: boolean } = {};
@@ -227,8 +225,7 @@ export function register(app: Express) {
     try {
       const validation = changePasswordSchema.safeParse(req.body);
       if (!validation.success) {
-        const error = fromZodError(validation.error as any);
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: error.message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       }
 
       const user = await storage.getUserById(getAuthUser(req).id);
@@ -259,7 +256,7 @@ export function register(app: Express) {
       const schema = z.object({ hide: z.boolean() });
       const validation = schema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       }
       await storage.updateUserHideTourPrompt(getAuthUser(req).id, validation.data.hide);
       res.json({ hideTourPrompt: validation.data.hide });
@@ -277,7 +274,7 @@ export function register(app: Express) {
       });
       const validation = schema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       }
       const user = await storage.updateUserAppearance(getAuthUser(req).id, {
         colorMode: validation.data.colorMode,
@@ -295,7 +292,7 @@ export function register(app: Express) {
       const schema = z.object({ themeId: z.number().nullable() });
       const validation = schema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       }
       if (validation.data.themeId !== null) {
         const theme = await storage.getDesignTheme(validation.data.themeId);

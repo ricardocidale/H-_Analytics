@@ -2,9 +2,8 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, requireAdmin, checkPropertyAccess, checkPropertyEditAccess, getAuthUser } from "../auth";
 import { insertPropertySchema, updatePropertySchema, type GlobalAssumptions, type ResearchValueEntry } from "@workspace/db";
-import { fromZodError } from "zod-validation-error/v3";
 import { z } from "zod";
-import { logActivity, logAndSendError, parseRouteId } from "./helpers";
+import { logActivity, logAndSendError, parseRouteId, zodErrorMessage } from "./helpers";
 import {
   HTTP_201_CREATED,
   HTTP_400_BAD_REQUEST,
@@ -107,8 +106,7 @@ export function register(app: Express) {
     try {
       const validation = insertPropertySchema.safeParse(req.body);
       if (!validation.success) {
-        const error = fromZodError(validation.error as any);
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: error.message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       }
 
       const globalDefaults = await storage.getGlobalAssumptions();
@@ -292,8 +290,7 @@ export function register(app: Express) {
 
       const validation = updatePropertySchema.safeParse(req.body);
       if (!validation.success) {
-        const error = fromZodError(validation.error as any);
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: error.message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       }
       const merged = { ...existingProp, ...validation.data };
       const suggestion = suggestStarRating(merged as Parameters<typeof suggestStarRating>[0]);
@@ -633,7 +630,7 @@ export function register(app: Express) {
       }
       const parsed = feeCategoryBatchSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
       }
       const categories = parsed.data;
       // Run all category updates/creates in parallel (independent rows)

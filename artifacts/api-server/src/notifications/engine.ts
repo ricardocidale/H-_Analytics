@@ -96,7 +96,7 @@ export async function evaluateAlertRules(
     }
 
     if (!isAlertMetric(rule.metric)) {
-      console.warn(`[notifications] skipping rule ${rule.id}: unknown metric "${rule.metric}"`);
+      logger.warn(`skipping rule ${rule.id}: unknown metric "${rule.metric}"`, "notifications");
       continue;
     }
     const ruleMetric: AlertMetric = rule.metric;

@@ -1,9 +1,8 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, requireAdmin, checkPropertyAccess, getAuthUser } from "../auth";
-import { fromZodError } from "zod-validation-error/v3";
 import { z } from "zod";
-import { logActivity, logAndSendError, parseRouteId } from "./helpers";
+import { logActivity, logAndSendError, parseRouteId, zodErrorMessage } from "./helpers";
 import { logger } from "../logger";
 import { HTTP_409_CONFLICT } from "../constants";
 
@@ -137,7 +136,7 @@ export function registerPropertyUrlRoutes(app: Express) {
       }
       const parsed = addPropertyUrlSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(400).json({ error: zodErrorMessage(parsed.error) });
       }
       const existing = await storage.getPropertyUrls(propertyId);
       if (existing.some(u => u.url === parsed.data.url)) {
@@ -169,7 +168,7 @@ export function registerPropertyUrlRoutes(app: Express) {
       }
       const parsed = updatePropertyUrlSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(400).json({ error: zodErrorMessage(parsed.error) });
       }
       const updateData = { ...parsed.data };
       if (updateData.url && updateData.url !== existing.url) {

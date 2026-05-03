@@ -8,8 +8,7 @@ import {
   computePriceHistoryRollups,
   type PriceEvent,
 } from "@shared/price-history";
-import { fromZodError } from "zod-validation-error/v3";
-import { logActivity, logAndSendError, prospectiveNotesSchema, parseRouteId } from "./helpers";
+import { logActivity, logAndSendError, prospectiveNotesSchema, parseRouteId, zodErrorMessage } from "./helpers";
 import {
   HTTP_201_CREATED,
   HTTP_400_BAD_REQUEST,
@@ -205,7 +204,7 @@ export function register(app: Express) {
     try {
       const validation = insertProspectivePropertySchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       }
 
       const property = await storage.addProspectiveProperty({
@@ -235,7 +234,7 @@ export function register(app: Express) {
     try {
       const parsed = prospectiveNotesSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
       }
       const id = parseRouteId(req.params.id);
       if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
@@ -281,7 +280,7 @@ export function register(app: Express) {
       if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
       const parsed = priceEventInputSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
       }
       const property = await storage.addProspectivePriceEvent(id, getAuthUser(req).id, parsed.data);
       if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
@@ -303,7 +302,7 @@ export function register(app: Express) {
       if (!eventId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid event ID" });
       const parsed = priceEventPatchSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
       }
       const property = await storage.updateProspectivePriceEvent(
         id,
@@ -488,7 +487,7 @@ export function register(app: Express) {
     try {
       const validation = insertSavedSearchSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       }
 
       const search = await storage.addSavedSearch({

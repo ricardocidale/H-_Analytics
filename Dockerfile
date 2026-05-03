@@ -47,6 +47,9 @@ ARG PORT=5000
 ENV PORT=$PORT
 
 # Typecheck the whole workspace once (composite libs + leaf packages).
+# Defensive: explicit copy of seed file in case ignore rules drop it
+COPY artifacts/api-server/seed/seed-production.sql /app/dist/seed-production.sql
+
 RUN pnpm run typecheck
 
 # Build each frontend artifact with its own BASE_PATH.

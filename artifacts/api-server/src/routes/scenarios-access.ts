@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, getAuthUser } from "../auth";
 import type { ComputedResultsSnapshot } from "@workspace/db";
-import { fromZodError } from "zod-validation-error/v3";
+import { zodErrorMessage } from "./helpers";
 import { z } from "zod";
 import { logActivity, logAndSendError } from "./helpers";
 import { computePortfolioProjection } from "../finance/service";
@@ -32,7 +32,7 @@ export function registerScenarioAccessRoutes(app: Express) {
       const scenarioId = idParse.data;
 
       const bodyParse = recomputeBodySchema.safeParse(req.body);
-      if (!bodyParse.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(bodyParse.error).message });
+      if (!bodyParse.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(bodyParse.error) });
 
       const scenario = await storage.getScenario(scenarioId);
       if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
@@ -174,7 +174,7 @@ export function registerScenarioAccessRoutes(app: Express) {
       const user = getAuthUser(req);
       const validation = grantAccessSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       }
 
       const { granteeId, scenarioId } = validation.data;
@@ -208,7 +208,7 @@ export function registerScenarioAccessRoutes(app: Express) {
       const user = getAuthUser(req);
       const validation = revokeAccessSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(validation.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       }
 
       const { granteeId, scenarioId } = validation.data;

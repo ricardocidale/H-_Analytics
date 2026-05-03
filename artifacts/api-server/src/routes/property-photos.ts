@@ -2,8 +2,7 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, requireAdmin, checkPropertyAccess, getAuthUser } from "../auth";
 import { insertPropertyPhotoSchema, updatePropertyPhotoSchema } from "@workspace/db";
-import { fromZodError } from "zod-validation-error/v3";
-import { logAndSendError, parseRouteId } from "./helpers";
+import { logAndSendError, parseRouteId, zodErrorMessage } from "./helpers";
 import { fetchWithTimeout } from "../lib/fetch-with-timeout";
 import { z } from "zod";
 import { processExistingPhoto, processImage } from "../image/pipeline";
@@ -172,7 +171,7 @@ export function register(app: Express) {
         propertyId,
       });
       if (!parsed.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
       }
 
       const photo = await storage.addPropertyPhoto(parsed.data);
@@ -223,7 +222,7 @@ export function register(app: Express) {
       }
       const parsed = updatePropertyPhotoSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
       }
 
       const existingPhoto = await storage.getPhotoById(photoId);
@@ -292,7 +291,7 @@ export function register(app: Express) {
       const schema = z.object({ orderedIds: z.array(z.number()) });
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
       }
 
       await storage.reorderPhotos(propertyId, parsed.data.orderedIds);
@@ -319,7 +318,7 @@ export function register(app: Express) {
       });
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
       }
       const { photoIds, destinationPropertyId, mode } = parsed.data;
 

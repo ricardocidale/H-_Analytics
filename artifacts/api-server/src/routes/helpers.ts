@@ -2,7 +2,20 @@ import type { Request, Response } from "express";
 import { storage } from "../storage";
 import { VALID_USER_ROLES } from "@workspace/db";
 import { z } from "zod";
+import { fromZodError } from "zod-validation-error/v3";
 import { logger } from "../logger";
+
+/**
+ * Convert a typed Zod error into a human-readable message string.
+ *
+ * `zod-validation-error/v3` is typed against `ZodError<any>`, so passing
+ * a typed `ZodError<MySchema>` requires a cast at every call site. This
+ * wrapper internalizes that cast in one place so route handlers can
+ * stay `any`-free.
+ */
+export function zodErrorMessage(error: unknown): string {
+  return fromZodError(error as z.ZodError).message;
+}
 
 /** Send a JSON error response. */
 export function sendError(res: Response, status: number, message: string) {

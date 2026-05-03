@@ -3,8 +3,7 @@
  */
 import type { Express, Request, Response } from "express";
 import { requireAuth, requireAdmin } from "../auth";
-import { sendError, logAndSendError, marketRatePatchSchema, marketIntelligenceGatherSchema } from "./helpers";
-import { fromZodError } from "zod-validation-error/v3";
+import { sendError, logAndSendError, marketRatePatchSchema, marketIntelligenceGatherSchema, zodErrorMessage } from "./helpers";
 import {
   getAllMarketRates,
   getMarketRate,
@@ -71,7 +70,7 @@ export function register(app: Express) {
       if (!existing) return sendError(res, 404, "Rate not found");
 
       const validation = marketRatePatchSchema.safeParse(req.body);
-      if (!validation.success) return sendError(res, 400, fromZodError(validation.error as any).message);
+      if (!validation.success) return sendError(res, 400, zodErrorMessage(validation.error));
       const { value, manualNote } = validation.data;
 
       await upsertMarketRate({
@@ -147,7 +146,7 @@ export function register(app: Express) {
   app.post("/api/market-intelligence/gather", requireAuth, requireAdmin, async (req: Request, res: Response) => {
     try {
       const validation = marketIntelligenceGatherSchema.safeParse(req.body);
-      if (!validation.success) return sendError(res, 400, fromZodError(validation.error as any).message);
+      if (!validation.success) return sendError(res, 400, zodErrorMessage(validation.error));
       const { location, state, propertyType, propertyClass, chainScale } = validation.data;
       const aggregator = getMarketIntelligenceAggregator();
       const data = await aggregator.gather({ location, state, propertyType, propertyClass, chainScale });

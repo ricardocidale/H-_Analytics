@@ -12,10 +12,9 @@
  * Specialist's runtime fitness.
  */
 import type { Express } from "express";
-import { fromZodError } from "zod-validation-error/v3";
 import { storage } from "../../../storage";
 import { requireAdmin } from "../../../auth";
-import { logActivity, logAndSendError } from "../../helpers";
+import { logActivity, logAndSendError, zodErrorMessage } from "../../helpers";
 import { getSpecialistById } from "@engine/analyst/registry/specialist-catalog";
 import {
   updateCadenceSchema,
@@ -54,7 +53,7 @@ export function registerRuntimeRoutes(app: Express) {
       }
       const parsed = updateCadenceSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(400).json({ error: zodErrorMessage(parsed.error) });
       }
       const actorId = req.user!.id;
       const updated = await storage.updateSpecialistConfigSection(

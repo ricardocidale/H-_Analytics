@@ -13,10 +13,9 @@
  * (e.g. spelling change) while leaving gender at the catalog default.
  */
 import type { Express } from "express";
-import { fromZodError } from "zod-validation-error/v3";
 import { storage } from "../../../storage";
 import { requireAdmin } from "../../../auth";
-import { logAndSendError } from "../../helpers";
+import { logAndSendError, zodErrorMessage } from "../../helpers";
 import {
   type SpecialistIdentityPublicView,
 } from "@workspace/db";
@@ -76,7 +75,7 @@ export function registerIdentityRoutes(app: Express) {
       if (!catalog) return res.status(404).json({ error: "Specialist not found" });
       const parsedQuery = identityHistoryQuerySchema.safeParse(req.query);
       if (!parsedQuery.success) {
-        return res.status(400).json({ error: fromZodError(parsedQuery.error).message });
+        return res.status(400).json({ error: zodErrorMessage(parsedQuery.error) });
       }
       const limit = parsedQuery.data.limit ?? 50;
       const rows = await storage.listIdentityOverrideHistory(id, limit);

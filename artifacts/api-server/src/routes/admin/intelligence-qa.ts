@@ -1,9 +1,8 @@
 import type { Express } from "express";
 import { storage } from "../../storage";
 import { requireAdmin, getAuthUser } from "../../auth";
-import { logAndSendError, logActivity } from "../helpers";
+import { logAndSendError, logActivity, zodErrorMessage } from "../helpers";
 import { z } from "zod";
-import { fromZodError } from "zod-validation-error/v3";
 import { buildPropertyContextPack } from "../../ai/context-pack/property-pack";
 import { buildCompanyContextPack } from "../../ai/context-pack/company-pack";
 import { assembleResearchPrompt } from "../../ai/prompt/assemble-research-prompt";
@@ -51,7 +50,7 @@ export function registerQaRoutes(app: Express) {
   app.post("/api/admin/qa/preview-context-pack", requireAdmin, async (req, res) => {
     try {
       const parsed = qaEntitySchema.safeParse(req.body);
-      if (!parsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
+      if (!parsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
 
       const { entityType, entityId } = parsed.data;
       const user = getAuthUser(req);
@@ -78,7 +77,7 @@ export function registerQaRoutes(app: Express) {
   app.post("/api/admin/qa/preview-prompt", requireAdmin, async (req, res) => {
     try {
       const parsed = qaEntitySchema.safeParse(req.body);
-      if (!parsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
+      if (!parsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
 
       const { entityType, entityId, tier, assumptionKeys } = parsed.data;
       const user = getAuthUser(req);
@@ -155,7 +154,7 @@ export function registerQaRoutes(app: Express) {
         notes: z.string().max(500).optional(),
       });
       const body = bodySchema.safeParse(req.body);
-      if (!body.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(body.error as any).message });
+      if (!body.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(body.error) });
 
       const user = getAuthUser(req);
       const crypto = await import("crypto");
@@ -177,7 +176,7 @@ export function registerQaRoutes(app: Express) {
   app.post("/api/admin/qa/run-live-test", requireAdmin, async (req, res) => {
     try {
       const parsed = qaEntitySchema.safeParse(req.body);
-      if (!parsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: fromZodError(parsed.error as any).message });
+      if (!parsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
 
       const { entityType, entityId, tier } = parsed.data;
       const user = getAuthUser(req);

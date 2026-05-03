@@ -7,7 +7,7 @@ import {
   getAuthUser,
 } from "../../auth";
 import { researchGenerateSchema } from "../helpers";
-import { fromZodError } from "zod-validation-error/v3";
+import { zodErrorMessage } from "../helpers";
 import { generateResearchWithToolsStream } from "../../ai/aiResearch";
 import {
   orchestrateResearch,
@@ -38,7 +38,7 @@ export function registerResearchGenerateRoutes(app: Express) {
       if (!validation.success) {
         return res
           .status(400)
-          .json({ error: fromZodError(validation.error as any).message });
+          .json({ error: zodErrorMessage(validation.error) });
       }
 
       const {

@@ -2,8 +2,7 @@ import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, requireAdmin, getAuthUser } from "../auth";
 import { insertGlobalAssumptionsSchema, updateServiceTemplateSchema } from "@workspace/db";
-import { fromZodError } from "zod-validation-error/v3";
-import { logActivity, logAndSendError, parseParamId } from "./helpers";
+import { logActivity, logAndSendError, parseParamId, zodErrorMessage } from "./helpers";
 import { z } from "zod";
 import { invalidateComputeCache } from "../finance/cache";
 import { logger } from "../logger";
@@ -103,8 +102,7 @@ export function register(app: Express) {
     try {
       const validation = rebeccaPatchSchema.safeParse(req.body);
       if (!validation.success) {
-        const error = fromZodError(validation.error as any);
-        return res.status(400).json({ error: error.message });
+        return res.status(400).json({ error: zodErrorMessage(validation.error) });
       }
       const current = await storage.getGlobalAssumptions(getAuthUser(req).id);
       if (!current) {
@@ -146,8 +144,7 @@ export function register(app: Express) {
       // Validate req.body first, then merge with current — prevents prototype pollution
       const bodyValidation = insertGlobalAssumptionsSchema.partial().safeParse(req.body);
       if (!bodyValidation.success) {
-        const error = fromZodError(bodyValidation.error as any);
-        return res.status(400).json({ error: error.message });
+        return res.status(400).json({ error: zodErrorMessage(bodyValidation.error) });
       }
       // Task #379: certain values are canonically owned by the Model
       // Constants tab. Strip any inbound write so a stale client (or a
@@ -166,8 +163,7 @@ export function register(app: Express) {
 
       const validation = insertGlobalAssumptionsSchema.safeParse(merged);
       if (!validation.success) {
-        const error = fromZodError(validation.error as any);
-        return res.status(400).json({ error: error.message });
+        return res.status(400).json({ error: zodErrorMessage(validation.error) });
       }
       
       const GA_STALENESS_TRIGGER_KEYS = [
@@ -258,7 +254,7 @@ export function register(app: Express) {
     try {
       const parsed = saveTabSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(400).json({ error: zodErrorMessage(parsed.error) });
       }
       const { tabKey, patch, fundingInputs, unsave } = parsed.data;
       const userId = getAuthUser(req).id;
@@ -287,7 +283,7 @@ export function register(app: Express) {
 
       const validation = insertGlobalAssumptionsSchema.partial().safeParse(merged);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error as any).message });
+        return res.status(400).json({ error: zodErrorMessage(validation.error) });
       }
       const fullValidation = insertGlobalAssumptionsSchema.safeParse(merged);
       const dataToWrite = fullValidation.success ? fullValidation.data : (merged as Record<string, unknown>);
@@ -453,7 +449,7 @@ export function register(app: Express) {
     try {
       const parsed = assumptionChangeLogSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(400).json({ error: zodErrorMessage(parsed.error) });
       }
       const { previousValue, newValue, ...rest } = parsed.data;
       await storage.logAssumptionChange({
@@ -502,7 +498,7 @@ export function register(app: Express) {
     try {
       const parsed = acknowledgmentSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: fromZodError(parsed.error as any).message });
+        return res.status(400).json({ error: zodErrorMessage(parsed.error) });
       }
       const row = await storage.upsertAcknowledgment({
         ...parsed.data,
@@ -545,7 +541,7 @@ export function register(app: Express) {
     try {
       const validation = appearanceDefaultsSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error as any).message });
+        return res.status(400).json({ error: zodErrorMessage(validation.error) });
       }
       const current = await storage.getGlobalAssumptions(getAuthUser(req).id);
       if (!current) {
@@ -583,7 +579,7 @@ export function register(app: Express) {
 
       const validation = updateServiceTemplateSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(400).json({ error: fromZodError(validation.error as any).message });
+        return res.status(400).json({ error: zodErrorMessage(validation.error) });
       }
 
       const template = await storage.updateServiceTemplate(id, validation.data);
