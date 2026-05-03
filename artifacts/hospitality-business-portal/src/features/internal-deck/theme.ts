@@ -43,3 +43,10 @@ export const C = {
  */
 export const FONT_SERIF = '"EB Garamond Deck", Garamond, serif';
 export const FONT_SANS = '"Poppins Deck", "Helvetica Neue", Arial, sans-serif';
+/**
+ * Numeric font for financial-reporting slides (Slide 6 only). Roboto
+ * Condensed packs more digits per inch than Poppins, which lets the 5-year
+ * pro forma fit comfortably without truncation or shrinking. `tnum`
+ * activates tabular figures so columns of numbers align vertically.
+ */
+export const FONT_NUMERIC = '"Roboto Condensed Deck", "Roboto Condensed", "Helvetica Neue", Arial, sans-serif';

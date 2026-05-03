@@ -45,3 +45,24 @@
   font-style: normal;
   font-display: block;
 }
+
+/*
+ * Roboto Condensed — used ONLY on the financial-reporting slide (Slide 6
+ * Pro Forma) for numeric cells. The narrower glyph set lets us fit denser
+ * year-by-year tables without overflow, while keeping labels in Poppins
+ * for typographic contrast. See FONT_NUMERIC in theme.ts.
+ */
+@font-face {
+  font-family: "Roboto Condensed Deck";
+  src: url("../../assets/fonts/RobotoCondensed-Regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: "Roboto Condensed Deck";
+  src: url("../../assets/fonts/RobotoCondensed-Bold.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+  font-display: block;
+}
