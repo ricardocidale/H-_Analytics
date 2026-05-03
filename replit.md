@@ -1,6 +1,6 @@
 # Replit Workspace — H+ Analytics
 
-H+ Analytics is a hospitality-sector financial analytics platform. Asset managers use it to model scenarios, run portfolio projections, and generate property-level PPTX investor slide decks using the L+B template.
+H+ Analytics is a hospitality-sector financial analytics platform. Asset managers use it to model scenarios, run portfolio projections, and generate property-level investor slide decks (HTML → PDF via Playwright, matched to the canonical L+B 6-slide design).
 
 > **`claude.md` is the canonical source of truth** for architecture, stack, commands, environment variables, and all project rules. This file contains only Replit-platform-specific configuration that mirrors or routes back to `claude.md`. If wording diverges between the two files for a shared fact, that is a bug — fix it before any other commit lands. (See the `agent-memory-files` skill.)
 
@@ -18,7 +18,7 @@ H+ Analytics is a hospitality-sector financial analytics platform. Asset manager
 
 Each artifact has a corresponding Replit workflow. To restart a service, use `restart_workflow` with the artifact name. Never run `pnpm dev` at the workspace root — workflows manage env vars (`PORT`, `BASE_PATH`) that the root script cannot wire up.
 
-If old task-agent sessions leave behind `.claude/worktrees/agent-*/` directories, they get re-registered as duplicate artifacts (same `previewPath`) and pollute the workflow picker, which also breaks `verifyAndReplaceArtifactToml` with `DUPLICATE_PREVIEW_PATH`. Clean them up with `git worktree remove --force` (or `rm -rf` the dir + `git worktree prune`) so only the four canonical `artifacts/*` workflows above remain.
+If old task-agent sessions leave behind `.claude/worktrees/agent-*/` directories, they get re-registered as duplicate artifacts (same `previewPath`) and pollute the workflow picker, which also breaks `verifyAndReplaceArtifactToml` with `DUPLICATE_PREVIEW_PATH`. Clean them up with `git worktree remove --force` (or `rm -rf` the dir + `git worktree prune`) so only the three canonical `artifacts/*` workflows above remain.
 
 ## Shared proxy routing
 
@@ -86,19 +86,16 @@ Skills are process documents that guide AI agents. See `claude.md` § "Agent & S
 | `embedded-ai-agent` | Adding or extending Rebecca (the only AI assistant in this app) |
 | `replit-independence` | Adding any dependency, env var, or deployment-affecting change |
 | `prefer-external-dependencies` | Before any infrastructure-shaped tool call — the project uses Neon Postgres, Cloudflare R2, Google OAuth, direct OpenAI/Anthropic/Gemini SDKs; never provision Replit-managed equivalents |
-| `norfolk-code-review` | Before opening a PR — wraps `ce-code-review` with hospitality/Drizzle personas |
+| `nai-code-review` | Before opening a PR — wraps `ce-code-review` with hospitality/Drizzle personas |
 | `architecture-decision-records` | Any irreversible technical decision future contributors might re-litigate |
-| `hplus-pptx-generator` | Extending or debugging the LB Slides PPTX generator |
-| `hplus-slide-mapping` | Shape-name ↔ data-field mapping for all 6 LB Slides template slides |
-| `hplus-canonical-slide-1` | Slide 1 visual spec — coords, colors, fonts, known issues; load when generating, debugging, or rebuilding Slide 1 |
-| `hplus-canonical-slide-2` | Slide 2 visual spec — structural twin of Slide 1 with documented deltas; load when generating, debugging, or rebuilding Slide 2 |
 | `hplus-vision-templates` | Filling in any slide text field — sourcing pipeline (DB → benchmarks → LLM with web research → templates), per-field char-limit enforcement, and budget-realism guardrails for transformation proposals |
 | `hplus-renovation-benchmarks` | Per-key cost ranges and transformation cost lines used by the budget-realism check above |
+| `hplus-admin-nav-ia` | Placing data sources, APIs, Specialists, LLMs, or AI agents in the Admin / AI Intelligence sidebar |
 | `agent-memory-files` | Editing `claude.md` or `replit.md` — keep them harmonized |
 
 > **AI assistant scope**: This app has one AI assistant — **Rebecca** (semantic KB search). Marcela was removed. See `claude.md` § "AI assistant — Rebecca only".
 
-> **LB Slides** (DB schema, API routes, image rendering, Python generator, admin UI): see `claude.md` § "LB Slides — per-property PPTX + image-PPTX generator". The canonical template path is centralized in `scripts/src/canonical_template.py` — never hardcode it. Two prior canonicals live in `attached_assets/archive/`.
+> **LB Slides** (DB schema, API routes, Playwright HTML→PDF pipeline, admin UI): see `claude.md` § "LB Slides — investor PDF decks (Playwright HTML→PDF)". Visual spec source-of-truth = `attached_assets/L+B_Property_6-Slide_Cannonical_1777775653617.pdf` + the per-slide briefs in `attached_assets/Pasted-SLIDE-N-…txt`. The legacy Python + `python-pptx` track has been removed — do not reintroduce it.
 
 > **Canonical page archetypes**: see `claude.md` § "Canonical Page Archetypes".
 

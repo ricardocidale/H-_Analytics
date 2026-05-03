@@ -1,6 +1,6 @@
 # H+ Analytics — Project Source of Truth
 
-H+ Analytics is a hospitality-sector financial analytics platform. Asset managers use it to model scenarios, run portfolio projections, and generate property-level PPTX investor slide decks using the L+B template. Users are organised by organisation; access to scenarios and portfolios is governed by a share / permission model.
+H+ Analytics is a hospitality-sector financial analytics platform. Asset managers use it to model scenarios, run portfolio projections, and generate property-level investor slide decks (HTML → PDF via Playwright, matched to the canonical L+B 6-slide design). Users are organised by organisation; access to scenarios and portfolios is governed by a share / permission model.
 
 ---
 
@@ -41,7 +41,7 @@ docs/solutions/ Documented solutions, organized by category with YAML frontmatte
 | Validation | Zod (`zod/v4`), `drizzle-zod` |
 | API codegen | Orval (from OpenAPI spec in `lib/api-spec`) |
 | Frontend build | Vite |
-| Backend build | esbuild (CJS bundle) |
+| Backend build | esbuild (ESM bundle, `dist/index.mjs`) |
 | File storage | Cloudflare R2 |
 | Auth | Two parallel sign-in paths: (1) `AUTH_PROVIDER` adapter in `artifacts/api-server/src/providers/auth/` selects `replit` (Replit OIDC, default) or `local` (email + password); (2) Google OAuth routes at `/api/auth/google` + `/api/auth/google/callback` (`artifacts/api-server/src/routes/google-auth.ts`) run alongside whichever provider is selected. Production users sign in with Google. |
 | AI providers | OpenAI, Anthropic, Gemini (all called via direct SDKs with first-party API keys — not via a Replit broker) |
@@ -95,7 +95,7 @@ Health endpoint: `GET /api/health/live` (not `/api/healthz`).
 | `railway.toml` | `builder = "dockerfile"`, `healthcheckPath = "/api/health/live"`, `healthcheckTimeout = 300`, `restartPolicyType = "ON_FAILURE"`. |
 | `artifacts/api-server/build.mjs` | Externalises heavy deps (AI SDKs, doc/media libs, country-state-city, Sentry, google-auth-library) so the bundle stays ~7.5 MB and pnpm installs the rest in the runtime container. |
 
-**Single-container model:** the api-server serves `/api/*` plus all three SPAs from one process on one port (`$PORT`). The Dockerfile builds every frontend and copies them next to the api-server bundle; `artifacts/api-server/src/static.ts` mounts them at:
+**Single-container model:** the api-server serves `/api/*` plus both SPAs from one process on one port (`$PORT`). The Dockerfile builds every frontend and copies them next to the api-server bundle; `artifacts/api-server/src/static.ts` mounts them at:
 
 - `/` → `artifacts/api-server/dist/public` (H+ Analytics — `hospitality-business-portal`)
 - `/__mockup/` → `artifacts/api-server/dist/mockup-sandbox`
@@ -156,56 +156,39 @@ Specialists are **dev-defined only** — see `.claude/rules/specialists-are-dev-
 - `canManageScenarios` is a boolean orthogonal to role — see the architecture audit at `.local/tasks/task-800.md`.
 - Dual share tables exist: `scenario_access` (enforcement) and `scenario_shares` (admin tracking). Both must be kept in sync.
 
-### LB Slides — per-property PPTX + image-PPTX generator
+### LB Slides — investor PDF decks (Playwright HTML→PDF)
 
-The "LB Slides" feature generates two formats of a 6-slide investor deck per property using the L+B PowerPoint template. Slide 7 ("The Ask") is always excluded.
+The "LB Slides" feature generates a 6-slide investor deck per property as a single PDF. Slide 7 ("The Ask") is always excluded. The output must match the canonical L+B reference deck (`attached_assets/L+B_Property_6-Slide_Cannonical_1777775653617.pdf`) — colors, fonts, layout, photo placement.
 
-**Two formats (Track 1 and Track 2):**
-- **Track 1 — PPTX** (editable): Python `generate_property_slides.py` writes shapes into template slides. Must match the canonical template exactly — colors, fonts, layout. When data is missing, always derive (vision generator, renovation benchmarks, computed values) — never leave a placeholder blank.
-- **Track 2 — Image-PPTX** (locked): Same 6 slides, but each slide contains one full-slide-size PNG as the only element (looks identical; immune to font/layout issues in PPTX viewers). PNG rendering uses **satori + @resvg/resvg-js** (JSX → SVG → PNG, zero native deps). **Never use Puppeteer, Playwright, or headless Chromium** — too heavy for Railway (~300MB). LibreOffice headless (`soffice --headless --convert-to png`) is an acceptable fallback if available.
+**One pipeline (HTML → PDF):**
+- React deck pages live in `artifacts/hospitality-business-portal/src/features/internal-deck/` (`slides.tsx`, `theme.ts`, `helpers.tsx`, `fonts.css`) and are mounted at `/internal/deck/:propertyId` via `pages/InternalDeck.tsx`.
+- `artifacts/api-server/src/routes/property-deck-pdf.ts` opens that page in headless Chromium (Playwright) with an internal token, prints to PDF, uploads to R2, and serves it back. Source files: `internal-deck-payload.ts`, `pdf-html-templates.ts`, `premium-pdf-pipeline.ts`, `slides/playwright-browser.ts`, `slides/internal-token.ts`.
+- The legacy Python + `python-pptx` track and the satori image-PPTX track are removed. Do **not** add Puppeteer; Playwright is the single supported renderer (Chromium installed at build time into `.cache/ms-playwright/`).
 
-**Pre-generation (critical):**
-- Both formats are pre-generated at server startup for all properties that have no `ready` variant.
-- Admin LB Slides page is **primarily a download page** — admins should not need to click "Generate" on first visit.
-- Admin CAN trigger manual regeneration with a visible wait. Generation can be slow — quality over speed.
-
-**DB schema:** `property_slide_deck_variants` table (replaces old `property_slide_decks`):
-- Composite PK: `(property_id, format)` — `format IN ('pptx', 'image')`
+**DB schema:** `property_slide_deck_variants` table holds only `format='pdf'` rows (migration 0042 dropped `'pptx'` and `'image'`):
+- Composite PK: `(property_id, format)` with `format = 'pdf'`
 - Columns: `property_id` FK→properties.id (cascade delete), `format`, `status` ('idle'|'generating'|'ready'|'error'), `r2_key`, `file_size_bytes`, `generated_at`, `triggered_by`, `error_message`, `updated_at`
-- Migration: copy old `property_slide_decks` rows as `format='pptx'`, drop old table
 
-**API routes:**
-- `POST /api/properties/:id/slides/generate` — trigger generation (both formats)
-- `GET /api/properties/:id/slides/status` — poll status per format
-- `GET /api/properties/:id/slides?format=pptx` — download PPTX
-- `GET /api/properties/:id/slides?format=image` — download image-PPTX
-- Source: `artifacts/api-server/src/routes/property-slides.ts`
-- Auth: `requireAuth` guard
+**Active API routes** (`artifacts/api-server/src/routes/property-deck-pdf.ts`):
+- `GET /api/properties/:id/deck.pdf` — render or serve cached deck
+- `GET /api/slides/status` — admin: PDF variant status rows (in `property-slides.ts`, the legacy file kept only for the status feed + hero-image ZIP)
+- Auth: `requireAuth` guard; internal page load uses a short-lived signed token from `slides/internal-token.ts`
 - Finance: uses `recomputeSinglePropertyAndStamp` → `aggregateUnifiedByYear` (same path as finance.ts)
 - Loan data: `calculateLoanParams` returns `LoanCalculation` — use `equityInvested`, `monthlyPayment * 12` (not `.ltv` or `.annualDebtService` — those fields don't exist)
 - IRR: `computeIRR([-equity, ...annualFlows])` — first element must be the negative initial outlay
-- Vision text: `artifacts/api-server/src/ai/property-vision.ts` — Claude claude-opus-4-6 with deterministic fallback by type (retreat / vrbo / hotel)
-- Python subprocess: stdin JSON → stdout `{ path, slides }` → temp file streamed back, deleted in `finally`
+- Vision text: `artifacts/api-server/src/ai/property-vision.ts` — Claude with deterministic fallback by type (retreat / vrbo / hotel) per the `hplus-vision-templates` skill
 
-**Python generator:** `scripts/src/generate_property_slides.py`
-- Helpers: `scripts/src/slide_helpers.py`, `scripts/src/renovation_budget.py`
-- Template: `attached_assets/L+B_Property_Slides_02_1777743268816.pptx` (slides 0–5, index 6 excluded). Latest canonical as of 2026-05-02 PM — bakes in palette consolidation (single sage `#9FBCA4`, single dark `#1C2B1E`), Slide 5 typo + invisibility fixes, Slide 4 header/subtitle contrast fixes, and stale page numbers normalized to `PAGE 21–25` (Slide 6 untouched). Two prior canonicals (`_1777738821984.pptx`, `_1777637870265.pptx`) are in `attached_assets/archive/`. If you swap the template again, run `python3 scripts/src/extract_slot_recipe.py` and restart the api-server in lockstep.
-- Runtime deps: `python-pptx`, `Pillow` (installed via `uv`, managed by the `python3` module)
-- Quality requirement: shape mapping must follow `hplus-slide-mapping` skill exactly — all 6 slides, all shape names, all data fields
+**Visual spec source-of-truth:**
+- Canonical reference deck: `attached_assets/L+B_Property_6-Slide_Cannonical_1777775653617.pdf`
+- Per-slide briefs (full structural extraction): `attached_assets/Pasted-SLIDE-1-Sul-Monte-…txt`, `Pasted-SLIDE-2-Hazelnis-Retreat-…txt`, `Pasted-SLIDE-3-Cartagena-Duplex-…txt`
+- Text-field char limits and source priority: `hplus-vision-templates` skill
+- Budget realism for transformation copy: `hplus-renovation-benchmarks` skill
 
-**Admin UI:** `artifacts/hospitality-business-portal/src/components/admin/SlideDecksTab.tsx`
-- Card grid per property with property photo background
-- Two download buttons per ready card: **Download PPTX** (Track 1) + **Download Images** (Track 2)
-- Regenerate button (Analyst-style) for manual re-run of both formats
-- "View Slides" icon opens `/slides/?propertyId={id}` in new tab
-- Queries `/api/properties` for the card grid
-- `AdminSection` type includes `"slide-decks"`, nav group `id: "lb-slides"`, label `"LB Slides"`
+**Admin UI:** `artifacts/hospitality-business-portal/src/components/admin/SlideDecksTab.tsx` — card grid per property; one "Download PDF" action per ready card; Analyst-style regenerate button.
 
-**Skills:**
-- `.agents/skills/hplus-pptx-generator/` — full architecture + extension guide
-- `.agents/skills/hplus-slide-mapping/` — shape-name ↔ data-field mapping for all 6 slides
-- `.agents/skills/hplus-renovation-benchmarks/` — deterministic renovation budget ranges
-- `.agents/skills/hplus-vision-templates/` — deterministic vision text fallback templates
+**Skills (only those present on disk):**
+- `.agents/skills/hplus-vision-templates/` — text generation pipeline + char-limit enforcement
+- `.agents/skills/hplus-renovation-benchmarks/` — per-key cost ranges, transformation cost lines
 
 ### `reference_brands` AI pipeline wiring
 
@@ -251,12 +234,12 @@ Use the `ui-page-patterns` skill before building or revising any page.
 | `.local/tasks/task-800.md` | Full architecture audit (scenarios, portfolios, sharing, roles) |
 | `.local/db-audit-phase-c-inventory.md` | DB migration inventory (Phase C) |
 | `.local/tasks/build-property-slides.md` | Property slide deck build plan |
-| `.agents/skills/hplus-pptx-generator/SKILL.md` | LB Slides full architecture + extension guide |
-| `.agents/skills/hplus-slide-mapping/SKILL.md` | Shape-name ↔ data-field mapping for all 6 slides |
-| `.agents/skills/hplus-canonical-slide-1/SKILL.md` | Slide 1 visual spec: coords, colors, fonts, raster/native composition, known issues |
-| `.agents/skills/hplus-canonical-slide-2/SKILL.md` | Slide 2 visual spec: structural twin of Slide 1, with explicit deltas (no price block, photo placeholders, color shifts) |
-| `attached_assets/Pasted-SLIDE-1-Sul-Monte-Investment-Spotlight-0-Slide-Level-Me_1777741401797.txt` | Full 200-line source extraction backing the slide-1 skill |
-| `attached_assets/Pasted-SLIDE-2-Hazelnis-Retreat-Investment-Spotlight-0-Slide-L_1777741586519.txt` | Full 183-line source extraction backing the slide-2 skill |
+| `attached_assets/L+B_Property_6-Slide_Cannonical_1777775653617.pdf` | Canonical visual reference for all 6 LB slides — every rebuild must pixel-match this |
+| `attached_assets/Pasted-SLIDE-1-Sul-Monte-Investment-Spotlight-0-Slide-Level-Me_1777741401797.txt` | Slide 1 full structural brief (coords, fonts, copy) |
+| `attached_assets/Pasted-SLIDE-2-Hazelnis-Retreat-Investment-Spotlight-0-Slide-L_1777741586519.txt` | Slide 2 full structural brief |
+| `attached_assets/Pasted-SLIDE-3-Cartagena-Duplex-Satellite-Expansion-0-Slide-Le_1777741627557.txt` | Slide 3 full structural brief |
+| `.agents/skills/hplus-vision-templates/SKILL.md` | Slide-text source-priority pipeline + char limits |
+| `.agents/skills/hplus-renovation-benchmarks/SKILL.md` | Per-key reno cost ranges + transformation cost lines |
 
 ---
 
@@ -290,7 +273,7 @@ vendor/
 | 1 | `ce-brainstorm` | Explore requirements, produce a requirements doc |
 | 2 | `ce-plan` | Break the requirements doc into an implementation plan |
 | 3 | `ce-work` | Execute the plan step-by-step |
-| 4 | `ce-code-review` / `norfolk-code-review` | Review before merging |
+| 4 | `ce-code-review` / `nai-code-review` | Review before merging |
 | 5 | `ce-compound` | Capture new knowledge as a skill or ADR |
 
 ### CC / Replit lane split
@@ -312,14 +295,11 @@ vendor/
 | `embedded-ai-agent` | Adding or extending Rebecca (the only AI assistant in this app) |
 | `replit-independence` | Adding any dependency, env var, or deployment-affecting change |
 | `prefer-external-dependencies` | Before any infrastructure-shaped tool call — the project uses Neon Postgres, Cloudflare R2, Google OAuth, direct OpenAI/Anthropic/Gemini SDKs; never provision Replit-managed equivalents |
-| `norfolk-code-review` | Before opening a PR — wraps `ce-code-review` with hospitality/Drizzle personas |
+| `nai-code-review` | Before opening a PR — wraps `ce-code-review` with hospitality/Drizzle personas |
 | `architecture-decision-records` | Any irreversible technical decision future contributors might re-litigate |
-| `hplus-pptx-generator` | Extending or debugging the LB Slides PPTX generator |
-| `hplus-slide-mapping` | Shape-name ↔ data-field mapping for all 6 LB Slides template slides |
-| `hplus-canonical-slide-1` | Slide 1 visual spec — coords, colors, fonts, known issues; load when generating, debugging, or rebuilding Slide 1 |
-| `hplus-canonical-slide-2` | Slide 2 visual spec — structural twin of Slide 1 with documented deltas; load when generating, debugging, or rebuilding Slide 2 |
 | `hplus-vision-templates` | Filling in any slide text field — sourcing pipeline (DB → benchmarks → LLM with web research → templates), per-field char-limit enforcement, and budget-realism guardrails for transformation proposals |
 | `hplus-renovation-benchmarks` | Per-key cost ranges and transformation cost lines used by the budget-realism check above |
+| `hplus-admin-nav-ia` | Placing data sources, APIs, Specialists, LLMs, or AI agents in the Admin / AI Intelligence sidebar |
 | `agent-memory-files` | Editing `claude.md` or `replit.md` — keep them harmonized |
 
 ### How to invoke
@@ -336,16 +316,14 @@ vendor/
 
 | Date | Change |
 |---|---|
-| 2026-05-03 | **`claude.md` and `replit.md` harmonized** per the `agent-memory-files` skill. Updated both to reflect the 3-SPA production bundle, refreshed Recent Changes, and pruned older entries. |
-| 2026-05-03 | **Production image now bundles all 3 frontends** (Task #975). The Dockerfile builds H+ Analytics, property-slides, and mockup-sandbox; api-server's `static.ts` mounts them at `/`, `/property-slides/`, and `/__mockup/`. One Railway service serves everything. See "Production Deployment" → "Single-container model". |
+| 2026-05-03 | **`claude.md` and `replit.md` re-harmonized** per the `agent-memory-files` skill. Identity updated (PDF, not PPTX). LB Slides section rewritten to reflect the Playwright HTML→PDF pipeline. Removed routing entries for skills that don't exist on disk (`hplus-pptx-generator`, `hplus-slide-mapping`, `hplus-canonical-slide-1`, `hplus-canonical-slide-2`, `norfolk-code-review`). Skill table mirrored identically across both files. SPA count corrected from 3 → 2 (the `property-slides` SPA never shipped). |
+| 2026-05-03 | **Investor deck pipeline migrated to Playwright HTML→PDF.** Python + `python-pptx` track and satori image-PPTX track are removed. New flow: React deck pages in `internal-deck/` → `GET /api/properties/:id/deck.pdf` (`property-deck-pdf.ts`) prints to PDF via headless Chromium and caches to R2. `property_slide_deck_variants.format` is now `'pdf'`-only (migration 0042). |
+| 2026-05-03 | **Dockerfile migrations fix** (commit b91ca7c5) unblocked Railway deploys. |
 | 2026-05-03 | **One-command Railway data sync** — `pnpm sync-db-to-railway` (Task #978) mirrors the dev Neon DB to the Railway production DB for parity testing. |
 | 2026-05-03 | **Sensitivity heatmap now reports Equity Multiple correctly** (Task #967). Added `equityMultipleValue` to `SensitivityScenarioResult` (shared + api-server mirror); server `runScenario` uses `computeEquityMultiple`; client fallback mirrored; HeatMapSection re-labelled "Equity Multiple" with `${v.toFixed(2)}x`, breakeven 1.0, "—" for v ≤ 0. |
-| 2026-05-03 | **Spinner / icon contrast guard wired into CI** (Task #922). `.github/workflows/contrast-guard.yml` runs `check-spinner-contrast` on every PR + push to main — blocks low-contrast icon-on-fill regressions automatically. |
-| 2026-05-03 | **Better DB error logs on auth failures** (Task #968). `formatError()` in `artifacts/api-server/src/logger.ts` now surfaces Postgres `code`, `column`, `table`, `constraint`, etc., on dev auth bypass failures and the LLM-issue notification path — turns a bare SQL log into a self-diagnosing message. |
-| 2026-05-02 PM | **L+B Property Slides canonical PPTX swapped** to `attached_assets/L+B_Property_Slides_02_1777743268816.pptx`. Prior canonicals are in `attached_assets/archive/`. Bakes in palette consolidation (single sage `#9FBCA4`, single dark `#1C2B1E`), Slide 5 typo + invisibility fixes, Slide 4 header/subtitle contrast fixes, and stale page numbers normalized to `PAGE 21–25` (Slide 6 untouched). |
-| 2026-05-02 PM | **Canonical PPTX filename centralized** in `scripts/src/canonical_template.py` (exports `CANONICAL_PPTX_FILENAME` + `CANONICAL_PPTX_PATH`). `generate_property_slides.py`, `extract_slot_recipe.py`, and `render_slide_backgrounds.py` all import from it — future template swaps are a one-line change. |
+| 2026-05-03 | **Spinner / icon contrast guard wired into CI** (Task #922). `.github/workflows/contrast-guard.yml` runs `check-spinner-contrast` on every PR + push to main. |
+| 2026-05-03 | **Better DB error logs on auth failures** (Task #968). `formatError()` in `artifacts/api-server/src/logger.ts` now surfaces Postgres `code`, `column`, `table`, `constraint`, etc. |
 | 2026-05-02 | **Production hosting moved to Railway.** Replit Publish (both autoscale and Reserved VM) repeatedly failed; the project now ships via `Dockerfile` + `railway.toml` (single container, healthcheck `/api/health/live`). All infra is external (Neon Postgres, Cloudflare R2, Google OAuth, direct OpenAI/Anthropic/Gemini SDKs). Replit Workspace is dev-preview only. |
 | 2026-05-02 | api-server bundle reduced from ~32 MB → ~7.5 MB by externalising AI SDKs, doc/media libs, country-state-city, Sentry, and google-auth-library in `build.mjs` (Tasks #942, #948). |
 | 2026-05-02 | `reference_brands` table wired into research orchestrator (tool DI), Funding Specialist PE prompt, and Rebecca KB. |
-| 2026-05-02 | `property_slide_deck_variants` table added (replaces `property_slide_decks`); dual-format generation — Track 1 PPTX + Track 2 image-PPTX via satori. |
 | 2026-05-02 | Marcela removed from codebase. Rebecca is the only AI assistant. |

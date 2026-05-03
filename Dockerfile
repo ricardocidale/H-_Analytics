@@ -122,7 +122,7 @@ COPY --from=build /app/pnpm-workspace.yaml   ./pnpm-workspace.yaml
 # of nss, fonts, libxkbcommon, etc.
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 # Drizzle migrations - bootstrapDrizzleMigrationState() reads ./migrations relative to cwd
-COPY --from=build /app/lib/db/migrations ./migrations
+COPY --from=build /app/artifacts/api-server/migrations ./migrations
 
 RUN pnpm --filter @workspace/api-server exec playwright install --with-deps chromium \
   && rm -rf /var/lib/apt/lists/*
