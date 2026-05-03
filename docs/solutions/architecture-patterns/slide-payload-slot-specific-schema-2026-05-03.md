@@ -26,6 +26,10 @@ tags:
 
 # Slide payloads must model per-slot semantics, not a generic property+vision bag
 
+> **See also (2026-05-03 follow-ups):**
+> - [Canonical-contract rebuild: a four-layer architecture for fixed-design deck rendering](./canonical-contract-rebuild-architecture-2026-05-03.md) — this doc is the **schema layer** of that broader architecture (schema + theme + renderer + payload-builder + self-validation gate).
+> - [Three-way diff: diagnose generated-artifact drift against a canonical reference](../workflow-issues/three-way-diff-recon-methodology-2026-05-03.md) — the diagnostic methodology (human brief × machine-precise JSON spans × generated PDF) that surfaced this pattern. The "Diff that exposed the pattern" section below is a worked instance of it.
+
 ## Context
 
 The L+B per-property 6-slide investor deck is generated from a canonical recipe
