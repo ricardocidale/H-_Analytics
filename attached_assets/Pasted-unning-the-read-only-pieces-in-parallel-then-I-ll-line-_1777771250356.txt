@@ -1,0 +1,59 @@
+unning the read-only pieces in parallel, then I'll line up the write actions as tasks.
+
+
+4 actions
+Here's the picture across all three reads.
+
+(a) Latest Railway deploys for H-Analytics
+Last 5 deploys — 3 of 5 failed, 2 skipped, 0 successful (all on main):
+
+When (UTC)	Status	Commit	Reason
+2026‑05‑02 14:33:48	SKIPPED	28e61727 (Task #937 hero‑photo audit)	"CI check suite failed"
+2026‑05‑02 14:33:41	FAILED	28e61727	TypeScript error — see below
+2026‑05‑02 14:32:49	SKIPPED	28e61727	"CI check suite failed"
+2026‑05‑02 14:30:15	FAILED	13e4bc54 (skills commit)	same root cause
+2026‑05‑01 21:20:08	FAILED	13e4bc54	same root cause
+Build failure root cause (deploy c4354e7e):
+
+artifacts/api-server typecheck:
+  src/ai/vector-indexing.ts(825,25): error TS2339:
+  Property 'text' does not exist on type 'QueryMatch'.
+
+Build dies in pnpm run build → pnpm run typecheck → api‑server tsc --noEmit → exit 2.
+
+This matches the "one pre‑existing TS error in vector-indexing.ts is unrelated" note that Task #937's commit body called out as known. It is now blocking every deploy on main. Production has been failing to deploy since at least 2026‑05‑01 21:20 UTC — and your feat/fix-slide-backgrounds work hasn't reached prod for the same reason it doesn't reach main.
+
+(b) Redeploy
+Possible — deploy c4354e7e has canRedeploy: true — but redeploying any commit on main will hit the same vector-indexing.ts(825) TS2339 and fail again. A redeploy on its own will not help. You need either:
+
+Fix vector-indexing.ts(825) first, then redeploy main, or
+Merge feat/fix-slide-backgrounds to main only after that TS error is fixed (it's on that branch too — same source tree).
+(c) Railway env vars on the service
+The token can read them. Several look broken — flagging before you ask me to set anything:
+
+Critical / corrupted:
+
+NODE_ENV — variable name has trailing whitespace. process.env.NODE_ENV will be undefined in the running container. This alone changes a lot of behavior (Express, Vite, drizzle).
+DATABASE_URL = postgresql://user:password@localhost:5432/hanalytics — placeholder. (Looks like the app actually reads POSTGRES_URL, which is a real Neon URL — but if anything still reads DATABASE_URL, it's broken.)
+Placeholders (almost certainly not what's in use):
+
+ADMIN_PASSWORD = your-admin-password
+OPENAI_API_KEY = sk-...
+SESSION_SECRET = your-session-secret-here
+ANTHROPIC_API_KEY = sk-ant-...
+GOOGLE_AI_API_KEY = AIza...
+Real, looks fine: POSTGRES_URL (Neon), R2_*, FRED_API_KEY, OPENAI_EMBEDDING_KEY, GOOGLE_CLIENT_ID/SECRET, TOKEN_ENCRYPTION_KEY, APP_URL, all RAILWAY_* reflectors.
+
+Heads‑up on the secrets above: these values came back in the GraphQL response, so they're now in this conversation transcript. If any of them are real (especially R2_SECRET_ACCESS_KEY, OPENAI_EMBEDDING_KEY, GOOGLE_CLIENT_SECRET, TOKEN_ENCRYPTION_KEY, FRED_API_KEY, POSTGRES_URL), you should treat them as exposed and rotate them. The rest read like dev placeholders.
+
+What I'd recommend, and what needs your call
+I'm a planning agent, so I can't make code edits or call Railway mutations directly — those go out as Project Tasks. Three things I'd queue up, but I want your sign‑off on each because they touch prod:
+
+Task: fix vector-indexing.ts(825) TS2339 so prod deploys can succeed. Without this, nothing else ships. Highest priority.
+Task: clean up the broken Railway env vars — at minimum delete the malformed NODE_ENV key and replace it with NODE_ENV, and delete the placeholder DATABASE_URL / ADMIN_PASSWORD / OPENAI_API_KEY / SESSION_SECRET / ANTHROPIC_API_KEY / GOOGLE_AI_API_KEY (or replace them with real values). This task would also be the right place to apply your tiered env‑var list once you paste it.
+Task: rotate the secrets that just leaked into this transcript (R2, OpenAI embedding, Google OAuth client secret, token encryption key, FRED, Postgres). Separate task because it needs coordinated rotation across Railway + the upstream provider consoles.
+Two questions before I draft anything:
+
+Do you want me to draft tasks #1 (TS fix) and #2 (env‑var cleanup) now? For #2, paste the tiered required‑env‑vars list from the prior session and I'll fold it into the task plan.
+On the leaked secrets — do you want a rotation task too, or are you treating those values as already‑known/dev and not worth rotating?
+I'll hold off on a redeploy task; it's pointless until the TS error is fixed.

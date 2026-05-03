@@ -1,0 +1,38 @@
+Continuing from a prior session on this same H+ Analytics monorepo
+(branch: feat/fix-slide-backgrounds, GitHub remote: Norfolk-Group/H-Analytics).
+CONTEXT
+- Production hosts on Railway via Dockerfile + railway.toml. Deploy
+  trigger is `git push` -> Railway auto-build. Healthcheck is
+  GET /api/health/live (300s timeout).
+- Last session pushed feat/fix-slide-backgrounds to GitHub at commit
+  f3227d4a (Task #973: drop unused indexes). The Railway GitHub App
+  opened a PR; I [merged / haven't merged] it.
+- RAILWAY_API_KEY is set in Replit secrets and (per the previous
+  session) the value should now be a valid account token from
+  https://railway.com/account/tokens. The prior session couldn't
+  verify because its env snapshot was stale -- yours should be fresh.
+OPEN ITEM (do this first)
+There's a one-line uncommitted fix staged in the working tree:
+artifacts/api-server/src/migrations/migration-guards.json declares
+"0031_drop_unused_indexes" as self-idempotent. The previous session
+couldn't commit it (sandbox-blocked git commit). Please propose a
+Project Task to commit + push that single-file change to
+feat/fix-slide-backgrounds with this message:
+  chore(migrations): declare 0031_drop_unused_indexes as self-idempotent
+  Task #973 added the migration but did not register it in
+  migration-guards.json. All 45 statements are DROP INDEX IF EXISTS,
+  matching the self-idempotent pattern of sibling 0030_evidence_based_indexes.
+WHAT I WANT FROM YOU NOW
+1. Verify RAILWAY_API_KEY works by hitting backboard.railway.com/graphql/v2
+   with `{ me { name email projects { edges { node { id name
+   environments { edges { node { id name } } }
+   services { edges { node { id name } } } } } } } }`.
+   Report what project / service / environment the token resolves to.
+2. Then ask me what I want next -- typically one of:
+   (a) fetch the latest Railway deploy logs for the H+ service
+   (b) trigger a redeploy of the latest commit on the prod environment
+   (c) read or set Railway env vars on the service (the prior session
+       produced a tiered list of required Railway env vars -- ask me
+       to paste it if needed)
+   (d) something else I'll tell you.
+Do not call suggest_deploy. This project does not use Replit Publish.
