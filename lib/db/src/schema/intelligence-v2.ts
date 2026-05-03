@@ -92,6 +92,11 @@ export const researchRuns = pgTable("research_runs", {
 }, (table) => [
   index("research_runs_entity_idx").on(table.entityType, table.entityId),
   index("research_runs_status_idx").on(table.status),
+  // Task #972: latest-successful-run for a Constants locality —
+  // see getLatestSuccessfulRunForConstant(). WHERE entity_type = $1
+  // AND status = $2 ORDER BY completed_at DESC LIMIT 1.
+  index("research_runs_entity_status_completed_idx")
+    .on(table.entityType, table.status, table.completedAt),
   index("research_runs_user_idx").on(table.userId),
   index("research_runs_scenario_idx").on(table.scenarioId),
   // Partial index — cacheKey is NULL for every row written before Phase 5C
@@ -291,6 +296,12 @@ export const rebeccaConversations = pgTable("rebecca_conversations", {
   index("rebecca_conversations_user_idx").on(table.userId),
   // Covering index for FK to properties (chat panel filters by property context).
   index("rebecca_conversations_property_idx").on(table.propertyId),
+  // Task #972: "my recent conversations" list — see getRebeccaConversations(userId).
+  // WHERE user_id = $1 ORDER BY last_message_at DESC.
+  index("rebecca_conversations_user_last_msg_idx").on(table.userId, table.lastMessageAt),
+  // Task #972: getOrCreateConversation lookup — runs on every Rebecca panel mount.
+  // WHERE user_id = $1 AND context_type = $2 AND context_key … LIMIT 1.
+  index("rebecca_conversations_user_ctx_idx").on(table.userId, table.contextType, table.contextKey),
 ]);
 
 export const insertRebeccaConversationSchema = createInsertSchema(rebeccaConversations).pick({
@@ -308,6 +319,9 @@ export const rebeccaMessages = pgTable("rebecca_messages", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("rebecca_messages_conv_idx").on(table.conversationId),
+  // Task #972: chat-history fetch (WHERE conversation_id = $1
+  // ORDER BY created_at DESC LIMIT N) — see getRebeccaMessages().
+  index("rebecca_messages_conv_created_idx").on(table.conversationId, table.createdAt),
 ]);
 
 export const insertRebeccaMessageSchema = createInsertSchema(rebeccaMessages).pick({
@@ -350,6 +364,9 @@ export const rebeccaFeedback = pgTable("rebecca_feedback", {
   index("rebecca_feedback_status_idx").on(table.status),
   index("rebecca_feedback_user_idx").on(table.userId),
   index("rebecca_feedback_conv_idx").on(table.conversationId),
+  // Task #972: admin feedback queue (WHERE status = $1 ORDER BY created_at DESC) —
+  // see getRebeccaFeedback(status).
+  index("rebecca_feedback_status_created_idx").on(table.status, table.createdAt),
 ]);
 
 export const insertRebeccaFeedbackSchema = createInsertSchema(rebeccaFeedback).pick({
@@ -508,6 +525,12 @@ export const scheduledResearchWorkflows = pgTable("scheduled_research_workflows"
 }, (table) => [
   index("scheduled_research_workflows_enabled_idx").on(table.isEnabled),
   index("scheduled_research_workflows_next_run_idx").on(table.nextRunAt),
+  // Task #972: scheduler picker (WHERE is_enabled = true AND next_run_at <= NOW()
+  // ORDER BY priority) — see getStaleScheduledWorkflows(); partial keeps the
+  // index ~the size of the enabled subset.
+  index("scheduled_research_workflows_due_idx")
+    .on(table.nextRunAt, table.priority)
+    .where(sql`${table.isEnabled} = true`),
 ]);
 
 export const insertScheduledResearchWorkflowSchema = createInsertSchema(scheduledResearchWorkflows).pick({
@@ -533,6 +556,13 @@ export const rebeccaKnowledgeBase = pgTable("rebecca_knowledge_base", {
 }, (table) => [
   index("rebecca_kb_category_idx").on(table.category),
   index("rebecca_kb_active_idx").on(table.isActive),
+  // Task #972: active KB browse (WHERE is_active = true ORDER BY priority DESC, title)
+  // — see getActiveRebeccaKBEntries(); partial since inactive rows are write-only audit.
+  // Mixed sort directions are expressed via sql`` since drizzle 0.45 indexes don't
+  // expose .asc()/.desc() helpers; the migration is the source of truth for ordering.
+  index("rebecca_kb_active_priority_idx")
+    .on(sql`${table.priority} DESC`, table.title)
+    .where(sql`${table.isActive} = true`),
 ]);
 
 export const insertRebeccaKBSchema = createInsertSchema(rebeccaKnowledgeBase).pick({
