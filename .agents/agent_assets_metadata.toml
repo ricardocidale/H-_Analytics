@@ -125,3 +125,9 @@ id = "E5JXODw9fhRHdyl9nfg1c"
 uri = "file://exports/decks.tar.gz"
 type = "unspecified"
 title = "All 7 investor decks (tar.gz, 73 MB)"
+
+[[outputs]]
+id = "IhO4CNfttP8-1lFpHw13s"
+uri = "file://exports/belleayre-deck.pdf"
+type = "pdf"
+title = "Belleayre Mountain — Investor Deck (rendered)"
