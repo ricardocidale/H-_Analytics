@@ -342,6 +342,8 @@ def get_stable_year(yearly_is: list[dict]) -> int:
     for i, yr in enumerate(yearly_is):
         if yr.get("operationalMonthsInYear", 0) >= 12:
             return i
+    if not yearly_is:
+        return 0
     return min(2, len(yearly_is) - 1)
 
 

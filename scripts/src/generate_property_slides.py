@@ -167,7 +167,7 @@ def build_slide2(slide, prop: dict, photos: list[bytes | None], vt: dict, financ
     yearly_is = financials.get("yearlyIS") or []
     yearly_cf = financials.get("yearlyCF") or []
     stable_i = get_stable_year(yearly_is)
-    stable = yearly_is[stable_i] if stable_i < len(yearly_is) else {}
+    stable = yearly_is[stable_i] if 0 <= stable_i < len(yearly_is) else {}
     stable_rev = stable.get("revenueTotal") or 0
     stable_noi = stable.get("noi") or 0
     irr = financials.get("irr") or 0
@@ -305,7 +305,7 @@ def build_slide5(slide, prop: dict, financials: dict, vt: dict) -> None:
 
     yearly_is = financials.get("yearlyIS") or []
     stable_i = get_stable_year(yearly_is)
-    stable = yearly_is[stable_i] if stable_i < len(yearly_is) else {}
+    stable = yearly_is[stable_i] if 0 <= stable_i < len(yearly_is) else {}
     stable_rev = stable.get("revenueTotal") or 0
     stable_exp = stable.get("totalExpenses") or 0
     stable_noi = stable.get("noi") or 0
@@ -436,8 +436,8 @@ def build_slide6(slide, prop: dict, financials: dict) -> None:
     # ── Right table: Key metrics ───────────────
     # Position: left=7.02" top=0.56" width=5.91" height=6.18"
     stable_i = get_stable_year(yearly_is)
-    stable = yearly_is[stable_i] if stable_i < len(yearly_is) else {}
-    stable_cf = yearly_cf[stable_i] if stable_i < len(yearly_cf) else {}
+    stable = yearly_is[stable_i] if 0 <= stable_i < len(yearly_is) else {}
+    stable_cf = yearly_cf[stable_i] if 0 <= stable_i < len(yearly_cf) else {}
     last_cf = yearly_cf[-1] if yearly_cf else {}
     stable_yr_label = get_stable_year_label(stable_i)
 
@@ -554,12 +554,14 @@ def main() -> None:
         lambda s: build_slide6(s, prop, financials),
     ]
 
+    import traceback
     for idx in range(SLIDE_COUNT):
         try:
             slide = clone_slide(template_prs, idx, out_prs)
             slide_builders[idx](slide)
         except Exception as e:
-            json.dump({"error": str(e), "slide": idx}, sys.stderr)
+            tb = traceback.format_exc()
+            json.dump({"error": str(e), "slide": idx, "traceback": tb}, sys.stderr)
             sys.exit(1)
 
     # Write output
