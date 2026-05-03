@@ -39,7 +39,8 @@ import { calculateLoanParams, getAcquisitionYear } from "@engine/debt/loanCalcul
 import { withModelConstants } from "../finance/apply-model-constants";
 import { computeIRR } from "@analytics/returns/irr";
 import { generatePropertyVisionText, buildPropertyVisionFallback } from "../ai/property-vision";
-import { renderImagePptx, type SlidePayload } from "../slides/image-renderer";
+import { renderImagePptx } from "../slides/image-renderer";
+import type { SlidePayload } from "../slides/types";
 import { generatePropertyImprovements } from "../slides/improvement-suggestions";
 import { ensurePortfolioRenders } from "../slides/portfolio-renders";
 import { parseRouteId } from "./helpers";

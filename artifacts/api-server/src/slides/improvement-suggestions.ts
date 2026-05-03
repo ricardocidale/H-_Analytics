@@ -6,7 +6,7 @@
  */
 
 import { getAnthropicClient } from "../ai/clients";
-import type { SlideProperty, PropertyImprovement } from "./slide-jsx";
+import type { SlideProperty, PropertyImprovement } from "./types";
 import { logger } from "../logger";
 
 export type { PropertyImprovement };
