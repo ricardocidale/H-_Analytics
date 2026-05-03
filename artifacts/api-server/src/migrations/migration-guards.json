@@ -122,6 +122,10 @@
     "0030_evidence_based_indexes": {
       "status": "self-idempotent",
       "reason": "Task #972 evidence-based composite/partial indexes. Every statement is CREATE INDEX IF NOT EXISTS — re-running via migrate() is a no-op."
+    },
+    "0031_drop_unused_indexes": {
+      "status": "self-idempotent",
+      "reason": "Task #973 audit-driven cleanup of unused indexes. All 45 statements are DROP INDEX IF EXISTS — re-running via migrate() is a no-op."
     }
   }
 }
