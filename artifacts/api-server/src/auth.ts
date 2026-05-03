@@ -33,7 +33,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { storage } from "./storage";
 import type { ScenarioGlobalAssumptionsSnapshot, ScenarioPropertySnapshot } from "@workspace/db";
-import { logger } from "./logger";
+import { logger, formatError } from "./logger";
 import { UserRole, isAdminRole } from "@shared/constants";
 import { DEV_SKIP_AUTH } from "./dev-flags";
 
@@ -295,7 +295,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
           }
         }
       } catch (error: unknown) {
-        logger.error(`Dev auth bypass error: ${error instanceof Error ? error.message : error}`, "auth");
+        logger.error(`Dev auth bypass error: ${formatError(error)}`, "auth");
       }
     }
     if (req.sessionId) ensureCsrfMirrorCookie(req, res, req.sessionId);
@@ -316,7 +316,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
       ensureCsrfMirrorCookie(req, res, sessionId);
     }
   } catch (error: unknown) {
-    logger.error(`Auth middleware error: ${error instanceof Error ? error.message : error}`, "auth");
+    logger.error(`Auth middleware error: ${formatError(error)}`, "auth");
   }
   
   next();

@@ -9,7 +9,7 @@ import {
   type AdminOverrideIssue,
 } from "./llm-recommender";
 import { storage } from "../storage";
-import { log } from "../logger";
+import { log, formatError } from "../logger";
 import { isAdminRole } from "@shared/constants";
 import { processNotificationEvent } from "../notifications/engine";
 import { createEvent } from "../notifications/events";
@@ -118,7 +118,7 @@ async function notifyAdminOfIssues(issues: AdminOverrideIssue[]): Promise<void> 
 
     log(`Notified ${admins.filter(a => a.email).length} admin(s) of ${issues.length} LLM issue(s)`, "llm-registry");
   } catch (err: unknown) {
-    log(`Failed to notify admins of LLM issues: ${err instanceof Error ? err.message : String(err)}`, "llm-registry", "warn");
+    log(`Failed to notify admins of LLM issues: ${formatError(err)}`, "llm-registry", "warn");
   }
 }
 
