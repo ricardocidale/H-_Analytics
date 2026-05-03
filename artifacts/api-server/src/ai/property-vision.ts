@@ -1,5 +1,5 @@
 /**
- * property-vision.ts — LLM-powered vision text for per-property PPTX slides.
+ * property-vision.ts — LLM-powered vision text for per-property investor deck slides.
  *
  * Generates all narrative copy fields needed for the 6-slide deck.
  * Falls back deterministically to template strings if the LLM is unavailable.

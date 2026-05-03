@@ -7,10 +7,6 @@
  *
  * Sole consumer is `routes/internal-deck-payload.ts`, which serves the
  * payload to the React deck route Playwright navigates for PDF render.
- *
- * Extracted from the legacy `routes/property-slides.ts` when the python-pptx
- * generator was demolished in T006 — all PPTX-specific orchestration was
- * dropped, but the data assembly is still the canonical SlidePayload builder.
  */
 
 import sharp from "sharp";

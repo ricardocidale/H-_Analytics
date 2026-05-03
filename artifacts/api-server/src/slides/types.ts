@@ -1,7 +1,6 @@
 /**
  * Shared slide payload types — neutral home for the data shape consumed by
- * the per-property deck generators (Python python-pptx track and Playwright
- * PDF track).
+ * the per-property Playwright PDF deck generator.
  */
 
 export interface SlidePhoto {
