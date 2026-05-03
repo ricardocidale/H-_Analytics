@@ -31,6 +31,7 @@ import {
   tryComputeResults,
   validateLoadSnapshot,
   checkSharedPropertyAccess,
+  checkScenarioAccess,
   buildPreviewData,
   buildCrossQueryResult,
   computeGhostName,
@@ -387,7 +388,8 @@ export function register(app: Express) {
       if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID" });
       const scenario = await storage.getScenario(id);
       if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
-      if (scenario.userId !== getAuthUser(req).id) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+      const hasAccess = await checkScenarioAccess(id, getAuthUser(req).id, scenario);
+      if (!hasAccess) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
 
       const exportData = {
         name: scenario.name,
@@ -447,9 +449,12 @@ export function register(app: Express) {
         storage.getScenario(id2),
       ]);
       if (!s1 || !s2) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
-      if (s1.userId !== getAuthUser(req).id || s2.userId !== getAuthUser(req).id) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
-      }
+      const userId = getAuthUser(req).id;
+      const [access1, access2] = await Promise.all([
+        checkScenarioAccess(id1, userId, s1),
+        checkScenarioAccess(id2, userId, s2),
+      ]);
+      if (!access1 || !access2) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
 
       const result = storage.compareScenarios(s1, s2);
       res.json(result);
