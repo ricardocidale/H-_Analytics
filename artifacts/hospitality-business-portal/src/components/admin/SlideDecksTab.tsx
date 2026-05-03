@@ -25,9 +25,11 @@ interface PropertyRow {
   imageUrl?: string | null;
 }
 
+type SlideFormat = "pptx" | "image" | "pdf";
+
 interface SlideStatus {
   propertyId: number;
-  format: "pptx" | "image";
+  format: SlideFormat;
   status: "idle" | "generating" | "ready" | "error";
   fileSizeBytes: number | null;
   generatedAt: string | null;
@@ -286,11 +288,22 @@ export default function SlideDecksTab() {
     setDownloadStates(prev => ({ ...prev, [key]: state }));
   }
 
-  function handleDownload(propertyId: number, propertyName: string, format: "pptx" | "image") {
+  function handleDownload(propertyId: number, propertyName: string, format: SlideFormat) {
     const key = `${propertyId}-${format}`;
     const slug = propertyName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    const filename = format === "image" ? `${slug}-slides-images.pptx` : `${slug}-slides.pptx`;
-    downloadViaAnchor(`/api/properties/${propertyId}/slides?format=${format}`, filename);
+    let filename: string;
+    let url: string;
+    if (format === "pdf") {
+      filename = `${slug}-deck.pdf`;
+      url = `/api/properties/${propertyId}/deck.pdf`;
+    } else if (format === "image") {
+      filename = `${slug}-slides-images.pptx`;
+      url = `/api/properties/${propertyId}/slides?format=image`;
+    } else {
+      filename = `${slug}-slides.pptx`;
+      url = `/api/properties/${propertyId}/slides?format=pptx`;
+    }
+    downloadViaAnchor(url, filename);
     setDownloadState(key, "done");
     setTimeout(() => setDownloadState(key, "idle"), 4_000);
   }
@@ -327,7 +340,7 @@ export default function SlideDecksTab() {
       <div>
         <h2 className="text-xl font-semibold text-foreground">Property Slide Decks</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          6-slide investor decks are pre-generated at startup — download any deck below, or use <strong>Analyst</strong> to regenerate.
+          Investor PDF renders on demand from the live deck route — clicking <strong>Download PDF</strong> regenerates if the property or financials have changed since the cache was written. Editable PPTX and image-locked PPTX are still pre-generated at startup.
         </p>
       </div>
 
@@ -335,12 +348,15 @@ export default function SlideDecksTab() {
         {properties.map(p => {
           const pptxStatus = statusMap.get(`${p.id}-pptx`);
           const imageStatus = statusMap.get(`${p.id}-image`);
+          const pdfStatus = statusMap.get(`${p.id}-pdf`);
           const dlStatePptx = downloadStates[`${p.id}-pptx`] ?? "idle";
           const dlStateImage = downloadStates[`${p.id}-image`] ?? "idle";
+          const dlStatePdf = downloadStates[`${p.id}-pdf`] ?? "idle";
           const acqStatus = (p.acquisitionStatus ?? p.status)?.toLowerCase() ?? "pipeline";
           const isGenerating =
             pptxStatus?.status === "generating" ||
             imageStatus?.status === "generating" ||
+            pdfStatus?.status === "generating" ||
             generateMutation.variables === p.id;
           const isPptxReady = pptxStatus?.status === "ready";
           const isImageReady = imageStatus?.status === "ready";
@@ -362,8 +378,12 @@ export default function SlideDecksTab() {
                   </Badge>
                 </div>
 
-                {/* Two status badge rows */}
+                {/* Three status badge rows */}
                 <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] text-muted-foreground w-10">PDF</span>
+                    <SlideStatusBadge slide={pdfStatus} />
+                  </div>
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10px] text-muted-foreground w-10">PPTX</span>
                     <SlideStatusBadge slide={pptxStatus} />
@@ -385,6 +405,22 @@ export default function SlideDecksTab() {
                     size="sm"
                     freshnessStatus={freshness}
                   />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => handleDownload(p.id, p.name, "pdf")}
+                    className="gap-1.5 flex-1"
+                    title="Download investor PDF (renders on demand if needed)"
+                  >
+                    {dlStatePdf === "done" ? (
+                      <IconCheckCircle2 className="h-3.5 w-3.5" />
+                    ) : (
+                      <IconDownload className="h-3.5 w-3.5" />
+                    )}
+                    {dlStatePdf === "done" ? "Saved" : "Download PDF"}
+                  </Button>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button

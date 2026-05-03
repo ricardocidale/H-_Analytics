@@ -1386,6 +1386,7 @@
     "artifacts/api-server/src/jobs/specialist-photos-batch.ts",
     "artifacts/api-server/src/pdf/pagination.ts",
     "artifacts/api-server/src/routes/properties.ts",
+    "artifacts/api-server/src/routes/property-deck-pdf.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/properties.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
@@ -1984,6 +1985,7 @@
     "artifacts/api-server/src/routes/portfolio-risk.ts",
     "artifacts/api-server/src/routes/premium-exports.ts",
     "artifacts/api-server/src/routes/properties-urls.ts",
+    "artifacts/api-server/src/routes/property-deck-pdf.ts",
     "artifacts/api-server/src/routes/property-slides.ts",
     "artifacts/api-server/src/routes/rebecca.ts",
     "artifacts/api-server/src/routes/reserves-brand.ts",
@@ -2091,6 +2093,12 @@
     "artifacts/api-server/src/routes/properties.ts",
     "artifacts/api-server/src/routes/property-photos.ts"
   ],
+  "1080": [
+    "artifacts/api-server/src/routes/property-deck-pdf.ts",
+    "artifacts/api-server/src/slides/hybrid-renderer.ts",
+    "artifacts/api-server/src/slides/image-renderer.ts",
+    "artifacts/api-server/src/slides/slide-jsx.tsx"
+  ],
   "1200": [
     "artifacts/api-server/src/ai/icp/config-builder.ts",
     "artifacts/api-server/src/ai/property-vision.ts",
@@ -2104,6 +2112,12 @@
     "artifacts/api-server/src/shared/constants.ts",
     "lib/calc/src/research/validate-research.ts",
     "lib/shared/src/constants.ts"
+  ],
+  "1920": [
+    "artifacts/api-server/src/routes/property-deck-pdf.ts",
+    "artifacts/api-server/src/slides/hybrid-renderer.ts",
+    "artifacts/api-server/src/slides/image-renderer.ts",
+    "artifacts/api-server/src/slides/slide-jsx.tsx"
   ],
   "5000": [
     "artifacts/api-server/src/ai/comparables/web-enricher.ts",

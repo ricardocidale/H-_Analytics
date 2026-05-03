@@ -3,18 +3,32 @@
  *
  * GET /api/properties/:id/deck.pdf
  *
- * Renders the per-property investor deck as a PDF via headless Chromium
- * (Playwright). T003 STUB: serves a single-page placeholder HTML so we can
- * prove the Playwright → PDF pipeline end-to-end on Railway before wiring
- * the real React deck route in T004 + R2 caching in T005.
+ * Renders the per-property investor deck as a PDF by booting headless
+ * Chromium (Playwright), navigating to the portal-served React route
+ * `/internal/deck/:propertyId?token=…`, waiting for `window.__deckReady`,
+ * and capturing `page.pdf({ printBackground: true, preferCSSPageSize: true })`.
+ *
+ * Cache contract:
+ *   - Cached binary lives in object storage (R2 in prod) at
+ *     `slides/pdf/property-${id}.pdf`.
+ *   - Bookkeeping row in `property_slide_deck_variants` (format='pdf')
+ *     records `generated_at`, `file_size_bytes`, `r2_key`.
+ *   - On request, the cached PDF is served when its `generated_at` is
+ *     newer than both the property's `updated_at` and `financials_computed_at`.
+ *     Otherwise the deck is regenerated, re-uploaded, and the row is upserted.
+ *   - This is on-demand only; nothing is pre-generated at boot.
  */
 
 import { Router, type Request, type Response } from "express";
-import { requireAdmin } from "../auth";
+import { sql } from "drizzle-orm";
+import { requireAdmin, getAuthUser } from "../auth";
 import { logger } from "../logger";
 import { storage } from "../storage";
+import { db } from "../db";
 import { parseRouteId } from "./helpers";
 import { getBrowser } from "../slides/playwright-browser";
+import { getStorageProviderAsync } from "../providers/storage";
+import { signDeckToken } from "../slides/internal-token";
 import {
   HTTP_400_BAD_REQUEST,
   HTTP_404_NOT_FOUND,
@@ -23,47 +37,134 @@ import {
 
 const router = Router();
 
-const PDF_RENDER_TIMEOUT_MS = 60 * 1000;
+const PDF_RENDER_TIMEOUT_MS = 90 * 1000;
+const DECK_READY_POLL_TIMEOUT_MS = 60 * 1000;
+const DECK_VIEWPORT_WIDTH = 1920;
+const DECK_VIEWPORT_HEIGHT = 1080;
+const PDF_CONTENT_TYPE = "application/pdf";
+const PDF_FORMAT = "pdf" as const;
+const SLIDE_ERROR_MSG_MAX_LENGTH = 500;
 
-/** Slug a property name into a safe download filename component. */
+interface PdfVariantRow {
+  property_id: number;
+  format: string;
+  status: string;
+  r2_key: string | null;
+  file_size_bytes: number | null;
+  generated_at: Date | null;
+}
+
+function pdfR2Key(propertyId: number): string {
+  return `slides/pdf/property-${propertyId}.pdf`;
+}
+
 function slugify(name: string): string {
   return name.toLowerCase().replace(/[^a-z\d]+/g, "-").replace(/^-|-$/g, "");
 }
 
-/** Escape user-controlled text for safe interpolation into HTML. */
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
+async function getPdfVariantRow(propertyId: number): Promise<PdfVariantRow | null> {
+  const result = await db.execute(sql`
+    SELECT property_id, format, status, r2_key, file_size_bytes, generated_at
+    FROM property_slide_deck_variants
+    WHERE property_id = ${propertyId} AND format = ${PDF_FORMAT}
+  `);
+  return (result.rows[0] as unknown as PdfVariantRow | undefined) ?? null;
+}
+
+async function upsertPdfVariantRow(args: {
+  propertyId: number;
+  status: "generating" | "ready" | "error";
+  r2Key?: string | null;
+  fileSizeBytes?: number | null;
+  generatedAt?: Date | null;
+  triggeredBy?: string | null;
+  errorMessage?: string | null;
+}): Promise<void> {
+  await db.execute(sql`
+    INSERT INTO property_slide_deck_variants
+      (property_id, format, status, r2_key, file_size_bytes, generated_at, triggered_by, error_message, updated_at)
+    VALUES (
+      ${args.propertyId}, ${PDF_FORMAT},
+      ${args.status},
+      ${args.r2Key ?? null},
+      ${args.fileSizeBytes ?? null},
+      ${args.generatedAt ?? null},
+      ${args.triggeredBy ?? null},
+      ${args.errorMessage ?? null},
+      NOW()
+    )
+    ON CONFLICT (property_id, format) DO UPDATE SET
+      status          = EXCLUDED.status,
+      r2_key          = COALESCE(EXCLUDED.r2_key, property_slide_deck_variants.r2_key),
+      file_size_bytes = COALESCE(EXCLUDED.file_size_bytes, property_slide_deck_variants.file_size_bytes),
+      generated_at    = COALESCE(EXCLUDED.generated_at, property_slide_deck_variants.generated_at),
+      triggered_by    = COALESCE(EXCLUDED.triggered_by, property_slide_deck_variants.triggered_by),
+      error_message   = EXCLUDED.error_message,
+      updated_at      = NOW()
+  `);
 }
 
 /**
- * T003 placeholder HTML. Single-line strings are concatenated so the magic-
- * numbers ratchet's per-line string-stripper can eliminate the embedded CSS
- * dimension literals. Replaced wholesale in T004 by `page.goto()` against
- * the real React deck route.
+ * Cache is fresh iff a ready row exists with an r2 key and was generated
+ * after every property timestamp that should invalidate it.
  */
-function placeholderDeckHtml(propertyNameRaw: string): string {
-  const name = escapeHtml(propertyNameRaw);
-  return [
-    '<!doctype html><html><head><meta charset="utf-8" />',
-    `<title>${name} — Investor Deck (placeholder)</title>`,
-    '<style>',
-    '@page { size: 13.333in 7.5in; margin: 0; }',
-    'html,body { margin:0; padding:0; background:#1C2B1E; color:#FFF9F5; font-family: Georgia, serif; }',
-    '.slide { width:13.333in; height:7.5in; display:flex; flex-direction:column; justify-content:center; align-items:center; }',
-    '.eyebrow { letter-spacing:0.3em; opacity:0.7; margin-bottom:1.5rem; font-size:1rem; }',
-    '.name { font-size:4rem; font-weight:normal; }',
-    '</style></head><body>',
-    '<section class="slide">',
-    '<div class="eyebrow">L+B HOSPITALITY — PLACEHOLDER DECK</div>',
-    `<div class="name">${name}</div>`,
-    '</section>',
-    '</body></html>',
-  ].join("");
+function isCacheFresh(
+  row: PdfVariantRow | null,
+  property: { updatedAt?: Date | string | null; financialsComputedAt?: Date | string | null },
+): boolean {
+  if (!row) return false;
+  if (row.status !== "ready") return false;
+  if (!row.r2_key || !row.generated_at) return false;
+
+  const cachedAt = new Date(row.generated_at).getTime();
+  const stamps: number[] = [];
+  if (property.updatedAt) stamps.push(new Date(property.updatedAt).getTime());
+  if (property.financialsComputedAt) stamps.push(new Date(property.financialsComputedAt).getTime());
+  for (const t of stamps) {
+    if (Number.isFinite(t) && t > cachedAt) return false;
+  }
+  return true;
+}
+
+/**
+ * Internal proxy URL for the portal's deck route. Both api-server and the
+ * portal sit behind the shared proxy at localhost:80; the portal owns "/"
+ * (and SPA-served "/internal/*") while api-server owns "/api".
+ */
+function deckUrl(propertyId: number, token: string): string {
+  return `http://localhost:80/internal/deck/${propertyId}?token=${encodeURIComponent(token)}`;
+}
+
+/** Render the deck via Playwright and return the PDF bytes. Throws on failure. */
+async function renderDeckPdf(propertyId: number): Promise<Buffer> {
+  const { token } = signDeckToken(propertyId);
+  const url = deckUrl(propertyId, token);
+
+  const browser = await getBrowser();
+  const context = await browser.newContext({
+    viewport: { width: DECK_VIEWPORT_WIDTH, height: DECK_VIEWPORT_HEIGHT },
+    deviceScaleFactor: 1,
+  });
+  const page = await context.newPage();
+  page.setDefaultTimeout(PDF_RENDER_TIMEOUT_MS);
+
+  try {
+    await page.goto(url, { waitUntil: "load", timeout: PDF_RENDER_TIMEOUT_MS });
+    // Deck route fetches payload, decodes images, then sets window.__deckReady.
+    await page.waitForFunction(
+      "window.__deckReady === true",
+      undefined,
+      { timeout: DECK_READY_POLL_TIMEOUT_MS },
+    );
+    const pdf = await page.pdf({
+      printBackground: true,
+      preferCSSPageSize: true,
+    });
+    return pdf;
+  } finally {
+    await page.close().catch(() => {});
+    await context.close().catch(() => {});
+  }
 }
 
 router.get(
@@ -80,27 +181,69 @@ router.get(
       return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
     }
 
-    let page: Awaited<ReturnType<Awaited<ReturnType<typeof getBrowser>>["newPage"]>> | null = null;
+    const filename = `${slugify(property.name)}-deck.pdf`;
+    const sp = await getStorageProviderAsync();
+
+    // ── Fast path: serve cached PDF if it is newer than every invalidation stamp.
     try {
-      const browser = await getBrowser();
-      page = await browser.newPage();
-      page.setDefaultTimeout(PDF_RENDER_TIMEOUT_MS);
+      const existing = await getPdfVariantRow(propertyId);
+      if (
+        existing &&
+        existing.r2_key &&
+        isCacheFresh(existing, property as { updatedAt?: Date | null; financialsComputedAt?: Date | null })
+      ) {
+        const cached = await sp.downloadBuffer(existing.r2_key).catch(() => null);
+        if (cached?.buffer) {
+          res.setHeader("Content-Type", PDF_CONTENT_TYPE);
+          res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+          res.setHeader("Content-Length", String(cached.buffer.length));
+          res.setHeader("Cache-Control", "no-store");
+          res.setHeader("X-Deck-Cache", "hit");
+          return res.end(cached.buffer);
+        }
+        // Row claims ready but bytes are gone — fall through to regenerate.
+        logger.warn(
+          `[property-deck-pdf] Cached row for ${propertyId} but R2 fetch failed; regenerating`,
+          "property-deck-pdf",
+        );
+      }
+    } catch (err) {
+      logger.warn(`[property-deck-pdf] Cache lookup failed for ${propertyId}: ${err}`, "property-deck-pdf");
+    }
 
-      await page.setContent(placeholderDeckHtml(property.name), { waitUntil: "load" });
-      // Wait for web fonts to finish loading before snapshotting. Stringified
-      // to avoid pulling the DOM lib into the api-server tsconfig.
-      await page.evaluate("document.fonts ? document.fonts.ready : Promise.resolve()");
+    // ── Slow path: render, cache, serve.
+    const user = getAuthUser(req);
+    const triggeredBy = user?.email ?? user?.id?.toString() ?? "deck-pdf";
+    await upsertPdfVariantRow({
+      propertyId,
+      status: "generating",
+      triggeredBy,
+      errorMessage: null,
+    }).catch(() => {});
 
-      const pdf = await page.pdf({
-        printBackground: true,
-        preferCSSPageSize: true,
+    try {
+      const pdf = await renderDeckPdf(propertyId);
+      const key = pdfR2Key(propertyId);
+      await sp.uploadBuffer(key, pdf, PDF_CONTENT_TYPE);
+      await upsertPdfVariantRow({
+        propertyId,
+        status: "ready",
+        r2Key: key,
+        fileSizeBytes: pdf.length,
+        generatedAt: new Date(),
+        triggeredBy,
+        errorMessage: null,
       });
+      logger.info(
+        `[property-deck-pdf] Rendered ${pdf.length}B for property ${propertyId} → ${key}`,
+        "property-deck-pdf",
+      );
 
-      const filename = `${slugify(property.name)}-deck.pdf`;
-      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Type", PDF_CONTENT_TYPE);
       res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
       res.setHeader("Content-Length", String(pdf.length));
       res.setHeader("Cache-Control", "no-store");
+      res.setHeader("X-Deck-Cache", "miss");
       return res.end(pdf);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "PDF render failed";
@@ -108,12 +251,16 @@ router.get(
         `[property-deck-pdf] Render failed for property ${propertyId}: ${message}`,
         "property-deck-pdf",
       );
+      await upsertPdfVariantRow({
+        propertyId,
+        status: "error",
+        triggeredBy,
+        errorMessage: message.slice(0, SLIDE_ERROR_MSG_MAX_LENGTH),
+      }).catch(() => {});
       if (!res.headersSent) {
         return res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: message });
       }
       return res;
-    } finally {
-      if (page) await page.close().catch(() => {});
     }
   },
 );
