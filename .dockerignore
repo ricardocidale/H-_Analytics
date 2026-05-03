@@ -5,3 +5,7 @@ attached_assets
 screenshots
 tmp
 *.log
+
+# Allow dist seed file to ship into Docker build context
+!dist
+!dist/seed-production.sql
