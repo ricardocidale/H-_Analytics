@@ -29,6 +29,7 @@ import {
   statusLabel,
   typeLabel,
 } from "./helpers";
+import { CANONICAL_SLIDE_PHOTOS } from "./canonical-photos";
 import type { SiblingProperty, SlidePayload, SlidePhoto } from "./types";
 
 const DEFAULT_OCCUPANCY = 0.7;
@@ -88,11 +89,15 @@ const CARD_GAP = 16;
 //   • Photo captions use Poppins instead of canonical's Microsoft YaHei
 //     (Windows-only; falls back unreliably in headless Chromium).
 export function Slide1({ p }: { p: SlidePayload }) {
-  const { property, photos, visionText } = p;
-  const hero = photos.find(ph => ph.isHero) ?? photos[0];
-  const nonHero = photos.filter(ph => !ph.isHero);
-  const secondary = nonHero[0] ?? photos[0];
-  const inset = nonHero[1] ?? secondary;
+  const { property, visionText } = p;
+  // Slot binding policy (per user 2026-05-03): canonical PPTX photos are the
+  // SOURCE for every slide+slot until the property explicitly provides a
+  // slot-tagged replacement. The current property_photos schema has no
+  // per-slot tag, so we always use the canonical photos here. When per-slot
+  // overrides are added, fall back through them BEFORE the canonical default.
+  const hero = CANONICAL_SLIDE_PHOTOS[1].hero;
+  const secondary = CANONICAL_SLIDE_PHOTOS[1].secondary;
+  const inset = CANONICAL_SLIDE_PHOTOS[1].inset;
   const type = typeLabel(property);
 
   // Region line: "<city>, <county>, <state>" — dedupe county==state
