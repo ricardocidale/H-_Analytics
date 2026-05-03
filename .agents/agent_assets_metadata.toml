@@ -119,3 +119,9 @@ id = "sMToxBClvKInOw8r_TtpC"
 uri = "file://exports/decks/medellin-duplex.pdf"
 type = "pdf"
 title = "Medellin Duplex"
+
+[[outputs]]
+id = "E5JXODw9fhRHdyl9nfg1c"
+uri = "file://exports/decks.tar.gz"
+type = "unspecified"
+title = "All 7 investor decks (tar.gz, 73 MB)"
