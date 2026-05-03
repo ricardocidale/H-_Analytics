@@ -136,7 +136,7 @@ function deckUrl(propertyId: number, token: string): string {
 }
 
 /** Render the deck via Playwright and return the PDF bytes. Throws on failure. */
-async function renderDeckPdf(propertyId: number): Promise<Buffer> {
+async function renderDeckPdfOnce(propertyId: number): Promise<Buffer> {
   const { token } = signDeckToken(propertyId);
   const url = deckUrl(propertyId, token);
 
@@ -145,25 +145,57 @@ async function renderDeckPdf(propertyId: number): Promise<Buffer> {
     viewport: { width: DECK_VIEWPORT_WIDTH, height: DECK_VIEWPORT_HEIGHT },
     deviceScaleFactor: 1,
   });
-  const page = await context.newPage();
-  page.setDefaultTimeout(PDF_RENDER_TIMEOUT_MS);
-
   try {
+    const page = await context.newPage();
+    page.setDefaultTimeout(PDF_RENDER_TIMEOUT_MS);
+
     await page.goto(url, { waitUntil: "load", timeout: PDF_RENDER_TIMEOUT_MS });
     // Deck route fetches payload, decodes images, then sets window.__deckReady.
+    // If anything in the React route throws, it sets window.__deckError so we
+    // fail fast instead of waiting out the full 60s ready-poll timeout.
     await page.waitForFunction(
-      "window.__deckReady === true",
+      "window.__deckReady === true || typeof window.__deckError === 'string'",
       undefined,
       { timeout: DECK_READY_POLL_TIMEOUT_MS },
     );
-    const pdf = await page.pdf({
+    const deckError = await page.evaluate(
+      "window.__deckError || null",
+    ) as string | null;
+    if (deckError) {
+      throw new Error(`Deck route reported error: ${deckError}`);
+    }
+    return await page.pdf({
       printBackground: true,
       preferCSSPageSize: true,
     });
-    return pdf;
   } finally {
-    await page.close().catch(() => {});
     await context.close().catch(() => {});
+  }
+}
+
+/**
+ * Wrapper that retries once on a Chromium disconnect race. The browser
+ * singleton can be torn down between `getBrowser()` and `newContext()` by
+ * the `disconnected` event handler; the retry picks up a freshly-launched
+ * instance instead of bubbling a confusing "Target closed" error to the
+ * client. Any other failure (timeout, deck error, render failure) is not
+ * retried.
+ */
+function isDisconnectError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /Target.*closed|Browser.*closed|Connection closed|browserContext\.newContext/i.test(msg);
+}
+
+async function renderDeckPdf(propertyId: number): Promise<Buffer> {
+  try {
+    return await renderDeckPdfOnce(propertyId);
+  } catch (err) {
+    if (!isDisconnectError(err)) throw err;
+    logger.warn(
+      `[property-deck-pdf] Browser disconnect during render for ${propertyId}; retrying once`,
+      "property-deck-pdf",
+    );
+    return await renderDeckPdfOnce(propertyId);
   }
 }
 
