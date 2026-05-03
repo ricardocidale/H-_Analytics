@@ -25,7 +25,7 @@ import cookieParser from "cookie-parser";
 import compression from "compression";
 import { registerRoutes } from "./legacyRoutes";
 import { registerImageRoutes } from "./routes/images";
-import { propertySlidesRouter, preGenerateAllSlides } from "./routes/property-slides";
+import { propertySlidesRouter } from "./routes/property-slides";
 import { propertyDeckPdfRouter } from "./routes/property-deck-pdf";
 import { internalDeckPayloadRouter } from "./routes/internal-deck-payload";
 import { indexKnowledgeBase } from "./ai/knowledge-base";
@@ -253,20 +253,7 @@ app.use((req, res, next) => {
             });
           });
 
-          // ── Phase 2c: Slide deck pre-generation ─────────────────────────
-          // Runs AFTER migrations to guarantee property_slide_deck_variants
-          // exists. Fully backgrounded — never blocks or kills the server.
-          setImmediate(() => {
-            preGenerateAllSlides().catch(err => {
-              serverLog(
-                `[slide-pregen] Background pre-generation failed: ${err instanceof Error ? err.message : err}`,
-                "startup",
-                "warn",
-              );
-            });
-          });
-
-          // ── Phase 2d: Knowledge-base vector indexing ─────────────────────
+          // ── Phase 2c: Knowledge-base vector indexing ─────────────────────
           // Indexes Rebecca's knowledge base into pgvector if the namespace is
           // empty (first boot or after a re-index wipe). The indexKnowledgeBase()
           // function is idempotent — it skips if vectors already exist.
@@ -789,7 +776,6 @@ async function runSeeds() {
     { name: "rebecca-guardrails", run: async () => { const { runRebeccaGuardrails001 } = await import("./migrations/rebecca-guardrails-001"); await runRebeccaGuardrails001(); } },
     { name: "rebecca-kb", run: async () => { const { runRebeccaKB001 } = await import("./migrations/rebecca-kb-001"); await runRebeccaKB001(); } },
     { name: "admin-resources-004", run: async () => { const { runAdminResources004 } = await import("./migrations/admin-resources-004"); await runAdminResources004(); } },
-    { name: "slide-recipe", run: async () => { const { runSlideRecipe001 } = await import("./migrations/slide-recipe-001"); await runSlideRecipe001(); } },
     { name: "admin-resources-005", run: async () => { const { runAdminResources005 } = await import("./migrations/admin-resources-005"); await runAdminResources005(); } },
     { name: "rebecca-rail-open", run: async () => { const { runRebeccaRailOpen001 } = await import("./migrations/rebecca-rail-open-001"); await runRebeccaRailOpen001(); } },
   ];

@@ -478,8 +478,8 @@ export const DEFAULT_PROPERTY_DEFAULTS_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash
 
 // ──────────────────────────────────────────────────────────
 // RENOVATION BUDGET CONSTANTS
-// Used by the property-slides renderer (Track 2) to mirror Track 1
-// (scripts/src/renovation_budget.py). Source: hplus-renovation-benchmarks skill.
+// Used by renovation-budget calculations across the platform.
+// Source: hplus-renovation-benchmarks skill.
 // Tier per-key cost values stay local to the consumer (renderer-internal table);
 // these are the cross-cutting percentage / floor constants.
 // ──────────────────────────────────────────────────────────

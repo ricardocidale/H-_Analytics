@@ -1,12 +1,10 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { IconDownload, IconPresentation, IconAlertCircle, IconCheckCircle2 } from "@/components/icons";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { AnalystButton } from "@/components/intelligence/AnalystButton";
-import type { FreshnessStatus } from "@/components/intelligence/AnalystButton";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -25,7 +23,7 @@ interface PropertyRow {
   imageUrl?: string | null;
 }
 
-type SlideFormat = "pptx" | "pdf";
+type SlideFormat = "pdf";
 
 interface SlideStatus {
   propertyId: number;
@@ -47,8 +45,6 @@ const STATUS_STYLES: Record<string, string> = {
   operating: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
   disposed:  "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
 };
-
-const STALE_DAYS = 7;
 
 function downloadViaAnchor(url: string, filename: string): void {
   const anchor = document.createElement("a");
@@ -86,18 +82,6 @@ function typeLabel(p: PropertyRow): string {
 function accentHue(id: number): number {
   const HUES = [220, 195, 260, 175, 240, 210, 185, 250];
   return HUES[id % HUES.length];
-}
-
-function freshnessFromStatus(slide: SlideStatus | undefined): FreshnessStatus {
-  if (!slide || slide.status === "idle") return "missing";
-  if (slide.status === "generating") return "running";
-  if (slide.status === "error") return "very_stale";
-  if (slide.status === "ready" && slide.generatedAt) {
-    const ageMs = Date.now() - new Date(slide.generatedAt).getTime();
-    const ageDays = ageMs / (1000 * 60 * 60 * 24);
-    return ageDays > STALE_DAYS ? "stale" : "current";
-  }
-  return "missing";
 }
 
 function formatGeneratedAt(iso: string | null): string {
@@ -207,13 +191,13 @@ function SlideRender({ property }: { property: PropertyRow }) {
 
 function SlideStatusBadge({ slide }: { slide: SlideStatus | undefined }) {
   if (!slide || slide.status === "idle") {
-    return <span className="text-[11px] text-muted-foreground">Not generated</span>;
+    return <span className="text-[11px] text-muted-foreground">Renders on download</span>;
   }
   if (slide.status === "generating") {
     return (
       <span className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400">
         <Loader2 className="h-3 w-3 animate-spin" />
-        Generating…
+        Rendering…
       </span>
     );
   }
@@ -221,7 +205,7 @@ function SlideStatusBadge({ slide }: { slide: SlideStatus | undefined }) {
     return (
       <span className="flex items-center gap-1 text-[11px] text-destructive" title={slide.errorMessage ?? undefined}>
         <IconAlertCircle className="h-3 w-3" />
-        Error — click Analyst to retry
+        Render failed — try downloading again
       </span>
     );
   }
@@ -229,7 +213,7 @@ function SlideStatusBadge({ slide }: { slide: SlideStatus | undefined }) {
     return (
       <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
         <IconCheckCircle2 className="h-3 w-3 text-green-500" />
-        Generated {formatGeneratedAt(slide.generatedAt)}{formatBytes(slide.fileSizeBytes)}
+        Cached {formatGeneratedAt(slide.generatedAt)}{formatBytes(slide.fileSizeBytes)}
       </span>
     );
   }
@@ -241,8 +225,7 @@ function SlideStatusBadge({ slide }: { slide: SlideStatus | undefined }) {
 type DownloadState = "idle" | "done";
 
 export default function SlideDecksTab() {
-  const queryClient = useQueryClient();
-  const [downloadStates, setDownloadStates] = useState<Record<string, DownloadState>>({});
+  const [downloadStates, setDownloadStates] = useState<Record<number, DownloadState>>({});
 
   // Properties list
   const { data: properties, isLoading: propsLoading, isError: propsError } = useQuery<PropertyRow[]>({
@@ -250,59 +233,29 @@ export default function SlideDecksTab() {
     staleTime: 30_000,
   });
 
-  // Slide status — poll every 5s while any property is generating
+  // PDF cache status — single GET on mount; PDF renders on demand so no polling.
   const { data: slideStatuses } = useQuery<SlideStatus[]>({
     queryKey: ["/api/slides/status"],
     staleTime: 3_000,
-    refetchInterval: (query) => {
-      const data = query.state.data;
-      const anyGenerating = Array.isArray(data) && data.some(s => s.status === "generating");
-      return anyGenerating ? 5_000 : false;
-    },
   });
 
-  // Key by "${propertyId}-${format}" so each format is looked up independently
-  const statusMap = new Map<string, SlideStatus>(
-    (slideStatuses ?? []).map(s => [`${s.propertyId}-${s.format}`, s]),
+  const statusMap = new Map<number, SlideStatus>(
+    (slideStatuses ?? [])
+      .filter(s => s.format === "pdf")
+      .map(s => [s.propertyId, s]),
   );
 
-  // Generate mutation (manual re-generate from Analyst button — generates both formats)
-  const generateMutation = useMutation({
-    mutationFn: async (propertyId: number) => {
-      const resp = await fetch(`/api/properties/${propertyId}/slides/generate`, {
-        method: "POST",
-        credentials: "include",
-      });
-      if (!resp.ok) {
-        const body = await resp.json().catch(() => ({}));
-        throw new Error(body.error ?? `HTTP ${resp.status}`);
-      }
-      return resp.json();
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["/api/slides/status"] });
-    },
-  });
-
-  function setDownloadState(key: string, state: DownloadState) {
-    setDownloadStates(prev => ({ ...prev, [key]: state }));
+  function setDownloadState(propertyId: number, state: DownloadState) {
+    setDownloadStates(prev => ({ ...prev, [propertyId]: state }));
   }
 
-  function handleDownload(propertyId: number, propertyName: string, format: SlideFormat) {
-    const key = `${propertyId}-${format}`;
+  function handleDownload(propertyId: number, propertyName: string) {
     const slug = propertyName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    let filename: string;
-    let url: string;
-    if (format === "pdf") {
-      filename = `${slug}-deck.pdf`;
-      url = `/api/properties/${propertyId}/deck.pdf`;
-    } else {
-      filename = `${slug}-slides.pptx`;
-      url = `/api/properties/${propertyId}/slides?format=pptx`;
-    }
+    const filename = `${slug}-deck.pdf`;
+    const url = `/api/properties/${propertyId}/deck.pdf`;
     downloadViaAnchor(url, filename);
-    setDownloadState(key, "done");
-    setTimeout(() => setDownloadState(key, "idle"), 4_000);
+    setDownloadState(propertyId, "done");
+    setTimeout(() => setDownloadState(propertyId, "idle"), 4_000);
   }
 
   if (propsLoading) {
@@ -337,23 +290,15 @@ export default function SlideDecksTab() {
       <div>
         <h2 className="text-xl font-semibold text-foreground">Property Slide Decks</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Investor PDF renders on demand from the live deck route — clicking <strong>Download PDF</strong> regenerates if the property or financials have changed since the cache was written. Editable PPTX is pre-generated at startup.
+          Investor PDF renders on demand from the live deck route. Clicking <strong>Download PDF</strong> regenerates if the property or financials have changed since the cache was written.
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {properties.map(p => {
-          const pptxStatus = statusMap.get(`${p.id}-pptx`);
-          const pdfStatus = statusMap.get(`${p.id}-pdf`);
-          const dlStatePptx = downloadStates[`${p.id}-pptx`] ?? "idle";
-          const dlStatePdf = downloadStates[`${p.id}-pdf`] ?? "idle";
+          const pdfStatus = statusMap.get(p.id);
+          const dlStatePdf = downloadStates[p.id] ?? "idle";
           const acqStatus = (p.acquisitionStatus ?? p.status)?.toLowerCase() ?? "pipeline";
-          const isGenerating =
-            pptxStatus?.status === "generating" ||
-            pdfStatus?.status === "generating" ||
-            generateMutation.variables === p.id;
-          const isPptxReady = pptxStatus?.status === "ready";
-          const freshness = freshnessFromStatus(pptxStatus);
 
           return (
             <Card key={p.id} className="flex flex-col border border-border/60 hover:border-border transition-colors overflow-hidden p-0">
@@ -371,35 +316,16 @@ export default function SlideDecksTab() {
                   </Badge>
                 </div>
 
-                {/* Two status badge rows */}
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-muted-foreground w-10">PDF</span>
-                    <SlideStatusBadge slide={pdfStatus} />
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-muted-foreground w-10">PPTX</span>
-                    <SlideStatusBadge slide={pptxStatus} />
-                  </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-muted-foreground w-10">PDF</span>
+                  <SlideStatusBadge slide={pdfStatus} />
                 </div>
 
-                {/* Action row: Analyst (regenerates PPTX) + two download buttons */}
-                <div className="flex items-center gap-2">
-                  <AnalystButton
-                    onClick={() => generateMutation.mutate(p.id)}
-                    isRunning={isGenerating}
-                    disabled={isGenerating}
-                    suffix={isPptxReady ? "Regenerate" : "Generate"}
-                    runningLabel="Manifesting…"
-                    size="sm"
-                    freshnessStatus={freshness}
-                  />
-                </div>
                 <div className="flex items-center gap-2">
                   <Button
                     size="sm"
                     variant="default"
-                    onClick={() => handleDownload(p.id, p.name, "pdf")}
+                    onClick={() => handleDownload(p.id, p.name)}
                     className="gap-1.5 flex-1"
                     title="Download investor PDF (renders on demand if needed)"
                   >
@@ -409,23 +335,6 @@ export default function SlideDecksTab() {
                       <IconDownload className="h-3.5 w-3.5" />
                     )}
                     {dlStatePdf === "done" ? "Saved" : "Download PDF"}
-                  </Button>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={!isPptxReady}
-                    onClick={() => handleDownload(p.id, p.name, "pptx")}
-                    className="gap-1.5 flex-1"
-                    title={isPptxReady ? "Download editable PPTX" : "Generate slides first"}
-                  >
-                    {dlStatePptx === "done" ? (
-                      <IconCheckCircle2 className="h-3.5 w-3.5 text-green-500" />
-                    ) : (
-                      <IconDownload className="h-3.5 w-3.5" />
-                    )}
-                    {dlStatePptx === "done" ? "Saved" : "Download PPTX"}
                   </Button>
                 </div>
               </CardContent>

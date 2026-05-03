@@ -17,7 +17,7 @@ export const propertySlideDecks = pgTable(
   },
   (table) => [
     primaryKey({ columns: [table.propertyId, table.format] }),
-    check("property_slide_deck_variants_format_check", sql`${table.format} IN ('pptx', 'image', 'pdf')`),
+    check("property_slide_deck_variants_format_check", sql`${table.format} IN ('pdf')`),
     check("property_slide_deck_variants_status_check", sql`${table.status} IN ('idle', 'generating', 'ready', 'error')`),
   ],
 );

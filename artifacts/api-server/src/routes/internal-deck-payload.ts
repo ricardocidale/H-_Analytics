@@ -17,7 +17,7 @@
 import { Router, type Request, type Response } from "express";
 import { logger } from "../logger";
 import { parseRouteId } from "./helpers";
-import { buildSlidePayload } from "./property-slides";
+import { buildSlidePayload } from "../slides/build-payload";
 import { verifyDeckToken } from "../slides/internal-token";
 import {
   HTTP_400_BAD_REQUEST,
