@@ -92,11 +92,17 @@ Health endpoint: `GET /api/health/live` (not `/api/healthz`).
 
 | File | Purpose |
 |---|---|
-| `Dockerfile` | Two-stage Node 20 + pnpm build. Builds all packages, ships the api-server bundle plus the SPA at `dist/public`, runs `node artifacts/api-server/dist/index.mjs`. |
+| `Dockerfile` | Two-stage Node 20 + pnpm build. Builds all packages, ships the api-server bundle plus all three SPAs (H+ Analytics at `dist/public`, property-slides at `dist/property-slides`, mockup-sandbox at `dist/mockup-sandbox`), runs `node artifacts/api-server/dist/index.mjs`. |
 | `railway.toml` | `builder = "dockerfile"`, `healthcheckPath = "/api/health/live"`, `healthcheckTimeout = 300`, `restartPolicyType = "ON_FAILURE"`. |
 | `artifacts/api-server/build.mjs` | Externalises heavy deps (AI SDKs, doc/media libs, country-state-city, Sentry, google-auth-library) so the bundle stays ~7.5 MB and pnpm installs the rest in the runtime container. |
 
-**Single-container model:** the api-server serves both `/api/*` and the SPA (`serveStatic` mounts `artifacts/api-server/dist/public`). One Railway service, one port (`$PORT`), no separate frontend deployment.
+**Single-container model:** the api-server serves `/api/*` plus all three SPAs from one process on one port (`$PORT`). The Dockerfile builds every frontend and copies them next to the api-server bundle; `artifacts/api-server/src/static.ts` mounts them at:
+
+- `/` → `artifacts/api-server/dist/public` (H+ Analytics — `hospitality-business-portal`)
+- `/property-slides/` → `artifacts/api-server/dist/property-slides`
+- `/__mockup/` → `artifacts/api-server/dist/mockup-sandbox`
+
+One Railway service, no separate frontend deployments.
 
 **Required production env vars on Railway** — every value must be set as a Railway service variable (no Replit-managed broker is reachable in production):
 
@@ -330,13 +336,16 @@ vendor/
 
 | Date | Change |
 |---|---|
-| 2026-05-02 PM | **L+B Property Slides canonical PPTX swapped** to `attached_assets/L+B_Property_Slides_02_1777743268816.pptx`. The two prior canonicals (`_1777738821984.pptx`, `_1777637870265.pptx`) are now in `attached_assets/archive/`. The new canonical bakes in palette consolidation (single sage `#9FBCA4`, single dark `#1C2B1E` — three near-duplicate hex values collapsed via XML find/replace), Slide 5 typo + invisibility fixes, Slide 4 header/subtitle contrast fixes, and stale page numbers normalized to `PAGE 21–25` (Slide 6 untouched). Renders and photos confirmed correct. |
+| 2026-05-03 | **`claude.md` and `replit.md` harmonized** per the `agent-memory-files` skill. Updated both to reflect the 3-SPA production bundle, refreshed Recent Changes, and pruned older entries. |
+| 2026-05-03 | **Production image now bundles all 3 frontends** (Task #975). The Dockerfile builds H+ Analytics, property-slides, and mockup-sandbox; api-server's `static.ts` mounts them at `/`, `/property-slides/`, and `/__mockup/`. One Railway service serves everything. See "Production Deployment" → "Single-container model". |
+| 2026-05-03 | **One-command Railway data sync** — `pnpm sync-db-to-railway` (Task #978) mirrors the dev Neon DB to the Railway production DB for parity testing. |
+| 2026-05-03 | **Sensitivity heatmap now reports Equity Multiple correctly** (Task #967). Added `equityMultipleValue` to `SensitivityScenarioResult` (shared + api-server mirror); server `runScenario` uses `computeEquityMultiple`; client fallback mirrored; HeatMapSection re-labelled "Equity Multiple" with `${v.toFixed(2)}x`, breakeven 1.0, "—" for v ≤ 0. |
+| 2026-05-03 | **Spinner / icon contrast guard wired into CI** (Task #922). `.github/workflows/contrast-guard.yml` runs `check-spinner-contrast` on every PR + push to main — blocks low-contrast icon-on-fill regressions automatically. |
+| 2026-05-03 | **Better DB error logs on auth failures** (Task #968). `formatError()` in `artifacts/api-server/src/logger.ts` now surfaces Postgres `code`, `column`, `table`, `constraint`, etc., on dev auth bypass failures and the LLM-issue notification path — turns a bare SQL log into a self-diagnosing message. |
+| 2026-05-02 PM | **L+B Property Slides canonical PPTX swapped** to `attached_assets/L+B_Property_Slides_02_1777743268816.pptx`. Prior canonicals are in `attached_assets/archive/`. Bakes in palette consolidation (single sage `#9FBCA4`, single dark `#1C2B1E`), Slide 5 typo + invisibility fixes, Slide 4 header/subtitle contrast fixes, and stale page numbers normalized to `PAGE 21–25` (Slide 6 untouched). |
 | 2026-05-02 PM | **Canonical PPTX filename centralized** in `scripts/src/canonical_template.py` (exports `CANONICAL_PPTX_FILENAME` + `CANONICAL_PPTX_PATH`). `generate_property_slides.py`, `extract_slot_recipe.py`, and `render_slide_backgrounds.py` all import from it — future template swaps are a one-line change. |
-| 2026-05-02 | **Production hosting moved to Railway.** Replit Publish (both autoscale and Reserved VM) repeatedly failed; the project now ships via `Dockerfile` + `railway.toml` (single container, api-server serves SPA + `/api`, healthcheck `/api/health/live`). All infra is external (Neon Postgres, Cloudflare R2, Google OAuth, direct OpenAI/Anthropic/Gemini SDKs). Replit Workspace is dev-preview only. See "Production Deployment" section. |
-| 2026-05-02 | Centralised safe response parsing in `queryClient.ts` (Tasks #943, #944) — `Unexpected end of JSON input` toasts replaced with `"Login failed (HTTP 502 Bad Gateway)"`-style messages. Root cause of the empty body was the Replit deploy edge proxy, not the Express app — another reason production moved off Replit. |
+| 2026-05-02 | **Production hosting moved to Railway.** Replit Publish (both autoscale and Reserved VM) repeatedly failed; the project now ships via `Dockerfile` + `railway.toml` (single container, healthcheck `/api/health/live`). All infra is external (Neon Postgres, Cloudflare R2, Google OAuth, direct OpenAI/Anthropic/Gemini SDKs). Replit Workspace is dev-preview only. |
 | 2026-05-02 | api-server bundle reduced from ~32 MB → ~7.5 MB by externalising AI SDKs, doc/media libs, country-state-city, Sentry, and google-auth-library in `build.mjs` (Tasks #942, #948). |
-| 2026-05-02 | Autoscale startup probe path corrected from `/api/healthz` (404, no such route) to `/api/health/live` in `artifacts/api-server/.replit-artifact/artifact.toml` — fixed the silent-fail republish loop. (Kept for posterity; production no longer uses this path since the move to Railway.) |
-| 2026-05-02 | `claude.md` and `replit.md` harmonized per the `agent-memory-files` skill. Property-slides previewPath corrected from stale `/slides` to canonical `/property-slides/`. |
-| 2026-05-02 | `reference_brands` table wired into research orchestrator (tool DI), Funding Specialist PE prompt, and Rebecca KB. See solution doc. |
+| 2026-05-02 | `reference_brands` table wired into research orchestrator (tool DI), Funding Specialist PE prompt, and Rebecca KB. |
 | 2026-05-02 | `property_slide_deck_variants` table added (replaces `property_slide_decks`); dual-format generation — Track 1 PPTX + Track 2 image-PPTX via satori. |
-| 2026-05-02 | Marcela removed from codebase. Rebecca is the only AI assistant. Gap 4 permanently closed. |
+| 2026-05-02 | Marcela removed from codebase. Rebecca is the only AI assistant. |
