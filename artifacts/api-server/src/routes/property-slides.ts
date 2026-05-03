@@ -9,9 +9,8 @@
  *   GET /api/properties/hero-images/zip   — admin: ZIP of hero images
  *   GET /api/slides/status                — admin: PDF variant status rows
  *
- * The legacy python-pptx generator and the satori image-PPTX track were
- * removed in T002 / T006. The `property_slide_deck_variants` table now
- * only stores `pdf` rows (see migration 0042).
+ * The `property_slide_deck_variants` table only stores `pdf` rows
+ * (see migration 0042).
  */
 
 import { Router, type Request, type Response } from "express";
