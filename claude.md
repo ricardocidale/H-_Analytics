@@ -235,6 +235,7 @@ Use the `ui-page-patterns` skill before building or revising any page.
 | `.local/db-audit-phase-c-inventory.md` | DB migration inventory (Phase C) |
 | `.local/tasks/build-property-slides.md` | Property slide deck build plan |
 | `attached_assets/L+B_Property_6-Slide_Cannonical_1777775653617.pdf` | Canonical visual reference for all 6 LB slides — every rebuild must pixel-match this |
+| `attached_assets/slide_analysis_agent_report.precise_1777824741855.json` | **Machine-readable layout extract of the canonical deck** (PyMuPDF, 960×540 pt coords, ~650 KB, 6 pages). Per-span bbox / font / size / color and per-image bbox for every native element. Authoritative for text positions, fonts, colors. **Not authoritative** for: card chrome and band backgrounds (rasterized — sample from rendered PNG), z-order (use `paint_operation_log`), page backgrounds on pages 1–3 (PDF paint is `#FFFFFF`; the cream is baked into the page-background image), and image pixel data (bbox + digest only). Slides 1–3 each use a different sample property (Belleayre/Sul Monte body, Hazelnis, Cartagena); slides 4–6 are property-agnostic. |
 | `attached_assets/Pasted-SLIDE-1-Sul-Monte-Investment-Spotlight-0-Slide-Level-Me_1777741401797.txt` | Slide 1 full structural brief (coords, fonts, copy) |
 | `attached_assets/Pasted-SLIDE-2-Hazelnis-Retreat-Investment-Spotlight-0-Slide-L_1777741586519.txt` | Slide 2 full structural brief |
 | `attached_assets/Pasted-SLIDE-3-Cartagena-Duplex-Satellite-Expansion-0-Slide-Le_1777741627557.txt` | Slide 3 full structural brief |

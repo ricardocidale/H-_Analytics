@@ -95,7 +95,7 @@ Skills are process documents that guide AI agents. See `claude.md` § "Agent & S
 
 > **AI assistant scope**: This app has one AI assistant — **Rebecca** (semantic KB search). Marcela was removed. See `claude.md` § "AI assistant — Rebecca only".
 
-> **LB Slides** (DB schema, API routes, Playwright HTML→PDF pipeline, admin UI): see `claude.md` § "LB Slides — investor PDF decks (Playwright HTML→PDF)". Visual spec source-of-truth = `attached_assets/L+B_Property_6-Slide_Cannonical_1777775653617.pdf` + the per-slide briefs in `attached_assets/Pasted-SLIDE-N-…txt`. The legacy Python + `python-pptx` track has been removed — do not reintroduce it.
+> **LB Slides** (DB schema, API routes, Playwright HTML→PDF pipeline, admin UI): see `claude.md` § "LB Slides — investor PDF decks (Playwright HTML→PDF)". Visual spec source-of-truth = `attached_assets/L+B_Property_6-Slide_Cannonical_1777775653617.pdf` + the per-slide briefs in `attached_assets/Pasted-SLIDE-N-…txt` + the **machine-readable layout extract** at `attached_assets/slide_analysis_agent_report.precise_1777824741855.json` (per-span bbox/font/size/color in 960×540 pt). The legacy Python + `python-pptx` track has been removed — do not reintroduce it.
 
 > **Canonical page archetypes**: see `claude.md` § "Canonical Page Archetypes".
 
