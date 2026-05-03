@@ -93,6 +93,8 @@ Skills are process documents that guide AI agents. See `claude.md` § "Agent & S
 | `hplus-slide-mapping` | Shape-name ↔ data-field mapping for all 6 LB Slides template slides |
 | `hplus-canonical-slide-1` | Slide 1 visual spec — coords, colors, fonts, known issues; load when generating, debugging, or rebuilding Slide 1 |
 | `hplus-canonical-slide-2` | Slide 2 visual spec — structural twin of Slide 1 with documented deltas; load when generating, debugging, or rebuilding Slide 2 |
+| `hplus-vision-templates` | Filling in any slide text field — sourcing pipeline (DB → benchmarks → LLM with web research → templates), per-field char-limit enforcement, and budget-realism guardrails for transformation proposals |
+| `hplus-renovation-benchmarks` | Per-key cost ranges and transformation cost lines used by the budget-realism check above |
 | `agent-memory-files` | Editing `claude.md` or `replit.md` — keep them harmonized |
 
 > **AI assistant scope**: This app has one AI assistant — **Rebecca** (semantic KB search). Marcela was removed. See `claude.md` § "AI assistant — Rebecca only".
