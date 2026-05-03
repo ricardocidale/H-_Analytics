@@ -29,7 +29,7 @@ import {
   statusLabel,
   typeLabel,
 } from "./helpers";
-import { CANONICAL_SLIDE_PHOTOS } from "./canonical-photos";
+import { getCanonicalPhoto } from "./canonical-photos";
 import type { SiblingProperty, SlidePayload, SlidePhoto } from "./types";
 
 const DEFAULT_OCCUPANCY = 0.7;
@@ -95,9 +95,9 @@ export function Slide1({ p }: { p: SlidePayload }) {
   // slot-tagged replacement. The current property_photos schema has no
   // per-slot tag, so we always use the canonical photos here. When per-slot
   // overrides are added, fall back through them BEFORE the canonical default.
-  const hero = CANONICAL_SLIDE_PHOTOS[1].hero;
-  const secondary = CANONICAL_SLIDE_PHOTOS[1].secondary;
-  const inset = CANONICAL_SLIDE_PHOTOS[1].inset;
+  const hero = getCanonicalPhoto(1, "hero");
+  const secondary = getCanonicalPhoto(1, "secondary");
+  const inset = getCanonicalPhoto(1, "inset");
   const type = typeLabel(property);
 
   // Region line: "<city>, <county>, <state>" — dedupe county==state
