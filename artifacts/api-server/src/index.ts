@@ -562,7 +562,34 @@ async function runSchemaMigrations() {
 
   const { migrate } = await import("drizzle-orm/node-postgres/migrator");
   const { db: drizzleDb } = await import("./db");
-  await migrate(drizzleDb, { migrationsFolder: "./migrations" });
+
+  // Resolve the drizzle migrations folder robustly across platforms:
+  //   - Railway/Docker: Dockerfile copies migrations to /app/migrations,
+  //     and cwd is /app, so "./migrations" works.
+  //   - Replit deploy: cwd is repo root; migrations live at
+  //     artifacts/api-server/migrations.
+  //   - Local dev (`pnpm --filter @workspace/api-server run dev`): cwd is
+  //     the artifact dir, so "./migrations" works.
+  // We probe a list of candidates and use the first one whose
+  // meta/_journal.json exists (drizzle's required entrypoint).
+  const { existsSync } = await import("node:fs");
+  const path = await import("node:path");
+  const { fileURLToPath } = await import("node:url");
+  const bundleDir = path.dirname(fileURLToPath(import.meta.url));
+  const migrationCandidates = [
+    path.resolve(bundleDir, "../migrations"),                               // dist/../migrations  → artifacts/api-server/migrations
+    path.resolve(process.cwd(), "migrations"),                              // /app/migrations (Docker/Railway)
+    path.resolve(process.cwd(), "artifacts/api-server/migrations"),         // repo-root cwd (Replit deploy)
+  ];
+  const migrationsFolder = migrationCandidates.find(
+    (p) => existsSync(path.join(p, "meta", "_journal.json")),
+  );
+  if (!migrationsFolder) {
+    throw new Error(
+      `drizzle migrations folder not found; checked: ${migrationCandidates.join(", ")}`,
+    );
+  }
+  await migrate(drizzleDb, { migrationsFolder });
 
   const { withRetry } = await import("./db");
   await withRetry(() => runDataFixes(), {

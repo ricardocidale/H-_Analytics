@@ -1,6 +1,7 @@
 import { createHash } from "crypto";
 import { readFile } from "fs/promises";
 import path from "path";
+import { fileURLToPath } from "node:url";
 import { pool } from "../db";
 import {
   isMigrationApplied,
@@ -10,9 +11,21 @@ import { logger } from "../logger";
 
 const TAG = "seed:production-sql";
 
+// Resolve the seed file across platforms:
+//   - Railway/Docker: cwd is /app, file is at /app/dist/seed-production.sql
+//   - Replit deploy: cwd is the repo root; file lives under
+//     artifacts/api-server/script/seed-production.sql
+//   - Local dev (artifact-dir cwd): file lives at script/seed-production.sql
+//   - Bundle-relative: dist/index.mjs siblings dist/seed-production.sql,
+//     and ../script/seed-production.sql is the source-of-truth path.
+const BUNDLE_DIR = path.dirname(fileURLToPath(import.meta.url));
 const CANDIDATE_PATHS = [
+  path.resolve(BUNDLE_DIR, "seed-production.sql"),
+  path.resolve(BUNDLE_DIR, "../script/seed-production.sql"),
+  path.resolve(BUNDLE_DIR, "../seed/seed-production.sql"),
   path.join(process.cwd(), "dist", "seed-production.sql"),
   path.join(process.cwd(), "script", "seed-production.sql"),
+  path.join(process.cwd(), "artifacts/api-server/script/seed-production.sql"),
 ];
 
 async function loadSql(): Promise<{ sql: string; sourcePath: string } | null> {
