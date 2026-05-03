@@ -131,3 +131,9 @@ id = "IhO4CNfttP8-1lFpHw13s"
 uri = "file://exports/belleayre-deck.pdf"
 type = "pdf"
 title = "Belleayre Mountain — Investor Deck (rendered)"
+
+[[outputs]]
+id = "RKol7nQpHJjGGg4Ao3FxV"
+uri = "file://exports/slide1.jpg"
+type = "image"
+title = "Slide 1 — Belleayre Mountain"
