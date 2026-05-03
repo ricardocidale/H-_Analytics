@@ -18,7 +18,6 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY artifacts/api-server/package.json          ./artifacts/api-server/package.json
 COPY artifacts/hospitality-business-portal/package.json ./artifacts/hospitality-business-portal/package.json
 COPY artifacts/mockup-sandbox/package.json      ./artifacts/mockup-sandbox/package.json
-COPY artifacts/property-slides/package.json     ./artifacts/property-slides/package.json
 
 #   lib/*
 COPY lib/analytics/package.json       ./lib/analytics/package.json
@@ -52,10 +51,8 @@ RUN pnpm run typecheck
 
 # Build each frontend artifact with its own BASE_PATH.
 #   - hospitality-business-portal -> served at "/"
-#   - property-slides             -> served at "/property-slides/"
 #   - mockup-sandbox              -> served at "/__mockup/"
 RUN BASE_PATH=/ pnpm --filter @workspace/hospitality-business-portal run build
-RUN BASE_PATH=/property-slides/ pnpm --filter @workspace/property-slides run build
 RUN BASE_PATH=/__mockup/ pnpm --filter mockup-sandbox run build
 
 # Build the API server bundle last (depends on lib builds via tsc).
@@ -79,10 +76,8 @@ COPY --from=build /app/artifacts/api-server/dist ./artifacts/api-server/dist
 
 # Frontend SPAs — served by the API server via serveStatic()
 #   - hospitality-business-portal -> ./artifacts/api-server/dist/public            (mounted at "/")
-#   - property-slides             -> ./artifacts/api-server/dist/property-slides   (mounted at "/property-slides/")
 #   - mockup-sandbox              -> ./artifacts/api-server/dist/mockup-sandbox    (mounted at "/__mockup/")
 COPY --from=build /app/artifacts/hospitality-business-portal/dist/public ./artifacts/api-server/dist/public
-COPY --from=build /app/artifacts/property-slides/dist/public             ./artifacts/api-server/dist/property-slides
 COPY --from=build /app/artifacts/mockup-sandbox/dist                     ./artifacts/api-server/dist/mockup-sandbox
 
 # Production seed SQL — loaded at first boot to sync canonical data

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { IconDownload, IconPresentation, IconAlertCircle, IconCheckCircle2, IconExternalLink } from "@/components/icons";
+import { IconDownload, IconPresentation, IconAlertCircle, IconCheckCircle2 } from "@/components/icons";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -418,17 +418,6 @@ export default function SlideDecksTab() {
                     {dlStateImage === "done" ? "Saved" : "Download Images"}
                   </Button>
                 </div>
-
-                {/* View slides link */}
-                <a
-                  href={`/property-slides/?propertyId=${p.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors py-0.5"
-                >
-                  <IconExternalLink className="h-3 w-3" />
-                  View slides
-                </a>
               </CardContent>
             </Card>
           );

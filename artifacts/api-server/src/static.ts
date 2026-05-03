@@ -9,7 +9,6 @@ import path from "path";
  * sub-path (matching the artifact.toml `previewPath` used in development):
  *
  *   - hospitality-business-portal -> "/"                 (./public)
- *   - property-slides             -> "/property-slides/" (./property-slides)
  *   - mockup-sandbox              -> "/__mockup/"        (./mockup-sandbox)
  *
  * Each SPA gets its own static asset mount and its own catch-all index.html
@@ -17,7 +16,6 @@ import path from "path";
  */
 export function serveStatic(app: Express) {
   const subApps = [
-    { mount: "/property-slides", dir: path.resolve(__dirname, "property-slides") },
     { mount: "/__mockup",        dir: path.resolve(__dirname, "mockup-sandbox") },
   ];
 

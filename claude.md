@@ -11,7 +11,6 @@ artifacts/
   hospitality-business-portal/   React + Vite frontend  (previewPath: /)
   api-server/                    Express 5 API          (previewPath: /api)
   mockup-sandbox/                Design sandbox         (previewPath: /__mockup/)
-  property-slides/               Slide deck viewer      (previewPath: /property-slides/)
 lib/
   shared/       Constants, types, Zod schemas shared across all packages
   db/           Drizzle ORM schema + migration runner
@@ -92,14 +91,13 @@ Health endpoint: `GET /api/health/live` (not `/api/healthz`).
 
 | File | Purpose |
 |---|---|
-| `Dockerfile` | Two-stage Node 20 + pnpm build. Builds all packages, ships the api-server bundle plus all three SPAs (H+ Analytics at `dist/public`, property-slides at `dist/property-slides`, mockup-sandbox at `dist/mockup-sandbox`), runs `node artifacts/api-server/dist/index.mjs`. |
+| `Dockerfile` | Two-stage Node 20 + pnpm build. Builds all packages, ships the api-server bundle plus the two SPAs (H+ Analytics at `dist/public`, mockup-sandbox at `dist/mockup-sandbox`), runs `node artifacts/api-server/dist/index.mjs`. |
 | `railway.toml` | `builder = "dockerfile"`, `healthcheckPath = "/api/health/live"`, `healthcheckTimeout = 300`, `restartPolicyType = "ON_FAILURE"`. |
 | `artifacts/api-server/build.mjs` | Externalises heavy deps (AI SDKs, doc/media libs, country-state-city, Sentry, google-auth-library) so the bundle stays ~7.5 MB and pnpm installs the rest in the runtime container. |
 
 **Single-container model:** the api-server serves `/api/*` plus all three SPAs from one process on one port (`$PORT`). The Dockerfile builds every frontend and copies them next to the api-server bundle; `artifacts/api-server/src/static.ts` mounts them at:
 
 - `/` → `artifacts/api-server/dist/public` (H+ Analytics — `hospitality-business-portal`)
-- `/property-slides/` → `artifacts/api-server/dist/property-slides`
 - `/__mockup/` → `artifacts/api-server/dist/mockup-sandbox`
 
 One Railway service, no separate frontend deployments.

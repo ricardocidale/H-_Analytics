@@ -73,13 +73,6 @@ const APPS: AppSpec[] = [
     stageDir: "public",
   },
   {
-    filter: "@workspace/property-slides",
-    basePath: "/property-slides/",
-    mount: "/property-slides/",
-    srcDist: "artifacts/property-slides/dist/public",
-    stageDir: "property-slides",
-  },
-  {
     filter: "mockup-sandbox",
     basePath: "/__mockup/",
     mount: "/__mockup/",

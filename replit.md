@@ -13,7 +13,6 @@ H+ Analytics is a hospitality-sector financial analytics platform. Asset manager
 | H+ Analytics (React + Vite frontend) | `artifacts/hospitality-business-portal` | `/` |
 | API Server (Express 5) | `artifacts/api-server` | `/api` |
 | Mockup Sandbox (design sandbox) | `artifacts/mockup-sandbox` | `/__mockup/` |
-| L+B Property Slides (slide deck viewer) | `artifacts/property-slides` | `/property-slides/` |
 
 ## Workflows
 
@@ -58,7 +57,7 @@ Every infrastructure dep this app uses is an external service the user already p
 
 `artifacts/api-server/build.mjs` externalizes large doc/media libraries (`@react-pdf/renderer`, `pptxgenjs`, `xlsx`, `docx`, `satori`, `jspdf`, `archiver`) **plus** the AI SDKs (`@ai-sdk/*`, `@anthropic-ai/sdk`, `@google/genai`, `@perplexity-ai/perplexity_ai`, `openai`, `ai`), `country-state-city`, `@sentry/*`, and `google-auth-library`. They are loaded from `node_modules` at runtime instead of being inlined into `dist/index.mjs`. Result: the bundle dropped from ~32 MB → ~7.5 MB. Each of these packages must remain in `dependencies` (not `devDependencies`) so pnpm installs them in the Railway runtime container. If you add another heavy package that is only used on a small number of code paths, externalize it the same way.
 
-**Three SPAs in one image.** The Dockerfile builds all three frontends and copies them next to the api-server bundle; `artifacts/api-server/src/static.ts` mounts them at `/` (H+ Analytics), `/property-slides/`, and `/__mockup/`. One Railway service serves `/api/*` plus all three SPAs from one process on one port. See `claude.md` § "Production Deployment" → "Single-container model" for the authoritative description.
+**Two SPAs in one image.** The Dockerfile builds both frontends and copies them next to the api-server bundle; `artifacts/api-server/src/static.ts` mounts them at `/` (H+ Analytics) and `/__mockup/`. One Railway service serves `/api/*` plus both SPAs from one process on one port. See `claude.md` § "Production Deployment" → "Single-container model" for the authoritative description.
 
 ## pnpm workspace
 
