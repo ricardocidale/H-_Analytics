@@ -93,3 +93,4 @@ Sometimes the gate genuinely lives only in CI — environment-only failures (rea
 - **`cross-check-invariants`** — what to look at *before* you run the gates, so they pass on the first try.
 - **`agent-handoff-briefs`** — every handoff package should mandate the gates.
 - **`ci-hygiene`** — keeps CI healthy after pulls/merges so the gate stays reliable.
+- **`ce-debug`** — when a gate fails with a non-obvious root cause (not a simple type error or missing import), invoke `ce-debug` rather than iterating blindly. It applies a systematic root-cause flow that prevents the N+1 CI-cycle anti-pattern described above.

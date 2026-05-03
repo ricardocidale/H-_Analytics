@@ -1,0 +1,238 @@
+GAAP COMPLIANCE AUDIT REPORT                                                                                                                                                                                                          
+                                                                                                                                                                                                                                        
+  L+B Hospitality Financial Model                                                                                                                                                                                                       
+  Date: February 6, 2026
+
+  ---
+  CRITICAL VIOLATIONS (Must Fix)
+
+  1. FF&E Reserve Classified as Operating Expense (ASC 360 / USALI)
+
+  financialEngine.ts:336,350,354
+  - FF&E is treated as an operating expense included in totalOperatingExpenses (line 350) AND subtracted again from GOP (line 354)
+  - USALI requires FF&E reserve to be a capital expenditure below NOI, not an operating expense
+  - Impact: NOI understated, GOP distorted, management fees calculated on wrong base
+  - Double-count: FF&E is subtracted twice (once in operating expenses, once from GOP)
+
+  2. Land Value Included in Depreciation Base (ASC 360-10-30)
+
+  financialEngine.ts:241-242, loanCalculations.ts:118-119
+  - buildingValue = purchasePrice + buildingImprovements — land is not depreciable but is included
+  - No landValue field exists in the property model
+  - Impact: Depreciation overstated by ~20-25% (typical land allocation) for the life of the asset
+
+  3. Pre-Acquisition Properties Consolidated in Revenue (ASC 810)
+
+  Dashboard.tsx:93-159 (getYearlyConsolidated)
+  - All properties are summed for all years regardless of acquisition date
+  - No check for acquisitionDate < yearStart before including property revenue
+  - ConsolidatedBalanceSheet.tsx:86 does this correctly, but Dashboard does not
+  - Impact: Consolidated revenue overstated in years before all properties are acquired
+
+  4. Inter-Company Management Fees Not Eliminated (ASC 810)
+
+  financialEngine.ts:345,354 vs financialEngine.ts:549-551
+  - Properties deduct management fees as expense (reduces NOI)
+  - Company recognizes the same fees as revenue
+  - In any consolidated view, these should net to zero — currently they don't
+  - Impact: Consolidated statements double-count the economic impact of fees
+
+  5. Cash Flow cashFlow Variable Double-Deducts Interest (ASC 230)
+
+  financialEngine.ts:389-390
+  netIncome = noi - interestExpense     // Line 389 - interest deducted
+  cashFlow = noi - debtPayment          // Line 390 - FULL debt payment deducted (interest + principal)
+  - cashFlow deducts interest via debtPayment but netIncome already deducted it separately
+  - These two fields are inconsistent: cashFlow is effectively netIncome - principalPayment + interestExpense - debtPayment
+  - Impact: The cashFlow field and netIncome field use different methodologies in the same output object
+
+  6. Income Tax Missing from Core Monthly Engine (ASC 740)
+
+  financialEngine.ts:389
+  - netIncome = noi - interestExpense — no income tax deducted
+  - Depreciation tax shield is never applied in the monthly engine
+  - Tax only appears in Dashboard.tsx and loanCalculations.ts, not in the authoritative monthly financials
+  - Impact: Monthly net income is overstated; tax liability not tracked monthly
+
+  7. Depreciation Tax Shield Not Applied (ASC 740)
+
+  financialEngine.ts:389,393
+  - depreciationExpense is calculated (line 393) and stored but never used in net income calculation
+  - GAAP requires: Taxable Income = NOI - Interest - Depreciation, then Tax = max(0, taxable) × rate
+  - Impact: If tax were applied, the depreciation shield would reduce taxable income — currently both are missing
+
+  ---
+  HIGH SEVERITY (Should Fix)
+
+  8. No Depreciation Cap at Depreciable Base (ASC 360)
+
+  financialEngine.ts:394, ConsolidatedBalanceSheet.tsx:112
+  - accumulatedDepreciation = monthlyDepreciation * (monthsSinceAcquisition + 1) — no upper bound
+  - After 27.5 years (330 months), accumulated depreciation would exceed cost basis
+  - Fix: Math.min(accumulatedDepreciation, depreciableBasis)
+
+  9. No Current vs Long-Term Debt Classification (ASC 470)
+
+  ConsolidatedBalanceSheet.tsx:232-243
+  - All debt shown as "Long-Term Liabilities"
+  - GAAP requires principal due within 12 months classified as current
+  - Impact: Current ratio and working capital metrics are wrong
+
+  10. No Interest Payable on Balance Sheet (ASC 835)
+
+  ConsolidatedBalanceSheet.tsx:165
+  - totalLiabilities = totalDebtOutstanding — only principal, no accrued interest
+  - If interest accrues monthly but payments are made differently, there's a timing gap
+  - Impact: Liabilities understated, balance sheet equation may not hold
+
+  11. Debt Closing Costs Expensed Instead of Capitalized (ASC 470-50)
+
+  loanCalculations.ts:238-241
+  - Closing costs are deducted from refinance proceeds as a cash reduction
+  - GAAP requires them capitalized as a contra-liability and amortized over the loan term using effective interest method
+  - Impact: No amortization of closing costs; balance sheet doesn't show unamortized debt issuance costs
+
+  12. No Gain/Loss on Sale Calculated (ASC 360-10)
+
+  Dashboard.tsx:3324-3336
+  - Exit returns net proceeds (sale price - commission - debt), but never calculates:
+  Gain/Loss = Sale Price - Book Value - Selling Costs
+  where Book Value = Original Cost - Accumulated Depreciation
+  - Impact: No audit trail for disposition gain/loss; tax implications unknown
+
+  13. No Refinance Extinguishment Accounting (ASC 470-50-40)
+
+  loanCalculations.ts:275-284
+  - On refinance, old debt balance switches to new debt balance
+  - No gain/loss on extinguishment recorded
+  - No treatment of unamortized closing costs on old debt
+  - Impact: Period income is misstated in the refinance year
+
+  14. Incentive Fee on GOP Without Hurdle Rate
+
+  financialEngine.ts:353
+  - feeIncentive = Math.max(0, gop * global.incentiveManagementFee)
+  - Industry standard HMAs (Hotel Management Agreements) require an owner's priority return (typically 6-8% on equity) before incentive fees kick in
+  - Impact: Incentive fees overstated; owner returns understated
+
+  15. Dashboard Depreciation Ignores Per-Property Acquisition Dates
+
+  Dashboard.tsx:942
+  - accumulatedDepreciation = (totalPropertyValue / DEPRECIATION_YEARS) * Math.min(yearIndex + 1, projectionYears)
+  - Applies same years-of-depreciation to ALL properties
+  - ConsolidatedBalanceSheet.tsx:110-112 handles this correctly per property
+  - Impact: Balance sheet book values wrong when properties acquired at different times
+
+  16. SAFE Funding in Operating Cash Flow (ASC 230)
+
+  Company.tsx:280-283
+  - SAFE proceeds lumped with revenue in "Cash Inflows"
+  - Per ASC 230, SAFE funding is a financing activity
+  - Impact: Operating cash flow overstated
+
+  17. Company Cash Flow Statement Missing Three-Section Format (ASC 230)
+
+  Company.tsx:1110-1447
+  - No formal Operating / Investing / Financing sections
+  - SAFE funding, revenue, and expenses all mixed together
+  - Impact: Non-compliant cash flow presentation
+
+  ---
+  MEDIUM SEVERITY
+
+  18. Working Capital Hard-Coded to Zero (ASC 230)
+
+  financialEngine.ts:431-433
+  - workingCapitalChange = 0 — hotels have material A/R (group bookings), A/P (suppliers), and guest deposits
+  - Impact: Operating cash flow approximation; acceptable if disclosed but material for event-heavy properties
+
+  19. No Mid-Month Depreciation Proration (ASC 360)
+
+  financialEngine.ts:393
+  - Full month's depreciation taken in acquisition month regardless of acquisition date within the month
+  - Impact: Depreciation overstated by up to ~50% in first month
+
+  20. Accumulated Depreciation Off-by-One (ASC 360)
+
+  financialEngine.ts:394
+  - monthlyDepreciation * (monthsSinceAcquisition + 1) — the +1 means depreciation starts accumulating in month 0
+  - Impact: Book value understated by one month's depreciation throughout projection
+
+  21. Portfolio Metrics Include Unacquired Properties
+
+  Dashboard.tsx:184-217
+  - Weighted ADR/occupancy/RevPAR denominator includes room-nights from properties not yet acquired
+  - Impact: Portfolio metrics distorted in early years
+
+  22. Retained Earnings Don't Eliminate Inter-Company Fees
+
+  ConsolidatedBalanceSheet.tsx:140-150
+  - cumulativeNOI is post-management-fee, so retained earnings is understated by cumulative management fees
+  - In consolidated view, those fees should be added back
+
+  23. SAFE Notes Classified as Debt (ASC 480)
+
+  Company.tsx:1519
+  - SAFE shown as "SAFE Notes Payable" (liability)
+  - SAFEs are typically mezzanine equity or contingent consideration, not pure debt
+  - No modeling of conversion to equity
+
+  24. Partner Compensation vs Distribution Ambiguity (ASC 505)
+
+  financialEngine.ts:593, Company.tsx:217
+  - Partner compensation treated as operating expense
+  - If these are profit distributions (not service compensation), they should reduce equity, not hit the P&L
+  - Impact: Net income understated if these are distributions
+
+  25. No Impairment Testing (ASC 360-10-35)
+
+  - No code compares carrying value to fair value
+  - If a property's NOI declines significantly, book value could exceed recoverable amount
+  - Impact: Assets potentially overstated
+
+  ---
+  INCOME STATEMENT STRUCTURE (USALI Non-Compliance)
+
+  The correct USALI flow should be:
+  Total Revenue
+  - Departmental Expenses (Rooms, F&B, Events)
+  = Departmental Profit
+  - Undistributed Expenses (Admin, Marketing, IT, Utilities, Insurance, Taxes, Property Ops)
+  = Gross Operating Profit (GOP)
+  - Management Fees (Base + Incentive)
+  = Adjusted GOP
+  - FF&E Reserve (Capital Item)
+  = Net Operating Income (NOI)
+  - Interest Expense
+  - Depreciation
+  - Income Tax
+  = Net Income
+
+  Current model flow (financialEngine.ts):
+  Total Revenue
+  - ALL Operating Expenses (including FF&E as operating)  ← WRONG
+  = GOP (understated by FF&E)
+  - Management Fees (base on revenue, incentive on GOP)
+  - FF&E (deducted AGAIN)  ← DOUBLE COUNT
+  = NOI (significantly understated)
+  - Interest Expense
+  = Net Income (no tax, no depreciation impact)  ← INCOMPLETE
+
+  ---
+  SUMMARY BY COUNT
+  Severity: CRITICAL
+  Count: 7
+  Key Issues: FF&E double-count, land in depreciation, pre-acquisition consolidation, inter-company elimination, cash flow methodology, missing tax, missing depreciation in net income
+  ────────────────────────────────────────
+  Severity: HIGH
+  Count: 10
+  Key Issues: No depreciation cap, no current/LT debt split, no interest payable, closing costs, no gain/loss on sale, no refi extinguishment, no hurdle rate, Dashboard depreciation, SAFE in operating CF, missing 3-section CFS
+  ────────────────────────────────────────
+  Severity: MEDIUM
+  Count: 8
+  Key Issues: Working capital, mid-month proration, off-by-one depreciation, unacquired property metrics, retained earnings elimination, SAFE classification, partner comp ambiguity, no impairment
+  ────────────────────────────────────────
+  Severity: TOTAL
+  Count: 25
+  Key Issues:
+  The most impactful fixes would be: #1 (FF&E), #2 (land), #3 (pre-acquisition consolidation), #6-7 (tax/depreciation in net income), and #14 (hurdle rate).

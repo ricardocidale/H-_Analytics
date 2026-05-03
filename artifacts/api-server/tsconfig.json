@@ -1,0 +1,33 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "noImplicitReturns": false,
+    "jsx": "react-jsx",
+    "types": ["node", "react"],
+    "paths": {
+      "@shared/*": ["./src/shared/*"],
+      "@workspace/db": ["../../lib/db/src"],
+      "@workspace/db/*": ["../../lib/db/src/*"],
+      "@engine": ["../../lib/engine/src"],
+      "@engine/*": ["../../lib/engine/src/*"],
+      "@calc": ["../../lib/calc/src"],
+      "@calc/*": ["../../lib/calc/src/*"],
+      "@analytics": ["../../lib/analytics/src"],
+      "@analytics/*": ["../../lib/analytics/src/*"],
+      "@domain": ["../../lib/domain/src"],
+      "@domain/*": ["../../lib/domain/src/*"],
+      "@server": ["./src"],
+      "@server/*": ["./src/*"]
+    }
+  },
+  "include": ["src"],
+  "references": [
+    {
+      "path": "../../lib/db"
+    },
+    {
+      "path": "../../lib/api-zod"
+    }
+  ]
+}

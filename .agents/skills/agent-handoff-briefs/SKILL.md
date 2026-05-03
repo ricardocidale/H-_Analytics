@@ -135,3 +135,6 @@ Mid-work, the receiver hits something out-of-scope or ambiguous. They drop a `BL
 - **`pre-commit-gates`** — every brief's verification section should mandate the gates.
 - **`cross-check-invariants`** — briefs should call out which invariant pairs the work touches.
 - **`architecture-decision-records`** — briefs that introduce irreversible change reference (or include) an ADR.
+- **`ce-brainstorm`** — for briefs crossing a significant ownership boundary (e.g., a Replit→CC hand-off for a DB migration), run `ce-brainstorm` first to surface scope ambiguity before writing the brief. The requirements doc `ce-brainstorm` produces becomes the "Scope of work" section of the brief.
+- **`ce-work`** — the CE work-execution skill is purpose-built to consume a handoff brief as its input document. When the receiver is an AI agent running `ce-work`, the brief's "File-by-file specification" maps directly to `ce-work`'s Phase 1 task list.
+- **`ce-code-review`** / **`norfolk-code-review`** — the brief's verification section should specify whether the receiver must run a code review before declaring the handoff complete.

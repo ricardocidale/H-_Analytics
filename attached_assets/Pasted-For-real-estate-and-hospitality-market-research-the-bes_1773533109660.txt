@@ -1,0 +1,183 @@
+For real estate and hospitality market research, the “best” LLM setup is usually a combination of a top‑tier general model plus domain data, not a single standalone model.
+
+Which base models to use
+For 2026, independent comparisons show that frontier models like GPT‑5/4.1‑class, Claude 3.7/4‑class, and Gemini 2‑class sit at the top of reasoning and analysis benchmarks. In practice, any of these can work well if you wrap them with the right prompts, tools (RAG, code, SQL), and data sources.
+
+A good pattern for your use case is:
+
+One frontier model for deep reasoning and report‑style synthesis (e.g., GPT‑class, Claude‑class, or Gemini‑class).
+
+One cheaper or open‑source model (Llama 4, Mistral, Qwen, Gemma, Phi) for bulk tasks, log parsing, and quick iterations.
+
+Why domain data matters more
+Real estate and hospitality use cases depend heavily on local, time‑sensitive data (comps, STR/CoStar data, zoning, permitting, pipeline, tourism stats), which no base LLM “knows” reliably out of the box. The serious tools in this space all combine LLMs with:
+
+Retrieval‑augmented generation over proprietary data (market reports, leases, permits, zoning, AVM outputs).
+
+Traditional ML/AVM engines (CoreLogic/“Cotality,” Quantarium, HouseCanary, etc.) that feed valuations and risk measures into the LLM for explanation and scenario building.
+​
+
+So the better question is “what architecture?” rather than “which model.”
+
+Recommended architecture for you
+Given your background and that you’re building your own stack, I’d frame it as:
+
+Tier 1 – Reasoning LLM: a top model (GPT‑class / Claude‑class / Gemini‑class) behind your API as the “brain” for:
+
+Synthesizing narrative market studies from structured inputs (time series, comp tables, pipeline exports).
+
+Designing and critiquing your quant models, SQL, and feature engineering.
+
+Tier 2 – Data & tools:
+
+Vector/RAG layer over local market research, tourism and economic reports, brand FDDs, zoning documents, and your own deal memos.
+
+Numeric engines (Python, AVM APIs, revenue‑management or forecasting models) that the LLM can call for hard numbers instead of hallucinating them.
+
+Tier 3 – Cheaper/open‑source LLM:
+
+Used for high‑volume tasks: cleaning broker OM text, classifying deals, extracting fields from leases or offering docs.
+
+How to choose in practice
+To pick the specific model(s), rank what matters most to you:
+
+Deep reasoning on complex financial structures and mixed‑use feasibility.
+
+Latency and cost per 1K tokens for interactive “super conversation” style work.
+
+Native tool‑calling quality (reliable function calls into your code, SQL, and RAG).
+
+The frontier models are all “good enough” now; the edge will come from how you wire one of them into your own data and feasibility models, not which vendor’s logo is on the LLM.
+
+If you tell me your top priority (cheapest tokens, best reasoning, or strongest tool‑use with your own code and SQL), I can sketch a concrete 2‑model stack and API routing strategy tailored to your workflow.
+
+ok do it
+I’ll assume your priority is “best reasoning, even if it costs more,” and design around that. If you want a cheaper‑first variant, I can flip the tiers.
+
+High‑reasoning 2‑model stack
+Model A – Premium “brain” (primary):
+
+Use a frontier reasoning model (GPT‑class, Claude‑class, or Gemini‑class) as your default for: underwriting narratives, feasibility study drafts, model design, SQL/code generation, and complex what‑ifs.
+
+Route all low‑latency, high‑stakes work (super conversations, investor‑facing memos, nuanced market commentary) here.
+
+Model B – Efficient workhorse (secondary):
+
+Use a strong but cheaper/open model (e.g., Llama‑/Mistral‑/Qwen‑class) for bulk processing: text cleanup from OMs, PDF/lease extraction, initial comps tagging, running lots of small classification/extraction calls.
+
+This model also handles background “cron” tasks like refreshing market snapshots or classifying new deals.
+
+Routing strategy
+Implement a simple policy layer in your app/server:
+
+By task type:
+
+“Think” tasks → Model A: anything involving reasoning across multiple docs, writing coherent market sections, proposing structures for your Excel/py models, or critiquing a deal.
+
+“Transform” tasks → Model B: extract fields (ADR, NOI, keys, capex) from OMs, normalize addresses, tag deal type, summarize individual leases/Ops reports.
+
+By context size and risk:
+
+Small context, low risk (e.g., classify 1 paragraph, clean broker copy) → Model B.
+
+Large context or external‑facing output (investor memos, IC decks, “tell me the story of this submarket”) → Model A.
+
+Fallback: if Model B fails or gives low‑confidence output (you can use simple heuristics or a verifier prompt), re‑run that item through Model A only for those rows/documents.
+
+How it plugs into your real estate/hospitality stack
+Wire both models into a common tool/RAG layer so you don’t duplicate logic:
+
+Shared tools:
+
+SQL / analytics API over your comps, STR exports, pipeline, and your financial models (e.g., an endpoint that runs a Python notebook or recalcs an Excel template).
+
+Document RAG over market studies, zoning, permits, brand docs, your own memos.
+
+Model A usage examples:
+
+“Given these STR time series, the pipeline, and my pro‑forma outputs, write the Market Analysis and Demand/ADR Outlook sections.”
+
+“Evaluate this 5‑property SPV + management‑co structure; suggest alternative fee/waterfall structures and highlight investor risks.”
+
+Model B usage examples:
+
+“Parse this 50‑page OM and output JSON with rooms, ADR, occupancy, flags, P&L summary, management terms.”
+
+“Tag each uploaded deal with asset type, flag, submarket, and risk profile.”
+
+Concrete implementation notes
+Expose both models behind a single “/chat” endpoint with a task_type or risk_level parameter that your front‑end (or you, via prompt) sets.
+
+Standardize a tool‑calling schema (functions for run_sql, run_model, fetch_doc_snippets) and let both models call them, but only allow Model A to initiate complex multi‑tool chains.
+
+Log prompts, tool calls, and outputs so you can iteratively refine routing and prompts, especially around your underwriting and hospitality‑specific language.
+​
+
+If you tell me which vendor you’re leaning toward for Model A (OpenAI‑style, Anthropic‑style, or Google‑style), I can sketch actual API payload patterns and a minimal routing/prompt template you can drop into your code.
+
+leaning toward google
+For a Google‑leaning stack, use Gemini 3 / 2.5 as the “brain” and a Flash‑class model as the workhorse, both wired into the same tools and data.
+
+Model choices
+Primary reasoning model (Model A):
+
+Use Gemini 3.1 Pro Preview (or latest Pro‑class) as your default “thinking” engine for underwriting narratives, feasibility write‑ups, SQL/model design, and complex what‑ifs.
+
+It has strong reasoning, large context, and good tool‑calling support, plus the new endpoint variant tuned for heavy tool use.
+
+Secondary workhorse model (Model B):
+
+Use Gemini Flash‑class (e.g., 3 Flash or 2.5 Flash) for bulk transformations: parsing OMs, extracting fields, classifying deals, running lots of small calls.
+
+Flash is ~3–5× cheaper than Pro in practice and significantly faster, so it’s ideal for high‑volume ETL‑style tasks.
+
+Routing policy
+In your API layer (Node / Python):
+
+Route to Pro (Model A) when:
+
+The task spans multiple docs/tables (e.g., “Draft the market study from these STR exports, pipeline table, and zoning notes”).
+
+You’re generating investor‑facing material or doing reasoning across finance + market + legal context.
+
+You need multi‑tool chains (RAG + SQL + Python) in one flow.
+
+Route to Flash (Model B) when:
+
+You’re extracting structured data: “From this OM/PDF, return JSON with keys, ADR, occupancy, NOI, fees, capex schedule.”
+
+You’re classifying/tagging: asset type, submarket, risk band, flag vs independent.
+
+You’re doing high‑volume summarization at doc‑level granularity.
+
+If Flash output looks low‑confidence or inconsistent (you can check length, missing keys, or add a self‑check prompt), re‑run just those items through Pro.
+
+Tools and RAG for both
+Define a common tool set and retrieval layer both models can call:
+
+Function / tool calling:
+
+Use Gemini’s function‑calling schema to expose: run_sql, run_python_model, get_comps, get_market_snippets, recalc_underwrite, etc.
+
+Include rich descriptions and JSON schemas; Gemini relies heavily on that metadata for good routing.
+
+RAG over your corpus:
+
+Vector index of: STR/CoStar exports, market reports, zoning/permits, brand docs, your own memos, IC decks.
+
+Tool like search_docs(query, filters) that returns snippet + source ID, so the LLM can cite and cross‑check instead of hallucinating.
+
+Numeric/analytics tools:
+
+A run_model tool that hits either a Python service (FastAPI) or an Excel‑calc microservice with deal inputs and returns KPIs (NPV, IRR, DSCR, RevPAR, etc.).
+
+Let Gemini Pro orchestrate multi‑step flows: read docs → call get_comps → call run_model → draft narrative.
+
+Cost and usage shape
+Pro‑class: more expensive, but you’ll use it for maybe 10–30% of tokens—the “thinking and writing” path.
+
+Flash‑class: extremely cheap; it handles the other 70–90% where you’re just chewing through text and PDFs.
+
+This mirrors how you personally work: you don’t spend partner‑time on data entry; you spend it on structuring and deciding.
+
+If you tell me your preferred backend (Node vs Python) and whether you’re deploying on GCP or elsewhere, I can outline concrete pseudo‑code for the router and a minimal tools schema for run_sql, search_docs, and run_model.

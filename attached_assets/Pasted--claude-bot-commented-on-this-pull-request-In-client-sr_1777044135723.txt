@@ -1,0 +1,245 @@
+@claude[bot] commented on this pull request.
+
+In client/src/components/admin/AdminSidebar.tsx:
+
+>  function buildNavGroups(): NavGroup[] {
+   return [
+     {
+-      id: "management-company",
+-      label: "Management Company",
+-      icon: IconBriefcase,
+-      description: "Services, fees & financial statement lines",
++      id: "financial-defaults",
++      label: "Steady State",
++      icon: IconSliders,
++      description: "Defaults applied to new entities and immutable model constants",
+       sections: [
+-        { value: "services-fees",      label: "Services & Fees",           icon: IconBriefcase },
+-        { value: "financial-lines",    label: "Financial Statement Lines", icon: IconCalculator },
+-      ],
+-    },
+-    {
+-      id: "properties",
+-      label: "Properties",
+-      icon: IconProperties,
+-      description: "Property defaults, required fields & photos",
+-      sections: [
+-        { value: "hotel-defaults",  label: "Defaults",                     icon: IconSliders },
+-        { value: "required-fields", label: "Required Fields",              icon: IconFileCheck },
+-        { value: "photos-renders",  label: "Photos & Renders",             icon: IconImage },
+-      ],
+-    },
+-    {
+-      id: "ai-research",
+-      label: "AI Research",
+-      icon: IconBrain,
+-      description: "Sources, LLMs & system health",
+-      sections: [
+-        { value: "sources-apis",       label: "Sources & APIs",       icon: IconGlobe },
+-        { value: "llm-config",         label: "LLM Configuration",    icon: IconLayers },
+-        { value: "engine-health",      label: "System Health",        icon: IconGauge },
+-        { value: "scheduled-research", label: "Scheduled Research",   icon: IconTimer },
+-        { value: "benchmarks",         label: "Hospitality Benchmarks", icon: IconResearch },
+-        { value: "analyst-tables",     label: "Analyst Tables",       icon: IconResearch },
+-        { value: "vector-bench",       label: "Vector Search Latency", icon: IconGauge },
++        { value: "defaults-management-company", label: "Management Company", icon: IconBriefcase },
++        { value: "defaults-property",           label: "Property",           icon: IconProperties },
++        { value: "defaults-market-macro",       label: "Market & Macro",     icon: IconGlobe },
++        { value: "constants",                   label: "Constants",          icon: IconCalculator },
+       ],
+     },
+     {
+       id: "users",
+       label: "Users",
+       icon: IconPeople,
+-      description: "User accounts and assignments",
++      description: "Manage user accounts and assignments",
+       sections: [
+-        { value: "users", label: "User Management", icon: IconPeople },
++        { value: "users", label: "All Users", icon: IconPeople },
+       ],
+     },
+     {
+🔴 The new Required Fields roll-up page () is wired into Admin.tsx (lazy import, sectionMeta, render switch case for required-fields) but has no sidebar entry anywhere in buildNavGroups() — the 7 groups (Steady State, Users, Scenarios, Brand, Reports, Testing, App Settings) don't include it, and the only call site that sets this section (setAdminSection('required-fields') in model-defaults/RequiredFieldsTab.tsx:45) lives in a legacy component that is not imported anywhere live. Net result: the page ships but users cannot reach it via the UI — only via programmatic setAdminSection('required-fields'), which has no mounted entry point. Fix: add a { value: 'required-fields', label: 'Required Fields', icon: IconFileCheck } entry to an appropriate nav group in buildNavGroups() (e.g. a new 'Properties' group — the PR's own comment at AdminSidebar.tsx:116 anticipates this path).
+
+Extended reasoning...
+What the bug is
+This PR introduces a new admin page — RequiredFieldsRollup — meant to be the canonical "read-only roll-up across every Specialist's required fields and prerequisites" (per the sectionMeta subtitle at client/src/pages/Admin.tsx:97). The page is fully wired server-side and Admin.tsx-side:
+
+client/src/pages/Admin.tsx:40 — const RequiredFieldsRollup = lazy(() => import("@/components/admin/required-fields/RequiredFieldsRollup"));
+client/src/pages/Admin.tsx:97 — sectionMeta["required-fields"] = { title: "Required Fields", subtitle: "..." }
+client/src/pages/Admin.tsx:159 — case "required-fields": return <RequiredFieldsRollup />;
+However, buildNavGroups() in client/src/components/admin/AdminSidebar.tsx:195-268 contains 7 nav groups and none lists required-fields as a section value:
+
+financial-defaults → Steady State (Management Company, Property, Market & Macro, Constants)
+users → All Users
+scenarios → All Scenarios, Default Assignments
+brand → Brand Settings
+reports → All Exports
+testing → Verification, QA Sandbox
+app-settings → Notifications, Navigation, Database, Activity
+The AdminSection union at line 58 does include "required-fields" as a valid type, so the route type-checks — but there is no rendered sidebar button that dispatches setAdminSection("required-fields").
+
+The only call site is dead code
+rg 'setAdminSection\("required-fields"\)' client/src returns exactly one hit:
+
+client/src/components/admin/model-defaults/RequiredFieldsTab.tsx:45:
+  onClick={() => setAdminSection("required-fields")}
+That RequiredFieldsTab (the legacy model-defaults one, not the sibling pages/admin/specialist/tabs/RequiredFieldsTab.tsx which is a different component mounted on Specialist pages) was removed from ModelDefaultsTab.tsx's <TabsContent> list in this same PR. A repo-wide grep for model-defaults/RequiredFieldsTab returns zero imports — the file is orphaned. So the "Open Required Fields roll-up →" button never renders.
+
+There is also no hash-based deep-link intake on Admin.tsx (no useEffect(() => { ... window.location.hash ... }) that would map a URL hash to setAdminSection). The AiIntelligenceSidebar at client/src/components/ai-intelligence/AiIntelligenceSidebar.tsx has zero references to required-fields either.
+
+Why existing code doesn't save it
+The SECTION_REDIRECTS table in AdminSidebar.tsx doesn't map any alias into required-fields. setAdminSection in client/src/lib/admin-nav.ts has no special-case for this key — it's treated as a plain normalized section. resolveSection("required-fields") returns "required-fields" unchanged, which means the render switch works the moment the section value is set — but nothing sets it.
+
+Impact
+The RequiredFieldsRollup page is effectively dead code from the user's perspective. Per the PR's own doctrine block (see client/src/components/admin/model-defaults/RequiredFieldsTab.tsx's deprecation banner and .claude/skills/analyst/_index.md LOCKED 2026-04-21), this roll-up is supposed to be the canonical admin surface for Required Fields. Shipping the page without the sidebar entry means:
+
+Admins who read the deprecation banner on the legacy tab (if they somehow reach it) are told to go to a place that doesn't exist in the nav.
+The new doctrine-advertised "single source of truth" surface is unreachable.
+Any link, doc, or release note that says "Admin → Required Fields" is broken on the day this ships.
+The PR comment at AdminSidebar.tsx:116 even anticipates an Admin → Properties → Required Fields path — but no Properties group was ever added.
+
+Step-by-step proof
+Log in as admin, navigate to /admin.
+Observe the sidebar: 7 groups (Steady State / Users / Scenarios / Brand / Reports / Testing / App Settings). Scan every submenu — there is no "Required Fields" item. grep in the running DOM for data-testid="admin-nav-required-fields" returns nothing.
+In the browser devtools console, run (window as any).__setAdminSection?.("required-fields") — this is not a real exposed API, but if you could (e.g. via React DevTools or by editing the code to call setAdminSection("required-fields")), the page renders correctly. That confirms the render switch works; only the entry point is missing.
+rg 'setAdminSection.*required-fields' client/src returns the one dead-code hit in model-defaults/RequiredFieldsTab.tsx:45.
+rg 'model-defaults/RequiredFieldsTab' client/src server returns zero imports — the legacy component never renders.
+Result: there is no UI path to RequiredFieldsRollup.
+How to fix
+Minimal one-liner — add a nav entry to an appropriate group in buildNavGroups(). Two natural options:
+
+Option A (matches the PR's own comment intent): Add a new Properties group:
+
+{
+  id: "properties",
+  label: "Properties",
+  icon: IconProperties,
+  description: "Property-wide admin surfaces",
+  sections: [
+    { value: "required-fields", label: "Required Fields", icon: IconFileCheck },
+  ],
+},
+Option B (simpler): Add it to an existing group such as testing (Testing & Verification) or financial-defaults:
+
+{ value: "required-fields", label: "Required Fields", icon: IconFileCheck }
+Either fix is trivial and unblocks the page this PR is shipping.
+
+In client/src/features/property-images/useGenerateImage.ts:
+
+>        try {
+-        const res = await fetch("/api/generate-property-image", {
++        const res = await fetch("/api/specialists/photo-enhancer/run", {
+           method: "POST",
+           headers: { "Content-Type": "application/json" },
+-          body: JSON.stringify({ prompt, style, beforeImageUrl }),
++          body: JSON.stringify({
++            prompt,
++            style,
++            beforeImageUrl,
++            propertyId: options.propertyId,
++            originatedFrom: options.originatedFrom ?? "album",
++          }),
+         });
+🔴 Photo generation on /property/:id/photos is broken for every non-admin user. useGenerateImage.ts:50 was migrated to POST /api/specialists/photo-enhancer/run, but that route is gated by requireAdmin (server/routes/specialist-photo-enhancer.ts:37), while PropertyPhotos is mounted under ProtectedRoute (App.tsx:218) and reachable by every authenticated user (investors + all management roles). Every 'Generate image' click returns HTTP 403 with a misleading 'try a different prompt' toast. One-line fix: revert the URL on line 50 to /api/generate-property-image — the legacy endpoint (server/replit_integrations/image/routes.ts:76) uses requireAuth, already accepts the propertyId/originatedFrom payload, and still delegates to the same runPhotoEnhancerPipeline helper (sharing rate-limit bucket, SSRF guard, OpenAI fallback, and research_runs log).
+
+Extended reasoning...
+What the bug is
+This PR migrated client/src/features/property-images/useGenerateImage.ts:50 from POST /api/generate-property-image (requireAuth) to POST /api/specialists/photo-enhancer/run (requireAdmin) without noticing the auth-boundary change. PropertyPhotos is a user-facing page, not an admin page.
+
+Code path
+client/src/App.tsx:218 — /property/:id/photos is mounted as <ProtectedRoute component={PropertyPhotos} />. ProtectedRoute admits every authenticated user (investor + all management roles), not just admins.
+client/src/pages/PropertyDetail / PropertyPhotos renders <PhotoAlbumGrid> which renders <PhotoGenerateDialog> (PhotoAlbumGrid.tsx:548).
+PhotoGenerateDialog.tsx:192 calls useGenerateImage({ propertyId, originatedFrom: 'album', ... }).
+useGenerateImage.ts:50 unconditionally POSTs to /api/specialists/photo-enhancer/run.
+server/routes/specialist-photo-enhancer.ts:37 registers that route as app.post('/api/specialists/photo-enhancer/run', requireAdmin, ...).
+server/auth.ts:310-312 returns HTTP 403 {"error":"Admin access required"} for every non-admin role.
+The dialog's onError then fires toast({ title: 'Generation failed', description: 'Please try again with a different prompt.', variant: 'destructive' }) — which is doubly wrong: the request is rejected for auth, not content, so no prompt change will fix it.
+
+Why existing code doesn't prevent this
+There is no client-side role gate in PhotoAlbumGrid, PhotoGenerateDialog, or useGenerateImage — all three assume the endpoint is reachable to the caller. The previous endpoint had no gate above requireAuth, so there was nothing to migrate.
+
+The legacy endpoint POST /api/generate-property-image (server/replit_integrations/image/routes.ts:76) is still registered, still uses requireAuth, and already delegates to the same runPhotoEnhancerPipeline helper — see the inline comment block at lines 69–75 which explicitly labels it as the preserved non-admin path that shares the rate-limit bucket, SSRF guard, OpenAI fallback, and research_runs call-log stream. The legacy route was deliberately kept for exactly this case. The migration was gratuitous for non-admin flows.
+
+Impact
+Every non-admin user who opens a property's photos page and clicks any Generate button — standard, architectural-exterior, interior-design, renovation-concept, photo-upscale, virtual-staging, background-remove, photo-to-render — gets a 403. Because ManagementRoute is a distinct non-admin bucket (per app-guards.tsx:55), non-admin management users are a real, substantial population, not a theoretical edge case. The feature is fully broken for them, and the error toast is misleading so users cannot self-diagnose.
+
+Step-by-step proof
+Log in as a non-admin management user (or investor).
+Navigate to /property/42/photos. ProtectedRoute admits you.
+Open any album card → click any style's "Generate image" button.
+The dialog calls useGenerateImage.mutateAsync(...) which POSTs to /api/specialists/photo-enhancer/run.
+The requireAdmin middleware rejects the request: HTTP 403 {"error":"Admin access required"}.
+runPhotoEnhancerPipeline is never called; no image is generated; no research_runs row is written.
+onError shows the toast: "Generation failed — Please try again with a different prompt." The user changes the prompt, retries, gets the same 403, and has no recovery path.
+Sanity check: swap to an admin account, repeat steps 2–4. Request succeeds — confirming the gate is the sole cause.
+Fix
+One-line revert in client/src/features/property-images/useGenerateImage.ts:50:
+
+const response = await fetch('/api/generate-property-image', {
+The legacy route's generatePropertyImageSchema already accepts the propertyId field; originatedFrom is either accepted or ignored (the legacy route hardcodes 'legacy' when calling runPhotoEnhancerPipeline). Nothing downstream changes — same pipeline, same rate limits, same provenance stream.
+
+Alternative: downgrade the specialist route to requireAuth. Wider blast radius — the specialist route was explicitly labeled as the 'admin specialist console' endpoint and other specialists share the same admin-only namespace — so the one-line client revert is the safer fix.
+
+In .claude/rules/documentation.md:
+
+> +## Phase status changes
++
++When a phase's status changes (Pending → In progress → Shipped, etc.), update **`.claude/phases.md` only**. Do not add or update phase|status tables elsewhere — they will drift.
++
++- Other docs may reference `.claude/phases.md` (pointer line: *"Live status: see `.claude/phases.md`"*).
++- ADRs may list **planned** "Implementation phases" without live-status tokens (✅/⏳/🟡/⏸); the CI guard `npm run phases:check` exempts ADRs as long as they don't carry live tokens.
++- `replit.md` Recent Changes may carry historical narrative entries with commit SHAs (✅ shipped X at commit Y) — that is permitted as audit trail. What's prohibited is **live tables** (Phase | Status | Owner …) outside `.claude/phases.md`.
++
++Enforcement: `npm run phases:check` (script: `script/check-phase-status-uniqueness.ts`).
+🟡 🟡 Three binding docs advertise npm run phases:check as the CI enforcement mechanism for the phase-status-uniqueness rule (.claude/rules/documentation.md:22,25, .claude/phases.md:5, plus the header of script/check-phase-status-uniqueness.ts), but package.json has no phases:check script and .github/workflows/ci.yml never invokes the guard script directly — so the documented CI enforcement does not run on any PR. A duplicate phase|status table can land without failing CI, directly contradicting the phases.md § Update-rule contract this PR is built on. The session-memory entry at .claude/session-memory.md:28 explicitly acknowledges "package.json edit blocked by env policy" yet the docs still reference the non-existent npm script. Fix in-scope: add "phases:check": "tsx script/check-phase-status-uniqueness.ts" to package.json scripts, or add npx tsx script/check-phase-status-uniqueness.ts as a one-line CI step in .github/workflows/ci.yml.
+
+Extended reasoning...
+What the bug is
+This PR introduces a doctrine locking mechanism that promises CI will fail if a duplicate phase | status table appears outside .claude/phases.md. The promise is load-bearing — .claude/rules/documentation.md and .claude/phases.md cite it as the reason other docs can safely point at phases.md as the single source of truth. But the enforcement invocation npm run phases:check is a phantom:
+
+package.json has no phases:check script. Grepping package.json for phases:check returns zero matches. The scripts block contains check, test, lint, audit:quick, verify, but not phases:check.
+.github/workflows/ci.yml never invokes the script. Grepping the workflow for phases returns zero matches. Neither npm run phases:check nor npx tsx script/check-phase-status-uniqueness.ts appears anywhere in the CI lane.
+script/check-phase-status-uniqueness.ts exists on disk but has no caller — not in CI, not in package.json, not in any pre-commit hook.
+Where the docs make the claim
+Three binding locations advertise the guard as live:
+
+.claude/rules/documentation.md:22 — "the CI guard npm run phases:check exempts ADRs as long as they don't carry live tokens."
+.claude/rules/documentation.md:25 — "Enforcement: npm run phases:check (script: script/check-phase-status-uniqueness.ts)."
+.claude/phases.md:5 — "The CI guard at npm run phases:check fails if a duplicate status table appears outside this file."
+The session-memory entry at .claude/session-memory.md:28 even admits the wiring is missing: "package.json edit blocked by env policy, so script is invoked directly + documented in documentation.md." That self-documentation still leaves the gap open — the rule files point at an npm script that does not exist and a CI step that does not run.
+
+Why existing code doesn't prevent it
+The guard script is standalone and works when executed manually (npx tsx script/check-phase-status-uniqueness.ts returns a PASS/FAIL that a contributor can read). It is simply never run by any automated gate. Nothing in the pre-commit hooks, the lint-and-typecheck job, or the test-and-verify job references it. A PR author can land a second phase | status table in replit.md, ANALYST.md, or any new doc and no gate will complain.
+
+Impact
+The doctrine lock is unenforced. The entire reason phases.md was centralized — "other docs carry historical narrative but do not carry live phase-status tables. They point here" — depends on the CI guard catching drift. Right now the guard is a comment.
+Future PRs will drift silently. The next time a phase ships, an author may update replit.md Recent Changes with a status table (now a common pattern in this repo), and nothing will fail. Six months from now phases.md is one of N status sources instead of the only one.
+The PR claims the guard is shipped. .claude/phases.md:123 marks the CI guard as ✅ Shipped 2026-04-22. It is not shipped — it is a disk-present script with no invoker.
+Step-by-step proof
+grep '"phases:check"' package.json → no match. The scripts block enumerates check, test, test:summary, lint, lint:summary, audit:quick, verify, verify:summary, health, parity:check — no phases:check.
+grep 'phases' .github/workflows/ci.yml → no match. The workflow's lint-and-typecheck job runs npm run check, ESLint, audit:quick, and the new check-replit-independence.ts guard; the test-and-verify job runs db:push, seed, test:summary, a Constants-tab browser check, and verify:summary. No phases:check anywhere.
+ls script/check-phase-status-uniqueness.ts → file exists, ~200 lines, exports a CLI that scans for phase|status tables with live tokens.
+cat .claude/rules/documentation.md | grep -n 'phases:check' → lines 22 and 25 both reference it. Lines 13-18 update the priority table to put .claude/phases.md above session-memory.md.
+A test PR that appends a | Phase | Status | Owner | block with live tokens (✅/⏳/🟡) to replit.md Recent Changes would pass CI today — the lint-and-typecheck and test-and-verify jobs have no step that invokes the guard.
+How to fix
+Two trivial options, either one closes the gap; they are not mutually exclusive:
+
+Option A (package.json, matches the docs verbatim):
+
+"scripts": {
+  …existing…,
+  "phases:check": "tsx script/check-phase-status-uniqueness.ts"
+}
+Then add one step to .github/workflows/ci.yml in lint-and-typecheck:
+
+- name: Phase-status uniqueness
+  run: npm run phases:check
+Option B (workflow only, no package.json edit — matches session-memory's stated workaround):
+
+- name: Phase-status uniqueness
+  run: npx tsx script/check-phase-status-uniqueness.ts
+Then update the three doc references to say npx tsx script/check-phase-status-uniqueness.ts instead of npm run phases:check, or leave them — npm run phases:check works after Option A.
+
+Severity is nit — the runtime impact is zero and the financial engine is untouched. But this is a doc/CI drift that defeats a load-bearing promise introduced in this very PR, and the fix is one line of YAML.

@@ -1,0 +1,197 @@
+For a large home you’re converting into a luxury B&B–style property, think of the direct-method cash flow as “cash in from guests and platforms, cash out for running the house, renovation, and capital.” You’ll still split it into operating, investing, and financing, but with hospitality‑specific lines.
+
+1. Define the scope and time buckets
+Use a property‑level statement, not the whole portfolio, and choose monthly columns for at least the first 24 months (renovation + lease‑up), then annual. This lets investors see seasonality and ramp‑up while staying true to direct method (actual cash).
+
+2. Operating activities – luxury B&B specifics
+List cash received from guests and cash paid for day‑to‑day operations.
+
+Typical cash inflows (operating):
+
+Cash received from guests (nightly stays, extended stays, events).
+
+Cash received from OTAs and platforms (Airbnb, Vrbo, Booking.com) net of their fees, if fees aren’t broken out separately.
+
+Cash received for upsells: chef services, spa/massage, guided experiences, airport transfers, minibar, etc.
+
+Cash received for cleaning fees if guests pay them directly.
+
+Typical cash outflows (operating):
+
+Housekeeping and laundry (contractor payments or staff payroll).
+
+Concierge/guest services staff, on‑site manager, virtual assistant, or call center.
+
+Utilities (power, gas, water, internet, streaming, security).
+
+Consumables and F&B (amenities, toiletries, snacks, breakfast ingredients, minibar restocks).
+
+Routine maintenance and repairs (landscaping, pool service, hot tub, HVAC servicing).
+
+Platform and payment fees (Airbnb/OTA fees, credit card fees, channel manager/booking engine).
+
+Property management fee if you use a manager.
+
+Property taxes and insurance (use actual payment timing, not accrual).
+
+Marketing and sales (photography, listings, ads, influencer stays, website, SEO, OTA “boost” fees).
+
+Permits, licensing, STR tax administration if paid regularly.
+
+Operating section skeleton (for each period):
+
+Cash received from guests and OTAs
+
+Cash received from other guest services
+
+Cash paid for housekeeping and guest services
+
+Cash paid for utilities and property operations
+
+Cash paid for F&B and supplies
+
+Cash paid for maintenance and contracts
+
+Cash paid for property taxes and insurance
+
+Cash paid for management and platform fees
+
+Cash paid for marketing and admin
+
+Net cash provided by operating activities
+
+This is what investors will use to understand stabilized cash flow and how “luxury” translates into higher RevPAR vs. higher operating cost.
+
+3. Investing activities – acquisition and conversion
+Here you show one‑time or long‑term cash uses to acquire and convert the property.
+
+Typical cash outflows (investing):
+
+Cash paid to acquire the home (purchase price, closing costs).
+
+Conversion and renovation cash (interior design, structural changes, new bathrooms, additional suites, soundproofing, fire and life safety upgrades, ADA work as required).
+
+FF&E: luxury beds, linens, furniture, décor, lighting, artwork, kitchen equipment, spa equipment, outdoor spaces/pool upgrades.
+
+Tech stack as CapEx if you treat it that way (smart locks, cameras, networking, built‑in audio, tablets).
+
+Possible cash inflows (investing):
+
+Cash received from sale of the property or from a recapitalization/refi if you treat that as an asset sale event.
+
+Insurance proceeds for major damage where the underlying asset basis changes.
+
+Investing section skeleton:
+
+Cash paid for property acquisition
+
+Cash paid for renovation and conversion
+
+Cash paid for FF&E and luxury upgrades
+
+Cash received from sale or recapitalization (if applicable)
+
+Net cash used in investing activities
+
+For the conversion, you can either front‑load these (big lump at closing) or show drawdowns over the construction schedule; both are fine as long as they match your sources & uses and loan structure.
+
+4. Financing activities – how you fund and return capital
+This section shows how money moves between the project and capital providers.
+
+Typical cash inflows (financing):
+
+Cash received from debt (acquisition loan, construction/reno loan, later refi).
+
+Cash contributions from sponsors and LPs (equity, co‑investment).
+
+Typical cash outflows (financing):
+
+Cash repayments of loan principal (interest belongs in operating).
+
+Loan closing fees paid in cash if not netted from proceeds.
+
+Cash distributions to investors (preferred returns, profit distributions, promote).
+
+Financing section skeleton:
+
+Cash received from loan proceeds
+
+Cash repayments of loan principal
+
+Cash contributions from sponsors and investors
+
+Cash distributions to investors
+
+Net cash provided by (used in) financing activities
+
+Make sure any refi is shown as: new loan proceeds (inflow), payoff of old loan principal (outflow), with the net benefit visible.
+
+5. Tie‑out and how to keep it truly “direct”
+To finish the statement for each period:
+
+Net increase (decrease) in cash = Net cash from operating + investing + financing.
+
+Add beginning cash balance.
+
+Equals ending cash balance (this should match your operating account for the project).
+
+To keep it direct method and defensible for investors:
+
+Build your categories off actual bank statement exports or a detailed GL mapped to these lines.
+
+Do not start from “net income”; always sum actual cash receipts and payments by category.
+
+For projections, use the same structure and drive guest‑cash lines from key operating assumptions: occupancy, ADR, ancillary spend per occupied night, seasonality, and ramp‑up curve after opening.
+
+6. One example layout you can drop into a model
+For each month (columns) and a full year summary, use:
+
+Cash flows from operating activities
+
+Cash received from guests and OTAs
+
+Cash received from upsell services
+
+Cash paid for housekeeping and guest services
+
+Cash paid for utilities and property ops
+
+Cash paid for F&B and guest supplies
+
+Cash paid for maintenance and contracts
+
+Cash paid for property taxes and insurance
+
+Cash paid for management, platform, and marketing
+
+Cash paid for admin and local compliance
+
+Net cash provided by operating activities
+
+Cash flows from investing activities
+
+Cash paid for acquisition of property
+
+Cash paid for renovation and conversion
+
+Cash paid for FF&E and major upgrades
+
+Cash received from sale/refi (if in that period)
+
+Net cash used in investing activities
+
+Cash flows from financing activities
+
+Cash received from loan proceeds
+
+Cash repayments of loan principal
+
+Cash contributions from investors
+
+Cash distributions to investors
+
+Net cash provided by (used in) financing activities
+
+Net increase (decrease) in cash
+Beginning cash balance
+Ending cash balance

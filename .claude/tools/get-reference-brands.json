@@ -1,0 +1,9 @@
+{
+  "name": "get_reference_brands",
+  "description": "Retrieve the curated list of reference brands (boutique/lifestyle hospitality operators) stored in the H+ platform. Use this tool to ground your research in real comp-set data when analyzing market positioning, ADR benchmarks, RevPAR ranges, or ownership models for boutique hotel operators. Returns orientation-grade data — not audit-grade — always include the referenceDisclaimer flag in your output.",
+  "input_schema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  }
+}

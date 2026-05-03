@@ -1,7 +1,11 @@
 ---
 name: brainstorming
-description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation."
+description: "Use ce-brainstorm instead — it is a richer version of this skill with product pressure testing, rigor probes, and a synthesis phase. This skill is kept as a fallback when ce-brainstorm is unavailable. You MUST use this (or ce-brainstorm) before any creative work — creating features, building components, adding functionality, or modifying behavior."
 ---
+
+> **Prefer `ce-brainstorm` over this skill.** `ce-brainstorm` (`.agents/skills/ce-brainstorm/SKILL.md`) supersedes this one with richer product pressure testing, rigor probes, a synthesis phase, and a requirements document output. Use this skill only when `ce-brainstorm` is unavailable or you are explicitly instructed to.
+
+> **Advisor integration (project rule):** Always call `advisor()` in conjunction with brainstorming when the advisor tool is available. Call it (a) after the context scan and before proposing approaches, to pressure-test your interpretation of the problem; and (b) before writing the final spec/design doc, to catch scope gaps or wrong turns before they land on disk.
 
 # Brainstorming Ideas Into Designs
 

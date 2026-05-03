@@ -13,12 +13,6 @@ type = "image"
 title = "Rebecca AI portrait"
 
 [[generated]]
-id = "3XQqwfpaemF7c5VwDtvKQ"
-uri = "file://generated-icon.png"
-type = "image"
-title = "h-plus-analytics-icon"
-
-[[generated]]
 id = "--c1IyX9bR7XJgCSTGocO"
 uri = "file://attached_assets/og-banner.png"
 type = "image"
@@ -71,3 +65,15 @@ id = "dMh2n5LqMJjiE-Jw_rXVF"
 uri = "file://backups/heliumdb-rowcounts-20260424T174432Z.txt"
 type = "text"
 title = "Pre-cutover row count snapshot"
+
+[[outputs]]
+id = "6EvzfacfV7nN3mTA39BqF"
+uri = "file://attached_assets/L+B_Property_Slides_1777637870265.pptx"
+type = "slides"
+title = "L+B Property Slides (uploaded today, 12:17)"
+
+[[outputs]]
+id = "sqX4KplAkI3ynk2TwlCSR"
+uri = "file://attached_assets/property_target_template_lola_ber_1773007685945.pptx"
+type = "slides"
+title = "Property Target Template (Lola Ber, March 8)"

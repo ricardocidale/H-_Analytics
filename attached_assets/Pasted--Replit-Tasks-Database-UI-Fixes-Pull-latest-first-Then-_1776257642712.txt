@@ -1,0 +1,98 @@
+## Replit Tasks — Database + UI Fixes
+
+**Pull latest first.** Then work through these in order.
+
+---
+
+### Database Fixes
+
+#### DB-1: Add Zod defaults to 10 notNull columns without defaults
+**File:** `shared/schema/config.ts`
+
+These columns are `notNull()` with no DB column default and no Zod default. Any insert that omits them will fail at the DB level:
+
+```
+baseManagementFee         → .default(0.085)
+incentiveManagementFee    → .default(0.12)
+staffSalary               → .default(65000)
+officeLeaseStart          → .default(36000)
+professionalServicesStart → .default(24000)
+techInfraStart            → .default(18000)
+businessInsuranceStart    → .default(12000)
+travelCostPerClient       → .default(5000)
+itLicensePerClient        → .default(3600)
+marketingRate             → .default(0.05)
+miscOpsRate               → .default(0.03)
+```
+
+The default values come from `shared/constants.ts` — match each column to its `DEFAULT_*` constant. Add `.default(value)` to the Drizzle column definition, and add `.default(value)` to the corresponding Zod insert schema if it exists.
+
+#### DB-2: Add fiscalYearStartMonth validation
+**File:** `shared/schema/config.ts`
+
+`fiscalYearStartMonth` currently accepts any integer. Add a check:
+- Drizzle: can't easily add check constraints after the fact
+- Zod: in `insertGlobalAssumptionsSchema`, add `.refine()` or use the pick to ensure fiscalYearStartMonth is between 1 and 12
+
+#### DB-3: Run market data table seeds
+If not already done from previous brief — run `seedMarketDataTables()` to populate the 7 pre-collected tables. The migration file `server/migrations/market-data-tables-001.ts` may have already handled this.
+
+---
+
+### UI Fixes (from previous brief — check which are done)
+
+#### UI-1: Block javascript: URIs in Rebecca markdown
+**File:** `client/src/components/rebecca/RebeccaMarkdown.tsx`
+In the `<a>` renderer, only allow `href` starting with `http://` or `https://`. Anything else renders as plain text.
+
+#### UI-2: ErrorBoundary shows raw Error.message
+**File:** `client/src/components/ErrorBoundary.tsx` (line ~49) and `FinancialErrorBoundary` (line ~172)
+Replace `{this.state.error?.message}` with: "Something went wrong. Please reload the page."
+
+#### UI-3: RebeccaPanel stale closure
+**File:** `client/src/components/rebecca/RebeccaPanel.tsx` (lines 169-193)
+Add `loadConversation` and `sendAutoGreeting` to the `useEffect` dependency array.
+
+#### UI-4: poi.rating unescaped in map popup
+**File:** `client/src/components/PropertyMap.tsx` (line ~166)
+Apply `escapeHtml()` to `poi.rating`.
+
+#### UI-5: sendMessage race condition
+**File:** `client/src/components/rebecca/RebeccaPanel.tsx` (lines 260-358)
+Move `setLoading(true)` to the very first line of `sendMessage`.
+
+#### UI-6: Research pages missing ErrorBoundary
+**File:** `client/src/App.tsx` (lines ~217-221, ~247)
+Wrap `PropertyMarketResearch`, `PropertyResearchCriteria`, `CompanyResearch` in `<FinancialErrorBoundary>`.
+
+#### UI-7: NaN in chart tooltip
+**File:** `client/src/components/dashboard/OverviewPerformanceSection.tsx` (line ~113)
+Guard: `const num = Number(value); const display = Number.isFinite(num) ? num.toLocaleString("en-US") : "$0";`
+
+#### UI-8: toLocaleString without explicit locale
+**Files:** `DonutChart.tsx`, `BarChartInteractive.tsx`, `DonutChartInteractive.tsx`, `IncomeStatementTab.tsx`
+Replace all `.toLocaleString()` with `.toLocaleString("en-US")` in financial contexts.
+
+#### UI-9: Norfolk AI badges
+Add "Powered by Norfolk AI" badge to:
+- Research result panels (below Analyst Notes)
+- Help/About page footer
+- Export PDF footer
+Keep it subtle — small text, not a banner. Read `.claude/skills/vocabulary/SKILL.md` Section 11 for guidelines.
+
+#### UI-10: Export section markers for PNG
+Add `data-export-section="section-name"` to all exportable UI sections:
+- Each financial statement tab
+- Each chart
+- KPI dashboard cards on Overview tab
+
+---
+
+### Vocabulary Reminder
+Before writing ANY new UI text, read `.claude/skills/vocabulary/SKILL.md`. Key rules:
+- "Ask the Analysts" not "Regenerate Intelligence"
+- "Consult" not "Generate Research"
+- "Up to date / Due for review / Overdue / Not yet reviewed / Reviewing"
+- "Analyst Notes" not "research badges"
+- "Conviction" not "confidence score"
+- Never say: stale, fresh, engine, algorithm, model, generate, run, execute

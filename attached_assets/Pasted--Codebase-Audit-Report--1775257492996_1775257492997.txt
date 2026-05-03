@@ -1,0 +1,130 @@
+  Codebase Audit Report                                                                                                                                                                
+                                                                                                                                                                                       
+  Summary                                                                                                                                                                              
+                                                                                                                                                                                       
+  Total findings: 30                                                                                                                                                                   
+  
+  CRITICAL: 2 | HIGH: 8 | MEDIUM: 14 | LOW: 6                                                                                                                                          
+                  
+  ---                                                                                                                                                                                  
+  CRITICAL Findings
+                   
+  ┌─────┬──────────────────────────────────────────┬───────────────┬───────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │  #  │                File:Line                 │   Category    │                                                  Description                                                  │   
+  ├─────┼──────────────────────────────────────────┼───────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ C1  │ calc/financing/interest-rate-swap.ts:189 │ Financial     │ Math.pow(1 + discountRate, i + 1) used in mark-to-market calculation instead of dPow(). Violates              │   
+  │     │                                          │ Integrity     │ financial-safety rule. Floating-point drift accumulates across swap periods, corrupting MTM valuations.       │
+  ├─────┼──────────────────────────────────────────┼───────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────┤   
+  │ C2  │ calc/research/make-vs-buy.ts:88-89       │ Financial     │ Two Math.pow() calls for cost escalation and discount factors: Math.pow(1 + escalation, y - 1) and Math.pow(1 │
+  │     │                                          │ Integrity     │  + discRate, y). Compound growth over 5+ years drifts, potentially skewing NPV-based make-vs-buy decisions.   │   
+  └─────┴──────────────────────────────────────────┴───────────────┴───────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+                                                                                                                                                                                       
+  ---             
+  HIGH Findings
+
+  ┌─────┬────────────────────────────────────┬────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │  #  │             File:Line              │  Category  │                                                      Description                                                       │
+  ├─────┼────────────────────────────────────┼────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤   
+  │     │                                    │ Data       │ Scenario load inserts properties with userId set to logged-in user's ID instead of null. Per portfolio-dynamics rule,  │
+  │ H1  │ server/storage/financial.ts:252    │ Integrity  │ all properties must be shared (userId = null). After loading a scenario, properties become invisible to all other      │   
+  │     │                                    │            │ users.                                                                                                                 │   
+  ├─────┼────────────────────────────────────┼────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ H2  │ server/storage/financial.ts:244    │ Data       │ Scenario load upserts globalAssumptions with userId instead of null, potentially creating a user-specific row that     │   
+  │     │                                    │ Integrity  │ shadows the shared singleton. Violates shared-data invariant.                                                          │
+  ├─────┼────────────────────────────────────┼────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤   
+  │     │                                    │ Security   │ /api/letter-logo/:name endpoint has no requireAuth middleware. User-controlled name param is passed to                 │   
+  │ H3  │ server/routes/branding.ts:241-246  │ (XSS)      │ generateLetterLogoSvg() and rendered as SVG. Potential SVG injection vector (script tags, event handlers in SVG        │
+  │     │                                    │            │ context).                                                                                                              │   
+  ├─────┼────────────────────────────────────┼────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │     │                                    │ Security   │ PATCH /api/documents/fields/:fieldId/status accepts arbitrary field ID without verifying the extraction belongs to a   │
+  │ H4  │ server/routes/documents.ts:188-236 │ (IDOR)     │ property the user can access. Any authenticated user can modify extraction fields from other properties. Also writes   │   
+  │     │                                    │            │ values to property at line 221 without ownership check.                                                                │
+  ├─────┼────────────────────────────────────┼────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤   
+  │ H5  │ server/routes/documents.ts:238-295 │ Security   │ POST /api/documents/fields/:extractionId/bulk-status accepts arbitrary extraction ID without property access check.    │
+  │     │                                    │ (IDOR)     │ User can bulk-update all fields in another user's extraction.                                                          │   
+  ├─────┼────────────────────────────────────┼────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ H6  │ server/routes/tiles.ts:4-57        │ Security   │ Three map tile proxy endpoints (/api/tiles/osm, /api/tiles/satellite, /api/tiles/terrain) have no authentication       │   
+  │     │                                    │ (Auth)     │ middleware. Any unauthenticated client can proxy unlimited tile requests through the server, risking resource abuse.   │   
+  ├─────┼────────────────────────────────────┼────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ H7  │ calc/shared/utils.ts:54            │ Silent     │ pctChange(0, x) silently returns 0 when baseline is zero. Percentage change is mathematically undefined at zero        │   
+  │     │                                    │ Fallback   │ baseline. Silent coercion to 0 masks invalid inputs in stress tests and sensitivity analysis.                          │   
+  ├─────┼────────────────────────────────────┼────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ H8  │ calc/shared/decimal.ts:19          │ Silent     │ dDiv(a, 0) silently returns 0 for any numerator. When a != 0, dividing by zero should be an error, not 0. Callers are  │   
+  │     │                                    │ Fallback   │ assumed to pre-guard but this is not enforced.                                                                         │   
+  └─────┴────────────────────────────────────┴────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+                                                                                                                                                                                       
+  ---             
+  MEDIUM Findings
+
+  ┌─────┬──────────────────────────────────────────┬───────────────┬───────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │  #  │                File:Line                 │   Category    │                                                  Description                                                  │
+  ├─────┼──────────────────────────────────────────┼───────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ M1  │ server/routes/calculations.ts:55,100,111 │ Type Safety   │ Verification results cast to any: report as any, latestRun.results as any, flatMap((p: any) => ...). Bypasses │
+  │     │                                          │               │  type checking on financial verification data.                                                                │
+  ├─────┼──────────────────────────────────────────┼───────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────┤   
+  │ M2  │ server/routes/scenarios.ts:76-79,134-135 │ Type Safety   │ Scenario data cast to any on both save and load: properties as any, propertyFeeCategories as any, (scenario   │
+  │     │                                          │               │ as any).propertyPhotos as any. No type safety on restored financial snapshots.                                │   
+  ├─────┼──────────────────────────────────────────┼───────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ M3  │ server/storage/financial.ts:257,271,276  │ Type Safety   │ Scenario restore uses untyped arrays: const feeCategoryValues: any[] = [] and const photoValues: any[] = [],  │   
+  │     │                                          │               │ cast to any on insert. Risks silent data corruption if field names change.                                    │   
+  ├─────┼──────────────────────────────────────────┼───────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ M4  │ calc/analysis/hold-vs-sell.ts:138        │ Hardcoded     │ costBasis / 39 uses bare literal 39 for commercial depreciation years. DEPRECIATION_YEARS (39) exists in      │   
+  │     │                                          │ Values        │ shared/constants.ts but is not imported here. Violates no-hardcoded-values rule.                              │   
+  ├─────┼──────────────────────────────────────────┼───────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ M5  │ shared/schema/config.ts:198-213          │ Hardcoded     │ assetDefinition default is a hardcoded inline object with 13 fields (minRooms: 10, maxRooms: 80, minAdr: 150, │   
+  │     │                                          │ Values        │  maxAdr: 600, etc.). Should be extracted to a named constant in shared/constants.ts.                          │   
+  ├─────┼──────────────────────────────────────────┼───────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ M6  │ shared/schema/config.ts:192,195          │ Type Safety   │ icpConfig and exportConfig JSONB fields typed as Record<string, any>. No validation on shape — accepts any    │   
+  │     │                                          │               │ JSON structure.                                                                                               │   
+  ├─────┼──────────────────────────────────────────┼───────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ M7  │ shared/schema/intelligence.ts:14-15      │ Type Safety   │ content and promptConditions JSONB fields typed as Record<string, any>. Research content has no enforced      │   
+  │     │                                          │               │ shape, allowing malformed data.                                                                               │   
+  ├─────┼──────────────────────────────────────────┼───────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ M8  │ shared/schema/audit.ts:65,35             │ Type Safety   │ verificationRuns.results and activityLogs.metadata JSONB fields have no explicit type. Inferred as            │   
+  │     │                                          │               │ unknown/any by Drizzle, no compile-time shape checking.                                                       │   
+  ├─────┼──────────────────────────────────────────┼───────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ M9  │ shared/schema/scenarios.ts:13-17         │ Type Safety   │ Five JSONB snapshot fields (globalAssumptions, properties, scenarioImages, feeCategories, propertyPhotos)     │   
+  │     │                                          │               │ lack .$type<>() annotations. No compile-time validation of scenario payload structure.                        │   
+  ├─────┼──────────────────────────────────────────┼───────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ M10 │ server/routes/documents.ts:169-186       │ Security      │ GET /api/documents/extractions/:extractionId/fields fetches fields by extraction ID without checking the      │   
+  │     │                                          │ (IDOR)        │ extraction belongs to a property the user can access. Information disclosure across properties.               │   
+  ├─────┼──────────────────────────────────────────┼───────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │     │                                          │ Security      │ POST /api/uploads/process-image has no rate limiting. The sibling uploads/direct endpoint has                 │   
+  │ M11 │ server/routes/uploads.ts:101-159         │ (DoS)         │ isApiRateLimited(userId, "upload", 10) but process-image does not. Allows resource exhaustion via repeated    │   
+  │     │                                          │               │ image processing.                                                                                             │
+  ├─────┼──────────────────────────────────────────┼───────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────┤   
+  │ M12 │ server/routes/scenarios.ts:117-143       │ Security      │ Scenario load checks scenario ownership but does not validate that properties in the snapshot are accessible  │
+  │     │                                          │ (IDOR)        │ to the user. Could restore properties from another user's portfolio context.                                  │   
+  ├─────┼──────────────────────────────────────────┼───────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ M13 │ server/routes/market-rates.ts:17-22      │ Architecture  │ Local requireAdmin function shadows the imported one from ../auth. Creates maintenance risk — future auth     │   
+  │     │                                          │               │ changes to the shared middleware won't apply to this file.                                                    │   
+  ├─────┼──────────────────────────────────────────┼───────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │     │                                          │ Schema        │ Financial fields (arDays, apDays, reinvestmentRate, dayCountConvention, escalationMethod) have .default() but │   
+  │ M14 │ shared/schema/properties.ts:154-164      │ Validation    │  no .notNull(). Explicit UPDATE ... SET field = NULL bypasses defaults, leaving nullable values where code    │   
+  │     │                                          │               │ expects numbers.                                                                                              │
+  └─────┴──────────────────────────────────────────┴───────────────┴───────────────────────────────────────────────────────────────────────────────────────────────────────────────┘   
+                  
+  ---
+  LOW Findings
+
+  ┌─────┬────────────────────────────────────────────────────┬──────────────────┬──────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │  #  │                     File:Line                      │     Category     │                                           Description                                            │
+  ├─────┼────────────────────────────────────────────────────┼──────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ L1  │ client/src/lib/financial/company-engine.ts:199,212 │ Silent Fallback  │ Fee breakdown accumulation uses `                                                                │
+  ├─────┼────────────────────────────────────────────────────┼──────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ L2  │ server/routes/financing.ts:78,124                  │ Error Handling   │ Empty catch blocks in Moody's risk premium aggregation: catch { /* ignore */ }. Suppresses all   │   
+  │     │                                                    │                  │ errors including network failures. No logging that fallback was used.                            │   
+  ├─────┼────────────────────────────────────────────────────┼──────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────┤   
+  │ L3  │ server/routes/geo.ts:92                            │ Security (Info   │ Error handler passes err.message to client: `res.status(500).json({ error: err.message           │   
+  │     │                                                    │ Leak)            │                                                                                                  │
+  ├─────┼────────────────────────────────────────────────────┼──────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────┤   
+  │ L4  │ server/index.ts:218,225                            │ Error Handling   │ Market rate refresh error logs lack structured domain tags: console.error("Market rate refresh   │
+  │     │                                                    │                  │ error:", err) instead of [ERROR] [market-rates] format.                                          │   
+  ├─────┼────────────────────────────────────────────────────┼──────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────┤   
+  │     │                                                    │                  │ Header comment says DEPRECIATION_YEARS (27.5) but the constant is actually 39                    │
+  │ L5  │ shared/constants.ts:15-19 vs 166                   │ Documentation    │ (nonresidential/hotel). Comment is stale — the value was changed from residential to commercial  │   
+  │     │                                                    │                  │ classification.                                                                                  │   
+  ├─────┼────────────────────────────────────────────────────┼──────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ L6  │ shared/constants.ts:148,244                        │ Dead Code        │ Deprecated aliases DEFAULT_TAX_RATE and DEFAULT_INFLATION_RATE still exported with no removal    │   
+  │     │                                                    │                  │ timeline or lint enforcement. Risk of new code using old names.                                  │   
+  └─────┴────────────────────────────────────────────────────┴──────────────────┴──────────────────────────────────────────────────────────────────────────────────────────────────┘

@@ -1,0 +1,53 @@
+  Brief 2 (refined) — db-audit final 5 boot gates
+
+  Remove the last 5 runtime boot gates from runMigrations() in
+  artifacts/api-server/src/index.ts.
+
+  CONTEXT:
+  All 5 remaining gates are MIXED migrations: they do CREATE TABLE IF NOT EXISTS
+  (DDL) + seed default rows (DATA). The DDL is already covered by the Drizzle
+  schema — so the CREATE TABLE calls are pure redundancy. The only live work is
+  the data seeding, which should move to runSeeds() instead.
+
+  Schema coverage confirmed:
+  - external_integrations      → lib/db/src/schema/integrations.ts
+  - rebecca_guardrails         → lib/db/src/schema/intelligence-v2.ts
+  - rebecca_knowledge_base     → lib/db/src/schema/intelligence-v2.ts
+  - specialist_research_quality_snapshots  → lib/db/src/schema/admin-resource.ts
+  - resource_specialist_connections        → lib/db/src/schema/admin-resource.ts
+  - slide_recipe_elements      → lib/db/src/schema/slide-recipe.ts
+
+  FOR EACH OF THESE 5 GATES, do the same thing:
+
+  1. seed_external_integrations_001 (~line 570 in runMigrations)
+     File: src/migrations/seed-external-integrations.ts
+     Action: Remove the boot gate block. Add to runSeeds() seedTasks array:
+     { name: "external-integrations", run: async () => { const { seedExternalIntegrations } =
+  await import("./migrations/seed-external-integrations"); await seedExternalIntegrations(); }
+  }
+     The function is already idempotent (ON CONFLICT DO NOTHING).
+
+  2. rebecca_guardrails_001 (~line 583)
+     File: src/migrations/rebecca-guardrails-001.ts
+     Action: Same pattern — remove gate, add to seedTasks as "rebecca-guardrails".
+
+  3. rebecca_kb_001 (~line 589)
+     File: src/migrations/rebecca-kb-001.ts
+     Action: Same — remove gate, add to seedTasks as "rebecca-kb".
+
+  4. admin_resources_004 (~line 601)
+     File: src/migrations/admin-resources-004.ts
+     Action: Same — remove gate, add to seedTasks as "admin-resources-004".
+
+  5. slide_recipe_001 (~line 715)
+     File: src/migrations/slide-recipe-001.ts
+     Action: Same — remove gate, add to seedTasks as "slide-recipe".
+
+  RESULT: runMigrations() should have zero active gate blocks (only comments).
+  All 5 seeds will run idempotently in the parallel seedTasks batch in runSeeds().
+
+  DO NOT touch db-hygiene-001 — it's already in runSeeds(), skip it.
+  DO NOT remove or modify the migration files themselves, only the gate blocks in index.ts and
+  the seedTasks additions.
+  DO NOT add markMigrationApplied calls in runSeeds() — seeds are always idempotent, no
+  tracking needed there.

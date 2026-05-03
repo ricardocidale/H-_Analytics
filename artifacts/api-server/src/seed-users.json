@@ -1,0 +1,76 @@
+{
+  "users": [
+    {
+      "email": "ricardo.cidale@norfolkgroup.io",
+      "envVar": "PASSWORD_ADMIN",
+      "role": "super_admin",
+      "firstName": "Ricardo",
+      "lastName": "Cidale",
+      "company": "The Norfolk AI Group",
+      "title": "Partner"
+    },
+    {
+      "email": "checker@norfolkgroup.io",
+      "envVar": "PASSWORD_ALEXANDRA",
+      "role": "user",
+      "firstName": "Alexandra",
+      "lastName": "Morgan",
+      "company": "Norfolk AI",
+      "title": "Research Analyst"
+    },
+    {
+      "email": "reynaldo.fagundes@norfolk.ai",
+      "envVar": "PASSWORD_REYNALDO",
+      "role": "user",
+      "firstName": "Reynaldo",
+      "lastName": "Fagundes",
+      "company": "Norfolk AI",
+      "title": "CTO"
+    },
+    {
+      "email": "kit@kitcapital.com",
+      "envVar": "PASSWORD_KIT",
+      "role": "admin",
+      "firstName": "Dov",
+      "lastName": "Tuzman",
+      "company": "KIT Capital",
+      "title": "Principal"
+    },
+    {
+      "email": "rosario@kitcapital.com",
+      "envVar": "PASSWORD_ROSARIO",
+      "role": "user",
+      "firstName": "Rosario",
+      "lastName": "David",
+      "company": "KIT Capital",
+      "title": "COO"
+    },
+    {
+      "email": "lemazniku@icloud.com",
+      "envVar": "PASSWORD_LEA",
+      "role": "user",
+      "firstName": "Lea",
+      "lastName": "Mazniku",
+      "company": "KIT Capital",
+      "title": "Partner"
+    },
+    {
+      "email": "leslie@cidale.com",
+      "envVar": "PASSWORD_LESLIE",
+      "role": "user",
+      "firstName": "Leslie",
+      "lastName": "Cidale",
+      "company": "Numeratti Endeavors",
+      "title": "Senior Partner"
+    },
+    {
+      "email": "wlaruffa@gmail.com",
+      "envVar": "PASSWORD_WILLIAM",
+      "role": "user",
+      "firstName": "William",
+      "lastName": "Laruffa",
+      "company": "Independent",
+      "title": "Partner"
+    }
+  ]
+}

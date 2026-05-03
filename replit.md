@@ -1,129 +1,106 @@
-# H+ Analytics by Norfolk AI — Project Instructions
+# Replit Workspace — H+ Analytics
 
-## Overview
+H+ Analytics is a hospitality-sector financial analytics platform. Asset managers use it to model scenarios, run portfolio projections, and generate property-level PPTX investor slide decks using the L+B template.
 
-H+ Analytics is a GAAP/USALI-compliant financial analytics portal for boutique hotel portfolio management, created and powered by Norfolk AI. It models a hospitality management company and its individual property SPVs with monthly and yearly financial projections, adhering to GAAP and USALI 12th Edition standards. The platform delivers a premium, bespoke financial experience, enabling precise financial modeling and reporting for the hospitality industry with an emphasis on financial accuracy and robust data governance.
+> **`claude.md` is the canonical source of truth** for architecture, stack, commands, environment variables, and all project rules. This file contains only Replit-platform-specific configuration that mirrors or routes back to `claude.md`. If wording diverges between the two files for a shared fact, that is a bug — fix it before any other commit lands. (See the `agent-memory-files` skill.)
 
-The platform features two AI agents:
-- **The Analyst**: A singular intelligence agent conducting research, providing ranges, conviction levels, and risk flags.
-- **Rebecca**: An expert companion agent answering questions, explaining Analyst findings, guiding tours, and offering help.
+---
 
-## User Preferences
+## Artifacts
 
-- Simple, everyday language. Ask clarifying questions before implementing — do not assume.
-- **TOP PRIORITY: Financial accuracy always beats UI enhancements.** The proof system must always pass.
-- Always format money as currency (commas, appropriate precision).
-- Update skills and manuals after every feature change.
-- **Documentation:** `.claude/claude.md` is the primary AI context file. `replit.md` is kept for Replit Agent compatibility. When in doubt, `claude.md` is authoritative.
-- All UI components must reference a theme via the theme engine.
-- New UI features get their own skill file in `.claude/skills/ui/`.
-- **Button Label Consistency:** Always "Save" — never "Update". See `rules/ui-patterns.md`.
-- **Brand Voice is LAW:** Before writing ANY user-facing text, read `.claude/brand-voice-guidelines.md` — the SINGLE SOURCE OF TRUTH.
-- **CI Hygiene:** After pulling external code (Claude Code, other agents), run `npx tsx script/ci-hygiene.ts` to auto-fix ESLint unused vars/imports, secret scanner false positives, and TypeScript errors.
-- **Intelligence-First Pages:** Every page with inputs must: (1) nudge user to Ask the Analyst on first visit (glowing button), (2) require Save before leaving, (3) auto-save if user doesn't press Save, (4) block downstream fields until compulsory fields are completed, (5) compel regeneration if intelligence is old. Track first-visit per-user per-page in DB.
-- **100% Session Memory:** Save decisions to `.claude/session-memory.md` at session end.
-- **Every financial line item** should have a ? tooltip (HelpTooltip or InfoTooltip).
-- **Every page must be graphics-rich** — charts, animations, visual elements required.
-- **Context reduction is mandatory.** Every refactor must produce skills, helpers, scripts. See `skills/coding-conventions/context-reduction.md`.
-- **Premium design, always.** $50K+ bespoke financial platform feel. See `rules/design-standards.md`.
-- **Always update claude.md after every task.** Mandatory — no exceptions.
-- **Always update session-memory.md after every task.** Track decisions, architecture changes, industry knowledge, test counts, and session state.
-- **CRITICAL RULE — NEVER navigate to /login or click any login button.** The login page has a Google OAuth button; if the testing agent clicks it, the entire session is permanently blocked by an external OAuth redirect. Instead, authenticate via a direct API call BEFORE any browser navigation.
-- **Assumption Field Naming — Use Industry-Standard Terms.** When naming any Assumption field (display labels, tooltips, registry entries in `engine/analyst/registry/field-registry.ts`, etc.), research the standard term used in real estate, hospitality, and/or finance and use it verbatim. Examples: "ADR" (not "Average Rate"), "RevPAR" (not "Revenue Per Room"), "GOP" (not "Gross Operating Profit Margin"), "Cap Rate" (not "Capitalization Percentage"), "F&B" (not "Food and Beverage" in compact labels), "DSCR" (not "Debt Service Coverage"). Do NOT invent labels from camelCase variable names — look up the canonical industry term first (STR/CBRE/HVS/PwC hospitality reports, NCREIF/ULI real estate, CFA/SEC finance) and pin it in the field registry so the heuristic formatter never has to guess.
+| Artifact | Dir | Preview path |
+|---|---|---|
+| H+ Analytics (React + Vite frontend) | `artifacts/hospitality-business-portal` | `/` |
+| API Server (Express 5) | `artifacts/api-server` | `/api` |
+| Mockup Sandbox (design sandbox) | `artifacts/mockup-sandbox` | `/__mockup/` |
+| L+B Property Slides (slide deck viewer) | `artifacts/property-slides` | `/property-slides/` |
 
-## System Architecture
+## Workflows
 
-The application uses a React 18 frontend with TypeScript, Wouter, TanStack Query, Zustand, shadcn/ui, Tailwind CSS v4, Recharts, D3.js, and framer-motion. The backend is an Express 5 application utilizing Drizzle ORM and PostgreSQL.
+Each artifact has a corresponding Replit workflow. To restart a service, use `restart_workflow` with the artifact name. Never run `pnpm dev` at the workspace root — workflows manage env vars (`PORT`, `BASE_PATH`) that the root script cannot wire up.
 
-**Core Design Principles & Features:**
-- **Financial Accuracy & Compliance:** Enforced by a comprehensive proof system, GAAP verification, and USALI 12th Edition compliance. Precision is hardened using `decimal.js`-backed arithmetic.
-- **Modular Skill-Based Architecture:** Domain knowledge and context are managed through a skill-based system in `.claude/skills/`.
-- **Theming & UI/UX:** A robust theme engine provides consistent UI with 5 presets. All UI components are theme-compliant.
-- **Shared Financial Calculation Layer (`calc/`):** Pure financial calculation logic shared between client and server.
-- **Server-Authoritative Finance:** `server/finance/service.ts` orchestrates the full portfolio computation pipeline server-side.
-- **Deterministic Hashing & Tenant Isolation:** Scenarios use deterministic JSON serialization and hashing. All database writes are scoped to the caller's userId.
-- **Financial Field Registry:** `shared/field-registry.ts` is the single source of truth for all financial fields.
-- **Data Governance & Configuration:** Model constants follow a TS-factory + DB-overlay pattern, with factory baseline in `shared/constants.ts` and `shared/countryDefaults.ts`. `model_constant_overrides` stores genuine departures.
-- **Tax / Cost-Rate Source of Truth (Audit #406, Task #405):** The locality-aware `MODEL_CONSTANTS_REGISTRY` is the **single canonical source** for both `taxRate` (US baseline = 0.21, federal corporate per IRC §11) and `costRateTaxes` (US baseline = 0.012, blended industry property-tax rate). The legacy flat fallbacks `DEFAULT_COMPANY_TAX_RATE` (0.30) and `DEFAULT_COST_RATE_TAXES` (0.03) were deleted from `shared/constants.ts` because they diverged from the registry baselines and admins were seeing one value in editable cards and a different one when the resolver picked the factory baseline. **Every UI fallback, seed, export, golden test, and engine read now resolves through `getFactoryNumber('taxRate' | 'costRateTaxes', country, state)`** — there is no surviving flat literal. Goldens were re-baselined in the same change. Re-introducing either constant would resurrect the divergence; the TypeScript compile error from importing a non-existent export is the canonical guard.
-- **Unified Export System:** `server/report/compiler.ts` generates `ReportDefinition` IR for PDF, PPTX, XLSX, and DOCX, with premium PDF exports using `@react-pdf/renderer`.
-- **Scenario Computed Snapshot Persistence:** The `scenario_results` table stores immutable computed artifacts per scenario.
-- **Multi-Tenancy:** Supports users, groups, logos, themes, and branding for multiple entities.
-- **Role Hierarchy:** `super_admin` > `admin` > `checker` / `user` > `investor`.
-- **LLM Integration:** Dual-model configuration (primary + fallback) for AI-powered functionalities across 7 domains.
-- **Pre-Collected Market Data:** 7 database tables serve as Priority 0 in the smart data router before external APIs are called.
-- **Input Validation & Rate Limiting:** All mutation endpoints use Zod schema validation. Rate limiting is applied to compute-heavy endpoints.
-- **Automated Validation Gates:** 5 registered CI-style gates (typecheck, lint, test, verify, parity) run automatically on task completion.
-- **Code Quality & Audit:** ESLint, Husky pre-commit hooks, GitHub CI workflows.
-- **Observability:** Structured logging, client-side error boundaries, Sentry for error tracking, PostHog for analytics, Postgres-backed cache, and circuit breakers.
-- **Image Processing:** Server-side Sharp pipeline for responsive WebP/AVIF image variants.
-- **Interactive Analyst - Admin Defaults:** Implements a system for admin-editable assumption values with an "Analyst" button and a save-time soft-gate, ensuring consistency across the application.
-- **Admin IA - Defaults Group + AI Section:** Defines the canonical structure of the Admin sidebar, organizing defaults for Management Company, Property, Market & Macro, and Constants. It also establishes dedicated sections for AI Platform (LLM infrastructure) and AI Research (Specialist-first configuration).
-- **Resources Control Plane:** A top-level Admin sidebar section for managing APIs, Sources, Tables, and Models, serving as the single canonical edit surface for these resources. Specialist pages become read-only assignment and health surfaces, with wiring managed through code.
+If old task-agent sessions leave behind `.claude/worktrees/agent-*/` directories, they get re-registered as duplicate artifacts (same `previewPath`) and pollute the workflow picker, which also breaks `verifyAndReplaceArtifactToml` with `DUPLICATE_PREVIEW_PATH`. Clean them up with `git worktree remove --force` (or `rm -rf` the dir + `git worktree prune`) so only the four canonical `artifacts/*` workflows above remain.
 
-## External Dependencies
+## Shared proxy routing
 
-- **Database:** PostgreSQL (managed by Drizzle ORM)
-- **Frontend Libraries:** React 18, Wouter, TanStack Query, Zustand, shadcn/ui, Tailwind CSS v4, Recharts, D3.js, framer-motion
-- **PDF Generation:** jsPDF, @react-pdf/renderer, WeasyPrint (Python)
-- **Document Processing:** Google Document AI (OCR)
-- **Image Processing:** Sharp
-- **Mapping:** MapLibre GL
-- **Monitoring & Analytics:** Sentry, PostHog
-- **Caching:** Postgres-backed (`cache_entries` table on Neon)
-- **AI/LLM Providers:** `@anthropic-ai/sdk`, Gemini
-- **Vector store:** Neon pgvector (`vector_chunks` table, 1536-dim cosine, HNSW index)
-- **Cloudflare R2:** Object storage for new uploads and asset management.
-- **Neon Database:** The primary PostgreSQL database, connected directly via `POSTGRES_URL`.
-- **Icons:** Lucide
-- **Email:** Resend
+All traffic is routed by path through a shared reverse proxy on `localhost:80`. Services must handle their full base path. Never call service ports directly in application code or curl — always go through `localhost:80/<path>`.
 
-## User Roles
+## Deployment target — Railway (NOT Replit Publish)
 
-- **super_admin** — full platform access including user management and provider switches.
-- **admin** — manages Constants, Resources, model defaults, properties, scenarios, and specialist wiring (admin routes use `requireAdmin`).
-- **checker** — reviews and approves scenarios; cannot edit financial inputs.
-- **user** — creates and edits properties and scenarios within their group.
-- **investor** — read-only access to assigned reports.
+**Production runs on Railway, not on Replit.** Replit Publish (both `autoscale` and `vm` / Reserved VM) failed for this app — see `claude.md` § "Production Deployment" for the full deploy contract, including the required Railway service env vars.
 
-## Key Rules
+- Production wiring lives in `Dockerfile` (root) + `railway.toml` (root). Healthcheck is `GET /api/health/live` with a 300 s timeout.
+- The legacy `.replit` `[deployment]` block and the `artifacts/api-server/.replit-artifact/artifact.toml` `[services.production]` block are kept for the workflow tooling but are **not** the production path. Do **not** add new code that depends on them, and do **not** call `suggest_deploy()` for this project.
+- Replit Workspace is for **dev preview, code review, and task agents only**. Shipping happens via `git push` → Railway build.
 
-- Financial accuracy beats UI enhancements. The proof system must always pass.
-- All financial fields go through `shared/field-registry.ts` (single source of truth).
-- All Constants edits go through the admin Constants tab (Phase 4 read-only doctrine guards every other surface).
-- Research-trigger buttons say "Analyst" with the sparkle icon — the canonical `AnalystActionButton` from `client/src/components/analyst/`.
-- Storage URLs use the relative `/objects/<key>` form (no hard-coded R2/GCS hosts).
-- The Replit-independence guard fails the build if non-allowlisted code references `@replit/`, `process.env.REPL*`, or `replit.dev` / `replit.app`.
+## External services (none Replit-managed)
 
-## Quick Commands
+Every infrastructure dep this app uses is an external service the user already pays for. Do not provision Replit-managed equivalents (Replit Database, Replit Object Storage, Replit Auth) — they would split the source of truth from production Railway. Use the `prefer-external-dependencies` skill before any infrastructure-shaped tool call.
 
-- `npm run dev` — start the Express + Vite dev server on port 5000.
-- `npm run build` — produce `dist/` (vite client + esbuild server bundle) for production.
-- `npm start` — run the production bundle (`node dist/index.cjs`).
-- `npm run check` — TypeScript typecheck (no emit).
-- `npm run lint:strict` — ESLint with all bug guards.
-- `npm run test:summary` — full Vitest run, condensed output.
-- `npm run verify:summary` — financial proof + verification gates.
-- `npm run audit:quick` — fast structural audit (file-size, bug-pattern, doctrine guards).
-- `npm run db:push` — sync Drizzle schema to Postgres (use `--force` in CI).
-- `npx tsx script/cleanup-legacy-logo-urls.ts [--apply]` — post-R2-cutover cleanup that rewrites or deletes `logos` rows still pointing at legacy `/objects/uploads/<uuid>` URLs (Task #526).
+| Concern | Service | Secrets |
+|---|---|---|
+| Database + pgvector | **Neon Postgres** | `POSTGRES_URL` |
+| Object storage | **Cloudflare R2** | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL` |
+| User auth | **Google OAuth** | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
+| LLMs | **OpenAI, Anthropic, Gemini** (direct SDKs) | `OPENAI_API_KEY`, `OPENAI_EMBEDDING_KEY`, `ANTHROPIC_API_KEY`, `AI_INTEGRATIONS_GEMINI_API_KEY` |
+| Macro data | **FRED** | `FRED_API_KEY` |
+| Email | **Resend** | `RESEND_API_KEY` |
+| Error monitoring | **Sentry** | `SENTRY_DSN` |
+| Project tracking | **Linear** | Replit connector `conn_linear_01KN0GFMPXYQYH0QYYEXNKZ0GG` (broker only — falls back to plain env vars) |
+| Source control / API | **GitHub** | `GITHUB_PAT` |
+| Hosting | **Railway** (Docker) | configured via `railway.toml` |
 
-## Skill Router
+## Health endpoint
 
-Project skills live in `.claude/skills/` (canonical) and are mirrored under `.local/skills/`. Read the relevant `SKILL.md` before working in that domain. Common entry points:
+`GET /api/health/live` (not `/api/healthz`). This is the path Railway's `healthcheckPath` must point at (already configured in `railway.toml`). The server registers `/api/health/live` synchronously before `httpServer.listen()`, then defers migrations + seeds + vector indexing + scheduler boot to `setImmediate`, so liveness becomes reachable within seconds of process start. Drift in the probe path causes silent republish failures.
 
-- UI patterns and theme engine: `.claude/skills/ui/`
-- Coding conventions and context reduction: `.claude/skills/coding-conventions/`
-- Financial calculation rules: `.claude/skills/finance/`
-- Analyst-button convention: `.agents/skills/analyst-research-buttons/SKILL.md`
+## Production bundle
 
-The full skill index is in `.claude/claude.md`, which is the authoritative AI context file when in doubt.
+`artifacts/api-server/build.mjs` externalizes large doc/media libraries (`@react-pdf/renderer`, `pptxgenjs`, `xlsx`, `docx`, `satori`, `jspdf`, `archiver`) **plus** the AI SDKs (`@ai-sdk/*`, `@anthropic-ai/sdk`, `@google/genai`, `@perplexity-ai/perplexity_ai`, `openai`, `ai`), `country-state-city`, `@sentry/*`, and `google-auth-library`. They are loaded from `node_modules` at runtime instead of being inlined into `dist/index.mjs`. Result: the bundle dropped from ~32 MB → ~7.5 MB. Each of these packages must remain in `dependencies` (not `devDependencies`) so pnpm installs them in the Railway runtime container. If you add another heavy package that is only used on a small number of code paths, externalize it the same way.
 
-## Tech Stack
+## pnpm workspace
 
-- **Runtime:** Node.js 22 (production via `npm start` → `node dist/index.cjs`).
-- **Server:** Express 5, Drizzle ORM, PostgreSQL (Neon).
-- **Client:** React 19, TypeScript, Vite, Wouter, TanStack Query, Zustand, shadcn/ui, Tailwind CSS v4, Recharts, D3.js, framer-motion.
-- **Build:** esbuild (server bundle) + Vite (client) via `script/build.ts`.
-- **Storage:** Cloudflare R2 via the AWS S3 SDK (`server/providers/storage/s3-storage.ts`); switchable through `STORAGE_PROVIDER`.
-- **Auth:** Pluggable provider (`server/providers/auth/`) — `replit` (OIDC) or `local` (Google OAuth + sessions).
-- **Hosting:** Railway (production) — see `railway.json` for build/start/healthcheck. Cutover from Replit completed for DB (Neon) and storage (R2).
+See the `pnpm-workspace` skill for workspace structure, TypeScript project references, and package conventions.
+
+## Screenshot and image file conventions
+
+- **Temporary / debug screenshots** → `screenshots/` (gitignored, never committed)
+- **Permanent / referenced images** → `attached_assets/` (committed, tracked by git)
+- Root-level `*.png`, `*.jpg`, `*.jpeg`, `*.webp` are blocked by `.gitignore` to keep the repo root clean.
+- When using the `screenshot` tool, always pass `save_to: "screenshots/<descriptive-name>.jpg"` instead of writing to the project root.
+
+## Skills
+
+Skills are process documents that guide AI agents. See `claude.md` § "Agent & Skill System" for the full picture and `.agents/skills/README.md` for a complete index.
+
+**How to invoke in Replit:** type the skill name as a text command. Example: *"use the ui-page-patterns skill"*.
+
+> Note: the `advisor()` tool and the `Skill` tool are not available in Replit Agent. Skills work via plain-text invocation only.
+
+### Key skills (mirrors `claude.md` § "Key project-specific skills" — keep wording identical)
+
+| Skill | When to use |
+|---|---|
+| `ui-page-patterns` | Building or fixing any UI page — enforces canonical archetypes, loading/empty/error states, action-button discipline, tab URL sync |
+| `embedded-ai-agent` | Adding or extending Rebecca (the only AI assistant in this app) |
+| `replit-independence` | Adding any dependency, env var, or deployment-affecting change |
+| `prefer-external-dependencies` | Before any infrastructure-shaped tool call — the project uses Neon Postgres, Cloudflare R2, Google OAuth, direct OpenAI/Anthropic/Gemini SDKs; never provision Replit-managed equivalents |
+| `norfolk-code-review` | Before opening a PR — wraps `ce-code-review` with hospitality/Drizzle personas |
+| `architecture-decision-records` | Any irreversible technical decision future contributors might re-litigate |
+| `hplus-pptx-generator` | Extending or debugging the LB Slides PPTX generator |
+| `hplus-slide-mapping` | Shape-name ↔ data-field mapping for all 6 LB Slides template slides |
+| `agent-memory-files` | Editing `claude.md` or `replit.md` — keep them harmonized |
+
+> **AI assistant scope**: This app has one AI assistant — **Rebecca** (semantic KB search). Marcela was removed. See `claude.md` § "AI assistant — Rebecca only".
+
+> **LB Slides** (DB schema, API routes, image rendering, Python generator, admin UI): see `claude.md` § "LB Slides — per-property PPTX + image-PPTX generator".
+
+> **Canonical page archetypes**: see `claude.md` § "Canonical Page Archetypes".
+
+## Secrets present in this Repl (dev)
+
+`POSTGRES_URL` (Neon), `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` (Cloudflare R2), `TOKEN_ENCRYPTION_KEY`, `OPENAI_EMBEDDING_KEY`, `FRED_API_KEY`, `GITHUB_PAT`, `GOOGLE_CLIENT_SECRET`.
+
+These point at the **same external services** the production Railway deployment uses (Neon, Cloudflare R2, Google OAuth, OpenAI). Do not swap any of them for a Replit-managed equivalent — that would split dev from prod.
+
+For the **full** env-var contract used by the api-server (including `DATABASE_URL`, `STORAGE_PROVIDER`, `AUTH_PROVIDER`, `NODE_ENV`, `SESSION_SECRET`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `R2_PUBLIC_URL`, `SENTRY_DSN`, `RESEND_API_KEY`), see `claude.md` § "Environment Variables (api-server)" and § "Production Deployment".

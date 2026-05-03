@@ -1,0 +1,28 @@
+ Authorize Path 3. Proceed with the 4-hr build + ~$22 rerun.                                                                                                                        
+  ▎                      
+  ▎ Pull origin/main first. Two commits landed while you were on v4:                                                                                                                   
+  ▎ - b8e307dd — .claude/rules/field-definitions-no-prescription-hints.md + tests/proof/field-definitions-no-hints.test.ts. Codifies the mode-collapse lesson as a blocking rule.      
+  ▎ Current schema (post-e5d873fe) passes the test. Any future FIELD_DEFINITIONS edit that adds a "typical X-Y%" hint will fail verify:summary.                                        
+  ▎ - a100ffcd — server/ai/engine-version.ts + tests/proof/engine-version-drift.test.ts. Hashes synthesis-schema.ts + research-prompt-builders.ts, fails if ENGINE_VERSION isn't bumped
+  ▎  when you change them.                                                                                                                                                             
+  ▎                                                         
+  ▎ Path 3 acceptance criteria (final):                                                                                                                                                
+  ▎ - Severity exact-match ≥ 95% across 20 cases.           
+  ▎ - Action.kind exact-match ≥ 95%.                                                                                                                                                   
+  ▎ - Range overlap ≥ 50% average (intersection width / max range width).                                                                                                              
+  ▎ - Raw aggregate bucket-match reported as diagnostic, target ≥ 55%, not gating.                                                                                                     
+  ▎ - Categorical gate stays 100% clean (0 unit/denominator/scope/voice errors, 20/20 schema-valid).                                                                                   
+  ▎ - Latency ≤ 2×.                                                                                                                                                                    
+  ▎ - incentiveFee's single-range behavior is expected — it's real industry standardization. If verdict-layer parity passes on incentiveFee, that's signal, not noise.                 
+  ▎                                                                                                                                                                                    
+  ▎ Deliverables:                                           
+  ▎ - tests/operational/ota3-verdict-parity.test.ts or equivalent harness, wiring both A/B paths through buildAnalystVerdict().                                                        
+  ▎ - A summary doc (append to OT-A-3-ab-results.md or new OT-A-3-verdict-parity.md) with severity/action/range-overlap numbers per case + per field.                                  
+  ▎ - ENGINE_VERSION bump if the harness requires any FIELD_DEFINITIONS or prompt tweaks. The proof test will nag you if you forget.                                                   
+  ▎                                                                                                                                                                                    
+  ▎ On Path 3 passing: OT-A.4 unblocks. Queue for next session.                                                                                                                        
+  ▎                                                                                                                                                                                    
+  ▎ On Path 3 failing: file BLOCKED-ota3-path3.md with per-dimension breakdown (which specialist/field misses severity? which miss action?). Don't spend another rerun without a       
+  ▎ hypothesis.                                             
+  ▎                                                                                                                                                                                    
+  ▎ If Path 3 harness uncovers a third class of mechanism bug (neither definition drift nor mode collapse), flag it immediately — two in one week is a pattern.    

@@ -1,0 +1,39 @@
+ath A1. Green light. Great catch on the guardrail.
+                              
+  ▎ Execute A1. Guardrail 1 working exactly as designed — good find before the flag flip.                                             
+  ▎                        
+  ▎ Why A1 over A2: extractGuidance is battle-tested production code processing real research outputs for months. An 80-LOC           
+  ▎ pure-function adapter feeding it the shape it expects is strictly safer than rewriting ~225 lines of path-lookup logic it         
+  ▎ currently contains. A2's "cleaner long-term" argument also weakens when you consider that extractGuidance itself may be retired or
+  ▎  reshaped later (when guidance extraction migrates into the Specialist layer, or when ADR-004's verdict cache reshapes            
+  ▎ persistence). Rewriting extractGuidance twice is worse than adapter-now-retire-later.                                             
+  ▎
+  ▎ Architectural framing for the commit message: the canonical engine contract is SynthesisOutput. The route layer                   
+  ▎ (routes/research.ts) keeps the legacy nested JSON as its common serialization envelope — the shape that UI, extractGuidance, and 
+  ▎ any future single-model fallback all read from uniformly. The adapter converts engine → envelope. Clean decoupling.               
+  ▎                                                         
+  ▎ Four specifics before you ship:                                                                                                   
+  ▎
+  ▎ 1. Enumerate every path extractGuidance reads. You counted ~30 lookups (adrAnalysis.recommendedRange,                             
+  ▎ occupancyAnalysis.rampUpTimeline, capRateAnalysis, etc.). List them explicitly in a comment above the adapter. Then write 
+  ▎ tests/ai/synthesis-to-legacy-adapter.test.ts that asserts the adapter produces every path on a minimal-valid SynthesisOutput. This
+  ▎  is the regression test that catches "adapter missed a field" in the next six months.
+  ▎ 2. Adapter location: server/ai/synthesis-schema.ts, sibling to toLegacyResearchValuesMap. Same file because they're the same 
+  ▎ concern — shape translation for the canonical output. Don't scatter.                                                              
+  ▎ 3. Adapter JSDoc: document the retirement path. Something like "This adapter feeds legacy-shape consumers (extractGuidance, UI 
+  ▎ render, single-model fallback). When those consumers are migrated to SynthesisOutput.values[] directly (post-OT-A, probably part  
+  ▎ of Phase 5 specialist migrations), this adapter retires too."
+  ▎ 4. ENGINE_VERSION + SYNTHESIS_FINGERPRINT: adding the adapter changes synthesis-schema.ts, which will fire the drift test on      
+  ▎ commit. Bump ENGINE_VERSION to v2-2026-04-20-a AND recompute SYNTHESIS_FINGERPRINT in the same commit. The drift test is the      
+  ▎ canary here — let it do its job.
+  ▎                                                                                                                                   
+  ▎ On script/run-research.ts: agreed, delete lines 65-85 (the local extraction block). One-line commit note: "CLI's purpose is       
+  ▎ research generation, not value-persistence — extractResearchValues dependency removed with the legacy extractor." No production 
+  ▎ impact.                                                                                                                           
+  ▎                                                         
+  ▎ Revised commit structure:                                                                                                         
+  ▎ - Title: OT-A.4: retire legacy extractor, flip USE_AI_SDK_SYNTHESIS default on, introduce legacy-shape adapter
+  ▎ - Body scopes each deletion + the adapter addition + the ENGINE_VERSION bump                                                      
+  ▎ - Test coverage: enumeration adapter test + existing fallback harness + engine-version-drift + no-hints + categorical gate        
+  ▎                                                                                                                                   
+  ▎ Ship it.   

@@ -1,0 +1,116 @@
+2026-03-15T19:39:13Z info: Deployment: 405d021d-7b76-4dd4-94c0-b3096e4ca912
+2026-03-15T19:39:13Z info: Running Security Scan
+2026-03-15T19:39:18Z info: Security Scan Complete
+2026-03-15T19:39:18Z info: Connecting to builder
+2026-03-15T19:39:18Z info: Builder connected
+2026-03-15T19:39:19Z info: Installing packages
+--> npm install
+
+
+up to date, audited 1365 packages in 4s
+
+287 packages are looking for funding
+  run `npm fund` for details
+
+
+17 vulnerabilities (6 low, 6 moderate, 4 high, 1 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues possible (including breaking changes), run:
+  npm audit fix --force
+
+Some issues need review, and may require choosing
+a different dependency.
+
+Run `npm audit` for details.
+
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 11.11.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.11.1
+npm notice To update run: npm install -g npm@11.11.1
+npm notice
+
+2026-03-15T19:39:23Z info: Starting Build
+
+> hospitality-business-portal@1.0.0 build
+> tsx script/build.ts
+
+
+building client...
+
+vite v7.3.1 building client environment for production...
+
+transforming...
+
+✓ 6128 modules transformed.
+
+rendering chunks...
+
+[meta-images] using internal app domain: https://partner-portal-landb.replit.app
+
+[meta-images] updating meta image tags to: https://partner-portal-landb.replit.app/opengraph.jpg
+
+computing gzip size...
+
+../dist/public/index.html                                            2.17 kB │ gzip:   0.80 kB
+
+../dist/public/assets/index-BdQq_4o_.js                              0.06 kB │ gzip:   0.08 kB
+../dist/public/assets/constructFrom-DWjd9ymD.js                      0.09 kB │ gzip:   0.10 kB
+../dist/public/assets/clone-Cqvhddvn.js                              0.10 kB │ gzip:   0.11 kB
+
+../dist/public/assets/chunk-KX2RTZJC-ma6ymg1M.js                     0.51 kB │ gzip:   0.35 kB
+../dist/public/assets/textarea-DJmgCo6u.js                           0.54 kB │ gzip:   0.36 kB
+../dist/public/assets/save-button-BCRegohi.js                        0.55 kB │ gzip:   0.36 kB
+../dist/public/assets/classDiagram-VBA2DB6C-CgWfbyQa.js              0.58 kB │ gzip:   0.36 kB
+
+../dist/public/assets/RealtimeTranscriber-B06lT6xx.js               20.30 kB │ gzip:   6.55 kB
+
+building server...
+
+
+  dist/index.cjs  3.2mb ⚠️
+
+⚡ Done in 1691ms
+
+copied prod-data-sync.sql to dist/
+
+2026-03-15T19:40:10Z info: Pushing pid1 binary layer...
+2026-03-15T19:40:13Z info: Created pid1 binary layer
+2026-03-15T19:40:15Z info: Pushing Repl layer...
+2026-03-15T19:40:15Z info: Pushing hosting layer...
+2026-03-15T19:40:16Z info: Created hosting layer
+2026-03-15T19:42:01Z info: Created Repl layer
+2026-03-15T19:42:01Z info: Pushing Repl (cache) layer...
+2026-03-15T19:42:02Z info: Created Repl (cache) layer
+2026-03-15T19:42:07Z info: Creating Autoscale service
+starting up user application
+metasidecar: loaded enterprise status from environment is_enterprise=false
+
+In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+To prepare for this change:
+(node:25) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+`);ug.write(q$.format.apply(q$,e))}}Object.defineProperty(Jc.exports,"isWin",{get:function(){return M1},set:function(n){M1=n}});Jc.exports.warnTo=function(n){var e=ug;return ug=n,e};Jc.exports.getFileName=function(n){var e=n||process.env,r=e.PGPASSFILE||(M1?$$.join(e.APPDATA||"./","postgresql","pgpass.conf"):$$.join(e.HOME||"./",".pgpass"));return r};Jc.exports.usePgPass=function(n,e){return Object.prototype.hasOwnProperty.call(process.env,"PGPASSWORD")?!1:M1?!0:(e=e||"<unkn>",S2e(n.mode)?n.mode&(_2e|w2e)?(VR('WARNING: password file "%s" has group or world access; permissions should be u=rw (0600) or less',e),!1):!0:(VR('WARNING: password file "%s" is not a plain file',e),!1))};var C2e=Jc.exports.match=function(n,e){return Im.slice(0,-1).reduce(function(r,t,a){return a==1&&Number(n[t]||b2e)===Number(e[t])?r&&!0:r&&(e[t]==="*"||e[t]===n[t])},!0)};Jc.exports.getPassword=function(n,e,r){var t,a=e.pipe(y2e());function s(d){var h=R2e(d);h&&F2e(h)&&C2e(n,h)&&(t=h[T2e],a.end())}var l=function...
+s:r,foreignColumns:t}=this.reference(),a=r.map(f=>f.name),s=t.map(f=>f.name),l=[this.table[vo],...a,t[0].table[vo],...s];return e??`${l.join("_")}_fk`}}});function X1(n,...e){return n(...e)}var nF=V(()=>{});function Q1(n){return new iF(n)}function oF(n,e){return`${n[vo]}_${e.join("_")}_unique`}var aF,iF,sF,cF=V(()=>{_t();Y1();aF=class{constructor(e,r){this.name=r,this.columns=e}static[ae]="PgUniqueConstraintBuilder";columns;nullsNotDistinctConfig=!1;nullsNotDistinct(){return this.nullsNotDistinctConfig=!0,this}build(e){return new sF(e,this.columns,this.nullsNotDistinctConfig,this.name)}},iF=class{static[ae]="PgUniqueOnConstraintBuilder";name;constructor(e){this.name=e}on(...e){return new aF(e,this.name)}},sF=class{constructor(e,r,t,a){this.table=e,this.columns=r,this.name=a??oF(this.table,this.columns.map(s=>s.name)),this.nullsNotDistinct=t}static[ae]="PgUniqueConstraint";columns;name;nullsNotDistinct=!1;getName(){return this.name}}});function dq(n,e,r){for(let t=e;t<n.length;t++){let ...
+`);ug.write(q$.format.apply(q$,e))}}Object.defineProperty(Jc.exports,"isWin",{get:function(){return M1},set:function(n){M1=n}});Jc.exports.warnTo=function(n){var e=ug;return ug=n,e};Jc.exports.getFileName=function(n){var e=n||process.env,r=e.PGPASSFILE||(M1?$$.join(e.APPDATA||"./","postgresql","pgpass.conf"):$$.join(e.HOME||"./",".pgpass"));return r};Jc.exports.usePgPass=function(n,e){return Object.prototype.hasOwnProperty.call(process.env,"PGPASSWORD")?!1:M1?!0:(e=e||"<unkn>",S2e(n.mode)?n.mode&(_2e|w2e)?(VR('WARNING: password file "%s" has group or world access; permissions should be u=rw (0600) or less',e),!1):!0:(VR('WARNING: password file "%s" is not a plain file',e),!1))};var C2e=Jc.exports.match=function(n,e){return Im.slice(0,-1).reduce(function(r,t,a){return a==1&&Number(n[t]||b2e)===Number(e[t])?r&&!0:r&&(e[t]==="*"||e[t]===n[t])},!0)};Jc.exports.getPassword=function(n,e,r){var t,a=e.pipe(y2e());function s(d){var h=R2e(d);h&&F2e(h)&&C2e(n,h)&&(t=h[T2e],a.end())}var l=function...
+
+command finished with error [node ./dist/index.cjs]: exit status 1
+- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+(Use `node --trace-warnings ...` to show where the warning was created)
+s:r,foreignColumns:t}=this.reference(),a=r.map(f=>f.name),s=t.map(f=>f.name),l=[this.table[vo],...a,t[0].table[vo],...s];return e??`${l.join("_")}_fk`}}});function X1(n,...e){return n(...e)}var nF=V(()=>{});function Q1(n){return new iF(n)}function oF(n,e){return`${n[vo]}_${e.join("_")}_unique`}var aF,iF,sF,cF=V(()=>{_t();Y1();aF=class{constructor(e,r){this.name=r,this.columns=e}static[ae]="PgUniqueConstraintBuilder";columns;nullsNotDistinctConfig=!1;nullsNotDistinct(){return this.nullsNotDistinctConfig=!0,this}build(e){return new sF(e,this.columns,this.nullsNotDistinctConfig,this.name)}},iF=class{static[ae]="PgUniqueOnConstraintBuilder";name;constructor(e){this.name=e}on(...e){return new aF(e,this.name)}},sF=class{constructor(e,r,t,a){this.table=e,this.columns=r,this.name=a??oF(this.table,this.columns.map(s=>s.name)),this.nullsNotDistinct=t}static[ae]="PgUniqueConstraint";columns;name;nullsNotDistinct=!1;getName(){return this.name}}});function dq(n,e,r){for(let t=e;t<n.length;t++){let ...
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+`);ug.write(q$.format.apply(q$,e))}}Object.defineProperty(Jc.exports,"isWin",{get:function(){return M1},set:function(n){M1=n}});Jc.exports.warnTo=function(n){var e=ug;return ug=n,e};Jc.exports.getFileName=function(n){var e=n||process.env,r=e.PGPASSFILE||(M1?$$.join(e.APPDATA||"./","postgresql","pgpass.conf"):$$.join(e.HOME||"./",".pgpass"));return r};Jc.exports.usePgPass=function(n,e){return Object.prototype.hasOwnProperty.call(process.env,"PGPASSWORD")?!1:M1?!0:(e=e||"<unkn>",S2e(n.mode)?n.mode&(_2e|w2e)?(VR('WARNING: password file "%s" has group or world access; permissions should be u=rw (0600) or less',e),!1):!0:(VR('WARNING: password file "%s" is not a plain file',e),!1))};var C2e=Jc.exports.match=function(n,e){return Im.slice(0,-1).reduce(function(r,t,a){return a==1&&Number(n[t]||b2e)===Number(e[t])?r&&!0:r&&(e[t]==="*"||e[t]===n[t])},!0)};Jc.exports.getPassword=function(n,e,r){var t,a=e.pipe(y2e());function s(d){var h=R2e(d);h&&F2e(h)&&C2e(n,h)&&(t=h[T2e],a.end())}var l=function...
+In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+command finished with error [node ./dist/index.cjs]: exit status 1
+
+`);ug.write(q$.format.apply(q$,e))}}Object.defineProperty(Jc.exports,"isWin",{get:function(){return M1},set:function(n){M1=n}});Jc.exports.warnTo=function(n){var e=ug;return ug=n,e};Jc.exports.getFileName=function(n){var e=n||process.env,r=e.PGPASSFILE||(M1?$$.join(e.APPDATA||"./","postgresql","pgpass.conf"):$$.join(e.HOME||"./",".pgpass"));return r};Jc.exports.usePgPass=function(n,e){return Object.prototype.hasOwnProperty.call(process.env,"PGPASSWORD")?!1:M1?!0:(e=e||"<unkn>",S2e(n.mode)?n.mode&(_2e|w2e)?(VR('WARNING: password file "%s" has group or world access; permissions should be u=rw (0600) or less',e),!1):!0:(VR('WARNING: password file "%s" is not a plain file',e),!1))};var C2e=Jc.exports.match=function(n,e){return Im.slice(0,-1).reduce(function(r,t,a){return a==1&&Number(n[t]||b2e)===Number(e[t])?r&&!0:r&&(e[t]==="*"||e[t]===n[t])},!0)};Jc.exports.getPassword=function(n,e,r){var t,a=e.pipe(y2e());function s(d){var h=R2e(d);h&&F2e(h)&&C2e(n,h)&&(t=h[T2e],a.end())}var l=function...
+2026-03-15T19:44:29.185Z [INFO] [migration] prod-data-sync: first run — syncing dev data into production from /home/runner/workspace/server/migrations/prod-data-sync.sql...
+/home/runner/workspace/dist/index.cjs:81
+s:r,foreignColumns:t}=this.reference(),a=r.map(f=>f.name),s=t.map(f=>f.name),l=[this.table[vo],...a,t[0].table[vo],...s];return e??`${l.join("_")}_fk`}}});function X1(n,...e){return n(...e)}var nF=V(()=>{});function Q1(n){return new iF(n)}function oF(n,e){return`${n[vo]}_${e.join("_")}_unique`}var aF,iF,sF,cF=V(()=>{_t();Y1();aF=class{constructor(e,r){this.name=r,this.columns=e}static[ae]="PgUniqueConstraintBuilder";columns;nullsNotDistinctConfig=!1;nullsNotDistinct(){return this.nullsNotDistinctConfig=!0,this}build(e){return new sF(e,this.columns,this.nullsNotDistinctConfig,this.name)}},iF=class{static[ae]="PgUniqueOnConstraintBuilder";name;constructor(e){this.name=e}on(...e){return new aF(e,this.name)}},sF=class{constructor(e,r,t,a){this.table=e,this.columns=r,this.name=a??oF(this.table,this.columns.map(s=>s.name)),this.nullsNotDistinct=t}static[ae]="PgUniqueConstraint";columns;name;nullsNotDistinct=!1;getName(){return this.name}}});function dq(n,e,r){for(let t=e;t<n.length;t++){let ...
+To prepare for this change:
+crash loop detected
+`);ug.write(q$.format.apply(q$,e))}}Object.defineProperty(Jc.exports,"isWin",{get:function(){return M1},set:function(n){M1=n}});Jc.exports.warnTo=function(n){var e=ug;return ug=n,e};Jc.exports.getFileName=function(n){var e=n||process.env,r=e.PGPASSFILE||(M1?$$.join(e.APPDATA||"./","postgresql","pgpass.conf"):$$.join(e.HOME||"./",".pgpass"));return r};Jc.exports.usePgPass=function(n,e){return Object.prototype.hasOwnProperty.call(process.env,"PGPASSWORD")?!1:M1?!0:(e=e||"<unkn>",S2e(n.mode)?n.mode&(_2e|w2e)?(VR('WARNING: password file "%s" has group or world access; permissions should be u=rw (0600) or less',e),!1):!0:(VR('WARNING: password file "%s" is not a plain file',e),!1))};var C2e=Jc.exports.match=function(n,e){return Im.slice(0,-1).reduce(function(r,t,a){return a==1&&Number(n[t]||b2e)===Number(e[t])?r&&!0:r&&(e[t]==="*"||e[t]===n[t])},!0)};Jc.exports.getPassword=function(n,e,r){var t,a=e.pipe(y2e());function s(d){var h=R2e(d);h&&F2e(h)&&C2e(n,h)&&(t=h[T2e],a.end())}var l=function...
+s:r,foreignColumns:t}=this.reference(),a=r.map(f=>f.name),s=t.map(f=>f.name),l=[this.table[vo],...a,t[0].table[vo],...s];return e??`${l.join("_")}_fk`}}});function X1(n,...e){return n(...e)}var nF=V(()=>{});function Q1(n){return new iF(n)}function oF(n,e){return`${n[vo]}_${e.join("_")}_unique`}var aF,iF,sF,cF=V(()=>{_t();Y1();aF=class{constructor(e,r){this.name=r,this.columns=e}static[ae]="PgUniqueConstraintBuilder";columns;nullsNotDistinctConfig=!1;nullsNotDistinct(){return this.nullsNotDistinctConfig=!0,this}build(e){return new sF(e,this.columns,this.nullsNotDistinctConfig,this.name)}},iF=class{static[ae]="PgUniqueOnConstraintBuilder";name;constructor(e){this.name=e}on(...e){return new aF(e,this.name)}},sF=class{constructor(e,r,t,a){this.table=e,this.columns=r,this.name=a??oF(this.table,this.columns.map(s=>s.name)),this.nullsNotDistinct=t}static[ae]="PgUniqueConstraint";columns;name;nullsNotDistinct=!1;getName(){return this.name}}});function dq(n,e,r){for(let t=e;t<n.length;t++){let ...
+2026-03-15T19:45:36Z error: The deployment is crash looping. This can happen if the run command fails or exits immediately after starting. Check the logs for more information.

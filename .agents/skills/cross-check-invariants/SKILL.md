@@ -125,3 +125,5 @@ Adding these tests is itself a high-leverage cross-check task.
 - **`pre-commit-gates`** — runs the actual gates after this checklist passes.
 - **`architecture-decision-records`** — irreversible cross-cutting changes deserve an ADR explaining the new invariant.
 - **`agent-handoff-briefs`** — handoff packages should explicitly call out which invariant pairs the work touches.
+- **`ce-data-integrity-guardian`** (CE agent persona at `.agents/ce-agents/ce-data-integrity-guardian.agent.md`) — for financial or schema invariants, dispatch this persona for a focused deep review. It specialises in migration safety, NULL/default handling, and ACID correctness — exactly the invariant class most often missed by TypeScript checks.
+- **`norfolk-code-review`** — the project-specific code review pre-activates `ce-data-integrity-guardian` and `ce-coherence-reviewer` automatically; run it after any schema change to catch cross-surface drift in seeds, engine, and UI in one pass.

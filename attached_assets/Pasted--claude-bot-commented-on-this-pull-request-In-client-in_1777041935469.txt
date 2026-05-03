@@ -1,0 +1,303 @@
+@claude[bot] commented on this pull request.
+
+In client/index.html:
+
+> +    <meta property="og:image" content="/api/media/opengraph.png" />
+     <meta name="twitter:card" content="summary_large_image" />
+     <meta name="twitter:site" content="@replit" />
+     <meta name="twitter:title" content="H+ Analytics App | Powered by Norfolk AI" />
+     <meta name="twitter:description" content="GAAP-compliant financial analytics for boutique hotel portfolio management. Powered by Norfolk AI." />
+-    <meta name="twitter:image" content="/opengraph.png" />
++    <meta name="twitter:image" content="/api/media/opengraph.png" />
+ 
+-    <link rel="icon" type="image/png" href="/favicon.png" />
++    <link rel="icon" type="image/png" href="/api/media/favicon.png" />
+🔴 client/index.html now points og:image, twitter:image, and favicon href at /api/media/opengraph.png and /api/media/favicon.png, but /api/media/ is absent from both PUBLIC_API_PATHS and PUBLIC_API_PREFIXES in server/index.ts, so the global auth gate (server/index.ts:126) returns 401 {"error":"Authentication required"} for any unauthenticated request. Every social unfurler (Facebook/Twitter/LinkedIn/Slack/Discord) will fail to load the OG image so shared links render a broken preview, and the favicon on /login and any pre-auth page 401s too (broken tab icon). Fix: add '/api/media/' to PUBLIC_API_PREFIXES at server/index.ts:118-120 (exact precedent: /api/letter-logo/ already listed), or revert these three href values to /opengraph.png and /favicon.png (client/public/ still ships both and Vite serves them statically).
+
+Extended reasoning...
+What the bug is
+The PR replaced three static asset references in client/index.html with API routes:
+
+<meta property="og:image" content="/api/media/opengraph.png" /> (line 12)
+<meta name="twitter:image" content="/api/media/opengraph.png" /> (line 17)
+<link rel="icon" type="image/png" href="/api/media/favicon.png" /> (line 19)
+Previously these pointed at /opengraph.png and /favicon.png, which Vite serves as static files out of client/public/ with no auth. Both files still exist in client/public/ (favicon.png, opengraph.png). The new /api/media/ URLs route through Express.
+
+Why the auth gate fires
+server/index.ts installs a default-deny middleware at line 122:
+
+const PUBLIC_API_PATHS = new Set([
+  "/api/auth/login", "/api/auth/admin-login", "/api/auth/dev-login",
+  "/api/auth/logout", "/api/auth/me", "/api/auth/google",
+  "/api/auth/google/callback", "/api/finance/health",
+  "/api/health/live", "/api/health/ready", "/api/health/deep",
+]);
+const PUBLIC_API_PREFIXES = ["/api/public/", "/api/letter-logo/"];
+
+app.use((req, res, next) => {
+  if (!req.path.startsWith("/api")) return next();
+  if (PUBLIC_API_PATHS.has(req.path)) return next();
+  if (PUBLIC_API_PREFIXES.some(p => req.path.startsWith(p))) return next();
+  return requireAuth(req, res, next);
+});
+/api/media/opengraph.png and /api/media/favicon.png don't match any entry in either list, so control falls through to requireAuth, which returns HTTP 401 {"error":"Authentication required"} when no session cookie is present. server/routes/media.ts registers the handler with no auth bypass of its own — the global middleware runs first and short-circuits the request before media.ts sees it.
+
+Why existing code doesn't prevent this
+The allow-list pattern already accounts for unauthenticated public assets: /api/letter-logo/ is in PUBLIC_API_PREFIXES for exactly this reason (admin-configurable letter logo served without auth). The PR migrated opengraph + favicon to /api/media/ but didn't extend the allow-list — a classic omission. There's no Vite alias or proxy rewriting /api/media/* to the public static path, so nothing upstream saves this either.
+
+Impact
+Two user-facing regressions, both visible from day one:
+
+Broken social previews on every shared link. Social crawlers (Facebookbot, Twitterbot, LinkedInBot, Slackbot, Discord unfurler, iMessage preview) fetch the og:image URL without credentials. They will receive the 401 JSON body instead of the PNG, and the preview card will render without an image on every platform that honors OG meta. This is not a slow-burn issue — every paste of an app URL into Slack/Twitter/LinkedIn after this merge fails.
+Broken favicon on pre-login pages. /login renders the same client/index.html and therefore fires a request to /api/media/favicon.png before any user has authenticated. The tab icon will be the browser's default broken-image glyph. Even logged-in users may see a brief broken favicon during the auth boot window before the session cookie is attached.
+Step-by-step proof
+Deploy this branch. Open a private/incognito window (no session cookie).
+Paste the app URL into Slack, Twitter, or Discord. The unfurler fires a GET at /api/media/opengraph.png with no cookie.
+Response: HTTP 401 {"error":"Authentication required"}. The preview card renders without an image.
+Navigate to /login in that same incognito window. The browser fires a GET at /api/media/favicon.png with no cookie.
+Same 401 response. Tab icon is the broken default.
+Sanity check: curl -i https://<app>/api/media/favicon.png (no cookie) prints HTTP/1.1 401 Unauthorized with the JSON body.
+How to fix
+Preferred (one line), matching the existing precedent:
+
+// server/index.ts:117-120
+const PUBLIC_API_PREFIXES = [
+  "/api/public/",
+  "/api/letter-logo/",
+  "/api/media/",
+];
+The media route is designed to be public — it serves content-addressable SHA-256-keyed assets with Cache-Control: public, max-age=1y, immutable — so this alignment matches the route's intent.
+
+Alternative (three-line revert in client/index.html): change the three hrefs back to /opengraph.png and /favicon.png. client/public/favicon.png and client/public/opengraph.png are still present in this PR, so Vite will resume serving them statically. This avoids touching the auth gate but reverts a stated intent of the PR to move these through the media route.
+
+In client/src/components/Layout.tsx:
+
+>            </span>
+         </Link>
+       )}
+-      <Separator className="my-2" />
+-      {user && (
++      {!onAiIntelligenceRoute && <Separator className="my-2" />}
++      {user && !onAiIntelligenceRoute && (
+         <div className="flex items-center px-3 py-1.5" data-testid="sidebar-user-info">
+           <span className="text-[12px] text-muted-foreground/80 truncate" data-testid="sidebar-user-firstname">
+             {user.name || user.firstName || user.email}
+           </span>
+         </div>
+       )}
+-      <Separator className="my-2" />
+-      <Button
+-        variant="ghost"
+-        onClick={() => { requestLogout(); setMobileOpen(false); }}
+-        className="flex items-center gap-2.5 w-full h-8 px-3 rounded-md text-[13px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors justify-start"
+-        data-testid="button-logout"
+-      >
+-        <IconLogOut className="w-4 h-4 shrink-0" />
+-        <span>Sign Out</span>
+-      </Button>
++      {!onAiIntelligenceRoute && <Separator className="my-2" />}
++      {!onAiIntelligenceRoute && (
++        <Button
++          variant="ghost"
++          onClick={() => { requestLogout(); setMobileOpen(false); }}
++          className="flex items-center gap-2.5 w-full h-8 px-3 rounded-md text-[13px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors justify-start"
++          data-testid="button-logout"
++        >
++          <IconLogOut className="w-4 h-4 shrink-0" />
++          <span>Sign Out</span>
++        </Button>
++      )}
+       <div className="flex items-center justify-center gap-2 pt-2 px-3">
+         <Link href="/about" onClick={() => setMobileOpen(false)}>
+           <span className="text-[11px] text-muted-foreground/50 hover:text-muted-foreground transition-colors">About</span>
+🔴 The sidebar footer on the new /ai-intelligence route hides the Sign Out button (and the username display + both separators) behind !onAiIntelligenceRoute gates at Layout.tsx:346-365, leaving admins with no way to log out from the sidebar they're sitting in. The parallel /admin route intentionally keeps Sign Out + user info (it only hides Theme Preferences and the Admin link), and there is no alternate sign-out affordance in the AiIntelligence page header or AiIntelligenceSidebar — grep for requestLogout/button-logout across client/src returns only this one site. Fix: drop the !onAiIntelligenceRoute guards from lines 346, 347, 354, and 355 so the footer matches the /admin pattern.
+
+Extended reasoning...
+What the bug is
+client/src/components/Layout.tsx builds sidebarFooter starting at line 303. Four contiguous blocks — Separator / user-info div (data-testid="sidebar-user-info") / Separator / Sign Out Button (data-testid="button-logout") — are each individually gated behind !onAiIntelligenceRoute:
+
+L346: {!onAiIntelligenceRoute && <Separator className="my-2" />}
+L347-353: {user && !onAiIntelligenceRoute && (<div … sidebar-user-info …>)}
+L354: {!onAiIntelligenceRoute && <Separator className="my-2" />}
+L355-365: {!onAiIntelligenceRoute && (<Button … button-logout …>)}
+On the newly-introduced /ai-intelligence route (onAiIntelligenceRoute = location.startsWith("/ai-intelligence"), L247), all four blocks collapse. The footer shrinks to just the Tour/Help/Admin row plus the About/Privacy/Terms/Cookies small-print row. The logout affordance disappears and the username is not shown.
+
+Why existing code doesn't prevent it
+The parallel /admin route does NOT have this problem. Compare the gating pattern:
+
+On /admin: only the Admin link (L332) is hidden via !onAdminRoute, because the Admin-in-sidebar button is redundant when you're already on /admin. The Separator / user-info / Separator / Sign Out block is unguarded — it renders on every route including /admin.
+On /ai-intelligence: the same four blocks the /admin route keeps are all four gated with !onAiIntelligenceRoute, so they vanish.
+This asymmetry looks like copy-paste drift: when the author ported the !onAdminRoute gate (which only hides the Admin sidebar link) to !onAiIntelligenceRoute, the gate was over-applied to the sign-out/user-info block that /admin deliberately keeps visible.
+
+Confirming no alternate sign-out path exists
+rg 'Sign Out|requestLogout|button-logout|LogOut' client/src returns exactly these files:
+
+client/src/lib/auth.tsx — the requestLogout hook definition.
+client/src/components/Layout.tsx — the single Sign Out button gated above.
+Icon barrels and an unrelated ActivityLogList match (lowercase "log" substring, not a logout action).
+The other two candidates for an alternate affordance both come up empty:
+
+client/src/components/ai-intelligence/AiIntelligenceSidebar.tsx (the AI Intelligence sub-nav) has no Sign Out / Logout link.
+client/src/pages/AiIntelligence.tsx — the page body — has no sign-out affordance either.
+The shared header in Layout.tsx (mobile menu, Breadcrumbs, ScenarioIndicator, Search, ResearchQueueIndicator, NotificationCenter, Rebecca) carries no logout button.
+So the Sign Out button hidden by L355-365 is literally the only one in the app.
+
+Impact
+An admin who lands on /ai-intelligence (via the <AdminRoute component={AiIntelligence} /> mount at App.tsx:264, the /icp redirect at app-guards.tsx:98, or the "AI Intelligence" link in the admin sidebar) has no way to log out from the sidebar they're viewing and no username is displayed. They can navigate to another route (Home/Help is still reachable via the top of the footer and the AiIntelligenceSidebar links to /admin and /help) to recover the Sign Out button, but the primary affordance on the page they're sitting on is missing. This is a visible UX regression introduced by this PR — /ai-intelligence is a route this very PR adds — and it affects admins who spend significant time on Specialist pages.
+
+Step-by-step proof
+Log in as an admin in dev.
+Navigate to /ai-intelligence (from the admin sidebar's new "AI Intelligence" entry, or by entering the URL).
+Open the left sidebar. Observe the footer order: Tour button is absent (L305 gates it), Help link present, Admin link absent (L332 gates it — expected, you're in admin surface), Separator absent, username div absent, Separator absent, Sign Out button absent, then About / Privacy / Terms / Cookies small-print + "Powered by Norfolk AI".
+Navigate to /admin and repeat. Observe: Admin link is absent (same reason), but the Separator / username / Separator / Sign Out block is present. That is the behavior /ai-intelligence should match.
+rg 'button-logout' client/src — returns exactly one hit (Layout.tsx L360) inside the block gated behind !onAiIntelligenceRoute, confirming no alternate logout exists.
+How to fix
+Drop the !onAiIntelligenceRoute guards from the four blocks so they match the /admin pattern:
+
+<Separator className="my-2" />
+{user && (
+  <div className="flex items-center px-3 py-1.5" data-testid="sidebar-user-info">
+    <span className="text-[12px] text-muted-foreground/80 truncate" data-testid="sidebar-user-firstname">
+      {user.name || user.firstName || user.email}
+    </span>
+  </div>
+)}
+<Separator className="my-2" />
+<Button
+  variant="ghost"
+  onClick={() => { requestLogout(); setMobileOpen(false); }}
+  className="flex items-center gap-2.5 w-full h-8 px-3 rounded-md text-[13px] text-muted-foreground hover:text-foreground hover:bg-muted transition-colors justify-start"
+  data-testid="button-logout"
+>
+  <IconLogOut className="w-4 h-4 shrink-0" />
+  <span>Sign Out</span>
+</Button>
+The !onAiIntelligenceRoute gate on the Tour button (L305) and the Admin link (L332) can stay — those are the ones that genuinely duplicate affordances on the AI Intelligence surface.
+
+In client/src/components/admin/AIAgentsTab.tsx:
+
+>            rebeccaDisplayName: rebeccaDisplayName || "Rebecca",
+           rebeccaSystemPrompt: rebeccaSystemPrompt || null,
+           rebeccaChatEngine,
++          rebeccaConfig: rebeccaSettings,
+         }),
+🔴 Two new migrations share the same filename index (0020_rebecca_config_jsonb.sql and 0020_specialist_llm_overrides.sql) and neither is registered in migrations/meta/_journal.json (its entries[] still ends at idx=19). Production boot runs drizzle-orm/node-postgres/migrator.migrate() at server/index.ts:415-417, which iterates the journal rather than the directory listing — so both files will be silently skipped on the next deploy, while CI passes because .github/workflows/ci.yml uses npm run db:push -- --force (drizzle-kit push reshapes the DB straight from shared/schema/*.ts and bypasses the journal). The columns they add — global_assumptions.rebecca_config plus six override columns on specialist_configs / specialist_config_versions — are written by code in this same PR (AIAgentsTab.tsx:89 sends rebeccaConfig on every Rebecca save; the new specialist-llm-resolver.ts + LlmConfigTab read/write the six Specialist override columns), so the first write after deploy will fail with column does not exist. Fix: rename one file to 0021_... and append both entries (idx: 20, idx: 21) to _journal.json; a CI assertion that count(migrations/00NN_*.sql) == entries.length would prevent recurrence.
+
+Extended reasoning...
+What the bug is
+This PR ships schema changes for two unrelated features (Task #499 Rebecca deep-config, Task #495 per-Specialist LLM overrides) as two separate SQL migrations that both use the filename prefix 0020_:
+
+migrations/0020_rebecca_config_jsonb.sql — adds global_assumptions.rebecca_config jsonb.
+migrations/0020_specialist_llm_overrides.sql — adds 6 nullable override columns to specialist_configs AND 6 parallel snapshot columns to specialist_config_versions (analyst_a_model_resource_id, analyst_b_model_resource_id, synthesis_model_resource_id, fallback_model_resource_id, multi_model_enabled, workflow_overrides).
+And migrations/meta/_journal.json was not updated — I verified its entries[] array ends at { idx: 19, tag: "0019_specialist_config_missing_columns" }. There is no entry at idx: 20 for either file.
+
+The code path that triggers it
+server/index.ts lines 411–417 contain the production boot migration hook:
+
+async function runSchemaMigrations() {
+  const { bootstrapDrizzleMigrationState, ... } = await import("./migrations/consolidated-schema");
+  await bootstrapDrizzleMigrationState();
+  const { migrate } = await import("drizzle-orm/node-postgres/migrator");
+  const { db: drizzleDb } = await import("./db");
+  await migrate(drizzleDb, { migrationsFolder: "./migrations" });
+  ...
+}
+drizzle-orm's migrate() is journal-driven: readMigrationFiles opens _journal.json, iterates entries[], and applies each tagged SQL file. SQL files that exist on disk but are NOT listed in entries[] are silently skipped. That is stock drizzle behavior, not a local bug.
+
+Why existing code does not prevent it
+The argument "the PR also updated CI, so CI would catch this" does not save us. .github/workflows/ci.yml (changed in this PR, line ~95) runs:
+
+- name: Push Drizzle schema to test Postgres
+  run: npm run db:push -- --force
+db:push invokes drizzle-kit push, which reads shared/schema/*.ts and reshapes the DB to match — it does not consult _journal.json at all. So the CI Postgres gets the new columns from the schema code path, while the production Postgres gets them from the migrator code path. The two paths diverge exactly at _journal.json, and only the production path is journal-gated.
+
+There is no drizzle-kit check step, no duplicate-idx guard, and no count(00NN_*.sql) == entries.length assertion anywhere in the CI workflow. Nothing in this PR would have failed the 0020_ collision or the journal omission.
+
+Impact
+Both code paths that would be the first to trip after deploy are introduced by this same PR:
+
+client/src/components/admin/AIAgentsTab.tsx:89 sends rebeccaConfig: rebeccaSettings on every Rebecca save via PATCH /api/global-assumptions. The server handler will try to write rebecca_config; Postgres will respond with column "rebecca_config" of relation "global_assumptions" does not exist.
+The new server/ai/specialist-llm-resolver.ts and the Specialist LlmConfigTab read and write analyst_a_model_resource_id, analyst_b_model_resource_id, synthesis_model_resource_id, fallback_model_resource_id, multi_model_enabled, workflow_overrides on specialist_configs. First write fails the same way.
+Failure mode is loud runtime error on the feature surfaces this PR advertises — not silent data corruption, but a deploy-blocker the moment anyone exercises either feature.
+
+How to fix
+Rename one file so each migration has a unique index — e.g. 0020_rebecca_config_jsonb.sql stays, rename 0020_specialist_llm_overrides.sql → 0021_specialist_llm_overrides.sql (or vice-versa — pick the order that makes sense for rollback).
+Append two entries to migrations/meta/_journal.json:
+{ "idx": 20, "version": "7", "when": <epoch_ms>, "tag": "0020_rebecca_config_jsonb",     "breakpoints": true },
+{ "idx": 21, "version": "7", "when": <epoch_ms>, "tag": "0021_specialist_llm_overrides", "breakpoints": true }
+Add a CI guard: a small script asserting len(glob "migrations/00*.sql") === journal.entries.length and that every entries[].tag has a matching SQL file. This is ~10 lines of bash/tsx and would have failed this PR on the CI lane before merge.
+Step-by-step proof
+Starting from a production DB that reflects only the committed journal (idx 0 … 19 applied):
+
+CI runs. db:push --force reshapes the CI DB to match shared/schema/*.ts, so CI DB has every column. Every test passes. ✅ Green.
+PR is merged. Deploy fires. server/index.ts boots.
+runSchemaMigrations() → bootstrapDrizzleMigrationState() → migrate(drizzleDb, { migrationsFolder: "./migrations" }).
+drizzles readMigrationFiles opens ./migrations/meta/_journal.json, reads entries[], and finds 20 entries (idx: 0 … 19). It sees 0019_specialist_config_missing_columns as the last tag and returns. The two 0020_*.sql files on disk are not referenced, so they are not read, not hashed, and not applied.
+migrate() returns success. The app starts. No error in the boot log.
+First admin opens the AI Agents tab, edits Rebecca, clicks Save. PATCH /api/global-assumptions body includes "rebeccaConfig": { ... }. The storage-layer update tries to write rebecca_config on global_assumptions. Postgres: ERROR: column "rebecca_config" of relation "global_assumptions" does not exist. 500 back to client; toast reads "Failed to save". This is the first user-visible failure.
+Symmetrically: any admin who opens the new Specialist LLM Config tab and changes a model assignment trips column "analyst_a_model_resource_id" does not exist (or one of its five siblings). The specialist-llm-resolver reads the same columns on dispatch, so even a read path on an existing Specialist with a freshly-wired resolver call fails.
+Note that merely backfilling _journal.json is not sufficient — drizzles entries array requires unique idx values, and drizzle-kits hash table keys tags by filename. Two files named 0020_* cannot coexist in a legal journal; one must be renamed.
+
+In client/src/components/admin/model-defaults/constants/RefreshResearchPopover.tsx:
+
+> +/**
++ * Per-row research history popover. Lists the most recent
++ * `research_runs` for this Constant.
++ */
+🟡 When ModelConstantsTab.tsx was split into constants/* sibling files, two trailing /** … */ blocks were left stranded in the wrong files. RefreshResearchPopover.tsx ends with a 4-line doc block describing HistoryButton ("Per-row research history popover…"), and HistoryButton.tsx ends with a 9-line doc block describing OverrideDialog ("Gated free-form Override dialog (Phase 4)…"). Both files also end with \\ No newline at end of file. Zero runtime impact — the comments are never parsed as executable — but a reader opening either file sees a docstring advertising a component that isn't defined there. Fix is mechanical: delete both orphan blocks (their canonical homes already carry their own intro comments) and add a terminating newline.
+
+Extended reasoning...
+What the bug is
+The new client/src/components/admin/model-defaults/constants/ directory carries three sibling files carved out of the monolithic ModelConstantsTab.tsx. Two of them end with a trailing /** ... */ block that documents a different sibling:
+
+RefreshResearchPopover.tsx (last 4 lines, 247-250):
+
+/**
+ * Per-row research history popover. Lists the most recent
+ * `research_runs` for this Constant.
+ */
+This describes HistoryButton (which is a per-row popover listing research_runs), not RefreshResearchPopover (which is the Analyst refresh-and-preview popover). The file ends with \ No newline at end of file.
+
+HistoryButton.tsx (last 9 lines, 97-105):
+
+/**
+ * Gated free-form Override dialog (Phase 4). Renders ONLY when
+ * `row.specialistOwned === false`. Today this branch never renders
+ * (every registry entry is specialistOwned), but it remains so a
+ * future non-authority constant can re-enable manual edits without
+ * a UI change. The server-side guard rejects the matching
+ * `source = 'manual'` PUT for any specialistOwned key with HTTP 422,
+ * so even if this affordance leaked, the write would be denied.
+ */
+This describes OverrideDialog, not HistoryButton. The file also ends with \ No newline at end of file.
+
+How it happened
+Classic split-file cut-and-paste artifact. In the original monolithic ModelConstantsTab.tsx, each function had an intro docstring sitting above its definition. When the three functions were extracted into sibling files, the slicing boundaries were drawn just after a function body — so the next function's intro docstring stayed at the tail of the prior slice, while the slice carrying the described function got its own freshly-introduced intro comment (or none at all). End result: the trailing docstring in RefreshResearchPopover.tsx is HistoryButton's, and the trailing docstring in HistoryButton.tsx is OverrideDialog's.
+
+Why existing code doesn't prevent it
+Nothing in the lint config, Prettier setup, or the CI guards cares about trailing block comments or EOF-newline conventions — these are TSX files with valid (if orphaned) comment syntax, so tsc --noEmit and the analyst-button-convention test both pass. The three verifiers who independently checked this bug all confirmed by reading the files end-to-end; there is no static-analysis backstop.
+
+Impact
+Runtime: zero. The block comments are discarded by the TS compiler and never referenced.
+Readability: negative. A future reader opening HistoryButton.tsx to understand the history button hits a 9-line block comment describing the Override dialog's server-side guard, source = 'manual' rejection logic, and a Phase-4 gating rule that has nothing to do with the exported HistoryButton component. Same pattern in reverse on RefreshResearchPopover.tsx.
+POSIX convention: missing trailing newline on two source files, which some pre-commit hooks and git diff presentations flag.
+Step-by-step proof
+wc -l client/src/components/admin/model-defaults/constants/{RefreshResearchPopover,HistoryButton,OverrideDialog}.tsx → 249, 104, 108 lines respectively.
+Read RefreshResearchPopover.tsx lines 246-250:
+/**
+ * Per-row research history popover. Lists the most recent
+ * `research_runs` for this Constant.
+ */
+The exported component on this file is RefreshResearchPopover (the Analyst refresh trigger), not a history popover.
+Read HistoryButton.tsx lines 97-105 — the 9-line OverrideDialog docstring.
+Grep the matching canonical homes: OverrideDialog.tsx and HistoryButton.tsx (and the canonical HistoryButton's matching popover) already carry their own intro context either in the doctrine block at the top of ModelConstantsTab.tsx or in the component's body — the stranded blocks are pure duplication of intent, misfiled.
+Both files end with \ No newline at end of file per the PR diff markers.
+How to fix
+Mechanical three-line cleanup:
+
+Delete lines 246-250 of RefreshResearchPopover.tsx (the trailing /** Per-row research history popover. … */ block).
+Delete lines 96-105 of HistoryButton.tsx (the trailing /** Gated free-form Override dialog (Phase 4). … */ block).
+Add a terminating newline to each file.
+The canonical homes (HistoryButton.tsx for the history popover, OverrideDialog.tsx for the Override dialog) already carry the relevant intro context in their own component bodies or in the file-level doctrine block at the top of ModelConstantsTab.tsx, so the deletions are loss-free.
+
+—

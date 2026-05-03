@@ -1,0 +1,443 @@
+  Server-Side Financial Engine Migration Plan                                                                                                                                          
+                                                                                                                                                                                       
+  For Replit Agent — Multi-Phase Audit & Architecture Overhaul                                                                                                                         
+                                                                                                                                                                                       
+  ---                                                                                                                                                                                  
+  Current State Assessment                                                                                                                                                             
+                          
+  ┌─────────────────────┬────────┬─────────────────────────────┬──────────────────────────────────────────────┐
+  │        Layer        │ Lines  │          Location           │                    Status                    │                                                                        
+  ├─────────────────────┼────────┼─────────────────────────────┼──────────────────────────────────────────────┤                                                                        
+  │ Deterministic tools │ 8,691  │ calc/ (server)              │ Mature — 38 tools, tested, dispatched        │                                                                        
+  ├─────────────────────┼────────┼─────────────────────────────┼──────────────────────────────────────────────┤                                                                        
+  │ Pro-forma engines   │ 3,501  │ client/src/lib/financial/   │ Pure TS, zero browser deps, runs client-side │                                                                        
+  ├─────────────────────┼────────┼─────────────────────────────┼──────────────────────────────────────────────┤                                                                        
+  │ Server orchestrator │ 154    │ server/finance/service.ts   │ Thin wrapper — calls client engines          │                                                                        
+  ├─────────────────────┼────────┼─────────────────────────────┼──────────────────────────────────────────────┤                                                                        
+  │ Calculation checker │ ~2,000 │ server/calculation-checker/ │ Duplicates ~40% of engine logic              │
+  ├─────────────────────┼────────┼─────────────────────────────┼──────────────────────────────────────────────┤                                                                        
+  │ Scenario storage    │ ~300   │ server/storage/financial.ts │ JSONB snapshots, has userId bugs             │
+  └─────────────────────┴────────┴─────────────────────────────┴──────────────────────────────────────────────┘                                                                        
+                  
+  The core problem: The financial engines are pure TypeScript that happen to live in client/. The server already imports them, but dashboards, exports, and scenarios all re-run       
+  engines client-side. There is no authoritative server-computed result — every browser tab independently computes financials, creating divergence risk.
+                                                                                                                                                                                       
+  ---             
+  Phase 0: Critical Bug Fixes (Before Any Migration)
+                                                                                                                                                                                       
+  Goal: Fix the 4 remaining HIGH+ findings from the re-audit. These are preconditions for everything else.
+                                                                                                                                                                                       
+  ┌─────┬──────────────────────────────────────────────┬─────────────────────────────────────────┬─────────────────────────────────────────────────────────────────────────────────┐   
+  │  #  │                   Finding                    │                  File                   │                                       Fix                                       │   
+  ├─────┼──────────────────────────────────────────────┼─────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤   
+  │ C1  │ Scenario load uses userId instead of null    │ server/storage/financial.ts:244,247,252 │ Replace userId with null on insert; change delete to                            │
+  │     │                                              │                                         │ where(isNull(properties.userId))                                                │
+  ├─────┼──────────────────────────────────────────────┼─────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤   
+  │ H1  │ Letter-logo endpoint missing auth            │ server/routes/branding.ts:241           │ Add requireAuth middleware                                                      │
+  ├─────┼──────────────────────────────────────────────┼─────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤   
+  │ H2  │ GOVERNED_FIELDS says "27.5 years", code uses │ shared/constants.ts:198-200             │ Update value to "39 years", fix helper text                                     │
+  │     │  39                                          │                                         │                                                                                 │   
+  ├─────┼──────────────────────────────────────────────┼─────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────┤
+  │ H3  │ MIRR silent coercion Number.isFinite(x) ? x  │ calc/returns/mirr.ts:51                 │ Return NaN or throw; let callers handle is_valid                                │   
+  │     │ : 0                                          │                                         │                                                                                 │   
+  └─────┴──────────────────────────────────────────────┴─────────────────────────────────────────┴─────────────────────────────────────────────────────────────────────────────────┘
+                                                                                                                                                                                       
+  Validation: Run npm run verify:summary and npm run test:summary after each fix.                                                                                                      
+  
+  ---                                                                                                                                                                                  
+  Phase 1: Extract Shared Engine Package
+                                        
+  Goal: Move the financial engines out of client/ into a location that is unambiguously shared. No logic changes — pure file moves and import rewrites.
+                                                                                                                                                                                       
+  Step 1.1: Create engine/ top-level directory
+                                                                                                                                                                                       
+  engine/         
+  ├── property/                                                                                                                                                                        
+  │   ├── property-engine.ts        ← from client/src/lib/financial/
+  │   ├── resolve-assumptions.ts                                                                                                                                                       
+  │   ├── refinance-pass.ts                                                                                                                                                            
+  │   └── types.ts
+  ├── company/                                                                                                                                                                         
+  │   ├── company-engine.ts
+  │   └── types.ts                                                                                                                                                                     
+  ├── aggregation/
+  │   ├── yearlyAggregator.ts                                                                                                                                                          
+  │   ├── consolidation.ts                                                                                                                                                             
+  │   ├── cashFlowAggregator.ts
+  │   ├── cashFlowSections.ts                                                                                                                                                          
+  │   └── analyzeCompanyCashPosition.ts                                                                                                                                                
+  ├── debt/                                                                                                                                                                            
+  │   ├── loanCalculations.ts                                                                                                                                                          
+  │   ├── amortization.ts                                                                                                                                                              
+  │   └── equityCalculations.ts
+  ├── funding/                                                                                                                                                                         
+  │   └── funding-predictor.ts
+  ├── helpers/                                                                                                                                                                         
+  │   ├── portfolio-helpers.ts
+  │   └── utils.ts                                                                                                                                                                     
+  └── index.ts                       ← barrel re-export
+                                                                                                                                                                                       
+  Step 1.2: Update path aliases                                                                                                                                                        
+  
+  In tsconfig.json (both client and server):                                                                                                                                           
+  {               
+    "paths": {                                                                                                                                                                         
+      "@engine/*": ["./engine/*"],
+      "@calc/*": ["./calc/*"],                                                                                                                                                         
+      "@shared/*": ["./shared/*"]
+    }
+  }                                                                                                                                                                                    
+  
+  Step 1.3: Rewrite imports                                                                                                                                                            
+                  
+  - client/ imports change from ../lib/financial/property-engine → @engine/property/property-engine                                                                                    
+  - server/finance/service.ts imports change the same way
+  - server/calculation-checker/ continues to NOT import from @engine/ (independence rule preserved)                                                                                    
+                                                                                                                                                                                       
+  Step 1.4: Leave shim in client/src/lib/financial/                                                                                                                                    
+                                                                                                                                                                                       
+  // client/src/lib/financial/index.ts — backward compat shim                                                                                                                          
+  export { generatePropertyProForma } from "@engine/property/property-engine";                                                                                                         
+  export { generateCompanyProForma } from "@engine/company/company-engine";                                                                                                            
+  // ... etc                                                                                                                                                                           
+                                                                                                                                                                                       
+  Validation: All existing tests must pass with zero logic changes. Run full suite.                                                                                                    
+  
+  ---                                                                                                                                                                                  
+  Phase 2: Server-Authoritative Computation Service
+                                                                                                                                                                                       
+  Goal: Make the server the single source of truth for all financial computations. Clients request results via API instead of running engines locally.
+                                                                                                                                                                                       
+  Step 2.1: Expand server/finance/service.ts                                                                                                                                           
+                                                                                                                                                                                       
+  The current service only does portfolio projection. Expand to cover all computation products:                                                                                        
+                  
+  // server/finance/service.ts — expanded                                                                                                                                              
+  export interface ComputeResult {                                                                                                                                                     
+    hash: string;                          // deterministic hash of inputs
+    computedAt: string;                    // ISO timestamp                                                                                                                            
+    properties: PropertyComputeResult[];   // per-property monthly + yearly
+    company: CompanyComputeResult;         // management co monthly + yearly                                                                                                           
+    consolidated: ConsolidatedResult;      // portfolio rollup                                                                                                                         
+    validation: ValidationSummary;         // identity checks                                                                                                                          
+  }                                                                                                                                                                                    
+                                                                                                                                                                                       
+  export function computeFullPortfolio(                                                                                                                                                
+    properties: PropertyInput[],
+    global: GlobalInput,                                                                                                                                                               
+    serviceTemplates?: ServiceTemplate[]
+  ): ComputeResult {
+    // 1. Run property engines (parallelizable per-property)                                                                                                                           
+    // 2. Run company engine
+    // 3. Aggregate yearly                                                                                                                                                             
+    // 4. Consolidate
+    // 5. Validate identities                                                                                                                                                          
+    // 6. Hash inputs for cache key
+    return { hash, computedAt, properties, company, consolidated, validation };                                                                                                        
+  }                                                                                                                                                                                    
+                                                                                                                                                                                       
+  Step 2.2: Add computation cache with stableHash()                                                                                                                                    
+                  
+  The codebase already has stableHash() in server/scenarios/diff-engine.ts. Use it:                                                                                                    
+                  
+  // server/finance/cache.ts                                                                                                                                                           
+  import { stableHash } from "../scenarios/diff-engine";
+                                                                                                                                                                                       
+  const COMPUTE_CACHE = new Map<string, { result: ComputeResult; expiry: number }>();                                                                                                  
+                                                                                                                                                                                       
+  export function getCachedOrCompute(                                                                                                                                                  
+    properties: PropertyInput[],
+    global: GlobalInput
+  ): ComputeResult {
+    const key = stableHash({ properties, global });                                                                                                                                    
+    const cached = COMPUTE_CACHE.get(key);
+    if (cached && cached.expiry > Date.now()) return cached.result;                                                                                                                    
+                                                                                                                                                                                       
+    const result = computeFullPortfolio(properties, global);
+    COMPUTE_CACHE.set(key, { result, expiry: Date.now() + 60_000 }); // 60s TTL                                                                                                        
+    return result;                                                                                                                                                                     
+  }
+                                                                                                                                                                                       
+  Step 2.3: New API endpoints
+
+  POST /api/finance/compute          — full portfolio (already exists, expand)
+  POST /api/finance/property/:id     — single property pro-forma                                                                                                                       
+  POST /api/finance/company          — management company pro-forma                                                                                                                    
+  GET  /api/finance/cache-status     — cache hit rate, staleness metrics                                                                                                               
+  POST /api/finance/invalidate       — force cache bust (after assumption save)                                                                                                        
+                                                                                                                                                                                       
+  Step 2.4: Recommended library — decimal.js-light                                                                                                                                     
+                                                                                                                                                                                       
+  Currently using full decimal.js (43KB). For server-side computation at scale:                                                                                                        
+                  
+  npm install decimal.js-light   # 12KB, same API, sufficient for 20-digit precision                                                                                                   
+                                                                                                                                                                                       
+  Also consider:
+                                                                                                                                                                                       
+  npm install lru-cache@10       # bounded LRU cache (replaces raw Map)
+                                                                                                                                                                                       
+  Replace COMPUTE_CACHE Map with:
+  import { LRUCache } from "lru-cache";                                                                                                                                                
+  const cache = new LRUCache<string, ComputeResult>({ max: 500, ttl: 60_000 });
+                                                                                                                                                                                       
+  ---
+  Phase 3: Migrate Client to Server-Computed Results                                                                                                                                   
+                                                                                                                                                                                       
+  Goal: Replace client-side engine calls with React Query hooks that fetch server-computed results.
+                                                                                                                                                                                       
+  Step 3.1: New React Query hook
+                                                                                                                                                                                       
+  // client/src/hooks/useServerFinancials.ts
+  export function useServerFinancials(properties: Property[], global: GlobalAssumptions) {                                                                                             
+    return useQuery({
+      queryKey: ["finance", "portfolio", stableHash({ properties, global })],                                                                                                          
+      queryFn: () => apiClient.post("/api/finance/compute", { properties, global }),                                                                                                   
+      staleTime: 30_000,        // server cache + client cache = double layer                                                                                                          
+      gcTime: 5 * 60_000,                                                                                                                                                              
+      placeholderData: keepPreviousData,  // no flicker on re-fetch                                                                                                                    
+    });                                                                                                                                                                                
+  }                                                                                                                                                                                    
+                                                                                                                                                                                       
+  Step 3.2: Migrate dashboard
+
+  Replace usePortfolioFinancials (which calls generatePropertyProForma in-browser) with useServerFinancials. The dashboard renders the same data shape — only the source changes.      
+   
+  Migration order (one page at a time, behind feature flag):                                                                                                                           
+  1. Dashboard main KPIs
+  2. Dashboard charts                                                                                                                                                                  
+  3. Property detail pages
+  4. Company detail page  
+  5. Consolidated statements                                                                                                                                                           
+  6. Export pipeline (Phase 4)
+                                                                                                                                                                                       
+  Step 3.3: Feature flag
+                                                                                                                                                                                       
+  // shared/constants.ts
+  export const USE_SERVER_COMPUTE = true; // flip per-page during migration                                                                                                            
+                                                                                                                                                                                       
+  Client hooks check the flag:                                                                                                                                                         
+  const financials = USE_SERVER_COMPUTE                                                                                                                                                
+    ? useServerFinancials(properties, global)                                                                                                                                          
+    : useClientFinancials(properties, global);  // legacy path
+
+  Step 3.4: Recommended library — superjson                                                                                                                                            
+   
+  Financial results contain Date objects, NaN edge cases, and large numeric precision. Standard JSON.stringify loses these.                                                            
+                  
+  npm install superjson                                                                                                                                                                
+                  
+  Use in API transport:
+  // Server: res.json(superjson.serialize(result))
+  // Client: superjson.deserialize(response.data) 
+                                                                                                                                                                                       
+  This preserves Date, BigInt, NaN, Infinity, Map, Set across the wire — critical for financial data integrity.
+                                                                                                                                                                                       
+  ---             
+  Phase 4: Server-Side Export Generation                                                                                                                                               
+                                                                                                                                                                                       
+  Goal: Move PDF/Excel/PPTX generation to the server. Client sends export request, server streams the file back.
+                                                                                                                                                                                       
+  Step 4.1: Export worker                                                                                                                                                              
+                                                                                                                                                                                       
+  server/exports/                                                                                                                                                                      
+  ├── worker.ts              — orchestrates export generation
+  ├── pdf-generator.ts       — uses @react-pdf/renderer (works in Node)                                                                                                                
+  ├── excel-generator.ts     — uses xlsx (already Node-compatible)
+  ├── pptx-generator.ts      — uses pptxgenjs (already Node-compatible)                                                                                                                
+  └── chart-renderer.ts      — uses puppeteer for chart screenshots
+                                                                                                                                                                                       
+  Step 4.2: New export endpoint
+                                                                                                                                                                                       
+  POST /api/exports/generate
+    body: { entityType, entityId, format, scope }                                                                                                                                      
+    response: stream (file download) or { jobId } for async                                                                                                                            
+                                                                                                                                                                                       
+  Step 4.3: Recommended libraries                                                                                                                                                      
+                                                                                                                                                                                       
+  npm install @react-pdf/renderer  # already in use — works server-side in Node
+  npm install puppeteer-core        # for chart→PNG rendering (lighter than full puppeteer)                                                                                            
+  npm install bull                   # job queue for long-running exports (optional)                                                                                                   
+                                                                                                                                                                                       
+  Why this matters: Currently every export re-runs the entire financial engine client-side, then renders. With server compute + server export, the engine runs once, the result is     
+  cached, and the export reads from cache. A 20-property portfolio export goes from ~8 seconds to ~2 seconds.                                                                          
+                                                                                                                                                                                       
+  ---             
+  Phase 5: Scenario System Hardening
+                                                                                                                                                                                       
+  Goal: Fix the scenario storage bugs and make scenarios use server-computed snapshots.
+                                                                                                                                                                                       
+  Step 5.1: Fix C1 — userId null on restore
+                                                                                                                                                                                       
+  // server/storage/financial.ts — loadScenario()
+  // Line 244: { ...gaData, userId: null }                                                                                                                                             
+  // Line 247: where(isNull(properties.userId))                                                                                                                                        
+  // Line 252: { ...propData, userId: null }                                                                                                                                           
+                                                                                                                                                                                       
+  Step 5.2: Store computed results in scenarios
+                                                                                                                                                                                       
+  Currently scenarios snapshot raw assumptions. Add computed results:                                                                                                                  
+   
+  ALTER TABLE scenarios ADD COLUMN computed_results JSONB;                                                                                                                             
+  ALTER TABLE scenarios ADD COLUMN compute_hash TEXT;
+                                                                                                                                                                                       
+  When saving a scenario:
+  const computed = computeFullPortfolio(properties, global);                                                                                                                           
+  await storage.createScenario({                            
+    ...data,                                                                                                                                                                           
+    computedResults: computed,
+    computeHash: computed.hash,                                                                                                                                                        
+  });                                                                                                                                                                                  
+     
+  When loading, if compute_hash matches current inputs, skip re-computation.                                                                                                           
+                                                                                                                                                                                       
+  Step 5.3: Scenario comparison uses server results                                                                                                                                    
+                                                                                                                                                                                       
+  The existing calc/analysis/scenario-compare.ts tool accepts two scenarios' financials. Feed it server-computed ComputeResult objects instead of re-running engines.                  
+                  
+  ---                                                                                                                                                                                  
+  Phase 6: Consolidate Calculation Checker
+                                          
+  Goal: Eliminate the ~2,000 lines of duplicated verification logic by restructuring the checker to validate server-computed results instead of re-implementing formulas.
+                                                                                                                                                                                       
+  Current problem
+                                                                                                                                                                                       
+  server/calculation-checker/property-checks.ts re-implements revenue, occupancy ramp, fees, depreciation, and debt service — duplicating property-engine.ts. Any formula change must  
+  be applied in both places.
+                                                                                                                                                                                       
+  New architecture
+
+  Server Engine (single source of truth)
+      ↓ produces ComputeResult                                                                                                                                                         
+      ↓
+  Calculation Checker (validates relationships, not formulas)                                                                                                                          
+      ├── Identity checks: A = L + E                                                                                                                                                   
+      ├── Tie-out checks: CF reconciles to cash change                                                                                                                                 
+      ├── Consistency checks: property fees = company fee revenue                                                                                                                      
+      ├── Bounds checks: no negative cash, no NaN                                                                                                                                      
+      └── Cross-validation: engine vs calc/ tool results                                                                                                                               
+                                                                                                                                                                                       
+  The checker stops re-implementing formulas and instead validates invariants on the result. The 5 existing calc/validation/ tools already do this — expand them.                      
+                                                                                                                                                                                       
+  Step 6.1: Refactor checker to invariant-only                                                                                                                                         
+                  
+  Move formula re-implementation out. Keep only:                                                                                                                                       
+  - validate_financial_identities (already in calc/)
+  - funding_gate_checks (already in calc/)                                                                                                                                             
+  - schedule_reconcile (already in calc/) 
+  - New: validate_cash_continuity — checks month-over-month cash                                                                                                                       
+  - New: validate_intercompany_elimination — fees net to zero                                                                                                                          
+                                                                                                                                                                                       
+  Step 6.2: Add regression oracle                                                                                                                                                      
+                                                                                                                                                                                       
+  // server/calculation-checker/oracle.ts
+  // Stores golden outputs for known input sets                                                                                                                                        
+  // After engine changes, compares new output to golden baseline                                                                                                                      
+  // Flags any delta > $1 for human review                                                                                                                                             
+                                                                                                                                                                                       
+  ---                                                                                                                                                                                  
+  Phase 7: Deep Re-Audit (Post-Migration)                                                                                                                                              
+                                                                                                                                                                                       
+  After Phases 0-6, run a comprehensive audit across these dimensions:
+                                                                                                                                                                                       
+  Audit 7A: Data Flow Integrity
+                                                                                                                                                                                       
+  - Trace every number from DB → engine → API → client → export                                                                                                                        
+  - Verify no transformation loses precision
+  - Verify superjson round-trips preserve all financial values                                                                                                                         
+                                                                                                                                                                                       
+  Audit 7B: Cache Correctness                                                                                                                                                          
+                                                                                                                                                                                       
+  - Verify cache invalidation fires on every mutation path                                                                                                                             
+  - Verify stableHash is deterministic (no object key ordering issues)
+  - Load test: 50 concurrent users, verify no stale data served                                                                                                                        
+   
+  Audit 7C: Scenario Consistency                                                                                                                                                       
+                  
+  - Save scenario → load scenario → verify computed results match                                                                                                                      
+  - Verify diff engine handles all property field types
+  - Verify no data loss on JSONB round-trip                                                                                                                                            
+                                                                                                                                                                                       
+  Audit 7D: Export Accuracy                                                                                                                                                            
+                                                                                                                                                                                       
+  - Generate export from server vs legacy client-side export                                                                                                                           
+  - Byte-compare PDF/Excel output
+  - Verify chart screenshots match dashboard rendering                                                                                                                                 
+                  
+  Audit 7E: Security Re-Scan                                                                                                                                                           
+                  
+  - All new endpoints have requireAuth                                                                                                                                                 
+  - Export endpoint has rate limiting and file size caps
+  - Cache poisoning: verify cache key includes user context where needed                                                                                                               
+  - No PII in cache keys or logs                                                                                                                                                       
+   
+  Audit 7F: Remaining Type Safety                                                                                                                                                      
+                  
+  - Eliminate all as any casts (M1, M2, M3 from re-audit)                                                                                                                              
+  - Add .$type<>() to all JSONB schema fields (M6-M9)
+  - Add .notNull() to financial property fields (M14)                                                                                                                                  
+                                                                                                                                                                                       
+  ---                                                                                                                                                                                  
+  Recommended New Dependencies                                                                                                                                                         
+                                                                                                                                                                                       
+  ┌───────────────────────────┬───────────────────────────────┬───────────────────────────────────────────────────────────┐
+  │          Package          │            Purpose            │                            Why                            │                                                            
+  ├───────────────────────────┼───────────────────────────────┼───────────────────────────────────────────────────────────┤
+  │ lru-cache@10              │ Bounded computation cache     │ Prevents memory leaks from unbounded Map                  │
+  ├───────────────────────────┼───────────────────────────────┼───────────────────────────────────────────────────────────┤
+  │ superjson                 │ Lossless JSON serialization   │ Preserves Date, NaN, Infinity in API transport            │                                                            
+  ├───────────────────────────┼───────────────────────────────┼───────────────────────────────────────────────────────────┤                                                            
+  │ decimal.js-light          │ Lighter decimal math          │ 12KB vs 43KB, same precision, server-only                 │                                                            
+  ├───────────────────────────┼───────────────────────────────┼───────────────────────────────────────────────────────────┤                                                            
+  │ zod-to-json-schema        │ Auto-generate tool schemas    │ Eliminates manual JSON schema maintenance for calc/ tools │
+  ├───────────────────────────┼───────────────────────────────┼───────────────────────────────────────────────────────────┤                                                            
+  │ piscina or worker_threads │ Parallel property computation │ Run N property engines concurrently for large portfolios  │
+  ├───────────────────────────┼───────────────────────────────┼───────────────────────────────────────────────────────────┤                                                            
+  │ puppeteer-core            │ Server-side chart rendering   │ Lighter than full puppeteer for export screenshots        │
+  └───────────────────────────┴───────────────────────────────┴───────────────────────────────────────────────────────────┘                                                            
+                  
+  ---                                                                                                                                                                                  
+  Migration Order & Dependencies
+
+  Phase 0 ──→ Phase 1 ──→ Phase 2 ──→ Phase 3 ──→ Phase 4
+  (bug fixes)  (extract)   (server     (client      (server                                                                                                                            
+                            compute)    migration)   exports)                                                                                                                          
+                              │                                                                                                                                                        
+                              ├──→ Phase 5 (scenarios)                                                                                                                                 
+                              │                                                                                                                                                        
+                              └──→ Phase 6 (checker consolidation)                                                                                                                     
+                                          │                                                                                                                                            
+                                          └──→ Phase 7 (deep re-audit)
+                                                                                                                                                                                       
+  Phases 0-1 are safe, zero-risk refactors (file moves, import rewrites).                                                                                                              
+  Phase 2 is the critical architectural change (server becomes authoritative).
+  Phases 3-6 are incremental migrations behind feature flags.                                                                                                                          
+  Phase 7 validates everything.
+                                                                                                                                                                                       
+  ---             
+  Risk Matrix                                                                                                                                                                          
+                  
+  ┌──────────────────────────────────────────────────┬───────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │                       Risk                       │                                              Mitigation                                               │
+  ├──────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Client/server result divergence during migration │ Feature flag per page; compare client vs server output in dev                                         │
+  ├──────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Cache serving stale results                      │ TTL + explicit invalidation on every financial mutation; invalidateAllFinancialQueries already exists │                         
+  ├──────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────┤                         
+  │ Export regression (layout changes)               │ Golden screenshot comparison tests                                                                    │                         
+  ├──────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────┤                         
+  │ Performance regression (network round-trip)      │ Server cache + React Query staleTime = sub-100ms perceived latency                                    │
+  ├──────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────┤                         
+  │ Calculation checker breaks after refactor        │ Run both old and new checker in parallel for 2 weeks; compare opinions                                │
+  ├──────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────┤                         
+  │ Large portfolio memory pressure                  │ piscina worker pool; stream results instead of buffering entire portfolio                             │
+  └──────────────────────────────────────────────────┴───────────────────────────────────────────────────────────────────────────────────────────────────────┘                         
+                  
+  ---                                                                                                                                                                                  
+  Success Criteria
+                  
+  1. Zero client-side engine calls in production (all via /api/finance/compute)
+  2. < 200ms server compute time for 10-property portfolio (cached: < 5ms)                                                                                                             
+  3. Byte-identical financial outputs between old client path and new server path                                                                                                      
+  4. Single source of truth — one engine, one result, consumed everywhere                                                                                                              
+  5. Verification opinion remains UNQUALIFIED after every phase                                                                                                                        
+  6. All 30 original audit findings resolved (12 fixed, 18 remaining → 0)   

@@ -1,0 +1,17 @@
+Agree with your sequencing. Sequence Path 1 rerun → review → Path 3. Don't parallelize.                                                                                            
+  ▎                                                                                                                                                                                    
+  ▎ Q1: Authorize the $22 20-case A/B rerun. Yes, proceed. Report per-field delta (especially costSeg5/7/15yrPct — those should recover now) and the new aggregate bucket-match.       
+  ▎ Include categorical-gate numbers (unit/denominator/scope errors) even though those are expected to stay at 0.                                                                      
+  ▎                                                                                                                                                                                    
+  ▎ Q2: Path 3 — wait for Path 1 results. Your reasoning is right: if costSeg didn't recover (meaning the extractor was parsing "% of project cost" all along and "building value"     
+  ▎ still misses), we need a fourth definition fix before spending 4hr on harness. Cheaper to learn first.
+  ▎                                                                                                                                                                                    
+  ▎ Decision point after Path 1 rerun:                                                                                                                                                 
+  ▎ - If aggregate ≥ 55% AND categorical gate still clean → proceed to Path 3 (verdict parity harness, full $22 rerun).
+  ▎ - If aggregate < 55% but costSeg DID improve → investigate what else regressed; maybe one more definition pass before Path 3.                                                      
+  ▎ - If costSeg didn't move at all → investigate extractor first; file BLOCKED-ota3.md, don't keep spending.                                                                          
+  ▎                                                                                                                                                                                    
+  ▎ One pre-Path-3 confirmation: svcFeeRevMgmt narrow-range variance is acceptable IF verdict-layer parity lands ≥95%. If not, we'll need to revisit. Flag this in the Path 3 harness  
+  ▎ so if parity fails specifically on svcFeeRevMgmt, we know it's the field we chose to live with.                                                                                    
+  ▎                                                                                                                                                                                    
+  ▎ Keep Path 1 commit (8038981d) + rerun results in a single PR. Path 3 gets its own PR. Each runs five gates independently.      

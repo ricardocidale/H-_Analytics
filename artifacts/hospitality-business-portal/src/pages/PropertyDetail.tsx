@@ -1,0 +1,517 @@
+import { useMemo, useState, useRef, lazy, Suspense, useCallback } from "react";
+import { USE_SERVER_COMPUTE, USE_SERVER_EXPORTS } from "@shared/constants";
+import { getFactoryNumber } from "@shared/model-constants-registry";
+import Layout from "@/components/Layout";
+import { useProperty, useGlobalAssumptions } from "@/lib/api";
+import { usePropertyPhotos } from "@/lib/api/property-photos";
+import type { PropertyUrl } from "@shared/schema";
+import { generatePropertyProForma, getFiscalYearForModelYear } from "@/lib/financialEngine";
+import { ConsolidatedBalanceSheet } from "@/components/statements/ConsolidatedBalanceSheet";
+import { CalcDetailsProvider } from "@/components/financial-table";
+import { Tabs, TabsContent, CurrentThemeTab } from "@/components/ui/tabs";
+import { Loader2, ChevronDown } from "@/components/icons/themed-icons";
+import { IconAlertTriangle, IconIncomeStatement, IconCashFlow, IconBalanceSheet, IconPPE, IconFileStack, IconMap, IconGlobe, IconInvestment, IconClipboardList, IconSparkles } from "@/components/icons";
+import { ExportMenu, pdfAction, excelAction, csvAction, pptxAction, chartAction, pngAction, docxAction } from "@/components/ui/export-toolbar";
+import { MONTHS_PER_YEAR } from "@/lib/constants";
+import { calculateLoanParams, LoanParams, GlobalLoanParams, PROJECTION_YEARS } from "@/lib/financial/loanCalculations";
+import { aggregateCashFlowByYear } from "@/lib/financial/cashFlowAggregator";
+import { aggregatePropertyByYear } from "@/lib/financial/yearlyAggregator";
+import { FinancialChart } from "@/components/ui/financial-chart";
+import { Link, useRoute } from "wouter";
+import { Button } from "@/components/ui/button";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ExportDialog, type ExportVersion, type PremiumFormat } from "@/components/ExportDialog";
+import { loadExportConfig } from "@/lib/exportConfig";
+import { useExportSave } from "@/hooks/useExportSave";
+import { AnimatedPage, ScrollReveal } from "@/components/graphics";
+import {
+  PPECostBasisSchedule,
+  IncomeStatementTab,
+  CashFlowTab,
+  PropertyHeader,
+  BenchmarkPanel,
+  ReservesBrandPanel,
+  InvestmentReturnsTab,
+  DueDiligenceTab,
+  ExitScenariosSection,
+  ExecutiveSummaryTab,
+} from "@/components/property-detail";
+const PropertyMap = lazy(() => import("@/components/PropertyMap"));
+import DocumentExtractionPanel from "@/components/DocumentExtractionPanel";
+import {
+  type PropertyExportContext,
+  exportAllStatementsCSV,
+  exportTablePNG,
+  handleExport,
+  buildPremiumExportPayload,
+} from "@/lib/exports/propertyDetailExports";
+import { fetchSinglePropertyCompute, buildPropertyQueryKey } from "@/hooks/useServerFinancials";
+import { buildLocationLinks, hasCoordinates } from "@/lib/map-utils";
+
+export default function PropertyDetail() {
+  const [, params] = useRoute("/property/:id");
+  const propertyId = params?.id ? parseInt(params.id) : 0;
+  const [activeTab, setActiveTab] = useState("income");
+  const [mapExpanded, setMapExpanded] = useState(false);
+  const toggleMap = useCallback(() => setMapExpanded(prev => !prev), []);
+  const queryClient = useQueryClient();
+  const incomeChartRef = useRef<HTMLDivElement>(null);
+  const cashFlowChartRef = useRef<HTMLDivElement>(null);
+  const incomeTableRef = useRef<HTMLDivElement>(null);
+  const cashFlowTableRef = useRef<HTMLDivElement>(null);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportType, setExportType] = useState<"pdf" | "xlsx" | "pptx" | "docx" | "chart">("pdf");
+  const [incomeAllExpanded] = useState(false);
+  const { requestSave, SaveDialog } = useExportSave();
+  
+  const { data: property, isLoading: propertyLoading, isError: propertyError } = useProperty(propertyId);
+  const { data: global, isLoading: globalLoading, isError: globalError } = useGlobalAssumptions();
+  const { data: brandingData } = useQuery<{ themeColors: Array<{ rank: number; name: string; hexCode: string; description?: string }> | null }>({
+    queryKey: ["/api/my-branding"],
+    staleTime: 5 * 60_000,
+  });
+  const { data: photos } = usePropertyPhotos(propertyId);
+  const { data: propertyLinks = [] } = useQuery<PropertyUrl[]>({
+    queryKey: ["propertyUrls", propertyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/properties/${propertyId}/urls`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: propertyId > 0,
+  });
+  const heroCaption = useMemo(() => photos?.find(p => p.isHero)?.caption ?? undefined, [photos]);
+  
+  const handlePhotoUploadComplete = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/properties", propertyId] });
+    queryClient.invalidateQueries({ queryKey: ["propertyPhotos", propertyId] });
+  };
+
+  const projectionYears = global?.projectionYears ?? PROJECTION_YEARS;
+  const projectionMonths = projectionYears * MONTHS_PER_YEAR;
+  const fiscalYearStartMonth = global?.fiscalYearStartMonth ?? 1;
+  const getFiscalYear = (yearIndex: number) => global ? getFiscalYearForModelYear(global.modelStartDate, fiscalYearStartMonth, yearIndex) : 2026 + yearIndex;
+
+  const { data: serverFinancials, isLoading: serverFinancialsLoading, isError: serverFinancialsError } = useQuery({
+    queryKey: buildPropertyQueryKey(propertyId, property, global),
+    queryFn: () => fetchSinglePropertyCompute(property!, global!),
+    enabled: USE_SERVER_COMPUTE && !!property && !!global,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  });
+
+  const clientFinancials = useMemo(
+    () => (!USE_SERVER_COMPUTE && property && global) ? generatePropertyProForma(property, global, projectionMonths) : [],
+    [property, global, projectionMonths]
+  );
+
+  const financials = USE_SERVER_COMPUTE ? (serverFinancials?.monthly ?? []) : clientFinancials;
+
+  const years = projectionYears;
+  const startYear = getFiscalYear(0);
+
+  const cashFlowDataMemo = useMemo(() => {
+    if (!property || !global || financials.length === 0) return [];
+    return aggregateCashFlowByYear(financials, property as LoanParams, global as GlobalLoanParams, years);
+  }, [financials, property, global, years]);
+
+  // aggregatePropertyByYear is the single source of truth for yearly totals.
+  // yearlyChartData derives from it — no re-reducing of monthly arrays.
+  const yearlyDetails = useMemo(
+    () => aggregatePropertyByYear(financials, years),
+    [financials, years]
+  );
+
+  const yearlyChartData = useMemo(() =>
+    yearlyDetails.map((d, y) => ({
+      year:     String(getFiscalYear(y)),
+      Revenue:  d.revenueTotal,
+      GOP:      d.gop,
+      AGOP:     d.agop,
+      NOI:      d.noi,
+      ANOI:     d.anoi,
+      CashFlow: d.cashFlow,
+    })),
+  [yearlyDetails]);
+
+  const balanceChartData = useMemo(() => {
+    if (!property || !global || !yearlyChartData.length || !cashFlowDataMemo.length) return [];
+    const loanProps = property as LoanParams;
+    const loan = calculateLoanParams(loanProps, global as GlobalLoanParams);
+    const totalCost = loanProps.purchasePrice + (loanProps.buildingImprovements ?? 0) + (loanProps.preOpeningCosts ?? 0);
+    // Audit #319 R4: registry-backed factory baseline.
+    const depPerYear = totalCost > 0 ? totalCost / getFactoryNumber('depreciationYears') : 0;
+    let runCash = 0;
+    let cumPrincipal = 0;
+    return yearlyChartData.map((d, i) => {
+      runCash += d.CashFlow;
+      const nbv = Math.max(totalCost - depPerYear * (i + 1), 0);
+      cumPrincipal += cashFlowDataMemo[i]?.principalPayment ?? 0;
+      const loanBalance = Math.max(loan.loanAmount - cumPrincipal + (cashFlowDataMemo[i]?.refinancingProceeds ?? 0), 0);
+      const totalAssets = runCash + nbv;
+      const totalEquity = totalAssets - loanBalance;
+      return { year: d.year, Assets: totalAssets, Liabilities: loanBalance, Equity: totalEquity };
+    });
+  }, [property, global, yearlyChartData, cashFlowDataMemo]);
+
+  if (propertyLoading || globalLoading || (USE_SERVER_COMPUTE && serverFinancialsLoading)) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-accent-pop" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (propertyError || globalError || (USE_SERVER_COMPUTE && serverFinancialsError)) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center h-[60vh] gap-3">
+          <IconAlertTriangle className="w-8 h-8 text-destructive" />
+          <p className="text-muted-foreground">Failed to load property data. Please try refreshing the page.</p>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!property || !global) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
+          <h2 className="text-2xl font-display">Property Not Found</h2>
+          <Link href="/portfolio">
+            <Button>Return to Portfolio</Button>
+          </Link>
+        </div>
+      </Layout>
+    );
+  }
+
+  const exportCtx: PropertyExportContext = {
+    property, global, yearlyDetails, cashFlowData: cashFlowDataMemo,
+    yearlyChartData, years, startYear, projectionYears, projectionMonths,
+    fiscalYearStartMonth, financials, activeTab, brandingData,
+    incomeChartRef, cashFlowChartRef, incomeTableRef, cashFlowTableRef,
+  };
+
+  return (
+    <Layout>
+      <AnimatedPage>
+      {SaveDialog}
+      <ExportDialog
+        open={exportDialogOpen}
+        onClose={() => setExportDialogOpen(false)}
+        onExport={(orientation, version, customFilename) => handleExport(exportCtx, exportType, orientation, version, customFilename)}
+        title={exportType === "chart" ? "Export Chart" : `Export ${exportType.toUpperCase()}`}
+        showVersionOption={exportType !== "chart"}
+        allowShort={loadExportConfig().statements.allowShort}
+        allowExtended={loadExportConfig().statements.allowExtended}
+        premiumFormat={exportType === "chart" ? "pdf" : exportType as PremiumFormat}
+        suggestedFilename={
+          exportType === 'chart'
+            ? `${property.name} Chart`
+            : `${property.name} ${activeTab === "income" ? "Income Statement" : activeTab === "cashflow" ? "Cash Flow" : "Balance Sheet"}`
+        }
+        fileExtension={exportType === "chart" ? ".pdf" : `.${exportType}`}
+        getPremiumExportData={exportType !== 'chart' && property && yearlyDetails.length > 0
+          ? (version: ExportVersion) => buildPremiumExportPayload(exportCtx, version)
+          : undefined}
+        serverExportConfig={exportType !== 'chart' && (activeTab === "income" || activeTab === "cashflow") ? { entityType: "property", entityId: propertyId, reportScope: activeTab } : undefined}
+      />
+      <div className="space-y-6">
+        <PropertyHeader
+          property={property}
+          propertyId={propertyId}
+          heroCaption={heroCaption}
+          onPhotoUploadComplete={handlePhotoUploadComplete}
+        />
+
+        {property.isActive === false && (
+          <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/20" data-testid="banner-property-inactive">
+            <IconAlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                This property is excluded from portfolio calculations.
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+                Toggle &ldquo;Included in portfolio&rdquo; on the <Link href="/portfolio" className="underline hover:no-underline">Portfolio page</Link> to re-include it.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {property.description && (
+          <div className="rounded-lg border border-border bg-card shadow-sm p-5" data-testid="card-property-description">
+            <p className="text-xs font-medium text-muted-foreground mb-2 label-text">Property Description</p>
+            <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap" data-testid="text-full-description">
+              {property.description}
+            </p>
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2" data-testid="property-quick-actions">
+          <Link href={`/structures/${propertyId}`}>
+            <Button variant="outline" size="sm" data-testid="link-structure-comparison">
+              Compare operating structures
+            </Button>
+          </Link>
+        </div>
+
+        {(() => {
+          const visibleLinks = propertyLinks.filter(l => l.isValid === true && l.isRelevant === true);
+          return visibleLinks.length > 0 ? (
+            <div className="flex flex-wrap gap-2" data-testid="property-links-chips">
+              {visibleLinks.map((link) => (
+                <a
+                  key={link.id}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors hover:shadow-sm ${
+                    link.isRelevant
+                      ? "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10"
+                      : "border-border bg-card text-foreground/70 hover:bg-muted"
+                  }`}
+                  data-testid={`link-chip-${link.id}`}
+                  title={link.url}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{
+                    backgroundColor: link.isRelevant ? "var(--primary)" : "var(--muted-foreground)",
+                  }} />
+                  {link.label || (() => { try { return new URL(link.url).hostname.replace("www.", ""); } catch { return "Link"; } })()}
+                </a>
+              ))}
+            </div>
+          ) : null;
+        })()}
+
+        {hasCoordinates(property) && (
+          <div className="rounded-lg border border-border/50 bg-card overflow-hidden" data-testid="map-collapsible">
+            <button
+              onClick={toggleMap}
+              className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-foreground/80 hover:bg-muted/30 transition-colors"
+              data-testid="button-toggle-map"
+            >
+              <span className="flex items-center gap-2">
+                <IconMap className="w-4 h-4 text-primary/70" />
+                Location &amp; Maps
+              </span>
+              <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${mapExpanded ? "rotate-180" : ""}`} />
+            </button>
+            {mapExpanded && (() => {
+              const links = buildLocationLinks(property.latitude!, property.longitude!, property.name);
+              return (
+                <div className="px-4 pb-4 space-y-3 border-t border-border/30">
+                  <div className="flex items-center gap-3 pt-3" data-testid="location-links">
+                    <a
+                      href={links.googleMapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+                      data-testid="link-detail-map"
+                    >
+                      <IconMap className="w-3.5 h-3.5" />
+                      Google Maps
+                    </a>
+                    <a
+                      href={links.googleEarth3dUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+                      data-testid="link-detail-3d"
+                    >
+                      <IconGlobe className="w-3.5 h-3.5" />
+                      3D Flyover
+                    </a>
+                  </div>
+                  <a
+                    href={links.googleMapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block rounded-lg overflow-hidden border border-border/50 hover:border-primary/30 transition-colors"
+                    data-testid="static-map-thumbnail"
+                  >
+                    <img
+                      src={links.staticMapUrl}
+                      alt={`Satellite view of ${property.name}`}
+                      className="w-full h-[200px] object-cover"
+                      loading="lazy"
+                    />
+                  </a>
+                  <Suspense fallback={<div className="flex items-center justify-center p-8 text-muted-foreground text-sm">Loading map…</div>}>
+                    <PropertyMap
+                      latitude={property.latitude}
+                      longitude={property.longitude}
+                      propertyName={property.name}
+                      propertyId={propertyId}
+                    />
+                  </Suspense>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        <BenchmarkPanel
+          property={property}
+          yearlyChartData={yearlyChartData}
+        />
+
+        {global && (
+          <div className="mt-6">
+            <ExitScenariosSection property={property} global={global} />
+          </div>
+        )}
+
+        {(["boutique_hotel", "hotel", "resort", "business_hotel", "conference_hotel"] as const).includes(
+          property.hospitalityType as
+            | "boutique_hotel"
+            | "hotel"
+            | "resort"
+            | "business_hotel"
+            | "conference_hotel",
+        ) && <ReservesBrandPanel property={property} />}
+
+        <ScrollReveal>
+        <CalcDetailsProvider show={global?.showPropertyCalculationDetails ?? true}>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="mb-4">
+            <CurrentThemeTab
+              tabs={[
+                { value: 'income', label: 'Income Statement', icon: IconIncomeStatement },
+                { value: 'cashflow', label: 'Cash Flows', icon: IconCashFlow },
+                { value: 'balance', label: 'Balance Sheet', icon: IconBalanceSheet },
+                { value: 'investment', label: 'Financial Analysis', icon: IconInvestment },
+                { value: 'ppe', label: 'PP&E / Cost Basis', icon: IconPPE },
+                { value: 'duediligence', label: 'Due Diligence', icon: IconClipboardList },
+                { value: 'documents', label: 'Documents', icon: IconFileStack },
+                { value: 'executive-summary', label: 'Executive Summary', icon: IconSparkles }
+              ]}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              rightContent={
+                <ExportMenu
+                  variant="light"
+                  actions={[
+                    pdfAction(() => { setExportType('pdf'); setExportDialogOpen(true); }),
+                    excelAction(() => { setExportType('xlsx'); setExportDialogOpen(true); }),
+                    csvAction(() => {
+                      if (USE_SERVER_EXPORTS) {
+                        requestSave(`${property.name} Financial Statements`, ".csv", async (customFilename) => {
+                          const res = await fetch("/api/exports/generate", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            credentials: "include",
+                            body: JSON.stringify({ entityType: "property", entityId: propertyId, format: "csv", version: "extended" }),
+                          });
+                          if (!res.ok) throw new Error("CSV export failed");
+                          const blob = await res.blob();
+                          const { saveFile } = await import("@/lib/exports/saveFile");
+                          await saveFile(blob, customFilename || `${property.name}_Financial_Statements.csv`);
+                        });
+                      } else {
+                        requestSave(`${property.name} Financial Statements`, ".csv", (f) => exportAllStatementsCSV(exportCtx, f));
+                      }
+                    }),
+                    pptxAction(() => { setExportType('pptx'); setExportDialogOpen(true); }),
+                    docxAction(() => { setExportType('docx'); setExportDialogOpen(true); }),
+                    chartAction(() => { setExportType('chart'); setExportDialogOpen(true); }),
+                    pngAction(() => requestSave(`${property.name} ${activeTab} Table`, ".png", (f) => exportTablePNG(exportCtx, 'landscape', f))),
+                  ]}
+                />
+              }
+            />
+          </div>
+          
+          <TabsContent value="income" className="mt-6">
+            <IncomeStatementTab
+              yearlyChartData={yearlyChartData}
+              yearlyDetails={yearlyDetails}
+              financials={financials}
+              property={property}
+              global={global}
+              projectionYears={projectionYears}
+              startYear={startYear}
+              incomeChartRef={incomeChartRef}
+              incomeTableRef={incomeTableRef}
+              incomeAllExpanded={incomeAllExpanded}
+            />
+          </TabsContent>
+          
+          <TabsContent value="cashflow" className="mt-6">
+            <CashFlowTab
+              yearlyChartData={yearlyChartData}
+              cashFlowData={cashFlowDataMemo}
+              yearlyDetails={yearlyDetails}
+              financials={financials}
+              property={property}
+              global={global}
+              projectionYears={projectionYears}
+              startYear={startYear}
+              cashFlowChartRef={cashFlowChartRef}
+              cashFlowTableRef={cashFlowTableRef}
+            />
+          </TabsContent>
+
+          <TabsContent value="investment" className="mt-6">
+            <InvestmentReturnsTab
+              property={property}
+              global={global}
+              financials={financials}
+              cashFlowData={cashFlowDataMemo}
+              projectionYears={projectionYears}
+              startYear={startYear}
+              getFiscalYear={getFiscalYear}
+            />
+          </TabsContent>
+
+          <TabsContent value="balance" className="mt-6">
+            <div className="space-y-6">
+              {balanceChartData.length > 0 && (
+                <FinancialChart
+                  data={balanceChartData}
+                  series={[
+                    { dataKey: "Assets", name: "Total Assets", color: "hsl(var(--line-1))" },
+                    { dataKey: "Liabilities", name: "Total Liabilities", color: "hsl(var(--line-2))" },
+                    { dataKey: "Equity", name: "Total Equity", color: "hsl(var(--line-3))" },
+                  ]}
+                  title={`${property.name} Balance Sheet Trends (${projectionYears}-Year Projection)`}
+                  id="property-balance-chart"
+                />
+              )}
+              <ConsolidatedBalanceSheet
+                properties={[property]}
+                global={global}
+                allProFormas={[{ property, data: financials }]}
+                year={projectionYears}
+                propertyIndex={0}
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="ppe" className="mt-6">
+            <PPECostBasisSchedule property={property} global={global} />
+          </TabsContent>
+
+          <TabsContent value="duediligence" className="mt-6">
+            <DueDiligenceTab propertyId={propertyId} />
+          </TabsContent>
+
+          <TabsContent value="documents" className="mt-6">
+            <div className="grid gap-6 lg:grid-cols-2">
+              <DocumentExtractionPanel propertyId={propertyId} />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="executive-summary" className="mt-6">
+            <ExecutiveSummaryTab propertyId={propertyId} />
+          </TabsContent>
+        </Tabs>
+        </CalcDetailsProvider>
+        </ScrollReveal>
+      </div>
+      </AnimatedPage>
+    </Layout>
+  );
+}
