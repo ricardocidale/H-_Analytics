@@ -187,6 +187,26 @@ const ICON_NONWHITE_RE =
   /<(?:[A-Z][a-zA-Z]*Icon|Icon[A-Z][a-zA-Z]*|Lucide[A-Z][a-zA-Z]*)\b[^>]*\btext-(?!white\b|current\b|inherit\b)\w/;
 
 /**
+ * Companion to ICON_NONWHITE_RE that handles the cn() helper form, e.g.:
+ *
+ *   <PlusIcon className={cn("w-4 h-4", isActive && "text-accent-pop")} />
+ *
+ * The base regex above relies on `[^>]*` between the icon tag and the
+ * `text-*` literal, which is broken by any `>` character earlier on the line
+ * (most commonly a JS comparison operator like `count > 0` inside the cn()
+ * conditional).  This companion regex skips the no-`>` constraint as long as
+ * the colour literal sits inside a `cn(` call:
+ *
+ *   icon-tag opens → ... → cn( → ... → "...text-<non-safe>..."
+ *
+ * The string-literal anchor (`["']`) plus the negative-lookahead for the
+ * three safe tokens keep the match scoped to actual non-white colour
+ * literals and avoid matching unrelated text-* substrings.
+ */
+const ICON_CN_NONWHITE_RE =
+  /<(?:[A-Z][a-zA-Z]*Icon|Icon[A-Z][a-zA-Z]*|Lucide[A-Z][a-zA-Z]*)\b.*\bcn\(.*["'][^"']*\btext-(?!white\b|current\b|inherit\b)[\w-]+/;
+
+/**
  * Matches `<Button` on a line, anchored to catch only the opening JSX tag
  * (not e.g. `</Button>` or `ButtonGroup`).
  */
@@ -404,9 +424,17 @@ for (const scanDir of SCAN_DIRS) {
       }
 
       // --- Guard 2: Icon component with non-white colour inside dark Button ---
-      if (ICON_NONWHITE_RE.test(lines[i])) {
+      // Two regexes cover the two common shapes:
+      //   • ICON_NONWHITE_RE     — colour literal in a plain className string
+      //   • ICON_CN_NONWHITE_RE  — colour literal inside a cn() helper call
+      // We pick whichever matches first on the line so the prefix slice (used
+      // to anchor the context window) lines up with the actual icon tag.
+      const iconBaseMatch = ICON_NONWHITE_RE.test(lines[i]);
+      const iconCnMatch = !iconBaseMatch && ICON_CN_NONWHITE_RE.test(lines[i]);
+      if (iconBaseMatch || iconCnMatch) {
+        const activeRe = iconBaseMatch ? ICON_NONWHITE_RE : ICON_CN_NONWHITE_RE;
         const start = Math.max(0, i - CONTEXT_LINES);
-        const iconPos = lines[i].search(ICON_NONWHITE_RE);
+        const iconPos = lines[i].search(activeRe);
         const iconLinePrefix = lines[i].slice(0, iconPos);
         const context = [...lines.slice(start, i), iconLinePrefix];
 

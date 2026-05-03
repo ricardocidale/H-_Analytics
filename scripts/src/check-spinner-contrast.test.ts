@@ -438,6 +438,67 @@ describe("check-spinner-contrast", () => {
     }
   });
 
+  it("catches a cn() icon className with text-accent-pop inside a dark Button", () => {
+    // The cn() helper hides the colour literal inside a conditional expression.
+    // The base ICON_NONWHITE_RE breaks when the conditional contains a `>`
+    // (e.g. `count > 0 && "text-accent-pop"`); the companion ICON_CN_NONWHITE_RE
+    // covers this case.
+    const srcDir = path.join(
+      WORKSPACE_ROOT,
+      "artifacts/hospitality-business-portal/src"
+    );
+    const tmpFile = path.join(srcDir, "_icon-contrast-test-cn-fixture.tsx");
+    const badJsx = [
+      "// AUTO-GENERATED TEST FIXTURE — deleted after test",
+      'import { cn } from "@/lib/utils";',
+      "export function Fixture({ count }: { count: number }) {",
+      "  return (",
+      '    <Button variant="default">',
+      '      <PlusIcon className={cn("w-4 h-4", count > 0 && "text-accent-pop")} />',
+      "    </Button>",
+      "  );",
+      "}",
+    ].join("\n");
+
+    try {
+      fs.writeFileSync(tmpFile, badJsx, "utf8");
+      const { stderr, status } = runCheck();
+      expect(status).toBe(1);
+      expect(stderr).toContain("VIOLATION");
+      expect(stderr).toContain("_icon-contrast-test-cn-fixture.tsx");
+    } finally {
+      fs.unlinkSync(tmpFile);
+    }
+  });
+
+  it("does NOT flag a cn() icon className that only uses safe colours", () => {
+    const srcDir = path.join(
+      WORKSPACE_ROOT,
+      "artifacts/hospitality-business-portal/src"
+    );
+    const tmpFile = path.join(srcDir, "_icon-contrast-test-cn-safe-fixture.tsx");
+    const okJsx = [
+      "// AUTO-GENERATED TEST FIXTURE — deleted after test",
+      'import { cn } from "@/lib/utils";',
+      "export function Fixture({ isActive }: { isActive: boolean }) {",
+      "  return (",
+      '    <Button variant="default">',
+      '      <PlusIcon className={cn("w-4 h-4", isActive && "text-white")} />',
+      "    </Button>",
+      "  );",
+      "}",
+    ].join("\n");
+
+    try {
+      fs.writeFileSync(tmpFile, okJsx, "utf8");
+      const { stdout, status } = runCheck();
+      expect(status).toBe(0);
+      expect(stdout).toContain("PASS");
+    } finally {
+      fs.unlinkSync(tmpFile);
+    }
+  });
+
   it("catches an Icon-prefixed icon with non-white colour inside a dark Button", () => {
     // Validates that the Icon* naming pattern (e.g. <IconSave>) is covered by Guard 2.
     const srcDir = path.join(
