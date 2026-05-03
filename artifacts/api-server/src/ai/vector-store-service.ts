@@ -82,6 +82,7 @@ export interface VectorChunk {
 
 export interface QueryMatch {
   id: string;
+  text: string;
   score: number;
   metadata: Record<string, string | number | boolean>;
 }
@@ -99,7 +100,7 @@ export async function queryByMetadataExact(
   await ensureStore();
 
   const sql = `
-    SELECT id, metadata, 1.0 AS score
+    SELECT id, text, metadata, 1.0 AS score
       FROM vector_chunks
      WHERE namespace = $1
        AND metadata @> $2::jsonb
@@ -107,11 +108,13 @@ export async function queryByMetadataExact(
   
   const { rows } = await pool.query<{
     id: string;
+    text: string;
     metadata: Record<string, string | number | boolean>;
   }>(sql, [namespace, JSON.stringify(filters), limit]);
 
   return rows.map((r) => ({
     id: r.id,
+    text: r.text ?? "",
     score: 1.0,
     metadata: r.metadata ?? {},
   }));
@@ -377,7 +380,7 @@ export async function queryChunks(
 
   if (filter && Object.keys(filter).length > 0) {
     const sql = `
-      SELECT id, metadata, 1 - (embedding <=> $2::vector) AS score
+      SELECT id, text, metadata, 1 - (embedding <=> $2::vector) AS score
         FROM vector_chunks
        WHERE namespace = $1
          AND metadata @> $3::jsonb
@@ -385,24 +388,26 @@ export async function queryChunks(
        LIMIT $4`;
     const { rows } = await pool.query<{
       id: string;
+      text: string;
       metadata: Record<string, string | number | boolean>;
       score: number;
     }>(sql, [namespace, literal, JSON.stringify(filter), topK]);
-    return rows.map((r) => ({ id: r.id, score: (Number.isFinite(Number(r.score)) ? Number(r.score) : 0), metadata: r.metadata ?? {} }));
+    return rows.map((r) => ({ id: r.id, text: r.text ?? "", score: (Number.isFinite(Number(r.score)) ? Number(r.score) : 0), metadata: r.metadata ?? {} }));
   }
 
   const sql = `
-    SELECT id, metadata, 1 - (embedding <=> $2::vector) AS score
+    SELECT id, text, metadata, 1 - (embedding <=> $2::vector) AS score
       FROM vector_chunks
      WHERE namespace = $1
   ORDER BY embedding <=> $2::vector ASC
      LIMIT $3`;
   const { rows } = await pool.query<{
     id: string;
+    text: string;
     metadata: Record<string, string | number | boolean>;
     score: number;
   }>(sql, [namespace, literal, topK]);
-  return rows.map((r) => ({ id: r.id, score: (Number.isFinite(Number(r.score)) ? Number(r.score) : 0), metadata: r.metadata ?? {} }));
+  return rows.map((r) => ({ id: r.id, text: r.text ?? "", score: (Number.isFinite(Number(r.score)) ? Number(r.score) : 0), metadata: r.metadata ?? {} }));
 }
 
 export async function deleteVectors(
@@ -438,12 +443,13 @@ export async function multiNamespaceQuery(
       try {
         let rows: Array<{
           id: string;
+          text: string;
           metadata: Record<string, string | number | boolean>;
           score: number;
         }>;
         if (filter && Object.keys(filter).length > 0) {
           ({ rows } = await pool.query(
-            `SELECT id, metadata, 1 - (embedding <=> $2::vector) AS score
+            `SELECT id, text, metadata, 1 - (embedding <=> $2::vector) AS score
                FROM vector_chunks
               WHERE namespace = $1
                 AND metadata @> $3::jsonb
@@ -453,7 +459,7 @@ export async function multiNamespaceQuery(
           ));
         } else {
           ({ rows } = await pool.query(
-            `SELECT id, metadata, 1 - (embedding <=> $2::vector) AS score
+            `SELECT id, text, metadata, 1 - (embedding <=> $2::vector) AS score
                FROM vector_chunks
               WHERE namespace = $1
            ORDER BY embedding <=> $2::vector ASC
@@ -463,6 +469,7 @@ export async function multiNamespaceQuery(
         }
         return rows.map((r) => ({
           id: r.id,
+          text: r.text ?? "",
           score: (Number.isFinite(Number(r.score)) ? Number(r.score) : 0),
           metadata: r.metadata ?? {},
           namespace: ns,
