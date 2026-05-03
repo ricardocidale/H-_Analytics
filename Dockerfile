@@ -1,7 +1,7 @@
 # ============================================================
 # Build stage
 # ============================================================
-FROM node:20-alpine AS build
+FROM node:20-bookworm-slim AS build
 
 WORKDIR /app
 
@@ -61,13 +61,19 @@ RUN pnpm --filter @workspace/api-server run build
 # ============================================================
 # Runtime stage
 # ============================================================
-FROM node:20-alpine AS runtime
+FROM node:20-bookworm-slim AS runtime
 
 ENV NODE_ENV=production
 WORKDIR /app
 
 # Install pnpm so we can use it to prune if needed, and for corepack consistency.
 RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Headless Chromium for Playwright PDF rendering (per-property investor decks).
+# `npx playwright install --with-deps chromium` installs both the apt system
+# libraries (libnss3, libxkbcommon, fonts, etc.) and the chromium binary into
+# /ms-playwright. Run AFTER node_modules is in place so the playwright package
+# is resolvable.
 
 # Copy the bundled api-server output from the build stage.
 # The esbuild bundle externalises native modules (@aws-sdk/*, sharp, etc.)
@@ -96,6 +102,14 @@ COPY --from=build /app/lib ./lib
 # Copy root package.json so Node can resolve workspace package metadata.
 COPY --from=build /app/package.json          ./package.json
 COPY --from=build /app/pnpm-workspace.yaml   ./pnpm-workspace.yaml
+
+# Install headless Chromium + its system libraries for Playwright PDF rendering.
+# Done here so playwright is resolvable from the copied node_modules. Browsers
+# land in /ms-playwright (default cache path); --with-deps runs the apt install
+# of nss, fonts, libxkbcommon, etc.
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN npx --yes playwright install --with-deps chromium \
+  && rm -rf /var/lib/apt/lists/*
 
 EXPOSE 5000
 

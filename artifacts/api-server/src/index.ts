@@ -26,6 +26,7 @@ import compression from "compression";
 import { registerRoutes } from "./legacyRoutes";
 import { registerImageRoutes } from "./routes/images";
 import { propertySlidesRouter, preGenerateAllSlides } from "./routes/property-slides";
+import { propertyDeckPdfRouter } from "./routes/property-deck-pdf";
 import { indexKnowledgeBase } from "./ai/knowledge-base";
 import { indexAllAssets } from "./ai/asset-intelligence";
 import { indexAllMarketResearch } from "./ai/vector-indexing";
@@ -193,6 +194,7 @@ app.use((req, res, next) => {
 
   registerImageRoutes(app);
   app.use(propertySlidesRouter);
+  app.use(propertyDeckPdfRouter);
   const { registerGoogleAuthRoutes } = await import("./routes/google-auth");
   registerGoogleAuthRoutes(app);
   await registerRoutes(httpServer, app);
