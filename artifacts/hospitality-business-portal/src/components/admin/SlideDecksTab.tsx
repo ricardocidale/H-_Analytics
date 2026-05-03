@@ -48,15 +48,13 @@ const STATUS_STYLES: Record<string, string> = {
 
 const STALE_DAYS = 7;
 
-function downloadViaAnchor(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
+function downloadViaAnchor(url: string, filename: string): void {
   const anchor = document.createElement("a");
   anchor.href = url;
   anchor.download = filename;
   document.body.appendChild(anchor);
   anchor.click();
   document.body.removeChild(anchor);
-  URL.revokeObjectURL(url);
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -238,7 +236,7 @@ function SlideStatusBadge({ slide }: { slide: SlideStatus | undefined }) {
 
 // ── Main component ─────────────────────────────────────────────────────────
 
-type DownloadState = "idle" | "loading" | "done" | "error";
+type DownloadState = "idle" | "done";
 
 export default function SlideDecksTab() {
   const queryClient = useQueryClient();
@@ -288,61 +286,13 @@ export default function SlideDecksTab() {
     setDownloadStates(prev => ({ ...prev, [key]: state }));
   }
 
-  async function handleDownload(propertyId: number, propertyName: string, format: "pptx" | "image") {
+  function handleDownload(propertyId: number, propertyName: string, format: "pptx" | "image") {
     const key = `${propertyId}-${format}`;
-    setDownloadState(key, "loading");
-    try {
-      const resp = await fetch(`/api/properties/${propertyId}/slides?format=${format}`, {
-        credentials: "include",
-      });
-      if (!resp.ok) {
-        const body = await resp.json().catch(() => ({}));
-        throw new Error(body.error ?? `HTTP ${resp.status}`);
-      }
-      const blob = await resp.blob();
-      const slug = propertyName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-      const filename = format === "image" ? `${slug}-slides-images.pptx` : `${slug}-slides.pptx`;
-
-      const win = window as unknown as Record<string, unknown>;
-      let inIframe = false;
-      try {
-        inIframe = window.self !== window.top;
-      } catch {
-        inIframe = true;
-      }
-      const canUsePicker = !inIframe && typeof win["showSaveFilePicker"] === "function";
-
-      if (canUsePicker) {
-        try {
-          const showSaveFilePicker = win["showSaveFilePicker"] as (opts: unknown) => Promise<{
-            createWritable: () => Promise<{ write: (data: Blob) => Promise<void>; close: () => Promise<void> }>;
-          }>;
-          const handle = await showSaveFilePicker({
-            suggestedName: filename,
-            types: [{ description: "PowerPoint Presentation", accept: { "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"] } }],
-          });
-          const writable = await handle.createWritable();
-          await writable.write(blob);
-          await writable.close();
-        } catch (pickerErr) {
-          if (pickerErr instanceof DOMException && pickerErr.name === "AbortError") throw pickerErr;
-          downloadViaAnchor(blob, filename);
-        }
-      } else {
-        downloadViaAnchor(blob, filename);
-      }
-
-      setDownloadState(key, "done");
-      setTimeout(() => setDownloadState(key, "idle"), 4_000);
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") {
-        setDownloadState(key, "idle");
-        return;
-      }
-      console.error(`Slide download failed for property ${propertyId} format ${format}:`, err);
-      setDownloadState(key, "error");
-      setTimeout(() => setDownloadState(key, "idle"), 6_000);
-    }
+    const slug = propertyName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const filename = format === "image" ? `${slug}-slides-images.pptx` : `${slug}-slides.pptx`;
+    downloadViaAnchor(`/api/properties/${propertyId}/slides?format=${format}`, filename);
+    setDownloadState(key, "done");
+    setTimeout(() => setDownloadState(key, "idle"), 4_000);
   }
 
   if (propsLoading) {
@@ -440,36 +390,32 @@ export default function SlideDecksTab() {
                   <Button
                     size="sm"
                     variant="outline"
-                    disabled={!isPptxReady || dlStatePptx === "loading"}
+                    disabled={!isPptxReady}
                     onClick={() => handleDownload(p.id, p.name, "pptx")}
                     className="gap-1.5 flex-1"
                     title={isPptxReady ? "Download editable PPTX" : "Generate slides first"}
                   >
-                    {dlStatePptx === "loading" ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : dlStatePptx === "done" ? (
+                    {dlStatePptx === "done" ? (
                       <IconCheckCircle2 className="h-3.5 w-3.5 text-green-500" />
                     ) : (
                       <IconDownload className="h-3.5 w-3.5" />
                     )}
-                    {dlStatePptx === "loading" ? "Saving…" : dlStatePptx === "done" ? "Saved" : "Download PPTX"}
+                    {dlStatePptx === "done" ? "Saved" : "Download PPTX"}
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
-                    disabled={!isImageReady || dlStateImage === "loading"}
+                    disabled={!isImageReady}
                     onClick={() => handleDownload(p.id, p.name, "image")}
                     className="gap-1.5 flex-1"
                     title={isImageReady ? "Download image-locked PPTX" : "Generate slides first"}
                   >
-                    {dlStateImage === "loading" ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : dlStateImage === "done" ? (
+                    {dlStateImage === "done" ? (
                       <IconCheckCircle2 className="h-3.5 w-3.5 text-green-500" />
                     ) : (
                       <IconDownload className="h-3.5 w-3.5" />
                     )}
-                    {dlStateImage === "loading" ? "Saving…" : dlStateImage === "done" ? "Saved" : "Download Images"}
+                    {dlStateImage === "done" ? "Saved" : "Download Images"}
                   </Button>
                 </div>
 
