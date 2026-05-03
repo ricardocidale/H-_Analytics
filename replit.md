@@ -97,6 +97,8 @@ Skills are process documents that guide AI agents. See `claude.md` § "Agent & S
 
 > **LB Slides** (DB schema, API routes, Playwright HTML→PDF pipeline, admin UI): see `claude.md` § "LB Slides — investor PDF decks (Playwright HTML→PDF)". Visual spec source-of-truth = `attached_assets/L+B_Property_6-Slide_Cannonical_1777775653617.pdf` + the per-slide briefs in `attached_assets/Pasted-SLIDE-N-…txt` + the **machine-readable layout extract** at `attached_assets/slide_analysis_agent_report.precise_1777824741855.json` (per-span bbox/font/size/color in 960×540 pt). The legacy Python + `python-pptx` track has been removed — do not reintroduce it.
 
+> **LB Slides rebuild canon** (locked 2026-05-03, see `claude.md` Recent Changes for full rationale): canonical = visual spec only; body text + every numeric from seed/engine; CSS `#FFFFFF` page background; consistent font stack with exceptions only after strong-LLM design review; six-slide multi-property deck (Slide 1 Belleayre id 32, Slide 2 Loch Sheldrake id 43, Slide 3 San Diego id 41, Slides 4–6 property-agnostic). "Sul Monte", "Hazelnis Retreat", "Cartagena Duplex" are canonical filler names; the seed-named identities (`Belleayre Mountain`, `Loch Sheldrake`, `San Diego`) are canonical. Provisional pending user preview of v1.
+
 > **Canonical page archetypes**: see `claude.md` § "Canonical Page Archetypes".
 
 ## Secrets present in this Repl (dev)
