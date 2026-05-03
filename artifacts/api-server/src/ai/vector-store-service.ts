@@ -84,7 +84,6 @@ export interface QueryMatch {
   id: string;
   text: string;
   score: number;
-  text: string;
   metadata: Record<string, string | number | boolean>;
 }
 
@@ -117,7 +116,6 @@ export async function queryByMetadataExact(
     id: r.id,
     text: r.text ?? "",
     score: 1.0,
-    text: r.text ?? "",
     metadata: r.metadata ?? {},
   }));
 }
@@ -473,7 +471,6 @@ export async function multiNamespaceQuery(
           id: r.id,
           text: r.text ?? "",
           score: (Number.isFinite(Number(r.score)) ? Number(r.score) : 0),
-          text: r.text ?? "",
           metadata: r.metadata ?? {},
           namespace: ns,
         }));

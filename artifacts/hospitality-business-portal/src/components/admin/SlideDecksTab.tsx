@@ -48,6 +48,17 @@ const STATUS_STYLES: Record<string, string> = {
 
 const STALE_DAYS = 7;
 
+function downloadViaAnchor(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function statusLabel(status?: string | null): string {
@@ -293,26 +304,32 @@ export default function SlideDecksTab() {
       const filename = format === "image" ? `${slug}-slides-images.pptx` : `${slug}-slides.pptx`;
 
       const win = window as unknown as Record<string, unknown>;
-      if (typeof win["showSaveFilePicker"] === "function") {
-        const showSaveFilePicker = win["showSaveFilePicker"] as (opts: unknown) => Promise<{
-          createWritable: () => Promise<{ write: (data: Blob) => Promise<void>; close: () => Promise<void> }>;
-        }>;
-        const handle = await showSaveFilePicker({
-          suggestedName: filename,
-          types: [{ description: "PowerPoint Presentation", accept: { "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"] } }],
-        });
-        const writable = await handle.createWritable();
-        await writable.write(blob);
-        await writable.close();
+      let inIframe = false;
+      try {
+        inIframe = window.self !== window.top;
+      } catch {
+        inIframe = true;
+      }
+      const canUsePicker = !inIframe && typeof win["showSaveFilePicker"] === "function";
+
+      if (canUsePicker) {
+        try {
+          const showSaveFilePicker = win["showSaveFilePicker"] as (opts: unknown) => Promise<{
+            createWritable: () => Promise<{ write: (data: Blob) => Promise<void>; close: () => Promise<void> }>;
+          }>;
+          const handle = await showSaveFilePicker({
+            suggestedName: filename,
+            types: [{ description: "PowerPoint Presentation", accept: { "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"] } }],
+          });
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+        } catch (pickerErr) {
+          if (pickerErr instanceof DOMException && pickerErr.name === "AbortError") throw pickerErr;
+          downloadViaAnchor(blob, filename);
+        }
       } else {
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download = filename;
-        document.body.appendChild(anchor);
-        anchor.click();
-        document.body.removeChild(anchor);
-        URL.revokeObjectURL(url);
+        downloadViaAnchor(blob, filename);
       }
 
       setDownloadState(key, "done");
