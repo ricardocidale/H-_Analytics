@@ -95,6 +95,14 @@ COPY --from=build /app/artifacts/mockup-sandbox/dist                     ./artif
 # checks first (process.cwd()/dist/seed-production.sql).
 COPY --from=build /app/artifacts/api-server/script/seed-production.sql ./dist/seed-production.sql
 
+# Drizzle migrations — required at runtime by `migrate(db, { migrationsFolder:
+# "./migrations" })` in src/index.ts. The migrate() runner reads each SQL file
+# plus meta/_journal.json from disk; without this COPY the container boots,
+# binds the port, then crashes with:
+#   FATAL: Schema migrations failed: Can't find meta/_journal.json file
+# Path matches the relative folder the runner expects (process.cwd()/migrations).
+COPY --from=build /app/artifacts/api-server/migrations ./migrations
+
 # Copy the production node_modules from the build stage.
 # pnpm stores everything under the root node_modules with symlinks into
 # .pnpm; copy the whole tree to keep symlinks intact.
