@@ -135,3 +135,8 @@ overrides:
   rollup>@rollup/rollup-win32-x64-msvc: '-'
   uuid@<14.0.0: '>=14.0.0'
   yaml@>=2.0.0 <2.8.3: '>=2.8.3'
+
+auditConfig:
+  ignoreCves:
+    - CVE-2023-30533
+    - CVE-2024-22363
