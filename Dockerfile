@@ -89,8 +89,11 @@ COPY --from=build /app/artifacts/api-server/dist ./artifacts/api-server/dist
 COPY --from=build /app/artifacts/hospitality-business-portal/dist/public ./artifacts/api-server/dist/public
 COPY --from=build /app/artifacts/mockup-sandbox/dist                     ./artifacts/api-server/dist/mockup-sandbox
 
-# Production seed SQL — loaded at first boot to sync canonical data
-COPY --from=build /app/dist/seed-production.sql ./dist/seed-production.sql
+# Production seed SQL — loaded at first boot to sync canonical data.
+# Source-of-truth lives in artifacts/api-server/script/ (committed to git);
+# we stage it under /app/dist/ at runtime to match the path the api-server
+# checks first (process.cwd()/dist/seed-production.sql).
+COPY --from=build /app/artifacts/api-server/script/seed-production.sql ./dist/seed-production.sql
 
 # Copy the production node_modules from the build stage.
 # pnpm stores everything under the root node_modules with symlinks into
