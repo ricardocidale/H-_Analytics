@@ -114,7 +114,7 @@ COPY --from=build /app/pnpm-workspace.yaml   ./pnpm-workspace.yaml
 # land in /ms-playwright (default cache path); --with-deps runs the apt install
 # of nss, fonts, libxkbcommon, etc.
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
-RUN npx --yes playwright install --with-deps chromium \
+RUN pnpm --filter @workspace/api-server exec playwright install --with-deps chromium \
   && rm -rf /var/lib/apt/lists/*
 
 EXPOSE 5000
