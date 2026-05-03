@@ -18,7 +18,6 @@ export const scenarioResults = pgTable("scenario_results", {
   computedAt: timestamp("computed_at").defaultNow().notNull(),
 }, (table) => [
   index("scenario_results_scenario_id_idx").on(table.scenarioId),
-  index("scenario_results_output_hash_idx").on(table.outputHash),
   unique("scenario_results_scenario_output_unique").on(table.scenarioId, table.outputHash),
 ]);
 

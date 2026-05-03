@@ -82,8 +82,6 @@ export const modelDefaults = pgTable("model_defaults", {
     table.businessType,
     table.sizeBand,
   ),
-  index("idx_model_defaults_grouping").on(table.category, table.subTab, table.cardKey),
-  index("idx_model_defaults_pending").on(table.proposedValue),
   check(
     "model_defaults_last_set_source_check",
     sql`${table.lastSetSource} IN ('seed', 'manual', 'analyst_accepted')`,

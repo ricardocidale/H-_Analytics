@@ -60,7 +60,6 @@ export const modelConstants = pgTable("model_constants", {
     table.country,
     table.countrySubdivision,
   ),
-  index("idx_mc_key_country").on(table.constantKey, table.country),
 ]);
 
 // Manual zod schema (consistent with model_constant_overrides convention).

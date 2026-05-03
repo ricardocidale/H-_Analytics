@@ -34,9 +34,7 @@ export async function runSpecialistRecommendationEvents001(): Promise<void> {
     CREATE INDEX IF NOT EXISTS specialist_rec_events_specialist_idx
       ON specialist_recommendation_events (specialist_id)
   `);
-  await db.execute(sql`
-    CREATE INDEX IF NOT EXISTS specialist_rec_events_specialist_field_idx
-      ON specialist_recommendation_events (specialist_id, field_key)
-  `);
+  // specialist_rec_events_specialist_field_idx dropped in migration 0030
+  // (Task #973: composite redundant with specialist_rec_events_specialist_idx).
   logger.info(`${TAG} specialist_recommendation_events ready`);
 }

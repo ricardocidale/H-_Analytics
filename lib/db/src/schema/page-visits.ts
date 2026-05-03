@@ -20,7 +20,6 @@ export const userPageVisits = pgTable("user_page_visits", {
 }, (table) => [
   unique("uq_user_page_visit").on(table.userId, table.pageKey),
   index("idx_user_page_visits_user").on(table.userId),
-  index("idx_user_page_visits_page").on(table.pageKey),
 ]);
 
 export type UserPageVisit = typeof userPageVisits.$inferSelect;

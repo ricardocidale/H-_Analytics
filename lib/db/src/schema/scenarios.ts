@@ -85,10 +85,7 @@ export const scenarioPropertyOverrides = pgTable("scenario_property_overrides", 
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("spo_scenario_id_idx").on(table.scenarioId),
-  index("spo_scenario_property_id_idx").on(table.scenarioId, table.propertyId),
-  index("spo_property_name_idx").on(table.propertyName),
   unique("spo_scenario_property_unique").on(table.scenarioId, table.propertyName),
-  index("spo_overrides_gin_idx").using("gin", table.overrides),
 ]);
 
 // --- SCENARIO ACCESS TABLE ---

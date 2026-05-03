@@ -61,7 +61,6 @@ export const modelConstantOverrides = pgTable("model_constant_overrides", {
     table.country,
     table.countrySubdivision,
   ),
-  index("idx_mco_key_country").on(table.constantKey, table.country),
   // Covering index for FK to users (admin audit lookups by editor).
   index("idx_mco_created_by").on(table.createdBy),
   check("mco_source_check", sql`${table.source} IN ('analyst', 'manual')`),

@@ -26,7 +26,8 @@ export async function runAdminResources002(): Promise<void> {
     )
   `);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS resource_health_checks_resource_idx ON resource_health_checks (resource_id)`);
-  await db.execute(sql`CREATE INDEX IF NOT EXISTS resource_health_checks_resource_time_idx ON resource_health_checks (resource_id, checked_at)`);
+  // resource_health_checks_resource_time_idx dropped in migration 0030
+  // (Task #973: composite redundant with resource_health_checks_resource_idx).
 
   logger.info(`${TAG} resource_health_checks table ready`);
 }

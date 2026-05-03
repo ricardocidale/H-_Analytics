@@ -38,7 +38,6 @@ export const vectorChunks = pgTable(
   },
   (t) => ({
     pk: primaryKey({ columns: [t.namespace, t.id], name: "vector_chunks_pk" }),
-    namespaceIdx: index("vector_chunks_namespace_idx").on(t.namespace),
   }),
 );
 

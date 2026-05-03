@@ -211,6 +211,13 @@
       "when": 1746316800000,
       "tag": "0030_evidence_based_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1777939200000,
+      "tag": "0031_drop_unused_indexes",
+      "breakpoints": true
     }
   ]
 }

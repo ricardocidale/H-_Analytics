@@ -810,7 +810,6 @@ export const specialistRecommendationEvents = pgTable(
   },
   (t) => [
     index("specialist_rec_events_specialist_idx").on(t.specialistId),
-    index("specialist_rec_events_specialist_field_idx").on(t.specialistId, t.fieldKey),
   ],
 );
 export type SpecialistRecommendationEventRow =

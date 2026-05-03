@@ -167,7 +167,6 @@ export const adminResources = pgTable(
   },
   (t) => [
     uniqueIndex("admin_resources_kind_slug_uniq").on(t.kind, t.slug),
-    index("admin_resources_kind_idx").on(t.kind),
     // FK indexes (Task #971): support ON DELETE SET NULL cascades from users.
     index("admin_resources_created_by_user_idx").on(t.createdByUserId),
     index("admin_resources_updated_by_user_idx").on(t.updatedByUserId),
@@ -287,7 +286,6 @@ export const auditBreakGlassOverrides = pgTable(
   },
   (t) => [
     index("break_glass_specialist_idx").on(t.specialistId),
-    index("break_glass_expires_idx").on(t.expiresAt),
     // FK indexes (Task #971): support cascades from admin_resources / users.
     index("break_glass_override_resource_idx").on(t.overrideResourceId),
     index("break_glass_created_by_user_idx").on(t.createdByUserId),
@@ -334,7 +332,6 @@ export const resourceHealthChecks = pgTable(
   },
   (t) => [
     index("resource_health_checks_resource_idx").on(t.resourceId),
-    index("resource_health_checks_resource_time_idx").on(t.resourceId, t.checkedAt),
     // FK index (Task #971): support ON DELETE SET NULL cascades from users.
     index("resource_health_checks_triggered_by_user_idx").on(t.triggeredByUserId),
   ],
@@ -407,7 +404,6 @@ export const specialistResearchQualitySnapshots = pgTable(
   },
   (t) => [
     index("specialist_quality_specialist_idx").on(t.specialistId),
-    index("specialist_quality_specialist_time_idx").on(t.specialistId, t.computedAt),
   ],
 );
 

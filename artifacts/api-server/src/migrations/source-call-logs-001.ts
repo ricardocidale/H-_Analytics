@@ -18,7 +18,7 @@ export async function runSourceCallLogs001(): Promise<void> {
     )
   `);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS source_call_logs_source_idx ON source_call_logs (source_id)`);
-  await db.execute(sql`CREATE INDEX IF NOT EXISTS source_call_logs_ts_idx ON source_call_logs (timestamp)`);
+  // source_call_logs_ts_idx dropped in migration 0030 (Task #973: unused).
 
   const cols = [
     { name: "description", ddl: "text" },

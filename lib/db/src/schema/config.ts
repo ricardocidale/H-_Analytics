@@ -404,7 +404,6 @@ export const seedDefaults = pgTable("seed_defaults", {
   appliedAt: timestamp("applied_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   unique("uq_seed_defaults_entity_field").on(table.entityType, table.entityKey, table.fieldName),
-  index("idx_seed_defaults_lookup").on(table.entityType, table.entityKey),
 ]);
 
 export type SeedDefault = typeof seedDefaults.$inferSelect;

@@ -13,8 +13,7 @@ export async function runSeedDefaults001() {
       CONSTRAINT uq_seed_defaults_entity_field UNIQUE (entity_type, entity_key, field_name)
     )
   `);
-  await db.execute(sql`
-    CREATE INDEX IF NOT EXISTS idx_seed_defaults_lookup
-      ON seed_defaults(entity_type, entity_key)
-  `);
+  // idx_seed_defaults_lookup dropped in migration 0030 (Task #973: unused;
+  // the uq_seed_defaults_entity_field unique constraint already provides a
+  // btree on (entity_type, entity_key, field_name) that covers prefix lookups).
 }

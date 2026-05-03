@@ -10,10 +10,7 @@ const TAG = "composite-indexes-001";
  */
 export async function runCompositeIndexes001(): Promise<void> {
   try {
-    // Sessions: hourly cleanup scans by expiresAt
-    await db.execute(sql`
-      CREATE INDEX IF NOT EXISTS sessions_expires_at_idx ON sessions (expires_at)
-    `);
+    // sessions_expires_at_idx dropped in migration 0030 (Task #973: unused).
 
     // Market research: grouped by type + sorted by updatedAt
     await db.execute(sql`

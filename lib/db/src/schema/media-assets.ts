@@ -38,8 +38,6 @@ export const mediaAssets = pgTable(
     createdAt: timestamp("created_at", { withTimezone: false }).notNull().defaultNow(),
   },
   (t) => [
-    index("media_assets_kind_idx").on(t.kind),
-    index("media_assets_sha256_idx").on(t.sha256),
   ],
 );
 

@@ -343,7 +343,6 @@ export const properties = pgTable("properties", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   index("properties_user_id_idx").on(table.userId),
-  index("properties_created_at_idx").on(table.createdAt),
   // Covering indexes for FK columns — joined / filtered by admin pages.
   index("properties_brand_id_idx").on(table.brandId),
   index("properties_created_by_idx").on(table.createdBy),

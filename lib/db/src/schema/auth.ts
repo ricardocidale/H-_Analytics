@@ -71,7 +71,6 @@ export const sessions = pgTable("sessions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("sessions_user_id_idx").on(table.userId),
-  index("sessions_expires_at_idx").on(table.expiresAt),
 ]);
 
 export type Session = typeof sessions.$inferSelect;

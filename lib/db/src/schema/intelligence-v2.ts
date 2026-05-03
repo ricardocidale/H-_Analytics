@@ -49,7 +49,6 @@ export const assumptionGuidance = pgTable("assumption_guidance", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   unique("assumption_guidance_unique").on(table.scenarioId, table.entityType, table.entityId, table.assumptionKey),
-  index("assumption_guidance_entity_idx").on(table.entityType, table.entityId),
   index("assumption_guidance_scenario_idx").on(table.scenarioId),
 ]);
 
@@ -231,10 +230,6 @@ export const assumptionChangeLog = pgTable("assumption_change_log", {
   researchRunId: integer("research_run_id").references(() => researchRuns.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
-  index("assumption_change_log_entity_idx").on(table.entityType, table.entityId),
-  index("assumption_change_log_field_idx").on(table.fieldName),
-  index("assumption_change_log_source_idx").on(table.changeSource),
-  index("assumption_change_log_created_idx").on(table.createdAt),
   // FK indexes (Task #971): support ON DELETE SET NULL cascades.
   index("assumption_change_log_scenario_idx").on(table.scenarioId),
   index("assumption_change_log_user_idx").on(table.userId),
@@ -272,7 +267,6 @@ export const assumptionAcknowledgments = pgTable("assumption_acknowledgments", {
   // Per-user uniqueness — different users can independently acknowledge the
   // same company-level field on their own scenarios without colliding.
   unique("assumption_ack_entity_field_uq").on(table.entityType, table.entityId, table.fieldName, table.userId),
-  index("assumption_ack_entity_idx").on(table.entityType, table.entityId, table.userId),
 ]);
 
 export const insertAssumptionAcknowledgmentSchema = createInsertSchema(assumptionAcknowledgments).pick({
@@ -361,7 +355,6 @@ export const rebeccaFeedback = pgTable("rebecca_feedback", {
   status: text("status").notNull().default("new"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
-  index("rebecca_feedback_status_idx").on(table.status),
   index("rebecca_feedback_user_idx").on(table.userId),
   index("rebecca_feedback_conv_idx").on(table.conversationId),
   // Task #972: admin feedback queue (WHERE status = $1 ORDER BY created_at DESC) —
@@ -388,7 +381,6 @@ export const coverageSnapshots = pgTable("coverage_snapshots", {
   coveragePct: real("coverage_pct").notNull().default(0),
   snapshotDate: date("snapshot_date").defaultNow().notNull(),
 }, (table) => [
-  index("coverage_snapshots_entity_idx").on(table.entityType, table.entityId),
   index("coverage_snapshots_scenario_idx").on(table.scenarioId),
 ]);
 
@@ -440,7 +432,6 @@ export const sourceCallLogs = pgTable("source_call_logs", {
   errorMessage: text("error_message"),
 }, (table) => [
   index("source_call_logs_source_idx").on(table.sourceId),
-  index("source_call_logs_ts_idx").on(table.timestamp),
 ]);
 
 export const insertSourceCallLogSchema = createInsertSchema(sourceCallLogs).pick({
@@ -458,7 +449,6 @@ export const integrationKeyRotations = pgTable("integration_key_rotations", {
   previousKeyHash: text("previous_key_hash"),
   notes: text("notes"),
 }, (table) => [
-  index("integration_key_rotations_service_idx").on(table.serviceKey),
   // FK index (Task #971): support ON DELETE SET NULL cascade from users.
   index("integration_key_rotations_rotated_by_idx").on(table.rotatedBy),
 ]);
@@ -709,9 +699,6 @@ export const hospitalityBenchmarks = pgTable("hospitality_benchmarks", {
   updatedBy: integer("updated_by").references(() => users.id, { onDelete: "set null" }),
 }, (table) => [
   unique("hospitality_benchmarks_metric_country_year").on(table.metricKey, table.country, table.sourceYear),
-  index("hospitality_benchmarks_category_idx").on(table.category),
-  index("hospitality_benchmarks_segment_idx").on(table.segment),
-  index("hospitality_benchmarks_active_idx").on(table.isActive),
 ]);
 
 export const insertHospitalityBenchmarkSchema = createInsertSchema(hospitalityBenchmarks).pick({

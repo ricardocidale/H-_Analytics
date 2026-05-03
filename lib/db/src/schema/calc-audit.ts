@@ -29,7 +29,6 @@ export const calculationAuditLogs = pgTable("calculation_audit_logs", {
   index("calc_audit_scenario_idx").on(table.scenarioId),
   index("calc_audit_property_idx").on(table.propertyId),
   index("calc_audit_user_idx").on(table.userId),
-  index("calc_audit_computed_at_idx").on(table.computedAt),
 ]);
 
 export const insertCalcAuditLogSchema = z.object({

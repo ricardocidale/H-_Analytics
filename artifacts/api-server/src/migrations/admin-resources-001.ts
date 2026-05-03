@@ -50,7 +50,7 @@ export async function runAdminResources001(): Promise<void> {
   await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS admin_resources_kind_slug_uniq ON admin_resources (kind, slug)`);
   // Drop legacy duplicate name created by earlier revisions of this file.
   await db.execute(sql`DROP INDEX IF EXISTS admin_resources_kind_slug_idx`);
-  await db.execute(sql`CREATE INDEX IF NOT EXISTS admin_resources_kind_idx ON admin_resources (kind)`);
+  // admin_resources_kind_idx dropped in migration 0030 (Task #973: unused).
 
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS admin_resource_versions (
@@ -89,7 +89,7 @@ export async function runAdminResources001(): Promise<void> {
     )
   `);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS break_glass_specialist_idx ON audit_break_glass_overrides (specialist_id)`);
-  await db.execute(sql`CREATE INDEX IF NOT EXISTS break_glass_expires_idx ON audit_break_glass_overrides (expires_at)`);
+  // break_glass_expires_idx dropped in migration 0030 (Task #973: unused).
 
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS specialist_assignments (

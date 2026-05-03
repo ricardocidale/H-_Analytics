@@ -25,7 +25,7 @@ export async function runCalcAudit001(): Promise<void> {
   await db.execute(sql`CREATE INDEX IF NOT EXISTS calc_audit_scenario_idx ON calculation_audit_logs (scenario_id)`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS calc_audit_property_idx ON calculation_audit_logs (property_id)`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS calc_audit_user_idx ON calculation_audit_logs (user_id)`);
-  await db.execute(sql`CREATE INDEX IF NOT EXISTS calc_audit_computed_at_idx ON calculation_audit_logs (computed_at)`);
+  // calc_audit_computed_at_idx dropped in migration 0030 (Task #973: unused).
 
   logger.info(`${TAG} calculation_audit_logs table ready`);
 }

@@ -37,9 +37,6 @@ export const activityLogs = pgTable("activity_logs", {
   ipAddress: text("ip_address"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
-  index("activity_logs_user_id_created_at_idx").on(table.userId, table.createdAt),
-  index("activity_logs_entity_type_entity_id_idx").on(table.entityType, table.entityId),
-  index("activity_logs_created_at_idx").on(table.createdAt),
 ]);
 
 export const insertActivityLogSchema = z.object({
@@ -67,7 +64,6 @@ export const verificationRuns = pgTable("verification_runs", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("verification_runs_user_id_idx").on(table.userId),
-  index("verification_runs_created_at_idx").on(table.createdAt),
 ]);
 
 export const insertVerificationRunSchema = z.object({

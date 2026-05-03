@@ -20,9 +20,7 @@ export const marketResearch = pgTable("market_research", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   index("market_research_user_id_idx").on(table.userId),
-  index("market_research_type_idx").on(table.type),
   index("market_research_property_id_idx").on(table.propertyId),
-  index("market_research_updated_at_idx").on(table.updatedAt),
   index("market_research_type_updated_idx").on(table.type, table.updatedAt),
 ]);
 
@@ -253,9 +251,7 @@ export const analystRefreshAuditLog = pgTable("analyst_refresh_audit_log", {
   status: text("status").notNull().default("success"), // success | failure | aborted | pending
   errorMessage: text("error_message"),
 }, (table) => [
-  index("analyst_refresh_audit_table_idx").on(table.tableId),
   index("analyst_refresh_audit_admin_idx").on(table.adminId),
-  index("analyst_refresh_audit_started_idx").on(table.startedAt),
 ]);
 
 export const insertAnalystRefreshAuditLogSchema = createInsertSchema(analystRefreshAuditLog).pick({
