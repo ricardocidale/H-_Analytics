@@ -9,6 +9,7 @@
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
     "check:replit-independence": "pnpm --filter @workspace/scripts run check:replit-independence",
     "check:magic-numbers": "pnpm --filter @workspace/scripts run check:magic-numbers",
+    "check:migration-guards": "pnpm --filter @workspace/scripts run check:migration-guards",
     "check:spinner-contrast": "pnpm --filter @workspace/scripts run check:spinner-contrast",
     "check:production-image": "pnpm --filter @workspace/scripts run check:production-image"
   },

@@ -1,0 +1,127 @@
+{
+  "$schema": "./migration-guards.schema.json",
+  "_doc": "Every entry in migrations/meta/_journal.json must appear here. See README.md for the belt-and-suspenders rationale and how to choose a status.",
+  "entries": {
+    "0000_brainy_mother_askani": {
+      "status": "legacy",
+      "reason": "Pre-bootstrap baseline schema. Pre-marked as applied by bootstrapDrizzleMigrationState() on legacy DBs."
+    },
+    "0001_optional_password_hash": {
+      "status": "legacy",
+      "reason": "Pre-bootstrap. Pre-marked as applied by bootstrapDrizzleMigrationState() on legacy DBs."
+    },
+    "0002_db_integrity_hardening": {
+      "status": "legacy",
+      "reason": "Pre-bootstrap. Pre-marked as applied by bootstrapDrizzleMigrationState() on legacy DBs."
+    },
+    "0003_add_business_insurance": {
+      "status": "legacy",
+      "reason": "Pre-bootstrap. Pre-marked as applied by bootstrapDrizzleMigrationState() on legacy DBs."
+    },
+    "0004_consolidated_schema": {
+      "status": "self-idempotent",
+      "reason": "Consolidated baseline schema; all statements use IF NOT EXISTS / IF EXISTS guards. Runs via migrate() on every DB, including legacy."
+    },
+    "0005_google_drive_tokens": {
+      "status": "self-idempotent",
+      "reason": "CREATE TABLE IF NOT EXISTS only."
+    },
+    "0006_add_missing_indexes": {
+      "status": "self-idempotent",
+      "reason": "CREATE INDEX IF NOT EXISTS only."
+    },
+    "0007_scenario_shares": {
+      "status": "self-idempotent",
+      "reason": "CREATE TABLE IF NOT EXISTS / ADD COLUMN guarded by DO blocks."
+    },
+    "0008_scenario_computed_results": {
+      "status": "self-idempotent",
+      "reason": "CREATE TABLE IF NOT EXISTS only."
+    },
+    "0009_intelligence_v2": {
+      "status": "self-idempotent",
+      "reason": "Tables and columns added with IF NOT EXISTS / DO block guards."
+    },
+    "0010_scenario_service_templates": {
+      "status": "self-idempotent",
+      "reason": "ADD COLUMN service_templates IF NOT EXISTS on scenarios."
+    },
+    "0011_capital_raise_rename": {
+      "status": "self-idempotent",
+      "reason": "Column rename guarded by information_schema check in DO block."
+    },
+    "0012_pgvector_store": {
+      "status": "self-idempotent",
+      "reason": "CREATE EXTENSION IF NOT EXISTS + CREATE TABLE IF NOT EXISTS."
+    },
+    "0013_industry_vertical_exit_multiple": {
+      "status": "self-idempotent",
+      "reason": "ADD COLUMN IF NOT EXISTS only."
+    },
+    "0014_saved_tabs": {
+      "status": "self-idempotent",
+      "reason": "CREATE TABLE IF NOT EXISTS only."
+    },
+    "0015_drop_required_fields_config": {
+      "status": "self-idempotent",
+      "reason": "DROP TABLE IF EXISTS only."
+    },
+    "0016_tax_bulletin_cache": {
+      "status": "self-idempotent",
+      "reason": "CREATE TABLE IF NOT EXISTS only."
+    },
+    "0017_specialist_identity_overrides": {
+      "status": "self-idempotent",
+      "reason": "CREATE TABLE IF NOT EXISTS / ADD COLUMN IF NOT EXISTS."
+    },
+    "0018_specialist_recommendation_events": {
+      "status": "self-idempotent",
+      "reason": "CREATE TABLE IF NOT EXISTS only."
+    },
+    "0019_specialist_config_missing_columns": {
+      "status": "self-idempotent",
+      "reason": "ADD COLUMN IF NOT EXISTS only."
+    },
+    "0021_backfill_company_change_log_entity_id": {
+      "status": "waived",
+      "reason": "Pure data backfill; updates rows where entity_id IS NULL. Re-running is a no-op once the column is populated."
+    },
+    "0022_specialist_llm_overrides": {
+      "status": "self-idempotent",
+      "reason": "ADD COLUMN IF NOT EXISTS only. Replaced the earlier specialist_multi_model_001 runtime guard."
+    },
+    "0023_rebecca_config_jsonb": {
+      "status": "self-idempotent",
+      "reason": "ALTER COLUMN type change guarded by information_schema check in DO block."
+    },
+    "0024_oidc_sessions": {
+      "status": "self-idempotent",
+      "reason": "CREATE TABLE IF NOT EXISTS only."
+    },
+    "0025_property_price_history": {
+      "status": "self-idempotent",
+      "reason": "CREATE TABLE IF NOT EXISTS only."
+    },
+    "0026_drop_user_groups": {
+      "status": "self-idempotent",
+      "reason": "DROP TABLE IF EXISTS only."
+    },
+    "0027_scenario_share_consolidation": {
+      "status": "self-idempotent",
+      "reason": "Idempotent consolidation of scenario_shares schema with DO block guards."
+    },
+    "0028_reference_brands": {
+      "status": "guarded",
+      "guard": "reference-brands-001.ts",
+      "reason": "Original belt-and-suspenders incident: this migration was pre-marked as applied on the legacy Neon DB, so migrate() never executed it. The runtime guard re-creates the table with CREATE TABLE IF NOT EXISTS on every boot."
+    },
+    "0029_batch10_slide_decks_and_constraints": {
+      "status": "self-idempotent",
+      "reason": "Phase C batch 10 consolidation: every statement uses IF NOT EXISTS / IF EXISTS / DO block guards. Originally backed by property_slide_decks_001/002, property_slide_deck_variants_001, reference_brands_run_fk_001, and property_photos_hero_unique_001 runtime guards (now consolidated)."
+    },
+    "0030_evidence_based_indexes": {
+      "status": "self-idempotent",
+      "reason": "Task #972 evidence-based composite/partial indexes. Every statement is CREATE INDEX IF NOT EXISTS — re-running via migrate() is a no-op."
+    }
+  }
+}
