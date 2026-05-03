@@ -1008,6 +1008,12 @@ importers:
       '@workspace/db':
         specifier: workspace:*
         version: link:../db
+      '@workspace/domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@workspace/shared':
+        specifier: workspace:*
+        version: link:../shared
       date-fns:
         specifier: ^3.6.0
         version: 3.6.0
@@ -1017,6 +1023,10 @@ importers:
       zod:
         specifier: 'catalog:'
         version: 3.25.76
+    devDependencies:
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/debug@4.1.13)(@types/node@25.3.5)(happy-dom@20.9.0)(jiti@2.6.1)(lightningcss@1.31.1)(tsx@4.21.0)(yaml@2.8.2)
 
   lib/db:
     dependencies:
