@@ -675,6 +675,17 @@ async function runSchemaMigrations() {
     await markMigrationApplied("sync_property_assumptions_001");
   }
 
+  // Task #919 — backfill `users.google_drive_connected` on production. The
+  // legacy bootstrap pre-marked Drizzle migration 0005 as applied without
+  // running it, and this column is the only DDL artifact from 0005–0027
+  // that the Phase D audit found genuinely missing on prod. Idempotent
+  // ADD COLUMN IF NOT EXISTS — safe no-op on any DB that already has it.
+  if (!(await isMigrationApplied("users_google_drive_connected_001"))) {
+    const { runUsersGoogleDriveConnected001 } = await import("./migrations/users-google-drive-connected-001");
+    await runUsersGoogleDriveConnected001();
+    await markMigrationApplied("users_google_drive_connected_001");
+  }
+
   // Task #971 — missing FK indexes. Uses CREATE INDEX CONCURRENTLY (which
   // cannot run inside a transaction), so it lives here as a runtime patch
   // rather than as a numbered Drizzle SQL migration. Idempotent.
