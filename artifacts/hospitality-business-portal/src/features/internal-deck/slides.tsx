@@ -67,12 +67,17 @@ const CARD_GAP = 16;
 //     raster. (decision #4)
 //   • Header text uses cream/sage on dark green, not canonical's #257D41
 //     forest-green-on-forest-green which fails WCAG AA contrast. (decision #1)
-//   • Body copy is bound to the assigned property's seed/engine fields, not
-//     canonical's "Sul Monte / Galli-Curci 1926 chateau" filler — that
-//     copy has no record in any seed and is discarded. (decision #1, #5)
-//   • Specs bullets are derived from real SlideProperty fields, not Sul
-//     Monte features (8200sqft, 8BR/7BA, salt-water pool, 61+ acres) which
-//     have no Belleayre equivalent.
+//   • Body copy is bound to the assigned property's seed/engine fields. Note:
+//     "Sul Monte" in the canonical PDF is the owner's nickname for THIS same
+//     property (Belleayre Mountain) — not throwaway filler. The canonical
+//     voice / tone in those panels is therefore valid Belleayre source
+//     material; we just rebind the structured fields (purchase price, key
+//     count, region) to the seed so every numeric flows from the engine.
+//     (decision #1, #5, #6 — see claude.md "Sul Monte = Belleayre" entry)
+//   • Specs bullets are derived from real SlideProperty fields rather than
+//     verbatim canonical chrome (8200sqft chateau, 8BR/7BA, salt-water pool,
+//     61+ acres) because those features describe Sul Monte's residential-era
+//     prior life, not the planned 20-key boutique hotel build-out.
 //   • "Target Acquisition $2.3M" line dropped — no schema field exists for
 //     a target separate from purchasePrice. (decision #6)
 //   • Page number is 1, not canonical's "PAGE 17" leftover.
