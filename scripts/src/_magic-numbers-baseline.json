@@ -131,6 +131,7 @@
     "lib/shared/src/constants-overhead-benchmarks.ts",
     "lib/shared/src/constants-staffing.ts",
     "lib/shared/src/constants.ts",
+    "lib/shared/src/deck-payload-v2.ts",
     "lib/shared/src/market-intelligence-pipeline.ts",
     "lib/shared/src/price-history.ts"
   ],
@@ -1300,6 +1301,7 @@
     "lib/shared/src/constants-benchmarks.ts",
     "lib/shared/src/constants-funding.ts",
     "lib/shared/src/constants-staffing.ts",
+    "lib/shared/src/deck-payload-v2.ts",
     "lib/shared/src/rebecca-settings.ts"
   ],
   "85": [
@@ -1389,6 +1391,7 @@
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/source-registry.ts",
     "lib/engine/src/helpers/default-resolver.ts",
+    "lib/shared/src/deck-payload-v2.ts",
     "lib/shared/src/rebecca-settings.ts"
   ],
   "130": [
@@ -1448,6 +1451,7 @@
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/engine/src/helpers/default-resolver.ts",
     "lib/shared/src/constants.ts",
+    "lib/shared/src/deck-payload-v2.ts",
     "lib/shared/src/price-history.ts"
   ],
   "185": [
