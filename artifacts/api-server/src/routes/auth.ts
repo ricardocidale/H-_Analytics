@@ -148,6 +148,7 @@ export function register(app: Express) {
         await storage.deleteSession(req.sessionId);
       }
       clearSessionCookie(res);
+      res.setHeader("Cache-Control", "no-store");
       res.json({ success: true });
     } catch (error: unknown) {
       logAndSendError(res, "Logout failed", error);
@@ -156,6 +157,7 @@ export function register(app: Express) {
 
   app.get("/api/auth/me", requireAuth, async (req, res) => {
     const u = getAuthUser(req);
+    res.setHeader("Cache-Control", "no-store");
     res.json({
       user: userResponse(u)
     });

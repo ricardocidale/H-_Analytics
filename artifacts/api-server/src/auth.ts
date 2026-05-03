@@ -383,17 +383,25 @@ export function setSessionCookie(res: Response, sessionId: string) {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
+    path: "/",
     maxAge: SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000,
   });
 }
 
 /**
  * Clears the session cookie from the response, effectively logging the user out.
+ * Must mirror the path/sameSite/secure options used in setSessionCookie —
+ * browsers refuse the clear if any of these mismatch.
  * @param res - The Express response object.
  * @returns {void}
  */
 export function clearSessionCookie(res: Response) {
-  res.clearCookie(SESSION_COOKIE);
+  res.clearCookie(SESSION_COOKIE, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+  });
 }
 
 /**
