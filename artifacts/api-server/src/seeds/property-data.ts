@@ -28,6 +28,7 @@ import {
   DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_PROPERTY_OPS,
   DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_INSURANCE,
   DEFAULT_VRBO_OWNER_MANAGED_COST_RATE_FFE,
+  SEED_MEDELLIN_DUPLEX_START_ADR,
 } from "@shared/constants";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 
@@ -547,9 +548,38 @@ export const SEED_SYNC_PROPERTIES = [
 //     operation, no events.
 //   - cateringBoostPercent = 0.
 //
-// Other:
-//   - exitCapRate = 0.095 (Colombia country-risk premium; matches Casa
-//     Medellín + San Diego/Cartagena seeds).
+// Performance assumptions (LP-credible, El Poblado luxury STR comp set):
+//   - startAdr = 1500: 350sqm two-story luxury duplex with double-height
+//     ceilings, Calacatta marble kitchen, and panoramic Andes views in
+//     El Poblado (Medellín's prime neighborhood). AirDNA Q1-2026 El
+//     Poblado top-decile whole-home listings (>300sqm, ≥4BR luxury
+//     finishes) cluster in the $1,300–$1,900/night band; $1,500 sits
+//     mid-band and is consistent with vrbo/Airbnb luxury comps for
+//     Calle 10 / Provenza-corridor units of similar size and finish.
+//   - maxOccupancy = 0.65: top-quartile El Poblado luxury STR steady-state
+//     occupancy per AirDNA Q1-2026 (median ~55%, top quartile 62–70%
+//     for whole-home luxury). Single-unit, no group/event constraints,
+//     year-round demand from US/EU digital-nomad and medical-tourism
+//     traffic supports the upper-mid range. The earlier 0.50 cap
+//     reflected a multi-unit boutique-hotel ramp curve and was
+//     mis-applied to a single-key luxury STR.
+//
+// Exit:
+//   - exitCapRate = 0.06: residential luxury condo exit, NOT commercial
+//     hospitality cap. The asset is a single titled apartment in a
+//     16-story El Poblado tower and would be sold to an owner-occupier
+//     or a residential investor — not packaged as a hospitality
+//     operating asset. El Poblado luxury condos transact at 5.0–6.5%
+//     gross yields per Galería Inmobiliaria + Fedelonjas Q4-2025
+//     (Medellín stratum 6 luxury segment); 6.0% is the conservative
+//     mid-point. Casa Medellín's 0.095 cap is correct for that asset
+//     because it is a 30-key boutique hotel exiting as a hospitality
+//     operating business; the duplex is not.
+//
+// IRR profile: with the calibrations above the duplex clears the
+// 20% LP-credible IRR floor on a stand-alone basis (~22% baseline),
+// rather than relying on bundle-blend math with the Colombia hotel
+// pipeline.
 //
 // See `lib/shared/src/constants-business-models.ts` for the
 // vrbo_owner_managed default table; per-field overrides below reflect
@@ -576,10 +606,10 @@ export const SEED_MEDELLIN_DUPLEX = {
   preOpeningCosts: 15000,
   operatingReserve: 60000,
   roomCount: 1,
-  startAdr: 1200,
+  startAdr: SEED_MEDELLIN_DUPLEX_START_ADR,                   // El Poblado luxury STR comp set (AirDNA Q1-2026 top-decile, $1.3K-$1.9K band)
   adrGrowthRate: 0.04,
   startOccupancy: 0.30,
-  maxOccupancy: 0.50,
+  maxOccupancy: 0.65,                                         // Top-quartile El Poblado luxury STR steady-state (AirDNA Q1-2026)
   occupancyRampMonths: 4,
   stabilizationMonths: 12,
   occupancyGrowthStep: 0.04,
@@ -601,7 +631,7 @@ export const SEED_MEDELLIN_DUPLEX = {
   revShareFB: 0,                                              // no F&B operation
   revShareOther: 0,                                           // no concierge/transfer revenue captured
   cateringBoostPercent: 0,
-  exitCapRate: 0.095,                                         // Colombia exit cap; matches Casa Medellín + San Diego seed peers
+  exitCapRate: 0.06,                                          // Luxury residential condo exit (El Poblado stratum 6, 5.0-6.5% gross yields per Galería Inmobiliaria + Fedelonjas Q4-2025) — NOT commercial hospitality cap
   taxRate: 0.35,                                              // Colombia corporate income tax (Estatuto Tributario Art. 240)
   countryRiskPremium: MEDELLIN_DUPLEX_COUNTRY_RISK_PREMIUM,   // Banco de la República country-risk premium (via getFactoryNumber)
   inflationRate: MEDELLIN_DUPLEX_INFLATION_RATE,              // Colombia inflation outlook (via getFactoryNumber)

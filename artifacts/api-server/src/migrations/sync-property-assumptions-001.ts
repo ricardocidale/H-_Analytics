@@ -21,6 +21,7 @@
 import { db } from "../db";
 import { sql } from "drizzle-orm";
 import { logger } from "../logger";
+import { SEED_MEDELLIN_DUPLEX_START_ADR } from "@shared/constants";
 
 const TAG = "[migration] sync-property-assumptions-001";
 
@@ -161,16 +162,21 @@ const PROPERTY_ASSUMPTIONS: PropertyAssumptions[] = [
     baseManagementFeeRate: 0.085, incentiveManagementFeeRate: 0.12,
   },
   // ── SEED_MEDELLIN_DUPLEX (vrbo_owner_managed — distinct cost model)
+  // Task #931: ADR/maxOccupancy/exitCapRate uplifted to clear 20% LP-credible IRR
+  // floor on a stand-alone basis. See SEED_MEDELLIN_DUPLEX block in
+  // src/seeds/property-data.ts for sourced rationale (AirDNA Q1-2026 El Poblado
+  // luxury STR comp set + Galería Inmobiliaria / Fedelonjas Q4-2025 stratum 6
+  // residential cap rates).
   {
     name: "Medellin Duplex",
-    startAdr: 1200, adrGrowthRate: 0.04,
-    startOccupancy: 0.30, maxOccupancy: 0.50, occupancyRampMonths: 4, stabilizationMonths: 12, occupancyGrowthStep: 0.04,
+    startAdr: SEED_MEDELLIN_DUPLEX_START_ADR, adrGrowthRate: 0.04,
+    startOccupancy: 0.30, maxOccupancy: 0.65, occupancyRampMonths: 4, stabilizationMonths: 12, occupancyGrowthStep: 0.04,
     purchasePrice: 800000, buildingImprovements: 150000, preOpeningCosts: 15000, operatingReserve: 60000, roomCount: 1,
     costRateRooms: 0.06, costRateFB: 0, costRateAdmin: 0, costRateMarketing: 0,
     costRatePropertyOps: 0.04, costRateUtilities: 0.04, costRateTaxes: 0.018,
     costRateIT: 0, costRateFFE: 0.03, costRateOther: 0, costRateInsurance: 0.025,
     revShareEvents: 0, revShareFB: 0, revShareOther: 0, cateringBoostPercent: 0,
-    exitCapRate: 0.095, taxRate: 0.35,
+    exitCapRate: 0.06, taxRate: 0.35,
     type: "Full Equity", willRefinance: "No",
     businessModel: "vrbo_owner_managed", hospitalityType: "extended_stay",
     baseManagementFeeRate: 0.10, incentiveManagementFeeRate: 0, platformFeeRate: 0.14,

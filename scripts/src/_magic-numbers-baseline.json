@@ -2093,8 +2093,14 @@
     "artifacts/api-server/src/ai/property-vision.ts",
     "artifacts/api-server/src/constants.ts",
     "artifacts/api-server/src/seeds/properties.ts",
-    "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts"
+  ],
+  "1500": [
+    "artifacts/api-server/src/constants.ts",
+    "artifacts/api-server/src/seeds/reference-ranges.ts",
+    "artifacts/api-server/src/shared/constants.ts",
+    "lib/calc/src/research/validate-research.ts",
+    "lib/shared/src/constants.ts"
   ],
   "5000": [
     "artifacts/api-server/src/ai/comparables/web-enricher.ts",

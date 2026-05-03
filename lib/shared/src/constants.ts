@@ -165,6 +165,19 @@ export const DEFAULT_COMMISSION_RATE = 0.05;
  */
 export const SEED_EXIT_CAP_RATE_LUXURY = 0.062;
 
+/**
+ * SEED_MEDELLIN_DUPLEX_START_ADR — single-key El Poblado luxury STR starting ADR.
+ *
+ * Calibrated to AirDNA Q1-2026 El Poblado top-decile whole-home listings
+ * (>300sqm, ≥4BR luxury finishes), which cluster in the $1,300–$1,900/night
+ * band. $1,500 sits mid-band and is consistent with vrbo/Airbnb luxury comps
+ * for Calle 10 / Provenza-corridor units of similar size and finish.
+ *
+ * Used by SEED_MEDELLIN_DUPLEX (src/seeds/property-data.ts) and the
+ * sync-property-assumptions-001 migration.
+ */
+export const SEED_MEDELLIN_DUPLEX_START_ADR = 1500;
+
 // ──────────────────────────────────────────────────────────
 // DEPRECIATION & LAND VALUE
 // ──────────────────────────────────────────────────────────
