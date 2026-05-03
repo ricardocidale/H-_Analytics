@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(use-railway)",
+      "Bash(command -v railway)",
+      "Bash(railway whoami *)",
+      "Bash(railway --version)",
+      "Bash(RAILWAY_TOKEN=6efbc442-56f7-4f30-9a60-10eccc490007 railway whoami *)",
+      "Bash(RAILWAY_TOKEN=6efbc442-56f7-4f30-9a60-10eccc490007 railway --version)"
+    ]
+  }
+}

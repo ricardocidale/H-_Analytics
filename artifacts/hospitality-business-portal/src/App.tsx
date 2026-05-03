@@ -17,7 +17,7 @@
  *   • Several legacy routes (e.g. /sensitivity, /financing, /map) redirect to their
  *     new consolidated locations.
  */
-import { Switch, Route, Redirect, Router as WouterRouter } from "wouter";
+import { Switch, Route, Redirect, Router as WouterRouter, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -55,6 +55,7 @@ if (typeof requestIdleCallback === "function") {
 }
 
 const Login = lazy(() => import("@/pages/Login"));
+const InternalDeck = lazy(() => import("@/pages/InternalDeck"));
 const ResearchRefreshOverlay = lazy(() =>
   import("@/components/ResearchRefreshOverlay").then(m => ({ default: m.ResearchRefreshOverlay }))
 );
@@ -92,6 +93,7 @@ const CookiePolicy = lazy(() => import("@/pages/CookiePolicy"));
 const About = lazy(() => import("@/pages/About"));
 
 function Router() {
+  const [location] = useLocation();
   const { user, isLoading } = useAuth();
   const [showResearchRefresh, setShowResearchRefresh] = useState(false);
   const prevUserRef = useRef<unknown>(null);
@@ -157,6 +159,17 @@ function Router() {
     }
     queryClient.invalidateQueries({ queryKey: ["research"] });
   }, []);
+
+  // Internal deck route — rendered by headless Chromium (Playwright) for PDF
+  // export. Bypass auth-loading and all session/navigation guards so the
+  // render is deterministic and never blocked by `isLoading` flicker.
+  if (location.startsWith("/internal/deck/")) {
+    return (
+      <Suspense fallback={<div style={{ padding: 24 }}>Loading deck…</div>}>
+        <InternalDeck />
+      </Suspense>
+    );
+  }
 
   if (isLoading) {
     return <PageLoader />;

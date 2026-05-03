@@ -267,7 +267,7 @@ function computeRenovationBudget(input: {
   return Math.max(minB, Math.min(maxB, budget));
 }
 
-async function buildSlidePayload(propertyId: number, userId: number | undefined, projYears: number): Promise<SlidePayload & { _propertyName: string }> {
+export async function buildSlidePayload(propertyId: number, userId: number | undefined, projYears: number): Promise<SlidePayload & { _propertyName: string }> {
   const property = await storage.getProperty(propertyId);
   if (!property) throw new Error("Property not found");
 

@@ -1,0 +1,47 @@
+/*
+ * fonts.css — Self-hosted WOFF declarations for the internal investor deck.
+ *
+ * The deck route is rendered by headless Chromium (Playwright) running in
+ * the api-server pod. CDN fonts are unreliable in that environment, so the
+ * actual font files are bundled with the portal artifact and served from
+ * `/src/assets/fonts/` (Vite handles asset URL rewriting at build time).
+ *
+ * Fonts mirror the satori slide renderer (api-server/src/slides/fonts/) so
+ * the printed PDF matches the canonical L+B design.
+ */
+
+@font-face {
+  font-family: "EB Garamond Deck";
+  src: url("../../assets/fonts/EBGaramond-Regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: "EB Garamond Deck";
+  src: url("../../assets/fonts/EBGaramond-Bold.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: "Poppins Deck";
+  src: url("../../assets/fonts/Poppins-Light.woff") format("woff");
+  font-weight: 300;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: "Poppins Deck";
+  src: url("../../assets/fonts/Poppins-Regular.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: "Poppins Deck";
+  src: url("../../assets/fonts/Poppins-Bold.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+  font-display: block;
+}
