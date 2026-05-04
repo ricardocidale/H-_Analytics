@@ -147,49 +147,6 @@ async function shrinkForCard(base64: string): Promise<string> {
   }
 }
 
-// ── Renovation budget ──────────────────────────────────────────────────────
-// Source: hplus-renovation-benchmarks skill. Mid-point estimates with
-// historic premium, contingency, and clamp bounds from @shared/constants.
-const RENOV_COST_PER_KEY = {
-  soft: 33_500,
-  upscale: 110_000,
-  upper_upscale: 195_000,
-  luxury: 415_000,
-} as const;
-type RenovTier = keyof typeof RENOV_COST_PER_KEY;
-
-function selectRenovTier(qualityTier: string, hospitalityType: string, renovationScope: string): RenovTier {
-  const qt = qualityTier.toLowerCase();
-  const ht = hospitalityType.toLowerCase();
-  const rs = renovationScope.toLowerCase();
-  if (rs === "light" || rs === "cosmetic") return "soft";
-  if (qt.includes("luxury") || ht.includes("luxury")) return "luxury";
-  if (qt.includes("upper") || ht.includes("upper")) return "upper_upscale";
-  if (qt.includes("upscale") || ht.includes("boutique") || ht.includes("hotel")) return "upscale";
-  return "upscale";
-}
-
-export function computeRenovationBudget(input: {
-  roomCount?: number | null;
-  purchasePrice?: number | null;
-  qualityTier?: string | null;
-  hospitalityType?: string | null;
-  renovationScope?: string | null;
-  isHistoric?: boolean | string | null;
-}): number {
-  const rooms = Math.max(0, input.roomCount ?? 0);
-  const tier = selectRenovTier(input.qualityTier ?? "", input.hospitalityType ?? "", input.renovationScope ?? "");
-  const isHistoric = input.isHistoric === true || input.isHistoric === "true";
-  const perKey = Math.round(RENOV_COST_PER_KEY[tier] * (isHistoric ? 1 + RENOV_HISTORIC_PREMIUM : 1));
-  const subtotal = rooms * perKey;
-  const contingency = Math.round(subtotal * RENOV_CONTINGENCY);
-  const budget = subtotal + contingency;
-  const purchasePrice = input.purchasePrice ?? 0;
-  const maxB = purchasePrice > 0 ? Math.round(purchasePrice * RENOV_MAX_PCT_OF_PRICE) : budget;
-  const minB = RENOV_MIN_PER_KEY * Math.max(1, rooms);
-  return Math.max(minB, Math.min(maxB, budget));
-}
-
 export async function buildSlidePayload(
   propertyId: number,
   userId: number | undefined,

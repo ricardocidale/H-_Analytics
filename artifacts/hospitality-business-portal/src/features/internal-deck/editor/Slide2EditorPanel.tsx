@@ -26,7 +26,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconAlertCircle } from "@/components/icons";
+import { IconAlertCircle, IconRefreshCw } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
@@ -61,6 +61,11 @@ interface Form {
   revenueBullet: FormSlot;
   programmingBullet: FormSlot;
 }
+
+type Slide2DraftSlot =
+  | "slide2.operationalModelText"
+  | "slide2.revenueBullet"
+  | "slide2.programmingBullet";
 
 // ── Hydration helpers ──────────────────────────────────────────────────────
 
@@ -115,7 +120,7 @@ function CharCounter({ length, max }: { length: number; max: number }) {
 }
 
 function SlotRow({
-  label, description, slot, max, multiline, onChange,
+  label, description, slot, max, multiline, onChange, onDraft, isDrafting,
 }: {
   label: string;
   description: string;
@@ -123,6 +128,8 @@ function SlotRow({
   max: number;
   multiline?: boolean;
   onChange: (text: string, source: SlotProvenance["source"]) => void;
+  onDraft?: () => void;
+  isDrafting?: boolean;
 }) {
   const id = `slide2-slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
   const InputComp = multiline ? Textarea : Input;
@@ -149,6 +156,21 @@ function SlotRow({
         maxLength={max}
         className={slot.text.length > max ? "border-destructive" : undefined}
       />
+      {onDraft && (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={onDraft}
+          disabled={isDrafting}
+          className="gap-1.5"
+        >
+          {isDrafting
+            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            : <IconRefreshCw className="h-3.5 w-3.5" />}
+          Draft via Analyst
+        </Button>
+      )}
     </div>
   );
 }
@@ -196,10 +218,43 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
     },
   });
 
-  function setSlot<K extends "operationalModelText" | "revenueBullet" | "programmingBullet">(
-    key: K, text: string, source: SlotProvenance["source"],
-  ) {
+  const [draftingSlot, setDraftingSlot] = useState<Slide2DraftSlot | null>(null);
+  const draftMutation = useMutation({
+    mutationFn: async (slot: Slide2DraftSlot) => {
+      const r = await apiRequest(
+        "POST",
+        `/api/admin/properties/${propertyId}/deck-payload/draft-slot`,
+        { slot },
+      );
+      return r.json() as Promise<{
+        slot: string;
+        suggestion: { text?: string };
+        model: string;
+        generatedAt: string;
+      }>;
+    },
+    onSuccess: (result) => {
+      const text = result.suggestion.text;
+      if (text == null) return;
+      const key = result.slot as keyof Form;
+      if (key === "operationalModelText" || key === "revenueBullet" || key === "programmingBullet") {
+        setForm(prev => prev ? { ...prev, [key]: { ...prev[key], text, source: "llm" as const, dirty: true } } : prev);
+      }
+      toast({ title: "Analyst draft loaded", description: "Review the proposal, then save to persist it." });
+    },
+    onError: (err: unknown) => {
+      toast({ title: "Draft failed", description: err instanceof Error ? err.message : String(err), variant: "destructive" });
+    },
+    onSettled: () => setDraftingSlot(null),
+  });
+
+  function setSlot<K extends keyof Form>(key: K, text: string, source: SlotProvenance["source"]) {
     setForm((prev) => (prev ? { ...prev, [key]: { ...prev[key], text, source, dirty: true } } : prev));
+  }
+
+  function draft(slot: Slide2DraftSlot) {
+    setDraftingSlot(slot);
+    draftMutation.mutate(slot);
   }
 
   if (!Number.isFinite(propertyId)) return <p className="text-destructive">Invalid property ID.</p>;
@@ -250,6 +305,8 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
             slot={form.operationalModelText}
             max={SLIDE2_OPERATIONAL_MODEL_MAX}
             onChange={(t, s) => setSlot("operationalModelText", t, s)}
+            onDraft={() => draft("slide2.operationalModelText")}
+            isDrafting={draftingSlot === "slide2.operationalModelText" && draftMutation.isPending}
           />
           <SlotRow
             label="Revenue bullet"
@@ -258,6 +315,8 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
             max={SLIDE2_REVENUE_BULLET_MAX}
             multiline
             onChange={(t, s) => setSlot("revenueBullet", t, s)}
+            onDraft={() => draft("slide2.revenueBullet")}
+            isDrafting={draftingSlot === "slide2.revenueBullet" && draftMutation.isPending}
           />
           <SlotRow
             label="Programming bullet"
@@ -266,6 +325,8 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
             max={SLIDE2_PROGRAMMING_BULLET_MAX}
             multiline
             onChange={(t, s) => setSlot("programmingBullet", t, s)}
+            onDraft={() => draft("slide2.programmingBullet")}
+            isDrafting={draftingSlot === "slide2.programmingBullet" && draftMutation.isPending}
           />
         </div>
 

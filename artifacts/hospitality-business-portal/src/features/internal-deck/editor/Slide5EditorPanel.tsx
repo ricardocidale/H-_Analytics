@@ -25,7 +25,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconAlertCircle } from "@/components/icons";
+import { IconAlertCircle, IconRefreshCw } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
@@ -65,8 +65,10 @@ interface FormRow {
 
 interface Form {
   transformationDescription: FormSlot;
-  transformationRows: FormRow[]; // length === SLIDE5_TRANSFORMATION_ROWS_COUNT
+  transformationRows: FormRow[];
 }
+
+type Slide5DraftSlot = "slide5.transformationDescription" | "slide5.transformationRows";
 
 // ── Hydration helpers ──────────────────────────────────────────────────────
 
@@ -137,7 +139,7 @@ function CharCounter({ length, max }: { length: number; max: number }) {
 }
 
 function SlotRow({
-  label, description, slot, max, multiline, onChange,
+  label, description, slot, max, multiline, onChange, onDraft, isDrafting,
 }: {
   label: string;
   description: string;
@@ -145,6 +147,8 @@ function SlotRow({
   max: number;
   multiline?: boolean;
   onChange: (text: string, source: SlotProvenance["source"]) => void;
+  onDraft?: () => void;
+  isDrafting?: boolean;
 }) {
   const id = `slide5-slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
   const InputComp = multiline ? Textarea : Input;
@@ -171,6 +175,21 @@ function SlotRow({
         maxLength={max}
         className={slot.text.length > max ? "border-destructive" : undefined}
       />
+      {onDraft && (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={onDraft}
+          disabled={isDrafting}
+          className="gap-1.5"
+        >
+          {isDrafting
+            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            : <IconRefreshCw className="h-3.5 w-3.5" />}
+          Draft via Analyst
+        </Button>
+      )}
     </div>
   );
 }
@@ -218,6 +237,65 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
     },
   });
 
+  const [draftingSlot, setDraftingSlot] = useState<Slide5DraftSlot | null>(null);
+  const draftMutation = useMutation({
+    mutationFn: async (slot: Slide5DraftSlot) => {
+      const r = await apiRequest(
+        "POST",
+        `/api/admin/properties/${propertyId}/deck-payload/draft-slot`,
+        { slot },
+      );
+      return r.json() as Promise<{
+        slot: string;
+        suggestion: {
+          text?: string;
+          rows?: { feature: string; existing: string; proposed: string }[];
+        };
+        model: string;
+        generatedAt: string;
+      }>;
+    },
+    onSuccess: (result) => {
+      setForm(prev => {
+        if (!prev) return prev;
+        const s = result.slot as Slide5DraftSlot;
+
+        if (s === "slide5.transformationDescription" && result.suggestion.text != null) {
+          return {
+            ...prev,
+            transformationDescription: {
+              ...prev.transformationDescription,
+              text: result.suggestion.text,
+              source: "llm" as const,
+              dirty: true,
+            },
+          };
+        }
+
+        if (s === "slide5.transformationRows" && result.suggestion.rows) {
+          const incoming = result.suggestion.rows;
+          const transformationRows = prev.transformationRows.map((row, i) => {
+            const r = incoming[i];
+            if (!r) return row;
+            return {
+              feature:  { ...row.feature,  text: r.feature  ?? "", source: "llm" as const, dirty: true },
+              existing: { ...row.existing, text: r.existing ?? "", source: "llm" as const, dirty: true },
+              proposed: { ...row.proposed, text: r.proposed ?? "", source: "llm" as const, dirty: true },
+            };
+          });
+          return { ...prev, transformationRows };
+        }
+
+        return prev;
+      });
+      toast({ title: "Analyst draft loaded", description: "Review the proposal, then save to persist it." });
+    },
+    onError: (err: unknown) => {
+      toast({ title: "Draft failed", description: err instanceof Error ? err.message : String(err), variant: "destructive" });
+    },
+    onSettled: () => setDraftingSlot(null),
+  });
+
   function setDescriptionSlot(text: string, source: SlotProvenance["source"]) {
     setForm((prev) =>
       prev ? { ...prev, transformationDescription: { ...prev.transformationDescription, text, source, dirty: true } } : prev,
@@ -236,6 +314,11 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
       rows[rowIdx] = { ...rows[rowIdx], [field]: { ...rows[rowIdx][field], text, source, dirty: true } };
       return { ...prev, transformationRows: rows };
     });
+  }
+
+  function draft(slot: Slide5DraftSlot) {
+    setDraftingSlot(slot);
+    draftMutation.mutate(slot);
   }
 
   if (!Number.isFinite(propertyId)) return <p className="text-destructive">Invalid property ID.</p>;
@@ -288,6 +371,8 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
             max={SLIDE5_TRANSFORMATION_DESCRIPTION_MAX}
             multiline
             onChange={setDescriptionSlot}
+            onDraft={() => draft("slide5.transformationDescription")}
+            isDrafting={draftingSlot === "slide5.transformationDescription" && draftMutation.isPending}
           />
         </div>
 
@@ -295,13 +380,27 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
 
         {/* Transformation rows */}
         <div className="space-y-5">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-            Comparison rows (up to {SLIDE5_TRANSFORMATION_ROWS_COUNT})
-          </h3>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              Comparison rows (up to {SLIDE5_TRANSFORMATION_ROWS_COUNT})
+            </h3>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => draft("slide5.transformationRows")}
+              disabled={draftingSlot === "slide5.transformationRows" && draftMutation.isPending}
+              className="gap-1.5"
+            >
+              {draftingSlot === "slide5.transformationRows" && draftMutation.isPending
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <IconRefreshCw className="h-3.5 w-3.5" />}
+              Draft all rows
+            </Button>
+          </div>
           <p className="text-xs text-muted-foreground -mt-3">
             Three columns: Feature, Existing, Proposed. Leave Feature blank to omit a row.
-            If any row changes, all rows are saved together. The column header row
-            ("Feature / Existing / Proposed") is renderer chrome — not stored.
+            If any row changes, all rows are saved together.
           </p>
           {form.transformationRows.map((row, i) => (
             <div key={i} className="space-y-3 rounded-md border border-border/40 p-4">

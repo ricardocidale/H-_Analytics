@@ -26,7 +26,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconAlertCircle } from "@/components/icons";
+import { IconAlertCircle, IconRefreshCw } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
@@ -67,9 +67,12 @@ interface FormReasonPair {
 interface Form {
   conceptParagraph: FormSlot;
   marketRationale: FormSlot;
-  reasons: FormReasonPair[]; // length === SLIDE3_REASONS_COUNT
+  reasons: FormReasonPair[];
   closingLine: FormSlot;
 }
+
+type Slide3ScalarSlot = "slide3.conceptParagraph" | "slide3.marketRationale" | "slide3.closingLine";
+type Slide3DraftSlot = Slide3ScalarSlot | "slide3.reasons";
 
 // ── Hydration helpers ──────────────────────────────────────────────────────
 
@@ -137,7 +140,7 @@ function CharCounter({ length, max }: { length: number; max: number }) {
 }
 
 function SlotRow({
-  label, description, slot, max, multiline, onChange,
+  label, description, slot, max, multiline, onChange, onDraft, isDrafting,
 }: {
   label: string;
   description: string;
@@ -145,6 +148,8 @@ function SlotRow({
   max: number;
   multiline?: boolean;
   onChange: (text: string, source: SlotProvenance["source"]) => void;
+  onDraft?: () => void;
+  isDrafting?: boolean;
 }) {
   const id = `slide3-slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
   const InputComp = multiline ? Textarea : Input;
@@ -171,6 +176,21 @@ function SlotRow({
         maxLength={max}
         className={slot.text.length > max ? "border-destructive" : undefined}
       />
+      {onDraft && (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={onDraft}
+          disabled={isDrafting}
+          className="gap-1.5"
+        >
+          {isDrafting
+            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            : <IconRefreshCw className="h-3.5 w-3.5" />}
+          Draft via Analyst
+        </Button>
+      )}
     </div>
   );
 }
@@ -218,6 +238,54 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
     },
   });
 
+  const [draftingSlot, setDraftingSlot] = useState<Slide3DraftSlot | null>(null);
+  const draftMutation = useMutation({
+    mutationFn: async (slot: Slide3DraftSlot) => {
+      const r = await apiRequest(
+        "POST",
+        `/api/admin/properties/${propertyId}/deck-payload/draft-slot`,
+        { slot },
+      );
+      return r.json() as Promise<{
+        slot: string;
+        suggestion: { text?: string; reasons?: { label: string; detail: string }[] };
+        model: string;
+        generatedAt: string;
+      }>;
+    },
+    onSuccess: (result) => {
+      setForm(prev => {
+        if (!prev) return prev;
+        const s = result.slot as Slide3DraftSlot;
+
+        if ((s === "slide3.conceptParagraph" || s === "slide3.marketRationale" || s === "slide3.closingLine") && result.suggestion.text != null) {
+          const key = s.replace("slide3.", "") as "conceptParagraph" | "marketRationale" | "closingLine";
+          return { ...prev, [key]: { ...prev[key], text: result.suggestion.text, source: "llm" as const, dirty: true } };
+        }
+
+        if (s === "slide3.reasons" && result.suggestion.reasons) {
+          const incoming = result.suggestion.reasons;
+          const reasons = prev.reasons.map((pair, i) => {
+            const r = incoming[i];
+            if (!r) return pair;
+            return {
+              label: { ...pair.label, text: r.label ?? "", source: "llm" as const, dirty: true },
+              detail: { ...pair.detail, text: r.detail ?? "", source: "llm" as const, dirty: true },
+            };
+          });
+          return { ...prev, reasons };
+        }
+
+        return prev;
+      });
+      toast({ title: "Analyst draft loaded", description: "Review the proposal, then save to persist it." });
+    },
+    onError: (err: unknown) => {
+      toast({ title: "Draft failed", description: err instanceof Error ? err.message : String(err), variant: "destructive" });
+    },
+    onSettled: () => setDraftingSlot(null),
+  });
+
   function setScalarSlot<K extends "conceptParagraph" | "marketRationale" | "closingLine">(
     key: K, text: string, source: SlotProvenance["source"],
   ) {
@@ -236,6 +304,11 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
       reasons[idx] = { ...reasons[idx], [field]: { ...reasons[idx][field], text, source, dirty: true } };
       return { ...prev, reasons };
     });
+  }
+
+  function draft(slot: Slide3DraftSlot) {
+    setDraftingSlot(slot);
+    draftMutation.mutate(slot);
   }
 
   if (!Number.isFinite(propertyId)) return <p className="text-destructive">Invalid property ID.</p>;
@@ -287,6 +360,8 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
             max={SLIDE3_CONCEPT_PARAGRAPH_MAX}
             multiline
             onChange={(t, s) => setScalarSlot("conceptParagraph", t, s)}
+            onDraft={() => draft("slide3.conceptParagraph")}
+            isDrafting={draftingSlot === "slide3.conceptParagraph" && draftMutation.isPending}
           />
           <SlotRow
             label="Why This Property?"
@@ -295,6 +370,8 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
             max={SLIDE3_MARKET_RATIONALE_MAX}
             multiline
             onChange={(t, s) => setScalarSlot("marketRationale", t, s)}
+            onDraft={() => draft("slide3.marketRationale")}
+            isDrafting={draftingSlot === "slide3.marketRationale" && draftMutation.isPending}
           />
         </div>
 
@@ -302,9 +379,24 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
 
         {/* Reasons */}
         <div className="space-y-5">
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-            Investment reasons ({SLIDE3_REASONS_COUNT} required)
-          </h3>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              Investment reasons ({SLIDE3_REASONS_COUNT} required)
+            </h3>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => draft("slide3.reasons")}
+              disabled={draftingSlot === "slide3.reasons" && draftMutation.isPending}
+              className="gap-1.5"
+            >
+              {draftingSlot === "slide3.reasons" && draftMutation.isPending
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <IconRefreshCw className="h-3.5 w-3.5" />}
+              Draft all reasons
+            </Button>
+          </div>
           <p className="text-xs text-muted-foreground -mt-3">
             Three bold-label + detail pairs rendered as stacked rows. If any reason changes, all three
             are saved together.
@@ -343,6 +435,8 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
             max={SLIDE3_CLOSING_LINE_MAX}
             multiline
             onChange={(t, s) => setScalarSlot("closingLine", t, s)}
+            onDraft={() => draft("slide3.closingLine")}
+            isDrafting={draftingSlot === "slide3.closingLine" && draftMutation.isPending}
           />
         </div>
 

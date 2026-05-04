@@ -18,6 +18,7 @@ import {
 } from "../slides/property-brief";
 import type { SlideProperty } from "../slides/types";
 import { SLOT_CONTEXT_MAP } from "../slides/slot-context-map";
+import { DEFAULT_FALLBACK_OCCUPANCY } from "@shared/constants-benchmarks";
 
 export interface PropertyVisionInput {
   id: number;
@@ -62,6 +63,22 @@ export interface PropertyVisionText {
 
 const VISION_MODEL = "claude-opus-4-6";
 
+/** Max tokens for the whole-deck vision LLM call (20+ fields). */
+const VISION_DRAFT_MAX_TOKENS = 1200;
+
+/** Character budget hints injected into the LLM prompt (not hard server limits). */
+const VISION_BADGE_MAX_CHARS = 35;
+const VISION_BULLET_MAX_CHARS = 80;
+const VISION_PARAGRAPH_MAX_CHARS = 180;
+
+/** Fallback room count when property record has no roomCount. */
+const FALLBACK_ROOM_COUNT = 10;
+
+/** Guest multipliers for retreat and VRBO tier fallback headlines. */
+const RETREAT_GUESTS_PER_KEY_MIN = 3;
+const RETREAT_GUESTS_PER_KEY_MAX = 4;
+const VRBO_GUESTS_PER_KEY = 10;
+
 function stripCodeFences(text: string): string {
   const trimmed = text.trim();
   if (!trimmed.startsWith("```")) return trimmed;
@@ -84,7 +101,7 @@ function visionInputToSlideProperty(p: PropertyVisionInput): SlideProperty {
     purchasePrice: p.purchasePrice ?? 0,
     roomCount: p.roomCount ?? 0,
     startAdr: p.startAdr ?? 0,
-    maxOccupancy: p.maxOccupancy ?? 0.7,
+    maxOccupancy: p.maxOccupancy ?? DEFAULT_FALLBACK_OCCUPANCY,
     businessModel: p.businessModel ?? "hotel",
     hospitalityType: p.hospitalityType ?? "",
     qualityTier: p.qualityTier ?? "",
@@ -102,7 +119,7 @@ export function buildPropertyVisionFallback(p: PropertyVisionInput): PropertyVis
 
 export function buildPropertyVisionFallbackFromBrief(brief: PropertyBrief): PropertyVisionText {
   const tier: ModelTier = brief.modelTier;
-  const rooms = brief.roomCount || 10;
+  const rooms = brief.roomCount || FALLBACK_ROOM_COUNT;
   const adr = brief.adrFormatted;
   const occ = brief.occupancyPct;
   const city = brief.city || "this market";
@@ -113,7 +130,7 @@ export function buildPropertyVisionFallbackFromBrief(brief: PropertyBrief): Prop
   if (tier === "retreat") {
     return {
       cinematicCaption: `${rooms} KEYS · PRIVATE RETREAT CAMPUS`,
-      visionHeadline: `Post-Acquisition: ${rooms} Keys | ${rooms * 3}–${rooms * 4} Group Guests`,
+      visionHeadline: `Post-Acquisition: ${rooms} Keys | ${rooms * RETREAT_GUESTS_PER_KEY_MIN}–${rooms * RETREAT_GUESTS_PER_KEY_MAX} Group Guests`,
       visionBullet1: "Year-Round Programming: Corporate Off-Sites, Wellness Retreats & Private Events",
       visionBullet2: "Curated Demand: Repeat Group Bookings + Direct B2B Retreat Partnerships",
       badgeText: "CURATED RETREAT EXPERIENCE",
@@ -138,7 +155,7 @@ export function buildPropertyVisionFallbackFromBrief(brief: PropertyBrief): Prop
   if (tier === "vrbo") {
     return {
       cinematicCaption: `WHOLE-PROPERTY LUXURY RENTAL · ${rooms} KEYS`,
-      visionHeadline: `Whole-Property Rental: ${rooms} Keys | Up to ${rooms * 10} Guests`,
+      visionHeadline: `Whole-Property Rental: ${rooms} Keys | Up to ${rooms * VRBO_GUESTS_PER_KEY} Guests`,
       visionBullet1: `Premium Positioning: $1,500–$4,500/Night Whole-Property Rate at Peak`,
       visionBullet2: "Direct Booking + VRBO/Airbnb Hybrid: 40% Direct by Year 2",
       badgeText: "LUXURY PRIVATE RENTAL EXPERIENCE",
@@ -218,12 +235,12 @@ Generate concise, investor-grade slide copy for all fields below. Return ONLY va
 Rules:
 1. Cite specific numbers from the data above (ADR, rooms, price, market stats)
 2. NEVER use: "exciting", "unique opportunity", "world-class", "strong fundamentals"
-3. Cinematic caption: ALL CAPS, max 2 features, format "FEATURE · FEATURE" (max 60 chars)
-4. Badge text: 3–5 words, ALL CAPS (max 35 chars)
-5. All bullets: max 80 chars, punchy, metric-driven
-6. Paragraphs: max 180 chars, one sentence, direct
-7. Labels: max 60 chars, noun phrases
-8. Closing line: one sentence, < 120 chars, references the city
+- Cinematic caption: ALL CAPS, max 2 features, format "FEATURE · FEATURE" (max 60 chars)
+- Badge text: short ALL CAPS phrase (max ${VISION_BADGE_MAX_CHARS} chars)
+- All bullets: max ${VISION_BULLET_MAX_CHARS} chars, punchy, metric-driven
+- Paragraphs: max ${VISION_PARAGRAPH_MAX_CHARS} chars, one sentence, direct
+- Labels: max 60 chars, noun phrases
+- Closing line: one sentence, short, references the city
 
 Return:
 {
@@ -251,7 +268,7 @@ Return:
 
     const response = await anthropic.messages.create({
       model: VISION_MODEL,
-      max_tokens: 1200,
+      max_tokens: VISION_DRAFT_MAX_TOKENS,
       messages: [{ role: "user", content: prompt }],
     });
 

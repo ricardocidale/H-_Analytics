@@ -1,0 +1,17 @@
+{
+  "docs/slide-system/canonical/spec_skeleton_v4.json": {
+    "sha256": "f538d79ca5273d33b58679e69e5a08d779123730ec0b866b6e20bfd05399978e",
+    "description": "Element-level bbox layout spec (source of truth for renderer rewrite)",
+    "lockedAt": "2026-05-04T04:10:17.340Z"
+  },
+  "docs/slide-system/canonical/design-contract.json": {
+    "sha256": "d72b499479290923d81dc0fc419ec1f01580d28c305be83475ef5a0818b1566f",
+    "description": "Slide design contract (palette, typography, canvas dimensions)",
+    "lockedAt": "2026-05-04T04:10:17.341Z"
+  },
+  "docs/slide-system/canonical/r2-manifest.json": {
+    "sha256": "c5ac261f0941deedcdf3da3b2e9a1e15c328c0e4cb235c8e4d7e590c32e43730",
+    "description": "R2 asset manifest (canonical PDF + per-slide PNG keys)",
+    "lockedAt": "2026-05-04T04:10:17.342Z"
+  }
+}
