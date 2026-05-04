@@ -375,6 +375,13 @@ export function Slide3({ p }: { p: SlidePayload }) {
         <div style={{ position: "relative", flex: 1, overflow: "hidden" }}>
           <PhotoBg photo={hero} />
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, transparent 60%, rgba(28,43,30,0.95) 100%)" }} />
+          {hero && (
+            <div style={{ position: "absolute", bottom: 14, left: 16, right: 16 }}>
+              <span style={{ fontFamily: FONT_SANS, fontSize: 9, color: "rgba(255,255,255,0.65)", letterSpacing: "0.08em", lineHeight: 1.4 }}>
+                {hero.caption ?? property.name}
+              </span>
+            </div>
+          )}
         </div>
         <div style={{ position: "relative", flex: 1, overflow: "hidden" }}>
           <PhotoBg photo={interior} />

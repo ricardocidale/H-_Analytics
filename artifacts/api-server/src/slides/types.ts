@@ -6,6 +6,7 @@
 export interface SlidePhoto {
   url?: string;
   base64?: string;
+  caption?: string;
   isHero: boolean;
   sortOrder: number;
 }
