@@ -219,7 +219,7 @@ export default function SlideDecksTab() {
                 </div>
 
                 <div className="flex items-center">
-                  <Link href={`/admin/lb-slides/${p.id}`} className="flex-1">
+                  <Link href={`/slide-decks/${p.id}`} className="flex-1">
                     <Button
                       size="sm"
                       variant="default"

@@ -89,23 +89,18 @@ const CARD_GAP = 16;
 //   • Photo captions use Poppins instead of canonical's Microsoft YaHei
 //     (Windows-only; falls back unreliably in headless Chromium).
 export function Slide1({ p }: { p: SlidePayload }) {
-  const { property, visionText } = p;
-  // Slot binding policy (per user 2026-05-03): canonical PPTX photos are the
-  // SOURCE for every slide+slot until the property explicitly provides a
-  // slot-tagged replacement. The current property_photos schema has no
-  // per-slot tag, so we always use the canonical photos here. When per-slot
-  // overrides are added, fall back through them BEFORE the canonical default.
+  const { property, visionText, deckPayloadV2 } = p;
+  const v2 = deckPayloadV2?.slide1;
+
   const hero = getCanonicalPhoto(1, "hero");
   const secondary = getCanonicalPhoto(1, "secondary");
   const inset = getCanonicalPhoto(1, "inset");
   const type = typeLabel(property);
 
-  // Region line: "<city>, <county>, <state>" — dedupe county==state
   const regionParts = [property.city, property.county, property.stateProvince]
     .filter((s): s is string => Boolean(s));
   const regionLine = regionParts.filter((s, i, a) => a.indexOf(s) === i).join(", ");
 
-  // Spec bullets — short factual lines drawn from SlideProperty fields only.
   const specs: string[] = [
     `${property.roomCount} boutique keys planned at stabilization`,
     type + (property.qualityTier ? ` · ${property.qualityTier} tier` : ""),
@@ -115,19 +110,31 @@ export function Slide1({ p }: { p: SlidePayload }) {
       : "",
   ].filter(Boolean);
 
-  // Vision bullets — populated by visionText (LLM per-property); defensive
-  // against partial payloads.
-  const visionBullets: string[] = [
-    visionText.visionBullet1,
-    visionText.visionBullet2,
-    visionText.programmingBullet,
-  ].filter((s): s is string => Boolean(s) && s.length > 0);
+  const visionBullets: string[] = (() => {
+    const authored = v2?.visionBullets?.map(b => b.text).filter(Boolean);
+    if (authored && authored.length > 0) return authored;
+    return [
+      visionText.visionBullet1,
+      visionText.visionBullet2,
+      visionText.programmingBullet,
+    ].filter((s): s is string => Boolean(s) && s.length > 0);
+  })();
 
-  const heroCaption = `${property.name.toUpperCase()} · ${type.toUpperCase()}`;
-  const insetCaption = (visionText.cinematicCaption || `${property.roomCount} KEYS · YEAR-ROUND DEMAND`).toUpperCase();
+  const computedHeroCaption = `${property.name.toUpperCase()} · ${type.toUpperCase()}`;
+  const heroCaption = v2?.photoCaptions?.hero?.text?.toUpperCase() || computedHeroCaption;
+
+  const computedInsetCaption = (visionText.cinematicCaption || `${property.roomCount} KEYS · YEAR-ROUND DEMAND`).toUpperCase();
+  const insetCaption = v2?.photoCaptions?.inset?.text?.toUpperCase() || computedInsetCaption;
+
+  const secondaryCaption = v2?.photoCaptions?.secondary?.text?.toUpperCase() || "CURATED GUEST EXPERIENCE";
+
+  const propertySubtitle = v2?.propertySubtitle?.text || property.description;
 
   const headerTitle = `Pipeline Spotlight: ${property.name}, ${property.stateProvince}`;
-  const headerSubtitle = `${statusLabel(property.acquisitionStatus)} — ${regionLine}`;
+  const computedHeaderSubtitle = `${statusLabel(property.acquisitionStatus)} — ${regionLine}`;
+  const headerSubtitle = v2?.headerSubtitle?.text || computedHeaderSubtitle;
+
+  const closingTagline = v2?.closingTagline?.text || "";
 
   return (
     <div style={{ width: W, height: H, background: "#FFFFFF", position: "relative", overflow: "hidden" }}>
@@ -163,7 +170,7 @@ export function Slide1({ p }: { p: SlidePayload }) {
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(28,43,30,0.65) 0%, transparent 42%)" }} />
         <div style={{ position: "absolute", left: 22, right: 22, bottom: 18 }}>
           <span style={{ fontFamily: FONT_SANS, fontSize: 13, fontWeight: 300, letterSpacing: "0.32em", color: C.cream, textTransform: "uppercase" }}>
-            CURATED GUEST EXPERIENCE
+            {secondaryCaption}
           </span>
         </div>
       </div>
@@ -175,7 +182,7 @@ export function Slide1({ p }: { p: SlidePayload }) {
             {property.name.toUpperCase()}
           </span>
           <span style={{ fontFamily: FONT_SERIF, fontSize: 17, fontStyle: "italic", color: "#5A7A62", marginTop: 8, lineHeight: 1.35 }}>
-            {property.description}
+            {propertySubtitle}
           </span>
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", flexShrink: 0 }}>
@@ -236,6 +243,14 @@ export function Slide1({ p }: { p: SlidePayload }) {
           </span>
         </div>
       </div>
+
+      {closingTagline && (
+        <div style={{ position: "absolute", left: 838, right: 64, bottom: 78, textAlign: "center" }}>
+          <span style={{ fontFamily: FONT_SERIF, fontSize: 15, fontStyle: "italic", color: C.sage, letterSpacing: "0.02em" }}>
+            {closingTagline}
+          </span>
+        </div>
+      )}
 
       {/* Bottom dark-green footer band (canonical 0,507,960,33 → 0,1014,1920,66) */}
       <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 66, background: C.darkBg, display: "flex", flexDirection: "row", alignItems: "center", padding: "0 64px" }}>

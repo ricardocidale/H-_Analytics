@@ -45,7 +45,7 @@ export type AdminSection =
   | "ai-agents"
   | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "benchmarks" | "analyst-tables" | "reference-ranges" | "vector-bench"
   | "sidebar-visibility" | "notifications" | "verification" | "database" | "observability"
-  | "slide-decks" | "property-heroes"
+  | "property-heroes"
   // Legacy URL aliases preserved for plausibly-bookmarked deep links.
   // Anything beyond this short list was a code-internal rename and was
   // dropped; new contributors don't need to chase a redirect chain to
@@ -204,16 +204,6 @@ function buildNavGroups(): NavGroup[] {
       description: "Property-wide admin surfaces",
       sections: [
         { value: "required-fields", label: "Required Fields", icon: IconFileCheck },
-      ],
-    },
-    {
-      id: "lb-slides",
-      label: "LB Slides",
-      icon: IconFileCheck,
-      description: "Download per-property investor slide decks and hero images",
-      sections: [
-        { value: "slide-decks",      label: "Slide Decks",    icon: IconFileCheck },
-        { value: "property-heroes",  label: "Property Heroes", icon: IconImage },
       ],
     },
     {

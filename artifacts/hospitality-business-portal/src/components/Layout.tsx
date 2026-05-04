@@ -9,7 +9,7 @@ import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { Search } from "@/components/icons/themed-icons";
 
-import { IconMenu, IconLogOut, IconDashboard, IconProperties, IconBriefcase, IconShield, IconProfile, IconScenarios, IconPropertyFinder, IconAnalysis, IconMapPin, IconHelp, IconCompass, IconMessageCircle } from "@/components/icons";
+import { IconMenu, IconLogOut, IconDashboard, IconProperties, IconBriefcase, IconShield, IconProfile, IconScenarios, IconPropertyFinder, IconAnalysis, IconMapPin, IconHelp, IconCompass, IconMessageCircle, IconPresentation } from "@/components/icons";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -293,6 +293,12 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
         { href: "/", label: "Dashboard", icon: IconDashboard },
         { href: "/portfolio", label: "Properties", icon: IconProperties },
         { href: "/company", label: "Management Company", icon: IconBriefcase },
+      ],
+    },
+    {
+      label: "Investor Materials",
+      items: [
+        { href: "/slide-decks", label: "Slide Decks", icon: IconPresentation },
       ],
     },
     {

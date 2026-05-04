@@ -28,13 +28,14 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { useRoute, Link } from "wouter";
+import { useRoute } from "wouter";
+import Layout from "@/components/Layout";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
 import { IconDownload, IconAlertCircle, IconRefreshCw } from "@/components/icons";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import {
   Carousel,
   CarouselContent,
@@ -46,6 +47,7 @@ import { Slide1, Slide2, Slide3, Slide4, Slide5, Slide6 } from "@/features/inter
 import { SLIDE_HEIGHT_PX, SLIDE_WIDTH_PX } from "@/features/internal-deck/theme";
 import "@/features/internal-deck/fonts.css";
 import type { SlidePayload } from "@/features/internal-deck/types";
+import { EMPTY_DECK_PAYLOAD_V2 } from "@shared/deck-payload-v2";
 import { Slide1EditorPanel } from "@/features/internal-deck/editor/Slide1EditorPanel";
 import { useToast } from "@/hooks/use-toast";
 
@@ -94,6 +96,7 @@ interface PropertyRow {
 }
 
 type ViewMode = "grid" | "carousel" | "edit";
+type DraftVersion = "authored" | "template";
 
 function downloadViaAnchor(url: string, filename: string): void {
   const a = document.createElement("a");
@@ -327,9 +330,10 @@ function SlidesCarousel({
 // ── Main page ─────────────────────────────────────────────────────────────
 
 export default function PropertySlides() {
-  const [, params] = useRoute<{ propertyId: string }>("/admin/lb-slides/:propertyId");
+  const [, params] = useRoute<{ propertyId: string }>("/slide-decks/:propertyId");
   const propertyId = params?.propertyId ? Number(params.propertyId) : NaN;
   const [view, setView] = useState<ViewMode>("grid");
+  const [draftVersion, setDraftVersion] = useState<DraftVersion>("authored");
 
   // Property info — for header + filename.
   const { data: properties } = useQuery<PropertyRow[]>({
@@ -381,75 +385,105 @@ export default function PropertySlides() {
     return () => { cancelled = true; };
   }, [tokenData?.token, propertyId]);
 
+  const templatePayload = useMemo<SlidePayload | null>(
+    () => payload ? { ...payload, deckPayloadV2: EMPTY_DECK_PAYLOAD_V2 } : null,
+    [payload],
+  );
+  const activePayload = draftVersion === "template" ? templatePayload : payload;
+
   const actions = useSlideActions(propertyId, property?.name ?? `property-${propertyId}`);
 
   if (!Number.isFinite(propertyId)) {
     return (
-      <div className="container mx-auto p-6">
-        <p className="text-destructive">Invalid property ID.</p>
-      </div>
+      <Layout>
+        <div className="container mx-auto p-6">
+          <p className="text-destructive">Invalid property ID.</p>
+        </div>
+      </Layout>
     );
   }
 
-  return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-3">
-          <Link href="/admin#slide-decks">
-            <Button variant="ghost" size="sm" className="gap-1.5">
-              <ArrowLeft className="h-4 w-4" />
-              Back to LB Slides
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-xl font-semibold">
-              {property?.name ?? `Property ${propertyId}`} — Slides
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Each slide downloads as its own 1-page PDF. Regenerate currently busts the full-deck cache so the next render picks up code/data changes for any slide.
-            </p>
-          </div>
-        </div>
-
-        <div className="inline-flex rounded-md border border-border overflow-hidden text-sm">
-          <button
-            type="button"
-            onClick={() => setView("grid")}
-            className={`px-3 py-1.5 transition-colors ${
-              view === "grid"
-                ? "bg-primary text-primary-foreground"
-                : "bg-background hover:bg-muted"
-            }`}
-            aria-pressed={view === "grid"}
-          >
-            Grid
-          </button>
-          <button
-            type="button"
-            onClick={() => setView("carousel")}
-            className={`px-3 py-1.5 border-l border-border transition-colors ${
-              view === "carousel"
-                ? "bg-primary text-primary-foreground"
-                : "bg-background hover:bg-muted"
-            }`}
-            aria-pressed={view === "carousel"}
-          >
-            Carousel
-          </button>
-          <button
-            type="button"
-            onClick={() => setView("edit")}
-            className={`px-3 py-1.5 border-l border-border transition-colors ${
-              view === "edit"
-                ? "bg-primary text-primary-foreground"
-                : "bg-background hover:bg-muted"
-            }`}
-            aria-pressed={view === "edit"}
-          >
-            Edit copy
-          </button>
-        </div>
+  const viewActions = (
+    <div className="flex items-center gap-2">
+      <div className="inline-flex rounded-md border border-border overflow-hidden text-sm">
+        <button
+          type="button"
+          onClick={() => setView("grid")}
+          className={`px-3 py-1.5 transition-colors ${
+            view === "grid"
+              ? "bg-primary text-primary-foreground"
+              : "bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+          }`}
+          aria-pressed={view === "grid"}
+        >
+          Grid
+        </button>
+        <button
+          type="button"
+          onClick={() => setView("carousel")}
+          className={`px-3 py-1.5 border-l border-border transition-colors ${
+            view === "carousel"
+              ? "bg-primary text-primary-foreground"
+              : "bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+          }`}
+          aria-pressed={view === "carousel"}
+        >
+          Carousel
+        </button>
+        <button
+          type="button"
+          onClick={() => setView("edit")}
+          className={`px-3 py-1.5 border-l border-border transition-colors ${
+            view === "edit"
+              ? "bg-primary text-primary-foreground"
+              : "bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+          }`}
+          aria-pressed={view === "edit"}
+        >
+          Edit copy
+        </button>
       </div>
+
+      {view !== "edit" && (
+        <div className="inline-flex items-center rounded-md border border-border overflow-hidden text-sm">
+          <button
+            type="button"
+            onClick={() => setDraftVersion("template")}
+            className={`px-3 py-1.5 transition-colors ${
+              draftVersion === "template"
+                ? "bg-accent-pop text-accent-pop-foreground"
+                : "bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+            }`}
+            aria-pressed={draftVersion === "template"}
+          >
+            System Draft
+          </button>
+          <button
+            type="button"
+            onClick={() => setDraftVersion("authored")}
+            className={`px-3 py-1.5 border-l border-border transition-colors ${
+              draftVersion === "authored"
+                ? "bg-accent-pop-2 text-accent-pop-2-foreground"
+                : "bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+            }`}
+            aria-pressed={draftVersion === "authored"}
+          >
+            Your Version
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <Layout>
+    <div className="container mx-auto p-4 sm:p-6 space-y-6 max-w-7xl">
+      <PageHeader
+        title={`${property?.name ?? `Property ${propertyId}`} — Slide Deck`}
+        subtitle="Each slide downloads as its own 1-page PDF. Toggle between System Draft and Your Version to compare auto-generated versus authored copy."
+        backLink="/slide-decks"
+        actions={viewActions}
+      />
 
       {tokenError && (
         <div className="flex items-center gap-2 text-destructive">
@@ -471,7 +505,7 @@ export default function PropertySlides() {
         </div>
       )}
 
-      {payload && view === "grid" && (
+      {activePayload && view === "grid" && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {SLIDES.map(s => (
             <SlideThumbCard
@@ -479,15 +513,15 @@ export default function PropertySlides() {
               n={s.n}
               title={s.title}
               Component={s.Component}
-              payload={payload}
+              payload={activePayload}
               actions={actions}
             />
           ))}
         </div>
       )}
 
-      {payload && view === "carousel" && (
-        <SlidesCarousel payload={payload} actions={actions} />
+      {activePayload && view === "carousel" && (
+        <SlidesCarousel payload={activePayload} actions={actions} />
       )}
 
       {view === "edit" && (
@@ -498,8 +532,7 @@ export default function PropertySlides() {
               <div className="px-4 py-3 border-b border-border/60">
                 <p className="text-sm font-semibold leading-tight">Live preview — Slide 1</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Currently shows the legacy renderer. The new renderer that
-                  consumes editor copy lands in the next slice (T004).
+                  Shows authored copy from the editor. Save changes to update.
                 </p>
               </div>
               <div
@@ -525,5 +558,6 @@ export default function PropertySlides() {
         </div>
       )}
     </div>
+    </Layout>
   );
 }

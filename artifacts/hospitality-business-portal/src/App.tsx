@@ -57,6 +57,7 @@ if (typeof requestIdleCallback === "function") {
 const Login = lazy(() => import("@/pages/Login"));
 const InternalDeck = lazy(() => import("@/pages/InternalDeck"));
 const PropertySlides = lazy(() => import("@/pages/PropertySlides"));
+const SlideDecks = lazy(() => import("@/pages/SlideDecks"));
 const ResearchRefreshOverlay = lazy(() =>
   import("@/components/ResearchRefreshOverlay").then(m => ({ default: m.ResearchRefreshOverlay }))
 );
@@ -296,10 +297,16 @@ function Router() {
           <Redirect to="/admin" />
         </Route>
         <Route path="/admin/lb-slides">
-          <Redirect to="/admin#slide-decks" />
+          <Redirect to="/slide-decks" />
         </Route>
-        <Route path="/admin/lb-slides/:propertyId">
-          <AdminRoute component={PropertySlides} />
+        <Route path="/admin/lb-slides/:propertyId([0-9]+)">
+          <Redirect to="/slide-decks" />
+        </Route>
+        <Route path="/slide-decks">
+          <ProtectedRoute component={SlideDecks} />
+        </Route>
+        <Route path="/slide-decks/:propertyId">
+          <ProtectedRoute component={PropertySlides} />
         </Route>
         <Route path="/icp">
           <IcpRedirect />
