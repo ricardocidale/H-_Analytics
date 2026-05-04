@@ -32,6 +32,7 @@ export {
   Crop,
   Diamond,
   ArrowSquareOut as ExternalLink,
+  Flag,
   Flask as FlaskConical,
   FolderOpen as FolderInput,
   Images as GalleryHorizontal,

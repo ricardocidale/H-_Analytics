@@ -15,11 +15,19 @@ import {
   PanelRightClose,
   SquarePen,
   Mail,
-  TriangleAlert,
+  Flag,
+  MoreVertical,
   AlignLeft,
   ChevronRight,
   ChevronLeft,
 } from "@/components/icons/themed-icons";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { RebeccaEmailPreview } from "./RebeccaEmailPreview";
 import { RebeccaFeedbackForm } from "./RebeccaFeedbackForm";
 import { RebeccaConversationHistory } from "./RebeccaConversationHistory";
@@ -540,46 +548,48 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
               </div>
             </div>
             <div className="flex items-center gap-0.5 shrink-0">
-              {/* Past conversations */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => setHistoryOpen(true)}
-                title="Conversation history"
-                aria-label="Conversation history"
-                data-testid="button-rebecca-history"
-              >
-                <IconHistory className="w-3.5 h-3.5" />
-              </Button>
-
-              {/* Contextual: email summary + report issue */}
-              {messages.length > 0 && conversationId && (
-                <>
+              {/* Overflow: history, email summary, report issue */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7"
-                    onClick={() => setEmailOpen(true)}
-                    title="Email conversation summary"
-                    aria-label="Email conversation summary"
-                    data-testid="button-rebecca-email"
+                    aria-label="More options"
+                    data-testid="button-rebecca-overflow"
                   >
-                    <Mail className="w-3.5 h-3.5" />
+                    <MoreVertical className="w-3.5 h-3.5" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => setFeedbackOpen(true)}
-                    title="Report an issue"
-                    aria-label="Report an issue"
-                    data-testid="button-rebecca-feedback"
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem
+                    onClick={() => setHistoryOpen(true)}
+                    data-testid="button-rebecca-history"
                   >
-                    <TriangleAlert className="w-3.5 h-3.5" />
-                  </Button>
-                </>
-              )}
+                    <IconHistory className="w-4 h-4" />
+                    Conversation history
+                  </DropdownMenuItem>
+                  {messages.length > 0 && conversationId && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => setEmailOpen(true)}
+                        data-testid="button-rebecca-email"
+                      >
+                        <Mail className="w-4 h-4" />
+                        Email summary
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => setFeedbackOpen(true)}
+                        data-testid="button-rebecca-feedback"
+                      >
+                        <Flag className="w-4 h-4" />
+                        Report an issue
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               {/* New conversation */}
               {messages.length > 0 && (
