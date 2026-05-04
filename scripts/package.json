@@ -13,10 +13,12 @@
     "check:types-mirror": "tsx ./src/check-types-mirror.ts",
     "check:production-image": "tsx ./src/check-production-image.ts",
     "sync-db-to-railway": "tsx ./src/sync-db-to-railway.ts",
+    "upload:canonical-slides": "tsx ./src/upload-canonical-slides.ts",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1039.0",
     "@workspace/db": "workspace:*",
     "drizzle-orm": "catalog:"
   },

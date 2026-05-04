@@ -1,1 +1,2 @@
 exports/decks.tar.gz filter=lfs diff=lfs merge=lfs -text
+attached_assets/canonical_slide_render_spec_v4_pdf_deterministic_1777859022805.json filter=lfs diff=lfs merge=lfs -text
