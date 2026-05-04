@@ -179,6 +179,7 @@ Images are `position: absolute` with `object-fit: cover`. If `matched_clip_path`
 | `docs/slide-system/canonical/spec_skeleton_v4.json` | Element-level spec from PDF extraction (chars stripped, ~27k lines) |
 | `docs/slide-system/canonical/r2-manifest.json` | R2 key manifest written by the upload script |
 | `scripts/src/upload-canonical-slides.ts` | Re-run this if the canonical PDF changes |
+| `scripts/src/upload-canonical-pngs.ts` | Re-run this to re-upload the 6 canonical slide PNGs (e.g. after design approval) |
 
 ---
 
@@ -233,4 +234,43 @@ The old renderer used 1920×1080. The canonical spec uses 960×540. If you encou
 | v_strokes | error | Stroke elements must set `stroke_width`, `stroke_hex`, `stroke_opacity`, `lineCap`, `lineJoin`, `dashes` exactly |
 | v_clips | error | Images with `matched_clip_path` must apply border-radius |
 | v_no_default_radius | warning | Do not invent radii without spec backing |
-| v_baseline_compare | warning | Compare rendered output visually against PDF reference |
+| v_canonical_png | **required** | Compare rendered output visually against the canonical PNG before shipping |
+
+---
+
+## Canonical PNG Comparison (mandatory)
+
+Before shipping any slide change, compare the rendered output against the canonical PNG for that slide. This is a hard requirement — not a suggestion.
+
+### Where the canonical PNGs live
+
+| Slide | Local path | R2 key |
+|-------|-----------|--------|
+| 1 | `attached_assets/L+B_Property_6-Slide_Cannonical_Page_1_1777868023135.png` | `canonical/lb-6-slide/slides/slide-1.png` |
+| 2 | `attached_assets/L+B_Property_6-Slide_Cannonical_Page_2_1777868023137.png` | `canonical/lb-6-slide/slides/slide-2.png` |
+| 3 | `attached_assets/L+B_Property_6-Slide_Cannonical_Page_3_1777868023137.png` | `canonical/lb-6-slide/slides/slide-3.png` |
+| 4 | `attached_assets/L+B_Property_6-Slide_Cannonical_Page_4_1777868023136.png` | `canonical/lb-6-slide/slides/slide-4.png` |
+| 5 | `attached_assets/L+B_Property_6-Slide_Cannonical_Page_5_1777868023136.png` | `canonical/lb-6-slide/slides/slide-5.png` |
+| 6 | `attached_assets/L+B_Property_6-Slide_Cannonical_Page_6_1777868023136.png` | `canonical/lb-6-slide/slides/slide-6.png` |
+
+Access via `CANONICAL_ASSETS.slide(N, "png")` from `canonical-assets.ts` for presigned R2 URLs.
+
+### Comparison checklist (run for every slide you touch)
+
+1. **Layout positions** — all elements within ±2px of spec bbox values (`spec_skeleton_v4.json`)
+2. **Colors** — exact match to `PALETTE` tokens; no approximations
+3. **Typography** — font family (`FONTS.*`), weight (`FW.*`), size, and capitalization
+4. **Text content** — dynamic slots populated; static chrome verbatim from spec `sourceContent`
+5. **Photo placement** — `object-fit: cover`, correct clip radius, caption overlay present
+6. **Backgrounds** — `off_white_grid` for slides 1–4, `sage_solid` for slides 5–6
+7. **Footer** — left icon + tagline, right dots or page number
+
+### Re-uploading canonical PNGs
+
+If the canonical design changes, run:
+```bash
+pnpm --filter @workspace/scripts run upload:canonical-pngs
+pnpm --filter @workspace/scripts run check:canonical-schema -- --init
+```
+
+See `lb-slides-canonical-pngs` skill for full re-upload workflow and per-slide layout descriptions.

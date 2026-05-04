@@ -198,3 +198,47 @@ Generate:
 HTML + CSS (or React)
 
 Pixel-accurate to JSON.
+
+---
+
+## 15. CANONICAL PNG COMPARISON (MANDATORY)
+
+Before completing any slide generation or modification task, compare the rendered output against the canonical PNG for each slide you changed.
+
+### Source files
+
+```
+attached_assets/L+B_Property_6-Slide_Cannonical_Page_1_1777868023135.png  → Slide 1
+attached_assets/L+B_Property_6-Slide_Cannonical_Page_2_1777868023137.png  → Slide 2
+attached_assets/L+B_Property_6-Slide_Cannonical_Page_3_1777868023137.png  → Slide 3
+attached_assets/L+B_Property_6-Slide_Cannonical_Page_4_1777868023136.png  → Slide 4
+attached_assets/L+B_Property_6-Slide_Cannonical_Page_5_1777868023136.png  → Slide 5
+attached_assets/L+B_Property_6-Slide_Cannonical_Page_6_1777868023136.png  → Slide 6
+```
+
+These are also in R2: `canonical/lb-6-slide/slides/slide-{1..6}.png`
+
+### Comparison checklist
+
+For every slide you generated or modified:
+
+1. Layout positions match (±2px tolerance against bbox values)
+2. Colors match exactly — PALETTE tokens only
+3. Typography: font family, weight, size, capitalization
+4. Dynamic slots filled; static chrome verbatim from spec
+5. Photos: object-fit cover, clip radius, caption overlay
+6. Background: `#FFF9F5` grid for slides 1–4, `#9FBCAD` solid for slides 5–6
+7. Footer: left icon + tagline, right dots or page number
+
+### Generation workflow (revised)
+
+```
+Step 0: Load canonical PNG for target slide(s)
+Step 1: Read spec_skeleton_v4.json for that slide's elements
+Step 2: Render using contract.ts values (bb(), PALETTE, FONTS)
+Step 3: Compare output against canonical PNG using checklist above
+Step 4: Fix any discrepancies before delivering
+Step 5: Never output ######
+```
+
+If a discrepancy exists between the JSON spec and the canonical PNG, the PNG wins.

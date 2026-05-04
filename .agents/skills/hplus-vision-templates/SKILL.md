@@ -271,7 +271,7 @@ When the LLM generates vision text, it MUST:
 3. **Never use**: "exciting opportunity", "strong fundamentals", "world-class", "unique"
 4. **Always use**: specific numbers, measurable outcomes, named demand drivers (e.g., "Belleayre ski area", "2.5hr NYC drive-market")
 5. **Cinematic caption format**: `"[FEATURE] · [FEATURE]"` — ALL CAPS, concise, visual (max 2 features)
-6. **Badge text**: 3–5 words, ALL CAPS, describes the experience brand promise
+6. **Badge text**: Short ALL CAPS phrase (max `VISION_BADGE_MAX_CHARS` chars), describes the experience brand promise
 
 ---
 
