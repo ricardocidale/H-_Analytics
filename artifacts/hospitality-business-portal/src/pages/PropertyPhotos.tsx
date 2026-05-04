@@ -68,7 +68,7 @@ export default function PropertyPhotos() {
   return (
     <Layout>
       <AnimatedPage>
-        <div className="max-w-4xl mx-auto space-y-6 p-4 sm:p-6">
+        <div className="max-w-6xl mx-auto space-y-6 p-4 sm:p-6">
           <PageHeader
             title={<span data-testid="text-page-title">Photos — {property.name}</span>}
             subtitle={property.location}

@@ -18,7 +18,7 @@
  * calls on every page navigation.
  */
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, type QueryObserverResult } from "@tanstack/react-query";
 import { UserRole, isAdminRole } from "@shared/constants";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
 import { apiRequest, safeReadJson } from "@/lib/queryClient";
@@ -54,7 +54,7 @@ interface AuthContextType {
   logoutPending: boolean;
   confirmLogout: () => Promise<void>;
   cancelLogout: () => void;
-  refetch: () => void;
+  refetch: () => Promise<QueryObserverResult<User | null, Error>>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -137,9 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isUser = user?.role === UserRole.USER;
   const canManageScenarios = !!user && (user.canManageScenarios ?? true);
   
-  const refetch = () => {
-    refetchQuery();
-  };
+  const refetch = refetchQuery;
 
   return (
     <AuthContext.Provider value={{ user, isLoading, isAdmin, isSuperAdmin, isUser, canManageScenarios, login, logout, requestLogout, logoutPending, confirmLogout, cancelLogout, refetch }}>
