@@ -72,14 +72,8 @@ export interface PropertyVisionText {
 
 const VISION_MODEL = "claude-opus-4-6";
 
-/** Max tokens for the whole-deck vision LLM call (20+ fields). */
-const VISION_DRAFT_MAX_TOKENS = 1200;
-
-/** Character budget hints injected into the LLM prompt (not hard server limits). */
+/** Local character budgets that were not centralized in constants-benchmarks. */
 const VISION_CAPTION_MAX_CHARS = 60;
-const VISION_BADGE_MAX_CHARS = 35;
-const VISION_BULLET_MAX_CHARS = 80;
-const VISION_PARAGRAPH_MAX_CHARS = 180;
 const VISION_LABEL_MAX_CHARS = 60;
 const VISION_CLOSING_MAX_CHARS = 120;
 
