@@ -773,6 +773,7 @@ function DraftAllReviewPanel({
   onDismiss,
   onRedraftStale,
   isRedraftingStale,
+  isDraftingAll,
 }: {
   drafts: DraftResult[];
   generatedAt: string;
@@ -782,6 +783,7 @@ function DraftAllReviewPanel({
   onDismiss: () => void;
   onRedraftStale?: () => void;
   isRedraftingStale?: boolean;
+  isDraftingAll?: boolean;
 }) {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -875,6 +877,17 @@ function DraftAllReviewPanel({
     }
     prevRedraftingStale.current = !!isRedraftingStale;
   }, [isRedraftingStale, drafts, propertyUpdatedAt]);
+
+  const prevDraftAllPending = useRef(false);
+  useEffect(() => {
+    if (!isDraftingAll && prevDraftAllPending.current && drafts.length > 0) {
+      const firstSlot = drafts[0].slot;
+      requestAnimationFrame(() => {
+        slotCardRefs.current[firstSlot]?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+    }
+    prevDraftAllPending.current = !!isDraftingAll;
+  }, [isDraftingAll, drafts]);
 
   // Re-sync editable state when drafts change (e.g. re-draft stale or a
   // second Draft All run). Preserves admin edits on slots whose suggestion
@@ -1543,6 +1556,7 @@ export default function PropertySlides() {
           onDismiss={() => setPendingDrafts(null)}
           onRedraftStale={() => redraftStaleMutation.mutate()}
           isRedraftingStale={redraftStaleMutation.isPending}
+          isDraftingAll={draftAllMutation.isPending}
         />
       )}
 
