@@ -43,21 +43,6 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  // Whether the dev-only logo quick-login should be wired up. Determined by
-  // the server (gated on REPLIT_DEPLOYMENT) so we get the right answer in the
-  // Replit dev preview even when the web bundle was built with NODE_ENV=production.
-  const [devLoginAvailable, setDevLoginAvailable] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/public/dev-login-available")
-      .then(r => (r.ok ? r.json() : null))
-      .then(data => {
-        if (!cancelled && data?.available === true) setDevLoginAvailable(true);
-      })
-      .catch(() => { /* ignore: stays disabled */ });
-    return () => { cancelled = true; };
-  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -161,18 +146,16 @@ export default function Login() {
                   >
                     <SpinningLogo3D
                       size={96}
-                      onClick={devLoginAvailable ? handleAdminLogin : undefined}
-                      title={devLoginAvailable ? "Dev preview: click to sign in as super admin" : undefined}
-                      ariaLabel={devLoginAvailable ? "Dev quick sign-in as super admin" : undefined}
+                      onClick={handleAdminLogin}
+                      title="Dev preview: click to sign in as super admin"
+                      ariaLabel="Dev quick sign-in as super admin"
                     />
-                    {devLoginAvailable && (
-                      <span
-                        className="pointer-events-none absolute -bottom-4 text-[10px] uppercase tracking-[0.15em] text-muted-foreground/60 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
-                        data-testid="text-dev-quick-login-hint"
-                      >
-                        Dev quick sign-in
-                      </span>
-                    )}
+                    <span
+                      className="pointer-events-none absolute -bottom-4 text-[10px] uppercase tracking-[0.15em] text-muted-foreground/60 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
+                      data-testid="text-dev-quick-login-hint"
+                    >
+                      Dev quick sign-in
+                    </span>
                   </div>
                   <div>
                     <h1 className="text-2xl font-bold font-display tracking-tight" data-testid="text-welcome">
