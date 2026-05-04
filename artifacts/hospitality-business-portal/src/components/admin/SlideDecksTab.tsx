@@ -1211,7 +1211,11 @@ export default function SlideDecksTab() {
       const r = await fetch("/api/properties/deck.pdf/queue-status", { credentials: "include" });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const data = (await r.json()) as RenderQueueStats;
-      setRenderQueueStats(data);
+      if (data.activeCount === 0 && data.pendingCount === 0) {
+        setRenderQueueStats(null);
+      } else {
+        setRenderQueueStats(data);
+      }
       return data;
     },
     staleTime: 0,
