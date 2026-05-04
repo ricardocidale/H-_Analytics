@@ -1,16 +1,12 @@
-/**
- * info-tooltip.tsx — Info icon with hover tooltip for contextual help.
- *
- * Renders a small "i" icon that shows explanatory text on hover. Optionally
- * includes an external link for further reading. Used next to financial
- * input fields to explain concepts like "ADR", "Cap Rate", or "FF&E Reserve".
- */
 import { IconInfo, IconExternalLink } from "@/components/icons";
+import { Sparkles } from "@/components/icons/themed-icons";
 import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
+import { usePanelManager } from "@/lib/panel-manager";
+import type { RebeccaContext } from "@/lib/panel-manager";
 
 interface InfoTooltipProps {
   text: string;
@@ -19,9 +15,13 @@ interface InfoTooltipProps {
   side?: "top" | "bottom" | "left" | "right";
   manualSection?: string;
   manualLabel?: string;
+  /** When provided, shows an "Ask Rebecca" link that opens the copilot grounded on this field. */
+  rebeccaContext?: RebeccaContext;
 }
 
-export function InfoTooltip({ text, formula, light = false, side = "top", manualSection, manualLabel }: InfoTooltipProps) {
+export function InfoTooltip({ text, formula, light = false, side = "top", manualSection, manualLabel, rebeccaContext }: InfoTooltipProps) {
+  const { openRebecca } = usePanelManager();
+
   return (
     <Tooltip delayDuration={200}>
       <TooltipTrigger asChild>
@@ -63,6 +63,20 @@ export function InfoTooltip({ text, formula, light = false, side = "top", manual
             <IconExternalLink className="w-3 h-3" />
             {manualLabel || "Learn more in the Manual"}
           </a>
+        )}
+        {rebeccaContext && (
+          <button
+            type="button"
+            className="flex items-center gap-1 mt-1.5 text-[10px] text-primary hover:text-primary/80 transition-colors w-full text-left"
+            data-testid="info-tooltip-ask-rebecca"
+            onClick={(e) => {
+              e.stopPropagation();
+              openRebecca(rebeccaContext);
+            }}
+          >
+            <Sparkles className="w-3 h-3" />
+            Ask Rebecca
+          </button>
         )}
       </TooltipContent>
     </Tooltip>

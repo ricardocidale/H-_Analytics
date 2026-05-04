@@ -158,7 +158,12 @@ export function InvestmentAnalysis({
           <div className="bg-card rounded-lg p-5 border border-border shadow-sm">
             <p className="text-sm font-medium text-foreground/70 flex items-center mb-2">
               Portfolio IRR
-              <InfoTooltip text="Internal Rate of Return — the annualized return that makes the net present value of all cash flows equal to zero." manualSection="analysis" manualLabel="IRR methodology in the Manual" />
+              <InfoTooltip
+                text="Internal Rate of Return — the annualized return that makes the net present value of all cash flows equal to zero."
+                manualSection="analysis"
+                manualLabel="IRR methodology in the Manual"
+                rebeccaContext={{ fieldName: "Portfolio IRR", fieldKey: "portfolio_irr" }}
+              />
             </p>
             <div className="text-2xl font-bold text-secondary font-mono">{(portfolioIRRIA * 100).toFixed(1)}%</div>
           </div>

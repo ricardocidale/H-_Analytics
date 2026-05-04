@@ -16,7 +16,9 @@ import {
   SquarePen,
   Mail,
   Flag,
+  Gear,
   MoreVertical,
+  Check,
   AlignLeft,
   ChevronRight,
   ChevronLeft,
@@ -25,6 +27,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -622,34 +625,6 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
           </div>
         </div>
 
-        <div className="px-4 py-2 border-b border-border/30 shrink-0 flex items-center gap-1.5" data-testid="rebecca-mode-selector">
-          <span className="text-[10px] font-semibold text-foreground/70 uppercase tracking-wider mr-1">Mode</span>
-          {RESPONSE_MODES.map((m) => {
-            const Icon = m.icon;
-            const active = responseMode === m.value;
-            return (
-              <button
-                key={m.value}
-                onClick={() => {
-                  setResponseMode(m.value);
-                  try { localStorage.setItem("rebecca-response-mode", m.value); } catch (e: unknown) { console.warn("Failed to save response mode to localStorage", e); }
-                }}
-                className={cn(
-                  "flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-colors",
-                  active
-                    ? "bg-primary/15 text-primary"
-                    : "text-foreground/70 hover:text-foreground hover:bg-muted/60"
-                )}
-                title={m.tip}
-                data-testid={`button-mode-${m.value}`}
-              >
-                <Icon className="w-3 h-3" />
-                {m.label}
-              </button>
-            );
-          })}
-        </div>
-
         {rebeccaContext && <RebeccaContextCard context={rebeccaContext} />}
 
         <div
@@ -772,6 +747,47 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
               disabled={loading}
               data-testid="input-rebecca-message"
             />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 shrink-0 relative"
+                  aria-label="Response mode"
+                  data-testid="button-rebecca-mode-gear"
+                >
+                  <Gear className="w-3.5 h-3.5" />
+                  {responseMode !== "standard" && (
+                    <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-primary" />
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44" data-testid="rebecca-mode-selector">
+                <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Response mode
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {RESPONSE_MODES.map((m) => {
+                  const Icon = m.icon;
+                  const active = responseMode === m.value;
+                  return (
+                    <DropdownMenuItem
+                      key={m.value}
+                      onClick={() => {
+                        setResponseMode(m.value);
+                        try { localStorage.setItem("rebecca-response-mode", m.value); } catch (e: unknown) { console.warn("Failed to save response mode", e); }
+                      }}
+                      className={cn(active && "text-primary")}
+                      data-testid={`button-mode-${m.value}`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      {m.label}
+                      {active && <Check className="w-3.5 h-3.5 ml-auto" />}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               size="icon"
               className="h-9 w-9 shrink-0"

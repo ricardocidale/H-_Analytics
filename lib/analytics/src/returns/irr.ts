@@ -62,7 +62,14 @@ export function computeIRR(
   const totalNegative = Math.abs(
     cashFlows.filter((cf) => cf < 0).reduce((sum, cf) => sum + cf, 0),
   );
-  let rate = dPow(totalPositive / totalNegative, 1 / cashFlows.length) - 1;
+
+  // Count periods between first negative and last positive for a better exponent.
+  // Using cashFlows.length over-counts when equity arrives mid-vector (delayed acq).
+  const firstNeg = cashFlows.findIndex((cf) => cf < 0);
+  const lastPos = cashFlows.reduce((idx, cf, i) => (cf > 0 ? i : idx), -1);
+  const holdPeriods = lastPos > firstNeg ? lastPos - firstNeg : cashFlows.length;
+
+  let rate = dPow(totalPositive / totalNegative, 1 / holdPeriods) - 1;
 
   // Clamp initial guess to reasonable range
   rate = Math.max(-0.5, Math.min(rate, 10));
@@ -104,9 +111,13 @@ export function computeIRR(
     }
   }
 
-  // Did not converge — return best guess if NPV is very small
+  // Did not converge within tolerance — accept if residual is negligible relative
+  // to the scale of the investment (1 part-per-million of total invested capital).
+  // The old absolute threshold of $1 could silently accept a wrong IRR on a
+  // sub-$1M deal where $0.99 NPV is already a 0.1% error.
   const finalNpv = npv(cashFlows, rate);
-  if (Math.abs(finalNpv) < 1) {
+  const relTolerance = Math.max(1, totalNegative) * 1e-6;
+  if (Math.abs(finalNpv) < relTolerance) {
     const annualized =
       periodsPerYear === 1 ? rate : dPow(1 + rate, periodsPerYear) - 1;
     return {

@@ -18,6 +18,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ToolbarRow } from "@/components/ui/toolbar-row";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -727,9 +728,10 @@ export function ResourceDetailDialog({ resourceId, onOpenChange }: Props) {
               </TabsContent>
             </Tabs>
 
-            <div className="flex justify-end pt-2">
-              <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="button-close-detail">Close</Button>
-            </div>
+            <ToolbarRow
+              end={<Button variant="outline" onClick={() => onOpenChange(false)} data-testid="button-close-detail">Close</Button>}
+              className="pt-2"
+            />
           </>
         )}
       </DialogContent>

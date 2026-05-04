@@ -13,11 +13,11 @@ import { generatePropertyProForma } from "./core/property-pipeline";
 import { withModelConstants } from "./apply-model-constants";
 import { computeIRR } from "@analytics/returns/irr";
 import { computeBreakevenTargets } from "@calc/analysis/breakeven-targets";
-import { computeEquityMultiple } from "@calc/returns/equity-multiple";
-import { DEFAULT_ROUNDING } from "@calc/shared/utils";
+import { aggregateUnifiedByYear } from "@engine/aggregation/yearlyAggregator";
 import { storage } from "../storage";
 import { resolveDefault } from "../defaults";
 import type { PropertyInput, GlobalInput } from "@engine/types";
+import type { LoanParams, GlobalLoanParams } from "@engine/debt/loanCalculations";
 import { propertyEquityInvested } from "@engine/debt/equityCalculations";
 import {
   DEFAULT_COST_RATE_INSURANCE,
@@ -75,13 +75,25 @@ function runScenario(
   let totalRevenue = 0;
   let totalNOI = 0;
   let totalCashFlow = 0;
-  let exitValue = 0;
+  let totalExitValue = 0;
   let totalInitialEquity = 0;
-  const annualCashFlows: number[] = new Array(projectionYears).fill(0);
+
+  // Canonical per-year net-cash-flow-to-investors, summed across all properties.
+  // This uses the same vector convention as aggregateUnifiedByYear / the client
+  // InvestmentAnalysis tab: equity is deducted in its acquisition year (not
+  // prepended at T=0), and exit proceeds are added in the final year.
+  // Using a shared aggregator eliminates the previous N+1 vs N element mismatch
+  // and ensures sensitivity IRR is computed identically to portfolio IRR.
+  const netFlowsByYear: number[] = new Array(projectionYears).fill(0);
 
   for (const prop of properties) {
     const baseInterestRate =
       (prop.acquisitionInterestRate ?? global.debtAssumptions?.interestRate ?? 0.065);
+
+    // Compute the scenario-adjusted exit cap rate once per property so it can
+    // be stamped onto adjProp before passing to aggregateUnifiedByYear.
+    const baseCapRate = prop.exitCapRate ?? global.exitCapRate ?? resolved.exitCapRate;
+    const adjCapRate  = Math.max(0.01, baseCapRate + (overrides.exitCapRate ?? 0) / 100);
 
     const adjProp: PropertyInput = {
       ...prop,
@@ -96,6 +108,12 @@ function runScenario(
         0,
         (prop.costRateInsurance ?? DEFAULT_COST_RATE_INSURANCE) + (overrides.insuranceRate ?? 0) / 100,
       ),
+      // Stamp the scenario-adjusted exit cap rate so aggregateUnifiedByYear
+      // picks it up (property.exitCapRate takes precedence over global).
+      exitCapRate: adjCapRate,
+      // Use the admin-resolved commission rate as the authoritative fallback
+      // when the property has no per-property override.
+      dispositionCommission: prop.dispositionCommission ?? resolved.commissionRate,
     };
 
     const adjGlobal: GlobalInput = {
@@ -110,48 +128,49 @@ function runScenario(
 
     const financials = generatePropertyProForma(adjProp, adjGlobal, projectionMonths);
 
-    for (let i = 0; i < financials.length; i++) {
-      const m = financials[i];
+    // Accumulate display-level totals from raw monthly data.
+    for (const m of financials) {
       totalRevenue  += m.revenueTotal;
       totalNOI      += m.noi;
       totalCashFlow += m.cashFlow;
-      const yearIdx  = Math.floor(i / MONTHS_PER_YEAR);
-      if (yearIdx < projectionYears) annualCashFlows[yearIdx] += m.cashFlow;
     }
 
-    const lastYearNOI = financials.slice(-12).reduce((s, m) => s + m.noi, 0);
-    const capRate = Math.max(
-      0.01,
-      (prop.exitCapRate ?? global.exitCapRate ?? resolved.exitCapRate) +
-        (overrides.exitCapRate ?? 0) / 100,
+    // Use the canonical aggregator to get the net-cash-flow-to-investors series.
+    // This handles equity placement at acquisition year, annualizedNOI-based exit,
+    // and refinancing proceeds — matching the client's computation exactly.
+    const unified = aggregateUnifiedByYear(
+      financials,
+      adjProp as unknown as LoanParams,
+      adjGlobal as unknown as GlobalLoanParams,
+      projectionYears,
     );
-    const commissionRate = prop.dispositionCommission ?? resolved.commissionRate;
-    const grossExit = lastYearNOI / capRate;
-    const netExit   = grossExit * (1 - commissionRate);
-    const debtAtExit = financials[financials.length - 1]?.debtOutstanding ?? 0;
-    exitValue += Math.max(0, netExit - debtAtExit);
 
+    for (let y = 0; y < projectionYears; y++) {
+      netFlowsByYear[y] += unified.yearlyCF[y]?.netCashFlowToInvestors ?? 0;
+    }
+
+    totalExitValue  += unified.yearlyCF[projectionYears - 1]?.exitValue ?? 0;
     totalInitialEquity += propertyEquityInvested(prop);
   }
 
-  const irrFlows = [-totalInitialEquity, ...annualCashFlows];
-  irrFlows[irrFlows.length - 1] += exitValue;
-  const irrResult = totalInitialEquity > 0 ? computeIRR(irrFlows, 1) : null;
+  // IRR: use netCashFlowToInvestors[] directly — equity is already embedded
+  // as a negative outflow in each property's acquisition year, matching the
+  // N-element convention used by InvestmentAnalysis.tsx and build-payload.ts.
+  const irrResult = totalInitialEquity > 0 ? computeIRR(netFlowsByYear, 1) : null;
   const irr = irrResult?.irr_periodic ?? 0;
   const avgNOIMargin = totalRevenue > 0 ? (totalNOI / totalRevenue) * 100 : 0;
 
-  // Audit Task #967 — true equity multiple (MOIC) = totalDistributions /
-  // totalEquityInvested. Reuses `computeEquityMultiple` so the formula stays
-  // single-sourced. The cash flow vector built above already encodes the
-  // initial equity outflow (negative) and per-year distributions plus the
-  // terminal exit proceeds (positives) — exactly the convention the
-  // calculator expects. Divide-by-zero (no equity invested) returns 0,
-  // which renders as "—" in the heatmap cell.
+  // MOIC (equity multiple): total distributions / initial equity invested.
+  // Standard real-estate PE definition — denominator is ONLY the upfront equity
+  // check written, regardless of whether any mid-period years are negative.
+  // netFlowsByYear already nets out equity in the acquisition year; adding it
+  // back recovers total gross distributions (= sum(ATCF) + refi + exit).
+  const totalCashReturned = netFlowsByYear.reduce((s, v) => s + v, 0);
   const equityMultipleValue = totalInitialEquity > 0
-    ? computeEquityMultiple({ cash_flows: irrFlows, rounding_policy: DEFAULT_ROUNDING }).equity_multiple
+    ? (totalCashReturned + totalInitialEquity) / totalInitialEquity
     : 0;
 
-  return { totalRevenue, totalNOI, totalCashFlow, avgNOIMargin, exitValue, irr, equityMultipleValue };
+  return { totalRevenue, totalNOI, totalCashFlow, avgNOIMargin, exitValue: totalExitValue, irr, equityMultipleValue };
 }
 
 // ─── Breakeven Targets bundle (single-property reverse solve) ─────────────────

@@ -33,6 +33,7 @@ export {
   Diamond,
   ArrowSquareOut as ExternalLink,
   Flag,
+  GearSix as Gear,
   Flask as FlaskConical,
   FolderOpen as FolderInput,
   Images as GalleryHorizontal,

@@ -1,8 +1,5 @@
-import { useState } from "react";
-import { IconTarget, IconTrendingUp } from "@/components/icons";
-import { ChevronDown, ChevronUp } from "@/components/icons/themed-icons";
+import { IconTarget } from "@/components/icons";
 import type { RebeccaContext } from "@/lib/panel-manager";
-import { cn } from "@/lib/utils";
 
 interface RebeccaContextCardProps {
   context: RebeccaContext;
@@ -15,65 +12,65 @@ function formatRate(v: number | null | undefined): string {
 }
 
 export function RebeccaContextCard({ context }: RebeccaContextCardProps) {
-  const [expanded, setExpanded] = useState(false);
+  if (!context.fieldName) return null;
 
   const hasRange =
     context.guidanceLow != null ||
     context.guidanceMid != null ||
     context.guidanceHigh != null;
 
-  if (!context.fieldName) return null;
-
   return (
-    <button
-      type="button"
-      onClick={() => setExpanded((v) => !v)}
-      className={cn(
-        "w-full text-left px-4 py-2.5 border-b border-border/40 bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer",
-        expanded && "pb-3"
-      )}
+    <div
+      className="mx-3 my-2 rounded-lg border border-border/40 border-l-2 border-l-primary bg-primary/[0.05] px-3 py-2.5"
       data-testid="rebecca-context-card"
     >
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <IconTarget className="w-3.5 h-3.5 text-primary shrink-0" />
-          <span className="text-xs font-medium truncate" data-testid="rebecca-context-field">
-            {context.fieldName}
+      {/* Label + entity type pill */}
+      <div className="flex items-center gap-1.5 mb-1">
+        <IconTarget className="w-3 h-3 text-primary shrink-0" />
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-primary/70">
+          Grounded on
+        </span>
+        {context.entityType && (
+          <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-primary/15 text-primary capitalize font-medium shrink-0">
+            {context.entityType}
           </span>
-          {context.entityType && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary capitalize shrink-0">
-              {context.entityType}
-            </span>
-          )}
-        </div>
-        {expanded ? (
-          <ChevronUp className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-        ) : (
-          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
         )}
       </div>
 
-      {expanded && (
-        <div className="mt-2 space-y-1.5 pl-5.5">
+      {/* Field name */}
+      <p
+        className="text-sm font-semibold text-foreground leading-snug"
+        data-testid="rebecca-context-field"
+      >
+        {context.fieldName}
+      </p>
+
+      {/* Entity name */}
+      {context.entityName && (
+        <p className="text-xs text-muted-foreground mt-0.5">{context.entityName}</p>
+      )}
+
+      {/* Current value + guidance range */}
+      {(context.currentValue != null || hasRange) && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 mt-2 text-xs">
           {context.currentValue != null && (
-            <div className="flex items-center gap-2 text-xs">
-              <span className="text-muted-foreground">Current:</span>
-              <span className="font-medium" data-testid="rebecca-context-current-value">
+            <span>
+              <span className="text-muted-foreground">Current </span>
+              <span className="font-semibold text-foreground" data-testid="rebecca-context-current-value">
                 {formatRate(context.currentValue)}
               </span>
-            </div>
+            </span>
           )}
           {hasRange && (
-            <div className="flex items-center gap-2 text-xs">
-              <IconTrendingUp className="w-3 h-3 text-muted-foreground shrink-0" />
-              <span className="text-muted-foreground">Range:</span>
+            <span>
+              <span className="text-muted-foreground">Range </span>
               <span className="font-medium" data-testid="rebecca-context-range">
-                {formatRate(context.guidanceLow)} — {formatRate(context.guidanceMid)} — {formatRate(context.guidanceHigh)}
+                {formatRate(context.guidanceLow)}–{formatRate(context.guidanceMid)}–{formatRate(context.guidanceHigh)}
               </span>
-            </div>
+            </span>
           )}
         </div>
       )}
-    </button>
+    </div>
   );
 }

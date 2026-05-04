@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ToolbarRow } from "@/components/ui/toolbar-row";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -331,15 +332,18 @@ export default function AssetDefinitionTab({ onSaveStateChange }: AssetDefinitio
             </TabsContent>
           </Tabs>
         </CardContent>
-        <CardFooter className="flex justify-end pt-0 pb-4 px-6">
-          <SaveButton
-            onClick={handleSave}
-            hasChanges={dirty}
-            isPending={updateMutation.isPending}
-            size="sm"
-            data-testid="button-save-icp"
-          />
-        </CardFooter>
+        <ToolbarRow
+          end={
+            <SaveButton
+              onClick={handleSave}
+              hasChanges={dirty}
+              isPending={updateMutation.isPending}
+              size="sm"
+              data-testid="button-save-icp"
+            />
+          }
+          className="px-6 pb-4"
+        />
       </Card>
     </div>
   );
