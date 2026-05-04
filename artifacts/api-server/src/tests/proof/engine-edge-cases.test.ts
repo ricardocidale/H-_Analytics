@@ -478,4 +478,141 @@ describe('Engine Edge Cases (T011)', () => {
     assertYearlyAllFinite(yearlyPeakLow, 'seasonality-peak-low');
     expect(yearlyPeakLow[0].soldRooms).toBeGreaterThan(0);
   });
+
+  // ── cleanAdr: PICK_LAST vs weighted-average divergence ─────────────────────
+
+  it('cleanAdr PICK_LAST ≠ weighted average when seasonality varies ADR within the year', () => {
+    // Seasonality applies to BOTH occupancy AND ADR: seasonalAdr = currentAdr × seasonFactor.
+    // PICK_LAST returns the last non-zero monthly adr field — December's adr when factor=2.
+    // Weighted average = revenueRooms / soldRooms — dominated by the 11 flat months.
+    // With seasonalityProfile[11]=2 and startAdr=100:
+    //   December adr = 100 × 2 = 200   → PICK_LAST cleanAdr = 200
+    //   Weighted avg = 228,750 / 1,982.5 ≈ 115.38  → PICK_LAST ≠ weighted avg
+    const prop: PropertyInput = {
+      ...MINIMAL_COSTS,
+      operationsStartDate: '2024-01-01',
+      roomCount: 10,
+      startAdr: 100,
+      adrGrowthRate: 0,
+      startOccupancy: 0.5,
+      maxOccupancy: 0.5,
+      occupancyRampMonths: 0,
+      occupancyGrowthStep: 0,
+      purchasePrice: 1_000_000,
+      type: 'hotel',
+      seasonalityProfile: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2],
+    };
+    const monthly = generatePropertyProForma(prop, ZERO_GROWTH_GLOBAL, 12);
+    assertMonthlyAllFinite(monthly, 'picklast-diverge');
+    const yearly = aggregatePropertyByYear(monthly, 1);
+    const yr = yearly[0];
+
+    // PICK_LAST: December's adr = 100 × 2 = 200 (the actual engine output for cleanAdr)
+    expect(yr.cleanAdr).toBe(200);
+
+    // Weighted average ≈ 115.38 — confirming cleanAdr is NOT revenueRooms/soldRooms
+    const weightedAvg = yr.revenueRooms / yr.soldRooms;
+    expect(weightedAvg).toBeCloseTo(115.38, 1);
+    expect(yr.cleanAdr).not.toBeCloseTo(weightedAvg, 0); // the two are meaningfully different
+
+    // The pinned values (derived from inputs):
+    // soldRooms: months 0-10 have factor=1 → seasonalOcc=0.5, month 11 factor=2 → seasonalOcc=1.0
+    // Month 0-10: daysPerMonth × 0.5 (≈ 27.74/mo × 11 = 1,651.5 total for non-Dec months)
+    // Month 11 (Dec, 31 days): 31 × 1.0 = 31; total = 1,651.5 + 31 = 1,982.5
+    // Wait — soldRooms = availableRooms × occ = (10 rooms × daysPerMonth) × seasonalOcc
+    expect(yr.soldRooms).toBeCloseTo(1_982.5, 0);
+    // revenueRooms: months 0-10 at adr=100, month 11 at adr=200
+    expect(yr.revenueRooms).toBeCloseTo(228_750, 0);
+
+    assertYearlyAllFinite(yearly, 'picklast-diverge');
+  });
+
+  // ── cleanAdr: startAdr = 0 → PICK_LAST returns 0 ──────────────────────────
+
+  it('startAdr=0 → all monthly adr fields are 0, PICK_LAST cleanAdr=0, revenueRooms=0', () => {
+    // PICK_LAST scans backward for the last non-zero monthly adr.
+    // When startAdr=0 every month's adr is 0, so the scan finds nothing and cleanAdr=0.
+    const prop: PropertyInput = {
+      ...MINIMAL_COSTS,
+      operationsStartDate: '2024-01-01',
+      roomCount: 10,
+      startAdr: 0,
+      adrGrowthRate: 0,
+      startOccupancy: 0.6,
+      maxOccupancy: 0.6,
+      occupancyRampMonths: 0,
+      occupancyGrowthStep: 0,
+      purchasePrice: 1_000_000,
+      type: 'hotel',
+    };
+    const monthly = generatePropertyProForma(prop, ZERO_GROWTH_GLOBAL, 12);
+    assertMonthlyAllFinite(monthly, 'zero-adr');
+    const yearly = aggregatePropertyByYear(monthly, 1);
+    const yr = yearly[0];
+
+    expect(yr.cleanAdr).toBe(0);
+    expect(yr.revenueRooms).toBe(0);
+    expect(yr.soldRooms).toBeGreaterThan(0); // rooms are "occupied" but generate no revenue
+    assertYearlyAllFinite(yearly, 'zero-adr');
+  });
+
+  // ── Financed vs unlevered: debt path gating ─────────────────────────────────
+
+  it('type="Financed" activates debt service; hotel/lodge/vrbo are always unlevered', () => {
+    // isFinanced = (property.type === "Financed") in resolve-assumptions.ts.
+    // All other type values (hotel/lodge/vrbo) hard-set isFinanced=false regardless of
+    // acquisitionLTV — so interestExpense, principalPayment, and debtPayment are always 0
+    // for those types. This test proves BOTH branches explicitly.
+    //
+    // Financed scenario: $1M property, 70% LTV = $700,000 loan, 6% rate, 25yr amortization
+    //   originalLoanAmount = 1,000,000 × 0.7 = $700,000
+    //   PMT ≈ $700,000 × pmt(0.005, 300) ≈ $4,540.87/month
+    //   Annual debtPayment ≈ $70,492.49 (pinned from engine output)
+    //   Year-1 interestExpense ≈ $62,683.08 (declining balance — first year is mostly interest)
+    //   Year-1 principalPayment ≈ $7,809.42
+    //   Identity: interestExpense + principalPayment = debtPayment (exact, per amortisation math)
+    const sharedBase = {
+      ...MINIMAL_COSTS,
+      operationsStartDate: '2024-01-01',
+      acquisitionDate: '2024-01-01',
+      roomCount: 20,
+      startAdr: 150,
+      adrGrowthRate: 0,
+      startOccupancy: 0.7,
+      maxOccupancy: 0.7,
+      occupancyRampMonths: 0,
+      occupancyGrowthStep: 0,
+      purchasePrice: 1_000_000,
+      acquisitionLTV: 0.7,
+      businessModel: 'hotel' as const,
+      pricingModel: 'per_room' as const,
+    };
+    const debtGlobal = {
+      ...ZERO_GROWTH_GLOBAL,
+      debtAssumptions: { interestRate: 0.06, amortizationYears: 25, acqLTV: 0.0 },
+    };
+
+    // ── Financed branch ──────────────────────────────────────────────────────
+    const financed: PropertyInput = { ...sharedBase, type: 'Financed' };
+    const yrF = aggregatePropertyByYear(generatePropertyProForma(financed, debtGlobal, 12), 1)[0];
+
+    expect(yrF.debtPayment).toBeCloseTo(70_492.49, 1);
+    expect(yrF.interestExpense).toBeCloseTo(62_683.08, 1);
+    expect(yrF.principalPayment).toBeCloseTo(7_809.42, 1);
+    // Amortisation identity: interest + principal = total debt payment (exact)
+    expect(yrF.interestExpense + yrF.principalPayment).toBeCloseTo(yrF.debtPayment, 2);
+
+    // ── Hotel branch (unlevered) ─────────────────────────────────────────────
+    const hotel: PropertyInput = { ...sharedBase, type: 'hotel' };
+    const yrH = aggregatePropertyByYear(generatePropertyProForma(hotel, debtGlobal, 12), 1)[0];
+
+    expect(yrH.debtPayment).toBe(0);
+    expect(yrH.interestExpense).toBe(0);
+    expect(yrH.principalPayment).toBe(0);
+
+    // Revenue is identical — the financing structure does not affect operating income
+    expect(yrF.revenueRooms).toBeCloseTo(yrH.revenueRooms, 2);
+    expect(yrF.gop).toBeCloseTo(yrH.gop, 2);
+    expect(yrF.noi).toBeCloseTo(yrH.noi, 2);
+  });
 });

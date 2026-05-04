@@ -105,7 +105,11 @@ describe('Golden Values — Business Model Baselines', () => {
     // availableRooms: 20 rooms × 366 days = 7,320
     expect(yr.availableRooms).toBe(7320);
 
-    // cleanAdr: weighted (revenueRooms / soldRooms) = exact input ADR when no ramp/seasonality
+    // cleanAdr uses PICK_LAST: the aggregator scans the 12 monthly adr fields backward and
+    // returns the last non-zero value. With flat ADR (no ramp, no seasonality), all 12
+    // months have adr=startAdr=$150, so PICK_LAST = $150.
+    // NOTE: this is NOT revenueRooms/soldRooms (weighted average); see engine-edge-cases
+    // "PICK_LAST vs weighted-average divergence" for a scenario that distinguishes them.
     expect(yr.cleanAdr).toBe(150);
 
     // revenueRooms: 5,124 × $150 = $768,600
@@ -164,7 +168,8 @@ describe('Golden Values — Business Model Baselines', () => {
     // availableRooms: 8 × 366 = 2,928
     expect(yr.availableRooms).toBe(2928);
 
-    // cleanAdr: exact input ADR at zero ramp and zero seasonality
+    // cleanAdr (PICK_LAST): all 12 months have adr=startAdr=$300 (flat — no ramp, no seasonality).
+    // PICK_LAST returns the last non-zero monthly adr field = $300.
     expect(yr.cleanAdr).toBe(300);
 
     // revenueRooms: 1,756.8 × $300 = $527,040
@@ -222,7 +227,10 @@ describe('Golden Values — Business Model Baselines', () => {
     // (roomCount is irrelevant — the whole property books as one unit per night)
     expect(yr.soldRooms).toBeCloseTo(201.3, 1);
 
-    // cleanAdr: revenueRooms / soldRooms = exactly nightlyPropertyRate at zero ramp
+    // cleanAdr (PICK_LAST): for per_property, monthly adr = nightlyPropertyRate × adrFactor × seasonFactor.
+    // With no ramp and no seasonality, all 12 months have adr=$400. PICK_LAST = $400.
+    // This is NOT revenueRooms/soldRooms (weighted average) — they happen to coincide here
+    // because ADR is flat. See engine-edge-cases "PICK_LAST vs weighted-average divergence".
     expect(yr.cleanAdr).toBe(400);
 
     // revenueRooms: 201.3 × $400/night = $80,520

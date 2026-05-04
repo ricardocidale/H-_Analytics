@@ -9,7 +9,6 @@ import type { Draft } from "./model-defaults/FieldHelpers";
 import { MarketMacroTab } from "./model-defaults/MarketMacroTab";
 import { ModelConstantsTab } from "./model-defaults/ModelConstantsTab";
 import { PropertyUnderwritingTab } from "./model-defaults/PropertyUnderwritingTab";
-import { LlmDefaultsTab } from "./model-defaults/LlmDefaultsTab";
 import { CompanyTab } from "./model-defaults/CompanyTab";
 import { DdTemplateTab } from "./model-defaults/DdTemplateTab";
 import { useAuth } from "@/lib/auth";
@@ -239,9 +238,6 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
           {showTab("property-underwriting") && (
             <TabsTrigger value="property-underwriting" data-testid="tab-property-underwriting">Property Underwriting</TabsTrigger>
           )}
-          {showTab("llm-defaults") && (
-            <TabsTrigger value="llm-defaults" data-testid="tab-llm-defaults">Research LLM Config</TabsTrigger>
-          )}
         </TabsList>
 
         {showTab("company") && (
@@ -299,11 +295,7 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
           </TabsContent>
         )}
 
-        {showTab("llm-defaults") && (
-          <TabsContent value="llm-defaults">
-            <LlmDefaultsTab />
-          </TabsContent>
-        )}
+
       </Tabs>
       {analystGateDialog}
       <MissingRequiredFieldsPrompt
