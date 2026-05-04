@@ -814,6 +814,8 @@ function DraftAllReviewPanel({
   // Which slots are currently awaiting a re-draft response.
   const [redraftingSlots, setRedraftingSlots] = useState<Set<string>>(new Set());
 
+  const slotCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
   async function redraftSlot(slot: string) {
     setRedraftingSlots(prev => new Set([...prev, slot]));
     try {
@@ -832,6 +834,9 @@ function DraftAllReviewPanel({
       toast({
         title: "Re-drafted",
         description: `${slotLabel(slot)} refreshed with a new Analyst suggestion.`,
+      });
+      requestAnimationFrame(() => {
+        slotCardRefs.current[slot]?.scrollIntoView({ behavior: "smooth", block: "nearest" });
       });
     } catch (err: unknown) {
       toast({
@@ -1035,6 +1040,7 @@ function DraftAllReviewPanel({
             return (
               <div
                 key={draft.slot}
+                ref={el => { slotCardRefs.current[draft.slot] = el; }}
                 className={`relative space-y-2 rounded-md border p-3 transition-colors ${
                   isRedrafting
                     ? "border-sky-400 dark:border-sky-500"
