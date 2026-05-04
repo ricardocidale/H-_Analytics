@@ -1,4 +1,4 @@
-export type { IconProps } from './icon-utils';
+export type { IconProps } from '@phosphor-icons/react';
 
 export * from './navigation-icons';
 export * from './financial-icons';

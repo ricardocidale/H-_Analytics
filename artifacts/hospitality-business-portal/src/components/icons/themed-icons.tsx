@@ -1,81 +1,81 @@
 import type { Icon, IconProps, IconWeight } from "@phosphor-icons/react";
 import {
-  Warning,
-  AlignLeft,
-  Archive,
-  ArrowDown,
-  ArrowDownRight,
-  ArrowLeft,
-  ArrowRight,
-  ArrowUp,
-  ArrowsDownUp,
-  Bell,
-  BookOpen,
-  Buildings,
-  Calculator,
-  Check,
-  CheckSquare,
-  Cloud,
-  CaretDoubleLeft,
-  CaretDoubleRight,
-  DownloadSimple,
-  CheckCircle,
-  CaretDown,
-  CaretLeft,
-  CaretRight,
-  CaretUpDown,
-  CaretUp,
-  Circle,
-  Clock,
-  Crop,
-  Diamond,
-  ArrowSquareOut,
-  Flask,
-  FolderOpen,
-  Images,
-  GitDiff,
-  DotsSixVertical,
-  Hourglass,
-  Image,
-  Info,
-  Lightbulb,
-  SpinnerGap,
-  Lock,
-  Envelope,
-  ChatCircle,
-  ChatSquare,
-  Minus,
-  Moon,
-  DotsThree,
-  DotsThreeVertical,
-  SidebarSimple,
-  ArrowLineRight,
-  Paperclip,
-  PencilSimple,
-  Phone,
-  PhoneDisconnect,
-  Plus,
-  ArrowCounterClockwise,
-  Scales,
-  MagnifyingGlass,
-  PaperPlaneRight,
-  HardDrives,
-  ShareNetwork,
-  Shield,
-  Sparkle,
-  NotePencil,
-  SkipForward,
-  Star,
-  Sun,
-  Trash,
-  Trophy,
-  ArrowClockwise,
-  FileText,
-  UploadSimple,
-  X,
-  XCircle,
-  MagnifyingGlassPlus,
-  MagnifyingGlassMinus,
+  Warning as PhWarning,
+  AlignLeft as PhAlignLeft,
+  Archive as PhArchive,
+  ArrowDown as PhArrowDown,
+  ArrowDownRight as PhArrowDownRight,
+  ArrowLeft as PhArrowLeft,
+  ArrowRight as PhArrowRight,
+  ArrowUp as PhArrowUp,
+  ArrowsDownUp as PhArrowsDownUp,
+  Bell as PhBell,
+  BookOpen as PhBookOpen,
+  Buildings as PhBuildings,
+  Calculator as PhCalculator,
+  Check as PhCheck,
+  CheckSquare as PhCheckSquare,
+  Cloud as PhCloud,
+  CaretDoubleLeft as PhCaretDoubleLeft,
+  CaretDoubleRight as PhCaretDoubleRight,
+  DownloadSimple as PhDownloadSimple,
+  CheckCircle as PhCheckCircle,
+  CaretDown as PhCaretDown,
+  CaretLeft as PhCaretLeft,
+  CaretRight as PhCaretRight,
+  CaretUpDown as PhCaretUpDown,
+  CaretUp as PhCaretUp,
+  Circle as PhCircle,
+  Clock as PhClock,
+  Crop as PhCrop,
+  Diamond as PhDiamond,
+  ArrowSquareOut as PhArrowSquareOut,
+  Flask as PhFlask,
+  FolderOpen as PhFolderOpen,
+  Images as PhImages,
+  GitDiff as PhGitDiff,
+  DotsSixVertical as PhDotsSixVertical,
+  Hourglass as PhHourglass,
+  Image as PhImage,
+  Info as PhInfo,
+  Lightbulb as PhLightbulb,
+  SpinnerGap as PhSpinnerGap,
+  Lock as PhLock,
+  Envelope as PhEnvelope,
+  ChatCircle as PhChatCircle,
+  ChatSquare as PhChatSquare,
+  Minus as PhMinus,
+  Moon as PhMoon,
+  DotsThree as PhDotsThree,
+  DotsThreeVertical as PhDotsThreeVertical,
+  SidebarSimple as PhSidebarSimple,
+  ArrowLineRight as PhArrowLineRight,
+  Paperclip as PhPaperclip,
+  PencilSimple as PhPencilSimple,
+  Phone as PhPhone,
+  PhoneDisconnect as PhPhoneDisconnect,
+  Plus as PhPlus,
+  ArrowCounterClockwise as PhArrowCounterClockwise,
+  Scales as PhScales,
+  MagnifyingGlass as PhMagnifyingGlass,
+  PaperPlaneRight as PhPaperPlaneRight,
+  HardDrives as PhHardDrives,
+  ShareNetwork as PhShareNetwork,
+  Shield as PhShield,
+  Sparkle as PhSparkle,
+  NotePencil as PhNotePencil,
+  SkipForward as PhSkipForward,
+  Star as PhStar,
+  Sun as PhSun,
+  Trash as PhTrash,
+  Trophy as PhTrophy,
+  ArrowClockwise as PhArrowClockwise,
+  FileText as PhFileText,
+  UploadSimple as PhUploadSimple,
+  X as PhX,
+  XCircle as PhXCircle,
+  MagnifyingGlassPlus as PhMagnifyingGlassPlus,
+  MagnifyingGlassMinus as PhMagnifyingGlassMinus,
 } from "@phosphor-icons/react";
 
 export type { Icon as LucideIcon };
@@ -83,138 +83,102 @@ export type { Icon as LucideIcon };
 const wd = (I: Icon) =>
   ({ weight = "duotone" as IconWeight, ...p }: IconProps) => <I weight={weight} {...p} />;
 
-export const AlertTriangle = wd(Warning);
-export const AlignLeft_ = wd(AlignLeft);
-export { AlignLeft_ as AlignLeft };
-export const Archive_ = wd(Archive);
-export { Archive_ as Archive };
-export const ArrowDown_ = wd(ArrowDown);
-export { ArrowDown_ as ArrowDown };
-export const ArrowDownRight_ = wd(ArrowDownRight);
-export { ArrowDownRight_ as ArrowDownRight };
-export const ArrowLeft_ = wd(ArrowLeft);
-export { ArrowLeft_ as ArrowLeft };
-export const ArrowRight_ = wd(ArrowRight);
-export { ArrowRight_ as ArrowRight };
-export const ArrowUp_ = wd(ArrowUp);
-export { ArrowUp_ as ArrowUp };
-export const ArrowUpDown = wd(ArrowsDownUp);
-export const Bell_ = wd(Bell);
-export { Bell_ as Bell };
-export const BookOpen_ = wd(BookOpen);
-export { BookOpen_ as BookOpen };
-export const Building2 = wd(Buildings);
-export const Calculator_ = wd(Calculator);
-export { Calculator_ as Calculator };
-export const Check_ = wd(Check);
-export { Check_ as Check };
-export const CheckSquare_ = wd(CheckSquare);
-export { CheckSquare_ as CheckSquare };
-export const Cloud_ = wd(Cloud);
-export { Cloud_ as Cloud };
-export const ChevronsLeft = wd(CaretDoubleLeft);
-export const ChevronsRight = wd(CaretDoubleRight);
-export const Download = wd(DownloadSimple);
-export const CheckCircle_ = wd(CheckCircle);
-export { CheckCircle_ as CheckCircle };
-export const CheckCircle2 = wd(CheckCircle);
-export const ChevronDown = wd(CaretDown);
-export const ChevronLeft = wd(CaretLeft);
-export const ChevronRight = wd(CaretRight);
-export const ChevronsUpDown = wd(CaretUpDown);
-export const ChevronUp = wd(CaretUp);
-export const Circle_ = wd(Circle);
-export { Circle_ as Circle };
-export const Clock_ = wd(Clock);
-export { Clock_ as Clock };
-export const Crop_ = wd(Crop);
-export { Crop_ as Crop };
-export const Diamond_ = wd(Diamond);
-export { Diamond_ as Diamond };
-export const ExternalLink = wd(ArrowSquareOut);
-export const FlaskConical = wd(Flask);
-export const FolderInput = wd(FolderOpen);
-export const GalleryHorizontal = wd(Images);
-export const GalleryVerticalEnd = wd(Images);
-export const GitCompare = wd(GitDiff);
-export const GripVertical = wd(DotsSixVertical);
-export const Hourglass_ = wd(Hourglass);
-export { Hourglass_ as Hourglass };
-export const ImageIcon = wd(Image);
-export const ImagePlus = wd(Image);
-export const Images_ = wd(Images);
-export { Images_ as Images };
-export const Info_ = wd(Info);
-export { Info_ as Info };
-export const Lightbulb_ = wd(Lightbulb);
-export { Lightbulb_ as Lightbulb };
-export const Loader2 = wd(SpinnerGap);
-export const Lock_ = wd(Lock);
-export { Lock_ as Lock };
-export const Mail = wd(Envelope);
-export const MessageCircle = wd(ChatCircle);
-export const MessageSquare = wd(ChatSquare);
-export const Minus_ = wd(Minus);
-export { Minus_ as Minus };
-export const Moon_ = wd(Moon);
-export { Moon_ as Moon };
-export const MoreHorizontal = wd(DotsThree);
-export const MoreVertical = wd(DotsThreeVertical);
-export const PanelLeft = wd(SidebarSimple);
-export const PanelRightClose = wd(ArrowLineRight);
-export const Paperclip_ = wd(Paperclip);
-export { Paperclip_ as Paperclip };
-export const Pencil = wd(PencilSimple);
-export const Phone_ = wd(Phone);
-export { Phone_ as Phone };
-export const PhoneOff = wd(PhoneDisconnect);
-export const Plus_ = wd(Plus);
-export { Plus_ as Plus };
-export const RotateCcw = wd(ArrowCounterClockwise);
-export const Scale = wd(Scales);
-export const Search = wd(MagnifyingGlass);
-export const Send = wd(PaperPlaneRight);
-export const Server = wd(HardDrives);
-export const Share2 = wd(ShareNetwork);
-export const Shield_ = wd(Shield);
-export { Shield_ as Shield };
-export const Sparkles = wd(Sparkle);
-export const SquarePen = wd(NotePencil);
-export const SkipForward_ = wd(SkipForward);
-export { SkipForward_ as SkipForward };
-export const Star_ = wd(Star);
-export { Star_ as Star };
-export const Sun_ = wd(Sun);
-export { Sun_ as Sun };
-export const Trash2 = wd(Trash);
-export const TriangleAlert = wd(Warning);
-export const Trophy_ = wd(Trophy);
-export { Trophy_ as Trophy };
-export const RefreshCw = wd(ArrowClockwise);
-export const FileText_ = wd(FileText);
-export { FileText_ as FileText };
-export const Undo2 = wd(ArrowCounterClockwise);
-export const Upload = wd(UploadSimple);
-export const X_ = wd(X);
-export { X_ as X };
-export const XCircle_ = wd(XCircle);
-export { XCircle_ as XCircle };
-export const ZoomIn = wd(MagnifyingGlassPlus);
-export const ZoomOut = wd(MagnifyingGlassMinus);
+export const AlertTriangle = wd(PhWarning);
+export const AlignLeft = wd(PhAlignLeft);
+export const Archive = wd(PhArchive);
+export const ArrowDown = wd(PhArrowDown);
+export const ArrowDownRight = wd(PhArrowDownRight);
+export const ArrowLeft = wd(PhArrowLeft);
+export const ArrowRight = wd(PhArrowRight);
+export const ArrowUp = wd(PhArrowUp);
+export const ArrowUpDown = wd(PhArrowsDownUp);
+export const Bell = wd(PhBell);
+export const BookOpen = wd(PhBookOpen);
+export const Building2 = wd(PhBuildings);
+export const Calculator = wd(PhCalculator);
+export const Check = wd(PhCheck);
+export const CheckSquare = wd(PhCheckSquare);
+export const Cloud = wd(PhCloud);
+export const ChevronsLeft = wd(PhCaretDoubleLeft);
+export const ChevronsRight = wd(PhCaretDoubleRight);
+export const Download = wd(PhDownloadSimple);
+export const CheckCircle = wd(PhCheckCircle);
+export const CheckCircle2 = wd(PhCheckCircle);
+export const ChevronDown = wd(PhCaretDown);
+export const ChevronLeft = wd(PhCaretLeft);
+export const ChevronRight = wd(PhCaretRight);
+export const ChevronsUpDown = wd(PhCaretUpDown);
+export const ChevronUp = wd(PhCaretUp);
+export const Circle = wd(PhCircle);
+export const Clock = wd(PhClock);
+export const Crop = wd(PhCrop);
+export const Diamond = wd(PhDiamond);
+export const ExternalLink = wd(PhArrowSquareOut);
+export const FlaskConical = wd(PhFlask);
+export const FolderInput = wd(PhFolderOpen);
+export const GalleryHorizontal = wd(PhImages);
+export const GalleryVerticalEnd = wd(PhImages);
+export const GitCompare = wd(PhGitDiff);
+export const GripVertical = wd(PhDotsSixVertical);
+export const Hourglass = wd(PhHourglass);
+export const ImageIcon = wd(PhImage);
+export const ImagePlus = wd(PhImage);
+export const Images = wd(PhImages);
+export const Info = wd(PhInfo);
+export const Lightbulb = wd(PhLightbulb);
+export const Loader2 = wd(PhSpinnerGap);
+export const Lock = wd(PhLock);
+export const Mail = wd(PhEnvelope);
+export const MessageCircle = wd(PhChatCircle);
+export const MessageSquare = wd(PhChatSquare);
+export const Minus = wd(PhMinus);
+export const Moon = wd(PhMoon);
+export const MoreHorizontal = wd(PhDotsThree);
+export const MoreVertical = wd(PhDotsThreeVertical);
+export const PanelLeft = wd(PhSidebarSimple);
+export const PanelRightClose = wd(PhArrowLineRight);
+export const Paperclip = wd(PhPaperclip);
+export const Pencil = wd(PhPencilSimple);
+export const Phone = wd(PhPhone);
+export const PhoneOff = wd(PhPhoneDisconnect);
+export const Plus = wd(PhPlus);
+export const RotateCcw = wd(PhArrowCounterClockwise);
+export const Scale = wd(PhScales);
+export const Search = wd(PhMagnifyingGlass);
+export const Send = wd(PhPaperPlaneRight);
+export const Server = wd(PhHardDrives);
+export const Share2 = wd(PhShareNetwork);
+export const Shield = wd(PhShield);
+export const Sparkles = wd(PhSparkle);
+export const SquarePen = wd(PhNotePencil);
+export const SkipForward = wd(PhSkipForward);
+export const Star = wd(PhStar);
+export const Sun = wd(PhSun);
+export const Trash2 = wd(PhTrash);
+export const TriangleAlert = wd(PhWarning);
+export const Trophy = wd(PhTrophy);
+export const RefreshCw = wd(PhArrowClockwise);
+export const FileText = wd(PhFileText);
+export const Undo2 = wd(PhArrowCounterClockwise);
+export const Upload = wd(PhUploadSimple);
+export const X = wd(PhX);
+export const XCircle = wd(PhXCircle);
+export const ZoomIn = wd(PhMagnifyingGlassPlus);
+export const ZoomOut = wd(PhMagnifyingGlassMinus);
 
 // Named aliases for compatibility
-export const ArrowDownIcon = wd(ArrowDown);
-export const ArrowUpIcon = wd(ArrowUp);
-export const CheckIcon = wd(Check);
-export const ChevronDownIcon = wd(CaretDown);
-export const ChevronLeftIcon = wd(CaretLeft);
-export const ChevronRightIcon = wd(CaretRight);
-export const ChevronsLeftIcon = wd(CaretDoubleLeft);
-export const ChevronsRightIcon = wd(CaretDoubleRight);
-export const GripVerticalIcon = wd(DotsSixVertical);
-export const Loader2Icon = wd(SpinnerGap);
-export const LoaderIcon = wd(SpinnerGap);
-export const MoreHorizontalIcon = wd(DotsThree);
-export const MoreVerticalIcon = wd(DotsThreeVertical);
-export const PhoneIcon = wd(Phone);
-export const XIcon = wd(X);
+export const ArrowDownIcon = ArrowDown;
+export const ArrowUpIcon = ArrowUp;
+export const CheckIcon = Check;
+export const ChevronDownIcon = ChevronDown;
+export const ChevronLeftIcon = ChevronLeft;
+export const ChevronRightIcon = ChevronRight;
+export const ChevronsLeftIcon = ChevronsLeft;
+export const ChevronsRightIcon = ChevronsRight;
+export const GripVerticalIcon = GripVertical;
+export const Loader2Icon = Loader2;
+export const LoaderIcon = Loader2;
+export const MoreHorizontalIcon = MoreHorizontal;
+export const MoreVerticalIcon = MoreVertical;
+export const PhoneIcon = Phone;
+export const XIcon = X;
