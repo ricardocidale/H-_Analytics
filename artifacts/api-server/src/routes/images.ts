@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { getOpenAIClient, getGeminiClient } from "../image/client";
+import { resolveLlmFor } from "../ai/llm-config-resolver";
 import { requireAuth, isApiRateLimited, getAuthUser } from "../auth";
 import { getAvailableStylesFromDb, getAdminRateLimit } from "../integrations/replicate";
 import { z } from "zod";
@@ -36,14 +37,15 @@ export function registerImageRoutes(app: Express): void {
       }
 
       const startTime = Date.now();
+      const { modelId: imageGenModelId } = await resolveLlmFor("image-generation");
       const response = await getOpenAIClient().images.generate({
-        model: "gpt-image-1",
+        model: imageGenModelId,
         prompt,
         n: 1,
         size: size as "1024x1024" | "512x512" | "256x256",
       });
 
-      try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: "gpt-image-1", operation: "image-gen", estimatedCostUsd: unitCost("gpt-image-1"), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/generate-image" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+      try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: imageGenModelId, operation: "image-gen", estimatedCostUsd: unitCost(imageGenModelId), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/generate-image" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
 
       const imageData = response.data?.[0];
       res.json({

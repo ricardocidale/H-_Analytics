@@ -7,6 +7,7 @@
 
 import type { Property } from "@workspace/db";
 import { getAnthropicClient } from "../clients";
+import { resolveLlmFor } from "../llm-config-resolver";
 import { logger } from "../../logger";
 import { AI_EXEC_SUMMARY_FULL_MAX_TOKENS, AI_EXEC_SUMMARY_SECTION_MAX_TOKENS } from "../../constants";
 import { pct, dollars, getRegulatoryHighlights } from "./finance-helpers";
@@ -16,9 +17,6 @@ import type {
   PropertyQualitativeSections,
   PortfolioQualitativeSections,
 } from "./types";
-
-const PROPERTY_MODEL = "claude-opus-4-6";
-const PORTFOLIO_MODEL = "claude-opus-4-6";
 
 function stripCodeFences(text: string): string {
   const trimmed = text.trim();
@@ -35,6 +33,7 @@ export async function generateLLMPropertySections(
 ): Promise<PropertyQualitativeSections | null> {
   try {
     const anthropic = getAnthropicClient();
+    const { modelId: propertyModelId } = await resolveLlmFor("executive-summary-property");
 
     const location = [p.city, p.stateProvince, p.country].filter(Boolean).join(", ");
     const tier = p.qualityTier ?? "upscale";
@@ -84,7 +83,7 @@ Rules:
 5. Return ONLY valid JSON, no markdown formatting.`;
 
     const response = await anthropic.messages.create({
-      model: PROPERTY_MODEL,
+      model: propertyModelId,
       max_tokens: AI_EXEC_SUMMARY_FULL_MAX_TOKENS,
       messages: [{ role: "user", content: prompt }],
     });
@@ -117,6 +116,7 @@ export async function generateLLMPortfolioSections(
 ): Promise<PortfolioQualitativeSections | null> {
   try {
     const anthropic = getAnthropicClient();
+    const { modelId: portfolioModelId } = await resolveLlmFor("executive-summary-portfolio");
 
     const propertyLines = propertySummaries
       .map(ps => `- ${ps.name}: ${pct(ps.irr)} IRR, Risk ${ps.riskGrade} — ${ps.oneLiner}`)
@@ -150,7 +150,7 @@ Rules:
 4. Return ONLY valid JSON, no markdown formatting.`;
 
     const response = await anthropic.messages.create({
-      model: PORTFOLIO_MODEL,
+      model: portfolioModelId,
       max_tokens: AI_EXEC_SUMMARY_SECTION_MAX_TOKENS,
       messages: [{ role: "user", content: prompt }],
     });

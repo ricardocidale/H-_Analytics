@@ -8,6 +8,7 @@
  */
 
 import { getPerplexityClient } from "./clients";
+import { resolveLlmFor } from "./llm-config-resolver";
 import { logApiCost, estimateCost } from "../middleware/cost-logger";
 import { logger } from "../logger";
 import { getHealthySources } from "./source-health-checker";
@@ -139,6 +140,7 @@ export async function searchWithPerplexity(
 
   try {
     const client = getPerplexityClient();
+    const { modelId: webResearchModelId } = await resolveLlmFor("grounded-web-research");
 
     const systemPrompt = [
       "You are a hospitality market research analyst specializing in hotel investment analysis.",
@@ -152,7 +154,7 @@ export async function searchWithPerplexity(
     ].filter(Boolean).join("\n");
 
     const response = await client.chat.completions.create({
-      model: "sonar",
+      model: webResearchModelId,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: query },
@@ -184,13 +186,13 @@ export async function searchWithPerplexity(
     // Approximate token cost
     const inTok = Math.round((systemPrompt.length + query.length) / 4);
     const outTok = Math.round(summary.length / 4);
-    const costUsd = estimateCost("perplexity", "sonar", inTok, outTok);
+    const costUsd = estimateCost("perplexity", webResearchModelId, inTok, outTok);
 
     try {
       logApiCost({
         timestamp: new Date().toISOString(),
         service: "perplexity",
-        model: "sonar",
+        model: webResearchModelId,
         operation: "web-research",
         inputTokens: inTok,
         outputTokens: outTok,

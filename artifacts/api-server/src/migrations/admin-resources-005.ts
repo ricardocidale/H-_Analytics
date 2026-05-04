@@ -182,8 +182,15 @@ export const LLM_SLOT_SEED_ROWS: SeedRow[] = [
   {
     kind: "llm_slot",
     slug: "image-generation",
-    displayName: "Image Generation",
-    description: "LLM / image model used for property and marketing image generation",
+    displayName: "Image Generation (Primary)",
+    description: "Primary image model — tried first (Gemini). Admin can swap to any image-capable model.",
+    config: { modelSlug: "gemini-2-5-flash-image" },
+  },
+  {
+    kind: "llm_slot",
+    slug: "image-generation-fallback",
+    displayName: "Image Generation (Fallback)",
+    description: "Fallback image model used when the primary is unavailable. Defaults to gpt-image-1.",
     config: { modelSlug: "gpt-image-1" },
   },
   {
@@ -232,8 +239,8 @@ export const LLM_SLOT_SEED_ROWS: SeedRow[] = [
     kind: "llm_slot",
     slug: "regen-constants",
     displayName: "Constants Regeneration",
-    description: "LLM used to propose regenerated model-constant values backed by research",
-    config: { modelSlug: "claude-sonnet-4-5" },
+    description: "LLM used to propose regenerated model-constant values backed by research (OpenAI JSON-mode required)",
+    config: { modelSlug: "gpt-4-1" },
   },
 ];
 

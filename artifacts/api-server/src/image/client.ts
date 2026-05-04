@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import { toFile } from "openai";
 import { getGeminiClient, getOpenAIClient } from "../ai/clients";
+import { resolveLlmFor } from "../ai/llm-config-resolver";
 import { Buffer } from "node:buffer";
 import { logger } from "../logger";
 
@@ -14,11 +15,15 @@ export async function generateImageBuffer(
   prompt: string,
   _size: "1024x1024" | "1024x1536" | "1536x1024" | "auto" = "1024x1024"
 ): Promise<Buffer> {
+  const [primary, fallback] = await Promise.all([
+    resolveLlmFor("image-generation"),
+    resolveLlmFor("image-generation-fallback"),
+  ]);
   try {
     const gemini = getGeminiClient();
 
     const response = await gemini.models.generateContent({
-      model: "gemini-2.5-flash-image",
+      model: primary.modelId,
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: {
         responseModalities: ["image", "text"],
@@ -38,7 +43,7 @@ export async function generateImageBuffer(
   }
 
   const response = await getOpenAIClient().images.generate({
-    model: "gpt-image-1",
+    model: fallback.modelId,
     prompt,
     size: _size === "auto" ? "1024x1024" : _size,
   });
@@ -63,8 +68,9 @@ export async function editImages(
     )
   );
 
+  const { modelId: imageEditModelId } = await resolveLlmFor("image-generation-fallback");
   const response = await getOpenAIClient().images.edit({
-    model: "gpt-image-1",
+    model: imageEditModelId,
     image: images,
     prompt,
   });

@@ -11,6 +11,7 @@ import type {
 } from "@shared/risk-types";
 import type { Property } from "@workspace/db";
 import { getAnthropicClient } from "../clients";
+import { resolveLlmFor } from "../llm-config-resolver";
 import { logger } from "../../logger";
 import { BENCHMARKS } from "./benchmarks";
 import {
@@ -159,8 +160,9 @@ Rules:
 4. Questions should be specific to these properties, not generic
 5. Return ONLY valid JSON, no markdown formatting`;
 
+    const { modelId: riskBriefModelId } = await resolveLlmFor("risk-brief");
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-5-20250514",
+      model: riskBriefModelId,
       max_tokens: 2000,
       messages: [{ role: "user", content: prompt }],
     });

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { logActivity, logAndSendError, parseRouteId, zodErrorMessage } from "./helpers";
 import { logger } from "../logger";
 import { HTTP_409_CONFLICT } from "../constants";
+import { resolveLlmFor } from "../ai/llm-config-resolver";
 
 const httpUrlSchema = z.string().url().max(2048).refine(
   (val) => { try { const u = new URL(val); return u.protocol === "http:" || u.protocol === "https:"; } catch { return false; } },
@@ -72,8 +73,9 @@ For each URL, return a JSON array of objects: [{"id": <ID>, "score": <0.0-1.0>, 
 Score > 0.6 means relevant. Consider: Is this URL about this specific property? Is it a listing, review, map, or reference for this property or its local market? Hospitality platform links (Airbnb, VRBO, Booking, etc.) for this property score high.
 Return ONLY the JSON array, no other text.`;
 
+    const { modelId: urlScoringModelId } = await resolveLlmFor("url-extraction");
     const response = await gemini.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: urlScoringModelId,
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: { maxOutputTokens: 512 },
     });

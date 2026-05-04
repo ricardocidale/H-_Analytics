@@ -16,9 +16,7 @@ import {
 } from "../ai/icp-intelligence";
 import { logger } from "../logger";
 import { getAnthropicClient } from "../ai/clients";
-
-/** Opus tier — ICP narrative generation requires synthesis-quality output. */
-export const ICP_LLM_MODEL = "claude-opus-4-6";
+import { resolveLlmFor } from "../ai/llm-config-resolver";
 
 export function register(app: Express) {
 
@@ -119,11 +117,12 @@ export function register(app: Express) {
       }
 
       // LLM callback using the configured Anthropic client
+      const { modelId: icpModelId } = await resolveLlmFor("icp-intelligence");
       const llmCallback = async (prompt: string): Promise<string> => {
         const anthropic = getAnthropicClient();
         if (!anthropic) throw new Error("Anthropic client not available");
         const response = await anthropic.messages.create({
-          model: ICP_LLM_MODEL,
+          model: icpModelId,
           max_tokens: 4096,
           messages: [{ role: "user", content: prompt }],
         });

@@ -1,5 +1,6 @@
 import { BaseIntegrationService } from "./BaseIntegrationService";
 import { getPerplexityClient } from "../ai/clients";
+import { resolveLlmFor } from "../ai/llm-config-resolver";
 import type { GroundedSearchResult, CitedSource } from "@shared/market-intelligence";
 
 interface SearchQuery {
@@ -95,8 +96,9 @@ export class GroundedResearchService extends BaseIntegrationService {
       : "";
 
     const client = getPerplexityClient();
+    const { modelId: groundedResearchModelId } = await resolveLlmFor("grounded-web-research");
     const response = await client.chat.completions.create({
-      model: "sonar",
+      model: groundedResearchModelId,
       messages: [
         {
           role: "system",

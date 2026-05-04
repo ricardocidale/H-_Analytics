@@ -27,7 +27,7 @@ import {
 
 import { DEFAULT_ROUNDING } from "@calc/shared/utils";
 import { getOpenAIClient } from "../ai/clients";
-import { DEFAULT_OPENAI_MODEL } from "../ai/resolve-llm";
+import { resolveLlmFor } from "../ai/llm-config-resolver";
 import { logApiCost, estimateCost } from "../middleware/cost-logger";
 
 export function register(app: Express) {
@@ -120,7 +120,7 @@ export function register(app: Express) {
       }
 
       const _globalAssumptions = await storage.getGlobalAssumptions(getAuthUser(req).id);
-      const llmModel = DEFAULT_OPENAI_MODEL;
+      const { modelId: llmModel } = await resolveLlmFor("regen-constants");
 
       const openai = getOpenAIClient();
 

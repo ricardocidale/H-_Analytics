@@ -16,6 +16,7 @@
  *     this as a successful refresh so the audit log isn't blocked.
  */
 import { getOpenAIClient } from "./clients";
+import { resolveLlmFor } from "./llm-config-resolver";
 import { loggerFor } from "../logger";
 import { ORCHESTRATOR_IDENTITY } from "@engine/analyst/identity";
 
@@ -94,7 +95,7 @@ Respond ONLY in valid JSON with this exact shape:
 
   try {
     const response = await openai.chat.completions.create({
-      model: process.env.ANALYST_REFRESH_MODEL || "gpt-4o-mini",
+      model: (await resolveLlmFor("analyst-table-refresh")).modelId,
       messages: [
         { role: "system", content: "You return only valid JSON. No prose, no fenced blocks." },
         { role: "user", content: prompt },
@@ -353,7 +354,7 @@ Respond ONLY in valid JSON with this exact shape:
 
   try {
     const response = await openai.chat.completions.create({
-      model: process.env.ANALYST_REFRESH_MODEL || "gpt-4o-mini",
+      model: (await resolveLlmFor("analyst-table-refresh")).modelId,
       messages: [
         { role: "system", content: "You return only valid JSON. No prose, no fenced blocks." },
         { role: "user", content: prompt },
@@ -655,7 +656,7 @@ REQUIREMENTS:
   try {
     const openai = getOpenAIClient();
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: (await resolveLlmFor("analyst-table-refresh")).modelId,
       messages: [{ role: "user", content: prompt }],
       temperature: 0.2,
       response_format: { type: "json_object" },
