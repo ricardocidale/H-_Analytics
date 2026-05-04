@@ -9,7 +9,11 @@
       "Bash(RAILWAY_TOKEN=6efbc442-56f7-4f30-9a60-10eccc490007 railway --version)",
       "Bash(git check-ignore *)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(git ls-remote *)",
+      "Bash(rm .git/refs/remotes/origin/main.lock)",
+      "Bash(git fetch *)"
     ]
   }
 }
