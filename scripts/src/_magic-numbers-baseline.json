@@ -1039,6 +1039,7 @@
   "35": [
     "artifacts/api-server/src/ai/portfolio-risk-scorer.ts",
     "artifacts/api-server/src/ai/prompt/assemble-research-prompt.ts",
+    "artifacts/api-server/src/ai/property-vision.ts",
     "artifacts/api-server/src/ai/research-quality.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-company-runner.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-compensation-runner.ts",
@@ -1314,6 +1315,7 @@
     "artifacts/api-server/src/ai/context-pack/star-rating.ts",
     "artifacts/api-server/src/ai/icp/config-builder.ts",
     "artifacts/api-server/src/ai/portfolio-risk-scorer.ts",
+    "artifacts/api-server/src/ai/property-vision.ts",
     "artifacts/api-server/src/ai/risk-intelligence.ts",
     "artifacts/api-server/src/constants.ts",
     "artifacts/api-server/src/data/researchSeeds.ts",
@@ -1481,6 +1483,7 @@
   "180": [
     "artifacts/api-server/src/ai/exit-vertical-suggestion.ts",
     "artifacts/api-server/src/ai/icp/config-builder.ts",
+    "artifacts/api-server/src/ai/property-vision.ts",
     "artifacts/api-server/src/ai/research-orchestrator.ts",
     "artifacts/api-server/src/data/researchSeeds.ts",
     "artifacts/api-server/src/index.ts",
@@ -2082,6 +2085,7 @@
   ],
   "1200": [
     "artifacts/api-server/src/ai/icp/config-builder.ts",
+    "artifacts/api-server/src/ai/property-vision.ts",
     "artifacts/api-server/src/constants.ts",
     "artifacts/api-server/src/seeds/properties.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",

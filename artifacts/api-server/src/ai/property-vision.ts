@@ -72,6 +72,18 @@ export interface PropertyVisionText {
 
 const VISION_MODEL = "claude-opus-4-6";
 
+/** Max tokens for the whole-deck vision LLM call (20+ fields). */
+const VISION_DRAFT_MAX_TOKENS = 1200;
+
+/** Character budget hints injected into the LLM prompt (not hard server limits). */
+const VISION_CAPTION_MAX_CHARS = 60;
+const VISION_BADGE_MAX_CHARS = 35;
+const VISION_BULLET_MAX_CHARS = 80;
+const VISION_PARAGRAPH_MAX_CHARS = 180;
+const VISION_LABEL_MAX_CHARS = 60;
+const VISION_CLOSING_MAX_CHARS = 120;
+
+
 /** Fallback room count when property record has no roomCount. */
 const FALLBACK_ROOM_COUNT = 10;
 
@@ -229,14 +241,14 @@ ${contextBlock}
 Generate concise, investor-grade slide copy for all fields below. Return ONLY valid JSON — no markdown, no explanation.
 
 Rules:
-1. Cite specific numbers from the data above (ADR, rooms, price, market stats)
-2. NEVER use: "exciting", "unique opportunity", "world-class", "strong fundamentals"
-- Cinematic caption: ALL CAPS, max 2 features, format "FEATURE · FEATURE" (max 60 chars)
+- Cite specific numbers from the data above (ADR, rooms, price, market stats)
+- NEVER use: "exciting", "unique opportunity", "world-class", "strong fundamentals"
+- Cinematic caption: ALL CAPS, max 2 features, format "FEATURE · FEATURE" (max ${VISION_CAPTION_MAX_CHARS} chars)
 - Badge text: short ALL CAPS phrase (max ${VISION_BADGE_MAX_CHARS} chars)
 - All bullets: max ${VISION_BULLET_MAX_CHARS} chars, punchy, metric-driven
 - Paragraphs: max ${VISION_PARAGRAPH_MAX_CHARS} chars, one sentence, direct
-- Labels: max 60 chars, noun phrases
-- Closing line: one sentence, short, references the city
+- Labels: max ${VISION_LABEL_MAX_CHARS} chars, noun phrases
+- Closing line: one sentence, < ${VISION_CLOSING_MAX_CHARS} chars, references the city
 
 Return:
 {

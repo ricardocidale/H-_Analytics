@@ -42,7 +42,11 @@ const authoredString = (max: number) =>
   });
 export type AuthoredString = z.infer<ReturnType<typeof authoredString>>;
 
-// ── Slide 1 ────────────────────────────────────────────────────────────────
+// ── Slot character-budget constants ────────────────────────────────────────
+// Each SLIDE*_*_MAX constant below is the single authoritative source for its
+// slot's character budget. Numeric literals appear only in these definitions;
+// all other code references the named constant, never the raw number.
+//
 // Per-slot character budgets come from the canonical design-contract.json.
 // Adjust here when the contract changes; renderer-side max-length checks
 // MUST mirror these values to keep Zod and runtime in lockstep.
