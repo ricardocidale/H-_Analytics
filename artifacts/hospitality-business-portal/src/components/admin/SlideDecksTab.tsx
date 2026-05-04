@@ -937,6 +937,11 @@ function DraftHistorySection({ runs }: { runs: BulkDraftRunRow[] }) {
         </div>
       </div>
 
+      {runs.length === 0 ? (
+        <p className="text-[13px] text-muted-foreground py-3">
+          No draft runs yet — run <span className="font-medium">Draft all missing copy</span> to create the first record.
+        </p>
+      ) : (
       <div className="space-y-1.5">
         {runs.map(run => {
           const isExpanded = expandedRunIds.has(run.id);
@@ -1081,6 +1086,7 @@ function DraftHistorySection({ runs }: { runs: BulkDraftRunRow[] }) {
           );
         })}
       </div>
+      )}
 
       <AlertDialog
         open={confirmDeleteId !== null}
@@ -1680,7 +1686,7 @@ export default function SlideDecksTab() {
         onRetry={handleRetryProperty}
       />
 
-      {draftHistory && draftHistory.length > 0 && (
+      {draftHistory && (
         <DraftHistorySection runs={draftHistory} />
       )}
     </div>
