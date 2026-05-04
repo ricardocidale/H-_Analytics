@@ -88,7 +88,7 @@ export default function Login() {
       await apiRequest("POST", "/api/auth/dev-login", undefined, {
         fallbackMessage: "Admin login failed",
       });
-      (window.top || window).location.href = "/";
+      window.location.href = "/";
     } catch (error: unknown) {
       toast({
         title: "Login Failed",
@@ -237,7 +237,7 @@ export default function Login() {
                   type="button"
                   variant="outline"
                   className="w-full h-10 border-border/80 bg-muted/30 hover:bg-muted/60 transition-colors"
-                  onClick={() => { (window.top || window).location.href = "/api/auth/google"; }}
+                  onClick={() => { window.location.href = "/api/auth/google"; }}
                   disabled={isLoading}
                   data-testid="button-google-login"
                 >

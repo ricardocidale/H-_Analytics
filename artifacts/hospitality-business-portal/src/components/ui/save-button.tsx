@@ -23,6 +23,7 @@ export interface SaveButtonProps {
   className?: string;
   type?: "button" | "submit" | "reset";
   size?: "default" | "sm" | "lg" | "icon";
+  variant?: React.ComponentProps<typeof Button>["variant"];
   "data-testid"?: string;
 }
 
@@ -36,6 +37,7 @@ export function SaveButton({
   className,
   type = "button",
   size,
+  variant = "default",
   "data-testid": testId = "button-save-changes",
 }: SaveButtonProps) {
   const isDisabled =
@@ -46,7 +48,7 @@ export function SaveButton({
     <Button
       onClick={onClick}
       disabled={isDisabled}
-      variant="default"
+      variant={variant}
       type={type}
       size={size}
       className={cn(

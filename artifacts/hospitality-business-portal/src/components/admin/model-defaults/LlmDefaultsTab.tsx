@@ -7,8 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/ui/save-button";
 import { Badge } from "@/components/ui/badge";
-import { IconSave } from "@/components/icons";
 import { apiRequest } from "@/lib/queryClient";
 import { useResearchConfig, useSaveResearchConfig, useLlmRegistry, useRefreshLlmRegistry } from "@/lib/api/admin";
 import { FALLBACK_MODELS, LLM_VENDORS } from "../research-center/research-shared";
@@ -205,16 +205,13 @@ export function LlmDefaultsTab() {
             }
             {!refreshRegistry.isPending && <span className="text-xs">Refresh models</span>}
           </Button>
-          <Button
+          <SaveButton
             size="sm"
             onClick={handleSave}
-            disabled={!isDirty || saveMutation.isPending}
-            className="gap-1.5"
+            hasChanges={isDirty}
+            isPending={saveMutation.isPending}
             data-testid="button-save-llm-defaults"
-          >
-            {saveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white" /> : <IconSave className="w-3.5 h-3.5" />}
-            Save
-          </Button>
+          />
         </div>
       </div>
 
@@ -287,20 +284,14 @@ export function LlmDefaultsTab() {
               Specialists can override these on their LLM Config tab.
             </p>
           </div>
-          <Button
+          <SaveButton
             size="sm"
             variant="outline"
-            disabled={!n1Dirty || n1SaveMutation.isPending}
             onClick={() => n1SaveMutation.mutate(n1ModelIds)}
+            hasChanges={n1Dirty}
+            isPending={n1SaveMutation.isPending}
             data-testid="button-n1-save"
-          >
-            {n1SaveMutation.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin text-accent-pop" />
-            ) : (
-              <IconSave className="w-4 h-4" />
-            )}
-            Save
-          </Button>
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">

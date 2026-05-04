@@ -98,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: () => {
       queryClient.clear();
-      (window.top || window).location.replace("/login");
+      window.location.replace("/login");
     },
   });
 

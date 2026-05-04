@@ -35,10 +35,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { SaveButton } from "@/components/ui/save-button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconSave, IconCpu } from "@/components/icons";
+import { IconCpu } from "@/components/icons";
 import { useLlmRegistry, useRefreshLlmRegistry } from "@/lib/api/admin";
 import { LLM_VENDORS } from "@/components/admin/research-center/research-shared";
 import type { ResourcePublicView } from "@shared/schema";
@@ -276,20 +277,15 @@ export default function LlmWorkflowsPage() {
               <span className="text-xs">Refresh models</span>
             )}
           </Button>
-          <Button
+          <SaveButton
             size="sm"
             onClick={handleSave}
-            disabled={!isDirty || batchSave.isPending}
-            className="gap-1.5"
+            hasChanges={isDirty}
+            isPending={batchSave.isPending}
             data-testid="button-save-llm-workflows"
           >
-            {batchSave.isPending ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
-            ) : (
-              <IconSave className="w-3.5 h-3.5" />
-            )}
-            Save{dirtyCount > 0 ? ` (${dirtyCount})` : ""}
-          </Button>
+            {`Save${dirtyCount > 0 ? ` (${dirtyCount})` : ""}`}
+          </SaveButton>
         </div>
       </div>
 
