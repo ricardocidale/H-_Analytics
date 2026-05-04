@@ -1517,6 +1517,7 @@
     "lib/calc/src/analysis/scenario-compare.ts",
     "lib/engine/src/helpers/default-resolver.ts",
     "lib/shared/src/constants-benchmarks.ts",
+    "lib/shared/src/deck-payload-v2.ts",
     "lib/shared/src/price-history.ts"
   ],
   "201": [
@@ -1605,7 +1606,8 @@
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/slides/build-payload.ts",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
-    "lib/shared/src/constants-benchmarks.ts"
+    "lib/shared/src/constants-benchmarks.ts",
+    "lib/shared/src/deck-payload-v2.ts"
   ],
   "350": [
     "artifacts/api-server/src/ai/exit-vertical-suggestion.ts",
