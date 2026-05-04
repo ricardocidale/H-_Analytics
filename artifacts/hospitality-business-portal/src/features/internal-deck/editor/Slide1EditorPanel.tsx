@@ -65,6 +65,8 @@ import {
   CharCounter,
   ReadinessBadge,
   useReadinessQuery,
+  isDraftStale,
+  StaleDraftNotice,
 } from "./editor-shared";
 
 // ── Hydration helpers ──────────────────────────────────────────────────────
@@ -153,6 +155,7 @@ interface SlotRowProps {
   onDraft?: () => void;
   isDrafting?: boolean;
   readinessStatus?: "complete" | "stale" | "missing" | "deterministic";
+  propertyUpdatedAt?: string;
 }
 
 function SlotRow({
@@ -166,6 +169,7 @@ function SlotRow({
   onDraft,
   isDrafting,
   readinessStatus,
+  propertyUpdatedAt,
 }: SlotRowProps) {
   const id = `slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
   const InputComp = multiline ? Textarea : Input;
@@ -200,6 +204,7 @@ function SlotRow({
         maxLength={max}
         className={slot.text.length > max ? "border-destructive" : undefined}
       />
+      {isDraftStale(slot, propertyUpdatedAt) && <StaleDraftNotice />}
       {onDraft && (
         <Button
           type="button"
@@ -368,6 +373,7 @@ export function Slide1EditorPanel({ propertyId }: { propertyId: number }) {
   const patchBody = buildPatchBody(form);
   const dirtyCount = patchBody?.slide1 ? Object.keys(patchBody.slide1).length : 0;
   const report = readinessData?.report;
+  const propertyUpdatedAt = readinessData?.propertyUpdatedAt;
 
   const headerSubtitleStatus = report?.["slide1.headerSubtitle"] as "complete" | "stale" | "missing" | undefined;
   const visionBulletsStatus = report?.["slide1.visionBullets"] as "complete" | "stale" | "missing" | undefined;
@@ -403,6 +409,7 @@ export function Slide1EditorPanel({ propertyId }: { propertyId: number }) {
             slot={form.propertySubtitle}
             max={SLIDE1_PROPERTY_SUBTITLE_MAX}
             onChange={(t, s) => setSlot("propertySubtitle", t, s)}
+            propertyUpdatedAt={propertyUpdatedAt}
           />
           <SlotRow
             label="Header subtitle"
@@ -418,6 +425,7 @@ export function Slide1EditorPanel({ propertyId }: { propertyId: number }) {
             }}
             isDrafting={draftingSlot === "slide1.headerSubtitle" && draftMutation.isPending}
             readinessStatus={headerSubtitleStatus}
+            propertyUpdatedAt={propertyUpdatedAt}
           />
         </div>
 
@@ -465,6 +473,7 @@ export function Slide1EditorPanel({ propertyId }: { propertyId: number }) {
               max={SLIDE1_VISION_BULLET_MAX}
               multiline
               onChange={(t, s) => setBullet(i, t, s)}
+              propertyUpdatedAt={propertyUpdatedAt}
             />
           ))}
         </div>
@@ -482,6 +491,7 @@ export function Slide1EditorPanel({ propertyId }: { propertyId: number }) {
             max={SLIDE1_CLOSING_TAGLINE_MAX}
             multiline
             onChange={(t, s) => setSlot("closingTagline", t, s)}
+            propertyUpdatedAt={propertyUpdatedAt}
           />
         </div>
 
@@ -501,6 +511,7 @@ export function Slide1EditorPanel({ propertyId }: { propertyId: number }) {
             slot={form.photoCaptions.hero}
             max={SLIDE1_PHOTO_CAPTION_MAX}
             onChange={(t, s) => setCaption("hero", t, s)}
+            propertyUpdatedAt={propertyUpdatedAt}
           />
           <SlotRow
             label="Secondary photo"
@@ -509,6 +520,7 @@ export function Slide1EditorPanel({ propertyId }: { propertyId: number }) {
             slot={form.photoCaptions.secondary}
             max={SLIDE1_PHOTO_CAPTION_MAX}
             onChange={(t, s) => setCaption("secondary", t, s)}
+            propertyUpdatedAt={propertyUpdatedAt}
           />
           <SlotRow
             label="Inset photo"
@@ -517,6 +529,7 @@ export function Slide1EditorPanel({ propertyId }: { propertyId: number }) {
             slot={form.photoCaptions.inset}
             max={SLIDE1_PHOTO_CAPTION_MAX}
             onChange={(t, s) => setCaption("inset", t, s)}
+            propertyUpdatedAt={propertyUpdatedAt}
           />
         </div>
 

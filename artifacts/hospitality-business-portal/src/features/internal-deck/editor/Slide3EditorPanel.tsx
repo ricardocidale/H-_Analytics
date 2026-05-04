@@ -52,6 +52,8 @@ import {
   CharCounter,
   ReadinessBadge,
   useReadinessQuery,
+  isDraftStale,
+  StaleDraftNotice,
 } from "./editor-shared";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -110,7 +112,7 @@ function buildPatchBody(form: Form): { slide3?: Partial<Slide3Payload> } | null 
 // ── Scalar slot row ────────────────────────────────────────────────────────
 
 function ScalarSlotRow({
-  label, description, slot, max, multiline, onChange, onDraft, isDrafting, readinessKey, readinessReport,
+  label, description, slot, max, multiline, onChange, onDraft, isDrafting, readinessKey, readinessReport, propertyUpdatedAt,
 }: {
   label: string;
   description: string;
@@ -122,6 +124,7 @@ function ScalarSlotRow({
   isDrafting: boolean;
   readinessKey: string;
   readinessReport: Record<string, string> | undefined;
+  propertyUpdatedAt?: string;
 }) {
   const id = `slide3-slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
   const InputComp = multiline ? Textarea : Input;
@@ -150,6 +153,7 @@ function ScalarSlotRow({
         maxLength={max}
         className={slot.text.length > max ? "border-destructive" : undefined}
       />
+      {isDraftStale(slot, propertyUpdatedAt) && <StaleDraftNotice />}
       <Button
         type="button"
         size="sm"
@@ -170,7 +174,7 @@ function ScalarSlotRow({
 // ── Plain slot row (no draft button — for reason label/detail sub-fields) ──
 
 function PlainSlotRow({
-  label, description, slot, max, multiline, onChange,
+  label, description, slot, max, multiline, onChange, propertyUpdatedAt,
 }: {
   label: string;
   description: string;
@@ -178,6 +182,7 @@ function PlainSlotRow({
   max: number;
   multiline?: boolean;
   onChange: (text: string, source: SlotProvenance["source"]) => void;
+  propertyUpdatedAt?: string;
 }) {
   const id = `slide3-slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
   const InputComp = multiline ? Textarea : Input;
@@ -204,6 +209,7 @@ function PlainSlotRow({
         maxLength={max}
         className={slot.text.length > max ? "border-destructive" : undefined}
       />
+      {isDraftStale(slot, propertyUpdatedAt) && <StaleDraftNotice />}
     </div>
   );
 }
@@ -348,6 +354,7 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
   const patchBody = buildPatchBody(form);
   const hasDirty = patchBody !== null;
   const report = readinessData?.report;
+  const propertyUpdatedAt = readinessData?.propertyUpdatedAt;
   const reasonsStatus = report?.["slide3.reasons"] as "complete" | "stale" | "missing" | undefined;
 
   return (
@@ -382,6 +389,7 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
             isDrafting={draftingSlot === "slide3.conceptParagraph" && draftMutation.isPending}
             readinessKey="slide3.conceptParagraph"
             readinessReport={report}
+            propertyUpdatedAt={propertyUpdatedAt}
           />
           <ScalarSlotRow
             label="Why This Property?"
@@ -394,6 +402,7 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
             isDrafting={draftingSlot === "slide3.marketRationale" && draftMutation.isPending}
             readinessKey="slide3.marketRationale"
             readinessReport={report}
+            propertyUpdatedAt={propertyUpdatedAt}
           />
         </div>
 
@@ -435,6 +444,7 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
                 slot={pair.label}
                 max={SLIDE3_REASON_LABEL_MAX}
                 onChange={(t, s) => setReasonSlot(i, "label", t, s)}
+                propertyUpdatedAt={propertyUpdatedAt}
               />
               <PlainSlotRow
                 label="Detail"
@@ -443,6 +453,7 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
                 max={SLIDE3_REASON_DETAIL_MAX}
                 multiline
                 onChange={(t, s) => setReasonSlot(i, "detail", t, s)}
+                propertyUpdatedAt={propertyUpdatedAt}
               />
             </div>
           ))}
@@ -464,6 +475,7 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
             isDrafting={draftingSlot === "slide3.closingLine" && draftMutation.isPending}
             readinessKey="slide3.closingLine"
             readinessReport={report}
+            propertyUpdatedAt={propertyUpdatedAt}
           />
         </div>
 

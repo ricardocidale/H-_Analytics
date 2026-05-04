@@ -50,6 +50,8 @@ import {
   CharCounter,
   ReadinessBadge,
   useReadinessQuery,
+  isDraftStale,
+  StaleDraftNotice,
 } from "./editor-shared";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -121,7 +123,7 @@ function buildPatchBody(form: Form): { slide5?: Partial<Slide5Payload> } | null 
 // ── Scalar slot row (description field with Draft button) ──────────────────
 
 function ScalarSlotRow({
-  label, description, slot, max, multiline, onChange, onDraft, isDrafting, readinessKey, readinessReport,
+  label, description, slot, max, multiline, onChange, onDraft, isDrafting, readinessKey, readinessReport, propertyUpdatedAt,
 }: {
   label: string;
   description: string;
@@ -133,6 +135,7 @@ function ScalarSlotRow({
   isDrafting: boolean;
   readinessKey: string;
   readinessReport: Record<string, string> | undefined;
+  propertyUpdatedAt?: string;
 }) {
   const id = `slide5-slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
   const InputComp = multiline ? Textarea : Input;
@@ -161,6 +164,7 @@ function ScalarSlotRow({
         maxLength={max}
         className={slot.text.length > max ? "border-destructive" : undefined}
       />
+      {isDraftStale(slot, propertyUpdatedAt) && <StaleDraftNotice />}
       <Button
         type="button"
         size="sm"
@@ -181,13 +185,14 @@ function ScalarSlotRow({
 // ── Plain slot row (no draft button — for row sub-fields) ──────────────────
 
 function PlainSlotRow({
-  label, description, slot, max, onChange,
+  label, description, slot, max, onChange, propertyUpdatedAt,
 }: {
   label: string;
   description: string;
   slot: FormSlot;
   max: number;
   onChange: (text: string, source: SlotProvenance["source"]) => void;
+  propertyUpdatedAt?: string;
 }) {
   const id = `slide5-slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
   return (
@@ -212,6 +217,7 @@ function PlainSlotRow({
         maxLength={max}
         className={slot.text.length > max ? "border-destructive" : undefined}
       />
+      {isDraftStale(slot, propertyUpdatedAt) && <StaleDraftNotice />}
     </div>
   );
 }
@@ -356,6 +362,7 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
   const patchBody = buildPatchBody(form);
   const hasDirty = patchBody !== null;
   const report = readinessData?.report;
+  const propertyUpdatedAt = readinessData?.propertyUpdatedAt;
   const rowsStatus = report?.["slide5.transformationRows"] as "complete" | "stale" | "missing" | undefined;
 
   return (
@@ -391,6 +398,7 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
             isDrafting={draftingSlot === "slide5.transformationDescription" && draftMutation.isPending}
             readinessKey="slide5.transformationDescription"
             readinessReport={report}
+            propertyUpdatedAt={propertyUpdatedAt}
           />
         </div>
 
@@ -432,6 +440,7 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
                 slot={row.feature}
                 max={SLIDE5_TRANSFORMATION_ROW_FEATURE_MAX}
                 onChange={(t, s) => setRowSlot(i, "feature", t, s)}
+                propertyUpdatedAt={propertyUpdatedAt}
               />
               <div className="grid grid-cols-2 gap-3">
                 <PlainSlotRow
@@ -440,6 +449,7 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
                   slot={row.existing}
                   max={SLIDE5_TRANSFORMATION_ROW_EXISTING_MAX}
                   onChange={(t, s) => setRowSlot(i, "existing", t, s)}
+                  propertyUpdatedAt={propertyUpdatedAt}
                 />
                 <PlainSlotRow
                   label="Proposed"
@@ -447,6 +457,7 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
                   slot={row.proposed}
                   max={SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX}
                   onChange={(t, s) => setRowSlot(i, "proposed", t, s)}
+                  propertyUpdatedAt={propertyUpdatedAt}
                 />
               </div>
             </div>

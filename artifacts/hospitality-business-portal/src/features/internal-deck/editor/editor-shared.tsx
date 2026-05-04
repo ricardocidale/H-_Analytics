@@ -207,6 +207,7 @@ export interface SlotRowProps {
   onDraft?: () => void;
   isDrafting?: boolean;
   readinessStatus?: SlotStatus;
+  propertyUpdatedAt?: string;
 }
 
 export function SlotRow({
@@ -220,6 +221,7 @@ export function SlotRow({
   onDraft,
   isDrafting,
   readinessStatus,
+  propertyUpdatedAt,
 }: SlotRowProps) {
   const id = `slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
   const InputComp = multiline ? Textarea : Input;
@@ -256,9 +258,38 @@ export function SlotRow({
         maxLength={max}
         className={slot.text.length > max ? "border-destructive" : undefined}
       />
+      {isDraftStale(slot, propertyUpdatedAt) && <StaleDraftNotice />}
       {onDraft && bucket === "llm-draft+approved" && (
         <DraftButton onClick={onDraft} isPending={isDrafting ?? false} />
       )}
+    </div>
+  );
+}
+
+// ── Stale-draft detection ──────────────────────────────────────────────────
+
+/**
+ * Returns true when an LLM draft in the editor is unsaved and the property
+ * has been updated since the draft was generated — meaning the draft reflects
+ * outdated data.
+ */
+export function isDraftStale(
+  slot: FormSlot,
+  propertyUpdatedAt: string | undefined,
+): boolean {
+  if (!slot.dirty) return false;
+  if (slot.source !== "llm") return false;
+  if (!slot.llmGeneratedAt || !propertyUpdatedAt) return false;
+  return new Date(slot.llmGeneratedAt) < new Date(propertyUpdatedAt);
+}
+
+export function StaleDraftNotice() {
+  return (
+    <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+      <span className="mt-0.5 shrink-0">⚠</span>
+      <span>
+        Property data has changed since this draft was generated — consider re-drafting.
+      </span>
     </div>
   );
 }

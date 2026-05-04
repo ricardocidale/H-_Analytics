@@ -45,6 +45,8 @@ import {
   CharCounter,
   ReadinessBadge,
   useReadinessQuery,
+  isDraftStale,
+  StaleDraftNotice,
 } from "./editor-shared";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -95,7 +97,7 @@ function buildPatchBody(form: Form): { slide2?: Partial<Slide2Payload> } | null 
 // ── Slot row (local — includes draft button) ───────────────────────────────
 
 function SlotRow({
-  label, description, slot, max, multiline, onChange, onDraft, isDrafting, readinessKey, readinessReport,
+  label, description, slot, max, multiline, onChange, onDraft, isDrafting, readinessKey, readinessReport, propertyUpdatedAt,
 }: {
   label: string;
   description: string;
@@ -107,6 +109,7 @@ function SlotRow({
   isDrafting: boolean;
   readinessKey: string;
   readinessReport: Record<string, string> | undefined;
+  propertyUpdatedAt?: string;
 }) {
   const id = `slide2-slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
   const InputComp = multiline ? Textarea : Input;
@@ -135,6 +138,7 @@ function SlotRow({
         maxLength={max}
         className={slot.text.length > max ? "border-destructive" : undefined}
       />
+      {isDraftStale(slot, propertyUpdatedAt) && <StaleDraftNotice />}
       <Button
         type="button"
         size="sm"
@@ -260,6 +264,7 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
   const patchBody = buildPatchBody(form);
   const dirtyCount = patchBody?.slide2 ? Object.keys(patchBody.slide2).length : 0;
   const report = readinessData?.report;
+  const propertyUpdatedAt = readinessData?.propertyUpdatedAt;
 
   return (
     <Card className="border border-border/60">
@@ -292,6 +297,7 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
             isDrafting={draftingSlot === "slide2.operationalModelText" && draftMutation.isPending}
             readinessKey="slide2.operationalModelText"
             readinessReport={report}
+            propertyUpdatedAt={propertyUpdatedAt}
           />
           <SlotRow
             label="Revenue bullet"
@@ -304,6 +310,7 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
             isDrafting={draftingSlot === "slide2.revenueBullet" && draftMutation.isPending}
             readinessKey="slide2.revenueBullet"
             readinessReport={report}
+            propertyUpdatedAt={propertyUpdatedAt}
           />
           <SlotRow
             label="Programming bullet"
@@ -316,6 +323,7 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
             isDrafting={draftingSlot === "slide2.programmingBullet" && draftMutation.isPending}
             readinessKey="slide2.programmingBullet"
             readinessReport={report}
+            propertyUpdatedAt={propertyUpdatedAt}
           />
         </div>
 
