@@ -110,8 +110,18 @@ Skills are process documents that guide AI agents. See `claude.md` § "Agent & S
 
 ## Secrets present in this Repl (dev)
 
-`POSTGRES_URL` (Neon), `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` (Cloudflare R2), `TOKEN_ENCRYPTION_KEY`, `OPENAI_EMBEDDING_KEY`, `FRED_API_KEY`, `GITHUB_PAT`, `GOOGLE_CLIENT_SECRET`.
+`POSTGRES_URL` (Neon), `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` (Cloudflare R2), `TOKEN_ENCRYPTION_KEY`, `OPENAI_EMBEDDING_KEY`, `FRED_API_KEY`, `GITHUB_PAT`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`.
 
 These point at the **same external services** the production Railway deployment uses (Neon, Cloudflare R2, Google OAuth, OpenAI). Do not swap any of them for a Replit-managed equivalent — that would split dev from prod.
 
 For the **full** env-var contract used by the api-server (including `DATABASE_URL`, `STORAGE_PROVIDER`, `AUTH_PROVIDER`, `NODE_ENV`, `SESSION_SECRET`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `R2_PUBLIC_URL`, `SENTRY_DSN`, `RESEND_API_KEY`), see `claude.md` § "Environment Variables (api-server)" and § "Production Deployment".
+
+## Inviolable login / auth rules
+
+These rules are identical to `claude.md` § "Inviolable login / auth rules" — keep wording in sync.
+
+1. **Railway ↔ Replit secrets must stay in parity.** Any env var the api-server reads at runtime must exist in *both* Railway service variables *and* Replit Repl secrets. Absence in either environment silently disables the dependent feature (Google auth 404, AI routes dead, etc.). After adding a var to Railway, add it to Replit secrets immediately in the same session. `GOOGLE_CLIENT_ID` was absent from Replit until 2026-05-04 — that is the canonical example of what this rule prevents.
+
+2. **Never gate UI behaviour on a silent async fetch.** A `useState(false)` flag that only flips `true` if a fire-and-forget `fetch()` succeeds is banned. Silent `.catch(() => {})` means any network hiccup (iframe context, canvas preview, proxy quirk) leaves the feature permanently disabled with no visible error. **The server is the authority; the client should always attempt the action and surface server-returned errors as toasts.**
+
+3. **Dev-login is dev-only by server gate, not client gate.** `/api/auth/dev-login` is blocked server-side by `isPublishedDeployment()`. The login logo always fires the request unconditionally; the server returns 403 if called in production. No client pre-check needed or allowed.

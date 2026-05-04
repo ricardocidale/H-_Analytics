@@ -89,6 +89,13 @@ All providers are admin-configurable via render settings / LLM config panel in t
 - Primary user login flow
 - Session-based auth with cookie management
 - Route: `artifacts/api-server/src/routes/google-auth.ts`
+- **Both** `GOOGLE_CLIENT_ID` **and** `GOOGLE_CLIENT_SECRET` **must be set in both Railway service variables AND Replit Repl secrets.** If either var is absent in an environment, `registerGoogleAuthRoutes()` silently returns without mounting the route — `GET /api/auth/google` returns 404 with no log warning visible to the user. This is the #1 cause of "Google login broken in preview / in production".
+- Callback URL registered in Google Cloud Console must match `${BASE_URL}/api/auth/google/callback`. `BASE_URL` is resolved by `getBaseUrl()` in `google-auth.ts`: checks `process.env.BASE_URL` first, then `getAppUrl()` (APP_URL → REPLIT_DOMAINS), falls back to `https://h-analysis.com`. Ensure the Railway domain (e.g. `https://h-analysis.com`) is listed in Google Cloud Console → APIs & Services → Credentials → Authorized redirect URIs.
+
+**Dev quick-login (logo click)**
+- Route: `POST /api/auth/dev-login` — logs in as the first `super_admin` in `seed-users.json`
+- Gated server-side by `isPublishedDeployment()` (returns 403 in production — `REPLIT_DEPLOYMENT` env var is set)
+- The login page logo always fires this request unconditionally. Do not add client-side pre-checks that silently swallow errors — they break in iframe/canvas preview contexts.
 
 ## Integration Resilience Patterns
 

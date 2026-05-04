@@ -78,7 +78,8 @@ Health endpoint: `GET /api/health/live` (not `/api/healthz`).
 | `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` | AI providers (Claude used for LB Slides vision text) |
 | `FRED_API_KEY` | FRED economic data |
 | `GITHUB_PAT` | GitHub integration |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID — **must be present in both Railway AND Replit secrets**; absence silently disables the `/api/auth/google` route (404) in whichever environment is missing it |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret — same dual-env requirement as above |
 | `OPENAI_EMBEDDING_KEY` | Separate embedding key |
 
 ---
@@ -202,6 +203,14 @@ The `reference_brands` table is wired into three AI surfaces:
 
 ADR-007 §1 applies: prompt-builder and funding-builder layers are DB-import-free; the route layer does all fetching. Full pattern: `docs/solutions/architecture-patterns/reference-brands-ai-pipeline-wiring-2026-05-02.md`.
 
+### Inviolable login / auth rules
+
+1. **Railway ↔ Replit secrets must stay in parity.** Any env var the api-server reads at runtime must exist in *both* Railway service variables *and* Replit Repl secrets. Absence in either environment silently disables the dependent feature (Google auth 404, AI routes dead, etc.). After adding a var to Railway, add it to Replit secrets immediately in the same session.
+
+2. **Never gate UI behaviour on a silent async fetch.** The `devLoginAvailable` pattern — where a `useState(false)` flag only flips to `true` if a fire-and-forget `fetch()` succeeds — is banned. Silent `.catch(() => {})` means any network hiccup (iframe context, canvas preview, proxy quirk) leaves the feature permanently disabled with no visible error. **Rule: the server is the authority; the client should always attempt the action and surface server-returned errors as toasts.** The logo quick-login on the login page was fixed 2026-05-04 by removing the fetch gate.
+
+3. **Dev-login is dev-only by server gate, not client gate.** `/api/auth/dev-login` is blocked by `isPublishedDeployment()` (checks `REPLIT_DEPLOYMENT` env var). The client does not need to pre-check availability — clicking the logo always fires the request, and the server returns a 403 with a clear error if called in production.
+
 ### Known issues to address
 
 - **Email-existence leak** at `POST /api/scenarios/shares` — returns 404 "No user found with that email address", leaking whether an email exists. Should return a generic 404.
@@ -324,6 +333,7 @@ vendor/
 
 | Date | Change |
 |---|---|
+| 2026-05-04 | **Auth hardening — login always works in preview.** `GOOGLE_CLIENT_ID` documented as required in both Railway AND Replit secrets (was missing from Replit, silently disabling `/api/auth/google`). Login logo quick-login fixed: removed the `devLoginAvailable` async-fetch gate that silently failed in iframe/canvas contexts, making the logo a no-op. Logo now always fires `POST /api/auth/dev-login`; server blocks it in production via `isPublishedDeployment()`. Three inviolable auth rules added to `claude.md` and `replit.md`. |
 | 2026-05-04 | **Canonical slide PNGs registered in R2 + skill infrastructure.** All 6 L+B canonical slide PNGs uploaded to `canonical/lb-6-slide/slides/slide-{1..6}.png` (source: `attached_assets/L+B_Property_6-Slide_Cannonical_Page_N_*.png`). New `lb-slides-canonical-pngs` skill documents R2 keys, local paths, per-slide content reference, and the 7-point comparison checklist. `lb-slides-renderer` skill updated with mandatory `v_canonical_png` validation rule. `coding-agent-instructions.md` Section 15 added — "Step 0: load canonical PNG"; PNG wins over JSON spec when they disagree. Magic number constants (`VISION_DRAFT_MAX_TOKENS`, `VISION_BADGE_MAX_CHARS`, `VISION_BULLET_MAX_CHARS`, `VISION_PARAGRAPH_MAX_CHARS`, `RETREAT_GUESTS_PER_KEY_MIN/MAX`, `VRBO_GUESTS_PER_KEY`) moved from inline in `property-vision.ts` to `lib/shared/src/constants-benchmarks.ts` + api-server mirror; baseline re-locked (`check:magic-numbers` PASS, 9 improvements). Slide2/Slide3/Slide5 editor panels now have "Draft via Analyst" buttons for all slots. |
 | 2026-05-03 | **Property nicknames clarified** (user-confirmed): canonical "Sul Monte" / "Su Monte" is the **owner's nickname for Belleayre Mountain** — same property, not throwaway filler. The canonical Sul Monte / Galli-Curci copy is therefore valid Belleayre source material (voice, tone, narrative arc); we still bind structured fields (price, key count, region) to the seed so every numeric flows from the engine (decision #6 unchanged). **Likely-but-not-yet-confirmed parallels**: "Hazelnis Retreat" matches Loch Sheldrake's street address (59 Hazelnis Drive); "Cartagena Duplex" matches San Diego's location (Cartagena, Colombia) — treat as probable owner/location nicknames pending user confirmation. **Supersedes** the "Sul Monte/Hazelnis/Cartagena are filler, discard" claim in the prior LB Slides entry. |
 | 2026-05-03 | **Property DB IDs corrected** (verified via SQL against the dev Neon DB): Slide 1 Belleayre Mountain = id **52** (was incorrectly recorded as 32). Slide 2 Loch Sheldrake = id **51** (was 43). Slide 3 San Diego = id **55** (was 41). The seed file array order ≠ DB primary key — always query `SELECT id, name FROM properties WHERE name ILIKE '%…%'` before minting deck tokens. Mint tokens with: `node -e "const c=require('crypto'); const pid=52, exp=Date.now()+30*60*1000; console.log(pid+'.'+exp+'.'+c.createHmac('sha256',Buffer.from(process.env.TOKEN_ENCRYPTION_KEY,'utf8')).update(pid+':'+exp).digest('base64url'))"`. The deck-payload endpoint takes ~18s to respond (6 MB JSON with base64 photo embeds), so the screenshot tool times out before render — preview decks via the cached `/api/properties/:id/deck.pdf` route or by warming `/api/internal/deck-payload/:id` first. |
