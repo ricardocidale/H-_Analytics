@@ -41,12 +41,8 @@ import { ORCHESTRATOR_IDENTITY } from "@engine/analyst/identity";
 // their own loggerFor(humanName) channel (Phase 4).
 const gasparLog = loggerFor(ORCHESTRATOR_IDENTITY.logKey);
 import { AI_GENERATION_TIMEOUT_MS } from "../constants";
+import { resolveLlmFor } from "./llm-config-resolver";
 
-// ── Model defaults (used when caller does not supply resolved overrides) ──────
-
-const DEFAULT_ANALYST_A_MODEL  = "gemini-2.5-flash";
-const DEFAULT_ANALYST_B_MODEL  = "claude-sonnet-4-5";
-const DEFAULT_SYNTHESIS_MODEL  = "claude-opus-4-6";
 const SYNTHESIS_TOKENS = 12_000;
 
 export interface OrchestratorModelOverrides {
@@ -350,9 +346,9 @@ export async function* orchestrateResearch(
       resolved = undefined;
     }
   }
-  const ANALYST_A_MODEL  = modelOverrides?.analystAModel  ?? resolved?.analystAModel  ?? DEFAULT_ANALYST_A_MODEL;
-  const ANALYST_B_MODEL  = modelOverrides?.analystBModel  ?? resolved?.analystBModel  ?? DEFAULT_ANALYST_B_MODEL;
-  const SYNTHESIS_MODEL  = modelOverrides?.synthesisModel ?? resolved?.synthesisModel ?? DEFAULT_SYNTHESIS_MODEL;
+  const ANALYST_A_MODEL  = modelOverrides?.analystAModel  ?? resolved?.analystAModel  ?? (await resolveLlmFor("research-analyst-a")).modelId;
+  const ANALYST_B_MODEL  = modelOverrides?.analystBModel  ?? resolved?.analystBModel  ?? (await resolveLlmFor("research-analyst-b")).modelId;
+  const SYNTHESIS_MODEL  = modelOverrides?.synthesisModel ?? resolved?.synthesisModel ?? (await resolveLlmFor("research-synthesis")).modelId;
 
   const location    = params.propertyContext?.location ?? params.propertyContext?.market ?? "unknown";
   const propType    = params.propertyContext?.type ?? "boutique hotel";

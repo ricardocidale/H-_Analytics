@@ -24,12 +24,7 @@
 import { streamObject, generateObject } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import {
-  DEFAULT_RISK_SPECIALIST_MODEL,
-  DEFAULT_RISK_QUANT_PANEL_MODEL,
-  DEFAULT_RISK_MARKET_PANEL_MODEL,
-  DEFAULT_RISK_PROMPT_ENGINEER_MODEL,
-} from "@shared/constants";
+import { resolveLlmFor } from "../llm-config-resolver";
 import { AI_GENERATION_TIMEOUT_MS } from "../../constants";
 import {
   buildPropertyRiskIntelligenceSystemPrompt,
@@ -83,13 +78,6 @@ import { getFieldRegistryEntry } from "@engine/analyst/registry/field-registry";
 
 const SPECIALIST_ID = "property.risk-intelligence";
 const PROPERTY_INFLATION_FIELD = "propertyInflationRate";
-
-// ── Model IDs ─────────────────────────────────────────────────────────────────
-
-const RISK_MODEL_ID = DEFAULT_RISK_SPECIALIST_MODEL;
-const QUANT_PANEL_MODEL_ID = DEFAULT_RISK_QUANT_PANEL_MODEL;
-const MARKET_PANEL_MODEL_ID = DEFAULT_RISK_MARKET_PANEL_MODEL;
-const PROMPT_ENGINEER_MODEL_ID = DEFAULT_RISK_PROMPT_ENGINEER_MODEL;
 
 // ── Token budgets ─────────────────────────────────────────────────────────────
 
@@ -411,8 +399,9 @@ async function runPromptEngineer(
     ((modelId: string) =>
       createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY ?? "" })(modelId));
 
+  const { modelId: promptEngineerModelId } = await resolveLlmFor("specialist-prompt-engineer");
   const { object } = await generateObject({
-    model: googleModelFactory(PROMPT_ENGINEER_MODEL_ID),
+    model: googleModelFactory(promptEngineerModelId),
     schema: RiskPromptEngineerOutputSchema,
     system: buildRiskPromptEngineerSystemPrompt(),
     prompt: buildRiskPromptEngineerUserPrompt(ctx, comparables, regressContext),
@@ -436,8 +425,9 @@ async function runQuantPanel(
     ((modelId: string) =>
       createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY ?? "" })(modelId));
 
+  const { modelId: quantPanelModelId } = await resolveLlmFor("specialist-quant-panel");
   const { object } = await generateObject({
-    model: googleModelFactory(QUANT_PANEL_MODEL_ID),
+    model: googleModelFactory(quantPanelModelId),
     schema: RiskQuantPanelOutputSchema,
     system: buildRiskQuantPanelSystemPrompt(peAddendum),
     prompt: buildRiskQuantPanelUserPrompt(ctx, comparables),
@@ -454,10 +444,11 @@ async function runMarketPanel(
   peAddendum?: string,
 ): Promise<RiskMarketPanelOutput> {
   const baseSystemPrompt = buildRiskMarketPanelSystemPrompt(peAddendum);
+  const { modelId: marketPanelModelId } = await resolveLlmFor("specialist-market-panel");
   const anthropicFactory = deps.getAnthropicModel ?? createAnthropic();
 
   const { object } = await generateObject({
-    model: anthropicFactory(MARKET_PANEL_MODEL_ID),
+    model: anthropicFactory(marketPanelModelId),
     schema: RiskMarketPanelOutputSchema,
     system: baseSystemPrompt,
     prompt: buildRiskMarketPanelUserPrompt(ctx),
@@ -483,9 +474,10 @@ async function runSynthesisPanel(
 # Comparables (cite via evidenceRefs — integer indices 0..${comparables.length - 1})
 ${comparables.map((c, i) => `  [${i}] ${c.authority} (${c.country}, ${c.sector}, ${c.vintage}): ${(c.low * 100).toFixed(1)}%–${(c.high * 100).toFixed(1)}%`).join("\n")}`;
 
+  const { modelId: specialistModelId } = await resolveLlmFor("specialist-primary");
   const anthropicFactory = deps.getAnthropicModel ?? createAnthropic();
   const result = streamObject({
-    model: anthropicFactory(RISK_MODEL_ID),
+    model: anthropicFactory(specialistModelId),
     schema: PropertyRiskIntelligenceOutputSchema,
     messages: [
       {

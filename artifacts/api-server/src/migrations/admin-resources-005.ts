@@ -242,6 +242,34 @@ export const LLM_SLOT_SEED_ROWS: SeedRow[] = [
     description: "LLM used to propose regenerated model-constant values backed by research (OpenAI JSON-mode required)",
     config: { modelSlug: "gpt-4-1" },
   },
+  {
+    kind: "llm_slot",
+    slug: "specialist-primary",
+    displayName: "Specialist Primary (Synthesis)",
+    description: "LLM for the final synthesis verdict across all Specialist panels (funding, revenue, compensation, overhead, company, risk, property-defaults)",
+    config: { modelSlug: "claude-opus-4-7" },
+  },
+  {
+    kind: "llm_slot",
+    slug: "specialist-quant-panel",
+    displayName: "Specialist Quant Panel",
+    description: "LLM for the quantitative panel stage across all Specialist types",
+    config: { modelSlug: "gemini-2-5-flash" },
+  },
+  {
+    kind: "llm_slot",
+    slug: "specialist-market-panel",
+    displayName: "Specialist Market Panel",
+    description: "LLM for the market intelligence panel stage across all Specialist types",
+    config: { modelSlug: "claude-sonnet-4-6" },
+  },
+  {
+    kind: "llm_slot",
+    slug: "specialist-prompt-engineer",
+    displayName: "Specialist Prompt Engineer",
+    description: "LLM for the prompt-engineer pre-stage across all Specialist types",
+    config: { modelSlug: "gemini-2-5-flash" },
+  },
 ];
 
 // ── Source / API / Benchmark rows ──────────────────────────────────────────

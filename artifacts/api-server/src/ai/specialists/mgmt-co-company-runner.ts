@@ -46,12 +46,7 @@
 import { streamObject, generateObject } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import {
-  DEFAULT_COMPANY_SPECIALIST_MODEL,
-  DEFAULT_COMPANY_QUANT_PANEL_MODEL,
-  DEFAULT_COMPANY_MARKET_PANEL_MODEL,
-  DEFAULT_COMPANY_PROMPT_ENGINEER_MODEL,
-} from "@shared/constants";
+import { resolveLlmFor } from "../llm-config-resolver";
 import {
   PromptEngineerOutputSchema,
   buildPromptEngineerSystemPrompt,
@@ -110,13 +105,6 @@ import { createVoiceRenderer } from "@engine/analyst/voice/voice-renderer";
 import type { CompanyBenchmarks } from "@shared/constants-company-benchmarks";
 import { getFieldRegistryEntry } from "@engine/analyst/registry/field-registry";
 import type { MarketBenchmarkEntry } from "./market-benchmark-types";
-
-// ── Model IDs ────────────────────────────────────────────────────────────────
-
-const COMPANY_MODEL_ID = DEFAULT_COMPANY_SPECIALIST_MODEL;
-const QUANT_PANEL_MODEL_ID = DEFAULT_COMPANY_QUANT_PANEL_MODEL;
-const MARKET_PANEL_MODEL_ID = DEFAULT_COMPANY_MARKET_PANEL_MODEL;
-const PROMPT_ENGINEER_MODEL_ID = DEFAULT_COMPANY_PROMPT_ENGINEER_MODEL;
 
 // ── Token budgets ────────────────────────────────────────────────────────────
 
@@ -358,8 +346,9 @@ async function runPromptEngineer(
     ((modelId: string) =>
       createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY ?? "" })(modelId));
 
+  const { modelId: promptEngineerModelId } = await resolveLlmFor("specialist-prompt-engineer");
   const { object } = await generateObject({
-    model: googleModelFactory(PROMPT_ENGINEER_MODEL_ID),
+    model: googleModelFactory(promptEngineerModelId),
     schema: PromptEngineerOutputSchema,
     system: buildPromptEngineerSystemPrompt(),
     prompt: buildPromptEngineerUserPrompt(ctx, comparables, regressContext),
@@ -389,8 +378,9 @@ async function runQuantPanel(
     ((modelId: string) =>
       createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY ?? "" })(modelId));
 
+  const { modelId: quantPanelModelId } = await resolveLlmFor("specialist-quant-panel");
   const { object } = await generateObject({
-    model: googleModelFactory(QUANT_PANEL_MODEL_ID),
+    model: googleModelFactory(quantPanelModelId),
     schema: QuantPanelOutputSchema,
     system: systemPrompt,
     prompt: userPrompt,
@@ -411,9 +401,10 @@ async function runMarketPanel(
   const systemPrompt = peAddendum ? `${peAddendum}\n\n${baseSystemPrompt}` : baseSystemPrompt;
   const userPrompt = buildMarketPanelUserPrompt(ctx, comparables);
 
+  const { modelId: marketPanelModelId } = await resolveLlmFor("specialist-market-panel");
   const anthropicFactory = deps.getAnthropicModel ?? createAnthropic();
   const { object } = await generateObject({
-    model: anthropicFactory(MARKET_PANEL_MODEL_ID),
+    model: anthropicFactory(marketPanelModelId),
     schema: MarketPanelOutputSchema,
     system: systemPrompt,
     prompt: userPrompt,
@@ -436,9 +427,10 @@ async function runSynthesisPanel(
   const baseUserPrompt = buildCompanyUserPrompt(ctx, benchmarks, comparables, marketCalibration);
   const enrichedUserPrompt = `${baseUserPrompt}\n\n${buildMarketEnrichmentBlock(marketContext)}`;
 
+  const { modelId: specialistModelId } = await resolveLlmFor("specialist-primary");
   const anthropicFactory = deps.getAnthropicModel ?? createAnthropic();
   const result = streamObject({
-    model: anthropicFactory(COMPANY_MODEL_ID),
+    model: anthropicFactory(specialistModelId),
     schema: CompanySpecialistOutputSchema,
     messages: [
       {
