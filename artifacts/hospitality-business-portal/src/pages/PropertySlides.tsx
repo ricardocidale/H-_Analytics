@@ -942,6 +942,11 @@ function DraftAllReviewPanel({
                       Generated before property was last edited
                     </Badge>
                   )}
+                  {isDirty && (
+                    <Badge variant="outline" className="text-violet-700 border-violet-300 bg-violet-50 dark:bg-violet-950/30 dark:text-violet-400 dark:border-violet-700 text-[10px]">
+                      Edited
+                    </Badge>
+                  )}
                   {isDirty && isSelected && (
                     <button
                       type="button"
