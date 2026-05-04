@@ -19,7 +19,8 @@
       "Bash(sed -n '1,5p' .agents/skills/pdf/SKILL.md)",
       "Bash(awk -F: '$2>0')",
       "Bash(pnpm install *)",
-      "Bash(pnpm typecheck *)"
+      "Bash(pnpm typecheck *)",
+      "Bash(pnpm --filter @workspace/api-server typecheck)"
     ]
   }
 }
