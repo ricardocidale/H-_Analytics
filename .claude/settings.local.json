@@ -17,7 +17,9 @@
       "Bash(grep -vE \"from \\\\\"\\\\.|from '\\\\.|@shared|node:|^$\")",
       "Bash(sed -n '1,5p' .agents/skills/web-design-guidelines/SKILL.md)",
       "Bash(sed -n '1,5p' .agents/skills/pdf/SKILL.md)",
-      "Bash(awk -F: '$2>0')"
+      "Bash(awk -F: '$2>0')",
+      "Bash(pnpm install *)",
+      "Bash(pnpm typecheck *)"
     ]
   }
 }

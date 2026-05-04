@@ -142,7 +142,6 @@ async function buildAll() {
       // `dependencies` so pnpm installs them at runtime.
       "@ai-sdk/anthropic",
       "@ai-sdk/google",
-      "@ai-sdk/openai",
       "@anthropic-ai/sdk",
       "@google/genai",
       "@perplexity-ai/perplexity_ai",
