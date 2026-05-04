@@ -213,6 +213,8 @@ ADR-007 §1 applies: prompt-builder and funding-builder layers are DB-import-fre
 
 4. **Auth navigations must use `window.location`, never `window.top`.** The Replit canvas wraps the app in a `workspace_iframe.html` shell, making `window.top` the cross-origin Replit Agent UI — setting `window.top.location.href` throws a same-origin security error in that context. Use `window.location.href` / `window.location.replace()` directly: the app iframe navigates itself, OAuth flows complete within the iframe and redirect back normally, and `window.location` works identically in a real browser tab (where there is no outer iframe). Applies to `Login.tsx` (Google button + dev-login success) and `lib/auth.tsx` (logout `onSuccess`). Corrected 2026-05-04.
 
+5. **`DEV_SKIP_AUTH` must remain `false`.** The flag in `artifacts/api-server/src/dev-flags.ts` must never be set back to `true`. Real auth is always active in development — this prevents masked auth bugs from reaching production. Decided 2026-05-04.
+
 ### Known issues to address
 
 - **Email-existence leak** at `POST /api/scenarios/shares` — returns 404 "No user found with that email address", leaking whether an email exists. Should return a generic 404.
