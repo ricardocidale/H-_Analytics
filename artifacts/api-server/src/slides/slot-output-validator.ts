@@ -34,6 +34,8 @@ export type ValidationResult<T> =
   | { ok: true; value: T }
   | { ok: false; errors: string[] };
 
+type TransformationRow = { feature: string; existing: string; proposed: string };
+
 type SlotValue = {
   "slide1.headerSubtitle": { text: string };
   "slide1.visionBullets": { bullets: Array<{ text: string }> };
@@ -45,9 +47,11 @@ type SlotValue = {
   "slide3.reasons": { reasons: Array<{ label: string; detail: string }> };
   "slide3.closingLine": { text: string };
   "slide5.transformationDescription": { text: string };
-  "slide5.transformationRows": {
-    rows: Array<{ feature: string; existing: string; proposed: string }>;
-  };
+  "slide5.transformationRows": { rows: Array<TransformationRow> };
+  "slide5.transformationRows[0]": TransformationRow;
+  "slide5.transformationRows[1]": TransformationRow;
+  "slide5.transformationRows[2]": TransformationRow;
+  "slide5.transformationRows[3]": TransformationRow;
 };
 
 function checkString(label: string, value: unknown, max: number): string[] {
@@ -169,6 +173,18 @@ export function validateSlotOutput<K extends DraftSlotKey>(
             ...checkString(`rows[${i}].proposed`, r?.proposed, SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX),
           ];
         }),
+      );
+      break;
+    }
+    case "slide5.transformationRows[0]":
+    case "slide5.transformationRows[1]":
+    case "slide5.transformationRows[2]":
+    case "slide5.transformationRows[3]": {
+      const r = value as { feature?: unknown; existing?: unknown; proposed?: unknown };
+      errors.push(
+        ...checkString("feature", r?.feature, SLIDE5_TRANSFORMATION_ROW_FEATURE_MAX),
+        ...checkString("existing", r?.existing, SLIDE5_TRANSFORMATION_ROW_EXISTING_MAX),
+        ...checkString("proposed", r?.proposed, SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX),
       );
       break;
     }

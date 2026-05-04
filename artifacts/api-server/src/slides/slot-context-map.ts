@@ -22,7 +22,11 @@ export type DraftSlotKey =
   | "slide3.reasons"
   | "slide3.closingLine"
   | "slide5.transformationDescription"
-  | "slide5.transformationRows";
+  | "slide5.transformationRows"
+  | "slide5.transformationRows[0]"
+  | "slide5.transformationRows[1]"
+  | "slide5.transformationRows[2]"
+  | "slide5.transformationRows[3]";
 
 /**
  * Logical batch groups — slots in the same group are drafted in a single LLM
@@ -149,6 +153,54 @@ export const SLOT_CONTEXT_MAP: Record<DraftSlotKey, SlotContextEntry> = {
     ],
   },
   "slide5.transformationRows": {
+    group: "transformation",
+    briefFields: [
+      "modelTierLabel",
+      "roomCount",
+      "isHistoric",
+      "renovationScope",
+      "renovationBudgetFormatted",
+      "adrFormatted",
+      "revparFormatted",
+    ],
+  },
+  "slide5.transformationRows[0]": {
+    group: "transformation",
+    briefFields: [
+      "modelTierLabel",
+      "roomCount",
+      "isHistoric",
+      "renovationScope",
+      "renovationBudgetFormatted",
+      "adrFormatted",
+      "revparFormatted",
+    ],
+  },
+  "slide5.transformationRows[1]": {
+    group: "transformation",
+    briefFields: [
+      "modelTierLabel",
+      "roomCount",
+      "isHistoric",
+      "renovationScope",
+      "renovationBudgetFormatted",
+      "adrFormatted",
+      "revparFormatted",
+    ],
+  },
+  "slide5.transformationRows[2]": {
+    group: "transformation",
+    briefFields: [
+      "modelTierLabel",
+      "roomCount",
+      "isHistoric",
+      "renovationScope",
+      "renovationBudgetFormatted",
+      "adrFormatted",
+      "revparFormatted",
+    ],
+  },
+  "slide5.transformationRows[3]": {
     group: "transformation",
     briefFields: [
       "modelTierLabel",

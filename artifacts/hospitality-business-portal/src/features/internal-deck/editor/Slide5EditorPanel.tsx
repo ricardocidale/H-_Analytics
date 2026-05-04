@@ -70,13 +70,20 @@ interface Form {
 
 type DraftSlotKey5 =
   | "slide5.transformationDescription"
-  | "slide5.transformationRows";
+  | "slide5.transformationRows"
+  | "slide5.transformationRows[0]"
+  | "slide5.transformationRows[1]"
+  | "slide5.transformationRows[2]"
+  | "slide5.transformationRows[3]";
 
 interface DraftResult {
   slot: string;
   suggestion: {
     text?: string;
     rows?: { feature: string; existing: string; proposed: string }[];
+    feature?: string;
+    existing?: string;
+    proposed?: string;
   };
   model: string;
   generatedAt: string;
@@ -186,13 +193,11 @@ function ScalarSlotRow({
 // ── Plain slot row (row sub-fields: Feature / Existing / Proposed) ─────────
 //
 // onDraft is optional. When provided, a "Draft via Analyst" button is shown.
-// Because there is no per-sub-field draft endpoint, callers wire onDraft to
-// the bulk slide5.transformationRows endpoint — drafting one cell re-drafts
-// all rows. This is intentional: the Analyst reasons over the full table at
-// once and the bulk button at the section header remains the canonical action.
+// Callers pass the per-row slot key (e.g. slide5.transformationRows[0]) so
+// only that row is updated on success; sibling rows are left intact.
 
 function PlainSlotRow({
-  label, description, slot, max, onChange, onDraft, isDrafting, propertyUpdatedAt,
+  label, description, slot, max, onChange, onDraft, isDrafting, buttonDisabled, propertyUpdatedAt,
 }: {
   label: string;
   description: string;
@@ -200,7 +205,10 @@ function PlainSlotRow({
   max: number;
   onChange: (text: string, source: SlotProvenance["source"]) => void;
   onDraft?: () => void;
+  /** Controls the spinner icon — true only for the row currently being drafted. */
   isDrafting?: boolean;
+  /** Controls button.disabled — may be wider than isDrafting (e.g. any draft in flight). */
+  buttonDisabled?: boolean;
   propertyUpdatedAt?: string;
 }) {
   const id = `slide5-slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
@@ -233,9 +241,8 @@ function PlainSlotRow({
           size="sm"
           variant="outline"
           onClick={onDraft}
-          disabled={isDrafting}
+          disabled={buttonDisabled ?? isDrafting}
           className="gap-1.5"
-          title="Re-drafts all rows via Analyst (bulk endpoint)"
         >
           {isDrafting
             ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -323,6 +330,19 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
             return { feature: makeSlot(r.feature), existing: makeSlot(r.existing), proposed: makeSlot(r.proposed) };
           });
           return { ...prev, transformationRows };
+        }
+        // Per-row slot: update only the target row index, leaving all others intact.
+        const perRowMatch = /^slide5\.transformationRows\[(\d)\]$/.exec(result.slot);
+        if (perRowMatch) {
+          const rowIdx = parseInt(perRowMatch[1], 10);
+          const makeSlot = (text: string): FormSlot => ({ text, source: "llm", dirty: true, serverProvenance: null, llmGeneratedAt: result.generatedAt });
+          const rows = [...prev.transformationRows];
+          rows[rowIdx] = {
+            feature: makeSlot(result.suggestion.feature ?? ""),
+            existing: makeSlot(result.suggestion.existing ?? ""),
+            proposed: makeSlot(result.suggestion.proposed ?? ""),
+          };
+          return { ...prev, transformationRows: rows };
         }
         return prev;
       });
@@ -465,10 +485,13 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
             If any row changes, all rows are saved together.
           </p>
           {form.transformationRows.map((row, i) => {
-            // Per-sub-field draft fires the bulk endpoint (no individual slot
-            // endpoint exists). isDrafting mirrors the section-level spinner.
-            const rowsDrafting = draftingSlot === "slide5.transformationRows" && draftMutation.isPending;
-            const onRowDraft = () => fireDraft("slide5.transformationRows");
+            // Per-row draft fires the per-row endpoint (slide5.transformationRows[i]),
+            // updating only this row. The section-level "Draft all rows" button
+            // remains available for drafting the whole table at once.
+            const rowSlotKey = `slide5.transformationRows[${i}]` as DraftSlotKey5;
+            const thisRowDrafting = draftingSlot === rowSlotKey && draftMutation.isPending;
+            const anyDrafting = draftMutation.isPending;
+            const onRowDraft = () => fireDraft(rowSlotKey);
             return (
               <div key={i} className="space-y-3 rounded-md border border-border/40 p-4">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Row {i + 1}</p>
@@ -479,7 +502,8 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
                   max={SLIDE5_TRANSFORMATION_ROW_FEATURE_MAX}
                   onChange={(t, s) => setRowSlot(i, "feature", t, s)}
                   onDraft={onRowDraft}
-                  isDrafting={rowsDrafting}
+                  isDrafting={thisRowDrafting}
+                  buttonDisabled={anyDrafting}
                   propertyUpdatedAt={propertyUpdatedAt}
                 />
                 <div className="grid grid-cols-2 gap-3">
@@ -490,7 +514,8 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
                     max={SLIDE5_TRANSFORMATION_ROW_EXISTING_MAX}
                     onChange={(t, s) => setRowSlot(i, "existing", t, s)}
                     onDraft={onRowDraft}
-                    isDrafting={rowsDrafting}
+                    isDrafting={thisRowDrafting}
+                    buttonDisabled={anyDrafting}
                     propertyUpdatedAt={propertyUpdatedAt}
                   />
                   <PlainSlotRow
@@ -500,10 +525,17 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
                     max={SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX}
                     onChange={(t, s) => setRowSlot(i, "proposed", t, s)}
                     onDraft={onRowDraft}
-                    isDrafting={rowsDrafting}
+                    isDrafting={thisRowDrafting}
+                    buttonDisabled={anyDrafting}
                     propertyUpdatedAt={propertyUpdatedAt}
                   />
                 </div>
+                {thisRowDrafting && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Drafting row {i + 1}…
+                  </p>
+                )}
               </div>
             );
           })}

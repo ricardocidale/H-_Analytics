@@ -112,6 +112,10 @@ const DRAFT_SLOTS: readonly DraftSlotKey[] = [
   "slide3.closingLine",
   "slide5.transformationDescription",
   "slide5.transformationRows",
+  "slide5.transformationRows[0]",
+  "slide5.transformationRows[1]",
+  "slide5.transformationRows[2]",
+  "slide5.transformationRows[3]",
 ] as const;
 
 function isDraftSlot(s: unknown): s is DraftSlotKey {
@@ -282,6 +286,38 @@ async function draftSlot(
     })
     .filter(Boolean)
     .join("\n");
+
+  // Per-row transformation slot — draft exactly one row without disturbing others.
+  // Recognised pattern: "slide5.transformationRows[0]" through "[3]".
+  const perRowMatch = /^slide5\.transformationRows\[(\d)\]$/.exec(slot);
+  if (perRowMatch) {
+    const rowIdx = parseInt(perRowMatch[1], 10);
+    const rowInstruction = `Write exactly 1 transformation comparison row (this is row ${rowIdx + 1} of ${SLIDE5_TRANSFORMATION_ROWS_COUNT}). Feature max ${SLIDE5_TRANSFORMATION_ROW_FEATURE_MAX} chars, Existing max ${SLIDE5_TRANSFORMATION_ROW_EXISTING_MAX} chars, Proposed max ${SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX} chars. Return JSON: {"feature":"...","existing":"...","proposed":"..."}`;
+    const rowPrompt = `You are writing investor-grade slide copy for a boutique hospitality deck.
+
+RULES: Cite specific numbers. No "exciting", "unique opportunity", "world-class", "strong fundamentals". Be direct and metric-driven.
+
+PROPERTY DATA:
+${contextLines}
+
+TASK: ${rowInstruction}
+
+Return ONLY valid JSON — no markdown, no explanation.`;
+    const anthropic = getAnthropicClient();
+    const rowResponse = await anthropic.messages.create({
+      model: VISION_MODEL,
+      max_tokens: AI_DECK_SLOT_DRAFT_MAX_TOKENS,
+      messages: [{ role: "user", content: rowPrompt }],
+    });
+    const rowTextBlock = rowResponse.content.find(b => b.type === "text");
+    if (!rowTextBlock || rowTextBlock.type !== "text") {
+      throw new Error(`LLM returned no text block for slot ${slot}`);
+    }
+    const rowSuggestion = JSON.parse(stripCodeFences(rowTextBlock.text)) as unknown;
+    const rowValidation = validateSlotOutput(slot, rowSuggestion);
+    if (!rowValidation.ok) throw new SlotValidationError(slot, rowValidation.errors);
+    return { slot, suggestion: rowSuggestion, model, generatedAt };
+  }
 
   const slotPrompts: Record<string, string> = {
     "slide2.operationalModelText": `Write a single sentence (max ${SLIDE2_OPERATIONAL_MODEL_MAX} chars) describing the operational model for the slide "Operational Model:" italic label. Return JSON: {"text":"..."}`,
