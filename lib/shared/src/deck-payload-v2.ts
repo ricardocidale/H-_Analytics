@@ -21,9 +21,6 @@
  * Provenance per slide-deck-spec rule #10: every authored value carries
  * `source` and `updatedAt` so a regeneration can reason about whether a slot
  * is human-locked, LLM-suggested-and-approved, or stale.
- *
- * Slides 4 and 6 are 100% deterministic and carry empty-object schemas for
- * type consistency — slots can be added later without a version bump.
  */
 
 import { z } from "zod/v4";
@@ -128,11 +125,15 @@ export const slide3PayloadSchema = z.object({
 export type Slide3Payload = z.infer<typeof slide3PayloadSchema>;
 
 // ── Slide 4 — Portfolio Overview ───────────────────────────────────────────
-// 100% deterministic — property cards, city/state, purchase prices, and
-// acquisition statuses all come from live DB queries. The empty-object schema
-// is intentional: preserves type consistency and allows future slots to be
-// added without a schema-version bump.
-export const slide4PayloadSchema = z.object({});
+// Mostly deterministic — property cards, city/state, purchase prices, and
+// acquisition statuses all come from live DB queries. The optional section
+// subtitle is the only authored slot.
+export const SLIDE4_SECTION_SUBTITLE_MAX = 80;
+
+export const slide4PayloadSchema = z.object({
+  // Human-only — optional subtitle below "H+ Portfolio Overview".
+  sectionSubtitle: authoredString(SLIDE4_SECTION_SUBTITLE_MAX).optional(),
+});
 export type Slide4Payload = z.infer<typeof slide4PayloadSchema>;
 
 // ── Slide 5 — Financial Snapshot / Transformation Plan ────────────────────
@@ -163,10 +164,15 @@ export const slide5PayloadSchema = z.object({
 export type Slide5Payload = z.infer<typeof slide5PayloadSchema>;
 
 // ── Slide 6 — 5-Year Income Statement ─────────────────────────────────────
-// 100% deterministic — all IS/CF table cells, investor metrics, and the
-// disclaimer copy come from the financial engine. Empty-object schema for
-// type consistency (same rationale as slide 4).
-export const slide6PayloadSchema = z.object({});
+// Income statement table is fully deterministic. The disclaimer/callout box
+// copy at the bottom of the Key Investor Metrics panel is authored.
+export const SLIDE6_DISCLAIMER_MAX = 200;
+
+export const slide6PayloadSchema = z.object({
+  // Human-only — disclaimer text in the callout box at the bottom of the
+  // Key Investor Metrics panel. Falls back to the boilerplate projection notice.
+  disclaimer: authoredString(SLIDE6_DISCLAIMER_MAX).optional(),
+});
 export type Slide6Payload = z.infer<typeof slide6PayloadSchema>;
 
 // ── Top-level deck payload ─────────────────────────────────────────────────

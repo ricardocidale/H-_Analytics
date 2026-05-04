@@ -12,6 +12,8 @@
  *   - "grid"      — 2×3 / 3×2 thumbnails (default), good for at-a-glance review
  *   - "carousel"  — large single-slide-at-a-time view via shadcn Carousel,
  *                   good for inspecting layout/typography/photos full-size
+ *   - "edit"      — per-slide editor panels with live preview thumbnail;
+ *                   tab row selects which of the 6 slides is being authored
  *
  * Why mini live renders instead of iframes or cached PNGs:
  *   - One deck-payload fetch, six in-page renders. No 6× iframe payload reload.
@@ -54,7 +56,9 @@ import { EMPTY_DECK_PAYLOAD_V2 } from "@shared/deck-payload-v2";
 import { Slide1EditorPanel } from "@/features/internal-deck/editor/Slide1EditorPanel";
 import { Slide2EditorPanel } from "@/features/internal-deck/editor/Slide2EditorPanel";
 import { Slide3EditorPanel } from "@/features/internal-deck/editor/Slide3EditorPanel";
+import { Slide4EditorPanel } from "@/features/internal-deck/editor/Slide4EditorPanel";
 import { Slide5EditorPanel } from "@/features/internal-deck/editor/Slide5EditorPanel";
+import { Slide6EditorPanel } from "@/features/internal-deck/editor/Slide6EditorPanel";
 import { useToast } from "@/hooks/use-toast";
 
 // ── Slide registry ────────────────────────────────────────────────────────
@@ -69,13 +73,14 @@ const SLIDES: ReadonlyArray<{
   n: number;
   title: string;
   Component: React.ComponentType<{ p: SlidePayload }>;
+  EditorPanel: React.ComponentType<{ propertyId: number }>;
 }> = [
-  { n: 1, title: "Slide 1 — Property Spotlight",       Component: Slide1 },
-  { n: 2, title: "Slide 2 — Vision & Transformation",  Component: Slide2 },
-  { n: 3, title: "Slide 3 — Financial Snapshot",       Component: Slide3 },
-  { n: 4, title: "Slide 4 — Improvements & Photos",    Component: Slide4 },
-  { n: 5, title: "Slide 5 — Operational Model",        Component: Slide5 },
-  { n: 6, title: "Slide 6 — Year-One Statements",      Component: Slide6 },
+  { n: 1, title: "Slide 1 — Property Spotlight",    Component: Slide1, EditorPanel: Slide1EditorPanel },
+  { n: 2, title: "Slide 2 — Vision & Transformation", Component: Slide2, EditorPanel: Slide2EditorPanel },
+  { n: 3, title: "Slide 3 — Financial Snapshot",    Component: Slide3, EditorPanel: Slide3EditorPanel },
+  { n: 4, title: "Slide 4 — Improvements & Photos", Component: Slide4, EditorPanel: Slide4EditorPanel },
+  { n: 5, title: "Slide 5 — Operational Model",     Component: Slide5, EditorPanel: Slide5EditorPanel },
+  { n: 6, title: "Slide 6 — Year-One Statements",   Component: Slide6, EditorPanel: Slide6EditorPanel },
 ];
 
 // Mini-thumb dimensions: 1920×1080 scaled by 0.25 → 480×270 (16:9).
@@ -103,19 +108,6 @@ interface PropertyRow {
 
 type ViewMode = "grid" | "carousel" | "edit";
 type DraftVersion = "authored" | "template";
-type EditableSlideN = 1 | 2 | 3 | 5;
-
-// Slides with authored slots — 4 and 6 are 100% deterministic (no editor panel).
-const EDITABLE_SLIDES: ReadonlyArray<{
-  n: EditableSlideN;
-  label: string;
-  Component: React.ComponentType<{ p: SlidePayload }>;
-}> = [
-  { n: 1, label: "Slide 1", Component: Slide1 },
-  { n: 2, label: "Slide 2", Component: Slide2 },
-  { n: 3, label: "Slide 3", Component: Slide3 },
-  { n: 5, label: "Slide 5", Component: Slide5 },
-];
 
 function downloadViaAnchor(url: string, filename: string): void {
   const a = document.createElement("a");
@@ -346,6 +338,47 @@ function SlidesCarousel({
   );
 }
 
+// ── Slide thumbnail (for the live preview panel in Edit mode) ─────────────
+
+function SlideMiniPreview({
+  Component,
+  payload,
+  label,
+}: {
+  Component: React.ComponentType<{ p: SlidePayload }>;
+  payload: SlidePayload;
+  label: string;
+}) {
+  return (
+    <Card className="border border-border/60 self-start sticky top-4 overflow-hidden p-0">
+      <div className="px-4 py-3 border-b border-border/60">
+        <p className="text-sm font-semibold leading-tight">Live preview — {label}</p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Shows authored copy from the editor. Save changes to update.
+        </p>
+      </div>
+      <div
+        className="relative bg-[#0f1621] overflow-hidden"
+        style={{ width: THUMB_WIDTH_PX, height: THUMB_HEIGHT_PX }}
+      >
+        <div
+          style={{
+            width: SLIDE_WIDTH_PX,
+            height: SLIDE_HEIGHT_PX,
+            transform: `scale(${THUMB_SCALE})`,
+            transformOrigin: "top left",
+            position: "absolute",
+            top: 0,
+            left: 0,
+          }}
+        >
+          <Component p={payload} />
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────
 
 export default function PropertySlides() {
@@ -353,7 +386,7 @@ export default function PropertySlides() {
   const propertyId = params?.propertyId ? Number(params.propertyId) : NaN;
   const [view, setView] = useState<ViewMode>("grid");
   const [draftVersion, setDraftVersion] = useState<DraftVersion>("authored");
-  const [editSlide, setEditSlide] = useState<EditableSlideN>(1);
+  const [editSlide, setEditSlide] = useState<number>(1);
 
   // Property info — for header + filename.
   const { data: properties } = useQuery<PropertyRow[]>({
@@ -422,6 +455,9 @@ export default function PropertySlides() {
       </Layout>
     );
   }
+
+  // Resolve the active slide entry for the edit view.
+  const activeSlideEntry = SLIDES.find(s => s.n === editSlide) ?? SLIDES[0];
 
   const viewActions = (
     <div className="flex items-center gap-2">
@@ -546,68 +582,42 @@ export default function PropertySlides() {
 
       {view === "edit" && (
         <div className="space-y-4">
-          {/* Slide selector — only slides with authored slots */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Editing:</span>
-            <div className="inline-flex rounded-md border border-border overflow-hidden text-sm">
-              {EDITABLE_SLIDES.map((s, i) => (
-                <button
-                  key={s.n}
-                  type="button"
-                  onClick={() => setEditSlide(s.n)}
-                  className={`px-3 py-1.5 ${i > 0 ? "border-l border-border" : ""} transition-colors ${
-                    editSlide === s.n
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
-                  }`}
-                  aria-pressed={editSlide === s.n}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-            <span className="text-xs text-muted-foreground">
-              (Slides 4 and 6 are fully deterministic — no authored slots)
-            </span>
+          {/* Per-slide tab strip */}
+          <div className="inline-flex rounded-md border border-border overflow-hidden text-sm flex-wrap">
+            {SLIDES.map((s, i) => (
+              <button
+                key={s.n}
+                type="button"
+                onClick={() => setEditSlide(s.n)}
+                className={`px-3 py-1.5 transition-colors whitespace-nowrap ${
+                  i > 0 ? "border-l border-border" : ""
+                } ${
+                  editSlide === s.n
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+                aria-pressed={editSlide === s.n}
+              >
+                Slide {s.n}
+              </button>
+            ))}
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto]">
-            {editSlide === 1 && <Slide1EditorPanel propertyId={propertyId} />}
-            {editSlide === 2 && <Slide2EditorPanel propertyId={propertyId} />}
-            {editSlide === 3 && <Slide3EditorPanel propertyId={propertyId} />}
-            {editSlide === 5 && <Slide5EditorPanel propertyId={propertyId} />}
+          {/* Active slide title hint */}
+          <p className="text-xs text-muted-foreground -mt-2">
+            Editing: <span className="font-medium text-foreground">{activeSlideEntry.title}</span>
+          </p>
 
-            {payload && (() => {
-              const s = EDITABLE_SLIDES.find(x => x.n === editSlide)!;
-              return (
-                <Card className="border border-border/60 self-start sticky top-4 overflow-hidden p-0">
-                  <div className="px-4 py-3 border-b border-border/60">
-                    <p className="text-sm font-semibold leading-tight">Live preview — {s.label}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Shows authored copy. Save to update.
-                    </p>
-                  </div>
-                  <div
-                    className="relative bg-[#0f1621] overflow-hidden"
-                    style={{ width: THUMB_WIDTH_PX, height: THUMB_HEIGHT_PX }}
-                  >
-                    <div
-                      style={{
-                        width: SLIDE_WIDTH_PX,
-                        height: SLIDE_HEIGHT_PX,
-                        transform: `scale(${THUMB_SCALE})`,
-                        transformOrigin: "top left",
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                      }}
-                    >
-                      <s.Component p={payload} />
-                    </div>
-                  </div>
-                </Card>
-              );
-            })()}
+          {/* Editor + live preview layout */}
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto]">
+            <activeSlideEntry.EditorPanel propertyId={propertyId} />
+            {payload && (
+              <SlideMiniPreview
+                Component={activeSlideEntry.Component}
+                payload={payload}
+                label={`Slide ${activeSlideEntry.n}`}
+              />
+            )}
           </div>
         </div>
       )}

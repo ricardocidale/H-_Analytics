@@ -1399,6 +1399,12 @@
     "lib/engine/src/helpers/default-resolver.ts",
     "lib/shared/src/constants-benchmarks.ts"
   ],
+  "140": [
+    "artifacts/api-server/src/constants.ts",
+    "artifacts/api-server/src/seeds/market-data-tables.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
+    "lib/shared/src/deck-payload-v2.ts"
+  ],
   "150": [
     "artifacts/api-server/src/ai/context-pack/luxury-classifier.ts",
     "artifacts/api-server/src/ai/context-pack/star-rating.ts",
@@ -1572,7 +1578,8 @@
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
-    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts"
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
+    "lib/shared/src/deck-payload-v2.ts"
   ],
   "285": [
     "artifacts/api-server/src/seeds/market-data-tables.ts",

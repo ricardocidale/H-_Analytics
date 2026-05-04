@@ -422,6 +422,7 @@ export function Slide3({ p }: { p: SlidePayload }) {
 
 // ── Slide 4 — Portfolio Overview ─────────────────────────────────────────
 function PortfolioCard({ prop, isCurrent }: { prop: SiblingProperty | null; isCurrent?: boolean }) {
+
   if (!prop) {
     return (
       <div style={{ display: "flex", flex: 1, position: "relative", borderRadius: 4, overflow: "hidden", border: `1px solid ${C.canvasRule}`, background: "rgba(28,43,30,0.08)", alignItems: "center", justifyContent: "center" }}>
@@ -459,7 +460,8 @@ function PortfolioCard({ prop, isCurrent }: { prop: SiblingProperty | null; isCu
 }
 
 export function Slide4({ p }: { p: SlidePayload }) {
-  const { property, siblings, slide4HeroBase64 } = p;
+  const { property, siblings, slide4HeroBase64, deckPayloadV2 } = p;
+  const v2 = deckPayloadV2?.slide4;
 
   const currentAsCard: SiblingProperty = {
     id: property.id,
@@ -477,6 +479,9 @@ export function Slide4({ p }: { p: SlidePayload }) {
   const row1 = allCards.slice(0, SIBLING_GRID_COLS);
   const row2 = allCards.slice(SIBLING_GRID_COLS, SIBLING_GRID_SLOTS);
 
+  const computedSubtitle = `${allCards.filter(Boolean).length} properties · ${property.name} highlighted`;
+  const sectionSubtitle = v2?.sectionSubtitle?.text || computedSubtitle;
+
   return (
     <div style={{ width: W, height: H, background: SLIDE_BACKGROUNDS[4], display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
       <div style={{ padding: "30px 56px 18px 56px", display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" }}>
@@ -489,7 +494,7 @@ export function Slide4({ p }: { p: SlidePayload }) {
           </span>
         </div>
         <span style={{ fontFamily: FONT_SANS, fontSize: 12, color: C.sage }}>
-          {allCards.filter(Boolean).length} properties · {property.name} highlighted
+          {sectionSubtitle}
         </span>
       </div>
 
@@ -639,7 +644,9 @@ export function Slide5({ p }: { p: SlidePayload }) {
 
 // ── Slide 6 — Income Statement ────────────────────────────────────────────
 export function Slide6({ p }: { p: SlidePayload }) {
-  const { property, financials } = p;
+  const { property, financials, deckPayloadV2 } = p;
+  const v2 = deckPayloadV2?.slide6;
+  const SLIDE6_DEFAULT_DISCLAIMER = "5-year pro forma based on H+ Analytics projection engine. Projections are estimates; actual results may vary.";
   const years = financials.yearlyIS.slice(0, PROFORMA_YEARS);
   const stable = getStableYear(financials.yearlyIS);
   const stableNoi = stable?.noi ?? 0;
@@ -713,8 +720,7 @@ export function Slide6({ p }: { p: SlidePayload }) {
 
           <div style={{ display: "flex", marginTop: 24, padding: "12px 16px", background: "rgba(37,125,65,0.15)", borderLeft: `3px solid ${C.accent}` }}>
             <span style={{ fontFamily: FONT_SERIF, fontSize: 14, color: C.darkBg, fontStyle: "italic", lineHeight: 1.6 }}>
-              5-year pro forma based on H+ Analytics projection engine.
-              Projections are estimates; actual results may vary.
+              {v2?.disclaimer?.text || SLIDE6_DEFAULT_DISCLAIMER}
             </span>
           </div>
         </div>
