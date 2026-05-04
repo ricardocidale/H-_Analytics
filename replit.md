@@ -70,6 +70,10 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript project refer
 - Root-level `*.png`, `*.jpg`, `*.jpeg`, `*.webp` are blocked by `.gitignore` to keep the repo root clean.
 - When using the `screenshot` tool, always pass `save_to: "screenshots/<descriptive-name>.jpg"` instead of writing to the project root.
 
+## Compound Engineering (CE) skills — Replit adaptation
+
+The CE plugin was vendored from upstream (Claude Code / Codex / Cursor). Many CE skills reference tools, git workflows, and directory structures that **do not exist on Replit Agent**. Before following any CE skill, read `.agents/ce-agents/REPLIT-ADAPTATION.md` — it is the authoritative override for all environment-specific instructions (no worktrees, no destructive git, no pre-commit hooks, no `.claude/` dirs, no `bun`, no `gh` CLI, no `Task` tool, no `TodoWrite`, workflows instead of `npm run dev`). See also `.agents/skills/ce-setup/SKILL.md` for the summary table.
+
 ## Skills
 
 Skills are process documents that guide AI agents. See `claude.md` § "Agent & Skill System" for the full picture and `.agents/skills/README.md` for a complete index.

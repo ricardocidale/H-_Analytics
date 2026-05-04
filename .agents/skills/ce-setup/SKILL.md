@@ -3,7 +3,14 @@ name: ce-setup
 description: "On Replit Agent, the compound-engineering bundle is already vendored — no install step needed. This skill explains the layout and points at the bundle index and tool-mapping doc."
 disable-model-invocation: true
 ---
-> **Replit Agent users:** see [`.agents/ce-agents/REPLIT-ADAPTATION.md`](../../ce-agents/REPLIT-ADAPTATION.md) for tool-name and path mappings (AskUserQuestion → user_query, Task → delegation skill, etc.).
+
+> **⚠️ YOU ARE ON REPLIT AGENT — NOT Claude Code, Cursor, Codex, or any local IDE agent.**
+>
+> Before following ANY CE skill, read `.agents/ce-agents/REPLIT-ADAPTATION.md` for
+> the authoritative list of things that do not work here (git worktrees, destructive
+> git commands, pre-commit hooks, `.claude/` directories, `bun`, `gh` CLI, `Task`
+> tool, `TodoWrite`, manual `npm run dev`, etc.). **That document overrides every
+> CE skill when there is a conflict.**
 
 # Compound Engineering Setup (Replit Agent)
 
@@ -16,7 +23,20 @@ Concretely:
 - All CE skills live at `.agents/skills/ce-*/SKILL.md` and are auto-discovered by the agent's skill index alongside the project's existing skills.
 - All CE sub-agent personas live at `.agents/ce-agents/<name>.agent.md`.
 - The bundle index, upstream version, and pinned commit are recorded in `.agents/skills/COMPOUND-ENGINEERING.md`.
-- The mapping from upstream tool names (`AskUserQuestion`, `Task`, `Bash`, `Read`, `Grep`, `Glob`, `Write`, `Edit`, etc.) to Replit Agent tools (`user_query`, the `delegation` skill, `bash`, `read`, `rg` via `bash`, `glob`, `write`, `edit`) is in `.agents/ce-agents/REPLIT-ADAPTATION.md`.
+- The full tool-name, path, and behavioral mapping is in `.agents/ce-agents/REPLIT-ADAPTATION.md`.
+
+## What is different on Replit (summary)
+
+| What CE skills say | What you actually do on Replit |
+|---|---|
+| `git checkout -b`, `git worktree add` | **Skip.** You work on `main`. Platform manages checkpoints. |
+| `git commit`, `git push`, `git add` | **Skip.** Platform auto-commits when tasks complete. |
+| Install pre-commit hooks | **Skip.** Run checks manually via `bash`. Platform validates at completion. |
+| `npm run dev`, `bun dev`, start server | Use `restart_workflow`. Never start servers from shell. |
+| Write to `.claude/session-memory.md` | Write to `.local/session_plan.md` (task-scoped) or `replit.md` (persistent). |
+| Spawn a `Task` / `Agent` sub-agent | Use `delegation` skill for local sub-agents. |
+| `gh pr create` | Not available. Inform the user. |
+| `TodoWrite` / `TaskCreate` | Use `.local/session_plan.md` for work decomposition. |
 
 ## What to do instead of "setup"
 
