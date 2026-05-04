@@ -1267,6 +1267,19 @@ export default function PropertySlides() {
   // Resolve the active slide entry for the edit view.
   const activeSlideEntry = SLIDES.find(s => s.n === editSlide) ?? SLIDES[0];
 
+  // Derive separate stale / missing counts from the readiness report so we
+  // can show "Draft All · 3 stale, 2 missing" before the LLM runs.
+  const draftAllStaleCount = readiness
+    ? Object.values(readiness.report).filter(s => s === "stale").length
+    : 0;
+  const draftAllMissingCount = readiness
+    ? Object.values(readiness.report).filter(s => s === "missing").length
+    : 0;
+  const draftAllHint = [
+    draftAllStaleCount > 0 && `${draftAllStaleCount} stale`,
+    draftAllMissingCount > 0 && `${draftAllMissingCount} missing`,
+  ].filter(Boolean).join(", ");
+
   const viewActions = (
     <div className="flex items-center gap-2 flex-wrap">
       {/* Draft All — always visible; most useful in Edit mode */}
@@ -1283,6 +1296,11 @@ export default function PropertySlides() {
           ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
           : <IconRefreshCw className="h-3.5 w-3.5" />}
         Draft All
+        {!draftAllMutation.isPending && draftAllHint && (
+          <span className="ml-0.5 text-[10px] font-normal text-muted-foreground tabular-nums">
+            · {draftAllHint}
+          </span>
+        )}
       </Button>
 
       <div className="inline-flex rounded-md border border-border overflow-hidden text-sm">
