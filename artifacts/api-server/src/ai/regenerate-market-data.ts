@@ -15,13 +15,13 @@
  * Routes call this; routes own auth and HTTP shape.
  */
 
-import { getAnthropicClient, normalizeModelId } from "./clients";
+import { getAnthropicClient } from "./clients";
+import { resolveLlmFor } from "./llm-config-resolver";
 import { GroundedResearchService } from "../services/GroundedResearchService";
 import { storage } from "../storage";
 import { logger } from "../logger";
 import type { CitedSource } from "@shared/market-intelligence";
 
-const ANALYST_MODEL = normalizeModelId("claude-sonnet-4-6");
 const MARKET_DATA_ENTITY_TYPE = "market-data-table";
 const MARKET_DATA_ENTITY_ID = 0;
 
@@ -230,9 +230,10 @@ async function searchForTableData(queries: string[]): Promise<{ text: string; so
 }
 
 async function callClaude(systemPrompt: string, userPrompt: string): Promise<string> {
+  const { modelId: analystModelId } = await resolveLlmFor("regen-constants");
   const client = getAnthropicClient();
   const response = await client.messages.create({
-    model: ANALYST_MODEL,
+    model: analystModelId,
     max_tokens: 4096,
     system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
     messages: [{ role: "user", content: userPrompt }],

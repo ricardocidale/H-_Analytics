@@ -30,7 +30,7 @@
  *     error rather than silently writing the wrong value.
  */
 
-import { getAnthropicClient, normalizeModelId } from "./clients";
+import { getAnthropicClient } from "./clients";
 import { resolveLlmFor } from "./llm-config-resolver";
 import { GroundedResearchService } from "../services/GroundedResearchService";
 import { AI_REGEN_CONSTANTS_MAX_TOKENS } from "../constants";
