@@ -102,3 +102,32 @@ Use **Zod** as the runtime validator; emit JSON Schema (draft 2020-12) via `zod-
 - **Inline base64 images** — bloats every row; use the asset registry.
 - **Mutating in place** — every save bumps `revisionId`; old revisions are immutable.
 - **Parsing PDFs** — PDF is output, not source. See `pptx-to-deck-ir` for the canonical extraction path.
+
+## Portability Boundary
+
+The slide stack splits cleanly into a generic layer (reusable across apps) and an app-specific layer (per-product templates and design language). Keep the boundary clean so other apps can adopt the generic layer without inheriting H+/L+B specifics.
+
+**Generic / app-agnostic — reusable as-is:**
+
+| Layer | Where it lives | What it gives a new app |
+|---|---|---|
+| Schema | `lib/shared/src/deck-payload-v2.ts` | Versioned semantic-spec + render-IR contracts |
+| Deterministic core | `artifacts/api-server/src/slides/` (`slot-context-map`, `slot-output-validator`, `slot-readiness`, `build-payload`, `playwright-browser`, `internal-token`, `deck-render-constants`, `deck-logic-version`) | LLM gating, slot validation, deterministic facts pipeline, headless-Chromium renderer plumbing |
+| Skills | `slide-deck-spec`, `slide-deck-vector`, `deck-ir-render`, `deck-export`, `pptx-to-deck-ir` | Schema authoring, pgvector storage, IR→HTML, HTML→PDF/PPTX, PPTX import |
+
+**App-specific — do NOT extract or generalize:**
+
+| Layer | Where it lives | Why it stays |
+|---|---|---|
+| Domain data shape | `slides/types.ts` (`SlideProperty`), `slides/property-brief.ts`, `ai/property-vision.ts` | Real-estate underwriting context (rooms, ADR, occupancy). A different domain substitutes its own brief + vision module. |
+| L+B 6-slide template | `lb-slides-renderer` skill, `lb-slides-canonical-pngs` skill, `slides/canonical-assets.ts` | Template, brand, and pixel-authoritative PNGs are L+B-specific by design. |
+| Brand/design tokens | `hbg-design-philosophy` skill | HBG portal visual identity. The portable foundation lives in `nai-design-system`. |
+
+**Cross-app dependencies to be aware of:** `slides/build-payload.ts` and `slides/property-brief.ts` import from `@engine/*` and `@analytics/*` (financial models — IRR, debt, aggregation). For non-real-estate adoption, those imports define the substitution boundary: replace the domain math, keep the slot/validator/renderer plumbing.
+
+**Adoption checklist for a new app:**
+
+1. Reuse `lib/shared/src/deck-payload-v2.ts` and the `slides/` deterministic core unchanged.
+2. Replace `SlideProperty` and `property-brief.ts` with your domain's equivalent fact-brief.
+3. Author your own canonical template (skill + PNGs) — don't fork `lb-slides-renderer`.
+4. Reuse `slide-deck-spec`, `slide-deck-vector`, `deck-ir-render`, `deck-export`, `pptx-to-deck-ir` as-is.
