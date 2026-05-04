@@ -41,6 +41,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { DECK_PAYLOAD_SCHEMA_VERSION } from "@shared/deck-payload-v2";
 
@@ -1569,7 +1570,7 @@ export default function SlideDecksTab() {
     );
   }, [draftSingleProperty]);
 
-  const { data: draftHistory } = useQuery<BulkDraftRunRow[]>({
+  const { data: draftHistory, isLoading: isDraftHistoryLoading } = useQuery<BulkDraftRunRow[]>({
     queryKey: ["/api/admin/bulk-draft-runs"],
     staleTime: 30_000,
   });
@@ -1815,7 +1816,14 @@ export default function SlideDecksTab() {
         onRetry={handleRetryProperty}
       />
 
-      {draftHistory && (
+      {isDraftHistoryLoading ? (
+        <div className="space-y-2 pt-2">
+          <Skeleton className="h-5 w-36" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-3/4" />
+        </div>
+      ) : draftHistory && (
         <DraftHistorySection runs={draftHistory} />
       )}
     </div>
