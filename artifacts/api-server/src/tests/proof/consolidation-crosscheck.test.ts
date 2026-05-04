@@ -168,7 +168,9 @@ describe('Portfolio Consolidation Cross-Check (T008)', () => {
     }
   });
 
-  it('consolidated GOP = consolidated revenueTotal - consolidated operating expenses (invariant)', () => {
+  it('consolidated GOP = sum of individual GOPs (additive consolidation invariant)', () => {
+    // propA: 20 rooms × 0.65 occ × 366 days = 4,758 soldRooms year 1 (independent pin)
+    // propB: 10 rooms × 0.65 occ × 366 days = 2,379 soldRooms year 1 (independent pin)
     const propA = makeHotel('Hotel A', 20, 140);
     const propB = makeHotel('Hotel B', 10, 100);
 
@@ -177,13 +179,19 @@ describe('Portfolio Consolidation Cross-Check (T008)', () => {
 
     const consolidated = consolidateYearlyFinancials([yearlyA, yearlyB], PROJ_YEARS);
 
+    // Independent year-1 soldRooms pins anchor the scenario so a systematic
+    // engine drift would fail here before the relational checks below.
+    expect(yearlyA[0].soldRooms).toBe(4_758);  // 20 × 0.65 × 366
+    expect(yearlyB[0].soldRooms).toBe(2_379);  // 10 × 0.65 × 366
+
     for (let y = 0; y < PROJ_YEARS; y++) {
       const c = consolidated[y];
-      // GOP identity holds at portfolio level because each property satisfies it
-      // and the consolidator sums all fields independently.
-      expect(c.gop + c.agop + c.noi).toBeGreaterThanOrEqual(0);
-      // Consistency: consolidated NOI ≤ consolidated GOP (fees + taxes are subtractive)
-      expect(c.noi).toBeLessThanOrEqual(c.gop + 1); // +1 for float tolerance
+      // Additive GOP: consolidation must preserve the sum of individual GOPs.
+      const expectedGop = yearlyA[y].gop + yearlyB[y].gop;
+      expect(c.gop).toBeCloseTo(expectedGop, 4);
+
+      // NOI waterfall identity holds at portfolio level.
+      expect(c.noi).toBeCloseTo(c.agop - c.expenseTaxes, 4);
     }
   });
 });

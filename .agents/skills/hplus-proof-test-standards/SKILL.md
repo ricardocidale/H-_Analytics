@@ -104,6 +104,50 @@ totalExpenses = totalOperatingExpenses + feeBase + feeIncentive + expenseTaxes +
 
 ---
 
+## Pin provenance — analytical vs snapshot
+
+Every pinned numeric value in the proof suite must be clearly labelled as one of two kinds:
+
+### Analytical proof pin
+
+Derived entirely from raw inputs using pencil-and-paper arithmetic. The comment next to the assertion shows the full derivation. The reader can verify the number without running the engine.
+
+```ts
+// soldRooms: 8 rooms × 0.60 occ × 366 days (engine uses 30.5 d/month fixed) = 1,756.8
+expect(yearly[0].soldRooms).toBeCloseTo(1_756.8, 1);
+```
+
+Use analytical pins for all year-1 values in per-scenario tests (golden-values, regression-snapshots).
+
+### Regression snapshot pin
+
+Captured from a known-good engine run and documented with a note saying so. Valid for drift detection (any future change triggers a deliberate failure), but NOT a proof that the value is correct from first principles.
+
+```ts
+// Snapshot from engine run 2024-06-01 (PR #87, zero-inflation, 5-year baseline).
+// If this changes, verify the delta before updating.
+expect(yearly[0].gop).toBeCloseTo(214_320.50, 2);
+```
+
+Use snapshot pins only when the formula is too complex to re-derive analytically (e.g., multi-year inflation-compounded series). Document the capture date and PR.
+
+### Mixed pattern (recommended for T012)
+
+Pair an analytical pin on a simple metric (soldRooms, revenueRooms, expenseTaxes) with a relational identity check. The analytical pin anchors the scenario; the relational check verifies the waterfall is intact.
+
+```ts
+expect(yearly[0].soldRooms).toBeCloseTo(1_756.8, 1);     // analytical
+expect(yearly[0].revenueRooms).toBe(527_040);              // analytical
+expect(yearly[y].noi).toBeCloseTo(yearly[y].agop - yearly[y].expenseTaxes, 2); // relational
+```
+
+### What you must NOT do
+
+- Copy a value from engine console output and paste it as an assertion with a comment like "year 1 soldRooms > 0" — this is neither a proof pin nor a snapshot; it is noise.
+- Label a snapshot pin as "independently derived" if you read the value from engine output first.
+
+---
+
 ## Proof-test quality rules
 
 ### 1. Pinned values must be independently derived

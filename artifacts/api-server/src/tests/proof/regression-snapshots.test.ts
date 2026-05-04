@@ -10,8 +10,13 @@
  *   - inflationRate: 0.0, adrGrowthRate: 0.0 — zero-growth for maximum
  *     determinism (avoids accumulated float drift across 60 months).
  *   - projectionYears: 5 to cover occupancy ramp and stable operating period.
- *   - Asserted values are locked-in from a known-good engine run.
- *     If any value changes, the test fails and the committer must explain the delta.
+ *
+ * Pin provenance:
+ *   Year-1 soldRooms, revenueRooms, and expenseTaxes are derived analytically from
+ *   the raw inputs (see derivation comments next to each assertion) and are NOT copied
+ *   from engine output. Stability assertions across years 2–5 are regression guards —
+ *   they detect drift but rely on the year-1 pin to anchor the value. If an engine
+ *   change alters a pinned value, update the constant AND the derivation comment.
  *
  * How to update: run `pnpm exec vitest run src/tests/proof/regression-snapshots.test.ts`
  * after intentional engine changes, inspect new values, update EXPECTED_* constants,
@@ -182,12 +187,19 @@ describe('Regression Snapshots (T012)', () => {
       expect(yearly).toHaveLength(PROJ_YEARS);
     });
 
-    it('year 1 soldRooms > 0', () => {
-      expect(yearly[0].soldRooms).toBeGreaterThan(0);
+    it('year 1 soldRooms is stable (zero-growth baseline)', () => {
+      // 8 rooms × 0.60 occ × 366 days (engine uses 30.5 days/month fixed) = 1,756.8
+      expect(yearly[0].soldRooms).toBeCloseTo(1_756.8, 1);
     });
 
-    it('year 1 revenueTotal > 0', () => {
-      expect(yearly[0].revenueTotal).toBeGreaterThan(0);
+    it('year 1 revenueRooms is stable', () => {
+      // 1,756.8 sold rooms × $300 ADR = $527,040
+      expect(dRound(yearly[0].revenueRooms, 2)).toBe(527_040);
+    });
+
+    it('year 1 expenseTaxes is stable', () => {
+      // purchasePrice $1,200,000 × costRateTaxes 0.04 = $48,000
+      expect(dRound(yearly[0].expenseTaxes, 2)).toBe(48_000);
     });
 
     it('NOI identity holds every year', () => {
@@ -225,12 +237,20 @@ describe('Regression Snapshots (T012)', () => {
       expect(yearly).toHaveLength(PROJ_YEARS);
     });
 
-    it('year 1 soldRooms > 0 (per-property pricing)', () => {
-      expect(yearly[0].soldRooms).toBeGreaterThan(0);
+    it('year 1 soldRooms is stable (per-property pricing — roomCount irrelevant)', () => {
+      // per_property: soldRooms = daysPerYear × occupancy (whole unit, not per room)
+      // 366 days × 0.55 occ = 201.3 nights
+      expect(yearly[0].soldRooms).toBeCloseTo(201.3, 1);
     });
 
-    it('year 1 revenueTotal > 0', () => {
-      expect(yearly[0].revenueTotal).toBeGreaterThan(0);
+    it('year 1 revenueRooms is stable', () => {
+      // 201.3 nights × $400 nightlyPropertyRate = $80,520
+      expect(dRound(yearly[0].revenueRooms, 2)).toBe(80_520);
+    });
+
+    it('year 1 expenseTaxes is stable', () => {
+      // purchasePrice $800,000 × costRateTaxes 0.04 = $32,000
+      expect(dRound(yearly[0].expenseTaxes, 2)).toBe(32_000);
     });
 
     it('NOI identity holds every year', () => {
