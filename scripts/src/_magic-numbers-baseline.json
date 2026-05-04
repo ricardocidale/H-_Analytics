@@ -24,6 +24,7 @@
     "artifacts/api-server/src/ai/llm-recommender.ts",
     "artifacts/api-server/src/ai/portfolio-risk-scorer.ts",
     "artifacts/api-server/src/ai/prompt/assemble-research-prompt.ts",
+    "artifacts/api-server/src/ai/property-vision.ts",
     "artifacts/api-server/src/ai/research-data-injector.ts",
     "artifacts/api-server/src/ai/research-orchestrator.ts",
     "artifacts/api-server/src/ai/research-prompt-builders.ts",
@@ -160,6 +161,7 @@
     "artifacts/api-server/src/ai/llm-recommender.ts",
     "artifacts/api-server/src/ai/portfolio-risk-scorer.ts",
     "artifacts/api-server/src/ai/prompt/assemble-research-prompt.ts",
+    "artifacts/api-server/src/ai/property-vision.ts",
     "artifacts/api-server/src/ai/research-data-injector.ts",
     "artifacts/api-server/src/ai/research-orchestrator.ts",
     "artifacts/api-server/src/ai/research-prompt-builders.ts",
@@ -274,6 +276,7 @@
     "artifacts/api-server/src/ai/icp/config-builder.ts",
     "artifacts/api-server/src/ai/kb-content.ts",
     "artifacts/api-server/src/ai/prompt/assemble-research-prompt.ts",
+    "artifacts/api-server/src/ai/property-vision.ts",
     "artifacts/api-server/src/ai/regenerate-constants.ts",
     "artifacts/api-server/src/ai/research-orchestrator.ts",
     "artifacts/api-server/src/ai/research-prompt-builders.ts",
@@ -364,6 +367,7 @@
     "artifacts/api-server/src/ai/knowledge-base.ts",
     "artifacts/api-server/src/ai/llm-health-probe.ts",
     "artifacts/api-server/src/ai/prompt/assemble-research-prompt.ts",
+    "artifacts/api-server/src/ai/property-vision.ts",
     "artifacts/api-server/src/ai/research-prompt-builders.ts",
     "artifacts/api-server/src/ai/research-quality.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-company-orchestrator-adapter.ts",
@@ -1049,6 +1053,7 @@
     "artifacts/api-server/src/routes/format-generators/excel-generator.ts",
     "artifacts/api-server/src/routes/icp-research-helpers.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
+    "artifacts/api-server/src/shared/constants.ts",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/shared/src/constants-benchmarks.ts"
   ],
@@ -1322,6 +1327,7 @@
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/properties.ts",
     "artifacts/api-server/src/shared/constants-benchmarks.ts",
+    "artifacts/api-server/src/shared/constants.ts",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/calc/src/analysis/breakeven-targets.ts",
     "lib/calc/src/research/validate-research.ts",
@@ -1407,6 +1413,7 @@
   ],
   "120": [
     "artifacts/api-server/src/ai/icp/config-builder.ts",
+    "artifacts/api-server/src/ai/property-vision.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
     "artifacts/api-server/src/data/researchSeeds.ts",
     "artifacts/api-server/src/notifications/perennial-recommendations-digest.ts",
@@ -1437,6 +1444,7 @@
     "artifacts/api-server/src/shared/constants-benchmarks.ts",
     "lib/shared/src/constants-benchmarks.ts"
   ],
+
   "150": [
     "artifacts/api-server/src/ai/context-pack/luxury-classifier.ts",
     "artifacts/api-server/src/ai/context-pack/star-rating.ts",
@@ -2627,6 +2635,7 @@
     "artifacts/api-server/src/ai/executive-summary/llm-sections.ts",
     "artifacts/api-server/src/ai/executive-summary/templates.ts",
     "artifacts/api-server/src/ai/portfolio-risk-scorer.ts",
+    "artifacts/api-server/src/ai/property-vision.ts",
     "artifacts/api-server/src/ai/risk/helpers.ts",
     "artifacts/api-server/src/ai/risk/insights-assumptions.ts",
     "artifacts/api-server/src/ai/risk/insights-stress.ts",

@@ -20,10 +20,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconAlertCircle, IconRefreshCw } from "@/components/icons";
@@ -39,22 +35,23 @@ import {
   type AuthoredString,
   type SlotProvenance,
 } from "@shared/deck-payload-v2";
+import {
+  type FormSlot,
+  type DeckPayloadResponse,
+  emptySlot,
+  hydrateSlot,
+  stampSlot,
+  ProvenancePill,
+  CharCounter,
+  ReadinessBadge,
+  useReadinessQuery,
+} from "./editor-shared";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 // ── Types ──────────────────────────────────────────────────────────────────
-
-interface DeckPayloadResponse {
-  propertyId: number;
-  payload: DeckPayloadV2;
-  updatedBy: number | null;
-  updatedAt: string | null;
-}
-
-interface FormSlot {
-  text: string;
-  source: SlotProvenance["source"];
-  dirty: boolean;
-  serverProvenance: SlotProvenance | null;
-}
 
 interface Form {
   operationalModelText: FormSlot;
@@ -62,21 +59,18 @@ interface Form {
   programmingBullet: FormSlot;
 }
 
-type Slide2DraftSlot =
+type DraftSlotKey2 =
   | "slide2.operationalModelText"
   | "slide2.revenueBullet"
   | "slide2.programmingBullet";
 
+interface DraftResult {
+  slot: string;
+  suggestion: { text?: string };
+  model: string;
+  generatedAt: string;
+}
 // ── Hydration helpers ──────────────────────────────────────────────────────
-
-function emptySlot(): FormSlot {
-  return { text: "", source: "user", dirty: false, serverProvenance: null };
-}
-
-function hydrateSlot(authored: AuthoredString | undefined): FormSlot {
-  if (!authored) return emptySlot();
-  return { text: authored.text, source: authored.provenance.source, dirty: false, serverProvenance: authored.provenance };
-}
 
 function hydrateForm(payload: DeckPayloadV2): Form {
   const s2: Slide2Payload = payload.slide2 ?? {};
@@ -90,10 +84,7 @@ function hydrateForm(payload: DeckPayloadV2): Form {
 function buildPatchBody(form: Form): { slide2?: Partial<Slide2Payload> } | null {
   const now = new Date().toISOString();
   const slide2: Partial<Slide2Payload> = {};
-  const stamp = (slot: FormSlot): AuthoredString => ({
-    text: slot.text,
-    provenance: { source: slot.source, updatedAt: now },
-  });
+  const stamp = (slot: FormSlot): AuthoredString => stampSlot(slot, now);
   if (form.operationalModelText.dirty) slide2.operationalModelText = stamp(form.operationalModelText);
   if (form.revenueBullet.dirty) slide2.revenueBullet = stamp(form.revenueBullet);
   if (form.programmingBullet.dirty) slide2.programmingBullet = stamp(form.programmingBullet);
@@ -101,26 +92,10 @@ function buildPatchBody(form: Form): { slide2?: Partial<Slide2Payload> } | null 
   return { slide2 };
 }
 
-// ── Small UI atoms ─────────────────────────────────────────────────────────
-
-function ProvenancePill({ source, dirty }: { source: SlotProvenance["source"] | null; dirty: boolean }) {
-  if (dirty) return <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50">Unsaved</Badge>;
-  if (!source) return <Badge variant="outline" className="text-muted-foreground">Empty — falls back to template</Badge>;
-  if (source === "user") return <Badge variant="outline" className="text-emerald-700 border-emerald-300 bg-emerald-50">User</Badge>;
-  return <Badge variant="outline" className="text-sky-700 border-sky-300 bg-sky-50">Analyst draft (approved)</Badge>;
-}
-
-function CharCounter({ length, max }: { length: number; max: number }) {
-  const over = length > max;
-  return (
-    <span className={`text-xs tabular-nums ${over ? "text-destructive" : "text-muted-foreground"}`}>
-      {length}/{max}
-    </span>
-  );
-}
+// ── Slot row (local — includes draft button) ───────────────────────────────
 
 function SlotRow({
-  label, description, slot, max, multiline, onChange, onDraft, isDrafting,
+  label, description, slot, max, multiline, onChange, onDraft, isDrafting, readinessKey, readinessReport,
 }: {
   label: string;
   description: string;
@@ -128,19 +103,23 @@ function SlotRow({
   max: number;
   multiline?: boolean;
   onChange: (text: string, source: SlotProvenance["source"]) => void;
-  onDraft?: () => void;
-  isDrafting?: boolean;
+  onDraft: () => void;
+  isDrafting: boolean;
+  readinessKey: string;
+  readinessReport: Record<string, string> | undefined;
 }) {
   const id = `slide2-slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
   const InputComp = multiline ? Textarea : Input;
+  const readinessStatus = readinessReport?.[readinessKey] as "complete" | "stale" | "missing" | undefined;
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Label htmlFor={id} className="text-sm font-medium">{label}</Label>
           <Badge variant="outline" className="text-sky-700 border-sky-300 bg-sky-50 text-[10px] uppercase tracking-wide">
             llm-draft+approved
           </Badge>
+          <ReadinessBadge status={readinessStatus} />
         </div>
         <div className="flex items-center gap-2">
           <ProvenancePill source={slot.serverProvenance?.source ?? null} dirty={slot.dirty} />
@@ -156,21 +135,19 @@ function SlotRow({
         maxLength={max}
         className={slot.text.length > max ? "border-destructive" : undefined}
       />
-      {onDraft && (
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={onDraft}
-          disabled={isDrafting}
-          className="gap-1.5"
-        >
-          {isDrafting
-            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            : <IconRefreshCw className="h-3.5 w-3.5" />}
-          Draft via Analyst
-        </Button>
-      )}
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        onClick={onDraft}
+        disabled={isDrafting}
+        className="gap-1.5"
+      >
+        {isDrafting
+          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          : <IconRefreshCw className="h-3.5 w-3.5" />}
+        Draft via Analyst
+      </Button>
     </div>
   );
 }
@@ -196,6 +173,8 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
     staleTime: 10_000,
   });
 
+  const { data: readinessData } = useReadinessQuery(propertyId);
+
   const [form, setForm] = useState<Form | null>(null);
   useEffect(() => { if (data) setForm(hydrateForm(data.payload)); }, [data]);
 
@@ -211,6 +190,7 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
     onSuccess: (next) => {
       qc.setQueryData(queryKey, next);
       qc.invalidateQueries({ queryKey: ["/api/admin/properties", propertyId, "deck-token"] });
+      qc.invalidateQueries({ queryKey: ["/api/admin/properties", propertyId, "deck-payload", "readiness"] });
       toast({ title: "Slide 2 saved", description: "Editor copy persisted to the deck payload sidecar." });
     },
     onError: (err: unknown) => {
@@ -218,20 +198,16 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
     },
   });
 
-  const [draftingSlot, setDraftingSlot] = useState<Slide2DraftSlot | null>(null);
+  const [draftingSlot, setDraftingSlot] = useState<DraftSlotKey2 | null>(null);
+
   const draftMutation = useMutation({
-    mutationFn: async (slot: Slide2DraftSlot) => {
+    mutationFn: async (slot: DraftSlotKey2) => {
       const r = await apiRequest(
         "POST",
         `/api/admin/properties/${propertyId}/deck-payload/draft-slot`,
         { slot },
       );
-      return r.json() as Promise<{
-        slot: string;
-        suggestion: { text?: string };
-        model: string;
-        generatedAt: string;
-      }>;
+      return r.json() as Promise<DraftResult>;
     },
     onSuccess: (result) => {
       const text = result.suggestion.text;
@@ -248,14 +224,15 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
     onSettled: () => setDraftingSlot(null),
   });
 
+  function fireDraft(slot: DraftSlotKey2) {
+    setDraftingSlot(slot);
+    draftMutation.mutate(slot);
+  }
+
   function setSlot<K extends keyof Form>(key: K, text: string, source: SlotProvenance["source"]) {
     setForm((prev) => (prev ? { ...prev, [key]: { ...prev[key], text, source, dirty: true } } : prev));
   }
 
-  function draft(slot: Slide2DraftSlot) {
-    setDraftingSlot(slot);
-    draftMutation.mutate(slot);
-  }
 
   if (!Number.isFinite(propertyId)) return <p className="text-destructive">Invalid property ID.</p>;
   if (isLoading || !form) {
@@ -277,6 +254,7 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
 
   const patchBody = buildPatchBody(form);
   const dirtyCount = patchBody?.slide2 ? Object.keys(patchBody.slide2).length : 0;
+  const report = readinessData?.report;
 
   return (
     <Card className="border border-border/60">
@@ -305,8 +283,10 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
             slot={form.operationalModelText}
             max={SLIDE2_OPERATIONAL_MODEL_MAX}
             onChange={(t, s) => setSlot("operationalModelText", t, s)}
-            onDraft={() => draft("slide2.operationalModelText")}
+            onDraft={() => fireDraft("slide2.operationalModelText")}
             isDrafting={draftingSlot === "slide2.operationalModelText" && draftMutation.isPending}
+            readinessKey="slide2.operationalModelText"
+            readinessReport={report}
           />
           <SlotRow
             label="Revenue bullet"
@@ -315,8 +295,10 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
             max={SLIDE2_REVENUE_BULLET_MAX}
             multiline
             onChange={(t, s) => setSlot("revenueBullet", t, s)}
-            onDraft={() => draft("slide2.revenueBullet")}
+            onDraft={() => fireDraft("slide2.revenueBullet")}
             isDrafting={draftingSlot === "slide2.revenueBullet" && draftMutation.isPending}
+            readinessKey="slide2.revenueBullet"
+            readinessReport={report}
           />
           <SlotRow
             label="Programming bullet"
@@ -325,8 +307,10 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
             max={SLIDE2_PROGRAMMING_BULLET_MAX}
             multiline
             onChange={(t, s) => setSlot("programmingBullet", t, s)}
-            onDraft={() => draft("slide2.programmingBullet")}
+            onDraft={() => fireDraft("slide2.programmingBullet")}
             isDrafting={draftingSlot === "slide2.programmingBullet" && draftMutation.isPending}
+            readinessKey="slide2.programmingBullet"
+            readinessReport={report}
           />
         </div>
 

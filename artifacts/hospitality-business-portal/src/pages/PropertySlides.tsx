@@ -32,11 +32,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRoute } from "wouter";
 import Layout from "@/components/Layout";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { IconDownload, IconAlertCircle, IconRefreshCw } from "@/components/icons";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { IconDownload, IconAlertCircle, IconRefreshCw, IconCheck, IconX } from "@/components/icons";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { PageHeader } from "@/components/ui/page-header";
 import {
   Carousel,
@@ -52,7 +54,18 @@ import { Slide1, Slide2, Slide3, Slide4, Slide5, Slide6 } from "@/features/inter
 import { SLIDE_HEIGHT_PX, SLIDE_WIDTH_PX } from "@/features/internal-deck/theme";
 import "@/features/internal-deck/fonts.css";
 import type { SlidePayload } from "@/features/internal-deck/types";
-import { EMPTY_DECK_PAYLOAD_V2 } from "@shared/deck-payload-v2";
+import {
+  EMPTY_DECK_PAYLOAD_V2,
+  DECK_PAYLOAD_SCHEMA_VERSION,
+  type DeckPayloadV2,
+  type Slide1Payload,
+  SLIDE1_VISION_BULLETS_COUNT,
+  type Slide2Payload,
+  type Slide3Payload,
+  SLIDE3_REASONS_COUNT,
+  type Slide5Payload,
+  SLIDE5_TRANSFORMATION_ROWS_COUNT,
+} from "@shared/deck-payload-v2";
 import { Slide1EditorPanel } from "@/features/internal-deck/editor/Slide1EditorPanel";
 import { Slide2EditorPanel } from "@/features/internal-deck/editor/Slide2EditorPanel";
 import { Slide3EditorPanel } from "@/features/internal-deck/editor/Slide3EditorPanel";
@@ -60,6 +73,7 @@ import { Slide4EditorPanel } from "@/features/internal-deck/editor/Slide4EditorP
 import { Slide5EditorPanel } from "@/features/internal-deck/editor/Slide5EditorPanel";
 import { Slide6EditorPanel } from "@/features/internal-deck/editor/Slide6EditorPanel";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 // ── Slide registry ────────────────────────────────────────────────────────
 //
@@ -109,6 +123,27 @@ interface PropertyRow {
 type ViewMode = "grid" | "carousel" | "edit";
 type DraftVersion = "authored" | "template";
 
+// ── Draft-All types ───────────────────────────────────────────────────────
+
+interface DraftResult {
+  slot: string;
+  suggestion: unknown;
+  model: string;
+  generatedAt: string;
+  validationErrors?: string[];
+}
+
+interface DraftAllResponse {
+  propertyId: number;
+  drafts: DraftResult[];
+  draftedCount: number;
+  errorCount: number;
+  message?: string;
+  note?: string;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+
 function downloadViaAnchor(url: string, filename: string): void {
   const a = document.createElement("a");
   a.href = url;
@@ -120,6 +155,105 @@ function downloadViaAnchor(url: string, filename: string): void {
 
 function slugify(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+/**
+ * Convert a DraftResult array (from /draft-all) into a DeckPayloadV2 PATCH
+ * body that can be sent to the PATCH endpoint. Only drafts without validation
+ * errors are included.
+ */
+function buildAcceptAllPatch(drafts: DraftResult[], generatedAt: string): Partial<DeckPayloadV2> {
+  const now = generatedAt;
+  const prov = (source: "llm") => ({ source, updatedAt: now });
+  const authored = (text: string) => ({ text, provenance: prov("llm") });
+
+  const slide1: Partial<Slide1Payload> = {};
+  const slide2: Partial<Slide2Payload> = {};
+  const slide3: Partial<Slide3Payload> = {};
+  const slide5: Partial<Slide5Payload> = {};
+
+  for (const d of drafts) {
+    if (d.validationErrors && d.validationErrors.length > 0) continue;
+    const s = d.suggestion as Record<string, unknown>;
+
+    if (d.slot === "slide1.headerSubtitle" && typeof s.text === "string") {
+      slide1.headerSubtitle = authored(s.text);
+    } else if (d.slot === "slide1.visionBullets" && Array.isArray(s.bullets)) {
+      slide1.visionBullets = (s.bullets as { text: string }[])
+        .slice(0, SLIDE1_VISION_BULLETS_COUNT)
+        .map(b => authored(b.text));
+    } else if (d.slot === "slide2.operationalModelText" && typeof s.text === "string") {
+      slide2.operationalModelText = authored(s.text);
+    } else if (d.slot === "slide2.revenueBullet" && typeof s.text === "string") {
+      slide2.revenueBullet = authored(s.text);
+    } else if (d.slot === "slide2.programmingBullet" && typeof s.text === "string") {
+      slide2.programmingBullet = authored(s.text);
+    } else if (d.slot === "slide3.conceptParagraph" && typeof s.text === "string") {
+      slide3.conceptParagraph = authored(s.text);
+    } else if (d.slot === "slide3.marketRationale" && typeof s.text === "string") {
+      slide3.marketRationale = authored(s.text);
+    } else if (d.slot === "slide3.closingLine" && typeof s.text === "string") {
+      slide3.closingLine = authored(s.text);
+    } else if (d.slot === "slide3.reasons" && Array.isArray(s.reasons)) {
+      slide3.reasons = (s.reasons as { label: string; detail: string }[])
+        .slice(0, SLIDE3_REASONS_COUNT)
+        .map(r => ({ label: authored(r.label), detail: authored(r.detail) }));
+    } else if (d.slot === "slide5.transformationDescription" && typeof s.text === "string") {
+      slide5.transformationDescription = authored(s.text);
+    } else if (d.slot === "slide5.transformationRows" && Array.isArray(s.rows)) {
+      slide5.transformationRows = (s.rows as { feature: string; existing: string; proposed: string }[])
+        .slice(0, SLIDE5_TRANSFORMATION_ROWS_COUNT)
+        .map(r => ({
+          feature: authored(r.feature),
+          existing: authored(r.existing),
+          proposed: authored(r.proposed),
+        }));
+    }
+  }
+
+  const patch: Partial<DeckPayloadV2> = {};
+  if (Object.keys(slide1).length > 0) patch.slide1 = slide1 as Slide1Payload;
+  if (Object.keys(slide2).length > 0) patch.slide2 = slide2 as Slide2Payload;
+  if (Object.keys(slide3).length > 0) patch.slide3 = slide3 as Slide3Payload;
+  if (Object.keys(slide5).length > 0) patch.slide5 = slide5 as Slide5Payload;
+  return patch;
+}
+
+/** Human-readable label for a draft slot key. */
+function slotLabel(slot: string): string {
+  const LABELS: Record<string, string> = {
+    "slide1.headerSubtitle": "Slide 1 — Header subtitle",
+    "slide1.visionBullets": "Slide 1 — Vision bullets",
+    "slide2.operationalModelText": "Slide 2 — Operational model",
+    "slide2.revenueBullet": "Slide 2 — Revenue bullet",
+    "slide2.programmingBullet": "Slide 2 — Programming bullet",
+    "slide3.conceptParagraph": "Slide 3 — The Concept",
+    "slide3.marketRationale": "Slide 3 — Why This Property?",
+    "slide3.reasons": "Slide 3 — Investment reasons (×3)",
+    "slide3.closingLine": "Slide 3 — Closing pull quote",
+    "slide5.transformationDescription": "Slide 5 — Transformation intro",
+    "slide5.transformationRows": "Slide 5 — Comparison rows",
+  };
+  return LABELS[slot] ?? slot;
+}
+
+/** Short preview of a suggestion value for display in the review panel. */
+function suggestionPreview(slot: string, suggestion: unknown): string {
+  if (!suggestion || typeof suggestion !== "object") return String(suggestion ?? "");
+  const s = suggestion as Record<string, unknown>;
+  if (typeof s.text === "string") return s.text;
+  if (slot === "slide1.visionBullets" && Array.isArray(s.bullets)) {
+    return (s.bullets as { text: string }[]).map((b, i) => `${i + 1}. ${b.text}`).join(" • ");
+  }
+  if (slot === "slide3.reasons" && Array.isArray(s.reasons)) {
+    return (s.reasons as { label: string; detail: string }[])
+      .map(r => `${r.label}: ${r.detail}`)
+      .join(" | ");
+  }
+  if (slot === "slide5.transformationRows" && Array.isArray(s.rows)) {
+    return (s.rows as { feature: string }[]).map(r => r.feature).join(", ");
+  }
+  return JSON.stringify(suggestion);
 }
 
 // ── Per-slide actions hook ────────────────────────────────────────────────
@@ -379,6 +513,147 @@ function SlideMiniPreview({
   );
 }
 
+// ── Draft All review panel ────────────────────────────────────────────────
+
+function DraftAllReviewPanel({
+  drafts,
+  generatedAt,
+  propertyId,
+  onAccepted,
+  onDismiss,
+}: {
+  drafts: DraftResult[];
+  generatedAt: string;
+  propertyId: number;
+  onAccepted: () => void;
+  onDismiss: () => void;
+}) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+
+  const validDrafts = drafts.filter(d => !d.validationErrors || d.validationErrors.length === 0);
+  const erroredDrafts = drafts.filter(d => d.validationErrors && d.validationErrors.length > 0);
+
+  const acceptMutation = useMutation({
+    mutationFn: async () => {
+      const patch = buildAcceptAllPatch(validDrafts, generatedAt);
+      const r = await apiRequest(
+        "PATCH",
+        `/api/admin/properties/${propertyId}/deck-payload`,
+        { schemaVersion: DECK_PAYLOAD_SCHEMA_VERSION, ...patch },
+      );
+      return r.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/admin/properties", propertyId, "deck-payload"] });
+      qc.invalidateQueries({ queryKey: ["/api/admin/properties", propertyId, "deck-token"] });
+      qc.invalidateQueries({ queryKey: ["/api/admin/properties", propertyId, "deck-payload", "readiness"] });
+      toast({
+        title: `${validDrafts.length} slot${validDrafts.length === 1 ? "" : "s"} accepted`,
+        description: "All Analyst drafts have been persisted. Open a slide editor to review and save any individual slot.",
+      });
+      onAccepted();
+    },
+    onError: (err: unknown) => {
+      toast({
+        title: "Accept all failed",
+        description: err instanceof Error ? err.message : String(err),
+        variant: "destructive",
+      });
+    },
+  });
+
+  return (
+    <Card className="border border-sky-200 bg-sky-50/40 dark:border-sky-800 dark:bg-sky-950/20">
+      <CardContent className="p-5 space-y-4">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h3 className="text-sm font-semibold">
+              Analyst drafted {drafts.length} slot{drafts.length === 1 ? "" : "s"} — review before accepting
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {validDrafts.length} ready to accept
+              {erroredDrafts.length > 0 ? `, ${erroredDrafts.length} with validation errors (skipped)` : ""}.
+              Accepting persists all valid drafts; individual slots can be revised in the editor.
+            </p>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={onDismiss}
+            className="gap-1 text-muted-foreground hover:text-foreground shrink-0"
+            aria-label="Dismiss draft review"
+          >
+            <IconX className="h-3.5 w-3.5" />
+            Dismiss
+          </Button>
+        </div>
+
+        <Separator />
+
+        <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+          {drafts.map((draft) => {
+            const hasErrors = draft.validationErrors && draft.validationErrors.length > 0;
+            return (
+              <div key={draft.slot} className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-medium">{slotLabel(draft.slot)}</span>
+                  {hasErrors ? (
+                    <Badge variant="outline" className="text-destructive border-destructive/30 text-[10px]">
+                      Validation error — skipped
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-sky-700 border-sky-300 bg-sky-50 text-[10px]">
+                      Analyst draft
+                    </Badge>
+                  )}
+                </div>
+                {hasErrors ? (
+                  <p className="text-xs text-destructive">{draft.validationErrors!.join("; ")}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                    {suggestionPreview(draft.slot, draft.suggestion)}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {validDrafts.length > 0 && (
+          <>
+            <Separator />
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onDismiss}
+                disabled={acceptMutation.isPending}
+              >
+                Discard drafts
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => acceptMutation.mutate()}
+                disabled={acceptMutation.isPending}
+                className="gap-1.5"
+              >
+                {acceptMutation.isPending
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : <IconCheck className="h-3.5 w-3.5" />}
+                Accept all {validDrafts.length} draft{validDrafts.length === 1 ? "" : "s"}
+              </Button>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────
 
 export default function PropertySlides() {
@@ -387,6 +662,11 @@ export default function PropertySlides() {
   const [view, setView] = useState<ViewMode>("grid");
   const [draftVersion, setDraftVersion] = useState<DraftVersion>("authored");
   const [editSlide, setEditSlide] = useState<number>(1);
+
+  // Pending drafts from Draft All
+  const [pendingDrafts, setPendingDrafts] = useState<DraftAllResponse | null>(null);
+
+  const { toast } = useToast();
 
   // Property info — for header + filename.
   const { data: properties } = useQuery<PropertyRow[]>({
@@ -446,6 +726,36 @@ export default function PropertySlides() {
 
   const actions = useSlideActions(propertyId, property?.name ?? `property-${propertyId}`);
 
+  // ── Draft All mutation ─────────────────────────────────────────────────
+
+  const draftAllMutation = useMutation({
+    mutationFn: async () => {
+      const r = await apiRequest(
+        "POST",
+        `/api/admin/properties/${propertyId}/deck-payload/draft-all`,
+        {},
+      );
+      return r.json() as Promise<DraftAllResponse>;
+    },
+    onSuccess: (result) => {
+      if (result.drafts.length === 0) {
+        toast({
+          title: "All slots are complete",
+          description: result.message ?? "Nothing to draft — all 11 LLM slots already have up-to-date copy.",
+        });
+        return;
+      }
+      setPendingDrafts(result);
+    },
+    onError: (err: unknown) => {
+      toast({
+        title: "Draft All failed",
+        description: err instanceof Error ? err.message : String(err),
+        variant: "destructive",
+      });
+    },
+  });
+
   if (!Number.isFinite(propertyId)) {
     return (
       <Layout>
@@ -460,7 +770,23 @@ export default function PropertySlides() {
   const activeSlideEntry = SLIDES.find(s => s.n === editSlide) ?? SLIDES[0];
 
   const viewActions = (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 flex-wrap">
+      {/* Draft All — always visible; most useful in Edit mode */}
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        onClick={() => draftAllMutation.mutate()}
+        disabled={draftAllMutation.isPending}
+        className="gap-1.5"
+        title="Ask the Analyst to draft all missing or stale LLM slots in one batch. Returns proposals for review before persisting."
+      >
+        {draftAllMutation.isPending
+          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          : <IconRefreshCw className="h-3.5 w-3.5" />}
+        Draft All
+      </Button>
+
       <div className="inline-flex rounded-md border border-border overflow-hidden text-sm">
         <button
           type="button"
@@ -559,6 +885,17 @@ export default function PropertySlides() {
           <Loader2 className="h-5 w-5 animate-spin" />
           Loading slides…
         </div>
+      )}
+
+      {/* Draft All review panel — shown when pending drafts exist */}
+      {pendingDrafts && pendingDrafts.drafts.length > 0 && (
+        <DraftAllReviewPanel
+          drafts={pendingDrafts.drafts}
+          generatedAt={pendingDrafts.drafts[0]?.generatedAt ?? new Date().toISOString()}
+          propertyId={propertyId}
+          onAccepted={() => setPendingDrafts(null)}
+          onDismiss={() => setPendingDrafts(null)}
+        />
       )}
 
       {activePayload && view === "grid" && (

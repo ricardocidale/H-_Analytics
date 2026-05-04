@@ -20,15 +20,15 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconAlertCircle, IconRefreshCw } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   DECK_PAYLOAD_SCHEMA_VERSION,
   SLIDE3_CONCEPT_PARAGRAPH_MAX,
@@ -42,22 +42,19 @@ import {
   type AuthoredString,
   type SlotProvenance,
 } from "@shared/deck-payload-v2";
+import {
+  type FormSlot,
+  type DeckPayloadResponse,
+  emptySlot,
+  hydrateSlot,
+  stampSlot,
+  ProvenancePill,
+  CharCounter,
+  ReadinessBadge,
+  useReadinessQuery,
+} from "./editor-shared";
 
 // ── Types ──────────────────────────────────────────────────────────────────
-
-interface DeckPayloadResponse {
-  propertyId: number;
-  payload: DeckPayloadV2;
-  updatedBy: number | null;
-  updatedAt: string | null;
-}
-
-interface FormSlot {
-  text: string;
-  source: SlotProvenance["source"];
-  dirty: boolean;
-  serverProvenance: SlotProvenance | null;
-}
 
 interface FormReasonPair {
   label: FormSlot;
@@ -76,15 +73,6 @@ type Slide3DraftSlot = Slide3ScalarSlot | "slide3.reasons";
 
 // ── Hydration helpers ──────────────────────────────────────────────────────
 
-function emptySlot(): FormSlot {
-  return { text: "", source: "user", dirty: false, serverProvenance: null };
-}
-
-function hydrateSlot(authored: AuthoredString | undefined): FormSlot {
-  if (!authored) return emptySlot();
-  return { text: authored.text, source: authored.provenance.source, dirty: false, serverProvenance: authored.provenance };
-}
-
 function hydrateForm(payload: DeckPayloadV2): Form {
   const s3: Slide3Payload = payload.slide3 ?? {};
   const serverReasons = s3.reasons ?? [];
@@ -102,10 +90,7 @@ function hydrateForm(payload: DeckPayloadV2): Form {
 function buildPatchBody(form: Form): { slide3?: Partial<Slide3Payload> } | null {
   const now = new Date().toISOString();
   const slide3: Partial<Slide3Payload> = {};
-  const stamp = (slot: FormSlot): AuthoredString => ({
-    text: slot.text,
-    provenance: { source: slot.source, updatedAt: now },
-  });
+  const stamp = (slot: FormSlot): AuthoredString => stampSlot(slot, now);
 
   if (form.conceptParagraph.dirty) slide3.conceptParagraph = stamp(form.conceptParagraph);
   if (form.marketRationale.dirty) slide3.marketRationale = stamp(form.marketRationale);
@@ -122,25 +107,10 @@ function buildPatchBody(form: Form): { slide3?: Partial<Slide3Payload> } | null 
   return { slide3 };
 }
 
-// ── Small UI atoms ─────────────────────────────────────────────────────────
+// ── Scalar slot row ────────────────────────────────────────────────────────
 
-function ProvenancePill({ source, dirty }: { source: SlotProvenance["source"] | null; dirty: boolean }) {
-  if (dirty) return <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50">Unsaved</Badge>;
-  if (!source) return <Badge variant="outline" className="text-muted-foreground">Empty — falls back to template</Badge>;
-  if (source === "user") return <Badge variant="outline" className="text-emerald-700 border-emerald-300 bg-emerald-50">User</Badge>;
-  return <Badge variant="outline" className="text-sky-700 border-sky-300 bg-sky-50">Analyst draft (approved)</Badge>;
-}
-
-function CharCounter({ length, max }: { length: number; max: number }) {
-  return (
-    <span className={`text-xs tabular-nums ${length > max ? "text-destructive" : "text-muted-foreground"}`}>
-      {length}/{max}
-    </span>
-  );
-}
-
-function SlotRow({
-  label, description, slot, max, multiline, onChange, onDraft, isDrafting,
+function ScalarSlotRow({
+  label, description, slot, max, multiline, onChange, onDraft, isDrafting, readinessKey, readinessReport,
 }: {
   label: string;
   description: string;
@@ -148,8 +118,66 @@ function SlotRow({
   max: number;
   multiline?: boolean;
   onChange: (text: string, source: SlotProvenance["source"]) => void;
-  onDraft?: () => void;
-  isDrafting?: boolean;
+  onDraft: () => void;
+  isDrafting: boolean;
+  readinessKey: string;
+  readinessReport: Record<string, string> | undefined;
+}) {
+  const id = `slide3-slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
+  const InputComp = multiline ? Textarea : Input;
+  const readinessStatus = readinessReport?.[readinessKey] as "complete" | "stale" | "missing" | undefined;
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Label htmlFor={id} className="text-sm font-medium">{label}</Label>
+          <Badge variant="outline" className="text-sky-700 border-sky-300 bg-sky-50 text-[10px] uppercase tracking-wide">
+            llm-draft+approved
+          </Badge>
+          <ReadinessBadge status={readinessStatus} />
+        </div>
+        <div className="flex items-center gap-2">
+          <ProvenancePill source={slot.serverProvenance?.source ?? null} dirty={slot.dirty} />
+          <CharCounter length={slot.text.length} max={max} />
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground">{description}</p>
+      <InputComp
+        id={id}
+        value={slot.text}
+        onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(e.target.value, "user")}
+        rows={multiline ? 3 : undefined}
+        maxLength={max}
+        className={slot.text.length > max ? "border-destructive" : undefined}
+      />
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        onClick={onDraft}
+        disabled={isDrafting}
+        className="gap-1.5"
+      >
+        {isDrafting
+          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          : <IconRefreshCw className="h-3.5 w-3.5" />}
+        Draft via Analyst
+      </Button>
+    </div>
+  );
+}
+
+// ── Plain slot row (no draft button — for reason label/detail sub-fields) ──
+
+function PlainSlotRow({
+  label, description, slot, max, multiline, onChange,
+}: {
+  label: string;
+  description: string;
+  slot: FormSlot;
+  max: number;
+  multiline?: boolean;
+  onChange: (text: string, source: SlotProvenance["source"]) => void;
 }) {
   const id = `slide3-slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
   const InputComp = multiline ? Textarea : Input;
@@ -176,21 +204,6 @@ function SlotRow({
         maxLength={max}
         className={slot.text.length > max ? "border-destructive" : undefined}
       />
-      {onDraft && (
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={onDraft}
-          disabled={isDrafting}
-          className="gap-1.5"
-        >
-          {isDrafting
-            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            : <IconRefreshCw className="h-3.5 w-3.5" />}
-          Draft via Analyst
-        </Button>
-      )}
     </div>
   );
 }
@@ -216,6 +229,8 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
     staleTime: 10_000,
   });
 
+  const { data: readinessData } = useReadinessQuery(propertyId);
+
   const [form, setForm] = useState<Form | null>(null);
   useEffect(() => { if (data) setForm(hydrateForm(data.payload)); }, [data]);
 
@@ -231,6 +246,7 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
     onSuccess: (next) => {
       qc.setQueryData(queryKey, next);
       qc.invalidateQueries({ queryKey: ["/api/admin/properties", propertyId, "deck-token"] });
+      qc.invalidateQueries({ queryKey: ["/api/admin/properties", propertyId, "deck-payload", "readiness"] });
       toast({ title: "Slide 3 saved", description: "Editor copy persisted to the deck payload sidecar." });
     },
     onError: (err: unknown) => {
@@ -331,6 +347,8 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
 
   const patchBody = buildPatchBody(form);
   const hasDirty = patchBody !== null;
+  const report = readinessData?.report;
+  const reasonsStatus = report?.["slide3.reasons"] as "complete" | "stale" | "missing" | undefined;
 
   return (
     <Card className="border border-border/60">
@@ -353,7 +371,7 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
         {/* Narrative paragraphs */}
         <div className="space-y-5">
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Narrative</h3>
-          <SlotRow
+          <ScalarSlotRow
             label="The Concept"
             description='Paragraph under the "The Concept" section header. Explain the L+B operating model as applied to this specific asset type and location.'
             slot={form.conceptParagraph}
@@ -362,8 +380,10 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
             onChange={(t, s) => setScalarSlot("conceptParagraph", t, s)}
             onDraft={() => draft("slide3.conceptParagraph")}
             isDrafting={draftingSlot === "slide3.conceptParagraph" && draftMutation.isPending}
+            readinessKey="slide3.conceptParagraph"
+            readinessReport={report}
           />
-          <SlotRow
+          <ScalarSlotRow
             label="Why This Property?"
             description='Paragraph under "Why This Property?". The market thesis: location dynamics, demand drivers, competitive gap, timing.'
             slot={form.marketRationale}
@@ -372,6 +392,8 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
             onChange={(t, s) => setScalarSlot("marketRationale", t, s)}
             onDraft={() => draft("slide3.marketRationale")}
             isDrafting={draftingSlot === "slide3.marketRationale" && draftMutation.isPending}
+            readinessKey="slide3.marketRationale"
+            readinessReport={report}
           />
         </div>
 
@@ -380,9 +402,12 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
         {/* Reasons */}
         <div className="space-y-5">
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-              Investment reasons ({SLIDE3_REASONS_COUNT} required)
-            </h3>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Investment reasons ({SLIDE3_REASONS_COUNT} required)
+              </h3>
+              <ReadinessBadge status={reasonsStatus} />
+            </div>
             <Button
               type="button"
               size="sm"
@@ -394,7 +419,7 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
               {draftingSlot === "slide3.reasons" && draftMutation.isPending
                 ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 : <IconRefreshCw className="h-3.5 w-3.5" />}
-              Draft all reasons
+              Draft all 3 via Analyst
             </Button>
           </div>
           <p className="text-xs text-muted-foreground -mt-3">
@@ -404,14 +429,14 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
           {form.reasons.map((pair, i) => (
             <div key={i} className="space-y-3 rounded-md border border-border/40 p-4">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Reason {i + 1}</p>
-              <SlotRow
+              <PlainSlotRow
                 label="Label"
                 description="Bold short label — e.g. 'Underserved demand corridor' or 'Operational upside'."
                 slot={pair.label}
                 max={SLIDE3_REASON_LABEL_MAX}
                 onChange={(t, s) => setReasonSlot(i, "label", t, s)}
               />
-              <SlotRow
+              <PlainSlotRow
                 label="Detail"
                 description="Supporting detail sentence for this reason."
                 slot={pair.detail}
@@ -428,7 +453,7 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
         {/* Closing */}
         <div className="space-y-5">
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Closing</h3>
-          <SlotRow
+          <ScalarSlotRow
             label="Closing pull quote"
             description="Italic sentence in the green accent block at the bottom. Sets the tonal close for the Investment Model slide."
             slot={form.closingLine}
@@ -437,6 +462,8 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
             onChange={(t, s) => setScalarSlot("closingLine", t, s)}
             onDraft={() => draft("slide3.closingLine")}
             isDrafting={draftingSlot === "slide3.closingLine" && draftMutation.isPending}
+            readinessKey="slide3.closingLine"
+            readinessReport={report}
           />
         </div>
 

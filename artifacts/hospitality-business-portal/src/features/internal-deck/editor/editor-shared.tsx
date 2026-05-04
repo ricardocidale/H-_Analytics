@@ -27,6 +27,60 @@ export interface DeckPayloadResponse {
   updatedAt: string | null;
 }
 
+// ── Readiness ──────────────────────────────────────────────────────────────
+
+export type SlotStatus = "complete" | "stale" | "missing" | "deterministic";
+
+export interface ReadinessResponse {
+  propertyId: number;
+  report: Record<string, SlotStatus>;
+  staleMissingSlots: string[];
+  staleMissingCount: number;
+  payloadUpdatedAt: string | null;
+  propertyUpdatedAt: string;
+}
+
+export function useReadinessQuery(propertyId: number) {
+  const queryKey = ["/api/admin/properties", propertyId, "deck-payload", "readiness"] as const;
+  const result = useQuery<ReadinessResponse>({
+    queryKey,
+    queryFn: async () => {
+      const r = await fetch(
+        `/api/admin/properties/${propertyId}/deck-payload/readiness`,
+        { credentials: "include" },
+      );
+      if (!r.ok) throw new Error(`HTTP ${r.status}: ${await r.text().catch(() => r.statusText)}`);
+      return r.json();
+    },
+    enabled: Number.isFinite(propertyId),
+    staleTime: 15_000,
+  });
+  return { ...result, queryKey };
+}
+
+export function ReadinessBadge({ status }: { status: SlotStatus | undefined }) {
+  if (!status || status === "deterministic") return null;
+  if (status === "complete") {
+    return (
+      <Badge variant="outline" className="text-emerald-700 border-emerald-300 bg-emerald-50 text-[10px] uppercase tracking-wide">
+        Ready
+      </Badge>
+    );
+  }
+  if (status === "stale") {
+    return (
+      <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 text-[10px] uppercase tracking-wide">
+        Stale
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="outline" className="text-muted-foreground text-[10px] uppercase tracking-wide">
+      Missing
+    </Badge>
+  );
+}
+
 // ── Per-slot form state ────────────────────────────────────────────────────
 
 export interface FormSlot {
@@ -138,6 +192,9 @@ export interface SlotRowProps {
   max: number;
   multiline?: boolean;
   onChange: (text: string, source: SlotProvenance["source"]) => void;
+  onDraft?: () => void;
+  isDrafting?: boolean;
+  readinessStatus?: SlotStatus;
 }
 
 export function SlotRow({
@@ -148,13 +205,16 @@ export function SlotRow({
   max,
   multiline,
   onChange,
+  onDraft,
+  isDrafting,
+  readinessStatus,
 }: SlotRowProps) {
   const id = `slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
   const InputComp = multiline ? Textarea : Input;
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Label htmlFor={id} className="text-sm font-medium">{label}</Label>
           <Badge
             variant="outline"
@@ -166,6 +226,7 @@ export function SlotRow({
           >
             {bucket}
           </Badge>
+          {readinessStatus && <ReadinessBadge status={readinessStatus} />}
         </div>
         <div className="flex items-center gap-2">
           <ProvenancePill source={slot.serverProvenance?.source ?? null} dirty={slot.dirty} />
@@ -183,6 +244,41 @@ export function SlotRow({
         maxLength={max}
         className={slot.text.length > max ? "border-destructive" : undefined}
       />
+      {onDraft && bucket === "llm-draft+approved" && (
+        <DraftButton onClick={onDraft} isPending={isDrafting ?? false} />
+      )}
     </div>
+  );
+}
+
+// ── Draft button atom ──────────────────────────────────────────────────────
+
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "@/components/icons/themed-icons";
+import { IconRefreshCw } from "@/components/icons";
+
+export function DraftButton({
+  onClick,
+  isPending,
+  label = "Draft via Analyst",
+}: {
+  onClick: () => void;
+  isPending: boolean;
+  label?: string;
+}) {
+  return (
+    <Button
+      type="button"
+      size="sm"
+      variant="outline"
+      onClick={onClick}
+      disabled={isPending}
+      className="gap-1.5"
+    >
+      {isPending
+        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        : <IconRefreshCw className="h-3.5 w-3.5" />}
+      {label}
+    </Button>
   );
 }

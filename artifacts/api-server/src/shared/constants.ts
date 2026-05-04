@@ -487,3 +487,11 @@ export const RENOV_HISTORIC_PREMIUM = 0.20;   // +20% per-key uplift for histori
 export const RENOV_CONTINGENCY      = 0.18;   // 18% contingency on subtotal
 export const RENOV_MAX_PCT_OF_PRICE = 0.80;   // Guardrail: budget ≤ 80% of purchase price
 export const RENOV_MIN_PER_KEY      = 25_000; // Guardrail: minimum $25k per key
+
+// ── LLM prompt character-budget constants ────────────────────────────────────
+// Max character lengths enforced in LLM prompts for investor deck copy.
+// Mirror the hplus-vision-templates skill field specs. Consumed by property-vision.ts.
+export const VISION_MAX_TOKENS          = 1_200; // max_tokens for Anthropic vision call
+export const VISION_BADGE_MAX_CHARS     = 35;    // badgeText: short ALL-CAPS label
+export const VISION_BULLET_MAX_CHARS    = 80;    // all bullet fields: punchy, metric-driven
+export const VISION_PARAGRAPH_MAX_CHARS = 180;   // paragraph fields: one sentence, direct

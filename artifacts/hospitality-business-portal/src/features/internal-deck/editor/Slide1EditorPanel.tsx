@@ -55,29 +55,18 @@ import {
   type AuthoredString,
   type SlotProvenance,
 } from "@shared/deck-payload-v2";
+import {
+  type FormSlot,
+  type DeckPayloadResponse,
+  emptySlot,
+  hydrateSlot,
+  ProvenancePill,
+  CharCounter,
+  ReadinessBadge,
+  useReadinessQuery,
+} from "./editor-shared";
 
-// ── Types ──────────────────────────────────────────────────────────────────
-
-interface DeckPayloadResponse {
-  propertyId: number;
-  payload: DeckPayloadV2;
-  updatedBy: number | null;
-  updatedAt: string | null;
-}
-
-/**
- * Local form state. We hydrate from the server payload, then mutate purely
- * client-side until Save. `source` mirrors provenance — "user" for direct
- * edits, "llm" if the admin accepted an Analyst draft as-is.
- */
-interface FormSlot {
-  text: string;
-  source: SlotProvenance["source"];
-  /** Tracks whether this slot has changed since hydration (used to compute the PATCH body). */
-  dirty: boolean;
-  /** The server-side provenance at hydration time, for the badge. */
-  serverProvenance: SlotProvenance | null;
-}
+// ── Hydration helpers ──────────────────────────────────────────────────────
 
 interface Form {
   propertySubtitle: FormSlot;
@@ -88,22 +77,6 @@ interface Form {
     hero: FormSlot;
     secondary: FormSlot;
     inset: FormSlot;
-  };
-}
-
-// ── Hydration helpers ──────────────────────────────────────────────────────
-
-function emptySlot(): FormSlot {
-  return { text: "", source: "user", dirty: false, serverProvenance: null };
-}
-
-function hydrateSlot(authored: AuthoredString | undefined): FormSlot {
-  if (!authored) return emptySlot();
-  return {
-    text: authored.text,
-    source: authored.provenance.source,
-    dirty: false,
-    serverProvenance: authored.provenance,
   };
 }
 
@@ -128,11 +101,6 @@ function hydrateForm(payload: DeckPayloadV2): Form {
 /**
  * Build the PATCH body, including only fields the user actually changed.
  * Each persisted slot carries fresh provenance.
- *
- * `visionBullets` is array-typed on the server, so any change to any
- * bullet means we must send the full array (the server replaces, not
- * merges, the array). Same for `photoCaptions` — but our PATCH route
- * deep-merges `photoCaptions` per-key, so we only send the dirty captions.
  */
 function buildPatchBody(form: Form): { slide1?: Partial<Slide1Payload> } | null {
   const now = new Date().toISOString();
@@ -165,20 +133,7 @@ function buildPatchBody(form: Form): { slide1?: Partial<Slide1Payload> } | null 
 
 // ── Small UI atoms ─────────────────────────────────────────────────────────
 
-function ProvenancePill({ source, dirty }: { source: SlotProvenance["source"] | null; dirty: boolean }) {
-  if (dirty) {
-    return <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50">Unsaved</Badge>;
-  }
-  if (!source) {
-    return <Badge variant="outline" className="text-muted-foreground">Empty — falls back to template</Badge>;
-  }
-  if (source === "user") {
-    return <Badge variant="outline" className="text-emerald-700 border-emerald-300 bg-emerald-50">User</Badge>;
-  }
-  return <Badge variant="outline" className="text-sky-700 border-sky-300 bg-sky-50">Analyst draft (approved)</Badge>;
-}
-
-function CharCounter({ length, max }: { length: number; max: number }) {
+function CharCounterLocal({ length, max }: { length: number; max: number }) {
   const over = length > max;
   return (
     <span className={`text-xs tabular-nums ${over ? "text-destructive" : "text-muted-foreground"}`}>
@@ -199,6 +154,7 @@ interface SlotRowProps {
   onChange: (text: string, source: SlotProvenance["source"]) => void;
   onDraft?: () => void;
   isDrafting?: boolean;
+  readinessStatus?: "complete" | "stale" | "missing" | "deterministic";
 }
 
 function SlotRow({
@@ -211,13 +167,14 @@ function SlotRow({
   onChange,
   onDraft,
   isDrafting,
+  readinessStatus,
 }: SlotRowProps) {
   const id = `slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
   const InputComp = multiline ? Textarea : Input;
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Label htmlFor={id} className="text-sm font-medium">{label}</Label>
           <Badge
             variant="outline"
@@ -229,10 +186,11 @@ function SlotRow({
           >
             {bucket}
           </Badge>
+          {readinessStatus && <ReadinessBadge status={readinessStatus} />}
         </div>
         <div className="flex items-center gap-2">
           <ProvenancePill source={slot.serverProvenance?.source ?? null} dirty={slot.dirty} />
-          <CharCounter length={slot.text.length} max={max} />
+          <CharCounterLocal length={slot.text.length} max={max} />
         </div>
       </div>
       <p className="text-xs text-muted-foreground">{description}</p>
@@ -286,6 +244,8 @@ export function Slide1EditorPanel({ propertyId }: { propertyId: number }) {
     staleTime: 10_000,
   });
 
+  const { data: readinessData } = useReadinessQuery(propertyId);
+
   const [form, setForm] = useState<Form | null>(null);
   useEffect(() => {
     if (data) setForm(hydrateForm(data.payload));
@@ -302,8 +262,8 @@ export function Slide1EditorPanel({ propertyId }: { propertyId: number }) {
     },
     onSuccess: (next) => {
       qc.setQueryData(queryKey, next);
-      // Also bust the deck-payload cache used by the live preview.
       qc.invalidateQueries({ queryKey: ["/api/admin/properties", propertyId, "deck-token"] });
+      qc.invalidateQueries({ queryKey: ["/api/admin/properties", propertyId, "deck-payload", "readiness"] });
       toast({ title: "Slide 1 saved", description: "Editor copy persisted to the deck payload sidecar." });
     },
     onError: (err: unknown) => {
@@ -409,6 +369,10 @@ export function Slide1EditorPanel({ propertyId }: { propertyId: number }) {
 
   const patchBody = buildPatchBody(form);
   const dirtyCount = patchBody?.slide1 ? Object.keys(patchBody.slide1).length : 0;
+  const report = readinessData?.report;
+
+  const headerSubtitleStatus = report?.["slide1.headerSubtitle"] as "complete" | "stale" | "missing" | undefined;
+  const visionBulletsStatus = report?.["slide1.visionBullets"] as "complete" | "stale" | "missing" | undefined;
 
   return (
     <Card className="border border-border/60">
@@ -455,6 +419,7 @@ export function Slide1EditorPanel({ propertyId }: { propertyId: number }) {
               draftMutation.mutate("slide1.headerSubtitle");
             }}
             isDrafting={draftingSlot === "slide1.headerSubtitle" && draftMutation.isPending}
+            readinessStatus={headerSubtitleStatus}
           />
         </div>
 
@@ -463,9 +428,12 @@ export function Slide1EditorPanel({ propertyId }: { propertyId: number }) {
         {/* Vision bullets */}
         <div className="space-y-5">
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-              Vision bullets ({SLIDE1_VISION_BULLETS_COUNT} required)
-            </h3>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Vision bullets ({SLIDE1_VISION_BULLETS_COUNT} required)
+              </h3>
+              <ReadinessBadge status={visionBulletsStatus} />
+            </div>
             <Button
               type="button"
               size="sm"

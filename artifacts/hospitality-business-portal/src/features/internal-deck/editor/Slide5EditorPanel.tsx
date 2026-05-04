@@ -19,15 +19,15 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconAlertCircle, IconRefreshCw } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   DECK_PAYLOAD_SCHEMA_VERSION,
   SLIDE5_TRANSFORMATION_DESCRIPTION_MAX,
@@ -40,22 +40,19 @@ import {
   type AuthoredString,
   type SlotProvenance,
 } from "@shared/deck-payload-v2";
+import {
+  type FormSlot,
+  type DeckPayloadResponse,
+  hydrateSlot,
+  stampSlot,
+  emptySlot,
+  ProvenancePill,
+  CharCounter,
+  ReadinessBadge,
+  useReadinessQuery,
+} from "./editor-shared";
 
 // ── Types ──────────────────────────────────────────────────────────────────
-
-interface DeckPayloadResponse {
-  propertyId: number;
-  payload: DeckPayloadV2;
-  updatedBy: number | null;
-  updatedAt: string | null;
-}
-
-interface FormSlot {
-  text: string;
-  source: SlotProvenance["source"];
-  dirty: boolean;
-  serverProvenance: SlotProvenance | null;
-}
 
 interface FormRow {
   feature: FormSlot;
@@ -68,18 +65,21 @@ interface Form {
   transformationRows: FormRow[];
 }
 
-type Slide5DraftSlot = "slide5.transformationDescription" | "slide5.transformationRows";
+type DraftSlotKey5 =
+  | "slide5.transformationDescription"
+  | "slide5.transformationRows";
+
+interface DraftResult {
+  slot: string;
+  suggestion: {
+    text?: string;
+    rows?: { feature: string; existing: string; proposed: string }[];
+  };
+  model: string;
+  generatedAt: string;
+}
 
 // ── Hydration helpers ──────────────────────────────────────────────────────
-
-function emptySlot(): FormSlot {
-  return { text: "", source: "user", dirty: false, serverProvenance: null };
-}
-
-function hydrateSlot(authored: AuthoredString | undefined): FormSlot {
-  if (!authored) return emptySlot();
-  return { text: authored.text, source: authored.provenance.source, dirty: false, serverProvenance: authored.provenance };
-}
 
 function hydrateForm(payload: DeckPayloadV2): Form {
   const s5: Slide5Payload = payload.slide5 ?? {};
@@ -97,10 +97,7 @@ function hydrateForm(payload: DeckPayloadV2): Form {
 function buildPatchBody(form: Form): { slide5?: Partial<Slide5Payload> } | null {
   const now = new Date().toISOString();
   const slide5: Partial<Slide5Payload> = {};
-  const stamp = (slot: FormSlot): AuthoredString => ({
-    text: slot.text,
-    provenance: { source: slot.source, updatedAt: now },
-  });
+  const stamp = (slot: FormSlot): AuthoredString => stampSlot(slot, now);
 
   if (form.transformationDescription.dirty) {
     slide5.transformationDescription = stamp(form.transformationDescription);
@@ -121,25 +118,10 @@ function buildPatchBody(form: Form): { slide5?: Partial<Slide5Payload> } | null 
   return { slide5 };
 }
 
-// ── Small UI atoms ─────────────────────────────────────────────────────────
+// ── Scalar slot row (description field with Draft button) ──────────────────
 
-function ProvenancePill({ source, dirty }: { source: SlotProvenance["source"] | null; dirty: boolean }) {
-  if (dirty) return <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50">Unsaved</Badge>;
-  if (!source) return <Badge variant="outline" className="text-muted-foreground">Empty — falls back to template</Badge>;
-  if (source === "user") return <Badge variant="outline" className="text-emerald-700 border-emerald-300 bg-emerald-50">User</Badge>;
-  return <Badge variant="outline" className="text-sky-700 border-sky-300 bg-sky-50">Analyst draft (approved)</Badge>;
-}
-
-function CharCounter({ length, max }: { length: number; max: number }) {
-  return (
-    <span className={`text-xs tabular-nums ${length > max ? "text-destructive" : "text-muted-foreground"}`}>
-      {length}/{max}
-    </span>
-  );
-}
-
-function SlotRow({
-  label, description, slot, max, multiline, onChange, onDraft, isDrafting,
+function ScalarSlotRow({
+  label, description, slot, max, multiline, onChange, onDraft, isDrafting, readinessKey, readinessReport,
 }: {
   label: string;
   description: string;
@@ -147,11 +129,67 @@ function SlotRow({
   max: number;
   multiline?: boolean;
   onChange: (text: string, source: SlotProvenance["source"]) => void;
-  onDraft?: () => void;
-  isDrafting?: boolean;
+  onDraft: () => void;
+  isDrafting: boolean;
+  readinessKey: string;
+  readinessReport: Record<string, string> | undefined;
 }) {
   const id = `slide5-slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
   const InputComp = multiline ? Textarea : Input;
+  const readinessStatus = readinessReport?.[readinessKey] as "complete" | "stale" | "missing" | undefined;
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Label htmlFor={id} className="text-sm font-medium">{label}</Label>
+          <Badge variant="outline" className="text-sky-700 border-sky-300 bg-sky-50 text-[10px] uppercase tracking-wide">
+            llm-draft+approved
+          </Badge>
+          <ReadinessBadge status={readinessStatus} />
+        </div>
+        <div className="flex items-center gap-2">
+          <ProvenancePill source={slot.serverProvenance?.source ?? null} dirty={slot.dirty} />
+          <CharCounter length={slot.text.length} max={max} />
+        </div>
+      </div>
+      <p className="text-xs text-muted-foreground">{description}</p>
+      <InputComp
+        id={id}
+        value={slot.text}
+        onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(e.target.value, "user")}
+        rows={multiline ? 3 : undefined}
+        maxLength={max}
+        className={slot.text.length > max ? "border-destructive" : undefined}
+      />
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        onClick={onDraft}
+        disabled={isDrafting}
+        className="gap-1.5"
+      >
+        {isDrafting
+          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          : <IconRefreshCw className="h-3.5 w-3.5" />}
+        Draft via Analyst
+      </Button>
+    </div>
+  );
+}
+
+// ── Plain slot row (no draft button — for row sub-fields) ──────────────────
+
+function PlainSlotRow({
+  label, description, slot, max, onChange,
+}: {
+  label: string;
+  description: string;
+  slot: FormSlot;
+  max: number;
+  onChange: (text: string, source: SlotProvenance["source"]) => void;
+}) {
+  const id = `slide5-slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -167,11 +205,10 @@ function SlotRow({
         </div>
       </div>
       <p className="text-xs text-muted-foreground">{description}</p>
-      <InputComp
+      <Input
         id={id}
         value={slot.text}
-        onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(e.target.value, "user")}
-        rows={multiline ? 3 : undefined}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value, "user")}
         maxLength={max}
         className={slot.text.length > max ? "border-destructive" : undefined}
       />
@@ -215,6 +252,8 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
     staleTime: 10_000,
   });
 
+  const { data: readinessData } = useReadinessQuery(propertyId);
+
   const [form, setForm] = useState<Form | null>(null);
   useEffect(() => { if (data) setForm(hydrateForm(data.payload)); }, [data]);
 
@@ -230,6 +269,7 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
     onSuccess: (next) => {
       qc.setQueryData(queryKey, next);
       qc.invalidateQueries({ queryKey: ["/api/admin/properties", propertyId, "deck-token"] });
+      qc.invalidateQueries({ queryKey: ["/api/admin/properties", propertyId, "deck-payload", "readiness"] });
       toast({ title: "Slide 5 saved", description: "Editor copy persisted to the deck payload sidecar." });
     },
     onError: (err: unknown) => {
@@ -237,64 +277,58 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
     },
   });
 
-  const [draftingSlot, setDraftingSlot] = useState<Slide5DraftSlot | null>(null);
+  const [draftingSlot, setDraftingSlot] = useState<DraftSlotKey5 | null>(null);
+
   const draftMutation = useMutation({
-    mutationFn: async (slot: Slide5DraftSlot) => {
+    mutationFn: async (slot: DraftSlotKey5) => {
       const r = await apiRequest(
         "POST",
         `/api/admin/properties/${propertyId}/deck-payload/draft-slot`,
         { slot },
       );
-      return r.json() as Promise<{
-        slot: string;
-        suggestion: {
-          text?: string;
-          rows?: { feature: string; existing: string; proposed: string }[];
-        };
-        model: string;
-        generatedAt: string;
-      }>;
+      return r.json() as Promise<DraftResult>;
     },
     onSuccess: (result) => {
-      setForm(prev => {
+      setForm((prev) => {
         if (!prev) return prev;
-        const s = result.slot as Slide5DraftSlot;
-
-        if (s === "slide5.transformationDescription" && result.suggestion.text != null) {
+        if (result.slot === "slide5.transformationDescription") {
+          const text = result.suggestion?.text ?? "";
           return {
             ...prev,
-            transformationDescription: {
-              ...prev.transformationDescription,
-              text: result.suggestion.text,
-              source: "llm" as const,
-              dirty: true,
-            },
+            transformationDescription: { ...prev.transformationDescription, text, source: "llm", dirty: true },
           };
         }
-
-        if (s === "slide5.transformationRows" && result.suggestion.rows) {
-          const incoming = result.suggestion.rows;
-          const transformationRows = prev.transformationRows.map((row, i) => {
-            const r = incoming[i];
-            if (!r) return row;
-            return {
-              feature:  { ...row.feature,  text: r.feature  ?? "", source: "llm" as const, dirty: true },
-              existing: { ...row.existing, text: r.existing ?? "", source: "llm" as const, dirty: true },
-              proposed: { ...row.proposed, text: r.proposed ?? "", source: "llm" as const, dirty: true },
-            };
+        if (result.slot === "slide5.transformationRows" && result.suggestion.rows) {
+          const drafted = result.suggestion.rows;
+          const transformationRows = Array.from({ length: SLIDE5_TRANSFORMATION_ROWS_COUNT }, (_, i) => {
+            const r = drafted[i];
+            if (!r) return { feature: emptySlot(), existing: emptySlot(), proposed: emptySlot() };
+            const makeSlot = (text: string): FormSlot => ({ text, source: "llm", dirty: true, serverProvenance: null });
+            return { feature: makeSlot(r.feature), existing: makeSlot(r.existing), proposed: makeSlot(r.proposed) };
           });
           return { ...prev, transformationRows };
         }
-
         return prev;
       });
-      toast({ title: "Analyst draft loaded", description: "Review the proposal, then save to persist it." });
+      toast({
+        title: "Analyst draft loaded",
+        description: "Review the proposal in the editor, then save to persist it.",
+      });
     },
     onError: (err: unknown) => {
-      toast({ title: "Draft failed", description: err instanceof Error ? err.message : String(err), variant: "destructive" });
+      toast({
+        title: "Draft failed",
+        description: err instanceof Error ? err.message : String(err),
+        variant: "destructive",
+      });
     },
     onSettled: () => setDraftingSlot(null),
   });
+
+  function fireDraft(slot: DraftSlotKey5) {
+    setDraftingSlot(slot);
+    draftMutation.mutate(slot);
+  }
 
   function setDescriptionSlot(text: string, source: SlotProvenance["source"]) {
     setForm((prev) =>
@@ -314,11 +348,6 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
       rows[rowIdx] = { ...rows[rowIdx], [field]: { ...rows[rowIdx][field], text, source, dirty: true } };
       return { ...prev, transformationRows: rows };
     });
-  }
-
-  function draft(slot: Slide5DraftSlot) {
-    setDraftingSlot(slot);
-    draftMutation.mutate(slot);
   }
 
   if (!Number.isFinite(propertyId)) return <p className="text-destructive">Invalid property ID.</p>;
@@ -341,6 +370,8 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
 
   const patchBody = buildPatchBody(form);
   const hasDirty = patchBody !== null;
+  const report = readinessData?.report;
+  const rowsStatus = report?.["slide5.transformationRows"] as "complete" | "stale" | "missing" | undefined;
 
   return (
     <Card className="border border-border/60">
@@ -364,15 +395,17 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
         {/* Transformation description */}
         <div className="space-y-5">
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Introduction</h3>
-          <SlotRow
+          <ScalarSlotRow
             label="Transformation description"
             description="Paragraph above the comparison table. Describe the before-after narrative — what the asset is today and what it will become."
             slot={form.transformationDescription}
             max={SLIDE5_TRANSFORMATION_DESCRIPTION_MAX}
             multiline
             onChange={setDescriptionSlot}
-            onDraft={() => draft("slide5.transformationDescription")}
+            onDraft={() => fireDraft("slide5.transformationDescription")}
             isDrafting={draftingSlot === "slide5.transformationDescription" && draftMutation.isPending}
+            readinessKey="slide5.transformationDescription"
+            readinessReport={report}
           />
         </div>
 
@@ -381,21 +414,24 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
         {/* Transformation rows */}
         <div className="space-y-5">
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-              Comparison rows (up to {SLIDE5_TRANSFORMATION_ROWS_COUNT})
-            </h3>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                Comparison rows (up to {SLIDE5_TRANSFORMATION_ROWS_COUNT})
+              </h3>
+              <ReadinessBadge status={rowsStatus} />
+            </div>
             <Button
               type="button"
               size="sm"
               variant="outline"
-              onClick={() => draft("slide5.transformationRows")}
+              onClick={() => fireDraft("slide5.transformationRows")}
               disabled={draftingSlot === "slide5.transformationRows" && draftMutation.isPending}
               className="gap-1.5"
             >
               {draftingSlot === "slide5.transformationRows" && draftMutation.isPending
                 ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 : <IconRefreshCw className="h-3.5 w-3.5" />}
-              Draft all rows
+              Draft all rows via Analyst
             </Button>
           </div>
           <p className="text-xs text-muted-foreground -mt-3">
@@ -405,7 +441,7 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
           {form.transformationRows.map((row, i) => (
             <div key={i} className="space-y-3 rounded-md border border-border/40 p-4">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Row {i + 1}</p>
-              <SlotRow
+              <PlainSlotRow
                 label="Feature"
                 description="What aspect of the property is being transformed (e.g. 'Guest Capacity')."
                 slot={row.feature}
@@ -413,14 +449,14 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
                 onChange={(t, s) => setRowSlot(i, "feature", t, s)}
               />
               <div className="grid grid-cols-2 gap-3">
-                <SlotRow
+                <PlainSlotRow
                   label="Existing"
                   description="Current state."
                   slot={row.existing}
                   max={SLIDE5_TRANSFORMATION_ROW_EXISTING_MAX}
                   onChange={(t, s) => setRowSlot(i, "existing", t, s)}
                 />
-                <SlotRow
+                <PlainSlotRow
                   label="Proposed"
                   description="Target state after transformation."
                   slot={row.proposed}
