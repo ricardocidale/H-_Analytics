@@ -4,7 +4,7 @@ import {
   MapTrifold, Mountains, Compass, Globe, NavigationArrow, SignIn, SignOut,
   List, SidebarSimple, Package, Layout, Rows, Columns, ListBullets,
   DotsThreeVertical, PresentationChart, Calendar, BookOpen, BookOpenText,
-  Books, Tray, ArrowBendUpRight, ClockCounterClockwise, FolderNotch,
+  Books, Tray, ArrowBendUpRight, ClockCounterClockwise, FolderOpen,
 } from "@phosphor-icons/react";
 
 const wd = (I: Icon) =>
@@ -43,4 +43,4 @@ export const IconLibrary = wd(Books);
 export const IconInbox = wd(Tray);
 export const IconForward = wd(ArrowBendUpRight);
 export const IconHistory = wd(ClockCounterClockwise);
-export const IconScenarios = wd(FolderNotch);
+export const IconScenarios = wd(FolderOpen);

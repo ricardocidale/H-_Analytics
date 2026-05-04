@@ -3,7 +3,7 @@ import {
   Microphone, MicrophoneSlash, MusicNote, Waveform,
   SpeakerSimpleNone, SpeakerSimpleLow, SpeakerSimpleHigh, SpeakerSimpleX,
   Play, Pause, PlayCircle, SkipBack, SkipForward,
-  ChatCircle, ChatSquare, ChatText, PaperPlaneRight,
+  ChatCircle, Chat, ChatText, PaperPlaneRight,
   ArrowSquareOut, Link, Phone, PhoneDisconnect, Radio, Subtitles,
   Robot, Brain, Sparkle, MagicWand, Lightning, Camera,
 } from "@phosphor-icons/react";
@@ -27,7 +27,7 @@ export const IconPlayCircle = wd(PlayCircle);
 export const IconSkipBack = wd(SkipBack);
 export const IconSkipForward = wd(SkipForward);
 export const IconMessageCircle = wd(ChatCircle);
-export const IconMessageSquare = wd(ChatSquare);
+export const IconMessageSquare = wd(Chat);
 export const IconMessageSquareText = wd(ChatText);
 export const IconSend = wd(PaperPlaneRight);
 export const IconExternalLink = wd(ArrowSquareOut);

@@ -1,8 +1,8 @@
 import type { Icon, IconProps, IconWeight } from "@phosphor-icons/react";
 import {
   Briefcase, ChartLineUp, FileText, Money, Scales, TrendUp, Calculator,
-  ArrowsLeftRight, Timeline, TrendDown, CurrencyDollar, Wallet, Bank,
-  Percent, ChartBar, Receipt, ChartPie, Gauge, Stack, HardHat, Activity,
+  ArrowsLeftRight, ListNumbers, TrendDown, CurrencyDollar, Wallet, Bank,
+  Percent, ChartBar, Receipt, ChartPie, Gauge, Stack, HardHat, Heartbeat,
   CreditCard,
 } from "@phosphor-icons/react";
 
@@ -17,7 +17,7 @@ export const IconBalanceSheet = wd(Scales);
 export const IconInvestment = wd(TrendUp);
 export const IconCalculator = wd(Calculator);
 export const IconCompare = wd(ArrowsLeftRight);
-export const IconTimeline = wd(Timeline);
+export const IconTimeline = wd(ListNumbers);
 export const IconTrending = wd(TrendUp);
 export const IconTrendingUp = wd(TrendUp);
 export const IconTrendingDown = wd(TrendDown);
@@ -35,4 +35,4 @@ export const IconPieChart = wd(ChartPie);
 export const IconGauge = wd(Gauge);
 export const IconLayers = wd(Stack);
 export const IconPPE = wd(HardHat);
-export const IconActivity = wd(Activity);
+export const IconActivity = wd(Heartbeat);

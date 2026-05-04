@@ -43,7 +43,7 @@ import {
   Lock as PhLock,
   Envelope as PhEnvelope,
   ChatCircle as PhChatCircle,
-  ChatSquare as PhChatSquare,
+  Chat as PhChat,
   Minus as PhMinus,
   Moon as PhMoon,
   DotsThree as PhDotsThree,
@@ -130,7 +130,7 @@ export const Loader2 = wd(PhSpinnerGap);
 export const Lock = wd(PhLock);
 export const Mail = wd(PhEnvelope);
 export const MessageCircle = wd(PhChatCircle);
-export const MessageSquare = wd(PhChatSquare);
+export const MessageSquare = wd(PhChat);
 export const Minus = wd(PhMinus);
 export const Moon = wd(PhMoon);
 export const MoreHorizontal = wd(PhDotsThree);
