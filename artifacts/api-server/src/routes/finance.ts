@@ -9,6 +9,7 @@ import {
 import { aggregateUnifiedByYear } from "@engine/aggregation/yearlyAggregator";
 import { computeExitScenarios, DEFAULT_EXIT_HORIZONS } from "@calc/analysis/exit-scenarios";
 import { getAcquisitionYear, calculateLoanParams } from "@engine/debt/loanCalculations";
+import type { LoanParams, GlobalLoanParams } from "@engine/debt/loanCalculations";
 import { computeSensitivityAnalysis } from "../finance/sensitivity";
 import { withModelConstants } from "../finance/apply-model-constants";
 import { getCacheStatus, invalidateComputeCache, resetCacheStats, computeCacheKey } from "../finance/cache";
@@ -22,8 +23,10 @@ import {
   HTTP_429_TOO_MANY_REQUESTS,
   HTTP_500_INTERNAL_SERVER_ERROR,
 } from "../constants";
-import type { PropertyInput, GlobalInput } from "@engine/types";
+import type { PropertyInput, GlobalInput, MonthlyFinancials } from "@engine/types";
 import type { AuditTrailPerProperty } from "../finance/service";
+import { computeIRR } from "@analytics/returns/irr";
+import { propertyEquityInvested } from "@engine/debt/equityCalculations";
 
 const propertyInputSchema = z.object({
   operationsStartDate: z.string(),
@@ -177,6 +180,132 @@ async function persistAuditTrails(trails: AuditTrailPerProperty[], meta: AuditPe
   }
 }
 
+// ── Returns Summary ───────────────────────────────────────────────────────────
+// Computed server-side so all IRR figures use the canonical aggregateUnifiedByYear
+// path. The client renders these values directly without re-running the solver.
+
+interface PropertyReturnMetrics {
+  propertyKey: string;
+  propertyId: number | null;
+  irr: number | null;
+  equityMultiple: number;
+  cashOnCash: number;
+  equityInvested: number;
+  exitValue: number;
+  netCashFlowsByYear: number[];
+}
+
+interface ReturnsSummary {
+  portfolio: {
+    irr: number | null;
+    equityMultiple: number;
+    cashOnCash: number;
+    totalEquityInvested: number;
+    totalExitValue: number;
+    netCashFlowsByYear: number[];
+  };
+  properties: PropertyReturnMetrics[];
+}
+
+function buildPropertyKey(property: PropertyInput, index: number): string {
+  if (property.id != null) return `property_${property.id}`;
+  const name = (property as unknown as Record<string, unknown>).name ?? `Property_${index + 1}`;
+  return `${name as string}__idx${index}`;
+}
+
+function computeReturnsSummary(
+  properties: PropertyInput[],
+  globalAssumptions: GlobalInput,
+  perPropertyMonthly: Record<string, MonthlyFinancials[]>,
+  projectionYears: number,
+): ReturnsSummary {
+  const perPropertyResults: PropertyReturnMetrics[] = [];
+  const consolidatedFlows = new Array<number>(projectionYears).fill(0);
+  const consolidatedAtcf = new Array<number>(projectionYears).fill(0);
+  let totalEquityInvested = 0;
+  let totalExitValue = 0;
+
+  for (let i = 0; i < properties.length; i++) {
+    const property = properties[i];
+    const key = buildPropertyKey(property, i);
+    const monthly = perPropertyMonthly[key] ?? [];
+
+    const unified = aggregateUnifiedByYear(
+      monthly,
+      property as LoanParams,
+      globalAssumptions as GlobalLoanParams,
+      projectionYears,
+    );
+
+    const netFlows = Array.from({ length: projectionYears }, (_, y) =>
+      unified.yearlyCF[y]?.netCashFlowToInvestors ?? 0,
+    );
+    const atcfFlows = Array.from({ length: projectionYears }, (_, y) =>
+      unified.yearlyCF[y]?.atcf ?? 0,
+    );
+    const exitVal = unified.yearlyCF[projectionYears - 1]?.exitValue ?? 0;
+    const equity = propertyEquityInvested(property);
+
+    for (let y = 0; y < projectionYears; y++) {
+      consolidatedFlows[y] += netFlows[y];
+      consolidatedAtcf[y] += atcfFlows[y];
+    }
+    totalEquityInvested += equity;
+    totalExitValue += exitVal;
+
+    const hasPositiveFlow = netFlows.some(cf => cf > 0);
+    const hasNegativeFlow = netFlows.some(cf => cf < 0);
+    let propertyIRR: number | null = null;
+    if (hasPositiveFlow && hasNegativeFlow) {
+      const irrResult = computeIRR(netFlows, 1);
+      propertyIRR = irrResult.irr_periodic ?? null;
+    }
+
+    const propTotalCash = netFlows.reduce((sum, cf) => sum + cf, 0);
+    const propEquityMultiple = equity > 0 ? (propTotalCash + equity) / equity : 0;
+    const propAvgAtcf = atcfFlows.reduce((sum, cf) => sum + cf, 0) / projectionYears;
+    const propCashOnCash = equity > 0 ? (propAvgAtcf / equity) * 100 : 0;
+
+    perPropertyResults.push({
+      propertyKey: key,
+      propertyId: property.id ?? null,
+      irr: propertyIRR,
+      equityMultiple: propEquityMultiple,
+      cashOnCash: propCashOnCash,
+      equityInvested: equity,
+      exitValue: exitVal,
+      netCashFlowsByYear: netFlows,
+    });
+  }
+
+  const hasPositivePortfolio = consolidatedFlows.some(cf => cf > 0);
+  const hasNegativePortfolio = consolidatedFlows.some(cf => cf < 0);
+  let portfolioIRR: number | null = null;
+  if (hasPositivePortfolio && hasNegativePortfolio) {
+    const irrResult = computeIRR(consolidatedFlows, 1);
+    portfolioIRR = irrResult.irr_periodic ?? null;
+  }
+
+  const portfolioTotalCash = consolidatedFlows.reduce((sum, cf) => sum + cf, 0);
+  const portfolioEquityMultiple =
+    totalEquityInvested > 0 ? (portfolioTotalCash + totalEquityInvested) / totalEquityInvested : 0;
+  const portfolioAvgAtcf = consolidatedAtcf.reduce((sum, cf) => sum + cf, 0) / projectionYears;
+  const portfolioCashOnCash =
+    totalEquityInvested > 0 ? (portfolioAvgAtcf / totalEquityInvested) * 100 : 0;
+
+  return {
+    portfolio: {
+      irr: portfolioIRR,
+      equityMultiple: portfolioEquityMultiple,
+      cashOnCash: portfolioCashOnCash,
+      totalEquityInvested,
+      totalExitValue,
+      netCashFlowsByYear: consolidatedFlows,
+    },
+    properties: perPropertyResults,
+  };
+}
+
 export function registerFinanceRoutes(router: Router): void {
   router.post("/api/finance/compute", requireAuth, async (req: Request, res: Response) => {
     try {
@@ -275,7 +404,17 @@ export function registerFinanceRoutes(router: Router): void {
       // the DB stamp travel as one unit.
       void propertyIds;
 
-      return sendSuperjson(res, result);
+      // Compute IRR / equity-multiple / cash-on-cash server-side using the
+      // canonical aggregateUnifiedByYear path. The client reads these values
+      // directly and does not re-run the IRR solver.
+      const returnsSummary = computeReturnsSummary(
+        properties as PropertyInput[],
+        globalAssumptions as GlobalInput,
+        result.perPropertyMonthly,
+        result.projectionYears,
+      );
+
+      return sendSuperjson(res, { ...result, returnsSummary });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Server computation failed";
       logger.error(`Compute error: ${message}`, "finance");

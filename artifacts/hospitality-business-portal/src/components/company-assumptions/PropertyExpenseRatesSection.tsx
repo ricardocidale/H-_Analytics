@@ -44,9 +44,11 @@ export default function PropertyExpenseRatesSection({ formData, onChange, global
           <div className="flex items-center justify-between">
             <ResearchContextFieldLabel
               label={<>Event Expense Rate <InfoTooltip text="As a percentage of event revenue. Operating costs for events (labor, setup, coordination)." /></>}
-              badgeProps={{ value: researchValues.eventExpense?.display, sourceType: "industry", sourceName: CITATIONS.usaliBenchmarks, "data-testid": "badge-event-expense" }}
+              badgeProps={{ value: researchValues.eventExpense?.display, entry: researchValues.eventExpense ?? undefined, sourceType: "industry", sourceName: CITATIONS.usaliBenchmarks, "data-testid": "badge-event-expense" }}
               onApplyValue={() => researchValues.eventExpense && onChange("eventExpenseRate", researchValues.eventExpense.mid / 100)}
               guidanceContext={gc("eventExpense", "Event Expense Rate")}
+              currentValue={formData.eventExpenseRate ?? global.eventExpenseRate ?? DEFAULT_EVENT_EXPENSE_RATE}
+              isPercent
             />
             <EditableValue
               value={formData.eventExpenseRate ?? global.eventExpenseRate ?? DEFAULT_EVENT_EXPENSE_RATE}
@@ -70,9 +72,11 @@ export default function PropertyExpenseRatesSection({ formData, onChange, global
           <div className="flex items-center justify-between">
             <ResearchContextFieldLabel
               label={<>Other Revenue Expense Rate <InfoTooltip text="As a percentage of other revenue. Operating costs for ancillary departments (spa, parking, retail) as a percentage of that department's revenue." /></>}
-              badgeProps={{ value: researchValues.otherExpenseRate?.display, sourceType: "industry", sourceName: CITATIONS.usaliBenchmarks, "data-testid": "badge-other-expense" }}
+              badgeProps={{ value: researchValues.otherExpenseRate?.display, entry: researchValues.otherExpenseRate ?? undefined, sourceType: "industry", sourceName: CITATIONS.usaliBenchmarks, "data-testid": "badge-other-expense" }}
               onApplyValue={() => researchValues.otherExpenseRate && onChange("otherExpenseRate", researchValues.otherExpenseRate.mid / 100)}
               guidanceContext={gc("otherExpenseRate", "Other Revenue Expense Rate")}
+              currentValue={formData.otherExpenseRate ?? global.otherExpenseRate ?? DEFAULT_OTHER_EXPENSE_RATE}
+              isPercent
             />
             <EditableValue
               value={formData.otherExpenseRate ?? global.otherExpenseRate ?? DEFAULT_OTHER_EXPENSE_RATE}
@@ -96,9 +100,11 @@ export default function PropertyExpenseRatesSection({ formData, onChange, global
           <div className="flex items-center justify-between">
             <ResearchContextFieldLabel
               label={<>Utilities Variable Split (% Variable vs Fixed) <InfoTooltip text="How much of the utilities expense rate scales with current property revenue (variable) vs stays anchored to Year 1 base revenue (fixed). Example: 60% means 60% of utilities cost varies with occupancy, 40% is fixed overhead." /></>}
-              badgeProps={{ value: researchValues.utilitiesVariableSplit?.display, sourceType: "industry", sourceName: CITATIONS.usaliBenchmarks, "data-testid": "badge-utilities-split" }}
+              badgeProps={{ value: researchValues.utilitiesVariableSplit?.display, entry: researchValues.utilitiesVariableSplit ?? undefined, sourceType: "industry", sourceName: CITATIONS.usaliBenchmarks, "data-testid": "badge-utilities-split" }}
               onApplyValue={() => researchValues.utilitiesVariableSplit && onChange("utilitiesVariableSplit", researchValues.utilitiesVariableSplit.mid / 100)}
               guidanceContext={gc("utilitiesVariableSplit", "Utilities Variable Split")}
+              currentValue={formData.utilitiesVariableSplit ?? global.utilitiesVariableSplit ?? DEFAULT_UTILITIES_VARIABLE_SPLIT}
+              isPercent
             />
             <EditableValue
               value={formData.utilitiesVariableSplit ?? global.utilitiesVariableSplit ?? DEFAULT_UTILITIES_VARIABLE_SPLIT}

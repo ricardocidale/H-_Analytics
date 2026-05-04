@@ -109,9 +109,11 @@ export default function PropertyExitDefaultsCard({ formData, onChange, global, r
             <div className="flex items-center justify-between">
               <ResearchContextFieldLabel
                 label={<>Default Exit Cap Rate <InfoTooltip text="Capitalization rate used for property valuation at exit. Higher cap rate = lower valuation. Applied as: GrossValue = AnnualizedNOI / exitCapRate at the property's terminal year." manualSection="analysis" /></>}
-                badgeProps={{ value: researchValues.exitCapRate?.display, sourceType: "industry", sourceName: CITATIONS.cbreCapRateSurvey, "data-testid": "badge-exit-cap" }}
+                badgeProps={{ value: researchValues.exitCapRate?.display, entry: researchValues.exitCapRate ?? undefined, sourceType: "industry", sourceName: CITATIONS.cbreCapRateSurvey, "data-testid": "badge-exit-cap" }}
                 onApplyValue={() => researchValues.exitCapRate && onChange("exitCapRate", researchValues.exitCapRate.mid / 100)}
                 guidanceContext={gc("exitCapRate", "Default Exit Cap Rate")}
+                currentValue={formData.exitCapRate ?? global.exitCapRate ?? DEFAULT_EXIT_CAP_RATE}
+                isPercent
               />
               <EditableValue
                 value={formData.exitCapRate ?? global.exitCapRate ?? DEFAULT_EXIT_CAP_RATE}
@@ -242,9 +244,11 @@ export default function PropertyExitDefaultsCard({ formData, onChange, global, r
             <div className="flex items-center justify-between">
               <ResearchContextFieldLabel
                 label={<>Default Sales Commission Rate <InfoTooltip text="As a percentage of gross sale price. Default broker commission for new properties. Each property can override this with its own disposition commission." /></>}
-                badgeProps={{ value: researchValues.dispositionCommission?.display, sourceType: "industry", sourceName: CITATIONS.narTransactionData, "data-testid": "badge-sales-commission" }}
+                badgeProps={{ value: researchValues.dispositionCommission?.display, entry: researchValues.dispositionCommission ?? undefined, sourceType: "industry", sourceName: CITATIONS.narTransactionData, "data-testid": "badge-sales-commission" }}
                 onApplyValue={() => researchValues.dispositionCommission && onChange("salesCommissionRate", researchValues.dispositionCommission.mid / 100)}
                 guidanceContext={gc("dispositionCommission", "Sales Commission Rate")}
+                currentValue={formData.salesCommissionRate ?? global.salesCommissionRate ?? DEFAULT_COMMISSION_RATE}
+                isPercent
               />
               <EditableValue
                 value={formData.salesCommissionRate ?? global.salesCommissionRate ?? DEFAULT_COMMISSION_RATE}

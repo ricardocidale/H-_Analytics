@@ -176,6 +176,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                 badgeProps={{ entry: researchValues.rampMonths }}
                 onApplyValue={() => researchValues.rampMonths && onChange("occupancyRampMonths", researchValues.rampMonths.mid)}
                 guidanceContext={gc("rampMonths", "Occupancy Ramp")}
+                currentValue={draft.occupancyRampMonths}
               />
               <EditableValue
                 value={draft.occupancyRampMonths}
@@ -321,6 +322,8 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                   badgeProps={{ entry: researchValues.catering }}
                   onApplyValue={() => researchValues.catering && onChange("cateringBoostPercent", researchValues.catering.mid / 100)}
                   guidanceContext={gc("catering", "Catering Boost")}
+                  currentValue={draft.cateringBoostPercent ?? DEFAULT_CATERING_BOOST_PCT}
+                  isPercent
                 />
                 <EditableValue
                   value={(draft.cateringBoostPercent ?? DEFAULT_CATERING_BOOST_PCT) * 100}

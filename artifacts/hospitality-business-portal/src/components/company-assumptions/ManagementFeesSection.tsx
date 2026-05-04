@@ -355,13 +355,15 @@ export default function ManagementFeesSection({ formData, onChange, global, prop
           <div className="max-w-md space-y-2">
             <ResearchContextFieldLabel
               label={<><IconPercent className="w-3 h-3 inline" /> Default Incentive Fee</>}
-              badgeProps={{ value: researchValues.incentiveManagementFee?.display, sourceType: "industry", sourceName: CITATIONS.hvsFeeSurvey, "data-testid": "badge-incentive-fee" }}
+              badgeProps={{ value: researchValues.incentiveManagementFee?.display, entry: researchValues.incentiveManagementFee ?? undefined, sourceType: "industry", sourceName: CITATIONS.hvsFeeSurvey, "data-testid": "badge-incentive-fee" }}
               onApplyValue={() => {
                 if (researchValues.incentiveManagementFee) {
                   onChange("incentiveManagementFee", researchValues.incentiveManagementFee.mid / 100);
                 }
               }}
               guidanceContext={gc("incentiveManagementFee", "Incentive Management Fee")}
+              currentValue={formData.incentiveManagementFee ?? global.incentiveManagementFee ?? 0}
+              isPercent
               className="label-text text-foreground"
             />
             <div className="relative">

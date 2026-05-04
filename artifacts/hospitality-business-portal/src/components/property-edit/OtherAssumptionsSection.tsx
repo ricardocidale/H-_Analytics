@@ -101,6 +101,8 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
                 badgeProps={{ entry: researchValues.capRate }}
                 onApplyValue={() => researchValues.capRate && onChange("exitCapRate", researchValues.capRate.mid / 100)}
                 guidanceContext={gc("capRate", "Exit Cap Rate")}
+                currentValue={draft.exitCapRate ?? DEFAULT_EXIT_CAP_RATE}
+                isPercent
               />
               <EditableValue
                 data-testid="editable-exit-cap-rate"
@@ -131,6 +133,8 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
                 badgeProps={{ entry: researchValues.incomeTax }}
                 onApplyValue={() => researchValues.incomeTax && onChange("taxRate", researchValues.incomeTax.mid / 100)}
                 guidanceContext={gc("incomeTax", "Income Tax Rate")}
+                currentValue={draft.taxRate ?? DEFAULT_PROPERTY_INCOME_TAX_RATE}
+                isPercent
               />
               <EditableValue
                 value={(draft.taxRate ?? DEFAULT_PROPERTY_INCOME_TAX_RATE) * 100}
@@ -172,6 +176,8 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
                 badgeProps={{ entry: researchValues.inflationRate }}
                 onApplyValue={() => researchValues.inflationRate && onChange("inflationRate", researchValues.inflationRate.mid / 100)}
                 guidanceContext={gc("inflationRate", "Inflation Rate")}
+                currentValue={draft.inflationRate ?? getFactoryNumber('inflationRate')}
+                isPercent
               />
               <EditableValue
                 data-testid="editable-inflation-rate"
@@ -206,6 +212,8 @@ export default function OtherAssumptionsSection({ draft, onChange, researchValue
                 badgeProps={{ entry: researchValues.saleCommission }}
                 onApplyValue={() => researchValues.saleCommission && onChange("dispositionCommission", researchValues.saleCommission.mid / 100)}
                 guidanceContext={gc("saleCommission", "Sale Commission")}
+                currentValue={draft.dispositionCommission ?? DEFAULT_COMMISSION_RATE}
+                isPercent
               />
               <EditableValue
                 data-testid="editable-disposition-commission"

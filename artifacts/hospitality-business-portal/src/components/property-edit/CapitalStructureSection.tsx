@@ -550,6 +550,8 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
                           badgeProps={{ entry: researchValues.refiLtv, sourceType: "seed" }}
                           onApplyValue={() => researchValues.refiLtv && onChange("refinanceLTV", researchValues.refiLtv.mid / 100)}
                           guidanceContext={gc("refiLtv", "Refinance LTV")}
+                          currentValue={draft.refinanceLTV || DEFAULT_REFI_LTV}
+                          isPercent
                         />
                         <EditableValue
                           value={(draft.refinanceLTV || DEFAULT_REFI_LTV) * 100}

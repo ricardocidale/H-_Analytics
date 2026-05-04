@@ -16,6 +16,27 @@ import { PROJECTION_YEARS } from "@/lib/financial/loanCalculations";
 import { analyzePortfolioForInsights } from "@/lib/rebecca-insights";
 import { useRebeccaInsightStore } from "@/components/rebecca/RebeccaInsightBanner";
 
+interface ServerReturnsSummary {
+  portfolio: {
+    irr: number | null;
+    equityMultiple: number;
+    cashOnCash: number;
+    totalEquityInvested: number;
+    totalExitValue: number;
+    netCashFlowsByYear: number[];
+  };
+  properties: {
+    propertyKey: string;
+    propertyId: number | null;
+    irr: number | null;
+    equityMultiple: number;
+    cashOnCash: number;
+    equityInvested: number;
+    exitValue: number;
+    netCashFlowsByYear: number[];
+  }[];
+}
+
 interface ServerPortfolioResult {
   engineVersion: string;
   computedAt: string;
@@ -32,6 +53,7 @@ interface ServerPortfolioResult {
     passed: number;
     failed: number;
   };
+  returnsSummary?: ServerReturnsSummary;
 }
 
 function calculateIRR(cashFlows: number[]): number {
@@ -115,38 +137,39 @@ function mapToDashboardFinancials(
     totalProjectionCashFlow += yearData.cashFlow;
   }
 
-  const getPropertyAcquisitionYear = (prop: Property): number =>
-    acquisitionYearIndex(prop.acquisitionDate, prop.operationsStartDate, global.modelStartDate);
-
   const getPropertyInvestment = (prop: Property): number =>
     propertyEquityInvested(prop);
 
-  const getEquityInvestmentForYear = (yearIndex: number): number =>
-    activeProperties.reduce(
-      (sum, prop) => sum + (getPropertyAcquisitionYear(prop) === yearIndex ? getPropertyInvestment(prop) : 0),
-      0,
-    );
+  // Prefer server-computed returns (canonical aggregateUnifiedByYear + IRR path).
+  // Fall back to client computation if returnsSummary is absent (e.g. stale cache).
+  const serverPortfolio = serverResult.returnsSummary?.portfolio;
 
+  const totalInitialEquity =
+    serverPortfolio?.totalEquityInvested ??
+    activeProperties.reduce((sum, prop) => sum + getPropertyInvestment(prop), 0);
+
+  const totalExitValue =
+    serverPortfolio?.totalExitValue ??
+    allPropertyYearlyCF.reduce((sum, yearly) => sum + (yearly[projectionYears - 1]?.exitValue ?? 0), 0);
+
+  // consolidatedFlows is still needed for fallback and for downstream callers
+  // that reference allPropertyYearlyCF directly (e.g. CF charts).
   const consolidatedFlows = Array.from({ length: projectionYears }, (_, y) =>
     allPropertyYearlyCF.reduce((sum, propYearly) => sum + (propYearly[y]?.netCashFlowToInvestors ?? 0), 0),
   );
 
-  const portfolioIRR = calculateIRR(consolidatedFlows);
-  const totalInitialEquity = activeProperties.reduce((sum, prop) => sum + getPropertyInvestment(prop), 0);
-  const totalExitValue = allPropertyYearlyCF.reduce(
-    (sum, yearly) => sum + (yearly[projectionYears - 1]?.exitValue ?? 0),
-    0,
-  );
-  const totalCashReturned = consolidatedFlows.reduce((sum, cf) => sum + cf, 0);
-  // netCashFlowToInvestors already has equity deducted in each acquisition year.
-  // Add back totalInitialEquity to convert net-of-equity sum to gross distributions.
-  const equityMultiple = totalInitialEquity > 0 ? (totalCashReturned + totalInitialEquity) / totalInitialEquity : 0;
-
-  const operatingCashFlows = Array.from({ length: projectionYears }, (_, y) =>
-    allPropertyYearlyCF.reduce((sum, propYearly) => sum + (propYearly[y]?.atcf ?? 0), 0),
-  );
-  const avgAnnualCashFlow = operatingCashFlows.reduce((sum, cf) => sum + cf, 0) / projectionYears;
-  const cashOnCash = totalInitialEquity > 0 ? (avgAnnualCashFlow / totalInitialEquity) * 100 : 0;
+  const portfolioIRR = serverPortfolio?.irr ?? calculateIRR(consolidatedFlows);
+  const equityMultiple = serverPortfolio?.equityMultiple ?? (() => {
+    const totalCashReturned = consolidatedFlows.reduce((sum, cf) => sum + cf, 0);
+    return totalInitialEquity > 0 ? (totalCashReturned + totalInitialEquity) / totalInitialEquity : 0;
+  })();
+  const cashOnCash = serverPortfolio?.cashOnCash ?? (() => {
+    const operatingCashFlows = Array.from({ length: projectionYears }, (_, y) =>
+      allPropertyYearlyCF.reduce((sum, propYearly) => sum + (propYearly[y]?.atcf ?? 0), 0),
+    );
+    const avgAnnualCashFlow = operatingCashFlows.reduce((sum, cf) => sum + cf, 0) / projectionYears;
+    return totalInitialEquity > 0 ? (avgAnnualCashFlow / totalInitialEquity) * 100 : 0;
+  })();
 
   const totalRooms = activeProperties.reduce((sum, p) => sum + p.roomCount, 0);
 

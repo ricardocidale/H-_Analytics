@@ -41,13 +41,14 @@ export default function PartnerCompSection({ formData, onChange, global, modelSt
         <div>
           <ResearchContextFieldLabel
             label={<>Management Compensation Schedule <InfoTooltip text="Annual total management compensation and headcount for each year. Individual compensation = Total ÷ Headcount." manualSection="management-company" /></>}
-            badgeProps={{ value: researchValues.partnerComp?.display, sourceType: "industry", sourceName: CITATIONS.hospitalityCompBenchmarks, "data-testid": "badge-management-comp" }}
+            badgeProps={{ value: researchValues.partnerComp?.display, entry: researchValues.partnerComp ?? undefined, sourceType: "industry", sourceName: CITATIONS.hospitalityCompBenchmarks, "data-testid": "badge-management-comp" }}
             onApplyValue={() => {
               if (researchValues.partnerComp) {
                 onChange("partnerCompYear1", researchValues.partnerComp.mid);
               }
             }}
             guidanceContext={gc("partnerComp", "Management Compensation")}
+            currentValue={formData.partnerCompYear1 ?? global.partnerCompYear1 ?? DEFAULT_PARTNER_COMP[0]}
             className="text-lg font-display text-foreground"
           />
           <p className="text-muted-foreground text-sm label-text">Configure total management compensation and headcount by year</p>

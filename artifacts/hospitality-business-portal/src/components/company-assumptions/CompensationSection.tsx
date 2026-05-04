@@ -46,9 +46,10 @@ export default function CompensationSection({ formData, onChange, global, resear
           <div className="flex items-center justify-between">
             <ResearchContextFieldLabel
               label={<>Staff Salary <InfoTooltip text="Average annual salary per full-time staff member. The total staff cost depends on how many FTEs your portfolio size requires (see tiers below). As you add properties, you may cross into a higher staffing tier. See the Analyst badge for live salary ranges in your market." formula="Staff Cost = FTE Count × Salary ÷ 12" /></>}
-              badgeProps={{ value: researchValues.staffSalary?.display, sourceType: "industry", sourceName: CITATIONS.ahlaLodgingIndustrySurvey, "data-testid": "badge-staff-salary" }}
+              badgeProps={{ value: researchValues.staffSalary?.display, entry: researchValues.staffSalary ?? undefined, sourceType: "industry", sourceName: CITATIONS.ahlaLodgingIndustrySurvey, "data-testid": "badge-staff-salary" }}
               onApplyValue={() => researchValues.staffSalary && onChange("staffSalary", researchValues.staffSalary.mid)}
               guidanceContext={gc("staffSalary", "Staff Salary")}
+              currentValue={formData.staffSalary ?? global.staffSalary}
             />
             <span data-field="staffSalary">
               <EditableValue
