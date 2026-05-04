@@ -853,6 +853,29 @@ function DraftAllReviewPanel({
     }
   }
 
+  const prevRedraftingStale = useRef(false);
+  const staleSlotSnapshot = useRef<string[]>([]);
+
+  useEffect(() => {
+    if (isRedraftingStale && !prevRedraftingStale.current) {
+      staleSlotSnapshot.current = propertyUpdatedAt
+        ? drafts.filter(d => !d.validationErrors?.length && d.generatedAt < propertyUpdatedAt).map(d => d.slot)
+        : [];
+    }
+    if (!isRedraftingStale && prevRedraftingStale.current && staleSlotSnapshot.current.length > 0) {
+      const firstSlot = staleSlotSnapshot.current[0];
+      const firstDraft = drafts.find(d => d.slot === firstSlot);
+      const wasRefreshed = firstDraft && propertyUpdatedAt && firstDraft.generatedAt >= propertyUpdatedAt;
+      if (wasRefreshed) {
+        requestAnimationFrame(() => {
+          slotCardRefs.current[firstSlot]?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        });
+      }
+      staleSlotSnapshot.current = [];
+    }
+    prevRedraftingStale.current = !!isRedraftingStale;
+  }, [isRedraftingStale, drafts, propertyUpdatedAt]);
+
   // Re-sync editable state when drafts change (e.g. re-draft stale or a
   // second Draft All run). Preserves admin edits on slots whose suggestion
   // did not change; resets to the fresh suggestion for re-drafted slots.
