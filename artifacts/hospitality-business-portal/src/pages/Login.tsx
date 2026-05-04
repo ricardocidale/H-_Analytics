@@ -237,7 +237,7 @@ export default function Login() {
                   type="button"
                   variant="outline"
                   className="w-full h-10 border-border/80 bg-muted/30 hover:bg-muted/60 transition-colors"
-                  onClick={() => { window.location.href = "/api/auth/google"; }}
+                  onClick={() => { (window.top || window).location.href = "/api/auth/google"; }}
                   disabled={isLoading}
                   data-testid="button-google-login"
                 >

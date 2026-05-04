@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { IconCalculator, IconCompare, IconTimeline, IconSliders, IconWallet, IconBuilding } from "@/components/icons";
 import type { ComponentType } from "react";
-import type { IconProps } from "@/components/icons/icon-utils";
+import type { IconProps } from "@/components/icons";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AnimatePresence, motion } from "framer-motion";
 import SensitivityAnalysis from "./SensitivityAnalysis";

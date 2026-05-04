@@ -125,3 +125,5 @@ These rules are identical to `claude.md` § "Inviolable login / auth rules" — 
 2. **Never gate UI behaviour on a silent async fetch.** A `useState(false)` flag that only flips `true` if a fire-and-forget `fetch()` succeeds is banned. Silent `.catch(() => {})` means any network hiccup (iframe context, canvas preview, proxy quirk) leaves the feature permanently disabled with no visible error. **The server is the authority; the client should always attempt the action and surface server-returned errors as toasts.**
 
 3. **Dev-login is dev-only by server gate, not client gate.** `/api/auth/dev-login` is blocked server-side by `isPublishedDeployment()`. The login logo always fires the request unconditionally; the server returns 403 if called in production. No client pre-check needed or allowed.
+
+4. **Google OAuth must escape the iframe with `window.top`.** The Replit preview is an iframe. `window.location.href = "/api/auth/google"` navigates only the iframe — Google refuses to render inside an iframe (`X-Frame-Options: DENY`). Always use `(window.top || window).location.href = "/api/auth/google"`. Fixed 2026-05-04.
