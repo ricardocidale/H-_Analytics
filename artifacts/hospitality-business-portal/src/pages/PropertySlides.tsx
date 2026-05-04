@@ -878,6 +878,17 @@ function DraftAllReviewPanel({
       return next;
     });
 
+    setRedraftBases(prev => {
+      const next: Record<string, unknown> = {};
+      for (const [slot, base] of Object.entries(prev)) {
+        const draft = validDrafts.find(d => d.slot === slot);
+        if (draft && JSON.stringify(baseRef.current[slot]) === JSON.stringify(draft.suggestion)) {
+          next[slot] = base;
+        }
+      }
+      return next;
+    });
+
     baseRef.current = newBase;
   // Only re-run when the set of slots or their raw suggestions actually changes.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -897,9 +908,11 @@ function DraftAllReviewPanel({
 
   const selectedCount = validDrafts.filter(d => selected.has(d.slot)).length;
 
-  const editedCount = validDrafts.filter(
-    d => JSON.stringify(editedSuggestions[d.slot]) !== JSON.stringify(d.suggestion),
-  ).length;
+  const editedSlots = validDrafts.filter(d => {
+    const effectiveBase = redraftBases[d.slot] ?? d.suggestion;
+    return JSON.stringify(editedSuggestions[d.slot]) !== JSON.stringify(effectiveBase);
+  });
+  const editedCount = editedSlots.length;
 
   const staleCount = propertyUpdatedAt
     ? drafts.filter(d => !d.validationErrors?.length && d.generatedAt < propertyUpdatedAt).length
@@ -958,6 +971,11 @@ function DraftAllReviewPanel({
               {validDrafts.length} ready · {erroredDrafts.length > 0 ? `${erroredDrafts.length} skipped (validation errors)` : "no errors"}{editedCount > 0 ? ` · ${editedCount} of ${validDrafts.length} edited` : ""}.
               Check the slots you want to keep, edit the text if needed, then accept.
             </p>
+            {editedCount > 0 && (
+              <p className="text-[11px] text-violet-700 dark:text-violet-400 mt-1 leading-relaxed">
+                Edited: {editedSlots.map(d => slotLabel(d.slot)).join(", ")}
+              </p>
+            )}
           </div>
           <Button
             type="button"
