@@ -255,13 +255,12 @@ function CopyReadinessBadge({
   const { staleCount, missingCount } = summary;
   const total = staleCount + missingCount;
 
+  if (total === 0) return null;
+
   let label: string;
   let classes: string;
 
-  if (total === 0) {
-    label = "All copy ready";
-    classes = "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300";
-  } else if (missingCount === 0) {
+  if (missingCount === 0) {
     label = `${staleCount} slot${staleCount === 1 ? "" : "s"} stale`;
     classes = "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
   } else if (staleCount === 0) {
@@ -272,9 +271,7 @@ function CopyReadinessBadge({
     classes = "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
   }
 
-  const title = total === 0
-    ? "Open this deck's copy editor"
-    : "Open this deck's editor to fix missing or stale copy";
+  const title = "Open this deck's editor to fix missing or stale copy";
 
   return (
     <Link href={`/slide-decks/${propertyId}?view=edit`}>
