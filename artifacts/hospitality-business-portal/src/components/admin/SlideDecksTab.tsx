@@ -1236,75 +1236,78 @@ export default function SlideDecksTab() {
           </p>
         </div>
 
-        {/* Bulk draft button — only visible when there are deficient decks */}
-        {deficientPropertyIds.length > 0 && (
-          <div className="flex flex-col items-end gap-1.5 shrink-0">
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-2 whitespace-nowrap"
-              disabled={isBulkRunning}
-              onClick={handleDraftAllMissing}
-              title={`Draft and save copy for ${deficientPropertyIds.length} propert${deficientPropertyIds.length === 1 ? "y" : "ies"} with missing or stale slots`}
-            >
-              {isBulkRunning
-                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                : <IconWand2 className="h-3.5 w-3.5" />}
-              {isBulkRunning
-                ? `Drafting ${draftingCount} of ${deficientPropertyIds.length}…`
-                : `Draft all missing copy`}
-            </Button>
-
-            {/* PDF render queue status — shown whenever renders are in-flight */}
-            {renderQueueStats && (renderQueueStats.activeCount > 0 || renderQueueStats.pendingCount > 0) && (
-              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <Loader2 className="h-3 w-3 animate-spin shrink-0" />
-                <span>
-                  {renderQueueStats.activeCount > 0 && (
-                    <span className="text-blue-600 dark:text-blue-400 font-medium">
-                      {renderQueueStats.activeCount} rendering
-                    </span>
-                  )}
-                  {renderQueueStats.activeCount > 0 && renderQueueStats.pendingCount > 0 && (
-                    <span className="mx-1 opacity-50">·</span>
-                  )}
-                  {renderQueueStats.pendingCount > 0 && (
-                    <span>
-                      {renderQueueStats.pendingCount} queued
-                    </span>
-                  )}
-                </span>
-              </div>
-            )}
-
-            {bulkHasRun && !isBulkRunning && (
-              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                <p>
-                  {doneCount > 0 && (
-                    <span className="text-emerald-600 dark:text-emerald-400">
-                      {doneCount} saved
-                    </span>
-                  )}
-                  {doneCount > 0 && errorCount > 0 && " · "}
-                  {errorCount > 0 && (
-                    <span className="text-red-600 dark:text-red-400">
-                      {errorCount} failed
-                    </span>
-                  )}
-                </p>
-                {bulkDraftResults.length > 0 && (
-                  <button
-                    type="button"
-                    className="text-primary hover:underline font-medium"
-                    onClick={() => setShowBulkSummary(true)}
-                  >
-                    View details
-                  </button>
+        {/* Right-side header controls */}
+        <div className="flex flex-col items-end gap-1.5 shrink-0">
+          {/* PDF render queue status — shown whenever renders are in-flight, regardless of copy deficiency */}
+          {renderQueueStats && (renderQueueStats.activeCount > 0 || renderQueueStats.pendingCount > 0) && (
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin shrink-0" />
+              <span>
+                {renderQueueStats.activeCount > 0 && (
+                  <span className="text-blue-600 dark:text-blue-400 font-medium">
+                    {renderQueueStats.activeCount} rendering
+                  </span>
                 )}
-              </div>
-            )}
-          </div>
-        )}
+                {renderQueueStats.activeCount > 0 && renderQueueStats.pendingCount > 0 && (
+                  <span className="mx-1 opacity-50">·</span>
+                )}
+                {renderQueueStats.pendingCount > 0 && (
+                  <span>
+                    {renderQueueStats.pendingCount} queued
+                  </span>
+                )}
+              </span>
+            </div>
+          )}
+
+          {/* Bulk draft button — only visible when there are deficient decks */}
+          {deficientPropertyIds.length > 0 && (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-2 whitespace-nowrap"
+                disabled={isBulkRunning}
+                onClick={handleDraftAllMissing}
+                title={`Draft and save copy for ${deficientPropertyIds.length} propert${deficientPropertyIds.length === 1 ? "y" : "ies"} with missing or stale slots`}
+              >
+                {isBulkRunning
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : <IconWand2 className="h-3.5 w-3.5" />}
+                {isBulkRunning
+                  ? `Drafting ${draftingCount} of ${deficientPropertyIds.length}…`
+                  : `Draft all missing copy`}
+              </Button>
+
+              {bulkHasRun && !isBulkRunning && (
+                <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                  <p>
+                    {doneCount > 0 && (
+                      <span className="text-emerald-600 dark:text-emerald-400">
+                        {doneCount} saved
+                      </span>
+                    )}
+                    {doneCount > 0 && errorCount > 0 && " · "}
+                    {errorCount > 0 && (
+                      <span className="text-red-600 dark:text-red-400">
+                        {errorCount} failed
+                      </span>
+                    )}
+                  </p>
+                  {bulkDraftResults.length > 0 && (
+                    <button
+                      type="button"
+                      className="text-primary hover:underline font-medium"
+                      onClick={() => setShowBulkSummary(true)}
+                    >
+                      View details
+                    </button>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
