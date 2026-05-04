@@ -90,6 +90,15 @@ export interface FormSlot {
   dirty: boolean;
   /** Server-side provenance at hydration time, for the badge. */
   serverProvenance: SlotProvenance | null;
+  /**
+   * ISO timestamp from the LLM draft response (draft-slot generatedAt).
+   * When present and source === "llm", stampSlot uses this instead of the
+   * wall-clock save time so that staleness is evaluated against the moment
+   * the LLM actually saw the property data — not when the admin clicked Save.
+   * Without this, a property edit between draft-generation and save would be
+   * silently hidden: save-time > property-updatedAt → wrongly "complete".
+   */
+  llmGeneratedAt?: string;
 }
 
 export function emptySlot(): FormSlot {
@@ -109,7 +118,10 @@ export function hydrateSlot(authored: AuthoredString | undefined): FormSlot {
 export function stampSlot(slot: FormSlot, now: string): AuthoredString {
   return {
     text: slot.text,
-    provenance: { source: slot.source, updatedAt: now },
+    provenance: {
+      source: slot.source,
+      updatedAt: slot.source === "llm" && slot.llmGeneratedAt ? slot.llmGeneratedAt : now,
+    },
   };
 }
 

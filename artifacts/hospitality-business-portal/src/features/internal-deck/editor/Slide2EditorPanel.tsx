@@ -212,9 +212,14 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
     onSuccess: (result) => {
       const text = result.suggestion.text;
       if (text == null) return;
-      const key = result.slot as keyof Form;
-      if (key === "operationalModelText" || key === "revenueBullet" || key === "programmingBullet") {
-        setForm(prev => prev ? { ...prev, [key]: { ...prev[key], text, source: "llm" as const, dirty: true } } : prev);
+      const slotToKey: Record<string, keyof Form> = {
+        "slide2.operationalModelText": "operationalModelText",
+        "slide2.revenueBullet": "revenueBullet",
+        "slide2.programmingBullet": "programmingBullet",
+      };
+      const key = slotToKey[result.slot];
+      if (key) {
+        setForm(prev => prev ? { ...prev, [key]: { ...prev[key], text, source: "llm" as const, dirty: true, llmGeneratedAt: result.generatedAt } } : prev);
       }
       toast({ title: "Analyst draft loaded", description: "Review the proposal, then save to persist it." });
     },

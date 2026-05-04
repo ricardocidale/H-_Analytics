@@ -212,21 +212,6 @@ function PlainSlotRow({
         maxLength={max}
         className={slot.text.length > max ? "border-destructive" : undefined}
       />
-      {onDraft && (
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={onDraft}
-          disabled={isDrafting}
-          className="gap-1.5"
-        >
-          {isDrafting
-            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            : <IconRefreshCw className="h-3.5 w-3.5" />}
-          Draft via Analyst
-        </Button>
-      )}
     </div>
   );
 }
@@ -295,7 +280,7 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
           const text = result.suggestion?.text ?? "";
           return {
             ...prev,
-            transformationDescription: { ...prev.transformationDescription, text, source: "llm", dirty: true },
+            transformationDescription: { ...prev.transformationDescription, text, source: "llm", dirty: true, llmGeneratedAt: result.generatedAt },
           };
         }
         if (result.slot === "slide5.transformationRows" && result.suggestion.rows) {
@@ -303,7 +288,7 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
           const transformationRows = Array.from({ length: SLIDE5_TRANSFORMATION_ROWS_COUNT }, (_, i) => {
             const r = drafted[i];
             if (!r) return { feature: emptySlot(), existing: emptySlot(), proposed: emptySlot() };
-            const makeSlot = (text: string): FormSlot => ({ text, source: "llm", dirty: true, serverProvenance: null });
+            const makeSlot = (text: string): FormSlot => ({ text, source: "llm", dirty: true, serverProvenance: null, llmGeneratedAt: result.generatedAt });
             return { feature: makeSlot(r.feature), existing: makeSlot(r.existing), proposed: makeSlot(r.proposed) };
           });
           return { ...prev, transformationRows };

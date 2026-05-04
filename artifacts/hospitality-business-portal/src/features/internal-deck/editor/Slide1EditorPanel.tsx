@@ -60,6 +60,7 @@ import {
   type DeckPayloadResponse,
   emptySlot,
   hydrateSlot,
+  stampSlot,
   ProvenancePill,
   CharCounter,
   ReadinessBadge,
@@ -106,10 +107,7 @@ function buildPatchBody(form: Form): { slide1?: Partial<Slide1Payload> } | null 
   const now = new Date().toISOString();
   const slide1: Partial<Slide1Payload> = {};
 
-  const stamp = (slot: FormSlot): AuthoredString => ({
-    text: slot.text,
-    provenance: { source: slot.source, updatedAt: now },
-  });
+  const stamp = (slot: FormSlot): AuthoredString => stampSlot(slot, now);
 
   if (form.propertySubtitle.dirty) slide1.propertySubtitle = stamp(form.propertySubtitle);
   if (form.headerSubtitle.dirty) slide1.headerSubtitle = stamp(form.headerSubtitle);
@@ -296,14 +294,14 @@ export function Slide1EditorPanel({ propertyId }: { propertyId: number }) {
         if (result.slot === "slide1.headerSubtitle" && result.suggestion.text != null) {
           return {
             ...prev,
-            headerSubtitle: { ...prev.headerSubtitle, text: result.suggestion.text, source: "llm", dirty: true },
+            headerSubtitle: { ...prev.headerSubtitle, text: result.suggestion.text, source: "llm", dirty: true, llmGeneratedAt: result.generatedAt },
           };
         }
         if (result.slot === "slide1.visionBullets" && result.suggestion.bullets) {
           const next = [...prev.visionBullets];
           for (let i = 0; i < SLIDE1_VISION_BULLETS_COUNT; i++) {
             const t = result.suggestion.bullets[i]?.text ?? "";
-            next[i] = { ...next[i], text: t, source: "llm", dirty: true };
+            next[i] = { ...next[i], text: t, source: "llm", dirty: true, llmGeneratedAt: result.generatedAt };
           }
           return { ...prev, visionBullets: next };
         }

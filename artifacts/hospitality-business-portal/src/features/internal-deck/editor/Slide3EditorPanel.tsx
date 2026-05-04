@@ -276,7 +276,7 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
 
         if ((s === "slide3.conceptParagraph" || s === "slide3.marketRationale" || s === "slide3.closingLine") && result.suggestion.text != null) {
           const key = s.replace("slide3.", "") as "conceptParagraph" | "marketRationale" | "closingLine";
-          return { ...prev, [key]: { ...prev[key], text: result.suggestion.text, source: "llm" as const, dirty: true } };
+          return { ...prev, [key]: { ...prev[key], text: result.suggestion.text, source: "llm" as const, dirty: true, llmGeneratedAt: result.generatedAt } };
         }
 
         if (s === "slide3.reasons" && result.suggestion.reasons) {
@@ -285,8 +285,8 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
             const r = incoming[i];
             if (!r) return pair;
             return {
-              label: { ...pair.label, text: r.label ?? "", source: "llm" as const, dirty: true },
-              detail: { ...pair.detail, text: r.detail ?? "", source: "llm" as const, dirty: true },
+              label: { ...pair.label, text: r.label ?? "", source: "llm" as const, dirty: true, llmGeneratedAt: result.generatedAt },
+              detail: { ...pair.detail, text: r.detail ?? "", source: "llm" as const, dirty: true, llmGeneratedAt: result.generatedAt },
             };
           });
           return { ...prev, reasons };
