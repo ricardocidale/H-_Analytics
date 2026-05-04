@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { IconPresentation, IconAlertCircle, IconLayers, IconDownload } from "@/components/icons";
+import { IconPresentation, IconAlertCircle, IconLayers, IconDownload, IconPencil } from "@/components/icons";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +36,22 @@ interface SlideStatusRow {
 }
 
 type DeckReadiness = "ready" | "generating" | "error" | "not_generated";
+
+type SlotStatus = "complete" | "stale" | "missing" | "deterministic";
+
+interface ReadinessResponse {
+  propertyId: number;
+  report: Record<string, SlotStatus>;
+  staleMissingSlots: string[];
+  staleMissingCount: number;
+  payloadUpdatedAt: string | null;
+  propertyUpdatedAt: string;
+}
+
+interface CopyReadinessSummary {
+  staleCount: number;
+  missingCount: number;
+}
 
 // ── Constants ─────────────────────────────────────────────────────────────
 
@@ -110,6 +126,90 @@ function deckReadinessFromStatus(rawStatus: string | undefined): DeckReadiness {
   if (rawStatus === "generating") return "generating";
   if (rawStatus === "error") return "error";
   return "not_generated";
+}
+
+function summaryFromReadiness(r: ReadinessResponse): CopyReadinessSummary {
+  let staleCount = 0;
+  let missingCount = 0;
+  for (const status of Object.values(r.report)) {
+    if (status === "stale") staleCount++;
+    else if (status === "missing") missingCount++;
+  }
+  return { staleCount, missingCount };
+}
+
+// ── Copy readiness badge ───────────────────────────────────────────────────
+
+function CopyReadinessBadge({
+  summary,
+  isError,
+  propertyId,
+}: {
+  summary: CopyReadinessSummary | null;
+  isError: boolean;
+  propertyId: number;
+}) {
+  if (isError) {
+    return (
+      <Link href={`/slide-decks/${propertyId}?view=edit`}>
+        <Badge
+          variant="outline"
+          className="text-[11px] shrink-0 border-0 font-medium bg-gray-100 text-gray-400 dark:bg-gray-800/50 dark:text-gray-500 cursor-pointer hover:opacity-80 transition-opacity"
+          title="Copy status unavailable — click to open editor"
+        >
+          Copy status unavailable
+        </Badge>
+      </Link>
+    );
+  }
+
+  if (!summary) {
+    return (
+      <Badge
+        variant="outline"
+        className="text-[11px] shrink-0 border-0 font-medium bg-gray-100 text-gray-400 dark:bg-gray-800/50 dark:text-gray-500 cursor-default"
+      >
+        Checking copy…
+      </Badge>
+    );
+  }
+
+  const { staleCount, missingCount } = summary;
+  const total = staleCount + missingCount;
+
+  let label: string;
+  let classes: string;
+
+  if (total === 0) {
+    label = "All copy ready";
+    classes = "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300";
+  } else if (missingCount === 0) {
+    label = `${staleCount} slot${staleCount === 1 ? "" : "s"} stale`;
+    classes = "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
+  } else if (staleCount === 0) {
+    label = `${missingCount} slot${missingCount === 1 ? "" : "s"} missing`;
+    classes = "bg-gray-100 text-gray-600 dark:bg-gray-800/60 dark:text-gray-400";
+  } else {
+    label = `${missingCount} missing · ${staleCount} stale`;
+    classes = "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300";
+  }
+
+  const title = total === 0
+    ? "Open this deck's copy editor"
+    : "Open this deck's editor to fix missing or stale copy";
+
+  return (
+    <Link href={`/slide-decks/${propertyId}?view=edit`}>
+      <Badge
+        variant="outline"
+        className={`text-[11px] shrink-0 border-0 font-medium cursor-pointer hover:opacity-80 transition-opacity gap-1 ${classes}`}
+        title={title}
+      >
+        <IconPencil className="h-2.5 w-2.5 inline-block" />
+        {label}
+      </Badge>
+    </Link>
+  );
 }
 
 // ── Slide render thumbnail ─────────────────────────────────────────────────
@@ -268,6 +368,33 @@ export default function SlideDecksTab() {
     }
   }
 
+  const propertyIds = properties?.map(p => p.id) ?? [];
+  const readinessResults = useQueries({
+    queries: propertyIds.map(id => ({
+      queryKey: ["/api/admin/properties", id, "deck-payload", "readiness"] as const,
+      queryFn: async (): Promise<ReadinessResponse> => {
+        const r = await fetch(`/api/admin/properties/${id}/deck-payload/readiness`, {
+          credentials: "include",
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      },
+      staleTime: 60_000,
+      retry: 1,
+    })),
+  });
+
+  const copyReadinessByPropertyId = new Map<number, CopyReadinessSummary>();
+  const copyReadinessErrorIds = new Set<number>();
+  propertyIds.forEach((id, i) => {
+    const result = readinessResults[i];
+    if (result?.data) {
+      copyReadinessByPropertyId.set(id, summaryFromReadiness(result.data));
+    } else if (result?.isError) {
+      copyReadinessErrorIds.add(id);
+    }
+  });
+
   if (propsLoading) {
     return (
       <div className="flex items-center justify-center py-24 text-muted-foreground">
@@ -325,9 +452,14 @@ export default function SlideDecksTab() {
                   </Badge>
                 </div>
 
-                {/* Deck readiness status */}
-                <div className="flex items-center">
+                {/* PDF generation status + copy readiness badges */}
+                <div className="flex items-center gap-2 flex-wrap">
                   <DeckReadinessBadge readiness={deckReadiness} />
+                  <CopyReadinessBadge
+                    summary={copyReadinessByPropertyId.get(p.id) ?? null}
+                    isError={copyReadinessErrorIds.has(p.id)}
+                    propertyId={p.id}
+                  />
                 </div>
 
                 <div className="flex items-center gap-2">

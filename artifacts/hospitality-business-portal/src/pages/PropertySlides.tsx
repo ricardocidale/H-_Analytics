@@ -999,7 +999,14 @@ function DraftAllReviewPanel({
 export default function PropertySlides() {
   const [, params] = useRoute<{ propertyId: string }>("/slide-decks/:propertyId");
   const propertyId = params?.propertyId ? Number(params.propertyId) : NaN;
-  const [view, setView] = useState<ViewMode>("grid");
+
+  const initialView = useMemo<ViewMode>(() => {
+    const v = new URLSearchParams(window.location.search).get("view");
+    if (v === "edit" || v === "carousel") return v;
+    return "grid";
+  }, []);
+
+  const [view, setView] = useState<ViewMode>(initialView);
   const [draftVersion, setDraftVersion] = useState<DraftVersion>("authored");
   const [editSlide, setEditSlide] = useState<number>(1);
 
