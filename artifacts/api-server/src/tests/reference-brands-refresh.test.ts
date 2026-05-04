@@ -46,6 +46,10 @@ vi.mock('../ai/clients', () => ({
   }),
 }));
 
+vi.mock('../ai/llm-config-resolver', () => ({
+  resolveLlmFor: vi.fn().mockResolvedValue({ modelId: 'gpt-4o' }),
+}));
+
 // ── Imports (after mocks are set up) ─────────────────────────────────────────
 import { researchReferenceBrands } from '../ai/analyst-table-refresh';
 import { WatchdogStorage } from '../storage/intelligence/constants/watchdog';

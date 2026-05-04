@@ -60,6 +60,7 @@ const chatRequestSchema = z.object({
   // When previewSettings are provided we don't want to log the conversation
   // to the saved Rebecca conversation thread.
   preview: z.boolean().optional(),
+  stream: z.boolean().optional().default(false),
 });
 
 /**
@@ -231,6 +232,123 @@ export async function callLlm(
   return { text };
 }
 
+export async function callLlmStream(
+  provider: "openai" | "anthropic" | "gemini" | "perplexity",
+  model: string,
+  systemPrompt: string,
+  history: Array<{ role: string; content: string }>,
+  userMessage: string,
+  sampling: { temperature: number; maxOutputTokens: number; topP: number },
+  onToken: (token: string) => void,
+  userId?: number,
+  webSearchEnabled?: boolean,
+): Promise<{ text: string }> {
+  const wrappedUser = `<user_message>\n${userMessage}\n</user_message>`;
+  const startTime = Date.now();
+
+  if (provider === "perplexity") {
+    // No streaming API — batch and emit full text as single token
+    const result = await callLlm(provider, model, systemPrompt, history, userMessage, sampling, userId, webSearchEnabled);
+    onToken(result.text);
+    return result;
+  }
+
+  if (provider === "openai") {
+    const client = getOpenAIClient();
+    const messages = [
+      { role: "system" as const, content: systemPrompt },
+      ...history.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
+      { role: "user" as const, content: wrappedUser },
+    ];
+    const stream = await client.chat.completions.create({
+      model,
+      messages,
+      max_tokens: sampling.maxOutputTokens,
+      temperature: sampling.temperature,
+      top_p: sampling.topP,
+      stream: true,
+    });
+    let text = "";
+    for await (const chunk of stream) {
+      const token = chunk.choices[0]?.delta?.content ?? "";
+      if (token) { text += token; onToken(token); }
+    }
+    if (!text) text = "I'm sorry, I couldn't generate a response. Please try again.";
+    const inTok = Math.round(userMessage.length / 4);
+    const outTok = Math.round(text.length / 4);
+    try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("openai", model, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch { /* non-fatal */ }
+    return { text };
+  }
+
+  if (provider === "anthropic") {
+    const client = getAnthropicClient();
+    const normalized = normalizeModelId(model);
+    const stream = await client.messages.create({
+      model: normalized,
+      system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
+      max_tokens: sampling.maxOutputTokens,
+      temperature: sampling.temperature,
+      top_p: sampling.topP,
+      messages: [
+        ...history.map((m) => ({ role: (m.role === "assistant" ? "assistant" : "user") as "user" | "assistant", content: m.content })),
+        { role: "user" as const, content: wrappedUser },
+      ],
+      stream: true,
+    });
+    let text = "";
+    for await (const event of stream) {
+      if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+        text += event.delta.text;
+        onToken(event.delta.text);
+      }
+    }
+    if (!text) text = "I'm sorry, I couldn't generate a response. Please try again.";
+    const inTok = Math.round(userMessage.length / 4);
+    const outTok = Math.round(text.length / 4);
+    try { logApiCost({ timestamp: new Date().toISOString(), service: "anthropic", model: normalized, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("anthropic", normalized, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch { /* non-fatal */ }
+    return { text };
+  }
+
+  // gemini — use generateContentStream
+  const gemini = getGeminiClient();
+  const chatHistory = history.map((msg) => ({
+    role: msg.role === "user" ? "user" : ("model" as const),
+    content: msg.content,
+  }));
+  const contents = [
+    { role: "user" as const, parts: [{ text: systemPrompt }] },
+    { role: "model" as const, parts: [{ text: "Understood. I have the portfolio data and will answer questions based on it." }] },
+    ...chatHistory.map((m) => ({
+      role: (m.role === "user" ? "user" : "model") as "user" | "model",
+      parts: [{ text: m.content }],
+    })),
+    { role: "user" as const, parts: [{ text: wrappedUser }] },
+  ];
+  const genStream = await gemini.models.generateContentStream({
+    model,
+    contents,
+    config: {
+      maxOutputTokens: sampling.maxOutputTokens,
+      temperature: sampling.temperature,
+      topP: sampling.topP,
+    },
+  });
+  let text = "";
+  for await (const chunk of genStream) {
+    const token = chunk.text ?? "";
+    if (token) { text += token; onToken(token); }
+  }
+  if (!text) text = "I'm sorry, I couldn't generate a response. Please try again.";
+  const inTok = Math.round(userMessage.length / 4);
+  const outTok = Math.round(text.length / 4);
+  try { logApiCost({ timestamp: new Date().toISOString(), service: "gemini", model, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("gemini", model, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch { /* non-fatal */ }
+  return { text };
+}
+
+function sseWrite(res: Response, event: string, data: unknown): void {
+  res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+}
+
 export function register(app: Express) {
   registerInsightRoute(app);
   app.get("/api/chat/conversations", requireAuth, async (req: Request, res: Response) => {
@@ -304,11 +422,13 @@ export function register(app: Express) {
   });
 
   app.post("/api/chat", requireAuth, aiRateLimit(20), async (req: Request, res: Response) => {
+    const parsed = chatRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid request: " + parsed.error.issues[0]?.message });
+    }
+    let streamActive = false;
+    const useStream = !!(parsed.data.stream && !parsed.data.preview);
     try {
-      const parsed = chatRequestSchema.safeParse(req.body);
-      if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid request: " + parsed.error.issues[0]?.message });
-      }
       const { message, history, fieldContext: fieldCtx, conversationId: reqConvId, newConversation, responseMode, currentPage } = parsed.data;
       const modeConfig = RESPONSE_MODE_CONFIG[responseMode ?? "standard"] ?? RESPONSE_MODE_CONFIG.standard;
 
@@ -794,6 +914,21 @@ export function register(app: Express) {
       const fallback = rebeccaSettings.llm.fallbackProvider
         ? { provider: rebeccaSettings.llm.fallbackProvider, model: rebeccaSettings.llm.fallbackModel || REBECCA_DEFAULT_MODEL[rebeccaSettings.llm.fallbackProvider] }
         : null;
+
+      // Honor the admin's Web Search toggle (Knowledge & Sources tab in
+      // RebeccaConfig). When disabled, callLlm refuses Perplexity and the
+      // outer catch retries with the configured fallback.
+      const webSearchEnabled = rebeccaSettings.sources.webSearch.enabled;
+
+      if (useStream) {
+        res.setHeader("Content-Type", "text/event-stream");
+        res.setHeader("Cache-Control", "no-cache");
+        res.setHeader("Connection", "keep-alive");
+        res.setHeader("X-Accel-Buffering", "no");
+        streamActive = true;
+      }
+
+      let responseText: string;
       let resolvedModelName = model;
       let resolvedProvider = provider;
 
@@ -803,24 +938,36 @@ export function register(app: Express) {
         } catch (e: unknown) { logger.warn(`Failed to update conversation model: ${(e instanceof Error ? e.message : String(e))}`, "chat"); }
       }
 
-      // Honor the admin's Web Search toggle (Knowledge & Sources tab in
-      // RebeccaConfig). When disabled, callLlm refuses Perplexity and the
-      // outer catch retries with the configured fallback.
-      const webSearchEnabled = rebeccaSettings.sources.webSearch.enabled;
-      let responseText: string;
-      try {
-        const r = await callLlm(provider, model, fullSystemPrompt, effectiveHistory, message, sampling, req.user?.id, webSearchEnabled);
-        responseText = r.text;
-      } catch (primaryErr: unknown) {
-        logger.warn(`Primary LLM ${provider}:${model} failed: ${primaryErr instanceof Error ? primaryErr.message : String(primaryErr)}`, "chat");
-        if (fallback) {
-          logger.info(`Falling back to ${fallback.provider}:${fallback.model}`, "chat");
-          const r = await callLlm(fallback.provider, fallback.model, fullSystemPrompt, effectiveHistory, message, sampling, req.user?.id, webSearchEnabled);
+      if (useStream) {
+        try {
+          const r = await callLlmStream(provider, model, fullSystemPrompt, effectiveHistory, message, sampling, (token) => sseWrite(res, "delta", { token }), req.user?.id, webSearchEnabled);
           responseText = r.text;
-          resolvedModelName = fallback.model;
-          resolvedProvider = fallback.provider;
-        } else {
-          throw primaryErr;
+        } catch (primaryErr: unknown) {
+          logger.warn(`Primary streaming LLM ${provider}:${model} failed: ${primaryErr instanceof Error ? primaryErr.message : String(primaryErr)}`, "chat");
+          if (fallback) {
+            const r = await callLlmStream(fallback.provider, fallback.model, fullSystemPrompt, effectiveHistory, message, sampling, (token) => sseWrite(res, "delta", { token }), req.user?.id, webSearchEnabled);
+            responseText = r.text;
+            resolvedModelName = fallback.model;
+            resolvedProvider = fallback.provider;
+          } else {
+            throw primaryErr;
+          }
+        }
+      } else {
+        try {
+          const r = await callLlm(provider, model, fullSystemPrompt, effectiveHistory, message, sampling, req.user?.id, webSearchEnabled);
+          responseText = r.text;
+        } catch (primaryErr: unknown) {
+          logger.warn(`Primary LLM ${provider}:${model} failed: ${primaryErr instanceof Error ? primaryErr.message : String(primaryErr)}`, "chat");
+          if (fallback) {
+            logger.info(`Falling back to ${fallback.provider}:${fallback.model}`, "chat");
+            const r = await callLlm(fallback.provider, fallback.model, fullSystemPrompt, effectiveHistory, message, sampling, req.user?.id, webSearchEnabled);
+            responseText = r.text;
+            resolvedModelName = fallback.model;
+            resolvedProvider = fallback.provider;
+          } else {
+            throw primaryErr;
+          }
         }
       }
       // Web search only actually fires for the Perplexity provider. Mark
@@ -882,25 +1029,42 @@ export function register(app: Express) {
       // object passed to `assembleSystemPrompt`.
       // (Moved up)
       
-      res.json({
+      const responsePayload = {
         response: responseText,
         conversationId,
         suggestedChips,
         detectedLanguage,
         sourcesUsed: sourcesUsedSorted,
         ...(blocksIncluded ? { blocksIncluded } : {}),
-        // Task #665 — admin-only: echo the exact assembled system prompt so
-        // the Test Chat preview can show it verbatim. Gated behind the same
-        // isAdmin check that gates blocksIncluded (both rely on blocksIncluded
-        // being truthy). fullSystemPrompt is already computed above.
         ...(blocksIncluded ? { assembledSystemPrompt: fullSystemPrompt } : {}),
         ...(autoGreeting ? { autoGreeting } : {}),
         ...(matchedAssets.length > 0 ? { assets: matchedAssets } : {}),
         ...(observations.length > 0 ? { observations } : {}),
-      });
+      };
+
+      if (useStream) {
+        sseWrite(res, "done", responsePayload);
+        res.end();
+      } else {
+        res.json(responsePayload);
+      }
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
       logger.error(`Chat error: ${msg}`, "chat");
+      if (streamActive) {
+        sseWrite(res, "error", { message: "Failed to generate response", retryable: true });
+        res.end();
+        // Log as admin notification
+        try {
+          const { processNotificationEvent } = await import("../notifications/engine");
+          const { createEvent } = await import("../notifications/events");
+          void processNotificationEvent(createEvent("LLM_MODEL_ISSUE", {
+            message: `Rebecca streaming error: ${msg}`,
+            metadata: { errorMessage: msg },
+          }));
+        } catch { /* non-fatal */ }
+        return;
+      }
       if (error instanceof ChatPolicyError) {
         // Admin-policy refusal (e.g. webSearch toggle blocking Perplexity
         // and no viable fallback). Surface the actionable message verbatim

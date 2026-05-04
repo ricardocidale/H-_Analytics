@@ -135,10 +135,16 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
   const [responseMode, setResponseMode] = useState<ResponseMode>(getStoredMode);
 
 
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const pendingMessageRef = useRef<string | null>(null);
+  const streamingIdRef = useRef<string | null>(null);
+  const postAbortSendRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -362,46 +368,54 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
     async (text?: string) => {
       const trimmed = (text ?? input).trim();
       if (!trimmed || loading) return;
+
+      // If a stream is active, queue this message and show the interrupt banner
+      if (isStreaming) {
+        pendingMessageRef.current = trimmed;
+        setPendingMessage(trimmed);
+        setInput("");
+        return;
+      }
+
       setLoading(true);
+      setIsStreaming(true);
 
-      const userMsg: ChatMessage = {
-        id: nextMsgId("user"),
-        role: "user",
-        content: trimmed,
-      };
+      const userMsg: ChatMessage = { id: nextMsgId("user"), role: "user", content: trimmed };
+      const streamId = nextMsgId("assistant");
+      streamingIdRef.current = streamId;
 
-      const currentMessages = [...messages, userMsg];
-      setMessages(currentMessages);
+      setMessages((prev) => [...prev, userMsg, { id: streamId, role: "assistant", content: "" }]);
       setInput("");
 
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
 
-      try {
-        const body: Record<string, unknown> = {
-          message: trimmed,
-          history: [],
-          responseMode,
-          currentPage,
+      const body: Record<string, unknown> = {
+        message: trimmed,
+        history: [],
+        responseMode,
+        currentPage,
+        stream: true,
+      };
+
+      if (forceNewRef.current) {
+        body.newConversation = true;
+        forceNewRef.current = false;
+      } else if (conversationId) {
+        body.conversationId = conversationId;
+      }
+
+      if (rebeccaContext?.entityType && rebeccaContext?.entityId) {
+        body.fieldContext = {
+          entityType: rebeccaContext.entityType,
+          entityId: rebeccaContext.entityId,
+          fieldKey: rebeccaContext.fieldKey,
+          scenarioId: rebeccaContext.scenarioId ?? null,
         };
+      }
 
-        if (forceNewRef.current) {
-          body.newConversation = true;
-          forceNewRef.current = false;
-        } else if (conversationId) {
-          body.conversationId = conversationId;
-        }
-
-        if (rebeccaContext?.entityType && rebeccaContext?.entityId) {
-          body.fieldContext = {
-            entityType: rebeccaContext.entityType,
-            entityId: rebeccaContext.entityId,
-            fieldKey: rebeccaContext.fieldKey,
-            scenarioId: rebeccaContext.scenarioId ?? null,
-          };
-        }
-
+      async function runStream(retryCount = 0): Promise<void> {
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -409,56 +423,121 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
           signal: controller.signal,
         });
 
-        if (!res.ok) throw new Error("Failed to get response");
-        const data = await res.json();
+        if (!res.ok || !res.body) throw new Error("Failed to get response");
 
-        if (data.conversationId) setConversationId(data.conversationId);
-        if (data.suggestedChips?.length) setSuggestedChips(data.suggestedChips);
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let currentEvent = "";
 
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: nextMsgId("assistant"),
-            role: "assistant",
-            content: data.response,
-            assets: data.assets,
-            detectedLanguage: data.detectedLanguage,
-            sources: Array.isArray(data.sourcesUsed) ? data.sourcesUsed : [],
-          },
-        ]);
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        if (data.observations?.length) {
-          for (const obs of data.observations as string[]) {
-            const parsed = parseObservationField(obs);
-            if (parsed) {
-              const hash = `obs-${rebeccaContext?.entityId}-${parsed.fieldKey ?? obs.slice(0, 30)}`;
-              addInsight({
-                message: parsed.message,
-                type: "observation",
-                context: parsed.fieldKey
-                  ? `Tell me more about ${parsed.fieldKey === "revShareFB" ? "F&B revenue share" : "events revenue share"} for this property`
-                  : undefined,
-              }, hash);
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+
+          for (const line of lines) {
+            if (line.startsWith("event: ")) {
+              currentEvent = line.slice(7).trim();
+            } else if (line.startsWith("data: ")) {
+              let data: Record<string, unknown>;
+              try { data = JSON.parse(line.slice(6)); } catch { continue; }
+
+              if (currentEvent === "delta") {
+                const token = typeof data.token === "string" ? data.token : "";
+                if (token) {
+                  setMessages((prev) => prev.map((m) =>
+                    m.id === streamId ? { ...m, content: m.content + token } : m
+                  ));
+                }
+              } else if (currentEvent === "done") {
+                if (data.conversationId) setConversationId(data.conversationId as number);
+                if (Array.isArray(data.suggestedChips) && data.suggestedChips.length) {
+                  setSuggestedChips(data.suggestedChips as string[]);
+                }
+                setMessages((prev) => prev.map((m) =>
+                  m.id === streamId ? {
+                    ...m,
+                    content: (data.response as string) ?? m.content,
+                    assets: data.assets as AssetMatch[] | undefined,
+                    detectedLanguage: data.detectedLanguage as string | undefined,
+                    sources: Array.isArray(data.sourcesUsed) ? data.sourcesUsed as ChatSourceUsed[] : [],
+                  } : m
+                ));
+                if (Array.isArray(data.observations)) {
+                  for (const obs of data.observations as string[]) {
+                    const parsed = parseObservationField(obs);
+                    if (parsed) {
+                      const hash = `obs-${rebeccaContext?.entityId}-${parsed.fieldKey ?? obs.slice(0, 30)}`;
+                      addInsight({ message: parsed.message, type: "observation", context: parsed.fieldKey ? `Tell me more about ${parsed.fieldKey === "revShareFB" ? "F&B revenue share" : "events revenue share"} for this property` : undefined }, hash);
+                    }
+                  }
+                }
+              } else if (currentEvent === "error") {
+                if (retryCount === 0) {
+                  setMessages((prev) => prev.map((m) =>
+                    m.id === streamId ? { ...m, content: "Let me try that again…" } : m
+                  ));
+                  await new Promise((r) => setTimeout(r, 600));
+                  setMessages((prev) => prev.map((m) =>
+                    m.id === streamId ? { ...m, content: "" } : m
+                  ));
+                  await runStream(1);
+                } else {
+                  setMessages((prev) => prev.map((m) =>
+                    m.id === streamId ? { ...m, content: "I wasn't able to complete that response. You might want to try rephrasing your question." } : m
+                  ));
+                }
+              }
+              currentEvent = "";
             }
           }
         }
+      }
+
+      try {
+        await runStream();
       } catch (err: unknown) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: nextMsgId("assistant"),
-            role: "assistant",
-            content:
-              "Sorry, I couldn't process your request. Please try again.",
-          },
-        ]);
+        if (err instanceof DOMException && err.name === "AbortError") {
+          // Intentional abort — remove the empty streaming stub
+          setMessages((prev) => prev.filter((m) => m.id !== streamId || m.content.length > 0));
+        } else {
+          setMessages((prev) => prev.map((m) =>
+            m.id === streamId ? { ...m, content: "Sorry, I couldn't process your request. Please try again." } : m
+          ));
+        }
       } finally {
+        setIsStreaming(false);
         setLoading(false);
+        streamingIdRef.current = null;
+
+        // Auto-send queued message (either from "let her finish" or post-abort "move on")
+        const postAbort = postAbortSendRef.current;
+        postAbortSendRef.current = null;
+        const pending = pendingMessageRef.current;
+        pendingMessageRef.current = null;
+        setPendingMessage(null);
+        const toSend = postAbort ?? pending;
+        if (toSend) setTimeout(() => sendMessage(toSend), 0);
       }
     },
-    [input, loading, messages, rebeccaContext, conversationId, responseMode, currentPage, addInsight]
+    [input, loading, isStreaming, messages, rebeccaContext, conversationId, responseMode, currentPage, addInsight]
   );
+
+  const handleMoveOn = useCallback(() => {
+    const pending = pendingMessageRef.current;
+    pendingMessageRef.current = null;
+    setPendingMessage(null);
+    postAbortSendRef.current = pending;
+    abortRef.current?.abort();
+  }, []);
+
+  const handleLetFinish = useCallback(() => {
+    // Message stays queued in pendingMessageRef — will auto-send when stream completes
+    setPendingMessage(null);
+  }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -732,6 +811,13 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                   {q}
                 </Button>
               ))}
+            </div>
+          )}
+          {pendingMessage && (
+            <div className="flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+              <span className="flex-1 min-w-0 truncate">Still responding — finish first or move on?</span>
+              <button type="button" onClick={handleLetFinish} className="shrink-0 font-medium underline underline-offset-2 hover:no-underline">Finish</button>
+              <button type="button" onClick={handleMoveOn} className="shrink-0 font-medium underline underline-offset-2 hover:no-underline">Move on</button>
             </div>
           )}
           <div className="flex items-end gap-2">
