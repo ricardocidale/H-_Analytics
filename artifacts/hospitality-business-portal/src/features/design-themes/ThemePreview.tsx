@@ -91,7 +91,7 @@ export function ThemePreview({ themeName }: ThemePreviewProps) {
       </CardHeader>
       <CardContent className="space-y-6">
         <div>
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Icons — Lucide</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Icons — Phosphor</p>
           <div className="flex gap-2" data-testid="preview-icon-set">
             <Star className="w-5 h-5 text-foreground" />
             <IconBell className="w-5 h-5 text-foreground" />

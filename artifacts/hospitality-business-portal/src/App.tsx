@@ -395,16 +395,18 @@ function App() {
       }
     >
       <ErrorBoundary>
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-              <TooltipProvider>
-                <Toaster />
-                <Router />
-              </TooltipProvider>
-            </WouterRouter>
-          </AuthProvider>
-        </QueryClientProvider>
+        <IconContext.Provider value={{ weight: "duotone" }}>
+          <QueryClientProvider client={queryClient}>
+            <AuthProvider>
+              <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                <TooltipProvider>
+                  <Toaster />
+                  <Router />
+                </TooltipProvider>
+              </WouterRouter>
+            </AuthProvider>
+          </QueryClientProvider>
+        </IconContext.Provider>
       </ErrorBoundary>
     </Sentry.ErrorBoundary>
   );
