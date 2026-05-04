@@ -91,6 +91,7 @@ import { Slide5EditorPanel } from "@/features/internal-deck/editor/Slide5EditorP
 import { Slide6EditorPanel } from "@/features/internal-deck/editor/Slide6EditorPanel";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useReadinessQuery } from "@/features/internal-deck/editor/editor-shared";
 
 // ── Slide registry ────────────────────────────────────────────────────────
 //
@@ -760,12 +761,14 @@ function DraftAllReviewPanel({
   drafts,
   generatedAt,
   propertyId,
+  propertyUpdatedAt,
   onAccepted,
   onDismiss,
 }: {
   drafts: DraftResult[];
   generatedAt: string;
   propertyId: number;
+  propertyUpdatedAt?: string;
   onAccepted: () => void;
   onDismiss: () => void;
 }) {
@@ -807,6 +810,10 @@ function DraftAllReviewPanel({
     .length;
 
   const selectedCount = validDrafts.filter(d => selected.has(d.slot)).length;
+
+  const staleCount = propertyUpdatedAt
+    ? drafts.filter(d => !d.validationErrors?.length && d.generatedAt < propertyUpdatedAt).length
+    : 0;
 
   const acceptMutation = useMutation({
     mutationFn: async () => {
@@ -875,6 +882,18 @@ function DraftAllReviewPanel({
           </Button>
         </div>
 
+        {staleCount > 0 && (
+          <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800 dark:bg-amber-950/30">
+            <IconAlertCircle className="h-3.5 w-3.5 mt-0.5 text-amber-600 dark:text-amber-400 shrink-0" />
+            <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+              {staleCount === 1
+                ? "1 draft was generated before the property was last edited."
+                : `${staleCount} drafts were generated before the property was last edited.`}{" "}
+              These may not reflect the latest property data — you can still accept them.
+            </p>
+          </div>
+        )}
+
         <Separator />
 
         {/* Draft rows */}
@@ -883,6 +902,7 @@ function DraftAllReviewPanel({
           {validDrafts.map(draft => {
             const isSelected = selected.has(draft.slot);
             const errs = localErrors[draft.slot] ?? [];
+            const isStale = !!propertyUpdatedAt && draft.generatedAt < propertyUpdatedAt;
             return (
               <div
                 key={draft.slot}
@@ -913,6 +933,11 @@ function DraftAllReviewPanel({
                     <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 dark:bg-amber-950/30 text-[10px] gap-1">
                       <IconAlertCircle className="h-2.5 w-2.5" />
                       Over budget
+                    </Badge>
+                  )}
+                  {isStale && (
+                    <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 text-[10px] dark:text-amber-400 dark:border-amber-700 dark:bg-amber-950/40">
+                      Generated before property was last edited
                     </Badge>
                   )}
                 </div>
@@ -1014,6 +1039,9 @@ export default function PropertySlides() {
   const [pendingDrafts, setPendingDrafts] = useState<DraftAllResponse | null>(null);
 
   const { toast } = useToast();
+
+  // Readiness query — provides propertyUpdatedAt for stale-draft detection.
+  const { data: readiness } = useReadinessQuery(propertyId);
 
   // Property info — for header + filename.
   const { data: properties } = useQuery<PropertyRow[]>({
@@ -1240,6 +1268,7 @@ export default function PropertySlides() {
           drafts={pendingDrafts.drafts}
           generatedAt={pendingDrafts.drafts[0]?.generatedAt ?? new Date().toISOString()}
           propertyId={propertyId}
+          propertyUpdatedAt={readiness?.propertyUpdatedAt}
           onAccepted={() => setPendingDrafts(null)}
           onDismiss={() => setPendingDrafts(null)}
         />
