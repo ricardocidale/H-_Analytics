@@ -242,9 +242,6 @@ importers:
       '@swc/helpers':
         specifier: ^0.5.21
         version: 0.5.21
-      '@workspace/api-zod':
-        specifier: workspace:*
-        version: link:../../lib/api-zod
       '@workspace/db':
         specifier: workspace:*
         version: link:../../lib/db
