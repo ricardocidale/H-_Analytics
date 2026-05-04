@@ -362,18 +362,31 @@ export function Slide3({ p }: { p: SlidePayload }) {
       ];
   const slide3ClosingLine = v2s3?.closingLine?.text || "";
   const hero = photos.find(ph => ph.isHero) ?? photos[0];
-  const secondary = photos[1] ?? photos[0];
+  const interior =
+    photos.find(ph => !ph.isHero && ph.url?.includes("medellin-duplex-2")) ??
+    photos[1] ??
+    photos.find(ph => !ph.isHero) ??
+    photos[0];
   const type = typeLabel(property);
 
   return (
     <div style={{ width: W, height: H, background: C.darkBg, display: "flex", position: "relative", overflow: "hidden" }}>
-      <div style={{ display: "flex", width: 480, position: "relative", flexShrink: 0 }}>
-        <PhotoBg photo={hero} />
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, transparent 60%, rgba(28,43,30,0.95) 100%)" }} />
-      </div>
-      <div style={{ display: "flex", width: 340, position: "relative", flexShrink: 0 }}>
-        <PhotoBg photo={secondary} />
-        <div style={{ position: "absolute", inset: 0, background: "rgba(28,43,30,0.4)" }} />
+      <div style={{ display: "flex", flexDirection: "column", width: 480, flexShrink: 0 }}>
+        <div style={{ position: "relative", flex: 1, overflow: "hidden" }}>
+          <PhotoBg photo={hero} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, transparent 60%, rgba(28,43,30,0.95) 100%)" }} />
+        </div>
+        <div style={{ position: "relative", flex: 1, overflow: "hidden" }}>
+          <PhotoBg photo={interior} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, transparent 60%, rgba(28,43,30,0.9) 100%)" }} />
+          {interior && (
+            <div style={{ position: "absolute", bottom: 14, left: 16, right: 16 }}>
+              <span style={{ fontFamily: FONT_SANS, fontSize: 9, color: "rgba(255,255,255,0.65)", letterSpacing: "0.08em", lineHeight: 1.4 }}>
+                Chef&apos;s kitchen with marble waterfall island
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "44px 48px 44px 40px" }}>
