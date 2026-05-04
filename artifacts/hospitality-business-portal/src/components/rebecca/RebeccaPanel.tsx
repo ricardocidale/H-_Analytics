@@ -19,9 +19,7 @@ import {
   Gear,
   MoreVertical,
   Check,
-  Copy,
-  ThumbsUp,
-  ThumbsDown,
+
   AlignLeft,
   ChevronRight,
   ChevronLeft,
@@ -135,8 +133,8 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [responseMode, setResponseMode] = useState<ResponseMode>(getStoredMode);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [thumbs, setThumbs] = useState<Record<string, "up" | "down">>({});
+
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -469,22 +467,6 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
     }
   };
 
-  const handleCopy = useCallback((id: string, content: string) => {
-    navigator.clipboard.writeText(content).then(() => {
-      setCopiedId(id);
-      setTimeout(() => setCopiedId((prev) => (prev === id ? null : prev)), 1500);
-    }).catch(() => {});
-  }, []);
-
-  const handleThumb = useCallback((id: string, vote: "up" | "down") => {
-    setThumbs((prev) => {
-      const next = { ...prev };
-      if (next[id] === vote) delete next[id];
-      else next[id] = vote;
-      return next;
-    });
-  }, []);
-
   const handleSelectConversation = useCallback(async (convId: number) => {
     setMessages([]);
     setSuggestedChips([]);
@@ -699,7 +681,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                 )}
               >
                 {msg.role === "assistant" && <RebeccaAvatar size="sm" className="mt-1" />}
-                <div className={cn("flex flex-col items-start min-w-0", msg.role === "assistant" && "group")}>
+                <div className="flex flex-col items-start min-w-0">
                   <div
                     className={cn(
                       "rounded-lg px-3 py-2 text-sm",
@@ -722,39 +704,6 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                       msg.content
                     )}
                   </div>
-                  {msg.role === "assistant" && (
-                    <div className="flex items-center gap-0.5 mt-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                      <button
-                        type="button"
-                        className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors"
-                        onClick={() => handleCopy(msg.id, msg.content)}
-                        aria-label="Copy message"
-                        data-testid={`button-rebecca-copy-${msg.id}`}
-                      >
-                        {copiedId === msg.id
-                          ? <Check className="w-3.5 h-3.5 text-primary" />
-                          : <Copy className="w-3.5 h-3.5" />}
-                      </button>
-                      <button
-                        type="button"
-                        className={cn("p-1 rounded transition-colors", thumbs[msg.id] === "up" ? "text-primary" : "text-muted-foreground hover:text-foreground")}
-                        onClick={() => handleThumb(msg.id, "up")}
-                        aria-label="Helpful"
-                        data-testid={`button-rebecca-thumbup-${msg.id}`}
-                      >
-                        <ThumbsUp className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        className={cn("p-1 rounded transition-colors", thumbs[msg.id] === "down" ? "text-destructive" : "text-muted-foreground hover:text-foreground")}
-                        onClick={() => handleThumb(msg.id, "down")}
-                        aria-label="Not helpful"
-                        data-testid={`button-rebecca-thumbdown-${msg.id}`}
-                      >
-                        <ThumbsDown className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  )}
                   {msg.role === "assistant" && msg.sources !== undefined && (
                     <SourcesUsedPanel sources={msg.sources} turnIndex={idx} />
                   )}

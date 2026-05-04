@@ -92,6 +92,11 @@ export interface SlidePayload {
    */
   deckPayloadV2: import("@shared/deck-payload-v2").DeckPayloadV2;
   slide4HeroBase64?: string;
+  /**
+   * LB Slide Deck overrides — additive optional fields.
+   * Never set by buildSlidePayload (per-property pipeline uses defaults).
+   * Set by buildLbPayload for the composite portfolio deck only.
+   */
   projYears?: number;      // override PROFORMA_YEARS for Slide 6 (e.g. 10 for LB deck)
   usaliMode?: boolean;     // when true, Slide 6 renders the USALI table PNG
   usaliPngBase64?: string; // base64 PNG of the IS table, rendered server-side (LB deck Slide 6)

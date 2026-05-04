@@ -201,7 +201,7 @@ export function MarketSizing({ content, hasData, onGenerate }: { content: Record
       <motion.div variants={stagger.item} className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MetricCard icon={IconGlobe} label="Global TAM" value="$2.1T" sub="2026 estimate" />
         <MetricCard icon={IconTarget} label="Segment SAM" value="$85B" sub="Boutique & lifestyle" />
-        <MetricCard icon={IconTrendingUp} label="Growth CAGR" value="6.2%" sub="5-year projected" />
+        <MetricCard icon={IconTrendingUp} label="Market CAGR" value="6.2%" sub="5-year projected" />
         <MetricCard icon={IconStar} label="Market Share Goal" value="0.14%" sub="SOM capture target" />
       </motion.div>
 
