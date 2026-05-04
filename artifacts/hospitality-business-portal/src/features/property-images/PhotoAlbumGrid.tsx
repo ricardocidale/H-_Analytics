@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext, type CarouselApi } from "@/components/ui/carousel";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { usePropertyPhotos, useSetHeroPhoto, useDeletePropertyPhoto, useUpdatePropertyPhoto, useEnhancePhoto, useAcceptEnhancement, useRejectEnhancement, useReorderPhotos } from "@/lib/api";
@@ -481,73 +482,90 @@ export function PhotoAlbumGrid({
 
           {/* Caption editor — admin only, scoped to the current slide */}
           {isAdmin && photos[currentSlide] && (
-            <div className="flex items-center gap-1.5 px-1" data-testid="carousel-caption-editor">
-              {editingCarouselCaption ? (
-                <>
-                  <Input
-                    value={carouselCaptionDraft}
-                    onChange={(e) => setCarouselCaptionDraft(e.target.value)}
-                    className="h-7 text-xs flex-1"
-                    placeholder="Add caption…"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSaveCarouselCaption();
-                      if (e.key === "Escape") setEditingCarouselCaption(false);
-                    }}
-                    data-testid="input-carousel-caption"
-                  />
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7 shrink-0"
-                    onClick={handleSaveCarouselCaption}
-                    aria-label="Save caption"
-                    data-testid="button-carousel-caption-save"
-                  >
-                    <Check className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7 shrink-0"
-                    onClick={() => setEditingCarouselCaption(false)}
-                    aria-label="Cancel editing caption"
-                    data-testid="button-carousel-caption-cancel"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCarouselCaptionDraft(photos[currentSlide].caption || "");
-                      setEditingCarouselCaption(true);
-                    }}
-                    className="flex-1 text-left text-xs text-muted-foreground hover:text-foreground truncate"
-                    title="Click to edit caption"
-                    data-testid="button-carousel-caption-display"
-                  >
-                    {photos[currentSlide].caption
-                      ? photos[currentSlide].caption
-                      : <span className="italic opacity-60">Add caption…</span>}
-                  </button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-6 w-6 shrink-0"
-                    onClick={() => {
-                      setCarouselCaptionDraft(photos[currentSlide].caption || "");
-                      setEditingCarouselCaption(true);
-                    }}
-                    aria-label="Edit caption"
-                    data-testid="button-carousel-caption-edit"
-                  >
-                    <Pencil className="w-3 h-3" />
-                  </Button>
-                </>
+            <div className="space-y-1 px-1" data-testid="carousel-caption-editor">
+              {photos[currentSlide].isHero && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span
+                      className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold bg-accent-pop/10 text-accent-pop border border-accent-pop/20 cursor-default"
+                      data-testid="badge-hero-caption-deck"
+                    >
+                      Used in deck
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[200px]">
+                    <p className="text-xs">This caption appears as the location subtitle on Slide 3 of the investor deck</p>
+                  </TooltipContent>
+                </Tooltip>
               )}
+              <div className="flex items-center gap-1.5">
+                {editingCarouselCaption ? (
+                  <>
+                    <Input
+                      value={carouselCaptionDraft}
+                      onChange={(e) => setCarouselCaptionDraft(e.target.value)}
+                      className="h-7 text-xs flex-1"
+                      placeholder="Add caption…"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveCarouselCaption();
+                        if (e.key === "Escape") setEditingCarouselCaption(false);
+                      }}
+                      data-testid="input-carousel-caption"
+                    />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 shrink-0"
+                      onClick={handleSaveCarouselCaption}
+                      aria-label="Save caption"
+                      data-testid="button-carousel-caption-save"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 shrink-0"
+                      onClick={() => setEditingCarouselCaption(false)}
+                      aria-label="Cancel editing caption"
+                      data-testid="button-carousel-caption-cancel"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCarouselCaptionDraft(photos[currentSlide].caption || "");
+                        setEditingCarouselCaption(true);
+                      }}
+                      className="flex-1 text-left text-xs text-muted-foreground hover:text-foreground truncate"
+                      title="Click to edit caption"
+                      data-testid="button-carousel-caption-display"
+                    >
+                      {photos[currentSlide].caption
+                        ? photos[currentSlide].caption
+                        : <span className="italic opacity-60">Add caption…</span>}
+                    </button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6 shrink-0"
+                      onClick={() => {
+                        setCarouselCaptionDraft(photos[currentSlide].caption || "");
+                        setEditingCarouselCaption(true);
+                      }}
+                      aria-label="Edit caption"
+                      data-testid="button-carousel-caption-edit"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
           )}
 

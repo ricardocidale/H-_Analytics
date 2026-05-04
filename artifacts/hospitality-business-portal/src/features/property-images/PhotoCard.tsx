@@ -152,38 +152,72 @@ export function PhotoCard({ photo, onSetHero, onDelete, onUpdateCaption, onEnhan
       {/* Caption + actions */}
       <div className="p-2.5">
         {editingCaption ? (
-          <div className="flex items-center gap-1.5">
-            <Input
-              value={captionDraft}
-              onChange={(e) => setCaptionDraft(e.target.value)}
-              className="h-7 text-xs"
-              placeholder="Add caption..."
-              autoFocus
-              onKeyDown={(e) => e.key === "Enter" && handleSaveCaption()}
-            />
-            <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={handleSaveCaption} aria-label="Save caption">
-              <Check className="w-3.5 h-3.5" />
-            </Button>
-            <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => setEditingCaption(false)} aria-label="Cancel editing">
-              <X className="w-3.5 h-3.5" />
-            </Button>
+          <div className="space-y-1">
+            {photo.isHero && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold bg-accent-pop/10 text-accent-pop border border-accent-pop/20 cursor-default"
+                    data-testid="badge-hero-caption-deck"
+                  >
+                    Used in deck
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[200px]">
+                  <p className="text-xs">This caption appears as the location subtitle on Slide 3 of the investor deck</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+            <div className="flex items-center gap-1.5">
+              <Input
+                value={captionDraft}
+                onChange={(e) => setCaptionDraft(e.target.value)}
+                className="h-7 text-xs"
+                placeholder="Add caption..."
+                autoFocus
+                onKeyDown={(e) => e.key === "Enter" && handleSaveCaption()}
+              />
+              <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={handleSaveCaption} aria-label="Save caption">
+                <Check className="w-3.5 h-3.5" />
+              </Button>
+              <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => setEditingCaption(false)} aria-label="Cancel editing">
+                <X className="w-3.5 h-3.5" />
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="flex items-center justify-between gap-2">
-            {readOnly ? (
-              <div className="flex-1 text-left text-xs text-muted-foreground truncate h-auto px-0">
-                {photo.caption || ""}
-              </div>
-            ) : (
-              <Button
-                variant="ghost"
-                onClick={() => { setCaptionDraft(photo.caption || ""); setEditingCaption(true); }}
-                className="flex-1 text-left text-xs text-muted-foreground hover:text-foreground truncate h-auto px-0 justify-start"
-                title="Click to edit caption"
-              >
-                {photo.caption || "Add caption..."}
-              </Button>
-            )}
+            <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+              {photo.isHero && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span
+                      className="inline-flex self-start items-center px-1.5 py-0.5 rounded text-[9px] font-semibold bg-accent-pop/10 text-accent-pop border border-accent-pop/20 cursor-default"
+                      data-testid="badge-hero-caption-deck"
+                    >
+                      Used in deck
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[200px]">
+                    <p className="text-xs">This caption appears as the location subtitle on Slide 3 of the investor deck</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {readOnly ? (
+                <div className="text-left text-xs text-muted-foreground truncate h-auto px-0">
+                  {photo.caption || ""}
+                </div>
+              ) : (
+                <Button
+                  variant="ghost"
+                  onClick={() => { setCaptionDraft(photo.caption || ""); setEditingCaption(true); }}
+                  className="text-left text-xs text-muted-foreground hover:text-foreground truncate h-auto px-0 justify-start"
+                  title="Click to edit caption"
+                >
+                  {photo.caption || "Add caption..."}
+                </Button>
+              )}
+            </div>
             <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
               {!readOnly && (
                 <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => { setCaptionDraft(photo.caption || ""); setEditingCaption(true); }} aria-label="Edit caption">
