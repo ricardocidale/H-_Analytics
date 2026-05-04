@@ -13,7 +13,8 @@
       "Bash(git push *)",
       "Bash(git ls-remote *)",
       "Bash(rm .git/refs/remotes/origin/main.lock)",
-      "Bash(git fetch *)"
+      "Bash(git fetch *)",
+      "Bash(grep -vE \"from \\\\\"\\\\.|from '\\\\.|@shared|node:|^$\")"
     ]
   }
 }
