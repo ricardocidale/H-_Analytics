@@ -454,6 +454,14 @@ function BulkDraftSummaryDialog({
       ? uniqueErrors[0]
       : null;
 
+  const groupedErrors: { message: string; count: number }[] =
+    errorCount > 0 && uniqueErrors.length > 1
+      ? uniqueErrors.map(msg => ({
+          message: msg,
+          count: errorMessages.filter(m => m === msg).length,
+        }))
+      : [];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg sm:max-w-xl">
@@ -477,6 +485,18 @@ function BulkDraftSummaryDialog({
               </span>
             )}
           </DialogDescription>
+          {groupedErrors.length > 0 && (
+            <ul className="mt-2 space-y-1 text-xs text-red-600 dark:text-red-400">
+              {groupedErrors.map(({ message, count }) => (
+                <li key={message} className="flex items-start gap-1.5">
+                  <span className="mt-px shrink-0 font-semibold tabular-nums">
+                    ×{count}
+                  </span>
+                  <span className="break-all">{message}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </DialogHeader>
 
         <ScrollArea className="max-h-[50vh]">
