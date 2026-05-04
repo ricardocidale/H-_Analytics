@@ -54,6 +54,7 @@ export function useReadinessQuery(propertyId: number) {
     },
     enabled: Number.isFinite(propertyId),
     staleTime: 15_000,
+    refetchInterval: 30_000,
   });
   return { ...result, queryKey };
 }
