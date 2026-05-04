@@ -799,6 +799,48 @@ function DraftAllReviewPanel({
     Object.fromEntries(validDrafts.map(d => [d.slot, d.suggestion])),
   );
 
+  // When a slot is re-drafted in-place its new suggestion becomes the new
+  // comparison base for the "Edited" badge — otherwise the badge would
+  // incorrectly flag a freshly re-drafted slot as manually edited.
+  const [redraftBases, setRedraftBases] = useState<Record<string, unknown>>({});
+
+  // Which slots are currently awaiting a re-draft response.
+  const [redraftingSlots, setRedraftingSlots] = useState<Set<string>>(new Set());
+
+  async function redraftSlot(slot: string) {
+    setRedraftingSlots(prev => new Set([...prev, slot]));
+    try {
+      const r = await apiRequest(
+        "POST",
+        `/api/admin/properties/${propertyId}/deck-payload/draft-slot`,
+        { slot },
+      );
+      const result = (await r.json()) as DraftResult;
+      // Replace the edited suggestion in-place; all other slots are untouched.
+      setEditedSuggestions(prev => ({ ...prev, [slot]: result.suggestion }));
+      // Record the new base so "Edited" badge reflects manual changes only.
+      setRedraftBases(prev => ({ ...prev, [slot]: result.suggestion }));
+      // Keep baseRef in sync so the useEffect re-sync doesn't stomp this slot.
+      baseRef.current = { ...baseRef.current, [slot]: result.suggestion };
+      toast({
+        title: "Re-drafted",
+        description: `${slotLabel(slot)} refreshed with a new Analyst suggestion.`,
+      });
+    } catch (err: unknown) {
+      toast({
+        title: "Re-draft failed",
+        description: err instanceof Error ? err.message : String(err),
+        variant: "destructive",
+      });
+    } finally {
+      setRedraftingSlots(prev => {
+        const next = new Set(prev);
+        next.delete(slot);
+        return next;
+      });
+    }
+  }
+
   // Re-sync editable state when drafts change (e.g. re-draft stale or a
   // second Draft All run). Preserves admin edits on slots whose suggestion
   // did not change; resets to the fresh suggestion for re-drafted slots.
@@ -959,8 +1001,11 @@ function DraftAllReviewPanel({
             const isSelected = selected.has(draft.slot);
             const errs = localErrors[draft.slot] ?? [];
             const isStale = !!propertyUpdatedAt && draft.generatedAt < propertyUpdatedAt;
+            // Compare against the re-drafted base when available so a freshly
+            // re-drafted slot doesn't incorrectly show as manually edited.
+            const effectiveBase = redraftBases[draft.slot] ?? draft.suggestion;
             const isDirty =
-              JSON.stringify(editedSuggestions[draft.slot]) !== JSON.stringify(draft.suggestion);
+              JSON.stringify(editedSuggestions[draft.slot]) !== JSON.stringify(effectiveBase);
             return (
               <div
                 key={draft.slot}
@@ -1003,19 +1048,34 @@ function DraftAllReviewPanel({
                       Edited
                     </Badge>
                   )}
-                  {isDirty && isSelected && (
+                  {/* Right-aligned slot actions */}
+                  <div className="ml-auto flex items-center gap-2 shrink-0">
                     <button
                       type="button"
-                      onClick={() =>
-                        setEditedSuggestions(prev => ({ ...prev, [draft.slot]: draft.suggestion }))
-                      }
-                      className="ml-auto flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-                      title="Discard your edits and restore the original Analyst suggestion"
+                      onClick={() => void redraftSlot(draft.slot)}
+                      disabled={redraftingSlots.has(draft.slot)}
+                      className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Re-run the Analyst on this slot and replace the suggestion in-place"
                     >
-                      <RotateCcw className="h-2.5 w-2.5" />
-                      Reset to original
+                      {redraftingSlots.has(draft.slot)
+                        ? <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                        : <IconRefreshCw className="h-2.5 w-2.5" />}
+                      Re-draft
                     </button>
-                  )}
+                    {isDirty && isSelected && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setEditedSuggestions(prev => ({ ...prev, [draft.slot]: effectiveBase }))
+                        }
+                        className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                        title="Discard your edits and restore the current Analyst suggestion"
+                      >
+                        <RotateCcw className="h-2.5 w-2.5" />
+                        Reset to original
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Inline editor */}
