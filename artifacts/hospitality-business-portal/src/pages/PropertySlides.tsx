@@ -39,6 +39,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/ui/page-header";
 import {
   Carousel,
@@ -59,11 +62,25 @@ import {
   DECK_PAYLOAD_SCHEMA_VERSION,
   type DeckPayloadV2,
   type Slide1Payload,
+  SLIDE1_HEADER_SUBTITLE_MAX,
+  SLIDE1_VISION_BULLET_MAX,
   SLIDE1_VISION_BULLETS_COUNT,
   type Slide2Payload,
+  SLIDE2_OPERATIONAL_MODEL_MAX,
+  SLIDE2_REVENUE_BULLET_MAX,
+  SLIDE2_PROGRAMMING_BULLET_MAX,
   type Slide3Payload,
+  SLIDE3_CONCEPT_PARAGRAPH_MAX,
+  SLIDE3_MARKET_RATIONALE_MAX,
+  SLIDE3_REASON_LABEL_MAX,
+  SLIDE3_REASON_DETAIL_MAX,
   SLIDE3_REASONS_COUNT,
+  SLIDE3_CLOSING_LINE_MAX,
   type Slide5Payload,
+  SLIDE5_TRANSFORMATION_DESCRIPTION_MAX,
+  SLIDE5_TRANSFORMATION_ROW_FEATURE_MAX,
+  SLIDE5_TRANSFORMATION_ROW_EXISTING_MAX,
+  SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX,
   SLIDE5_TRANSFORMATION_ROWS_COUNT,
 } from "@shared/deck-payload-v2";
 import { Slide1EditorPanel } from "@/features/internal-deck/editor/Slide1EditorPanel";
@@ -158,11 +175,73 @@ function slugify(name: string): string {
 }
 
 /**
- * Convert a DraftResult array (from /draft-all) into a DeckPayloadV2 PATCH
- * body that can be sent to the PATCH endpoint. Only drafts without validation
- * errors are included.
+ * Client-side char-budget validation for a draft suggestion.
+ * Mirrors the server-side SlotOutputValidator — keeps UI feedback in sync
+ * without a round-trip.
  */
-function buildAcceptAllPatch(drafts: DraftResult[], generatedAt: string): Partial<DeckPayloadV2> {
+function validateSuggestionClient(slot: string, suggestion: unknown): string[] {
+  if (!suggestion || typeof suggestion !== "object") return [];
+  const s = suggestion as Record<string, unknown>;
+  const errors: string[] = [];
+
+  if (slot === "slide1.headerSubtitle" && typeof s.text === "string") {
+    if (s.text.length > SLIDE1_HEADER_SUBTITLE_MAX)
+      errors.push(`Exceeds ${SLIDE1_HEADER_SUBTITLE_MAX} chars (${s.text.length})`);
+  } else if (slot === "slide1.visionBullets" && Array.isArray(s.bullets)) {
+    (s.bullets as { text: string }[]).forEach((b, i) => {
+      if (b.text.length > SLIDE1_VISION_BULLET_MAX)
+        errors.push(`Bullet ${i + 1} exceeds ${SLIDE1_VISION_BULLET_MAX} chars (${b.text.length})`);
+    });
+  } else if (slot === "slide2.operationalModelText" && typeof s.text === "string") {
+    if (s.text.length > SLIDE2_OPERATIONAL_MODEL_MAX)
+      errors.push(`Exceeds ${SLIDE2_OPERATIONAL_MODEL_MAX} chars (${s.text.length})`);
+  } else if (slot === "slide2.revenueBullet" && typeof s.text === "string") {
+    if (s.text.length > SLIDE2_REVENUE_BULLET_MAX)
+      errors.push(`Exceeds ${SLIDE2_REVENUE_BULLET_MAX} chars (${s.text.length})`);
+  } else if (slot === "slide2.programmingBullet" && typeof s.text === "string") {
+    if (s.text.length > SLIDE2_PROGRAMMING_BULLET_MAX)
+      errors.push(`Exceeds ${SLIDE2_PROGRAMMING_BULLET_MAX} chars (${s.text.length})`);
+  } else if (slot === "slide3.conceptParagraph" && typeof s.text === "string") {
+    if (s.text.length > SLIDE3_CONCEPT_PARAGRAPH_MAX)
+      errors.push(`Exceeds ${SLIDE3_CONCEPT_PARAGRAPH_MAX} chars (${s.text.length})`);
+  } else if (slot === "slide3.marketRationale" && typeof s.text === "string") {
+    if (s.text.length > SLIDE3_MARKET_RATIONALE_MAX)
+      errors.push(`Exceeds ${SLIDE3_MARKET_RATIONALE_MAX} chars (${s.text.length})`);
+  } else if (slot === "slide3.closingLine" && typeof s.text === "string") {
+    if (s.text.length > SLIDE3_CLOSING_LINE_MAX)
+      errors.push(`Exceeds ${SLIDE3_CLOSING_LINE_MAX} chars (${s.text.length})`);
+  } else if (slot === "slide3.reasons" && Array.isArray(s.reasons)) {
+    (s.reasons as { label: string; detail: string }[]).forEach((r, i) => {
+      if (r.label.length > SLIDE3_REASON_LABEL_MAX)
+        errors.push(`Reason ${i + 1} label exceeds ${SLIDE3_REASON_LABEL_MAX} chars (${r.label.length})`);
+      if (r.detail.length > SLIDE3_REASON_DETAIL_MAX)
+        errors.push(`Reason ${i + 1} detail exceeds ${SLIDE3_REASON_DETAIL_MAX} chars (${r.detail.length})`);
+    });
+  } else if (slot === "slide5.transformationDescription" && typeof s.text === "string") {
+    if (s.text.length > SLIDE5_TRANSFORMATION_DESCRIPTION_MAX)
+      errors.push(`Exceeds ${SLIDE5_TRANSFORMATION_DESCRIPTION_MAX} chars (${s.text.length})`);
+  } else if (slot === "slide5.transformationRows" && Array.isArray(s.rows)) {
+    (s.rows as { feature: string; existing: string; proposed: string }[]).forEach((r, i) => {
+      if (r.feature.length > SLIDE5_TRANSFORMATION_ROW_FEATURE_MAX)
+        errors.push(`Row ${i + 1} feature exceeds ${SLIDE5_TRANSFORMATION_ROW_FEATURE_MAX} chars (${r.feature.length})`);
+      if (r.existing.length > SLIDE5_TRANSFORMATION_ROW_EXISTING_MAX)
+        errors.push(`Row ${i + 1} existing exceeds ${SLIDE5_TRANSFORMATION_ROW_EXISTING_MAX} chars (${r.existing.length})`);
+      if (r.proposed.length > SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX)
+        errors.push(`Row ${i + 1} proposed exceeds ${SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX} chars (${r.proposed.length})`);
+    });
+  }
+
+  return errors;
+}
+
+/**
+ * Build a DeckPayloadV2 PATCH body from a selected subset of edited
+ * suggestions. Callers provide only the slots they want to persist.
+ */
+function buildSelectedPatch(
+  selected: { slot: string; suggestion: unknown }[],
+  generatedAt: string,
+): Partial<DeckPayloadV2> {
   const now = generatedAt;
   const prov = (source: "llm") => ({ source, updatedAt: now });
   const authored = (text: string) => ({ text, provenance: prov("llm") });
@@ -172,35 +251,34 @@ function buildAcceptAllPatch(drafts: DraftResult[], generatedAt: string): Partia
   const slide3: Partial<Slide3Payload> = {};
   const slide5: Partial<Slide5Payload> = {};
 
-  for (const d of drafts) {
-    if (d.validationErrors && d.validationErrors.length > 0) continue;
-    const s = d.suggestion as Record<string, unknown>;
+  for (const { slot, suggestion } of selected) {
+    const s = suggestion as Record<string, unknown>;
 
-    if (d.slot === "slide1.headerSubtitle" && typeof s.text === "string") {
+    if (slot === "slide1.headerSubtitle" && typeof s.text === "string") {
       slide1.headerSubtitle = authored(s.text);
-    } else if (d.slot === "slide1.visionBullets" && Array.isArray(s.bullets)) {
+    } else if (slot === "slide1.visionBullets" && Array.isArray(s.bullets)) {
       slide1.visionBullets = (s.bullets as { text: string }[])
         .slice(0, SLIDE1_VISION_BULLETS_COUNT)
         .map(b => authored(b.text));
-    } else if (d.slot === "slide2.operationalModelText" && typeof s.text === "string") {
+    } else if (slot === "slide2.operationalModelText" && typeof s.text === "string") {
       slide2.operationalModelText = authored(s.text);
-    } else if (d.slot === "slide2.revenueBullet" && typeof s.text === "string") {
+    } else if (slot === "slide2.revenueBullet" && typeof s.text === "string") {
       slide2.revenueBullet = authored(s.text);
-    } else if (d.slot === "slide2.programmingBullet" && typeof s.text === "string") {
+    } else if (slot === "slide2.programmingBullet" && typeof s.text === "string") {
       slide2.programmingBullet = authored(s.text);
-    } else if (d.slot === "slide3.conceptParagraph" && typeof s.text === "string") {
+    } else if (slot === "slide3.conceptParagraph" && typeof s.text === "string") {
       slide3.conceptParagraph = authored(s.text);
-    } else if (d.slot === "slide3.marketRationale" && typeof s.text === "string") {
+    } else if (slot === "slide3.marketRationale" && typeof s.text === "string") {
       slide3.marketRationale = authored(s.text);
-    } else if (d.slot === "slide3.closingLine" && typeof s.text === "string") {
+    } else if (slot === "slide3.closingLine" && typeof s.text === "string") {
       slide3.closingLine = authored(s.text);
-    } else if (d.slot === "slide3.reasons" && Array.isArray(s.reasons)) {
+    } else if (slot === "slide3.reasons" && Array.isArray(s.reasons)) {
       slide3.reasons = (s.reasons as { label: string; detail: string }[])
         .slice(0, SLIDE3_REASONS_COUNT)
         .map(r => ({ label: authored(r.label), detail: authored(r.detail) }));
-    } else if (d.slot === "slide5.transformationDescription" && typeof s.text === "string") {
+    } else if (slot === "slide5.transformationDescription" && typeof s.text === "string") {
       slide5.transformationDescription = authored(s.text);
-    } else if (d.slot === "slide5.transformationRows" && Array.isArray(s.rows)) {
+    } else if (slot === "slide5.transformationRows" && Array.isArray(s.rows)) {
       slide5.transformationRows = (s.rows as { feature: string; existing: string; proposed: string }[])
         .slice(0, SLIDE5_TRANSFORMATION_ROWS_COUNT)
         .map(r => ({
@@ -515,6 +593,169 @@ function SlideMiniPreview({
 
 // ── Draft All review panel ────────────────────────────────────────────────
 
+/**
+ * Inline editor for a single draft slot. Renders slot-appropriate text
+ * controls (single textarea, per-bullet textareas, per-reason/row pairs)
+ * with real-time character-count feedback.
+ */
+function SlotEditor({
+  slot,
+  suggestion,
+  onChange,
+}: {
+  slot: string;
+  suggestion: unknown;
+  onChange: (updated: unknown) => void;
+}) {
+  const s = (suggestion as Record<string, unknown>) ?? {};
+
+  if (slot === "slide1.visionBullets" && Array.isArray(s.bullets)) {
+    const bullets = s.bullets as { text: string }[];
+    return (
+      <div className="space-y-2">
+        {bullets.map((b, i) => (
+          <div key={i} className="space-y-0.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-muted-foreground">Bullet {i + 1}</span>
+              <span className={`text-[10px] tabular-nums ${b.text.length > SLIDE1_VISION_BULLET_MAX ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                {b.text.length}/{SLIDE1_VISION_BULLET_MAX}
+              </span>
+            </div>
+            <Textarea
+              value={b.text}
+              rows={2}
+              className="text-xs resize-none"
+              onChange={e => {
+                const updated = bullets.map((x, j) => j === i ? { text: e.target.value } : x);
+                onChange({ bullets: updated });
+              }}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (slot === "slide3.reasons" && Array.isArray(s.reasons)) {
+    const reasons = s.reasons as { label: string; detail: string }[];
+    return (
+      <div className="space-y-3">
+        {reasons.map((r, i) => (
+          <div key={i} className="space-y-1.5 pl-2 border-l-2 border-border/60">
+            <span className="text-[10px] font-medium text-muted-foreground">Reason {i + 1}</span>
+            <div className="space-y-0.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground">Label</span>
+                <span className={`text-[10px] tabular-nums ${r.label.length > SLIDE3_REASON_LABEL_MAX ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                  {r.label.length}/{SLIDE3_REASON_LABEL_MAX}
+                </span>
+              </div>
+              <Textarea
+                value={r.label}
+                rows={1}
+                className="text-xs resize-none"
+                onChange={e => {
+                  const updated = reasons.map((x, j) => j === i ? { ...x, label: e.target.value } : x);
+                  onChange({ reasons: updated });
+                }}
+              />
+            </div>
+            <div className="space-y-0.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground">Detail</span>
+                <span className={`text-[10px] tabular-nums ${r.detail.length > SLIDE3_REASON_DETAIL_MAX ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                  {r.detail.length}/{SLIDE3_REASON_DETAIL_MAX}
+                </span>
+              </div>
+              <Textarea
+                value={r.detail}
+                rows={2}
+                className="text-xs resize-none"
+                onChange={e => {
+                  const updated = reasons.map((x, j) => j === i ? { ...x, detail: e.target.value } : x);
+                  onChange({ reasons: updated });
+                }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (slot === "slide5.transformationRows" && Array.isArray(s.rows)) {
+    const rows = s.rows as { feature: string; existing: string; proposed: string }[];
+    return (
+      <div className="space-y-3">
+        {rows.map((r, i) => (
+          <div key={i} className="space-y-1.5 pl-2 border-l-2 border-border/60">
+            <span className="text-[10px] font-medium text-muted-foreground">Row {i + 1}</span>
+            {(["feature", "existing", "proposed"] as const).map(field => {
+              const maxMap = {
+                feature: SLIDE5_TRANSFORMATION_ROW_FEATURE_MAX,
+                existing: SLIDE5_TRANSFORMATION_ROW_EXISTING_MAX,
+                proposed: SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX,
+              };
+              const max = maxMap[field];
+              const val = r[field];
+              return (
+                <div key={field} className="space-y-0.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-muted-foreground capitalize">{field}</span>
+                    <span className={`text-[10px] tabular-nums ${val.length > max ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                      {val.length}/{max}
+                    </span>
+                  </div>
+                  <Textarea
+                    value={val}
+                    rows={1}
+                    className="text-xs resize-none"
+                    onChange={e => {
+                      const updated = rows.map((x, j) => j === i ? { ...x, [field]: e.target.value } : x);
+                      onChange({ rows: updated });
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // Default: simple { text } slot
+  const text = typeof s.text === "string" ? s.text : "";
+  const SIMPLE_MAX: Partial<Record<string, number>> = {
+    "slide1.headerSubtitle": SLIDE1_HEADER_SUBTITLE_MAX,
+    "slide2.operationalModelText": SLIDE2_OPERATIONAL_MODEL_MAX,
+    "slide2.revenueBullet": SLIDE2_REVENUE_BULLET_MAX,
+    "slide2.programmingBullet": SLIDE2_PROGRAMMING_BULLET_MAX,
+    "slide3.conceptParagraph": SLIDE3_CONCEPT_PARAGRAPH_MAX,
+    "slide3.marketRationale": SLIDE3_MARKET_RATIONALE_MAX,
+    "slide3.closingLine": SLIDE3_CLOSING_LINE_MAX,
+    "slide5.transformationDescription": SLIDE5_TRANSFORMATION_DESCRIPTION_MAX,
+  };
+  const max = SIMPLE_MAX[slot] ?? 320;
+  const overBudget = text.length > max;
+
+  return (
+    <div className="space-y-0.5">
+      <div className="flex items-center justify-end">
+        <span className={`text-[10px] tabular-nums ${overBudget ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+          {text.length}/{max}
+        </span>
+      </div>
+      <Textarea
+        value={text}
+        rows={3}
+        className="text-xs resize-none"
+        onChange={e => onChange({ text: e.target.value })}
+      />
+    </div>
+  );
+}
+
 function DraftAllReviewPanel({
   drafts,
   generatedAt,
@@ -534,47 +775,91 @@ function DraftAllReviewPanel({
   const validDrafts = drafts.filter(d => !d.validationErrors || d.validationErrors.length === 0);
   const erroredDrafts = drafts.filter(d => d.validationErrors && d.validationErrors.length > 0);
 
+  // Editable suggestion text per slot — initialized from the AI proposal.
+  const [editedSuggestions, setEditedSuggestions] = useState<Record<string, unknown>>(
+    () => Object.fromEntries(validDrafts.map(d => [d.slot, d.suggestion])),
+  );
+
+  // Per-slot inclusion checkboxes — all valid drafts selected by default.
+  const [selected, setSelected] = useState<Set<string>>(
+    () => new Set(validDrafts.map(d => d.slot)),
+  );
+
+  // Re-sync editable state when a new Draft All result arrives while the panel
+  // stays mounted (e.g., admin runs Draft All a second time on the same page).
+  useEffect(() => {
+    setEditedSuggestions(Object.fromEntries(validDrafts.map(d => [d.slot, d.suggestion])));
+    setSelected(new Set(validDrafts.map(d => d.slot)));
+  // Only re-run when the set of slots or their raw suggestions actually changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drafts]);
+
+  // Real-time char-budget validation against the current edited text.
+  const localErrors = useMemo<Record<string, string[]>>(
+    () => Object.fromEntries(
+      validDrafts.map(d => [d.slot, validateSuggestionClient(d.slot, editedSuggestions[d.slot])]),
+    ),
+    [validDrafts, editedSuggestions],
+  );
+
+  const selectedWithErrors = validDrafts
+    .filter(d => selected.has(d.slot) && localErrors[d.slot]?.length > 0)
+    .length;
+
+  const selectedCount = validDrafts.filter(d => selected.has(d.slot)).length;
+
   const acceptMutation = useMutation({
     mutationFn: async () => {
-      const patch = buildAcceptAllPatch(validDrafts, generatedAt);
+      const toAccept = validDrafts
+        .filter(d => selected.has(d.slot) && !(localErrors[d.slot]?.length > 0))
+        .map(d => ({ slot: d.slot, suggestion: editedSuggestions[d.slot] ?? d.suggestion }));
+      const patch = buildSelectedPatch(toAccept, generatedAt);
       const r = await apiRequest(
         "PATCH",
         `/api/admin/properties/${propertyId}/deck-payload`,
         { schemaVersion: DECK_PAYLOAD_SCHEMA_VERSION, ...patch },
       );
-      return r.json();
+      return { json: await r.json(), count: toAccept.length };
     },
-    onSuccess: () => {
+    onSuccess: ({ count }) => {
       qc.invalidateQueries({ queryKey: ["/api/admin/properties", propertyId, "deck-payload"] });
       qc.invalidateQueries({ queryKey: ["/api/admin/properties", propertyId, "deck-token"] });
       qc.invalidateQueries({ queryKey: ["/api/admin/properties", propertyId, "deck-payload", "readiness"] });
       toast({
-        title: `${validDrafts.length} slot${validDrafts.length === 1 ? "" : "s"} accepted`,
-        description: "All Analyst drafts have been persisted. Open a slide editor to review and save any individual slot.",
+        title: `${count} slot${count === 1 ? "" : "s"} accepted`,
+        description: "Persisted. Open a slide editor to review or make further changes.",
       });
       onAccepted();
     },
     onError: (err: unknown) => {
       toast({
-        title: "Accept all failed",
+        title: "Accept failed",
         description: err instanceof Error ? err.message : String(err),
         variant: "destructive",
       });
     },
   });
 
+  function toggleSlot(slot: string) {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(slot)) next.delete(slot); else next.add(slot);
+      return next;
+    });
+  }
+
   return (
     <Card className="border border-sky-200 bg-sky-50/40 dark:border-sky-800 dark:bg-sky-950/20">
       <CardContent className="p-5 space-y-4">
+        {/* Header row */}
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <h3 className="text-sm font-semibold">
-              Analyst drafted {drafts.length} slot{drafts.length === 1 ? "" : "s"} — review before accepting
+              Analyst drafted {drafts.length} slot{drafts.length === 1 ? "" : "s"} — review &amp; edit before accepting
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {validDrafts.length} ready to accept
-              {erroredDrafts.length > 0 ? `, ${erroredDrafts.length} with validation errors (skipped)` : ""}.
-              Accepting persists all valid drafts; individual slots can be revised in the editor.
+              {validDrafts.length} ready · {erroredDrafts.length > 0 ? `${erroredDrafts.length} skipped (validation errors)` : "no errors"}.
+              Check the slots you want to keep, edit the text if needed, then accept.
             </p>
           </div>
           <Button
@@ -592,60 +877,115 @@ function DraftAllReviewPanel({
 
         <Separator />
 
-        <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-          {drafts.map((draft) => {
-            const hasErrors = draft.validationErrors && draft.validationErrors.length > 0;
+        {/* Draft rows */}
+        <div className="space-y-5 max-h-[560px] overflow-y-auto pr-1">
+          {/* Valid drafts — editable + selectable */}
+          {validDrafts.map(draft => {
+            const isSelected = selected.has(draft.slot);
+            const errs = localErrors[draft.slot] ?? [];
             return (
-              <div key={draft.slot} className="space-y-1">
+              <div
+                key={draft.slot}
+                className={`space-y-2 rounded-md border p-3 transition-colors ${
+                  isSelected
+                    ? "border-sky-200 bg-white dark:border-sky-800 dark:bg-sky-950/10"
+                    : "border-border/50 bg-muted/30 opacity-60"
+                }`}
+              >
+                {/* Row header: checkbox + label + badge */}
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-medium">{slotLabel(draft.slot)}</span>
-                  {hasErrors ? (
-                    <Badge variant="outline" className="text-destructive border-destructive/30 text-[10px]">
-                      Validation error — skipped
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-sky-700 border-sky-300 bg-sky-50 text-[10px]">
-                      Analyst draft
+                  <Checkbox
+                    id={`draft-cb-${draft.slot}`}
+                    checked={isSelected}
+                    onCheckedChange={() => toggleSlot(draft.slot)}
+                    aria-label={`Include ${slotLabel(draft.slot)}`}
+                  />
+                  <Label
+                    htmlFor={`draft-cb-${draft.slot}`}
+                    className="text-xs font-medium cursor-pointer leading-none"
+                  >
+                    {slotLabel(draft.slot)}
+                  </Label>
+                  <Badge variant="outline" className="text-sky-700 border-sky-300 bg-sky-50 dark:bg-sky-950/30 text-[10px]">
+                    Analyst draft
+                  </Badge>
+                  {errs.length > 0 && (
+                    <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 dark:bg-amber-950/30 text-[10px] gap-1">
+                      <IconAlertCircle className="h-2.5 w-2.5" />
+                      Over budget
                     </Badge>
                   )}
                 </div>
-                {hasErrors ? (
-                  <p className="text-xs text-destructive">{draft.validationErrors!.join("; ")}</p>
-                ) : (
-                  <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                    {suggestionPreview(draft.slot, draft.suggestion)}
+
+                {/* Inline editor */}
+                {isSelected && (
+                  <SlotEditor
+                    slot={draft.slot}
+                    suggestion={editedSuggestions[draft.slot] ?? draft.suggestion}
+                    onChange={updated =>
+                      setEditedSuggestions(prev => ({ ...prev, [draft.slot]: updated }))
+                    }
+                  />
+                )}
+
+                {/* Char-budget errors */}
+                {isSelected && errs.length > 0 && (
+                  <p className="text-[10px] text-destructive leading-snug">
+                    {errs.join(" · ")} — shorten to accept this slot.
                   </p>
                 )}
               </div>
             );
           })}
+
+          {/* Errored drafts — read-only, always skipped */}
+          {erroredDrafts.map(draft => (
+            <div
+              key={draft.slot}
+              className="space-y-1 rounded-md border border-border/40 bg-muted/20 p-3 opacity-50"
+            >
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-medium">{slotLabel(draft.slot)}</span>
+                <Badge variant="outline" className="text-destructive border-destructive/30 text-[10px]">
+                  Validation error — skipped
+                </Badge>
+              </div>
+              <p className="text-[10px] text-destructive">{draft.validationErrors!.join("; ")}</p>
+            </div>
+          ))}
         </div>
 
         {validDrafts.length > 0 && (
           <>
             <Separator />
-            <div className="flex items-center justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={onDismiss}
-                disabled={acceptMutation.isPending}
-              >
-                Discard drafts
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => acceptMutation.mutate()}
-                disabled={acceptMutation.isPending}
-                className="gap-1.5"
-              >
-                {acceptMutation.isPending
-                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  : <IconCheck className="h-3.5 w-3.5" />}
-                Accept all {validDrafts.length} draft{validDrafts.length === 1 ? "" : "s"}
-              </Button>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <p className="text-xs text-muted-foreground">
+                {selectedCount} of {validDrafts.length} slot{validDrafts.length === 1 ? "" : "s"} selected
+                {selectedWithErrors > 0 ? ` · ${selectedWithErrors} over budget (will be skipped)` : ""}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={onDismiss}
+                  disabled={acceptMutation.isPending}
+                >
+                  Discard
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => acceptMutation.mutate()}
+                  disabled={acceptMutation.isPending || selectedCount === 0 || (selectedCount - selectedWithErrors) === 0}
+                  className="gap-1.5"
+                >
+                  {acceptMutation.isPending
+                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    : <IconCheck className="h-3.5 w-3.5" />}
+                  Accept {selectedCount - selectedWithErrors} selected
+                </Button>
+              </div>
             </div>
           </>
         )}
