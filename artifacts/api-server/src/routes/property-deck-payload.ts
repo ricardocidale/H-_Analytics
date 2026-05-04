@@ -151,6 +151,20 @@ function stripCodeFences(text: string): string {
   return trimmed.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
 }
 
+// ── Fallback copy — exported so tests can pin them against shared budgets ─
+
+/**
+ * Static fallback bullets used when the LLM call fails or is unavailable.
+ * Exported for contract tests — do NOT mutate at runtime.
+ * Each string must already fit within SLIDE1_VISION_BULLET_MAX so the
+ * downstream `.slice()` guard is a no-op and callers get the full text.
+ */
+export const FALLBACK_VISION_BULLET_TEXTS: readonly string[] = [
+  `Year-Round Demand: Drive-Market Leisure + Weekend Escapes + Local Events`,
+  `Direct Booking Focus: 50%+ Direct Mix by Year 3, Reducing OTA Dependency`,
+  `Revenue Mix: 70% Rooms, 20% F&B, 10% Events & Packages`,
+];
+
 function propertyToSlideProperty(
   property: Record<string, unknown>,
 ): SlideProperty {
