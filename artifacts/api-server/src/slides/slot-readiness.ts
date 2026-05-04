@@ -5,6 +5,7 @@
  * DeckPayloadV2:
  *   - 11 LLM-draft slots (can be auto-generated via draft-slot / draft-all)
  *   - 5 human-only slots (narrative text + photo captions only a human can fill)
+ *   - 1 optional override slot (interior photo URL — informational, no provenance)
  *   - 2 deterministic slide markers (slides 4 and 6 are 100% computed)
  *
  * Status semantics:
@@ -34,7 +35,14 @@ export type HumanSlotKey =
   | "slide1.photoCaptions.secondary"
   | "slide1.photoCaptions.inset";
 
-export type AllAuthoredSlotKey = DraftSlotKey | HumanSlotKey;
+/**
+ * Optional override slots — plain (non-AuthoredString) fields that are
+ * informational only. Reported as "complete" when set, "missing" when
+ * absent, but never "stale" (no provenance to compare).
+ */
+export type OptionalSlotKey = "slide3.interiorPhoto";
+
+export type AllAuthoredSlotKey = DraftSlotKey | HumanSlotKey | OptionalSlotKey;
 
 export type SlotReadinessReport = Record<
   AllAuthoredSlotKey | DeterministicSlotKey,
@@ -42,6 +50,8 @@ export type SlotReadinessReport = Record<
 >;
 
 const DETERMINISTIC_SLOTS: DeterministicSlotKey[] = ["slide4", "slide6"];
+
+const OPTIONAL_SLOT_KEYS: OptionalSlotKey[] = ["slide3.interiorPhoto"];
 
 const DRAFT_SLOT_KEYS: DraftSlotKey[] = [
   "slide1.headerSubtitle",
@@ -141,7 +151,8 @@ function getHumanSlotRawValue(payload: DeckPayloadV2, slot: HumanSlotKey): unkno
 
 /**
  * Evaluate readiness for all authored slots in a DeckPayloadV2.
- * Covers 11 LLM-draft slots, 5 human-only slots, and 2 deterministic slides.
+ * Covers 11 LLM-draft slots, 5 human-only slots, 1 optional override slot,
+ * and 2 deterministic slides.
  *
  * @param deckPayload        The current persisted payload for the property.
  * @param propertyUpdatedAt  The last time the property record itself changed.
@@ -160,11 +171,24 @@ export function getSlotReadiness(
     report[slot] = slotStatus(getHumanSlotRawValue(deckPayload, slot), propertyUpdatedAt);
   }
 
+  for (const slot of OPTIONAL_SLOT_KEYS) {
+    report[slot] = getOptionalSlotStatus(deckPayload, slot);
+  }
+
   for (const key of DETERMINISTIC_SLOTS) {
     report[key] = "deterministic";
   }
 
   return report;
+}
+
+function getOptionalSlotStatus(payload: DeckPayloadV2, slot: OptionalSlotKey): SlotStatus {
+  switch (slot) {
+    case "slide3.interiorPhoto":
+      return (payload.slide3?.interiorPhotoUrl ?? null) != null ? "complete" : "missing";
+    default:
+      return "missing";
+  }
 }
 
 /**

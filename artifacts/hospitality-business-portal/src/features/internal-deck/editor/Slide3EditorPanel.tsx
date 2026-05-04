@@ -502,7 +502,10 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
         {/* Interior photo picker */}
         <div className="space-y-4">
           <div>
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Interior photo</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Interior photo</h3>
+              <ReadinessBadge status={report?.["slide3.interiorPhoto"] as "complete" | "missing" | undefined} />
+            </div>
             <p className="text-xs text-muted-foreground mt-1">
               Choose which photo appears in the bottom-left slot on Slide 3. When no override is set,
               the slide auto-selects a non-hero photo automatically.
