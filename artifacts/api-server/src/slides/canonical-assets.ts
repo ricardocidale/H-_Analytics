@@ -14,7 +14,12 @@
 
 const R2_PREFIX = "canonical/lb-6-slide" as const;
 
-/** Constructs the R2 key for a per-slide asset. Accepts slide numbers 1–6. */
+/**
+ * Constructs the R2 key for a per-slide asset.
+ * @param n Slide number (valid range: 1–6 inclusive).
+ *   Callers are responsible for validating the range before calling this.
+ *   Passing an out-of-range value generates an R2 key that will not resolve.
+ */
 function slideKey(n: number, ext: "png" | "pdf"): string {
   return `${R2_PREFIX}/slides/slide-${n}.${ext}`;
 }
