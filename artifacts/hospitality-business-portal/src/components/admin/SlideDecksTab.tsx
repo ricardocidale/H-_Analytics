@@ -13,6 +13,9 @@ import {
   IconExternalLink,
   IconFileText,
   IconRefreshCw,
+  IconHistory,
+  IconUser,
+  IconClock,
 } from "@/components/icons";
 import { Loader2, ChevronDown, ChevronRight } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
@@ -90,6 +93,18 @@ interface DraftResult {
   model: string;
   generatedAt: string;
   validationErrors?: string[];
+}
+
+interface BulkDraftRunRow {
+  id: number;
+  userId: number;
+  userName: string;
+  ranAt: string;
+  totalDrafted: number;
+  totalSkipped: number;
+  totalErrors: number;
+  propertyCount: number;
+  propertyResults: BulkDraftPropertyResult[];
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────
@@ -644,6 +659,183 @@ function DeckReadinessBadge({ readiness }: { readiness: DeckReadiness }) {
   );
 }
 
+// ── Draft history section ──────────────────────────────────────────────────
+
+function formatRelativeTime(isoDate: string): string {
+  const diff = Date.now() - new Date(isoDate).getTime();
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(isoDate).toLocaleDateString();
+}
+
+function DraftHistorySection({ runs }: { runs: BulkDraftRunRow[] }) {
+  const [expandedRunIds, setExpandedRunIds] = useState<Set<number>>(new Set());
+  const [expandedPropertyIds, setExpandedPropertyIds] = useState<Set<string>>(new Set());
+
+  const toggleRun = (id: number) => {
+    setExpandedRunIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleProperty = (runId: number, propertyId: number) => {
+    const key = `${runId}-${propertyId}`;
+    setExpandedPropertyIds(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <IconHistory className="h-4.5 w-4.5 text-muted-foreground" />
+        <h3 className="text-base font-semibold text-foreground">Draft History</h3>
+        <Badge variant="outline" className="text-[11px] border-0 font-medium bg-muted text-muted-foreground">
+          {runs.length} run{runs.length === 1 ? "" : "s"}
+        </Badge>
+      </div>
+
+      <div className="space-y-1.5">
+        {runs.map(run => {
+          const isExpanded = expandedRunIds.has(run.id);
+          const successCount = run.propertyResults.filter(r => r.status === "done").length;
+
+          return (
+            <div
+              key={run.id}
+              className="rounded-md border border-border/60"
+            >
+              <button
+                type="button"
+                className="flex w-full items-center gap-3 px-3.5 py-2.5 text-sm text-left hover:bg-muted/40 transition-colors rounded-md"
+                onClick={() => toggleRun(run.id)}
+              >
+                {isExpanded
+                  ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+
+                <div className="flex items-center gap-1.5 shrink-0 text-muted-foreground">
+                  <IconClock className="h-3.5 w-3.5" />
+                  <span className="text-[12px] font-medium">{formatRelativeTime(run.ranAt)}</span>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0 text-muted-foreground">
+                  <IconUser className="h-3.5 w-3.5" />
+                  <span className="text-[12px] font-medium truncate max-w-[120px]">{run.userName}</span>
+                </div>
+
+                <div className="flex-1" />
+
+                <Badge variant="outline" className="text-[11px] border-0 font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 shrink-0">
+                  {run.totalDrafted} drafted
+                </Badge>
+
+                {run.totalSkipped > 0 && (
+                  <Badge variant="outline" className="text-[11px] border-0 font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 shrink-0">
+                    {run.totalSkipped} skipped
+                  </Badge>
+                )}
+
+                {run.totalErrors > 0 && (
+                  <Badge variant="outline" className="text-[11px] border-0 font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 shrink-0">
+                    {run.totalErrors} failed
+                  </Badge>
+                )}
+
+                <Badge variant="outline" className="text-[11px] border-0 font-medium bg-muted text-muted-foreground shrink-0">
+                  {successCount}/{run.propertyCount} propert{run.propertyCount === 1 ? "y" : "ies"}
+                </Badge>
+              </button>
+
+              {isExpanded && (
+                <div className="px-3.5 pb-3 pt-0">
+                  <div className="ml-5 border-l border-border/60 pl-3 space-y-0.5">
+                    {run.propertyResults.map(pr => {
+                      const propKey = `${run.id}-${pr.propertyId}`;
+                      const isPropExpanded = expandedPropertyIds.has(propKey);
+                      const hasSlotDetails = pr.draftedSlots.length > 0 || pr.skippedSlots.length > 0;
+
+                      return (
+                        <div key={pr.propertyId}>
+                          <div className="flex items-center gap-2 py-1">
+                            {hasSlotDetails ? (
+                              <button
+                                type="button"
+                                className="shrink-0 rounded p-0.5 hover:bg-muted/80 transition-colors"
+                                onClick={() => toggleProperty(run.id, pr.propertyId)}
+                                aria-label={isPropExpanded ? "Collapse slot list" : "Expand slot list"}
+                              >
+                                {isPropExpanded
+                                  ? <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                                  : <ChevronRight className="h-3 w-3 text-muted-foreground" />}
+                              </button>
+                            ) : (
+                              <span className="w-3 shrink-0" />
+                            )}
+
+                            <span className="text-[12px] font-medium truncate flex-1">
+                              {pr.propertyName}
+                            </span>
+
+                            {pr.status === "error" ? (
+                              <Badge variant="outline" className="text-[10px] border-0 font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 shrink-0">
+                                Failed
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[10px] border-0 font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 shrink-0">
+                                {pr.draftedSlots.length} slot{pr.draftedSlots.length === 1 ? "" : "s"}
+                              </Badge>
+                            )}
+                          </div>
+
+                          {isPropExpanded && hasSlotDetails && (
+                            <div className="ml-6 border-l border-border/40 pl-2.5 space-y-0.5 pb-1">
+                              {pr.draftedSlots.map(slot => (
+                                <div
+                                  key={slot}
+                                  className="flex items-center gap-1.5 text-[11px] text-muted-foreground py-0.5"
+                                >
+                                  <IconCheckCircle2 className="h-2.5 w-2.5 text-emerald-500 dark:text-emerald-400 shrink-0" />
+                                  {humanSlotName(slot)}
+                                </div>
+                              ))}
+                              {pr.skippedSlots.map(slot => (
+                                <div
+                                  key={slot}
+                                  className="flex items-center gap-1.5 text-[11px] text-amber-600 dark:text-amber-400 py-0.5"
+                                >
+                                  <IconAlertTriangle className="h-2.5 w-2.5 shrink-0" />
+                                  {humanSlotName(slot)}
+                                  <span className="text-[10px] text-muted-foreground">(skipped)</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────────────
 
 export default function SlideDecksTab() {
@@ -832,7 +1024,20 @@ export default function SlideDecksTab() {
     setBulkDraftResults(runResults);
     setShowBulkSummary(true);
     setIsBulkRunning(false);
-  }, [isBulkRunning, deficientPropertyIds, draftSingleProperty]);
+
+    try {
+      await fetch("/api/admin/bulk-draft-runs", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ propertyResults: runResults }),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["/api/admin/bulk-draft-runs"],
+      });
+    } catch {
+    }
+  }, [isBulkRunning, deficientPropertyIds, draftSingleProperty, queryClient]);
 
   const handleRetryProperty = useCallback(async (propertyId: number) => {
     setBulkDraftStatuses(prev => new Map(prev).set(propertyId, "drafting"));
@@ -842,6 +1047,11 @@ export default function SlideDecksTab() {
       prev.map(r => r.propertyId === propertyId ? result : r),
     );
   }, [draftSingleProperty]);
+
+  const { data: draftHistory } = useQuery<BulkDraftRunRow[]>({
+    queryKey: ["/api/admin/bulk-draft-runs"],
+    staleTime: 30_000,
+  });
 
   // Count how many are still in-flight or queued
   const draftingCount = [...bulkDraftStatuses.values()].filter(s => s === "drafting").length;
@@ -1010,6 +1220,10 @@ export default function SlideDecksTab() {
         results={bulkDraftResults}
         onRetry={handleRetryProperty}
       />
+
+      {draftHistory && draftHistory.length > 0 && (
+        <DraftHistorySection runs={draftHistory} />
+      )}
     </div>
   );
 }
