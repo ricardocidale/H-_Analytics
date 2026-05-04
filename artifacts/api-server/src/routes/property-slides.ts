@@ -9,8 +9,10 @@
  *   GET /api/properties/hero-images/zip   — admin: ZIP of hero images
  *   GET /api/slides/status                — admin: PDF variant status rows
  *
- * The `property_slide_deck_variants` table only stores `pdf` rows
- * (see migration 0042).
+ * In current code only `pdf` rows are written (see
+ * `upsertPdfVariantRow` in `property-deck-pdf.ts`); `'pptx'` and `'image'`
+ * remain in the format CHECK for historical rows and future variants
+ * (see migrations 0029 and 0033).
  */
 
 import { Router, type Request, type Response } from "express";
@@ -195,8 +197,8 @@ router.get("/api/properties/hero-images/zip", requireAdmin, async (_req: Request
 
 /**
  * GET /api/slides/status
- * Returns all PDF variant rows for the admin Slide Decks tab. The table
- * only stores `pdf` rows post-T006 (see migration 0042).
+ * Returns variant rows for the admin Slide Decks tab. In current code only
+ * `pdf` rows are written, but the schema also allows `'pptx'` / `'image'`.
  */
 router.get("/api/slides/status", requireAdmin, async (_req: Request, res: Response) => {
   try {
