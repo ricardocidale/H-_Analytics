@@ -12,8 +12,10 @@
     "check:migration-guards": "pnpm --filter @workspace/scripts run check:migration-guards",
     "check:spinner-contrast": "pnpm --filter @workspace/scripts run check:spinner-contrast",
     "check:production-image": "pnpm --filter @workspace/scripts run check:production-image",
+    "check:types-mirror": "pnpm --filter @workspace/scripts run check:types-mirror",
     "check:lint": "pnpm -r --if-present run lint",
-    "check:lint:libs": "pnpm --filter './lib/**' -r --if-present run lint"
+    "check:lint:libs": "pnpm --filter './lib/**' -r --if-present run lint",
+    "check": "pnpm run check:lint && pnpm run check:lint:libs && pnpm run typecheck && pnpm run check:magic-numbers && pnpm run check:replit-independence && pnpm run check:migration-guards && pnpm run check:spinner-contrast && pnpm run check:production-image && pnpm run check:types-mirror"
   },
   "private": true,
   "devDependencies": {
