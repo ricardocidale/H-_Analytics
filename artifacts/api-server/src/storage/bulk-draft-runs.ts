@@ -1,6 +1,6 @@
 import { db } from "../db";
 import { bulkDraftRuns, BULK_DRAFT_RUNS_KEEP, type BulkDraftRun, type BulkDraftPropertyResultJson } from "@workspace/db";
-import { desc, sql } from "drizzle-orm";
+import { desc, eq, lt, sql } from "drizzle-orm";
 import { logger } from "../logger";
 
 export interface CreateBulkDraftRunInput {
@@ -16,6 +16,8 @@ export interface CreateBulkDraftRunInput {
 export interface BulkDraftRunsStorage {
   createBulkDraftRun(input: CreateBulkDraftRunInput): Promise<BulkDraftRun>;
   listBulkDraftRuns(limit?: number): Promise<BulkDraftRun[]>;
+  deleteBulkDraftRun(id: number): Promise<boolean>;
+  deleteBulkDraftRunsBefore(date: Date): Promise<number>;
 }
 
 const MAX_RUNS_KEPT = 100;
@@ -60,5 +62,21 @@ export class BulkDraftRunsStorageImpl implements BulkDraftRunsStorage {
       .from(bulkDraftRuns)
       .orderBy(desc(bulkDraftRuns.ranAt))
       .limit(Math.min(limit, MAX_RUNS_KEPT));
+  }
+
+  async deleteBulkDraftRun(id: number): Promise<boolean> {
+    const deleted = await db
+      .delete(bulkDraftRuns)
+      .where(eq(bulkDraftRuns.id, id))
+      .returning({ id: bulkDraftRuns.id });
+    return deleted.length > 0;
+  }
+
+  async deleteBulkDraftRunsBefore(date: Date): Promise<number> {
+    const deleted = await db
+      .delete(bulkDraftRuns)
+      .where(lt(bulkDraftRuns.ranAt, date))
+      .returning({ id: bulkDraftRuns.id });
+    return deleted.length;
   }
 }

@@ -1,7 +1,7 @@
 import { type Express } from "express";
 import { requireAdmin } from "../../auth";
 import { storage } from "../../storage";
-import { logAndSendError, sendError, logActivity } from "../helpers";
+import { logAndSendError, sendError, logActivity, parseRouteId } from "../helpers";
 import { z } from "zod";
 
 const createBulkDraftRunBody = z.object({
@@ -14,6 +14,10 @@ const createBulkDraftRunBody = z.object({
       skippedSlots: z.array(z.string()),
     }),
   ),
+});
+
+const deleteBeforeQuery = z.object({
+  before: z.string().datetime({ message: "before must be an ISO 8601 datetime string" }),
 });
 
 export function registerBulkDraftRunRoutes(app: Express) {
@@ -71,6 +75,41 @@ export function registerBulkDraftRunRoutes(app: Express) {
       res.status(201).json(run);
     } catch (error) {
       logAndSendError(res, "Failed to save bulk draft run", error);
+    }
+  });
+
+  app.delete("/api/admin/bulk-draft-runs/:id", requireAdmin, async (req, res) => {
+    const id = parseRouteId(req.params.id);
+    if (!id) {
+      return sendError(res, 400, "Invalid run id");
+    }
+
+    try {
+      const deleted = await storage.deleteBulkDraftRun(id);
+      if (!deleted) {
+        return sendError(res, 404, "Run not found");
+      }
+      logActivity(req, "delete-bulk-draft-run", "bulk_draft_runs", id);
+      res.status(204).end();
+    } catch (error) {
+      logAndSendError(res, "Failed to delete bulk draft run", error);
+    }
+  });
+
+  app.delete("/api/admin/bulk-draft-runs", requireAdmin, async (req, res) => {
+    const parsed = deleteBeforeQuery.safeParse(req.query);
+    if (!parsed.success) {
+      return sendError(res, 400, "Query parameter 'before' must be a valid ISO 8601 datetime");
+    }
+
+    const before = new Date(parsed.data.before);
+
+    try {
+      const count = await storage.deleteBulkDraftRunsBefore(before);
+      logActivity(req, "delete-bulk-draft-runs-before", "bulk_draft_runs", null, parsed.data.before, { count });
+      res.json({ deleted: count });
+    } catch (error) {
+      logAndSendError(res, "Failed to delete bulk draft runs", error);
     }
   });
 }

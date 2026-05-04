@@ -16,6 +16,7 @@ import {
   IconHistory,
   IconUser,
   IconClock,
+  IconTrash,
 } from "@/components/icons";
 import { Loader2, ChevronDown, ChevronRight } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
@@ -28,9 +29,19 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { DECK_PAYLOAD_SCHEMA_VERSION } from "@shared/deck-payload-v2";
 import { useToast } from "@/hooks/use-toast";
+import { DECK_PAYLOAD_SCHEMA_VERSION } from "@shared/deck-payload-v2";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -706,9 +717,22 @@ function formatRelativeTime(isoDate: string): string {
   return new Date(isoDate).toLocaleDateString();
 }
 
+const CLEAR_BEFORE_OPTIONS = [
+  { label: "older than 7 days", days: 7 },
+  { label: "older than 30 days", days: 30 },
+  { label: "older than 90 days", days: 90 },
+];
+
 function DraftHistorySection({ runs }: { runs: BulkDraftRunRow[] }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [expandedRunIds, setExpandedRunIds] = useState<Set<number>>(new Set());
   const [expandedPropertyIds, setExpandedPropertyIds] = useState<Set<string>>(new Set());
+  const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [confirmClearDays, setConfirmClearDays] = useState<number | null>(null);
+  const [isBulkClearing, setIsBulkClearing] = useState(false);
+  const [clearSelectOpen, setClearSelectOpen] = useState(false);
 
   const toggleRun = (id: number) => {
     setExpandedRunIds(prev => {
@@ -729,6 +753,72 @@ function DraftHistorySection({ runs }: { runs: BulkDraftRunRow[] }) {
     });
   };
 
+  const handleDeleteRun = async (id: number) => {
+    setDeletingIds(prev => new Set(prev).add(id));
+    try {
+      const res = await fetch(`/api/admin/bulk-draft-runs/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        toast({
+          title: "Failed to delete run",
+          description: (body as { error?: string }).error ?? `Server error ${res.status}`,
+          variant: "destructive",
+        });
+        return;
+      }
+      await queryClient.invalidateQueries({ queryKey: ["/api/admin/bulk-draft-runs"] });
+    } catch {
+      toast({
+        title: "Failed to delete run",
+        description: "A network error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
+
+  const handleClearBefore = async (days: number) => {
+    setIsBulkClearing(true);
+    try {
+      const before = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+      const res = await fetch(`/api/admin/bulk-draft-runs?before=${encodeURIComponent(before)}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        toast({
+          title: "Failed to clear old runs",
+          description: (body as { error?: string }).error ?? `Server error ${res.status}`,
+          variant: "destructive",
+        });
+        return;
+      }
+      const data = await res.json() as { deleted: number };
+      await queryClient.invalidateQueries({ queryKey: ["/api/admin/bulk-draft-runs"] });
+      if (data.deleted === 0) {
+        toast({ title: "No runs to clear", description: `No runs older than ${days} days were found.` });
+      }
+    } catch {
+      toast({
+        title: "Failed to clear old runs",
+        description: "A network error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsBulkClearing(false);
+      setConfirmClearDays(null);
+    }
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
@@ -737,11 +827,48 @@ function DraftHistorySection({ runs }: { runs: BulkDraftRunRow[] }) {
         <Badge variant="outline" className="text-[11px] border-0 font-medium bg-muted text-muted-foreground">
           {runs.length} run{runs.length === 1 ? "" : "s"}
         </Badge>
+
+        <div className="flex-1" />
+
+        <div className="relative">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 px-2 text-[12px] text-muted-foreground hover:text-destructive gap-1.5"
+            onClick={() => setClearSelectOpen(o => !o)}
+            disabled={isBulkClearing || runs.length === 0}
+            title="Delete runs older than a chosen date"
+          >
+            {isBulkClearing
+              ? <Loader2 className="h-3 w-3 animate-spin" />
+              : <IconTrash className="h-3 w-3" />}
+            Clear old runs
+          </Button>
+
+          {clearSelectOpen && (
+            <div className="absolute right-0 top-full mt-1 z-50 bg-popover border border-border rounded-md shadow-md py-1 min-w-[160px]">
+              {CLEAR_BEFORE_OPTIONS.map(opt => (
+                <button
+                  key={opt.days}
+                  type="button"
+                  className="w-full text-left px-3 py-1.5 text-[12px] hover:bg-muted/60 transition-colors text-foreground"
+                  onClick={() => {
+                    setClearSelectOpen(false);
+                    setConfirmClearDays(opt.days);
+                  }}
+                >
+                  Delete {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="space-y-1.5">
         {runs.map(run => {
           const isExpanded = expandedRunIds.has(run.id);
+          const isDeleting = deletingIds.has(run.id);
           const successCount = run.propertyResults.filter(r => r.status === "done").length;
 
           return (
@@ -749,47 +876,64 @@ function DraftHistorySection({ runs }: { runs: BulkDraftRunRow[] }) {
               key={run.id}
               className="rounded-md border border-border/60"
             >
-              <button
-                type="button"
-                className="flex w-full items-center gap-3 px-3.5 py-2.5 text-sm text-left hover:bg-muted/40 transition-colors rounded-md"
-                onClick={() => toggleRun(run.id)}
-              >
-                {isExpanded
-                  ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+              <div className="flex w-full items-center gap-3 px-3.5 py-2.5 text-sm">
+                <button
+                  type="button"
+                  className="flex items-center gap-3 flex-1 min-w-0 text-left hover:bg-muted/40 transition-colors rounded"
+                  onClick={() => toggleRun(run.id)}
+                >
+                  {isExpanded
+                    ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
 
-                <div className="flex items-center gap-1.5 shrink-0 text-muted-foreground">
-                  <IconClock className="h-3.5 w-3.5" />
-                  <span className="text-[12px] font-medium">{formatRelativeTime(run.ranAt)}</span>
-                </div>
+                  <div className="flex items-center gap-1.5 shrink-0 text-muted-foreground">
+                    <IconClock className="h-3.5 w-3.5" />
+                    <span className="text-[12px] font-medium">{formatRelativeTime(run.ranAt)}</span>
+                  </div>
 
-                <div className="flex items-center gap-1.5 shrink-0 text-muted-foreground">
-                  <IconUser className="h-3.5 w-3.5" />
-                  <span className="text-[12px] font-medium truncate max-w-[120px]">{run.userName}</span>
-                </div>
+                  <div className="flex items-center gap-1.5 shrink-0 text-muted-foreground">
+                    <IconUser className="h-3.5 w-3.5" />
+                    <span className="text-[12px] font-medium truncate max-w-[120px]">{run.userName}</span>
+                  </div>
 
-                <div className="flex-1" />
+                  <div className="flex-1" />
 
-                <Badge variant="outline" className="text-[11px] border-0 font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 shrink-0">
-                  {run.totalDrafted} drafted
-                </Badge>
-
-                {run.totalSkipped > 0 && (
-                  <Badge variant="outline" className="text-[11px] border-0 font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 shrink-0">
-                    {run.totalSkipped} skipped
+                  <Badge variant="outline" className="text-[11px] border-0 font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 shrink-0">
+                    {run.totalDrafted} drafted
                   </Badge>
-                )}
 
-                {run.totalErrors > 0 && (
-                  <Badge variant="outline" className="text-[11px] border-0 font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 shrink-0">
-                    {run.totalErrors} failed
+                  {run.totalSkipped > 0 && (
+                    <Badge variant="outline" className="text-[11px] border-0 font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 shrink-0">
+                      {run.totalSkipped} skipped
+                    </Badge>
+                  )}
+
+                  {run.totalErrors > 0 && (
+                    <Badge variant="outline" className="text-[11px] border-0 font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 shrink-0">
+                      {run.totalErrors} failed
+                    </Badge>
+                  )}
+
+                  <Badge variant="outline" className="text-[11px] border-0 font-medium bg-muted text-muted-foreground shrink-0">
+                    {successCount}/{run.propertyCount} propert{run.propertyCount === 1 ? "y" : "ies"}
                   </Badge>
-                )}
+                </button>
 
-                <Badge variant="outline" className="text-[11px] border-0 font-medium bg-muted text-muted-foreground shrink-0">
-                  {successCount}/{run.propertyCount} propert{run.propertyCount === 1 ? "y" : "ies"}
-                </Badge>
-              </button>
+                <button
+                  type="button"
+                  className="shrink-0 rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-40"
+                  title="Delete this run"
+                  disabled={isDeleting}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setConfirmDeleteId(run.id);
+                  }}
+                >
+                  {isDeleting
+                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    : <IconTrash className="h-3.5 w-3.5" />}
+                </button>
+              </div>
 
               {isExpanded && (
                 <div className="px-3.5 pb-3 pt-0">
@@ -865,6 +1009,65 @@ function DraftHistorySection({ runs }: { runs: BulkDraftRunRow[] }) {
           );
         })}
       </div>
+
+      <AlertDialog
+        open={confirmDeleteId !== null}
+        onOpenChange={(open) => { if (!open) setConfirmDeleteId(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this run?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove the run record from the history. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (confirmDeleteId !== null) {
+                  void handleDeleteRun(confirmDeleteId);
+                  setConfirmDeleteId(null);
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={confirmClearDays !== null}
+        onOpenChange={(open) => { if (!open) setConfirmClearDays(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear old runs?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmClearDays !== null && (
+                <>
+                  All draft history runs older than {confirmClearDays} day{confirmClearDays === 1 ? "" : "s"} will be permanently deleted. This action cannot be undone.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (confirmClearDays !== null) {
+                  void handleClearBefore(confirmClearDays);
+                }
+              }}
+            >
+              Delete runs
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
