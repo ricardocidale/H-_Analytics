@@ -37,6 +37,7 @@ import {
   HTTP_500_INTERNAL_SERVER_ERROR,
 } from "../constants";
 
+import pLimit from "p-limit";
 import {
   PDF_RENDER_TIMEOUT_MS,
   DECK_READY_POLL_TIMEOUT_MS,
@@ -46,6 +47,17 @@ import {
 } from "../slides/deck-render-constants";
 
 const router = Router();
+
+/**
+ * Maximum number of background PDF renders that may run concurrently.
+ * Additional regenerate requests are queued and executed in FIFO order.
+ * Overridable via PDF_RENDER_CONCURRENCY env var for tuning in production.
+ */
+const PDF_RENDER_CONCURRENCY = Math.max(
+  1,
+  Number(process.env.PDF_RENDER_CONCURRENCY) || 2,
+);
+const renderLimiter = pLimit(PDF_RENDER_CONCURRENCY);
 
 const PDF_FORMAT = "pdf" as const;
 const SLIDE_ERROR_MSG_MAX_LENGTH = 500;
@@ -341,7 +353,15 @@ router.post(
       errorMessage: null,
     }).catch(() => {});
 
-    (async () => {
+    const queued = renderLimiter.pendingCount;
+    if (queued > 0) {
+      logger.info(
+        `[property-deck-pdf] Render queued for property ${propertyId} (active=${renderLimiter.activeCount}, pending=${queued})`,
+        "property-deck-pdf",
+      );
+    }
+
+    void renderLimiter(async () => {
       try {
         const sp = await getStorageProviderAsync();
         const pdf = await renderDeckPdf(propertyId);
@@ -373,7 +393,7 @@ router.post(
           errorMessage: message.slice(0, SLIDE_ERROR_MSG_MAX_LENGTH),
         }).catch(() => {});
       }
-    })();
+    });
 
     return res.status(HTTP_202_ACCEPTED).json({ queued: true, propertyId });
   },
