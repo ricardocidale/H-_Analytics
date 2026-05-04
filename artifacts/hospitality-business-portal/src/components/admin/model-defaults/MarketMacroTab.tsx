@@ -1,7 +1,8 @@
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { Section, PctField, TabBanner, MONTHS, type Draft } from "./FieldHelpers";
+import { Section } from "@/components/ui/field-section";
+import { PctField, TabBanner, MONTHS, type Draft } from "./FieldHelpers";
 import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
 import { useFocusFieldFromUrl } from "@/lib/analyst-focus-field";
 import type { AnalystGuidanceRecord } from "@/components/analyst/useAnalystRefresh";

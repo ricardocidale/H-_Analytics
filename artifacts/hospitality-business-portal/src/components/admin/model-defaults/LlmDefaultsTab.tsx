@@ -20,7 +20,8 @@ import type {
   PipelinePolicy,
   ResourcePublicView,
 } from "@shared/schema";
-import { Section, TabBanner } from "./FieldHelpers";
+import { Section } from "@/components/ui/field-section";
+import { TabBanner } from "./FieldHelpers";
 import {
   setAiIntelligenceSection,
   setAiIntelligenceTabHint,

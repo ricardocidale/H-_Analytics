@@ -18,7 +18,8 @@ import { getFactoryNumber } from "@shared/model-constants-registry";
 
 // Audit #406: registry-backed US baseline for company income tax (federal corporate = 0.21).
 const DEFAULT_COMPANY_TAX_RATE = getFactoryNumber("taxRate", "United States");
-import { Section, PctField, NumberField, TabBanner, type Draft } from "./FieldHelpers";
+import { Section } from "@/components/ui/field-section";
+import { PctField, NumberField, TabBanner, type Draft } from "./FieldHelpers";
 import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
 import { useFocusFieldFromUrl } from "@/lib/analyst-focus-field";
 import type { AnalystGuidanceRecord } from "@/components/analyst/useAnalystRefresh";

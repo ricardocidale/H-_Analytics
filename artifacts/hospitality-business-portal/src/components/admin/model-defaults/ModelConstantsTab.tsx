@@ -32,7 +32,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useFocusFieldFromUrl } from "@/lib/analyst-focus-field";
-import { Section } from "./FieldHelpers";
+import { Section } from "@/components/ui/field-section";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";

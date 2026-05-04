@@ -8,8 +8,6 @@ export const MONTHS = [
   "July", "August", "September", "October", "November", "December",
 ];
 
-export { Section } from "@/components/ui/field-section";
-
 export function ResearchRangeLabel({ text }: { text?: string }) {
   if (!text) return null;
   return (
