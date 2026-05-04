@@ -3,7 +3,7 @@
  *
  * Assembles the full SlidePayload for a single property — property data,
  * resolved photos (base64), portfolio siblings, finance projections, and
- * LLM-generated vision/improvements.
+ * editor-authored sidecar copy (deckPayloadV2).
  *
  * Sole consumer is `routes/internal-deck-payload.ts`, which serves the
  * payload to the React deck route Playwright navigates for PDF render.
@@ -25,7 +25,6 @@ import { storage } from "../storage";
 import { getStorageProviderAsync } from "../providers/storage";
 import { recomputeSinglePropertyAndStamp } from "../finance/recompute";
 import { withModelConstants } from "../finance/apply-model-constants";
-import { buildPropertyVisionFallback } from "../ai/property-vision";
 import {
   parseDeckPayloadV2,
   EMPTY_DECK_PAYLOAD_V2,
@@ -282,28 +281,13 @@ export async function buildSlidePayload(
 
   const renovationBudget = computeRenovationBudget(propertyShape);
 
-  // The render path is now LLM-free and fully deterministic. Editorial copy
+  // The render path is LLM-free and fully deterministic. Editorial copy
   // (vision bullets, header subtitle, photo captions, closing tagline, etc.)
   // lives in the `property_deck_payloads` sidecar and is authored on the
   // admin LB-Slides page via /api/admin/properties/:id/deck-payload — see
   // routes/property-deck-payload.ts. If no row exists yet, `deckPayloadV2`
   // returns EMPTY_DECK_PAYLOAD_V2 and renderers fall back to deterministic
   // per-slot templates.
-  //
-  // `visionText` and `improvements` here are LEGACY shapes still consumed by
-  // the old `slides.tsx` that is being rebuilt in T002/T004-T006. They use
-  // deterministic fallbacks only — no LLM call. Once the new renderer ships,
-  // both fields will be removed from SlidePayload entirely (T008).
-  const visionText = buildPropertyVisionFallback({
-    id: property.id, name: property.name, city: property.city, stateProvince: property.stateProvince,
-    county: p.county as string | null, country: property.country, purchasePrice: property.purchasePrice,
-    roomCount: property.roomCount, startAdr: property.startAdr, maxOccupancy: property.maxOccupancy,
-    businessModel: property.businessModel, hospitalityType: p.hospitalityType as string | null,
-    qualityTier: p.qualityTier as string | null, description: property.description,
-    acquisitionStatus: p.acquisitionStatus as string | null,
-  });
-  const improvements: SlidePayload["improvements"] = [];
-
   let deckPayloadV2: DeckPayloadV2 = EMPTY_DECK_PAYLOAD_V2;
   try {
     const row = await storage.getDeckPayload(propertyId);
@@ -322,8 +306,6 @@ export async function buildSlidePayload(
       exitCapRate: (p.exitCapRate ?? SLIDES_DEFAULT_EXIT_CAP_RATE) as number,
     },
     siblings: siblings as unknown as SlidePayload["siblings"],
-    visionText,
-    improvements,
     deckPayloadV2,
     slide4HeroBase64,
     _propertyName: property.name,

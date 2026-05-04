@@ -74,41 +74,11 @@ export interface SiblingProperty {
   heroPhotoBase64?: string;
 }
 
-export interface PropertyImprovement {
-  feature: string;
-  existing: string;
-  proposed: string;
-}
-
-export interface VisionText {
-  cinematicCaption: string;
-  visionHeadline: string;
-  visionBullet1: string;
-  visionBullet2: string;
-  badgeText: string;
-  descriptionParagraph: string;
-  investmentModelConcept: string;
-  marketRationale: string;
-  reason1Label: string; reason1Detail: string;
-  reason2Label: string; reason2Detail: string;
-  reason3Label: string; reason3Detail: string;
-  closingLine: string;
-  transformationDescription: string;
-  operationalModelText: string;
-  revenueBullet: string;
-  programmingBullet: string;
-  operationalParagraph: string;
-}
-
 export interface SlidePayload {
   property: SlideProperty;
   photos: SlidePhoto[];
   financials: SlideFinancials;
   siblings: SiblingProperty[];
-  /** @deprecated legacy LLM shape — being removed once the new renderers land (T008). Use deckPayloadV2 + deterministic templates instead. */
-  visionText: VisionText;
-  /** @deprecated legacy LLM shape — being removed once the new renderers land (T008). */
-  improvements: PropertyImprovement[];
   /**
    * Editor-authored sidecar copy from `property_deck_payloads`. Holds the
    * human-only and LLM-draft+human-approved slots for the new 6-slide

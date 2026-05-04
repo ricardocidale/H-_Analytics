@@ -89,7 +89,7 @@ const CARD_GAP = 16;
 //   • Photo captions use Poppins instead of canonical's Microsoft YaHei
 //     (Windows-only; falls back unreliably in headless Chromium).
 export function Slide1({ p }: { p: SlidePayload }) {
-  const { property, visionText, deckPayloadV2 } = p;
+  const { property, deckPayloadV2 } = p;
   const v2 = deckPayloadV2?.slide1;
 
   const hero = getCanonicalPhoto(1, "hero");
@@ -114,16 +114,16 @@ export function Slide1({ p }: { p: SlidePayload }) {
     const authored = v2?.visionBullets?.map(b => b.text).filter(Boolean);
     if (authored && authored.length > 0) return authored;
     return [
-      visionText.visionBullet1,
-      visionText.visionBullet2,
-      visionText.programmingBullet,
-    ].filter((s): s is string => Boolean(s) && s.length > 0);
+      `${property.roomCount}-key boutique conversion targeting year-round demand`,
+      `${property.qualityTier || "Upscale"}-tier repositioning in ${property.city}, ${property.stateProvince}`,
+      `Diversified revenue through lodging, F&B, and curated experiential programming`,
+    ];
   })();
 
   const computedHeroCaption = `${property.name.toUpperCase()} · ${type.toUpperCase()}`;
   const heroCaption = v2?.photoCaptions?.hero?.text?.toUpperCase() || computedHeroCaption;
 
-  const computedInsetCaption = (visionText.cinematicCaption || `${property.roomCount} KEYS · YEAR-ROUND DEMAND`).toUpperCase();
+  const computedInsetCaption = `${property.roomCount} KEYS · YEAR-ROUND DEMAND`;
   const insetCaption = v2?.photoCaptions?.inset?.text?.toUpperCase() || computedInsetCaption;
 
   const secondaryCaption = v2?.photoCaptions?.secondary?.text?.toUpperCase() || "CURATED GUEST EXPERIENCE";
@@ -267,11 +267,11 @@ export function Slide1({ p }: { p: SlidePayload }) {
 
 // ── Slide 2 — Alt View / Photo Gallery ───────────────────────────────────
 export function Slide2({ p }: { p: SlidePayload }) {
-  const { property, photos, visionText, financials, deckPayloadV2 } = p;
+  const { property, photos, financials, deckPayloadV2 } = p;
   const v2s2 = deckPayloadV2?.slide2;
-  const operationalModelText = v2s2?.operationalModelText?.text || visionText.operationalModelText;
-  const slide2RevenueBullet = v2s2?.revenueBullet?.text || visionText.revenueBullet;
-  const slide2ProgrammingBullet = v2s2?.programmingBullet?.text || visionText.programmingBullet;
+  const operationalModelText = v2s2?.operationalModelText?.text || "Boutique hospitality conversion · year-round demand";
+  const slide2RevenueBullet = v2s2?.revenueBullet?.text || "Diversified revenue: lodging, F&B, and curated events";
+  const slide2ProgrammingBullet = v2s2?.programmingBullet?.text || "Signature programming driving premium ADR and repeat visits";
   const stable = getStableYear(financials.yearlyIS);
   const renovBudget = financials.renovationBudget;
   const panelPhotos = photos.filter(ph => !ph.isHero).slice(0, 4);
@@ -342,18 +342,18 @@ export function Slide2({ p }: { p: SlidePayload }) {
 
 // ── Slide 3 — Investment Model ────────────────────────────────────────────
 export function Slide3({ p }: { p: SlidePayload }) {
-  const { property, photos, visionText, deckPayloadV2 } = p;
+  const { property, photos, deckPayloadV2 } = p;
   const v2s3 = deckPayloadV2?.slide3;
-  const conceptParagraph = v2s3?.conceptParagraph?.text || visionText.investmentModelConcept;
-  const slide3MarketRationale = v2s3?.marketRationale?.text || visionText.marketRationale;
+  const conceptParagraph = v2s3?.conceptParagraph?.text || "L+B applies a disciplined boutique hospitality conversion model — acquiring underutilized assets, repositioning them with curated design and programming, and optimizing for year-round RevPAR growth.";
+  const slide3MarketRationale = v2s3?.marketRationale?.text || `${property.city}, ${property.stateProvince} presents a compelling supply-constrained market with growing leisure demand and limited boutique competition at the premium tier.`;
   const slide3Reasons = (v2s3?.reasons ?? []).length > 0
     ? (v2s3!.reasons!).map(r => ({ label: r.label.text, detail: r.detail.text }))
     : [
-        { label: visionText.reason1Label, detail: visionText.reason1Detail },
-        { label: visionText.reason2Label, detail: visionText.reason2Detail },
-        { label: visionText.reason3Label, detail: visionText.reason3Detail },
+        { label: "Location", detail: `Prime position in ${property.city}, ${property.stateProvince}` },
+        { label: "Asset", detail: `${property.roomCount}-key boutique conversion at ${property.qualityTier || "upscale"} tier` },
+        { label: "Returns", detail: `Targeting stabilized NOI yield and strong equity multiple at exit` },
       ];
-  const slide3ClosingLine = v2s3?.closingLine?.text || visionText.closingLine;
+  const slide3ClosingLine = v2s3?.closingLine?.text || "";
   const hero = photos.find(ph => ph.isHero) ?? photos[0];
   const secondary = photos[1] ?? photos[0];
   const type = typeLabel(property);
@@ -399,9 +399,11 @@ export function Slide3({ p }: { p: SlidePayload }) {
           </div>
         ))}
 
-        <div style={{ display: "flex", marginTop: 16, padding: "10px 16px", borderLeft: `3px solid ${C.accent}` }}>
-          <span style={{ fontFamily: FONT_SERIF, fontSize: 15, color: C.cream, fontStyle: "italic" }}>{slide3ClosingLine}</span>
-        </div>
+        {slide3ClosingLine && (
+          <div style={{ display: "flex", marginTop: 16, padding: "10px 16px", borderLeft: `3px solid ${C.accent}` }}>
+            <span style={{ fontFamily: FONT_SERIF, fontSize: 15, color: C.cream, fontStyle: "italic" }}>{slide3ClosingLine}</span>
+          </div>
+        )}
       </div>
 
       <LbBadge x={48} y={40} />
@@ -509,7 +511,7 @@ export function Slide4({ p }: { p: SlidePayload }) {
 
 // ── Slide 5 — Financial Snapshot ─────────────────────────────────────────
 export function Slide5({ p }: { p: SlidePayload }) {
-  const { property, financials, visionText, improvements, deckPayloadV2 } = p;
+  const { property, financials, deckPayloadV2 } = p;
   const stable = getStableYear(financials.yearlyIS);
   const renovBudget = financials.renovationBudget;
   const totalInvestment = (property.purchasePrice ?? 0) + renovBudget;
@@ -525,20 +527,18 @@ export function Slide5({ p }: { p: SlidePayload }) {
   const stableRevpar = stableAdr * stableOcc;
 
   const v2s5 = deckPayloadV2?.slide5;
-  const slide5TransformDesc = v2s5?.transformationDescription?.text || visionText.transformationDescription;
+  const slide5TransformDesc = v2s5?.transformationDescription?.text || `${property.name} is being repositioned as a ${property.roomCount}-key boutique ${property.hospitalityType || property.businessModel || "hotel"} in ${property.city}, ${property.stateProvince}. The transformation plan targets ${property.qualityTier || "upscale"}-tier finishes, curated amenity programming, and a stabilized ADR of ${fmtCurrency(property.startAdr)}.`;
   const authoredTransRows = v2s5?.transformationRows;
   const transformRows: string[][] = [
     ["Feature", "Existing", "Proposed"],
     ...(authoredTransRows && authoredTransRows.length > 0
       ? authoredTransRows.map(r => [r.feature.text, r.existing.text, r.proposed.text])
-      : improvements.length > 0
-        ? improvements.slice(0, 4).map(imp => [imp.feature, imp.existing, imp.proposed])
-        : [
-            ["Guest Capacity", `${Math.max(1, property.roomCount - 2)} Guests`, `${property.roomCount} Keys`],
-            ["Event Space", "Limited", "Curated venue spaces"],
-            ["Lodging", "Standard rooms", `${property.roomCount} boutique-designed keys`],
-            ["Amenities", "Basic", "Curated experiential amenities"],
-          ]
+      : [
+          ["Guest Capacity", `${Math.max(1, property.roomCount - 2)} Guests`, `${property.roomCount} Keys`],
+          ["Event Space", "Limited", "Curated venue spaces"],
+          ["Lodging", "Standard rooms", `${property.roomCount} boutique-designed keys`],
+          ["Amenities", "Basic", "Curated experiential amenities"],
+        ]
     ),
   ];
 
