@@ -675,7 +675,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                     variant="outline"
                     size="sm"
                     onClick={() => sendMessage(q)}
-                    className="text-xs px-2.5 py-1 rounded-full h-auto whitespace-nowrap"
+                    className="text-xs px-2.5 py-1 rounded-md h-auto whitespace-nowrap"
                     data-testid={`button-rebecca-chip-${q.slice(0, 20).replace(/\s+/g, "-")}`}
                   >
                     {q}
@@ -698,13 +698,13 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                 )}
               >
                 {msg.role === "assistant" && <RebeccaAvatar size="sm" className="mt-1" />}
-                <div className="flex flex-col items-start min-w-0">
+                <div className={cn("flex flex-col items-start min-w-0", msg.role === "assistant" && "group")}>
                   <div
                     className={cn(
-                      "max-w-[82%] rounded-lg px-3 py-2 text-sm",
+                      "rounded-lg px-3 py-2 text-sm",
                       msg.role === "user"
-                        ? "bg-primary text-primary-foreground rounded-br-sm whitespace-pre-wrap"
-                        : "bg-muted text-foreground rounded-tl-sm"
+                        ? "max-w-[82%] bg-primary text-primary-foreground rounded-br-sm whitespace-pre-wrap"
+                        : "max-w-[90%] bg-muted text-foreground rounded-tl-sm"
                     )}
                     data-testid={`rebecca-message-${msg.role}-${msg.id}`}
                   >
@@ -721,6 +721,39 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                       msg.content
                     )}
                   </div>
+                  {msg.role === "assistant" && (
+                    <div className="flex items-center gap-0.5 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        type="button"
+                        className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={() => handleCopy(msg.id, msg.content)}
+                        aria-label="Copy message"
+                        data-testid={`button-rebecca-copy-${msg.id}`}
+                      >
+                        {copiedId === msg.id
+                          ? <Check className="w-3.5 h-3.5 text-primary" />
+                          : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                      <button
+                        type="button"
+                        className={cn("p-1 rounded transition-colors", thumbs[msg.id] === "up" ? "text-primary" : "text-muted-foreground hover:text-foreground")}
+                        onClick={() => handleThumb(msg.id, "up")}
+                        aria-label="Helpful"
+                        data-testid={`button-rebecca-thumbup-${msg.id}`}
+                      >
+                        <ThumbsUp className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        className={cn("p-1 rounded transition-colors", thumbs[msg.id] === "down" ? "text-destructive" : "text-muted-foreground hover:text-foreground")}
+                        onClick={() => handleThumb(msg.id, "down")}
+                        aria-label="Not helpful"
+                        data-testid={`button-rebecca-thumbdown-${msg.id}`}
+                      >
+                        <ThumbsDown className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
                   {msg.role === "assistant" && msg.sources !== undefined && (
                     <SourcesUsedPanel sources={msg.sources} turnIndex={idx} />
                   )}
@@ -742,7 +775,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                   variant="outline"
                   size="sm"
                   onClick={() => sendMessage(q)}
-                  className="text-[11px] px-2 py-0.5 rounded-full h-auto opacity-70 hover:opacity-100 whitespace-nowrap"
+                  className="text-[11px] px-2 py-0.5 rounded-md h-auto opacity-90 hover:opacity-100 whitespace-nowrap"
                   disabled={loading}
                   data-testid={`button-rebecca-followup-${q.slice(0, 15).replace(/\s+/g, "-")}`}
                 >
