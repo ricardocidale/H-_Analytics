@@ -29,7 +29,7 @@
  *   InternalDeck during PDF rendering.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRoute } from "wouter";
 import Layout from "@/components/Layout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -764,6 +764,8 @@ function DraftAllReviewPanel({
   propertyUpdatedAt,
   onAccepted,
   onDismiss,
+  onRedraftStale,
+  isRedraftingStale,
 }: {
   drafts: DraftResult[];
   generatedAt: string;
@@ -771,6 +773,8 @@ function DraftAllReviewPanel({
   propertyUpdatedAt?: string;
   onAccepted: () => void;
   onDismiss: () => void;
+  onRedraftStale?: () => void;
+  isRedraftingStale?: boolean;
 }) {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -788,11 +792,44 @@ function DraftAllReviewPanel({
     () => new Set(validDrafts.map(d => d.slot)),
   );
 
-  // Re-sync editable state when a new Draft All result arrives while the panel
-  // stays mounted (e.g., admin runs Draft All a second time on the same page).
+  // Track the original (LLM-generated) base suggestions per slot so we can
+  // detect which slots were re-drafted vs which the admin has hand-edited.
+  // When only stale slots are re-drafted, user edits on fresh slots are kept.
+  const baseRef = useRef<Record<string, unknown>>(
+    Object.fromEntries(validDrafts.map(d => [d.slot, d.suggestion])),
+  );
+
+  // Re-sync editable state when drafts change (e.g. re-draft stale or a
+  // second Draft All run). Preserves admin edits on slots whose suggestion
+  // did not change; resets to the fresh suggestion for re-drafted slots.
   useEffect(() => {
-    setEditedSuggestions(Object.fromEntries(validDrafts.map(d => [d.slot, d.suggestion])));
-    setSelected(new Set(validDrafts.map(d => d.slot)));
+    const newBase = Object.fromEntries(validDrafts.map(d => [d.slot, d.suggestion]));
+
+    setEditedSuggestions(prev => {
+      const next: Record<string, unknown> = {};
+      for (const d of validDrafts) {
+        const prevBase = baseRef.current[d.slot];
+        const suggestionChanged =
+          JSON.stringify(prevBase) !== JSON.stringify(d.suggestion);
+        if (suggestionChanged || !(d.slot in prev)) {
+          next[d.slot] = d.suggestion;
+        } else {
+          next[d.slot] = prev[d.slot];
+        }
+      }
+      return next;
+    });
+
+    setSelected(prev => {
+      const validSlotSet = new Set(validDrafts.map(d => d.slot));
+      const next = new Set([...prev].filter(s => validSlotSet.has(s)));
+      for (const d of validDrafts) {
+        if (!prev.has(d.slot)) next.add(d.slot);
+      }
+      return next;
+    });
+
+    baseRef.current = newBase;
   // Only re-run when the set of slots or their raw suggestions actually changes.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drafts]);
@@ -883,14 +920,29 @@ function DraftAllReviewPanel({
         </div>
 
         {staleCount > 0 && (
-          <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800 dark:bg-amber-950/30">
+          <div className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800 dark:bg-amber-950/30">
             <IconAlertCircle className="h-3.5 w-3.5 mt-0.5 text-amber-600 dark:text-amber-400 shrink-0" />
-            <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+            <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed flex-1 min-w-0">
               {staleCount === 1
                 ? "1 draft was generated before the property was last edited."
                 : `${staleCount} drafts were generated before the property was last edited.`}{" "}
-              These may not reflect the latest property data — you can still accept them.
+              These may not reflect the latest property data.
             </p>
+            {onRedraftStale && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={onRedraftStale}
+                disabled={isRedraftingStale}
+                className="shrink-0 gap-1.5 h-7 text-xs text-amber-800 border-amber-300 hover:bg-amber-100 dark:text-amber-300 dark:border-amber-700 dark:hover:bg-amber-950/50"
+              >
+                {isRedraftingStale
+                  ? <Loader2 className="h-3 w-3 animate-spin" />
+                  : <IconRefreshCw className="h-3 w-3" />}
+                Re-draft stale
+              </Button>
+            )}
           </div>
         )}
 
@@ -1121,6 +1173,57 @@ export default function PropertySlides() {
 
   const actions = useSlideActions(propertyId, property?.name ?? `property-${propertyId}`);
 
+  // ── Re-draft stale mutation ────────────────────────────────────────────
+  //
+  // Fires draft-slot calls in parallel for every slot in the current review
+  // panel that was generated before the property's last edit. Non-stale slots
+  // are left untouched — their entries in pendingDrafts are preserved as-is.
+
+  const redraftStaleMutation = useMutation({
+    mutationFn: async () => {
+      if (!pendingDrafts || !readiness?.propertyUpdatedAt) return [];
+      const staleSlots = pendingDrafts.drafts.filter(
+        d =>
+          (!d.validationErrors || d.validationErrors.length === 0) &&
+          d.generatedAt < readiness.propertyUpdatedAt,
+      );
+      if (staleSlots.length === 0) return [];
+
+      return Promise.all(
+        staleSlots.map(async d => {
+          const r = await apiRequest(
+            "POST",
+            `/api/admin/properties/${propertyId}/deck-payload/draft-slot`,
+            { slot: d.slot },
+          );
+          return r.json() as Promise<DraftResult>;
+        }),
+      );
+    },
+    onSuccess: (freshDrafts) => {
+      if (!freshDrafts || freshDrafts.length === 0) return;
+      setPendingDrafts(prev => {
+        if (!prev) return prev;
+        const freshBySlot = new Map(freshDrafts.map(d => [d.slot, d]));
+        return {
+          ...prev,
+          drafts: prev.drafts.map(d => freshBySlot.get(d.slot) ?? d),
+        };
+      });
+      toast({
+        title: `${freshDrafts.length} stale slot${freshDrafts.length === 1 ? "" : "s"} re-drafted`,
+        description: "Fresh copy is ready — review and accept when satisfied.",
+      });
+    },
+    onError: (err: unknown) => {
+      toast({
+        title: "Re-draft failed",
+        description: err instanceof Error ? err.message : String(err),
+        variant: "destructive",
+      });
+    },
+  });
+
   // ── Draft All mutation ─────────────────────────────────────────────────
 
   const draftAllMutation = useMutation({
@@ -1291,6 +1394,8 @@ export default function PropertySlides() {
           propertyUpdatedAt={readiness?.propertyUpdatedAt}
           onAccepted={() => setPendingDrafts(null)}
           onDismiss={() => setPendingDrafts(null)}
+          onRedraftStale={() => redraftStaleMutation.mutate()}
+          isRedraftingStale={redraftStaleMutation.isPending}
         />
       )}
 
