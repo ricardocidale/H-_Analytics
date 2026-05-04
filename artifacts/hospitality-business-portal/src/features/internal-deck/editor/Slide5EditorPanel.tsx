@@ -182,16 +182,24 @@ function ScalarSlotRow({
   );
 }
 
-// ── Plain slot row (no draft button — for row sub-fields) ──────────────────
+// ── Plain slot row (row sub-fields: Feature / Existing / Proposed) ─────────
+//
+// onDraft is optional. When provided, a "Draft via Analyst" button is shown.
+// Because there is no per-sub-field draft endpoint, callers wire onDraft to
+// the bulk slide5.transformationRows endpoint — drafting one cell re-drafts
+// all rows. This is intentional: the Analyst reasons over the full table at
+// once and the bulk button at the section header remains the canonical action.
 
 function PlainSlotRow({
-  label, description, slot, max, onChange, propertyUpdatedAt,
+  label, description, slot, max, onChange, onDraft, isDrafting, propertyUpdatedAt,
 }: {
   label: string;
   description: string;
   slot: FormSlot;
   max: number;
   onChange: (text: string, source: SlotProvenance["source"]) => void;
+  onDraft?: () => void;
+  isDrafting?: boolean;
   propertyUpdatedAt?: string;
 }) {
   const id = `slide5-slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
@@ -218,6 +226,22 @@ function PlainSlotRow({
         className={slot.text.length > max ? "border-destructive" : undefined}
       />
       {isDraftStale(slot, propertyUpdatedAt) && <StaleDraftNotice />}
+      {onDraft !== undefined && (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={onDraft}
+          disabled={isDrafting}
+          className="gap-1.5"
+          title="Re-drafts all rows via Analyst (bulk endpoint)"
+        >
+          {isDrafting
+            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            : <IconRefreshCw className="h-3.5 w-3.5" />}
+          Draft via Analyst
+        </Button>
+      )}
     </div>
   );
 }
@@ -431,37 +455,49 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
             Three columns: Feature, Existing, Proposed. Leave Feature blank to omit a row.
             If any row changes, all rows are saved together.
           </p>
-          {form.transformationRows.map((row, i) => (
-            <div key={i} className="space-y-3 rounded-md border border-border/40 p-4">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Row {i + 1}</p>
-              <PlainSlotRow
-                label="Feature"
-                description="What aspect of the property is being transformed (e.g. 'Guest Capacity')."
-                slot={row.feature}
-                max={SLIDE5_TRANSFORMATION_ROW_FEATURE_MAX}
-                onChange={(t, s) => setRowSlot(i, "feature", t, s)}
-                propertyUpdatedAt={propertyUpdatedAt}
-              />
-              <div className="grid grid-cols-2 gap-3">
+          {form.transformationRows.map((row, i) => {
+            // Per-sub-field draft fires the bulk endpoint (no individual slot
+            // endpoint exists). isDrafting mirrors the section-level spinner.
+            const rowsDrafting = draftingSlot === "slide5.transformationRows" && draftMutation.isPending;
+            const onRowDraft = () => fireDraft("slide5.transformationRows");
+            return (
+              <div key={i} className="space-y-3 rounded-md border border-border/40 p-4">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Row {i + 1}</p>
                 <PlainSlotRow
-                  label="Existing"
-                  description="Current state."
-                  slot={row.existing}
-                  max={SLIDE5_TRANSFORMATION_ROW_EXISTING_MAX}
-                  onChange={(t, s) => setRowSlot(i, "existing", t, s)}
+                  label="Feature"
+                  description="What aspect of the property is being transformed (e.g. 'Guest Capacity')."
+                  slot={row.feature}
+                  max={SLIDE5_TRANSFORMATION_ROW_FEATURE_MAX}
+                  onChange={(t, s) => setRowSlot(i, "feature", t, s)}
+                  onDraft={onRowDraft}
+                  isDrafting={rowsDrafting}
                   propertyUpdatedAt={propertyUpdatedAt}
                 />
-                <PlainSlotRow
-                  label="Proposed"
-                  description="Target state after transformation."
-                  slot={row.proposed}
-                  max={SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX}
-                  onChange={(t, s) => setRowSlot(i, "proposed", t, s)}
-                  propertyUpdatedAt={propertyUpdatedAt}
-                />
+                <div className="grid grid-cols-2 gap-3">
+                  <PlainSlotRow
+                    label="Existing"
+                    description="Current state."
+                    slot={row.existing}
+                    max={SLIDE5_TRANSFORMATION_ROW_EXISTING_MAX}
+                    onChange={(t, s) => setRowSlot(i, "existing", t, s)}
+                    onDraft={onRowDraft}
+                    isDrafting={rowsDrafting}
+                    propertyUpdatedAt={propertyUpdatedAt}
+                  />
+                  <PlainSlotRow
+                    label="Proposed"
+                    description="Target state after transformation."
+                    slot={row.proposed}
+                    max={SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX}
+                    onChange={(t, s) => setRowSlot(i, "proposed", t, s)}
+                    onDraft={onRowDraft}
+                    isDrafting={rowsDrafting}
+                    propertyUpdatedAt={propertyUpdatedAt}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <Separator />
