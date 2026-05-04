@@ -29,22 +29,15 @@
  *     matching the pre-refactor behavior.
  */
 import { storage } from "../storage";
+import { resolveLlmFor } from "./llm-config-resolver";
 import type { OrchestratorModelOverrides } from "./research-orchestrator";
 import type {
   SpecialistGlobalLlmDefaults,
   SpecialistWorkflowOverrides,
 } from "@workspace/db";
 
-// ── Hardcoded fallback constants (mirror runtime defaults) ───────────────────
-// Kept in sync with `server/ai/research-orchestrator.ts` (DEFAULT_*_MODEL)
-// and `server/ai/comparables/relaxation-engine.ts` (DEFAULT_POLICY +
-// pipeline_policies column defaults).
-
 export const HARDCODED_LLM_DEFAULTS = {
   multiModelEnabled: true,
-  analystAModel: "gemini-2-5-flash",
-  analystBModel: "claude-sonnet-4-5",
-  synthesisModel: "claude-opus-4-6",
   // The orchestrator's "fallback" today is `runResearch` with no override
   // (i.e. each Specialist's own primary model). We surface a sentinel here
   // so the LLM Config tab can label the row "(uses Specialist primary
@@ -114,10 +107,16 @@ export async function getSpecialistGlobalLlmDefaults(): Promise<SpecialistGlobal
     }
   };
 
+  const [analystASlug, analystBSlug, synthesisSlug] = await Promise.all([
+    resolveLlmFor("research-analyst-a").then(r => r.modelSlug).catch(() => "gemini-2-5-flash"),
+    resolveLlmFor("research-analyst-b").then(r => r.modelSlug).catch(() => "claude-sonnet-4-5"),
+    resolveLlmFor("research-synthesis").then(r => r.modelSlug).catch(() => "claude-opus-4-6"),
+  ]);
+
   const [analystAModelLabel, analystBModelLabel, synthesisModelLabel] = await Promise.all([
-    resolveLabel(tier1?.analystAModelResourceId, HARDCODED_LLM_DEFAULTS.analystAModel),
-    resolveLabel(tier1?.analystBModelResourceId, HARDCODED_LLM_DEFAULTS.analystBModel),
-    resolveLabel(tier1?.synthesisModelResourceId, HARDCODED_LLM_DEFAULTS.synthesisModel),
+    resolveLabel(tier1?.analystAModelResourceId, analystASlug),
+    resolveLabel(tier1?.analystBModelResourceId, analystBSlug),
+    resolveLabel(tier1?.synthesisModelResourceId, synthesisSlug),
   ]);
 
   return {

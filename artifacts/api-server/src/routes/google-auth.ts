@@ -152,7 +152,12 @@ export function registerGoogleAuthRoutes(app: Express) {
       setSessionCookie(res, sessionId);
 
       logger.info(`Google sign-in successful: ${email} (userId: ${user.id})`, "auth");
-      res.redirect("/");
+      res.setHeader("Content-Type", "text/html");
+      res.send(`<!DOCTYPE html><html><head><title>Signed in</title></head><body>
+<script>window.close();</script>
+<p style="font-family:sans-serif;text-align:center;margin-top:2rem">
+  Signed in successfully. You can close this tab.
+</p></body></html>`);
     } catch (error: unknown) {
       logger.error(`Google auth callback error: ${error instanceof Error ? error.message : error}`, "auth");
       res.redirect("/login?error=google_failed");
