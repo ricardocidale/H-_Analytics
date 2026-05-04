@@ -72,7 +72,7 @@ export interface PropertyVisionText {
 
 const VISION_MODEL = "claude-opus-4-6";
 
-/** Local character budgets that were not centralized in constants-benchmarks. */
+/** Local character budgets not centralized in constants-benchmarks (not hard server limits). */
 const VISION_CAPTION_MAX_CHARS = 60;
 const VISION_LABEL_MAX_CHARS = 60;
 const VISION_CLOSING_MAX_CHARS = 120;
