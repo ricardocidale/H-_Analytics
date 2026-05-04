@@ -646,12 +646,16 @@ export function Slide5({ p }: { p: SlidePayload }) {
 export function Slide6({ p }: { p: SlidePayload }) {
   const { property, financials, deckPayloadV2, usaliPngBase64, projYears } = p;
   const v2 = deckPayloadV2?.slide6;
-  const isLbMode = Boolean(usaliPngBase64);
+  // isLbMode is derived from the explicit payload flag, NOT from PNG presence.
+  // hasUsaliPng is a separate runtime check — PNG can fail even in LB mode.
+  const isLbMode = p.usaliMode === true;
+  const hasUsaliPng = Boolean(usaliPngBase64);
   const yearCount = projYears ?? PROFORMA_YEARS;
   const SLIDE6_DEFAULT_DISCLAIMER = isLbMode
     ? "10-year portfolio pro forma aggregated across all portfolio properties. H+ Analytics projection engine. Projections are estimates; actual results may vary."
     : "5-year pro forma based on H+ Analytics projection engine. Projections are estimates; actual results may vary.";
-  const years = financials.yearlyIS.slice(0, isLbMode ? PROFORMA_YEARS : yearCount);
+  // Always slice to yearCount: non-LB → 5 yrs, LB fallback (no PNG) → 10 yrs.
+  const years = financials.yearlyIS.slice(0, yearCount);
   const stable = getStableYear(financials.yearlyIS);
   const stableNoi = stable?.noi ?? 0;
   const exitVal = financials.yearlyCF[financials.yearlyCF.length - 1]?.exitValue ?? 0;
@@ -693,7 +697,7 @@ export function Slide6({ p }: { p: SlidePayload }) {
 
       <div style={{ flex: 1, display: "flex", flexDirection: "row", padding: "0 40px 48px 40px" }}>
         <div style={{ display: "flex", flexDirection: "column", flex: 1, marginRight: 32 }}>
-          {isLbMode && usaliPngBase64 ? (
+          {hasUsaliPng ? (
             <img
               src={`data:image/png;base64,${usaliPngBase64}`}
               alt="10-Year Portfolio Pro Forma Income Statement"
