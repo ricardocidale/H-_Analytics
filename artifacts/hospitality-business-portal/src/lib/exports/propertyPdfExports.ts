@@ -1,5 +1,6 @@
 import { type ExportRowMeta } from "@/lib/exports/exportStyles";
 import { drawLineChart } from "@/lib/exports/pdfChartDrawer";
+import { renderAreaChartToDataUrl } from "@/lib/exports/canvasChartDrawer";
 import { addFooters, buildFinancialTableConfig, drawTitle, drawSubtitle, drawSubtitleRow } from "@/lib/exports/pdfHelpers";
 import type { ExportVersion } from "@/components/ExportDialog";
 import {
@@ -257,6 +258,50 @@ export async function exportUnifiedPDF(ctx: PropertyExportContext, orientation: 
     drawSubtitleRow(doc, `Three scenarios × ${ctx.exitScenariosData.horizonsEvaluated.length} hold horizons`, entityTag, 14, 22, pageWidth);
     drawSubtitle(doc, `Generated: ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`, 14, 27);
     autoTable(doc, buildFinancialTableConfig(horizonLabels, exitRows, orientation, 32));
+
+    const scenarios = ctx.exitScenariosData.scenarios;
+    if (scenarios.some(s => s.chartSeries && s.chartSeries.length > 0)) {
+      doc.addPage();
+      drawTitle(doc, `${property.name} \u2014 Exit Scenarios Chart`, 14, 15, { fontSize: 16 });
+      drawSubtitleRow(doc, "Terminal Value vs. Cumulative Cost by Hold Year", entityTag, 14, 22, pageWidth);
+
+      const numCharts = scenarios.length;
+      const gapBetween = 6;
+      const perChartW = (chartWidth - (numCharts - 1) * gapBetween) / numCharts;
+      const chartStartY = 30;
+      const chartH = 160;
+
+      const SCENARIO_HEX: string[] = [
+        `#${brand.NEGATIVE_HEX}`,
+        `#${brand.LINE_HEX[0]}`,
+        `#${brand.LINE_HEX[2] || brand.PRIMARY_HEX}`,
+      ];
+
+      scenarios.forEach((s, idx) => {
+        if (!s.chartSeries || s.chartSeries.length === 0) return;
+        const cx = 14 + idx * (perChartW + gapBetween);
+        const scenarioColor = SCENARIO_HEX[idx] ?? `#${brand.ACCENT_HEX}`;
+        const dataUrl = renderAreaChartToDataUrl({
+          title: s.scenario.label,
+          labels: s.chartSeries.map(p => `Yr ${p.year}`),
+          series: [
+            {
+              name: "Cumulative Cost",
+              values: s.chartSeries.map(p => p.cumulativeCost),
+              color: `#${brand.MUTED_HEX}`,
+            },
+            {
+              name: "Terminal Value",
+              values: s.chartSeries.map(p => p.terminalValue),
+              color: scenarioColor,
+            },
+          ],
+          width: 380,
+          height: 500,
+        });
+        doc.addImage(dataUrl, "PNG", cx, chartStartY, perChartW, chartH);
+      });
+    }
   }
 
   addFooters(doc, companyName, { skipPages: new Set([1]) });

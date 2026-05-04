@@ -349,6 +349,76 @@ export function addFinancialTableSlide(
   });
 }
 
+export interface ExitScenarioChartEntry {
+  label: string;
+  key: string;
+  imageDataUrl: string;
+}
+
+export function addExitScenariosChartSlide(
+  ctx: SlideContext,
+  title: string,
+  sourceTag: string,
+  scenarios: ExitScenarioChartEntry[],
+) {
+  if (!scenarios.length) return;
+
+  const B = ctx.brand;
+  const slide = ctx.pres.addSlide();
+
+  slide.addText(title, {
+    x: MARGIN_X, y: 0.1, w: 8, h: 0.3,
+    fontSize: 14, fontFace: "Arial", color: B.PRIMARY_HEX, bold: true,
+  });
+
+  slide.addText(sourceTag, {
+    x: SLIDE_W - 5.3, y: 0.1, w: 5, h: 0.3,
+    fontSize: 9, fontFace: "Arial", color: B.BORDER_HEX, bold: true,
+    align: "right",
+  });
+
+  slide.addText("Terminal Value vs. Cumulative Cost by Hold Year", {
+    x: MARGIN_X, y: 0.42, w: 10, h: 0.22,
+    fontSize: 8, fontFace: "Arial", color: B.BORDER_HEX,
+  });
+
+  slide.addShape("rect", {
+    x: MARGIN_X, y: 0.68, w: SLIDE_W - 2 * MARGIN_X, h: 0.02,
+    fill: { color: B.SECONDARY_HEX },
+  });
+
+  const SCENARIO_COLORS: Record<string, string> = {
+    pessimistic: B.NEGATIVE_HEX,
+    base: B.LINE_HEX[0] ?? B.ACCENT_HEX,
+    optimistic: B.ACCENT_HEX,
+  };
+
+  const numCharts = scenarios.length;
+  const gapBetween = 0.2;
+  const chartW = (SLIDE_W - 2 * MARGIN_X - (numCharts - 1) * gapBetween) / numCharts;
+  const chartH = 5.8;
+  const chartY = 0.9;
+
+  scenarios.forEach((s, idx) => {
+    const chartX = MARGIN_X + idx * (chartW + gapBetween);
+    const scenarioColor = SCENARIO_COLORS[s.key] ?? (B.LINE_HEX[idx] ?? B.ACCENT_HEX);
+
+    slide.addText(s.label, {
+      x: chartX, y: chartY, w: chartW, h: 0.22,
+      fontSize: 9, fontFace: "Arial", color: scenarioColor, bold: true,
+      align: "center",
+    });
+
+    slide.addImage({
+      data: s.imageDataUrl,
+      x: chartX,
+      y: chartY + 0.25,
+      w: chartW,
+      h: chartH - 0.25,
+    });
+  });
+}
+
 export function addOverviewSlides(ctx: SlideContext, overview: OverviewExportData, projectionYears: number) {
   const B = ctx.brand;
   const fmt = (v: number) =>

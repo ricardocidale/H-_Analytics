@@ -2,13 +2,14 @@ import { APP_BRAND_NAME } from "@shared/constants";
 import { downloadCSV } from "@/lib/exports/csvExport";
 import { exportPropertyPPTX } from "@/lib/exports/pptxExport";
 import { exportFullPropertyWorkbook } from "@/lib/exports/excelExport";
-import { type ExportRowMeta } from "@/lib/exports/exportStyles";
+import { type ExportRowMeta, buildBrandPalette } from "@/lib/exports/exportStyles";
 import { type LoanParams, type GlobalLoanParams } from "@/lib/financial/loanCalculations";
 import { formatMoney } from "@/lib/financialEngine";
 import type { ExportVersion, PremiumExportPayload } from "@/components/ExportDialog";
 import { loadExportConfig } from "@/lib/exportConfig";
 import { type PropertyExportContext, getLoanCalcs, buildIncomeRows, buildCashFlowRows, computeCashFlowVectors, resolveExportDepreciationYears, buildExitScenariosExportRows } from "./propertyExportShared";
 import { exportIncomeStatementPDF, exportCashFlowPDF, exportUnifiedPDF } from "./propertyPdfExports";
+import { renderAreaChartToDataUrl } from "@/lib/exports/canvasChartDrawer";
 export { type PropertyExportContext } from "./propertyExportShared";
 export { exportIncomeStatementPDF, exportCashFlowPDF, exportUnifiedPDF };
 
@@ -254,9 +255,42 @@ export function handlePPTXExport(ctx: PropertyExportContext, customFilename?: st
   ] : [];
 
   let exitScenariosData: { years: string[]; rows: ExportRowMeta[] } | undefined;
+  let exitScenariosChartData: Array<{ label: string; key: string; imageDataUrl: string }> | undefined;
   if (ctx.exitScenariosData && ctx.exitScenariosData.scenarios.length > 0) {
     const { horizonLabels, rows: exitRows } = buildExitScenariosExportRows(ctx.exitScenariosData);
     exitScenariosData = { years: horizonLabels, rows: exitRows };
+
+    const brand = buildBrandPalette(ctx.brandingData?.themeColors ?? undefined);
+    const SCENARIO_COLORS_BY_KEY: Record<string, string> = {
+      pessimistic: `#${brand.NEGATIVE_HEX}`,
+      base: `#${brand.LINE_HEX[0]}`,
+      optimistic: `#${brand.LINE_HEX[2] || brand.PRIMARY_HEX}`,
+    };
+
+    exitScenariosChartData = ctx.exitScenariosData.scenarios
+      .filter(s => s.chartSeries && s.chartSeries.length > 0)
+      .map(s => {
+        const scenarioColor = SCENARIO_COLORS_BY_KEY[s.scenario.key] ?? `#${brand.ACCENT_HEX}`;
+        const imageDataUrl = renderAreaChartToDataUrl({
+          title: s.scenario.label,
+          labels: s.chartSeries.map(p => `Yr ${p.year}`),
+          series: [
+            {
+              name: "Cumulative Cost",
+              values: s.chartSeries.map(p => p.cumulativeCost),
+              color: `#${brand.MUTED_HEX}`,
+            },
+            {
+              name: "Terminal Value",
+              values: s.chartSeries.map(p => p.terminalValue),
+              color: scenarioColor,
+            },
+          ],
+          width: 400,
+          height: 540,
+        });
+        return { label: s.scenario.label, key: s.scenario.key, imageDataUrl };
+      });
   }
 
   exportPropertyPPTX({
@@ -269,6 +303,7 @@ export function handlePPTXExport(ctx: PropertyExportContext, customFilename?: st
     investmentData: { years: yearLabels, rows: investRows },
     kpiMetrics,
     exitScenariosData,
+    exitScenariosChartData,
   }, global?.companyName || APP_BRAND_NAME, customFilename, ctx.brandingData?.themeColors ?? undefined);
 }
 

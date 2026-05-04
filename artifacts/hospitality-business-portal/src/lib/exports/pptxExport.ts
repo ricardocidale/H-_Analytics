@@ -28,12 +28,16 @@ import {
 import type { OverviewExportData } from "../../components/dashboard/overviewExportData";
 import {
   type SlideContext,
+  type ExitScenarioChartEntry,
   addAllFooters,
   addTitleSlide,
   addMetricsSlide,
   addFinancialTableSlide,
+  addExitScenariosChartSlide,
   addOverviewSlides,
 } from "./pptx/slide-helpers";
+
+export type { ExitScenarioChartEntry };
 
 export type { SlideContext };
 
@@ -120,6 +124,7 @@ export interface PropertyExportData {
   investmentData?: { years: string[]; rows: ExportRowMeta[] };
   kpiMetrics?: { label: string; value: string }[];
   exitScenariosData?: { years: string[]; rows: ExportRowMeta[] };
+  exitScenariosChartData?: ExitScenarioChartEntry[];
 }
 
 export async function exportPropertyPPTX(data: PropertyExportData, companyName = APP_BRAND_NAME, customFilename?: string, themeColors?: ThemeColor[]) {
@@ -157,6 +162,14 @@ export async function exportPropertyPPTX(data: PropertyExportData, companyName =
   }
   if (data.exitScenariosData) {
     addFinancialTableSlide(ctx, `${data.propertyName} \u2014 Exit Scenarios`, data.propertyName, data.exitScenariosData.years, data.exitScenariosData.rows);
+  }
+  if (data.exitScenariosChartData && data.exitScenariosChartData.length > 0) {
+    addExitScenariosChartSlide(
+      ctx,
+      `${data.propertyName} \u2014 Exit Scenarios Chart`,
+      data.propertyName,
+      data.exitScenariosChartData,
+    );
   }
 
   const safeName = data.propertyName.replace(/[^a-zA-Z0-9 ]/g, "").substring(0, 30);
