@@ -118,7 +118,7 @@ const DRAFT_SLOTS: readonly DraftSlotKey[] = [
   "slide5.transformationRows[3]",
 ] as const;
 
-function isDraftSlot(s: unknown): s is DraftSlotKey {
+export function isDraftSlot(s: unknown): s is DraftSlotKey {
   return typeof s === "string" && (DRAFT_SLOTS as readonly string[]).includes(s);
 }
 
