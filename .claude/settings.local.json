@@ -14,7 +14,9 @@
       "Bash(git ls-remote *)",
       "Bash(rm .git/refs/remotes/origin/main.lock)",
       "Bash(git fetch *)",
-      "Bash(grep -vE \"from \\\\\"\\\\.|from '\\\\.|@shared|node:|^$\")"
+      "Bash(grep -vE \"from \\\\\"\\\\.|from '\\\\.|@shared|node:|^$\")",
+      "Bash(sed -n '1,5p' .agents/skills/web-design-guidelines/SKILL.md)",
+      "Bash(sed -n '1,5p' .agents/skills/pdf/SKILL.md)"
     ]
   }
 }
