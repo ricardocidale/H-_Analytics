@@ -136,11 +136,15 @@ export function generatePropertyProForma(
     const expenseAdmin = ctx.baseMonthlyTotalRev * ctx.costRateAdmin * fixedCostFactorGated;
     const expensePropertyOps = ctx.baseMonthlyTotalRev * ctx.costRatePropertyOps * fixedCostFactorGated;
     const expenseIT = ctx.baseMonthlyTotalRev * ctx.costRateIT * fixedCostFactorGated;
-    const expenseTaxes = ctx.totalPropertyValueDiv12 * ctx.costRateTaxes * fixedCostFactorGated;
+    // Property taxes and insurance accrue from the acquisition date, not the operations date.
+    // A property that is acquired but not yet open still carries tax and insurance obligations
+    // as the building is owned. Gate on isAcquired, not isOperational.
+    const isAcquiredGate = i >= ctx.acqMonthIdx ? 1 : 0;
+    const expenseTaxes = ctx.totalPropertyValueDiv12 * ctx.costRateTaxes * isAcquiredGate;
     const expenseUtilitiesFixed = ctx.baseMonthlyTotalRev * (ctx.costRateUtilities * ctx.utilitiesFixedSplit) * fixedCostFactorGated;
     const expenseEWW = expenseUtilitiesVar + expenseUtilitiesFixed;
     const expenseOtherCosts = ctx.baseMonthlyTotalRev * ctx.costRateOther * fixedCostFactorGated;
-    const expenseInsurance = ctx.totalPropertyValueDiv12 * ctx.costRateInsurance * fixedCostFactorGated;
+    const expenseInsurance = ctx.totalPropertyValueDiv12 * ctx.costRateInsurance * isAcquiredGate;
     
     const netRevenueAfterPlatformFees = revenueTotal - expensePlatformFees;
 
@@ -180,15 +184,18 @@ export function generatePropertyProForma(
     let effectiveFeeIncentive = feeIncentive;
     let deferredFees = 0;
     if (ctx.feeSubordination !== 'none' && ctx.isFinanced) {
-      // Preliminary cash flow before fees to check if it covers debt
-      const prelimAnoi = gop - expenseTaxes - expenseFFE; // ANOI before fees
-      const prelimCashBeforeFees = prelimAnoi; // simplified: available for debt + fees
-      if (ctx.feeSubordination === 'full' && prelimCashBeforeFees < ctx.monthlyPayment) {
-        // Full subordination: defer ALL fees when cash < debt service
+      // Cash available for debt service is AGOP (after fees) less taxes.
+      // The gate must test the post-fee cash position — subordination kicks in only when
+      // fees themselves push cash below the debt service threshold.
+      // Compute preliminary AGOP assuming fees are paid, then check coverage.
+      const prelimAgop = gop - feeBase - feeIncentive; // AGOP if fees paid in full
+      const prelimCashForDebt = prelimAgop - expenseTaxes - expenseFFE; // ≈ ANOI
+      if (ctx.feeSubordination === 'full' && prelimCashForDebt < ctx.monthlyPayment) {
+        // Full subordination: defer ALL fees when post-fee cash < debt service
         deferredFees = effectiveFeeBase + effectiveFeeIncentive;
         effectiveFeeBase = 0;
         effectiveFeeIncentive = 0;
-      } else if (ctx.feeSubordination === 'partial' && prelimCashBeforeFees < ctx.monthlyPayment) {
+      } else if (ctx.feeSubordination === 'partial' && prelimCashForDebt < ctx.monthlyPayment) {
         // Partial subordination: defer only incentive fee
         deferredFees = effectiveFeeIncentive;
         effectiveFeeIncentive = 0;

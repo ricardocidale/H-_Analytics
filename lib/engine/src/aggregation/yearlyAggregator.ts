@@ -108,6 +108,103 @@ export interface YearlyPropertyFinancials {
 }
 
 /**
+ * Accumulator state for one year's worth of monthly IS fields.
+ * Shared by aggregatePropertyByYear and aggregateUnifiedByYear to avoid
+ * duplicating the ~50-field inner loop.
+ */
+interface YearAccumulator {
+  soldRooms: number; availableRooms: number;
+  revenueRooms: number; revenueEvents: number; revenueFB: number; revenueOther: number; revenueTotal: number;
+  expenseRooms: number; expenseFB: number; expenseEvents: number; expenseOther: number;
+  expenseOtherCosts: number; expenseInsurance: number; expenseMarketing: number; expensePropertyOps: number;
+  expenseUtilitiesVar: number; expenseUtilitiesFixed: number;
+  expenseAdmin: number; expenseIT: number; expenseTaxes: number; expenseFFE: number;
+  expensePlatformFees: number; expensePreOpening: number;
+  feeBase: number; feeIncentive: number;
+  totalExpenses: number; gop: number; agop: number; noi: number; anoi: number;
+  interestExpense: number; depreciationExpense: number; incomeTax: number; netIncome: number;
+  principalPayment: number; debtPayment: number; refinancingProceeds: number;
+  accountsReceivable: number; accountsPayable: number; workingCapitalChange: number;
+  cashFlow: number; operatingCashFlow: number; financingCashFlow: number;
+  catFees: Record<string, number>;
+}
+
+function makeAccumulator(): YearAccumulator {
+  return {
+    soldRooms: 0, availableRooms: 0,
+    revenueRooms: 0, revenueEvents: 0, revenueFB: 0, revenueOther: 0, revenueTotal: 0,
+    expenseRooms: 0, expenseFB: 0, expenseEvents: 0, expenseOther: 0,
+    expenseOtherCosts: 0, expenseInsurance: 0, expenseMarketing: 0, expensePropertyOps: 0,
+    expenseUtilitiesVar: 0, expenseUtilitiesFixed: 0,
+    expenseAdmin: 0, expenseIT: 0, expenseTaxes: 0, expenseFFE: 0,
+    expensePlatformFees: 0, expensePreOpening: 0,
+    feeBase: 0, feeIncentive: 0,
+    totalExpenses: 0, gop: 0, agop: 0, noi: 0, anoi: 0,
+    interestExpense: 0, depreciationExpense: 0, incomeTax: 0, netIncome: 0,
+    principalPayment: 0, debtPayment: 0, refinancingProceeds: 0,
+    accountsReceivable: 0, accountsPayable: 0, workingCapitalChange: 0,
+    cashFlow: 0, operatingCashFlow: 0, financingCashFlow: 0,
+    catFees: {},
+  };
+}
+
+/**
+ * Accumulate one month's MonthlyFinancials into the year accumulator.
+ * Extracted to eliminate the duplicated 50-field loop between
+ * aggregatePropertyByYear and aggregateUnifiedByYear.
+ */
+function accumulateMonthlyIS(acc: YearAccumulator, m: MonthlyFinancials): void {
+  acc.soldRooms += m.soldRooms;
+  acc.availableRooms += m.availableRooms;
+  acc.revenueRooms += m.revenueRooms;
+  acc.revenueEvents += m.revenueEvents;
+  acc.revenueFB += m.revenueFB;
+  acc.revenueOther += m.revenueOther;
+  acc.revenueTotal += m.revenueTotal;
+  acc.expenseRooms += m.expenseRooms;
+  acc.expenseFB += m.expenseFB;
+  acc.expenseEvents += m.expenseEvents;
+  acc.expenseOther += m.expenseOther;
+  acc.expenseOtherCosts += m.expenseOtherCosts;
+  acc.expenseInsurance += m.expenseInsurance;
+  acc.expenseMarketing += m.expenseMarketing;
+  acc.expensePropertyOps += m.expensePropertyOps;
+  acc.expenseUtilitiesVar += m.expenseUtilitiesVar;
+  acc.expenseUtilitiesFixed += m.expenseUtilitiesFixed;
+  acc.expenseAdmin += m.expenseAdmin;
+  acc.expenseIT += m.expenseIT;
+  acc.expenseTaxes += m.expenseTaxes;
+  acc.expenseFFE += m.expenseFFE;
+  acc.expensePlatformFees += m.expensePlatformFees;
+  acc.expensePreOpening += m.expensePreOpening;
+  acc.feeBase += m.feeBase;
+  acc.feeIncentive += m.feeIncentive;
+  acc.totalExpenses += m.totalExpenses;
+  acc.gop += m.gop;
+  acc.agop += m.agop;
+  acc.noi += m.noi;
+  acc.anoi += m.anoi;
+  acc.interestExpense += m.interestExpense;
+  acc.depreciationExpense += m.depreciationExpense;
+  acc.incomeTax += m.incomeTax;
+  acc.netIncome += m.netIncome;
+  acc.principalPayment += m.principalPayment;
+  acc.debtPayment += m.debtPayment;
+  acc.refinancingProceeds += m.refinancingProceeds;
+  acc.accountsReceivable += m.accountsReceivable;
+  acc.accountsPayable += m.accountsPayable;
+  acc.workingCapitalChange += m.workingCapitalChange;
+  acc.cashFlow += m.cashFlow;
+  acc.operatingCashFlow += m.operatingCashFlow;
+  acc.financingCashFlow += m.financingCashFlow;
+  if (m.serviceFeesByCategory) {
+    for (const [cat, val] of Object.entries(m.serviceFeesByCategory)) {
+      acc.catFees[cat] = (acc.catFees[cat] ?? 0) + val;
+    }
+  }
+}
+
+/**
  * Aggregate engine monthly data into yearly property financials.
  *
  * All values come from the engine's MonthlyFinancials — nothing is re-derived.
@@ -128,71 +225,9 @@ export function aggregatePropertyByYear(
     const yearEnd = Math.min((y + 1) * MONTHS_PER_YEAR, data.length);
     if (yearStart >= data.length) continue;
 
-    let soldRooms = 0, availableRooms = 0;
-    let revenueRooms = 0, revenueEvents = 0, revenueFB = 0, revenueOther = 0, revenueTotal = 0;
-    let expenseRooms = 0, expenseFB = 0, expenseEvents = 0, expenseOther = 0;
-    let expenseOtherCosts = 0, expenseInsurance = 0, expenseMarketing = 0, expensePropertyOps = 0;
-    let expenseUtilitiesVar = 0, expenseUtilitiesFixed = 0;
-    let expenseAdmin = 0, expenseIT = 0, expenseTaxes = 0, expenseFFE = 0;
-    let expensePlatformFees = 0, expensePreOpening = 0;
-    let feeBase = 0, feeIncentive = 0;
-    let totalExpenses = 0, gop = 0, agop = 0, noi = 0, anoi = 0;
-    let interestExpense = 0, depreciationExpense = 0, incomeTax = 0, netIncome = 0;
-    let principalPayment = 0, debtPayment = 0, refinancingProceeds = 0;
-    let accountsReceivable = 0, accountsPayable = 0, workingCapitalChange = 0;
-    let cashFlow = 0, operatingCashFlow = 0, financingCashFlow = 0;
-    const catFees: Record<string, number> = {};
-
+    const acc = makeAccumulator();
     for (let mi = yearStart; mi < yearEnd; mi++) {
-      const m = data[mi];
-      soldRooms += m.soldRooms;
-      availableRooms += m.availableRooms;
-      revenueRooms += m.revenueRooms;
-      revenueEvents += m.revenueEvents;
-      revenueFB += m.revenueFB;
-      revenueOther += m.revenueOther;
-      revenueTotal += m.revenueTotal;
-      expenseRooms += m.expenseRooms;
-      expenseFB += m.expenseFB;
-      expenseEvents += m.expenseEvents;
-      expenseOther += m.expenseOther;
-      expenseOtherCosts += m.expenseOtherCosts;
-      expenseInsurance += m.expenseInsurance;
-      expenseMarketing += m.expenseMarketing;
-      expensePropertyOps += m.expensePropertyOps;
-      expenseUtilitiesVar += m.expenseUtilitiesVar;
-      expenseUtilitiesFixed += m.expenseUtilitiesFixed;
-      expenseAdmin += m.expenseAdmin;
-      expenseIT += m.expenseIT;
-      expenseTaxes += m.expenseTaxes;
-      expenseFFE += m.expenseFFE;
-      expensePlatformFees += m.expensePlatformFees;
-      expensePreOpening += m.expensePreOpening;
-      feeBase += m.feeBase;
-      feeIncentive += m.feeIncentive;
-      totalExpenses += m.totalExpenses;
-      gop += m.gop;
-      agop += m.agop;
-      noi += m.noi;
-      anoi += m.anoi;
-      interestExpense += m.interestExpense;
-      depreciationExpense += m.depreciationExpense;
-      incomeTax += m.incomeTax;
-      netIncome += m.netIncome;
-      principalPayment += m.principalPayment;
-      debtPayment += m.debtPayment;
-      refinancingProceeds += m.refinancingProceeds;
-      accountsReceivable += m.accountsReceivable;
-      accountsPayable += m.accountsPayable;
-      workingCapitalChange += m.workingCapitalChange;
-      cashFlow += m.cashFlow;
-      operatingCashFlow += m.operatingCashFlow;
-      financingCashFlow += m.financingCashFlow;
-      if (m.serviceFeesByCategory) {
-        for (const [cat, val] of Object.entries(m.serviceFeesByCategory)) {
-          catFees[cat] = (catFees[cat] ?? 0) + val;
-        }
-      }
+      accumulateMonthlyIS(acc, data[mi]);
     }
 
     let cleanAdr = 0;
@@ -206,53 +241,53 @@ export function aggregatePropertyByYear(
     const lastMonth = data[yearEnd - 1];
     results.push({
       year: y,
-      soldRooms,
-      availableRooms,
+      soldRooms: acc.soldRooms,
+      availableRooms: acc.availableRooms,
       cleanAdr,
-      revenueRooms,
-      revenueEvents,
-      revenueFB,
-      revenueOther,
-      revenueTotal,
-      expenseRooms,
-      expenseFB,
-      expenseEvents,
-      expenseOther,
-      expenseOtherCosts,
-      expenseInsurance,
-      expenseMarketing,
-      expensePropertyOps,
-      expenseUtilitiesVar,
-      expenseUtilitiesFixed,
-      expenseUtilities: expenseUtilitiesVar + expenseUtilitiesFixed,
-      expenseAdmin,
-      expenseIT,
-      expenseTaxes,
-      expenseFFE,
-      expensePlatformFees,
-      expensePreOpening,
-      feeBase,
-      feeIncentive,
-      serviceFeesByCategory: catFees,
-      totalExpenses,
-      gop,
-      agop,
-      noi,
-      anoi,
-      interestExpense,
-      depreciationExpense,
-      incomeTax,
-      netIncome,
-      principalPayment,
-      debtPayment,
-      refinancingProceeds,
-      accountsReceivable,
-      accountsPayable,
-      workingCapitalChange,
+      revenueRooms: acc.revenueRooms,
+      revenueEvents: acc.revenueEvents,
+      revenueFB: acc.revenueFB,
+      revenueOther: acc.revenueOther,
+      revenueTotal: acc.revenueTotal,
+      expenseRooms: acc.expenseRooms,
+      expenseFB: acc.expenseFB,
+      expenseEvents: acc.expenseEvents,
+      expenseOther: acc.expenseOther,
+      expenseOtherCosts: acc.expenseOtherCosts,
+      expenseInsurance: acc.expenseInsurance,
+      expenseMarketing: acc.expenseMarketing,
+      expensePropertyOps: acc.expensePropertyOps,
+      expenseUtilitiesVar: acc.expenseUtilitiesVar,
+      expenseUtilitiesFixed: acc.expenseUtilitiesFixed,
+      expenseUtilities: acc.expenseUtilitiesVar + acc.expenseUtilitiesFixed,
+      expenseAdmin: acc.expenseAdmin,
+      expenseIT: acc.expenseIT,
+      expenseTaxes: acc.expenseTaxes,
+      expenseFFE: acc.expenseFFE,
+      expensePlatformFees: acc.expensePlatformFees,
+      expensePreOpening: acc.expensePreOpening,
+      feeBase: acc.feeBase,
+      feeIncentive: acc.feeIncentive,
+      serviceFeesByCategory: acc.catFees,
+      totalExpenses: acc.totalExpenses,
+      gop: acc.gop,
+      agop: acc.agop,
+      noi: acc.noi,
+      anoi: acc.anoi,
+      interestExpense: acc.interestExpense,
+      depreciationExpense: acc.depreciationExpense,
+      incomeTax: acc.incomeTax,
+      netIncome: acc.netIncome,
+      principalPayment: acc.principalPayment,
+      debtPayment: acc.debtPayment,
+      refinancingProceeds: acc.refinancingProceeds,
+      accountsReceivable: acc.accountsReceivable,
+      accountsPayable: acc.accountsPayable,
+      workingCapitalChange: acc.workingCapitalChange,
       nolBalance: lastMonth.nolBalance,
-      cashFlow,
-      operatingCashFlow,
-      financingCashFlow,
+      cashFlow: acc.cashFlow,
+      operatingCashFlow: acc.operatingCashFlow,
+      financingCashFlow: acc.financingCashFlow,
       endingCash: lastMonth.endingCash,
     });
   }
@@ -285,72 +320,12 @@ export function aggregateUnifiedByYear(
     const yearEnd = Math.min((y + 1) * MONTHS_PER_YEAR, data.length);
     if (yearStart >= data.length) continue;
 
-    let soldRooms = 0, availableRooms = 0;
-    let revenueRooms = 0, revenueEvents = 0, revenueFB = 0, revenueOther = 0, revenueTotal = 0;
-    let expenseRooms = 0, expenseFB = 0, expenseEvents = 0, expenseOther = 0;
-    let expenseOtherCosts = 0, expenseInsurance = 0, expenseMarketing = 0, expensePropertyOps = 0;
-    let expenseUtilitiesVar = 0, expenseUtilitiesFixed = 0;
-    let expenseAdmin = 0, expenseIT = 0, expenseTaxes = 0, expenseFFE = 0;
-    let expensePlatformFees = 0, expensePreOpening = 0;
-    let feeBase = 0, feeIncentive = 0;
-    let totalExpenses = 0, gop = 0, agop = 0, noi = 0, anoi = 0;
-    let interestExpense = 0, depreciationExpense = 0, incomeTax = 0, netIncome = 0;
-    let principalPayment = 0, debtPayment = 0, refinancingProceeds = 0;
-    let accountsReceivable = 0, accountsPayable = 0, workingCapitalChange = 0;
-    let cashFlow = 0, operatingCashFlow = 0, financingCashFlow = 0;
-    const catFees: Record<string, number> = {};
+    const acc = makeAccumulator();
     let operationalMonthsInYear = 0;
 
     for (let mi = yearStart; mi < yearEnd; mi++) {
       const m = data[mi];
-      soldRooms += m.soldRooms;
-      availableRooms += m.availableRooms;
-      revenueRooms += m.revenueRooms;
-      revenueEvents += m.revenueEvents;
-      revenueFB += m.revenueFB;
-      revenueOther += m.revenueOther;
-      revenueTotal += m.revenueTotal;
-      expenseRooms += m.expenseRooms;
-      expenseFB += m.expenseFB;
-      expenseEvents += m.expenseEvents;
-      expenseOther += m.expenseOther;
-      expenseOtherCosts += m.expenseOtherCosts;
-      expenseInsurance += m.expenseInsurance;
-      expenseMarketing += m.expenseMarketing;
-      expensePropertyOps += m.expensePropertyOps;
-      expenseUtilitiesVar += m.expenseUtilitiesVar;
-      expenseUtilitiesFixed += m.expenseUtilitiesFixed;
-      expenseAdmin += m.expenseAdmin;
-      expenseIT += m.expenseIT;
-      expenseTaxes += m.expenseTaxes;
-      expenseFFE += m.expenseFFE;
-      expensePlatformFees += m.expensePlatformFees;
-      expensePreOpening += m.expensePreOpening;
-      feeBase += m.feeBase;
-      feeIncentive += m.feeIncentive;
-      totalExpenses += m.totalExpenses;
-      gop += m.gop;
-      agop += m.agop;
-      noi += m.noi;
-      anoi += m.anoi;
-      interestExpense += m.interestExpense;
-      depreciationExpense += m.depreciationExpense;
-      incomeTax += m.incomeTax;
-      netIncome += m.netIncome;
-      principalPayment += m.principalPayment;
-      debtPayment += m.debtPayment;
-      refinancingProceeds += m.refinancingProceeds;
-      accountsReceivable += m.accountsReceivable;
-      accountsPayable += m.accountsPayable;
-      workingCapitalChange += m.workingCapitalChange;
-      cashFlow += m.cashFlow;
-      operatingCashFlow += m.operatingCashFlow;
-      financingCashFlow += m.financingCashFlow;
-      if (m.serviceFeesByCategory) {
-        for (const [cat, val] of Object.entries(m.serviceFeesByCategory)) {
-          catFees[cat] = (catFees[cat] ?? 0) + val;
-        }
-      }
+      accumulateMonthlyIS(acc, m);
       if (m.revenueTotal > 0) operationalMonthsInYear++;
     }
 
@@ -363,6 +338,23 @@ export function aggregateUnifiedByYear(
     }
 
     const lastMonth = data[yearEnd - 1];
+
+    const {
+      soldRooms, availableRooms,
+      revenueRooms, revenueEvents, revenueFB, revenueOther, revenueTotal,
+      expenseRooms, expenseFB, expenseEvents, expenseOther,
+      expenseOtherCosts, expenseInsurance, expenseMarketing, expensePropertyOps,
+      expenseUtilitiesVar, expenseUtilitiesFixed,
+      expenseAdmin, expenseIT, expenseTaxes, expenseFFE,
+      expensePlatformFees, expensePreOpening,
+      feeBase, feeIncentive,
+      totalExpenses, gop, agop, noi, anoi,
+      interestExpense, depreciationExpense, incomeTax, netIncome,
+      principalPayment, debtPayment, refinancingProceeds,
+      accountsReceivable, accountsPayable, workingCapitalChange,
+      cashFlow, operatingCashFlow, financingCashFlow,
+      catFees,
+    } = acc;
 
     yearlyIS.push({
       year: y,

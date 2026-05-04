@@ -255,8 +255,14 @@ export function calculateRefinanceParams(
   const refiTotalPayments = refiTermYears * MONTHS_PER_YEAR;
   
   const refiLTV = property.refinanceLTV ?? DEFAULT_REFI_LTV;
-  const costBasisValue = (property.purchasePrice ?? 0) + (property.buildingImprovements ?? 0);
-  const refiLoanAmount = costBasisValue * refiLTV;
+  // Income-capitalization: new loan = stabilized NOI ÷ exit cap rate × refi LTV.
+  // This matches the module header and lender practice — the refi loan is sized against
+  // the property's income-based market value, not its historical cost basis.
+  // yearlyNOIData[refiYear] is the engine's annual NOI for the refi year (already computed).
+  const exitCapRateForRefi = property.exitCapRate ?? global?.exitCapRate ?? DEFAULT_EXIT_CAP_RATE;
+  const refiYearNOI = yearlyNOIData[refiYear] ?? 0;
+  const incomeCapValue = exitCapRateForRefi > 0 ? refiYearNOI / exitCapRateForRefi : 0;
+  const refiLoanAmount = incomeCapValue * refiLTV;
   
   let refiMonthlyPayment = 0;
   if (refiLoanAmount > 0) {
