@@ -433,6 +433,16 @@ function BulkDraftSummaryDialog({
   const successCount = results.filter(r => r.status === "done").length;
   const errorCount = results.filter(r => r.status === "error").length;
 
+  const failedResults = results.filter(r => r.status === "error");
+  const errorMessages = failedResults
+    .map(r => r.errorMessage)
+    .filter((m): m is string => Boolean(m));
+  const uniqueErrors = [...new Set(errorMessages)];
+  const commonErrorHint =
+    errorCount > 0 && uniqueErrors.length === 1 && uniqueErrors[0].length <= 80
+      ? uniqueErrors[0]
+      : null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg sm:max-w-xl">
@@ -447,6 +457,7 @@ function BulkDraftSummaryDialog({
             {errorCount > 0 && (
               <span className="text-red-600 dark:text-red-400">
                 {" "}· {errorCount} failed
+                {commonErrorHint ? ` — ${commonErrorHint}` : ""}
               </span>
             )}
             {totalSkipped > 0 && (
