@@ -79,7 +79,7 @@ export function registerResearchGenerateRoutes(app: Express) {
 
       // Resolve admin-configured event config + LLM/vendor for this research type
       const { model, secondaryModel, vendorKey, researchClient, eventConfig } =
-        resolveLlmConfig(ga, type);
+        await resolveLlmConfig(ga, type);
 
       // If admin disabled this research type, block the request
       if (!eventConfig.enabled) {

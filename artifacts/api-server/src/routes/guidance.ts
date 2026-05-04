@@ -12,7 +12,7 @@ import { extractGuidance } from "../ai/guidance/extractor";
 import { generateResearchWithToolsStream, parseResearchJSON } from "../ai/aiResearch";
 import { createResearchClient, resolveVendorFromModel } from "../ai/research-client";
 import { getAnthropicClient, getOpenAIClient, getGeminiClient } from "../ai/clients";
-import { DEFAULT_RESEARCH_MODEL } from "../ai/resolve-llm";
+import { resolveLlmFor } from "../ai/llm-config-resolver";
 import { computeConfidenceBreakdown, computePerFieldConfidence } from "../ai/confidence-scorer";
 import type { IcpConfig } from "@workspace/db";
 import {
@@ -325,7 +325,7 @@ export function register(app: Express) {
         return res.status(HTTP_400_BAD_REQUEST).json({ error: "Could not build context for deep-dive" });
       }
 
-      const modelId = DEFAULT_RESEARCH_MODEL;
+      const { modelId } = await resolveLlmFor("research-synthesis");
       const vendorKey = resolveVendorFromModel(modelId) as "openai" | "anthropic" | "google";
 
       const startTime = Date.now();

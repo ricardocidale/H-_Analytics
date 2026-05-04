@@ -15,7 +15,6 @@ export { DEFAULT_ANTHROPIC_MODEL } from "@shared/constants";
 
 export const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 export const DEFAULT_OPENAI_MODEL = "gpt-4.1";
-export const DEFAULT_RESEARCH_MODEL = "claude-sonnet-4-6";
 
 const DOMAIN_DEFAULTS: Record<LlmDomain, { vendor: LlmVendor; model: string }> = {
   companyLlm:        { vendor: "google",    model: DEFAULT_GEMINI_MODEL },
@@ -111,7 +110,7 @@ export function getRecommendedDefaults(): { vendor: LlmVendor; model: string } {
   const openai = vendors.find(v => v.vendor === "openai");
 
   if (gemini?.available) return { vendor: "google", model: DEFAULT_GEMINI_MODEL };
-  if (anthropic?.available) return { vendor: "anthropic", model: DEFAULT_RESEARCH_MODEL };
+  if (anthropic?.available) return { vendor: "anthropic", model: "claude-sonnet-4-6" };
   if (openai?.available) return { vendor: "openai", model: DEFAULT_OPENAI_MODEL };
 
   return DOMAIN_DEFAULTS.propertyLlm;

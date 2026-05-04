@@ -10,7 +10,7 @@ import {
 } from "./aiResearch";
 import { createResearchClient, resolveVendorFromModel } from "./research-client";
 import { getAnthropicClient, getOpenAIClient, getGeminiClient } from "./clients";
-import { DEFAULT_RESEARCH_MODEL } from "./resolve-llm";
+import { resolveLlmFor } from "./llm-config-resolver";
 import { ENGINE_VERSION } from "./engine-version";
 import { extractGuidance } from "./guidance/extractor";
 import { PROPERTY_ASSUMPTION_KEYS } from "./guidance/schemas";
@@ -200,7 +200,7 @@ async function runAnalystScopedInner(
   const model =
     contextLlm?.primaryLlm ||
     researchConfig.preferredLlm ||
-    DEFAULT_RESEARCH_MODEL;
+    (await resolveLlmFor("research-analyst-a")).modelId;
 
   const vendorKey = (["openai", "anthropic", "google"].includes(configuredVendor)
     ? configuredVendor

@@ -5,7 +5,7 @@ import { isAdminRole } from "@shared/constants";
 import { AI_ICP_RESEARCH_MAX_TOKENS } from "../constants";
 import { logActivity, logAndSendError, icpGenerateSchema, icpExportSchema, zodErrorMessage } from "./helpers";
 import { getAnthropicClient, normalizeModelId } from "../ai/clients";
-import { DEFAULT_RESEARCH_MODEL } from "../ai/resolve-llm";
+import { resolveLlmFor } from "../ai/llm-config-resolver";
 import { logApiCost, estimateCost } from "../middleware/cost-logger";
 import { logger } from "../logger";
 import {
@@ -37,7 +37,7 @@ export function register(app: Express) {
       const assetDescription = ga.assetDescription || "";
       const propertyLabel = ga.propertyLabel || "Hotel";
       const researchCfg = (ga.researchConfig as import("@workspace/db").ResearchConfig) ?? {};
-      const model = normalizeModelId(researchCfg.companyLlm?.primaryLlm || researchCfg.preferredLlm || ga.preferredLlm || DEFAULT_RESEARCH_MODEL);
+      const model = normalizeModelId(researchCfg.companyLlm?.primaryLlm || researchCfg.preferredLlm || ga.preferredLlm || (await resolveLlmFor("research-analyst-a")).modelId);
       const _secondaryModel = researchCfg.companyLlm?.llmMode === "dual" && researchCfg.companyLlm.secondaryLlm ? normalizeModelId(researchCfg.companyLlm.secondaryLlm) : undefined;
 
       const promptBuilder = (bodyValidation.data.promptBuilder || icpConfig._promptBuilder || {}) as PromptBuilderConfig;

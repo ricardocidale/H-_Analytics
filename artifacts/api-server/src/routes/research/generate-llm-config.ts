@@ -9,7 +9,7 @@ import {
   resolveVendorFromModel,
   type ResearchClient,
 } from "../../ai/research-client";
-import { DEFAULT_RESEARCH_MODEL } from "../../ai/resolve-llm";
+import { resolveLlmFor } from "../../ai/llm-config-resolver";
 import {
   DEFAULT_RESEARCH_EVENT_CONFIG,
 } from "@shared/constants";
@@ -34,10 +34,10 @@ export interface ResolvedLlmConfig {
  * merges the admin-configured event config (sources, custom sources) on top
  * of the defaults. No I/O — pure computation.
  */
-export function resolveLlmConfig(
+export async function resolveLlmConfig(
   ga: GlobalAssumptions | undefined,
   type: "property" | "company" | "global",
-): ResolvedLlmConfig {
+): Promise<ResolvedLlmConfig> {
   const researchConfig = (ga?.researchConfig as ResearchConfig) ?? {};
   const contextKey =
     type === "property"
@@ -52,7 +52,7 @@ export function resolveLlmConfig(
     contextLlm?.primaryLlm ||
       researchConfig.preferredLlm ||
       ga?.preferredLlm ||
-      DEFAULT_RESEARCH_MODEL,
+      (await resolveLlmFor("research-synthesis")).modelId,
   );
   const secondaryModel =
     contextLlm?.llmMode === "dual" && contextLlm.secondaryLlm

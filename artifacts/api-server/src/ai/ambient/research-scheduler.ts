@@ -6,7 +6,7 @@ import { AI_AMBIENT_RESEARCH_MAX_TOKENS } from "../../constants";
 import { recordSchedulerCycle, truncateNotes } from "../../jobs/scheduler-run-tracker";
 import { createResearchClient, resolveVendorFromModel } from "../research-client";
 import { getAnthropicClient, getOpenAIClient, getGeminiClient, normalizeModelId } from "../clients";
-import { DEFAULT_RESEARCH_MODEL } from "../resolve-llm";
+import { resolveLlmFor } from "../llm-config-resolver";
 import type { ResearchConfig, LlmVendor, ScheduledResearchWorkflow, ContextLlmConfig } from "@workspace/db";
 
 let isRunning = false;
@@ -56,7 +56,7 @@ export async function executeScheduledWorkflow(
     const contextKey = "marketLlm";
     const contextLlm = researchConfig[contextKey as keyof ResearchConfig] as ContextLlmConfig | undefined;
     const model = normalizeModelId(
-      contextLlm?.primaryLlm || researchConfig.preferredLlm || ga?.preferredLlm || DEFAULT_RESEARCH_MODEL,
+      contextLlm?.primaryLlm || researchConfig.preferredLlm || ga?.preferredLlm || (await resolveLlmFor("research-analyst-a")).modelId,
     );
 
     const configuredVendor = (contextLlm?.llmVendor || "anthropic") as LlmVendor;
@@ -296,7 +296,7 @@ export async function runScheduledCheckCycle(): Promise<void> {
     const researchConfig = (ga?.researchConfig as ResearchConfig) ?? {};
     const contextLlm = researchConfig["marketLlm" as keyof ResearchConfig] as ContextLlmConfig | undefined;
     const model = normalizeModelId(
-      contextLlm?.primaryLlm || researchConfig.preferredLlm || ga?.preferredLlm || DEFAULT_RESEARCH_MODEL,
+      contextLlm?.primaryLlm || researchConfig.preferredLlm || ga?.preferredLlm || (await resolveLlmFor("research-analyst-a")).modelId,
     );
     const configuredVendor = (contextLlm?.llmVendor || "anthropic") as LlmVendor;
     const vendorKey = (["openai", "anthropic", "google"].includes(configuredVendor)
