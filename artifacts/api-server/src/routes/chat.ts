@@ -178,7 +178,7 @@ export async function callLlm(
     const result = await Promise.race([
       client.messages.create({
         model: normalized,
-        system: systemPrompt,
+        system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
         max_tokens: sampling.maxOutputTokens,
         temperature: sampling.temperature,
         top_p: sampling.topP,

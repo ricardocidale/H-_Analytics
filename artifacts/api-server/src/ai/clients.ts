@@ -94,16 +94,14 @@ export function getGeminiClient(): GoogleGenAI {
 }
 
 // ── Model normalization ─────────────────────────────────
+// Source of truth: lib/shared/src/llm-models.ts
+// This file re-exports the shared normalizer under its legacy name so
+// existing call sites continue to work without churn.
 
-const DEPRECATED_MODEL_MAP: Record<string, string> = {
-  "claude-3-5-sonnet-20241022": "claude-sonnet-4-5",
-  "claude-3-5-sonnet": "claude-sonnet-4-5",
-  "claude-3-opus-20240229": "claude-sonnet-4-5",
-};
-
-export function normalizeModelId(model: string): string {
-  return DEPRECATED_MODEL_MAP[model] || model;
-}
+export {
+  normalizeClaudeModelId as normalizeModelId,
+  DEPRECATED_CLAUDE_MODEL_MAP as DEPRECATED_MODEL_MAP,
+} from "@shared/llm-models";
 
 // ── Perplexity ──────────────────────────────────────────
 

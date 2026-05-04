@@ -20,7 +20,8 @@
       "Bash(awk -F: '$2>0')",
       "Bash(pnpm install *)",
       "Bash(pnpm typecheck *)",
-      "Bash(pnpm --filter @workspace/api-server typecheck)"
+      "Bash(pnpm --filter @workspace/api-server typecheck)",
+      "Bash(pnpm outdated *)"
     ]
   }
 }

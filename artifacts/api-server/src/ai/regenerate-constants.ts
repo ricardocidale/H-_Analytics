@@ -563,7 +563,7 @@ export async function proposeConstantRegeneration(args: {
   const completion = await anthropic.messages.create({
     model: ANALYST_MODEL,
     max_tokens: AI_REGEN_CONSTANTS_MAX_TOKENS,
-    system: buildSystemPrompt(),
+    system: [{ type: "text", text: buildSystemPrompt(), cache_control: { type: "ephemeral" } }],
     messages: [
       {
         role: "user",

@@ -234,7 +234,7 @@ async function callClaude(systemPrompt: string, userPrompt: string): Promise<str
   const response = await client.messages.create({
     model: ANALYST_MODEL,
     max_tokens: 4096,
-    system: systemPrompt,
+    system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
     messages: [{ role: "user", content: userPrompt }],
   });
   const block = response.content.find((b) => b.type === "text");
