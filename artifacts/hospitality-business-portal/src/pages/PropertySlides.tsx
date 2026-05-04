@@ -44,6 +44,9 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Slide1, Slide2, Slide3, Slide4, Slide5, Slide6 } from "@/features/internal-deck/slides";
+// TODO (T_RENDER_REWRITE): migrate to SLIDE_WIDTH_PX / SLIDE_HEIGHT_PX from
+// contract.ts (960×540) once slides.tsx is rewritten at canonical dimensions.
+// Until then, these must stay at 1920×1080 to match slides.tsx layout space.
 import { SLIDE_HEIGHT_PX, SLIDE_WIDTH_PX } from "@/features/internal-deck/theme";
 import "@/features/internal-deck/fonts.css";
 import type { SlidePayload } from "@/features/internal-deck/types";

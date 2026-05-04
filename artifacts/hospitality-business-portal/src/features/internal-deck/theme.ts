@@ -1,7 +1,30 @@
 /**
- * theme.ts — Shared colors, slide canvas dimensions, and font-family tokens
- * for the internal investor deck. 1920×1080 canvas matches the canonical
- * L+B palette.
+ * @deprecated theme.ts — LEGACY. Use contract.ts instead.
+ *
+ * This file pre-dates the v4 PDF-deterministic render spec and contains
+ * values that DO NOT match the canonical L+B investor deck:
+ *
+ *   WRONG canvas:    1920×1080 px  →  correct is 960×540 (CANVAS in contract.ts)
+ *   WRONG palette:   C.darkBg, C.mint, C.dimWhite, etc. are not in the PDF spec
+ *   WRONG sage hex:  #9FBCA4 vs canonical #9FBCAD (PALETTE.sage in contract.ts)
+ *
+ * Canonical source of truth:
+ *   • artifacts/hospitality-business-portal/src/features/internal-deck/contract.ts
+ *   • docs/slide-system/canonical/spec_skeleton_v4.json
+ *   • R2: canonical/lb-6-slide/lb-6-slide-canonical.pdf
+ *     (file: L+B_Property_6-Slide_Cannonical_1777859377769.pdf)
+ *
+ * Removal plan: this file will be deleted once slides.tsx is fully rewritten
+ * at 960×540 (T_RENDER_REWRITE). Until then, slides.tsx imports W, H, C,
+ * FONT_*, and SLIDE_BACKGROUNDS from here because those values are tightly
+ * coupled to 1920×1080 layout coordinates throughout slides.tsx. Changing
+ * them here before rewriting the layout would corrupt all six slide renders.
+ *
+ * InternalDeck.tsx and PropertySlides.tsx also import SLIDE_WIDTH_PX and
+ * SLIDE_HEIGHT_PX from here for PDF page sizing — also deferred to T_RENDER_REWRITE.
+ * InternalDeck.tsx has already migrated TOTAL_SLIDES to contract.ts.
+ *
+ * DO NOT add new constants here. DO NOT import this in new files.
  */
 
 export const SLIDE_WIDTH_PX = 1920;

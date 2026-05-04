@@ -1,15 +1,30 @@
 /**
  * upload-canonical-slides.ts
  *
- * One-shot script: upload the L+B canonical 6-slide PDF to R2, generate
- * per-slide PNG rasters (300 dpi) and per-slide individual PDFs, upload
- * all of them, then print the resulting key manifest.
+ * Uploads the ONE canonical L+B 6-slide investor deck PDF to R2 and
+ * generates per-slide PNG rasters (300 dpi) + individual slide PDFs.
+ *
+ * CANONICAL SOURCE PDF (the only authoritative design source):
+ *   attached_assets/L+B_Property_6-Slide_Cannonical_1777859377769.pdf
+ *
+ * This file is the design authority for:
+ *   • contract.ts    — palette, fonts, canvas dimensions (960×540), bb() coords
+ *   • spec_skeleton_v4.json — element-level layout skeleton
+ *   • slides.tsx     — renderer (to be rewritten against contract.ts)
+ *
+ * The OLDER file L+B_Property_6-Slide_Cannonical_1777775653617.pdf is NOT
+ * referenced here and should NOT be used for slide generation.
+ *
+ * R2 output prefix: canonical/lb-6-slide/
+ *   Full PDF:        canonical/lb-6-slide/lb-6-slide-canonical.pdf
+ *   Per-slide PNGs:  canonical/lb-6-slide/slides/slide-{1..6}.png
+ *   Per-slide PDFs:  canonical/lb-6-slide/slides/slide-{1..6}.pdf
  *
  * Usage:
  *   pnpm --filter @workspace/scripts run upload:canonical-slides
  *
  * Requires: R2_BUCKET, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ACCOUNT_ID
- * System tools: pdftoppm (poppler), pdfseparate (poppler)
+ * System tools: pdftoppm (poppler-utils), pdfseparate (poppler-utils)
  */
 
 import fs from "node:fs";

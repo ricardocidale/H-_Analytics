@@ -19,12 +19,38 @@
  *   • Forbidden inside slides: flex/grid, responsive units, UI libraries, new colors
  */
 
+// ── Canonical PDF reference ──────────────────────────────────────────────────
+// This is the ONLY authoritative source PDF for the slide generation codebase.
+// Filename: L+B_Property_6-Slide_Cannonical_1777859377769.pdf
+// Uploaded to R2 by: scripts/src/upload-canonical-slides.ts
+// R2 key (full deck PDF):
+export const CANONICAL_PDF_R2_KEY =
+  "canonical/lb-6-slide/lb-6-slide-canonical.pdf" as const;
+
 // ── Canvas ──────────────────────────────────────────────────────────────────
 
 export const CANVAS = {
   width: 960,
   height: 540,
 } as const;
+
+/**
+ * Named aliases matching the import style used in InternalDeck.tsx and
+ * PropertySlides.tsx. Prefer CANVAS.width/height in new code.
+ * These reflect the CANONICAL 960×540 dimensions from the v4 PDF spec.
+ *
+ * NOTE: InternalDeck.tsx and PropertySlides.tsx currently import these names
+ * from theme.ts (1920×1080). The migration to these canonical values is
+ * intentionally deferred until slides.tsx is fully rewritten at 960×540 —
+ * changing the page dimensions while slide layout coordinates are still in
+ * 1920×1080 space would corrupt the PDF render.
+ * Migration tracker: T_RENDER_REWRITE
+ */
+export const SLIDE_WIDTH_PX = CANVAS.width;
+export const SLIDE_HEIGHT_PX = CANVAS.height;
+
+/** Total slide count in the canonical deck. */
+export const TOTAL_SLIDES = 6;
 
 /**
  * Convert a spec bbox [x1, y1, x2, y2] into absolute CSS layout values.

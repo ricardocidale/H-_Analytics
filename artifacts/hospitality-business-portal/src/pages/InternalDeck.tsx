@@ -25,7 +25,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRoute } from "wouter";
 import { Slide1, Slide2, Slide3, Slide4, Slide5, Slide6 } from "@/features/internal-deck/slides";
-import { SLIDE_HEIGHT_PX, SLIDE_WIDTH_PX, TOTAL_SLIDES } from "@/features/internal-deck/theme";
+// TOTAL_SLIDES comes from contract.ts (canonical v4 spec). SLIDE_WIDTH_PX and
+// SLIDE_HEIGHT_PX still come from theme.ts (1920×1080) because slides.tsx
+// renders at those dimensions. Migration to contract.ts 960×540 is deferred
+// until slides.tsx is fully rewritten (T_RENDER_REWRITE).
+import { TOTAL_SLIDES } from "@/features/internal-deck/contract";
+import { SLIDE_HEIGHT_PX, SLIDE_WIDTH_PX } from "@/features/internal-deck/theme";
 import "@/features/internal-deck/fonts.css";
 import type { SlidePayload } from "@/features/internal-deck/types";
 

@@ -6,13 +6,15 @@
  * surrounding page in pages/InternalDeck.tsx applies @page sizing for print.
  */
 import React from "react";
+// TODO (T_RENDER_REWRITE): all theme.ts imports below will be removed when
+// slides.tsx is rewritten at 960×540 against contract.ts and spec_skeleton_v4.json.
+// DO NOT add new imports from theme.ts. Use contract.ts for any new constants.
 import {
   C,
   FONT_NUMERIC,
   FONT_SANS,
   FONT_SERIF,
   SLIDE_BACKGROUNDS,
-  SLIDE_EXIT_CAP_RATE_FALLBACK,
   SLIDE_HEIGHT_PX as H,
   SLIDE_WIDTH_PX as W,
 } from "./theme";
@@ -31,6 +33,11 @@ import {
 } from "./helpers";
 import { getCanonicalPhoto } from "./canonical-photos";
 import type { SiblingProperty, SlidePayload, SlidePhoto } from "./types";
+
+// Financial assumption: exit cap rate used when no engine/property value is set.
+// Not derived from the PDF spec — this is a business-model default.
+// When slides.tsx is rewritten (T_RENDER_REWRITE) this moves to a shared module.
+const SLIDE_EXIT_CAP_RATE_FALLBACK = 0.07;
 
 const DEFAULT_OCCUPANCY = 0.7;
 const STABLE_OCC_FLOOR = 0.55;
