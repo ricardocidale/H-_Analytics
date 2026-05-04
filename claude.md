@@ -286,7 +286,7 @@ Skills are reusable process documents that guide AI agents through complex tasks
   ce-agents/           Compound Engineering persona definitions
   COMPOUND-ENGINEERING.md  CE plugin documentation
 vendor/
-  compound-engineering-plugin/  CE plugin source (v3.2.0) — see its README.md
+  compound-engineering-plugin/  CE plugin source (v3.3.2) — registered via `.claude/settings.json` using `extraKnownMarketplaces` + `enabledPlugins`
 ```
 
 ### Core workflow (Compound Engineering loop)
@@ -340,6 +340,7 @@ vendor/
 
 | Date | Change |
 |---|---|
+| 2026-05-04 | **Compound Engineering plugin v3.3.2 registered.** `.claude/settings.json` created with `extraKnownMarketplaces` (directory source → `vendor/compound-engineering-plugin/`) and `enabledPlugins` (`compound-engineering@compound-engineering-plugin`). Loads 37+ `ce-*` skills and 50+ agents on session start. |
 | 2026-05-04 | **Google OAuth iframe fix.** `Login.tsx` Google button changed to `window.open("/api/auth/google", "_blank")` + poll `refetch()` every 2 s — Google's sign-in page sends `X-Frame-Options: DENY` and cannot render inside the Replit preview iframe; opening a new tab avoids the iframe entirely. Rule 4 added to both memory files. |
 | 2026-05-04 | **Auth hardening — login always works in preview.** `GOOGLE_CLIENT_ID` documented as required in both Railway AND Replit secrets (was missing from Replit, silently disabling `/api/auth/google`). Login logo quick-login fixed: removed the `devLoginAvailable` async-fetch gate that silently failed in iframe/canvas contexts, making the logo a no-op. Logo now always fires `POST /api/auth/dev-login`; server blocks it in production via `isPublishedDeployment()`. Three inviolable auth rules added to `claude.md` and `replit.md`. |
 | 2026-05-04 | **Canonical slide PNGs registered in R2 + skill infrastructure.** All 6 L+B canonical slide PNGs uploaded to `canonical/lb-6-slide/slides/slide-{1..6}.png` (source: `attached_assets/L+B_Property_6-Slide_Cannonical_Page_N_*.png`). New `lb-slides-canonical-pngs` skill documents R2 keys, local paths, per-slide content reference, and the 7-point comparison checklist. `lb-slides-renderer` skill updated with mandatory `v_canonical_png` validation rule. `coding-agent-instructions.md` Section 15 added — "Step 0: load canonical PNG"; PNG wins over JSON spec when they disagree. Magic number constants (`VISION_DRAFT_MAX_TOKENS`, `VISION_BADGE_MAX_CHARS`, `VISION_BULLET_MAX_CHARS`, `VISION_PARAGRAPH_MAX_CHARS`, `RETREAT_GUESTS_PER_KEY_MIN/MAX`, `VRBO_GUESTS_PER_KEY`) moved from inline in `property-vision.ts` to `lib/shared/src/constants-benchmarks.ts` + api-server mirror; baseline re-locked (`check:magic-numbers` PASS, 9 improvements). Slide2/Slide3/Slide5 editor panels now have "Draft via Analyst" buttons for all slots. |
