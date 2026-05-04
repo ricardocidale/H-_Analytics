@@ -15,6 +15,15 @@ import {
   SLIDE1_HEADER_SUBTITLE_MAX,
   SLIDE1_VISION_BULLET_MAX,
   SLIDE1_VISION_BULLETS_COUNT,
+  SLIDE2_OPERATIONAL_MODEL_MAX,
+  SLIDE2_REVENUE_BULLET_MAX,
+  SLIDE2_PROGRAMMING_BULLET_MAX,
+  SLIDE3_CONCEPT_PARAGRAPH_MAX,
+  SLIDE3_MARKET_RATIONALE_MAX,
+  SLIDE3_REASON_LABEL_MAX,
+  SLIDE3_REASON_DETAIL_MAX,
+  SLIDE3_REASONS_COUNT,
+  SLIDE3_CLOSING_LINE_MAX,
   SLIDE5_TRANSFORMATION_ROW_FEATURE_MAX,
   SLIDE5_TRANSFORMATION_ROW_EXISTING_MAX,
   SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX,
@@ -285,5 +294,549 @@ describe("validateSlotOutput — per-row budget enforcement", () => {
     };
     const result = validateSlotOutput("slide5.transformationRows[0]", row);
     expect(result.ok).toBe(true);
+  });
+});
+
+// ── Slide 2 draft-slot contract (Task #1055) ─────────────────────────────
+//
+// slide2 has three draftable text slots: operationalModelText, revenueBullet,
+// and programmingBullet. Each follows the { text: string } shape.
+
+describe("isDraftSlot — slide2 keys", () => {
+  const slide2Keys = [
+    "slide2.operationalModelText",
+    "slide2.revenueBullet",
+    "slide2.programmingBullet",
+  ] as const;
+
+  for (const key of slide2Keys) {
+    it(`recognises "${key}" as a valid draft slot`, () => {
+      expect(isDraftSlot(key)).toBe(true);
+    });
+  }
+});
+
+describe("validateSlotOutput — slide2.operationalModelText budget enforcement", () => {
+  it("accepts a conforming text value", () => {
+    const result = validateSlotOutput("slide2.operationalModelText", {
+      text: "A vertically integrated boutique hotel model",
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value).toEqual({ text: "A vertically integrated boutique hotel model" });
+    }
+  });
+
+  it("accepts text at exactly SLIDE2_OPERATIONAL_MODEL_MAX", () => {
+    const result = validateSlotOutput("slide2.operationalModelText", {
+      text: "a".repeat(SLIDE2_OPERATIONAL_MODEL_MAX),
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("rejects text exceeding SLIDE2_OPERATIONAL_MODEL_MAX", () => {
+    const result = validateSlotOutput("slide2.operationalModelText", {
+      text: "x".repeat(SLIDE2_OPERATIONAL_MODEL_MAX + 1),
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.length).toBeGreaterThanOrEqual(1);
+      expect(result.errors[0]).toContain("text");
+    }
+  });
+
+  it("rejects a non-string text field", () => {
+    const result = validateSlotOutput("slide2.operationalModelText", { text: 42 });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors[0]).toContain("text");
+      expect(result.errors[0]).toContain("expected string");
+    }
+  });
+});
+
+describe("validateSlotOutput — slide2.revenueBullet budget enforcement", () => {
+  it("accepts a conforming text value", () => {
+    const result = validateSlotOutput("slide2.revenueBullet", {
+      text: "Dynamic pricing strategy targeting leisure and corporate segments",
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("accepts text at exactly SLIDE2_REVENUE_BULLET_MAX", () => {
+    const result = validateSlotOutput("slide2.revenueBullet", {
+      text: "b".repeat(SLIDE2_REVENUE_BULLET_MAX),
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("rejects text exceeding SLIDE2_REVENUE_BULLET_MAX", () => {
+    const result = validateSlotOutput("slide2.revenueBullet", {
+      text: "x".repeat(SLIDE2_REVENUE_BULLET_MAX + 1),
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.length).toBeGreaterThanOrEqual(1);
+      expect(result.errors[0]).toContain("text");
+    }
+  });
+
+  it("rejects a non-string text field", () => {
+    const result = validateSlotOutput("slide2.revenueBullet", { text: true });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors[0]).toContain("expected string");
+    }
+  });
+});
+
+describe("validateSlotOutput — slide2.programmingBullet budget enforcement", () => {
+  it("accepts a conforming text value", () => {
+    const result = validateSlotOutput("slide2.programmingBullet", {
+      text: "Curated wellness and culinary programming anchored by local partnerships",
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("accepts text at exactly SLIDE2_PROGRAMMING_BULLET_MAX", () => {
+    const result = validateSlotOutput("slide2.programmingBullet", {
+      text: "c".repeat(SLIDE2_PROGRAMMING_BULLET_MAX),
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("rejects text exceeding SLIDE2_PROGRAMMING_BULLET_MAX", () => {
+    const result = validateSlotOutput("slide2.programmingBullet", {
+      text: "x".repeat(SLIDE2_PROGRAMMING_BULLET_MAX + 1),
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.length).toBeGreaterThanOrEqual(1);
+      expect(result.errors[0]).toContain("text");
+    }
+  });
+
+  it("rejects a non-string text field", () => {
+    const result = validateSlotOutput("slide2.programmingBullet", { text: null });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors[0]).toContain("expected string");
+    }
+  });
+});
+
+// ── Slide 2 schema alignment ──────────────────────────────────────────────
+
+describe("DRAFT_SLOTS — slide2 schema alignment", () => {
+  const provenance = { source: "llm", updatedAt: new Date().toISOString() };
+
+  it("slide2.operationalModelText is a recognised key in the slide2 schema", () => {
+    const parsed = deckPayloadV2Schema.safeParse({
+      schemaVersion: DECK_PAYLOAD_SCHEMA_VERSION,
+      slide2: { operationalModelText: { text: "Test model text", provenance } },
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("slide2.operationalModelText rejects text exceeding SLIDE2_OPERATIONAL_MODEL_MAX", () => {
+    const parsed = deckPayloadV2Schema.safeParse({
+      schemaVersion: DECK_PAYLOAD_SCHEMA_VERSION,
+      slide2: {
+        operationalModelText: {
+          text: "x".repeat(SLIDE2_OPERATIONAL_MODEL_MAX + 1),
+          provenance,
+        },
+      },
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("slide2.revenueBullet is a recognised key in the slide2 schema", () => {
+    const parsed = deckPayloadV2Schema.safeParse({
+      schemaVersion: DECK_PAYLOAD_SCHEMA_VERSION,
+      slide2: { revenueBullet: { text: "Test revenue strategy", provenance } },
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("slide2.revenueBullet rejects text exceeding SLIDE2_REVENUE_BULLET_MAX", () => {
+    const parsed = deckPayloadV2Schema.safeParse({
+      schemaVersion: DECK_PAYLOAD_SCHEMA_VERSION,
+      slide2: {
+        revenueBullet: {
+          text: "x".repeat(SLIDE2_REVENUE_BULLET_MAX + 1),
+          provenance,
+        },
+      },
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("slide2.programmingBullet is a recognised key in the slide2 schema", () => {
+    const parsed = deckPayloadV2Schema.safeParse({
+      schemaVersion: DECK_PAYLOAD_SCHEMA_VERSION,
+      slide2: { programmingBullet: { text: "Test programming", provenance } },
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("slide2.programmingBullet rejects text exceeding SLIDE2_PROGRAMMING_BULLET_MAX", () => {
+    const parsed = deckPayloadV2Schema.safeParse({
+      schemaVersion: DECK_PAYLOAD_SCHEMA_VERSION,
+      slide2: {
+        programmingBullet: {
+          text: "x".repeat(SLIDE2_PROGRAMMING_BULLET_MAX + 1),
+          provenance,
+        },
+      },
+    });
+    expect(parsed.success).toBe(false);
+  });
+});
+
+// ── Slide 3 draft-slot contract (Task #1055) ─────────────────────────────
+//
+// slide3 has four draftable slots: conceptParagraph (text), marketRationale
+// (text), reasons (array of { label, detail }), and closingLine (text).
+
+describe("isDraftSlot — slide3 keys", () => {
+  const slide3Keys = [
+    "slide3.conceptParagraph",
+    "slide3.marketRationale",
+    "slide3.reasons",
+    "slide3.closingLine",
+  ] as const;
+
+  for (const key of slide3Keys) {
+    it(`recognises "${key}" as a valid draft slot`, () => {
+      expect(isDraftSlot(key)).toBe(true);
+    });
+  }
+});
+
+describe("validateSlotOutput — slide3.conceptParagraph budget enforcement", () => {
+  it("accepts a conforming text value", () => {
+    const result = validateSlotOutput("slide3.conceptParagraph", {
+      text: "A reimagined 19th-century estate blending heritage architecture with modern amenities",
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("accepts text at exactly SLIDE3_CONCEPT_PARAGRAPH_MAX", () => {
+    const result = validateSlotOutput("slide3.conceptParagraph", {
+      text: "a".repeat(SLIDE3_CONCEPT_PARAGRAPH_MAX),
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("rejects text exceeding SLIDE3_CONCEPT_PARAGRAPH_MAX", () => {
+    const result = validateSlotOutput("slide3.conceptParagraph", {
+      text: "x".repeat(SLIDE3_CONCEPT_PARAGRAPH_MAX + 1),
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.length).toBeGreaterThanOrEqual(1);
+      expect(result.errors[0]).toContain("text");
+    }
+  });
+
+  it("rejects a non-string text field", () => {
+    const result = validateSlotOutput("slide3.conceptParagraph", { text: 99 });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors[0]).toContain("expected string");
+    }
+  });
+});
+
+describe("validateSlotOutput — slide3.marketRationale budget enforcement", () => {
+  it("accepts a conforming text value", () => {
+    const result = validateSlotOutput("slide3.marketRationale", {
+      text: "The Hudson Valley market has seen 22% ADR growth year-over-year",
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("accepts text at exactly SLIDE3_MARKET_RATIONALE_MAX", () => {
+    const result = validateSlotOutput("slide3.marketRationale", {
+      text: "b".repeat(SLIDE3_MARKET_RATIONALE_MAX),
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("rejects text exceeding SLIDE3_MARKET_RATIONALE_MAX", () => {
+    const result = validateSlotOutput("slide3.marketRationale", {
+      text: "x".repeat(SLIDE3_MARKET_RATIONALE_MAX + 1),
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.length).toBeGreaterThanOrEqual(1);
+      expect(result.errors[0]).toContain("text");
+    }
+  });
+
+  it("rejects a non-string text field", () => {
+    const result = validateSlotOutput("slide3.marketRationale", { text: [] });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors[0]).toContain("expected string");
+    }
+  });
+});
+
+describe("validateSlotOutput — slide3.reasons budget enforcement", () => {
+  const conformingReasons = {
+    reasons: [
+      { label: "Location", detail: "Prime Hudson Valley corridor with metro access" },
+      { label: "Market Gap", detail: "No boutique product between $250–$400 ADR" },
+      { label: "Upside", detail: "F&B and event revenue diversify beyond rooms" },
+    ],
+  };
+
+  it("accepts a conforming reasons array", () => {
+    const result = validateSlotOutput("slide3.reasons", conformingReasons);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value).toEqual(conformingReasons);
+    }
+  });
+
+  it("accepts reasons with fields at exactly their max lengths", () => {
+    const result = validateSlotOutput("slide3.reasons", {
+      reasons: [
+        {
+          label: "a".repeat(SLIDE3_REASON_LABEL_MAX),
+          detail: "b".repeat(SLIDE3_REASON_DETAIL_MAX),
+        },
+      ],
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("rejects a label exceeding SLIDE3_REASON_LABEL_MAX", () => {
+    const result = validateSlotOutput("slide3.reasons", {
+      reasons: [
+        {
+          label: "x".repeat(SLIDE3_REASON_LABEL_MAX + 1),
+          detail: "Short detail",
+        },
+      ],
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.length).toBeGreaterThanOrEqual(1);
+      expect(result.errors[0]).toContain("label");
+    }
+  });
+
+  it("rejects a detail exceeding SLIDE3_REASON_DETAIL_MAX", () => {
+    const result = validateSlotOutput("slide3.reasons", {
+      reasons: [
+        {
+          label: "Location",
+          detail: "x".repeat(SLIDE3_REASON_DETAIL_MAX + 1),
+        },
+      ],
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.length).toBeGreaterThanOrEqual(1);
+      expect(result.errors[0]).toContain("detail");
+    }
+  });
+
+  it("rejects more than SLIDE3_REASONS_COUNT entries", () => {
+    const reason = { label: "Test", detail: "Short detail" };
+    const result = validateSlotOutput("slide3.reasons", {
+      reasons: Array.from({ length: SLIDE3_REASONS_COUNT + 1 }, () => reason),
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.length).toBeGreaterThanOrEqual(1);
+      expect(result.errors[0]).toContain("reasons");
+    }
+  });
+
+  it("rejects when both label and detail exceed their budgets", () => {
+    const result = validateSlotOutput("slide3.reasons", {
+      reasons: [
+        {
+          label: "x".repeat(SLIDE3_REASON_LABEL_MAX + 1),
+          detail: "x".repeat(SLIDE3_REASON_DETAIL_MAX + 1),
+        },
+      ],
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.length).toBe(2);
+    }
+  });
+
+  it("rejects a non-string label field", () => {
+    const result = validateSlotOutput("slide3.reasons", {
+      reasons: [{ label: 123, detail: "ok" }],
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors[0]).toContain("label");
+      expect(result.errors[0]).toContain("expected string");
+    }
+  });
+
+  it("rejects a non-array reasons field", () => {
+    const result = validateSlotOutput("slide3.reasons", { reasons: "not an array" });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors[0]).toContain("reasons");
+      expect(result.errors[0]).toContain("expected array");
+    }
+  });
+});
+
+describe("validateSlotOutput — slide3.closingLine budget enforcement", () => {
+  it("accepts a conforming text value", () => {
+    const result = validateSlotOutput("slide3.closingLine", {
+      text: "Where heritage meets modern hospitality",
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("accepts text at exactly SLIDE3_CLOSING_LINE_MAX", () => {
+    const result = validateSlotOutput("slide3.closingLine", {
+      text: "c".repeat(SLIDE3_CLOSING_LINE_MAX),
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("rejects text exceeding SLIDE3_CLOSING_LINE_MAX", () => {
+    const result = validateSlotOutput("slide3.closingLine", {
+      text: "x".repeat(SLIDE3_CLOSING_LINE_MAX + 1),
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.length).toBeGreaterThanOrEqual(1);
+      expect(result.errors[0]).toContain("text");
+    }
+  });
+
+  it("rejects a non-string text field", () => {
+    const result = validateSlotOutput("slide3.closingLine", { text: {} });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors[0]).toContain("expected string");
+    }
+  });
+});
+
+// ── Slide 3 schema alignment ──────────────────────────────────────────────
+
+describe("DRAFT_SLOTS — slide3 schema alignment", () => {
+  const provenance = { source: "llm", updatedAt: new Date().toISOString() };
+
+  it("slide3.conceptParagraph is a recognised key in the slide3 schema", () => {
+    const parsed = deckPayloadV2Schema.safeParse({
+      schemaVersion: DECK_PAYLOAD_SCHEMA_VERSION,
+      slide3: { conceptParagraph: { text: "Test concept", provenance } },
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("slide3.conceptParagraph rejects text exceeding SLIDE3_CONCEPT_PARAGRAPH_MAX", () => {
+    const parsed = deckPayloadV2Schema.safeParse({
+      schemaVersion: DECK_PAYLOAD_SCHEMA_VERSION,
+      slide3: {
+        conceptParagraph: {
+          text: "x".repeat(SLIDE3_CONCEPT_PARAGRAPH_MAX + 1),
+          provenance,
+        },
+      },
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("slide3.marketRationale is a recognised key in the slide3 schema", () => {
+    const parsed = deckPayloadV2Schema.safeParse({
+      schemaVersion: DECK_PAYLOAD_SCHEMA_VERSION,
+      slide3: { marketRationale: { text: "Test rationale", provenance } },
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("slide3.marketRationale rejects text exceeding SLIDE3_MARKET_RATIONALE_MAX", () => {
+    const parsed = deckPayloadV2Schema.safeParse({
+      schemaVersion: DECK_PAYLOAD_SCHEMA_VERSION,
+      slide3: {
+        marketRationale: {
+          text: "x".repeat(SLIDE3_MARKET_RATIONALE_MAX + 1),
+          provenance,
+        },
+      },
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("slide3.reasons is a recognised key in the slide3 schema", () => {
+    const parsed = deckPayloadV2Schema.safeParse({
+      schemaVersion: DECK_PAYLOAD_SCHEMA_VERSION,
+      slide3: {
+        reasons: [
+          {
+            label: { text: "Location", provenance },
+            detail: { text: "Near metro access", provenance },
+          },
+        ],
+      },
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("slide3.reasons rejects more than SLIDE3_REASONS_COUNT entries", () => {
+    const reason = {
+      label: { text: "Test", provenance },
+      detail: { text: "Detail", provenance },
+    };
+    const parsed = deckPayloadV2Schema.safeParse({
+      schemaVersion: DECK_PAYLOAD_SCHEMA_VERSION,
+      slide3: {
+        reasons: Array.from({ length: SLIDE3_REASONS_COUNT + 1 }, () => reason),
+      },
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("slide3.reasons rejects a label exceeding SLIDE3_REASON_LABEL_MAX", () => {
+    const parsed = deckPayloadV2Schema.safeParse({
+      schemaVersion: DECK_PAYLOAD_SCHEMA_VERSION,
+      slide3: {
+        reasons: [
+          {
+            label: { text: "x".repeat(SLIDE3_REASON_LABEL_MAX + 1), provenance },
+            detail: { text: "ok", provenance },
+          },
+        ],
+      },
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("slide3.closingLine is a recognised key in the slide3 schema", () => {
+    const parsed = deckPayloadV2Schema.safeParse({
+      schemaVersion: DECK_PAYLOAD_SCHEMA_VERSION,
+      slide3: { closingLine: { text: "Test closing line", provenance } },
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("slide3.closingLine rejects text exceeding SLIDE3_CLOSING_LINE_MAX", () => {
+    const parsed = deckPayloadV2Schema.safeParse({
+      schemaVersion: DECK_PAYLOAD_SCHEMA_VERSION,
+      slide3: {
+        closingLine: {
+          text: "x".repeat(SLIDE3_CLOSING_LINE_MAX + 1),
+          provenance,
+        },
+      },
+    });
+    expect(parsed.success).toBe(false);
   });
 });
