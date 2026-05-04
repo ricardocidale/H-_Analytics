@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconAlertCircle, IconRefreshCw } from "@/components/icons";
+import { IconAlertCircle } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
@@ -38,22 +38,13 @@ import {
 import {
   type FormSlot,
   type DeckPayloadResponse,
-  emptySlot,
   hydrateSlot,
   stampSlot,
-  ProvenancePill,
-  CharCounter,
-  ReadinessBadge,
+  SlotRow,
   useReadinessQuery,
   isDraftStale,
-  StaleDraftNotice,
   StaleDraftBanner,
-  InlineDraftDiff,
 } from "./editor-shared";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -94,80 +85,6 @@ function buildPatchBody(form: Form): { slide2?: Partial<Slide2Payload> } | null 
   if (form.programmingBullet.dirty) slide2.programmingBullet = stamp(form.programmingBullet);
   if (Object.keys(slide2).length === 0) return null;
   return { slide2 };
-}
-
-// ── Slot row (local — includes draft button) ───────────────────────────────
-
-function SlotRow({
-  label, description, slot, max, multiline, onChange, onDraft, isDrafting, readinessKey, readinessReport, propertyUpdatedAt, pendingSuggestion, onAcceptDraft, onDismissDraft,
-}: {
-  label: string;
-  description: string;
-  slot: FormSlot;
-  max: number;
-  multiline?: boolean;
-  onChange: (text: string, source: SlotProvenance["source"]) => void;
-  onDraft: () => void;
-  isDrafting: boolean;
-  readinessKey: string;
-  readinessReport: Record<string, string> | undefined;
-  propertyUpdatedAt?: string;
-  pendingSuggestion?: string | null;
-  onAcceptDraft?: (editedText: string) => void;
-  onDismissDraft?: () => void;
-}) {
-  const id = `slide2-slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
-  const InputComp = multiline ? Textarea : Input;
-  const readinessStatus = readinessReport?.[readinessKey] as "complete" | "stale" | "missing" | undefined;
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2 flex-wrap">
-          <Label htmlFor={id} className="text-sm font-medium">{label}</Label>
-          <Badge variant="outline" className="text-sky-700 border-sky-300 bg-sky-50 text-[10px] uppercase tracking-wide">
-            llm-draft+approved
-          </Badge>
-          <ReadinessBadge status={readinessStatus} />
-        </div>
-        <div className="flex items-center gap-2">
-          <ProvenancePill source={slot.serverProvenance?.source ?? null} dirty={slot.dirty} />
-          <CharCounter length={slot.text.length} max={max} />
-        </div>
-      </div>
-      <p className="text-xs text-muted-foreground">{description}</p>
-      <InputComp
-        id={id}
-        value={slot.text}
-        onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(e.target.value, "user")}
-        rows={multiline ? 3 : undefined}
-        maxLength={max}
-        className={slot.text.length > max ? "border-destructive" : undefined}
-      />
-      {isDraftStale(slot, propertyUpdatedAt) && <StaleDraftNotice />}
-      {pendingSuggestion != null && onAcceptDraft && onDismissDraft ? (
-        <InlineDraftDiff
-          currentText={slot.text}
-          suggestedText={pendingSuggestion}
-          onAccept={onAcceptDraft}
-          onDismiss={onDismissDraft}
-        />
-      ) : (
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={onDraft}
-          disabled={isDrafting}
-          className="gap-1.5"
-        >
-          {isDrafting
-            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            : <IconRefreshCw className="h-3.5 w-3.5" />}
-          Re-draft
-        </Button>
-      )}
-    </div>
-  );
 }
 
 // ── Main panel ─────────────────────────────────────────────────────────────
@@ -324,13 +241,13 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
           <SlotRow
             label="Operational model"
             description='Appears as "Operational Model: {text}" in italic serif. Describe the operating concept in one phrase — e.g. "Owner-managed boutique with an F&B anchor".'
+            bucket="llm-draft+approved"
             slot={form.operationalModelText}
             max={SLIDE2_OPERATIONAL_MODEL_MAX}
             onChange={(t, s) => setSlot("operationalModelText", t, s)}
             onDraft={() => fireDraft("slide2.operationalModelText")}
             isDrafting={draftingSlot === "slide2.operationalModelText" && draftMutation.isPending}
-            readinessKey="slide2.operationalModelText"
-            readinessReport={report}
+            readinessStatus={report?.["slide2.operationalModelText"] as "complete" | "stale" | "missing" | undefined}
             propertyUpdatedAt={propertyUpdatedAt}
             pendingSuggestion={pendingDrafts["slide2.operationalModelText"]?.text ?? null}
             onAcceptDraft={(editedText) => acceptDraft("slide2.operationalModelText", editedText)}
@@ -339,14 +256,14 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
           <SlotRow
             label="Revenue bullet"
             description="Revenue / rate strategy. How does this property generate its top-line — ADR positioning, channel mix, seasonality approach?"
+            bucket="llm-draft+approved"
             slot={form.revenueBullet}
             max={SLIDE2_REVENUE_BULLET_MAX}
             multiline
             onChange={(t, s) => setSlot("revenueBullet", t, s)}
             onDraft={() => fireDraft("slide2.revenueBullet")}
             isDrafting={draftingSlot === "slide2.revenueBullet" && draftMutation.isPending}
-            readinessKey="slide2.revenueBullet"
-            readinessReport={report}
+            readinessStatus={report?.["slide2.revenueBullet"] as "complete" | "stale" | "missing" | undefined}
             propertyUpdatedAt={propertyUpdatedAt}
             pendingSuggestion={pendingDrafts["slide2.revenueBullet"]?.text ?? null}
             onAcceptDraft={(editedText) => acceptDraft("slide2.revenueBullet", editedText)}
@@ -355,14 +272,14 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
           <SlotRow
             label="Programming bullet"
             description="Programming / amenity strategy. What guest experiences, events, or F&B concepts differentiate this property?"
+            bucket="llm-draft+approved"
             slot={form.programmingBullet}
             max={SLIDE2_PROGRAMMING_BULLET_MAX}
             multiline
             onChange={(t, s) => setSlot("programmingBullet", t, s)}
             onDraft={() => fireDraft("slide2.programmingBullet")}
             isDrafting={draftingSlot === "slide2.programmingBullet" && draftMutation.isPending}
-            readinessKey="slide2.programmingBullet"
-            readinessReport={report}
+            readinessStatus={report?.["slide2.programmingBullet"] as "complete" | "stale" | "missing" | undefined}
             propertyUpdatedAt={propertyUpdatedAt}
             pendingSuggestion={pendingDrafts["slide2.programmingBullet"]?.text ?? null}
             onAcceptDraft={(editedText) => acceptDraft("slide2.programmingBullet", editedText)}

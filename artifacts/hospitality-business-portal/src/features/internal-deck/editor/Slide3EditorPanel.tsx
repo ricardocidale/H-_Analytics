@@ -25,10 +25,6 @@ import { Loader2 } from "@/components/icons/themed-icons";
 import { IconAlertCircle, IconRefreshCw, IconCheck, IconX } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   DECK_PAYLOAD_SCHEMA_VERSION,
   SLIDE3_CONCEPT_PARAGRAPH_MAX,
@@ -45,17 +41,13 @@ import {
 import {
   type FormSlot,
   type DeckPayloadResponse,
-  emptySlot,
   hydrateSlot,
   stampSlot,
-  ProvenancePill,
-  CharCounter,
+  SlotRow,
   ReadinessBadge,
   useReadinessQuery,
   isDraftStale,
-  StaleDraftNotice,
   StaleDraftBanner,
-  InlineDraftDiff,
 } from "./editor-shared";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -109,123 +101,6 @@ function buildPatchBody(form: Form): { slide3?: Partial<Slide3Payload> } | null 
 
   if (Object.keys(slide3).length === 0) return null;
   return { slide3 };
-}
-
-// ── Scalar slot row ────────────────────────────────────────────────────────
-
-function ScalarSlotRow({
-  label, description, slot, max, multiline, onChange, onDraft, isDrafting, readinessKey, readinessReport, propertyUpdatedAt, pendingSuggestion, onAcceptDraft, onDismissDraft,
-}: {
-  label: string;
-  description: string;
-  slot: FormSlot;
-  max: number;
-  multiline?: boolean;
-  onChange: (text: string, source: SlotProvenance["source"]) => void;
-  onDraft: () => void;
-  isDrafting: boolean;
-  readinessKey: string;
-  readinessReport: Record<string, string> | undefined;
-  propertyUpdatedAt?: string;
-  pendingSuggestion?: string | null;
-  onAcceptDraft?: (editedText: string) => void;
-  onDismissDraft?: () => void;
-}) {
-  const id = `slide3-slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
-  const InputComp = multiline ? Textarea : Input;
-  const readinessStatus = readinessReport?.[readinessKey] as "complete" | "stale" | "missing" | undefined;
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2 flex-wrap">
-          <Label htmlFor={id} className="text-sm font-medium">{label}</Label>
-          <Badge variant="outline" className="text-sky-700 border-sky-300 bg-sky-50 text-[10px] uppercase tracking-wide">
-            llm-draft+approved
-          </Badge>
-          <ReadinessBadge status={readinessStatus} />
-        </div>
-        <div className="flex items-center gap-2">
-          <ProvenancePill source={slot.serverProvenance?.source ?? null} dirty={slot.dirty} />
-          <CharCounter length={slot.text.length} max={max} />
-        </div>
-      </div>
-      <p className="text-xs text-muted-foreground">{description}</p>
-      <InputComp
-        id={id}
-        value={slot.text}
-        onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(e.target.value, "user")}
-        rows={multiline ? 3 : undefined}
-        maxLength={max}
-        className={slot.text.length > max ? "border-destructive" : undefined}
-      />
-      {isDraftStale(slot, propertyUpdatedAt) && <StaleDraftNotice />}
-      {pendingSuggestion != null && onAcceptDraft && onDismissDraft ? (
-        <InlineDraftDiff
-          currentText={slot.text}
-          suggestedText={pendingSuggestion}
-          onAccept={onAcceptDraft}
-          onDismiss={onDismissDraft}
-        />
-      ) : (
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={onDraft}
-          disabled={isDrafting}
-          className="gap-1.5"
-        >
-          {isDrafting
-            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            : <IconRefreshCw className="h-3.5 w-3.5" />}
-          Re-draft
-        </Button>
-      )}
-    </div>
-  );
-}
-
-// ── Plain slot row (no draft button — for reason label/detail sub-fields) ──
-
-function PlainSlotRow({
-  label, description, slot, max, multiline, onChange, propertyUpdatedAt,
-}: {
-  label: string;
-  description: string;
-  slot: FormSlot;
-  max: number;
-  multiline?: boolean;
-  onChange: (text: string, source: SlotProvenance["source"]) => void;
-  propertyUpdatedAt?: string;
-}) {
-  const id = `slide3-slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
-  const InputComp = multiline ? Textarea : Input;
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <Label htmlFor={id} className="text-sm font-medium">{label}</Label>
-          <Badge variant="outline" className="text-sky-700 border-sky-300 bg-sky-50 text-[10px] uppercase tracking-wide">
-            llm-draft+approved
-          </Badge>
-        </div>
-        <div className="flex items-center gap-2">
-          <ProvenancePill source={slot.serverProvenance?.source ?? null} dirty={slot.dirty} />
-          <CharCounter length={slot.text.length} max={max} />
-        </div>
-      </div>
-      <p className="text-xs text-muted-foreground">{description}</p>
-      <InputComp
-        id={id}
-        value={slot.text}
-        onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(e.target.value, "user")}
-        rows={multiline ? 3 : undefined}
-        maxLength={max}
-        className={slot.text.length > max ? "border-destructive" : undefined}
-      />
-      {isDraftStale(slot, propertyUpdatedAt) && <StaleDraftNotice />}
-    </div>
-  );
 }
 
 // ── Main panel ─────────────────────────────────────────────────────────────
@@ -431,33 +306,33 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
         {/* Narrative paragraphs */}
         <div className="space-y-5">
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Narrative</h3>
-          <ScalarSlotRow
+          <SlotRow
             label="The Concept"
             description='Paragraph under the "The Concept" section header. Explain the L+B operating model as applied to this specific asset type and location.'
+            bucket="llm-draft+approved"
             slot={form.conceptParagraph}
             max={SLIDE3_CONCEPT_PARAGRAPH_MAX}
             multiline
             onChange={(t, s) => setScalarSlot("conceptParagraph", t, s)}
             onDraft={() => draft("slide3.conceptParagraph")}
             isDrafting={draftingSlot === "slide3.conceptParagraph" && draftMutation.isPending}
-            readinessKey="slide3.conceptParagraph"
-            readinessReport={report}
+            readinessStatus={report?.["slide3.conceptParagraph"] as "complete" | "stale" | "missing" | undefined}
             propertyUpdatedAt={propertyUpdatedAt}
             pendingSuggestion={pendingDrafts["slide3.conceptParagraph"]?.text ?? null}
             onAcceptDraft={(editedText) => acceptDraft("slide3.conceptParagraph", editedText)}
             onDismissDraft={() => dismissDraft("slide3.conceptParagraph")}
           />
-          <ScalarSlotRow
+          <SlotRow
             label="Why This Property?"
             description='Paragraph under "Why This Property?". The market thesis: location dynamics, demand drivers, competitive gap, timing.'
+            bucket="llm-draft+approved"
             slot={form.marketRationale}
             max={SLIDE3_MARKET_RATIONALE_MAX}
             multiline
             onChange={(t, s) => setScalarSlot("marketRationale", t, s)}
             onDraft={() => draft("slide3.marketRationale")}
             isDrafting={draftingSlot === "slide3.marketRationale" && draftMutation.isPending}
-            readinessKey="slide3.marketRationale"
-            readinessReport={report}
+            readinessStatus={report?.["slide3.marketRationale"] as "complete" | "stale" | "missing" | undefined}
             propertyUpdatedAt={propertyUpdatedAt}
             pendingSuggestion={pendingDrafts["slide3.marketRationale"]?.text ?? null}
             onAcceptDraft={(editedText) => acceptDraft("slide3.marketRationale", editedText)}
@@ -499,17 +374,19 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
           {form.reasons.map((pair, i) => (
             <div key={i} className="space-y-3 rounded-md border border-border/40 p-4">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Reason {i + 1}</p>
-              <PlainSlotRow
+              <SlotRow
                 label="Label"
                 description="Bold short label — e.g. 'Underserved demand corridor' or 'Operational upside'."
+                bucket="llm-draft+approved"
                 slot={pair.label}
                 max={SLIDE3_REASON_LABEL_MAX}
                 onChange={(t, s) => setReasonSlot(i, "label", t, s)}
                 propertyUpdatedAt={propertyUpdatedAt}
               />
-              <PlainSlotRow
+              <SlotRow
                 label="Detail"
                 description="Supporting detail sentence for this reason."
+                bucket="llm-draft+approved"
                 slot={pair.detail}
                 max={SLIDE3_REASON_DETAIL_MAX}
                 multiline
@@ -571,17 +448,17 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
         {/* Closing */}
         <div className="space-y-5">
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Closing</h3>
-          <ScalarSlotRow
+          <SlotRow
             label="Closing pull quote"
             description="Italic sentence in the green accent block at the bottom. Sets the tonal close for the Investment Model slide."
+            bucket="llm-draft+approved"
             slot={form.closingLine}
             max={SLIDE3_CLOSING_LINE_MAX}
             multiline
             onChange={(t, s) => setScalarSlot("closingLine", t, s)}
             onDraft={() => draft("slide3.closingLine")}
             isDrafting={draftingSlot === "slide3.closingLine" && draftMutation.isPending}
-            readinessKey="slide3.closingLine"
-            readinessReport={report}
+            readinessStatus={report?.["slide3.closingLine"] as "complete" | "stale" | "missing" | undefined}
             propertyUpdatedAt={propertyUpdatedAt}
             pendingSuggestion={pendingDrafts["slide3.closingLine"]?.text ?? null}
             onAcceptDraft={(editedText) => acceptDraft("slide3.closingLine", editedText)}

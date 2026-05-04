@@ -18,16 +18,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconAlertCircle, IconRefreshCw, IconCheck, IconX } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   DECK_PAYLOAD_SCHEMA_VERSION,
   SLIDE5_TRANSFORMATION_DESCRIPTION_MAX,
@@ -46,14 +43,11 @@ import {
   hydrateSlot,
   stampSlot,
   emptySlot,
-  ProvenancePill,
-  CharCounter,
+  SlotRow,
   ReadinessBadge,
   useReadinessQuery,
   isDraftStale,
-  StaleDraftNotice,
   StaleDraftBanner,
-  InlineDraftDiff,
 } from "./editor-shared";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -127,144 +121,6 @@ function buildPatchBody(form: Form): { slide5?: Partial<Slide5Payload> } | null 
 
   if (Object.keys(slide5).length === 0) return null;
   return { slide5 };
-}
-
-// ── Scalar slot row (description field with Draft button) ──────────────────
-
-function ScalarSlotRow({
-  label, description, slot, max, multiline, onChange, onDraft, isDrafting, readinessKey, readinessReport, propertyUpdatedAt, pendingSuggestion, onAcceptDraft, onDismissDraft,
-}: {
-  label: string;
-  description: string;
-  slot: FormSlot;
-  max: number;
-  multiline?: boolean;
-  onChange: (text: string, source: SlotProvenance["source"]) => void;
-  onDraft: () => void;
-  isDrafting: boolean;
-  readinessKey: string;
-  readinessReport: Record<string, string> | undefined;
-  propertyUpdatedAt?: string;
-  pendingSuggestion?: string | null;
-  onAcceptDraft?: (editedText: string) => void;
-  onDismissDraft?: () => void;
-}) {
-  const id = `slide5-slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
-  const InputComp = multiline ? Textarea : Input;
-  const readinessStatus = readinessReport?.[readinessKey] as "complete" | "stale" | "missing" | undefined;
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2 flex-wrap">
-          <Label htmlFor={id} className="text-sm font-medium">{label}</Label>
-          <Badge variant="outline" className="text-sky-700 border-sky-300 bg-sky-50 text-[10px] uppercase tracking-wide">
-            llm-draft+approved
-          </Badge>
-          <ReadinessBadge status={readinessStatus} />
-        </div>
-        <div className="flex items-center gap-2">
-          <ProvenancePill source={slot.serverProvenance?.source ?? null} dirty={slot.dirty} />
-          <CharCounter length={slot.text.length} max={max} />
-        </div>
-      </div>
-      <p className="text-xs text-muted-foreground">{description}</p>
-      <InputComp
-        id={id}
-        value={slot.text}
-        onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(e.target.value, "user")}
-        rows={multiline ? 3 : undefined}
-        maxLength={max}
-        className={slot.text.length > max ? "border-destructive" : undefined}
-      />
-      {isDraftStale(slot, propertyUpdatedAt) && <StaleDraftNotice />}
-      {pendingSuggestion != null && onAcceptDraft && onDismissDraft ? (
-        <InlineDraftDiff
-          currentText={slot.text}
-          suggestedText={pendingSuggestion}
-          onAccept={onAcceptDraft}
-          onDismiss={onDismissDraft}
-        />
-      ) : (
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={onDraft}
-          disabled={isDrafting}
-          className="gap-1.5"
-        >
-          {isDrafting
-            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            : <IconRefreshCw className="h-3.5 w-3.5" />}
-          Re-draft
-        </Button>
-      )}
-    </div>
-  );
-}
-
-// ── Plain slot row (row sub-fields: Feature / Existing / Proposed) ─────────
-//
-// onDraft is optional. When provided, a "Draft via Analyst" button is shown.
-// Callers pass the per-row slot key (e.g. slide5.transformationRows[0]) so
-// only that row is updated on success; sibling rows are left intact.
-
-function PlainSlotRow({
-  label, description, slot, max, onChange, onDraft, isDrafting, buttonDisabled, propertyUpdatedAt,
-}: {
-  label: string;
-  description: string;
-  slot: FormSlot;
-  max: number;
-  onChange: (text: string, source: SlotProvenance["source"]) => void;
-  onDraft?: () => void;
-  /** Controls the spinner icon — true only for the row currently being drafted. */
-  isDrafting?: boolean;
-  /** Controls button.disabled — may be wider than isDrafting (e.g. any draft in flight). */
-  buttonDisabled?: boolean;
-  propertyUpdatedAt?: string;
-}) {
-  const id = `slide5-slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <Label htmlFor={id} className="text-sm font-medium">{label}</Label>
-          <Badge variant="outline" className="text-sky-700 border-sky-300 bg-sky-50 text-[10px] uppercase tracking-wide">
-            llm-draft+approved
-          </Badge>
-        </div>
-        <div className="flex items-center gap-2">
-          <ProvenancePill source={slot.serverProvenance?.source ?? null} dirty={slot.dirty} />
-          <CharCounter length={slot.text.length} max={max} />
-        </div>
-      </div>
-      <p className="text-xs text-muted-foreground">{description}</p>
-      <Input
-        id={id}
-        value={slot.text}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value, "user")}
-        maxLength={max}
-        className={slot.text.length > max ? "border-destructive" : undefined}
-      />
-      {isDraftStale(slot, propertyUpdatedAt) && <StaleDraftNotice />}
-      {onDraft !== undefined && (
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={onDraft}
-          disabled={buttonDisabled ?? isDrafting}
-          className="gap-1.5"
-        >
-          {isDrafting
-            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            : <IconRefreshCw className="h-3.5 w-3.5" />}
-          Draft via Analyst
-        </Button>
-      )}
-    </div>
-  );
 }
 
 // ── Main panel ─────────────────────────────────────────────────────────────
@@ -563,17 +419,17 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
         {/* Transformation description */}
         <div className="space-y-5">
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Introduction</h3>
-          <ScalarSlotRow
+          <SlotRow
             label="Transformation description"
             description="Paragraph above the comparison table. Describe the before-after narrative — what the asset is today and what it will become."
+            bucket="llm-draft+approved"
             slot={form.transformationDescription}
             max={SLIDE5_TRANSFORMATION_DESCRIPTION_MAX}
             multiline
             onChange={setDescriptionSlot}
             onDraft={() => fireDraft("slide5.transformationDescription")}
             isDrafting={draftingSlot === "slide5.transformationDescription" && draftMutation.isPending}
-            readinessKey="slide5.transformationDescription"
-            readinessReport={report}
+            readinessStatus={report?.["slide5.transformationDescription"] as "complete" | "stale" | "missing" | undefined}
             propertyUpdatedAt={propertyUpdatedAt}
             pendingSuggestion={pendingDrafts["slide5.transformationDescription"]?.text ?? null}
             onAcceptDraft={(editedText) => acceptDraft("slide5.transformationDescription", editedText)}
@@ -646,38 +502,44 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
                     </Badge>
                   )}
                 </div>
-                <PlainSlotRow
+                <SlotRow
                   label="Feature"
                   description="What aspect of the property is being transformed (e.g. 'Guest Capacity')."
+                  bucket="llm-draft+approved"
                   slot={row.feature}
                   max={SLIDE5_TRANSFORMATION_ROW_FEATURE_MAX}
                   onChange={(t, s) => setRowSlot(i, "feature", t, s)}
                   onDraft={onRowDraft}
                   isDrafting={thisRowDrafting}
-                  buttonDisabled={anyDrafting}
+                  draftDisabled={anyDrafting}
+                  draftLabel="Draft via Analyst"
                   propertyUpdatedAt={propertyUpdatedAt}
                 />
                 <div className="grid grid-cols-2 gap-3">
-                  <PlainSlotRow
+                  <SlotRow
                     label="Existing"
                     description="Current state."
+                    bucket="llm-draft+approved"
                     slot={row.existing}
                     max={SLIDE5_TRANSFORMATION_ROW_EXISTING_MAX}
                     onChange={(t, s) => setRowSlot(i, "existing", t, s)}
                     onDraft={onRowDraft}
                     isDrafting={thisRowDrafting}
-                    buttonDisabled={anyDrafting}
+                    draftDisabled={anyDrafting}
+                    draftLabel="Draft via Analyst"
                     propertyUpdatedAt={propertyUpdatedAt}
                   />
-                  <PlainSlotRow
+                  <SlotRow
                     label="Proposed"
                     description="Target state after transformation."
+                    bucket="llm-draft+approved"
                     slot={row.proposed}
                     max={SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX}
                     onChange={(t, s) => setRowSlot(i, "proposed", t, s)}
                     onDraft={onRowDraft}
                     isDrafting={thisRowDrafting}
-                    buttonDisabled={anyDrafting}
+                    draftDisabled={anyDrafting}
+                    draftLabel="Draft via Analyst"
                     propertyUpdatedAt={propertyUpdatedAt}
                   />
                 </div>

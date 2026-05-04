@@ -33,10 +33,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconAlertCircle, IconRefreshCw, IconCheck, IconX } from "@/components/icons";
@@ -58,17 +54,13 @@ import {
 import {
   type FormSlot,
   type DeckPayloadResponse,
-  emptySlot,
   hydrateSlot,
   stampSlot,
-  ProvenancePill,
-  CharCounter,
   ReadinessBadge,
+  SlotRow,
   useReadinessQuery,
   isDraftStale,
-  StaleDraftNotice,
   StaleDraftBanner,
-  InlineDraftDiff,
 } from "./editor-shared";
 
 // ── Hydration helpers ──────────────────────────────────────────────────────
@@ -131,112 +123,6 @@ function buildPatchBody(form: Form): { slide1?: Partial<Slide1Payload> } | null 
 
   if (Object.keys(slide1).length === 0) return null;
   return { slide1 };
-}
-
-// ── Small UI atoms ─────────────────────────────────────────────────────────
-
-function CharCounterLocal({ length, max }: { length: number; max: number }) {
-  const over = length > max;
-  return (
-    <span className={`text-xs tabular-nums ${over ? "text-destructive" : "text-muted-foreground"}`}>
-      {length}/{max}
-    </span>
-  );
-}
-
-// ── Single editable slot row ───────────────────────────────────────────────
-
-interface SlotRowProps {
-  label: string;
-  description: string;
-  bucket: "human-only" | "llm-draft+approved";
-  slot: FormSlot;
-  max: number;
-  multiline?: boolean;
-  onChange: (text: string, source: SlotProvenance["source"]) => void;
-  onDraft?: () => void;
-  isDrafting?: boolean;
-  readinessStatus?: "complete" | "stale" | "missing" | "deterministic";
-  propertyUpdatedAt?: string;
-  pendingSuggestion?: string | null;
-  onAcceptDraft?: (editedText: string) => void;
-  onDismissDraft?: () => void;
-}
-
-function SlotRow({
-  label,
-  description,
-  bucket,
-  slot,
-  max,
-  multiline,
-  onChange,
-  onDraft,
-  isDrafting,
-  readinessStatus,
-  propertyUpdatedAt,
-  pendingSuggestion,
-  onAcceptDraft,
-  onDismissDraft,
-}: SlotRowProps) {
-  const id = `slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
-  const InputComp = multiline ? Textarea : Input;
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2 flex-wrap">
-          <Label htmlFor={id} className="text-sm font-medium">{label}</Label>
-          <Badge
-            variant="outline"
-            className={
-              bucket === "llm-draft+approved"
-                ? "text-sky-700 border-sky-300 bg-sky-50 text-[10px] uppercase tracking-wide"
-                : "text-muted-foreground text-[10px] uppercase tracking-wide"
-            }
-          >
-            {bucket}
-          </Badge>
-          {readinessStatus && <ReadinessBadge status={readinessStatus} />}
-        </div>
-        <div className="flex items-center gap-2">
-          <ProvenancePill source={slot.serverProvenance?.source ?? null} dirty={slot.dirty} />
-          <CharCounterLocal length={slot.text.length} max={max} />
-        </div>
-      </div>
-      <p className="text-xs text-muted-foreground">{description}</p>
-      <InputComp
-        id={id}
-        value={slot.text}
-        onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(e.target.value, "user")}
-        rows={multiline ? 3 : undefined}
-        maxLength={max}
-        className={slot.text.length > max ? "border-destructive" : undefined}
-      />
-      {isDraftStale(slot, propertyUpdatedAt) && <StaleDraftNotice />}
-      {pendingSuggestion != null && onAcceptDraft && onDismissDraft ? (
-        <InlineDraftDiff
-          currentText={slot.text}
-          suggestedText={pendingSuggestion}
-          onAccept={onAcceptDraft}
-          onDismiss={onDismissDraft}
-        />
-      ) : onDraft && (
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={onDraft}
-          disabled={isDrafting}
-          className="gap-1.5"
-        >
-          {isDrafting
-            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            : <IconRefreshCw className="h-3.5 w-3.5" />}
-          Re-draft
-        </Button>
-      )}
-    </div>
-  );
 }
 
 // ── Main panel ─────────────────────────────────────────────────────────────

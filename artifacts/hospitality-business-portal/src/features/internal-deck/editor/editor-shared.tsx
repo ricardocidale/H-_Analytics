@@ -208,6 +208,14 @@ export interface SlotRowProps {
   onChange: (text: string, source: SlotProvenance["source"]) => void;
   onDraft?: () => void;
   isDrafting?: boolean;
+  /**
+   * When provided, overrides the draft button's disabled state independently of
+   * isDrafting. Useful when multiple sibling rows share one draft-in-flight gate
+   * but only one row shows the spinner.
+   */
+  draftDisabled?: boolean;
+  /** Override the draft button label. Defaults to "Re-draft". */
+  draftLabel?: string;
   readinessStatus?: SlotStatus;
   propertyUpdatedAt?: string;
   pendingSuggestion?: string | null;
@@ -225,6 +233,8 @@ export function SlotRow({
   onChange,
   onDraft,
   isDrafting,
+  draftDisabled,
+  draftLabel,
   readinessStatus,
   propertyUpdatedAt,
   pendingSuggestion,
@@ -276,7 +286,7 @@ export function SlotRow({
         />
       ) : (
         onDraft && bucket === "llm-draft+approved" && (
-          <DraftButton onClick={onDraft} isPending={isDrafting ?? false} />
+          <DraftButton onClick={onDraft} isPending={isDrafting ?? false} disabled={draftDisabled} label={draftLabel} />
         )
       )}
     </div>
@@ -358,10 +368,13 @@ export function DraftButton({
   onClick,
   isPending,
   label = "Re-draft",
+  disabled,
 }: {
   onClick: () => void;
   isPending: boolean;
   label?: string;
+  /** Optional override — when provided, takes precedence over isPending for the disabled state. */
+  disabled?: boolean;
 }) {
   return (
     <Button
@@ -369,7 +382,7 @@ export function DraftButton({
       size="sm"
       variant="outline"
       onClick={onClick}
-      disabled={isPending}
+      disabled={disabled ?? isPending}
       className="gap-1.5"
     >
       {isPending
