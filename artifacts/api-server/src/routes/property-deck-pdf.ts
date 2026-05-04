@@ -337,6 +337,27 @@ router.get(
   },
 );
 
+/**
+ * GET /api/properties/deck.pdf/queue-status
+ *
+ * Returns the current state of the PDF render concurrency limiter so the
+ * admin bulk-draft UI can display "X rendering, Y queued" without waiting
+ * for a new regenerate call.
+ *
+ * This route must be registered before the /:id routes so that the literal
+ * path segment "deck.pdf" is never mistaken for a property ID.
+ */
+router.get(
+  "/api/properties/deck.pdf/queue-status",
+  requireAdmin,
+  (_req: Request, res: Response) => {
+    return res.json({
+      activeCount: renderLimiter.activeCount,
+      pendingCount: renderLimiter.pendingCount,
+    });
+  },
+);
+
 router.post(
   "/api/properties/:id/deck.pdf/regenerate",
   requireAdmin,
@@ -403,7 +424,12 @@ router.post(
       }
     });
 
-    return res.status(HTTP_202_ACCEPTED).json({ queued: true, propertyId });
+    return res.status(HTTP_202_ACCEPTED).json({
+      queued: true,
+      propertyId,
+      activeCount: renderLimiter.activeCount,
+      pendingCount: renderLimiter.pendingCount,
+    });
   },
 );
 

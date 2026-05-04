@@ -80,6 +80,11 @@ interface CopyReadinessSummary {
 
 type BulkDraftStatus = "idle" | "drafting" | "done" | "error";
 
+interface RenderQueueStats {
+  activeCount: number;
+  pendingCount: number;
+}
+
 interface BulkDraftPropertyResult {
   propertyId: number;
   propertyName: string;
@@ -863,6 +868,7 @@ export default function SlideDecksTab() {
   const [isBulkRunning, setIsBulkRunning] = useState(false);
   const [bulkDraftResults, setBulkDraftResults] = useState<BulkDraftPropertyResult[]>([]);
   const [showBulkSummary, setShowBulkSummary] = useState(false);
+  const [renderQueueStats, setRenderQueueStats] = useState<RenderQueueStats | null>(null);
 
   // Track PDF regenerations queued during bulk draft so we can show a
   // completion toast when the last one flips from "Generating…" to
@@ -902,6 +908,25 @@ export default function SlideDecksTab() {
       if (Array.isArray(rows) && rows.some(r => r.status === "generating")) return 3_000;
       return false;
     },
+  });
+
+  // Poll the render queue depth while renders are in-flight.
+  // Polling is enabled whenever any deck is generating or the queue is non-empty.
+  const anyGenerating = slideStatuses?.some(r => r.status === "generating") ?? false;
+  const queueNonEmpty = (renderQueueStats?.activeCount ?? 0) + (renderQueueStats?.pendingCount ?? 0) > 0;
+
+  useQuery<RenderQueueStats>({
+    queryKey: ["/api/properties/deck.pdf/queue-status"],
+    queryFn: async () => {
+      const r = await fetch("/api/properties/deck.pdf/queue-status", { credentials: "include" });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = (await r.json()) as RenderQueueStats;
+      setRenderQueueStats(data);
+      return data;
+    },
+    staleTime: 0,
+    refetchInterval: (anyGenerating || queueNonEmpty || isBulkRunning) ? 2_000 : false,
+    enabled: anyGenerating || queueNonEmpty || isBulkRunning,
   });
 
   const deckStatusByPropertyId = new Map<number, DeckReadiness>();
@@ -1009,11 +1034,14 @@ export default function SlideDecksTab() {
           method: "POST",
           credentials: "include",
         })
-          .then(r => {
+          .then(async r => {
             if (r.ok) {
+              const data = (await r.json().catch(() => null)) as { activeCount?: number; pendingCount?: number } | null;
+              if (data && typeof data.activeCount === "number") {
+                setRenderQueueStats({ activeCount: data.activeCount, pendingCount: data.pendingCount ?? 0 });
+              }
               queryClient.invalidateQueries({ queryKey: ["/api/slides/status"] });
             } else {
-              console.warn(`[bulk-draft] PDF regen queue failed for property ${propertyId}: HTTP ${r.status}`);
               queryClient.invalidateQueries({ queryKey: ["/api/slides/status"] });
             }
           })
@@ -1215,6 +1243,28 @@ export default function SlideDecksTab() {
                 ? `Drafting ${draftingCount} of ${deficientPropertyIds.length}…`
                 : `Draft all missing copy`}
             </Button>
+
+            {/* PDF render queue status — shown whenever renders are in-flight */}
+            {renderQueueStats && (renderQueueStats.activeCount > 0 || renderQueueStats.pendingCount > 0) && (
+              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin shrink-0" />
+                <span>
+                  {renderQueueStats.activeCount > 0 && (
+                    <span className="text-blue-600 dark:text-blue-400 font-medium">
+                      {renderQueueStats.activeCount} rendering
+                    </span>
+                  )}
+                  {renderQueueStats.activeCount > 0 && renderQueueStats.pendingCount > 0 && (
+                    <span className="mx-1 opacity-50">·</span>
+                  )}
+                  {renderQueueStats.pendingCount > 0 && (
+                    <span>
+                      {renderQueueStats.pendingCount} queued
+                    </span>
+                  )}
+                </span>
+              </div>
+            )}
 
             {bulkHasRun && !isBulkRunning && (
               <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
