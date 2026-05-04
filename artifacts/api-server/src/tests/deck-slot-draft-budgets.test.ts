@@ -24,6 +24,8 @@ import {
   SLIDE3_REASON_DETAIL_MAX,
   SLIDE3_REASONS_COUNT,
   SLIDE3_CLOSING_LINE_MAX,
+  SLIDE4_SECTION_SUBTITLE_MAX,
+  SLIDE5_TRANSFORMATION_DESCRIPTION_MAX,
   SLIDE5_TRANSFORMATION_ROW_FEATURE_MAX,
   SLIDE5_TRANSFORMATION_ROW_EXISTING_MAX,
   SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX,
@@ -833,6 +835,125 @@ describe("DRAFT_SLOTS — slide3 schema alignment", () => {
       slide3: {
         closingLine: {
           text: "x".repeat(SLIDE3_CLOSING_LINE_MAX + 1),
+          provenance,
+        },
+      },
+    });
+    expect(parsed.success).toBe(false);
+  });
+});
+
+// ── Slide 4 & slide 5 top-level draft slot contract (Task #1061) ──────────
+//
+// slide4.sectionSubtitle is human-only and NOT in DRAFT_SLOTS, so isDraftSlot
+// must reject it. slide5.transformationDescription and slide5.transformationRows
+// ARE in DRAFT_SLOTS and must be recognised.
+
+describe("isDraftSlot — slide4 and slide5 top-level keys", () => {
+  it("rejects slide4.sectionSubtitle (human-only, not in DRAFT_SLOTS)", () => {
+    expect(isDraftSlot("slide4.sectionSubtitle")).toBe(false);
+  });
+
+  it("recognises slide5.transformationDescription as a valid draft slot", () => {
+    expect(isDraftSlot("slide5.transformationDescription")).toBe(true);
+  });
+
+  it("recognises slide5.transformationRows (top-level) as a valid draft slot", () => {
+    expect(isDraftSlot("slide5.transformationRows")).toBe(true);
+  });
+});
+
+// ── validateSlotOutput — slide5.transformationDescription ─────────────────
+
+describe("validateSlotOutput — slide5.transformationDescription budget enforcement", () => {
+  it("accepts a conforming text value", () => {
+    const result = validateSlotOutput("slide5.transformationDescription", {
+      text: "This property will undergo a full repositioning to deliver boutique hospitality at scale.",
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value).toEqual({
+        text: "This property will undergo a full repositioning to deliver boutique hospitality at scale.",
+      });
+    }
+  });
+
+  it("accepts text at exactly SLIDE5_TRANSFORMATION_DESCRIPTION_MAX", () => {
+    const result = validateSlotOutput("slide5.transformationDescription", {
+      text: "a".repeat(SLIDE5_TRANSFORMATION_DESCRIPTION_MAX),
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("rejects text exceeding SLIDE5_TRANSFORMATION_DESCRIPTION_MAX", () => {
+    const result = validateSlotOutput("slide5.transformationDescription", {
+      text: "x".repeat(SLIDE5_TRANSFORMATION_DESCRIPTION_MAX + 1),
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.length).toBeGreaterThanOrEqual(1);
+      expect(result.errors[0]).toContain("text");
+    }
+  });
+
+  it("rejects a non-string text field", () => {
+    const result = validateSlotOutput("slide5.transformationDescription", { text: 42 });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors[0]).toContain("text");
+      expect(result.errors[0]).toContain("expected string");
+    }
+  });
+});
+
+// ── Slide 4 & slide 5 top-level schema alignment ──────────────────────────
+//
+// Pins slide4.sectionSubtitle and slide5.transformationDescription against the
+// deckPayloadV2Schema so a key rename or budget change surfaces here first.
+
+describe("DRAFT_SLOTS — slide4 and slide5 top-level schema alignment", () => {
+  const provenance = { source: "llm", updatedAt: new Date().toISOString() };
+
+  it("slide4.sectionSubtitle is a recognised key in the slide4 schema", () => {
+    const parsed = deckPayloadV2Schema.safeParse({
+      schemaVersion: DECK_PAYLOAD_SCHEMA_VERSION,
+      slide4: { sectionSubtitle: { text: "Our growing portfolio", provenance } },
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("slide4.sectionSubtitle rejects text exceeding SLIDE4_SECTION_SUBTITLE_MAX", () => {
+    const parsed = deckPayloadV2Schema.safeParse({
+      schemaVersion: DECK_PAYLOAD_SCHEMA_VERSION,
+      slide4: {
+        sectionSubtitle: {
+          text: "x".repeat(SLIDE4_SECTION_SUBTITLE_MAX + 1),
+          provenance,
+        },
+      },
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("slide5.transformationDescription is a recognised key in the slide5 schema", () => {
+    const parsed = deckPayloadV2Schema.safeParse({
+      schemaVersion: DECK_PAYLOAD_SCHEMA_VERSION,
+      slide5: {
+        transformationDescription: {
+          text: "A full gut renovation targeting boutique positioning.",
+          provenance,
+        },
+      },
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("slide5.transformationDescription rejects text exceeding SLIDE5_TRANSFORMATION_DESCRIPTION_MAX", () => {
+    const parsed = deckPayloadV2Schema.safeParse({
+      schemaVersion: DECK_PAYLOAD_SCHEMA_VERSION,
+      slide5: {
+        transformationDescription: {
+          text: "x".repeat(SLIDE5_TRANSFORMATION_DESCRIPTION_MAX + 1),
           provenance,
         },
       },
