@@ -203,7 +203,8 @@ function buildNavGroups(): NavGroup[] {
       icon: IconProperties,
       description: "Property-wide admin surfaces",
       sections: [
-        { value: "required-fields", label: "Required Fields", icon: IconFileCheck },
+        { value: "required-fields",  label: "Required Fields",  icon: IconFileCheck },
+        { value: "property-heroes",  label: "Property Heroes",  icon: IconImage },
       ],
     },
     {

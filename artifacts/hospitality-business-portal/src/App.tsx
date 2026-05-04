@@ -303,10 +303,10 @@ function Router() {
           <Redirect to="/slide-decks" />
         </Route>
         <Route path="/slide-decks">
-          <ProtectedRoute component={SlideDecks} />
+          <AdminRoute component={SlideDecks} />
         </Route>
         <Route path="/slide-decks/:propertyId">
-          <ProtectedRoute component={PropertySlides} />
+          <AdminRoute component={PropertySlides} />
         </Route>
         <Route path="/icp">
           <IcpRedirect />

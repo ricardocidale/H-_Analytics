@@ -295,12 +295,12 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
         { href: "/company", label: "Management Company", icon: IconBriefcase },
       ],
     },
-    {
+    ...(isAdmin ? [{
       label: "Investor Materials",
       items: [
         { href: "/slide-decks", label: "Slide Decks", icon: IconPresentation },
       ],
-    },
+    }] : []),
     {
       label: "Intelligence",
       items: [
