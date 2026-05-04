@@ -603,10 +603,12 @@ function SlotEditor({
   slot,
   suggestion,
   onChange,
+  disabled,
 }: {
   slot: string;
   suggestion: unknown;
   onChange: (updated: unknown) => void;
+  disabled?: boolean;
 }) {
   const s = (suggestion as Record<string, unknown>) ?? {};
 
@@ -626,6 +628,7 @@ function SlotEditor({
               value={b.text}
               rows={2}
               className="text-xs resize-none"
+              disabled={disabled}
               onChange={e => {
                 const updated = bullets.map((x, j) => j === i ? { text: e.target.value } : x);
                 onChange({ bullets: updated });
@@ -655,6 +658,7 @@ function SlotEditor({
                 value={r.label}
                 rows={1}
                 className="text-xs resize-none"
+                disabled={disabled}
                 onChange={e => {
                   const updated = reasons.map((x, j) => j === i ? { ...x, label: e.target.value } : x);
                   onChange({ reasons: updated });
@@ -672,6 +676,7 @@ function SlotEditor({
                 value={r.detail}
                 rows={2}
                 className="text-xs resize-none"
+                disabled={disabled}
                 onChange={e => {
                   const updated = reasons.map((x, j) => j === i ? { ...x, detail: e.target.value } : x);
                   onChange({ reasons: updated });
@@ -711,6 +716,7 @@ function SlotEditor({
                     value={val}
                     rows={1}
                     className="text-xs resize-none"
+                    disabled={disabled}
                     onChange={e => {
                       const updated = rows.map((x, j) => j === i ? { ...x, [field]: e.target.value } : x);
                       onChange({ rows: updated });
@@ -751,6 +757,7 @@ function SlotEditor({
         value={text}
         rows={3}
         className="text-xs resize-none"
+        disabled={disabled}
         onChange={e => onChange({ text: e.target.value })}
       />
     </div>
@@ -1006,15 +1013,21 @@ function DraftAllReviewPanel({
             const effectiveBase = redraftBases[draft.slot] ?? draft.suggestion;
             const isDirty =
               JSON.stringify(editedSuggestions[draft.slot]) !== JSON.stringify(effectiveBase);
+            const isRedrafting = redraftingSlots.has(draft.slot);
             return (
               <div
                 key={draft.slot}
-                className={`space-y-2 rounded-md border p-3 transition-colors ${
-                  isSelected
-                    ? "border-sky-200 bg-white dark:border-sky-800 dark:bg-sky-950/10"
-                    : "border-border/50 bg-muted/30 opacity-60"
+                className={`relative space-y-2 rounded-md border p-3 transition-colors ${
+                  isRedrafting
+                    ? "border-sky-400 dark:border-sky-500"
+                    : isSelected
+                      ? "border-sky-200 bg-white dark:border-sky-800 dark:bg-sky-950/10"
+                      : "border-border/50 bg-muted/30 opacity-60"
                 }`}
               >
+                {isRedrafting && (
+                  <div className="pointer-events-none absolute inset-0 rounded-md ring-2 ring-sky-400/50 dark:ring-sky-500/40 animate-pulse" />
+                )}
                 {/* Row header: checkbox + label + badge */}
                 <div className="flex items-center gap-2 flex-wrap">
                   <Checkbox
@@ -1086,6 +1099,7 @@ function DraftAllReviewPanel({
                     onChange={updated =>
                       setEditedSuggestions(prev => ({ ...prev, [draft.slot]: updated }))
                     }
+                    disabled={isRedrafting}
                   />
                 )}
 
