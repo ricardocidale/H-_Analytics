@@ -354,7 +354,7 @@ export default function CompanyIcpDefinition() {
     <Layout>
       {SaveDialog}
       <AnimatedPage>
-        <div className="space-y-6 max-w-4xl" ref={contentRef}>
+        <div className="space-y-6 max-w-6xl" ref={contentRef}>
           <PageHeader
             title={`ICP Definition — ${companyName}`}
             subtitle="Auto-generated from your portfolio"

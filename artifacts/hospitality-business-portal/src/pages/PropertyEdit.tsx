@@ -576,7 +576,7 @@ export default function PropertyEdit() {
   return (
     <Layout>
       <AnimatedPage>
-      <div className="space-y-6 max-w-4xl">
+      <div className="space-y-6 max-w-6xl">
         <PageHeader
           title={<span className="flex items-center gap-2">Property Assumptions <ValidationStatusBadge property={property} size="md" /></span>}
           subtitle={property.name}

@@ -102,7 +102,7 @@ export default function PropertyResearchCriteria() {
   return (
     <Layout>
       <AnimatedPage>
-        <div className="space-y-6 max-w-4xl">
+        <div className="space-y-6 max-w-6xl">
           <PageHeader
             title="Research Criteria"
             subtitle={property.name}

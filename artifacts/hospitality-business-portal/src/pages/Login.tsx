@@ -238,7 +238,19 @@ export default function Login() {
                   type="button"
                   variant="outline"
                   className="w-full h-10 border-border/80 bg-muted/30 hover:bg-muted/60 transition-colors"
-                  onClick={() => { window.location.href = "/api/auth/google"; }}
+                  onClick={() => {
+                    window.open("/api/auth/google", "_blank");
+                    const interval = setInterval(async () => {
+                      try {
+                        const result = await refetch();
+                        if (result.data) {
+                          clearInterval(interval);
+                          setLocation("/");
+                        }
+                      } catch {}
+                    }, 2000);
+                    setTimeout(() => clearInterval(interval), 120000);
+                  }}
                   disabled={isLoading}
                   data-testid="button-google-login"
                 >

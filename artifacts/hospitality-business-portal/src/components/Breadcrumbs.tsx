@@ -1,13 +1,6 @@
-/**
- * Breadcrumbs.tsx — Context-aware navigation breadcrumbs.
- *
- * Reads the current URL path and renders a breadcrumb trail
- * (e.g. Dashboard > Property > Hilton Downtown > Edit). Property names
- * are resolved from the global store so breadcrumbs show human-readable
- * labels instead of numeric IDs.
- */
 import { useLocation } from "wouter";
 import { useStore } from "@/lib/store";
+import { useProperty } from "@/lib/api";
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -28,16 +21,25 @@ function useBreadcrumbs(): BreadcrumbEntry[] {
 
   const path = location.replace(/\/+$/, "") || "/";
 
+  // Extract property ID from route before any conditional returns (React hooks rule)
+  const propertyMatch = path.match(/^\/property\/([^/]+)(\/(.+))?$/);
+  const structureMatch = path.match(/^\/structures\/([^/]+)$/);
+  const routePropertyId = propertyMatch
+    ? parseInt(propertyMatch[1]) || 0
+    : structureMatch
+    ? parseInt(structureMatch[1]) || 0
+    : 0;
+  const { data: apiProperty } = useProperty(routePropertyId);
+
   if (path === "/") {
     return [{ label: "Dashboard" }];
   }
 
-  const propertyMatch = path.match(/^\/property\/([^/]+)(\/(.+))?$/);
   if (propertyMatch) {
     const propId = propertyMatch[1];
     const sub = propertyMatch[3];
-    const prop = properties.find((p) => String(p.id) === propId);
-    const propName = prop?.name ?? propId;
+    const storeProp = properties.find((p) => String(p.id) === propId);
+    const propName = apiProperty?.name ?? storeProp?.name ?? propId;
 
     const items: BreadcrumbEntry[] = [
       { label: "Dashboard", href: "/" },
@@ -53,6 +55,18 @@ function useBreadcrumbs(): BreadcrumbEntry[] {
       else items.push({ label: sub });
     }
     return items;
+  }
+
+  if (structureMatch) {
+    const propId = structureMatch[1];
+    const storeProp = properties.find((p) => String(p.id) === propId);
+    const propName = apiProperty?.name ?? storeProp?.name ?? propId;
+    return [
+      { label: "Dashboard", href: "/" },
+      { label: "Properties", href: "/portfolio" },
+      { label: propName, href: `/property/${propId}` },
+      { label: "Operating Structure" },
+    ];
   }
 
   const staticRoutes: Record<string, BreadcrumbEntry[]> = {

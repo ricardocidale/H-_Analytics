@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request } from "express";
 import { OAuth2Client } from "google-auth-library";
 import { storage } from "../storage";
 import {
@@ -29,17 +29,20 @@ setInterval(() => {
   }
 }, 60 * 1000);
 
-function getBaseUrl(): string {
+function getBaseUrl(req?: Request): string {
+  if (req) {
+    const proto = req.get("x-forwarded-proto") || req.protocol || "https";
+    const host = req.get("host");
+    if (host && !host.startsWith("localhost")) return `${proto}://${host}`;
+  }
   if (process.env.BASE_URL) return process.env.BASE_URL;
-  // Falls back to the platform-aware getAppUrl() (APP_URL → REPLIT_DOMAINS → localhost),
-  // then to the production domain when running outside any known environment.
   const appUrl = getAppUrl();
   if (appUrl && !appUrl.startsWith('http://localhost')) return appUrl;
   return 'https://h-analysis.com';
 }
 
-function buildOAuth2Client() {
-  const baseUrl = getBaseUrl();
+function buildOAuth2Client(req?: Request) {
+  const baseUrl = getBaseUrl(req);
   return new OAuth2Client(
     GOOGLE_CLIENT_ID,
     GOOGLE_CLIENT_SECRET,
@@ -57,7 +60,8 @@ export function registerGoogleAuthRoutes(app: Express) {
       const state = crypto.randomUUID();
       pendingStates.set(state, { createdAt: Date.now() });
 
-      const oAuth2Client = buildOAuth2Client();
+      const oAuth2Client = buildOAuth2Client(req);
+      const baseUrl = getBaseUrl(req);
       const authorizeUrl = oAuth2Client.generateAuthUrl({
         access_type: "offline",
         scope: ["openid", "email", "profile"],
@@ -65,7 +69,7 @@ export function registerGoogleAuthRoutes(app: Express) {
         prompt: "select_account",
       });
 
-      logger.info(`Google auth: redirecting to Google (baseUrl=${process.env.BASE_URL || 'https://h-analysis.com'})`, "auth");
+      logger.info(`Google auth: redirecting to Google (baseUrl=${baseUrl})`, "auth");
       res.redirect(authorizeUrl);
     } catch (error: unknown) {
       logger.error(`Google auth redirect error: ${error instanceof Error ? error.message : error}`, "auth");
@@ -96,7 +100,7 @@ export function registerGoogleAuthRoutes(app: Express) {
 
       pendingStates.delete(state);
 
-      const oAuth2Client = buildOAuth2Client();
+      const oAuth2Client = buildOAuth2Client(req);
       const { tokens } = await oAuth2Client.getToken(code);
       oAuth2Client.setCredentials(tokens);
 
