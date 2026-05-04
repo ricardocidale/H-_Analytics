@@ -18,10 +18,11 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ImagePlus, Sparkles, Images, Trash2, GalleryHorizontal, FolderInput, CheckSquare } from "@/components/icons/themed-icons";
+import { ImagePlus, Sparkles, Images, Trash2, GalleryHorizontal, FolderInput, CheckSquare, Pencil, Check, X } from "@/components/icons/themed-icons";
 import { IconLayoutGrid, IconSquare } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext, type CarouselApi } from "@/components/ui/carousel";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -67,6 +68,8 @@ export function PhotoAlbumGrid({
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [moveOpen, setMoveOpen] = useState(false);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [editingCarouselCaption, setEditingCarouselCaption] = useState(false);
+  const [carouselCaptionDraft, setCarouselCaptionDraft] = useState("");
   const { toast } = useToast();
   const { isAdmin } = useAuth();
 
@@ -115,6 +118,7 @@ export function PhotoAlbumGrid({
   const onCarouselSelect = useCallback(() => {
     if (!carouselApi) return;
     setCurrentSlide(carouselApi.selectedScrollSnap());
+    setEditingCarouselCaption(false);
   }, [carouselApi]);
 
   useEffect(() => {
@@ -134,6 +138,23 @@ export function PhotoAlbumGrid({
 
   const handleUpdateCaption = (photoId: number, caption: string) => {
     updatePhoto.mutate({ propertyId, photoId, data: { caption } });
+  };
+
+  const handleSaveCarouselCaption = () => {
+    const photo = photos[currentSlide];
+    if (!photo) return;
+    updatePhoto.mutate(
+      { propertyId, photoId: photo.id, data: { caption: carouselCaptionDraft } },
+      {
+        onSuccess: () => {
+          toast({ title: "Caption updated" });
+        },
+        onError: () => {
+          toast({ title: "Could not save caption", variant: "destructive" });
+        },
+      }
+    );
+    setEditingCarouselCaption(false);
   };
 
   const handleEnhance = (photoId: number) => {
@@ -457,6 +478,78 @@ export function PhotoAlbumGrid({
               ))}
             </div>
           </div>
+
+          {/* Caption editor — admin only, scoped to the current slide */}
+          {isAdmin && photos[currentSlide] && (
+            <div className="flex items-center gap-1.5 px-1" data-testid="carousel-caption-editor">
+              {editingCarouselCaption ? (
+                <>
+                  <Input
+                    value={carouselCaptionDraft}
+                    onChange={(e) => setCarouselCaptionDraft(e.target.value)}
+                    className="h-7 text-xs flex-1"
+                    placeholder="Add caption…"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleSaveCarouselCaption();
+                      if (e.key === "Escape") setEditingCarouselCaption(false);
+                    }}
+                    data-testid="input-carousel-caption"
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 shrink-0"
+                    onClick={handleSaveCarouselCaption}
+                    aria-label="Save caption"
+                    data-testid="button-carousel-caption-save"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 shrink-0"
+                    onClick={() => setEditingCarouselCaption(false)}
+                    aria-label="Cancel editing caption"
+                    data-testid="button-carousel-caption-cancel"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCarouselCaptionDraft(photos[currentSlide].caption || "");
+                      setEditingCarouselCaption(true);
+                    }}
+                    className="flex-1 text-left text-xs text-muted-foreground hover:text-foreground truncate"
+                    title="Click to edit caption"
+                    data-testid="button-carousel-caption-display"
+                  >
+                    {photos[currentSlide].caption
+                      ? photos[currentSlide].caption
+                      : <span className="italic opacity-60">Add caption…</span>}
+                  </button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 shrink-0"
+                    onClick={() => {
+                      setCarouselCaptionDraft(photos[currentSlide].caption || "");
+                      setEditingCarouselCaption(true);
+                    }}
+                    aria-label="Edit caption"
+                    data-testid="button-carousel-caption-edit"
+                  >
+                    <Pencil className="w-3 h-3" />
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
 
           {/* Thumbnail strip */}
           <div className="flex gap-2 overflow-x-auto pb-1 snap-x">
