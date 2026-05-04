@@ -238,6 +238,8 @@ function draftsToPatch(drafts: DraftResult[]): Record<string, unknown> {
         existing: { text: r.existing, provenance: makeProvenance(d) },
         proposed: { text: r.proposed, provenance: makeProvenance(d) },
       }));
+    } else if (/^transformationRows\[\d\]$/.test(slotName)) {
+      continue;
     } else {
       // All simple text slots: suggestion: { text: "..." }
       patch[slideKey][slotName] = {

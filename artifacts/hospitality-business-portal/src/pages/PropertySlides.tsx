@@ -156,6 +156,7 @@ interface DraftAllResponse {
   drafts: DraftResult[];
   draftedCount: number;
   errorCount: number;
+  skippedUserRows?: number[];
   message?: string;
   note?: string;
 }
@@ -230,6 +231,13 @@ function validateSuggestionClient(slot: string, suggestion: unknown): string[] {
       if (r.proposed.length > SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX)
         errors.push(`Row ${i + 1} proposed exceeds ${SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX} chars (${r.proposed.length})`);
     });
+  } else if (/^slide5\.transformationRows\[\d\]$/.test(slot)) {
+    if (typeof s.feature === "string" && s.feature.length > SLIDE5_TRANSFORMATION_ROW_FEATURE_MAX)
+      errors.push(`Feature exceeds ${SLIDE5_TRANSFORMATION_ROW_FEATURE_MAX} chars (${(s.feature as string).length})`);
+    if (typeof s.existing === "string" && (s.existing as string).length > SLIDE5_TRANSFORMATION_ROW_EXISTING_MAX)
+      errors.push(`Existing exceeds ${SLIDE5_TRANSFORMATION_ROW_EXISTING_MAX} chars (${(s.existing as string).length})`);
+    if (typeof s.proposed === "string" && (s.proposed as string).length > SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX)
+      errors.push(`Proposed exceeds ${SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX} chars (${(s.proposed as string).length})`);
   }
 
   return errors;
@@ -287,6 +295,21 @@ function buildSelectedPatch(
           existing: authored(r.existing),
           proposed: authored(r.proposed),
         }));
+    } else if (/^slide5\.transformationRows\[(\d)\]$/.test(slot)) {
+      const rowIdx = parseInt(slot.match(/\[(\d)\]/)![1], 10);
+      if (!slide5.transformationRows) slide5.transformationRows = [];
+      while (slide5.transformationRows.length <= rowIdx) {
+        slide5.transformationRows.push({
+          feature: authored(""),
+          existing: authored(""),
+          proposed: authored(""),
+        });
+      }
+      slide5.transformationRows[rowIdx] = {
+        feature: authored(typeof s.feature === "string" ? s.feature : ""),
+        existing: authored(typeof s.existing === "string" ? s.existing : ""),
+        proposed: authored(typeof s.proposed === "string" ? s.proposed : ""),
+      };
     }
   }
 
@@ -312,6 +335,10 @@ function slotLabel(slot: string): string {
     "slide3.closingLine": "Slide 3 — Closing pull quote",
     "slide5.transformationDescription": "Slide 5 — Transformation intro",
     "slide5.transformationRows": "Slide 5 — Comparison rows",
+    "slide5.transformationRows[0]": "Slide 5 — Comparison row 1",
+    "slide5.transformationRows[1]": "Slide 5 — Comparison row 2",
+    "slide5.transformationRows[2]": "Slide 5 — Comparison row 3",
+    "slide5.transformationRows[3]": "Slide 5 — Comparison row 4",
   };
   return LABELS[slot] ?? slot;
 }
@@ -331,6 +358,9 @@ function suggestionPreview(slot: string, suggestion: unknown): string {
   }
   if (slot === "slide5.transformationRows" && Array.isArray(s.rows)) {
     return (s.rows as { feature: string }[]).map(r => r.feature).join(", ");
+  }
+  if (/^slide5\.transformationRows\[\d\]$/.test(slot) && typeof s.feature === "string") {
+    return `${s.feature}: ${s.existing ?? ""} → ${s.proposed ?? ""}`;
   }
   return JSON.stringify(suggestion);
 }
@@ -731,6 +761,40 @@ function SlotEditor({
     );
   }
 
+  if (/^slide5\.transformationRows\[\d\]$/.test(slot)) {
+    const r = s as { feature?: string; existing?: string; proposed?: string };
+    const maxMap = {
+      feature: SLIDE5_TRANSFORMATION_ROW_FEATURE_MAX,
+      existing: SLIDE5_TRANSFORMATION_ROW_EXISTING_MAX,
+      proposed: SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX,
+    };
+    return (
+      <div className="space-y-1.5">
+        {(["feature", "existing", "proposed"] as const).map(field => {
+          const max = maxMap[field];
+          const val = typeof r[field] === "string" ? r[field]! : "";
+          return (
+            <div key={field} className="space-y-0.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground capitalize">{field}</span>
+                <span className={`text-[10px] tabular-nums ${val.length > max ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                  {val.length}/{max}
+                </span>
+              </div>
+              <Textarea
+                value={val}
+                rows={1}
+                className="text-xs resize-none"
+                disabled={disabled}
+                onChange={e => onChange({ ...r, [field]: e.target.value })}
+              />
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
   // Default: simple { text } slot
   const text = typeof s.text === "string" ? s.text : "";
   const SIMPLE_MAX: Partial<Record<string, number>> = {
@@ -769,6 +833,7 @@ function DraftAllReviewPanel({
   generatedAt,
   propertyId,
   propertyUpdatedAt,
+  skippedUserRows,
   onAccepted,
   onDismiss,
   onRedraftStale,
@@ -779,6 +844,7 @@ function DraftAllReviewPanel({
   generatedAt: string;
   propertyId: number;
   propertyUpdatedAt?: string;
+  skippedUserRows?: number[];
   onAccepted: () => void;
   onDismiss: () => void;
   onRedraftStale?: () => void;
@@ -1043,6 +1109,17 @@ function DraftAllReviewPanel({
             Dismiss
           </Button>
         </div>
+
+        {skippedUserRows && skippedUserRows.length > 0 && (
+          <div className="flex items-start gap-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 dark:border-emerald-800 dark:bg-emerald-950/30">
+            <IconCheck className="h-3.5 w-3.5 mt-0.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <p className="text-xs text-emerald-800 dark:text-emerald-300 leading-relaxed flex-1 min-w-0">
+              {skippedUserRows.length === 1
+                ? `Transformation row ${skippedUserRows[0] + 1} was skipped — it has user-edited content that won't be overwritten.`
+                : `Transformation rows ${skippedUserRows.map(i => i + 1).join(", ")} were skipped — they have user-edited content that won't be overwritten.`}
+            </p>
+          </div>
+        )}
 
         {staleCount > 0 && (
           <div className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-800 dark:bg-amber-950/30">
@@ -1565,6 +1642,7 @@ export default function PropertySlides() {
           generatedAt={pendingDrafts.drafts[0]?.generatedAt ?? new Date().toISOString()}
           propertyId={propertyId}
           propertyUpdatedAt={readiness?.propertyUpdatedAt}
+          skippedUserRows={pendingDrafts.skippedUserRows}
           onAccepted={() => setPendingDrafts(null)}
           onDismiss={() => setPendingDrafts(null)}
           onRedraftStale={() => redraftStaleMutation.mutate()}

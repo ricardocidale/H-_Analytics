@@ -128,6 +128,25 @@ interface DraftResult {
   model: string;
   generatedAt: string;
   validationErrors?: string[];
+  skippedUserRows?: number[];
+}
+
+function getUserApprovedRowIndices(payload: DeckPayloadV2): number[] {
+  const rows = payload.slide5?.transformationRows;
+  if (!rows) return [];
+  const indices: number[] = [];
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row) continue;
+    if (
+      row.feature.provenance.source === "user" ||
+      row.existing.provenance.source === "user" ||
+      row.proposed.provenance.source === "user"
+    ) {
+      indices.push(i);
+    }
+  }
+  return indices;
 }
 
 /**
@@ -404,6 +423,9 @@ async function draftGroupBatch(
     if (s === "slide5.transformationRows") {
       return `"${s}": {"rows":[{"feature":"...","existing":"...","proposed":"..."}×${SLIDE5_TRANSFORMATION_ROWS_COUNT}]} (feature≤${SLIDE5_TRANSFORMATION_ROW_FEATURE_MAX}, existing≤${SLIDE5_TRANSFORMATION_ROW_EXISTING_MAX}, proposed≤${SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX} chars)`;
     }
+    if (/^slide5\.transformationRows\[\d\]$/.test(s)) {
+      return `"${s}": {"feature":"...","existing":"...","proposed":"..."} (feature≤${SLIDE5_TRANSFORMATION_ROW_FEATURE_MAX}, existing≤${SLIDE5_TRANSFORMATION_ROW_EXISTING_MAX}, proposed≤${SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX} chars)`;
+    }
     if (s === "slide1.visionBullets") {
       return `"${s}": {"bullets":[{"text":"..."}×${SLIDE1_VISION_BULLETS_COUNT}]} (each bullet≤${SLIDE1_VISION_BULLET_MAX} chars)`;
     }
@@ -642,7 +664,18 @@ router.post(
           : new Date(0);
 
     const report = getSlotReadiness(payload, propertyUpdatedAt);
-    const slotsToRegen = getStaleMissingSlots(report);
+    const rawSlotsToRegen = getStaleMissingSlots(report);
+
+    const userApprovedRows = getUserApprovedRowIndices(payload);
+    let slotsToRegen: DraftSlotKey[] = rawSlotsToRegen;
+    if (rawSlotsToRegen.includes("slide5.transformationRows" as DraftSlotKey)) {
+      slotsToRegen = rawSlotsToRegen.filter(s => s !== "slide5.transformationRows");
+      for (let i = 0; i < SLIDE5_TRANSFORMATION_ROWS_COUNT; i++) {
+        if (!userApprovedRows.includes(i)) {
+          slotsToRegen.push(`slide5.transformationRows[${i}]` as DraftSlotKey);
+        }
+      }
+    }
 
     if (slotsToRegen.length === 0) {
       res.setHeader("Cache-Control", "no-store");
@@ -650,6 +683,7 @@ router.post(
         propertyId,
         message: "All slots are complete — nothing to draft",
         drafts: [],
+        skippedUserRows: userApprovedRows.length > 0 ? userApprovedRows : undefined,
         report,
       });
     }
@@ -752,6 +786,7 @@ router.post(
         drafts: allDrafts,
         draftedCount: allDrafts.length,
         errorCount: errored.length,
+        skippedUserRows: userApprovedRows.length > 0 ? userApprovedRows : undefined,
         report,
         note: "Drafts are not persisted — accept individual slots via PATCH to save.",
       });

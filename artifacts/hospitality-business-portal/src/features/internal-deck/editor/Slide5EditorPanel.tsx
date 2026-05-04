@@ -372,9 +372,72 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
     onSettled: () => setDraftingSlot(null),
   });
 
+  const [draftingAllRows, setDraftingAllRows] = useState(false);
+
   function fireDraft(slot: DraftSlotKey5) {
     setDraftingSlot(slot);
     draftMutation.mutate(slot);
+  }
+
+  function isRowUserApproved(row: FormRow): boolean {
+    return row.feature.source === "user" || row.existing.source === "user" || row.proposed.source === "user";
+  }
+
+  async function fireDraftAllRows() {
+    if (!form) return;
+    const rowsToDraft: number[] = [];
+    for (let i = 0; i < form.transformationRows.length; i++) {
+      if (!isRowUserApproved(form.transformationRows[i])) {
+        rowsToDraft.push(i);
+      }
+    }
+    if (rowsToDraft.length === 0) return;
+
+    setDraftingAllRows(true);
+    try {
+      const results = await Promise.all(
+        rowsToDraft.map(async (idx) => {
+          const slot = `slide5.transformationRows[${idx}]` as DraftSlotKey5;
+          const r = await apiRequest(
+            "POST",
+            `/api/admin/properties/${propertyId}/deck-payload/draft-slot`,
+            { slot },
+          );
+          return r.json() as Promise<DraftResult>;
+        }),
+      );
+      setForm((prev) => {
+        if (!prev) return prev;
+        const rows = [...prev.transformationRows];
+        for (const result of results) {
+          const m = /^slide5\.transformationRows\[(\d)\]$/.exec(result.slot);
+          if (!m) continue;
+          const idx = parseInt(m[1], 10);
+          const makeSlot = (text: string): FormSlot => ({ text, source: "llm", dirty: true, serverProvenance: null, llmGeneratedAt: result.generatedAt });
+          rows[idx] = {
+            feature: makeSlot(result.suggestion.feature ?? ""),
+            existing: makeSlot(result.suggestion.existing ?? ""),
+            proposed: makeSlot(result.suggestion.proposed ?? ""),
+          };
+        }
+        return { ...prev, transformationRows: rows };
+      });
+      const skipped = form.transformationRows.length - rowsToDraft.length;
+      toast({
+        title: `Drafted ${results.length} row${results.length === 1 ? "" : "s"}`,
+        description: skipped > 0
+          ? `${skipped} user-edited row${skipped === 1 ? "" : "s"} preserved. Review the proposals, then save.`
+          : "Review the proposals in the editor, then save to persist.",
+      });
+    } catch (err: unknown) {
+      toast({
+        title: "Draft failed",
+        description: err instanceof Error ? err.message : String(err),
+        variant: "destructive",
+      });
+    } finally {
+      setDraftingAllRows(false);
+    }
   }
 
   function setDescriptionSlot(text: string, source: SlotProvenance["source"]) {
@@ -528,21 +591,38 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
               </h3>
               <ReadinessBadge status={rowsStatus} />
             </div>
-            {!pendingDrafts["slide5.transformationRows"] && (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => fireDraft("slide5.transformationRows")}
-                disabled={draftingSlot === "slide5.transformationRows" && draftMutation.isPending}
-                className="gap-1.5"
-              >
-                {draftingSlot === "slide5.transformationRows" && draftMutation.isPending
-                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  : <IconRefreshCw className="h-3.5 w-3.5" />}
-                Re-draft all rows
-              </Button>
-            )}
+            {(() => {
+              const userApprovedCount = form.transformationRows.filter(isRowUserApproved).length;
+              const draftableCount = SLIDE5_TRANSFORMATION_ROWS_COUNT - userApprovedCount;
+              const allApproved = draftableCount === 0;
+              const isDrafting = draftingAllRows || (draftingSlot === "slide5.transformationRows" && draftMutation.isPending);
+              const hasPendingBulk = !!pendingDrafts["slide5.transformationRows"];
+              return (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={fireDraftAllRows}
+                  disabled={isDrafting || allApproved || hasPendingBulk}
+                  className="gap-1.5"
+                  title={allApproved ? "All rows have been user-edited — nothing to draft" : undefined}
+                >
+                  {isDrafting
+                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    : <IconRefreshCw className="h-3.5 w-3.5" />}
+                  {allApproved
+                    ? "All rows user-edited"
+                    : userApprovedCount > 0
+                      ? `Draft ${draftableCount} row${draftableCount === 1 ? "" : "s"} via Analyst`
+                      : "Draft all rows via Analyst"}
+                  {userApprovedCount > 0 && !allApproved && (
+                    <Badge variant="outline" className="ml-1 text-[10px] px-1.5 py-0 h-4 text-emerald-700 border-emerald-300 bg-emerald-50">
+                      {userApprovedCount} preserved
+                    </Badge>
+                  )}
+                </Button>
+              );
+            })()}
           </div>
           <p className="text-xs text-muted-foreground -mt-3">
             Three columns: Feature, Existing, Proposed. Leave Feature blank to omit a row.
@@ -551,12 +631,20 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
           {form.transformationRows.map((row, i) => {
             const rowSlotKey = `slide5.transformationRows[${i}]` as DraftSlotKey5;
             const thisRowDrafting = draftingSlot === rowSlotKey && draftMutation.isPending;
-            const anyDrafting = draftMutation.isPending;
+            const anyDrafting = draftMutation.isPending || draftingAllRows;
             const rowPending = pendingDrafts[rowSlotKey];
             const onRowDraft = rowPending ? undefined : () => fireDraft(rowSlotKey);
+            const rowIsUserApproved = isRowUserApproved(row);
             return (
-              <div key={i} className="space-y-3 rounded-md border border-border/40 p-4">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Row {i + 1}</p>
+              <div key={i} className={`space-y-3 rounded-md border p-4 ${rowIsUserApproved ? "border-emerald-200 dark:border-emerald-800" : "border-border/40"}`}>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Row {i + 1}</p>
+                  {rowIsUserApproved && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 text-emerald-700 border-emerald-300 bg-emerald-50 dark:text-emerald-400 dark:border-emerald-700 dark:bg-emerald-950/40">
+                      User-edited
+                    </Badge>
+                  )}
+                </div>
                 <PlainSlotRow
                   label="Feature"
                   description="What aspect of the property is being transformed (e.g. 'Guest Capacity')."
