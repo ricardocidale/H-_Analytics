@@ -1,6 +1,6 @@
 ---
 name: web-design-guidelines
-description: Review UI code for Web Interface Guidelines compliance. Use when asked to "review my UI", "check accessibility", "audit design", "review UX", or "check my site against best practices".
+description: Review UI code for Web Interface Guidelines compliance. Use when asked to "review my UI", "check accessibility", "audit design", "review UX", or "check my site against best practices". Scoped to web app pages and components — does NOT cover slide-deck review (use lb-slides-renderer / slide-deck-spec) or report/PDF export review.
 metadata:
   author: vercel
   version: "1.0.0"
