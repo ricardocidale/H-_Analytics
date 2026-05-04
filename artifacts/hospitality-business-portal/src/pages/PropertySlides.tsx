@@ -34,7 +34,7 @@ import { useRoute } from "wouter";
 import Layout from "@/components/Layout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { IconDownload, IconAlertCircle, IconRefreshCw, IconCheck, IconX } from "@/components/icons";
-import { Loader2 } from "@/components/icons/themed-icons";
+import { Loader2, RotateCcw } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -903,6 +903,8 @@ function DraftAllReviewPanel({
             const isSelected = selected.has(draft.slot);
             const errs = localErrors[draft.slot] ?? [];
             const isStale = !!propertyUpdatedAt && draft.generatedAt < propertyUpdatedAt;
+            const isDirty =
+              JSON.stringify(editedSuggestions[draft.slot]) !== JSON.stringify(draft.suggestion);
             return (
               <div
                 key={draft.slot}
@@ -939,6 +941,19 @@ function DraftAllReviewPanel({
                     <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 text-[10px] dark:text-amber-400 dark:border-amber-700 dark:bg-amber-950/40">
                       Generated before property was last edited
                     </Badge>
+                  )}
+                  {isDirty && isSelected && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setEditedSuggestions(prev => ({ ...prev, [draft.slot]: draft.suggestion }))
+                      }
+                      className="ml-auto flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                      title="Discard your edits and restore the original Analyst suggestion"
+                    >
+                      <RotateCcw className="h-2.5 w-2.5" />
+                      Reset to original
+                    </button>
                   )}
                 </div>
 
