@@ -1062,8 +1062,10 @@ function DraftAllReviewPanel({
                     aria-label={`Include ${slotLabel(draft.slot)}`}
                   />
                   <Label
-                    htmlFor={`draft-cb-${draft.slot}`}
-                    className="text-xs font-medium cursor-pointer leading-none"
+                    htmlFor={isRedrafting ? undefined : `draft-cb-${draft.slot}`}
+                    className={`text-xs font-medium leading-none ${
+                      isRedrafting ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+                    }`}
                   >
                     {slotLabel(draft.slot)}
                   </Label>
