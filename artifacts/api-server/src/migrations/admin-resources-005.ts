@@ -25,7 +25,7 @@ import { logger } from "../logger";
 
 const TAG = "[migration] admin-resources-005";
 
-type ResourceKind = "api" | "source" | "model" | "table" | "benchmark";
+type ResourceKind = "api" | "source" | "model" | "table" | "benchmark" | "llm_slot";
 
 interface SeedRow {
   kind: ResourceKind;
@@ -81,6 +81,159 @@ export const MODEL_SEED_ROWS: SeedRow[] = [
     displayName: "Gemini 2.5 Flash",
     description: "Google Gemini 2.5 Flash — quantitative panel, fast numeric extraction",
     config: { vendor: "google", modelId: "gemini-2.5-flash" },
+  },
+  // ── OpenAI models ──────────────────────────────────────────────────────────
+  {
+    kind: "model",
+    slug: "gpt-4-1",
+    displayName: "GPT-4.1",
+    description: "OpenAI GPT-4.1 — general purpose reasoning",
+    config: { vendor: "openai", modelId: "gpt-4.1" },
+  },
+  {
+    kind: "model",
+    slug: "gpt-4o",
+    displayName: "GPT-4o",
+    description: "OpenAI GPT-4o — high-capability multimodal model",
+    config: { vendor: "openai", modelId: "gpt-4o" },
+  },
+  {
+    kind: "model",
+    slug: "gpt-4o-mini",
+    displayName: "GPT-4o Mini",
+    description: "OpenAI GPT-4o Mini — fast, cost-efficient model for structured tasks",
+    config: { vendor: "openai", modelId: "gpt-4o-mini" },
+  },
+  {
+    kind: "model",
+    slug: "gpt-image-1",
+    displayName: "GPT Image 1",
+    description: "OpenAI GPT Image 1 — image generation model",
+    config: { vendor: "openai", modelId: "gpt-image-1" },
+  },
+  // ── Perplexity models ──────────────────────────────────────────────────────
+  {
+    kind: "model",
+    slug: "sonar",
+    displayName: "Perplexity Sonar",
+    description: "Perplexity Sonar — grounded web search with citations, used for market research",
+    config: { vendor: "perplexity", modelId: "sonar" },
+  },
+  // ── Google additional models ───────────────────────────────────────────────
+  {
+    kind: "model",
+    slug: "gemini-2-5-flash-image",
+    displayName: "Gemini 2.5 Flash Image",
+    description: "Google Gemini 2.5 Flash Image — image generation and enhancement",
+    config: { vendor: "google", modelId: "gemini-2.5-flash-image" },
+  },
+  {
+    kind: "model",
+    slug: "gemini-2-0-flash",
+    displayName: "Gemini 2.0 Flash",
+    description: "Google Gemini 2.0 Flash — fast multimodal tasks including URL extraction",
+    config: { vendor: "google", modelId: "gemini-2.0-flash" },
+  },
+];
+
+// ── LLM Slot rows ───────────────────────────────────────────────────────────
+// Each row maps a named usage slot to the model slug that should be used at
+// runtime. The resolver (ai/llm-config-resolver.ts) reads these at call time
+// so admins can swap models without a code deploy.
+//
+// modelSlug must match a slug in MODEL_SEED_ROWS.
+
+export const LLM_SLOT_SEED_ROWS: SeedRow[] = [
+  {
+    kind: "llm_slot",
+    slug: "vision",
+    displayName: "Property Vision (Slide Gen)",
+    description: "LLM used to generate the investment vision narrative for property slide decks",
+    config: { modelSlug: "claude-opus-4-6" },
+  },
+  {
+    kind: "llm_slot",
+    slug: "executive-summary-property",
+    displayName: "Executive Summary — Property",
+    description: "LLM used for per-property executive summary generation",
+    config: { modelSlug: "claude-opus-4-6" },
+  },
+  {
+    kind: "llm_slot",
+    slug: "executive-summary-portfolio",
+    displayName: "Executive Summary — Portfolio",
+    description: "LLM used for portfolio-level executive summary generation",
+    config: { modelSlug: "claude-opus-4-6" },
+  },
+  {
+    kind: "llm_slot",
+    slug: "risk-brief",
+    displayName: "Risk Brief",
+    description: "LLM used to generate the investor risk-and-opportunity brief",
+    config: { modelSlug: "claude-sonnet-4-5" },
+  },
+  {
+    kind: "llm_slot",
+    slug: "icp-intelligence",
+    displayName: "ICP Intelligence",
+    description: "LLM used for ideal customer profile intelligence analysis",
+    config: { modelSlug: "claude-opus-4-6" },
+  },
+  {
+    kind: "llm_slot",
+    slug: "image-generation",
+    displayName: "Image Generation",
+    description: "LLM / image model used for property and marketing image generation",
+    config: { modelSlug: "gpt-image-1" },
+  },
+  {
+    kind: "llm_slot",
+    slug: "url-extraction",
+    displayName: "URL Extraction",
+    description: "LLM used to extract structured property data from URLs",
+    config: { modelSlug: "gemini-2-0-flash" },
+  },
+  {
+    kind: "llm_slot",
+    slug: "grounded-web-research",
+    displayName: "Grounded Web Research",
+    description: "LLM used for live web research with citations (Perplexity Sonar)",
+    config: { modelSlug: "sonar" },
+  },
+  {
+    kind: "llm_slot",
+    slug: "research-analyst-a",
+    displayName: "Research Analyst A (Quant)",
+    description: "LLM for the quantitative analyst role in multi-model research orchestration",
+    config: { modelSlug: "gemini-2-5-flash" },
+  },
+  {
+    kind: "llm_slot",
+    slug: "research-analyst-b",
+    displayName: "Research Analyst B (Market)",
+    description: "LLM for the market analyst role in multi-model research orchestration",
+    config: { modelSlug: "claude-sonnet-4-5" },
+  },
+  {
+    kind: "llm_slot",
+    slug: "research-synthesis",
+    displayName: "Research Synthesis",
+    description: "LLM for the final synthesis / verdict role in multi-model research orchestration",
+    config: { modelSlug: "claude-opus-4-6" },
+  },
+  {
+    kind: "llm_slot",
+    slug: "analyst-table-refresh",
+    displayName: "Analyst Table Refresh",
+    description: "LLM used to refresh analyst reference tables (benchmarks, brand data)",
+    config: { modelSlug: "gpt-4o-mini" },
+  },
+  {
+    kind: "llm_slot",
+    slug: "regen-constants",
+    displayName: "Constants Regeneration",
+    description: "LLM used to propose regenerated model-constant values backed by research",
+    config: { modelSlug: "claude-sonnet-4-5" },
   },
 ];
 
@@ -302,5 +455,10 @@ export async function runAdminResources005(): Promise<void> {
   const sourcesSeeded = await batchInsert(SOURCE_SEED_ROWS);
   logger.info(
     `${TAG} source/api/benchmark rows: ${sourcesSeeded} seeded (${SOURCE_SEED_ROWS.length - sourcesSeeded} already existed)`,
+  );
+
+  const slotsSeeded = await batchInsert(LLM_SLOT_SEED_ROWS);
+  logger.info(
+    `${TAG} llm_slot rows: ${slotsSeeded} seeded (${LLM_SLOT_SEED_ROWS.length - slotsSeeded} already existed)`,
   );
 }

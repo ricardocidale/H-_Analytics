@@ -44,6 +44,7 @@ export const RESOURCE_KINDS = [
   "table",
   "benchmark",
   "model",
+  "llm_slot",
 ] as const;
 export type ResourceKind = typeof RESOURCE_KINDS[number];
 export const ResourceKindSchema = z.enum(RESOURCE_KINDS);
@@ -54,6 +55,7 @@ export const RESOURCE_KIND_LABELS: Record<ResourceKind, string> = {
   table: "Tables",
   benchmark: "Benchmarks",
   model: "Models",
+  llm_slot: "LLM Slots",
 };
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -187,6 +189,8 @@ export const PROBE_PROFILES: Record<ResourceKind, { ttlSeconds: number; rateLimi
   model: { ttlSeconds: 300, rateLimitPerMinute: 4, maxCostUsd: 0.001 },
   table: { ttlSeconds: 3600, rateLimitPerMinute: 6, maxCostUsd: 0.001 },
   benchmark: { ttlSeconds: 3600, rateLimitPerMinute: 6, maxCostUsd: 0.001 },
+  // LLM slot rows are pure configuration — no external service to probe.
+  llm_slot: { ttlSeconds: 86400, rateLimitPerMinute: 1, maxCostUsd: 0 },
 };
 
 export const ProbeStatusSchema = z.enum(["ok", "fail", "skipped"]);

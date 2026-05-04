@@ -23,6 +23,7 @@ export const RESOURCE_KIND_TO_SECTION: Record<ResourceKind, AiIntelligenceSectio
   table: "resources-tables",
   benchmark: "resources",
   model: "resources",
+  llm_slot: "resources",
 };
 
 export function navigateToResources(

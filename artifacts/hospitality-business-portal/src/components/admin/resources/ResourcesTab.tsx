@@ -34,6 +34,7 @@ const KIND_BLURBS: Record<ResourceKind, string> = {
   table: "Internal warehouse tables Specialists query. Health probe verifies the table exists in the schema.",
   benchmark: "Hospitality benchmark slugs (ADR, RevPAR, occupancy, etc.). Health probe verifies a snapshot is ingested.",
   model: "LLM model rows. Health probe verifies provider + secret wiring without firing a billable inference.",
+  llm_slot: "Named usage slots that map a feature (e.g. 'vision', 'risk-brief') to a model row. Edit to swap models without a deploy.",
 };
 
 const WORKING_PILL: Record<ResourceHealthStatus, { label: string; cls: string }> = {

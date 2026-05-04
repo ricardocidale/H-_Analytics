@@ -138,12 +138,18 @@ async function probeBenchmark(row: AdminResourceRow): Promise<ProbeOutcome> {
   }
 }
 
+// LLM slot rows are pure configuration — no external service to probe.
+async function probeLlmSlot(_row: AdminResourceRow): Promise<ProbeOutcome> {
+  return { status: "ok", latencyMs: 0 };
+}
+
 const PROBES: Record<ResourceKind, (row: AdminResourceRow) => Promise<ProbeOutcome>> = {
   api: probeApiOrSource,
   source: probeApiOrSource,
   model: probeModel,
   table: probeTable,
   benchmark: probeBenchmark,
+  llm_slot: probeLlmSlot,
 };
 
 export async function runProbe(row: AdminResourceRow): Promise<ProbeOutcome> {
