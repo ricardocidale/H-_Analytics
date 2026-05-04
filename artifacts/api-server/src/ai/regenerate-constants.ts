@@ -31,6 +31,7 @@
  */
 
 import { getAnthropicClient, normalizeModelId } from "./clients";
+import { resolveLlmFor } from "./llm-config-resolver";
 import { GroundedResearchService } from "../services/GroundedResearchService";
 import { AI_REGEN_CONSTANTS_MAX_TOKENS } from "../constants";
 import { MODEL_CONSTANTS_REGISTRY, getFactoryValue } from "@shared/model-constants-registry";
@@ -50,7 +51,6 @@ import {
   type BulletinFetcher,
 } from "./tools/tax-bulletin-diff";
 
-const ANALYST_MODEL = normalizeModelId("claude-sonnet-4-5");
 
 /**
  * Sentinel `entity_id` used when persisting `research_runs` rows for
@@ -559,9 +559,10 @@ export async function proposeConstantRegeneration(args: {
   }
 
   // 2. Ask Claude for the structured proposal.
+  const { modelId: analystModelId } = await resolveLlmFor("regen-constants");
   const anthropic = getAnthropicClient();
   const completion = await anthropic.messages.create({
-    model: ANALYST_MODEL,
+    model: analystModelId,
     max_tokens: AI_REGEN_CONSTANTS_MAX_TOKENS,
     system: [{ type: "text", text: buildSystemPrompt(), cache_control: { type: "ephemeral" } }],
     messages: [
@@ -611,7 +612,7 @@ export async function proposeConstantRegeneration(args: {
       status: "completed",
       completedAt: new Date(),
       durationMs,
-      modelPrimary: ANALYST_MODEL,
+      modelPrimary: analystModelId,
       metadata: {
         specialistId: owningSpecialist.id,
         specialistLetter: owningSpecialist.letter,
