@@ -25,44 +25,27 @@ export const DETERMINISTIC_TOOLS = [
 ];
 
 export const FALLBACK_MODELS: AiModelEntry[] = [
-  { id: "claude-opus-4-6", label: "Claude Opus 4.6", provider: "anthropic" },
-  { id: "claude-opus-4-5", label: "Claude Opus 4.5", provider: "anthropic" },
-  { id: "claude-sonnet-4-5", label: "Claude Sonnet 4.5", provider: "anthropic" },
-  { id: "claude-haiku-4-5", label: "Claude Haiku 4.5", provider: "anthropic" },
-  { id: "claude-opus-4-1", label: "Claude Opus 4.1", provider: "anthropic" },
-  { id: "claude-opus-4", label: "Claude Opus 4", provider: "anthropic" },
-  { id: "claude-sonnet-4", label: "Claude Sonnet 4", provider: "anthropic" },
-  { id: "gpt-5.4", label: "GPT-5.4", provider: "openai" },
-  { id: "gpt-5.4-pro", label: "GPT-5.4 Pro", provider: "openai" },
-  { id: "gpt-4.1", label: "GPT-4.1", provider: "openai" },
+  // Anthropic
+  { id: "claude-opus-4-7",           label: "Claude Opus 4.7",   provider: "anthropic" },
+  { id: "claude-opus-4-6",           label: "Claude Opus 4.6",   provider: "anthropic" },
+  { id: "claude-sonnet-4-6",         label: "Claude Sonnet 4.6", provider: "anthropic" },
+  { id: "claude-sonnet-4-5",         label: "Claude Sonnet 4.5", provider: "anthropic" },
+  { id: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5",  provider: "anthropic" },
+  // OpenAI
+  { id: "gpt-4.1",     label: "GPT-4.1",       provider: "openai" },
   { id: "gpt-4.1-mini", label: "GPT-4.1 Mini", provider: "openai" },
-  { id: "gpt-4o", label: "GPT-4o", provider: "openai" },
-  { id: "gpt-4o-mini", label: "GPT-4o Mini", provider: "openai" },
-  { id: "o3", label: "o3", provider: "openai" },
-  { id: "o3-pro", label: "o3 Pro", provider: "openai" },
-  { id: "o4-mini", label: "o4 Mini", provider: "openai" },
-
-  { id: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro Preview", provider: "google" },
-  { id: "gemini-3-flash-preview", label: "Gemini 3 Flash Preview", provider: "google" },
-  { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro", provider: "google" },
+  { id: "gpt-4o",      label: "GPT-4o",         provider: "openai" },
+  { id: "gpt-4o-mini", label: "GPT-4o Mini",    provider: "openai" },
+  { id: "o3",          label: "o3",             provider: "openai" },
+  { id: "o3-pro",      label: "o3 Pro",         provider: "openai" },
+  { id: "o4-mini",     label: "o4 Mini",        provider: "openai" },
+  // Google
+  { id: "gemini-2.5-pro",   label: "Gemini 2.5 Pro",   provider: "google" },
   { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", provider: "google" },
   { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash", provider: "google" },
-
-  { id: "grok-4", label: "Grok 4", provider: "xai" },
-  { id: "grok-4-fast", label: "Grok 4 Fast", provider: "xai" },
-  { id: "grok-3", label: "Grok 3", provider: "xai" },
+  // xAI
+  { id: "grok-3",      label: "Grok 3",      provider: "xai" },
   { id: "grok-3-mini", label: "Grok 3 Mini", provider: "xai" },
-
-  { id: "deepseek-r1", label: "DeepSeek R1", provider: "deepseek" },
-  { id: "deepseek-v3", label: "DeepSeek V3", provider: "deepseek" },
-  { id: "deepseek-chat", label: "DeepSeek Chat", provider: "deepseek" },
-  { id: "deepseek-reasoner", label: "DeepSeek Reasoner", provider: "deepseek" },
-
-  { id: "llama-4-maverick", label: "Llama 4 Maverick", provider: "meta" },
-  { id: "llama-4-scout", label: "Llama 4 Scout", provider: "meta" },
-  { id: "llama-3.3-70b", label: "Llama 3.3 70B", provider: "meta" },
-  { id: "llama-3.1-405b", label: "Llama 3.1 405B", provider: "meta" },
-  { id: "llama-3.1-70b", label: "Llama 3.1 70B", provider: "meta" },
 ];
 
 export const TIME_HORIZONS = [
@@ -88,13 +71,9 @@ export const DEFAULT_EVENT_CONFIG: ResearchEventConfig = {
 
 export const LLM_VENDORS: { value: LlmVendor; label: string }[] = [
   { value: "anthropic", label: "Anthropic" },
-  { value: "openai", label: "OpenAI" },
-  { value: "google", label: "Google" },
-  { value: "meta", label: "Meta" },
-  { value: "deepseek", label: "DeepSeek" },
-  { value: "xai", label: "xAI" },
-  { value: "tesla", label: "Tesla" },
-  { value: "microsoft", label: "Microsoft" },
+  { value: "openai",    label: "OpenAI" },
+  { value: "google",    label: "Google" },
+  { value: "xai",       label: "xAI" },
 ];
 
 export const RESEARCH_LLM_VENDORS: { value: LlmVendor; label: string }[] = [

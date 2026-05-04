@@ -43,13 +43,18 @@ const CHAT_MODEL_PATTERNS: Record<string, RegExp[]> = {
 const EXCLUDE_PATTERNS = [
   /embed/i, /tts/i, /whisper/i, /dall-e/i, /image/i, /moderation/i,
   /realtime/i, /audio/i, /computer-use/i, /search/i, /chatgpt/i,
-  /instruct/i, /codex/i, /-\d{8}$/,
+  /instruct/i, /codex/i,
 ];
+
+// OpenAI date-snapshot suffixes (4-digit: -0613, -1106) but NOT Anthropic's
+// production date suffixes (8-digit: -20251001) which are real model IDs.
+const OPENAI_SNAPSHOT_PATTERN = /-\d{4}$/;
 
 function shouldInclude(id: string, provider: string): boolean {
   const patterns = CHAT_MODEL_PATTERNS[provider] ?? [];
   if (!patterns.some(p => p.test(id))) return false;
   if (EXCLUDE_PATTERNS.some(p => p.test(id))) return false;
+  if (provider === "openai" && OPENAI_SNAPSHOT_PATTERN.test(id)) return false;
   return true;
 }
 
@@ -81,14 +86,16 @@ function inferCapabilities(id: string, _vendor: string): string[] {
 }
 
 const OPENAI_KNOWN_MODELS = [
-  "gpt-5", "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-4o", "gpt-4o-mini",
-  "o3", "o3-mini", "o4-mini",
+  "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-4o", "gpt-4o-mini",
+  "o3", "o3-mini", "o4-mini", "o3-pro",
 ];
 const ANTHROPIC_KNOWN_MODELS = [
-  "claude-sonnet-4-6", "claude-sonnet-4-5", "claude-opus-4", "claude-haiku-3-5",
+  "claude-opus-4-7", "claude-opus-4-6",
+  "claude-sonnet-4-6", "claude-sonnet-4-5",
+  "claude-haiku-4-5-20251001",
 ];
 const GEMINI_KNOWN_MODELS = [
-  "gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash",
+  "gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash",
 ];
 
 function makeKnownModels(vendor: LlmVendor, ids: string[], latency: number): ProbedModel[] {

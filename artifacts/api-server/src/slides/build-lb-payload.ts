@@ -22,6 +22,7 @@ import type { PropertyInput, GlobalInput } from "@engine/types";
 import { logger } from "../logger";
 import { storage } from "../storage";
 import { buildSlidePayload } from "./build-payload";
+import { getBrowser } from "./playwright-browser";
 import { recomputeSinglePropertyAndStamp } from "../finance/recompute";
 import { withModelConstants } from "../finance/apply-model-constants";
 import { EMPTY_DECK_PAYLOAD_V2 } from "@shared/deck-payload-v2";
@@ -56,6 +57,103 @@ function buildGlobalInputLb(projYears: number): Record<string, unknown> {
     projectionYears: projYears,
   };
 }
+
+// ── USALI PNG renderer ────────────────────────────────────────────────────
+
+const USALI_TABLE_VIEWPORT_WIDTH = 1180;
+const USALI_TABLE_VIEWPORT_HEIGHT = 600;
+const USALI_DEVICE_SCALE_FACTOR = 2;
+const USALI_CSS_FW_NORMAL = 500;
+const USALI_CSS_FW_MEDIUM = 600;
+const USALI_CSS_FW_BOLD = 700;
+const USALI_CSS_TABLE_WIDTH = "100%";
+const USALI_CSS_LABEL_COL_WIDTH = 160;
+
+function buildUsaliTableHtml(yearlyIS: YearlyIS[], yearlyCF: YearlyCF[]): string {
+  const yrs = Math.min(yearlyIS.length, yearlyCF.length);
+  const fmt = (n: number): string => {
+    const abs = Math.abs(n);
+    const sign = n < 0 ? "(" : "";
+    const end = n < 0 ? ")" : "";
+    return `${sign}$${Math.round(abs).toLocaleString("en-US")}${end}`;
+  };
+  const pct = (n: number): string => `${(n * 100).toFixed(1)}%`;
+
+  const headers = ["", ...Array.from({ length: yrs }, (_, i) => `Yr ${i + 1}`)];
+
+  type Row = { label: string; vals: number[]; cls?: string };
+  const rows: Row[] = [
+    { label: "Revenue", vals: yearlyIS.map(y => y.revenueTotal) },
+    { label: "Operating Expenses", vals: yearlyIS.map(y => y.totalExpenses) },
+    { label: "Gross Operating Profit", vals: yearlyIS.map(y => y.gop), cls: "subtotal" },
+    { label: "NOI", vals: yearlyIS.map(y => y.noi), cls: "noi" },
+    { label: "Debt Service", vals: yearlyCF.map(y => y.debtService), cls: "section-break" },
+    { label: "Net Cash Flow", vals: yearlyCF.map(y => y.netCashFlowToInvestors) },
+    { label: "Cumulative Cash Flow", vals: yearlyCF.map(y => y.cumulativeCashFlow), cls: "cumul" },
+  ];
+
+  // ADR row uses averages already stored on yearlyIS
+  const occupancyRow: Row = {
+    label: "Occupancy",
+    vals: yearlyIS.map(y => y.availableRooms > 0 ? y.soldRooms / y.availableRooms : 0),
+  };
+  const adrRow: Row = { label: "ADR", vals: yearlyIS.map(y => y.cleanAdr) };
+
+  const renderRow = (r: Row, isOcc = false): string => {
+    const cells = r.vals.slice(0, yrs).map(v => {
+      const display = isOcc ? pct(v) : fmt(v);
+      return `<td>${display}</td>`;
+    }).join("");
+    return `<tr class="${r.cls ?? ""}"><td>${r.label}</td>${cells}</tr>`;
+  };
+
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#fff;font-family:system-ui,-apple-system,sans-serif;padding:18px 20px 22px 20px}
+  h4{font-size:10px;font-weight:${USALI_CSS_FW_BOLD};color:#1c2b1e;margin-bottom:12px;letter-spacing:.12em;text-transform:uppercase}
+  table{border-collapse:collapse;width:${USALI_CSS_TABLE_WIDTH};font-size:11px}
+  th{background:#1c2b1e;color:#f5f0e8;text-align:right;padding:7px 9px;font-weight:${USALI_CSS_FW_MEDIUM};font-size:10px;letter-spacing:.04em;white-space:nowrap}
+  th:first-child{text-align:left;min-width:${USALI_CSS_LABEL_COL_WIDTH}px}
+  td{padding:6px 9px;border-bottom:1px solid #e8e8e5;text-align:right;color:#222;white-space:nowrap;font-variant-numeric:tabular-nums}
+  td:first-child{text-align:left;color:#333;font-weight:${USALI_CSS_FW_NORMAL}}
+  tr:nth-child(even) td{background:#f7f7f4}
+  .subtotal td{font-weight:${USALI_CSS_FW_MEDIUM};border-top:1px solid #ccc}
+  .noi td{font-weight:${USALI_CSS_FW_BOLD};color:#1a6b38;border-top:1px solid #1c2b1e;border-bottom:2px solid #1c2b1e}
+  .section-break td{border-top:2px solid #d0d0d0}
+  .cumul td{color:#555;font-style:italic}
+  .dim td{color:#888;font-size:10px}
+</style></head><body>
+<h4>${LB_PROJ_YEARS}-Year Portfolio Pro Forma — Income Statement (USD)</h4>
+<table>
+  <thead><tr>${headers.map(h => `<th>${h}</th>`).join("")}</tr></thead>
+  <tbody>
+    ${rows.map(r => renderRow(r)).join("\n    ")}
+    ${renderRow(occupancyRow, true)}
+    ${renderRow(adrRow)}
+  </tbody>
+</table>
+</body></html>`;
+}
+
+async function renderUsaliTablePng(yearlyIS: YearlyIS[], yearlyCF: YearlyCF[]): Promise<string> {
+  const html = buildUsaliTableHtml(yearlyIS, yearlyCF);
+  const browser = await getBrowser();
+  const context = await browser.newContext({
+    viewport: { width: USALI_TABLE_VIEWPORT_WIDTH, height: USALI_TABLE_VIEWPORT_HEIGHT },
+    deviceScaleFactor: USALI_DEVICE_SCALE_FACTOR,
+  });
+  try {
+    const page = await context.newPage();
+    await page.setContent(html, { waitUntil: "networkidle" });
+    const screenshot = await page.screenshot({ fullPage: true });
+    return screenshot.toString("base64");
+  } finally {
+    await context.close().catch(() => {});
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface PropertyRow {
   id: number;
@@ -236,6 +334,13 @@ async function buildSlide6Payload(allPropertyIds: number[]): Promise<SlidePayloa
     } catch { /* leave undefined */ }
   }
 
+  let usaliPngBase64: string | undefined;
+  try {
+    usaliPngBase64 = await renderUsaliTablePng(summedYearlyIS, summedYearlyCF);
+  } catch (err) {
+    logger.warn(`[build-lb-payload] Failed to render USALI table PNG: ${err}`, "build-lb-payload");
+  }
+
   return {
     property: {
       id: 0,
@@ -264,6 +369,7 @@ async function buildSlide6Payload(allPropertyIds: number[]): Promise<SlidePayloa
     deckPayloadV2: EMPTY_DECK_PAYLOAD_V2,
     projYears: LB_PROJ_YEARS,
     usaliMode: true,
+    usaliPngBase64,
   };
 }
 

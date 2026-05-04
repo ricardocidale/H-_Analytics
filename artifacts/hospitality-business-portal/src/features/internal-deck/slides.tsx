@@ -644,10 +644,14 @@ export function Slide5({ p }: { p: SlidePayload }) {
 
 // ── Slide 6 — Income Statement ────────────────────────────────────────────
 export function Slide6({ p }: { p: SlidePayload }) {
-  const { property, financials, deckPayloadV2 } = p;
+  const { property, financials, deckPayloadV2, usaliPngBase64, projYears } = p;
   const v2 = deckPayloadV2?.slide6;
-  const SLIDE6_DEFAULT_DISCLAIMER = "5-year pro forma based on H+ Analytics projection engine. Projections are estimates; actual results may vary.";
-  const years = financials.yearlyIS.slice(0, PROFORMA_YEARS);
+  const isLbMode = Boolean(usaliPngBase64);
+  const yearCount = projYears ?? PROFORMA_YEARS;
+  const SLIDE6_DEFAULT_DISCLAIMER = isLbMode
+    ? "10-year portfolio pro forma aggregated across all portfolio properties. H+ Analytics projection engine. Projections are estimates; actual results may vary."
+    : "5-year pro forma based on H+ Analytics projection engine. Projections are estimates; actual results may vary.";
+  const years = financials.yearlyIS.slice(0, isLbMode ? PROFORMA_YEARS : yearCount);
   const stable = getStableYear(financials.yearlyIS);
   const stableNoi = stable?.noi ?? 0;
   const exitVal = financials.yearlyCF[financials.yearlyCF.length - 1]?.exitValue ?? 0;
@@ -680,7 +684,7 @@ export function Slide6({ p }: { p: SlidePayload }) {
     <div style={{ width: W, height: H, background: SLIDE_BACKGROUNDS[6], display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
       <div style={{ padding: "32px 56px 16px 56px", display: "flex", flexDirection: "column" }}>
         <span style={{ fontFamily: FONT_SANS, fontSize: 11, letterSpacing: "0.3em", color: C.accent, textTransform: "uppercase", marginBottom: 4 }}>
-          5-YEAR CONSOLIDATED PRO FORMA INCOME STATEMENT
+          {yearCount}-YEAR CONSOLIDATED PRO FORMA INCOME STATEMENT
         </span>
         <span style={{ fontFamily: FONT_SERIF, fontSize: 22, color: C.darkBg }}>
           {property.name}
@@ -689,20 +693,30 @@ export function Slide6({ p }: { p: SlidePayload }) {
 
       <div style={{ flex: 1, display: "flex", flexDirection: "row", padding: "0 40px 48px 40px" }}>
         <div style={{ display: "flex", flexDirection: "column", flex: 1, marginRight: 32 }}>
-          <div style={{ display: "flex", flexDirection: "row", padding: "8px 0", background: C.darkBg, borderBottom: `1px solid ${C.accent}`, marginBottom: 4 }}>
-            <span style={{ flex: 1.4, fontFamily: FONT_SANS, fontSize: 10, color: C.sage, paddingLeft: 8 }}>Item</span>
-            {years.map((y, i) => (
-              <span key={i} style={{ flex: 1, fontFamily: FONT_NUMERIC, fontSize: 11, fontVariantNumeric: "tabular-nums", color: C.cream, textAlign: "right", paddingRight: 8, letterSpacing: "0.04em" }}>Yr {i + 1}</span>
-            ))}
-          </div>
-          {isRows.map(([label, vals], ri) => (
-            <div key={ri} style={{ display: "flex", flexDirection: "row", padding: "6px 0", background: ri % 2 === 0 ? C.canvasZebra : "transparent", borderBottom: `1px solid ${C.canvasRule}` }}>
-              <span style={{ flex: 1.4, fontFamily: FONT_SANS, fontSize: 11, color: C.darkBg, paddingLeft: 8, fontWeight: ri === 2 ? 600 : 400 }}>{label}</span>
-              {(vals as string[]).map((v, vi) => (
-                <span key={vi} style={{ flex: 1, fontFamily: FONT_NUMERIC, fontSize: 13, fontVariantNumeric: "tabular-nums", color: ri === 2 ? C.accent : C.darkBg, textAlign: "right", paddingRight: 8, fontWeight: ri === 2 ? 700 : 400 }}>{v}</span>
+          {isLbMode && usaliPngBase64 ? (
+            <img
+              src={`data:image/png;base64,${usaliPngBase64}`}
+              alt="10-Year Portfolio Pro Forma Income Statement"
+              style={{ width: "100%", height: "auto", display: "block", borderRadius: 2 }}
+            />
+          ) : (
+            <>
+              <div style={{ display: "flex", flexDirection: "row", padding: "8px 0", background: C.darkBg, borderBottom: `1px solid ${C.accent}`, marginBottom: 4 }}>
+                <span style={{ flex: 1.4, fontFamily: FONT_SANS, fontSize: 10, color: C.sage, paddingLeft: 8 }}>Item</span>
+                {years.map((y, i) => (
+                  <span key={i} style={{ flex: 1, fontFamily: FONT_NUMERIC, fontSize: 11, fontVariantNumeric: "tabular-nums", color: C.cream, textAlign: "right", paddingRight: 8, letterSpacing: "0.04em" }}>Yr {i + 1}</span>
+                ))}
+              </div>
+              {isRows.map(([label, vals], ri) => (
+                <div key={ri} style={{ display: "flex", flexDirection: "row", padding: "6px 0", background: ri % 2 === 0 ? C.canvasZebra : "transparent", borderBottom: `1px solid ${C.canvasRule}` }}>
+                  <span style={{ flex: 1.4, fontFamily: FONT_SANS, fontSize: 11, color: C.darkBg, paddingLeft: 8, fontWeight: ri === 2 ? 600 : 400 }}>{label}</span>
+                  {(vals as string[]).map((v, vi) => (
+                    <span key={vi} style={{ flex: 1, fontFamily: FONT_NUMERIC, fontSize: 13, fontVariantNumeric: "tabular-nums", color: ri === 2 ? C.accent : C.darkBg, textAlign: "right", paddingRight: 8, fontWeight: ri === 2 ? 700 : 400 }}>{v}</span>
+                  ))}
+                </div>
               ))}
-            </div>
-          ))}
+            </>
+          )}
         </div>
 
         <div style={{ width: 320, display: "flex", flexDirection: "column" }}>

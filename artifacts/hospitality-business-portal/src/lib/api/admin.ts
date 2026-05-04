@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { GlobalResponse, ResearchQuestion } from "./types";
-import type { ResearchConfig, AiModelEntry } from "@shared/schema";
+import type { ResearchConfig, AiModelEntry, ResourcePublicView } from "@shared/schema";
 import { invalidateAllFinancialQueries } from "./properties";
 
 async function fetchGlobalAssumptions(): Promise<GlobalResponse> {
@@ -212,6 +212,34 @@ export function useRefreshLlmRegistry() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-llm-registry"] });
       queryClient.invalidateQueries({ queryKey: ["admin-research-config"] });
+    },
+  });
+}
+
+export function useUpdateAdminResource() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      ...body
+    }: {
+      id: number;
+      displayName?: string;
+      description?: string;
+      config?: Record<string, unknown>;
+      secretRef?: string;
+      changeSummary?: string;
+    }): Promise<ResourcePublicView> => {
+      const res = await fetch(`/api/admin/resources/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error(`Failed to update resource ${id}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/resources"] });
     },
   });
 }

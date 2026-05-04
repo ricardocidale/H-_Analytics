@@ -77,6 +77,13 @@ export const MODEL_SEED_ROWS: SeedRow[] = [
   },
   {
     kind: "model",
+    slug: "gemini-2-5-pro",
+    displayName: "Gemini 2.5 Pro",
+    description: "Google Gemini 2.5 Pro — deep research synthesis, large context, strongest Gemini reasoning",
+    config: { vendor: "google", modelId: "gemini-2.5-pro" },
+  },
+  {
+    kind: "model",
     slug: "gemini-2-5-flash",
     displayName: "Gemini 2.5 Flash",
     description: "Google Gemini 2.5 Flash — quantitative panel, fast numeric extraction",

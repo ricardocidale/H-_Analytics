@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { IconSave } from "@/components/icons";
 import { apiRequest } from "@/lib/queryClient";
-import { useResearchConfig, useSaveResearchConfig, useLlmRegistry } from "@/lib/api/admin";
+import { useResearchConfig, useSaveResearchConfig, useLlmRegistry, useRefreshLlmRegistry } from "@/lib/api/admin";
 import { FALLBACK_MODELS, LLM_VENDORS } from "../research-center/research-shared";
 import type {
   LlmVendor,
@@ -62,6 +62,7 @@ export function LlmDefaultsTab() {
   const { data: savedConfig, isLoading } = useResearchConfig();
   const saveMutation = useSaveResearchConfig();
   const { data: registry } = useLlmRegistry();
+  const refreshRegistry = useRefreshLlmRegistry();
 
   // Task #502 — drift summary. Pull the catalog list (already shaped by
   // GET /api/admin/specialists) and count rows whose specialist_configs
@@ -179,14 +180,43 @@ export function LlmDefaultsTab() {
 
   return (
     <div className="space-y-5">
-      <TabBanner>
-        Default LLM vendor and model for each functional area. Individual cards on the LLMs page can override these. Resolution order: card-level explicit → tab default → system hardcoded default.
-        {registry?.status === "ready" && (
-          <span className="block mt-1 text-[11px] text-muted-foreground/70">
-            Gaspar has probed {registry.models.length} models and tagged recommendations below.
-          </span>
-        )}
-      </TabBanner>
+      <div className="flex items-start justify-between gap-4">
+        <TabBanner>
+          Default LLM vendor and model for each functional area. Individual cards on the LLMs page can override these. Resolution order: card-level explicit → tab default → system hardcoded default.
+          {registry?.status === "ready" && (
+            <span className="block mt-1 text-[11px] text-muted-foreground/70">
+              Gaspar has probed {registry.models.length} models and tagged recommendations below.
+            </span>
+          )}
+        </TabBanner>
+        <div className="flex items-center gap-2 shrink-0 pt-0.5">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refreshRegistry.mutate()}
+            disabled={refreshRegistry.isPending}
+            className="gap-1.5"
+            data-testid="button-analyst-llm-registry"
+            title="Probe vendor APIs for current model lists and update recommendations"
+          >
+            {refreshRegistry.isPending
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop" />
+              : <span className="text-[11px] font-semibold text-accent-pop">Analyst</span>
+            }
+            {!refreshRegistry.isPending && <span className="text-xs">Refresh models</span>}
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={!isDirty || saveMutation.isPending}
+            className="gap-1.5"
+            data-testid="button-save-llm-defaults"
+          >
+            {saveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin text-white" /> : <IconSave className="w-3.5 h-3.5" />}
+            Save
+          </Button>
+        </div>
+      </div>
 
       {/*
         Task #502 — drift summary. Always render so admins see the
@@ -443,20 +473,6 @@ export function LlmDefaultsTab() {
         })}
       </div>
 
-      {isDirty && (
-        <div className="flex justify-end">
-          <Button
-            onClick={handleSave}
-            disabled={saveMutation.isPending}
-            className="gap-2"
-            data-testid="button-save-llm-defaults"
-          >
-            {/* white spinner: this Save sits on the dark `bg-primary` default-variant fill where amber text-accent-pop only hits ~1.7:1 (~1.2:1 in the dark theme). */}
-            {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <IconSave className="w-4 h-4" />}
-            Save
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
