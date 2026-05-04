@@ -86,6 +86,7 @@ interface BulkDraftPropertyResult {
   status: "done" | "error";
   draftedSlots: string[];
   skippedSlots: string[];
+  errorMessage?: string;
 }
 
 interface DraftResult {
@@ -521,6 +522,19 @@ function BulkDraftSummaryDialog({
                     </Link>
                   </div>
 
+                  {r.status === "error" && !isRetrying && r.errorMessage && (
+                    <div
+                      className="px-3 pb-2.5 ml-[calc(0.875rem+0.5rem+0.125rem)]"
+                      title={r.errorMessage}
+                    >
+                      <p className="text-[11px] text-red-600 dark:text-red-400 leading-snug truncate cursor-default">
+                        {r.errorMessage.length > 80
+                          ? r.errorMessage.slice(0, 80) + "…"
+                          : r.errorMessage}
+                      </p>
+                    </div>
+                  )}
+
                   {isExpanded && hasSlotDetails && (
                     <div className="px-3 pb-2.5 pt-0">
                       <div className="ml-6 border-l border-border/60 pl-3 space-y-0.5">
@@ -950,7 +964,14 @@ export default function SlideDecksTab() {
         `/api/admin/properties/${propertyId}/deck-payload/draft-all`,
         { method: "POST", credentials: "include" },
       );
-      if (!draftRes.ok) throw new Error(`draft-all HTTP ${draftRes.status}`);
+      if (!draftRes.ok) {
+        let detail = `HTTP ${draftRes.status}`;
+        try {
+          const body = await draftRes.json() as { error?: string; message?: string };
+          detail = body.error ?? body.message ?? detail;
+        } catch { /* body not JSON — keep status code */ }
+        throw new Error(detail);
+      }
       const draftData = (await draftRes.json()) as { drafts: DraftResult[] };
 
       const usableDrafts = draftData.drafts.filter(
@@ -971,7 +992,14 @@ export default function SlideDecksTab() {
             body: JSON.stringify(patch),
           },
         );
-        if (!patchRes.ok) throw new Error(`PATCH HTTP ${patchRes.status}`);
+        if (!patchRes.ok) {
+          let detail = `HTTP ${patchRes.status}`;
+          try {
+            const body = await patchRes.json() as { error?: string; message?: string };
+            detail = body.error ?? body.message ?? detail;
+          } catch { /* body not JSON — keep status code */ }
+          throw new Error(detail);
+        }
       }
 
       setBulkDraftStatuses(prev => new Map(prev).set(propertyId, "done"));
@@ -1003,7 +1031,9 @@ export default function SlideDecksTab() {
         draftedSlots: usableDrafts.map(d => d.slot),
         skippedSlots: skippedDrafts.map(d => d.slot),
       };
-    } catch {
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : String(err);
       setBulkDraftStatuses(prev => new Map(prev).set(propertyId, "error"));
       return {
         propertyId,
@@ -1011,6 +1041,7 @@ export default function SlideDecksTab() {
         status: "error",
         draftedSlots: [],
         skippedSlots: [],
+        errorMessage,
       };
     }
   }, [properties, queryClient]);
