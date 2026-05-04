@@ -29,7 +29,9 @@ import { propertySlidesRouter } from "./routes/property-slides";
 import { propertyDeckPdfRouter } from "./routes/property-deck-pdf";
 import { propertyDeckSlideRouter } from "./routes/property-deck-slide";
 import { internalDeckPayloadRouter } from "./routes/internal-deck-payload";
+import { internalLbDeckPayloadRouter } from "./routes/internal-lb-deck-payload";
 import { propertyDeckPayloadRouter } from "./routes/property-deck-payload";
+import { lbDeckPdfRouter } from "./routes/lb-deck-pdf";
 import { indexKnowledgeBase } from "./ai/knowledge-base";
 import { indexAllAssets } from "./ai/asset-intelligence";
 import { indexAllMarketResearch } from "./ai/vector-indexing";
@@ -127,6 +129,7 @@ const PUBLIC_API_PREFIXES = [
   "/api/public/",
   "/api/letter-logo/",
   "/api/media/",
+  "/api/internal/",
 ];
 
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -200,7 +203,9 @@ app.use((req, res, next) => {
   app.use(propertyDeckPdfRouter);
   app.use(propertyDeckSlideRouter);
   app.use(internalDeckPayloadRouter);
+  app.use(internalLbDeckPayloadRouter);
   app.use(propertyDeckPayloadRouter);
+  app.use(lbDeckPdfRouter);
   const { registerGoogleAuthRoutes } = await import("./routes/google-auth");
   registerGoogleAuthRoutes(app);
   await registerRoutes(httpServer, app);

@@ -57,6 +57,8 @@ if (typeof requestIdleCallback === "function") {
 
 const Login = lazy(() => import("@/pages/Login"));
 const InternalDeck = lazy(() => import("@/pages/InternalDeck"));
+const LbInternalDeck = lazy(() => import("@/pages/LbInternalDeck"));
+const LbSlides = lazy(() => import("@/pages/LbSlides"));
 const PropertySlides = lazy(() => import("@/pages/PropertySlides"));
 const SlideDecks = lazy(() => import("@/pages/SlideDecks"));
 const ResearchRefreshOverlay = lazy(() =>
@@ -163,13 +165,20 @@ function Router() {
     queryClient.invalidateQueries({ queryKey: ["research"] });
   }, []);
 
-  // Internal deck route — rendered by headless Chromium (Playwright) for PDF
+  // Internal deck routes — rendered by headless Chromium (Playwright) for PDF
   // export. Bypass auth-loading and all session/navigation guards so the
   // render is deterministic and never blocked by `isLoading` flicker.
   if (location.startsWith("/internal/deck/")) {
     return (
       <Suspense fallback={<div style={{ padding: 24 }}>Loading deck…</div>}>
         <InternalDeck />
+      </Suspense>
+    );
+  }
+  if (location.startsWith("/internal/lb-deck")) {
+    return (
+      <Suspense fallback={<div style={{ padding: 24 }}>Loading LB Slide Deck…</div>}>
+        <LbInternalDeck />
       </Suspense>
     );
   }
@@ -302,6 +311,9 @@ function Router() {
         </Route>
         <Route path="/admin/lb-slides/:propertyId([0-9]+)">
           <LbSlidesRedirect />
+        </Route>
+        <Route path="/lb-slides">
+          <AdminRoute component={LbSlides} />
         </Route>
         <Route path="/slide-decks">
           <AdminRoute component={SlideDecks} />

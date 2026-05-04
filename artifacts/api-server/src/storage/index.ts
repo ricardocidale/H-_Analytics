@@ -53,6 +53,7 @@ import { StorageDriftSweepRunsStorageImpl, type StorageDriftSweepRunsStorage } f
 import { MarketSignalsStorage } from "./market-signals";
 import { PropertyDeckPayloadStorageImpl, type PropertyDeckPayloadStorage } from "./property-deck-payloads";
 import { BulkDraftRunsStorageImpl, type BulkDraftRunsStorage } from "./bulk-draft-runs";
+import { LbSlidesStorageImpl, type LbSlidesStorage } from "./lb-slides";
 
 export interface IStorage extends
   UserStorage,
@@ -83,7 +84,8 @@ export interface IStorage extends
   StorageDriftSweepRunsStorage,
   MarketSignalsStorage,
   PropertyDeckPayloadStorage,
-  BulkDraftRunsStorage {
+  BulkDraftRunsStorage,
+  LbSlidesStorage {
   deleteUser(id: number): Promise<void>;
   getDbHealth(): Promise<{ serverTime: string; pool: { total: number; idle: number; waiting: number }; migrationsReady: boolean }>;
 }
@@ -131,6 +133,7 @@ function buildDomainFactories(intelligenceV2: IntelligenceV2Storage) {
     () => new MarketSignalsStorage(),
     () => new PropertyDeckPayloadStorageImpl(),
     () => new BulkDraftRunsStorageImpl(),
+    () => new LbSlidesStorageImpl(),
   ] as const;
 }
 

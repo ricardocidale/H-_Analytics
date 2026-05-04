@@ -299,6 +299,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
       label: "Investor Materials",
       items: [
         { href: "/slide-decks", label: "Slide Decks", icon: IconPresentation },
+        { href: "/lb-slides", label: "LB Slide Deck", icon: IconPresentation },
       ],
     }] : []),
     {

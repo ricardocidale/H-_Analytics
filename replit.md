@@ -2,6 +2,8 @@
 
 H+ Analytics is a hospitality-sector financial analytics platform. Asset managers use it to model scenarios, run portfolio projections, and generate property-level investor slide decks (HTML → PDF via Playwright, matched to the canonical L+B 6-slide design).
 
+A separate **LB Slide Deck** pipeline produces ONE canonical 6-slide portfolio investor deck (not per-property). Admin assigns properties to slides 1, 2, 3, 5; slides 4 (portfolio grid) and 6 (10-year USALI aggregate) are auto-generated. Route: `/lb-slides` (admin only). PDF route: `POST /api/lb-slides/render` → `GET /api/lb-slides/download/combined.pdf`. Playwright renders `/internal/lb-deck?token=<hmac-lb-token>` as a single 6-page PDF. DB table: `lb_slides_config` (single-row, id always = 1).
+
 > **`claude.md` is the canonical source of truth** for architecture, stack, commands, environment variables, and all project rules. This file contains only Replit-platform-specific configuration that mirrors or routes back to `claude.md`. If wording diverges between the two files for a shared fact, that is a bug — fix it before any other commit lands. (See the `agent-memory-files` skill.)
 
 ---
