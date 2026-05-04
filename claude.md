@@ -176,7 +176,7 @@ The "LB Slides" feature generates a 6-slide investor deck per property as a sing
 - Finance: uses `recomputeSinglePropertyAndStamp` → `aggregateUnifiedByYear` (same path as finance.ts)
 - Loan data: `calculateLoanParams` returns `LoanCalculation` — use `equityInvested`, `monthlyPayment * 12` (not `.ltv` or `.annualDebtService` — those fields don't exist)
 - IRR: `computeIRR([-equity, ...annualFlows])` — first element must be the negative initial outlay
-- Vision text: `artifacts/api-server/src/ai/property-vision.ts` — Claude with deterministic fallback by type (retreat / vrbo / hotel) per the `hplus-vision-templates` skill
+- Slot drafting: `artifacts/api-server/src/routes/property-deck-payload.ts` — slot-specific LLM helpers (`draftHeaderSubtitle`, `draftVisionBullets`) with inline fallbacks; no separate vision module
 
 **Visual spec source-of-truth:**
 - Canonical reference deck: `attached_assets/L+B_Property_6-Slide_Cannonical_1777775653617.pdf`

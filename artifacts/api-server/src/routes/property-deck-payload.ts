@@ -42,7 +42,7 @@ import {
   SLIDE1_VISION_BULLET_MAX,
   SLIDE1_VISION_BULLETS_COUNT,
 } from "@shared/deck-payload-v2";
-import { generatePropertyVisionText } from "../ai/property-vision";
+import { getAnthropicClient } from "../ai/clients";
 import {
   HTTP_400_BAD_REQUEST,
   HTTP_404_NOT_FOUND,
@@ -50,6 +50,17 @@ import {
 } from "../constants";
 
 const router = Router();
+
+const DRAFT_MODEL = "claude-opus-4-6";
+
+// Fallback property values used when the DB row has no value for a field.
+const DEFAULT_ROOM_COUNT = 10;
+const DEFAULT_START_ADR = 350;
+const DEFAULT_OCCUPANCY_RATE = 0.7;
+
+// Token budgets for each slot's LLM call — sized to the slot's character cap.
+const SUBTITLE_DRAFT_MAX_TOKENS = 120;
+const BULLETS_DRAFT_MAX_TOKENS = 300;
 
 // Slots the draft endpoint knows how to fill. Each maps to a sub-path of the
 // DeckPayloadV2 tree. Adding a new draftable slot requires (a) adding it
@@ -69,6 +80,145 @@ interface DraftResult {
   generatedAt: string;
 }
 
+function stripCodeFences(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed.startsWith("```")) return trimmed;
+  return trimmed.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
+}
+
+// ── Slot-specific LLM drafters ────────────────────────────────────────────
+
+/**
+ * Draft a single description sentence for slide1.headerSubtitle.
+ * Returns a plain string (truncated to SLIDE1_HEADER_SUBTITLE_MAX).
+ */
+async function draftHeaderSubtitle(property: {
+  name: string;
+  city?: string | null;
+  stateProvince?: string | null;
+  roomCount?: number | null;
+  startAdr?: number | null;
+  businessModel?: string | null;
+  description?: string | null;
+}): Promise<string> {
+  const location = [property.city, property.stateProvince].filter(Boolean).join(", ");
+  const rooms = property.roomCount ?? DEFAULT_ROOM_COUNT;
+  const adr = property.startAdr ?? DEFAULT_START_ADR;
+
+  const fallback = (
+    property.description?.slice(0, SLIDE1_HEADER_SUBTITLE_MAX) ??
+    `A repositioned boutique property in ${location || "an emerging market"} targeting $${adr} ADR across ${rooms} keys.`.slice(0, SLIDE1_HEADER_SUBTITLE_MAX)
+  );
+
+  try {
+    const anthropic = getAnthropicClient();
+    const response = await anthropic.messages.create({
+      model: DRAFT_MODEL,
+      max_tokens: SUBTITLE_DRAFT_MAX_TOKENS,
+      messages: [
+        {
+          role: "user",
+          content: `Write one investor-grade description sentence for a boutique hospitality property.
+
+Property: "${property.name}"
+Location: ${location || "Not specified"}
+Type: ${property.businessModel ?? "Boutique Hotel"}
+Rooms: ${rooms}
+ADR: $${adr}
+
+Rules:
+- Max ${SLIDE1_HEADER_SUBTITLE_MAX} characters
+- One sentence, direct, metric-driven
+- No adjectives like "unique", "exciting", "world-class"
+- Return ONLY the sentence — no quotes, no explanation`,
+        },
+      ],
+    });
+
+    const textBlock = response.content.find(b => b.type === "text");
+    if (!textBlock || textBlock.type !== "text") return fallback;
+
+    return textBlock.text.trim().slice(0, SLIDE1_HEADER_SUBTITLE_MAX);
+  } catch (err: unknown) {
+    logger.warn(
+      `[property-deck-payload] headerSubtitle LLM failed (using fallback): ${err instanceof Error ? err.message : String(err)}`,
+      "property-deck-payload",
+    );
+    return fallback;
+  }
+}
+
+/**
+ * Draft vision bullets for slide1.visionBullets.
+ * Returns an array of { text } objects, length = SLIDE1_VISION_BULLETS_COUNT.
+ */
+async function draftVisionBullets(property: {
+  name: string;
+  city?: string | null;
+  stateProvince?: string | null;
+  roomCount?: number | null;
+  startAdr?: number | null;
+  maxOccupancy?: number | null;
+  businessModel?: string | null;
+}): Promise<Array<{ text: string }>> {
+  const location = [property.city, property.stateProvince].filter(Boolean).join(", ");
+  const rooms = property.roomCount ?? DEFAULT_ROOM_COUNT;
+  const adr = property.startAdr ?? DEFAULT_START_ADR;
+  const occ = Math.round((property.maxOccupancy ?? DEFAULT_OCCUPANCY_RATE) * 100);
+
+  const fallbackBullets: Array<{ text: string }> = [
+    { text: `Year-Round Demand: Drive-Market Leisure + Weekend Escapes + Local Events`.slice(0, SLIDE1_VISION_BULLET_MAX) },
+    { text: `Direct Booking Focus: 50%+ Direct Mix by Year 3, Reducing OTA Dependency`.slice(0, SLIDE1_VISION_BULLET_MAX) },
+    { text: `Revenue Mix: 70% Rooms, 20% F&B, 10% Events & Packages`.slice(0, SLIDE1_VISION_BULLET_MAX) },
+  ].slice(0, SLIDE1_VISION_BULLETS_COUNT);
+
+  try {
+    const anthropic = getAnthropicClient();
+    const response = await anthropic.messages.create({
+      model: DRAFT_MODEL,
+      max_tokens: BULLETS_DRAFT_MAX_TOKENS,
+      messages: [
+        {
+          role: "user",
+          content: `Write exactly ${SLIDE1_VISION_BULLETS_COUNT} investor-grade bullet points for a boutique hospitality property vision slide.
+
+Property: "${property.name}"
+Location: ${location || "Not specified"}
+Type: ${property.businessModel ?? "Boutique Hotel"}
+Rooms: ${rooms}
+ADR: $${adr}
+Stabilized Occupancy: ${occ}%
+
+Rules:
+- Each bullet max ${SLIDE1_VISION_BULLET_MAX} characters
+- Punchy, metric-driven
+- No adjectives like "unique", "exciting", "world-class"
+- Return ONLY valid JSON array: [{"text":"..."},{"text":"..."},{"text":"..."}]`,
+        },
+      ],
+    });
+
+    const textBlock = response.content.find(b => b.type === "text");
+    if (!textBlock || textBlock.type !== "text") return fallbackBullets;
+
+    const parsed = JSON.parse(stripCodeFences(textBlock.text)) as Array<{ text: string }>;
+    if (!Array.isArray(parsed)) return fallbackBullets;
+
+    return parsed
+      .filter((b): b is { text: string } => typeof b?.text === "string" && b.text.length > 0)
+      .slice(0, SLIDE1_VISION_BULLETS_COUNT)
+      .map(b => ({ text: b.text.slice(0, SLIDE1_VISION_BULLET_MAX) }));
+  } catch (err: unknown) {
+    logger.warn(
+      `[property-deck-payload] visionBullets LLM failed (using fallback): ${err instanceof Error ? err.message : String(err)}`,
+      "property-deck-payload",
+    );
+    return fallbackBullets;
+  }
+}
+
+// ── Draft orchestrator ────────────────────────────────────────────────────
+
 /**
  * Draft a single slot via the LLM. Returns the proposal; does NOT persist.
  * The editor decides whether to accept (then PATCH the slot with
@@ -77,45 +227,17 @@ interface DraftResult {
 async function draftSlot(propertyId: number, slot: DraftSlot): Promise<DraftResult> {
   const property = await storage.getProperty(propertyId);
   if (!property) throw new Error("Property not found");
-  const p = property as Record<string, unknown>;
-
-  // Single LLM call covers every Slide 1 narrative field — we then pick the
-  // sub-fields the requested slot maps to.
-  const visionText = await generatePropertyVisionText({
-    id: property.id,
-    name: property.name,
-    city: property.city,
-    stateProvince: property.stateProvince,
-    county: p.county as string | null,
-    country: property.country,
-    purchasePrice: property.purchasePrice,
-    roomCount: property.roomCount,
-    startAdr: property.startAdr,
-    maxOccupancy: property.maxOccupancy,
-    businessModel: property.businessModel,
-    hospitalityType: p.hospitalityType as string | null,
-    qualityTier: p.qualityTier as string | null,
-    description: property.description,
-    acquisitionStatus: p.acquisitionStatus as string | null,
-  });
 
   const generatedAt = new Date().toISOString();
-  const model = "claude-opus-4-6";
+  const model = DRAFT_MODEL;
 
   if (slot === "slide1.headerSubtitle") {
-    const text = (visionText.descriptionParagraph ?? "").slice(0, SLIDE1_HEADER_SUBTITLE_MAX);
+    const text = await draftHeaderSubtitle(property);
     return { slot, suggestion: { text }, model, generatedAt };
   }
 
   if (slot === "slide1.visionBullets") {
-    const bullets = [
-      visionText.visionBullet1,
-      visionText.visionBullet2,
-      visionText.programmingBullet,
-    ]
-      .filter((s): s is string => typeof s === "string" && s.length > 0)
-      .slice(0, SLIDE1_VISION_BULLETS_COUNT)
-      .map((text) => ({ text: text.slice(0, SLIDE1_VISION_BULLET_MAX) }));
+    const bullets = await draftVisionBullets(property);
     return { slot, suggestion: { bullets }, model, generatedAt };
   }
 

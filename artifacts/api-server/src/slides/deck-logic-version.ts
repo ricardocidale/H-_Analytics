@@ -5,8 +5,8 @@
  * this PDF". Bumped whenever any change would make a previously-cached PDF
  * stale even though the property's data hasn't changed:
  *
- *   - LLM model swap (VISION_MODEL in ai/property-vision.ts)
- *   - Prompt-template changes that affect vision/improvement copy
+ *   - LLM model swap (DRAFT_MODEL in routes/property-deck-payload.ts)
+ *   - Prompt-template changes that affect slot draft copy
  *   - Slide layout, theme, or copy changes in features/internal-deck/
  *   - SlidePayload schema changes in slides/types.ts
  *
