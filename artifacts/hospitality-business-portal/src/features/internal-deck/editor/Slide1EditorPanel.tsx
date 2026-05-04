@@ -67,6 +67,7 @@ import {
   useReadinessQuery,
   isDraftStale,
   StaleDraftNotice,
+  StaleDraftBanner,
 } from "./editor-shared";
 
 // ── Hydration helpers ──────────────────────────────────────────────────────
@@ -378,8 +379,19 @@ export function Slide1EditorPanel({ propertyId }: { propertyId: number }) {
   const headerSubtitleStatus = report?.["slide1.headerSubtitle"] as "complete" | "stale" | "missing" | undefined;
   const visionBulletsStatus = report?.["slide1.visionBullets"] as "complete" | "stale" | "missing" | undefined;
 
+  const allSlots: FormSlot[] = [
+    form.propertySubtitle,
+    form.headerSubtitle,
+    ...form.visionBullets,
+    form.closingTagline,
+    form.photoCaptions.hero,
+    form.photoCaptions.secondary,
+    form.photoCaptions.inset,
+  ];
+  const staleCount = allSlots.filter(s => isDraftStale(s, propertyUpdatedAt)).length;
+
   return (
-    <Card className="border border-border/60">
+    <Card data-stale-panel="" className="border border-border/60">
       <CardContent className="p-6 space-y-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
@@ -396,6 +408,8 @@ export function Slide1EditorPanel({ propertyId }: { propertyId: number }) {
               : "Never saved"}
           </div>
         </div>
+
+        <StaleDraftBanner staleCount={staleCount} />
 
         <Separator />
 

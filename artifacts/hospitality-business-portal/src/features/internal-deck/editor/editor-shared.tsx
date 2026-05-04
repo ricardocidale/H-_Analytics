@@ -286,12 +286,49 @@ export function isDraftStale(
 
 export function StaleDraftNotice() {
   return (
-    <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+    <div data-stale-slot="" className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
       <span className="mt-0.5 shrink-0">⚠</span>
       <span>
         Property data has changed since this draft was generated — consider re-drafting.
       </span>
     </div>
+  );
+}
+
+/**
+ * Summary banner rendered at the top of a CardContent when one or more slots
+ * in that panel have stale LLM drafts.  Clicking it scrolls the page to the
+ * first stale-slot notice so the admin does not have to hunt for it.
+ */
+export function StaleDraftBanner({ staleCount }: { staleCount: number }) {
+  if (staleCount === 0) return null;
+
+  function handleClick(e: React.MouseEvent<HTMLButtonElement>) {
+    const panel =
+      (e.currentTarget as HTMLElement).closest<HTMLElement>("[data-stale-panel]") ??
+      document.documentElement;
+    const el = panel.querySelector<HTMLElement>("[data-stale-slot]");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("ring-2", "ring-amber-400");
+      setTimeout(() => el.classList.remove("ring-2", "ring-amber-400"), 1500);
+    }
+  }
+
+  const label =
+    staleCount === 1
+      ? "1 draft in this panel is based on outdated property data"
+      : `${staleCount} drafts in this panel are based on outdated property data`;
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      className="w-full flex items-center gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 text-left hover:bg-amber-100 transition-colors"
+    >
+      <span className="shrink-0 text-sm">⚠</span>
+      <span className="flex-1">{label} — click to jump to the first affected field.</span>
+    </button>
   );
 }
 

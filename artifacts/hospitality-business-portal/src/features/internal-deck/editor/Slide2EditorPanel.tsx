@@ -47,6 +47,7 @@ import {
   useReadinessQuery,
   isDraftStale,
   StaleDraftNotice,
+  StaleDraftBanner,
 } from "./editor-shared";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -266,8 +267,15 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
   const report = readinessData?.report;
   const propertyUpdatedAt = readinessData?.propertyUpdatedAt;
 
+  const allSlots: FormSlot[] = [
+    form.operationalModelText,
+    form.revenueBullet,
+    form.programmingBullet,
+  ];
+  const staleCount = allSlots.filter(s => isDraftStale(s, propertyUpdatedAt)).length;
+
   return (
-    <Card className="border border-border/60">
+    <Card data-stale-panel="" className="border border-border/60">
       <CardContent className="p-6 space-y-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
@@ -282,6 +290,8 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
             {data?.updatedAt ? `Last saved ${new Date(data.updatedAt).toLocaleString()}` : "Never saved"}
           </div>
         </div>
+
+        <StaleDraftBanner staleCount={staleCount} />
 
         <Separator />
 
