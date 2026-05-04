@@ -146,7 +146,7 @@ function ScalarSlotRow({
   readinessReport: Record<string, string> | undefined;
   propertyUpdatedAt?: string;
   pendingSuggestion?: string | null;
-  onAcceptDraft?: () => void;
+  onAcceptDraft?: (editedText: string) => void;
   onDismissDraft?: () => void;
 }) {
   const id = `slide5-slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
@@ -460,13 +460,14 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
     });
   }
 
-  function acceptDraft(slotKey: string) {
+  function acceptDraft(slotKey: string, editedText?: string) {
     const pending = pendingDrafts[slotKey];
     if (!pending) return;
-    if (slotKey === "slide5.transformationDescription" && pending.text != null) {
+    if (slotKey === "slide5.transformationDescription") {
+      const text = editedText ?? pending.text ?? "";
       setForm(prev => prev ? {
         ...prev,
-        transformationDescription: { ...prev.transformationDescription, text: pending.text!, source: "llm", dirty: true, llmGeneratedAt: pending.generatedAt },
+        transformationDescription: { ...prev.transformationDescription, text, source: "llm", dirty: true, llmGeneratedAt: pending.generatedAt },
       } : prev);
     }
     if (slotKey === "slide5.transformationRows" && pending.rows) {
@@ -575,7 +576,7 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
             readinessReport={report}
             propertyUpdatedAt={propertyUpdatedAt}
             pendingSuggestion={pendingDrafts["slide5.transformationDescription"]?.text ?? null}
-            onAcceptDraft={() => acceptDraft("slide5.transformationDescription")}
+            onAcceptDraft={(editedText) => acceptDraft("slide5.transformationDescription", editedText)}
             onDismissDraft={() => dismissDraft("slide5.transformationDescription")}
           />
         </div>

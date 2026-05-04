@@ -159,7 +159,7 @@ interface SlotRowProps {
   readinessStatus?: "complete" | "stale" | "missing" | "deterministic";
   propertyUpdatedAt?: string;
   pendingSuggestion?: string | null;
-  onAcceptDraft?: () => void;
+  onAcceptDraft?: (editedText: string) => void;
   onDismissDraft?: () => void;
 }
 
@@ -365,13 +365,14 @@ export function Slide1EditorPanel({ propertyId }: { propertyId: number }) {
     );
   }
 
-  function acceptDraft(slotKey: string) {
+  function acceptDraft(slotKey: string, editedText?: string) {
     const pending = pendingDrafts[slotKey];
     if (!pending) return;
-    if (slotKey === "slide1.headerSubtitle" && pending.text != null) {
+    if (slotKey === "slide1.headerSubtitle") {
+      const text = editedText ?? pending.text ?? "";
       setForm(prev => prev ? {
         ...prev,
-        headerSubtitle: { ...prev.headerSubtitle, text: pending.text!, source: "llm", dirty: true, llmGeneratedAt: pending.generatedAt },
+        headerSubtitle: { ...prev.headerSubtitle, text, source: "llm", dirty: true, llmGeneratedAt: pending.generatedAt },
       } : prev);
     }
     if (slotKey === "slide1.visionBullets" && pending.bullets) {
@@ -486,7 +487,7 @@ export function Slide1EditorPanel({ propertyId }: { propertyId: number }) {
             readinessStatus={headerSubtitleStatus}
             propertyUpdatedAt={propertyUpdatedAt}
             pendingSuggestion={pendingDrafts["slide1.headerSubtitle"]?.text ?? null}
-            onAcceptDraft={() => acceptDraft("slide1.headerSubtitle")}
+            onAcceptDraft={(editedText) => acceptDraft("slide1.headerSubtitle", editedText)}
             onDismissDraft={() => dismissDraft("slide1.headerSubtitle")}
           />
         </div>

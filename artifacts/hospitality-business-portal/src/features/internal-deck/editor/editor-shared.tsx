@@ -5,6 +5,7 @@
  * Exported as named exports; each panel imports what it needs.
  */
 
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -210,7 +211,7 @@ export interface SlotRowProps {
   readinessStatus?: SlotStatus;
   propertyUpdatedAt?: string;
   pendingSuggestion?: string | null;
-  onAcceptDraft?: () => void;
+  onAcceptDraft?: (editedText: string) => void;
   onDismissDraft?: () => void;
 }
 
@@ -270,7 +271,7 @@ export function SlotRow({
         <InlineDraftDiff
           currentText={slot.text}
           suggestedText={pendingSuggestion}
-          onAccept={onAcceptDraft}
+          onAccept={(t) => onAcceptDraft(t)}
           onDismiss={onDismissDraft}
         />
       ) : (
@@ -387,23 +388,38 @@ export function InlineDraftDiff({
 }: {
   currentText: string;
   suggestedText: string;
-  onAccept: () => void;
+  onAccept: (editedText: string) => void;
   onDismiss: () => void;
 }) {
+  const [editedText, setEditedText] = useState(suggestedText);
+
+  useEffect(() => {
+    setEditedText(suggestedText);
+  }, [suggestedText]);
+
   const hasExisting = currentText.trim().length > 0;
-  const isIdentical = currentText.trim() === suggestedText.trim();
+  const isIdentical = currentText.trim() === editedText.trim();
+  const isEdited = editedText !== suggestedText;
+
   return (
     <div className="rounded-md border border-sky-300 bg-sky-50/50 dark:bg-sky-950/20 dark:border-sky-800 p-3 space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold text-sky-800 dark:text-sky-300 uppercase tracking-wide">
-          Analyst suggestion
-        </span>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-sky-800 dark:text-sky-300 uppercase tracking-wide">
+            Analyst suggestion
+          </span>
+          {isEdited && (
+            <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 text-[10px] uppercase tracking-wide">
+              Edited
+            </Badge>
+          )}
+        </div>
         <div className="flex items-center gap-1.5">
           <Button type="button" size="sm" variant="ghost" onClick={onDismiss} className="h-7 text-xs gap-1">
             <IconX className="h-3 w-3" />
             Dismiss
           </Button>
-          <Button type="button" size="sm" onClick={onAccept} className="h-7 text-xs gap-1">
+          <Button type="button" size="sm" onClick={() => onAccept(editedText)} className="h-7 text-xs gap-1">
             <IconCheck className="h-3 w-3" />
             Accept
           </Button>
@@ -414,13 +430,17 @@ export function InlineDraftDiff({
           {currentText}
         </div>
       )}
-      <div className={`text-sm rounded px-2 py-1.5 whitespace-pre-wrap ${
-        isIdentical
-          ? "bg-muted border border-border"
-          : "bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/50"
-      }`}>
-        {suggestedText}
-      </div>
+      <Textarea
+        value={editedText}
+        onChange={(e) => setEditedText(e.target.value)}
+        rows={3}
+        className={`text-sm resize-y ${
+          isIdentical
+            ? "bg-muted border-border"
+            : "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/50"
+        }`}
+        aria-label="Edit Analyst suggestion before accepting"
+      />
       {isIdentical && (
         <p className="text-xs text-muted-foreground italic">The suggestion is identical to the current text.</p>
       )}

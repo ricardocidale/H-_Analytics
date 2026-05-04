@@ -113,7 +113,7 @@ function SlotRow({
   readinessReport: Record<string, string> | undefined;
   propertyUpdatedAt?: string;
   pendingSuggestion?: string | null;
-  onAcceptDraft?: () => void;
+  onAcceptDraft?: (editedText: string) => void;
   onDismissDraft?: () => void;
 }) {
   const id = `slide2-slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
@@ -252,11 +252,11 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
     setForm((prev) => (prev ? { ...prev, [key]: { ...prev[key], text, source, dirty: true } } : prev));
   }
 
-  function acceptDraft(slotKey: DraftSlotKey2) {
+  function acceptDraft(slotKey: DraftSlotKey2, editedText: string) {
     const pending = pendingDrafts[slotKey];
     if (!pending) return;
     const formKey = slotKey.replace("slide2.", "") as keyof Form;
-    setForm(prev => prev ? { ...prev, [formKey]: { ...prev[formKey], text: pending.text, source: "llm" as const, dirty: true, llmGeneratedAt: pending.generatedAt } } : prev);
+    setForm(prev => prev ? { ...prev, [formKey]: { ...prev[formKey], text: editedText, source: "llm" as const, dirty: true, llmGeneratedAt: pending.generatedAt } } : prev);
     dismissDraft(slotKey);
   }
 
@@ -333,7 +333,7 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
             readinessReport={report}
             propertyUpdatedAt={propertyUpdatedAt}
             pendingSuggestion={pendingDrafts["slide2.operationalModelText"]?.text ?? null}
-            onAcceptDraft={() => acceptDraft("slide2.operationalModelText")}
+            onAcceptDraft={(editedText) => acceptDraft("slide2.operationalModelText", editedText)}
             onDismissDraft={() => dismissDraft("slide2.operationalModelText")}
           />
           <SlotRow
@@ -349,7 +349,7 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
             readinessReport={report}
             propertyUpdatedAt={propertyUpdatedAt}
             pendingSuggestion={pendingDrafts["slide2.revenueBullet"]?.text ?? null}
-            onAcceptDraft={() => acceptDraft("slide2.revenueBullet")}
+            onAcceptDraft={(editedText) => acceptDraft("slide2.revenueBullet", editedText)}
             onDismissDraft={() => dismissDraft("slide2.revenueBullet")}
           />
           <SlotRow
@@ -365,7 +365,7 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
             readinessReport={report}
             propertyUpdatedAt={propertyUpdatedAt}
             pendingSuggestion={pendingDrafts["slide2.programmingBullet"]?.text ?? null}
-            onAcceptDraft={() => acceptDraft("slide2.programmingBullet")}
+            onAcceptDraft={(editedText) => acceptDraft("slide2.programmingBullet", editedText)}
             onDismissDraft={() => dismissDraft("slide2.programmingBullet")}
           />
         </div>

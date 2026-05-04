@@ -128,7 +128,7 @@ function ScalarSlotRow({
   readinessReport: Record<string, string> | undefined;
   propertyUpdatedAt?: string;
   pendingSuggestion?: string | null;
-  onAcceptDraft?: () => void;
+  onAcceptDraft?: (editedText: string) => void;
   onDismissDraft?: () => void;
 }) {
   const id = `slide3-slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
@@ -342,12 +342,13 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
     draftMutation.mutate(slot);
   }
 
-  function acceptDraft(slotKey: string) {
+  function acceptDraft(slotKey: string, editedText?: string) {
     const pending = pendingDrafts[slotKey];
     if (!pending) return;
-    if (pending.text != null) {
+    const text = editedText ?? pending.text;
+    if (text != null && slotKey !== "slide3.reasons") {
       const formKey = slotKey.replace("slide3.", "") as "conceptParagraph" | "marketRationale" | "closingLine";
-      setForm(prev => prev ? { ...prev, [formKey]: { ...prev[formKey], text: pending.text!, source: "llm" as const, dirty: true, llmGeneratedAt: pending.generatedAt } } : prev);
+      setForm(prev => prev ? { ...prev, [formKey]: { ...prev[formKey], text, source: "llm" as const, dirty: true, llmGeneratedAt: pending.generatedAt } } : prev);
     }
     if (slotKey === "slide3.reasons" && pending.reasons) {
       setForm(prev => {
@@ -443,7 +444,7 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
             readinessReport={report}
             propertyUpdatedAt={propertyUpdatedAt}
             pendingSuggestion={pendingDrafts["slide3.conceptParagraph"]?.text ?? null}
-            onAcceptDraft={() => acceptDraft("slide3.conceptParagraph")}
+            onAcceptDraft={(editedText) => acceptDraft("slide3.conceptParagraph", editedText)}
             onDismissDraft={() => dismissDraft("slide3.conceptParagraph")}
           />
           <ScalarSlotRow
@@ -459,7 +460,7 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
             readinessReport={report}
             propertyUpdatedAt={propertyUpdatedAt}
             pendingSuggestion={pendingDrafts["slide3.marketRationale"]?.text ?? null}
-            onAcceptDraft={() => acceptDraft("slide3.marketRationale")}
+            onAcceptDraft={(editedText) => acceptDraft("slide3.marketRationale", editedText)}
             onDismissDraft={() => dismissDraft("slide3.marketRationale")}
           />
         </div>
@@ -583,7 +584,7 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
             readinessReport={report}
             propertyUpdatedAt={propertyUpdatedAt}
             pendingSuggestion={pendingDrafts["slide3.closingLine"]?.text ?? null}
-            onAcceptDraft={() => acceptDraft("slide3.closingLine")}
+            onAcceptDraft={(editedText) => acceptDraft("slide3.closingLine", editedText)}
             onDismissDraft={() => dismissDraft("slide3.closingLine")}
           />
         </div>
