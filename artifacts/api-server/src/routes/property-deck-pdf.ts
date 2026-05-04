@@ -49,8 +49,9 @@ import {
 const router = Router();
 
 /**
- * Maximum number of background PDF renders that may run concurrently.
- * Additional regenerate requests are queued and executed in FIFO order.
+ * Maximum number of concurrent Playwright PDF renders across all entry points
+ * — both the synchronous GET deck.pdf slow-path and the background POST
+ * /regenerate endpoint. Additional requests are queued in FIFO order.
  * Overridable via PDF_RENDER_CONCURRENCY env var for tuning in production.
  */
 const PDF_RENDER_CONCURRENCY = Math.max(
@@ -285,30 +286,37 @@ router.get(
       errorMessage: null,
     }).catch(() => {});
 
+    // All Playwright renders — background (POST /regenerate) and foreground (GET
+    // deck.pdf slow-path) — share the same renderLimiter so the total number of
+    // concurrent browser contexts is always capped at PDF_RENDER_CONCURRENCY.
+    // Do not call renderDeckPdf() outside this limiter.
     try {
-      const pdf = await renderDeckPdf(propertyId);
-      const key = pdfR2Key(propertyId);
-      await sp.uploadBuffer(key, pdf, PDF_CONTENT_TYPE);
-      await upsertPdfVariantRow({
-        propertyId,
-        status: "ready",
-        r2Key: key,
-        fileSizeBytes: pdf.length,
-        generatedAt: new Date(),
-        triggeredBy,
-        errorMessage: null,
-      });
-      logger.info(
-        `[property-deck-pdf] Rendered ${pdf.length}B for property ${propertyId} → ${key}`,
-        "property-deck-pdf",
-      );
+      await renderLimiter(async () => {
+        const pdf = await renderDeckPdf(propertyId);
+        const key = pdfR2Key(propertyId);
+        await sp.uploadBuffer(key, pdf, PDF_CONTENT_TYPE);
+        await upsertPdfVariantRow({
+          propertyId,
+          status: "ready",
+          r2Key: key,
+          fileSizeBytes: pdf.length,
+          generatedAt: new Date(),
+          triggeredBy,
+          errorMessage: null,
+        });
+        logger.info(
+          `[property-deck-pdf] Rendered ${pdf.length}B for property ${propertyId} → ${key}`,
+          "property-deck-pdf",
+        );
 
-      res.setHeader("Content-Type", PDF_CONTENT_TYPE);
-      res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-      res.setHeader("Content-Length", String(pdf.length));
-      res.setHeader("Cache-Control", "no-store");
-      res.setHeader("X-Deck-Cache", "miss");
-      return res.end(pdf);
+        res.setHeader("Content-Type", PDF_CONTENT_TYPE);
+        res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+        res.setHeader("Content-Length", String(pdf.length));
+        res.setHeader("Cache-Control", "no-store");
+        res.setHeader("X-Deck-Cache", "miss");
+        res.end(pdf);
+      });
+      return res;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "PDF render failed";
       logger.error(
