@@ -393,14 +393,14 @@ function buildSellingCosts(
   grossSale: number,
   brokerRate: number,
   transferTaxRate: number,
-  prepaymentPenaltyRate: number,
+  penaltyRate: number,
   loanBalance: number,
   ffeDispositionRate: number,
 ): SellingCostBreakdown {
   const brokerCommission = grossSale * brokerRate;
   const transferTax = grossSale * transferTaxRate;
   // Penalty is charged on the outstanding balance, not the sale price.
-  const prepaymentPenalty = loanBalance * prepaymentPenaltyRate;
+  const prepaymentPenalty = loanBalance * penaltyRate;
   const ffeDisposition = grossSale * ffeDispositionRate;
   const total = brokerCommission + transferTax + prepaymentPenalty + ffeDisposition;
   return {
@@ -409,7 +409,7 @@ function buildSellingCosts(
     prepaymentPenalty,
     ffeDisposition,
     total,
-    rates: { brokerRate, transferTaxRate, prepaymentPenaltyRate, ffeDispositionRate },
+    rates: { brokerRate, transferTaxRate, prepaymentPenaltyRate: penaltyRate, ffeDispositionRate },
   };
 }
 

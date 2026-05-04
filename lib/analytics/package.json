@@ -6,8 +6,15 @@
   "exports": {
     "./*": "./src/*.ts"
   },
+  "scripts": {
+    "lint": "eslint src"
+  },
   "dependencies": {
     "@workspace/db": "workspace:*",
     "decimal.js": "^10.6.0"
+  },
+  "devDependencies": {
+    "eslint": "^10.3.0",
+    "typescript-eslint": "^8.59.1"
   }
 }

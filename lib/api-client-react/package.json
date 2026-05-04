@@ -6,10 +6,17 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "scripts": {
+    "lint": "eslint src"
+  },
   "dependencies": {
     "@tanstack/react-query": "catalog:"
   },
   "peerDependencies": {
     "react": ">=18"
+  },
+  "devDependencies": {
+    "eslint": "^10.3.0",
+    "typescript-eslint": "^8.59.1"
   }
 }

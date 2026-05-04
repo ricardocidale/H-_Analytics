@@ -8,5 +8,12 @@
     "./*/": "./src/*/",
     "./types/*": "./src/types/*.ts",
     "./ledger/*": "./src/ledger/*.ts"
+  },
+  "scripts": {
+    "lint": "eslint src"
+  },
+  "devDependencies": {
+    "eslint": "^10.3.0",
+    "typescript-eslint": "^8.59.1"
   }
 }

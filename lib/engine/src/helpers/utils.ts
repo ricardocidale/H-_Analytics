@@ -49,7 +49,7 @@ export function calculatePMT(rate: number, nper: number, pv: number): number {
  * notation with parentheses: ($1,234) instead of -$1,234.
  */
 export function formatMoney(amount: number) {
-  const isNegative = amount < 0;
+  const negative = amount < 0;
   const absAmount = Math.abs(amount);
   const formatted = new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -57,7 +57,7 @@ export function formatMoney(amount: number) {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(absAmount);
-  return isNegative ? `(${formatted})` : formatted;
+  return negative ? `(${formatted})` : formatted;
 }
 
 /** Helper for conditional CSS styling — returns true when a value should be shown in red. */

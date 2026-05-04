@@ -3,9 +3,12 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "codegen": "orval --config ./orval.config.ts && pnpm -w run typecheck:libs"
+    "codegen": "orval --config ./orval.config.ts && pnpm -w run typecheck:libs",
+    "lint": "eslint ."
   },
   "devDependencies": {
-    "orval": "^8.5.2"
+    "eslint": "^10.3.0",
+    "orval": "^8.5.2",
+    "typescript-eslint": "^8.59.1"
   }
 }

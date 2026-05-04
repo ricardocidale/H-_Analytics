@@ -6,11 +6,18 @@
   "exports": {
     "./*": "./src/*.ts"
   },
+  "scripts": {
+    "lint": "eslint src"
+  },
   "dependencies": {
     "@workspace/db": "workspace:*",
     "date-fns": "^3.6.0",
     "decimal.js": "^10.6.0",
     "drizzle-orm": "catalog:",
     "zod": "catalog:"
+  },
+  "devDependencies": {
+    "eslint": "^10.3.0",
+    "typescript-eslint": "^8.59.1"
   }
 }
