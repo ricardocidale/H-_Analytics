@@ -44,6 +44,10 @@ args = "check:migration-guards"
 task = "workflow.run"
 args = "check:types-mirror"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "check:lint"
+
 [[workflows.workflow]]
 name = "check:spinner-contrast"
 author = "agent"
@@ -117,6 +121,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:types-mirror"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "check:lint"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm run check:lint"
 
 [workflows.workflow.metadata]
 outputType = "console"
