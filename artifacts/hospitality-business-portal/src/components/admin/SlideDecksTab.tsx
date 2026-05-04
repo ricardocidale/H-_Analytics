@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { IconPresentation, IconAlertCircle, IconLayers } from "@/components/icons";
+import { IconPresentation, IconAlertCircle, IconLayers, IconDownload } from "@/components/icons";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +36,19 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
+
+function slugify(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+function downloadViaAnchor(url: string, filename: string): void {
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
 
 function statusLabel(status?: string | null): string {
   const s = status?.toLowerCase() ?? "pipeline";
@@ -156,6 +170,27 @@ function SlideRender({ property }: { property: PropertyRow }) {
 // ── Main component ─────────────────────────────────────────────────────────
 
 export default function SlideDecksTab() {
+  const [downloadingIds, setDownloadingIds] = useState<Set<number>>(new Set());
+
+  async function handleDownloadDeck(p: PropertyRow) {
+    if (downloadingIds.has(p.id)) return;
+    setDownloadingIds(prev => new Set(prev).add(p.id));
+    try {
+      const r = await fetch(`/api/properties/${p.id}/deck.pdf`, { credentials: "include" });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      downloadViaAnchor(url, `${slugify(p.name)}-deck.pdf`);
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloadingIds(prev => {
+        const next = new Set(prev);
+        next.delete(p.id);
+        return next;
+      });
+    }
+  }
+
   // Properties list
   const { data: properties, isLoading: propsLoading, isError: propsError } = useQuery<PropertyRow[]>({
     queryKey: ["/api/properties"],
@@ -194,7 +229,7 @@ export default function SlideDecksTab() {
       <div>
         <h2 className="text-xl font-semibold text-foreground">Property Slide Decks</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Click <strong>Slides</strong> on any property to open the per-slide view. Each of the six slides downloads as its own 1-page PDF from there.
+          Click <strong>Download PDF</strong> to get the full 6-slide deck in one file, or click <strong>Slides</strong> to open the per-slide view.
         </p>
       </div>
 
@@ -218,12 +253,25 @@ export default function SlideDecksTab() {
                   </Badge>
                 </div>
 
-                <div className="flex items-center">
-                  <Link href={`/slide-decks/${p.id}`} className="flex-1">
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="default"
+                    className="gap-1.5 flex-1"
+                    title="Download the full 6-slide deck as a single PDF"
+                    disabled={downloadingIds.has(p.id)}
+                    onClick={() => handleDownloadDeck(p)}
+                  >
+                    {downloadingIds.has(p.id)
+                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      : <IconDownload className="h-3.5 w-3.5" />}
+                    Download PDF
+                  </Button>
+                  <Link href={`/slide-decks/${p.id}`}>
                     <Button
                       size="sm"
-                      variant="default"
-                      className="gap-1.5 w-full"
+                      variant="outline"
+                      className="gap-1.5"
                       title="Open per-slide view: download or regenerate each of the six slides independently"
                     >
                       <IconLayers className="h-3.5 w-3.5" />
