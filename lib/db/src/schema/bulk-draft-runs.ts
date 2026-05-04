@@ -42,3 +42,10 @@ export const insertBulkDraftRunSchema = createInsertSchema(bulkDraftRuns).omit({
 });
 
 export type InsertBulkDraftRun = z.infer<typeof insertBulkDraftRunSchema>;
+
+/**
+ * Maximum number of bulk_draft_runs rows retained automatically.
+ * After each insert, rows beyond this count (ordered by ran_at DESC, id DESC)
+ * are deleted as a best-effort trim so the table stays bounded.
+ */
+export const BULK_DRAFT_RUNS_KEEP = 200;

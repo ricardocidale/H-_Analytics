@@ -1,6 +1,7 @@
 import { db } from "../db";
-import { bulkDraftRuns, type BulkDraftRun, type BulkDraftPropertyResultJson } from "@workspace/db";
-import { desc } from "drizzle-orm";
+import { bulkDraftRuns, BULK_DRAFT_RUNS_KEEP, type BulkDraftRun, type BulkDraftPropertyResultJson } from "@workspace/db";
+import { desc, sql } from "drizzle-orm";
+import { logger } from "../logger";
 
 export interface CreateBulkDraftRunInput {
   userId: number;
@@ -33,6 +34,23 @@ export class BulkDraftRunsStorageImpl implements BulkDraftRunsStorage {
         propertyResults: input.propertyResults,
       })
       .returning();
+
+    // Best-effort trim: delete rows beyond the most recent BULK_DRAFT_RUNS_KEEP.
+    // Errors are swallowed here — the insert already committed, and the next
+    // insert will attempt the trim again.
+    try {
+      await db.execute(sql`
+        DELETE FROM bulk_draft_runs
+        WHERE id NOT IN (
+          SELECT id FROM bulk_draft_runs
+          ORDER BY ran_at DESC, id DESC
+          LIMIT ${BULK_DRAFT_RUNS_KEEP}
+        )
+      `);
+    } catch (err) {
+      logger.warn(`bulk_draft_runs trim failed — will retry on next insert: ${err instanceof Error ? err.message : String(err)}`, "bulk-draft-runs");
+    }
+
     return row;
   }
 
