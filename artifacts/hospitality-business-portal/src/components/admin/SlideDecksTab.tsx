@@ -12,6 +12,7 @@ import {
   IconWand2,
   IconExternalLink,
   IconFileText,
+  IconRefreshCw,
 } from "@/components/icons";
 import { Loader2, ChevronDown, ChevronRight } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
@@ -371,12 +372,15 @@ function BulkDraftSummaryDialog({
   open,
   onOpenChange,
   results,
+  onRetry,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   results: BulkDraftPropertyResult[];
+  onRetry: (propertyId: number) => Promise<void>;
 }) {
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+  const [retryingIds, setRetryingIds] = useState<Set<number>>(new Set());
 
   const toggleExpanded = (id: number) => {
     setExpandedIds(prev => {
@@ -385,6 +389,19 @@ function BulkDraftSummaryDialog({
       else next.add(id);
       return next;
     });
+  };
+
+  const handleRetry = async (propertyId: number) => {
+    setRetryingIds(prev => new Set(prev).add(propertyId));
+    try {
+      await onRetry(propertyId);
+    } finally {
+      setRetryingIds(prev => {
+        const next = new Set(prev);
+        next.delete(propertyId);
+        return next;
+      });
+    }
   };
 
   const totalDrafted = results.reduce((sum, r) => sum + r.draftedSlots.length, 0);
@@ -421,6 +438,7 @@ function BulkDraftSummaryDialog({
             {results.map(r => {
               const isExpanded = expandedIds.has(r.propertyId);
               const hasSlotDetails = r.draftedSlots.length > 0 || r.skippedSlots.length > 0;
+              const isRetrying = retryingIds.has(r.propertyId);
 
               return (
                 <div
@@ -447,7 +465,12 @@ function BulkDraftSummaryDialog({
                       {r.propertyName}
                     </span>
 
-                    {r.status === "error" ? (
+                    {isRetrying ? (
+                      <Badge variant="outline" className="text-[11px] border-0 font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 shrink-0 gap-1">
+                        <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                        Retrying…
+                      </Badge>
+                    ) : r.status === "error" ? (
                       <Badge variant="outline" className="text-[11px] border-0 font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 shrink-0">
                         Failed
                       </Badge>
@@ -455,6 +478,18 @@ function BulkDraftSummaryDialog({
                       <Badge variant="outline" className="text-[11px] border-0 font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 shrink-0">
                         {r.draftedSlots.length} slot{r.draftedSlots.length === 1 ? "" : "s"}
                       </Badge>
+                    )}
+
+                    {r.status === "error" && !isRetrying && (
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline shrink-0"
+                        title="Retry draft for this property"
+                        onClick={() => handleRetry(r.propertyId)}
+                      >
+                        <IconRefreshCw className="h-3 w-3" />
+                        Retry
+                      </button>
                     )}
 
                     <Link href={`/slide-decks/${r.propertyId}?view=edit`}>
@@ -703,6 +738,81 @@ export default function SlideDecksTab() {
     return summary != null && (summary.staleCount + summary.missingCount) > 0;
   });
 
+  const draftSingleProperty = useCallback(async (
+    propertyId: number,
+  ): Promise<BulkDraftPropertyResult> => {
+    const propName = properties?.find(p => p.id === propertyId)?.name ?? `Property ${propertyId}`;
+
+    try {
+      const draftRes = await fetch(
+        `/api/admin/properties/${propertyId}/deck-payload/draft-all`,
+        { method: "POST", credentials: "include" },
+      );
+      if (!draftRes.ok) throw new Error(`draft-all HTTP ${draftRes.status}`);
+      const draftData = (await draftRes.json()) as { drafts: DraftResult[] };
+
+      const usableDrafts = draftData.drafts.filter(
+        d => !d.validationErrors || d.validationErrors.length === 0,
+      );
+      const skippedDrafts = draftData.drafts.filter(
+        d => d.validationErrors && d.validationErrors.length > 0,
+      );
+
+      if (usableDrafts.length > 0) {
+        const patch = draftsToPatch(usableDrafts);
+        const patchRes = await fetch(
+          `/api/admin/properties/${propertyId}/deck-payload`,
+          {
+            method: "PATCH",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patch),
+          },
+        );
+        if (!patchRes.ok) throw new Error(`PATCH HTTP ${patchRes.status}`);
+      }
+
+      setBulkDraftStatuses(prev => new Map(prev).set(propertyId, "done"));
+
+      if (usableDrafts.length > 0) {
+        fetch(`/api/properties/${propertyId}/deck.pdf/regenerate`, {
+          method: "POST",
+          credentials: "include",
+        })
+          .then(r => {
+            if (r.ok) {
+              queryClient.invalidateQueries({ queryKey: ["/api/slides/status"] });
+            } else {
+              console.warn(`[bulk-draft] PDF regen queue failed for property ${propertyId}: HTTP ${r.status}`);
+              queryClient.invalidateQueries({ queryKey: ["/api/slides/status"] });
+            }
+          })
+          .catch(() => {});
+      }
+
+      await queryClient.invalidateQueries({
+        queryKey: ["/api/admin/properties", propertyId, "deck-payload", "readiness"],
+      });
+
+      return {
+        propertyId,
+        propertyName: propName,
+        status: "done",
+        draftedSlots: usableDrafts.map(d => d.slot),
+        skippedSlots: skippedDrafts.map(d => d.slot),
+      };
+    } catch {
+      setBulkDraftStatuses(prev => new Map(prev).set(propertyId, "error"));
+      return {
+        propertyId,
+        propertyName: propName,
+        status: "error",
+        draftedSlots: [],
+        skippedSlots: [],
+      };
+    }
+  }, [properties, queryClient]);
+
   const handleDraftAllMissing = useCallback(async () => {
     if (isBulkRunning || deficientPropertyIds.length === 0) return;
     setIsBulkRunning(true);
@@ -715,83 +825,23 @@ export default function SlideDecksTab() {
     });
 
     for (const propertyId of deficientPropertyIds) {
-      const propName = properties?.find(p => p.id === propertyId)?.name ?? `Property ${propertyId}`;
-
-      try {
-        const draftRes = await fetch(
-          `/api/admin/properties/${propertyId}/deck-payload/draft-all`,
-          { method: "POST", credentials: "include" },
-        );
-        if (!draftRes.ok) throw new Error(`draft-all HTTP ${draftRes.status}`);
-        const draftData = (await draftRes.json()) as { drafts: DraftResult[] };
-
-        const usableDrafts = draftData.drafts.filter(
-          d => !d.validationErrors || d.validationErrors.length === 0,
-        );
-        const skippedDrafts = draftData.drafts.filter(
-          d => d.validationErrors && d.validationErrors.length > 0,
-        );
-
-        let patched = false;
-        if (usableDrafts.length > 0) {
-          const patch = draftsToPatch(usableDrafts);
-          const patchRes = await fetch(
-            `/api/admin/properties/${propertyId}/deck-payload`,
-            {
-              method: "PATCH",
-              credentials: "include",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(patch),
-            },
-          );
-          if (!patchRes.ok) throw new Error(`PATCH HTTP ${patchRes.status}`);
-          patched = true;
-        }
-
-        setBulkDraftStatuses(prev => new Map(prev).set(propertyId, "done"));
-        runResults.push({
-          propertyId,
-          propertyName: propName,
-          status: "done",
-          draftedSlots: usableDrafts.map(d => d.slot),
-          skippedSlots: skippedDrafts.map(d => d.slot),
-        });
-
-        if (usableDrafts.length > 0) {
-          fetch(`/api/properties/${propertyId}/deck.pdf/regenerate`, {
-            method: "POST",
-            credentials: "include",
-          })
-            .then(r => {
-              if (r.ok) {
-                queryClient.invalidateQueries({ queryKey: ["/api/slides/status"] });
-              } else {
-                console.warn(`[bulk-draft] PDF regen queue failed for property ${propertyId}: HTTP ${r.status}`);
-                queryClient.invalidateQueries({ queryKey: ["/api/slides/status"] });
-              }
-            })
-            .catch(() => {});
-        }
-
-        await queryClient.invalidateQueries({
-          queryKey: ["/api/admin/properties", propertyId, "deck-payload", "readiness"],
-        });
-      } catch {
-        setBulkDraftStatuses(prev => new Map(prev).set(propertyId, "error"));
-        runResults.push({
-          propertyId,
-          propertyName: propName,
-          status: "error",
-          draftedSlots: [],
-          skippedSlots: [],
-        });
-      }
+      const result = await draftSingleProperty(propertyId);
+      runResults.push(result);
     }
 
     setBulkDraftResults(runResults);
     setShowBulkSummary(true);
     setIsBulkRunning(false);
-  }, [isBulkRunning, deficientPropertyIds, properties, queryClient]);
+  }, [isBulkRunning, deficientPropertyIds, draftSingleProperty]);
+
+  const handleRetryProperty = useCallback(async (propertyId: number) => {
+    setBulkDraftStatuses(prev => new Map(prev).set(propertyId, "drafting"));
+    const result = await draftSingleProperty(propertyId);
+
+    setBulkDraftResults(prev =>
+      prev.map(r => r.propertyId === propertyId ? result : r),
+    );
+  }, [draftSingleProperty]);
 
   // Count how many are still in-flight or queued
   const draftingCount = [...bulkDraftStatuses.values()].filter(s => s === "drafting").length;
@@ -958,6 +1008,7 @@ export default function SlideDecksTab() {
         open={showBulkSummary}
         onOpenChange={setShowBulkSummary}
         results={bulkDraftResults}
+        onRetry={handleRetryProperty}
       />
     </div>
   );
