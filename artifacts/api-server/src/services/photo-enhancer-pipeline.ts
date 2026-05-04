@@ -27,6 +27,7 @@ import {
   type ReplicateStyleKey,
 } from "../integrations/replicate";
 import { generateImageBuffer } from "../image/client";
+import { resolveLlmFor } from "../ai/llm-config-resolver";
 import { getStorageProvider } from "../providers/storage";
 import { logApiCost, unitCost } from "../middleware/cost-logger";
 import { storage } from "../storage";
@@ -195,6 +196,7 @@ export async function runPhotoEnhancerPipeline(
     | "1024x1536"
     | "1536x1024"
     | "auto";
+  const { modelId: fallbackModelId } = await resolveLlmFor("image-generation-fallback");
 
   const startedAt = Date.now();
   // Trim user-supplied prompt before persistence so the research_runs metadata
@@ -212,7 +214,7 @@ export async function runPhotoEnhancerPipeline(
     entityId: propertyId ?? 0,
     tier: 1,
     status: "running",
-    modelPrimary: isReplicateStyle ? `replicate:${style}` : "openai:gpt-image-1",
+    modelPrimary: isReplicateStyle ? `replicate:${style}` : `openai:${fallbackModelId}`,
     metadata: {
       specialistId: PHOTO_ENHANCER_SPECIALIST_ID,
       style,
@@ -267,9 +269,9 @@ export async function runPhotoEnhancerPipeline(
           logApiCost({
             timestamp: new Date().toISOString(),
             service: "openai",
-            model: "gpt-image-1",
+            model: fallbackModelId,
             operation: "image-gen-fallback",
-            estimatedCostUsd: unitCost("gpt-image-1"),
+            estimatedCostUsd: unitCost(fallbackModelId),
             durationMs: Date.now() - startedAt,
             userId,
             route,
@@ -287,9 +289,9 @@ export async function runPhotoEnhancerPipeline(
         logApiCost({
           timestamp: new Date().toISOString(),
           service: "openai",
-          model: "gpt-image-1",
+          model: fallbackModelId,
           operation: "image-gen",
-          estimatedCostUsd: unitCost("gpt-image-1"),
+          estimatedCostUsd: unitCost(fallbackModelId),
           durationMs: Date.now() - startedAt,
           userId,
           route,
