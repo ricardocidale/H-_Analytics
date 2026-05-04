@@ -49,6 +49,9 @@ import "@/features/internal-deck/fonts.css";
 import type { SlidePayload } from "@/features/internal-deck/types";
 import { EMPTY_DECK_PAYLOAD_V2 } from "@shared/deck-payload-v2";
 import { Slide1EditorPanel } from "@/features/internal-deck/editor/Slide1EditorPanel";
+import { Slide2EditorPanel } from "@/features/internal-deck/editor/Slide2EditorPanel";
+import { Slide3EditorPanel } from "@/features/internal-deck/editor/Slide3EditorPanel";
+import { Slide5EditorPanel } from "@/features/internal-deck/editor/Slide5EditorPanel";
 import { useToast } from "@/hooks/use-toast";
 
 // ── Slide registry ────────────────────────────────────────────────────────
@@ -97,6 +100,19 @@ interface PropertyRow {
 
 type ViewMode = "grid" | "carousel" | "edit";
 type DraftVersion = "authored" | "template";
+type EditableSlideN = 1 | 2 | 3 | 5;
+
+// Slides with authored slots — 4 and 6 are 100% deterministic (no editor panel).
+const EDITABLE_SLIDES: ReadonlyArray<{
+  n: EditableSlideN;
+  label: string;
+  Component: React.ComponentType<{ p: SlidePayload }>;
+}> = [
+  { n: 1, label: "Slide 1", Component: Slide1 },
+  { n: 2, label: "Slide 2", Component: Slide2 },
+  { n: 3, label: "Slide 3", Component: Slide3 },
+  { n: 5, label: "Slide 5", Component: Slide5 },
+];
 
 function downloadViaAnchor(url: string, filename: string): void {
   const a = document.createElement("a");
@@ -334,6 +350,7 @@ export default function PropertySlides() {
   const propertyId = params?.propertyId ? Number(params.propertyId) : NaN;
   const [view, setView] = useState<ViewMode>("grid");
   const [draftVersion, setDraftVersion] = useState<DraftVersion>("authored");
+  const [editSlide, setEditSlide] = useState<EditableSlideN>(1);
 
   // Property info — for header + filename.
   const { data: properties } = useQuery<PropertyRow[]>({
@@ -525,36 +542,70 @@ export default function PropertySlides() {
       )}
 
       {view === "edit" && (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto]">
-          <Slide1EditorPanel propertyId={propertyId} />
-          {payload && (
-            <Card className="border border-border/60 self-start sticky top-4 overflow-hidden p-0">
-              <div className="px-4 py-3 border-b border-border/60">
-                <p className="text-sm font-semibold leading-tight">Live preview — Slide 1</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Shows authored copy from the editor. Save changes to update.
-                </p>
-              </div>
-              <div
-                className="relative bg-[#0f1621] overflow-hidden"
-                style={{ width: THUMB_WIDTH_PX, height: THUMB_HEIGHT_PX }}
-              >
-                <div
-                  style={{
-                    width: SLIDE_WIDTH_PX,
-                    height: SLIDE_HEIGHT_PX,
-                    transform: `scale(${THUMB_SCALE})`,
-                    transformOrigin: "top left",
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                  }}
+        <div className="space-y-4">
+          {/* Slide selector — only slides with authored slots */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Editing:</span>
+            <div className="inline-flex rounded-md border border-border overflow-hidden text-sm">
+              {EDITABLE_SLIDES.map((s, i) => (
+                <button
+                  key={s.n}
+                  type="button"
+                  onClick={() => setEditSlide(s.n)}
+                  className={`px-3 py-1.5 ${i > 0 ? "border-l border-border" : ""} transition-colors ${
+                    editSlide === s.n
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                  aria-pressed={editSlide === s.n}
                 >
-                  <Slide1 p={payload} />
-                </div>
-              </div>
-            </Card>
-          )}
+                  {s.label}
+                </button>
+              ))}
+            </div>
+            <span className="text-xs text-muted-foreground">
+              (Slides 4 and 6 are fully deterministic — no authored slots)
+            </span>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto]">
+            {editSlide === 1 && <Slide1EditorPanel propertyId={propertyId} />}
+            {editSlide === 2 && <Slide2EditorPanel propertyId={propertyId} />}
+            {editSlide === 3 && <Slide3EditorPanel propertyId={propertyId} />}
+            {editSlide === 5 && <Slide5EditorPanel propertyId={propertyId} />}
+
+            {payload && (() => {
+              const s = EDITABLE_SLIDES.find(x => x.n === editSlide)!;
+              return (
+                <Card className="border border-border/60 self-start sticky top-4 overflow-hidden p-0">
+                  <div className="px-4 py-3 border-b border-border/60">
+                    <p className="text-sm font-semibold leading-tight">Live preview — {s.label}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Shows authored copy. Save to update.
+                    </p>
+                  </div>
+                  <div
+                    className="relative bg-[#0f1621] overflow-hidden"
+                    style={{ width: THUMB_WIDTH_PX, height: THUMB_HEIGHT_PX }}
+                  >
+                    <div
+                      style={{
+                        width: SLIDE_WIDTH_PX,
+                        height: SLIDE_HEIGHT_PX,
+                        transform: `scale(${THUMB_SCALE})`,
+                        transformOrigin: "top left",
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                      }}
+                    >
+                      <s.Component p={payload} />
+                    </div>
+                  </div>
+                </Card>
+              );
+            })()}
+          </div>
         </div>
       )}
     </div>

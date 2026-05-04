@@ -267,7 +267,11 @@ export function Slide1({ p }: { p: SlidePayload }) {
 
 // ── Slide 2 — Alt View / Photo Gallery ───────────────────────────────────
 export function Slide2({ p }: { p: SlidePayload }) {
-  const { property, photos, visionText, financials } = p;
+  const { property, photos, visionText, financials, deckPayloadV2 } = p;
+  const v2s2 = deckPayloadV2?.slide2;
+  const operationalModelText = v2s2?.operationalModelText?.text || visionText.operationalModelText;
+  const slide2RevenueBullet = v2s2?.revenueBullet?.text || visionText.revenueBullet;
+  const slide2ProgrammingBullet = v2s2?.programmingBullet?.text || visionText.programmingBullet;
   const stable = getStableYear(financials.yearlyIS);
   const renovBudget = financials.renovationBudget;
   const panelPhotos = photos.filter(ph => !ph.isHero).slice(0, 4);
@@ -306,10 +310,10 @@ export function Slide2({ p }: { p: SlidePayload }) {
 
         <span style={{ fontFamily: FONT_SANS, fontSize: 11, letterSpacing: "0.12em", color: C.sage, marginBottom: 8 }}>The Vision</span>
         <span style={{ fontFamily: FONT_SERIF, fontSize: 14, color: C.cream, fontStyle: "italic", marginBottom: 8 }}>
-          Operational Model: {visionText.operationalModelText}
+          Operational Model: {operationalModelText}
         </span>
-        <span style={{ fontFamily: FONT_SANS, fontSize: 12, color: C.dimWhite, marginBottom: 4 }}>• {visionText.revenueBullet}</span>
-        <span style={{ fontFamily: FONT_SANS, fontSize: 12, color: C.dimWhite }}>• {visionText.programmingBullet}</span>
+        <span style={{ fontFamily: FONT_SANS, fontSize: 12, color: C.dimWhite, marginBottom: 4 }}>• {slide2RevenueBullet}</span>
+        <span style={{ fontFamily: FONT_SANS, fontSize: 12, color: C.dimWhite }}>• {slide2ProgrammingBullet}</span>
       </div>
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: 16 }}>
@@ -338,7 +342,18 @@ export function Slide2({ p }: { p: SlidePayload }) {
 
 // ── Slide 3 — Investment Model ────────────────────────────────────────────
 export function Slide3({ p }: { p: SlidePayload }) {
-  const { property, photos, visionText } = p;
+  const { property, photos, visionText, deckPayloadV2 } = p;
+  const v2s3 = deckPayloadV2?.slide3;
+  const conceptParagraph = v2s3?.conceptParagraph?.text || visionText.investmentModelConcept;
+  const slide3MarketRationale = v2s3?.marketRationale?.text || visionText.marketRationale;
+  const slide3Reasons = (v2s3?.reasons ?? []).length > 0
+    ? (v2s3!.reasons!).map(r => ({ label: r.label.text, detail: r.detail.text }))
+    : [
+        { label: visionText.reason1Label, detail: visionText.reason1Detail },
+        { label: visionText.reason2Label, detail: visionText.reason2Detail },
+        { label: visionText.reason3Label, detail: visionText.reason3Detail },
+      ];
+  const slide3ClosingLine = v2s3?.closingLine?.text || visionText.closingLine;
   const hero = photos.find(ph => ph.isHero) ?? photos[0];
   const secondary = photos[1] ?? photos[0];
   const type = typeLabel(property);
@@ -369,19 +384,15 @@ export function Slide3({ p }: { p: SlidePayload }) {
 
         <span style={{ fontFamily: FONT_SANS, fontSize: 11, color: C.sage, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>The Concept</span>
         <span style={{ fontFamily: FONT_SANS, fontSize: 13, color: C.dimWhite, lineHeight: 1.6, marginBottom: 16 }}>
-          {visionText.investmentModelConcept}
+          {conceptParagraph}
         </span>
 
         <span style={{ fontFamily: FONT_SANS, fontSize: 11, color: C.sage, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>Why This Property?</span>
         <span style={{ fontFamily: FONT_SANS, fontSize: 13, color: C.dimWhite, lineHeight: 1.6, marginBottom: 16 }}>
-          {visionText.marketRationale}
+          {slide3MarketRationale}
         </span>
 
-        {[
-          [visionText.reason1Label, visionText.reason1Detail],
-          [visionText.reason2Label, visionText.reason2Detail],
-          [visionText.reason3Label, visionText.reason3Detail],
-        ].map(([label, detail], i) => (
+        {slide3Reasons.map(({ label, detail }, i) => (
           <div key={i} style={{ display: "flex", flexDirection: "column", marginBottom: 10 }}>
             <span style={{ fontFamily: FONT_SANS, fontSize: 12, color: C.cream, fontWeight: 600, marginBottom: 2 }}>{label}</span>
             <span style={{ fontFamily: FONT_SANS, fontSize: 11, color: C.sage, lineHeight: 1.5 }}>{detail}</span>
@@ -389,7 +400,7 @@ export function Slide3({ p }: { p: SlidePayload }) {
         ))}
 
         <div style={{ display: "flex", marginTop: 16, padding: "10px 16px", borderLeft: `3px solid ${C.accent}` }}>
-          <span style={{ fontFamily: FONT_SERIF, fontSize: 15, color: C.cream, fontStyle: "italic" }}>{visionText.closingLine}</span>
+          <span style={{ fontFamily: FONT_SERIF, fontSize: 15, color: C.cream, fontStyle: "italic" }}>{slide3ClosingLine}</span>
         </div>
       </div>
 
@@ -498,7 +509,7 @@ export function Slide4({ p }: { p: SlidePayload }) {
 
 // ── Slide 5 — Financial Snapshot ─────────────────────────────────────────
 export function Slide5({ p }: { p: SlidePayload }) {
-  const { property, financials, visionText, improvements } = p;
+  const { property, financials, visionText, improvements, deckPayloadV2 } = p;
   const stable = getStableYear(financials.yearlyIS);
   const renovBudget = financials.renovationBudget;
   const totalInvestment = (property.purchasePrice ?? 0) + renovBudget;
@@ -513,16 +524,21 @@ export function Slide5({ p }: { p: SlidePayload }) {
   const stableAdr = stable?.cleanAdr ?? property.startAdr ?? 0;
   const stableRevpar = stableAdr * stableOcc;
 
+  const v2s5 = deckPayloadV2?.slide5;
+  const slide5TransformDesc = v2s5?.transformationDescription?.text || visionText.transformationDescription;
+  const authoredTransRows = v2s5?.transformationRows;
   const transformRows: string[][] = [
     ["Feature", "Existing", "Proposed"],
-    ...(improvements.length > 0
-      ? improvements.slice(0, 4).map(imp => [imp.feature, imp.existing, imp.proposed])
-      : [
-          ["Guest Capacity", `${Math.max(1, property.roomCount - 2)} Guests`, `${property.roomCount} Keys`],
-          ["Event Space", "Limited", "Curated venue spaces"],
-          ["Lodging", "Standard rooms", `${property.roomCount} boutique-designed keys`],
-          ["Amenities", "Basic", "Curated experiential amenities"],
-        ]
+    ...(authoredTransRows && authoredTransRows.length > 0
+      ? authoredTransRows.map(r => [r.feature.text, r.existing.text, r.proposed.text])
+      : improvements.length > 0
+        ? improvements.slice(0, 4).map(imp => [imp.feature, imp.existing, imp.proposed])
+        : [
+            ["Guest Capacity", `${Math.max(1, property.roomCount - 2)} Guests`, `${property.roomCount} Keys`],
+            ["Event Space", "Limited", "Curated venue spaces"],
+            ["Lodging", "Standard rooms", `${property.roomCount} boutique-designed keys`],
+            ["Amenities", "Basic", "Curated experiential amenities"],
+          ]
     ),
   ];
 
@@ -552,7 +568,7 @@ export function Slide5({ p }: { p: SlidePayload }) {
       <div style={{ flex: 1, display: "flex", flexDirection: "row", padding: "0 40px 48px 40px" }}>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", marginRight: 32 }}>
           <span style={{ fontFamily: FONT_SANS, fontSize: 12, color: C.darkBg, lineHeight: 1.6, marginBottom: 20 }}>
-            {visionText.transformationDescription}
+            {slide5TransformDesc}
           </span>
 
           <div style={{ display: "flex", flexDirection: "column" }}>
