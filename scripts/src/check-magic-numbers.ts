@@ -145,6 +145,9 @@ function extractLiterals(filePath: string): Set<string> {
     if (trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*")) continue;
     // Skip import/export lines (numbers there are version strings)
     if (trimmed.startsWith("import ") || trimmed.startsWith("export * from")) continue;
+    // Skip named constant definitions: (export )?const ALL_CAPS_NAME = <number>
+    // These are authoritative single-source definitions, not magic-number usages.
+    if (/^(export\s+)?const\s+[A-Z][A-Z0-9_]+\s*=\s*-?\d/.test(trimmed)) continue;
 
     line = stripLineComment(line);
 
