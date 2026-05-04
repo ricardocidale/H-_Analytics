@@ -10,11 +10,21 @@ import {
   IconCheckCircle2,
   IconAlertTriangle,
   IconWand2,
+  IconExternalLink,
+  IconFileText,
 } from "@/components/icons";
-import { Loader2 } from "@/components/icons/themed-icons";
+import { Loader2, ChevronDown, ChevronRight } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { DECK_PAYLOAD_SCHEMA_VERSION } from "@shared/deck-payload-v2";
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -64,6 +74,14 @@ interface CopyReadinessSummary {
 }
 
 type BulkDraftStatus = "idle" | "drafting" | "done" | "error";
+
+interface BulkDraftPropertyResult {
+  propertyId: number;
+  propertyName: string;
+  status: "done" | "error";
+  draftedSlots: string[];
+  skippedSlots: string[];
+}
 
 interface DraftResult {
   slot: string;
@@ -322,6 +340,169 @@ function BulkDraftOverlay({ status }: { status: BulkDraftStatus }) {
   return null;
 }
 
+// ── Bulk draft summary dialog ──────────────────────────────────────────────
+
+function humanSlotName(slot: string): string {
+  const parts = slot.split(".");
+  const slideKey = parts[0] ?? "";
+  const slotName = parts[1] ?? slot;
+
+  const slideNum = slideKey.replace(/^slide/, "");
+
+  const SLOT_LABELS: Record<string, string> = {
+    conceptParagraph: "Concept Paragraph",
+    operationalModelText: "Operational Model",
+    visionBullets: "Vision Bullets",
+    reasons: "Reasons",
+    transformationRows: "Transformation Table",
+    marketPositioningText: "Market Positioning",
+    investmentHighlightText: "Investment Highlight",
+    propertyDescription: "Property Description",
+    locationHighlight: "Location Highlight",
+    subtitle: "Subtitle",
+    tagline: "Tagline",
+  };
+
+  const label = SLOT_LABELS[slotName] ?? slotName;
+  return slideNum ? `Slide ${slideNum} — ${label}` : label;
+}
+
+function BulkDraftSummaryDialog({
+  open,
+  onOpenChange,
+  results,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  results: BulkDraftPropertyResult[];
+}) {
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+
+  const toggleExpanded = (id: number) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const totalDrafted = results.reduce((sum, r) => sum + r.draftedSlots.length, 0);
+  const totalSkipped = results.reduce((sum, r) => sum + r.skippedSlots.length, 0);
+  const successCount = results.filter(r => r.status === "done").length;
+  const errorCount = results.filter(r => r.status === "error").length;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <IconFileText className="h-5 w-5 text-muted-foreground" />
+            Bulk Draft Summary
+          </DialogTitle>
+          <DialogDescription>
+            {totalDrafted} slot{totalDrafted === 1 ? "" : "s"} drafted across{" "}
+            {successCount} propert{successCount === 1 ? "y" : "ies"}
+            {errorCount > 0 && (
+              <span className="text-red-600 dark:text-red-400">
+                {" "}· {errorCount} failed
+              </span>
+            )}
+            {totalSkipped > 0 && (
+              <span className="text-amber-600 dark:text-amber-400">
+                {" "}· {totalSkipped} skipped (validation errors)
+              </span>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+
+        <ScrollArea className="max-h-[50vh]">
+          <div className="space-y-1 pr-3">
+            {results.map(r => {
+              const isExpanded = expandedIds.has(r.propertyId);
+              const hasSlotDetails = r.draftedSlots.length > 0 || r.skippedSlots.length > 0;
+
+              return (
+                <div
+                  key={r.propertyId}
+                  className="rounded-md border border-border/60"
+                >
+                  <div className="flex w-full items-center gap-2 px-3 py-2.5 text-sm">
+                    {hasSlotDetails ? (
+                      <button
+                        type="button"
+                        className="shrink-0 rounded p-0.5 hover:bg-muted/80 transition-colors"
+                        onClick={() => toggleExpanded(r.propertyId)}
+                        aria-label={isExpanded ? "Collapse slot list" : "Expand slot list"}
+                      >
+                        {isExpanded
+                          ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                          : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                      </button>
+                    ) : (
+                      <span className="w-3.5 shrink-0" />
+                    )}
+
+                    <span className="font-medium truncate flex-1">
+                      {r.propertyName}
+                    </span>
+
+                    {r.status === "error" ? (
+                      <Badge variant="outline" className="text-[11px] border-0 font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 shrink-0">
+                        Failed
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[11px] border-0 font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 shrink-0">
+                        {r.draftedSlots.length} slot{r.draftedSlots.length === 1 ? "" : "s"}
+                      </Badge>
+                    )}
+
+                    <Link href={`/slide-decks/${r.propertyId}?view=edit`}>
+                      <span
+                        className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline shrink-0"
+                        title="Open deck editor for this property"
+                      >
+                        Edit
+                        <IconExternalLink className="h-3 w-3" />
+                      </span>
+                    </Link>
+                  </div>
+
+                  {isExpanded && hasSlotDetails && (
+                    <div className="px-3 pb-2.5 pt-0">
+                      <div className="ml-6 border-l border-border/60 pl-3 space-y-0.5">
+                        {r.draftedSlots.map(slot => (
+                          <div
+                            key={slot}
+                            className="flex items-center gap-1.5 text-[12px] text-muted-foreground py-0.5"
+                          >
+                            <IconCheckCircle2 className="h-3 w-3 text-emerald-500 dark:text-emerald-400 shrink-0" />
+                            {humanSlotName(slot)}
+                          </div>
+                        ))}
+                        {r.skippedSlots.length > 0 && r.skippedSlots.map(slot => (
+                          <div
+                            key={slot}
+                            className="flex items-center gap-1.5 text-[12px] text-amber-600 dark:text-amber-400 py-0.5"
+                          >
+                            <IconAlertTriangle className="h-3 w-3 shrink-0" />
+                            {humanSlotName(slot)}
+                            <span className="text-[10px] text-muted-foreground">(skipped)</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── Slide render thumbnail ─────────────────────────────────────────────────
 // These are slide template colors, not app design tokens — intentionally
 // standalone so the thumbnail mirrors the actual PPTX output.
@@ -435,6 +616,8 @@ export default function SlideDecksTab() {
   const [downloadingIds, setDownloadingIds] = useState<Set<number>>(new Set());
   const [bulkDraftStatuses, setBulkDraftStatuses] = useState<Map<number, BulkDraftStatus>>(new Map());
   const [isBulkRunning, setIsBulkRunning] = useState(false);
+  const [bulkDraftResults, setBulkDraftResults] = useState<BulkDraftPropertyResult[]>([]);
+  const [showBulkSummary, setShowBulkSummary] = useState(false);
 
   async function handleDownloadDeck(p: PropertyRow) {
     if (downloadingIds.has(p.id)) return;
@@ -518,18 +701,18 @@ export default function SlideDecksTab() {
   const handleDraftAllMissing = useCallback(async () => {
     if (isBulkRunning || deficientPropertyIds.length === 0) return;
     setIsBulkRunning(true);
+    const runResults: BulkDraftPropertyResult[] = [];
 
-    // Mark all deficient properties as "drafting"
-    setBulkDraftStatuses(prev => {
-      const next = new Map(prev);
+    setBulkDraftStatuses(() => {
+      const next = new Map<number, BulkDraftStatus>();
       for (const id of deficientPropertyIds) next.set(id, "drafting");
       return next;
     });
 
-    // Process properties sequentially to avoid hammering the LLM API
     for (const propertyId of deficientPropertyIds) {
+      const propName = properties?.find(p => p.id === propertyId)?.name ?? `Property ${propertyId}`;
+
       try {
-        // Step 1: Call draft-all to get LLM suggestions
         const draftRes = await fetch(
           `/api/admin/properties/${propertyId}/deck-payload/draft-all`,
           { method: "POST", credentials: "include" },
@@ -540,9 +723,11 @@ export default function SlideDecksTab() {
         const usableDrafts = draftData.drafts.filter(
           d => !d.validationErrors || d.validationErrors.length === 0,
         );
+        const skippedDrafts = draftData.drafts.filter(
+          d => d.validationErrors && d.validationErrors.length > 0,
+        );
 
         if (usableDrafts.length > 0) {
-          // Step 2: Auto-apply the drafts via PATCH
           const patch = draftsToPatch(usableDrafts);
           const patchRes = await fetch(
             `/api/admin/properties/${propertyId}/deck-payload`,
@@ -557,18 +742,33 @@ export default function SlideDecksTab() {
         }
 
         setBulkDraftStatuses(prev => new Map(prev).set(propertyId, "done"));
+        runResults.push({
+          propertyId,
+          propertyName: propName,
+          status: "done",
+          draftedSlots: usableDrafts.map(d => d.slot),
+          skippedSlots: skippedDrafts.map(d => d.slot),
+        });
 
-        // Invalidate readiness so the badge refreshes
         await queryClient.invalidateQueries({
           queryKey: ["/api/admin/properties", propertyId, "deck-payload", "readiness"],
         });
       } catch {
         setBulkDraftStatuses(prev => new Map(prev).set(propertyId, "error"));
+        runResults.push({
+          propertyId,
+          propertyName: propName,
+          status: "error",
+          draftedSlots: [],
+          skippedSlots: [],
+        });
       }
     }
 
+    setBulkDraftResults(runResults);
+    setShowBulkSummary(true);
     setIsBulkRunning(false);
-  }, [isBulkRunning, deficientPropertyIds, queryClient]);
+  }, [isBulkRunning, deficientPropertyIds, properties, queryClient]);
 
   // Count how many are still in-flight or queued
   const draftingCount = [...bulkDraftStatuses.values()].filter(s => s === "drafting").length;
@@ -632,21 +832,31 @@ export default function SlideDecksTab() {
                 : `Draft all missing copy`}
             </Button>
 
-            {/* Summary line after bulk run */}
             {bulkHasRun && !isBulkRunning && (
-              <p className="text-[11px] text-muted-foreground">
-                {doneCount > 0 && (
-                  <span className="text-emerald-600 dark:text-emerald-400">
-                    {doneCount} saved
-                  </span>
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                <p>
+                  {doneCount > 0 && (
+                    <span className="text-emerald-600 dark:text-emerald-400">
+                      {doneCount} saved
+                    </span>
+                  )}
+                  {doneCount > 0 && errorCount > 0 && " · "}
+                  {errorCount > 0 && (
+                    <span className="text-red-600 dark:text-red-400">
+                      {errorCount} failed
+                    </span>
+                  )}
+                </p>
+                {bulkDraftResults.length > 0 && (
+                  <button
+                    type="button"
+                    className="text-primary hover:underline font-medium"
+                    onClick={() => setShowBulkSummary(true)}
+                  >
+                    View details
+                  </button>
                 )}
-                {doneCount > 0 && errorCount > 0 && " · "}
-                {errorCount > 0 && (
-                  <span className="text-red-600 dark:text-red-400">
-                    {errorCount} failed
-                  </span>
-                )}
-              </p>
+              </div>
             )}
           </div>
         )}
@@ -720,6 +930,12 @@ export default function SlideDecksTab() {
           );
         })}
       </div>
+
+      <BulkDraftSummaryDialog
+        open={showBulkSummary}
+        onOpenChange={setShowBulkSummary}
+        results={bulkDraftResults}
+      />
     </div>
   );
 }
