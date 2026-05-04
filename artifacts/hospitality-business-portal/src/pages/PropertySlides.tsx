@@ -848,6 +848,10 @@ function DraftAllReviewPanel({
 
   const selectedCount = validDrafts.filter(d => selected.has(d.slot)).length;
 
+  const editedCount = validDrafts.filter(
+    d => JSON.stringify(editedSuggestions[d.slot]) !== JSON.stringify(d.suggestion),
+  ).length;
+
   const staleCount = propertyUpdatedAt
     ? drafts.filter(d => !d.validationErrors?.length && d.generatedAt < propertyUpdatedAt).length
     : 0;
@@ -902,7 +906,7 @@ function DraftAllReviewPanel({
               Analyst drafted {drafts.length} slot{drafts.length === 1 ? "" : "s"} — review &amp; edit before accepting
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {validDrafts.length} ready · {erroredDrafts.length > 0 ? `${erroredDrafts.length} skipped (validation errors)` : "no errors"}.
+              {validDrafts.length} ready · {erroredDrafts.length > 0 ? `${erroredDrafts.length} skipped (validation errors)` : "no errors"}{editedCount > 0 ? ` · ${editedCount} of ${validDrafts.length} edited` : ""}.
               Check the slots you want to keep, edit the text if needed, then accept.
             </p>
           </div>
