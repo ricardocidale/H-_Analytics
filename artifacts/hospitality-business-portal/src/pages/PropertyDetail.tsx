@@ -10,7 +10,7 @@ import { ConsolidatedBalanceSheet } from "@/components/statements/ConsolidatedBa
 import { CalcDetailsProvider } from "@/components/financial-table";
 import { Tabs, TabsContent, CurrentThemeTab } from "@/components/ui/tabs";
 import { Loader2, ChevronDown } from "@/components/icons/themed-icons";
-import { IconAlertTriangle, IconIncomeStatement, IconCashFlow, IconBalanceSheet, IconPPE, IconFileStack, IconMap, IconGlobe, IconInvestment, IconClipboardList, IconSparkles } from "@/components/icons";
+import { IconAlertTriangle, IconIncomeStatement, IconCashFlow, IconBalanceSheet, IconPPE, IconFileStack, IconMap, IconGlobe, IconInvestment, IconClipboardList, IconSparkles, IconScenarios } from "@/components/icons";
 import { ExportMenu, pdfAction, excelAction, csvAction, pptxAction, chartAction, pngAction, docxAction } from "@/components/ui/export-toolbar";
 import { MONTHS_PER_YEAR } from "@/lib/constants";
 import { calculateLoanParams, LoanParams, GlobalLoanParams, PROJECTION_YEARS } from "@/lib/financial/loanCalculations";
@@ -358,12 +358,6 @@ export default function PropertyDetail() {
           yearlyChartData={yearlyChartData}
         />
 
-        {global && (
-          <div className="mt-6">
-            <ExitScenariosSection property={property} global={global} />
-          </div>
-        )}
-
         {(["boutique_hotel", "hotel", "resort", "business_hotel", "conference_hotel"] as const).includes(
           property.hospitalityType as
             | "boutique_hotel"
@@ -386,7 +380,8 @@ export default function PropertyDetail() {
                 { value: 'ppe', label: 'PP&E / Cost Basis', icon: IconPPE },
                 { value: 'duediligence', label: 'Due Diligence', icon: IconClipboardList },
                 { value: 'documents', label: 'Documents', icon: IconFileStack },
-                { value: 'executive-summary', label: 'Executive Summary', icon: IconSparkles }
+                { value: 'executive-summary', label: 'Executive Summary', icon: IconSparkles },
+                { value: 'exit-scenarios', label: 'Exit Scenarios', icon: IconScenarios }
               ]}
               activeTab={activeTab}
               onTabChange={setActiveTab}
@@ -506,6 +501,10 @@ export default function PropertyDetail() {
 
           <TabsContent value="executive-summary" className="mt-6">
             <ExecutiveSummaryTab propertyId={propertyId} />
+          </TabsContent>
+
+          <TabsContent value="exit-scenarios" className="mt-6">
+            <ExitScenariosSection property={property} global={global} />
           </TabsContent>
         </Tabs>
         </CalcDetailsProvider>
