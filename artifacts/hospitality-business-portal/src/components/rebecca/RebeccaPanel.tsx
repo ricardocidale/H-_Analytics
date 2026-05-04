@@ -470,9 +470,10 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
   };
 
   const handleCopy = useCallback((id: string, content: string) => {
-    navigator.clipboard.writeText(content).catch(() => {});
-    setCopiedId(id);
-    setTimeout(() => setCopiedId((prev) => (prev === id ? null : prev)), 1500);
+    navigator.clipboard.writeText(content).then(() => {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId((prev) => (prev === id ? null : prev)), 1500);
+    }).catch(() => {});
   }, []);
 
   const handleThumb = useCallback((id: string, vote: "up" | "down") => {
@@ -722,7 +723,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                     )}
                   </div>
                   {msg.role === "assistant" && (
-                    <div className="flex items-center gap-0.5 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-0.5 mt-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                       <button
                         type="button"
                         className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors"
