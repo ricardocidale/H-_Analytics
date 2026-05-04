@@ -923,3 +923,12 @@ System: App Defaults, Verification, Database, Notifications, Navigation, Activit
 - Files used outside admin/: AssetDefinitionTab (Icp.tsx), IcpLocationTab (Icp.tsx), MarketRatesTab (ResearchHub.tsx), DiagramsTab (Help.tsx) — all kept
 - Fixed replit.md test count 4,495 → 4,493 to restore Doc Harmony
 - Health Check: ALL CLEAR | Exports: 564 used, 0 unused
+
+## LB Slide Studio — Renderer Rewrite + Authoring Environment (May 4, 2026)
+- **helpers.tsx rewritten**: removed all theme.ts imports (FONT_SERIF, FONT_SANS, C.*); now uses PALETTE/FONTS/FW from contract.ts exclusively. PhotoBg, LbBadge, PageNumber, GreenRule all coordinate-scaled to 960×540.
+- **slides.tsx fully rewritten at 960×540**: all 6 slides use PALETTE, FONTS, FW, SLIDE_BG, bb(), CANVAS from contract.ts — zero theme.ts imports. Shared primitives: DarkHeader, DarkFooter, PhotoPanel, Card, CredeCardHeader. All layout constants named and derived from design-contract.json bboxes.
+- **LbInternalDeck.tsx**: now imports SLIDE_HEIGHT_PX/SLIDE_WIDTH_PX from contract.ts (previously from theme.ts) — theme.ts no longer referenced by any slide component.
+- **LbSlides.tsx rewritten as full Slide Studio**: 7 tabs (Config & Render + Slide 1–6). Config tab has property assignment + readiness summary cards + PDF render/download. Slide tabs 1–3, 5 embed SlideNEditorPanel components; Slides 4 and 6 show auto-generated notice. Readiness badges (✓/N) appear on each tab. Guard notice shown when a slide's property isn't assigned yet.
+- **Magic-numbers fix** (pre-existing regression from documents task merge): promoted `255` VARCHAR literal to `VARCHAR_SHORT_MAX` in constants.ts; updated all 3 usages (auth.ts, helpers.ts, documents.ts).
+- **Lint fix** (pre-existing from documents task merge): `DocumentExtractionPanel.tsx` useCallback deps corrected.
+- All 9 CI checks PASS: typecheck, lint, production-image, magic-numbers, migration-guards, replit-independence, spinner-contrast, types-mirror, test:calc.

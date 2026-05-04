@@ -26,8 +26,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Slide1, Slide2, Slide3, Slide4, Slide5, Slide6 } from "@/features/internal-deck/slides";
-import { TOTAL_SLIDES } from "@/features/internal-deck/contract";
-import { SLIDE_HEIGHT_PX, SLIDE_WIDTH_PX } from "@/features/internal-deck/theme";
+import { TOTAL_SLIDES, SLIDE_HEIGHT_PX, SLIDE_WIDTH_PX } from "@/features/internal-deck/contract";
 import "@/features/internal-deck/fonts.css";
 import type { SlidePayload } from "@/features/internal-deck/types";
 

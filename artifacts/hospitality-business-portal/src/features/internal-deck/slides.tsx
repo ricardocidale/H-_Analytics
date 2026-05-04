@@ -1,23 +1,26 @@
 /**
- * slides.tsx — Six React slide components for the internal investor deck.
- * Canonical layout, dimensions, and palette for the L+B printed PDF.
+ * slides.tsx — Six React slide components for the L+B canonical investor deck.
  *
- * Each Slide renders a 1920×1080 canvas at native pixel dimensions; the
- * surrounding page in pages/InternalDeck.tsx applies @page sizing for print.
+ * Renderer contract (STRICTLY ENFORCED):
+ *   • Canvas: 960×540 px, position:relative, overflow:hidden
+ *   • All interior elements: position:absolute
+ *   • Layout coordinates from contract.ts bb() helper — no flex/grid inside canvas
+ *   • Colors: PALETTE only — no theme.ts, no hardcoded hex
+ *   • Fonts: FONTS.editorial / FONTS.body / FONTS.numeric only — no theme.ts FONT_*
+ *   • Backgrounds: SLIDE_BG[n] only
+ *   • No UI library components inside slide boundaries
+ *
+ * Source of truth: docs/slide-system/canonical/design-contract.json
  */
 import React from "react";
-// TODO (T_RENDER_REWRITE): all theme.ts imports below will be removed when
-// slides.tsx is rewritten at 960×540 against contract.ts and spec_skeleton_v4.json.
-// DO NOT add new imports from theme.ts. Use contract.ts for any new constants.
 import {
-  C,
-  FONT_NUMERIC,
-  FONT_SANS,
-  FONT_SERIF,
-  SLIDE_BACKGROUNDS,
-  SLIDE_HEIGHT_PX as H,
-  SLIDE_WIDTH_PX as W,
-} from "./theme";
+  PALETTE,
+  FONTS,
+  FW,
+  SLIDE_BG,
+  CANVAS,
+  bb,
+} from "./contract";
 import {
   GreenRule,
   LbBadge,
@@ -26,7 +29,6 @@ import {
   fmtCurrency,
   fmtPct,
   getStableYear,
-  photoSrc,
   statusBadgeLabel,
   statusLabel,
   typeLabel,
@@ -34,67 +36,142 @@ import {
 import { getCanonicalPhoto } from "./canonical-photos";
 import type { SiblingProperty, SlidePayload, SlidePhoto } from "./types";
 
-// Financial assumption: exit cap rate used when no engine/property value is set.
-// Not derived from the PDF spec — this is a business-model default.
-// When slides.tsx is rewritten (T_RENDER_REWRITE) this moves to a shared module.
-const SLIDE_EXIT_CAP_RATE_FALLBACK = 0.07;
+// ── Canvas aliases ──────────────────────────────────────────────────────────
+const W = CANVAS.width;   // 960
+const H = CANVAS.height;  // 540
 
+// ── Shared business-logic constants ─────────────────────────────────────────
+const SLIDE_EXIT_CAP_RATE_FALLBACK = 0.07;
 const DEFAULT_OCCUPANCY = 0.7;
 const STABLE_OCC_FLOOR = 0.55;
 const STABLE_OCC_CEILING = 0.85;
 const PCT_SCALE = 100;
 const DEFAULT_LTV_LABEL_PCT = "65%";
-const FOOTER_RULE_OFFSET = 60;
 const PROFORMA_YEARS = 5;
 const SIBLING_GRID_SLOTS = 6;
 const SIBLING_GRID_COLS = 3;
-const CARD_GAP = 16;
 
-// ── Slide 1 — Pipeline Spotlight (Property Spotlight) ────────────────────
+// ── Layout constants derived from canonical bboxes ───────────────────────────
+// Header band: [0,0,960,43.5]
+const HEADER_H = 44;
+// Footer band: [0,502,960,540]
+const FOOTER_Y = 502;
+const FOOTER_H = H - FOOTER_Y;  // 38
+// Left photo column right edge: x≈405
+const LEFT_COL_W = 405;
+// Right column left edge
+const RIGHT_X = 418;
+// Card inner padding
+const CARD_PAD_H = 14;
+const CARD_PAD_V = 10;
+// Green accent rule on dark slides
+const RULE_BOTTOM_OFFSET = 30;
+// Card gap on slide 4
+const CARD_GAP = 8;
+const CARD_RADIUS = 6;
+// Slide 5/6 header area
+const S56_HEADER_H = 56;
+
+// ── Shared primitive components ──────────────────────────────────────────────
+
+function DarkHeader({ title, subtitle, badge }: { title: string; subtitle?: string; badge?: string }) {
+  return (
+    <div style={{ ...bb(0, 0, W, HEADER_H), background: PALETTE.forest_green, display: "flex", flexDirection: "row", alignItems: "center", paddingLeft: 32, paddingRight: 24 }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+        <span style={{ fontFamily: FONTS.editorial, fontSize: 15, fontWeight: FW.bold, fontStyle: "italic", color: PALETTE.off_white, lineHeight: 1.1 }}>
+          {title}
+        </span>
+        {subtitle && (
+          <span style={{ fontFamily: FONTS.editorial, fontSize: 11, fontStyle: "italic", color: PALETTE.sage, marginTop: 2 }}>
+            {subtitle}
+          </span>
+        )}
+      </div>
+      {badge && (
+        <span style={{ fontFamily: FONTS.body, fontSize: 6, fontWeight: FW.bold, letterSpacing: "0.3em", color: PALETTE.pale_sage, textTransform: "uppercase" }}>
+          {badge}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function DarkFooter({ tagline, slideNum }: { tagline?: string; slideNum: number }) {
+  return (
+    <div style={{ ...bb(0, FOOTER_Y, W, H), background: PALETTE.forest_green, display: "flex", flexDirection: "row", alignItems: "center", paddingLeft: 32, paddingRight: 24 }}>
+      <span style={{ fontFamily: FONTS.body, fontSize: 7, fontWeight: FW.regular, fontStyle: "italic", color: PALETTE.sage, flex: 1, letterSpacing: "0.02em" }}>
+        {tagline ?? ""}
+      </span>
+      <span style={{ fontFamily: FONTS.body, fontSize: 6, fontWeight: FW.regular, letterSpacing: "0.35em", color: PALETTE.pale_sage, textTransform: "uppercase" }}>
+        L+B Analytics · {slideNum}
+      </span>
+    </div>
+  );
+}
+
+function PhotoPanel({
+  photo,
+  x1, y1, x2, y2,
+  caption,
+  radius = 4,
+  gradientDir = "top",
+}: {
+  photo: SlidePhoto | undefined;
+  x1: number; y1: number; x2: number; y2: number;
+  caption?: string;
+  radius?: number;
+  gradientDir?: "top" | "right";
+}) {
+  const grad = gradientDir === "top"
+    ? "linear-gradient(to top, rgba(21,51,31,0.75) 0%, transparent 45%)"
+    : "linear-gradient(to right, transparent 55%, rgba(21,51,31,0.90) 100%)";
+  return (
+    <div style={{ ...bb(x1, y1, x2, y2), borderRadius: radius, overflow: "hidden" }}>
+      <PhotoBg photo={photo} />
+      <div style={{ position: "absolute", inset: 0, background: grad }} />
+      {caption && (
+        <div style={{ position: "absolute", left: 10, right: 10, bottom: 8, background: "rgba(21,39,28,0.70)", padding: "3px 8px", borderRadius: 2 }}>
+          <span style={{ fontFamily: FONTS.body, fontSize: 6, fontWeight: FW.regular, letterSpacing: "0.25em", color: PALETTE.white, textTransform: "uppercase" }}>
+            {caption}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CredeCardHeader({ children, sage = false }: { children: React.ReactNode; sage?: boolean }) {
+  return (
+    <div style={{ background: sage ? PALETTE.sage : PALETTE.forest_green, padding: `${CARD_PAD_V}px ${CARD_PAD_H}px` }}>
+      <span style={{ fontFamily: FONTS.body, fontSize: 9, fontWeight: FW.bold, letterSpacing: "0.18em", color: PALETTE.white, textTransform: "uppercase" }}>
+        {children}
+      </span>
+    </div>
+  );
+}
+
+function Card({ x1, y1, x2, y2, children, radius = CARD_RADIUS }: {
+  x1: number; y1: number; x2: number; y2: number;
+  children: React.ReactNode;
+  radius?: number;
+}) {
+  return (
+    <div style={{ ...bb(x1, y1, x2, y2), background: PALETTE.cream_card, border: `1px solid ${PALETTE.fine_rule}`, borderRadius: radius, overflow: "hidden" }}>
+      {children}
+    </div>
+  );
+}
+
+// ── Slide 1 — Pipeline Spotlight ─────────────────────────────────────────────
 //
-// Canonical L+B layout (960×540pt, rendered here at 2× = 1920×1080px):
-//   • Top dark-green header band — "Pipeline Spotlight: <Name>, <State>"
-//     in editorial italic serif + italic subtitle for region/status
-//   • Two-column body:
-//       - Left  (x≈34–812):  hero photo above secondary photo, both with
-//         all-caps captions on a dark gradient overlay
-//       - Right (x≈838–1888):
-//           · Title row     — name (bold green) + italic descriptor +
-//             ASKING PRICE block, right-aligned
-//           · Specs card    — dark-green header strip "Property Specs"
-//             over short factual bullets
-//           · Vision card   — dark-green header strip "The Vision"
-//             over visionText bullets, occupies left half of the bottom
-//             region
-//           · Inset photo   — right half of the bottom region
-//   • Bottom dark-green footer band with "L+B Analytics" + page number
-//
-// Deviations from canonical, with rationale (per locked decisions in claude.md):
-//   • Page background is white #FFFFFF, not cream — the canonical PDF paint
-//     layer is white; the cream visible in renders is a baked full-page
-//     raster. (decision #4)
-//   • Header text uses cream/sage on dark green, not canonical's #257D41
-//     forest-green-on-forest-green which fails WCAG AA contrast. (decision #1)
-//   • Body copy is bound to the assigned property's seed/engine fields. Note:
-//     "Sul Monte" in the canonical PDF is the owner's nickname for THIS same
-//     property (Belleayre Mountain) — not throwaway filler. The canonical
-//     voice / tone in those panels is therefore valid Belleayre source
-//     material; we just rebind the structured fields (purchase price, key
-//     count, region) to the seed so every numeric flows from the engine.
-//     (decision #1, #5, #6 — see claude.md "Sul Monte = Belleayre" entry)
-//   • Specs bullets are derived from real SlideProperty fields rather than
-//     verbatim canonical chrome (8200sqft chateau, 8BR/7BA, salt-water pool,
-//     61+ acres) because those features describe Sul Monte's residential-era
-//     prior life, not the planned 20-key boutique hotel build-out.
-//   • "Target Acquisition $2.3M" line dropped — no schema field exists for
-//     a target separate from purchasePrice. (decision #6)
-//   • Page number is 1, not canonical's "PAGE 17" leftover.
-//   • Editorial header uses EB Garamond BoldItalic instead of canonical's
-//     Georgia BoldItalic — EB Garamond is already in the bundled WOFF
-//     stack and gives the same magazine-masthead serif signal; avoids
-//     adding new font files for a single use site. (decision #3)
-//   • Photo captions use Poppins instead of canonical's Microsoft YaHei
-//     (Windows-only; falls back unreliably in headless Chromium).
+// Layout (960×540):
+//   Header band [0,0,960,44]
+//   Left photos [16,51,405,327] + [15,330,402,499]
+//   Title card  [418,51,943,104]
+//   Specs card  [418,109,943,253]
+//   Vision card [418,258,678,499]
+//   Inset photo [686,247,952,502]
+//   Footer band [0,502,960,540]
 export function Slide1({ p }: { p: SlidePayload }) {
   const { property, deckPayloadV2 } = p;
   const v2 = deckPayloadV2?.slide1;
@@ -129,150 +206,103 @@ export function Slide1({ p }: { p: SlidePayload }) {
 
   const computedHeroCaption = `${property.name.toUpperCase()} · ${type.toUpperCase()}`;
   const heroCaption = v2?.photoCaptions?.hero?.text?.toUpperCase() || computedHeroCaption;
-
+  const secondaryCaption = v2?.photoCaptions?.secondary?.text?.toUpperCase() || "CURATED GUEST EXPERIENCE";
   const computedInsetCaption = `${property.roomCount} KEYS · YEAR-ROUND DEMAND`;
   const insetCaption = v2?.photoCaptions?.inset?.text?.toUpperCase() || computedInsetCaption;
 
-  const secondaryCaption = v2?.photoCaptions?.secondary?.text?.toUpperCase() || "CURATED GUEST EXPERIENCE";
-
-  const propertySubtitle = v2?.propertySubtitle?.text || property.description;
-
+  const propertySubtitle = v2?.propertySubtitle?.text || property.description || "";
   const headerTitle = `Pipeline Spotlight: ${property.name}, ${property.stateProvince}`;
   const computedHeaderSubtitle = `${statusLabel(property.acquisitionStatus)} — ${regionLine}`;
   const headerSubtitle = v2?.headerSubtitle?.text || computedHeaderSubtitle;
-
   const closingTagline = v2?.closingTagline?.text || "";
 
   return (
-    <div style={{ width: W, height: H, background: "#FFFFFF", position: "relative", overflow: "hidden" }}>
-      {/* Top dark-green editorial header band (canonical 0,0,960,44 → 0,0,1920,88) */}
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 88, background: C.darkBg, display: "flex", flexDirection: "row", alignItems: "center", padding: "0 64px" }}>
-        <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-          <span style={{ fontFamily: FONT_SERIF, fontSize: 30, fontWeight: 700, fontStyle: "italic", color: C.cream, letterSpacing: "0.01em", lineHeight: 1.05 }}>
-            {headerTitle}
-          </span>
-          <span style={{ fontFamily: FONT_SERIF, fontSize: 17, fontStyle: "italic", color: C.sage, marginTop: 4 }}>
-            {headerSubtitle}
-          </span>
-        </div>
-        <span style={{ fontFamily: FONT_SANS, fontSize: 13, fontWeight: 700, letterSpacing: "0.43em", color: C.mint, textTransform: "uppercase" }}>
-          INVESTMENT SPOTLIGHT
-        </span>
-      </div>
+    <div style={{ width: W, height: H, background: SLIDE_BG[1], position: "relative", overflow: "hidden" }}>
+      <DarkHeader title={headerTitle} subtitle={headerSubtitle} badge="INVESTMENT SPOTLIGHT" />
 
-      {/* Left column — hero photo (canonical 17,51,389,276 → 34,102,778,552) */}
-      <div style={{ position: "absolute", left: 34, top: 102, width: 778, height: 552, overflow: "hidden", borderRadius: 4 }}>
-        <PhotoBg photo={hero} />
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(28,43,30,0.7) 0%, transparent 38%)" }} />
-        <div style={{ position: "absolute", left: 22, right: 22, bottom: 18 }}>
-          <span style={{ fontFamily: FONT_SANS, fontSize: 14, fontWeight: 300, letterSpacing: "0.32em", color: C.cream, textTransform: "uppercase" }}>
-            {heroCaption}
-          </span>
-        </div>
-      </div>
+      {/* Left column — main aerial photo [16,51,405,327] */}
+      <PhotoPanel photo={hero} x1={16} y1={51} x2={405} y2={327} caption={heroCaption} />
 
-      {/* Left column — secondary photo (canonical 16,331,387,168 → 32,662,774,336) */}
-      <div style={{ position: "absolute", left: 32, top: 662, width: 774, height: 336, overflow: "hidden", borderRadius: 4 }}>
-        <PhotoBg photo={secondary} />
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(28,43,30,0.65) 0%, transparent 42%)" }} />
-        <div style={{ position: "absolute", left: 22, right: 22, bottom: 18 }}>
-          <span style={{ fontFamily: FONT_SANS, fontSize: 13, fontWeight: 300, letterSpacing: "0.32em", color: C.cream, textTransform: "uppercase" }}>
-            {secondaryCaption}
-          </span>
-        </div>
-      </div>
+      {/* Left column — secondary photo [15,330,402,499] */}
+      <PhotoPanel photo={secondary} x1={15} y1={330} x2={402} y2={499} caption={secondaryCaption} />
 
-      {/* Right column — title row: name + italic descriptor + ASKING PRICE */}
-      <div style={{ position: "absolute", left: 838, top: 118, right: 64, height: 110, display: "flex", flexDirection: "row", alignItems: "flex-start" }}>
-        <div style={{ display: "flex", flexDirection: "column", flex: 1, paddingRight: 32, minWidth: 0 }}>
-          <span style={{ fontFamily: FONT_SANS, fontSize: 38, fontWeight: 700, color: C.accent, letterSpacing: "0.04em", lineHeight: 1.05 }}>
-            {property.name.toUpperCase()}
-          </span>
-          <span style={{ fontFamily: FONT_SERIF, fontSize: 17, fontStyle: "italic", color: "#5A7A62", marginTop: 8, lineHeight: 1.35 }}>
-            {propertySubtitle}
-          </span>
+      {/* Title card [418,51,943,104] */}
+      <Card x1={RIGHT_X} y1={51} x2={943} y2={104}>
+        <div style={{ padding: `10px ${CARD_PAD_H}px 8px`, display: "flex", flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
+          <div style={{ flex: 1, minWidth: 0, paddingRight: 12 }}>
+            <div style={{ fontFamily: FONTS.body, fontSize: 19, fontWeight: FW.regular, color: PALETTE.deep_green, lineHeight: 1.05 }}>
+              {property.name}
+            </div>
+            {propertySubtitle && (
+              <div style={{ fontFamily: FONTS.body, fontSize: 8, fontWeight: FW.regular, fontStyle: "italic", color: PALETTE.muted_gray_green, marginTop: 3, lineHeight: 1.3 }}>
+                {propertySubtitle}
+              </div>
+            )}
+          </div>
+          <div style={{ flexShrink: 0, textAlign: "right" }}>
+            <div style={{ fontFamily: FONTS.body, fontSize: 6, fontWeight: FW.bold, letterSpacing: "0.3em", color: PALETTE.muted_gray_green, textTransform: "uppercase" }}>
+              ASKING PRICE
+            </div>
+            <div style={{ fontFamily: FONTS.body, fontSize: 18, fontWeight: FW.bold, color: PALETTE.forest_green, lineHeight: 1.1, marginTop: 2 }}>
+              {fmtCurrency(property.purchasePrice)}
+            </div>
+          </div>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", flexShrink: 0 }}>
-          <span style={{ fontFamily: FONT_SANS, fontSize: 12, fontWeight: 700, letterSpacing: "0.43em", color: C.sage, textTransform: "uppercase" }}>
-            ASKING PRICE
-          </span>
-          <span style={{ fontFamily: FONT_SANS, fontSize: 38, fontWeight: 700, color: C.darkBg, marginTop: 6, lineHeight: 1 }}>
-            {fmtCurrency(property.purchasePrice)}
-          </span>
-        </div>
-      </div>
+      </Card>
 
-      {/* Right column — Property Specs card (canonical 419,110,525,143 → 838,220,1018,286) */}
-      <div style={{ position: "absolute", left: 838, top: 268, right: 64, borderRadius: 4, overflow: "hidden", border: `1px solid rgba(28,43,30,0.12)` }}>
-        <div style={{ background: C.darkBg, padding: "14px 28px" }}>
-          <span style={{ fontFamily: FONT_SANS, fontSize: 18, fontWeight: 700, letterSpacing: "0.15em", color: C.cream, textTransform: "uppercase" }}>
-            Property Specs
-          </span>
-        </div>
-        <div style={{ background: "#FFFFFF", padding: "22px 28px 24px 28px", display: "flex", flexDirection: "column" }}>
+      {/* Specs card [418,109,943,253] */}
+      <Card x1={RIGHT_X} y1={109} x2={943} y2={253}>
+        <CredeCardHeader>Property Specs</CredeCardHeader>
+        <div style={{ padding: `10px ${CARD_PAD_H}px`, display: "flex", flexDirection: "column", gap: 7 }}>
           {specs.map((spec, i) => (
-            <div key={i} style={{ display: "flex", flexDirection: "row", alignItems: "flex-start", marginBottom: i < specs.length - 1 ? 14 : 0 }}>
-              <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 4, background: C.accent, marginTop: 8, marginRight: 14, flexShrink: 0 }} />
-              <span style={{ fontFamily: FONT_SANS, fontSize: 17, fontWeight: 400, color: C.accent, lineHeight: 1.45, flex: 1 }}>
+            <div key={i} style={{ display: "flex", flexDirection: "row", alignItems: "flex-start" }}>
+              <span style={{ display: "inline-block", width: 4, height: 4, borderRadius: 2, background: PALETTE.deep_green, marginTop: 5, marginRight: 8, flexShrink: 0 }} />
+              <span style={{ fontFamily: FONTS.body, fontSize: 8.5, fontWeight: FW.regular, color: PALETTE.deep_green, lineHeight: 1.45, flex: 1 }}>
                 {spec}
               </span>
             </div>
           ))}
         </div>
-      </div>
+      </Card>
 
-      {/* Right column — The Vision card (canonical 419,258,260,241 → 838,560,520,~360) */}
-      <div style={{ position: "absolute", left: 838, top: 590, width: 520, bottom: 100, borderRadius: 4, overflow: "hidden", border: `1px solid rgba(28,43,30,0.12)`, display: "flex", flexDirection: "column" }}>
-        <div style={{ background: C.darkBg, padding: "14px 24px" }}>
-          <span style={{ fontFamily: FONT_SANS, fontSize: 18, fontWeight: 700, letterSpacing: "0.15em", color: C.cream, textTransform: "uppercase" }}>
-            The Vision
-          </span>
-        </div>
-        <div style={{ flex: 1, background: "#FFFFFF", padding: "22px 24px", display: "flex", flexDirection: "column" }}>
+      {/* Vision card [418,258,678,499] */}
+      <Card x1={RIGHT_X} y1={258} x2={678} y2={499}>
+        <CredeCardHeader sage>The Vision</CredeCardHeader>
+        <div style={{ padding: `10px ${CARD_PAD_H}px`, display: "flex", flexDirection: "column", gap: 8 }}>
           {visionBullets.map((bullet, i) => (
-            <div key={i} style={{ display: "flex", flexDirection: "row", alignItems: "flex-start", marginBottom: i < visionBullets.length - 1 ? 16 : 0 }}>
-              <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 4, background: C.accent, marginTop: 7, marginRight: 14, flexShrink: 0 }} />
-              <span style={{ fontFamily: FONT_SANS, fontSize: 16, fontWeight: 400, color: "#7AAA88", lineHeight: 1.5, flex: 1 }}>
+            <div key={i} style={{ display: "flex", flexDirection: "row", alignItems: "flex-start" }}>
+              <span style={{ display: "inline-block", width: 4, height: 4, borderRadius: 2, background: PALETTE.pale_sage, marginTop: 5, marginRight: 8, flexShrink: 0 }} />
+              <span style={{ fontFamily: FONTS.body, fontSize: 8, fontWeight: FW.regular, color: PALETTE.muted_gray_green, lineHeight: 1.5, flex: 1 }}>
                 {bullet}
               </span>
             </div>
           ))}
         </div>
-      </div>
+      </Card>
 
-      {/* Right column — inset photo (canonical 687,247,265,255 → 1374,494,~530,~510) */}
-      <div style={{ position: "absolute", left: 1378, top: 590, right: 32, bottom: 100, borderRadius: 4, overflow: "hidden" }}>
-        <PhotoBg photo={inset} />
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(28,43,30,0.7) 0%, transparent 45%)" }} />
-        <div style={{ position: "absolute", left: 22, right: 22, bottom: 18 }}>
-          <span style={{ fontFamily: FONT_SANS, fontSize: 13, fontWeight: 300, letterSpacing: "0.32em", color: C.cream, textTransform: "uppercase" }}>
-            {insetCaption}
-          </span>
-        </div>
-      </div>
+      {/* Inset photo [686,247,952,502] */}
+      <PhotoPanel photo={inset} x1={686} y1={247} x2={952} y2={502} caption={insetCaption} radius={6} />
 
       {closingTagline && (
-        <div style={{ position: "absolute", left: 838, right: 64, bottom: 78, textAlign: "center" }}>
-          <span style={{ fontFamily: FONT_SERIF, fontSize: 15, fontStyle: "italic", color: C.sage, letterSpacing: "0.02em" }}>
+        <div style={{ ...bb(RIGHT_X, 503, 943, FOOTER_Y - 2), display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <span style={{ fontFamily: FONTS.editorial, fontSize: 8, fontStyle: "italic", color: PALETTE.muted_gray_green, letterSpacing: "0.02em", textAlign: "center" }}>
             {closingTagline}
           </span>
         </div>
       )}
 
-      {/* Bottom dark-green footer band (canonical 0,507,960,33 → 0,1014,1920,66) */}
-      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 66, background: C.darkBg, display: "flex", flexDirection: "row", alignItems: "center", padding: "0 64px" }}>
-        <span style={{ fontFamily: FONT_SANS, fontSize: 12, fontWeight: 400, letterSpacing: "0.43em", color: C.mint, textTransform: "uppercase", flex: 1 }}>
-          L+B Analytics · Investor Briefing
-        </span>
-        <span style={{ fontFamily: FONT_SANS, fontSize: 12, fontWeight: 400, letterSpacing: "0.43em", color: C.mint, textTransform: "uppercase" }}>
-          Page 1
-        </span>
-      </div>
+      <DarkFooter tagline="" slideNum={1} />
     </div>
   );
 }
 
-// ── Slide 2 — Alt View / Photo Gallery ───────────────────────────────────
+// ── Slide 2 — Photo Gallery / Alt View ───────────────────────────────────────
+//
+// Layout (960×540):
+//   Header band [0,0,960,44]   — forest green, like slide 1
+//   Left panel [0,44,340,502]  — dark bg, property stats column
+//   Photo grid [340,44,960,502]— 2×2 panel grid, non-hero photos
+//   Footer band [0,502,960,540]
 export function Slide2({ p }: { p: SlidePayload }) {
   const { property, photos, financials, deckPayloadV2 } = p;
   const v2s2 = deckPayloadV2?.slide2;
@@ -282,85 +312,108 @@ export function Slide2({ p }: { p: SlidePayload }) {
   const stable = getStableYear(financials.yearlyIS);
   const renovBudget = financials.renovationBudget;
   const panelPhotos = photos.filter(ph => !ph.isHero).slice(0, 4);
+  const type = typeLabel(property);
+
+  const headerTitle = `${property.name.toUpperCase()} — ${property.city}, ${property.stateProvince}`;
+
+  // Left stats panel bounds: x1=0,y1=44,x2=340,y2=502
+  const LEFT_PANEL_X2 = 340;
+  const BODY_Y1 = HEADER_H;
+  const BODY_Y2 = FOOTER_Y;
+
+  // Photo grid: 2 cols × 2 rows in [342,44,958,500]
+  const GRID_X1 = 342; const GRID_X2 = 958;
+  const GRID_Y1 = BODY_Y1 + 4; const GRID_Y2 = BODY_Y2 - 4;
+  const HALF_W = (GRID_X2 - GRID_X1 - 4) / 2;
+  const HALF_H = (GRID_Y2 - GRID_Y1 - 4) / 2;
+
+  const statRows = [
+    ["Purchase Price", fmtCurrency(property.purchasePrice)],
+    ["Renovation Budget", fmtCurrency(renovBudget)],
+    ["Total Investment", fmtCurrency((property.purchasePrice ?? 0) + renovBudget)],
+    ["Stabilized Revenue", fmtCurrency(stable?.revenueTotal)],
+    ["Projected NOI", fmtCurrency(stable?.noi)],
+    ["Est. IRR", fmtPct(financials.irr)],
+  ];
 
   return (
-    <div style={{ width: W, height: H, background: C.darkBg, display: "flex", position: "relative", overflow: "hidden" }}>
-      <div style={{ width: 520, display: "flex", flexDirection: "column", padding: "44px 40px 44px 48px", flexShrink: 0 }}>
-        <span style={{ fontFamily: FONT_SANS, fontSize: 11, letterSpacing: "0.3em", color: C.accent, textTransform: "uppercase", marginBottom: 6 }}>
+    <div style={{ width: W, height: H, background: SLIDE_BG[2], position: "relative", overflow: "hidden" }}>
+      <DarkHeader title={headerTitle} badge="INVESTMENT SPOTLIGHT" />
+
+      {/* Left dark panel */}
+      <div style={{ ...bb(0, BODY_Y1, LEFT_PANEL_X2, BODY_Y2), background: PALETTE.forest_green, display: "flex", flexDirection: "column", padding: "18px 22px" }}>
+        <span style={{ fontFamily: FONTS.body, fontSize: 7, fontWeight: FW.bold, letterSpacing: "0.35em", color: PALETTE.deep_green, textTransform: "uppercase", marginBottom: 4 }}>
           INVESTMENT SPOTLIGHT
         </span>
-        <span style={{ fontFamily: FONT_SERIF, fontSize: 26, fontWeight: 700, color: C.cream, lineHeight: 1.2, marginBottom: 8 }}>
-          {property.name.toUpperCase()}
+        <span style={{ fontFamily: FONTS.editorial, fontSize: 20, fontWeight: FW.bold, color: PALETTE.off_white, lineHeight: 1.15, marginBottom: 4 }}>
+          {property.name}
         </span>
-        <span style={{ fontFamily: FONT_SANS, fontSize: 12, color: C.sage, marginBottom: 16 }}>
-          {property.city}, {property.stateProvince}
+        <span style={{ fontFamily: FONTS.body, fontSize: 8, fontWeight: FW.regular, color: PALETTE.sage, marginBottom: 12 }}>
+          {type} · {property.city}, {property.stateProvince}
         </span>
 
-        <div style={{ width: 40, height: 2, background: C.accent, marginBottom: 16 }} />
+        <div style={{ width: 24, height: 1, background: PALETTE.deep_green, marginBottom: 12 }} />
 
-        <span style={{ fontFamily: FONT_SANS, fontSize: 11, letterSpacing: "0.12em", color: C.sage, marginBottom: 8 }}>Property Specs</span>
-        {[
-          ["Purchase Price", fmtCurrency(property.purchasePrice)],
-          ["Renovation Budget", fmtCurrency(renovBudget)],
-          ["Total Investment", fmtCurrency((property.purchasePrice ?? 0) + renovBudget)],
-          ["Stabilized Revenue", fmtCurrency(stable?.revenueTotal)],
-          ["Projected NOI", fmtCurrency(stable?.noi)],
-          ["Est. IRR", fmtPct(financials.irr)],
-        ].map(([label, val]) => (
-          <div key={label} style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", marginBottom: 6 }}>
-            <span style={{ fontFamily: FONT_SANS, fontSize: 12, color: C.sage }}>{label}</span>
-            <span style={{ fontFamily: FONT_SANS, fontSize: 12, color: C.cream }}>{val}</span>
+        <span style={{ fontFamily: FONTS.body, fontSize: 7, fontWeight: FW.bold, letterSpacing: "0.12em", color: PALETTE.sage, textTransform: "uppercase", marginBottom: 6 }}>
+          Property Specs
+        </span>
+        {statRows.map(([label, val]) => (
+          <div key={label} style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", marginBottom: 5 }}>
+            <span style={{ fontFamily: FONTS.body, fontSize: 7.5, fontWeight: FW.regular, color: PALETTE.sage }}>{label}</span>
+            <span style={{ fontFamily: FONTS.body, fontSize: 7.5, fontWeight: FW.regular, color: PALETTE.off_white }}>{val}</span>
           </div>
         ))}
 
-        <div style={{ width: "100%", height: 1, background: "rgba(37,125,65,0.3)", marginTop: 12, marginBottom: 16 }} />
+        <div style={{ width: "100%", height: 1, background: `${PALETTE.deep_green}55`, marginTop: 8, marginBottom: 10 }} />
 
-        <span style={{ fontFamily: FONT_SANS, fontSize: 11, letterSpacing: "0.12em", color: C.sage, marginBottom: 8 }}>The Vision</span>
-        <span style={{ fontFamily: FONT_SERIF, fontSize: 14, color: C.cream, fontStyle: "italic", marginBottom: 8 }}>
+        <span style={{ fontFamily: FONTS.body, fontSize: 7, fontWeight: FW.bold, letterSpacing: "0.12em", color: PALETTE.sage, textTransform: "uppercase", marginBottom: 6 }}>
+          The Vision
+        </span>
+        <span style={{ fontFamily: FONTS.editorial, fontSize: 9, fontStyle: "italic", color: PALETTE.off_white, marginBottom: 5, lineHeight: 1.4 }}>
           Operational Model: {operationalModelText}
         </span>
-        <span style={{ fontFamily: FONT_SANS, fontSize: 12, color: C.dimWhite, marginBottom: 4 }}>• {slide2RevenueBullet}</span>
-        <span style={{ fontFamily: FONT_SANS, fontSize: 12, color: C.dimWhite }}>• {slide2ProgrammingBullet}</span>
+        <span style={{ fontFamily: FONTS.body, fontSize: 7.5, fontWeight: FW.regular, color: PALETTE.pale_sage, marginBottom: 3, lineHeight: 1.45 }}>
+          · {slide2RevenueBullet}
+        </span>
+        <span style={{ fontFamily: FONTS.body, fontSize: 7.5, fontWeight: FW.regular, color: PALETTE.pale_sage, lineHeight: 1.45 }}>
+          · {slide2ProgrammingBullet}
+        </span>
       </div>
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: 16 }}>
-        <div style={{ flex: 1, display: "flex", flexDirection: "row", marginBottom: 8 }}>
-          {[panelPhotos[0], panelPhotos[1]].map((ph, i) => (
-            <div key={i} style={{ display: "flex", flex: 1, position: "relative", borderRadius: 3, overflow: "hidden", marginLeft: i > 0 ? 8 : 0 }}>
-              <PhotoBg photo={ph} />
-            </div>
-          ))}
-        </div>
-        <div style={{ flex: 1, display: "flex", flexDirection: "row" }}>
-          {[panelPhotos[2], panelPhotos[3]].map((ph, i) => (
-            <div key={i} style={{ display: "flex", flex: 1, position: "relative", borderRadius: 3, overflow: "hidden", marginLeft: i > 0 ? 8 : 0 }}>
-              <PhotoBg photo={ph} />
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* 2×2 photo grid */}
+      <PhotoPanel photo={panelPhotos[0]} x1={GRID_X1} y1={GRID_Y1} x2={GRID_X1 + HALF_W} y2={GRID_Y1 + HALF_H} radius={3} />
+      <PhotoPanel photo={panelPhotos[1]} x1={GRID_X1 + HALF_W + 4} y1={GRID_Y1} x2={GRID_X2} y2={GRID_Y1 + HALF_H} radius={3} />
+      <PhotoPanel photo={panelPhotos[2]} x1={GRID_X1} y1={GRID_Y1 + HALF_H + 4} x2={GRID_X1 + HALF_W} y2={GRID_Y2} radius={3} />
+      <PhotoPanel photo={panelPhotos[3]} x1={GRID_X1 + HALF_W + 4} y1={GRID_Y1 + HALF_H + 4} x2={GRID_X2} y2={GRID_Y2} radius={3} />
 
-      <LbBadge x={48} y={H - 50} />
-      <GreenRule y={H - FOOTER_RULE_OFFSET} />
-      <PageNumber n={2} />
+      <DarkFooter slideNum={2} />
     </div>
   );
 }
 
-// ── Slide 3 — Investment Model ────────────────────────────────────────────
+// ── Slide 3 — Investment Model ────────────────────────────────────────────────
+//
+// Layout (960×540):
+//   Header band  [0,0,960,44]
+//   Left photos  hero [0,44,240,292] + interior [0,292,240,502]
+//   Center col   [246,44,640,502] — dark bg, narrative text
+//   Right col    [646,44,960,502] — cream, reason cards
+//   Footer band  [0,502,960,540]
 export function Slide3({ p }: { p: SlidePayload }) {
   const { property, photos, deckPayloadV2 } = p;
   const v2s3 = deckPayloadV2?.slide3;
+
   const conceptParagraph = v2s3?.conceptParagraph?.text || "L+B applies a disciplined boutique hospitality conversion model — acquiring underutilized assets, repositioning them with curated design and programming, and optimizing for year-round RevPAR growth.";
-  const slide3MarketRationale = v2s3?.marketRationale?.text || `${property.city}, ${property.stateProvince} presents a compelling supply-constrained market with growing leisure demand and limited boutique competition at the premium tier.`;
-  const slide3Reasons = (v2s3?.reasons ?? []).length > 0
-    ? (v2s3!.reasons!).map(r => ({ label: r.label.text, detail: r.detail.text }))
+  const marketRationale = v2s3?.marketRationale?.text || `${property.city}, ${property.stateProvince} presents a compelling supply-constrained market with growing leisure demand and limited boutique competition at the premium tier.`;
+  const reasons = (v2s3?.reasons ?? []).length > 0
+    ? v2s3!.reasons!.map(r => ({ label: r.label.text, detail: r.detail.text }))
     : [
         { label: "Location", detail: `Prime position in ${property.city}, ${property.stateProvince}` },
         { label: "Asset", detail: `${property.roomCount}-key boutique conversion at ${property.qualityTier || "upscale"} tier` },
-        { label: "Returns", detail: `Targeting stabilized NOI yield and strong equity multiple at exit` },
+        { label: "Returns", detail: "Targeting stabilized NOI yield and strong equity multiple at exit" },
       ];
-  const slide3ClosingLine = v2s3?.closingLine?.text || "";
+  const closingLine = v2s3?.closingLine?.text || "";
+
   const hero = photos.find(ph => ph.isHero) ?? photos[0];
   const autoInterior =
     photos.find(ph => !ph.isHero && ph.url?.includes("medellin-duplex-2")) ??
@@ -368,117 +421,122 @@ export function Slide3({ p }: { p: SlidePayload }) {
     photos.find(ph => !ph.isHero) ??
     photos[0];
   const interiorOverrideUrl = v2s3?.interiorPhotoUrl ?? null;
-  // Use the override when set and the URL still resolves to a known photo;
-  // if the photo was deleted after the override was saved, fall back to
-  // auto-selection so the slide doesn't display a broken image.
   const interior = interiorOverrideUrl
     ? (photos.find(ph => ph.url === interiorOverrideUrl) ?? autoInterior)
     : autoInterior;
+
   const type = typeLabel(property);
+  const headerTitle = `Investment Model: ${property.city.toUpperCase()}, ${property.stateProvince.toUpperCase()} · ${type.toUpperCase()}`;
+
+  const BODY_Y1 = HEADER_H;
+  const BODY_Y2 = FOOTER_Y;
+  const LEFT_X2 = 240;
+  const MID_X1 = 246; const MID_X2 = 636;
+  const RIGHT_X1 = 642; const RIGHT_X2 = W;
+  const MID_SPLIT = BODY_Y1 + (BODY_Y2 - BODY_Y1) / 2;
 
   return (
-    <div style={{ width: W, height: H, background: C.darkBg, display: "flex", position: "relative", overflow: "hidden" }}>
-      <div style={{ display: "flex", flexDirection: "column", width: 480, flexShrink: 0 }}>
-        <div style={{ position: "relative", flex: 1, overflow: "hidden" }}>
-          <PhotoBg photo={hero} />
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, transparent 60%, rgba(28,43,30,0.95) 100%)" }} />
-          {hero && (
-            <div style={{ position: "absolute", bottom: 14, left: 16, right: 16 }}>
-              <span style={{ fontFamily: FONT_SANS, fontSize: 9, color: "rgba(255,255,255,0.65)", letterSpacing: "0.08em", lineHeight: 1.4 }}>
-                {hero.caption ?? property.name}
-              </span>
-            </div>
-          )}
-        </div>
-        <div style={{ position: "relative", flex: 1, overflow: "hidden" }}>
-          <PhotoBg photo={interior} />
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, transparent 60%, rgba(28,43,30,0.9) 100%)" }} />
-          {interior && (
-            <div style={{ position: "absolute", bottom: 14, left: 16, right: 16 }}>
-              <span style={{ fontFamily: FONT_SANS, fontSize: 9, color: "rgba(255,255,255,0.65)", letterSpacing: "0.08em", lineHeight: 1.4 }}>
-                Chef&apos;s kitchen with marble waterfall island
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
+    <div style={{ width: W, height: H, background: SLIDE_BG[3], position: "relative", overflow: "hidden" }}>
+      <DarkHeader title={headerTitle} badge="INVESTMENT MODEL" />
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "44px 48px 44px 40px" }}>
-        <span style={{ fontFamily: FONT_SANS, fontSize: 11, letterSpacing: "0.3em", color: C.accent, textTransform: "uppercase", marginBottom: 6 }}>
-          INVESTMENT MODEL
-        </span>
-        <span style={{ fontFamily: FONT_SERIF, fontSize: 26, fontWeight: 700, color: C.cream, lineHeight: 1.2, marginBottom: 4 }}>
-          {property.city.toUpperCase()}, {property.stateProvince.toUpperCase()} · {type.toUpperCase()}
-        </span>
-        <span style={{ fontFamily: FONT_SANS, fontSize: 12, color: C.sage, marginBottom: 16 }}>
-          The L+B model applied to {type.toLowerCase()} assets in {property.city}, {property.stateProvince}
-        </span>
+      {/* Left — hero photo */}
+      <PhotoPanel photo={hero} x1={0} y1={BODY_Y1} x2={LEFT_X2} y2={MID_SPLIT} caption={hero?.caption || property.name} gradientDir="right" />
 
-        <div style={{ width: 40, height: 2, background: C.accent, marginBottom: 16 }} />
+      {/* Left — interior photo */}
+      <PhotoPanel photo={interior} x1={0} y1={MID_SPLIT + 2} x2={LEFT_X2} y2={BODY_Y2} caption="Chef's kitchen · marble waterfall island" gradientDir="right" />
 
-        <span style={{ fontFamily: FONT_SANS, fontSize: 11, color: C.sage, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>The Concept</span>
-        <span style={{ fontFamily: FONT_SANS, fontSize: 13, color: C.dimWhite, lineHeight: 1.6, marginBottom: 16 }}>
+      {/* Center dark column — narrative */}
+      <div style={{ ...bb(MID_X1, BODY_Y1, MID_X2, BODY_Y2), background: PALETTE.forest_green, padding: "16px 18px", display: "flex", flexDirection: "column" }}>
+        <span style={{ fontFamily: FONTS.body, fontSize: 6.5, fontWeight: FW.bold, letterSpacing: "0.25em", color: PALETTE.deep_green, textTransform: "uppercase", marginBottom: 6 }}>
+          THE CONCEPT
+        </span>
+        <span style={{ fontFamily: FONTS.body, fontSize: 8, fontWeight: FW.regular, color: PALETTE.pale_sage, lineHeight: 1.6, marginBottom: 14 }}>
           {conceptParagraph}
         </span>
 
-        <span style={{ fontFamily: FONT_SANS, fontSize: 11, color: C.sage, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>Why This Property?</span>
-        <span style={{ fontFamily: FONT_SANS, fontSize: 13, color: C.dimWhite, lineHeight: 1.6, marginBottom: 16 }}>
-          {slide3MarketRationale}
+        <div style={{ width: 20, height: 1, background: PALETTE.deep_green, marginBottom: 10 }} />
+
+        <span style={{ fontFamily: FONTS.body, fontSize: 6.5, fontWeight: FW.bold, letterSpacing: "0.25em", color: PALETTE.deep_green, textTransform: "uppercase", marginBottom: 6 }}>
+          WHY THIS PROPERTY?
+        </span>
+        <span style={{ fontFamily: FONTS.body, fontSize: 8, fontWeight: FW.regular, color: PALETTE.pale_sage, lineHeight: 1.6, marginBottom: 14 }}>
+          {marketRationale}
         </span>
 
-        {slide3Reasons.map(({ label, detail }, i) => (
-          <div key={i} style={{ display: "flex", flexDirection: "column", marginBottom: 10 }}>
-            <span style={{ fontFamily: FONT_SANS, fontSize: 12, color: C.cream, fontWeight: 600, marginBottom: 2 }}>{label}</span>
-            <span style={{ fontFamily: FONT_SANS, fontSize: 11, color: C.sage, lineHeight: 1.5 }}>{detail}</span>
-          </div>
-        ))}
-
-        {slide3ClosingLine && (
-          <div style={{ display: "flex", marginTop: 16, padding: "10px 16px", borderLeft: `3px solid ${C.accent}` }}>
-            <span style={{ fontFamily: FONT_SERIF, fontSize: 15, color: C.cream, fontStyle: "italic" }}>{slide3ClosingLine}</span>
+        {closingLine && (
+          <div style={{ borderLeft: `2px solid ${PALETTE.deep_green}`, paddingLeft: 10, marginTop: "auto" }}>
+            <span style={{ fontFamily: FONTS.editorial, fontSize: 9, fontStyle: "italic", color: PALETTE.off_white, lineHeight: 1.5 }}>
+              {closingLine}
+            </span>
           </div>
         )}
       </div>
 
-      <LbBadge x={48} y={40} />
-      <GreenRule y={H - FOOTER_RULE_OFFSET} />
-      <PageNumber n={3} />
+      {/* Right cream column — reason cards */}
+      <div style={{ ...bb(RIGHT_X1, BODY_Y1, RIGHT_X2, BODY_Y2), background: PALETTE.cream_card, display: "flex", flexDirection: "column", padding: "14px 16px", gap: 0 }}>
+        <span style={{ fontFamily: FONTS.body, fontSize: 6.5, fontWeight: FW.bold, letterSpacing: "0.25em", color: PALETTE.muted_gray_green, textTransform: "uppercase", marginBottom: 10 }}>
+          KEY REASONS
+        </span>
+        {reasons.map(({ label, detail }, i) => (
+          <div key={i} style={{ marginBottom: 12 }}>
+            <span style={{ display: "block", fontFamily: FONTS.body, fontSize: 8.5, fontWeight: FW.bold, color: PALETTE.forest_green, marginBottom: 2 }}>
+              {label}
+            </span>
+            <span style={{ display: "block", fontFamily: FONTS.body, fontSize: 7.5, fontWeight: FW.regular, color: PALETTE.muted_gray_green, lineHeight: 1.5 }}>
+              {detail}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <DarkFooter slideNum={3} />
     </div>
   );
 }
 
-// ── Slide 4 — Portfolio Overview ─────────────────────────────────────────
+// ── Slide 4 — Portfolio Overview ──────────────────────────────────────────────
+//
+// Layout (960×540):
+//   Header band [0,0,960,44]
+//   Card grid   6 cards in 3×2 in [16,52,944,498]
+//   Footer band [0,502,960,540]
 function PortfolioCard({ prop, isCurrent }: { prop: SiblingProperty | null; isCurrent?: boolean }) {
-
   if (!prop) {
     return (
-      <div style={{ display: "flex", flex: 1, position: "relative", borderRadius: 4, overflow: "hidden", border: `1px solid ${C.canvasRule}`, background: "rgba(28,43,30,0.08)", alignItems: "center", justifyContent: "center" }}>
-        <span style={{ fontFamily: FONT_SANS, fontSize: 11, color: C.sage, letterSpacing: "0.15em" }}>COMING SOON</span>
+      <div style={{ position: "relative", flex: 1, borderRadius: CARD_RADIUS, overflow: "hidden", border: `1px solid ${PALETTE.fine_rule}`, background: PALETTE.cream_card, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ fontFamily: FONTS.body, fontSize: 7, fontWeight: FW.regular, color: PALETTE.muted_gray_green, letterSpacing: "0.15em", textTransform: "uppercase" }}>
+          COMING SOON
+        </span>
       </div>
     );
   }
+
   const photo: SlidePhoto | undefined = prop.heroPhotoBase64
     ? { base64: prop.heroPhotoBase64, isHero: true, sortOrder: 0 }
     : undefined;
 
   return (
-    <div style={{ display: "flex", flex: 1, position: "relative", borderRadius: 4, overflow: "hidden", border: isCurrent ? `1px solid ${C.accent}` : `1px solid ${C.canvasRule}` }}>
+    <div style={{ position: "relative", flex: 1, borderRadius: CARD_RADIUS, overflow: "hidden", border: isCurrent ? `1.5px solid ${PALETTE.deep_green}` : `1px solid ${PALETTE.fine_rule}` }}>
       <PhotoBg photo={photo} />
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(15,22,16,0.96) 30%, rgba(15,22,16,0.2) 100%)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(15,22,16,0.93) 30%, rgba(15,22,16,0.15) 100%)" }} />
       {isCurrent && (
-        <div style={{ position: "absolute", top: 10, right: 10, background: C.accent, padding: "2px 8px", display: "flex", borderRadius: 2 }}>
-          <span style={{ fontFamily: FONT_SANS, fontSize: 8, color: C.white, letterSpacing: "0.15em" }}>THIS PROPERTY</span>
+        <div style={{ position: "absolute", top: 7, right: 7, background: PALETTE.deep_green, padding: "2px 6px", borderRadius: 2 }}>
+          <span style={{ fontFamily: FONTS.body, fontSize: 5.5, fontWeight: FW.bold, color: PALETTE.white, letterSpacing: "0.15em", textTransform: "uppercase" }}>
+            THIS PROPERTY
+          </span>
         </div>
       )}
-      <div style={{ position: "absolute", bottom: 14, left: 14, right: 14, display: "flex", flexDirection: "column" }}>
-        <span style={{ fontFamily: FONT_SANS, fontSize: 8, color: C.sage, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 3 }}>
+      <div style={{ position: "absolute", bottom: 9, left: 9, right: 9, display: "flex", flexDirection: "column" }}>
+        <span style={{ fontFamily: FONTS.body, fontSize: 6, fontWeight: FW.regular, color: PALETTE.sage, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 2 }}>
           {statusBadgeLabel(prop.acquisitionStatus)}
         </span>
-        <span style={{ fontFamily: FONT_SERIF, fontSize: 15, color: C.cream, lineHeight: 1.2, marginBottom: 3 }}>{prop.name}</span>
-        <span style={{ fontFamily: FONT_SANS, fontSize: 10, color: C.sage, marginBottom: 3 }}>
+        <span style={{ fontFamily: FONTS.editorial, fontSize: 10, fontWeight: FW.regular, color: PALETTE.off_white, lineHeight: 1.2, marginBottom: 2 }}>
+          {prop.name}
+        </span>
+        <span style={{ fontFamily: FONTS.body, fontSize: 6.5, fontWeight: FW.regular, color: PALETTE.sage, marginBottom: 2 }}>
           {[prop.city, prop.stateProvince].filter(Boolean).join(", ")}
         </span>
-        <span style={{ fontFamily: FONT_SANS, fontSize: 12, color: C.sage, fontWeight: 600 }}>
+        <span style={{ fontFamily: FONTS.body, fontSize: 7, fontWeight: FW.bold, color: PALETTE.pale_sage }}>
           {fmtCurrency(prop.purchasePrice)}
         </span>
       </div>
@@ -503,52 +561,67 @@ export function Slide4({ p }: { p: SlidePayload }) {
 
   const allCards: (SiblingProperty | null)[] = [currentAsCard, ...siblings.slice(0, SIBLING_GRID_SLOTS - 1)];
   while (allCards.length < SIBLING_GRID_SLOTS) allCards.push(null);
+
   const row1 = allCards.slice(0, SIBLING_GRID_COLS);
   const row2 = allCards.slice(SIBLING_GRID_COLS, SIBLING_GRID_SLOTS);
 
   const computedSubtitle = `${allCards.filter(Boolean).length} properties · ${property.name} highlighted`;
   const sectionSubtitle = v2?.sectionSubtitle?.text || computedSubtitle;
 
+  const headerTitle = "H+ Portfolio Overview";
+
+  // Grid bounds
+  const GX1 = 16; const GX2 = 944;
+  const GY1 = 52; const GY2 = 498;
+  const CARD_W = (GX2 - GX1 - CARD_GAP * 2) / 3;
+  const CARD_H = (GY2 - GY1 - CARD_GAP) / 2;
+
   return (
-    <div style={{ width: W, height: H, background: SLIDE_BACKGROUNDS[4], display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
-      <div style={{ padding: "30px 56px 18px 56px", display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" }}>
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <span style={{ fontFamily: FONT_SANS, fontSize: 11, letterSpacing: "0.3em", color: C.accent, textTransform: "uppercase", marginBottom: 4 }}>
+    <div style={{ width: W, height: H, background: SLIDE_BG[4], position: "relative", overflow: "hidden" }}>
+      {/* Header uses off-white bg but dark-green text for this slide */}
+      <div style={{ ...bb(0, 0, W, HEADER_H), background: PALETTE.off_white, display: "flex", flexDirection: "row", alignItems: "center", paddingLeft: 32, paddingRight: 24, borderBottom: `1px solid ${PALETTE.fine_rule}` }}>
+        <div style={{ flex: 1 }}>
+          <span style={{ fontFamily: FONTS.body, fontSize: 7, fontWeight: FW.bold, letterSpacing: "0.3em", color: PALETTE.deep_green, textTransform: "uppercase", display: "block", marginBottom: 2 }}>
             PROPERTY PIPELINE
           </span>
-          <span style={{ fontFamily: FONT_SERIF, fontSize: 26, color: C.darkBg }}>
-            H+ Portfolio Overview
+          <span style={{ fontFamily: FONTS.editorial, fontSize: 18, fontWeight: FW.bold, fontStyle: "italic", color: PALETTE.forest_green }}>
+            {headerTitle}
           </span>
         </div>
-        <span style={{ fontFamily: FONT_SANS, fontSize: 12, color: C.sage }}>
+        <span style={{ fontFamily: FONTS.body, fontSize: 7.5, fontWeight: FW.regular, color: PALETTE.muted_gray_green }}>
           {sectionSubtitle}
         </span>
       </div>
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: `0 40px 48px 40px` }}>
-        <div style={{ display: "flex", flexDirection: "row", flex: 1, marginBottom: CARD_GAP }}>
-          {row1.map((card, i) => (
-            <div key={i} style={{ display: "flex", flex: 1, marginRight: i < SIBLING_GRID_COLS - 1 ? CARD_GAP : 0 }}>
-              <PortfolioCard prop={card} isCurrent={i === 0} />
-            </div>
-          ))}
+      {/* Card row 1 */}
+      {row1.map((card, i) => (
+        <div key={i} style={{ ...bb(GX1 + i * (CARD_W + CARD_GAP), GY1, GX1 + i * (CARD_W + CARD_GAP) + CARD_W, GY1 + CARD_H), display: "flex" }}>
+          <PortfolioCard prop={card} isCurrent={i === 0} />
         </div>
-        <div style={{ display: "flex", flexDirection: "row", flex: 1 }}>
-          {row2.map((card, i) => (
-            <div key={i + SIBLING_GRID_COLS} style={{ display: "flex", flex: 1, marginRight: i < SIBLING_GRID_COLS - 1 ? CARD_GAP : 0 }}>
-              <PortfolioCard prop={card} />
-            </div>
-          ))}
-        </div>
-      </div>
+      ))}
 
-      <GreenRule y={H - FOOTER_RULE_OFFSET} />
+      {/* Card row 2 */}
+      {row2.map((card, i) => (
+        <div key={i + SIBLING_GRID_COLS} style={{ ...bb(GX1 + i * (CARD_W + CARD_GAP), GY1 + CARD_H + CARD_GAP, GX1 + i * (CARD_W + CARD_GAP) + CARD_W, GY2), display: "flex" }}>
+          <PortfolioCard prop={card} />
+        </div>
+      ))}
+
+      {/* Footer rule */}
+      <GreenRule y={FOOTER_Y} />
       <PageNumber n={4} />
     </div>
   );
 }
 
-// ── Slide 5 — Financial Snapshot ─────────────────────────────────────────
+// ── Slide 5 — Financial Snapshot (Transformation Plan) ───────────────────────
+//
+// Background: sage (#9FBCAD)
+// Layout:
+//   Header area [0,0,960,56] — off-white header card
+//   Left col    [16,64,490,490] — transformation table + description
+//   Right col   [506,64,944,490] — snapshot + financing + metrics
+//   Fine rule footer at y=500
 export function Slide5({ p }: { p: SlidePayload }) {
   const { property, financials, deckPayloadV2 } = p;
   const stable = getStableYear(financials.yearlyIS);
@@ -591,97 +664,121 @@ export function Slide5({ p }: { p: SlidePayload }) {
     ["EBITDA %", fmtPct(ebitdaPct)],
   ];
 
+  const BODY_Y1 = S56_HEADER_H;
+  const BODY_Y2 = 500;
+  const LEFT_X2 = 490;
+  const RIGHT_X1 = 506;
+
+  // Table row colors on sage bg
+  const TABLE_HEADER_BG = PALETTE.forest_green;
+  const TABLE_ZEBRA = "rgba(255,255,255,0.25)";
+  const TABLE_RULE = "rgba(255,255,255,0.18)";
+
   return (
-    <div style={{ width: W, height: H, background: SLIDE_BACKGROUNDS[5], display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
-      <div style={{ padding: "32px 56px 20px 56px", display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" }}>
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <span style={{ fontFamily: FONT_SANS, fontSize: 11, letterSpacing: "0.3em", color: C.accent, textTransform: "uppercase", marginBottom: 4 }}>
+    <div style={{ width: W, height: H, background: SLIDE_BG[5], position: "relative", overflow: "hidden" }}>
+      {/* Header area — white card */}
+      <div style={{ ...bb(0, 0, W, BODY_Y1), background: PALETTE.off_white, display: "flex", flexDirection: "row", alignItems: "center", paddingLeft: 24, paddingRight: 24, borderBottom: `1px solid ${PALETTE.fine_rule}` }}>
+        <div style={{ flex: 1 }}>
+          <span style={{ fontFamily: FONTS.body, fontSize: 7, fontWeight: FW.bold, letterSpacing: "0.3em", color: PALETTE.deep_green, textTransform: "uppercase", display: "block", marginBottom: 2 }}>
             FINANCIAL SNAPSHOT
           </span>
-          <span style={{ fontFamily: FONT_SERIF, fontSize: 26, color: C.darkBg }}>
+          <span style={{ fontFamily: FONTS.editorial, fontSize: 18, fontWeight: FW.bold, fontStyle: "italic", color: PALETTE.forest_green }}>
             The Transformation Plan — {property.name}
           </span>
         </div>
       </div>
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "row", padding: "0 40px 48px 40px" }}>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", marginRight: 32 }}>
-          <span style={{ fontFamily: FONT_SANS, fontSize: 12, color: C.darkBg, lineHeight: 1.6, marginBottom: 20 }}>
-            {slide5TransformDesc}
-          </span>
-
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            {transformRows.map((row, ri) => (
-              <div key={ri} style={{ display: "flex", flexDirection: "row", padding: "7px 0", borderBottom: ri < transformRows.length - 1 ? `1px solid ${C.canvasRule}` : "none", background: ri === 0 ? C.canvasHeader : ri % 2 === 0 ? C.canvasZebra : "transparent" }}>
-                {row.map((cell, ci) => (
-                  <span key={ci} style={{ flex: ci === 0 ? 0.8 : 1, fontFamily: FONT_SANS, fontSize: ri === 0 ? 10 : 12, color: C.darkBg, fontWeight: ri === 0 || ci === 0 ? 600 : 400, paddingLeft: 8 }}>
-                    {cell}
-                  </span>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ width: 380, display: "flex", flexDirection: "column" }}>
-          <span style={{ fontFamily: FONT_SANS, fontSize: 11, letterSpacing: "0.12em", color: C.accent, textTransform: "uppercase", marginBottom: 12 }}>
-            Snapshot of Stable Year ({stableLabel})
-          </span>
-          <div style={{ display: "flex", flexDirection: "column", marginBottom: 24 }}>
-            {snapshotRows.map(([label, val], ri) => (
-              <div key={ri} style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${C.canvasRule}` }}>
-                <span style={{ fontFamily: FONT_SANS, fontSize: 12, color: C.sage }}>{label}</span>
-                <span style={{ fontFamily: FONT_SANS, fontSize: 12, color: C.darkBg }}>{val}</span>
-              </div>
-            ))}
-          </div>
-
-          <span style={{ fontFamily: FONT_SANS, fontSize: 11, letterSpacing: "0.12em", color: C.accent, textTransform: "uppercase", marginBottom: 12 }}>
-            Financing Summary
-          </span>
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            {[
-              ["Purchase Price", fmtCurrency(property.purchasePrice)],
-              ["Renovation Budget", fmtCurrency(renovBudget)],
-              ["Total Investment", fmtCurrency(totalInvestment)],
-              [`Loan Amount (${ltv})`, fmtCurrency(financials.loanAmount)],
-              ["Annual Debt Service", fmtCurrency(financials.annualDebtService)],
-            ].map(([label, val], ri) => (
-              <div key={ri} style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", padding: "5px 0", borderBottom: `1px solid ${C.canvasRule}` }}>
-                <span style={{ fontFamily: FONT_SANS, fontSize: 12, color: C.sage }}>{label}</span>
-                <span style={{ fontFamily: FONT_SANS, fontSize: 12, color: C.darkBg, fontWeight: ri === 2 ? 600 : 400 }}>{val}</span>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", marginTop: 20, padding: "12px 16px", background: "rgba(37,125,65,0.15)", borderLeft: `3px solid ${C.accent}` }}>
-            <span style={{ fontFamily: FONT_SANS, fontSize: 11, color: C.accent, marginBottom: 6, display: "block" }}>Key Investor Metrics*</span>
-            <span style={{ fontFamily: FONT_SANS, fontSize: 12, color: C.darkBg, display: "block", marginBottom: 3 }}>GOP Margin: {fmtPct(grossMargin)}</span>
-            <span style={{ fontFamily: FONT_SANS, fontSize: 12, color: C.darkBg, display: "block", marginBottom: 6 }}>EBITDA ({stableLabel}): {fmtPct(ebitdaPct)}</span>
-            <span style={{ fontFamily: FONT_SANS, fontSize: 10, color: C.sage }}>* Projections for first full stabilized year</span>
-          </div>
+      {/* Left column — description + transformation table */}
+      <div style={{ ...bb(16, BODY_Y1 + 8, LEFT_X2, BODY_Y2), display: "flex", flexDirection: "column" }}>
+        <span style={{ fontFamily: FONTS.body, fontSize: 7.5, fontWeight: FW.regular, color: PALETTE.forest_green, lineHeight: 1.6, marginBottom: 12 }}>
+          {slide5TransformDesc}
+        </span>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          {transformRows.map((row, ri) => (
+            <div key={ri} style={{ display: "flex", flexDirection: "row", padding: "5px 0", borderBottom: ri < transformRows.length - 1 ? `1px solid ${TABLE_RULE}` : "none", background: ri === 0 ? TABLE_HEADER_BG : ri % 2 === 0 ? TABLE_ZEBRA : "transparent" }}>
+              {row.map((cell, ci) => (
+                <span key={ci} style={{ flex: ci === 0 ? 0.8 : 1, fontFamily: FONTS.body, fontSize: ri === 0 ? 6.5 : 7.5, color: ri === 0 ? PALETTE.off_white : PALETTE.forest_green, fontWeight: ri === 0 || ci === 0 ? FW.bold : FW.regular, paddingLeft: 6 }}>
+                  {cell}
+                </span>
+              ))}
+            </div>
+          ))}
         </div>
       </div>
 
-      <GreenRule y={H - FOOTER_RULE_OFFSET} />
+      {/* Right column — snapshot + financing + metrics */}
+      <div style={{ ...bb(RIGHT_X1, BODY_Y1 + 8, 944, BODY_Y2), display: "flex", flexDirection: "column" }}>
+        <span style={{ fontFamily: FONTS.body, fontSize: 6.5, fontWeight: FW.bold, letterSpacing: "0.15em", color: PALETTE.forest_green, textTransform: "uppercase", marginBottom: 8 }}>
+          Snapshot of Stable Year ({stableLabel})
+        </span>
+        <div style={{ display: "flex", flexDirection: "column", marginBottom: 16 }}>
+          {snapshotRows.map(([label, val], ri) => (
+            <div key={ri} style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", padding: "4px 0", borderBottom: `1px solid ${TABLE_RULE}` }}>
+              <span style={{ fontFamily: FONTS.body, fontSize: 7.5, fontWeight: FW.regular, color: PALETTE.forest_green }}>{label}</span>
+              <span style={{ fontFamily: FONTS.body, fontSize: 7.5, fontWeight: FW.regular, color: PALETTE.forest_green }}>{val}</span>
+            </div>
+          ))}
+        </div>
+
+        <span style={{ fontFamily: FONTS.body, fontSize: 6.5, fontWeight: FW.bold, letterSpacing: "0.15em", color: PALETTE.forest_green, textTransform: "uppercase", marginBottom: 8 }}>
+          Financing Summary
+        </span>
+        <div style={{ display: "flex", flexDirection: "column", marginBottom: 14 }}>
+          {[
+            ["Purchase Price", fmtCurrency(property.purchasePrice)],
+            ["Renovation Budget", fmtCurrency(renovBudget)],
+            ["Total Investment", fmtCurrency(totalInvestment)],
+            [`Loan Amount (${ltv})`, fmtCurrency(financials.loanAmount)],
+            ["Annual Debt Service", fmtCurrency(financials.annualDebtService)],
+          ].map(([label, val], ri) => (
+            <div key={ri} style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", padding: "4px 0", borderBottom: `1px solid ${TABLE_RULE}` }}>
+              <span style={{ fontFamily: FONTS.body, fontSize: 7.5, fontWeight: FW.regular, color: PALETTE.forest_green }}>{label}</span>
+              <span style={{ fontFamily: FONTS.body, fontSize: 7.5, fontWeight: ri === 2 ? FW.bold : FW.regular, color: PALETTE.forest_green }}>{val}</span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ background: "rgba(21,51,31,0.12)", borderLeft: `2px solid ${PALETTE.forest_green}`, padding: "8px 10px" }}>
+          <span style={{ fontFamily: FONTS.body, fontSize: 6.5, fontWeight: FW.bold, color: PALETTE.forest_green, marginBottom: 4, display: "block", textTransform: "uppercase", letterSpacing: "0.12em" }}>
+            Key Investor Metrics*
+          </span>
+          <span style={{ fontFamily: FONTS.body, fontSize: 7.5, fontWeight: FW.regular, color: PALETTE.forest_green, display: "block", marginBottom: 2 }}>
+            GOP Margin: {fmtPct(grossMargin)}
+          </span>
+          <span style={{ fontFamily: FONTS.body, fontSize: 7.5, fontWeight: FW.regular, color: PALETTE.forest_green, display: "block", marginBottom: 4 }}>
+            EBITDA ({stableLabel}): {fmtPct(ebitdaPct)}
+          </span>
+          <span style={{ fontFamily: FONTS.body, fontSize: 6, fontWeight: FW.regular, color: PALETTE.forest_green }}>
+            * Projections for first full stabilized year
+          </span>
+        </div>
+      </div>
+
+      <GreenRule y={BODY_Y2 + 2} />
       <PageNumber n={5} />
     </div>
   );
 }
 
-// ── Slide 6 — Income Statement ────────────────────────────────────────────
+// ── Slide 6 — Pro Forma Income Statement ─────────────────────────────────────
+//
+// Background: sage (#9FBCAD)
+// Layout:
+//   Header area [0,0,960,56] — off-white
+//   Left col    [16,64,620,490] — pro forma table (or PNG)
+//   Right col   [636,64,944,490] — investor metrics + disclaimer
 export function Slide6({ p }: { p: SlidePayload }) {
   const { property, financials, deckPayloadV2, usaliPngBase64, projYears } = p;
   const v2 = deckPayloadV2?.slide6;
-  // isLbMode is derived from the explicit payload flag, NOT from PNG presence.
-  // hasUsaliPng is a separate runtime check — PNG can fail even in LB mode.
+
   const isLbMode = p.usaliMode === true;
   const hasUsaliPng = Boolean(usaliPngBase64);
   const yearCount = projYears ?? PROFORMA_YEARS;
+
   const SLIDE6_DEFAULT_DISCLAIMER = isLbMode
     ? "10-year portfolio pro forma aggregated across all portfolio properties. H+ Analytics projection engine. Projections are estimates; actual results may vary."
     : "5-year pro forma based on H+ Analytics projection engine. Projections are estimates; actual results may vary.";
-  // Always slice to yearCount: non-LB → 5 yrs, LB fallback (no PNG) → 10 yrs.
+
   const years = financials.yearlyIS.slice(0, yearCount);
   const stable = getStableYear(financials.yearlyIS);
   const stableNoi = stable?.noi ?? 0;
@@ -711,67 +808,81 @@ export function Slide6({ p }: { p: SlidePayload }) {
     ["Initial Equity", fmtCurrency(initialEquity)],
   ];
 
+  const BODY_Y1 = S56_HEADER_H;
+  const BODY_Y2 = 500;
+  const LEFT_X2 = 618;
+  const RIGHT_X1 = 634;
+
+  const TABLE_HEADER_BG = PALETTE.forest_green;
+  const TABLE_ZEBRA = "rgba(255,255,255,0.22)";
+  const TABLE_RULE = "rgba(255,255,255,0.18)";
+
   return (
-    <div style={{ width: W, height: H, background: SLIDE_BACKGROUNDS[6], display: "flex", flexDirection: "column", position: "relative", overflow: "hidden" }}>
-      <div style={{ padding: "32px 56px 16px 56px", display: "flex", flexDirection: "column" }}>
-        <span style={{ fontFamily: FONT_SANS, fontSize: 11, letterSpacing: "0.3em", color: C.accent, textTransform: "uppercase", marginBottom: 4 }}>
+    <div style={{ width: W, height: H, background: SLIDE_BG[6], position: "relative", overflow: "hidden" }}>
+      {/* Header */}
+      <div style={{ ...bb(0, 0, W, BODY_Y1), background: PALETTE.off_white, display: "flex", flexDirection: "column", justifyContent: "center", paddingLeft: 24, paddingRight: 24, borderBottom: `1px solid ${PALETTE.fine_rule}` }}>
+        <span style={{ fontFamily: FONTS.body, fontSize: 7, fontWeight: FW.bold, letterSpacing: "0.3em", color: PALETTE.deep_green, textTransform: "uppercase", marginBottom: 2 }}>
           {yearCount}-YEAR CONSOLIDATED PRO FORMA INCOME STATEMENT
         </span>
-        <span style={{ fontFamily: FONT_SERIF, fontSize: 22, color: C.darkBg }}>
+        <span style={{ fontFamily: FONTS.editorial, fontSize: 16, fontWeight: FW.bold, fontStyle: "italic", color: PALETTE.forest_green }}>
           {property.name}
         </span>
       </div>
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "row", padding: "0 40px 48px 40px" }}>
-        <div style={{ display: "flex", flexDirection: "column", flex: 1, marginRight: 32 }}>
-          {hasUsaliPng ? (
-            <img
-              src={`data:image/png;base64,${usaliPngBase64}`}
-              alt="10-Year Portfolio Pro Forma Income Statement"
-              style={{ width: "100%", height: "auto", display: "block", borderRadius: 2 }}
-            />
-          ) : (
-            <>
-              <div style={{ display: "flex", flexDirection: "row", padding: "8px 0", background: C.darkBg, borderBottom: `1px solid ${C.accent}`, marginBottom: 4 }}>
-                <span style={{ flex: 1.4, fontFamily: FONT_SANS, fontSize: 10, color: C.sage, paddingLeft: 8 }}>Item</span>
-                {years.map((y, i) => (
-                  <span key={i} style={{ flex: 1, fontFamily: FONT_NUMERIC, fontSize: 11, fontVariantNumeric: "tabular-nums", color: C.cream, textAlign: "right", paddingRight: 8, letterSpacing: "0.04em" }}>Yr {i + 1}</span>
+      {/* Left — table or PNG */}
+      <div style={{ ...bb(16, BODY_Y1 + 8, LEFT_X2, BODY_Y2), display: "flex", flexDirection: "column" }}>
+        {hasUsaliPng ? (
+          <img
+            src={`data:image/png;base64,${usaliPngBase64}`}
+            alt="10-Year Portfolio Pro Forma"
+            style={{ width: "100%", height: "auto", display: "block", borderRadius: 2 }}
+          />
+        ) : (
+          <>
+            <div style={{ display: "flex", flexDirection: "row", padding: "5px 0", background: TABLE_HEADER_BG, marginBottom: 2 }}>
+              <span style={{ flex: 1.4, fontFamily: FONTS.body, fontSize: 6.5, fontWeight: FW.bold, color: PALETTE.sage, paddingLeft: 6 }}>Item</span>
+              {years.map((_, i) => (
+                <span key={i} style={{ flex: 1, fontFamily: FONTS.numeric, fontSize: 7, color: PALETTE.off_white, textAlign: "right", paddingRight: 6, letterSpacing: "0.04em" }}>Yr {i + 1}</span>
+              ))}
+            </div>
+            {isRows.map(([label, vals], ri) => (
+              <div key={ri} style={{ display: "flex", flexDirection: "row", padding: "4px 0", background: ri % 2 === 0 ? TABLE_ZEBRA : "transparent", borderBottom: `1px solid ${TABLE_RULE}` }}>
+                <span style={{ flex: 1.4, fontFamily: FONTS.body, fontSize: 7, fontWeight: ri === 2 ? FW.bold : FW.regular, color: PALETTE.forest_green, paddingLeft: 6 }}>
+                  {label}
+                </span>
+                {(vals as string[]).map((v, vi) => (
+                  <span key={vi} style={{ flex: 1, fontFamily: FONTS.numeric, fontSize: 7.5, color: ri === 2 ? PALETTE.deep_green : PALETTE.forest_green, textAlign: "right", paddingRight: 6, fontWeight: ri === 2 ? FW.bold : FW.regular }}>
+                    {v}
+                  </span>
                 ))}
               </div>
-              {isRows.map(([label, vals], ri) => (
-                <div key={ri} style={{ display: "flex", flexDirection: "row", padding: "6px 0", background: ri % 2 === 0 ? C.canvasZebra : "transparent", borderBottom: `1px solid ${C.canvasRule}` }}>
-                  <span style={{ flex: 1.4, fontFamily: FONT_SANS, fontSize: 11, color: C.darkBg, paddingLeft: 8, fontWeight: ri === 2 ? 600 : 400 }}>{label}</span>
-                  {(vals as string[]).map((v, vi) => (
-                    <span key={vi} style={{ flex: 1, fontFamily: FONT_NUMERIC, fontSize: 13, fontVariantNumeric: "tabular-nums", color: ri === 2 ? C.accent : C.darkBg, textAlign: "right", paddingRight: 8, fontWeight: ri === 2 ? 700 : 400 }}>{v}</span>
-                  ))}
-                </div>
-              ))}
-            </>
-          )}
+            ))}
+          </>
+        )}
+      </div>
+
+      {/* Right — investor metrics */}
+      <div style={{ ...bb(RIGHT_X1, BODY_Y1 + 8, 944, BODY_Y2), display: "flex", flexDirection: "column" }}>
+        <span style={{ fontFamily: FONTS.body, fontSize: 6.5, fontWeight: FW.bold, letterSpacing: "0.15em", color: PALETTE.forest_green, textTransform: "uppercase", marginBottom: 8 }}>
+          Key Investor Metrics
+        </span>
+        <div style={{ display: "flex", flexDirection: "column", marginBottom: 16 }}>
+          {investorRows.map(([label, val], ri) => (
+            <div key={ri} style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", padding: "5px 8px", background: ri % 2 === 0 ? TABLE_ZEBRA : "transparent", borderBottom: `1px solid ${TABLE_RULE}` }}>
+              <span style={{ fontFamily: FONTS.body, fontSize: 7.5, fontWeight: FW.regular, color: PALETTE.forest_green }}>{label}</span>
+              <span style={{ fontFamily: FONTS.numeric, fontSize: 9, color: PALETTE.forest_green, fontWeight: ri < 2 ? FW.bold : FW.regular }}>{val}</span>
+            </div>
+          ))}
         </div>
 
-        <div style={{ width: 320, display: "flex", flexDirection: "column" }}>
-          <span style={{ fontFamily: FONT_SANS, fontSize: 11, letterSpacing: "0.12em", color: C.accent, textTransform: "uppercase", marginBottom: 12 }}>
-            Key Investor Metrics
+        <div style={{ background: "rgba(21,51,31,0.12)", borderLeft: `2px solid ${PALETTE.forest_green}`, padding: "8px 10px", marginTop: "auto" }}>
+          <span style={{ fontFamily: FONTS.editorial, fontSize: 8, fontStyle: "italic", color: PALETTE.forest_green, lineHeight: 1.6, display: "block" }}>
+            {v2?.disclaimer?.text || SLIDE6_DEFAULT_DISCLAIMER}
           </span>
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            {investorRows.map(([label, val], ri) => (
-              <div key={ri} style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", padding: "8px 12px", background: ri % 2 === 0 ? C.canvasZebra : "transparent", borderBottom: `1px solid ${C.canvasRule}` }}>
-                <span style={{ fontFamily: FONT_SANS, fontSize: 12, color: C.sage }}>{label}</span>
-                <span style={{ fontFamily: FONT_NUMERIC, fontSize: 15, fontVariantNumeric: "tabular-nums", color: C.darkBg, fontWeight: ri < 2 ? 700 : 400 }}>{val}</span>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ display: "flex", marginTop: 24, padding: "12px 16px", background: "rgba(37,125,65,0.15)", borderLeft: `3px solid ${C.accent}` }}>
-            <span style={{ fontFamily: FONT_SERIF, fontSize: 14, color: C.darkBg, fontStyle: "italic", lineHeight: 1.6 }}>
-              {v2?.disclaimer?.text || SLIDE6_DEFAULT_DISCLAIMER}
-            </span>
-          </div>
         </div>
       </div>
 
-      <GreenRule y={H - FOOTER_RULE_OFFSET} />
+      <GreenRule y={BODY_Y2 + 2} />
       <PageNumber n={6} />
     </div>
   );

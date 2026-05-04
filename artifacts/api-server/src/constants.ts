@@ -128,6 +128,9 @@ export const HSTS_MAX_AGE_SECONDS = 31536000;
 /** PostgreSQL error code for unique constraint violation (duplicate key). */
 export const PG_UNIQUE_VIOLATION_CODE = "23505";
 
+/** Standard VARCHAR max length for short user-supplied strings (name, email, filename). */
+export const VARCHAR_SHORT_MAX = 255;
+
 // ---------------------------------------------------------------------------
 // Circuit breaker / retry defaults
 // ---------------------------------------------------------------------------

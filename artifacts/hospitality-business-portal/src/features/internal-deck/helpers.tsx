@@ -1,9 +1,11 @@
 /**
  * helpers.tsx — Shared formatters and sub-components used across the six
  * investor deck slides.
+ *
+ * Uses PALETTE and FONTS from contract.ts exclusively — no theme.ts imports.
  */
 import React from "react";
-import { C, FONT_SANS, FONT_SERIF } from "./theme";
+import { PALETTE, FONTS, FW } from "./contract";
 import type { SlidePhoto, SlideProperty, YearlyIS } from "./types";
 
 const ONE_MILLION = 1_000_000;
@@ -11,6 +13,7 @@ const ONE_THOUSAND = 1_000;
 const PCT_SCALE = 100;
 const STABLE_YEAR_INDEX_FALLBACK = 2;
 const STABLE_OPERATIONAL_MONTHS_REQUIRED = 12;
+const PHOTO_PLACEHOLDER_FONT_SIZE = 24;
 
 export function fmtCurrency(n: number | null | undefined): string {
   if (n == null || n === 0) return "—";
@@ -79,22 +82,22 @@ export function statusBadgeLabel(s?: string): string {
 export function PhotoBg({ photo, style }: { photo: SlidePhoto | undefined; style?: React.CSSProperties }) {
   const src = photoSrc(photo);
   return (
-    <div style={{ display: "flex", position: "absolute", inset: 0, overflow: "hidden", ...style }}>
+    <div style={{ position: "absolute", inset: 0, overflow: "hidden", ...style }}>
       {src ? (
         <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
       ) : (
-        <div style={{ width: "100%", height: "100%", background: C.darkBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <span style={{ fontFamily: FONT_SERIF, fontSize: 48, color: C.sage, letterSpacing: "0.3em" }}>L+B</span>
+        <div style={{ width: "100%", height: "100%", background: PALETTE.forest_green, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <span style={{ fontFamily: FONTS.editorial, fontSize: PHOTO_PLACEHOLDER_FONT_SIZE, fontWeight: FW.bold, color: PALETTE.sage, letterSpacing: "0.3em" }}>L+B</span>
         </div>
       )}
     </div>
   );
 }
 
-export function LbBadge({ x = 48, y = 40 }: { x?: number; y?: number }) {
+export function LbBadge({ x = 24, y = 20 }: { x?: number; y?: number }) {
   return (
-    <div style={{ position: "absolute", top: y, left: x, display: "flex", flexDirection: "column" }}>
-      <span style={{ fontFamily: FONT_SANS, fontSize: 11, fontWeight: 400, letterSpacing: "0.35em", color: C.accent, textTransform: "uppercase" }}>
+    <div style={{ position: "absolute", top: y, left: x }}>
+      <span style={{ fontFamily: FONTS.body, fontSize: 6, fontWeight: FW.bold, letterSpacing: "0.35em", color: PALETTE.deep_green, textTransform: "uppercase" }}>
         L+B ANALYTICS
       </span>
     </div>
@@ -103,8 +106,8 @@ export function LbBadge({ x = 48, y = 40 }: { x?: number; y?: number }) {
 
 export function PageNumber({ n }: { n: number }) {
   return (
-    <div style={{ position: "absolute", bottom: 28, right: 48, display: "flex", alignItems: "center" }}>
-      <span style={{ fontFamily: FONT_SANS, fontSize: 11, color: C.sage, letterSpacing: "0.12em" }}>
+    <div style={{ position: "absolute", bottom: 14, right: 24 }}>
+      <span style={{ fontFamily: FONTS.body, fontSize: 6, fontWeight: FW.regular, color: PALETTE.muted_gray_green, letterSpacing: "0.12em" }}>
         PAGE {n}
       </span>
     </div>
@@ -113,6 +116,6 @@ export function PageNumber({ n }: { n: number }) {
 
 export function GreenRule({ y }: { y: number }) {
   return (
-    <div style={{ position: "absolute", top: y, left: 0, right: 0, height: 2, background: C.accent, opacity: 0.45 }} />
+    <div style={{ position: "absolute", top: y, left: 0, right: 0, height: 1, background: PALETTE.deep_green, opacity: 0.45 }} />
   );
 }

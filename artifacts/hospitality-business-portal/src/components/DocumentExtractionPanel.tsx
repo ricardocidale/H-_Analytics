@@ -349,7 +349,7 @@ export default function DocumentExtractionPanel({ propertyId }: { propertyId: nu
     } finally {
       setUploading(false);
     }
-  }, [propertyId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [propertyId, toast, invalidateLibrary]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();

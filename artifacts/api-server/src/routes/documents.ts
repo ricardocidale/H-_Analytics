@@ -17,6 +17,7 @@ import {
   HTTP_413_PAYLOAD_TOO_LARGE,
   HTTP_429_TOO_MANY_REQUESTS,
   HTTP_500_INTERNAL_SERVER_ERROR,
+  VARCHAR_SHORT_MAX,
 } from "../constants";
 import { DEFAULT_EXIT_CAP_RATE } from "@shared/constants";
 import { resolveDefault } from "../defaults";
@@ -276,7 +277,7 @@ export function register(app: Express) {
       const id = parseRouteId(req.params.id);
       if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid extraction ID" });
 
-      const schema = z.object({ fileName: z.string().min(1).max(255) });
+      const schema = z.object({ fileName: z.string().min(1).max(VARCHAR_SHORT_MAX) });
       const validation = schema.safeParse(req.body);
       if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
 

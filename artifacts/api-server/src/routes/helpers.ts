@@ -4,6 +4,7 @@ import { VALID_USER_ROLES } from "@workspace/db";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error/v3";
 import { logger } from "../logger";
+import { VARCHAR_SHORT_MAX } from "../constants";
 
 /**
  * Convert a typed Zod error into a human-readable message string.
@@ -115,7 +116,7 @@ export const createScenarioSchema = z.object({
   description: z.string().max(1000).nullable().optional(),
 });
 
-export { MAX_SCENARIOS_PER_USER } from "../constants";
+export { MAX_SCENARIOS_PER_USER, VARCHAR_SHORT_MAX } from "../constants";
 
 export const researchGenerateSchema = z.object({
   type: z.enum(["property", "company", "global"]),
@@ -165,7 +166,7 @@ export const marketIntelligenceGatherSchema = z.object({
 });
 
 export const driveFolderSchema = z.object({
-  name: z.string().min(1, "Folder name is required").max(255),
+  name: z.string().min(1, "Folder name is required").max(VARCHAR_SHORT_MAX),
   parentId: z.string().max(200).optional(),
 });
 

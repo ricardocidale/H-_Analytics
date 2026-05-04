@@ -25,6 +25,7 @@ import {
   HTTP_403_FORBIDDEN,
   HTTP_404_NOT_FOUND,
   HTTP_429_TOO_MANY_REQUESTS,
+  VARCHAR_SHORT_MAX,
 } from "../constants";
 
 export function register(app: Express) {
@@ -171,7 +172,7 @@ export function register(app: Express) {
   const updateProfileSchema = z.object({
     firstName: z.string().max(50).optional(),
     lastName: z.string().max(50).optional(),
-    email: z.string().email().max(255).optional(),
+    email: z.string().email().max(VARCHAR_SHORT_MAX).optional(),
     company: z.string().max(100).optional(),
     title: z.string().max(100).optional(),
     rebeccaOptOut: z.boolean().optional(),
