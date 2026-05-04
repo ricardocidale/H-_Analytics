@@ -646,6 +646,11 @@ export default function SlideDecksTab() {
   const { data: slideStatuses } = useQuery<SlideStatusRow[]>({
     queryKey: ["/api/slides/status"],
     staleTime: 15_000,
+    refetchInterval: (query) => {
+      const rows = query.state.data;
+      if (Array.isArray(rows) && rows.some(r => r.status === "generating")) return 3_000;
+      return false;
+    },
   });
 
   const deckStatusByPropertyId = new Map<number, DeckReadiness>();
@@ -727,6 +732,7 @@ export default function SlideDecksTab() {
           d => d.validationErrors && d.validationErrors.length > 0,
         );
 
+        let patched = false;
         if (usableDrafts.length > 0) {
           const patch = draftsToPatch(usableDrafts);
           const patchRes = await fetch(
@@ -739,6 +745,7 @@ export default function SlideDecksTab() {
             },
           );
           if (!patchRes.ok) throw new Error(`PATCH HTTP ${patchRes.status}`);
+          patched = true;
         }
 
         setBulkDraftStatuses(prev => new Map(prev).set(propertyId, "done"));
@@ -749,6 +756,22 @@ export default function SlideDecksTab() {
           draftedSlots: usableDrafts.map(d => d.slot),
           skippedSlots: skippedDrafts.map(d => d.slot),
         });
+
+        if (usableDrafts.length > 0) {
+          fetch(`/api/properties/${propertyId}/deck.pdf/regenerate`, {
+            method: "POST",
+            credentials: "include",
+          })
+            .then(r => {
+              if (r.ok) {
+                queryClient.invalidateQueries({ queryKey: ["/api/slides/status"] });
+              } else {
+                console.warn(`[bulk-draft] PDF regen queue failed for property ${propertyId}: HTTP ${r.status}`);
+                queryClient.invalidateQueries({ queryKey: ["/api/slides/status"] });
+              }
+            })
+            .catch(() => {});
+        }
 
         await queryClient.invalidateQueries({
           queryKey: ["/api/admin/properties", propertyId, "deck-payload", "readiness"],

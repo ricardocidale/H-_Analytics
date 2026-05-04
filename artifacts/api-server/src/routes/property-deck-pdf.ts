@@ -31,6 +31,7 @@ import { getStorageProviderAsync } from "../providers/storage";
 import { signDeckToken } from "../slides/internal-token";
 import { DECK_LOGIC_VERSION } from "../slides/deck-logic-version";
 import {
+  HTTP_202_ACCEPTED,
   HTTP_400_BAD_REQUEST,
   HTTP_404_NOT_FOUND,
   HTTP_500_INTERNAL_SERVER_ERROR,
@@ -313,6 +314,68 @@ router.get(
       }
       return res;
     }
+  },
+);
+
+router.post(
+  "/api/properties/:id/deck.pdf/regenerate",
+  requireAdmin,
+  async (req: Request, res: Response) => {
+    const propertyId = parseRouteId(req.params.id);
+    if (!propertyId) {
+      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+    }
+
+    const property = await storage.getProperty(propertyId);
+    if (!property) {
+      return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
+    }
+
+    const user = getAuthUser(req);
+    const triggeredBy = user?.email ?? user?.id?.toString() ?? "bulk-draft";
+
+    await upsertPdfVariantRow({
+      propertyId,
+      status: "generating",
+      triggeredBy,
+      errorMessage: null,
+    }).catch(() => {});
+
+    (async () => {
+      try {
+        const sp = await getStorageProviderAsync();
+        const pdf = await renderDeckPdf(propertyId);
+        const key = pdfR2Key(propertyId);
+        await sp.uploadBuffer(key, pdf, PDF_CONTENT_TYPE);
+        await upsertPdfVariantRow({
+          propertyId,
+          status: "ready",
+          r2Key: key,
+          fileSizeBytes: pdf.length,
+          generatedAt: new Date(),
+          triggeredBy,
+          errorMessage: null,
+        });
+        logger.info(
+          `[property-deck-pdf] Background regen: ${pdf.length}B for property ${propertyId} → ${key}`,
+          "property-deck-pdf",
+        );
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "PDF render failed";
+        logger.error(
+          `[property-deck-pdf] Background regen failed for property ${propertyId}: ${message}`,
+          "property-deck-pdf",
+        );
+        await upsertPdfVariantRow({
+          propertyId,
+          status: "error",
+          triggeredBy,
+          errorMessage: message.slice(0, SLIDE_ERROR_MSG_MAX_LENGTH),
+        }).catch(() => {});
+      }
+    })();
+
+    return res.status(HTTP_202_ACCEPTED).json({ queued: true, propertyId });
   },
 );
 
