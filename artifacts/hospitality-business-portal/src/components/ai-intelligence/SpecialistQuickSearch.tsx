@@ -92,7 +92,7 @@ export function SpecialistQuickSearch({ onSelect }: SpecialistQuickSearchProps) 
     // "analyst-orchestrator" section, not a catalog id.
     {
       const overrideName = overrideHumanNameById.get(ORCHESTRATOR_SPECIALIST_ID);
-      const human = overrideName || "Gaspar";
+      const human = overrideName || "Gustavo";
       rows.push({
         section: "analyst-orchestrator",
         specialistId: ORCHESTRATOR_SPECIALIST_ID,
