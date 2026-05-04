@@ -496,6 +496,7 @@ export default function SlideDecksTab() {
         return r.json();
       },
       staleTime: 0,
+      refetchInterval: 60_000,
       retry: 1,
     })),
   });
