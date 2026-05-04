@@ -18,7 +18,16 @@ import {
 } from "../slides/property-brief";
 import type { SlideProperty } from "../slides/types";
 import { SLOT_CONTEXT_MAP } from "../slides/slot-context-map";
-import { DEFAULT_FALLBACK_OCCUPANCY } from "@shared/constants-benchmarks";
+import {
+  DEFAULT_FALLBACK_OCCUPANCY,
+  VISION_DRAFT_MAX_TOKENS,
+  VISION_BADGE_MAX_CHARS,
+  VISION_BULLET_MAX_CHARS,
+  VISION_PARAGRAPH_MAX_CHARS,
+  RETREAT_GUESTS_PER_KEY_MIN,
+  RETREAT_GUESTS_PER_KEY_MAX,
+  VRBO_GUESTS_PER_KEY,
+} from "@shared/constants-benchmarks";
 
 export interface PropertyVisionInput {
   id: number;
@@ -63,21 +72,8 @@ export interface PropertyVisionText {
 
 const VISION_MODEL = "claude-opus-4-6";
 
-/** Max tokens for the whole-deck vision LLM call (20+ fields). */
-const VISION_DRAFT_MAX_TOKENS = 1200;
-
-/** Character budget hints injected into the LLM prompt (not hard server limits). */
-const VISION_BADGE_MAX_CHARS = 35;
-const VISION_BULLET_MAX_CHARS = 80;
-const VISION_PARAGRAPH_MAX_CHARS = 180;
-
 /** Fallback room count when property record has no roomCount. */
 const FALLBACK_ROOM_COUNT = 10;
-
-/** Guest multipliers for retreat and VRBO tier fallback headlines. */
-const RETREAT_GUESTS_PER_KEY_MIN = 3;
-const RETREAT_GUESTS_PER_KEY_MAX = 4;
-const VRBO_GUESTS_PER_KEY = 10;
 
 function stripCodeFences(text: string): string {
   const trimmed = text.trim();

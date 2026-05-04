@@ -306,3 +306,27 @@ export const ICP_MODEL_PROFILES: Record<IcpModelTier, IcpModelProfile> = {
     ],
   },
 };
+
+// ── L+B Slide Vision — LLM generation constants ───────────────────────────
+
+/** Max tokens for the whole-deck property vision LLM call (20+ fields). */
+export const VISION_DRAFT_MAX_TOKENS = 1200;
+
+/**
+ * Character budget hints injected into the LLM prompt so the model
+ * self-constrains each field type. These are soft limits for the prompt;
+ * the hard schema limits live in deck-payload-v2.ts (SLIDE*_*_MAX constants).
+ */
+export const VISION_BADGE_MAX_CHARS = 35;
+export const VISION_BULLET_MAX_CHARS = 80;
+export const VISION_PARAGRAPH_MAX_CHARS = 180;
+
+/**
+ * Guest-count multipliers used in the deterministic vision headline templates.
+ * Retreat tier: roomCount × MIN–MAX gives the typical group capacity range.
+ */
+export const RETREAT_GUESTS_PER_KEY_MIN = 3;
+export const RETREAT_GUESTS_PER_KEY_MAX = 4;
+
+/** VRBO tier: whole-property capacity estimate (guests per key). */
+export const VRBO_GUESTS_PER_KEY = 10;
