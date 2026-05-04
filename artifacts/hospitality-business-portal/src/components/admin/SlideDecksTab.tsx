@@ -1,11 +1,21 @@
-import { useState } from "react";
-import { useQuery, useQueries } from "@tanstack/react-query";
+import { useState, useCallback } from "react";
+import { useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { IconPresentation, IconAlertCircle, IconLayers, IconDownload, IconPencil } from "@/components/icons";
+import {
+  IconPresentation,
+  IconAlertCircle,
+  IconLayers,
+  IconDownload,
+  IconPencil,
+  IconCheckCircle2,
+  IconAlertTriangle,
+  IconWand2,
+} from "@/components/icons";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { DECK_PAYLOAD_SCHEMA_VERSION } from "@shared/deck-payload-v2";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -51,6 +61,16 @@ interface ReadinessResponse {
 interface CopyReadinessSummary {
   staleCount: number;
   missingCount: number;
+}
+
+type BulkDraftStatus = "idle" | "drafting" | "done" | "error";
+
+interface DraftResult {
+  slot: string;
+  suggestion: unknown;
+  model: string;
+  generatedAt: string;
+  validationErrors?: string[];
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────
@@ -138,6 +158,64 @@ function summaryFromReadiness(r: ReadinessResponse): CopyReadinessSummary {
   return { staleCount, missingCount };
 }
 
+/**
+ * Convert the array of DraftResult items returned by draft-all into a
+ * partial DeckPayloadV2 patch that can be sent to PATCH /deck-payload.
+ *
+ * Each authored value needs a provenance envelope:
+ *   { text: "...", provenance: { source: "llm", updatedAt: "...", model: "..." } }
+ */
+function draftsToPatch(drafts: DraftResult[]): Record<string, unknown> {
+  const patch: Record<string, Record<string, unknown>> = {};
+
+  function makeProvenance(d: DraftResult) {
+    return { source: "llm" as const, updatedAt: d.generatedAt, model: d.model };
+  }
+
+  for (const d of drafts) {
+    // Skip drafts with validation errors — don't persist bad data
+    if (d.validationErrors && d.validationErrors.length > 0) continue;
+
+    const [slideKey, slotName] = d.slot.split(".");
+    if (!slideKey || !slotName) continue;
+
+    const suggestion = d.suggestion as Record<string, unknown>;
+    if (!patch[slideKey]) patch[slideKey] = {};
+
+    if (slotName === "visionBullets") {
+      // suggestion: { bullets: [{ text: "..." }, ...] }
+      const bullets = (suggestion.bullets as Array<{ text: string }> | undefined) ?? [];
+      patch[slideKey][slotName] = bullets.map(b => ({
+        text: b.text,
+        provenance: makeProvenance(d),
+      }));
+    } else if (slotName === "reasons") {
+      // suggestion: { reasons: [{ label: "...", detail: "..." }, ...] }
+      const reasons = (suggestion.reasons as Array<{ label: string; detail: string }> | undefined) ?? [];
+      patch[slideKey][slotName] = reasons.map(r => ({
+        label: { text: r.label, provenance: makeProvenance(d) },
+        detail: { text: r.detail, provenance: makeProvenance(d) },
+      }));
+    } else if (slotName === "transformationRows") {
+      // suggestion: { rows: [{ feature: "...", existing: "...", proposed: "..." }, ...] }
+      const rows = (suggestion.rows as Array<{ feature: string; existing: string; proposed: string }> | undefined) ?? [];
+      patch[slideKey][slotName] = rows.map(r => ({
+        feature: { text: r.feature, provenance: makeProvenance(d) },
+        existing: { text: r.existing, provenance: makeProvenance(d) },
+        proposed: { text: r.proposed, provenance: makeProvenance(d) },
+      }));
+    } else {
+      // All simple text slots: suggestion: { text: "..." }
+      patch[slideKey][slotName] = {
+        text: suggestion.text as string,
+        provenance: makeProvenance(d),
+      };
+    }
+  }
+
+  return { schemaVersion: DECK_PAYLOAD_SCHEMA_VERSION, ...patch };
+}
+
 // ── Copy readiness badge ───────────────────────────────────────────────────
 
 function CopyReadinessBadge({
@@ -210,6 +288,41 @@ function CopyReadinessBadge({
       </Badge>
     </Link>
   );
+}
+
+// ── Per-card bulk draft overlay ────────────────────────────────────────────
+
+function BulkDraftOverlay({ status }: { status: BulkDraftStatus }) {
+  if (status === "idle") return null;
+
+  if (status === "drafting") {
+    return (
+      <div className="flex items-center gap-1.5 text-[11px] font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 rounded px-2 py-1">
+        <Loader2 className="h-3 w-3 animate-spin shrink-0" />
+        Drafting copy…
+      </div>
+    );
+  }
+
+  if (status === "done") {
+    return (
+      <div className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 rounded px-2 py-1">
+        <IconCheckCircle2 className="h-3 w-3 shrink-0" />
+        Copy drafted &amp; saved
+      </div>
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <div className="flex items-center gap-1.5 text-[11px] font-medium text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded px-2 py-1">
+        <IconAlertTriangle className="h-3 w-3 shrink-0" />
+        Draft failed — open editor
+      </div>
+    );
+  }
+
+  return null;
 }
 
 // ── Slide render thumbnail ─────────────────────────────────────────────────
@@ -321,7 +434,10 @@ function DeckReadinessBadge({ readiness }: { readiness: DeckReadiness }) {
 // ── Main component ─────────────────────────────────────────────────────────
 
 export default function SlideDecksTab() {
+  const queryClient = useQueryClient();
   const [downloadingIds, setDownloadingIds] = useState<Set<number>>(new Set());
+  const [bulkDraftStatuses, setBulkDraftStatuses] = useState<Map<number, BulkDraftStatus>>(new Map());
+  const [isBulkRunning, setIsBulkRunning] = useState(false);
 
   async function handleDownloadDeck(p: PropertyRow) {
     if (downloadingIds.has(p.id)) return;
@@ -395,6 +511,73 @@ export default function SlideDecksTab() {
     }
   });
 
+  // Properties that have at least one missing or stale slot
+  const deficientPropertyIds = propertyIds.filter(id => {
+    const summary = copyReadinessByPropertyId.get(id);
+    return summary != null && (summary.staleCount + summary.missingCount) > 0;
+  });
+
+  const handleDraftAllMissing = useCallback(async () => {
+    if (isBulkRunning || deficientPropertyIds.length === 0) return;
+    setIsBulkRunning(true);
+
+    // Mark all deficient properties as "drafting"
+    setBulkDraftStatuses(prev => {
+      const next = new Map(prev);
+      for (const id of deficientPropertyIds) next.set(id, "drafting");
+      return next;
+    });
+
+    // Process properties sequentially to avoid hammering the LLM API
+    for (const propertyId of deficientPropertyIds) {
+      try {
+        // Step 1: Call draft-all to get LLM suggestions
+        const draftRes = await fetch(
+          `/api/admin/properties/${propertyId}/deck-payload/draft-all`,
+          { method: "POST", credentials: "include" },
+        );
+        if (!draftRes.ok) throw new Error(`draft-all HTTP ${draftRes.status}`);
+        const draftData = (await draftRes.json()) as { drafts: DraftResult[] };
+
+        const usableDrafts = draftData.drafts.filter(
+          d => !d.validationErrors || d.validationErrors.length === 0,
+        );
+
+        if (usableDrafts.length > 0) {
+          // Step 2: Auto-apply the drafts via PATCH
+          const patch = draftsToPatch(usableDrafts);
+          const patchRes = await fetch(
+            `/api/admin/properties/${propertyId}/deck-payload`,
+            {
+              method: "PATCH",
+              credentials: "include",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(patch),
+            },
+          );
+          if (!patchRes.ok) throw new Error(`PATCH HTTP ${patchRes.status}`);
+        }
+
+        setBulkDraftStatuses(prev => new Map(prev).set(propertyId, "done"));
+
+        // Invalidate readiness so the badge refreshes
+        await queryClient.invalidateQueries({
+          queryKey: ["/api/admin/properties", propertyId, "deck-payload", "readiness"],
+        });
+      } catch {
+        setBulkDraftStatuses(prev => new Map(prev).set(propertyId, "error"));
+      }
+    }
+
+    setIsBulkRunning(false);
+  }, [isBulkRunning, deficientPropertyIds, queryClient]);
+
+  // Count how many are still in-flight or queued
+  const draftingCount = [...bulkDraftStatuses.values()].filter(s => s === "drafting").length;
+  const doneCount = [...bulkDraftStatuses.values()].filter(s => s === "done").length;
+  const errorCount = [...bulkDraftStatuses.values()].filter(s => s === "error").length;
+  const bulkHasRun = bulkDraftStatuses.size > 0;
+
   if (propsLoading) {
     return (
       <div className="flex items-center justify-center py-24 text-muted-foreground">
@@ -424,17 +607,58 @@ export default function SlideDecksTab() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold text-foreground">Property Slide Decks</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Click <strong>Download PDF</strong> to get the full 6-slide deck in one file, or click <strong>Slides</strong> to open the per-slide view.
-        </p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h2 className="text-xl font-semibold text-foreground">Property Slide Decks</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Click <strong>Download PDF</strong> to get the full 6-slide deck in one file, or click <strong>Slides</strong> to open the per-slide view.
+          </p>
+        </div>
+
+        {/* Bulk draft button — only visible when there are deficient decks */}
+        {deficientPropertyIds.length > 0 && (
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-2 whitespace-nowrap"
+              disabled={isBulkRunning}
+              onClick={handleDraftAllMissing}
+              title={`Draft and save copy for ${deficientPropertyIds.length} propert${deficientPropertyIds.length === 1 ? "y" : "ies"} with missing or stale slots`}
+            >
+              {isBulkRunning
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <IconWand2 className="h-3.5 w-3.5" />}
+              {isBulkRunning
+                ? `Drafting ${draftingCount} of ${deficientPropertyIds.length}…`
+                : `Draft all missing copy`}
+            </Button>
+
+            {/* Summary line after bulk run */}
+            {bulkHasRun && !isBulkRunning && (
+              <p className="text-[11px] text-muted-foreground">
+                {doneCount > 0 && (
+                  <span className="text-emerald-600 dark:text-emerald-400">
+                    {doneCount} saved
+                  </span>
+                )}
+                {doneCount > 0 && errorCount > 0 && " · "}
+                {errorCount > 0 && (
+                  <span className="text-red-600 dark:text-red-400">
+                    {errorCount} failed
+                  </span>
+                )}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {properties.map(p => {
           const acqStatus = (p.acquisitionStatus ?? p.status)?.toLowerCase() ?? "pipeline";
           const deckReadiness = deckStatusByPropertyId.get(p.id) ?? "not_generated";
+          const bulkStatus = bulkDraftStatuses.get(p.id) ?? "idle";
 
           return (
             <Card key={p.id} className="flex flex-col border border-border/60 hover:border-border transition-colors overflow-hidden p-0">
@@ -461,6 +685,11 @@ export default function SlideDecksTab() {
                     propertyId={p.id}
                   />
                 </div>
+
+                {/* Per-property bulk draft progress indicator */}
+                {bulkStatus !== "idle" && (
+                  <BulkDraftOverlay status={bulkStatus} />
+                )}
 
                 <div className="flex items-center gap-2">
                   <Button
