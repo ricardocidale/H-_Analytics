@@ -48,6 +48,10 @@ args = "check:types-mirror"
 task = "workflow.run"
 args = "check:lint"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "check:typecheck"
+
 [[workflows.workflow]]
 name = "check:spinner-contrast"
 author = "agent"
@@ -135,6 +139,17 @@ args = "pnpm run check:lint"
 
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow]]
+name = "check:typecheck"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm run typecheck"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 [agent]
 stack = "PNPM_WORKSPACE"
