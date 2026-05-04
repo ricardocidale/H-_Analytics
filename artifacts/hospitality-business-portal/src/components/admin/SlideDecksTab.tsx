@@ -94,6 +94,8 @@ type BulkDraftStatus = "idle" | "drafting" | "done" | "error";
 interface RenderQueueStats {
   activeCount: number;
   pendingCount: number;
+  activeIds: number[];
+  pendingIds: number[];
 }
 
 interface BulkDraftPropertyResult {
@@ -723,6 +725,56 @@ function DeckReadinessBadge({ readiness }: { readiness: DeckReadiness }) {
   );
 }
 
+// ── Per-property render queue position badge ───────────────────────────────
+//
+// Shows "Rendering PDF…" when the property has an active browser context, or
+// "Queued — position X of Y" when it is waiting for a concurrency slot.
+// Returns null when the property is not tracked in the in-memory manifest.
+
+function RenderQueueBadge({
+  propertyId,
+  queueStats,
+}: {
+  propertyId: number;
+  queueStats: RenderQueueStats | null;
+}) {
+  if (!queueStats) return null;
+
+  const isActive = queueStats.activeIds.includes(propertyId);
+  const pendingIndex = queueStats.pendingIds.indexOf(propertyId);
+  const isPending = pendingIndex !== -1;
+
+  if (isActive) {
+    return (
+      <Badge
+        variant="outline"
+        className="text-[11px] shrink-0 border-0 font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 gap-1"
+        title="This deck is currently being rendered by a headless browser"
+      >
+        <Loader2 className="h-2.5 w-2.5 animate-spin inline-block" />
+        Rendering PDF…
+      </Badge>
+    );
+  }
+
+  if (isPending) {
+    const position = pendingIndex + 1;
+    const total = queueStats.pendingIds.length;
+    return (
+      <Badge
+        variant="outline"
+        className="text-[11px] shrink-0 border-0 font-medium bg-gray-100 text-gray-600 dark:bg-gray-800/60 dark:text-gray-400 gap-1"
+        title={`Waiting for a render slot — ${position} of ${total} queued`}
+      >
+        <IconClock className="h-2.5 w-2.5 inline-block" />
+        Queued — {position} of {total}
+      </Badge>
+    );
+  }
+
+  return null;
+}
+
 // ── Draft history section ──────────────────────────────────────────────────
 
 function formatRelativeTime(isoDate: string): string {
@@ -1147,7 +1199,11 @@ export default function SlideDecksTab() {
   // Poll the render queue depth while renders are in-flight.
   // Polling is enabled whenever any deck is generating or the queue is non-empty.
   const anyGenerating = slideStatuses?.some(r => r.status === "generating") ?? false;
-  const queueNonEmpty = (renderQueueStats?.activeCount ?? 0) + (renderQueueStats?.pendingCount ?? 0) > 0;
+  const queueNonEmpty =
+    (renderQueueStats?.activeIds.length ?? 0) +
+    (renderQueueStats?.pendingIds.length ?? 0) > 0 ||
+    (renderQueueStats?.activeCount ?? 0) +
+    (renderQueueStats?.pendingCount ?? 0) > 0;
 
   useQuery<RenderQueueStats>({
     queryKey: ["/api/properties/deck.pdf/queue-status"],
@@ -1270,9 +1326,19 @@ export default function SlideDecksTab() {
         })
           .then(async r => {
             if (r.ok) {
-              const data = (await r.json().catch(() => null)) as { activeCount?: number; pendingCount?: number } | null;
+              const data = (await r.json().catch(() => null)) as {
+                activeCount?: number;
+                pendingCount?: number;
+                activeIds?: number[];
+                pendingIds?: number[];
+              } | null;
               if (data && typeof data.activeCount === "number") {
-                setRenderQueueStats({ activeCount: data.activeCount, pendingCount: data.pendingCount ?? 0 });
+                setRenderQueueStats({
+                  activeCount: data.activeCount,
+                  pendingCount: data.pendingCount ?? 0,
+                  activeIds: data.activeIds ?? [],
+                  pendingIds: data.pendingIds ?? [],
+                });
               }
               queryClient.invalidateQueries({ queryKey: ["/api/slides/status"] });
             } else {
@@ -1555,9 +1621,10 @@ export default function SlideDecksTab() {
                   </Badge>
                 </div>
 
-                {/* PDF generation status + copy readiness badges */}
+                {/* PDF generation status + queue position + copy readiness badges */}
                 <div className="flex items-center gap-2 flex-wrap">
                   <DeckReadinessBadge readiness={deckReadiness} />
+                  <RenderQueueBadge propertyId={p.id} queueStats={renderQueueStats} />
                   <CopyReadinessBadge
                     summary={copyReadinessByPropertyId.get(p.id) ?? null}
                     isError={copyReadinessErrorIds.has(p.id)}

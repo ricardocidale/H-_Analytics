@@ -63,6 +63,44 @@ const renderLimiter = pLimit(PDF_RENDER_CONCURRENCY);
 const PDF_FORMAT = "pdf" as const;
 const SLIDE_ERROR_MSG_MAX_LENGTH = 500;
 
+/**
+ * In-memory queue manifest — tracks which property IDs are actively rendering
+ * and which are waiting in the pLimit FIFO queue. Updated atomically around
+ * every renderLimiter() invocation so the queue-status endpoint can return
+ * per-property visibility, not just aggregate counts.
+ *
+ * renderActiveSet: IDs currently running inside a browser context.
+ * renderPendingQueue: IDs waiting for a concurrency slot, in submission order.
+ *
+ * These are server-process-local; they reset on restart. The DB-backed
+ * `property_slide_deck_variants.status` is the durable source of truth.
+ */
+const renderActiveSet = new Set<number>();
+const renderPendingQueue: number[] = [];
+
+function manifestAdd(propertyId: number): void {
+  renderPendingQueue.push(propertyId);
+}
+
+function manifestStart(propertyId: number): void {
+  const idx = renderPendingQueue.indexOf(propertyId);
+  if (idx !== -1) renderPendingQueue.splice(idx, 1);
+  renderActiveSet.add(propertyId);
+}
+
+function manifestDone(propertyId: number): void {
+  renderActiveSet.delete(propertyId);
+}
+
+function getQueueSnapshot() {
+  return {
+    activeCount: renderLimiter.activeCount,
+    pendingCount: renderLimiter.pendingCount,
+    activeIds: [...renderActiveSet],
+    pendingIds: [...renderPendingQueue],
+  };
+}
+
 interface PdfVariantRow {
   property_id: number;
   format: string;
@@ -290,31 +328,37 @@ router.get(
     // deck.pdf slow-path) — share the same renderLimiter so the total number of
     // concurrent browser contexts is always capped at PDF_RENDER_CONCURRENCY.
     // Do not call renderDeckPdf() outside this limiter.
+    manifestAdd(propertyId);
     try {
       await renderLimiter(async () => {
-        const pdf = await renderDeckPdf(propertyId);
-        const key = pdfR2Key(propertyId);
-        await sp.uploadBuffer(key, pdf, PDF_CONTENT_TYPE);
-        await upsertPdfVariantRow({
-          propertyId,
-          status: "ready",
-          r2Key: key,
-          fileSizeBytes: pdf.length,
-          generatedAt: new Date(),
-          triggeredBy,
-          errorMessage: null,
-        });
-        logger.info(
-          `[property-deck-pdf] Rendered ${pdf.length}B for property ${propertyId} → ${key}`,
-          "property-deck-pdf",
-        );
+        manifestStart(propertyId);
+        try {
+          const pdf = await renderDeckPdf(propertyId);
+          const key = pdfR2Key(propertyId);
+          await sp.uploadBuffer(key, pdf, PDF_CONTENT_TYPE);
+          await upsertPdfVariantRow({
+            propertyId,
+            status: "ready",
+            r2Key: key,
+            fileSizeBytes: pdf.length,
+            generatedAt: new Date(),
+            triggeredBy,
+            errorMessage: null,
+          });
+          logger.info(
+            `[property-deck-pdf] Rendered ${pdf.length}B for property ${propertyId} → ${key}`,
+            "property-deck-pdf",
+          );
 
-        res.setHeader("Content-Type", PDF_CONTENT_TYPE);
-        res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-        res.setHeader("Content-Length", String(pdf.length));
-        res.setHeader("Cache-Control", "no-store");
-        res.setHeader("X-Deck-Cache", "miss");
-        res.end(pdf);
+          res.setHeader("Content-Type", PDF_CONTENT_TYPE);
+          res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+          res.setHeader("Content-Length", String(pdf.length));
+          res.setHeader("Cache-Control", "no-store");
+          res.setHeader("X-Deck-Cache", "miss");
+          res.end(pdf);
+        } finally {
+          manifestDone(propertyId);
+        }
       });
       return res;
     } catch (err: unknown) {
@@ -351,10 +395,7 @@ router.get(
   "/api/properties/deck.pdf/queue-status",
   requireAdmin,
   (_req: Request, res: Response) => {
-    return res.json({
-      activeCount: renderLimiter.activeCount,
-      pendingCount: renderLimiter.pendingCount,
-    });
+    return res.json(getQueueSnapshot());
   },
 );
 
@@ -382,15 +423,16 @@ router.post(
       errorMessage: null,
     }).catch(() => {});
 
-    const queued = renderLimiter.pendingCount;
-    if (queued > 0) {
+    manifestAdd(propertyId);
+    if (renderLimiter.pendingCount > 0) {
       logger.info(
-        `[property-deck-pdf] Render queued for property ${propertyId} (active=${renderLimiter.activeCount}, pending=${queued})`,
+        `[property-deck-pdf] Render queued for property ${propertyId} (active=${renderLimiter.activeCount}, pending=${renderLimiter.pendingCount})`,
         "property-deck-pdf",
       );
     }
 
     void renderLimiter(async () => {
+      manifestStart(propertyId);
       try {
         const sp = await getStorageProviderAsync();
         const pdf = await renderDeckPdf(propertyId);
@@ -421,15 +463,14 @@ router.post(
           triggeredBy,
           errorMessage: message.slice(0, SLIDE_ERROR_MSG_MAX_LENGTH),
         }).catch(() => {});
+      } finally {
+        manifestDone(propertyId);
       }
     });
 
-    return res.status(HTTP_202_ACCEPTED).json({
-      queued: true,
-      propertyId,
-      activeCount: renderLimiter.activeCount,
-      pendingCount: renderLimiter.pendingCount,
-    });
+    return res.status(HTTP_202_ACCEPTED).json(
+      Object.assign({ queued: true, propertyId }, getQueueSnapshot()),
+    );
   },
 );
 
