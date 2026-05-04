@@ -225,6 +225,13 @@
       "when": 1809648000000,
       "tag": "0032_property_deck_payloads",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1809734400000,
+      "tag": "0033_property_slide_deck_variants_pdf_format",
+      "breakpoints": true
     }
   ]
 }
