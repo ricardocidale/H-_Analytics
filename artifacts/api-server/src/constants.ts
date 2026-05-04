@@ -288,6 +288,12 @@ export const PPTX_FOOTER_Y_OFFSET_IN = 0.32;
 /** Max tokens for ambient background research scheduler */
 export const AI_AMBIENT_RESEARCH_MAX_TOKENS = 6144;
 
+/** Max tokens for a single slot draft call in the deck-payload authoring flow */
+export const AI_DECK_SLOT_DRAFT_MAX_TOKENS = 600;
+
+/** Max tokens for a batch group draft call (vision/operational/investment/transformation) */
+export const AI_DECK_GROUP_DRAFT_MAX_TOKENS = 1400;
+
 // ─── Benchmark defaults (orchestrator adapter baselines) ─────────────────────
 
 /**

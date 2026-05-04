@@ -20,9 +20,17 @@
  *     Invoke the LLM to draft a single slot and return the suggestion. Does
  *     NOT persist — the editor shows the draft as a diff for the admin to
  *     accept (subsequent PATCH) or reject. This endpoint is the ONLY render-
- *     adjacent place the LLM is invoked; `build-payload.ts` is now LLM-free.
- *     A property → property-deck-payload.payload is now reproducible: the
- *     same property ID renders the same PDF on every call.
+ *     adjacent place the LLM is invoked; `build-payload.ts` is LLM-free.
+ *
+ *   GET   /api/admin/properties/:id/deck-payload/readiness
+ *     Returns per-slot status (complete|stale|missing|deterministic) for all
+ *     15 authored slots, comparing slot provenance timestamps against the
+ *     property's updatedAt. Used by the admin editor and draft-all.
+ *
+ *   POST  /api/admin/properties/:id/deck-payload/draft-all
+ *     Drafts all missing + stale slots in the minimum number of LLM calls by
+ *     grouping into logical batches (vision, operational, investment,
+ *     transformation). Returns drafts for admin review — does NOT auto-persist.
  *
  * Auth: requireAdmin on every route. The editor is admin-only.
  */
@@ -41,44 +49,101 @@ import {
   SLIDE1_HEADER_SUBTITLE_MAX,
   SLIDE1_VISION_BULLET_MAX,
   SLIDE1_VISION_BULLETS_COUNT,
+  SLIDE2_OPERATIONAL_MODEL_MAX,
+  SLIDE2_REVENUE_BULLET_MAX,
+  SLIDE2_PROGRAMMING_BULLET_MAX,
+  SLIDE3_CONCEPT_PARAGRAPH_MAX,
+  SLIDE3_MARKET_RATIONALE_MAX,
+  SLIDE3_REASON_LABEL_MAX,
+  SLIDE3_REASON_DETAIL_MAX,
+  SLIDE3_REASONS_COUNT,
+  SLIDE3_CLOSING_LINE_MAX,
+  SLIDE5_TRANSFORMATION_DESCRIPTION_MAX,
+  SLIDE5_TRANSFORMATION_ROW_FEATURE_MAX,
+  SLIDE5_TRANSFORMATION_ROW_EXISTING_MAX,
+  SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX,
+  SLIDE5_TRANSFORMATION_ROWS_COUNT,
 } from "@shared/deck-payload-v2";
+import { generatePropertyVisionText } from "../ai/property-vision";
+import { buildPropertyBrief } from "../slides/property-brief";
+import { computeRenovationBudget } from "../slides/build-payload";
+import type { SlideProperty } from "../slides/types";
+import { validateSlotOutput } from "../slides/slot-output-validator";
+import {
+  getSlotReadiness,
+  getStaleMissingSlots,
+} from "../slides/slot-readiness";
+import {
+  SLOT_CONTEXT_MAP,
+  getSlotsForGroup,
+  type DraftSlotKey,
+  type SlotBatchGroup,
+} from "../slides/slot-context-map";
 import { getAnthropicClient } from "../ai/clients";
 import {
   HTTP_400_BAD_REQUEST,
   HTTP_404_NOT_FOUND,
+  HTTP_422_UNPROCESSABLE_ENTITY,
   HTTP_500_INTERNAL_SERVER_ERROR,
+  AI_DECK_SLOT_DRAFT_MAX_TOKENS,
+  AI_DECK_GROUP_DRAFT_MAX_TOKENS,
 } from "../constants";
+import { DEFAULT_FALLBACK_OCCUPANCY } from "@shared/constants-benchmarks";
 
 const router = Router();
 
-const DRAFT_MODEL = "claude-opus-4-6";
+const VISION_MODEL = "claude-opus-4-6";
 
-// Fallback property values used when the DB row has no value for a field.
-const DEFAULT_ROOM_COUNT = 10;
-const DEFAULT_START_ADR = 350;
-const DEFAULT_OCCUPANCY_RATE = 0.7;
+// ── Draft slot registry ────────────────────────────────────────────────────
+// All LLM-draftable slots. Adding a new slot requires:
+//   (a) adding it here
+//   (b) handling it in draftSlot() below
+//   (c) adding a UI control in the editor (no reflection)
 
-// Token budgets for each slot's LLM call — sized to the slot's character cap.
-const SUBTITLE_DRAFT_MAX_TOKENS = 120;
-const BULLETS_DRAFT_MAX_TOKENS = 300;
+const DRAFT_SLOTS: readonly DraftSlotKey[] = [
+  "slide1.headerSubtitle",
+  "slide1.visionBullets",
+  "slide2.operationalModelText",
+  "slide2.revenueBullet",
+  "slide2.programmingBullet",
+  "slide3.conceptParagraph",
+  "slide3.marketRationale",
+  "slide3.reasons",
+  "slide3.closingLine",
+  "slide5.transformationDescription",
+  "slide5.transformationRows",
+] as const;
 
-// Slots the draft endpoint knows how to fill. Each maps to a sub-path of the
-// DeckPayloadV2 tree. Adding a new draftable slot requires (a) adding it
-// here, (b) handling it in `draftSlot()` below, (c) adding a UI control in
-// the editor — there is no reflection.
-const DRAFT_SLOTS = ["slide1.headerSubtitle", "slide1.visionBullets"] as const;
-type DraftSlot = typeof DRAFT_SLOTS[number];
-
-function isDraftSlot(s: unknown): s is DraftSlot {
+function isDraftSlot(s: unknown): s is DraftSlotKey {
   return typeof s === "string" && (DRAFT_SLOTS as readonly string[]).includes(s);
 }
 
 interface DraftResult {
-  slot: DraftSlot;
-  suggestion: unknown; // shape depends on the slot — see draftSlot()
+  slot: DraftSlotKey;
+  suggestion: unknown;
   model: string;
   generatedAt: string;
+  validationErrors?: string[];
 }
+
+/**
+ * Thrown by draftSlot() when the LLM output violates character-budget
+ * constraints from deck-payload-v2. Caught in the route handler and
+ * surfaced as a 422 rather than a 500.
+ */
+class SlotValidationError extends Error {
+  constructor(
+    readonly slot: DraftSlotKey,
+    readonly validationErrors: string[],
+  ) {
+    super(
+      `Slot output violates character budgets for ${slot}: ${validationErrors.join("; ")}`,
+    );
+    this.name = "SlotValidationError";
+  }
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
 
 function stripCodeFences(text: string): string {
   const trimmed = text.trim();
@@ -86,162 +151,257 @@ function stripCodeFences(text: string): string {
   return trimmed.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
 }
 
-// ── Slot-specific LLM drafters ────────────────────────────────────────────
-
-/**
- * Draft a single description sentence for slide1.headerSubtitle.
- * Returns a plain string (truncated to SLIDE1_HEADER_SUBTITLE_MAX).
- */
-async function draftHeaderSubtitle(property: {
-  name: string;
-  city?: string | null;
-  stateProvince?: string | null;
-  roomCount?: number | null;
-  startAdr?: number | null;
-  businessModel?: string | null;
-  description?: string | null;
-}): Promise<string> {
-  const location = [property.city, property.stateProvince].filter(Boolean).join(", ");
-  const rooms = property.roomCount ?? DEFAULT_ROOM_COUNT;
-  const adr = property.startAdr ?? DEFAULT_START_ADR;
-
-  const fallback = (
-    property.description?.slice(0, SLIDE1_HEADER_SUBTITLE_MAX) ??
-    `A repositioned boutique property in ${location || "an emerging market"} targeting $${adr} ADR across ${rooms} keys.`.slice(0, SLIDE1_HEADER_SUBTITLE_MAX)
-  );
-
-  try {
-    const anthropic = getAnthropicClient();
-    const response = await anthropic.messages.create({
-      model: DRAFT_MODEL,
-      max_tokens: SUBTITLE_DRAFT_MAX_TOKENS,
-      messages: [
-        {
-          role: "user",
-          content: `Write one investor-grade description sentence for a boutique hospitality property.
-
-Property: "${property.name}"
-Location: ${location || "Not specified"}
-Type: ${property.businessModel ?? "Boutique Hotel"}
-Rooms: ${rooms}
-ADR: $${adr}
-
-Rules:
-- Max ${SLIDE1_HEADER_SUBTITLE_MAX} characters
-- One sentence, direct, metric-driven
-- No adjectives like "unique", "exciting", "world-class"
-- Return ONLY the sentence — no quotes, no explanation`,
-        },
-      ],
-    });
-
-    const textBlock = response.content.find(b => b.type === "text");
-    if (!textBlock || textBlock.type !== "text") return fallback;
-
-    return textBlock.text.trim().slice(0, SLIDE1_HEADER_SUBTITLE_MAX);
-  } catch (err: unknown) {
-    logger.warn(
-      `[property-deck-payload] headerSubtitle LLM failed (using fallback): ${err instanceof Error ? err.message : String(err)}`,
-      "property-deck-payload",
-    );
-    return fallback;
-  }
+function propertyToSlideProperty(
+  property: Record<string, unknown>,
+): SlideProperty {
+  const p = property as Record<string, unknown>;
+  return {
+    id: property.id as number,
+    name: property.name as string,
+    city: (property.city as string) ?? "",
+    stateProvince: (property.stateProvince as string) ?? "",
+    county: (p.county as string) ?? "",
+    country: (property.country as string) ?? "",
+    purchasePrice: (property.purchasePrice as number) ?? 0,
+    roomCount: (property.roomCount as number) ?? 0,
+    startAdr: (property.startAdr as number) ?? 0,
+    maxOccupancy: (property.maxOccupancy as number) ?? DEFAULT_FALLBACK_OCCUPANCY,
+    businessModel: (property.businessModel as string) ?? "hotel",
+    hospitalityType: (p.hospitalityType as string) ?? "",
+    qualityTier: (p.qualityTier as string) ?? "",
+    description: (property.description as string) ?? "",
+    acquisitionStatus: (p.acquisitionStatus as string) ?? "pipeline",
+    isHistoric: p.isHistoric as boolean | string | undefined,
+    renovationScope: (p.renovationScope as string) ?? "",
+  };
 }
 
-/**
- * Draft vision bullets for slide1.visionBullets.
- * Returns an array of { text } objects, length = SLIDE1_VISION_BULLETS_COUNT.
- */
-async function draftVisionBullets(property: {
-  name: string;
-  city?: string | null;
-  stateProvince?: string | null;
-  roomCount?: number | null;
-  startAdr?: number | null;
-  maxOccupancy?: number | null;
-  businessModel?: string | null;
-}): Promise<Array<{ text: string }>> {
-  const location = [property.city, property.stateProvince].filter(Boolean).join(", ");
-  const rooms = property.roomCount ?? DEFAULT_ROOM_COUNT;
-  const adr = property.startAdr ?? DEFAULT_START_ADR;
-  const occ = Math.round((property.maxOccupancy ?? DEFAULT_OCCUPANCY_RATE) * 100);
-
-  const fallbackBullets: Array<{ text: string }> = [
-    { text: `Year-Round Demand: Drive-Market Leisure + Weekend Escapes + Local Events`.slice(0, SLIDE1_VISION_BULLET_MAX) },
-    { text: `Direct Booking Focus: 50%+ Direct Mix by Year 3, Reducing OTA Dependency`.slice(0, SLIDE1_VISION_BULLET_MAX) },
-    { text: `Revenue Mix: 70% Rooms, 20% F&B, 10% Events & Packages`.slice(0, SLIDE1_VISION_BULLET_MAX) },
-  ].slice(0, SLIDE1_VISION_BULLETS_COUNT);
-
-  try {
-    const anthropic = getAnthropicClient();
-    const response = await anthropic.messages.create({
-      model: DRAFT_MODEL,
-      max_tokens: BULLETS_DRAFT_MAX_TOKENS,
-      messages: [
-        {
-          role: "user",
-          content: `Write exactly ${SLIDE1_VISION_BULLETS_COUNT} investor-grade bullet points for a boutique hospitality property vision slide.
-
-Property: "${property.name}"
-Location: ${location || "Not specified"}
-Type: ${property.businessModel ?? "Boutique Hotel"}
-Rooms: ${rooms}
-ADR: $${adr}
-Stabilized Occupancy: ${occ}%
-
-Rules:
-- Each bullet max ${SLIDE1_VISION_BULLET_MAX} characters
-- Punchy, metric-driven
-- No adjectives like "unique", "exciting", "world-class"
-- Return ONLY valid JSON array: [{"text":"..."},{"text":"..."},{"text":"..."}]`,
-        },
-      ],
-    });
-
-    const textBlock = response.content.find(b => b.type === "text");
-    if (!textBlock || textBlock.type !== "text") return fallbackBullets;
-
-    const parsed = JSON.parse(stripCodeFences(textBlock.text)) as Array<{ text: string }>;
-    if (!Array.isArray(parsed)) return fallbackBullets;
-
-    return parsed
-      .filter((b): b is { text: string } => typeof b?.text === "string" && b.text.length > 0)
-      .slice(0, SLIDE1_VISION_BULLETS_COUNT)
-      .map(b => ({ text: b.text.slice(0, SLIDE1_VISION_BULLET_MAX) }));
-  } catch (err: unknown) {
-    logger.warn(
-      `[property-deck-payload] visionBullets LLM failed (using fallback): ${err instanceof Error ? err.message : String(err)}`,
-      "property-deck-payload",
-    );
-    return fallbackBullets;
-  }
-}
-
-// ── Draft orchestrator ────────────────────────────────────────────────────
+// ── Single-slot drafter ────────────────────────────────────────────────────
 
 /**
  * Draft a single slot via the LLM. Returns the proposal; does NOT persist.
- * The editor decides whether to accept (then PATCH the slot with
- * provenance.source="llm") or reject.
+ * All output is validated through SlotOutputValidator before returning —
+ * over-budget fields surface as actionable errors, never silently truncated.
  */
-async function draftSlot(propertyId: number, slot: DraftSlot): Promise<DraftResult> {
+async function draftSlot(
+  propertyId: number,
+  slot: DraftSlotKey,
+): Promise<DraftResult> {
   const property = await storage.getProperty(propertyId);
   if (!property) throw new Error("Property not found");
 
   const generatedAt = new Date().toISOString();
-  const model = DRAFT_MODEL;
+  const model = VISION_MODEL;
 
-  if (slot === "slide1.headerSubtitle") {
-    const text = await draftHeaderSubtitle(property);
-    return { slot, suggestion: { text }, model, generatedAt };
+  // Vision slots (slide1.*) use generatePropertyVisionText which covers the
+  // whole vision group in one LLM call. Output is validated strictly —
+  // over-budget text throws SlotValidationError (surfaced as 422), never
+  // silently truncated.
+  if (slot === "slide1.headerSubtitle" || slot === "slide1.visionBullets") {
+    const visionText = await generatePropertyVisionText({
+      id: property.id,
+      name: property.name,
+      city: property.city,
+      stateProvince: property.stateProvince,
+      county: (property as Record<string, unknown>).county as string | null,
+      country: property.country,
+      purchasePrice: property.purchasePrice,
+      roomCount: property.roomCount,
+      startAdr: property.startAdr,
+      maxOccupancy: property.maxOccupancy,
+      businessModel: property.businessModel,
+      hospitalityType: (property as Record<string, unknown>).hospitalityType as string | null,
+      qualityTier: (property as Record<string, unknown>).qualityTier as string | null,
+      description: property.description,
+      acquisitionStatus: (property as Record<string, unknown>).acquisitionStatus as string | null,
+    });
+
+    if (slot === "slide1.headerSubtitle") {
+      const suggestion = { text: visionText.descriptionParagraph ?? "" };
+      const validation = validateSlotOutput(slot, suggestion);
+      if (!validation.ok) throw new SlotValidationError(slot, validation.errors);
+      return { slot, suggestion, model, generatedAt };
+    }
+
+    // slide1.visionBullets — filter to valid strings, cap to declared count,
+    // do NOT truncate text (over-budget triggers a hard validation error).
+    const suggestion = {
+      bullets: [
+        visionText.visionBullet1,
+        visionText.visionBullet2,
+        visionText.programmingBullet,
+      ]
+        .filter((s): s is string => typeof s === "string" && s.length > 0)
+        .slice(0, SLIDE1_VISION_BULLETS_COUNT)
+        .map(text => ({ text })),
+    };
+    const validation = validateSlotOutput(slot, suggestion);
+    if (!validation.ok) throw new SlotValidationError(slot, validation.errors);
+    return { slot, suggestion, model, generatedAt };
   }
 
-  if (slot === "slide1.visionBullets") {
-    const bullets = await draftVisionBullets(property);
-    return { slot, suggestion: { bullets }, model, generatedAt };
+  // All other slots: use the brief + targeted prompt. Wire renovation budget
+  // from computeRenovationBudget so the brief is financially grounded for
+  // operational, investment, and transformation slot prompts.
+  const propRec = property as Record<string, unknown>;
+  const renovBudget = computeRenovationBudget({
+    roomCount: propRec.roomCount as number | null,
+    purchasePrice: propRec.purchasePrice as number | null,
+    qualityTier: propRec.qualityTier as string | null,
+    hospitalityType: propRec.hospitalityType as string | null,
+    renovationScope: propRec.renovationScope as string | null,
+    isHistoric: propRec.isHistoric as boolean | string | null,
+  });
+  const brief = buildPropertyBrief(
+    propertyToSlideProperty(propRec),
+    { renovationBudget: renovBudget },
+  );
+  const contextEntry = SLOT_CONTEXT_MAP[slot];
+
+  // Build a targeted prompt for this slot
+  const contextLines = contextEntry.briefFields
+    .map(f => {
+      const val = brief[f];
+      if (val == null) return null;
+      if (typeof val === "boolean") return `${f}: ${val ? "Yes" : "No"}`;
+      return `${f}: ${val}`;
+    })
+    .filter(Boolean)
+    .join("\n");
+
+  const slotPrompts: Record<string, string> = {
+    "slide2.operationalModelText": `Write a single sentence (max ${SLIDE2_OPERATIONAL_MODEL_MAX} chars) describing the operational model for the slide "Operational Model:" italic label. Return JSON: {"text":"..."}`,
+    "slide2.revenueBullet": `Write a concise revenue strategy bullet (max ${SLIDE2_REVENUE_BULLET_MAX} chars) citing specific metrics. Return JSON: {"text":"..."}`,
+    "slide2.programmingBullet": `Write a concise programming/amenity strategy bullet (max ${SLIDE2_PROGRAMMING_BULLET_MAX} chars). Return JSON: {"text":"..."}`,
+    "slide3.conceptParagraph": `Write a single-sentence investment concept paragraph (max ${SLIDE3_CONCEPT_PARAGRAPH_MAX} chars) for "The Concept" section. Return JSON: {"text":"..."}`,
+    "slide3.marketRationale": `Write a market rationale paragraph (max ${SLIDE3_MARKET_RATIONALE_MAX} chars) for "Why This Property?". Cite market data. Return JSON: {"text":"..."}`,
+    "slide3.reasons": `Write exactly ${SLIDE3_REASONS_COUNT} investment thesis reasons. Each label max ${SLIDE3_REASON_LABEL_MAX} chars, each detail max ${SLIDE3_REASON_DETAIL_MAX} chars. Return JSON: {"reasons":[{"label":"...","detail":"..."},{"label":"...","detail":"..."},{"label":"...","detail":"..."}]}`,
+    "slide3.closingLine": `Write a single closing pull-quote line (max ${SLIDE3_CLOSING_LINE_MAX} chars) that references the city and property name. Return JSON: {"text":"..."}`,
+    "slide5.transformationDescription": `Write an intro paragraph (max ${SLIDE5_TRANSFORMATION_DESCRIPTION_MAX} chars) describing the physical transformation plan. Return JSON: {"text":"..."}`,
+    "slide5.transformationRows": `Write exactly ${SLIDE5_TRANSFORMATION_ROWS_COUNT} transformation comparison rows. Feature max ${SLIDE5_TRANSFORMATION_ROW_FEATURE_MAX} chars, Existing max ${SLIDE5_TRANSFORMATION_ROW_EXISTING_MAX} chars, Proposed max ${SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX} chars. Return JSON: {"rows":[{"feature":"...","existing":"...","proposed":"..."},...]}`,
+  };
+
+  const instruction = slotPrompts[slot];
+  if (!instruction) throw new Error(`No prompt template for slot: ${slot}`);
+
+  const prompt = `You are writing investor-grade slide copy for a boutique hospitality deck.
+
+RULES: Cite specific numbers. No "exciting", "unique opportunity", "world-class", "strong fundamentals". Be direct and metric-driven.
+
+PROPERTY DATA:
+${contextLines}
+
+TASK: ${instruction}
+
+Return ONLY valid JSON — no markdown, no explanation.`;
+
+  const anthropic = getAnthropicClient();
+  const response = await anthropic.messages.create({
+    model: VISION_MODEL,
+    max_tokens: AI_DECK_SLOT_DRAFT_MAX_TOKENS,
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  const textBlock = response.content.find(b => b.type === "text");
+  if (!textBlock || textBlock.type !== "text") {
+    throw new Error(`LLM returned no text block for slot ${slot}`);
   }
 
-  throw new Error(`Unsupported draft slot: ${slot}`);
+  const suggestion = JSON.parse(stripCodeFences(textBlock.text)) as unknown;
+  const validation = validateSlotOutput(slot, suggestion);
+  if (!validation.ok) throw new SlotValidationError(slot, validation.errors);
+
+  return { slot, suggestion, model, generatedAt };
+}
+
+// ── Batch drafting for draft-all ──────────────────────────────────────────
+
+async function draftGroupBatch(
+  brief: ReturnType<typeof buildPropertyBrief>,
+  group: SlotBatchGroup,
+  slotsInGroup: DraftSlotKey[],
+  generatedAt: string,
+): Promise<DraftResult[]> {
+  const slots = getSlotsForGroup(group).filter(s => slotsInGroup.includes(s));
+  if (slots.length === 0) return [];
+
+  const MAX_CHARS: Partial<Record<DraftSlotKey, number>> = {
+    "slide2.operationalModelText": SLIDE2_OPERATIONAL_MODEL_MAX,
+    "slide2.revenueBullet": SLIDE2_REVENUE_BULLET_MAX,
+    "slide2.programmingBullet": SLIDE2_PROGRAMMING_BULLET_MAX,
+    "slide3.conceptParagraph": SLIDE3_CONCEPT_PARAGRAPH_MAX,
+    "slide3.marketRationale": SLIDE3_MARKET_RATIONALE_MAX,
+    "slide3.closingLine": SLIDE3_CLOSING_LINE_MAX,
+    "slide5.transformationDescription": SLIDE5_TRANSFORMATION_DESCRIPTION_MAX,
+  };
+
+  const contextLines = [
+    ...new Set(slots.flatMap(s => SLOT_CONTEXT_MAP[s].briefFields)),
+  ]
+    .map(f => {
+      const val = brief[f];
+      if (val == null) return null;
+      if (typeof val === "boolean") return `${f}: ${val ? "Yes" : "No"}`;
+      return `${f}: ${val}`;
+    })
+    .filter(Boolean)
+    .join("\n");
+
+  const slotSpecs = slots.map(s => {
+    if (s === "slide3.reasons") {
+      return `"${s}": {"reasons":[{"label":"...","detail":"..."}×${SLIDE3_REASONS_COUNT}]} (label≤${SLIDE3_REASON_LABEL_MAX}, detail≤${SLIDE3_REASON_DETAIL_MAX} chars)`;
+    }
+    if (s === "slide5.transformationRows") {
+      return `"${s}": {"rows":[{"feature":"...","existing":"...","proposed":"..."}×${SLIDE5_TRANSFORMATION_ROWS_COUNT}]} (feature≤${SLIDE5_TRANSFORMATION_ROW_FEATURE_MAX}, existing≤${SLIDE5_TRANSFORMATION_ROW_EXISTING_MAX}, proposed≤${SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX} chars)`;
+    }
+    if (s === "slide1.visionBullets") {
+      return `"${s}": {"bullets":[{"text":"..."}×${SLIDE1_VISION_BULLETS_COUNT}]} (each bullet≤${SLIDE1_VISION_BULLET_MAX} chars)`;
+    }
+    const max = MAX_CHARS[s];
+    return `"${s}": {"text":"..."} (≤${max ?? SLIDE3_REASON_DETAIL_MAX} chars)`;
+  });
+
+  const prompt = `You are writing investor-grade slide copy for a boutique hospitality deck.
+
+RULES: Cite specific numbers. No "exciting", "unique opportunity", "world-class", "strong fundamentals". Be direct and metric-driven.
+
+PROPERTY DATA:
+${contextLines}
+
+Return a single JSON object with all keys below. No markdown, no explanation.
+
+${slotSpecs.join("\n")}
+
+Return:
+{
+${slots.map(s => `  "${s}": ...`).join(",\n")}
+}`;
+
+  const anthropic = getAnthropicClient();
+  const response = await anthropic.messages.create({
+    model: VISION_MODEL,
+    max_tokens: AI_DECK_GROUP_DRAFT_MAX_TOKENS,
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  const textBlock = response.content.find(b => b.type === "text");
+  if (!textBlock || textBlock.type !== "text") {
+    throw new Error(`LLM returned no text block for group ${group}`);
+  }
+
+  const parsed = JSON.parse(stripCodeFences(textBlock.text)) as Record<string, unknown>;
+
+  return slots.map(slot => {
+    const suggestion = parsed[slot];
+    const validation = validateSlotOutput(slot, suggestion);
+    return {
+      slot,
+      suggestion,
+      model: VISION_MODEL,
+      generatedAt,
+      validationErrors: validation.ok ? undefined : validation.errors,
+    };
+  });
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────
@@ -298,10 +458,6 @@ router.patch(
     const merged: DeckPayloadV2 = { ...current };
     const patch = parsed.data;
     if (patch.slide1) {
-      // slide1.photoCaptions is the only nested sub-object on slide 1 — its
-      // {hero, secondary, inset} children are independently authored slots.
-      // Deep-merge so a PATCH targeting only one caption (e.g. {hero}) does
-      // not erase the sibling captions.
       const mergedSlide1 = { ...(current.slide1 ?? {}), ...patch.slide1 } as Slide1Payload;
       if (patch.slide1.photoCaptions) {
         mergedSlide1.photoCaptions = {
@@ -337,15 +493,13 @@ router.post(
     if (!propertyId) {
       return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
     }
-    const slot = (req.body as { slot?: unknown } | undefined)?.slot;
+    const slot = (req.body as Record<string, unknown> | undefined)?.slot;
     if (!isDraftSlot(slot)) {
       return res.status(HTTP_400_BAD_REQUEST).json({
         error: "Invalid or missing 'slot'",
         allowedSlots: DRAFT_SLOTS,
       });
     }
-    // Surface a missing property as 404 instead of letting draftSlot's
-    // internal Error bubble out as a generic 500.
     const property = await storage.getProperty(propertyId);
     if (!property) {
       return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
@@ -355,9 +509,206 @@ router.post(
       res.setHeader("Cache-Control", "no-store");
       return res.json(result);
     } catch (err: unknown) {
+      if (err instanceof SlotValidationError) {
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
+          error: "LLM output exceeded character budget — retry or adjust the prompt",
+          slot: err.slot,
+          validationErrors: err.validationErrors,
+        });
+      }
       const message = err instanceof Error ? err.message : "Draft generation failed";
       logger.error(
         `[property-deck-payload] Draft failed for property ${propertyId} slot ${slot}: ${message}`,
+        "property-deck-payload",
+      );
+      return res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: message });
+    }
+  },
+);
+
+router.get(
+  "/api/admin/properties/:id/deck-payload/readiness",
+  requireAdmin,
+  async (req: Request, res: Response) => {
+    const propertyId = parseRouteId(req.params.id);
+    if (!propertyId) {
+      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+    }
+    const property = await storage.getProperty(propertyId);
+    if (!property) {
+      return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
+    }
+
+    const row = await storage.getDeckPayload(propertyId);
+    const payload = row ? parseDeckPayloadV2(row.payload) : EMPTY_DECK_PAYLOAD_V2;
+
+    // Use property updatedAt if available; otherwise treat as epoch so all
+    // existing slots appear complete rather than spuriously stale.
+    const propertyRec = property as Record<string, unknown>;
+    const propertyUpdatedAt =
+      propertyRec.updatedAt instanceof Date
+        ? propertyRec.updatedAt
+        : typeof propertyRec.updatedAt === "string"
+          ? new Date(propertyRec.updatedAt)
+          : new Date(0);
+
+    const report = getSlotReadiness(payload, propertyUpdatedAt);
+    const staleMissing = getStaleMissingSlots(report);
+
+    res.setHeader("Cache-Control", "no-store");
+    return res.json({
+      propertyId,
+      report,
+      staleMissingSlots: staleMissing,
+      staleMissingCount: staleMissing.length,
+      payloadUpdatedAt: row?.updatedAt ?? null,
+      propertyUpdatedAt: propertyUpdatedAt.toISOString(),
+    });
+  },
+);
+
+router.post(
+  "/api/admin/properties/:id/deck-payload/draft-all",
+  requireAdmin,
+  async (req: Request, res: Response) => {
+    const propertyId = parseRouteId(req.params.id);
+    if (!propertyId) {
+      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+    }
+    const property = await storage.getProperty(propertyId);
+    if (!property) {
+      return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
+    }
+
+    const row = await storage.getDeckPayload(propertyId);
+    const payload = row ? parseDeckPayloadV2(row.payload) : EMPTY_DECK_PAYLOAD_V2;
+
+    const propertyRec = property as Record<string, unknown>;
+    const propertyUpdatedAt =
+      propertyRec.updatedAt instanceof Date
+        ? propertyRec.updatedAt
+        : typeof propertyRec.updatedAt === "string"
+          ? new Date(propertyRec.updatedAt)
+          : new Date(0);
+
+    const report = getSlotReadiness(payload, propertyUpdatedAt);
+    const slotsToRegen = getStaleMissingSlots(report);
+
+    if (slotsToRegen.length === 0) {
+      res.setHeader("Cache-Control", "no-store");
+      return res.json({
+        propertyId,
+        message: "All slots are complete — nothing to draft",
+        drafts: [],
+        report,
+      });
+    }
+
+    // For vision group slots (slide1.*), use generatePropertyVisionText so
+    // we get one LLM call covering all vision fields.
+    const visionSlots = slotsToRegen.filter(
+      s => s === "slide1.headerSubtitle" || s === "slide1.visionBullets",
+    );
+    const nonVisionSlots = slotsToRegen.filter(
+      s => s !== "slide1.headerSubtitle" && s !== "slide1.visionBullets",
+    );
+
+    const renovBudgetAll = computeRenovationBudget({
+      roomCount: propertyRec.roomCount as number | null,
+      purchasePrice: propertyRec.purchasePrice as number | null,
+      qualityTier: propertyRec.qualityTier as string | null,
+      hospitalityType: propertyRec.hospitalityType as string | null,
+      renovationScope: propertyRec.renovationScope as string | null,
+      isHistoric: propertyRec.isHistoric as boolean | string | null,
+    });
+    const brief = buildPropertyBrief(
+      propertyToSlideProperty(propertyRec),
+      { renovationBudget: renovBudgetAll },
+    );
+    const generatedAt = new Date().toISOString();
+
+    const BATCH_GROUPS: SlotBatchGroup[] = ["operational", "investment", "transformation"];
+
+    try {
+      // Fire vision + each batch group in parallel.
+      // Vision group uses ONE generatePropertyVisionText call regardless of
+      // how many vision slots need drafting (1 or 2) — never one call per slot.
+      const [visionResults, ...groupResults] = await Promise.all([
+        (async (): Promise<DraftResult[]> => {
+          if (visionSlots.length === 0) return [];
+          const visionText = await generatePropertyVisionText({
+            id: propertyRec.id as number,
+            name: propertyRec.name as string,
+            city: propertyRec.city as string | null,
+            stateProvince: propertyRec.stateProvince as string | null,
+            county: propertyRec.county as string | null,
+            country: propertyRec.country as string | null,
+            purchasePrice: propertyRec.purchasePrice as number | null,
+            roomCount: propertyRec.roomCount as number | null,
+            startAdr: propertyRec.startAdr as number | null,
+            maxOccupancy: propertyRec.maxOccupancy as number | null,
+            businessModel: propertyRec.businessModel as string | null,
+            hospitalityType: propertyRec.hospitalityType as string | null,
+            qualityTier: propertyRec.qualityTier as string | null,
+            description: propertyRec.description as string | null,
+            acquisitionStatus: propertyRec.acquisitionStatus as string | null,
+          });
+          const results: DraftResult[] = [];
+          if (visionSlots.includes("slide1.headerSubtitle")) {
+            const suggestion = { text: visionText.descriptionParagraph ?? "" };
+            const validation = validateSlotOutput("slide1.headerSubtitle", suggestion);
+            results.push({
+              slot: "slide1.headerSubtitle",
+              suggestion,
+              model: VISION_MODEL,
+              generatedAt,
+              validationErrors: validation.ok ? undefined : validation.errors,
+            });
+          }
+          if (visionSlots.includes("slide1.visionBullets")) {
+            const suggestion = {
+              bullets: [
+                visionText.visionBullet1,
+                visionText.visionBullet2,
+                visionText.programmingBullet,
+              ]
+                .filter((s): s is string => typeof s === "string" && s.length > 0)
+                .slice(0, SLIDE1_VISION_BULLETS_COUNT)
+                .map(text => ({ text })),
+            };
+            const validation = validateSlotOutput("slide1.visionBullets", suggestion);
+            results.push({
+              slot: "slide1.visionBullets",
+              suggestion,
+              model: VISION_MODEL,
+              generatedAt,
+              validationErrors: validation.ok ? undefined : validation.errors,
+            });
+          }
+          return results;
+        })(),
+        // Remaining groups: one LLM call per group
+        ...BATCH_GROUPS.map(group =>
+          draftGroupBatch(brief, group, nonVisionSlots, generatedAt),
+        ),
+      ]);
+
+      const allDrafts: DraftResult[] = [...visionResults, ...groupResults.flat()];
+      const errored = allDrafts.filter(d => d.validationErrors && d.validationErrors.length > 0);
+
+      res.setHeader("Cache-Control", "no-store");
+      return res.json({
+        propertyId,
+        drafts: allDrafts,
+        draftedCount: allDrafts.length,
+        errorCount: errored.length,
+        report,
+        note: "Drafts are not persisted — accept individual slots via PATCH to save.",
+      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Draft-all generation failed";
+      logger.error(
+        `[property-deck-payload] draft-all failed for property ${propertyId}: ${message}`,
         "property-deck-payload",
       );
       return res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: message });
