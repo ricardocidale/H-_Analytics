@@ -30,6 +30,7 @@ import { EditableValue } from "@/components/ui/editable-value";
 import { GaapBadge } from "@/components/ui/gaap-badge";
 import { Label } from "@/components/ui/label";
 import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
+import { ResearchRangeLabel } from "@/components/ui/research-range-label";
 import { FactorySourceBadge } from "@/components/ui/factory-source-badge";
 import { Link } from "wouter";
 import {
@@ -407,7 +408,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <div className="flex flex-col gap-0.5">
-                        <Label className="text-sm label-text text-foreground flex items-center gap-1">Insurance<InfoTooltip text="USALI Fixed Charges — property-level insurance covering liability, property damage, and business interruption. Based on total property value (Purchase Price + Building Improvements), separate from the management company's corporate insurance. Industry benchmark: 1–2% of property value for boutique/lifestyle hotels." /></Label>
+                        <Label className="text-sm label-text text-foreground flex items-center gap-1 flex-wrap">Insurance<InfoTooltip text="USALI Fixed Charges — property-level insurance covering liability, property damage, and business interruption. Based on total property value (Purchase Price + Building Improvements), separate from the management company's corporate insurance." /><ResearchRangeLabel text="1–2% of value" /></Label>
                       </div>
                       <EditableValue
                         value={(draft.costRateInsurance ?? DEFAULT_COST_RATE_INSURANCE) * 100}

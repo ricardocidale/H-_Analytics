@@ -2,20 +2,13 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import EditableValue from "@/components/company-assumptions/EditableValue";
+export { ResearchRangeLabel } from "@/components/ui/research-range-label";
+import { ResearchRangeLabel } from "@/components/ui/research-range-label";
 
 export const MONTHS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
-
-export function ResearchRangeLabel({ text }: { text?: string }) {
-  if (!text) return null;
-  return (
-    <span className="text-xs font-medium rounded-md px-1.5 py-0.5 text-accent-pop bg-accent-pop/10 border border-accent-pop/20 whitespace-nowrap">
-      {text}
-    </span>
-  );
-}
 
 export function PctField({ label, tooltip, value, fallback, onChange, min, max, step, sliderMax, testId, researchRange }: {
   label: string;
