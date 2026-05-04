@@ -105,29 +105,37 @@ Use **Zod** as the runtime validator; emit JSON Schema (draft 2020-12) via `zod-
 
 ## Portability Boundary
 
-The slide stack splits cleanly into a generic layer (reusable across apps) and an app-specific layer (per-product templates and design language). Keep the boundary clean so other apps can adopt the generic layer without inheriting H+/L+B specifics.
+The slide stack splits three ways: code that drops into any app unchanged, patterns whose architecture transfers but whose contents must be reauthored, and L+B-specific code that should not be extracted. The discriminator is import + content: any file that imports `@engine/*` or `@analytics/*`, or hard-codes slot keys / slide counts / domain field names, belongs in tier 3.
 
-**Generic / app-agnostic — reusable as-is:**
+**Tier 1 — Truly generic, use as-is:**
 
 | Layer | Where it lives | What it gives a new app |
 |---|---|---|
 | Schema | `lib/shared/src/deck-payload-v2.ts` | Versioned semantic-spec + render-IR contracts |
-| Deterministic core | `artifacts/api-server/src/slides/` (`slot-context-map`, `slot-output-validator`, `slot-readiness`, `build-payload`, `playwright-browser`, `internal-token`, `deck-render-constants`, `deck-logic-version`) | LLM gating, slot validation, deterministic facts pipeline, headless-Chromium renderer plumbing |
+| Renderer plumbing | `slides/playwright-browser.ts`, `slides/internal-token.ts`, `slides/deck-logic-version.ts` | Headless-Chromium pool, signed-URL token helper, deck-logic version constant |
 | Skills | `slide-deck-spec`, `slide-deck-vector`, `deck-ir-render`, `deck-export`, `pptx-to-deck-ir` | Schema authoring, pgvector storage, IR→HTML, HTML→PDF/PPTX, PPTX import |
 
-**App-specific — do NOT extract or generalize:**
+**Tier 2 — Pattern portable, contents L+B; copy & reauthor:**
+
+| Layer | Where it lives | What transfers vs. what doesn't |
+|---|---|---|
+| Slot context map | `slides/slot-context-map.ts` | **Pattern:** slot-key → minimal-brief-fields lookup keyed off a `DraftSlotKey` union. **Contents:** the 11 L+B slot names and their field references (`adrFormatted`, `revparFormatted`, `roomCount`) are real-estate-specific. |
+| Slot output validator | `slides/slot-output-validator.ts` | **Pattern:** per-slot validation + budget enforcement, fail-loud on over-budget LLM output. **Contents:** rules typed against `DraftSlotKey` are L+B. |
+| Slot readiness | `slides/slot-readiness.ts` | **Pattern:** complete / stale / missing / deterministic state machine using `provenance.updatedAt` vs. source-record `updatedAt`. **Contents:** `DRAFT_SLOT_KEYS` and `HUMAN_SLOT_KEYS` arrays are L+B. |
+
+**Tier 3 — L+B-specific, do not extract:**
 
 | Layer | Where it lives | Why it stays |
 |---|---|---|
-| Domain data shape | `slides/types.ts` (`SlideProperty`), `slides/property-brief.ts`, `ai/property-vision.ts` | Real-estate underwriting context (rooms, ADR, occupancy). A different domain substitutes its own brief + vision module. |
-| L+B 6-slide template | `lb-slides-renderer` skill, `lb-slides-canonical-pngs` skill, `slides/canonical-assets.ts` | Template, brand, and pixel-authoritative PNGs are L+B-specific by design. |
+| Domain data shape | `slides/types.ts` (`SlideProperty`), `slides/property-brief.ts`, `ai/property-vision.ts`, `ai/buildPropertyContext.ts` | Real-estate underwriting context. A different domain substitutes its own brief + vision module. |
+| Underwriting payload assembler | `slides/build-payload.ts` | Imports `@engine/*` and `@analytics/*` (IRR, debt, aggregation). Real-estate-specific by construction. |
+| Render constants | `slides/deck-render-constants.ts` | `TOTAL_SLIDES = 6` and viewport sizing are tuned to the L+B 6-slide deck. |
+| L+B template | `lb-slides-renderer` skill, `lb-slides-canonical-pngs` skill, `slides/canonical-assets.ts` | Template, brand, and pixel-authoritative PNGs are L+B-specific by design. |
 | Brand/design tokens | `hbg-design-philosophy` skill | HBG portal visual identity. The portable foundation lives in `nai-design-system`. |
-
-**Cross-app dependencies to be aware of:** `slides/build-payload.ts` and `slides/property-brief.ts` import from `@engine/*` and `@analytics/*` (financial models — IRR, debt, aggregation). For non-real-estate adoption, those imports define the substitution boundary: replace the domain math, keep the slot/validator/renderer plumbing.
 
 **Adoption checklist for a new app:**
 
-1. Reuse `lib/shared/src/deck-payload-v2.ts` and the `slides/` deterministic core unchanged.
-2. Replace `SlideProperty` and `property-brief.ts` with your domain's equivalent fact-brief.
-3. Author your own canonical template (skill + PNGs) — don't fork `lb-slides-renderer`.
-4. Reuse `slide-deck-spec`, `slide-deck-vector`, `deck-ir-render`, `deck-export`, `pptx-to-deck-ir` as-is.
+1. Reuse Tier 1 unchanged: `lib/shared/src/deck-payload-v2.ts`, `playwright-browser.ts`, `internal-token.ts`, `deck-logic-version.ts`, and the five generic skills.
+2. Copy Tier 2 files (`slot-context-map.ts`, `slot-output-validator.ts`, `slot-readiness.ts`) into the new app, then rewrite the slot-key union, the context-map, the validator rules, and the readiness key lists to match the new app's slide template and domain brief.
+3. Replace Tier 3 entirely: write your own domain `Brief` type + brief-builder + LLM-vision module, your own payload assembler over your domain's data sources, and your own canonical template (skill + PNGs). Do not fork `lb-slides-renderer`.
+4. Confirm no imports from `@engine/*` or `@analytics/*` survive into the new app's slide stack — those define the H+/L+B substitution boundary.
