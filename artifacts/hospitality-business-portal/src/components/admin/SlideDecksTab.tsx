@@ -24,15 +24,42 @@ interface PropertyRow {
   imageUrl?: string | null;
 }
 
+interface SlideStatusRow {
+  propertyId: number;
+  format: string;
+  status: string;
+  r2Key: string | null;
+  fileSizeBytes: number | null;
+  generatedAt: string | null;
+  triggeredBy: string | null;
+  errorMessage: string | null;
+}
+
+type DeckReadiness = "ready" | "generating" | "error" | "not_generated";
+
 // ── Constants ─────────────────────────────────────────────────────────────
 
-const STATUS_STYLES: Record<string, string> = {
+const ACQSTATUS_STYLES: Record<string, string> = {
   active:    "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
   pipeline:  "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
   planned:   "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
   closed:    "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
   operating: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
   disposed:  "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+};
+
+const DECK_READINESS_STYLES: Record<DeckReadiness, string> = {
+  ready:         "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
+  generating:    "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  error:         "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  not_generated: "bg-gray-100 text-gray-600 dark:bg-gray-800/60 dark:text-gray-400",
+};
+
+const DECK_READINESS_LABELS: Record<DeckReadiness, string> = {
+  ready:         "Ready",
+  generating:    "Generating…",
+  error:         "Error",
+  not_generated: "Not generated",
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -75,6 +102,14 @@ function typeLabel(p: PropertyRow): string {
 function accentHue(id: number): number {
   const HUES = [220, 195, 260, 175, 240, 210, 185, 250];
   return HUES[id % HUES.length];
+}
+
+function deckReadinessFromStatus(rawStatus: string | undefined): DeckReadiness {
+  if (!rawStatus || rawStatus === "idle") return "not_generated";
+  if (rawStatus === "ready") return "ready";
+  if (rawStatus === "generating") return "generating";
+  if (rawStatus === "error") return "error";
+  return "not_generated";
 }
 
 // ── Slide render thumbnail ─────────────────────────────────────────────────
@@ -167,6 +202,22 @@ function SlideRender({ property }: { property: PropertyRow }) {
   );
 }
 
+// ── Deck readiness badge ───────────────────────────────────────────────────
+
+function DeckReadinessBadge({ readiness }: { readiness: DeckReadiness }) {
+  return (
+    <Badge
+      variant="outline"
+      className={`text-[11px] shrink-0 border-0 font-medium ${DECK_READINESS_STYLES[readiness]}`}
+    >
+      {readiness === "generating" && (
+        <Loader2 className="h-2.5 w-2.5 animate-spin mr-1 inline-block" />
+      )}
+      {DECK_READINESS_LABELS[readiness]}
+    </Badge>
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────────────
 
 export default function SlideDecksTab() {
@@ -191,11 +242,31 @@ export default function SlideDecksTab() {
     }
   }
 
-  // Properties list
   const { data: properties, isLoading: propsLoading, isError: propsError } = useQuery<PropertyRow[]>({
     queryKey: ["/api/properties"],
     staleTime: 30_000,
   });
+
+  const { data: slideStatuses } = useQuery<SlideStatusRow[]>({
+    queryKey: ["/api/slides/status"],
+    staleTime: 15_000,
+  });
+
+  const deckStatusByPropertyId = new Map<number, DeckReadiness>();
+  if (slideStatuses) {
+    for (const row of slideStatuses) {
+      const current = deckStatusByPropertyId.get(row.propertyId);
+      const next = deckReadinessFromStatus(row.status);
+      if (!current) {
+        deckStatusByPropertyId.set(row.propertyId, next);
+      } else {
+        const PRIORITY: DeckReadiness[] = ["ready", "generating", "error", "not_generated"];
+        if (PRIORITY.indexOf(next) < PRIORITY.indexOf(current)) {
+          deckStatusByPropertyId.set(row.propertyId, next);
+        }
+      }
+    }
+  }
 
   if (propsLoading) {
     return (
@@ -236,6 +307,7 @@ export default function SlideDecksTab() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {properties.map(p => {
           const acqStatus = (p.acquisitionStatus ?? p.status)?.toLowerCase() ?? "pipeline";
+          const deckReadiness = deckStatusByPropertyId.get(p.id) ?? "not_generated";
 
           return (
             <Card key={p.id} className="flex flex-col border border-border/60 hover:border-border transition-colors overflow-hidden p-0">
@@ -247,10 +319,15 @@ export default function SlideDecksTab() {
                   <p className="text-sm font-semibold leading-tight line-clamp-2">{p.name}</p>
                   <Badge
                     variant="outline"
-                    className={`text-[11px] shrink-0 border-0 font-medium ${STATUS_STYLES[acqStatus] ?? STATUS_STYLES["pipeline"]}`}
+                    className={`text-[11px] shrink-0 border-0 font-medium ${ACQSTATUS_STYLES[acqStatus] ?? ACQSTATUS_STYLES["pipeline"]}`}
                   >
                     {statusLabel(p.acquisitionStatus ?? p.status)}
                   </Badge>
+                </div>
+
+                {/* Deck readiness status */}
+                <div className="flex items-center">
+                  <DeckReadinessBadge readiness={deckReadiness} />
                 </div>
 
                 <div className="flex items-center gap-2">
