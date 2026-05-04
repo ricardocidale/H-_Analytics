@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { SaveButton } from "@/components/ui/save-button";
+import { ToolbarRow } from "@/components/ui/toolbar-row";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "@/components/icons/themed-icons";
@@ -233,61 +234,64 @@ export default function LlmWorkflowsPage() {
 
   return (
     <div className="space-y-5" data-testid="page-llm-workflows">
-      {/* Page title + top-right action buttons */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <IconCpu
-              className="w-4 h-4 text-muted-foreground shrink-0"
-              aria-hidden="true"
-            />
-            <h2 className="text-base font-semibold">LLM Configuration</h2>
-          </div>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Assign language models to each job and specialist workflow. Open a
-            card to configure its slots. Changes are staged until you click
-            Save.
-          </p>
-          {registry?.status === "ready" && (
-            <p className="text-[11px] text-muted-foreground/70 mt-0.5">
-              {registry.models.length} models probed across{" "}
-              {registry.vendorStatuses.filter((v) => v.available).length}{" "}
-              vendors
+      <ToolbarRow
+        start={
+          <>
+            <div className="flex items-center gap-2">
+              <IconCpu
+                className="w-4 h-4 text-muted-foreground shrink-0"
+                aria-hidden="true"
+              />
+              <h2 className="text-base font-semibold">LLM Configuration</h2>
+            </div>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Assign language models to each job and specialist workflow. Open a
+              card to configure its slots. Changes are staged until you click
+              Save.
             </p>
-          )}
-        </div>
-        <div className="flex items-center gap-2 shrink-0 pt-0.5">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refreshRegistry.mutate()}
-            disabled={refreshRegistry.isPending}
-            className="gap-1.5"
-            data-testid="button-analyst-llm-workflows"
-            title="Probe vendor APIs for current model lists — does not save"
-          >
-            {refreshRegistry.isPending ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop" />
-            ) : (
-              <span className="text-[11px] font-semibold text-accent-pop">
-                Analyst
-              </span>
+            {registry?.status === "ready" && (
+              <p className="text-[11px] text-muted-foreground/70 mt-0.5">
+                {registry.models.length} models probed across{" "}
+                {registry.vendorStatuses.filter((v) => v.available).length}{" "}
+                vendors
+              </p>
             )}
-            {!refreshRegistry.isPending && (
-              <span className="text-xs">Refresh models</span>
-            )}
-          </Button>
-          <SaveButton
-            size="sm"
-            onClick={handleSave}
-            hasChanges={isDirty}
-            isPending={batchSave.isPending}
-            data-testid="button-save-llm-workflows"
-          >
-            {`Save${dirtyCount > 0 ? ` (${dirtyCount})` : ""}`}
-          </SaveButton>
-        </div>
-      </div>
+          </>
+        }
+        end={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refreshRegistry.mutate()}
+              disabled={refreshRegistry.isPending}
+              className="gap-1.5"
+              data-testid="button-analyst-llm-workflows"
+              title="Probe vendor APIs for current model lists — does not save"
+            >
+              {refreshRegistry.isPending ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop" />
+              ) : (
+                <span className="text-[11px] font-semibold text-accent-pop">
+                  Analyst
+                </span>
+              )}
+              {!refreshRegistry.isPending && (
+                <span className="text-xs">Refresh models</span>
+              )}
+            </Button>
+            <SaveButton
+              size="sm"
+              onClick={handleSave}
+              hasChanges={isDirty}
+              isPending={batchSave.isPending}
+              data-testid="button-save-llm-workflows"
+            >
+              {`Save${dirtyCount > 0 ? ` (${dirtyCount})` : ""}`}
+            </SaveButton>
+          </>
+        }
+      />
 
       {isDirty && (
         <p className="text-xs text-amber-700 bg-amber-50/50 border border-amber-200 rounded-md px-3 py-2">

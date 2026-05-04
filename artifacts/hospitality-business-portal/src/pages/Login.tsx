@@ -35,7 +35,7 @@ function GoogleIcon({ className }: { className?: string }) {
 }
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, refetch } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -88,7 +88,8 @@ export default function Login() {
       await apiRequest("POST", "/api/auth/dev-login", undefined, {
         fallbackMessage: "Admin login failed",
       });
-      window.location.href = "/";
+      await refetch();
+      setLocation("/");
     } catch (error: unknown) {
       toast({
         title: "Login Failed",
