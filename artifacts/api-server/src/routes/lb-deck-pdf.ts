@@ -40,18 +40,11 @@ import {
   HTTP_500_INTERNAL_SERVER_ERROR,
   HTTP_503_SERVICE_UNAVAILABLE,
 } from "../constants";
-import pLimit from "p-limit";
+import { renderLimiter } from "../slides/render-limiter";
 
 const router = Router();
 
 const LB_PDF_R2_KEY = `lb-slides/pdf/${DECK_LOGIC_VERSION}/lb-deck.pdf`;
-
-/**
- * Shared render limiter — same concurrency cap as per-property renders.
- * Capped at 1 for LB deck since it's a heavy 6-slide render; the per-property
- * limiter from property-deck-pdf.ts is separate.
- */
-const lbRenderLimiter = pLimit(1);
 
 type RenderStatus = "idle" | "rendering" | "ready" | "error";
 
@@ -168,7 +161,7 @@ router.post(
     currentStatus = "rendering";
     lastError = null;
 
-    void lbRenderLimiter(async () => {
+    void renderLimiter(async () => {
       try {
         const sp = await getStorageProviderAsync();
         const pdf = await renderLbDeckPdf();

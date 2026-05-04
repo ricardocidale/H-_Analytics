@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { Redirect, useRoute } from "wouter";
+import { Redirect } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { Loader2 } from "@/components/icons/themed-icons";
 
@@ -58,18 +58,3 @@ export function IcpRedirect() {
   return <Redirect to="/ai-intelligence" />;
 }
 
-/**
- * Preserves the :propertyId param when redirecting legacy admin slide-deck
- * deep-links to the new Investor Materials route.
- *
- * wouter's static <Redirect> cannot interpolate route params, so we use a
- * component that reads params from context and builds the target URL at
- * render time:
- *   /admin/lb-slides/42  →  /slide-decks/42
- *   /admin/lb-slides     →  /slide-decks
- */
-export function LbSlidesRedirect() {
-  const [, params] = useRoute<{ propertyId?: string }>("/admin/lb-slides/:propertyId");
-  const to = params?.propertyId ? `/slide-decks/${params.propertyId}` : "/slide-decks";
-  return <Redirect to={to} />;
-}

@@ -38,7 +38,6 @@ import {
   ProtectedRoute,
   AdminRoute,
   IcpRedirect,
-  LbSlidesRedirect,
 } from "./app-guards";
 import {
   GlobalBeforeUnloadGuard,
@@ -60,8 +59,6 @@ const Login = lazy(() => import("@/pages/Login"));
 const InternalDeck = lazy(() => import("@/pages/InternalDeck"));
 const LbInternalDeck = lazy(() => import("@/pages/LbInternalDeck"));
 const LbSlides = lazy(() => import("@/pages/LbSlides"));
-const PropertySlides = lazy(() => import("@/pages/PropertySlides"));
-const SlideDecks = lazy(() => import("@/pages/SlideDecks"));
 const ResearchRefreshOverlay = lazy(() =>
   import("@/components/ResearchRefreshOverlay").then(m => ({ default: m.ResearchRefreshOverlay }))
 );
@@ -308,19 +305,10 @@ function Router() {
           <Redirect to="/admin" />
         </Route>
         <Route path="/admin/lb-slides">
-          <Redirect to="/slide-decks" />
-        </Route>
-        <Route path="/admin/lb-slides/:propertyId([0-9]+)">
-          <LbSlidesRedirect />
+          <Redirect to="/lb-slides" />
         </Route>
         <Route path="/lb-slides">
           <AdminRoute component={LbSlides} />
-        </Route>
-        <Route path="/slide-decks">
-          <AdminRoute component={SlideDecks} />
-        </Route>
-        <Route path="/slide-decks/:propertyId">
-          <AdminRoute component={PropertySlides} />
         </Route>
         <Route path="/icp">
           <IcpRedirect />

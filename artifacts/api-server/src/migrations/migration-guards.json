@@ -134,6 +134,14 @@
     "0033_property_slide_deck_variants_pdf_format": {
       "status": "self-idempotent",
       "reason": "DROP CONSTRAINT IF EXISTS + ADD CONSTRAINT — widens the property_slide_deck_variants.format CHECK to include 'pdf'. Re-running drops and re-adds the same constraint, which is a no-op net change."
+    },
+    "0034_fk_indexes": {
+      "status": "self-idempotent",
+      "reason": "Task #971 — 13 CREATE INDEX IF NOT EXISTS statements adding btree indexes on FK columns missing from prior migrations. Re-running via migrate() is a no-op."
+    },
+    "0035_lb_slides_config": {
+      "status": "self-idempotent",
+      "reason": "CREATE TABLE IF NOT EXISTS lb_slides_config — single-row config table for the LB Slide Deck portfolio investor presentation. Re-running via migrate() is a no-op."
     }
   }
 }

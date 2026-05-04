@@ -37,7 +37,6 @@ import {
   HTTP_500_INTERNAL_SERVER_ERROR,
 } from "../constants";
 
-import pLimit from "p-limit";
 import {
   PDF_RENDER_TIMEOUT_MS,
   DECK_READY_POLL_TIMEOUT_MS,
@@ -45,20 +44,9 @@ import {
   DECK_VIEWPORT_HEIGHT,
   PDF_CONTENT_TYPE,
 } from "../slides/deck-render-constants";
+import { renderLimiter } from "../slides/render-limiter";
 
 const router = Router();
-
-/**
- * Maximum number of concurrent Playwright PDF renders across all entry points
- * — both the synchronous GET deck.pdf slow-path and the background POST
- * /regenerate endpoint. Additional requests are queued in FIFO order.
- * Overridable via PDF_RENDER_CONCURRENCY env var for tuning in production.
- */
-const PDF_RENDER_CONCURRENCY = Math.max(
-  1,
-  Number(process.env.PDF_RENDER_CONCURRENCY) || 2,
-);
-const renderLimiter = pLimit(PDF_RENDER_CONCURRENCY);
 
 const PDF_FORMAT = "pdf" as const;
 const SLIDE_ERROR_MSG_MAX_LENGTH = 500;
