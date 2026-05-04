@@ -30,24 +30,24 @@ export const EVENT_META: Record<ResearchType, { label: string; icon: React.Compo
 };
 
 export const FALLBACK_MODELS: AiModelEntry[] = [
-  { id: "claude-opus-4-6", label: "Anthropic Claude Opus 4.6", provider: "anthropic" },
-  { id: "claude-opus-4-5", label: "Anthropic Claude Opus 4.5", provider: "anthropic" },
-  { id: "claude-sonnet-4-5", label: "Anthropic Claude Sonnet 4.5", provider: "anthropic" },
-  { id: "claude-haiku-4-5", label: "Anthropic Claude Haiku 4.5", provider: "anthropic" },
-  { id: "claude-opus-4-1", label: "Anthropic Claude Opus 4.1", provider: "anthropic" },
-  { id: "claude-opus-4", label: "Anthropic Claude Opus 4", provider: "anthropic" },
-  { id: "claude-sonnet-4", label: "Anthropic Claude Sonnet 4", provider: "anthropic" },
-  { id: "gpt-5.4", label: "OpenAI GPT 5.4", provider: "openai" },
-  { id: "gpt-5.4-pro", label: "OpenAI GPT 5.4 Pro", provider: "openai" },
-  { id: "o3", label: "OpenAI o3", provider: "openai" },
-  { id: "o3-pro", label: "OpenAI o3 Pro", provider: "openai" },
-  { id: "o4-mini", label: "OpenAI o4 Mini", provider: "openai" },
-  { id: "gemini-3.1-pro-preview", label: "Google Gemini 3.1 Pro Preview", provider: "google" },
-  { id: "gemini-3-flash-preview", label: "Google Gemini 3 Flash Preview", provider: "google" },
+  // Anthropic
+  { id: "claude-opus-4-7",           label: "Anthropic Claude Opus 4.7",   provider: "anthropic" },
+  { id: "claude-opus-4-6",           label: "Anthropic Claude Opus 4.6",   provider: "anthropic" },
+  { id: "claude-sonnet-4-6",         label: "Anthropic Claude Sonnet 4.6", provider: "anthropic" },
+  { id: "claude-sonnet-4-5",         label: "Anthropic Claude Sonnet 4.5", provider: "anthropic" },
+  { id: "claude-haiku-4-5-20251001", label: "Anthropic Claude Haiku 4.5",  provider: "anthropic" },
+  // OpenAI
+  { id: "gpt-4.1",     label: "OpenAI GPT-4.1",   provider: "openai" },
+  { id: "gpt-4o",      label: "OpenAI GPT-4o",    provider: "openai" },
+  { id: "gpt-4o-mini", label: "OpenAI GPT-4o Mini", provider: "openai" },
+  { id: "o3",          label: "OpenAI o3",         provider: "openai" },
+  { id: "o3-pro",      label: "OpenAI o3 Pro",     provider: "openai" },
+  { id: "o4-mini",     label: "OpenAI o4 Mini",    provider: "openai" },
+  // Google
+  { id: "gemini-2.5-pro",   label: "Google Gemini 2.5 Pro",   provider: "google" },
   { id: "gemini-2.5-flash", label: "Google Gemini 2.5 Flash", provider: "google" },
   { id: "gemini-2.0-flash", label: "Google Gemini 2.0 Flash", provider: "google" },
-  { id: "grok-4", label: "xAI Grok 4", provider: "xai" },
-  { id: "grok-4-fast", label: "xAI Grok 4 Fast", provider: "xai" },
-  { id: "grok-3", label: "xAI Grok 3", provider: "xai" },
+  // xAI
+  { id: "grok-3",      label: "xAI Grok 3",      provider: "xai" },
   { id: "grok-3-mini", label: "xAI Grok 3 Mini", provider: "xai" },
 ];
