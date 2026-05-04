@@ -1,6 +1,6 @@
 import { db } from "../db";
 import { bulkDraftRuns, BULK_DRAFT_RUNS_KEEP, type BulkDraftRun, type BulkDraftPropertyResultJson } from "@workspace/db";
-import { desc, eq, lt, sql } from "drizzle-orm";
+import { desc, eq, inArray, lt, sql } from "drizzle-orm";
 import { logger } from "../logger";
 
 export interface CreateBulkDraftRunInput {
@@ -17,6 +17,7 @@ export interface BulkDraftRunsStorage {
   createBulkDraftRun(input: CreateBulkDraftRunInput): Promise<BulkDraftRun>;
   listBulkDraftRuns(limit?: number): Promise<BulkDraftRun[]>;
   deleteBulkDraftRun(id: number): Promise<boolean>;
+  deleteBulkDraftRunsByIds(ids: number[]): Promise<{ deleted: number; failed: number[] }>;
   deleteBulkDraftRunsBefore(date: Date): Promise<number>;
 }
 
@@ -70,6 +71,17 @@ export class BulkDraftRunsStorageImpl implements BulkDraftRunsStorage {
       .where(eq(bulkDraftRuns.id, id))
       .returning({ id: bulkDraftRuns.id });
     return deleted.length > 0;
+  }
+
+  async deleteBulkDraftRunsByIds(ids: number[]): Promise<{ deleted: number; failed: number[] }> {
+    if (ids.length === 0) return { deleted: 0, failed: [] };
+    const deletedRows = await db
+      .delete(bulkDraftRuns)
+      .where(inArray(bulkDraftRuns.id, ids))
+      .returning({ id: bulkDraftRuns.id });
+    const deletedSet = new Set(deletedRows.map(r => r.id));
+    const failed = ids.filter(id => !deletedSet.has(id));
+    return { deleted: deletedRows.length, failed };
   }
 
   async deleteBulkDraftRunsBefore(date: Date): Promise<number> {

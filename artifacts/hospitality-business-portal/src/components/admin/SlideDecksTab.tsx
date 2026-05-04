@@ -918,21 +918,22 @@ function DraftHistorySection({ runs }: { runs: BulkDraftRunRow[] }) {
     if (ids.length === 0) return;
     setIsDeletingSelected(true);
     try {
-      const results = await Promise.allSettled(
-        ids.map(id =>
-          fetch(`/api/admin/bulk-draft-runs/${id}`, {
-            method: "DELETE",
-            credentials: "include",
-          }),
-        ),
-      );
-      const failCount = results.filter(r => r.status === "rejected" || (r.status === "fulfilled" && !r.value.ok)).length;
+      const response = await fetch("/api/admin/bulk-draft-runs", {
+        method: "DELETE",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}`);
+      }
+      const result = await response.json() as { deleted: number; failed: number[] };
       setSelectedRunIds(new Set());
       await queryClient.invalidateQueries({ queryKey: ["/api/admin/bulk-draft-runs"] });
-      if (failCount > 0) {
+      if (result.failed.length > 0) {
         toast({
           title: "Some runs could not be deleted",
-          description: `${ids.length - failCount} deleted · ${failCount} failed. Please try again.`,
+          description: `${result.deleted} deleted · ${result.failed.length} not found. Please try again.`,
           variant: "destructive",
         });
       }
