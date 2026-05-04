@@ -889,6 +889,19 @@ function DraftAllReviewPanel({
     prevDraftAllPending.current = !!isDraftingAll;
   }, [isDraftingAll, drafts]);
 
+  // Mount-time scroll: if the panel opens with existing drafts already present
+  // (e.g. after a hard-refresh that restores persisted state), scroll to the
+  // first card immediately so the admin doesn't land at the bottom of the list.
+  useEffect(() => {
+    if (drafts.length > 0) {
+      const firstSlot = drafts[0].slot;
+      requestAnimationFrame(() => {
+        slotCardRefs.current[firstSlot]?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Re-sync editable state when drafts change (e.g. re-draft stale or a
   // second Draft All run). Preserves admin edits on slots whose suggestion
   // did not change; resets to the fresh suggestion for re-drafted slots.
