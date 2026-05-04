@@ -52,6 +52,10 @@ args = "check:lint"
 task = "workflow.run"
 args = "check:typecheck"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "check:lint:libs"
+
 [[workflows.workflow]]
 name = "check:spinner-contrast"
 author = "agent"
@@ -147,6 +151,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm run typecheck"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "check:lint:libs"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter './lib/**' -r --if-present run lint"
 
 [workflows.workflow.metadata]
 isValidation = true

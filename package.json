@@ -12,7 +12,8 @@
     "check:migration-guards": "pnpm --filter @workspace/scripts run check:migration-guards",
     "check:spinner-contrast": "pnpm --filter @workspace/scripts run check:spinner-contrast",
     "check:production-image": "pnpm --filter @workspace/scripts run check:production-image",
-    "check:lint": "pnpm -r --if-present run lint"
+    "check:lint": "pnpm -r --if-present run lint",
+    "check:lint:libs": "pnpm --filter './lib/**' -r --if-present run lint"
   },
   "private": true,
   "devDependencies": {
