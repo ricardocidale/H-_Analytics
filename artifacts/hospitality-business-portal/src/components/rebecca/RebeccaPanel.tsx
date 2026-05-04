@@ -19,6 +19,9 @@ import {
   Gear,
   MoreVertical,
   Check,
+  Copy,
+  ThumbsUp,
+  ThumbsDown,
   AlignLeft,
   ChevronRight,
   ChevronLeft,
@@ -132,6 +135,8 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [responseMode, setResponseMode] = useState<ResponseMode>(getStoredMode);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [thumbs, setThumbs] = useState<Record<string, "up" | "down">>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -463,6 +468,21 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
       sendMessage();
     }
   };
+
+  const handleCopy = useCallback((id: string, content: string) => {
+    navigator.clipboard.writeText(content).catch(() => {});
+    setCopiedId(id);
+    setTimeout(() => setCopiedId((prev) => (prev === id ? null : prev)), 1500);
+  }, []);
+
+  const handleThumb = useCallback((id: string, vote: "up" | "down") => {
+    setThumbs((prev) => {
+      const next = { ...prev };
+      if (next[id] === vote) delete next[id];
+      else next[id] = vote;
+      return next;
+    });
+  }, []);
 
   const handleSelectConversation = useCallback(async (convId: number) => {
     setMessages([]);

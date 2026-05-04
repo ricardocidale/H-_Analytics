@@ -3,6 +3,8 @@ import { dPow } from "@calc/shared/decimal";
 
 const DEFAULT_MAX_ITERATIONS = 100;
 const DEFAULT_TOLERANCE = 1e-8;
+/** Fallback relative convergence threshold: NPV must be < this fraction of total invested capital. */
+const FALLBACK_RELATIVE_TOLERANCE = 1e-6;
 
 /**
  * Compute NPV at a given discount rate.
@@ -116,7 +118,7 @@ export function computeIRR(
   // The old absolute threshold of $1 could silently accept a wrong IRR on a
   // sub-$1M deal where $0.99 NPV is already a 0.1% error.
   const finalNpv = npv(cashFlows, rate);
-  const relTolerance = Math.max(1, totalNegative) * 1e-6;
+  const relTolerance = Math.max(1, totalNegative) * FALLBACK_RELATIVE_TOLERANCE;
   if (Math.abs(finalNpv) < relTolerance) {
     const annualized =
       periodsPerYear === 1 ? rate : dPow(1 + rate, periodsPerYear) - 1;
