@@ -71,6 +71,25 @@ interface Form {
 type Slide3ScalarSlot = "slide3.conceptParagraph" | "slide3.marketRationale" | "slide3.closingLine";
 type Slide3DraftSlot = Slide3ScalarSlot | "slide3.reasons";
 
+// ── Auto-selection logic (mirrors slides.tsx Slide3 interior photo logic) ──
+//
+// slides.tsx uses SlidePhoto (with `.url`); PropertyPhoto from the DB uses
+// `.imageUrl`. This helper re-implements the same priority chain so the
+// editor shows exactly what the slide will render when no override is set.
+
+function getAutoInteriorUrl(
+  photos: Array<{ imageUrl: string; isHero: boolean | null }>,
+): string | null {
+  return (
+    photos.find(ph => !ph.isHero && ph.imageUrl?.includes("medellin-duplex-2"))
+      ?.imageUrl ??
+    photos[1]?.imageUrl ??
+    photos.find(ph => !ph.isHero)?.imageUrl ??
+    photos[0]?.imageUrl ??
+    null
+  );
+}
+
 // ── Hydration helpers ──────────────────────────────────────────────────────
 
 function hydrateForm(payload: DeckPayloadV2): Form {
@@ -499,37 +518,58 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
           ) : (
             <div className="space-y-3">
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
-                {photos.filter(ph => !ph.isHero).map(ph => {
-                  const selected = form.interiorPhotoUrl === ph.imageUrl;
-                  return (
-                    <button
-                      key={ph.id}
-                      type="button"
-                      onClick={() => setForm(prev => prev ? {
-                        ...prev,
-                        interiorPhotoUrl: selected ? null : ph.imageUrl,
-                        interiorPhotoUrlDirty: true,
-                      } : prev)}
-                      className={`relative aspect-video rounded overflow-hidden border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                        selected
-                          ? "border-primary ring-2 ring-primary/30"
-                          : "border-border hover:border-muted-foreground"
-                      }`}
-                      title={ph.caption ?? ph.imageUrl}
-                    >
-                      <img
-                        src={ph.imageUrl}
-                        alt={ph.caption ?? "Property photo"}
-                        className="w-full h-full object-cover"
-                      />
-                      {selected && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-primary/20">
-                          <IconCheck className="h-5 w-5 text-primary drop-shadow" />
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
+                {(() => {
+                  const autoUrl = form.interiorPhotoUrl == null
+                    ? getAutoInteriorUrl(photos)
+                    : null;
+                  return photos.filter(ph => !ph.isHero).map(ph => {
+                    const selected = form.interiorPhotoUrl === ph.imageUrl;
+                    const isAuto = autoUrl != null && ph.imageUrl === autoUrl;
+                    return (
+                      <button
+                        key={ph.id}
+                        type="button"
+                        onClick={() => setForm(prev => prev ? {
+                          ...prev,
+                          interiorPhotoUrl: selected ? null : ph.imageUrl,
+                          interiorPhotoUrlDirty: true,
+                        } : prev)}
+                        className={`relative aspect-video rounded overflow-hidden border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                          selected
+                            ? "border-primary ring-2 ring-primary/30"
+                            : isAuto
+                              ? "border-dashed border-primary/60 ring-1 ring-primary/20"
+                              : "border-border hover:border-muted-foreground"
+                        }`}
+                        title={
+                          selected
+                            ? (ph.caption ?? ph.imageUrl) + " (manually selected)"
+                            : isAuto
+                              ? (ph.caption ?? ph.imageUrl) + " (auto-selected — will be used when no override is set)"
+                              : (ph.caption ?? ph.imageUrl)
+                        }
+                      >
+                        <img
+                          src={ph.imageUrl}
+                          alt={ph.caption ?? "Property photo"}
+                          className="w-full h-full object-cover"
+                        />
+                        {selected && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-primary/20">
+                            <IconCheck className="h-5 w-5 text-primary drop-shadow" />
+                          </div>
+                        )}
+                        {isAuto && !selected && (
+                          <div className="absolute bottom-1 left-1">
+                            <span className="text-[10px] font-semibold leading-none px-1.5 py-0.5 rounded bg-primary/80 text-primary-foreground tracking-wide">
+                              AUTO
+                            </span>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  });
+                })()}
               </div>
               {form.interiorPhotoUrl != null && (
                 <Button
@@ -549,7 +589,7 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
               )}
               {form.interiorPhotoUrl == null && (
                 <p className="text-xs text-muted-foreground italic">
-                  No override set — slide will auto-select the interior photo.
+                  No override set — the photo marked <span className="font-semibold not-italic">AUTO</span> above will be used.
                 </p>
               )}
             </div>
