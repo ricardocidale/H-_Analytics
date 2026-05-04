@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconAlertCircle, IconRefreshCw } from "@/components/icons";
+import { IconAlertCircle, IconRefreshCw, IconCheck, IconX } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Label } from "@/components/ui/label";
@@ -55,6 +55,7 @@ import {
   isDraftStale,
   StaleDraftNotice,
   StaleDraftBanner,
+  InlineDraftDiff,
 } from "./editor-shared";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -113,7 +114,7 @@ function buildPatchBody(form: Form): { slide3?: Partial<Slide3Payload> } | null 
 // ── Scalar slot row ────────────────────────────────────────────────────────
 
 function ScalarSlotRow({
-  label, description, slot, max, multiline, onChange, onDraft, isDrafting, readinessKey, readinessReport, propertyUpdatedAt,
+  label, description, slot, max, multiline, onChange, onDraft, isDrafting, readinessKey, readinessReport, propertyUpdatedAt, pendingSuggestion, onAcceptDraft, onDismissDraft,
 }: {
   label: string;
   description: string;
@@ -126,6 +127,9 @@ function ScalarSlotRow({
   readinessKey: string;
   readinessReport: Record<string, string> | undefined;
   propertyUpdatedAt?: string;
+  pendingSuggestion?: string | null;
+  onAcceptDraft?: () => void;
+  onDismissDraft?: () => void;
 }) {
   const id = `slide3-slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
   const InputComp = multiline ? Textarea : Input;
@@ -155,19 +159,28 @@ function ScalarSlotRow({
         className={slot.text.length > max ? "border-destructive" : undefined}
       />
       {isDraftStale(slot, propertyUpdatedAt) && <StaleDraftNotice />}
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        onClick={onDraft}
-        disabled={isDrafting}
-        className="gap-1.5"
-      >
-        {isDrafting
-          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          : <IconRefreshCw className="h-3.5 w-3.5" />}
-        Draft via Analyst
-      </Button>
+      {pendingSuggestion != null && onAcceptDraft && onDismissDraft ? (
+        <InlineDraftDiff
+          currentText={slot.text}
+          suggestedText={pendingSuggestion}
+          onAccept={onAcceptDraft}
+          onDismiss={onDismissDraft}
+        />
+      ) : (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={onDraft}
+          disabled={isDrafting}
+          className="gap-1.5"
+        >
+          {isDrafting
+            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            : <IconRefreshCw className="h-3.5 w-3.5" />}
+          Re-draft
+        </Button>
+      )}
     </div>
   );
 }
@@ -262,6 +275,12 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
   });
 
   const [draftingSlot, setDraftingSlot] = useState<Slide3DraftSlot | null>(null);
+  const [pendingDrafts, setPendingDrafts] = useState<Record<string, {
+    text?: string;
+    reasons?: { label: string; detail: string }[];
+    generatedAt: string;
+  }>>({});
+
   const draftMutation = useMutation({
     mutationFn: async (slot: Slide3DraftSlot) => {
       const r = await apiRequest(
@@ -277,31 +296,20 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
       }>;
     },
     onSuccess: (result) => {
-      setForm(prev => {
-        if (!prev) return prev;
-        const s = result.slot as Slide3DraftSlot;
-
-        if ((s === "slide3.conceptParagraph" || s === "slide3.marketRationale" || s === "slide3.closingLine") && result.suggestion.text != null) {
-          const key = s.replace("slide3.", "") as "conceptParagraph" | "marketRationale" | "closingLine";
-          return { ...prev, [key]: { ...prev[key], text: result.suggestion.text, source: "llm" as const, dirty: true, llmGeneratedAt: result.generatedAt } };
-        }
-
-        if (s === "slide3.reasons" && result.suggestion.reasons) {
-          const incoming = result.suggestion.reasons;
-          const reasons = prev.reasons.map((pair, i) => {
-            const r = incoming[i];
-            if (!r) return pair;
-            return {
-              label: { ...pair.label, text: r.label ?? "", source: "llm" as const, dirty: true, llmGeneratedAt: result.generatedAt },
-              detail: { ...pair.detail, text: r.detail ?? "", source: "llm" as const, dirty: true, llmGeneratedAt: result.generatedAt },
-            };
-          });
-          return { ...prev, reasons };
-        }
-
-        return prev;
-      });
-      toast({ title: "Analyst draft loaded", description: "Review the proposal, then save to persist it." });
+      const s = result.slot as Slide3DraftSlot;
+      if ((s === "slide3.conceptParagraph" || s === "slide3.marketRationale" || s === "slide3.closingLine") && result.suggestion.text != null) {
+        setPendingDrafts(prev => ({
+          ...prev,
+          [s]: { text: result.suggestion.text!, generatedAt: result.generatedAt },
+        }));
+      }
+      if (s === "slide3.reasons" && result.suggestion.reasons) {
+        setPendingDrafts(prev => ({
+          ...prev,
+          "slide3.reasons": { reasons: result.suggestion.reasons!, generatedAt: result.generatedAt },
+        }));
+      }
+      toast({ title: "Analyst suggestion ready", description: "Review the proposal below the field — accept or dismiss it." });
     },
     onError: (err: unknown) => {
       toast({ title: "Draft failed", description: err instanceof Error ? err.message : String(err), variant: "destructive" });
@@ -332,6 +340,39 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
   function draft(slot: Slide3DraftSlot) {
     setDraftingSlot(slot);
     draftMutation.mutate(slot);
+  }
+
+  function acceptDraft(slotKey: string) {
+    const pending = pendingDrafts[slotKey];
+    if (!pending) return;
+    if (pending.text != null) {
+      const formKey = slotKey.replace("slide3.", "") as "conceptParagraph" | "marketRationale" | "closingLine";
+      setForm(prev => prev ? { ...prev, [formKey]: { ...prev[formKey], text: pending.text!, source: "llm" as const, dirty: true, llmGeneratedAt: pending.generatedAt } } : prev);
+    }
+    if (slotKey === "slide3.reasons" && pending.reasons) {
+      setForm(prev => {
+        if (!prev) return prev;
+        const incoming = pending.reasons!;
+        const reasons = prev.reasons.map((pair, i) => {
+          const r = incoming[i];
+          if (!r) return pair;
+          return {
+            label: { ...pair.label, text: r.label ?? "", source: "llm" as const, dirty: true, llmGeneratedAt: pending.generatedAt },
+            detail: { ...pair.detail, text: r.detail ?? "", source: "llm" as const, dirty: true, llmGeneratedAt: pending.generatedAt },
+          };
+        });
+        return { ...prev, reasons };
+      });
+    }
+    dismissDraft(slotKey);
+  }
+
+  function dismissDraft(slotKey: string) {
+    setPendingDrafts(prev => {
+      const next = { ...prev };
+      delete next[slotKey];
+      return next;
+    });
   }
 
   if (!Number.isFinite(propertyId)) return <p className="text-destructive">Invalid property ID.</p>;
@@ -401,6 +442,9 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
             readinessKey="slide3.conceptParagraph"
             readinessReport={report}
             propertyUpdatedAt={propertyUpdatedAt}
+            pendingSuggestion={pendingDrafts["slide3.conceptParagraph"]?.text ?? null}
+            onAcceptDraft={() => acceptDraft("slide3.conceptParagraph")}
+            onDismissDraft={() => dismissDraft("slide3.conceptParagraph")}
           />
           <ScalarSlotRow
             label="Why This Property?"
@@ -414,6 +458,9 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
             readinessKey="slide3.marketRationale"
             readinessReport={report}
             propertyUpdatedAt={propertyUpdatedAt}
+            pendingSuggestion={pendingDrafts["slide3.marketRationale"]?.text ?? null}
+            onAcceptDraft={() => acceptDraft("slide3.marketRationale")}
+            onDismissDraft={() => dismissDraft("slide3.marketRationale")}
           />
         </div>
 
@@ -428,19 +475,21 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
               </h3>
               <ReadinessBadge status={reasonsStatus} />
             </div>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => draft("slide3.reasons")}
-              disabled={draftingSlot === "slide3.reasons" && draftMutation.isPending}
-              className="gap-1.5"
-            >
-              {draftingSlot === "slide3.reasons" && draftMutation.isPending
-                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                : <IconRefreshCw className="h-3.5 w-3.5" />}
-              Draft all 3 via Analyst
-            </Button>
+            {!pendingDrafts["slide3.reasons"] && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => draft("slide3.reasons")}
+                disabled={draftingSlot === "slide3.reasons" && draftMutation.isPending}
+                className="gap-1.5"
+              >
+                {draftingSlot === "slide3.reasons" && draftMutation.isPending
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : <IconRefreshCw className="h-3.5 w-3.5" />}
+                Re-draft all 3
+              </Button>
+            )}
           </div>
           <p className="text-xs text-muted-foreground -mt-3">
             Three bold-label + detail pairs rendered as stacked rows. If any reason changes, all three
@@ -468,6 +517,52 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
               />
             </div>
           ))}
+          {pendingDrafts["slide3.reasons"] && (
+            <div className="rounded-md border border-sky-300 bg-sky-50/50 dark:bg-sky-950/20 dark:border-sky-800 p-3 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-sky-800 dark:text-sky-300 uppercase tracking-wide">
+                  Analyst suggestion — {SLIDE3_REASONS_COUNT} reasons
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <Button type="button" size="sm" variant="ghost" onClick={() => dismissDraft("slide3.reasons")} className="h-7 text-xs gap-1">
+                    <IconX className="h-3 w-3" />
+                    Dismiss
+                  </Button>
+                  <Button type="button" size="sm" onClick={() => acceptDraft("slide3.reasons")} className="h-7 text-xs gap-1">
+                    <IconCheck className="h-3 w-3" />
+                    Accept all
+                  </Button>
+                </div>
+              </div>
+              {pendingDrafts["slide3.reasons"].reasons!.map((r, i) => {
+                const currentLabel = form.reasons[i]?.label.text ?? "";
+                const currentDetail = form.reasons[i]?.detail.text ?? "";
+                const labelChanged = currentLabel.trim() !== (r.label ?? "").trim();
+                const detailChanged = currentDetail.trim() !== (r.detail ?? "").trim();
+                return (
+                  <div key={i} className="space-y-1 rounded border border-border/40 p-2">
+                    <span className="text-xs font-medium text-muted-foreground">Reason {i + 1}</span>
+                    {currentLabel.trim().length > 0 && labelChanged && (
+                      <div className="text-xs text-muted-foreground line-through rounded px-2 py-1 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50">
+                        <strong>Label:</strong> {currentLabel}
+                      </div>
+                    )}
+                    <div className={`text-sm rounded px-2 py-1 ${labelChanged ? "bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/50" : "bg-muted border border-border"}`}>
+                      <strong>Label:</strong> {r.label}
+                    </div>
+                    {currentDetail.trim().length > 0 && detailChanged && (
+                      <div className="text-xs text-muted-foreground line-through rounded px-2 py-1 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50">
+                        <strong>Detail:</strong> {currentDetail}
+                      </div>
+                    )}
+                    <div className={`text-sm rounded px-2 py-1 ${detailChanged ? "bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/50" : "bg-muted border border-border"}`}>
+                      <strong>Detail:</strong> {r.detail}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <Separator />
@@ -487,6 +582,9 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
             readinessKey="slide3.closingLine"
             readinessReport={report}
             propertyUpdatedAt={propertyUpdatedAt}
+            pendingSuggestion={pendingDrafts["slide3.closingLine"]?.text ?? null}
+            onAcceptDraft={() => acceptDraft("slide3.closingLine")}
+            onDismissDraft={() => dismissDraft("slide3.closingLine")}
           />
         </div>
 

@@ -39,7 +39,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconAlertCircle, IconRefreshCw } from "@/components/icons";
+import { IconAlertCircle, IconRefreshCw, IconCheck, IconX } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import {
@@ -68,6 +68,7 @@ import {
   isDraftStale,
   StaleDraftNotice,
   StaleDraftBanner,
+  InlineDraftDiff,
 } from "./editor-shared";
 
 // ── Hydration helpers ──────────────────────────────────────────────────────
@@ -157,6 +158,9 @@ interface SlotRowProps {
   isDrafting?: boolean;
   readinessStatus?: "complete" | "stale" | "missing" | "deterministic";
   propertyUpdatedAt?: string;
+  pendingSuggestion?: string | null;
+  onAcceptDraft?: () => void;
+  onDismissDraft?: () => void;
 }
 
 function SlotRow({
@@ -171,6 +175,9 @@ function SlotRow({
   isDrafting,
   readinessStatus,
   propertyUpdatedAt,
+  pendingSuggestion,
+  onAcceptDraft,
+  onDismissDraft,
 }: SlotRowProps) {
   const id = `slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
   const InputComp = multiline ? Textarea : Input;
@@ -206,7 +213,14 @@ function SlotRow({
         className={slot.text.length > max ? "border-destructive" : undefined}
       />
       {isDraftStale(slot, propertyUpdatedAt) && <StaleDraftNotice />}
-      {onDraft && (
+      {pendingSuggestion != null && onAcceptDraft && onDismissDraft ? (
+        <InlineDraftDiff
+          currentText={slot.text}
+          suggestedText={pendingSuggestion}
+          onAccept={onAcceptDraft}
+          onDismiss={onDismissDraft}
+        />
+      ) : onDraft && (
         <Button
           type="button"
           size="sm"
@@ -218,7 +232,7 @@ function SlotRow({
           {isDrafting
             ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
             : <IconRefreshCw className="h-3.5 w-3.5" />}
-          Draft via Analyst
+          Re-draft
         </Button>
       )}
     </div>
@@ -280,6 +294,12 @@ export function Slide1EditorPanel({ propertyId }: { propertyId: number }) {
   });
 
   const [draftingSlot, setDraftingSlot] = useState<string | null>(null);
+  const [pendingDrafts, setPendingDrafts] = useState<Record<string, {
+    text?: string;
+    bullets?: { text: string }[];
+    generatedAt: string;
+  }>>({});
+
   const draftMutation = useMutation({
     mutationFn: async (slot: "slide1.headerSubtitle" | "slide1.visionBullets") => {
       const r = await apiRequest(
@@ -295,27 +315,21 @@ export function Slide1EditorPanel({ propertyId }: { propertyId: number }) {
       }>;
     },
     onSuccess: (result) => {
-      setForm((prev) => {
-        if (!prev) return prev;
-        if (result.slot === "slide1.headerSubtitle" && result.suggestion.text != null) {
-          return {
-            ...prev,
-            headerSubtitle: { ...prev.headerSubtitle, text: result.suggestion.text, source: "llm", dirty: true, llmGeneratedAt: result.generatedAt },
-          };
-        }
-        if (result.slot === "slide1.visionBullets" && result.suggestion.bullets) {
-          const next = [...prev.visionBullets];
-          for (let i = 0; i < SLIDE1_VISION_BULLETS_COUNT; i++) {
-            const t = result.suggestion.bullets[i]?.text ?? "";
-            next[i] = { ...next[i], text: t, source: "llm", dirty: true, llmGeneratedAt: result.generatedAt };
-          }
-          return { ...prev, visionBullets: next };
-        }
-        return prev;
-      });
+      if (result.slot === "slide1.headerSubtitle" && result.suggestion.text != null) {
+        setPendingDrafts(prev => ({
+          ...prev,
+          "slide1.headerSubtitle": { text: result.suggestion.text!, generatedAt: result.generatedAt },
+        }));
+      }
+      if (result.slot === "slide1.visionBullets" && result.suggestion.bullets) {
+        setPendingDrafts(prev => ({
+          ...prev,
+          "slide1.visionBullets": { bullets: result.suggestion.bullets!, generatedAt: result.generatedAt },
+        }));
+      }
       toast({
-        title: "Analyst draft loaded",
-        description: "Review the proposal in the editor, then save to persist it.",
+        title: "Analyst suggestion ready",
+        description: "Review the proposal below the field — accept or dismiss it.",
       });
     },
     onError: (err: unknown) => {
@@ -349,6 +363,37 @@ export function Slide1EditorPanel({ propertyId }: { propertyId: number }) {
         ? { ...prev, photoCaptions: { ...prev.photoCaptions, [slot]: { ...prev.photoCaptions[slot], text, source, dirty: true } } }
         : prev,
     );
+  }
+
+  function acceptDraft(slotKey: string) {
+    const pending = pendingDrafts[slotKey];
+    if (!pending) return;
+    if (slotKey === "slide1.headerSubtitle" && pending.text != null) {
+      setForm(prev => prev ? {
+        ...prev,
+        headerSubtitle: { ...prev.headerSubtitle, text: pending.text!, source: "llm", dirty: true, llmGeneratedAt: pending.generatedAt },
+      } : prev);
+    }
+    if (slotKey === "slide1.visionBullets" && pending.bullets) {
+      setForm(prev => {
+        if (!prev) return prev;
+        const next = [...prev.visionBullets];
+        for (let i = 0; i < SLIDE1_VISION_BULLETS_COUNT; i++) {
+          const t = pending.bullets![i]?.text ?? "";
+          next[i] = { ...next[i], text: t, source: "llm", dirty: true, llmGeneratedAt: pending.generatedAt };
+        }
+        return { ...prev, visionBullets: next };
+      });
+    }
+    dismissDraft(slotKey);
+  }
+
+  function dismissDraft(slotKey: string) {
+    setPendingDrafts(prev => {
+      const next = { ...prev };
+      delete next[slotKey];
+      return next;
+    });
   }
 
   if (!Number.isFinite(propertyId)) {
@@ -440,6 +485,9 @@ export function Slide1EditorPanel({ propertyId }: { propertyId: number }) {
             isDrafting={draftingSlot === "slide1.headerSubtitle" && draftMutation.isPending}
             readinessStatus={headerSubtitleStatus}
             propertyUpdatedAt={propertyUpdatedAt}
+            pendingSuggestion={pendingDrafts["slide1.headerSubtitle"]?.text ?? null}
+            onAcceptDraft={() => acceptDraft("slide1.headerSubtitle")}
+            onDismissDraft={() => dismissDraft("slide1.headerSubtitle")}
           />
         </div>
 
@@ -454,22 +502,24 @@ export function Slide1EditorPanel({ propertyId }: { propertyId: number }) {
               </h3>
               <ReadinessBadge status={visionBulletsStatus} />
             </div>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                setDraftingSlot("slide1.visionBullets");
-                draftMutation.mutate("slide1.visionBullets");
-              }}
-              disabled={draftingSlot === "slide1.visionBullets" && draftMutation.isPending}
-              className="gap-1.5"
-            >
-              {draftingSlot === "slide1.visionBullets" && draftMutation.isPending
-                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                : <IconRefreshCw className="h-3.5 w-3.5" />}
-              Draft all 3 via Analyst
-            </Button>
+            {!pendingDrafts["slide1.visionBullets"] && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setDraftingSlot("slide1.visionBullets");
+                  draftMutation.mutate("slide1.visionBullets");
+                }}
+                disabled={draftingSlot === "slide1.visionBullets" && draftMutation.isPending}
+                className="gap-1.5"
+              >
+                {draftingSlot === "slide1.visionBullets" && draftMutation.isPending
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : <IconRefreshCw className="h-3.5 w-3.5" />}
+                Re-draft all 3
+              </Button>
+            )}
           </div>
           {form.visionBullets.map((b, i) => (
             <SlotRow
@@ -490,6 +540,46 @@ export function Slide1EditorPanel({ propertyId }: { propertyId: number }) {
               propertyUpdatedAt={propertyUpdatedAt}
             />
           ))}
+          {pendingDrafts["slide1.visionBullets"] && (
+            <div className="rounded-md border border-sky-300 bg-sky-50/50 dark:bg-sky-950/20 dark:border-sky-800 p-3 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-sky-800 dark:text-sky-300 uppercase tracking-wide">
+                  Analyst suggestion — {SLIDE1_VISION_BULLETS_COUNT} bullets
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <Button type="button" size="sm" variant="ghost" onClick={() => dismissDraft("slide1.visionBullets")} className="h-7 text-xs gap-1">
+                    <IconX className="h-3 w-3" />
+                    Dismiss
+                  </Button>
+                  <Button type="button" size="sm" onClick={() => acceptDraft("slide1.visionBullets")} className="h-7 text-xs gap-1">
+                    <IconCheck className="h-3 w-3" />
+                    Accept all
+                  </Button>
+                </div>
+              </div>
+              {pendingDrafts["slide1.visionBullets"].bullets!.map((b, i) => {
+                const current = form.visionBullets[i]?.text ?? "";
+                const isIdentical = current.trim() === b.text.trim();
+                return (
+                  <div key={i} className="space-y-1">
+                    <span className="text-xs font-medium text-muted-foreground">Bullet {i + 1}</span>
+                    {current.trim().length > 0 && !isIdentical && (
+                      <div className="text-xs text-muted-foreground line-through rounded px-2 py-1.5 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 whitespace-pre-wrap">
+                        {current}
+                      </div>
+                    )}
+                    <div className={`text-sm rounded px-2 py-1.5 whitespace-pre-wrap ${
+                      isIdentical
+                        ? "bg-muted border border-border"
+                        : "bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/50"
+                    }`}>
+                      {b.text}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <Separator />

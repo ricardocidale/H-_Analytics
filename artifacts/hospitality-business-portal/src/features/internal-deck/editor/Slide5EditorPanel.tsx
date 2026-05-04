@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconAlertCircle, IconRefreshCw } from "@/components/icons";
+import { IconAlertCircle, IconRefreshCw, IconCheck, IconX } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Label } from "@/components/ui/label";
@@ -53,6 +53,7 @@ import {
   isDraftStale,
   StaleDraftNotice,
   StaleDraftBanner,
+  InlineDraftDiff,
 } from "./editor-shared";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -131,7 +132,7 @@ function buildPatchBody(form: Form): { slide5?: Partial<Slide5Payload> } | null 
 // ── Scalar slot row (description field with Draft button) ──────────────────
 
 function ScalarSlotRow({
-  label, description, slot, max, multiline, onChange, onDraft, isDrafting, readinessKey, readinessReport, propertyUpdatedAt,
+  label, description, slot, max, multiline, onChange, onDraft, isDrafting, readinessKey, readinessReport, propertyUpdatedAt, pendingSuggestion, onAcceptDraft, onDismissDraft,
 }: {
   label: string;
   description: string;
@@ -144,6 +145,9 @@ function ScalarSlotRow({
   readinessKey: string;
   readinessReport: Record<string, string> | undefined;
   propertyUpdatedAt?: string;
+  pendingSuggestion?: string | null;
+  onAcceptDraft?: () => void;
+  onDismissDraft?: () => void;
 }) {
   const id = `slide5-slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
   const InputComp = multiline ? Textarea : Input;
@@ -173,19 +177,28 @@ function ScalarSlotRow({
         className={slot.text.length > max ? "border-destructive" : undefined}
       />
       {isDraftStale(slot, propertyUpdatedAt) && <StaleDraftNotice />}
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        onClick={onDraft}
-        disabled={isDrafting}
-        className="gap-1.5"
-      >
-        {isDrafting
-          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          : <IconRefreshCw className="h-3.5 w-3.5" />}
-        Draft via Analyst
-      </Button>
+      {pendingSuggestion != null && onAcceptDraft && onDismissDraft ? (
+        <InlineDraftDiff
+          currentText={slot.text}
+          suggestedText={pendingSuggestion}
+          onAccept={onAcceptDraft}
+          onDismiss={onDismissDraft}
+        />
+      ) : (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={onDraft}
+          disabled={isDrafting}
+          className="gap-1.5"
+        >
+          {isDrafting
+            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            : <IconRefreshCw className="h-3.5 w-3.5" />}
+          Re-draft
+        </Button>
+      )}
     </div>
   );
 }
@@ -301,6 +314,14 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
   });
 
   const [draftingSlot, setDraftingSlot] = useState<DraftSlotKey5 | null>(null);
+  const [pendingDrafts, setPendingDrafts] = useState<Record<string, {
+    text?: string;
+    rows?: { feature: string; existing: string; proposed: string }[];
+    feature?: string;
+    existing?: string;
+    proposed?: string;
+    generatedAt: string;
+  }>>({});
 
   const draftMutation = useMutation({
     mutationFn: async (slot: DraftSlotKey5) => {
@@ -312,43 +333,33 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
       return r.json() as Promise<DraftResult>;
     },
     onSuccess: (result) => {
-      setForm((prev) => {
-        if (!prev) return prev;
-        if (result.slot === "slide5.transformationDescription") {
-          const text = result.suggestion?.text ?? "";
-          return {
-            ...prev,
-            transformationDescription: { ...prev.transformationDescription, text, source: "llm", dirty: true, llmGeneratedAt: result.generatedAt },
-          };
-        }
-        if (result.slot === "slide5.transformationRows" && result.suggestion.rows) {
-          const drafted = result.suggestion.rows;
-          const transformationRows = Array.from({ length: SLIDE5_TRANSFORMATION_ROWS_COUNT }, (_, i) => {
-            const r = drafted[i];
-            if (!r) return { feature: emptySlot(), existing: emptySlot(), proposed: emptySlot() };
-            const makeSlot = (text: string): FormSlot => ({ text, source: "llm", dirty: true, serverProvenance: null, llmGeneratedAt: result.generatedAt });
-            return { feature: makeSlot(r.feature), existing: makeSlot(r.existing), proposed: makeSlot(r.proposed) };
-          });
-          return { ...prev, transformationRows };
-        }
-        // Per-row slot: update only the target row index, leaving all others intact.
-        const perRowMatch = /^slide5\.transformationRows\[(\d)\]$/.exec(result.slot);
-        if (perRowMatch) {
-          const rowIdx = parseInt(perRowMatch[1], 10);
-          const makeSlot = (text: string): FormSlot => ({ text, source: "llm", dirty: true, serverProvenance: null, llmGeneratedAt: result.generatedAt });
-          const rows = [...prev.transformationRows];
-          rows[rowIdx] = {
-            feature: makeSlot(result.suggestion.feature ?? ""),
-            existing: makeSlot(result.suggestion.existing ?? ""),
-            proposed: makeSlot(result.suggestion.proposed ?? ""),
-          };
-          return { ...prev, transformationRows: rows };
-        }
-        return prev;
-      });
+      if (result.slot === "slide5.transformationDescription" && result.suggestion?.text != null) {
+        setPendingDrafts(prev => ({
+          ...prev,
+          "slide5.transformationDescription": { text: result.suggestion.text!, generatedAt: result.generatedAt },
+        }));
+      }
+      if (result.slot === "slide5.transformationRows" && result.suggestion.rows) {
+        setPendingDrafts(prev => ({
+          ...prev,
+          "slide5.transformationRows": { rows: result.suggestion.rows!, generatedAt: result.generatedAt },
+        }));
+      }
+      const perRowMatch = /^slide5\.transformationRows\[(\d)\]$/.exec(result.slot);
+      if (perRowMatch) {
+        setPendingDrafts(prev => ({
+          ...prev,
+          [result.slot]: {
+            feature: result.suggestion.feature,
+            existing: result.suggestion.existing,
+            proposed: result.suggestion.proposed,
+            generatedAt: result.generatedAt,
+          },
+        }));
+      }
       toast({
-        title: "Analyst draft loaded",
-        description: "Review the proposal in the editor, then save to persist it.",
+        title: "Analyst suggestion ready",
+        description: "Review the proposal below the field — accept or dismiss it.",
       });
     },
     onError: (err: unknown) => {
@@ -383,6 +394,54 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
       const rows = [...prev.transformationRows];
       rows[rowIdx] = { ...rows[rowIdx], [field]: { ...rows[rowIdx][field], text, source, dirty: true } };
       return { ...prev, transformationRows: rows };
+    });
+  }
+
+  function acceptDraft(slotKey: string) {
+    const pending = pendingDrafts[slotKey];
+    if (!pending) return;
+    if (slotKey === "slide5.transformationDescription" && pending.text != null) {
+      setForm(prev => prev ? {
+        ...prev,
+        transformationDescription: { ...prev.transformationDescription, text: pending.text!, source: "llm", dirty: true, llmGeneratedAt: pending.generatedAt },
+      } : prev);
+    }
+    if (slotKey === "slide5.transformationRows" && pending.rows) {
+      setForm(prev => {
+        if (!prev) return prev;
+        const drafted = pending.rows!;
+        const transformationRows = Array.from({ length: SLIDE5_TRANSFORMATION_ROWS_COUNT }, (_, i) => {
+          const r = drafted[i];
+          if (!r) return { feature: emptySlot(), existing: emptySlot(), proposed: emptySlot() };
+          const makeSlot = (text: string): FormSlot => ({ text, source: "llm", dirty: true, serverProvenance: null, llmGeneratedAt: pending.generatedAt });
+          return { feature: makeSlot(r.feature), existing: makeSlot(r.existing), proposed: makeSlot(r.proposed) };
+        });
+        return { ...prev, transformationRows };
+      });
+    }
+    const perRowMatch = /^slide5\.transformationRows\[(\d)\]$/.exec(slotKey);
+    if (perRowMatch) {
+      const rowIdx = parseInt(perRowMatch[1], 10);
+      const makeSlot = (text: string): FormSlot => ({ text, source: "llm", dirty: true, serverProvenance: null, llmGeneratedAt: pending.generatedAt });
+      setForm(prev => {
+        if (!prev) return prev;
+        const rows = [...prev.transformationRows];
+        rows[rowIdx] = {
+          feature: makeSlot(pending.feature ?? ""),
+          existing: makeSlot(pending.existing ?? ""),
+          proposed: makeSlot(pending.proposed ?? ""),
+        };
+        return { ...prev, transformationRows: rows };
+      });
+    }
+    dismissDraft(slotKey);
+  }
+
+  function dismissDraft(slotKey: string) {
+    setPendingDrafts(prev => {
+      const next = { ...prev };
+      delete next[slotKey];
+      return next;
     });
   }
 
@@ -452,6 +511,9 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
             readinessKey="slide5.transformationDescription"
             readinessReport={report}
             propertyUpdatedAt={propertyUpdatedAt}
+            pendingSuggestion={pendingDrafts["slide5.transformationDescription"]?.text ?? null}
+            onAcceptDraft={() => acceptDraft("slide5.transformationDescription")}
+            onDismissDraft={() => dismissDraft("slide5.transformationDescription")}
           />
         </div>
 
@@ -466,32 +528,32 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
               </h3>
               <ReadinessBadge status={rowsStatus} />
             </div>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => fireDraft("slide5.transformationRows")}
-              disabled={draftingSlot === "slide5.transformationRows" && draftMutation.isPending}
-              className="gap-1.5"
-            >
-              {draftingSlot === "slide5.transformationRows" && draftMutation.isPending
-                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                : <IconRefreshCw className="h-3.5 w-3.5" />}
-              Draft all rows via Analyst
-            </Button>
+            {!pendingDrafts["slide5.transformationRows"] && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => fireDraft("slide5.transformationRows")}
+                disabled={draftingSlot === "slide5.transformationRows" && draftMutation.isPending}
+                className="gap-1.5"
+              >
+                {draftingSlot === "slide5.transformationRows" && draftMutation.isPending
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : <IconRefreshCw className="h-3.5 w-3.5" />}
+                Re-draft all rows
+              </Button>
+            )}
           </div>
           <p className="text-xs text-muted-foreground -mt-3">
             Three columns: Feature, Existing, Proposed. Leave Feature blank to omit a row.
             If any row changes, all rows are saved together.
           </p>
           {form.transformationRows.map((row, i) => {
-            // Per-row draft fires the per-row endpoint (slide5.transformationRows[i]),
-            // updating only this row. The section-level "Draft all rows" button
-            // remains available for drafting the whole table at once.
             const rowSlotKey = `slide5.transformationRows[${i}]` as DraftSlotKey5;
             const thisRowDrafting = draftingSlot === rowSlotKey && draftMutation.isPending;
             const anyDrafting = draftMutation.isPending;
-            const onRowDraft = () => fireDraft(rowSlotKey);
+            const rowPending = pendingDrafts[rowSlotKey];
+            const onRowDraft = rowPending ? undefined : () => fireDraft(rowSlotKey);
             return (
               <div key={i} className="space-y-3 rounded-md border border-border/40 p-4">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Row {i + 1}</p>
@@ -536,9 +598,107 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
                     Drafting row {i + 1}…
                   </p>
                 )}
+                {rowPending && (
+                  <div className="rounded-md border border-sky-300 bg-sky-50/50 dark:bg-sky-950/20 dark:border-sky-800 p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-sky-800 dark:text-sky-300 uppercase tracking-wide">
+                        Analyst suggestion — Row {i + 1}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <Button type="button" size="sm" variant="ghost" onClick={() => dismissDraft(rowSlotKey)} className="h-7 text-xs gap-1">
+                          <IconX className="h-3 w-3" />
+                          Dismiss
+                        </Button>
+                        <Button type="button" size="sm" onClick={() => acceptDraft(rowSlotKey)} className="h-7 text-xs gap-1">
+                          <IconCheck className="h-3 w-3" />
+                          Accept
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { label: "Feature", current: row.feature.text, suggested: rowPending.feature ?? "" },
+                        { label: "Existing", current: row.existing.text, suggested: rowPending.existing ?? "" },
+                        { label: "Proposed", current: row.proposed.text, suggested: rowPending.proposed ?? "" },
+                      ].map(col => {
+                        const changed = col.current.trim() !== col.suggested.trim();
+                        return (
+                          <div key={col.label} className="space-y-0.5">
+                            <span className="text-[10px] font-medium text-muted-foreground uppercase">{col.label}</span>
+                            {col.current.trim().length > 0 && changed && (
+                              <div className="text-[11px] text-muted-foreground line-through rounded px-1.5 py-0.5 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 whitespace-pre-wrap">
+                                {col.current}
+                              </div>
+                            )}
+                            <div className={`text-xs rounded px-1.5 py-0.5 whitespace-pre-wrap ${
+                              changed
+                                ? "bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/50"
+                                : "bg-muted border border-border"
+                            }`}>
+                              {col.suggested}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
+          {pendingDrafts["slide5.transformationRows"] && (
+            <div className="rounded-md border border-sky-300 bg-sky-50/50 dark:bg-sky-950/20 dark:border-sky-800 p-3 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-sky-800 dark:text-sky-300 uppercase tracking-wide">
+                  Analyst suggestion — {SLIDE5_TRANSFORMATION_ROWS_COUNT} rows
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <Button type="button" size="sm" variant="ghost" onClick={() => dismissDraft("slide5.transformationRows")} className="h-7 text-xs gap-1">
+                    <IconX className="h-3 w-3" />
+                    Dismiss
+                  </Button>
+                  <Button type="button" size="sm" onClick={() => acceptDraft("slide5.transformationRows")} className="h-7 text-xs gap-1">
+                    <IconCheck className="h-3 w-3" />
+                    Accept all
+                  </Button>
+                </div>
+              </div>
+              {pendingDrafts["slide5.transformationRows"].rows!.map((r, i) => {
+                const currentRow = form.transformationRows[i];
+                const featureChanged = (currentRow?.feature.text ?? "").trim() !== r.feature.trim();
+                const existingChanged = (currentRow?.existing.text ?? "").trim() !== r.existing.trim();
+                const proposedChanged = (currentRow?.proposed.text ?? "").trim() !== r.proposed.trim();
+                return (
+                  <div key={i} className="space-y-1 rounded border border-border/40 p-2">
+                    <span className="text-xs font-medium text-muted-foreground">Row {i + 1}</span>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { label: "Feature", current: currentRow?.feature.text ?? "", suggested: r.feature, changed: featureChanged },
+                        { label: "Existing", current: currentRow?.existing.text ?? "", suggested: r.existing, changed: existingChanged },
+                        { label: "Proposed", current: currentRow?.proposed.text ?? "", suggested: r.proposed, changed: proposedChanged },
+                      ].map(col => (
+                        <div key={col.label} className="space-y-0.5">
+                          <span className="text-[10px] font-medium text-muted-foreground uppercase">{col.label}</span>
+                          {col.current.trim().length > 0 && col.changed && (
+                            <div className="text-[11px] text-muted-foreground line-through rounded px-1.5 py-0.5 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 whitespace-pre-wrap">
+                              {col.current}
+                            </div>
+                          )}
+                          <div className={`text-xs rounded px-1.5 py-0.5 whitespace-pre-wrap ${
+                            col.changed
+                              ? "bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/50"
+                              : "bg-muted border border-border"
+                          }`}>
+                            {col.suggested}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <Separator />

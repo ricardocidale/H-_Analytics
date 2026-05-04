@@ -209,6 +209,9 @@ export interface SlotRowProps {
   isDrafting?: boolean;
   readinessStatus?: SlotStatus;
   propertyUpdatedAt?: string;
+  pendingSuggestion?: string | null;
+  onAcceptDraft?: () => void;
+  onDismissDraft?: () => void;
 }
 
 export function SlotRow({
@@ -223,6 +226,9 @@ export function SlotRow({
   isDrafting,
   readinessStatus,
   propertyUpdatedAt,
+  pendingSuggestion,
+  onAcceptDraft,
+  onDismissDraft,
 }: SlotRowProps) {
   const id = `slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
   const InputComp = multiline ? Textarea : Input;
@@ -260,8 +266,17 @@ export function SlotRow({
         className={slot.text.length > max ? "border-destructive" : undefined}
       />
       {isDraftStale(slot, propertyUpdatedAt) && <StaleDraftNotice />}
-      {onDraft && bucket === "llm-draft+approved" && (
-        <DraftButton onClick={onDraft} isPending={isDrafting ?? false} />
+      {pendingSuggestion != null && onAcceptDraft && onDismissDraft ? (
+        <InlineDraftDiff
+          currentText={slot.text}
+          suggestedText={pendingSuggestion}
+          onAccept={onAcceptDraft}
+          onDismiss={onDismissDraft}
+        />
+      ) : (
+        onDraft && bucket === "llm-draft+approved" && (
+          <DraftButton onClick={onDraft} isPending={isDrafting ?? false} />
+        )
       )}
     </div>
   );
@@ -336,12 +351,12 @@ export function StaleDraftBanner({ staleCount }: { staleCount: number }) {
 
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconRefreshCw } from "@/components/icons";
+import { IconRefreshCw, IconCheck, IconX } from "@/components/icons";
 
 export function DraftButton({
   onClick,
   isPending,
-  label = "Draft via Analyst",
+  label = "Re-draft",
 }: {
   onClick: () => void;
   isPending: boolean;
@@ -361,5 +376,54 @@ export function DraftButton({
         : <IconRefreshCw className="h-3.5 w-3.5" />}
       {label}
     </Button>
+  );
+}
+
+export function InlineDraftDiff({
+  currentText,
+  suggestedText,
+  onAccept,
+  onDismiss,
+}: {
+  currentText: string;
+  suggestedText: string;
+  onAccept: () => void;
+  onDismiss: () => void;
+}) {
+  const hasExisting = currentText.trim().length > 0;
+  const isIdentical = currentText.trim() === suggestedText.trim();
+  return (
+    <div className="rounded-md border border-sky-300 bg-sky-50/50 dark:bg-sky-950/20 dark:border-sky-800 p-3 space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold text-sky-800 dark:text-sky-300 uppercase tracking-wide">
+          Analyst suggestion
+        </span>
+        <div className="flex items-center gap-1.5">
+          <Button type="button" size="sm" variant="ghost" onClick={onDismiss} className="h-7 text-xs gap-1">
+            <IconX className="h-3 w-3" />
+            Dismiss
+          </Button>
+          <Button type="button" size="sm" onClick={onAccept} className="h-7 text-xs gap-1">
+            <IconCheck className="h-3 w-3" />
+            Accept
+          </Button>
+        </div>
+      </div>
+      {hasExisting && !isIdentical && (
+        <div className="text-xs text-muted-foreground line-through rounded px-2 py-1.5 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 whitespace-pre-wrap">
+          {currentText}
+        </div>
+      )}
+      <div className={`text-sm rounded px-2 py-1.5 whitespace-pre-wrap ${
+        isIdentical
+          ? "bg-muted border border-border"
+          : "bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/50"
+      }`}>
+        {suggestedText}
+      </div>
+      {isIdentical && (
+        <p className="text-xs text-muted-foreground italic">The suggestion is identical to the current text.</p>
+      )}
+    </div>
   );
 }

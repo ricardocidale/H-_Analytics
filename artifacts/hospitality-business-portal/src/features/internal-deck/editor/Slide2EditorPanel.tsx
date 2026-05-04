@@ -48,6 +48,7 @@ import {
   isDraftStale,
   StaleDraftNotice,
   StaleDraftBanner,
+  InlineDraftDiff,
 } from "./editor-shared";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -98,7 +99,7 @@ function buildPatchBody(form: Form): { slide2?: Partial<Slide2Payload> } | null 
 // ── Slot row (local — includes draft button) ───────────────────────────────
 
 function SlotRow({
-  label, description, slot, max, multiline, onChange, onDraft, isDrafting, readinessKey, readinessReport, propertyUpdatedAt,
+  label, description, slot, max, multiline, onChange, onDraft, isDrafting, readinessKey, readinessReport, propertyUpdatedAt, pendingSuggestion, onAcceptDraft, onDismissDraft,
 }: {
   label: string;
   description: string;
@@ -111,6 +112,9 @@ function SlotRow({
   readinessKey: string;
   readinessReport: Record<string, string> | undefined;
   propertyUpdatedAt?: string;
+  pendingSuggestion?: string | null;
+  onAcceptDraft?: () => void;
+  onDismissDraft?: () => void;
 }) {
   const id = `slide2-slot-${label.toLowerCase().replace(/\s+/g, "-")}`;
   const InputComp = multiline ? Textarea : Input;
@@ -140,19 +144,28 @@ function SlotRow({
         className={slot.text.length > max ? "border-destructive" : undefined}
       />
       {isDraftStale(slot, propertyUpdatedAt) && <StaleDraftNotice />}
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        onClick={onDraft}
-        disabled={isDrafting}
-        className="gap-1.5"
-      >
-        {isDrafting
-          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          : <IconRefreshCw className="h-3.5 w-3.5" />}
-        Draft via Analyst
-      </Button>
+      {pendingSuggestion != null && onAcceptDraft && onDismissDraft ? (
+        <InlineDraftDiff
+          currentText={slot.text}
+          suggestedText={pendingSuggestion}
+          onAccept={onAcceptDraft}
+          onDismiss={onDismissDraft}
+        />
+      ) : (
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={onDraft}
+          disabled={isDrafting}
+          className="gap-1.5"
+        >
+          {isDrafting
+            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            : <IconRefreshCw className="h-3.5 w-3.5" />}
+          Re-draft
+        </Button>
+      )}
     </div>
   );
 }
@@ -204,6 +217,7 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
   });
 
   const [draftingSlot, setDraftingSlot] = useState<DraftSlotKey2 | null>(null);
+  const [pendingDrafts, setPendingDrafts] = useState<Record<string, { text: string; generatedAt: string }>>({});
 
   const draftMutation = useMutation({
     mutationFn: async (slot: DraftSlotKey2) => {
@@ -217,16 +231,11 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
     onSuccess: (result) => {
       const text = result.suggestion.text;
       if (text == null) return;
-      const slotToKey: Record<string, keyof Form> = {
-        "slide2.operationalModelText": "operationalModelText",
-        "slide2.revenueBullet": "revenueBullet",
-        "slide2.programmingBullet": "programmingBullet",
-      };
-      const key = slotToKey[result.slot];
-      if (key) {
-        setForm(prev => prev ? { ...prev, [key]: { ...prev[key], text, source: "llm" as const, dirty: true, llmGeneratedAt: result.generatedAt } } : prev);
-      }
-      toast({ title: "Analyst draft loaded", description: "Review the proposal, then save to persist it." });
+      setPendingDrafts(prev => ({
+        ...prev,
+        [result.slot]: { text, generatedAt: result.generatedAt },
+      }));
+      toast({ title: "Analyst suggestion ready", description: "Review the proposal below the field — accept or dismiss it." });
     },
     onError: (err: unknown) => {
       toast({ title: "Draft failed", description: err instanceof Error ? err.message : String(err), variant: "destructive" });
@@ -243,6 +252,21 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
     setForm((prev) => (prev ? { ...prev, [key]: { ...prev[key], text, source, dirty: true } } : prev));
   }
 
+  function acceptDraft(slotKey: DraftSlotKey2) {
+    const pending = pendingDrafts[slotKey];
+    if (!pending) return;
+    const formKey = slotKey.replace("slide2.", "") as keyof Form;
+    setForm(prev => prev ? { ...prev, [formKey]: { ...prev[formKey], text: pending.text, source: "llm" as const, dirty: true, llmGeneratedAt: pending.generatedAt } } : prev);
+    dismissDraft(slotKey);
+  }
+
+  function dismissDraft(slotKey: string) {
+    setPendingDrafts(prev => {
+      const next = { ...prev };
+      delete next[slotKey];
+      return next;
+    });
+  }
 
   if (!Number.isFinite(propertyId)) return <p className="text-destructive">Invalid property ID.</p>;
   if (isLoading || !form) {
@@ -308,6 +332,9 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
             readinessKey="slide2.operationalModelText"
             readinessReport={report}
             propertyUpdatedAt={propertyUpdatedAt}
+            pendingSuggestion={pendingDrafts["slide2.operationalModelText"]?.text ?? null}
+            onAcceptDraft={() => acceptDraft("slide2.operationalModelText")}
+            onDismissDraft={() => dismissDraft("slide2.operationalModelText")}
           />
           <SlotRow
             label="Revenue bullet"
@@ -321,6 +348,9 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
             readinessKey="slide2.revenueBullet"
             readinessReport={report}
             propertyUpdatedAt={propertyUpdatedAt}
+            pendingSuggestion={pendingDrafts["slide2.revenueBullet"]?.text ?? null}
+            onAcceptDraft={() => acceptDraft("slide2.revenueBullet")}
+            onDismissDraft={() => dismissDraft("slide2.revenueBullet")}
           />
           <SlotRow
             label="Programming bullet"
@@ -334,6 +364,9 @@ export function Slide2EditorPanel({ propertyId }: { propertyId: number }) {
             readinessKey="slide2.programmingBullet"
             readinessReport={report}
             propertyUpdatedAt={propertyUpdatedAt}
+            pendingSuggestion={pendingDrafts["slide2.programmingBullet"]?.text ?? null}
+            onAcceptDraft={() => acceptDraft("slide2.programmingBullet")}
+            onDismissDraft={() => dismissDraft("slide2.programmingBullet")}
           />
         </div>
 
