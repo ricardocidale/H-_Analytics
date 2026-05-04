@@ -965,7 +965,6 @@ function DraftAllReviewPanel({
         slotCardRefs.current[firstSlot]?.scrollIntoView({ behavior: "smooth", block: "nearest" });
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Re-sync editable state when drafts change (e.g. re-draft stale or a
@@ -1011,7 +1010,6 @@ function DraftAllReviewPanel({
 
     baseRef.current = newBase;
   // Only re-run when the set of slots or their raw suggestions actually changes.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drafts]);
 
   // Real-time char-budget validation against the current edited text.

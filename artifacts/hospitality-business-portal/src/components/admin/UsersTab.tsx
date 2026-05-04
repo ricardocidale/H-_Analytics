@@ -171,25 +171,25 @@ export default function UsersTab() {
     },
   });
 
-  const handleEditUser = (user: User) => {
-    setSelectedUser(user);
-    setOriginalEmail(user.email);
+  const handleEditUser = (targetUser: User) => {
+    setSelectedUser(targetUser);
+    setOriginalEmail(targetUser.email);
     setEditUser({
-      email: user.email,
-      firstName: user.firstName || "",
-      lastName: user.lastName || "",
-      company: user.company || "",
-      title: user.title || "",
-      role: user.role || UserRole.USER,
+      email: targetUser.email,
+      firstName: targetUser.firstName || "",
+      lastName: targetUser.lastName || "",
+      company: targetUser.company || "",
+      title: targetUser.title || "",
+      role: targetUser.role || UserRole.USER,
       password: "",
-      canManageScenarios: user.canManageScenarios ?? true,
+      canManageScenarios: targetUser.canManageScenarios ?? true,
     });
     setShowEditPassword(false);
     setEditDialogOpen(true);
   };
 
-  const handlePasswordUser = (user: User) => {
-    setSelectedUser(user);
+  const handlePasswordUser = (targetUser: User) => {
+    setSelectedUser(targetUser);
     setPasswordDialogOpen(true);
   };
 
@@ -284,7 +284,7 @@ export default function UsersTab() {
             onToggleScenarios={(userId, value) => {
               editMutation.mutate({ id: userId, data: { canManageScenarios: value } });
             }}
-            onManageDefaults={(user) => { setDefaultsUser(user); setDefaultsDialogOpen(true); }}
+            onManageDefaults={(targetUser) => { setDefaultsUser(targetUser); setDefaultsDialogOpen(true); }}
           />
         )}
       </CardContent>

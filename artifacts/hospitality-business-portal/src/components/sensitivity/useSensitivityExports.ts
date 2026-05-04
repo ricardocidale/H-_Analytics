@@ -109,21 +109,21 @@ export function useSensitivityExports({
     if (advancedChartView === "heatmap" && heatmapRef.current) {
       try {
         const canvas = await heatmapRef.current.toCanvas();
-        const pageWidth = doc.internal.pageSize.getWidth();
+        const currentPageWidth = doc.internal.pageSize.getWidth();
         doc.addPage();
         doc.setFontSize(12);
         doc.text("Sensitivity Heat Map \u2014 ADR \u00d7 Occupancy", 14, 14);
-        drawCanvasAsImage(doc, canvas, 14, 22, pageWidth - 28, 180);
+        drawCanvasAsImage(doc, canvas, 14, 22, currentPageWidth - 28, 180);
       } catch { /* ignore: chart may not be rendered yet */ }
     }
     if (advancedChartView === "tornado-d3" && tornadoD3Ref.current) {
       try {
         const canvas = await tornadoD3Ref.current.toCanvas();
-        const pageWidth = doc.internal.pageSize.getWidth();
+        const currentPageWidth = doc.internal.pageSize.getWidth();
         doc.addPage();
         doc.setFontSize(12);
         doc.text("Tornado Diagram \u2014 Assumption Impact", 14, 14);
-        drawCanvasAsImage(doc, canvas, 14, 22, pageWidth - 28, 180);
+        drawCanvasAsImage(doc, canvas, 14, 22, currentPageWidth - 28, 180);
       } catch { /* ignore: chart may not be rendered yet */ }
     }
 

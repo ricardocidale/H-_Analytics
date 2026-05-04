@@ -68,7 +68,7 @@ function buildLocationSection(loc: IcpLocation, index: number, c: IcpConfig, d: 
   const cities = Array.isArray(loc.cities) ? loc.cities : [];
   const stateList = states.length > 0 ? states.join(", ") : "All regions";
   const cityList = cities.length > 0
-    ? cities.map(c => `${c.name} (${c.radius}-mile radius)`).join(", ")
+    ? cities.map(city => `${city.name} (${city.radius}-mile radius)`).join(", ")
     : null;
 
   lines.push(`┌─── LOCATION ${index + 1}: ${label.toUpperCase()} ───┐`);

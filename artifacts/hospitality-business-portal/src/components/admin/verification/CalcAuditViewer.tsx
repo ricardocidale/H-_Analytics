@@ -168,7 +168,7 @@ function groupByModule(entries: AuditEntry[]): ModuleGroup[] {
     const arr = map.get(e.module);
     if (arr) arr.push(e); else map.set(e.module, [e]);
   }
-  return Array.from(map.entries()).map(([module, entries]) => ({ module, entries }));
+  return Array.from(map.entries()).map(([module, moduleEntries]) => ({ module, entries: moduleEntries }));
 }
 
 function parseModuleLabel(module: string): { property: string; period: string } {
@@ -279,7 +279,7 @@ function AuditDetailView({ logId }: { logId: number }) {
       const arr = propertyMap.get(property);
       if (arr) arr.push(m); else propertyMap.set(property, [m]);
     }
-    return Array.from(propertyMap.entries()).map(([property, modules]) => ({ property, modules }));
+    return Array.from(propertyMap.entries()).map(([property, propertyModules]) => ({ property, modules: propertyModules }));
   }, [detail?.logEntries]);
 
   const filteredGroups = useMemo(() => {

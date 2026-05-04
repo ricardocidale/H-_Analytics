@@ -148,7 +148,7 @@ export function useIcpResearch() {
   };
 
   const handleEditQuestion = (id: string) => {
-    const q = promptBuilder.questions.find((q) => q.id === id);
+    const q = promptBuilder.questions.find((qItem) => qItem.id === id);
     if (!q) return;
     setEditingQuestionId(id);
     setEditingQuestionText(q.question);
@@ -156,7 +156,7 @@ export function useIcpResearch() {
 
   const handleSaveEditQuestion = () => {
     if (!editingQuestionId || !editingQuestionText.trim()) return;
-    const updated = { ...promptBuilder, questions: promptBuilder.questions.map((q) => q.id === editingQuestionId ? { ...q, question: editingQuestionText.trim() } : q) };
+    const updated = { ...promptBuilder, questions: promptBuilder.questions.map((qItem) => qItem.id === editingQuestionId ? { ...qItem, question: editingQuestionText.trim() } : qItem) };
     setPromptBuilder(updated);
     setEditingQuestionId(null);
     setEditingQuestionText("");
@@ -164,7 +164,7 @@ export function useIcpResearch() {
   };
 
   const handleCopyQuestion = (id: string) => {
-    const q = promptBuilder.questions.find((q) => q.id === id);
+    const q = promptBuilder.questions.find((qItem) => qItem.id === id);
     if (!q) return;
     const updated = { ...promptBuilder, questions: [...promptBuilder.questions, { id: `q-${Date.now()}`, question: q.question, sortOrder: promptBuilder.questions.length }] };
     setPromptBuilder(updated);

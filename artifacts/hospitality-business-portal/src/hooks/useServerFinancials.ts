@@ -251,9 +251,9 @@ export function useServerFinancials(
       }),
     })
       .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data?.insight) {
-          addInsight(data.insight, ragHash);
+      .then(responseData => {
+        if (responseData?.insight) {
+          addInsight(responseData.insight, ragHash);
         }
       })
       .catch(() => { /* ignore: insight fetch is non-critical background enrichment */ });

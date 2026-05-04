@@ -68,11 +68,11 @@ export function useGenerateImage(options: UseGenerateImageOptions = {}) {
         options.onSuccess?.(data.objectPath, data);
         return data;
       } catch (err: unknown) {
-        const error =
+        const caughtError =
           err instanceof Error ? err : new Error("Image generation failed");
-        setError(error);
+        setError(caughtError);
         setGenerationStatus(null);
-        options.onError?.(error);
+        options.onError?.(caughtError);
         return null;
       } finally {
         setIsGenerating(false);

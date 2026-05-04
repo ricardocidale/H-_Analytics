@@ -168,22 +168,22 @@ export default function OperatingStructureComparison() {
   ) {
     setPendingOverlays((prev) => {
       const next = { ...prev };
-      const current: StructureOverlayPatch = { ...(next[id] ?? {}) };
-      const sub = { ...((current[section] ?? {}) as Record<string, unknown>) };
+      const patch: StructureOverlayPatch = { ...(next[id] ?? {}) };
+      const sub = { ...((patch[section] ?? {}) as Record<string, unknown>) };
       if (value === undefined || Number.isNaN(value)) {
         delete sub[field];
       } else {
         sub[field] = value;
       }
       if (Object.keys(sub).length === 0) {
-        delete (current as Record<string, unknown>)[section];
+        delete (patch as Record<string, unknown>)[section];
       } else {
-        (current as Record<string, unknown>)[section] = sub;
+        (patch as Record<string, unknown>)[section] = sub;
       }
-      if (Object.keys(current).length === 0) {
+      if (Object.keys(patch).length === 0) {
         delete next[id];
       } else {
-        next[id] = current;
+        next[id] = patch;
       }
       return next;
     });
@@ -196,16 +196,16 @@ export default function OperatingStructureComparison() {
   ) {
     setPendingOverlays((prev) => {
       const next = { ...prev };
-      const current: StructureOverlayPatch = { ...(next[id] ?? {}) };
+      const patch: StructureOverlayPatch = { ...(next[id] ?? {}) };
       if (value === undefined || Number.isNaN(value)) {
-        delete current[field];
+        delete patch[field];
       } else {
-        current[field] = value;
+        patch[field] = value;
       }
-      if (Object.keys(current).length === 0) {
+      if (Object.keys(patch).length === 0) {
         delete next[id];
       } else {
-        next[id] = current;
+        next[id] = patch;
       }
       return next;
     });

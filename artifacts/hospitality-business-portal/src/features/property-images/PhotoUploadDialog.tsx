@@ -372,7 +372,7 @@ export function PhotoUploadDialog({ open, onOpenChange, propertyId }: PhotoUploa
       {cropIndex !== null && items[cropIndex] && (
         <ImageCropDialog
           open={true}
-          onOpenChange={(open) => { if (!open) setCropIndex(null); }}
+          onOpenChange={(isOpen) => { if (!isOpen) setCropIndex(null); }}
           imageSrc={URL.createObjectURL(items[cropIndex].file)}
           onCropComplete={handleCropComplete}
         />

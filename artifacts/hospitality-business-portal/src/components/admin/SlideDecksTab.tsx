@@ -1587,8 +1587,8 @@ export default function SlideDecksTab() {
       statusMap.set(row.propertyId, row.status);
     }
 
-    const anyGenerating = pendingArray.some(id => statusMap.get(id) === "generating");
-    if (anyGenerating) {
+    const isCurrentlyGenerating = pendingArray.some(id => statusMap.get(id) === "generating");
+    if (isCurrentlyGenerating) {
       seenGeneratingRef.current = true;
       return;
     }

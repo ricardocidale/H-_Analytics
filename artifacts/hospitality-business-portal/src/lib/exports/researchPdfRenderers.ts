@@ -119,7 +119,7 @@ export function renderPropertyResearch(doc: jsPDF, autoTable: AutoTableFn, conte
     y = addParagraph(doc, content.adrAnalysis.rationale ?? "", y, pageW, brand);
     if (content.adrAnalysis.comparables?.length) {
       y = addTable(doc, autoTable, ["Property", "ADR", "Type"],
-        content.adrAnalysis.comparables.map((c) => [c.name, c.adr, c.type || ""]),
+        content.adrAnalysis.comparables.map((comp) => [comp.name, comp.adr, comp.type || ""]),
         y, c(2), brand);
     }
   }
@@ -175,7 +175,7 @@ export function renderPropertyResearch(doc: jsPDF, autoTable: AutoTableFn, conte
     y = addParagraph(doc, content.capRateAnalysis.rationale ?? "", y, pageW, brand);
     if (content.capRateAnalysis.comparables?.length) {
       y = addTable(doc, autoTable, ["Property", "Cap Rate", "Sale Year", "Notes"],
-        content.capRateAnalysis.comparables.map((c) => [c.name, c.capRate, c.saleYear || "", c.notes || ""]),
+        content.capRateAnalysis.comparables.map((comp) => [comp.name, comp.capRate, comp.saleYear || "", comp.notes || ""]),
         y, c(6), brand);
     }
   }
@@ -194,7 +194,7 @@ export function renderPropertyResearch(doc: jsPDF, autoTable: AutoTableFn, conte
   if (content.competitiveSet?.length) {
     y = addSectionHeader(doc, "Competitive Set", y, c(8));
     y = addTable(doc, autoTable, ["Property", "Rooms", "ADR", "Positioning"],
-      content.competitiveSet.map((c) => [c.name, String(c.rooms || ""), c.adr || "", c.positioning || ""]),
+      content.competitiveSet.map((comp) => [comp.name, String(comp.rooms || ""), comp.adr || "", comp.positioning || ""]),
       y, c(0), brand);
   }
 
@@ -413,7 +413,7 @@ export function renderPromptConditions(doc: jsPDF, conditions: PromptConditions,
 }
 
 async function buildResearchDoc(options: ResearchExportOptions) {
-  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+  const [{ default: JsPDFCtor }, { default: autoTable }] = await Promise.all([
     import("jspdf"),
     import("jspdf-autotable"),
   ]);
@@ -426,7 +426,7 @@ async function buildResearchDoc(options: ResearchExportOptions) {
     logoDataUrl = await loadLogoImage(branding.logoUrl);
   }
 
-  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: [PAGE_DIMS.PORTRAIT_W, PAGE_DIMS.PORTRAIT_H] });
+  const doc = new JsPDFCtor({ orientation: "portrait", unit: "mm", format: [PAGE_DIMS.PORTRAIT_W, PAGE_DIMS.PORTRAIT_H] });
   const pageW = doc.internal.pageSize.getWidth();
 
   const headerH = 60;
