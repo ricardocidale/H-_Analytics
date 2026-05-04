@@ -422,6 +422,22 @@ export async function deleteVectors(
   );
 }
 
+export async function deleteExtractionVectors(extractionId: number): Promise<void> {
+  if (!isVectorStoreAvailable()) return;
+  await ensureStore();
+  try {
+    await pool.query(
+      `DELETE FROM vector_chunks WHERE namespace = 'documents' AND id LIKE $1`,
+      [`doc:${extractionId}:%`],
+    );
+  } catch (err: unknown) {
+    logger.warn(
+      `Vector cleanup for extraction ${extractionId} failed: ${err instanceof Error ? err.message : err}`,
+      "vector-store",
+    );
+  }
+}
+
 export interface MultiNamespaceMatch extends QueryMatch {
   namespace: VectorNamespace;
 }

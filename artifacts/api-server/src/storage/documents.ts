@@ -1,8 +1,15 @@
 import { db } from "../db";
 import { documentExtractions, extractionFields, type DocumentExtraction, type InsertDocumentExtraction, type ExtractionField, type InsertExtractionField } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { indexDocumentExtraction } from "../ai/vector-store-service";
 import { logger } from "../logger";
+
+export interface DocumentLibraryRow extends DocumentExtraction {
+  totalFields: number;
+  pendingFields: number;
+  approvedFields: number;
+  rejectedFields: number;
+}
 
 export class DocumentStorage {
   async createDocumentExtraction(data: InsertDocumentExtraction): Promise<DocumentExtraction> {
@@ -94,6 +101,56 @@ export class DocumentStorage {
     await db.update(extractionFields)
       .set({ status })
       .where(eq(extractionFields.extractionId, extractionId));
+  }
+
+  async deleteDocumentExtraction(id: number): Promise<DocumentExtraction | undefined> {
+    const [deleted] = await db.delete(documentExtractions)
+      .where(eq(documentExtractions.id, id))
+      .returning();
+    return deleted;
+  }
+
+  async getPropertyExtractionsWithCounts(propertyId: number): Promise<DocumentLibraryRow[]> {
+    type RawRow = {
+      id: number; property_id: number; user_id: number; file_name: string;
+      file_content_type: string; object_path: string; document_type: string;
+      status: string; raw_extraction_data: unknown; error_message: string | null;
+      processed_at: Date | null; created_at: Date;
+      total_fields: number; pending_fields: number; approved_fields: number; rejected_fields: number;
+    };
+    const result = await db.execute<RawRow>(sql`
+      SELECT
+        de.id, de.property_id, de.user_id, de.file_name, de.file_content_type,
+        de.object_path, de.document_type, de.status, de.raw_extraction_data,
+        de.error_message, de.processed_at, de.created_at,
+        COUNT(ef.id)::int                                               AS total_fields,
+        COUNT(ef.id) FILTER (WHERE ef.status = 'pending')::int          AS pending_fields,
+        COUNT(ef.id) FILTER (WHERE ef.status = 'approved')::int         AS approved_fields,
+        COUNT(ef.id) FILTER (WHERE ef.status = 'rejected')::int         AS rejected_fields
+      FROM document_extractions de
+      LEFT JOIN extraction_fields ef ON ef.extraction_id = de.id
+      WHERE de.property_id = ${propertyId}
+      GROUP BY de.id
+      ORDER BY de.created_at DESC
+    `);
+    return result.rows.map((r) => ({
+      id: r.id,
+      propertyId: r.property_id,
+      userId: r.user_id,
+      fileName: r.file_name,
+      fileContentType: r.file_content_type,
+      objectPath: r.object_path,
+      documentType: r.document_type,
+      status: r.status,
+      rawExtractionData: r.raw_extraction_data as Record<string, unknown> | null,
+      errorMessage: r.error_message,
+      processedAt: r.processed_at,
+      createdAt: r.created_at,
+      totalFields: r.total_fields,
+      pendingFields: r.pending_fields,
+      approvedFields: r.approved_fields,
+      rejectedFields: r.rejected_fields,
+    }));
   }
 
 }

@@ -30,6 +30,7 @@ export * from './constants-research';
 export * from './constants-capex';
 export * from './constants-staffing';
 export * from './constants-enums';
+export * from './document-types';
 
 // ──────────────────────────────────────────────────────────
 // REVENUE STREAM SHARES (% of TOTAL revenue)
