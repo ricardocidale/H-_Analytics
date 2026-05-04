@@ -1,0 +1,23 @@
+  I need you to implement the LB Slides feature. Full implementation spec is in docs/handoffs/lb-slides-replit-handoff.md — read that file first before writing any code. It has exact file paths, component structures, acceptance criteria, and
+  all design rules.
+
+  High-level summary of what you're building:
+
+  1. DB migration — new lb_slides_config table (single row, slides 1/2/3/5 each point to a property FK)
+  2. Slide 6 changes in slides.tsx — change PROFORMA_YEARS from 5 to 10, replace the flat income statement rows with a USALI accordion-closed structure (12 rows: Revenue ▶, Departmental Expenses ▶, Undistributed Expenses ▶, GOP, Management
+  Fees ▶, Fixed Charges, NOI, FF&E Reserve ▶, ANOI, Debt Service, Net Cash Flow, Cumulative CF), update all labels to say "10-YEAR" and "Portfolio — Combined Properties"
+  3. New backend route file artifacts/api-server/src/routes/lb-slides.ts — GET/PUT /api/lb-slides/config, POST /api/lb-slides/render, GET /api/lb-slides/render-status, and three download endpoints (combined PDF via pdf-lib, 6-PDF ZIP, 6-PNG
+  ZIP via archiver)
+  4. Slide 6 portfolio payload mode — extend build-payload.ts with portfolioMode: true flag that calls aggregateUnifiedByYear from @engine/aggregation/yearlyAggregator across all properties (same function the main dashboard Analytics tab
+  uses)
+  5. New LbSlides.tsx page at /lb-slides — two-column layout: left panel is a Card with 4 property Select dropdowns (slides 1/2/3/5) + 2 auto Badge labels (slides 4/6) + Save + Render All buttons; right panel is a 3-column Card grid of 6
+  slide thumbnail cards each with status Badge, assigned property label, and PDF/PNG download buttons; bottom Download section (combined PDF, ZIPs) appears once all 6 are ready
+  6. Nav update in Layout.tsx — change href from /slide-decks to /lb-slides, label from "Slide Decks" to "LB Slides"
+
+  Critical design rules:
+  - Admin page UI: use only @/components/ui/ components (Card, Button, Badge, Select, Label, Skeleton etc.) — no custom styled containers, no inline style on the page
+  - Slide canvas: keep using theme.ts palette (C.*) and inline styles — Playwright requires pixel-precise layout
+  - Reuse the existing render pipeline entirely — no new Playwright code
+  - pdf-lib and archiver are already installed
+
+  Read docs/handoffs/lb-slides-replit-handoff.md for the complete spec including exact table/column names, R2 key conventions, route signatures, and acceptance criteria.
