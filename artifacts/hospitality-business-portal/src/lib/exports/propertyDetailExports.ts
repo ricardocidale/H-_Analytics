@@ -7,7 +7,7 @@ import { type LoanParams, type GlobalLoanParams } from "@/lib/financial/loanCalc
 import { formatMoney } from "@/lib/financialEngine";
 import type { ExportVersion, PremiumExportPayload } from "@/components/ExportDialog";
 import { loadExportConfig } from "@/lib/exportConfig";
-import { type PropertyExportContext, getLoanCalcs, buildIncomeRows, buildCashFlowRows, computeCashFlowVectors, resolveExportDepreciationYears } from "./propertyExportShared";
+import { type PropertyExportContext, getLoanCalcs, buildIncomeRows, buildCashFlowRows, computeCashFlowVectors, resolveExportDepreciationYears, buildExitScenariosExportRows } from "./propertyExportShared";
 import { exportIncomeStatementPDF, exportCashFlowPDF, exportUnifiedPDF } from "./propertyPdfExports";
 export { type PropertyExportContext } from "./propertyExportShared";
 export { exportIncomeStatementPDF, exportCashFlowPDF, exportUnifiedPDF };
@@ -79,6 +79,28 @@ export function exportAllStatementsCSV(ctx: PropertyExportContext, customFilenam
   rows.push(line("Annual ANOI", yearlyDetails.map(y => y.anoi)));
   rows.push(line("Debt Service", cashFlowData.map(cf => cf.debtService)));
   rows.push(line("Closing Cash Balance", csvCloseCash));
+
+  if (ctx.exitScenariosData && ctx.exitScenariosData.scenarios.length > 0) {
+    rows.push("");
+    rows.push('"EXIT SCENARIOS"', "");
+    const exitHdrs = ["Metric", ...ctx.exitScenariosData.horizonsEvaluated.map(h => `${h} yr`)];
+    rows.push(exitHdrs.join(","));
+    const fmtPct = (v: number) => `${(v * 100).toFixed(1)}%`;
+    for (const s of ctx.exitScenariosData.scenarios) {
+      rows.push(`"${s.scenario.label} (NOI Growth: ${fmtPct(s.scenario.noiGrowthRate)})"`);
+      rows.push([`"  Sale Price"`, ...s.horizons.map(h => h.salePrice.toFixed(0))].join(","));
+      rows.push([`"  Selling Costs"`, ...s.horizons.map(h => h.sellingCosts.total.toFixed(0))].join(","));
+      rows.push([`"  Loan Balance"`, ...s.horizons.map(h => h.loanBalance.toFixed(0))].join(","));
+      rows.push([`"  Net Proceeds"`, ...s.horizons.map(h => h.netProceeds.toFixed(0))].join(","));
+      rows.push([`"  Total Cash Invested"`, ...s.horizons.map(h => h.totalCashInvested.toFixed(0))].join(","));
+      rows.push([`"  Profit / Loss"`, ...s.horizons.map(h => h.profitLoss.toFixed(0))].join(","));
+      rows.push([`"  Annualized ROI"`, ...s.horizons.map(h => fmtPct(h.annualizedRoi))].join(","));
+      const beLabel = s.breakevenYears !== null
+        ? `${(Math.round(s.breakevenYears * 10) / 10).toFixed(1)} yrs`
+        : "N/A";
+      rows.push([`"  Breakeven"`, `"${beLabel}"`, ...ctx.exitScenariosData.horizonsEvaluated.slice(1).map(() => "")].join(","));
+    }
+  }
 
   downloadCSV(rows.join("\n"), customFilename || `${property.name.replace(/\s+/g, "_")}_Financial_Statements.csv`);
 }
@@ -231,6 +253,12 @@ export function handlePPTXExport(ctx: PropertyExportContext, customFilename?: st
     { label: "ANOI Margin (Year 1)", value: firstY.Revenue > 0 ? fmtPct(firstY.ANOI / firstY.Revenue) : "—" },
   ] : [];
 
+  let exitScenariosData: { years: string[]; rows: ExportRowMeta[] } | undefined;
+  if (ctx.exitScenariosData && ctx.exitScenariosData.scenarios.length > 0) {
+    const { horizonLabels, rows: exitRows } = buildExitScenariosExportRows(ctx.exitScenariosData);
+    exitScenariosData = { years: horizonLabels, rows: exitRows };
+  }
+
   exportPropertyPPTX({
     propertyName: property.name,
     projectionYears,
@@ -240,6 +268,7 @@ export function handlePPTXExport(ctx: PropertyExportContext, customFilename?: st
     balanceSheetData: { years: yearLabels, rows: bsRows },
     investmentData: { years: yearLabels, rows: investRows },
     kpiMetrics,
+    exitScenariosData,
   }, global?.companyName || APP_BRAND_NAME, customFilename, ctx.brandingData?.themeColors ?? undefined);
 }
 
@@ -315,17 +344,28 @@ export function buildPremiumExportPayload(ctx: PropertyExportContext, version: E
 
   const stmtCfg = loadExportConfig().statements;
 
+  const statements = [
+    { title: `${property.name} — Income Statement`, years: yrLabels, rows: mapRows(incomeRows) },
+    { title: `${property.name} — Cash Flow Statement`, years: yrLabels, rows: mapRows(cfRows) },
+    { title: `${property.name} — Balance Sheet`, years: yrLabels, rows: mapRows(bsRows) },
+    { title: `${property.name} — Investment Analysis`, years: yrLabels, rows: mapRows(investRows) },
+  ];
+
+  if (ctx.exitScenariosData && ctx.exitScenariosData.scenarios.length > 0) {
+    const { horizonLabels, rows: exitRows } = buildExitScenariosExportRows(ctx.exitScenariosData);
+    statements.push({
+      title: `${property.name} — Exit Scenarios`,
+      years: horizonLabels,
+      rows: mapRows(exitRows),
+    });
+  }
+
   return {
     entityName: property.name,
     companyName: global?.companyName || APP_BRAND_NAME,
     statementType: ctx.activeTab === "income" ? "Income Statement" : ctx.activeTab === "cashflow" ? "Cash Flow Statement" : "Balance Sheet",
     years: yrLabels,
-    statements: [
-      { title: `${property.name} — Income Statement`, years: yrLabels, rows: mapRows(incomeRows) },
-      { title: `${property.name} — Cash Flow Statement`, years: yrLabels, rows: mapRows(cfRows) },
-      { title: `${property.name} — Balance Sheet`, years: yrLabels, rows: mapRows(bsRows) },
-      { title: `${property.name} — Investment Analysis`, years: yrLabels, rows: mapRows(investRows) },
-    ],
+    statements,
     metrics: [
       { label: "Total Revenue (Year 1)", value: yearlyChartData[0] ? formatMoney(yearlyChartData[0].Revenue) : "—" },
       { label: "GOP (Year 1)", value: yearlyChartData[0] ? formatMoney(yearlyChartData[0].GOP) : "—" },

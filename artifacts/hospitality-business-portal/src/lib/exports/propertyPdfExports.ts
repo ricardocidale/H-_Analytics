@@ -10,6 +10,7 @@ import {
   buildIncomeRows,
   buildCashFlowRows,
   resolveExportDepreciationYears,
+  buildExitScenariosExportRows,
 } from "./propertyExportShared";
 
 export async function exportIncomeStatementPDF(ctx: PropertyExportContext, orientation: 'landscape' | 'portrait' = 'landscape', version: ExportVersion = 'extended', customFilename?: string) {
@@ -247,6 +248,15 @@ export async function exportUnifiedPDF(ctx: PropertyExportContext, orientation: 
       ],
       brand,
     });
+  }
+
+  if (ctx.exitScenariosData && ctx.exitScenariosData.scenarios.length > 0) {
+    const { horizonLabels, rows: exitRows } = buildExitScenariosExportRows(ctx.exitScenariosData);
+    doc.addPage();
+    drawTitle(doc, `${property.name} Exit Scenarios`, 14, 15);
+    drawSubtitleRow(doc, `Three scenarios × ${ctx.exitScenariosData.horizonsEvaluated.length} hold horizons`, entityTag, 14, 22, pageWidth);
+    drawSubtitle(doc, `Generated: ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`, 14, 27);
+    autoTable(doc, buildFinancialTableConfig(horizonLabels, exitRows, orientation, 32));
   }
 
   addFooters(doc, companyName, { skipPages: new Set([1]) });

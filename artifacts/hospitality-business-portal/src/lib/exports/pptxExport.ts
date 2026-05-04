@@ -119,6 +119,7 @@ export interface PropertyExportData {
   balanceSheetData: { years: string[]; rows: ExportRowMeta[] };
   investmentData?: { years: string[]; rows: ExportRowMeta[] };
   kpiMetrics?: { label: string; value: string }[];
+  exitScenariosData?: { years: string[]; rows: ExportRowMeta[] };
 }
 
 export async function exportPropertyPPTX(data: PropertyExportData, companyName = APP_BRAND_NAME, customFilename?: string, themeColors?: ThemeColor[]) {
@@ -153,6 +154,9 @@ export async function exportPropertyPPTX(data: PropertyExportData, companyName =
   addFinancialTableSlide(ctx, `${data.propertyName} \u2014 Balance Sheet`, data.propertyName, data.balanceSheetData.years, data.balanceSheetData.rows);
   if (data.investmentData) {
     addFinancialTableSlide(ctx, `${data.propertyName} \u2014 Investment Analysis`, data.propertyName, data.investmentData.years, data.investmentData.rows);
+  }
+  if (data.exitScenariosData) {
+    addFinancialTableSlide(ctx, `${data.propertyName} \u2014 Exit Scenarios`, data.propertyName, data.exitScenariosData.years, data.exitScenariosData.rows);
   }
 
   const safeName = data.propertyName.replace(/[^a-zA-Z0-9 ]/g, "").substring(0, 30);

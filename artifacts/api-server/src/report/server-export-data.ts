@@ -7,7 +7,11 @@ import { withModelConstants } from "../finance/apply-model-constants";
 import { storage } from "../storage";
 import type { PropertyInput, GlobalInput, CompanyYearlyFinancials } from "@engine/types";
 import type { YearlyPropertyFinancials } from "@engine/aggregation/yearlyAggregator";
+import { aggregateUnifiedByYear } from "@engine/aggregation/yearlyAggregator";
 import { verifyExport } from "@calc/validation/export-verification";
+import { computeExitScenarios, DEFAULT_EXIT_HORIZONS } from "@calc/analysis/exit-scenarios";
+import type { ExitScenariosOutput } from "@calc/analysis/exit-scenarios";
+import { calculateLoanParams, getAcquisitionYear } from "@engine/debt/loanCalculations";
 import { logger } from "../logger";
 import type { DdSummary } from "@shared/dd-template";
 import { DD_STATUS_LABELS, DD_WORKSTREAM_LABELS } from "@shared/dd-template";
@@ -601,8 +605,66 @@ export async function buildPropertyExportData(
   // checklist so legacy / non-acquisition exports are unaffected.
   const ddSection = await buildDdSectionForProperty(input.propertyId, property.name ?? "Property");
 
+  let exitScenariosSection: StatementSection | null = null;
+  try {
+    const stampedLoanProps = property as unknown as Parameters<typeof calculateLoanParams>[0];
+    const unified = aggregateUnifiedByYear(
+      result.monthly,
+      stampedLoanProps,
+      globalInput,
+      projYears,
+    );
+    const loan = calculateLoanParams(stampedLoanProps, globalInput);
+    const acquisitionYear = getAcquisitionYear(loan);
+    const exitData: ExitScenariosOutput = computeExitScenarios({
+      property: property as unknown as Parameters<typeof computeExitScenarios>[0]["property"],
+      global: globalInput,
+      yearlyNoi: unified.yearlyIS.map(y => y.noi),
+      netCashFlowToInvestors: unified.yearlyCF.map(y => y.netCashFlowToInvestors),
+      acquisitionYear,
+      horizons: [...DEFAULT_EXIT_HORIZONS],
+    });
+
+    if (exitData.scenarios.length > 0) {
+      const horizonLabels = exitData.horizonsEvaluated.map(h => `${h} yr`);
+      const fmtPct = (v: number) => `${(v * 100).toFixed(1)}%`;
+      const exitRows: ExportRow[] = [];
+
+      for (const s of exitData.scenarios) {
+        exitRows.push(row(`${s.scenario.label} (NOI Growth: ${fmtPct(s.scenario.noiGrowthRate)})`, horizonLabels.map(() => 0), { isHeader: true }));
+        exitRows.push(row("Sale Price", s.horizons.map(h => h.salePrice), { indent: 1 }));
+        exitRows.push(row("Selling Costs", s.horizons.map(h => h.sellingCosts.total), { indent: 1 }));
+        exitRows.push(row("Loan Balance", s.horizons.map(h => h.loanBalance), { indent: 1 }));
+        exitRows.push(row("Net Proceeds", s.horizons.map(h => h.netProceeds), { isBold: true, indent: 1 }));
+        exitRows.push(row("Total Cash Invested", s.horizons.map(h => h.totalCashInvested), { indent: 1 }));
+        exitRows.push(row("Profit / Loss", s.horizons.map(h => h.profitLoss), { isBold: true }));
+        exitRows.push(row("Annualized ROI", s.horizons.map(h => h.annualizedRoi), { format: "percentage" }));
+        const beLabel = s.breakevenYears !== null
+          ? `${(Math.round(s.breakevenYears * 10) / 10).toFixed(1)} yr${s.breakevenYears === 1 ? "" : "s"}`
+          : "Does not break even within 30-year horizon";
+        const beValues: (string | number)[] = [beLabel, ...horizonLabels.slice(1).map(() => "")];
+        exitRows.push({ category: "Breakeven Hold Period", values: beValues, isItalic: true });
+      }
+
+      if (exitData.earlyExitRisk.triggered) {
+        exitRows.push(row("EARLY-EXIT RISK", horizonLabels.map(() => 0), { isHeader: true }));
+        exitRows.push({ category: exitData.earlyExitRisk.message, values: horizonLabels.map(() => ""), isItalic: true });
+      }
+
+      exitScenariosSection = {
+        title: `${property.name} — Exit Scenarios`,
+        years: horizonLabels,
+        rows: exitRows,
+        includeTable: true,
+      };
+    }
+  } catch (err) {
+    logger.warn(`Exit scenarios computation failed for property ${input.propertyId}: ${err instanceof Error ? err.message : String(err)}`, "server-export");
+  }
+
   const allStatements: StatementSection[] = [profileSection, incomeStatement, cashFlowStatement];
   if (ddSection) allStatements.push(ddSection);
+  if (exitScenariosSection) allStatements.push(exitScenariosSection);
   const statements = selectStatements(allStatements, scope);
 
   // Assumption sections always travel with the report regardless of reportScope —

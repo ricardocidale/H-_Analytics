@@ -45,7 +45,7 @@ import {
   handleExport,
   buildPremiumExportPayload,
 } from "@/lib/exports/propertyDetailExports";
-import { fetchSinglePropertyCompute, buildPropertyQueryKey } from "@/hooks/useServerFinancials";
+import { fetchSinglePropertyCompute, buildPropertyQueryKey, fetchPropertyExitScenarios, buildExitScenariosQueryKey } from "@/hooks/useServerFinancials";
 import { buildLocationLinks, hasCoordinates } from "@/lib/map-utils";
 
 export default function PropertyDetail() {
@@ -154,6 +154,18 @@ export default function PropertyDetail() {
     });
   }, [property, global, yearlyChartData, cashFlowDataMemo]);
 
+  const exitScenariosQueryKey = useMemo(
+    () => buildExitScenariosQueryKey(propertyId, property, global),
+    [propertyId, property, global],
+  );
+  const { data: exitScenariosResult } = useQuery({
+    queryKey: exitScenariosQueryKey,
+    queryFn: () => fetchPropertyExitScenarios(property!, global!),
+    enabled: !!property && !!global,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  });
+
   if (propertyLoading || globalLoading || (USE_SERVER_COMPUTE && serverFinancialsLoading)) {
     return (
       <Layout>
@@ -193,6 +205,7 @@ export default function PropertyDetail() {
     yearlyChartData, years, startYear, projectionYears, projectionMonths,
     fiscalYearStartMonth, financials, activeTab, brandingData,
     incomeChartRef, cashFlowChartRef, incomeTableRef, cashFlowTableRef,
+    exitScenariosData: exitScenariosResult?.exitScenarios,
   };
 
   return (

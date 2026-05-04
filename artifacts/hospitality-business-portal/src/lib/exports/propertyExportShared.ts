@@ -5,6 +5,7 @@ import { calculateLoanParams, type LoanParams, type GlobalLoanParams } from "@/l
 import type { YearlyDetail, CashFlowDataPoint } from "@/components/property-detail/types";
 import type { MonthlyFinancials } from "@/lib/financialEngine";
 import type { PropertyResponse, GlobalResponse } from "@/lib/api/types";
+import type { ExitScenariosOutput } from "@calc/analysis/exit-scenarios";
 
 export function resolveExportDepreciationYears(ctx: PropertyExportContext): number {
   // Audit #319 R4: registry-backed factory baseline.
@@ -29,6 +30,7 @@ export interface PropertyExportContext {
   cashFlowChartRef: React.RefObject<HTMLDivElement | null>;
   incomeTableRef: React.RefObject<HTMLDivElement | null>;
   cashFlowTableRef: React.RefObject<HTMLDivElement | null>;
+  exitScenariosData?: ExitScenariosOutput;
 }
 
 export function getLoanCalcs(ctx: PropertyExportContext) {
@@ -156,4 +158,33 @@ export function buildCashFlowRows(ctx: PropertyExportContext, cfo: number[], cfi
     rows.push({ category: "Free Cash Flow to Equity (FCFE)", values: cfo.map((c, i) => c - yearlyDetails[i].expenseFFE - cashFlowData[i].principalPayment), isBold: true });
   }
   return rows;
+}
+
+export function buildExitScenariosExportRows(exitData: ExitScenariosOutput): { horizonLabels: string[]; rows: ExportRowMeta[] } {
+  const horizonLabels = exitData.horizonsEvaluated.map(h => `${h} yr`);
+  const rows: ExportRowMeta[] = [];
+  const fmtPct = (v: number) => `${(v * 100).toFixed(1)}%`;
+
+  for (const s of exitData.scenarios) {
+    rows.push({ category: `${s.scenario.label} (NOI Growth: ${fmtPct(s.scenario.noiGrowthRate)})`, values: horizonLabels.map(() => 0), isHeader: true });
+    rows.push({ category: "Sale Price", values: s.horizons.map(h => h.salePrice), indent: 1 });
+    rows.push({ category: "Selling Costs", values: s.horizons.map(h => h.sellingCosts.total), indent: 1 });
+    rows.push({ category: "Loan Balance", values: s.horizons.map(h => h.loanBalance), indent: 1 });
+    rows.push({ category: "Net Proceeds", values: s.horizons.map(h => h.netProceeds), isBold: true, indent: 1 });
+    rows.push({ category: "Total Cash Invested", values: s.horizons.map(h => h.totalCashInvested), indent: 1 });
+    rows.push({ category: "Profit / Loss", values: s.horizons.map(h => h.profitLoss), isBold: true });
+    rows.push({ category: "Annualized ROI", values: s.horizons.map(h => h.annualizedRoi), format: "percentage" });
+    const beLabel = s.breakevenYears !== null
+      ? `${(Math.round(s.breakevenYears * 10) / 10).toFixed(1)} yr${s.breakevenYears === 1 ? "" : "s"}`
+      : "Does not break even within 30-year horizon";
+    const beValues: (string | number)[] = [beLabel, ...horizonLabels.slice(1).map(() => "")];
+    rows.push({ category: "Breakeven Hold Period", values: beValues, isItalic: true });
+  }
+
+  if (exitData.earlyExitRisk.triggered) {
+    rows.push({ category: "EARLY-EXIT RISK", values: horizonLabels.map(() => 0), isHeader: true });
+    rows.push({ category: exitData.earlyExitRisk.message, values: horizonLabels.map(() => ""), isItalic: true });
+  }
+
+  return { horizonLabels, rows };
 }
