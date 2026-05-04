@@ -1052,6 +1052,7 @@ function DraftAllReviewPanel({
                     id={`draft-cb-${draft.slot}`}
                     checked={isSelected}
                     onCheckedChange={() => toggleSlot(draft.slot)}
+                    disabled={isRedrafting}
                     aria-label={`Include ${slotLabel(draft.slot)}`}
                   />
                   <Label
@@ -1099,7 +1100,8 @@ function DraftAllReviewPanel({
                         onClick={() =>
                           setEditedSuggestions(prev => ({ ...prev, [draft.slot]: effectiveBase }))
                         }
-                        className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                        disabled={isRedrafting}
+                        className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Discard your edits and restore the current Analyst suggestion"
                       >
                         <RotateCcw className="h-2.5 w-2.5" />
