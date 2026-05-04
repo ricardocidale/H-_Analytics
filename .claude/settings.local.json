@@ -16,7 +16,8 @@
       "Bash(git fetch *)",
       "Bash(grep -vE \"from \\\\\"\\\\.|from '\\\\.|@shared|node:|^$\")",
       "Bash(sed -n '1,5p' .agents/skills/web-design-guidelines/SKILL.md)",
-      "Bash(sed -n '1,5p' .agents/skills/pdf/SKILL.md)"
+      "Bash(sed -n '1,5p' .agents/skills/pdf/SKILL.md)",
+      "Bash(awk -F: '$2>0')"
     ]
   }
 }
