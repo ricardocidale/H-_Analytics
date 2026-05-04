@@ -1,6 +1,6 @@
 ---
 title: LB Slide Deck — One Portfolio Investor Deck (6 Slides)
-status: active
+status: completed
 created: 2026-05-04
 origin: docs/handoffs/lb-slides-replit-handoff.md
 architect_decision: Option B — single-pass composite payload, parallel LB pipeline
