@@ -74,6 +74,7 @@ export function Slide6EditorPanel({ propertyId }: { propertyId: number }) {
     (next) => {
       qc.setQueryData(queryKey, next);
       qc.invalidateQueries({ queryKey: ["/api/admin/properties", propertyId, "deck-token"] });
+      qc.invalidateQueries({ queryKey: ["/api/admin/properties", propertyId, "deck-payload", "readiness"] });
       toast({ title: "Slide 6 saved", description: "Editor copy persisted to the deck payload sidecar." });
     },
     (err) => {

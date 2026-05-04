@@ -379,7 +379,7 @@ export default function SlideDecksTab() {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       },
-      staleTime: 60_000,
+      staleTime: 0,
       retry: 1,
     })),
   });
