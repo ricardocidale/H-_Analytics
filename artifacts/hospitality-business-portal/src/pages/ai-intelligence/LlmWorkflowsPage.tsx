@@ -293,6 +293,44 @@ export default function LlmWorkflowsPage() {
         }
       />
 
+      {registry?.vendorStatuses && registry.vendorStatuses.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2" data-testid="vendor-health-panel">
+          {LLM_VENDORS.map((v) => {
+            const vs = registry.vendorStatuses.find((s) => s.vendor === v.value);
+            const dotColor = vs?.available
+              ? "bg-green-500"
+              : vs
+                ? "bg-red-500"
+                : "bg-gray-400";
+            return (
+              <div
+                key={v.value}
+                className="flex items-start gap-2 rounded-lg border border-border/50 bg-muted/20 px-3 py-2.5"
+                data-testid={`vendor-health-${v.value}`}
+              >
+                <span
+                  className={`mt-0.5 inline-block w-2 h-2 rounded-full shrink-0 ${dotColor}${refreshRegistry.isPending ? " animate-pulse" : ""}`}
+                />
+                <div className="min-w-0">
+                  <p className="text-xs font-medium leading-tight">{v.label}</p>
+                  {vs ? (
+                    <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                      {vs.available
+                        ? `${vs.modelCount} model${vs.modelCount !== 1 ? "s" : ""}${vs.avgLatencyMs ? ` · ${vs.avgLatencyMs}ms` : ""}`
+                        : (vs.error ?? "unavailable")}
+                    </p>
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground/50 leading-tight mt-0.5">
+                      not probed
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {isDirty && (
         <p className="text-xs text-amber-700 bg-amber-50/50 border border-amber-200 rounded-md px-3 py-2">
           You have {dirtyCount} unsaved change{dirtyCount !== 1 ? "s" : ""}.
