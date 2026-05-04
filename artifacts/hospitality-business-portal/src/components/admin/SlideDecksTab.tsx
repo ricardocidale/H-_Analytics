@@ -21,6 +21,7 @@ import {
 import { Loader2, ChevronDown, ChevronRight } from "@/components/icons/themed-icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
@@ -805,6 +806,9 @@ function DraftHistorySection({ runs }: { runs: BulkDraftRunRow[] }) {
   const [confirmClearDays, setConfirmClearDays] = useState<number | null>(null);
   const [isBulkClearing, setIsBulkClearing] = useState(false);
   const [clearSelectOpen, setClearSelectOpen] = useState(false);
+  const [selectedRunIds, setSelectedRunIds] = useState<Set<number>>(new Set());
+  const [confirmDeleteSelected, setConfirmDeleteSelected] = useState(false);
+  const [isDeletingSelected, setIsDeletingSelected] = useState(false);
 
   const toggleRun = (id: number) => {
     setExpandedRunIds(prev => {
@@ -891,9 +895,79 @@ function DraftHistorySection({ runs }: { runs: BulkDraftRunRow[] }) {
     }
   };
 
+  useEffect(() => {
+    const currentIds = new Set(runs.map(r => r.id));
+    setSelectedRunIds(prev => {
+      const reconciled = new Set([...prev].filter(id => currentIds.has(id)));
+      if (reconciled.size === prev.size) return prev;
+      return reconciled;
+    });
+  }, [runs]);
+
+  const toggleSelectRun = (id: number) => {
+    setSelectedRunIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleDeleteSelected = async () => {
+    const ids = [...selectedRunIds];
+    if (ids.length === 0) return;
+    setIsDeletingSelected(true);
+    try {
+      const results = await Promise.allSettled(
+        ids.map(id =>
+          fetch(`/api/admin/bulk-draft-runs/${id}`, {
+            method: "DELETE",
+            credentials: "include",
+          }),
+        ),
+      );
+      const failCount = results.filter(r => r.status === "rejected" || (r.status === "fulfilled" && !r.value.ok)).length;
+      setSelectedRunIds(new Set());
+      await queryClient.invalidateQueries({ queryKey: ["/api/admin/bulk-draft-runs"] });
+      if (failCount > 0) {
+        toast({
+          title: "Some runs could not be deleted",
+          description: `${ids.length - failCount} deleted · ${failCount} failed. Please try again.`,
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({
+        title: "Failed to delete runs",
+        description: "A network error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingSelected(false);
+      setConfirmDeleteSelected(false);
+    }
+  };
+
+  const selectedCount = selectedRunIds.size;
+  const allSelected = runs.length > 0 && selectedCount === runs.length;
+  const someSelected = selectedCount > 0 && !allSelected;
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
+        <Checkbox
+          checked={allSelected ? true : someSelected ? "indeterminate" : false}
+          onCheckedChange={(checked) => {
+            if (checked) {
+              setSelectedRunIds(new Set(runs.map(r => r.id)));
+            } else {
+              setSelectedRunIds(new Set());
+            }
+          }}
+          aria-label="Select all runs"
+          className="shrink-0"
+          disabled={runs.length === 0}
+        />
         <IconHistory className="h-4.5 w-4.5 text-muted-foreground" />
         <h3 className="text-base font-semibold text-foreground">Draft History</h3>
         <Badge variant="outline" className="text-[11px] border-0 font-medium bg-muted text-muted-foreground">
@@ -901,6 +975,22 @@ function DraftHistorySection({ runs }: { runs: BulkDraftRunRow[] }) {
         </Badge>
 
         <div className="flex-1" />
+
+        {selectedCount > 0 && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 px-2 text-[12px] text-destructive hover:text-destructive hover:bg-destructive/10 gap-1.5"
+            onClick={() => setConfirmDeleteSelected(true)}
+            disabled={isDeletingSelected}
+            title={`Delete ${selectedCount} selected run${selectedCount === 1 ? "" : "s"}`}
+          >
+            {isDeletingSelected
+              ? <Loader2 className="h-3 w-3 animate-spin" />
+              : <IconTrash className="h-3 w-3" />}
+            Delete selected ({selectedCount})
+          </Button>
+        )}
 
         <div className="relative">
           <Button
@@ -946,14 +1036,22 @@ function DraftHistorySection({ runs }: { runs: BulkDraftRunRow[] }) {
         {runs.map(run => {
           const isExpanded = expandedRunIds.has(run.id);
           const isDeleting = deletingIds.has(run.id);
+          const isSelected = selectedRunIds.has(run.id);
           const successCount = run.propertyResults.filter(r => r.status === "done").length;
 
           return (
             <div
               key={run.id}
-              className="rounded-md border border-border/60"
+              className={`rounded-md border transition-colors ${isSelected ? "border-primary/40 bg-primary/5 dark:bg-primary/10" : "border-border/60"}`}
             >
               <div className="flex w-full items-center gap-3 px-3.5 py-2.5 text-sm">
+                <Checkbox
+                  checked={isSelected}
+                  onCheckedChange={() => toggleSelectRun(run.id)}
+                  aria-label={`Select run from ${formatRelativeTime(run.ranAt)}`}
+                  className="shrink-0"
+                  onClick={(e) => e.stopPropagation()}
+                />
                 <button
                   type="button"
                   className="flex items-center gap-3 flex-1 min-w-0 text-left hover:bg-muted/40 transition-colors rounded"
@@ -1111,6 +1209,36 @@ function DraftHistorySection({ runs }: { runs: BulkDraftRunRow[] }) {
               }}
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={confirmDeleteSelected}
+        onOpenChange={(open) => { if (!open) setConfirmDeleteSelected(false); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedCount} selected run{selectedCount === 1 ? "" : "s"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedCount === 1
+                ? "This will permanently remove the selected run record from the history."
+                : `This will permanently remove all ${selectedCount} selected run records from the history.`}{" "}
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingSelected}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeletingSelected}
+              onClick={() => void handleDeleteSelected()}
+            >
+              {isDeletingSelected
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                : null}
+              Delete {selectedCount} run{selectedCount === 1 ? "" : "s"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
