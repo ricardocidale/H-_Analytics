@@ -9,8 +9,8 @@ import type { DispatchHandler } from "./_shared";
 
 const apify: DispatchHandler = async (serviceKey, field, rCtx, _ctx, svc) => {
   if (!rCtx.location) return null;
-  const apify = svc.instance as ApifyService;
-  const data = await apify.fetchCompSetData(rCtx.location);
+  const apifySvc = svc.instance as ApifyService;
+  const data = await apifySvc.fetchCompSetData(rCtx.location);
   if (!data) return null;
 
   if (field === "startAdr" || field === "nightlyPropertyRate") {

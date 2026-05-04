@@ -140,14 +140,14 @@ async function checkDocHarmonyServer(verifyOutput: string): Promise<{ passed: bo
 }
 
 function runCommand(cmd: string, args: string[], timeoutMs = 180_000): Promise<string> {
-  return new Promise((resolve) => {
+  return new Promise((promiseResolve) => {
     execFile(cmd, args, {
       cwd: process.cwd(),
       timeout: timeoutMs,
       maxBuffer: 10 * 1024 * 1024,
       env: { ...process.env },
     }, (_error, stdout, stderr) => {
-      resolve((stdout || "") + (stderr || ""));
+      promiseResolve((stdout || "") + (stderr || ""));
     });
   });
 }
@@ -470,7 +470,7 @@ export function registerToolRoutes(app: Express) {
       }
       logActivity(req, "run-golden-tests", "verification");
       const projectRoot = process.cwd();
-      const result = await new Promise<string>((resolve, reject) => {
+      const result = await new Promise<string>((promiseResolve, reject) => {
         execFile(
           "npx",
           ["vitest", "run", "tests/golden/", "--reporter=json"],
@@ -478,11 +478,11 @@ export function registerToolRoutes(app: Express) {
           (error, stdout, stderr) => {
             // vitest exits non-zero on test failures, but still outputs valid JSON
             if (stdout && stdout.trim().startsWith("{")) {
-              resolve(stdout);
+              promiseResolve(stdout);
             } else if (error) {
               reject(new Error(stderr || error.message));
             } else {
-              resolve(stdout);
+              promiseResolve(stdout);
             }
           },
         );

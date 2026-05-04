@@ -271,10 +271,10 @@ export function registerCatalogRoutes(app: Express) {
           constantsOwned: def.constantsOwned ?? [],
           defaultRefreshCadenceDays: def.refreshCadenceDays ?? null,
           candidateFields: def.candidateFields ?? [],
-          prerequisites: (def.prerequisites ?? []).map((id) => ({
-            id,
-            label: PREREQUISITES[id]?.label ?? id,
-            description: PREREQUISITES[id]?.description ?? "",
+          prerequisites: (def.prerequisites ?? []).map((prereqId) => ({
+            id: prereqId,
+            label: PREREQUISITES[prereqId]?.label ?? prereqId,
+            description: PREREQUISITES[prereqId]?.description ?? "",
           })),
         },
         config: toConfigView(config, def, await getSpecialistGlobalLlmDefaults()),

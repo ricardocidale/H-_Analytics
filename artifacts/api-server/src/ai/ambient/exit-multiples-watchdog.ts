@@ -85,11 +85,11 @@ function cadenceMs(): number {
  * manual admin refreshes can't push the latest watchdog row out of the
  * result set (would otherwise cause extra LLM-spending watchdog runs).
  */
-async function lastWatchdogRunAt(cadenceMs: number): Promise<Date | null> {
+async function lastWatchdogRunAt(cadenceDurationMs: number): Promise<Date | null> {
   // Look back at least 2× the configured cadence (and minimum 30 days) so
   // the cadence guard stays correct even if an admin sets a very long
   // cadence (e.g., monthly, quarterly) via the env var.
-  const lookbackMs = Math.max(30 * 24 * 60 * 60 * 1000, cadenceMs * 2);
+  const lookbackMs = Math.max(30 * 24 * 60 * 60 * 1000, cadenceDurationMs * 2);
   const recents = await storage.getRecentAnalystRefreshAuditLogs({
     tableId: TABLE_ID,
     userAgent: WATCHDOG_USER_AGENT,

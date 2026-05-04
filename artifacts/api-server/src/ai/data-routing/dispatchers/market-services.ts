@@ -10,8 +10,8 @@ import type { DispatchHandler } from "./_shared";
 
 const amadeus: DispatchHandler = async (_serviceKey, _field, rCtx, ctx, svc) => {
   if (!ctx.latitude || !ctx.longitude) return null;
-  const amadeus = svc.instance as AmadeusService;
-  const result = await amadeus.fetchAdrBenchmark(ctx.latitude, ctx.longitude, rCtx.qualityTier);
+  const amadeusSvc = svc.instance as AmadeusService;
+  const result = await amadeusSvc.fetchAdrBenchmark(ctx.latitude, ctx.longitude, rCtx.qualityTier);
   if (!result || result.value == null) return null;
   const v = result.value;
   return {
@@ -23,8 +23,8 @@ const amadeus: DispatchHandler = async (_serviceKey, _field, rCtx, ctx, svc) => 
 
 const costar: DispatchHandler = async (_serviceKey, field, rCtx, _ctx, svc) => {
   if (!rCtx.location) return null;
-  const costar = svc.instance as CoStarService;
-  const data = await costar.fetchMarketData({
+  const costarSvc = svc.instance as CoStarService;
+  const data = await costarSvc.fetchMarketData({
     location: rCtx.location,
     state: rCtx.state,
     propertyType: rCtx.propertyType,

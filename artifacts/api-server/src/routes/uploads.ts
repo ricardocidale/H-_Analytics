@@ -191,8 +191,8 @@ export function register(app: Express) {
             buffer = downloaded.buffer;
             contentType = downloaded.contentType || "image/jpeg";
           } else if (photo.imageUrl.startsWith("https://")) {
-            const parsed = new URL(photo.imageUrl);
-            if (await isBlockedHostResolved(parsed.hostname)) {
+            const parsedUrl = new URL(photo.imageUrl);
+            if (await isBlockedHostResolved(parsedUrl.hostname)) {
               failed++;
               continue;
             }

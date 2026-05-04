@@ -1,4 +1,4 @@
-import { db } from "../../db";
+import { db as rootDb } from "../../db";
 
 /**
  * IntelligenceTx — transaction-scoped session object that hands a single
@@ -18,7 +18,7 @@ import { db } from "../../db";
  * with `ROOT_TX`, the non-transactional root executor — preserving the
  * pre-split behaviour for every existing caller.
  */
-type RootDb = typeof db;
+type RootDb = typeof rootDb;
 type TxHandle = Parameters<Parameters<RootDb["transaction"]>[0]>[0];
 export type IntelligenceDb = RootDb | TxHandle;
 
@@ -32,7 +32,7 @@ export class IntelligenceTx {
    * for nested calls to `.transaction()`).
    */
   static run<T>(fn: (tx: IntelligenceTx) => Promise<T>): Promise<T> {
-    return db.transaction(async (handle) => fn(new IntelligenceTx(handle)));
+    return rootDb.transaction(async (handle) => fn(new IntelligenceTx(handle)));
   }
 }
 
@@ -40,4 +40,4 @@ export class IntelligenceTx {
  * Root, non-transactional executor — used by the orchestrator so the
  * per-domain method bodies behave identically to the pre-split file.
  */
-export const ROOT_TX = new IntelligenceTx(db);
+export const ROOT_TX = new IntelligenceTx(rootDb);
