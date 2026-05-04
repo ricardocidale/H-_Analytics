@@ -1,7 +1,7 @@
 /**
  * PropertySlides.tsx
  *
- * Admin LB-Slides detail page at `/admin/lb-slides/:propertyId`.
+ * Slide deck detail page at `/slide-decks/:propertyId` (Investor Materials).
  *
  * Shows all six slides of a property's investor deck as miniature live React
  * renders (Slide1..Slide6 from `@/features/internal-deck/slides`, scaled down

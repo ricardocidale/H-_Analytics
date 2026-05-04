@@ -37,6 +37,7 @@ import {
   ProtectedRoute,
   AdminRoute,
   IcpRedirect,
+  LbSlidesRedirect,
 } from "./app-guards";
 import {
   GlobalBeforeUnloadGuard,
@@ -300,7 +301,7 @@ function Router() {
           <Redirect to="/slide-decks" />
         </Route>
         <Route path="/admin/lb-slides/:propertyId([0-9]+)">
-          <Redirect to="/slide-decks" />
+          <LbSlidesRedirect />
         </Route>
         <Route path="/slide-decks">
           <AdminRoute component={SlideDecks} />
