@@ -211,7 +211,7 @@ ADR-007 §1 applies: prompt-builder and funding-builder layers are DB-import-fre
 
 3. **Dev-login is dev-only by server gate, not client gate.** `/api/auth/dev-login` is blocked by `isPublishedDeployment()` (checks `REPLIT_DEPLOYMENT` env var). The client does not need to pre-check availability — clicking the logo always fires the request, and the server returns a 403 with a clear error if called in production.
 
-4. **Google OAuth must escape the iframe with `window.top`.** The Replit preview pane is an iframe. `window.location.href = "/api/auth/google"` navigates only the iframe — Google then refuses to render its sign-in page inside an iframe (`X-Frame-Options: DENY`). Always use `(window.top || window).location.href = "/api/auth/google"` so the top-level window navigates to Google and back. Fixed 2026-05-04.
+4. **All auth navigations must escape the iframe with `window.top`.** The Replit preview pane is an iframe. Any `window.location.href/replace` in auth flows navigates only the iframe. Google OAuth additionally blocks iframes with `X-Frame-Options: DENY`. Rule: **every** post-auth redirect must use `(window.top || window).location.*` — this applies to Google OAuth redirect, login success (`→ /`), and logout (`→ /login`). Fixed 2026-05-04 across `Login.tsx` (Google button + dev-login success) and `lib/auth.tsx` (logout `onSuccess`).
 
 ### Known issues to address
 

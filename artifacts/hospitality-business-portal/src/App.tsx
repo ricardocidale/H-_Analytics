@@ -17,6 +17,7 @@
  *   • Several legacy routes (e.g. /sensitivity, /financing, /map) redirect to their
  *     new consolidated locations.
  */
+import { IconContext } from "@phosphor-icons/react";
 import { Switch, Route, Redirect, Router as WouterRouter, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";

@@ -126,4 +126,4 @@ These rules are identical to `claude.md` § "Inviolable login / auth rules" — 
 
 3. **Dev-login is dev-only by server gate, not client gate.** `/api/auth/dev-login` is blocked server-side by `isPublishedDeployment()`. The login logo always fires the request unconditionally; the server returns 403 if called in production. No client pre-check needed or allowed.
 
-4. **Google OAuth must escape the iframe with `window.top`.** The Replit preview is an iframe. `window.location.href = "/api/auth/google"` navigates only the iframe — Google refuses to render inside an iframe (`X-Frame-Options: DENY`). Always use `(window.top || window).location.href = "/api/auth/google"`. Fixed 2026-05-04.
+4. **All auth navigations must escape the iframe with `window.top`.** The Replit preview is an iframe. Every post-auth redirect must use `(window.top || window).location.*` — Google OAuth redirect, login success (`→ /`), and logout (`→ /login`). Applies to `Login.tsx` (Google button + dev-login success) and `lib/auth.tsx` (logout `onSuccess`). Fixed 2026-05-04.

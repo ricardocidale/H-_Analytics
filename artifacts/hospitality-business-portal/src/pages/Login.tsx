@@ -88,7 +88,7 @@ export default function Login() {
       await apiRequest("POST", "/api/auth/dev-login", undefined, {
         fallbackMessage: "Admin login failed",
       });
-      window.location.href = "/";
+      (window.top || window).location.href = "/";
     } catch (error: unknown) {
       toast({
         title: "Login Failed",
