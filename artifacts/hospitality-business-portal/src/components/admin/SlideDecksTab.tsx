@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import {
@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { DECK_PAYLOAD_SCHEMA_VERSION } from "@shared/deck-payload-v2";
+import { useToast } from "@/hooks/use-toast";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -842,11 +843,18 @@ function DraftHistorySection({ runs }: { runs: BulkDraftRunRow[] }) {
 
 export default function SlideDecksTab() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [downloadingIds, setDownloadingIds] = useState<Set<number>>(new Set());
   const [bulkDraftStatuses, setBulkDraftStatuses] = useState<Map<number, BulkDraftStatus>>(new Map());
   const [isBulkRunning, setIsBulkRunning] = useState(false);
   const [bulkDraftResults, setBulkDraftResults] = useState<BulkDraftPropertyResult[]>([]);
   const [showBulkSummary, setShowBulkSummary] = useState(false);
+
+  // Track PDF regenerations queued during bulk draft so we can show a
+  // completion toast when the last one flips from "Generating…" to
+  // "Ready" or "Error".
+  const [pendingRegenIds, setPendingRegenIds] = useState<Set<number>>(new Set());
+  const seenGeneratingRef = useRef(false);
 
   async function handleDownloadDeck(p: PropertyRow) {
     if (downloadingIds.has(p.id)) return;
@@ -1023,6 +1031,19 @@ export default function SlideDecksTab() {
       runResults.push(result);
     }
 
+    // Identify which properties actually had copy drafted (and therefore had
+    // a PDF regen queued). Use draftedSlots as the proxy since draftSingleProperty
+    // fires the regen internally whenever usableDrafts.length > 0.
+    const queuedRegenIds = new Set(
+      runResults
+        .filter(r => r.status === "done" && r.draftedSlots.length > 0)
+        .map(r => r.propertyId),
+    );
+    if (queuedRegenIds.size > 0) {
+      seenGeneratingRef.current = false;
+      setPendingRegenIds(queuedRegenIds);
+    }
+
     setBulkDraftResults(runResults);
     setShowBulkSummary(true);
     setIsBulkRunning(false);
@@ -1054,6 +1075,53 @@ export default function SlideDecksTab() {
     queryKey: ["/api/admin/bulk-draft-runs"],
     staleTime: 30_000,
   });
+
+  // When slideStatuses updates, check if all queued PDF regens have finished.
+  // We wait until we've seen at least one "generating" status to avoid a
+  // false-positive fire before the server reflects the new generation state.
+  useEffect(() => {
+    if (pendingRegenIds.size === 0 || !slideStatuses) return;
+
+    const pendingArray = [...pendingRegenIds];
+    const statusMap = new Map<number, string>();
+    for (const row of slideStatuses) {
+      statusMap.set(row.propertyId, row.status);
+    }
+
+    const anyGenerating = pendingArray.some(id => statusMap.get(id) === "generating");
+    if (anyGenerating) {
+      seenGeneratingRef.current = true;
+      return;
+    }
+
+    if (!seenGeneratingRef.current) return;
+
+    // Require all pending IDs to be in an explicit terminal state before firing.
+    const allTerminal = pendingArray.every(id => {
+      const s = statusMap.get(id);
+      return s === "ready" || s === "error";
+    });
+    if (!allTerminal) return;
+
+    const readyCount = pendingArray.filter(id => statusMap.get(id) === "ready").length;
+    const failCount = pendingArray.filter(id => statusMap.get(id) === "error").length;
+    const total = pendingArray.length;
+
+    let description: string;
+    if (failCount === 0) {
+      description = `All ${total} deck${total === 1 ? "" : "s"} regenerated successfully.`;
+    } else if (readyCount === 0) {
+      description = `${failCount} deck${failCount === 1 ? "" : "s"} failed to regenerate.`;
+    } else {
+      description = `${readyCount} regenerated · ${failCount} failed.`;
+    }
+
+    toast({
+      title: "PDF regeneration complete",
+      description,
+    });
+    setPendingRegenIds(new Set());
+  }, [slideStatuses, pendingRegenIds, toast]);
 
   // Count how many are still in-flight or queued
   const draftingCount = [...bulkDraftStatuses.values()].filter(s => s === "drafting").length;
