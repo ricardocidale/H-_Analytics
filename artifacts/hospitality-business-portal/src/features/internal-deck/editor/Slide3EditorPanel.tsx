@@ -25,6 +25,7 @@ import { Loader2 } from "@/components/icons/themed-icons";
 import { IconAlertCircle, IconRefreshCw, IconCheck, IconX } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { usePropertyPhotos } from "@/lib/api/property-photos";
 import {
   DECK_PAYLOAD_SCHEMA_VERSION,
   SLIDE3_CONCEPT_PARAGRAPH_MAX,
@@ -62,6 +63,9 @@ interface Form {
   marketRationale: FormSlot;
   reasons: FormReasonPair[];
   closingLine: FormSlot;
+  /** Admin-selected interior photo URL, or null for auto-selection. */
+  interiorPhotoUrl: string | null;
+  interiorPhotoUrlDirty: boolean;
 }
 
 type Slide3ScalarSlot = "slide3.conceptParagraph" | "slide3.marketRationale" | "slide3.closingLine";
@@ -80,6 +84,8 @@ function hydrateForm(payload: DeckPayloadV2): Form {
       detail: hydrateSlot(serverReasons[i]?.detail),
     })),
     closingLine: hydrateSlot(s3.closingLine),
+    interiorPhotoUrl: s3.interiorPhotoUrl ?? null,
+    interiorPhotoUrlDirty: false,
   };
 }
 
@@ -97,6 +103,10 @@ function buildPatchBody(form: Form): { slide3?: Partial<Slide3Payload> } | null 
     slide3.reasons = form.reasons
       .filter(r => r.label.text.trim().length > 0 || r.detail.text.trim().length > 0)
       .map(r => ({ label: stamp(r.label), detail: stamp(r.detail) }));
+  }
+
+  if (form.interiorPhotoUrlDirty) {
+    slide3.interiorPhotoUrl = form.interiorPhotoUrl;
   }
 
   if (Object.keys(slide3).length === 0) return null;
@@ -125,6 +135,7 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
   });
 
   const { data: readinessData } = useReadinessQuery(propertyId);
+  const { data: photos = [] } = usePropertyPhotos(propertyId);
 
   const [form, setForm] = useState<Form | null>(null);
   useEffect(() => { if (data) setForm(hydrateForm(data.payload)); }, [data]);
@@ -291,7 +302,8 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
             <h2 className="text-lg font-semibold">Slide 3 — Editor copy</h2>
             <p className="text-sm text-muted-foreground mt-1">
               Author the Investment Model narrative — concept, rationale, three investment reasons, and
-              a closing pull quote. City/state header and photo panels are deterministic.
+              a closing pull quote. You can also override the interior photo shown in the bottom-left
+              photo slot.
             </p>
           </div>
           <div className="text-xs text-muted-foreground">
@@ -464,6 +476,84 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
             onAcceptDraft={(editedText) => acceptDraft("slide3.closingLine", editedText)}
             onDismissDraft={() => dismissDraft("slide3.closingLine")}
           />
+        </div>
+
+        <Separator />
+
+        {/* Interior photo picker */}
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Interior photo</h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Choose which photo appears in the bottom-left slot on Slide 3. When no override is set,
+              the slide auto-selects a non-hero photo automatically.
+            </p>
+          </div>
+          {photos.length === 0 ? (
+            <p className="text-xs text-muted-foreground italic">No photos uploaded for this property yet.</p>
+          ) : photos.filter(ph => !ph.isHero).length === 0 ? (
+            <p className="text-xs text-muted-foreground italic">
+              All uploaded photos are marked as hero photos. Upload or un-hero at least one photo to
+              enable this picker.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
+                {photos.filter(ph => !ph.isHero).map(ph => {
+                  const selected = form.interiorPhotoUrl === ph.imageUrl;
+                  return (
+                    <button
+                      key={ph.id}
+                      type="button"
+                      onClick={() => setForm(prev => prev ? {
+                        ...prev,
+                        interiorPhotoUrl: selected ? null : ph.imageUrl,
+                        interiorPhotoUrlDirty: true,
+                      } : prev)}
+                      className={`relative aspect-video rounded overflow-hidden border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                        selected
+                          ? "border-primary ring-2 ring-primary/30"
+                          : "border-border hover:border-muted-foreground"
+                      }`}
+                      title={ph.caption ?? ph.imageUrl}
+                    >
+                      <img
+                        src={ph.imageUrl}
+                        alt={ph.caption ?? "Property photo"}
+                        className="w-full h-full object-cover"
+                      />
+                      {selected && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-primary/20">
+                          <IconCheck className="h-5 w-5 text-primary drop-shadow" />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              {form.interiorPhotoUrl != null && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="gap-1.5 text-muted-foreground hover:text-foreground"
+                  onClick={() => setForm(prev => prev ? {
+                    ...prev,
+                    interiorPhotoUrl: null,
+                    interiorPhotoUrlDirty: true,
+                  } : prev)}
+                >
+                  <IconX className="h-3.5 w-3.5" />
+                  Clear override (revert to auto-selection)
+                </Button>
+              )}
+              {form.interiorPhotoUrl == null && (
+                <p className="text-xs text-muted-foreground italic">
+                  No override set — slide will auto-select the interior photo.
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         <Separator />

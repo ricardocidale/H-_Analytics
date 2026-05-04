@@ -106,9 +106,10 @@ async function resolvePhotoBytes(photo: {
   isHero: boolean;
   sortOrder: number;
   caption?: string | null;
-}): Promise<{ base64: string; isHero: boolean; sortOrder: number; caption?: string } | null> {
+}): Promise<{ url?: string; base64: string; isHero: boolean; sortOrder: number; caption?: string } | null> {
+  const sourceUrl = photo.imageUrl ?? undefined;
   if (photo.imageData && photo.imageData.length > 0) {
-    return { base64: photo.imageData, isHero: photo.isHero, sortOrder: photo.sortOrder, caption: photo.caption ?? undefined };
+    return { url: sourceUrl, base64: photo.imageData, isHero: photo.isHero, sortOrder: photo.sortOrder, caption: photo.caption ?? undefined };
   }
   const url = photo.imageUrl;
   if (!url) return null;
@@ -118,14 +119,14 @@ async function resolvePhotoBytes(photo: {
       const resp = await fetch(`http://localhost:${port}${url}`, { signal: AbortSignal.timeout(8_000) });
       if (!resp.ok) return null;
       const buf = Buffer.from(await resp.arrayBuffer());
-      return { base64: buf.toString("base64"), isHero: photo.isHero, sortOrder: photo.sortOrder, caption: photo.caption ?? undefined };
+      return { url: sourceUrl, base64: buf.toString("base64"), isHero: photo.isHero, sortOrder: photo.sortOrder, caption: photo.caption ?? undefined };
     }
     if (url.startsWith("/objects/")) {
       const key = url.slice("/objects/".length);
       const storageProvider = await getStorageProviderAsync();
       const result = await storageProvider.downloadBuffer(key);
       if (!result) return null;
-      return { base64: result.buffer.toString("base64"), isHero: photo.isHero, sortOrder: photo.sortOrder, caption: photo.caption ?? undefined };
+      return { url: sourceUrl, base64: result.buffer.toString("base64"), isHero: photo.isHero, sortOrder: photo.sortOrder, caption: photo.caption ?? undefined };
     }
     return null;
   } catch (err) {
@@ -162,7 +163,7 @@ export async function buildSlidePayload(
   });
   const resolvedPhotos = (
     await Promise.all(sortedPhotos.slice(0, MAX_PHOTOS).map(resolvePhotoBytes))
-  ).filter(Boolean) as Array<{ base64: string; isHero: boolean; sortOrder: number }>;
+  ).filter(Boolean) as Array<{ url?: string; base64: string; isHero: boolean; sortOrder: number }>;
   const mainHero = resolvedPhotos.find(p => p.isHero) ?? resolvedPhotos[0];
   const slide4HeroBase64 = mainHero?.base64 ? await shrinkForCard(mainHero.base64) : undefined;
 

@@ -125,6 +125,11 @@ export const slide3PayloadSchema = z.object({
     .optional(),
   // LLM-draft + human-approved — closing pull quote in the accent block.
   closingLine: authoredString(SLIDE3_CLOSING_LINE_MAX).optional(),
+  // Admin-selected interior photo URL override for the bottom-left photo slot.
+  // When set, Slide3 uses this URL instead of the auto-selection logic
+  // (prefers medellin-duplex-2, falls back to first non-hero photo).
+  // null means "clear the override and revert to auto-selection".
+  interiorPhotoUrl: z.string().optional().nullable(),
 });
 export type Slide3Payload = z.infer<typeof slide3PayloadSchema>;
 

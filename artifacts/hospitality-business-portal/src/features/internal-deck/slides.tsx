@@ -362,11 +362,18 @@ export function Slide3({ p }: { p: SlidePayload }) {
       ];
   const slide3ClosingLine = v2s3?.closingLine?.text || "";
   const hero = photos.find(ph => ph.isHero) ?? photos[0];
-  const interior =
+  const autoInterior =
     photos.find(ph => !ph.isHero && ph.url?.includes("medellin-duplex-2")) ??
     photos[1] ??
     photos.find(ph => !ph.isHero) ??
     photos[0];
+  const interiorOverrideUrl = v2s3?.interiorPhotoUrl ?? null;
+  // Use the override when set and the URL still resolves to a known photo;
+  // if the photo was deleted after the override was saved, fall back to
+  // auto-selection so the slide doesn't display a broken image.
+  const interior = interiorOverrideUrl
+    ? (photos.find(ph => ph.url === interiorOverrideUrl) ?? autoInterior)
+    : autoInterior;
   const type = typeLabel(property);
 
   return (
