@@ -330,6 +330,7 @@ propagate country automatically.
 **Verification:**
 - `pnpm --filter @calc tsc --noEmit` — clean
 - `pnpm --filter @engine tsc --noEmit` — clean
+- `scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts` — PASS
 - Existing proof suite passes without modification
 - `grep -n "For full country-awareness" lib/engine/src/` returns zero results
 
