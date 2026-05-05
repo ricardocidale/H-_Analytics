@@ -32,6 +32,18 @@ import {
 } from "@shared/constants";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 
+// Colombia commercial hotel market calibrations (May 2026)
+// Jano Grande Ranch: luxury hacienda, Antioquia — LatAm luxury hospitality cap
+const SEED_COLOMBIA_EXIT_CAP_RATE_HACIENDA = 0.09;
+// Cartagena San Diego: colonial boutique hotel, historic walled city — Caribbean luxury cap
+const SEED_CARTAGENA_EXIT_CAP_RATE = 0.09;
+// Casa Medellín: El Poblado boutique hotel — Medellín urban luxury hospitality cap
+const SEED_CASA_MEDELLIN_EXIT_CAP_RATE = 0.095;
+// ADR targets: hacienda retreat premium, Caribbean historic luxury, El Poblado luxury boutique
+const SEED_JANO_GRANDE_START_ADR = 310;    // luxury hacienda retreat, Antioquia coffee country
+const SEED_CARTAGENA_START_ADR = 300;      // historic Cartagena, Caribbean luxury walled-city
+const SEED_CASA_MEDELLIN_START_ADR = 300;  // El Poblado luxury boutique, Medellín prime
+
 // Medellin Duplex sources Colombia-specific cost rates from the country
 // defaults registry (e.g. costRateTaxes 0.018, inflationRate 0.04 — Colombian
 // Estatuto Tributario / Banco de la República baseline). Per-market values
@@ -168,7 +180,7 @@ export const SEED_INITIAL_PROPERTIES = [
     preOpeningCosts: 150000,
     operatingReserve: 300000,
     roomCount: 20,
-    startAdr: 250,
+    startAdr: SEED_JANO_GRANDE_START_ADR,
     adrGrowthRate: 0.035,
     startOccupancy: 0.40,
     maxOccupancy: 0.72,
@@ -203,7 +215,7 @@ export const SEED_INITIAL_PROPERTIES = [
     revShareFB: 0.25,
     revShareOther: 0.08,
     cateringBoostPercent: 0.25,
-    exitCapRate: 0.10,
+    exitCapRate: SEED_COLOMBIA_EXIT_CAP_RATE_HACIENDA,
     taxRate: 0.35,
     baseManagementFeeRate: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
     incentiveManagementFeeRate: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
@@ -454,7 +466,7 @@ export const SEED_INITIAL_PROPERTIES = [
     preOpeningCosts: 250000,
     operatingReserve: 500000,
     roomCount: 20,
-    startAdr: 240,
+    startAdr: SEED_CARTAGENA_START_ADR,
     adrGrowthRate: 0.035,
     startOccupancy: 0.42,
     maxOccupancy: 0.72,
@@ -481,7 +493,7 @@ export const SEED_INITIAL_PROPERTIES = [
     revShareFB: 0.24,
     revShareOther: 0.06,
     cateringBoostPercent: 0.20,
-    exitCapRate: 0.09,
+    exitCapRate: SEED_CARTAGENA_EXIT_CAP_RATE,
     taxRate: 0.35,
     baseManagementFeeRate: DEFAULT_BASE_MANAGEMENT_FEE_RATE,
     incentiveManagementFeeRate: DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
@@ -492,7 +504,7 @@ export const SEED_SYNC_PROPERTIES = [
   { ...SEED_PROPERTY_DEFAULTS, name: "The Hudson Estate", streetAddress: "142 Old Post Road", city: "Millbrook", stateProvince: "NY", zipPostalCode: "12545", country: "United States", location: "Hudson Valley, New York", market: "North America", imageUrl: "/api/media/property-ny.png", status: PropertyStatus.PIPELINE, acquisitionDate: "2026-06-01", operationsStartDate: "2026-12-01", purchasePrice: 3800000, buildingImprovements: 1200000, preOpeningCosts: 200000, operatingReserve: 250000, roomCount: 20, startAdr: 385, adrGrowthRate: 0.025, startOccupancy: 0.55, maxOccupancy: 0.82, occupancyRampMonths: 6, occupancyGrowthStep: 0.05, type: "Full Equity", costRateFB: 0.085, costRateIT: 0.005, cateringBoostPercent: 0.22, exitCapRate: 0.08, willRefinance: "Yes", refinanceDate: "2029-12-01", refinanceLtv: 0.75, refinanceInterestRate: 0.07, refinanceTermYears: 25, refinanceClosingCostRate: 0.03, revShareEvents: 0.30 },
   { ...SEED_PROPERTY_DEFAULTS, name: "Eden Summit Lodge", streetAddress: "3850 Nordic Valley Road", city: "Eden", stateProvince: "UT", zipPostalCode: "84310", location: "Ogden Valley, Utah", market: "North America", imageUrl: "/api/media/property-utah.png", status: PropertyStatus.PIPELINE, acquisitionDate: "2027-01-01", operationsStartDate: "2027-07-01", purchasePrice: 4000000, buildingImprovements: 1200000, preOpeningCosts: 200000, operatingReserve: 250000, roomCount: 20, startAdr: 425, adrGrowthRate: 0.025, startOccupancy: 0.50, maxOccupancy: 0.80, occupancyRampMonths: 6, occupancyGrowthStep: 0.05, type: "Full Equity", costRateFB: 0.085, costRateIT: 0.005, cateringBoostPercent: 0.25, willRefinance: "Yes", refinanceDate: "2030-07-01", refinanceLtv: 0.75, refinanceInterestRate: 0.07, refinanceTermYears: 25, refinanceClosingCostRate: 0.03, revShareEvents: 0.30 },
   { ...SEED_PROPERTY_DEFAULTS, name: "Austin Hillside", streetAddress: "4100 Mount Bonnell Drive", city: "Austin", stateProvince: "TX", zipPostalCode: "78731", location: "Hill Country, Texas", market: "North America", imageUrl: "/api/media/property-austin.png", status: PropertyStatus.PIPELINE, acquisitionDate: "2027-04-01", operationsStartDate: "2028-01-01", purchasePrice: 3500000, buildingImprovements: 1100000, preOpeningCosts: 200000, operatingReserve: 250000, roomCount: 20, startAdr: 320, adrGrowthRate: 0.025, startOccupancy: 0.55, maxOccupancy: 0.82, occupancyRampMonths: 6, occupancyGrowthStep: 0.05, type: "Full Equity", costRateFB: 0.09, costRateIT: 0.005, cateringBoostPercent: 0.20, willRefinance: "Yes", refinanceDate: "2031-01-01", refinanceLtv: 0.75, refinanceInterestRate: 0.07, refinanceTermYears: 25, refinanceClosingCostRate: 0.03, revShareEvents: 0.28 },
-  { ...SEED_PROPERTY_DEFAULTS, name: "Casa Medellín", streetAddress: "Carrera 43A #7-50, El Poblado", city: "Medellín", stateProvince: "Antioquia", zipPostalCode: "050021", country: "Colombia", location: "El Poblado, Medellín", market: "Latin America", imageUrl: "/api/media/property-medellin.png", status: PropertyStatus.PIPELINE, acquisitionDate: "2026-09-01", operationsStartDate: "2028-07-01", purchasePrice: 3800000, buildingImprovements: 1000000, preOpeningCosts: 200000, operatingReserve: 600000, roomCount: 30, startAdr: 210, adrGrowthRate: 0.04, startOccupancy: 0.50, maxOccupancy: 0.78, occupancyRampMonths: 6, occupancyGrowthStep: 0.05, type: "Financed", costRateFB: 0.075, costRateIT: 0.005, cateringBoostPercent: 0.18, exitCapRate: 0.095, acquisitionLTV: 0.60, acquisitionInterestRate: 0.095, acquisitionTermYears: 25, acquisitionClosingCostRate: 0.02, revShareEvents: 0.25, depreciationYears: 20 },
+  { ...SEED_PROPERTY_DEFAULTS, name: "Casa Medellín", streetAddress: "Carrera 43A #7-50, El Poblado", city: "Medellín", stateProvince: "Antioquia", zipPostalCode: "050021", country: "Colombia", location: "El Poblado, Medellín", market: "Latin America", imageUrl: "/api/media/property-medellin.png", status: PropertyStatus.PIPELINE, acquisitionDate: "2026-09-01", operationsStartDate: "2028-07-01", purchasePrice: 3800000, buildingImprovements: 1000000, preOpeningCosts: 200000, operatingReserve: 600000, roomCount: 30, startAdr: SEED_CASA_MEDELLIN_START_ADR, adrGrowthRate: 0.04, startOccupancy: 0.50, maxOccupancy: 0.78, occupancyRampMonths: 6, occupancyGrowthStep: 0.05, type: "Financed", costRateFB: 0.075, costRateIT: 0.005, cateringBoostPercent: 0.18, exitCapRate: SEED_CASA_MEDELLIN_EXIT_CAP_RATE, acquisitionLTV: 0.60, acquisitionInterestRate: 0.095, acquisitionTermYears: 25, acquisitionClosingCostRate: 0.02, revShareEvents: 0.25, depreciationYears: 20 },
   { ...SEED_PROPERTY_DEFAULTS, name: "Blue Ridge Manor", streetAddress: "275 Elk Mountain Scenic Highway", city: "Asheville", stateProvince: "NC", zipPostalCode: "28804", location: "Blue Ridge Mountains, North Carolina", market: "North America", imageUrl: "/api/media/property-asheville.png", status: PropertyStatus.PIPELINE, acquisitionDate: "2027-07-01", operationsStartDate: "2028-07-01", purchasePrice: 6000000, buildingImprovements: 1500000, preOpeningCosts: 250000, operatingReserve: 500000, roomCount: 30, startAdr: 375, adrGrowthRate: 0.025, startOccupancy: 0.50, maxOccupancy: 0.80, occupancyRampMonths: 6, occupancyGrowthStep: 0.05, type: "Financed", costRateFB: 0.10, costRateIT: 0.005, cateringBoostPercent: 0.25, exitCapRate: 0.075, acquisitionLTV: 0.60, acquisitionInterestRate: 0.09, acquisitionTermYears: 25, acquisitionClosingCostRate: 0.02, revShareEvents: 0.28 },
 ];
 

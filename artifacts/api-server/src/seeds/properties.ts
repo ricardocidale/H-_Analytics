@@ -24,6 +24,8 @@ import {
   DEFAULT_OFFICE_LEASE_START,
   DEFAULT_PROFESSIONAL_SERVICES_START,
   DEFAULT_TECH_INFRA_START,
+  DEFAULT_MARKETING_RATE,
+  DEFAULT_MISC_OPS_RATE,
 } from "@shared/constants";
 import { DEFAULT_STAFF_SALARY, DEFAULT_TRAVEL_PER_CLIENT, DEFAULT_IT_LICENSE_PER_CLIENT } from "@shared/constants-staffing";
 import { getFactoryNumber } from "@shared/model-constants-registry";
@@ -131,8 +133,8 @@ export async function seedGlobalAssumptions() {
     businessInsuranceStart: DEFAULT_BUSINESS_INSURANCE_START,
     travelCostPerClient: DEFAULT_TRAVEL_PER_CLIENT,
     itLicensePerClient: DEFAULT_IT_LICENSE_PER_CLIENT,
-    marketingRate: 0.05,
-    miscOpsRate: 0.03,
+    marketingRate: DEFAULT_MARKETING_RATE,
+    miscOpsRate: DEFAULT_MISC_OPS_RATE,
     commissionRate: DEFAULT_COMMISSION_RATE,
     standardAcqPackage: {
       monthsToOps: 6,
