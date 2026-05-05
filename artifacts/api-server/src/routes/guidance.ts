@@ -99,6 +99,31 @@ export function register(app: Express) {
     }
   });
 
+  // Flat GuidanceRecord[] for the company analyst hook.
+  // Must be registered before the generic /:entityType/:entityId route so that
+  // "enriched" is not matched as the entityType wildcard.
+  app.get("/api/guidance/enriched/company/:entityId", requireAuth, async (req, res) => {
+    try {
+      const params = z.object({ entityId: z.coerce.number().int().positive() }).safeParse(req.params);
+      if (!params.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(params.error) });
+
+      const { entityId } = params.data;
+      if (!(await checkEntityAccess(getAuthUser(req), "company", entityId))) {
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+      }
+
+      const guidance = await storage.getAssumptionGuidance(null, "company", entityId);
+      const enriched = guidance.map(g => ({
+        ...g,
+        confidenceScore: computePerFieldConfidence(g),
+      }));
+
+      res.json(enriched);
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to fetch enriched company guidance", error);
+    }
+  });
+
   app.get("/api/guidance/:entityType/:entityId", requireAuth, async (req, res) => {
     try {
       const params = entityParamsSchema.safeParse(req.params);
