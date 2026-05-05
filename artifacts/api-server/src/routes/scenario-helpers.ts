@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { storage } from "../storage";
+import { getFactoryNumber } from "@shared/model-constants-registry";
+import { DEFAULT_MARKETING_RATE, DEFAULT_INTEREST_RATE, DEFAULT_TERM_YEARS } from "@shared/constants";
 import type { PropertyInput, GlobalInput } from "@engine/types";
 import type { ComputedResultsSnapshot } from "@workspace/db";
 import type {
@@ -72,11 +74,11 @@ export function extractScenarioComputeInputs(scenario: { globalAssumptions: unkn
 
   const globalInput: GlobalInput = {
     modelStartDate: (scenarioGA?.modelStartDate as string) ?? new Date().toISOString().slice(0, 10),
-    inflationRate: Number(scenarioGA?.inflationRate ?? 0.03),
-    marketingRate: Number(scenarioGA?.marketingRate ?? 0.01),
+    inflationRate: Number(scenarioGA?.inflationRate ?? getFactoryNumber('inflationRate')),
+    marketingRate: Number(scenarioGA?.marketingRate ?? DEFAULT_MARKETING_RATE),
     debtAssumptions: {
-      interestRate: Number(dbDebt?.interestRate ?? 0.065),
-      amortizationYears: Number(dbDebt?.amortizationYears ?? 25),
+      interestRate: Number(dbDebt?.interestRate ?? DEFAULT_INTEREST_RATE),
+      amortizationYears: Number(dbDebt?.amortizationYears ?? DEFAULT_TERM_YEARS),
     },
     projectionYears: projYears,
   };

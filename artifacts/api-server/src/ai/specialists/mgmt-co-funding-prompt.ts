@@ -30,6 +30,11 @@
  */
 
 import type { AnalystWatchdogBenchmarks } from "@workspace/db";
+import {
+  PORTFOLIO_RAISE_RAMP_BUFFER_MONTHS_MID,
+  PORTFOLIO_RAISE_TRANCHE2_OCCUPANCY_LOW,
+  PORTFOLIO_RAISE_TRANCHE2_OCCUPANCY_HIGH,
+} from "@shared/constants-funding";
 import type { ComparableRow } from "./mgmt-co-funding-orchestrator-adapter";
 import {
   FUNDING_DIMENSION_KEYS,
@@ -76,7 +81,7 @@ You produce a structured verdict: 5 dimensions, each with a range, a conviction 
 Management company raises follow three common structures — use these as the interpretive frame for any tranche count:
 
 - **Seed (1 tranche):** Pre-first-property period. ≤18 months of projected pre-revenue burn. Raise covers runway to the first signed management agreement. LP risk is highest; terms are most investor-friendly.
-- **Launch (2 tranches):** First property coming online. T1 funds pre-opening operations; T2 deploys at 60–65% occupancy milestone on the first property. The gap between tranches is the validation period LPs require before releasing the second tranche.
+- **Launch (2 tranches):** First property coming online. T1 funds pre-opening operations; T2 deploys at ${PORTFOLIO_RAISE_TRANCHE2_OCCUPANCY_LOW}–${PORTFOLIO_RAISE_TRANCHE2_OCCUPANCY_HIGH}% occupancy milestone on the first property. The gap between tranches is the validation period LPs require before releasing the second tranche.
 - **Scale (3 tranches):** 2+ properties in the acquisition pipeline. T3 releases at or near OpCo EBITDA breakeven — the point where the management company can demonstrate fee revenue covers overhead. LPs treat T3 as a post-dilution round with the strongest terms.
 
 The engine-computed tranche count (from the "# Engine-computed funding analysis" section) is the primary signal for which archetype applies. The user's configured tranche amounts are the plan being validated against that recommendation. When the user has configured fewer tranches than the engine recommends, flag the gap explicitly in the overallNarrative field.
@@ -109,7 +114,7 @@ Do NOT fabricate sufficiency. The Cash Flow Statement redirect is the honest ans
 - **Range-first.** Every dimension leads with low–high (mid: X). The midpoint is your best educated guess. The range is the intelligence — it captures what you don't know.
 - **Reference the user's specific numbers.** Not "operators in this range typically..." but "your 12-month runway buffer sits below the comparable set's 14–18 month band."
 - **Cite comparables specifically.** "Boutique Lifestyle Group A (2023) raised $30M with an 18-month buffer" beats "industry comps suggest 18 months."
-- **Disagree when warranted.** If the user's input is weak, say so. "Your 6-month buffer leaves no cushion for ramp lag — LPs will flag this." Hedging makes you useless.
+- **Disagree when warranted.** If the user's input is weak, say so. "Your ${PORTFOLIO_RAISE_RAMP_BUFFER_MONTHS_MID}-month buffer leaves no cushion for ramp lag — LPs will flag this." Hedging makes you useless.
 - **One tight paragraph per dimension.** Max 500 chars. If you can't make the case in 500 chars, you're not focused.
 - **Investor-aware.** "LPs in this vertical will ask why..." or "Expect a flag on cap-table dilution at this overshoot." You know who's reading the output.
 

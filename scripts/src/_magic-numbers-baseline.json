@@ -793,8 +793,6 @@
     "artifacts/api-server/src/report/server-export-data.ts",
     "artifacts/api-server/src/routes/admin/model-constants.ts",
     "artifacts/api-server/src/routes/admin/resources-transparency.ts",
-    "artifacts/api-server/src/routes/properties.ts",
-    "artifacts/api-server/src/routes/scenario-helpers.ts",
     "artifacts/api-server/src/seeds/hospitality-benchmarks.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/properties.ts",
@@ -1897,8 +1895,6 @@
     "artifacts/api-server/src/integrations/document-ai.ts",
     "artifacts/api-server/src/report/server-export-data.ts",
     "artifacts/api-server/src/routes/format-generators/pptx-generator.ts",
-    "artifacts/api-server/src/routes/properties.ts",
-    "artifacts/api-server/src/routes/scenario-helpers.ts",
     "lib/calc/src/analysis/breakeven-targets.ts",
     "lib/calc/src/analysis/exit-scenarios.ts",
     "lib/calc/src/financing/prepayment.ts",
@@ -1917,7 +1913,6 @@
     "artifacts/api-server/src/integrations/resend.ts",
     "artifacts/api-server/src/report/compiler.ts",
     "artifacts/api-server/src/routes/format-generators/pptx-generator.ts",
-    "artifacts/api-server/src/routes/properties.ts",
     "artifacts/api-server/src/seeds/properties.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/shared/market-intelligence-pipeline.ts",
@@ -1940,9 +1935,6 @@
     "artifacts/api-server/src/ai/risk/insights-regulatory.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-prompt.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
-    "artifacts/api-server/src/routes/analyst-admin.ts",
-    "artifacts/api-server/src/routes/properties.ts",
-    "artifacts/api-server/src/routes/scenario-helpers.ts",
     "artifacts/api-server/src/seeds/properties.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/syncHelpers.ts",
@@ -2059,7 +2051,6 @@
     "artifacts/api-server/src/ai/specialists/mgmt-co-company-orchestrator-adapter.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
     "artifacts/api-server/src/routes/chat-insight.ts",
-    "artifacts/api-server/src/routes/properties.ts",
     "artifacts/api-server/src/seeds/properties.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
     "lib/calc/src/shared/schemas.ts",
@@ -2126,9 +2117,9 @@
     "artifacts/api-server/src/ai/risk/benchmarks.ts",
     "artifacts/api-server/src/ai/risk/insights-stress.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-funding-orchestrator-adapter.ts",
+    "artifacts/api-server/src/ai/specialists/portfolio-raise-runner.ts",
     "artifacts/api-server/src/integrations/document-ai.ts",
     "artifacts/api-server/src/pdf/design-pass.ts",
-    "artifacts/api-server/src/routes/properties.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "artifacts/api-server/src/shared/market-intelligence-pipeline.ts",
@@ -2206,8 +2197,7 @@
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
-    "lib/shared/src/constants-benchmarks.ts",
-    "lib/shared/src/constants-business-models.ts"
+    "lib/shared/src/constants-benchmarks.ts"
   ],
   "0.75": [
     "artifacts/api-server/src/ai/portfolio-risk-scorer.ts",
@@ -2218,7 +2208,6 @@
     "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-quant-panel-prompt.ts",
     "artifacts/api-server/src/pdf/table-render.tsx",
     "artifacts/api-server/src/routes/market-rates.ts",
-    "artifacts/api-server/src/routes/properties.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
@@ -2229,7 +2218,6 @@
     "artifacts/api-server/src/ai/guidance/extractor.ts",
     "artifacts/api-server/src/ai/portfolio-risk-scorer.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-orchestrator-adapter.ts",
-    "artifacts/api-server/src/routes/properties.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
@@ -2259,8 +2247,7 @@
     "artifacts/api-server/src/seeds/properties.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
-    "lib/shared/src/constants-benchmarks.ts",
-    "lib/shared/src/constants-business-models.ts"
+    "lib/shared/src/constants-benchmarks.ts"
   ],
   "0.35": [
     "artifacts/api-server/src/ai/guidance/extractor.ts",
@@ -2282,7 +2269,6 @@
     "artifacts/api-server/src/ai/research-orchestrator.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-company-prompt.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
-    "artifacts/api-server/src/routes/properties.ts",
     "artifacts/api-server/src/seeds/properties.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/shared/market-intelligence-pipeline.ts",
@@ -2309,7 +2295,6 @@
     "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-orchestrator-adapter.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
     "artifacts/api-server/src/routes/chat-insight.ts",
-    "artifacts/api-server/src/routes/properties.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "lib/shared/src/constants-benchmarks.ts",
@@ -2319,7 +2304,6 @@
   "0.015": [
     "artifacts/api-server/src/seeds/property-data.ts",
     "lib/shared/src/constants-benchmarks.ts",
-    "lib/shared/src/constants-business-models.ts",
     "lib/shared/src/constants-operating-structures-data.ts",
     "lib/shared/src/constants.ts",
     "lib/shared/src/countryDefaults.ts"
@@ -2339,7 +2323,6 @@
     "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
     "artifacts/api-server/src/finance/sensitivity.ts",
     "artifacts/api-server/src/integrations/resend.ts",
-    "artifacts/api-server/src/routes/properties.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
     "lib/shared/src/constants-benchmarks.ts",
     "lib/shared/src/constants-business-models.ts",
@@ -2365,7 +2348,6 @@
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/shared/market-intelligence-pipeline.ts",
     "lib/shared/src/constants-benchmarks.ts",
-    "lib/shared/src/constants-business-models.ts",
     "lib/shared/src/market-intelligence-pipeline.ts"
   ],
   "0.22": [
@@ -2407,48 +2389,6 @@
     "lib/shared/src/constants-operating-structures.ts",
     "lib/shared/src/market-intelligence-pipeline.ts"
   ],
-  "0.09": [
-    "artifacts/api-server/src/ai/risk/benchmarks.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-company-orchestrator-adapter.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-orchestrator-adapter.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-prompt.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-quant-panel-prompt.ts",
-    "artifacts/api-server/src/routes/properties.ts",
-    "artifacts/api-server/src/seeds/property-data.ts",
-    "lib/shared/src/constants-business-models.ts",
-    "lib/shared/src/constants-funding.ts",
-    "lib/shared/src/constants-operating-structures-data.ts"
-  ],
-  "0.18": [
-    "artifacts/api-server/src/ai/analyst-table-refresh.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-company-orchestrator-adapter.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-company-quant-panel-prompt.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-funding-prompt.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-funding-quant-panel-prompt.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
-    "artifacts/api-server/src/routes/properties.ts",
-    "artifacts/api-server/src/seeds/property-data.ts",
-    "lib/shared/src/constants-business-models.ts",
-    "lib/shared/src/constants-operating-structures-data.ts"
-  ],
-  "0.085": [
-    "artifacts/api-server/src/ai/specialists/mgmt-co-company-orchestrator-adapter.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-orchestrator-adapter.ts",
-    "artifacts/api-server/src/routes/properties.ts",
-    "artifacts/api-server/src/routes/structure-comparison.ts",
-    "artifacts/api-server/src/seeds/property-data.ts",
-    "lib/shared/src/constants-business-models.ts"
-  ],
-  "0.12": [
-    "artifacts/api-server/src/ai/guidance/extractor.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-company-orchestrator-adapter.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-funding-prompt.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-funding-quant-panel-prompt.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
-    "artifacts/api-server/src/routes/properties.ts",
-    "lib/shared/src/constants-business-models.ts"
-  ],
   "0.06": [
     "artifacts/api-server/src/ai/analyst-watchdog.ts",
     "artifacts/api-server/src/ai/risk/benchmarks.ts",
@@ -2460,6 +2400,17 @@
     "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-prompt.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-quant-panel-prompt.ts",
     "artifacts/api-server/src/integrations/resend.ts",
+    "artifacts/api-server/src/seeds/property-data.ts",
+    "lib/shared/src/constants-business-models.ts",
+    "lib/shared/src/constants-operating-structures-data.ts"
+  ],
+  "0.18": [
+    "artifacts/api-server/src/ai/analyst-table-refresh.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-company-orchestrator-adapter.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-company-quant-panel-prompt.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-funding-prompt.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-funding-quant-panel-prompt.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
     "lib/shared/src/constants-business-models.ts",
     "lib/shared/src/constants-operating-structures-data.ts"
@@ -2486,6 +2437,17 @@
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "lib/shared/src/constants-business-models.ts"
+  ],
+  "0.09": [
+    "artifacts/api-server/src/ai/risk/benchmarks.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-company-orchestrator-adapter.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-orchestrator-adapter.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-prompt.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-quant-panel-prompt.ts",
+    "artifacts/api-server/src/seeds/property-data.ts",
+    "lib/shared/src/constants-funding.ts",
+    "lib/shared/src/constants-operating-structures-data.ts"
   ],
   "1.1": [
     "artifacts/api-server/src/ai/data-routing/dispatchers/precollected-tables.ts",
@@ -2627,9 +2589,14 @@
     "artifacts/api-server/src/ai/specialists/mgmt-co-company-orchestrator-adapter.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-orchestrator-adapter.ts",
     "artifacts/api-server/src/finance/sensitivity.ts",
-    "artifacts/api-server/src/report/server-export-data.ts",
-    "artifacts/api-server/src/routes/analyst-admin.ts",
-    "artifacts/api-server/src/routes/scenario-helpers.ts"
+    "artifacts/api-server/src/report/server-export-data.ts"
+  ],
+  "0.12": [
+    "artifacts/api-server/src/ai/guidance/extractor.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-company-orchestrator-adapter.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-funding-prompt.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-funding-quant-panel-prompt.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts"
   ],
   "5.5": [
     "artifacts/api-server/src/ai/kb-content.ts",

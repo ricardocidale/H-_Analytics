@@ -38,7 +38,8 @@ import {
 } from "@shared/constants-benchmarks";
 import {
   DEFAULT_PROJECTION_YEARS,
-  DEFAULT_COST_RATE_MARKETING,
+  DEFAULT_MARKETING_RATE,
+  DEFAULT_INTEREST_RATE,
 } from "@shared/constants";
 import {
   runPropertyRiskIntelligenceSpecialist,
@@ -113,10 +114,10 @@ function gaToGlobalInput(ga: Record<string, unknown>, projectionYears: number): 
   const dbDebt = ga.debtAssumptions as Record<string, unknown> | null;
   return {
     modelStartDate: (ga.modelStartDate as string) ?? String(new Date().getFullYear()),
-    inflationRate: Number(ga.inflationRate ?? 0.03),      // TODO: pull from model-constants-registry
-    marketingRate: Number(ga.marketingRate ?? DEFAULT_COST_RATE_MARKETING),
+    inflationRate: Number(ga.inflationRate ?? getFactoryNumber('inflationRate')),
+    marketingRate: Number(ga.marketingRate ?? DEFAULT_MARKETING_RATE),
     debtAssumptions: {
-      interestRate: Number(dbDebt?.interestRate ?? 0.065), // TODO: pull from model-constants-registry
+      interestRate: Number(dbDebt?.interestRate ?? DEFAULT_INTEREST_RATE),
       amortizationYears: Number(dbDebt?.amortizationYears ?? SEED_DEBT_ASSUMPTIONS.amortizationYears),
     },
     projectionYears,

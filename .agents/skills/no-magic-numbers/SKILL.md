@@ -248,6 +248,8 @@ If the value varies by jurisdiction (depreciation life, tax rate, day-count conv
 
 ## Coupling with other skills
 
+- **`hplus-variable-taxonomy`** — for H+ Analytics specifically: defines the four categories of numbers (TRUE CONSTANTS, DEFAULT VARIABLES, ASSUMPTION VARIABLES, TABLE-SOURCED VALUES) and the exact code pattern for each. The masking anti-pattern documented above (`DEFAULT_INFLATION_RATE = 0.03`) is the same violation in both skills. Country-specific rates (tax, inflation, depreciation lives) must route through `getFactoryNumber(key, country)`, not a flat `DEFAULT_*` constant.
+- **`hplus-assumption-lifecycle`** — the Default → Assumption → Confirmed UX lifecycle. Explains when a null-coalescing fallback is correct and when the value should come from the DB instead.
 - **`cross-check-invariants`** — promoting a literal to a shared constant is exactly the kind of edit that requires checking every consumer.
 - **`pre-commit-gates`** — a magic-number scan should be one of the gates.
 - **`architecture-decision-records`** — calibration constants whose values are non-obvious (severity weights, tolerance multipliers, tier thresholds) deserve a one-line ADR cross-reference in their docstring.

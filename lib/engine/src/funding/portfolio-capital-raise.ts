@@ -13,7 +13,8 @@
  */
 
 import { propertyEquityInvested, acquisitionLoanAmount, acqMonthsFromModelStart } from '../debt/equityCalculations';
-import { DEFAULT_LTV } from '@shared/constants';
+import { DEFAULT_LTV, DEFAULT_PROJECTION_YEARS } from '@shared/constants';
+import { PORTFOLIO_RAISE_FIRST_CLOSE_FRACTION } from '@shared/constants-funding';
 import type {
   PropertyInput,
   GlobalInput,
@@ -83,8 +84,8 @@ export function analyzePortfolioCapitalRaise(
   const totalEquityRequired = perPropertyEquity.reduce((sum, p) => sum + p.equityRequired, 0);
   // First close must cover at least the first property's equity, or 30% of total — whichever is larger
   const firstPropertyEquity = perPropertyEquity[0]?.equityRequired ?? 0;
-  // PE industry standard: first close must cover at least 30% of total fund or Property 1 equity
-  const firstCloseMinimum = Math.max(firstPropertyEquity, totalEquityRequired * 0.30);
+  // PE industry standard: first close must cover at least PORTFOLIO_RAISE_FIRST_CLOSE_FRACTION of total fund or Property 1 equity
+  const firstCloseMinimum = Math.max(firstPropertyEquity, totalEquityRequired * PORTFOLIO_RAISE_FIRST_CLOSE_FRACTION);
 
   // Identify months where 2+ properties are simultaneously in their occupancy ramp
   const rampOverlapWindows = computeRampOverlapWindows(properties, perPropertyEquity);
@@ -184,7 +185,7 @@ function computeImpliedIrr(
   const exitCapRate = global.exitCapRate;
   if (!exitCapRate || exitCapRate <= 0 || totalEquity <= 0) return null;
 
-  const projYears = global.projectionYears ?? 10;
+  const projYears = global.projectionYears ?? DEFAULT_PROJECTION_YEARS;
   let totalAnnualNoi = 0;
   let propertiesWithNoi = 0;
 

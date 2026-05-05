@@ -17,7 +17,24 @@ import {
 import { generateLocationAwareResearchValues } from "../data/researchSeeds";
 import { processNotificationEvent, evaluateAlertRules } from "../notifications/engine";
 import { createEvent } from "../notifications/events";
-import { isAdminRole } from "@shared/constants";
+import {
+  isAdminRole,
+  DEFAULT_REV_SHARE_FB,
+  DEFAULT_REV_SHARE_EVENTS,
+  DEFAULT_REV_SHARE_OTHER,
+  DEFAULT_COST_RATE_ROOMS,
+  DEFAULT_COST_RATE_ADMIN,
+  DEFAULT_COST_RATE_MARKETING,
+  DEFAULT_COST_RATE_PROPERTY_OPS,
+  DEFAULT_COST_RATE_UTILITIES,
+  DEFAULT_BASE_MANAGEMENT_FEE_RATE,
+  DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
+  DEFAULT_LTV,
+  DEFAULT_INTEREST_RATE,
+  DEFAULT_TERM_YEARS,
+  DEFAULT_START_OCCUPANCY,
+  DEFAULT_MAX_OCCUPANCY,
+} from "@shared/constants";
 import { invalidateComputeCache } from "../finance/cache";
 import { buildPropertyDefaultsFromRegistry } from "@shared/field-registry";
 import { logger } from "../logger";
@@ -801,26 +818,26 @@ Rewritten description:`;
         startAdr: property.startAdr,
         startOccupancy: property.startOccupancy,
         maxOccupancy: property.maxOccupancy,
-        revShareFB: property.revShareFB ?? 0.30,
-        revShareEvents: property.revShareEvents ?? 0.18,
-        revShareOther: property.revShareOther ?? 0.03,
-        costRateRooms: property.costRateRooms ?? 0.20,
-        costRateAdmin: property.costRateAdmin ?? 0.08,
-        costRateMarketing: property.costRateMarketing ?? 0.01,
-        costRatePropertyOps: property.costRatePropertyOps ?? 0.04,
-        costRateUtilities: property.costRateUtilities ?? 0.05,
-        baseFeePercent: property.baseManagementFeeRate ?? 0.085,
-        incentiveFeePercent: property.incentiveManagementFeeRate ?? 0.12,
+        revShareFB: property.revShareFB ?? DEFAULT_REV_SHARE_FB,
+        revShareEvents: property.revShareEvents ?? DEFAULT_REV_SHARE_EVENTS,
+        revShareOther: property.revShareOther ?? DEFAULT_REV_SHARE_OTHER,
+        costRateRooms: property.costRateRooms ?? DEFAULT_COST_RATE_ROOMS,
+        costRateAdmin: property.costRateAdmin ?? DEFAULT_COST_RATE_ADMIN,
+        costRateMarketing: property.costRateMarketing ?? DEFAULT_COST_RATE_MARKETING,
+        costRatePropertyOps: property.costRatePropertyOps ?? DEFAULT_COST_RATE_PROPERTY_OPS,
+        costRateUtilities: property.costRateUtilities ?? DEFAULT_COST_RATE_UTILITIES,
+        baseFeePercent: property.baseManagementFeeRate ?? DEFAULT_BASE_MANAGEMENT_FEE_RATE,
+        incentiveFeePercent: property.incentiveManagementFeeRate ?? DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
         purchasePrice: property.purchasePrice,
       };
 
       // Add financing info if property is financed
       if (property.type === "Financed") {
-        const ltv = property.acquisitionLTV ?? 0.75;
+        const ltv = property.acquisitionLTV ?? DEFAULT_LTV;
         const totalValue = property.purchasePrice + (property.buildingImprovements ?? 0);
         assumptions.loanAmount = totalValue * ltv;
-        assumptions.interestRate = property.acquisitionInterestRate ?? 0.09;
-        assumptions.loanTermYears = property.acquisitionTermYears ?? 25;
+        assumptions.interestRate = property.acquisitionInterestRate ?? DEFAULT_INTEREST_RATE;
+        assumptions.loanTermYears = property.acquisitionTermYears ?? DEFAULT_TERM_YEARS;
       }
 
       const results = computeStressScenarios(assumptions);
@@ -847,18 +864,18 @@ Rewritten description:`;
       const assumptions: StressAssumptions = {
         roomCount: body.roomCount,
         startAdr: body.startAdr,
-        startOccupancy: body.startOccupancy ?? 0.70,
-        maxOccupancy: body.maxOccupancy ?? 0.85,
-        revShareFB: body.revShareFB ?? 0.30,
-        revShareEvents: body.revShareEvents ?? 0.18,
-        revShareOther: body.revShareOther ?? 0.03,
-        costRateRooms: body.costRateRooms ?? 0.20,
-        costRateAdmin: body.costRateAdmin ?? 0.08,
-        costRateMarketing: body.costRateMarketing ?? 0.01,
-        costRatePropertyOps: body.costRatePropertyOps ?? 0.04,
-        costRateUtilities: body.costRateUtilities ?? 0.05,
-        baseFeePercent: body.baseFeePercent ?? 0.085,
-        incentiveFeePercent: body.incentiveFeePercent ?? 0.12,
+        startOccupancy: body.startOccupancy ?? DEFAULT_START_OCCUPANCY,
+        maxOccupancy: body.maxOccupancy ?? DEFAULT_MAX_OCCUPANCY,
+        revShareFB: body.revShareFB ?? DEFAULT_REV_SHARE_FB,
+        revShareEvents: body.revShareEvents ?? DEFAULT_REV_SHARE_EVENTS,
+        revShareOther: body.revShareOther ?? DEFAULT_REV_SHARE_OTHER,
+        costRateRooms: body.costRateRooms ?? DEFAULT_COST_RATE_ROOMS,
+        costRateAdmin: body.costRateAdmin ?? DEFAULT_COST_RATE_ADMIN,
+        costRateMarketing: body.costRateMarketing ?? DEFAULT_COST_RATE_MARKETING,
+        costRatePropertyOps: body.costRatePropertyOps ?? DEFAULT_COST_RATE_PROPERTY_OPS,
+        costRateUtilities: body.costRateUtilities ?? DEFAULT_COST_RATE_UTILITIES,
+        baseFeePercent: body.baseFeePercent ?? DEFAULT_BASE_MANAGEMENT_FEE_RATE,
+        incentiveFeePercent: body.incentiveFeePercent ?? DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
         purchasePrice: body.purchasePrice ?? 0,
         loanAmount: body.loanAmount,
         interestRate: body.interestRate,

@@ -26,6 +26,7 @@ import {
   type OperatingStructureId,
   type StructureOverlayPatch,
 } from "@shared/constants-operating-structures";
+import { DEFAULT_EXIT_CAP_RATE } from "@shared/constants";
 import type { PropertyInput, GlobalInput } from "@engine/types";
 
 const STRUCTURE_ID_SET = new Set<OperatingStructureId>(OPERATING_STRUCTURE_IDS);
@@ -164,7 +165,7 @@ export function registerStructureComparisonRoutes(router: Router): void {
           totalProjectCost,
           initialEquity,
           exitDebtBalance,
-          exitCapRate: property.exitCapRate ?? 0.085,
+          exitCapRate: property.exitCapRate ?? DEFAULT_EXIT_CAP_RATE,
           yearly: result.yearly,
           structures: structures as OperatingStructureId[] | undefined,
           overlays: overlays as

@@ -13,6 +13,20 @@
  */
 
 import type { FundingPersonaContext, PriorVerdictRef } from "./mgmt-co-funding-prompt-input-builder";
+import {
+  PORTFOLIO_RAISE_FIRST_CLOSE_FRACTION,
+  PORTFOLIO_RAISE_FIRST_CLOSE_BENCHMARK_MID,
+  PORTFOLIO_RAISE_FIRST_CLOSE_BENCHMARK_HIGH,
+  PORTFOLIO_RAISE_DSCR_BENCHMARK_LOW,
+  PORTFOLIO_RAISE_DSCR_BENCHMARK_MID,
+  PORTFOLIO_RAISE_DSCR_BENCHMARK_HIGH,
+  PORTFOLIO_RAISE_RAMP_BUFFER_MONTHS_LOW,
+  PORTFOLIO_RAISE_RAMP_BUFFER_MONTHS_MID,
+  PORTFOLIO_RAISE_RAMP_BUFFER_MONTHS_HIGH,
+  PORTFOLIO_RAISE_IRR_BENCHMARK_LOW,
+  PORTFOLIO_RAISE_IRR_BENCHMARK_MID,
+  PORTFOLIO_RAISE_IRR_BENCHMARK_HIGH,
+} from "@shared/constants-funding";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Dimension taxonomy
@@ -52,7 +66,7 @@ export const PORTFOLIO_RAISE_DIMENSIONS: readonly PortfolioRaiseDimensionDescrip
     key: "firstCloseMinimum",
     label: "First close minimum",
     unit: "usd",
-    benchmarks: { low: 0.30, mid: 0.40, high: 0.50 },
+    benchmarks: { low: PORTFOLIO_RAISE_FIRST_CLOSE_FRACTION, mid: PORTFOLIO_RAISE_FIRST_CLOSE_BENCHMARK_MID, high: PORTFOLIO_RAISE_FIRST_CLOSE_BENCHMARK_HIGH },
     evidenceCues: [
       "PE norm: first close at 30–50% of total fund; must cover at least Property 1 equity",
       "LP sequencing expectations for a boutique portfolio fund with phased acquisitions",
@@ -63,7 +77,7 @@ export const PORTFOLIO_RAISE_DIMENSIONS: readonly PortfolioRaiseDimensionDescrip
     key: "portfolioDscr",
     label: "Portfolio DSCR (blended)",
     unit: "ratio",
-    benchmarks: { low: 1.0, mid: 1.25, high: 1.5 },
+    benchmarks: { low: PORTFOLIO_RAISE_DSCR_BENCHMARK_LOW, mid: PORTFOLIO_RAISE_DSCR_BENCHMARK_MID, high: PORTFOLIO_RAISE_DSCR_BENCHMARK_HIGH },
     evidenceCues: [
       "lender covenant floor: 1.25× at base-case NOI; stress break: 1.0× (covenant breach risk)",
       "blended DSCR across stabilized properties weighted by loan balance",
@@ -74,7 +88,7 @@ export const PORTFOLIO_RAISE_DIMENSIONS: readonly PortfolioRaiseDimensionDescrip
     key: "rampCapitalBuffer",
     label: "Ramp capital buffer",
     unit: "mo",
-    benchmarks: { low: 3, mid: 6, high: 12 },
+    benchmarks: { low: PORTFOLIO_RAISE_RAMP_BUFFER_MONTHS_LOW, mid: PORTFOLIO_RAISE_RAMP_BUFFER_MONTHS_MID, high: PORTFOLIO_RAISE_RAMP_BUFFER_MONTHS_HIGH },
     evidenceCues: [
       "months of working capital that cover concurrent pre-stabilization cash burn",
       "ramp overlap windows: months where 2+ properties are simultaneously in occupancy ramp",
@@ -85,7 +99,7 @@ export const PORTFOLIO_RAISE_DIMENSIONS: readonly PortfolioRaiseDimensionDescrip
     key: "achievableIrr",
     label: "Achievable levered IRR",
     unit: "pct",
-    benchmarks: { low: 0.12, mid: 0.15, high: 0.18 },
+    benchmarks: { low: PORTFOLIO_RAISE_IRR_BENCHMARK_LOW, mid: PORTFOLIO_RAISE_IRR_BENCHMARK_MID, high: PORTFOLIO_RAISE_IRR_BENCHMARK_HIGH },
     evidenceCues: [
       "boutique luxury value-add levered IRR target: 12–18%; equity multiple 1.8–2.2x",
       "engine-computed implied IRR (advisory floor — excludes refi proceeds per MAJOR-2)",

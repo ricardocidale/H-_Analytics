@@ -32,81 +32,25 @@ export * from './constants-staffing';
 export * from './constants-enums';
 export * from './document-types';
 
-// ──────────────────────────────────────────────────────────
-// REVENUE STREAM SHARES (% of TOTAL revenue)
-// Each property generates revenue from multiple sources. These percentages
-// express what fraction of TOTAL revenue each ancillary stream represents.
-// Room revenue share is derived: 1 - events - fb - other.
-// For example, events=0.18 + fb=0.30 + other=0.03 = 0.51 ancillary,
-// so rooms = 49% of total, and totalRevenue = roomRevenue / 0.49.
-// ──────────────────────────────────────────────────────────
-
-// Events share — 18% of total revenue (meetings, weddings, conferences).
-// Boutique wellness/retreat properties with dedicated event programming.
-// Source: Global Wellness Institute 2024 — wellness retreats generate 25-35% of total revenue.
-export const DEFAULT_REV_SHARE_EVENTS = 0.18;
-// Food & Beverage — 30% of total revenue (restaurant, bar, room service, catering).
-export const DEFAULT_REV_SHARE_FB = 0.30;
-// Other revenue (parking, spa, gift shop, etc.) — 3% of total revenue.
-export const DEFAULT_REV_SHARE_OTHER = 0.03;
-
-// Catering boost: DEPRECATED for revenue calculation. F&B share now directly
-// represents the target F&B % of total revenue (catering boost absorbed).
-// Kept at 0 for backward compatibility; field not removed from interfaces.
-export const DEFAULT_CATERING_BOOST_PCT = 0;
+// Hotel/full-service defaults (revenue shares, USALI cost rates, management fees) are
+// defined in constants-business-models.ts — where they are consumed by
+// BUSINESS_MODEL_DEFAULTS — to avoid the circular import that would arise from
+// constants.ts importing getFactoryNumber() from model-constants-registry (which
+// imports from constants.ts). All names remain available from "@shared/constants"
+// via the wildcard re-export above: `export * from './constants-business-models'`.
 
 // ──────────────────────────────────────────────────────────
-// EXPENSE RATES (GLOBAL-CONFIGURABLE)
-// Applied to specific revenue streams to compute their direct costs.
+// EXPENSE RATES (partial — only those NOT consumed by BUSINESS_MODEL_DEFAULTS)
 // ──────────────────────────────────────────────────────────
 
-// Event expense rate: 65% of event revenue goes to direct event costs
-export const DEFAULT_EVENT_EXPENSE_RATE = 0.65;
-// Other revenue expense rate: 60% of other revenue goes to direct costs
-export const DEFAULT_OTHER_EXPENSE_RATE = 0.60;
 // What fraction of total utility cost is variable (scales with occupancy)
 // vs. fixed (base load regardless of guests). 60% variable / 40% fixed.
+// Used in resolve-assumptions.ts, NOT in BUSINESS_MODEL_DEFAULTS (stays here).
 export const DEFAULT_UTILITIES_VARIABLE_SPLIT = 0.60;
 
-// ──────────────────────────────────────────────────────────
-// PROPERTY OPERATING COST RATES (USALI CATEGORIES)
-// Each rate is a percentage of total property revenue allocated to that
-// department. These follow USALI (Uniform System of Accounts for the
-// Lodging Industry) standard departmental expense categories.
-// ──────────────────────────────────────────────────────────
-
-export const DEFAULT_COST_RATE_ROOMS = 0.20;       // Rooms department (housekeeping, front desk, linens)
-export const DEFAULT_COST_RATE_FB = 0.09;           // Food & Beverage cost of goods + labor
-export const DEFAULT_COST_RATE_ADMIN = 0.08;        // General & Administrative (G&A)
-export const DEFAULT_COST_RATE_MARKETING = 0.01;    // Sales & Marketing
-export const DEFAULT_COST_RATE_PROPERTY_OPS = 0.04; // Property Operations & Maintenance (POM)
-export const DEFAULT_COST_RATE_UTILITIES = 0.05;    // Utilities (electric, water, gas, internet)
-// Audit #406: DEFAULT_COST_RATE_TAXES (legacy flat 3%) deleted. Property tax rates
-// now resolve through `getFactoryNumber('costRateTaxes', country, state)` from
-// MODEL_CONSTANTS_REGISTRY (US baseline = 1.2%). All call sites — schema defaults,
-// seeds, engine fallbacks, exports, golden tests — read from the registry.
-export const DEFAULT_COST_RATE_IT = 0.005;          // Information Technology
-export const DEFAULT_COST_RATE_FFE = 0.04;          // Furniture, Fixtures & Equipment reserve (FF&E)
-export const DEFAULT_COST_RATE_OTHER = 0.05;        // Miscellaneous / other operating expenses
-export const DEFAULT_COST_RATE_INSURANCE = 0.015;   // Property insurance (liability, property, business interruption)
-export const DEFAULT_BUSINESS_INSURANCE_START = 12000; // Company-level annual business insurance ($)
-
-// ──────────────────────────────────────────────────────────
-// MANAGEMENT COMPANY FEE DEFAULTS
-// The management company charges each property two types of fees:
-//   1. Base fee: a flat percentage of total revenue (compensation for day-to-day operations)
-//   2. Incentive fee: a percentage of Gross Operating Profit (GOP) that rewards performance
-// Source: HVS Fee Survey 2024 — Specialty/wellness operators command 6-10% base + 12-20% incentive
-// ──────────────────────────────────────────────────────────
-
-export const DEFAULT_BASE_MANAGEMENT_FEE_RATE = 0.085;      // 8.5% of Total Revenue
-export const DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE = 0.12;   // 12% of Gross Operating Profit
-
-// SHORT-TERM RENTAL (STR) defaults are defined in constants-business-models.ts
-// (where they're consumed) to avoid the circular import that would arise from
-// defining them here and importing them there. They remain available via the
-// wildcard re-export at the top of this file (`export * from
-// './constants-business-models'`).
+// Company-level annual business insurance ($, not a rate).
+// This is a company-overhead line item, not a per-property cost-rate.
+export const DEFAULT_BUSINESS_INSURANCE_START = 12000;
 
 // ──────────────────────────────────────────────────────────
 // SERVICE FEE CATEGORIES (GRANULAR BREAKDOWN)

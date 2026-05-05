@@ -90,3 +90,49 @@ export const DEFAULT_RUNWAY_NEED_MONTHS_PLACEHOLDER = 18;
 export const EDGAR_MIN_LIVE_ROWS = 3;
 /** Representative sizing overshoot fraction for EDGAR Form D comparable rows (not disclosed in Form D filings). */
 export const EDGAR_COMPARABLE_SIZING_OVERSHOOT_PCT = 0.15;
+
+// ──────────────────────────────────────────────────────────
+// PORTFOLIO CAPITAL RAISE SPECIALIST
+// Dimension benchmark thresholds, quality scores, and output schema bounds.
+// Source: PE/boutique hospitality fund industry norms (ADR-007).
+// ──────────────────────────────────────────────────────────
+
+/** First close minimum as a fraction of total fund equity.
+ * PE convention: first close at 30–50% of total fund; 30% is the baseline floor used
+ * both as the engine computation threshold and as the benchmark low anchor. */
+export const PORTFOLIO_RAISE_FIRST_CLOSE_FRACTION       = 0.30;
+export const PORTFOLIO_RAISE_FIRST_CLOSE_BENCHMARK_MID  = 0.40;
+export const PORTFOLIO_RAISE_FIRST_CLOSE_BENCHMARK_HIGH = 0.50;
+
+/** Portfolio DSCR benchmark thresholds (lender covenant convention). */
+export const PORTFOLIO_RAISE_DSCR_BENCHMARK_LOW  = 1.0;   // covenant breach threshold
+export const PORTFOLIO_RAISE_DSCR_BENCHMARK_MID  = 1.25;  // standard lender covenant floor
+export const PORTFOLIO_RAISE_DSCR_BENCHMARK_HIGH = 1.5;   // healthy coverage
+
+/** Ramp capital buffer (months of working capital). */
+export const PORTFOLIO_RAISE_RAMP_BUFFER_MONTHS_LOW  = 3;   // minimum viable buffer
+export const PORTFOLIO_RAISE_RAMP_BUFFER_MONTHS_MID  = 6;   // expected LP minimum
+export const PORTFOLIO_RAISE_RAMP_BUFFER_MONTHS_HIGH = 12;  // conservative cushion
+
+/** Achievable levered IRR range for boutique luxury value-add funds.
+ * Source: HVS / PwC Real Estate Investor Survey 2024 — boutique luxury value-add: 12–18% levered. */
+export const PORTFOLIO_RAISE_IRR_BENCHMARK_LOW  = 0.12;  // 12% levered IRR
+export const PORTFOLIO_RAISE_IRR_BENCHMARK_MID  = 0.15;  // 15% levered IRR
+export const PORTFOLIO_RAISE_IRR_BENCHMARK_HIGH = 0.18;  // 18% levered IRR
+
+/** Conviction enum → 0–100 quality score mapping for portfolio raise specialist. */
+export const PORTFOLIO_RAISE_QUALITY_SCORE_HIGH       = 85;
+export const PORTFOLIO_RAISE_QUALITY_SCORE_MODERATE   = 65;
+export const PORTFOLIO_RAISE_QUALITY_SCORE_DEVELOPING = 45;
+
+/** Zod output-schema string-length bounds for portfolio raise specialist verdict fields. */
+export const PORTFOLIO_RAISE_REASONING_MIN_CHARS = 20;
+export const PORTFOLIO_RAISE_REASONING_MAX_CHARS = 500;
+export const PORTFOLIO_RAISE_NARRATIVE_MIN_CHARS = 50;
+export const PORTFOLIO_RAISE_NARRATIVE_MAX_CHARS = 800;
+
+/** Tranche 2 disbursement occupancy window for Launch-stage management company raises.
+ * LP convention: second tranche releases once Property 1 demonstrates occupancy traction
+ * (60–65% is the industry validation band; below 60% is still ramp, above 65% is stable). */
+export const PORTFOLIO_RAISE_TRANCHE2_OCCUPANCY_LOW  = 60;  // % lower trigger
+export const PORTFOLIO_RAISE_TRANCHE2_OCCUPANCY_HIGH = 65;  // % upper trigger

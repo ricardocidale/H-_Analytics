@@ -157,24 +157,29 @@ Specialists are **dev-defined only** — see `.claude/rules/specialists-are-dev-
 - `canManageScenarios` is a boolean orthogonal to role — see the architecture audit at `.local/tasks/task-800.md`.
 - Dual share tables exist: `scenario_access` (enforcement) and `scenario_shares` (admin tracking). Both must be kept in sync.
 
-### Assumption-class constants vs. cosmetic constants (magic numbers rule)
+### Number taxonomy — the permanent law (never re-derive)
 
-**Assumption-class values** — any financial, operational, or projection parameter that a user can configure or that varies by business context — must **never** be hardcoded as numeric literals or wrapped in local ALL_CAPS constants. The canonical sources are:
+Every number in H+ falls into exactly one of four categories. The full taxonomy with code patterns lives in `.agents/skills/hplus-variable-taxonomy/SKILL.md`. Summary:
 
-- `storage.getGlobalAssumptions(userId)` for runtime values stored in the DB
-- `DEFAULT_*` exports from `lib/shared/src/constants.ts` (via `@shared/constants`) as **fallbacks only**
+**Category 1 — TRUE CONSTANTS.** Values fixed by mathematics or physics identical everywhere in the universe. Extremely rare. Examples: `DAYS_PER_MONTH = 30.5` (365/12), `MONTHS_PER_YEAR = 12`. NOT constants: tax rates, inflation, depreciation lives, interest rates, cap rates, occupancy rates, management fees — anything that could vary by country, market, or time.
 
-Examples: `projectionYears`, `inflationRate`, `interestRate`, `amortizationYears`, `exitCapRate`, `maxOccupancy`.
+**Category 2 — DEFAULT VARIABLES.** Admin-set starting values (Admin → Steady State). Prefix: `DEFAULT_`. Location: `lib/shared/src/constants*.ts` ONLY. Used as null-coalescing fallbacks: `property.field ?? DEFAULT_FIELD`. Never use the raw literal when the named constant exists. Never define `DEFAULT_*` in route handlers, engine files, or any non-constants file.
 
-**Rule:** `const LB_PROJ_YEARS = 10` in a non-constants file is a violation exactly like the literal `10` itself. Local shadow constants that mask assumption-class values are prohibited — they hide the assumption from the configuration system.
+**Category 3 — ASSUMPTION VARIABLES.** Per-entity user-confirmed values. Start from defaults when created; confirmed (written to DB) when the user presses Save. Once confirmed, admin default changes do NOT override them. Save button is NEVER disabled. Navigate-away triggers a "Confirm your values" prompt.
 
-**Cosmetic constants** — values that are purely presentational and will never differ by business context (canvas dimensions, grid column counts, font sizes, viewport widths for PNG rendering) — may remain as named constants in the files that use them.
+**Category 4 — TABLE-SOURCED VALUES.** Country/financial data in DB tables. Accessed via `getFactoryNumber(key, country)`. Admin must be able to regenerate every such table from **Admin → Sources & Resources** without a code deploy.
+
+**The three violations that recur most often:**
+
+1. Raw literal fallback: `?? 0.03` — must be `?? getFactoryNumber('inflationRate', country)` (country-specific) or `?? DEFAULT_X` (flat default)
+2. Wrong constant: `ga.marketingRate ?? DEFAULT_COST_RATE_MARKETING` (1% property S&M) when the intent is company marketing — must be `?? DEFAULT_MARKETING_RATE` (5%)
+3. Masked literal: `const DEFAULT_INFLATION_RATE = 0.03` in a non-constants file — this is the same violation as `0.03` itself; the name just hides it
 
 **Canonical constants files** (where `export const DEFAULT_* = <number>` IS allowed):
 - `lib/shared/src/constants*.ts`
 - `lib/db/src/constants.ts`
 
-In all other files, ALL_CAPS const definitions with numeric literals are flagged by `scripts/src/check-magic-numbers.ts`.
+In all other files, ALL_CAPS const definitions with numeric literals are flagged by `scripts/src/check-magic-numbers.ts`. The full UX lifecycle (Save button rules, seeding pipeline, confirm-on-navigate-away) is in `.agents/skills/hplus-assumption-lifecycle/SKILL.md`.
 
 **Slide Deck Factory rule:** The LB investor deck pipeline (`artifacts/api-server/src/slides/`) is a pure consumer. It sources every financial assumption from `storage.getGlobalAssumptions()` → `buildGlobalInput()` → the finance engine. It never defines its own projection years, interest rates, or cap rates. After every change to the Slide Deck Factory, verify no local assumption constants were introduced.
 
