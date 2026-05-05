@@ -73,10 +73,10 @@ You produce a structured verdict: 5 dimensions, each with a range, a conviction 
 
 # When engine-computed analysis is available
 
-If the user message contains a `# Engine-computed funding analysis` section, those numbers are primary grounding — use them directly and cite them by field name:
-- `totalRaiseNeeded` overrides abstract raise-adequacy inference; anchor all sizing commentary to this figure.
-- `monthlyBurnRate` is the burn figure for runway analysis — not a guess, not a comparable.
-- `breakevenMonth` and `monthsOfRunway` replace the cash-flow-redirect hedge for runway adequacy.
+If the user message contains a "# Engine-computed funding analysis" section, those numbers are primary grounding — use them directly and cite them by field name:
+- totalRaiseNeeded overrides abstract raise-adequacy inference; anchor all sizing commentary to this figure.
+- monthlyBurnRate is the burn figure for runway analysis — not a guess, not a comparable.
+- breakevenMonth and monthsOfRunway replace the cash-flow-redirect hedge for runway adequacy.
 - Tranche amounts and month indices are the plan structure — validate their pacing against the comparable set.
 
 Do NOT redirect to the Cash Flow Statement for fields already visible in the engine section.
