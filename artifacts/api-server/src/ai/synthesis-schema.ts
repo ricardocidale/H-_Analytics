@@ -171,7 +171,7 @@ export const FIELD_DEFINITIONS: Record<CanonicalResearchField, FieldDefinition> 
 
   // Department costs — note denominators differ
   costHousekeeping: { key: "costHousekeeping", unit: "%", denominator: "housekeeping cost as % of ROOM revenue (USALI Schedule 1, Rooms Department, 'Cleaning Supplies' + 'Linen' + 'Labor — Room Attendants'). Reason per-market from STR HOST Almanac housekeeping benchmarks for this property class and ADR band, plus local hospitality wage / minimum-wage trajectory; do NOT emit a generic textbook ratio", description: "Housekeeping cost rate" },
-  costFB: { key: "costFB", unit: "%", denominator: "F&B cost of sales as % of F&B revenue (hospitality-standard food cost ratio; NOT % of total revenue)", description: "F&B cost of sales" },
+  costFB: { key: "costFB", unit: "%", denominator: "F&B cost of sales as % of F&B revenue (hospitality-standard food cost ratio; NOT % of total revenue — per USALI Schedule 5, Food & Beverage Department, 'Cost of Food Sold' + 'Cost of Beverage Sold'). Reason per-market from STR HOST F&B benchmarks for this property class and F&B outlet mix (full-service dining vs. grab-and-go vs. banquet-heavy); do NOT emit a generic textbook food-cost ratio", description: "F&B cost of sales" },
 
   // Undistributed expenses — all % of TOTAL revenue
   costAdmin: { key: "costAdmin", unit: "%", denominator: "admin & general as % of TOTAL revenue (USALI undistributed)", description: "Admin & general rate" },

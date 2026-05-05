@@ -72,6 +72,22 @@ import { DEFAULT_PROPERTY_DEFAULTS_BENCHMARKS } from "@shared/constants-property
 import { storage } from "../storage";
 import { logger } from "../logger";
 import { HTTP_503_SERVICE_UNAVAILABLE } from "../constants";
+import { ENGINE_VERSION } from "../ai/engine-version";
+import {
+  buildFundingCacheKey,
+  computeCacheKey,
+} from "../ai/specialists/mgmt-co-funding-prompt-input-builder";
+import { buildRevenueCacheKey } from "../ai/specialists/mgmt-co-revenue-prompt-input-builder";
+import { buildCompensationCacheKey } from "../ai/specialists/mgmt-co-compensation-prompt-input-builder";
+import { buildOverheadCacheKey } from "../ai/specialists/mgmt-co-overhead-prompt-input-builder";
+import { buildCompanyCacheKey } from "../ai/specialists/mgmt-co-company-prompt-input-builder";
+import { buildPropertyDefaultsCacheKey } from "../ai/specialists/mgmt-co-property-defaults-prompt-input-builder";
+import {
+  computeInputContextHash,
+  type CompanyCacheInputs,
+  type PropertyCacheInputs,
+} from "@engine/analyst/cognitive/cache-keys";
+import { createHash } from "node:crypto";
 
 const ANALYST_COOLDOWN_MS = 60 * 1000;
 
@@ -635,7 +651,48 @@ async function runFundingV1Path(userId: number) {
 
   const comparables = getCannedLpComparables();
 
-  return runFundingSpecialist(ctx, benchmarks, comparables);
+  const startTime = Date.now();
+  const result = await runFundingSpecialist(ctx, benchmarks, comparables);
+
+  // ── Phase 5C-task-1 (NAI-27): verdict cache write — non-fatal ──
+  try {
+    const companyInputs: CompanyCacheInputs = {
+      country: ga.companyCountry ?? null,
+      capitalRaise1Amount: ga.capitalRaise1Amount ?? null,
+      capitalRaise2Amount: ga.capitalRaise2Amount ?? null,
+      baseManagementFee: ga.baseManagementFee ?? null,
+      incentiveManagementFee: ga.incentiveManagementFee ?? null,
+    };
+    const verdictKey = buildFundingCacheKey({
+      companyInputs,
+      persona,
+      scenarioId: null,
+      entityId: userId,
+      engineVersion: ENGINE_VERSION,
+    });
+    const runRecord = await storage.createResearchRun({
+      userId,
+      entityType: "company",
+      entityId: userId,
+      scenarioId: null,
+      tier: 1,
+      status: "completed",
+      completedAt: new Date(),
+      durationMs: Date.now() - startTime,
+      metadata: { specialist: "mgmt-co.funding" },
+    });
+    await storage.updateResearchRun(runRecord.id, {
+      cacheKey: computeCacheKey(verdictKey),
+      cacheInputsHash: verdictKey.inputContextHash,
+    });
+  } catch (cacheErr: unknown) {
+    logger.warn(
+      `runFundingV1Path: cache write failed for user ${userId}: ${cacheErr instanceof Error ? cacheErr.message : cacheErr}`,
+      "analyst-admin",
+    );
+  }
+
+  return result;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -656,7 +713,7 @@ async function runFundingV1Path(userId: number) {
  */
 async function runPropertyRiskIntelligenceV1Path(
   propertyId: number,
-  _userId: number,
+  userId: number,
 ) {
   const property = await storage.getProperty(propertyId);
   if (!property) {
