@@ -69,7 +69,8 @@ export default function CompanyBalanceSheet({
           
           const capitalRaise1 = Number.isFinite(global.capitalRaise1Amount) ? global.capitalRaise1Amount : 0;
           const capitalRaise2 = Number.isFinite(global.capitalRaise2Amount) ? global.capitalRaise2Amount : 0;
-          const totalCapitalRaiseFunding = capitalRaise1 + capitalRaise2;
+          const capitalRaise3 = (global.capitalRaise3Amount != null && Number.isFinite(global.capitalRaise3Amount)) ? global.capitalRaise3Amount : 0;
+          const totalCapitalRaiseFunding = capitalRaise1 + capitalRaise2 + capitalRaise3;
           
           const lastMonth = financials[financials.length - 1];
           const accruedInterestBalance = lastMonth?.cumulativeAccruedInterest ?? 0;
@@ -148,6 +149,12 @@ export default function CompanyBalanceSheet({
                         <TableCell className="text-right py-0.5 font-mono text-xs text-muted-foreground">{formatMoney(capitalRaise2)}</TableCell>
                       </TableRow>
                     )}
+                    {capitalRaise3 > 0 && (
+                      <TableRow className="bg-primary/5" data-expandable-row="true">
+                        <TableCell className="pl-16 py-0.5 text-xs text-muted-foreground italic">Capital Raise 3</TableCell>
+                        <TableCell className="text-right py-0.5 font-mono text-xs text-muted-foreground">{formatMoney(capitalRaise3)}</TableCell>
+                      </TableRow>
+                    )}
                     <TableRow className="bg-primary/5" data-expandable-row="true">
                       <TableCell className="pl-12 py-0.5 text-xs text-muted-foreground italic">+ Cumulative Net Income</TableCell>
                       <TableCell className="text-right py-0.5 font-mono text-xs text-muted-foreground">{formatMoney(cumulativeNetIncome)}</TableCell>
@@ -198,6 +205,12 @@ export default function CompanyBalanceSheet({
                       <TableRow className="bg-primary/5" data-expandable-row="true">
                         <TableCell className="pl-12 py-0.5 text-xs text-muted-foreground italic">Capital Raise 2</TableCell>
                         <TableCell className="text-right py-0.5 font-mono text-xs text-muted-foreground">{formatMoney(capitalRaise2)}</TableCell>
+                      </TableRow>
+                    )}
+                    {capitalRaise3 > 0 && (
+                      <TableRow className="bg-primary/5" data-expandable-row="true">
+                        <TableCell className="pl-12 py-0.5 text-xs text-muted-foreground italic">Capital Raise 3</TableCell>
+                        <TableCell className="text-right py-0.5 font-mono text-xs text-muted-foreground">{formatMoney(capitalRaise3)}</TableCell>
                       </TableRow>
                     )}
                   </>

@@ -82,7 +82,7 @@ export function CapitalRaisesCard({ formData, onChange, global }: FundingSection
             />
             <InfoTooltip text="Customize the name of your capital raise (e.g., Funding Vehicle, SAFE, Seed, Series A)" />
           </div>
-          <p className="text-muted-foreground text-sm label-text">Capital raised via {fundingLabel} in two tranches to support management company operations</p>
+          <p className="text-muted-foreground text-sm label-text">Capital raised via {fundingLabel} in up to three tranches to support management company operations</p>
         </div>
         <div className="space-y-4">
           <div className="p-4 bg-primary/10 rounded-lg space-y-4">
@@ -149,11 +149,47 @@ export function CapitalRaisesCard({ formData, onChange, global }: FundingSection
               />
             </div>
           </div>
+          <div className="p-4 bg-primary/10 rounded-lg space-y-4">
+            <h4 className="text-sm font-display text-foreground">Capital Raise 3</h4>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-foreground label-text flex items-center gap-1">Amount<InfoTooltip text="Capital amount raised in the third tranche of the capital raise, typically deployed during the expansion phase." /></Label>
+                <span data-field="capitalRaise3Amount">
+                  <EditableValue
+                    value={formData.capitalRaise3Amount ?? global.capitalRaise3Amount ?? 0}
+                    onChange={(v) => onChange("capitalRaise3Amount", v)}
+                    format="dollar"
+                    {...CAPITAL_RAISE_SLIDER}
+                  />
+                </span>
+              </div>
+              <Slider
+                value={[formData.capitalRaise3Amount ?? global.capitalRaise3Amount ?? 0]}
+                onValueChange={([v]) => onChange("capitalRaise3Amount", v)}
+                {...CAPITAL_RAISE_SLIDER}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-foreground label-text flex items-center gap-1">Date<InfoTooltip text="Date when the third tranche of the capital raise is received and recorded on the balance sheet." /></Label>
+              <Input
+                type="date"
+                value={formData.capitalRaise3Date ?? global.capitalRaise3Date ?? ""}
+                onChange={(e) => onChange("capitalRaise3Date", e.target.value)}
+                className="max-w-40 bg-card border-border text-foreground"
+                data-field="capitalRaise3Date"
+                name="capitalRaise3Date"
+              />
+            </div>
+          </div>
         </div>
         <div className="mt-2 pt-4 border-t border-border">
           <Label className="text-muted-foreground text-sm label-text">Total {fundingLabel} Raise</Label>
           <p className="font-mono font-semibold text-lg text-foreground">
-            {formatMoney((formData.capitalRaise1Amount ?? global.capitalRaise1Amount) + (formData.capitalRaise2Amount ?? global.capitalRaise2Amount))}
+            {formatMoney(
+              (formData.capitalRaise1Amount ?? global.capitalRaise1Amount) +
+              (formData.capitalRaise2Amount ?? global.capitalRaise2Amount) +
+              (formData.capitalRaise3Amount ?? global.capitalRaise3Amount ?? 0)
+            )}
           </p>
         </div>
       </div>

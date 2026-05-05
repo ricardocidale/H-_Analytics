@@ -17,9 +17,11 @@ export function CurrentPlanTab({ analysis, fundingLabel, global, chartData, navi
 }) {
   const t1Amount = global.capitalRaise1Amount ?? 0;
   const t2Amount = global.capitalRaise2Amount ?? 0;
-  const configuredTotal = t1Amount + t2Amount;
+  const t3Amount = global.capitalRaise3Amount ?? 0;
+  const configuredTotal = t1Amount + t2Amount + t3Amount;
   const t1Date = global.capitalRaise1Date ?? "—";
   const t2Date = global.capitalRaise2Date ?? "—";
+  const t3Date = global.capitalRaise3Date ?? "—";
   const valCap = global.capitalRaiseValuationCap ?? DEFAULT_CAPITAL_RAISE_VALUATION_CAP;
   const discRate = global.capitalRaiseDiscountRate ?? DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE;
   const gap = analysis.totalRaiseNeeded - configuredTotal;
@@ -120,6 +122,30 @@ export function CurrentPlanTab({ analysis, fundingLabel, global, chartData, navi
           </ContentPanel>
         </div>
       </ScrollReveal>
+
+      {t3Amount > 0 && (
+        <ScrollReveal>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <ContentPanel data-testid="panel-tranche3-config">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <span className="text-sm font-bold text-primary">3</span>
+                </div>
+                <div>
+                  <h4 className="text-sm font-display text-foreground">Capital Raise 3</h4>
+                  <p className="text-xs text-muted-foreground">Expansion-phase capital</p>
+                </div>
+              </div>
+              <div className="space-y-0">
+                <StatRow label="Amount" value={formatMoney(t3Amount)} />
+                <StatRow label="Target Date" value={t3Date} />
+                {valCap > 0 && <StatRow label="Valuation Cap" value={formatMoney(valCap)} />}
+                {discRate > 0 && <StatRow label="Discount Rate" value={`${(discRate * 100).toFixed(1)}%`} />}
+              </div>
+            </ContentPanel>
+          </div>
+        </ScrollReveal>
+      )}
 
       <ScrollReveal>
         <ContentPanel title="Cash Runway — Current Plan" subtitle="Projected cash position using your configured funding" data-testid="panel-current-runway">

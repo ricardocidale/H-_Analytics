@@ -67,6 +67,7 @@ export const TAB_FIELDS: Record<TabKey, readonly (keyof GlobalResponse)[]> = {
   funding: [
     "capitalRaise1Amount", "capitalRaise1Date",
     "capitalRaise2Amount", "capitalRaise2Date",
+    "capitalRaise3Amount", "capitalRaise3Date",
     "capitalRaiseValuationCap", "capitalRaiseDiscountRate",
     "fundingSourceLabel", "fundingInterestRate",
     "costOfEquity",
