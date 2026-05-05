@@ -30,7 +30,6 @@
 export const SLIDE_WIDTH_PX = 1920;
 export const SLIDE_HEIGHT_PX = 1080;
 export const TOTAL_SLIDES = 6;
-export const SLIDE_EXIT_CAP_RATE_FALLBACK = 0.07;
 
 const CREAM_CANVAS = "#FFF9F5";
 const SAGE_CANVAS = "#9FBCA4";

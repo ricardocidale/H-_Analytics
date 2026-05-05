@@ -814,6 +814,8 @@ async function runSeeds() {
     { name: "admin-resources-004", run: async () => { const { runAdminResources004 } = await import("./migrations/admin-resources-004"); await runAdminResources004(); } },
     { name: "admin-resources-005", run: async () => { const { runAdminResources005 } = await import("./migrations/admin-resources-005"); await runAdminResources005(); } },
     { name: "rebecca-rail-open", run: async () => { const { runRebeccaRailOpen001 } = await import("./migrations/rebecca-rail-open-001"); await runRebeccaRailOpen001(); } },
+    { name: "knowledge-registry", run: async () => { const { seedKnowledgeRegistry } = await import("./seeds/knowledge-registry"); await seedKnowledgeRegistry(); } },
+    { name: "country-economic-data", run: async () => { const { seedCountryEconomicDataIfEmpty } = await import("./seeds/knowledge-registry"); await seedCountryEconomicDataIfEmpty(); } },
   ];
 
   const results = await Promise.allSettled(seedTasks.map(t => t.run()));

@@ -2,7 +2,7 @@
 
 H+ Analytics is a hospitality-sector financial analytics platform. Asset managers use it to model scenarios, run portfolio projections, and generate property-level investor slide decks (HTML → PDF via Playwright, matched to the canonical L+B 6-slide design).
 
-A separate **LB Slide Deck** pipeline produces ONE canonical 6-slide portfolio investor deck (not per-property). Admin assigns properties to slides 1, 2, 3, 5; slides 4 (portfolio grid) and 6 (10-year USALI aggregate) are auto-generated. Route: `/lb-slides` (admin only). PDF route: `POST /api/lb-slides/render` → `GET /api/lb-slides/download/combined.pdf`. Playwright renders `/internal/lb-deck?token=<hmac-lb-token>` as a single 6-page PDF. DB table: `lb_slides_config` (single-row, id always = 1).
+A separate **LB Slide Deck** pipeline (also called the **Slide Factory**) produces ONE canonical 6-slide portfolio investor deck (not per-property). CC owns the Slide Factory codebase. Admin assigns properties to slides 1, 2, 3, 5; slides 4 (portfolio grid) and 6 (10-year USALI aggregate) are auto-generated. Route: `/lb-slides` (admin only). PDF route: `POST /api/lb-slides/render` → `GET /api/lb-slides/download/combined.pdf`. Playwright renders `/internal/lb-deck?token=<hmac-lb-token>` as a single 6-page PDF. DB table: `lb_slides_config` (single-row, id always = 1).
 
 > **`claude.md` is the canonical source of truth** for architecture, stack, commands, environment variables, and all project rules. This file contains only Replit-platform-specific configuration that mirrors or routes back to `claude.md`. If wording diverges between the two files for a shared fact, that is a bug — fix it before any other commit lands. (See the `agent-memory-files` skill.)
 
@@ -71,6 +71,18 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript project refer
 - **Permanent / referenced images** → `attached_assets/` (committed, tracked by git)
 - Root-level `*.png`, `*.jpg`, `*.jpeg`, `*.webp` are blocked by `.gitignore` to keep the repo root clean.
 - When using the `screenshot` tool, always pass `save_to: "screenshots/<descriptive-name>.jpg"` instead of writing to the project root.
+
+## Assumption-class constants vs. cosmetic constants (magic numbers rule)
+
+This section mirrors `claude.md` § "Assumption-class constants vs. cosmetic constants" — keep wording in sync.
+
+**Assumption-class values** (projectionYears, inflationRate, interestRate, amortizationYears, exitCapRate, maxOccupancy) must **never** be hardcoded as numeric literals or wrapped in local ALL_CAPS constants. Source them from `storage.getGlobalAssumptions(userId)`, with `DEFAULT_*` exports from `lib/shared/src/constants.ts` as fallbacks only.
+
+`const LB_PROJ_YEARS = 10` in a non-constants file is a violation exactly like the literal `10`. Local shadow constants that mask assumption-class values are prohibited.
+
+**Canonical constants files** (where `export const DEFAULT_* = <number>` IS allowed): `lib/shared/src/constants*.ts`, `lib/db/src/constants.ts`. All other files: ALL_CAPS const definitions with numeric literals are flagged by `scripts/src/check-magic-numbers.ts`.
+
+**Slide Deck Factory rule:** The LB investor deck pipeline (`artifacts/api-server/src/slides/`) is a pure consumer. It sources every financial assumption from `storage.getGlobalAssumptions()` → `buildGlobalInput()` → the finance engine.
 
 ## Compound Engineering (CE) skills — Replit adaptation
 

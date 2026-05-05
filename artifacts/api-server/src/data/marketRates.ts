@@ -9,13 +9,24 @@
  * The background refresh loop (called from server/index.ts) only re-fetches stale rates.
  */
 
-import { db } from "../db";
-import { marketRates, type MarketRate } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { z } from "zod";
+import { type MarketRate } from "@workspace/db";
 import { EXTERNAL_API_TIMEOUT_MS } from "../constants";
+import { storage } from "../storage";
 import { FRED_BASE_URL } from "../services/FREDService";
 import { OpenExchangeRatesService } from "../services/OpenExchangeRatesService";
 import { logger } from "../logger";
+
+const fredResponseSchema = z.object({
+  observations: z
+    .array(z.object({ date: z.string(), value: z.string() }))
+    .optional(),
+});
+
+const frankfurterResponseSchema = z.object({
+  rates: z.record(z.number()).optional(),
+  date: z.string().optional(),
+});
 
 // Lazy-instantiated OXR client — only created on first fallback call.
 let oxrServiceSingleton: OpenExchangeRatesService | null = null;
@@ -96,9 +107,12 @@ export async function fetchFredRate(seriesId: string): Promise<{ value: number; 
       return null;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data = await response.json() as any;
-    const obs: FredObservation | undefined = data.observations?.[0];
+    const parsed = fredResponseSchema.safeParse(await response.json());
+    if (!parsed.success) {
+      logger.warn(`FRED response parse error for ${seriesId}: ${parsed.error.message}`, "market-rates");
+      return null;
+    }
+    const obs: FredObservation | undefined = parsed.data.observations?.[0];
     if (!obs || obs.value === ".") return null;
 
     return { value: parseFloat(obs.value), date: obs.date };
@@ -136,12 +150,15 @@ export async function fetchFrankfurterRate(targetCurrency: string): Promise<{ va
     }
 
     frankfurterWarned.delete(targetCurrency);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data = await response.json() as any;
-    const rate = data.rates?.[targetCurrency];
+    const parsed = frankfurterResponseSchema.safeParse(await response.json());
+    if (!parsed.success) {
+      logger.warn(`Frankfurter response parse error for ${targetCurrency}: ${parsed.error.message}`, "market-rates");
+      return null;
+    }
+    const rate = parsed.data.rates?.[targetCurrency];
     if (rate == null) return null;
 
-    return { value: rate, date: data.date };
+    return { value: rate, date: parsed.data.date ?? new Date().toISOString().slice(0, 10) };
   } catch (error: unknown) {
     if (!frankfurterWarned.has(targetCurrency)) {
       logger.warn(`Frankfurter fetch error for ${targetCurrency}: ${error instanceof Error ? error.message : error}`, "market-rates");
@@ -152,16 +169,16 @@ export async function fetchFrankfurterRate(targetCurrency: string): Promise<{ va
 }
 
 // ---------------------------------------------------------------------------
-// Rate Storage Operations
+// Rate Storage Operations — delegated to MarketRatesStorage via the storage
+// layer boundary. Direct db imports have been removed from this file.
 // ---------------------------------------------------------------------------
 
 export async function getAllMarketRates(): Promise<MarketRate[]> {
-  return db.select().from(marketRates).orderBy(marketRates.rateKey);
+  return storage.getAllMarketRates();
 }
 
 export async function getMarketRate(rateKey: string): Promise<MarketRate | undefined> {
-  const [row] = await db.select().from(marketRates).where(eq(marketRates.rateKey, rateKey)).limit(1);
-  return row;
+  return storage.getMarketRate(rateKey);
 }
 
 export async function upsertMarketRate(data: {
@@ -177,38 +194,7 @@ export async function upsertMarketRate(data: {
   manualNote?: string | null;
   maxStalenessHours?: number;
 }): Promise<void> {
-  const existing = await getMarketRate(data.rateKey);
-  if (existing) {
-    await db.update(marketRates)
-      .set({
-        value: data.value,
-        displayValue: data.displayValue,
-        source: data.source,
-        sourceUrl: data.sourceUrl ?? existing.sourceUrl,
-        seriesId: data.seriesId ?? existing.seriesId,
-        publishedAt: data.publishedAt ?? existing.publishedAt,
-        fetchedAt: data.fetchedAt ?? new Date(),
-        isManual: data.isManual ?? existing.isManual,
-        manualNote: data.manualNote ?? existing.manualNote,
-        maxStalenessHours: data.maxStalenessHours ?? existing.maxStalenessHours,
-        updatedAt: new Date(),
-      })
-      .where(eq(marketRates.rateKey, data.rateKey));
-  } else {
-    await db.insert(marketRates).values({
-      rateKey: data.rateKey,
-      value: data.value,
-      displayValue: data.displayValue,
-      source: data.source,
-      sourceUrl: data.sourceUrl,
-      seriesId: data.seriesId,
-      publishedAt: data.publishedAt,
-      fetchedAt: data.fetchedAt ?? new Date(),
-      isManual: data.isManual ?? false,
-      manualNote: data.manualNote,
-      maxStalenessHours: data.maxStalenessHours ?? 24,
-    });
-  }
+  return storage.upsertMarketRate(data);
 }
 
 // ---------------------------------------------------------------------------

@@ -1,5 +1,28 @@
 import type { } from "@workspace/db";
 
+/**
+ * Workspace / session context injected into AI context packs at call time.
+ *
+ * These fields cover the three previously-missing injection points from the
+ * agent-native context audit (recent activity, session history, workspace state):
+ *   - recentGuidance   — assumption keys the AI has already analysed for this
+ *                        entity, so it can avoid redundant proposals.
+ *   - lastResearchRun  — most recent research run metadata, giving the model
+ *                        a sense of how fresh the data is.
+ */
+export interface RecentContextPack {
+  recentGuidance?: Array<{
+    assumptionKey: string;
+    valueMid: number | null;
+    confidence: string | null;
+  }>;
+  lastResearchRun?: {
+    tier: number | null;
+    completedAt: Date | string | null;
+    status: string;
+  } | null;
+}
+
 export interface PropertyContextPack {
   identity: {
     id: number;
@@ -86,6 +109,7 @@ export interface PropertyContextPack {
   };
   currentAssumptionsSummary: string;
   fullNarrative: string;
+  recentContext?: RecentContextPack;
 }
 
 export interface CompanyContextPack {
@@ -131,4 +155,5 @@ export interface CompanyContextPack {
     narrative: string;
   };
   fullNarrative: string;
+  recentContext?: RecentContextPack;
 }

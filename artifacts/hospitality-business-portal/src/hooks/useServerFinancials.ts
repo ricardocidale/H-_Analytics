@@ -15,6 +15,7 @@ import { propertyEquityInvested, acquisitionYearIndex } from "@/lib/financial/eq
 import { PROJECTION_YEARS } from "@/lib/financial/loanCalculations";
 import { analyzePortfolioForInsights } from "@/lib/rebecca-insights";
 import { useRebeccaInsightStore } from "@/components/rebecca/RebeccaInsightBanner";
+import type { WaterfallOutput } from "@calc/analysis/waterfall";
 
 interface ServerReturnsSummary {
   portfolio: {
@@ -34,6 +35,7 @@ interface ServerReturnsSummary {
     equityInvested: number;
     exitValue: number;
     netCashFlowsByYear: number[];
+    waterfallResult?: WaterfallOutput | null;
   }[];
 }
 

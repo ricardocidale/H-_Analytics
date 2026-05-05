@@ -33,6 +33,7 @@ import { ROOT_TX, type IntelligenceTx } from "./intelligence/tx";
 import { ConstantsStorage } from "./intelligence/constants";
 import { ResearchRunsStorage } from "./intelligence/research-runs";
 import { ProposalsStorage } from "./intelligence/proposals";
+import { KnowledgeRegistryStorage } from "./intelligence/knowledge-registry";
 
 export { IntelligenceRebeccaStorage } from "./intelligence-rebecca";
 export { IntelligenceTx, ROOT_TX } from "./intelligence/tx";
@@ -48,6 +49,7 @@ export const INTELLIGENCE_V2_DOMAIN_FACTORIES = [
   (tx: IntelligenceTx) => new ConstantsStorage(tx),
   (tx: IntelligenceTx) => new ResearchRunsStorage(tx),
   (tx: IntelligenceTx) => new ProposalsStorage(tx),
+  (tx: IntelligenceTx) => new KnowledgeRegistryStorage(tx),
 ] as const;
 
 // Declaration merging — the interface inherits every public method from
@@ -58,9 +60,10 @@ export const INTELLIGENCE_V2_DOMAIN_FACTORIES = [
 type ConstantsApi = Omit<ConstantsStorage, "_ctx">;
 type ResearchRunsApi = Omit<ResearchRunsStorage, "_rtx">;
 type ProposalsApi = Omit<ProposalsStorage, "_ptx">;
+type KnowledgeRegistryApi = Omit<KnowledgeRegistryStorage, "_krtx">;
 
 export interface IntelligenceV2Storage
-  extends ConstantsApi, ResearchRunsApi, ProposalsApi {}
+  extends ConstantsApi, ResearchRunsApi, ProposalsApi, KnowledgeRegistryApi {}
 
 export class IntelligenceV2Storage {
   constructor() {

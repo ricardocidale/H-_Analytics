@@ -147,6 +147,9 @@ function extractLiterals(filePath: string): Set<string> {
     if (trimmed.startsWith("import ") || trimmed.startsWith("export * from")) continue;
     // Skip named constant definitions: (export )?const ALL_CAPS_NAME = <number>
     // These are authoritative single-source definitions, not magic-number usages.
+    // The architectural rule against assumption-class shadow constants is enforced
+    // by the architecture note in claude.md and code review — not by the duplication
+    // ratchet, which is scoped to detecting DUPLICATION across files only.
     if (/^(export\s+)?const\s+[A-Z][A-Z0-9_]+\s*=\s*-?\d/.test(trimmed)) continue;
 
     line = stripLineComment(line);

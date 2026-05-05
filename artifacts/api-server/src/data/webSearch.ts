@@ -6,8 +6,21 @@
  * returns an empty array so the AI proceeds with training knowledge only.
  */
 
+import { z } from "zod";
 import { EXTERNAL_API_TIMEOUT_MS } from "../constants";
 import { logger } from "../logger";
+
+const googleCseResponseSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        title: z.string(),
+        link: z.string(),
+        snippet: z.string(),
+      }),
+    )
+    .optional(),
+});
 
 interface WebSearchResult {
   title: string;
@@ -44,9 +57,12 @@ export async function webSearch(
       return [];
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data = await response.json() as any;
-    return (data.items || []).map((item: any) => ({
+    const parsed = googleCseResponseSchema.safeParse(await response.json());
+    if (!parsed.success) {
+      logger.warn(`Web search response parse error: ${parsed.error.message}`, "web-search");
+      return [];
+    }
+    return (parsed.data.items ?? []).map((item) => ({
       title: item.title,
       url: item.link,
       snippet: item.snippet,

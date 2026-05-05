@@ -1,5 +1,5 @@
 import type { Property, GlobalAssumptions } from "@workspace/db";
-import type { CompanyContextPack } from "./types";
+import type { CompanyContextPack, RecentContextPack } from "./types";
 import { buildFullIcpNarrative } from "../icp-intelligence";
 
 function pct(v: number | null | undefined): string {
@@ -155,6 +155,7 @@ export function buildCompanyContextPack(
   globalAssumptions: GlobalAssumptions,
   properties: Property[],
   serviceTemplates: Array<{ name: string; defaultRate: number; serviceModel: string; serviceMarkup: number; isActive: boolean }>,
+  recentContext?: RecentContextPack,
 ): CompanyContextPack {
   const ga = globalAssumptions;
   // Use all research-ready properties for HMC context (not just user's scenario)
@@ -190,7 +191,7 @@ export function buildCompanyContextPack(
   const icpNarrative = buildIcpNarrative(ga);
   const financialNarrative = buildFinancialScaleNarrative(ga, activeProperties);
 
-  const fullNarrative = [
+  const narrativeParts = [
     `**${ga.companyName || "Management Company"}** manages ${activeProperties.length} properties.`,
     portfolioNarrative,
     `Service menu: ${serviceNarrative}`,
@@ -198,7 +199,25 @@ export function buildCompanyContextPack(
     `Staffing & overhead: ${staffingNarrative}`,
     icpNarrative,
     `Financial scale: ${financialNarrative}`,
-  ].join("\n");
+  ];
+
+  if (recentContext) {
+    const contextLines: string[] = [];
+    if (recentContext.recentGuidance && recentContext.recentGuidance.length > 0) {
+      const keys = recentContext.recentGuidance.map(g => g.assumptionKey).join(", ");
+      contextLines.push(`Already analysed assumptions: ${keys}`);
+    }
+    if (recentContext.lastResearchRun) {
+      const run = recentContext.lastResearchRun;
+      const when = run.completedAt ? new Date(run.completedAt).toLocaleDateString("en-US") : "unknown";
+      contextLines.push(`Last research run: Tier ${run.tier ?? "?"}, status ${run.status} (${when})`);
+    }
+    if (contextLines.length > 0) {
+      narrativeParts.push(`\n**Session context (do not re-propose assumptions already listed here unless explicitly requested):**\n${contextLines.join("\n")}`);
+    }
+  }
+
+  const fullNarrative = narrativeParts.join("\n");
 
   return {
     companyProfile: {
@@ -229,5 +248,6 @@ export function buildCompanyContextPack(
     icpPositioning: { narrative: icpNarrative },
     financialScale: { narrative: financialNarrative },
     fullNarrative,
+    recentContext,
   };
 }

@@ -142,6 +142,14 @@
     "0035_lb_slides_config": {
       "status": "self-idempotent",
       "reason": "CREATE TABLE IF NOT EXISTS lb_slides_config — single-row config table for the LB Slide Deck portfolio investor presentation. Re-running via migrate() is a no-op."
+    },
+    "0036_knowledge_registry": {
+      "status": "self-idempotent",
+      "reason": "CREATE TABLE IF NOT EXISTS knowledge_registry + CREATE TABLE IF NOT EXISTS knowledge_registry_assets — Knowledge Registry feature (U1). Both statements are guarded with IF NOT EXISTS; re-running via migrate() is a no-op."
+    },
+    "0037_hnsw_index_no_do_block": {
+      "status": "self-idempotent",
+      "reason": "NAI-26 fix: CREATE EXTENSION IF NOT EXISTS vector + CREATE INDEX IF NOT EXISTS vector_chunks_embedding_hnsw USING hnsw (embedding vector_cosine_ops). Replaces the DO-block approach in 0012 which Railway's migration runner mangled. All statements use IF NOT EXISTS; re-running is a no-op."
     }
   }
 }

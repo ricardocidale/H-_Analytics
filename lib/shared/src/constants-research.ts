@@ -63,6 +63,38 @@ export const HOLD_VS_SELL_INDIFFERENCE_PCT = 0.02;
 
 export const DEFAULT_GP_CATCH_UP_TARGET_PCT = 0.20;
 
+// Waterfall defaults (ADR-011 seed values — industry benchmarks per Preqin 2024 / ILPA 3.0)
+export const DEFAULT_PREFERRED_RETURN = 0.08;    // 8% annual preferred return to LP
+export const DEFAULT_LP_EQUITY_PCT   = 0.90;    // 90% LP / 10% GP equity split
+export const DEFAULT_CATCH_UP_RATE   = 1.00;    // 100% of catch-up dollars to GP
+
+// Structural type mirrors WaterfallTier from @calc/analysis/waterfall — compatible via structural typing.
+export interface WaterfallTierSeed {
+  label: string;
+  hurdle_irr: number;
+  lp_split: number;
+  gp_split: number;
+}
+
+// Waterfall tier splits and hurdles (ADR-011 / Preqin 2024 / ILPA 3.0 benchmarks).
+export const WATERFALL_TIER1_HURDLE_IRR = 0.12;  // 12% IRR — base return hurdle
+export const WATERFALL_TIER1_LP_SPLIT   = 0.80;  // 80% to LP below Tier 1 hurdle
+export const WATERFALL_TIER1_GP_SPLIT   = 0.20;  // 20% to GP below Tier 1 hurdle
+
+export const WATERFALL_TIER2_HURDLE_IRR = 0.18;  // 18% IRR — mid-tier hurdle
+export const WATERFALL_TIER2_LP_SPLIT   = 0.70;  // 70% to LP up to Tier 2 hurdle
+export const WATERFALL_TIER2_GP_SPLIT   = 0.30;  // 30% to GP up to Tier 2 hurdle
+
+export const WATERFALL_TIER3_LP_SPLIT   = 0.60;  // 60% to LP above Tier 2 hurdle
+export const WATERFALL_TIER3_GP_SPLIT   = 0.40;  // 40% to GP above Tier 2 hurdle
+
+// hurdle_irr: 999 = uncapped residual tier (standard PE convention).
+export const DEFAULT_WATERFALL_TIERS: WaterfallTierSeed[] = [
+  { label: "Tier 1", hurdle_irr: WATERFALL_TIER1_HURDLE_IRR, lp_split: WATERFALL_TIER1_LP_SPLIT, gp_split: WATERFALL_TIER1_GP_SPLIT },
+  { label: "Tier 2", hurdle_irr: WATERFALL_TIER2_HURDLE_IRR, lp_split: WATERFALL_TIER2_LP_SPLIT, gp_split: WATERFALL_TIER2_GP_SPLIT },
+  { label: "Tier 3", hurdle_irr: 999,                        lp_split: WATERFALL_TIER3_LP_SPLIT, gp_split: WATERFALL_TIER3_GP_SPLIT },
+];
+
 export const STRESS_TEST_MIN_DSCR = 1.25;
 export const STRESS_SEVERITY_MODERATE_PCT = -5;
 export const STRESS_SEVERITY_SEVERE_PCT = -15;
@@ -73,3 +105,6 @@ export const RGI_UNDERPERFORMING_THRESHOLD = 0.95;
 
 export const RESEARCH_CAP_RATE_VALUATION_MAX_MULTIPLIER = 3.0;
 export const RESEARCH_CAP_RATE_VALUATION_MIN_MULTIPLIER = 0.3;
+
+/** Max recent guidance records injected into the context pack for a deep-dive run. */
+export const RECENT_GUIDANCE_CONTEXT_LIMIT = 10;

@@ -54,6 +54,7 @@ import { MarketSignalsStorage } from "./market-signals";
 import { PropertyDeckPayloadStorageImpl, type PropertyDeckPayloadStorage } from "./property-deck-payloads";
 import { BulkDraftRunsStorageImpl, type BulkDraftRunsStorage } from "./bulk-draft-runs";
 import { LbSlidesStorageImpl, type LbSlidesStorage } from "./lb-slides";
+import { MarketRatesStorage } from "./market-rates";
 
 export interface IStorage extends
   UserStorage,
@@ -85,7 +86,8 @@ export interface IStorage extends
   MarketSignalsStorage,
   PropertyDeckPayloadStorage,
   BulkDraftRunsStorage,
-  LbSlidesStorage {
+  LbSlidesStorage,
+  MarketRatesStorage {
   deleteUser(id: number): Promise<void>;
   getDbHealth(): Promise<{ serverTime: string; pool: { total: number; idle: number; waiting: number }; migrationsReady: boolean }>;
 }
@@ -134,6 +136,7 @@ function buildDomainFactories(intelligenceV2: IntelligenceV2Storage) {
     () => new PropertyDeckPayloadStorageImpl(),
     () => new BulkDraftRunsStorageImpl(),
     () => new LbSlidesStorageImpl(),
+    () => new MarketRatesStorage(),
   ] as const;
 }
 

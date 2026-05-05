@@ -64,7 +64,9 @@ export type AiIntelligenceSection =
   | "scheduled-research"
   | "vector-bench"
   | "resources"
-  | "resources-tables";
+  | "resources-tables"
+  | "knowledge-registry"
+  | "knowledge-registry-country-data";
 
 interface SectionItem {
   value: AiIntelligenceSection;
@@ -160,6 +162,23 @@ function buildNavGroups(gustavoHumanName: string): NavGroup[] {
           label: "Assumption Guidance",
           icon: IconActivity,
           tooltip: "Analyst-generated calibration insights — suggested ranges with sources for financial assumptions",
+        },
+      ],
+    },
+    {
+      id: "knowledge-registry",
+      label: "Knowledge Registry",
+      icon: IconBookOpen,
+      sections: [
+        {
+          value: "knowledge-registry",
+          label: "Knowledge Registry",
+          icon: IconBookOpen,
+        },
+        {
+          value: "knowledge-registry-country-data",
+          label: "Country Economic Data",
+          icon: IconActivity,
         },
       ],
     },

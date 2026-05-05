@@ -20,6 +20,7 @@
  * Phase events keep the client alive during the parallel wait.
  */
 
+import { captureException } from "@sentry/node";
 import { getAnthropicClient, getGeminiClient, getOpenAIClient } from "./clients";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { SynthesisOutputSchema, formatFieldDefinitionsForPrompt, synthesisOutputToLegacyJson } from "./synthesis-schema";
@@ -413,6 +414,14 @@ export async function* orchestrateResearch(
 
   const bothFailed = !!panelA.error && !!panelB.error;
   if (bothFailed) {
+    captureException(new Error("ORCHESTRATOR_BOTH_FAILED"), {
+      extra: {
+        fallback_reason: "both_analyst_panels_failed",
+        panel_a_error: panelA.error,
+        panel_b_error: panelB.error,
+        request_type: params.type,
+      },
+    });
     yield { type: "error", data: "ORCHESTRATOR_BOTH_FAILED: Both research panels failed — Gaspar falling back to single-model research." };
     return;
   }
@@ -528,6 +537,13 @@ export async function* orchestrateResearch(
     clearTimeout(synthesisTimer);
     const msg = err instanceof Error ? err.message : String(err);
     gasparLog.warn(`Synthesis streamObject failed: ${msg}`);
+    captureException(err instanceof Error ? err : new Error(msg), {
+      extra: {
+        fallback_reason: "streamobject_zod_fail",
+        error_message: msg.slice(0, 500),
+        request_type: params.type,
+      },
+    });
     yield {
       type: "error",
       data: `ORCHESTRATOR_BOTH_FAILED: synthesis path failed (${msg.slice(0, 200)}) — falling back to single-model research.`,

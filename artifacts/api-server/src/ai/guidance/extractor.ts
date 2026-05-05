@@ -144,7 +144,12 @@ function runCrossFieldChecks(records: GuidanceRecord[], errors: string[]): void 
 }
 
 const str = (v: unknown): string | null => typeof v === "string" ? v : null;
-const num = (v: unknown): number | null => typeof v === "number" ? v : v != null ? Number(v) : null;
+const num = (v: unknown): number | null => {
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  if (v == null) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+};
 
 function extractRecordFromSection(key: string, section: Record<string, unknown>): GuidanceRecord | null {
   if (!section || typeof section !== "object") return null;

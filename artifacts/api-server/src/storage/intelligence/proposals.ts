@@ -218,6 +218,17 @@ export class ProposalsStorage {
     return row;
   }
 
+  /**
+   * Hard-delete a single assumption_guidance row by primary key.
+   * Used by agent-side cleanup tools so stale/superseded guidance records
+   * can be pruned without leaving orphan rows after a bulk supersede pass.
+   */
+  async deleteAssumptionGuidance(id: number): Promise<void> {
+    await this._ptx.db
+      .delete(assumptionGuidance)
+      .where(eq(assumptionGuidance.id, id));
+  }
+
   async deleteAcknowledgment(
     entityType: string,
     entityId: number,
