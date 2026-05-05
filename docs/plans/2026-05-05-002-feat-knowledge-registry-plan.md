@@ -1,7 +1,7 @@
 ---
 title: "feat: Knowledge Registry — AI knowledge asset control plane"
 type: feat
-status: active
+status: completed
 date: 2026-05-05
 origin: docs/brainstorms/knowledge-registry-requirements.md
 ---
