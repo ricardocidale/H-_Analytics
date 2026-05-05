@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { adminFetch } from "@/components/admin/hooks";
 import { Card } from "@/components/ui/card";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
@@ -197,16 +198,13 @@ function TypeSpecificViewer({ entry }: { entry: RegistryEntry }) {
 }
 
 function BenchmarkViewer({ tableId, assetType }: { tableId: string; assetType: string }) {
-  const { data: tables, isLoading } = useQuery<AnalystTableRow[]>({
+  const { data: tables, isLoading, isError } = useQuery<AnalystTableRow[]>({
     queryKey: ["/api/admin/analyst-tables"],
-    queryFn: async () => {
-      const res = await fetch("/api/admin/analyst-tables", { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to load analyst tables");
-      return res.json() as Promise<AnalystTableRow[]>;
-    },
+    queryFn: adminFetch<AnalystTableRow[]>("/api/admin/analyst-tables", "Failed to load analyst tables"),
   });
 
   if (isLoading) return <p className="text-xs text-muted-foreground py-2">Loading…</p>;
+  if (isError) return <p className="text-xs text-destructive py-2">Failed to load benchmark data.</p>;
 
   const table = tables?.find((t) => t.id === tableId);
   if (!table) return <p className="text-xs text-muted-foreground py-2">No data.</p>;
@@ -219,16 +217,13 @@ function BenchmarkViewer({ tableId, assetType }: { tableId: string; assetType: s
 }
 
 function CountryDataViewer() {
-  const { data: rows, isLoading } = useQuery<CountryRow[]>({
+  const { data: rows, isLoading, isError } = useQuery<CountryRow[]>({
     queryKey: ["/api/admin/knowledge-registry/country-economic-data"],
-    queryFn: async () => {
-      const res = await fetch("/api/admin/knowledge-registry/country-economic-data", { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to load country economic data");
-      return res.json() as Promise<CountryRow[]>;
-    },
+    queryFn: adminFetch<CountryRow[]>("/api/admin/knowledge-registry/country-economic-data", "Failed to load country economic data"),
   });
 
   if (isLoading) return <p className="text-xs text-muted-foreground py-2">Loading…</p>;
+  if (isError) return <p className="text-xs text-destructive py-2">Failed to load country economic data.</p>;
   return <CompactCountryTable rows={rows ?? []} />;
 }
 

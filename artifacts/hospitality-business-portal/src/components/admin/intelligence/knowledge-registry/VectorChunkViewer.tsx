@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "@/components/icons/themed-icons";
+import { adminFetch } from "@/components/admin/hooks";
 
 interface Chunk {
   id: string;
@@ -24,13 +25,10 @@ interface Props {
 export function VectorChunkViewer({ entryId }: Props) {
   const [page, setPage] = useState(1);
 
+  const url = `/api/admin/knowledge-registry/${entryId}/chunks?page=${page}`;
   const { data, isLoading, isError } = useQuery<ChunksResponse>({
-    queryKey: [`/api/admin/knowledge-registry/${entryId}/chunks?page=${page}`],
-    queryFn: async () => {
-      const res = await fetch(`/api/admin/knowledge-registry/${entryId}/chunks?page=${page}`, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to load chunks");
-      return res.json() as Promise<ChunksResponse>;
-    },
+    queryKey: [url],
+    queryFn: adminFetch<ChunksResponse>(url, "Failed to load chunks"),
     placeholderData: (prev) => prev,
   });
 

@@ -1,15 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { AssetPanel, type RegistryEntry } from "@/components/admin/intelligence/knowledge-registry/AssetPanel";
+import { adminFetch } from "@/components/admin/hooks";
 
 export default function KnowledgeRegistryPage() {
   const { data: entries, isLoading, isError } = useQuery<RegistryEntry[]>({
     queryKey: ["/api/admin/knowledge-registry"],
-    queryFn: async () => {
-      const res = await fetch("/api/admin/knowledge-registry", { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to load knowledge registry");
-      return res.json() as Promise<RegistryEntry[]>;
-    },
+    queryFn: adminFetch<RegistryEntry[]>("/api/admin/knowledge-registry", "Failed to load knowledge registry"),
   });
 
   if (isLoading) {
