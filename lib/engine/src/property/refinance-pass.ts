@@ -18,8 +18,8 @@ import {
   DEFAULT_TERM_YEARS,
   DEFAULT_REFI_LTV,
   DEFAULT_REFI_CLOSING_COST_RATE,
-} from '@shared/constants';
-import { NOL_UTILIZATION_CAP, MONTHS_PER_YEAR } from '@shared/constants';
+} from '@norfolk/shared/constants';
+import { NOL_UTILIZATION_CAP, MONTHS_PER_YEAR } from '@norfolk/shared/constants';
 import { PropertyInput, GlobalInput, MonthlyFinancials } from '../types';
 import { parseLocalDate } from '../helpers/utils';
 

@@ -10,8 +10,8 @@
  *   4. Scale adjustment (small property cost premium)
  */
 
-import { getCountryDefaults, getUsStateDefaults } from '@shared/countryDefaults';
-import { BUSINESS_MODEL_DEFAULTS, type BusinessModelType } from '@shared/constants-business-models';
+import { getCountryDefaults, getUsStateDefaults } from '@norfolk/shared/countryDefaults';
+import { BUSINESS_MODEL_DEFAULTS, type BusinessModelType } from '@norfolk/shared/constants-business-models';
 import {
   DEFAULT_ADR_GROWTH_RATE,
   DEFAULT_MAX_OCCUPANCY,
@@ -22,8 +22,8 @@ import {
   SCALE_THRESHOLD_MEDIUM_ROOMS,
   SCALE_ADJUSTMENT_SMALL_PROPERTY,
   SCALE_ADJUSTMENT_MEDIUM_PROPERTY,
-} from '@shared/constants';
-import { getFactoryNumber } from '@shared/model-constants-registry';
+} from '@norfolk/shared/constants';
+import { getFactoryNumber } from '@norfolk/shared/model-constants-registry';
 
 // ── Quality tier ADR brackets ──────────────────────────────────────────────
 const QUALITY_TIER_ADR: Record<string, { min: number; max: number; default: number }> = {

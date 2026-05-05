@@ -1,5 +1,5 @@
 import type { CompanyMonthlyFinancials, CompanyYearlyFinancials } from '../types';
-import { MONTHS_PER_YEAR } from '@shared/constants';
+import { MONTHS_PER_YEAR } from '@norfolk/shared/constants';
 
 export function aggregateCompanyByYear(
   monthly: CompanyMonthlyFinancials[],

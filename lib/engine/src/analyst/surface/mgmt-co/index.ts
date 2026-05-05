@@ -76,11 +76,11 @@ export const MGMT_CO_COMPANY_ID = "mgmt-co.company" as const;
 export const MGMT_CO_PROPERTY_DEFAULTS_ID = "mgmt-co.property-defaults" as const;
 
 import type { AnalystWatchdogBenchmarks } from "@workspace/db/schema";
-import type { RevenueBenchmarks } from "@shared/constants-revenue-benchmarks";
-import type { CompensationBenchmarks } from "@shared/constants-compensation-benchmarks";
-import type { OverheadBenchmarks } from "@shared/constants-overhead-benchmarks";
-import type { CompanyBenchmarks } from "@shared/constants-company-benchmarks";
-import type { PropertyDefaultsBenchmarks } from "@shared/constants-property-defaults-benchmarks";
+import type { RevenueBenchmarks } from "@norfolk/shared/constants-revenue-benchmarks";
+import type { CompensationBenchmarks } from "@norfolk/shared/constants-compensation-benchmarks";
+import type { OverheadBenchmarks } from "@norfolk/shared/constants-overhead-benchmarks";
+import type { CompanyBenchmarks } from "@norfolk/shared/constants-company-benchmarks";
+import type { PropertyDefaultsBenchmarks } from "@norfolk/shared/constants-property-defaults-benchmarks";
 import {
   createSurfaceRouter,
   type SpecialistFn,

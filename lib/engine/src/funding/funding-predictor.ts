@@ -1,6 +1,6 @@
 import type { CompanyMonthlyFinancials, GlobalInput, FundingAnalysis, FundingTranche, CashRunwayPoint } from '../types';
 import type { MarketRateResponse } from '@/lib/api/market-rates';
-import { OPERATING_RESERVE_BUFFER, COMPANY_FUNDING_BUFFER } from '@shared/constants';
+import { OPERATING_RESERVE_BUFFER, COMPANY_FUNDING_BUFFER } from '@norfolk/shared/constants';
 import {
   DEFAULT_CAPITAL_RAISE_VALUATION_CAP,
   DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE,
@@ -25,7 +25,7 @@ import {
   DEFAULT_RISK_FREE_RATE_SENSITIVITY,
   TRAILING_YEAR_MONTHS_OFFSET,
   MONTHS_PER_YEAR,
-} from '@shared/constants';
+} from '@norfolk/shared/constants';
 
 interface FundingGlobalInput extends GlobalInput {
   propertyLabel?: string;
