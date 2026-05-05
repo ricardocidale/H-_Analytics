@@ -10,6 +10,10 @@
  */
 
 import type { LpDealComparable } from "./portfolio-raise-runner";
+import {
+  PORTFOLIO_RAISE_DSCR_BENCHMARK_MID,
+  PORTFOLIO_RAISE_FIRST_CLOSE_FRACTION,
+} from "@shared/constants-funding";
 
 export function getPortfolioRaiseComparables(): readonly LpDealComparable[] {
   return [
@@ -19,7 +23,7 @@ export function getPortfolioRaiseComparables(): readonly LpDealComparable[] {
       vertical: "boutique-luxury",
       propertyCount: 4,
       totalEquityUsd: 28_000_000,
-      firstClosePct: 0.40,
+      firstClosePct: PORTFOLIO_RAISE_FIRST_CLOSE_FRACTION,
       dscrAtStabilization: 1.42,
       leveredIrr: 0.165,
       source: "Public hospitality investor disclosures (illustrative)",
@@ -56,7 +60,7 @@ export function getPortfolioRaiseComparables(): readonly LpDealComparable[] {
       propertyCount: 6,
       totalEquityUsd: 45_000_000,
       firstClosePct: 0.30,
-      dscrAtStabilization: 1.25,
+      dscrAtStabilization: PORTFOLIO_RAISE_DSCR_BENCHMARK_MID,
       leveredIrr: 0.135,
       source: "Public hospitality investor disclosures (illustrative)",
       asOf: "2023-08-01",

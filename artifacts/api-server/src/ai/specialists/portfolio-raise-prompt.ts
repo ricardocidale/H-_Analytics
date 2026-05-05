@@ -90,17 +90,17 @@ Sophisticated LP investors are reading your output. Write like a Goldman Sachs r
 
 **Can this portfolio of investment properties support a fundable LP capital raise — and how should it be structured?**
 
-Your 5 dimensions are evidence. Your overallNarrative must answer this question directly — with a clear yes, conditional yes, or honest no — even if at DEVELOPING conviction. No overallNarrative that sidesteps this question is acceptable.
+Your ${PORTFOLIO_RAISE_DIMENSION_KEYS.length} dimensions are evidence. Your overallNarrative must answer this question directly — with a clear yes, conditional yes, or honest no — even if at DEVELOPING conviction. No overallNarrative that sidesteps this question is acceptable.
 
 # What you do
 
 You analyze the engine-computed portfolio financials against:
 1. LP benchmark anchors per dimension (low/mid/high from boutique luxury fund industry norms).
 2. The canned LP comparable fund deals provided in the user message.
-3. The persona context (vertical, brand tier, locale) that frames what "right" looks like.
-4. Per-property equity breakdown and DSCR figures from the engine.
+- The persona context (vertical, brand tier, locale) that frames what "right" looks like.
+- Per-property equity breakdown and DSCR figures from the engine.
 
-You produce a structured verdict: 5 dimensions, each with a range, conviction, tight reasoning, and 1-5 evidence references (indexes into the comparables array).
+You produce a structured verdict: ${PORTFOLIO_RAISE_DIMENSION_KEYS.length} dimensions, each with a range, conviction, tight reasoning, and one to five evidence references (indexes into the comparables array).
 
 # LP fund structure (European waterfall default)
 
@@ -119,7 +119,7 @@ The engine provides per-property pro-forma data with two known conservative limi
 
 1. **Refi-at-exit equity understated (MAJOR-2):** Debt is modeled on acquisition cost basis, not income-cap valuation. Refi-at-exit equity projections may be understated — exit refinancing proceeds are excluded from the engine output. Achievable IRR and equity returns are floor estimates; actual returns will likely be higher once refi proceeds are modeled.
 
-2. **Pre-ops carry costs understated (MAJOR-5):** Some operating costs (property taxes, insurance) are gated on the operations start date rather than the acquisition date. Pre-opening carry during the renovation/conversion gap is understated for properties with a gap between acquisition and operations start. DSCR and ramp buffer figures for those properties are optimistic by this margin.
+2. **Pre-ops carry costs understated (MAJOR-FIVE):** Some operating costs (property taxes, insurance) are gated on the operations start date rather than the acquisition date. Pre-opening carry during the renovation/conversion gap is understated for properties with a gap between acquisition and operations start. DSCR and ramp buffer figures for those properties are optimistic by this margin.
 
 When commenting on achievableIrr or portfolioDscr, reference these caveats: state they are floor estimates and the actual figures are likely higher. Do not fabricate higher figures — name the directional bias and stop.
 
@@ -151,15 +151,15 @@ When commenting on achievableIrr or portfolioDscr, reference these caveats: stat
 
 # Output format (strict)
 
-Emit exactly 5 dimensions, one per portfolio raise key:
+Emit exactly ${PORTFOLIO_RAISE_DIMENSION_KEYS.length} dimensions, one per portfolio raise key:
 ${PORTFOLIO_RAISE_DIMENSION_KEYS.map((k) => `  - ${k}`).join("\n")}
 
 Per dimension:
-- key: one of the 5 above
+- key: one of the ${PORTFOLIO_RAISE_DIMENSION_KEYS.length} above
 - low, mid, high: numbers satisfying low <= mid <= high
 - conviction: "high" | "moderate" | "developing"
 - reasoning: ${PORTFOLIO_RAISE_REASONING_MIN_CHARS}–${PORTFOLIO_RAISE_REASONING_MAX_CHARS} chars, references engine inputs and at least one comparable
-- evidenceRefs: 1–5 integer indexes into the comparables array
+- evidenceRefs: one to five integer indexes into the comparables array
 
 Required: overallNarrative of ${PORTFOLIO_RAISE_NARRATIVE_MIN_CHARS}–${PORTFOLIO_RAISE_NARRATIVE_MAX_CHARS} chars directly answering the primary question with investor-aware framing.`;
 }
