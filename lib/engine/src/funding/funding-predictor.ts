@@ -1,5 +1,5 @@
 import type { CompanyMonthlyFinancials, GlobalInput, FundingAnalysis, FundingTranche, CashRunwayPoint } from '../types';
-import type { MarketRateResponse } from '@/lib/api/market-rates';
+import type { MarketRateResponse } from '@shared/market-intelligence';
 import { OPERATING_RESERVE_BUFFER, COMPANY_FUNDING_BUFFER } from '@shared/constants';
 import {
   DEFAULT_CAPITAL_RAISE_VALUATION_CAP,

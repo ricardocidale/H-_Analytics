@@ -85,3 +85,8 @@ export const SEED_DEBT_ASSUMPTIONS = {
 
 // v1 placeholder — G6-P3 computes from the engine output.
 export const DEFAULT_RUNWAY_NEED_MONTHS_PLACEHOLDER = 18;
+
+/** Minimum number of live EDGAR Form D rows required before falling back to canned comparables. */
+export const EDGAR_MIN_LIVE_ROWS = 3;
+/** Representative sizing overshoot fraction for EDGAR Form D comparable rows (not disclosed in Form D filings). */
+export const EDGAR_COMPARABLE_SIZING_OVERSHOOT_PCT = 0.15;

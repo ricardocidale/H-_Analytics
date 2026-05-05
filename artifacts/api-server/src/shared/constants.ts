@@ -9,7 +9,7 @@
  * IRS publications, and HVS fee surveys.
  *
  * How these are used:
- *   - The database schema (lib/db/src/schema/) references them as column defaults
+ *   - The database schema (shared/schema.ts) references them as column defaults
  *   - The financial engine uses them as fallbacks when a property hasn't
  *     overridden a particular rate
  *   - The verification checker compares calculated values against these defaults
@@ -105,7 +105,8 @@ export const DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE = 0.12;   // 12% of Gross Ope
 // SHORT-TERM RENTAL (STR) defaults are defined in constants-business-models.ts
 // (where they're consumed) to avoid the circular import that would arise from
 // defining them here and importing them there. They remain available via the
-// wildcard re-export at the top of this file.
+// wildcard re-export at the top of this file (`export * from
+// './constants-business-models'`).
 
 // ──────────────────────────────────────────────────────────
 // SERVICE FEE CATEGORIES (GRANULAR BREAKDOWN)
@@ -438,6 +439,44 @@ export const BREAKEVEN_TARGET_DSCR_FLOOR = 1.0;
 // switches from green/red to amber "Close to breakeven".
 export const BREAKEVEN_PROXIMITY_RATIO = 0.10;
 
+// ── Specialist Model IDs ─────────────────────────────────────────────────────
+// Default model IDs used by each Specialist. Override via the admin_resources
+// Models registry (ADR-006) when a different model is configured.
+export const DEFAULT_FUNDING_SPECIALIST_MODEL = "claude-opus-4-7";
+export const DEFAULT_FUNDING_QUANT_PANEL_MODEL = "gemini-2.5-flash";
+export const DEFAULT_FUNDING_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
+export const DEFAULT_FUNDING_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";
+
+export const DEFAULT_REVENUE_SPECIALIST_MODEL = "claude-opus-4-7";
+export const DEFAULT_REVENUE_QUANT_PANEL_MODEL = "gemini-2.5-flash";
+export const DEFAULT_REVENUE_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
+export const DEFAULT_REVENUE_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";
+
+export const DEFAULT_COMPENSATION_SPECIALIST_MODEL = "claude-opus-4-7";
+export const DEFAULT_COMPENSATION_QUANT_PANEL_MODEL = "gemini-2.5-flash";
+export const DEFAULT_COMPENSATION_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
+export const DEFAULT_COMPENSATION_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";
+
+export const DEFAULT_OVERHEAD_SPECIALIST_MODEL = "claude-opus-4-7";
+export const DEFAULT_OVERHEAD_QUANT_PANEL_MODEL = "gemini-2.5-flash";
+export const DEFAULT_OVERHEAD_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
+export const DEFAULT_OVERHEAD_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";
+
+export const DEFAULT_COMPANY_SPECIALIST_MODEL = "claude-opus-4-7";
+export const DEFAULT_COMPANY_QUANT_PANEL_MODEL = "gemini-2.5-flash";
+export const DEFAULT_COMPANY_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
+export const DEFAULT_COMPANY_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";
+
+export const DEFAULT_RISK_SPECIALIST_MODEL = "claude-opus-4-7";
+export const DEFAULT_RISK_QUANT_PANEL_MODEL = "gemini-2.5-flash";
+export const DEFAULT_RISK_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
+export const DEFAULT_RISK_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";
+
+export const DEFAULT_PROPERTY_DEFAULTS_SPECIALIST_MODEL = "claude-opus-4-7";
+export const DEFAULT_PROPERTY_DEFAULTS_QUANT_PANEL_MODEL = "gemini-2.5-flash";
+export const DEFAULT_PROPERTY_DEFAULTS_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
+export const DEFAULT_PROPERTY_DEFAULTS_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";
+
 // ──────────────────────────────────────────────────────────
 // RENOVATION BUDGET CONSTANTS
 // Used by renovation-budget calculations across the platform.
@@ -450,11 +489,3 @@ export const RENOV_HISTORIC_PREMIUM = 0.20;   // +20% per-key uplift for histori
 export const RENOV_CONTINGENCY      = 0.18;   // 18% contingency on subtotal
 export const RENOV_MAX_PCT_OF_PRICE = 0.80;   // Guardrail: budget ≤ 80% of purchase price
 export const RENOV_MIN_PER_KEY      = 25_000; // Guardrail: minimum $25k per key
-
-// ── LLM prompt character-budget constants ────────────────────────────────────
-// Max character lengths enforced in LLM prompts for investor deck copy.
-// Mirror the hplus-vision-templates skill field specs. Consumed by property-vision.ts.
-export const VISION_MAX_TOKENS          = 1_200; // max_tokens for Anthropic vision call
-export const VISION_BADGE_MAX_CHARS     = 35;    // badgeText: short ALL-CAPS label
-export const VISION_BULLET_MAX_CHARS    = 80;    // all bullet fields: punchy, metric-driven
-export const VISION_PARAGRAPH_MAX_CHARS = 180;   // paragraph fields: one sentence, direct

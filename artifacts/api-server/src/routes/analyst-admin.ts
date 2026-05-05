@@ -28,11 +28,18 @@ import { analyzeFundingNeeds } from "@engine/funding/funding-predictor";
 import type { PropertyInput, GlobalInput } from "@engine/types";
 import type { CapitalRaiseInputs } from "@engine/watchdog/capitalRaiseEvaluator";
 import { getFactoryNumber } from "@shared/model-constants-registry";
-import { DEFAULT_RUNWAY_NEED_MONTHS_PLACEHOLDER } from "@shared/constants-funding";
+import {
+  DEFAULT_RUNWAY_NEED_MONTHS_PLACEHOLDER,
+  SEED_DEBT_ASSUMPTIONS,
+} from "@shared/constants-funding";
 import {
   ICP_MODEL_PROFILES,
   type IcpModelTier,
 } from "@shared/constants-benchmarks";
+import {
+  DEFAULT_PROJECTION_YEARS,
+  DEFAULT_COST_RATE_MARKETING,
+} from "@shared/constants";
 import {
   runPropertyRiskIntelligenceSpecialist,
   Tier1UnavailableError as PropertyTier1UnavailableError,
@@ -106,11 +113,11 @@ function gaToGlobalInput(ga: Record<string, unknown>, projectionYears: number): 
   const dbDebt = ga.debtAssumptions as Record<string, unknown> | null;
   return {
     modelStartDate: (ga.modelStartDate as string) ?? String(new Date().getFullYear()),
-    inflationRate: Number(ga.inflationRate ?? 0.03),
-    marketingRate: Number(ga.marketingRate ?? 0.01),
+    inflationRate: Number(ga.inflationRate ?? 0.03),      // TODO: pull from model-constants-registry
+    marketingRate: Number(ga.marketingRate ?? DEFAULT_COST_RATE_MARKETING),
     debtAssumptions: {
-      interestRate: Number(dbDebt?.interestRate ?? 0.065),
-      amortizationYears: Number(dbDebt?.amortizationYears ?? 25),
+      interestRate: Number(dbDebt?.interestRate ?? 0.065), // TODO: pull from model-constants-registry
+      amortizationYears: Number(dbDebt?.amortizationYears ?? SEED_DEBT_ASSUMPTIONS.amortizationYears),
     },
     projectionYears,
   } as GlobalInput;
@@ -642,11 +649,11 @@ async function runFundingV1Path(userId: number) {
   let engineAnalysis: FundingAnalysisSummary | undefined;
   try {
     if (properties.length > 0) {
-      const globalInput = gaToGlobalInput(overlaidGa as unknown as Record<string, unknown>, 10);
+      const globalInput = gaToGlobalInput(overlaidGa as unknown as Record<string, unknown>, DEFAULT_PROJECTION_YEARS);
       const { companyMonthly } = computeCompanyProjection({
         properties: properties as unknown as PropertyInput[],
         globalAssumptions: globalInput,
-        projectionYears: 10,
+        projectionYears: DEFAULT_PROJECTION_YEARS,
       });
       const analysis = analyzeFundingNeeds(companyMonthly, {
         ...globalInput,

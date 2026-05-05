@@ -252,6 +252,34 @@ If the value varies by jurisdiction (depreciation life, tax rate, day-count conv
 - **`pre-commit-gates`** — a magic-number scan should be one of the gates.
 - **`architecture-decision-records`** — calibration constants whose values are non-obvious (severity weights, tolerance multipliers, tier thresholds) deserve a one-line ADR cross-reference in their docstring.
 
+## The masking anti-pattern — do NOT do this
+
+The most common wrong fix is wrapping the literal in a named constant purely to satisfy the ratchet:
+
+```ts
+// BAD — this does not fix anything
+export const DEFAULT_INFLATION_RATE = 0.03;   // ← still a magic number, just one level up
+
+// Later...
+inflationRate: Number(ga.inflationRate ?? DEFAULT_INFLATION_RATE)  // ← 0.03 still hardcoded
+```
+
+Why it's wrong:
+- `0.03` now lives in TWO places: the constants file AND the DB seed that seeds `inflationRate = 0.03`. The ratchet still has two copies — it just moved to a different file pair.
+- If `inflationRate` is a **user-configurable assumption** (stored in the database, editable via UI), the fallback should come from `getFactoryNumber('inflationRate', country)` — the model constants registry — not from a hardcoded constant.
+- If `interestRate` is a **market-driven value** that changes quarterly, a constant named `DEFAULT_DEBT_INTEREST_RATE_FALLBACK = 0.065` locks in a stale market observation as a code artifact.
+
+**The right fix depends on what the number IS**:
+
+| What the number is | Right fix |
+|---|---|
+| A user assumption (inflation rate, tax rate, interest rate) | Trace to `getFactoryNumber(key, country)` from the model constants registry |
+| A seed/ramp-up default used only in the initial DB seed | Leave as a documented literal in the seed file; run `--init` to lock in the baseline |
+| A domain constant for a specific algorithm (EDGAR row threshold, IMF band delta) | Named export in the relevant constants file (`constants-funding.ts`, `constants-benchmarks.ts`) |
+| A genuinely cross-file reused calibration | Named constant in `lib/shared/src/constants*.ts`, import everywhere it's used |
+
+**When `--init` is the right answer**: After a cleanup pass that removes some magic numbers, the baseline improves. After a migration that introduces new seed-only literals that can't yet be traced to a registry, running `--init` locks in the accepted state so the ratchet tracks FUTURE regressions, not acknowledged pre-existing ones.
+
 ## Failure modes this skill prevents
 
 1. **Silent cross-file drift.** Same number in two files, one updated, the other forgotten.

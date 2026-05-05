@@ -226,6 +226,15 @@ export interface AlphaVantageData {
 
 // ─── Financial News Headlines ────────────────────────────────────────────────
 
+/** Market rate row as returned by the live market-rates API (key, label, current value). */
+export interface MarketRateResponse {
+  rateKey: string;
+  value: number | null;
+  name?: string | null;
+  seriesId?: string | null;
+  fetchedAt?: string | null;
+}
+
 export interface NewsHeadline {
   title: string;
   description?: string;

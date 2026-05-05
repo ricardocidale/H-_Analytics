@@ -62,6 +62,16 @@ import {
   getCannedInflationComparables,
   type InflationComparableRow,
 } from "./property-risk-orchestrator-adapter";
+import {
+  DEFAULT_RUNWAY_NEED_MONTHS_PLACEHOLDER,
+  EDGAR_MIN_LIVE_ROWS,
+  EDGAR_COMPARABLE_SIZING_OVERSHOOT_PCT,
+} from "@shared/constants-funding";
+import {
+  LIVE_ANCHOR_BASE_MGMT_FEE_RATE,
+  DEFAULT_INCENTIVE_MGMT_FEE_BENCHMARK_MID,
+} from "@shared/constants-company-benchmarks";
+import { IMF_EM_CPI_BAND_DELTA_HIGH } from "@shared/constants-benchmarks";
 
 const CHANNEL = "live-comparables";
 const FETCH_TIMEOUT_MS = 8_000;
@@ -239,8 +249,8 @@ async function fetchEdgarHotelFundComparables(): Promise<readonly ComparableRow[
         /<dateOfFirstSale[^>]*>(?:[^<]*<value>)?(\d{4}-\d{2}-\d{2})/
       );
       const vintage = dateMatch
-        ? parseInt(dateMatch[1].slice(0, 4), 10)
-        : parseInt((src.file_date ?? "0").slice(0, 4), 10);
+        ? Number(dateMatch[1].slice(0, 4))
+        : Number((src.file_date ?? "0").slice(0, 4));
 
       if (!isFinite(vintage) || vintage < EDGAR_MIN_VINTAGE) return null;
 
@@ -254,8 +264,8 @@ async function fetchEdgarHotelFundComparables(): Promise<readonly ComparableRow[
         vertical: "boutique-luxury",
         propertyCount: 0,
         raiseUsd,
-        runwayBufferMonths: 18,    // representative — not disclosed in Form D
-        sizingOvershootPct: 0.15,  // representative — not disclosed in Form D
+        runwayBufferMonths: DEFAULT_RUNWAY_NEED_MONTHS_PLACEHOLDER,  // representative — not disclosed in Form D
+        sizingOvershootPct: EDGAR_COMPARABLE_SIZING_OVERSHOOT_PCT,  // representative — not disclosed in Form D
         trancheGapMonths: null,    // not disclosed in Form D
         source: `SEC EDGAR Form D ${src.adsh ?? adsh} filed ${src.file_date ?? "n/a"}`,
         asOf: src.file_date ?? new Date().toISOString().slice(0, 10),
@@ -321,7 +331,7 @@ export async function getInflationComparables(): Promise<
   if (emPct !== null) {
     const mid = emPct / 100;
     const low = Math.max(0, mid - 0.012);
-    const high = mid + 0.015;
+    const high = mid + IMF_EM_CPI_BAND_DELTA_HIGH;
     const emRow: InflationComparableRow = {
       country: "EM",
       authority: "IMF World Economic Outlook",
@@ -338,7 +348,7 @@ export async function getInflationComparables(): Promise<
   }
 
   logger.info(
-    `getInflationComparables: ${liveCount}/3 rows live, ${3 - liveCount} canned`,
+    `getInflationComparables: ${liveCount}/${rows.length} rows live, ${rows.length - liveCount} canned`,
     CHANNEL,
   );
   return rows;
@@ -380,8 +390,8 @@ export async function getCompanyComparables(): Promise<
     locale: "US",
     vertical: "boutique-luxury",
     propertyCount: 0,
-    baseManagementFee: 0.03,
-    incentiveManagementFee: 0.10,
+    baseManagementFee: LIVE_ANCHOR_BASE_MGMT_FEE_RATE,
+    incentiveManagementFee: DEFAULT_INCENTIVE_MGMT_FEE_BENCHMARK_MID,
     companyTaxRate: 0.21,
     costOfEquity: liveCoE,
     vintage: new Date().getFullYear(),
@@ -473,7 +483,7 @@ export async function getLpComparables(): Promise<readonly ComparableRow[]> {
     () => fetchEdgarHotelFundComparables().catch(() => []),
   );
 
-  if (edgarRows.length >= 3) {
+  if (edgarRows.length >= EDGAR_MIN_LIVE_ROWS) {
     logger.info(
       `getLpComparables: ${edgarRows.length} live EDGAR rows returned (canned appended for depth)`,
       CHANNEL,

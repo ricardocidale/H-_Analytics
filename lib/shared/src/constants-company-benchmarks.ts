@@ -97,3 +97,6 @@ export const DEFAULT_COMPANY_BENCHMARKS: CompanyBenchmarks = {
     high: DEFAULT_COST_OF_EQUITY_BENCHMARK_HIGH,
   },
 };
+
+/** Base management fee rate for the live US Market Anchor comparable row (boutique-luxury independent operator). */
+export const LIVE_ANCHOR_BASE_MGMT_FEE_RATE = 0.03;

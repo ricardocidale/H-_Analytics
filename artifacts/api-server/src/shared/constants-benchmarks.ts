@@ -330,3 +330,6 @@ export const RETREAT_GUESTS_PER_KEY_MAX = 4;
 
 /** VRBO tier: whole-property capacity estimate (guests per key). */
 export const VRBO_GUESTS_PER_KEY = 10;
+
+/** High-side delta added to the IMF WEO EM CPI mid estimate to derive the upper projection band. */
+export const IMF_EM_CPI_BAND_DELTA_HIGH = 0.015;
