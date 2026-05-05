@@ -823,6 +823,106 @@ async function runFundingV1Path(userId: number) {
 
 /**
  * Assemble context and invoke `runPropertyRiskIntelligenceSpecialist`.
+ /**
+ * runPortfolioRaiseV1Path — Portfolio Capital Raise Specialist (v1).
+ *
+ * Loads all user properties, generates per-property pro formas, runs
+ * analyzePortfolioCapitalRaise(), maps to the slim summary type, and
+ * invokes runPortfolioRaiseSpecialist (single-shot Opus).
+ *
+ * Returns { __noProperties: true } when the user has no properties so
+ * the route handler can return a structured 400 instead of an error.
+ * Throws PortfolioRaiseTier1UnavailableError on specialist failure.
+ *
+ * v1 deferrals: verdict cache, live LP comparables, ICP model gate.
+ */
+async function runPortfolioRaiseV1Path(userId: number) {
+  const ga = await storage.getGlobalAssumptions(userId);
+  if (!ga) throw new PortfolioRaiseTier1UnavailableError("globalAssumptions row missing for user");
+
+  const properties = await storage.getAllProperties(userId);
+  if (properties.length === 0) return { __noProperties: true } as const;
+
+  const globalInput = gaToGlobalInput(ga as unknown as Record<string, unknown>, DEFAULT_PROJECTION_YEARS);
+
+  // Per-property pro formas — non-fatal per property; analysis proceeds with
+  // whatever subset succeeds.
+  const proFormas: Record<number, ReturnType<typeof generatePropertyProForma>> = {};
+  for (let i = 0; i < properties.length; i++) {
+    try {
+      proFormas[i] = generatePropertyProForma(
+        properties[i] as unknown as Parameters<typeof generatePropertyProForma>[0],
+        globalInput,
+        DEFAULT_PROJECTION_YEARS * 12,
+      );
+    } catch (propErr) {
+      logger.warn(
+        `runPortfolioRaiseV1Path: pro-forma failed for property ${i} (user ${userId}): ${propErr instanceof Error ? propErr.message : propErr}`,
+        "analyst-admin",
+      );
+    }
+  }
+
+  // Engine analysis — non-fatal; specialist runs with whatever data is available.
+  let engineAnalysis: ReturnType<typeof analyzePortfolioCapitalRaise> | undefined;
+  try {
+    engineAnalysis = analyzePortfolioCapitalRaise(
+      properties as unknown as Parameters<typeof analyzePortfolioCapitalRaise>[0],
+      proFormas,
+      globalInput,
+    );
+  } catch (engineErr) {
+    logger.warn(
+      `runPortfolioRaiseV1Path: analyzePortfolioCapitalRaise failed for user ${userId}: ${engineErr instanceof Error ? engineErr.message : engineErr}`,
+      "analyst-admin",
+    );
+  }
+
+  // Map engine output to the slim summary type (route layer owns this mapping per ADR-007).
+  const analysis = engineAnalysis ?? {
+    perPropertyEquity: [],
+    totalEquityRequired: 0,
+    firstCloseMinimum: 0,
+    rampOverlapWindows: [],
+    portfolioDscrBlended: null,
+    impliedIrr: null,
+    rampCarryUnderstated: true,
+  };
+
+  const analysisSummary = {
+    totalEquityRequired: analysis.totalEquityRequired,
+    firstCloseMinimum: analysis.firstCloseMinimum,
+    portfolioDscrBlended: analysis.portfolioDscrBlended,
+    rampOverlapWindowCount: analysis.rampOverlapWindows.length,
+    peakConcurrentRampCount: analysis.rampOverlapWindows.reduce(
+      (max, w) => Math.max(max, w.concurrentCount),
+      0,
+    ),
+    impliedIrr: analysis.impliedIrr,
+    rampCarryUnderstated: analysis.rampCarryUnderstated,
+    perPropertyEquity: analysis.perPropertyEquity.map((p, i) => ({
+      propertyIndex: p.propertyIndex,
+      propertyLabel: (properties[i] as { name?: string | null })?.name ?? `Property ${i + 1}`,
+      equityRequired: p.equityRequired,
+      deploymentMonth: p.deploymentMonth,
+      ltv: p.ltv,
+      estimatedDscr: p.estimatedDscr,
+    })),
+  };
+
+  const persona = resolveCompanyPersona(properties);
+
+  const ctx: PortfolioRaisePromptInputContext = {
+    analysisSummary,
+    persona,
+    priorVerdicts: [],
+  };
+
+  const comparables = getPortfolioRaiseComparables();
+  return runPortfolioRaiseSpecialist(ctx, comparables);
+}
+
+/**
  * Throws `PropertyTier1UnavailableError` on any failure; the route
  * handler catches and returns HTTP 503 (no legacy fallback for property scope).
  *
