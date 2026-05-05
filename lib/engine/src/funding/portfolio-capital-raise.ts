@@ -23,8 +23,6 @@ import type {
   PortfolioRampOverlap,
 } from '../types';
 
-const FIRST_CLOSE_MIN_PCT = 0.30;
-
 export function analyzePortfolioCapitalRaise(
   properties: PropertyInput[],
   proFormas: Record<number, MonthlyFinancials[]>,
@@ -85,7 +83,8 @@ export function analyzePortfolioCapitalRaise(
   const totalEquityRequired = perPropertyEquity.reduce((sum, p) => sum + p.equityRequired, 0);
   // First close must cover at least the first property's equity, or 30% of total — whichever is larger
   const firstPropertyEquity = perPropertyEquity[0]?.equityRequired ?? 0;
-  const firstCloseMinimum = Math.max(firstPropertyEquity, totalEquityRequired * FIRST_CLOSE_MIN_PCT);
+  // PE industry standard: first close must cover at least 30% of total fund or Property 1 equity
+  const firstCloseMinimum = Math.max(firstPropertyEquity, totalEquityRequired * 0.30);
 
   // Identify months where 2+ properties are simultaneously in their occupancy ramp
   const rampOverlapWindows = computeRampOverlapWindows(properties, perPropertyEquity);
