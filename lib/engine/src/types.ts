@@ -443,3 +443,27 @@ export interface WeightedMetrics {
   revPAR: number;
   totalAvailableRoomNights: number;
 }
+
+export interface PortfolioPropertyEquitySummary {
+  propertyIndex: number;
+  equityRequired: number;
+  deploymentMonth: number;
+  ltv: number;
+  estimatedDscr: number | null;
+}
+
+export interface PortfolioRampOverlap {
+  startMonth: number;
+  endMonth: number;
+  concurrentCount: number;
+}
+
+export interface PortfolioCapitalRaiseAnalysis {
+  perPropertyEquity: PortfolioPropertyEquitySummary[];
+  totalEquityRequired: number;
+  firstCloseMinimum: number;
+  rampOverlapWindows: PortfolioRampOverlap[];
+  portfolioDscrBlended: number | null;
+  impliedIrr: number | null;
+  rampCarryUnderstated: boolean;
+}
