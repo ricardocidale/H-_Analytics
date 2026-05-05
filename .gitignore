@@ -57,3 +57,4 @@ artifacts/api-server/logs/api-costs.jsonl
 /COST-MONITOR*
 /screenshots/**
 !/screenshots/README.md
+.compound-engineering/*.local.yaml
