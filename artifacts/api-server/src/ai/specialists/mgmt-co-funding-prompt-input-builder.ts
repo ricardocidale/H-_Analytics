@@ -218,6 +218,13 @@ export interface FundingPromptInputContext {
    * rather than redirecting to the Cash Flow Statement.
    */
   engineAnalysis?: FundingAnalysisSummary;
+  /**
+   * User's currently-saved capital raise tranche amounts and dates (up to 3).
+   * Mapped from GA columns in the route layer per ADR-007. Used alongside
+   * engineAnalysis to show the user-configured vs engine-recommended comparison.
+   * Absent when the route layer doesn't populate (non-fatal).
+   */
+  userTranches?: Array<{ amountUsd: number | null; dateLabel: string | null }>;
 }
 
 export interface FundingPromptInput {

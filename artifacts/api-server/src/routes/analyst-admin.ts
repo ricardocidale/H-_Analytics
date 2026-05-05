@@ -717,6 +717,11 @@ async function runFundingV1Path(userId: number) {
     priorVerdicts: [], // v1: no composition; G6-P3 wires verdict-cache reads
     referenceBrands: referenceBrands.length > 0 ? referenceBrands : undefined,
     engineAnalysis,
+    userTranches: [
+      { amountUsd: (overlaidGa.capitalRaise1Amount as number | null) ?? null, dateLabel: (overlaidGa.capitalRaise1Date as string | null) ?? null },
+      { amountUsd: (overlaidGa.capitalRaise2Amount as number | null) ?? null, dateLabel: (overlaidGa.capitalRaise2Date as string | null) ?? null },
+      { amountUsd: (overlaidGa.capitalRaise3Amount as number | null) ?? null, dateLabel: (overlaidGa.capitalRaise3Date as string | null) ?? null },
+    ],
   };
 
   const comparables = await getLpComparables();

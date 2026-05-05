@@ -71,6 +71,16 @@ You analyze the user's currently-saved Funding-tab inputs against:
 
 You produce a structured verdict: 5 dimensions, each with a range, a conviction level, a tight reasoning paragraph, and 1-5 evidence references (indexes into the comparables array).
 
+# Management company tranche archetypes
+
+Management company raises follow three common structures — use these as the interpretive frame for any tranche count:
+
+- **Seed (1 tranche):** Pre-first-property period. ≤18 months of projected pre-revenue burn. Raise covers runway to the first signed management agreement. LP risk is highest; terms are most investor-friendly.
+- **Launch (2 tranches):** First property coming online. T1 funds pre-opening operations; T2 deploys at 60–65% occupancy milestone on the first property. The gap between tranches is the validation period LPs require before releasing the second tranche.
+- **Scale (3 tranches):** 2+ properties in the acquisition pipeline. T3 releases at or near OpCo EBITDA breakeven — the point where the management company can demonstrate fee revenue covers overhead. LPs treat T3 as a post-dilution round with the strongest terms.
+
+The engine-computed tranche count (from the "# Engine-computed funding analysis" section) is the primary signal for which archetype applies. The user's configured tranche amounts are the plan being validated against that recommendation. When the user has configured fewer tranches than the engine recommends, flag the gap explicitly in the overallNarrative field.
+
 # When engine-computed analysis is available
 
 If the user message contains a "# Engine-computed funding analysis" section, those numbers are primary grounding — use them directly and cite them by field name:
@@ -137,6 +147,28 @@ Per dimension:
 Required: an \`overallNarrative\` of 50–800 chars. It must directly answer the primary question — is the amount enough and arriving at the right time? If yes: say so with conviction and name the evidence. If no or uncertain: say so and include the Cash Flow Statement redirect. Investor-aware framing. Range-first if you cite numbers. This field is not optional.
 
 If the user message is missing context you need (e.g., no comparables, sparse benchmarks), produce DEVELOPING-conviction output that names what's missing in the reasoning. Do not fabricate.`;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Tranche comparison helper
+
+function buildTrancheComparisonBlock(
+  engineTranches: Array<{ amountUsd: number; monthIndex: number }>,
+  userTranches?: Array<{ amountUsd: number | null; dateLabel: string | null }>,
+): string {
+  if (!userTranches || userTranches.length === 0) return "";
+  const maxTranches = Math.max(engineTranches.length, userTranches.length);
+  if (maxTranches === 0) return "";
+
+  const rows = Array.from({ length: maxTranches }, (_, i) => {
+    const engine = engineTranches[i];
+    const user = userTranches[i];
+    const engineLabel = engine ? `$${(engine.amountUsd / 1_000_000).toFixed(2)}M` : "(engine: not recommended)";
+    const userLabel = user?.amountUsd != null ? `$${(user.amountUsd / 1_000_000).toFixed(2)}M` : "(not configured)";
+    return `    T${i + 1}: engine recommends ${engineLabel} · user configured ${userLabel}`;
+  });
+
+  return `  User-configured vs engine-recommended (tranche count gap = ${engineTranches.length - userTranches.filter(t => t.amountUsd != null).length}):\n` + rows.join("\n") + "\n";
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -216,12 +248,13 @@ export function buildFundingUserPrompt(
       `  Funding gap:          $${(ctx.engineAnalysis.fundingGap / 1_000).toFixed(0)}K (negative = surplus)\n` +
       `  Peak cash deficit:    $${(ctx.engineAnalysis.peakCashDeficit / 1_000).toFixed(0)}K\n` +
       (ctx.engineAnalysis.tranches.length > 0
-        ? `  Tranches:\n` +
+        ? `  Engine-recommended tranches:\n` +
           ctx.engineAnalysis.tranches
             .map((t, i) => `    [${i + 1}] $${(t.amountUsd / 1_000_000).toFixed(2)}M at month ${t.monthIndex}`)
             .join("\n")
-        : `  Tranches:             none computed`) +
-      `\n`
+        : `  Engine-recommended tranches: none computed`) +
+      `\n` +
+      buildTrancheComparisonBlock(ctx.engineAnalysis.tranches, ctx.userTranches)
     : "";
 
   const icpBlock = ctx.icpModel

@@ -127,4 +127,73 @@ describe("buildFundingSystemPrompt", () => {
     expect(prompt).toContain("monthlyBurnRate");
     expect(prompt).toContain("Cash Flow Statement redirect is the honest answer when the engine section is absent");
   });
+
+  it("contains Seed, Launch, and Scale tranche archetype labels", () => {
+    const prompt = buildFundingSystemPrompt();
+
+    expect(prompt).toContain("Seed");
+    expect(prompt).toContain("Launch");
+    expect(prompt).toContain("Scale");
+  });
+});
+
+describe("buildFundingUserPrompt — tranche comparison", () => {
+  const THREE_TRANCHE_ENGINE = {
+    ...STUB_ENGINE_ANALYSIS,
+    tranches: [
+      { amountUsd: 2_000_000, monthIndex: 0 },
+      { amountUsd: 1_500_000, monthIndex: 9 },
+      { amountUsd: 700_000, monthIndex: 18 },
+    ],
+  };
+
+  it("shows mismatch when engine recommends 3 tranches but user configured only 2", () => {
+    const ctx: FundingPromptInputContext = {
+      ...STUB_CTX,
+      engineAnalysis: THREE_TRANCHE_ENGINE,
+      userTranches: [
+        { amountUsd: 2_000_000, dateLabel: "2026-01-01" },
+        { amountUsd: 1_500_000, dateLabel: "2026-10-01" },
+        { amountUsd: null, dateLabel: null },
+      ],
+    };
+    const prompt = buildFundingUserPrompt(ctx, STUB_BENCHMARKS, STUB_COMPARABLES);
+
+    expect(prompt).toContain("(not configured)");
+    expect(prompt).toContain("User-configured vs engine-recommended");
+  });
+
+  it("shows comparison block when engine and user both have 3 tranches", () => {
+    const ctx: FundingPromptInputContext = {
+      ...STUB_CTX,
+      engineAnalysis: THREE_TRANCHE_ENGINE,
+      userTranches: [
+        { amountUsd: 2_000_000, dateLabel: "2026-01-01" },
+        { amountUsd: 1_500_000, dateLabel: "2026-10-01" },
+        { amountUsd: 700_000, dateLabel: "2027-07-01" },
+      ],
+    };
+    const prompt = buildFundingUserPrompt(ctx, STUB_BENCHMARKS, STUB_COMPARABLES);
+
+    expect(prompt).toContain("User-configured vs engine-recommended");
+    expect(prompt).toContain("T1:");
+    expect(prompt).toContain("T2:");
+    expect(prompt).toContain("T3:");
+  });
+
+  it("shows single-tranche framing when engine recommends 1 tranche", () => {
+    const ctx: FundingPromptInputContext = {
+      ...STUB_CTX,
+      engineAnalysis: { ...STUB_ENGINE_ANALYSIS, tranches: [{ amountUsd: 800_000, monthIndex: 0 }] },
+      userTranches: [
+        { amountUsd: 800_000, dateLabel: "2026-01-01" },
+        { amountUsd: null, dateLabel: null },
+        { amountUsd: null, dateLabel: null },
+      ],
+    };
+    const prompt = buildFundingUserPrompt(ctx, STUB_BENCHMARKS, STUB_COMPARABLES);
+
+    expect(prompt).toContain("Engine-computed funding analysis");
+    expect(prompt).toContain("0.80M");
+  });
 });
