@@ -174,7 +174,7 @@ router.get(
   "/api/lb-slides/canonical/:n",
   requireAdmin,
   async (req: Request, res: Response) => {
-    const n = parseInt(String(req.params.n ?? ""), 10);
+    const n = Number(String(req.params.n ?? ""));
     const SLIDE_MIN = 1;
     const SLIDE_MAX = 6;
     if (!Number.isFinite(n) || n < SLIDE_MIN || n > SLIDE_MAX) {
