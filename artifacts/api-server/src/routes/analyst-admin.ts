@@ -8,7 +8,15 @@ import {
   runFundingSpecialist,
   Tier1UnavailableError,
 } from "../ai/specialists/mgmt-co-funding-runner";
-import { getCannedLpComparables } from "../ai/specialists/mgmt-co-funding-orchestrator-adapter";
+import {
+  getLpComparables,
+  getInflationComparables,
+  getRevenueComparables,
+  getCompensationComparables,
+  getOverheadComparables,
+  getCompanyComparables,
+  getPropertyDefaultsComparables,
+} from "../ai/specialists/live-comparables";
 import { withFundingDefaults } from "../finance/apply-funding-defaults";
 import type {
   FundingPromptInputContext,
@@ -25,7 +33,6 @@ import {
   runPropertyRiskIntelligenceSpecialist,
   Tier1UnavailableError as PropertyTier1UnavailableError,
 } from "../ai/specialists/property-risk-intelligence-runner";
-import { getCannedInflationComparables } from "../ai/specialists/property-risk-orchestrator-adapter";
 import type { PropertyRiskIntelligencePromptInputContext } from "../ai/specialists/property-risk-intelligence-prompt";
 import type { CountryInflationOutlook } from "@engine/analyst/surface/property/risk-intelligence-specialist";
 import type { ModelConstant } from "@workspace/db";
@@ -33,7 +40,6 @@ import {
   runRevenueSpecialist,
   Tier1UnavailableError as RevenueTier1UnavailableError,
 } from "../ai/specialists/mgmt-co-revenue-runner";
-import { getCannedRevenueComparables } from "../ai/specialists/mgmt-co-revenue-orchestrator-adapter";
 import type { RevenuePromptInputContext } from "../ai/specialists/mgmt-co-revenue-prompt-input-builder";
 import type { RevenueInputs } from "@engine/watchdog/revenueEvaluator";
 import { DEFAULT_REVENUE_BENCHMARKS } from "@shared/constants-revenue-benchmarks";
@@ -41,7 +47,6 @@ import {
   runCompensationSpecialist,
   Tier1UnavailableError as CompensationTier1UnavailableError,
 } from "../ai/specialists/mgmt-co-compensation-runner";
-import { getCannedCompensationComparables } from "../ai/specialists/mgmt-co-compensation-orchestrator-adapter";
 import type { CompensationPromptInputContext } from "../ai/specialists/mgmt-co-compensation-prompt-input-builder";
 import type { CompensationInputs } from "@engine/watchdog/compensationEvaluator";
 import { DEFAULT_COMPENSATION_BENCHMARKS } from "@shared/constants-compensation-benchmarks";
@@ -49,7 +54,6 @@ import {
   runOverheadSpecialist,
   Tier1UnavailableError as OverheadTier1UnavailableError,
 } from "../ai/specialists/mgmt-co-overhead-runner";
-import { getCannedOverheadComparables } from "../ai/specialists/mgmt-co-overhead-orchestrator-adapter";
 import type { OverheadPromptInputContext } from "../ai/specialists/mgmt-co-overhead-prompt-input-builder";
 import type { OverheadInputs } from "@engine/watchdog/overheadEvaluator";
 import { DEFAULT_OVERHEAD_BENCHMARKS } from "@shared/constants-overhead-benchmarks";
@@ -57,7 +61,6 @@ import {
   runCompanySpecialist,
   Tier1UnavailableError as CompanyTier1UnavailableError,
 } from "../ai/specialists/mgmt-co-company-runner";
-import { getCannedCompanyComparables } from "../ai/specialists/mgmt-co-company-orchestrator-adapter";
 import type { CompanyPromptInputContext } from "../ai/specialists/mgmt-co-company-prompt-input-builder";
 import type { CompanyInputs } from "@engine/watchdog/companyEvaluator";
 import { DEFAULT_COMPANY_BENCHMARKS } from "@shared/constants-company-benchmarks";
@@ -65,7 +68,6 @@ import {
   runPropertyDefaultsSpecialist,
   Tier1UnavailableError as PropertyDefaultsTier1UnavailableError,
 } from "../ai/specialists/mgmt-co-property-defaults-runner";
-import { getCannedPropertyDefaultsComparables } from "../ai/specialists/mgmt-co-property-defaults-orchestrator-adapter";
 import type { PropertyDefaultsPromptInputContext } from "../ai/specialists/mgmt-co-property-defaults-prompt-input-builder";
 import type { PropertyDefaultsInputs } from "@engine/watchdog/propertyDefaultsEvaluator";
 import { DEFAULT_PROPERTY_DEFAULTS_BENCHMARKS } from "@shared/constants-property-defaults-benchmarks";
@@ -650,7 +652,7 @@ async function runFundingV1Path(userId: number) {
     referenceBrands: referenceBrands.length > 0 ? referenceBrands : undefined,
   };
 
-  const comparables = getCannedLpComparables();
+  const comparables = await getLpComparables();
 
   const startTime = Date.now();
   const result = await runFundingSpecialist(ctx, benchmarks, comparables);
@@ -750,8 +752,9 @@ async function runPropertyRiskIntelligenceV1Path(
     countryInflationOutlook,
   };
 
+  const inflationComparables = await getInflationComparables();
   const startTime = Date.now();
-  const result = await runPropertyRiskIntelligenceSpecialist(ctx, getCannedInflationComparables());
+  const result = await runPropertyRiskIntelligenceSpecialist(ctx, inflationComparables);
 
   // ── Phase 5C-task-1 (NAI-27): verdict cache write — non-fatal ──
   try {
@@ -924,7 +927,7 @@ async function runRevenueV1Path(userId: number): Promise<Awaited<ReturnType<type
     priorVerdicts: [],
   };
 
-  const comparables = getCannedRevenueComparables();
+  const comparables = await getRevenueComparables();
   const startTime = Date.now();
   const result = await runRevenueSpecialist(ctx, DEFAULT_REVENUE_BENCHMARKS, comparables);
 
@@ -1025,7 +1028,7 @@ async function runCompensationV1Path(userId: number): Promise<Awaited<ReturnType
     priorVerdicts: [],
   };
 
-  const comparables = getCannedCompensationComparables();
+  const comparables = await getCompensationComparables();
   const startTime = Date.now();
   const result = await runCompensationSpecialist(ctx, DEFAULT_COMPENSATION_BENCHMARKS, comparables);
 
@@ -1123,7 +1126,7 @@ async function runOverheadV1Path(userId: number): Promise<Awaited<ReturnType<typ
     priorVerdicts: [],
   };
 
-  const comparables = getCannedOverheadComparables();
+  const comparables = await getOverheadComparables();
   const startTime = Date.now();
   const result = await runOverheadSpecialist(ctx, DEFAULT_OVERHEAD_BENCHMARKS, comparables);
 
@@ -1218,7 +1221,7 @@ async function runCompanyV1Path(userId: number): Promise<Awaited<ReturnType<type
     priorVerdicts: [],
   };
 
-  const comparables = getCannedCompanyComparables();
+  const comparables = await getCompanyComparables();
   const startTime = Date.now();
   const result = await runCompanySpecialist(ctx, DEFAULT_COMPANY_BENCHMARKS, comparables);
 
@@ -1317,7 +1320,7 @@ async function runPropertyDefaultsV1Path(userId: number): Promise<Awaited<Return
     priorVerdicts: [],
   };
 
-  const comparables = getCannedPropertyDefaultsComparables();
+  const comparables = await getPropertyDefaultsComparables();
   const startTime = Date.now();
   const result = await runPropertyDefaultsSpecialist(ctx, DEFAULT_PROPERTY_DEFAULTS_BENCHMARKS, comparables);
 
