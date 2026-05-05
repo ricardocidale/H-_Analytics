@@ -126,6 +126,10 @@ Admin  (/admin)
         ├── Assumption Guidance           ← Analyst-generated calibration output
         │                                   (research run output — not a source)
         │
+        ├── Knowledge Registry            ← registry of knowledge sources and documents
+        │   ├── Knowledge Registry        ← top-level knowledge source registry
+        │   └── Country Economic Data     ← inflation, FX rates, GDP, interest rate per country
+        │
         └── System
             ├── System Health
             ├── Scheduled Research
@@ -289,8 +293,8 @@ it gets its own sub-item under Sources at the same level as Tables — not neste
 - Specialist read-only directory → `AI Intelligence → Specialists` only
 - LLM management → `AI Intelligence → LLMs` only
 - Orchestrator info → `AI Intelligence → AI Agents → Gustavo` only
-
-"Knowledge Registry" is **removed**. Never recreate it.
+- Knowledge source registry → `AI Intelligence → Knowledge Registry` only
+- Country economic data registry → `AI Intelligence → Knowledge Registry → Country Economic Data` only
 
 ### Rule 5 — "Catalog" is not a label to use in AI Intelligence
 

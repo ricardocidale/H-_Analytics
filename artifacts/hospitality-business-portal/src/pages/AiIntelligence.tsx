@@ -45,6 +45,8 @@ const GustavoInfoPage = lazy(() => import("@/pages/ai-intelligence/GustavoInfoPa
 const SpecialistsDirectoryPage = lazy(() => import("@/pages/ai-intelligence/SpecialistsDirectoryPage"));
 const LlmWorkflowsPage = lazy(() => import("@/pages/ai-intelligence/LlmWorkflowsPage"));
 const AssumptionGuidancePage = lazy(() => import("@/pages/ai-intelligence/AssumptionGuidancePage"));
+const KnowledgeRegistryPage = lazy(() => import("@/pages/ai-intelligence/KnowledgeRegistryPage"));
+const CountryEconomicDataPage = lazy(() => import("@/pages/ai-intelligence/CountryEconomicDataPage"));
 
 const REBECCA_SUB_TAB: Partial<Record<AiIntelligenceSection, string>> = {
   "ai-agents":      "configuration",
@@ -70,6 +72,8 @@ const sectionMeta: Record<AiIntelligenceSection, { title: string; subtitle: stri
   "specialists":           { title: "Specialists",              subtitle: "Research Specialists powering H+ Analytics — verify deployment and run health checks" },
   "llm-workflows":         { title: "LLMs",                     subtitle: "Language model configuration for each research workflow — vendor, model, and Analyst recommendations" },
   "assumption-guidance":   { title: "Assumption Guidance",      subtitle: "Analyst-generated calibration insights — suggested ranges and sources for financial assumptions" },
+  "knowledge-registry":        { title: "Knowledge Registry",        subtitle: "Registry of knowledge sources and documents powering AI Intelligence" },
+  "knowledge-registry-country-data": { title: "Country Economic Data", subtitle: "Inflation, FX rates, GDP growth, and interest rate data per country" },
   "specialist-mgmt-co-funding":            { title: "Funding Intelligence",         subtitle: "" },
   "specialist-mgmt-co-revenue":            { title: "Revenue Intelligence",         subtitle: "" },
   "specialist-mgmt-co-compensation":       { title: "Compensation Intelligence",    subtitle: "" },
@@ -181,6 +185,8 @@ function SectionContent({ section }: { section: AiIntelligenceSection }) {
     case "specialists":       return <SpecialistsDirectoryPage />;
     case "llm-workflows":     return <LlmWorkflowsPage />;
     case "assumption-guidance": return <AssumptionGuidancePage />;
+    case "knowledge-registry":             return <KnowledgeRegistryPage />;
+    case "knowledge-registry-country-data": return <CountryEconomicDataPage />;
     default: {
       if (isSpecialistSection(section)) {
         return <SpecialistPage specialistId={SPECIALIST_SECTION_TO_ID[section]} />;
@@ -210,6 +216,8 @@ const VALID_SECTIONS = new Set<AiIntelligenceSection>([
   "vector-bench",
   "resources",
   "resources-tables",
+  "knowledge-registry",
+  "knowledge-registry-country-data",
 ]);
 
 export default function AiIntelligence() {
