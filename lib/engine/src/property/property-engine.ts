@@ -169,6 +169,36 @@ export function generatePropertyProForma(
       
     const gop = revenueTotal - totalOperatingExpenses;
 
+    // ── MAJOR-4 pre-compute: estimate this month's debt service (read-only peek) ──
+    // We need interestExpense and principalPayment to gate the incentive fee on post-debt-service
+    // levered cash. The actual debt block (which mutates ctx state) runs below; this read-only
+    // peek uses the same logic without side effects so the fee gate has access to debt values.
+    const isAcquiredEarly = i >= ctx.acqMonthIdx;
+    let estInterestExpense = 0;
+    let estPrincipalPayment = 0;
+    if (isAcquiredEarly && ctx.isFinanced && ctx.originalLoanAmount > 0 && ctx.acqDebtMonthCount < ctx.loanN) {
+      if (ctx.loanRate === 0) {
+        estPrincipalPayment = ctx.originalLoanAmount / ctx.loanN;
+        estInterestExpense = 0;
+      } else {
+        let estMonthlyRate: number;
+        if (ctx.dayCountConvention === 'ACT/360') {
+          estMonthlyRate = ctx.loanRate * ctx.daysInMonthLookup[i] / 360;
+        } else if (ctx.dayCountConvention === 'ACT/365') {
+          estMonthlyRate = ctx.loanRate * ctx.daysInMonthLookup[i] / 365;
+        } else {
+          estMonthlyRate = ctx.monthlyRate;
+        }
+        estInterestExpense = ctx.prevDebtOutstanding * estMonthlyRate;
+        estPrincipalPayment = ctx.monthlyPayment - estInterestExpense;
+      }
+    }
+    // Pre-fee ANOI proxy (excludes feeIncentive to avoid circularity):
+    //   gop - feeBase - expenseTaxes - expenseFFE  (same as anoi when feeIncentive = 0)
+    // Levered cash = pre-fee ANOI proxy - debt service
+    const preFeeAnoi = gop - feeBase - expenseTaxes - expenseFFE;
+    const leveredCash = preFeeAnoi - estInterestExpense - estPrincipalPayment;
+
     // ── Task 3.5: Owner's priority return — incentive fee only after owner hurdle met ──
     let feeIncentive: number;
     const hurdle = ctx.ownerPriorityReturn * ctx.equityInvested; // annual hurdle amount
@@ -176,7 +206,10 @@ export function generatePropertyProForma(
       // Owner hasn't received their minimum return yet — no incentive fee
       feeIncentive = 0;
     } else {
-      feeIncentive = Math.max(0, gop * ctx.incentiveFeeRate);
+      // MAJOR-4: gate incentive fee on post-debt-service levered cash, not pre-debt-service GOP.
+      // leveredCash ≤ 0 (DSCR < 1) → feeIncentive = 0, even when GOP > 0.
+      // Math.min(gop, ...) caps the incentive base so it never exceeds GOP.
+      feeIncentive = Math.max(0, Math.min(gop, Math.max(0, leveredCash)) * ctx.incentiveFeeRate);
     }
 
     // ── Task 3.6: Fee subordination — defer fees when cash can't cover debt service ──

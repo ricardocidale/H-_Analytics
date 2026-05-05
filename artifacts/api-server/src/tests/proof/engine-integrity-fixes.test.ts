@@ -649,3 +649,78 @@ describe('Waterfall distribution — preferred return shortfall path (T012-W2)',
     expect(out.total_to_lp + out.total_to_gp).toBeCloseTo(900_000, 2);
   });
 });
+
+// ── Finding #4: Incentive fee gated on post-debt-service levered cash ─────────
+//
+// Scenario: positive GOP but high debt service → DSCR < 1 → feeIncentive must be 0.
+//
+// Fixture arithmetic (DSCR < 1 scenario):
+//   roomCount=10, startAdr=$100, startOccupancy=0.5, ~30.5 days/month
+//   Monthly rooms revenue ≈ 10 × $100 × 0.5 × 30.5 = $15,250
+//   After ~40% blended expenses → GOP ≈ $9,150
+//   Loan = $3,000,000 × 0.80 = $2,400,000 at 10%/yr for 25yr
+//   Monthly debt service ≈ $21,700  →  DSCR ≈ 0.42 (clearly < 1)
+//   leveredCash = ANOI - debtService ≈ $9,150 - $21,700 = -$12,550 < 0
+//   Expected: feeIncentive = 0 for every month
+//   Under buggy code: feeIncentive = GOP × 0.15 ≈ $1,372 (WRONG)
+
+describe('Finding #4 — Incentive fee gated on post-debt-service levered cash (T012)', () => {
+  it('feeIncentive is 0 for every operational month when levered cash is negative (DSCR < 1)', () => {
+    // High leverage (80% LTV) + high rate (10%) → monthly debt service ≈ $21,700
+    // Revenue is moderate (10 rooms × $100 ADR × 0.5 occ) → GOP ≈ $9,150
+    // leveredCash = ANOI - debtService < 0 → incentive fee must not accrue
+    // incentiveManagementFeeRate = 0.15 → under bug: feeIncentive ≈ $1,372/mo (WRONG)
+    const prop: PropertyInput = {
+      ...BASE_COSTS,
+      operationsStartDate: '2024-01-01',
+      acquisitionDate: '2024-01-01',
+      roomCount: 10,
+      startAdr: 100,
+      adrGrowthRate: 0,
+      startOccupancy: 0.5,
+      maxOccupancy: 0.5,
+      occupancyRampMonths: 0,
+      occupancyGrowthStep: 0,
+      purchasePrice: 3_000_000,
+      type: 'Financed',
+      acquisitionLTV: 0.80,
+      acquisitionInterestRate: 0.10,
+      acquisitionTermYears: 25,
+      incentiveManagementFeeRate: 0.15,  // 15% incentive fee
+      feeSubordination: 'none',          // explicitly none — test must catch the base-formula bug
+    };
+
+    const global: GlobalInput = {
+      modelStartDate: '2024-01-01',
+      inflationRate: 0.0,
+      marketingRate: 0.0,
+      debtAssumptions: {
+        interestRate: 0.10,
+        amortizationYears: 25,
+        acqLTV: 0.80,
+      },
+    };
+
+    const monthlySeries = generatePropertyProForma(prop, global, 24);
+
+    // Every operational month must have feeIncentive = 0 because levered cash < 0
+    const anyMonthWithIncentiveFee = monthlySeries
+      .filter(m => m.revenueTotal > 0)
+      .some(m => m.feeIncentive > 0);
+
+    expect(anyMonthWithIncentiveFee).toBe(false);
+  });
+
+  it('feeIncentive accrues when levered cash is positive (zero-debt property with explicit fee rate)', () => {
+    // With no debt, leveredCash = ANOI > 0 (assuming positive revenue)
+    // incentiveManagementFeeRate = 0.12 (default for hotel type) → feeIncentive must accrue
+    // MINIMAL_HOTEL: type='hotel' → default incentiveMgmtFeeRate = 0.12 (12%)
+    const seriesWithFee = generatePropertyProForma(MINIMAL_HOTEL, ZERO_DEBT_GLOBAL, 24);
+
+    const anyMonthWithFee = seriesWithFee
+      .filter(m => m.revenueTotal > 0)
+      .some(m => m.feeIncentive > 0);
+
+    expect(anyMonthWithFee).toBe(true);
+  });
+});
