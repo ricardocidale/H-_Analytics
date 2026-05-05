@@ -1,7 +1,7 @@
 ---
 title: "feat: Wire computeWaterfall into property returns pipeline"
 type: feat
-status: active
+status: completed
 date: 2026-05-05
 ---
 
