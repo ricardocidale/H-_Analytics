@@ -629,6 +629,42 @@ export const SPECIALIST_CATALOG: readonly SpecialistDefinition[] = [
     ],
     status: "built",
   },
+  // Portfolio Capital Raise (letter Q) — dedicated LP equity raise analysis for
+  // the property portfolio. Separate from the mgmt-co funding specialist: this
+  // specialist evaluates the investable fund vehicle (PropCo SPVs), not the
+  // operating company's runway.
+  {
+    id: "portfolio.capital-raise",
+    letter: "Q",
+    realName: "Portfolio Capital Raise",
+    displayName: "Portfolio Capital Raise",
+    humanName: "Quentin",
+    gender: "male",
+    description:
+      "Analyzes whether the property portfolio can support a fundable LP capital raise — per-property equity deployment, first-close sizing, blended DSCR, ramp capital exposure, and achievable levered IRR — grounded in engine-computed property financials and boutique LP fund norms.",
+    subject: "portfolio-ops",
+    capabilities: [
+      "required-fields",
+      "llm-config",
+      "runtime",
+      "audit",
+    ],
+    assignmentRefs: [
+      { kind: "model", slug: "primary-llm", role: "tier-1-cognitive", required: true },
+      { kind: "api", slug: "portfolio-lp-comp-dataset", required: false, role: "comparables" },
+    ],
+    candidateFields: [
+      { key: "totalEquityRequired", label: "Total Equity Required",        surface: "company-assumptions" },
+      { key: "firstCloseMinimum",   label: "First Close Minimum",          surface: "company-assumptions" },
+      { key: "portfolioDscr",       label: "Portfolio DSCR (blended)",     surface: "company-assumptions" },
+      { key: "rampCapitalBuffer",   label: "Ramp Capital Buffer",          surface: "company-assumptions" },
+      { key: "achievableIrr",       label: "Achievable Levered IRR",       surface: "company-assumptions" },
+    ],
+    prerequisites: [
+      "all-properties-financials-computed",
+    ],
+    status: "built",
+  },
 ] as const;
 
 const validation = (() => {

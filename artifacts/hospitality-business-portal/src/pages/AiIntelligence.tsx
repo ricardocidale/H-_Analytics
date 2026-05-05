@@ -85,6 +85,7 @@ const sectionMeta: Record<AiIntelligenceSection, { title: string; subtitle: stri
   "specialist-property-executive-summary": { title: "Executive Summary",            subtitle: "" },
   "specialist-photos-photo-enhancer":      { title: "Photo Enhancer & Renders",     subtitle: "" },
   "specialist-portfolio-ops-watchdog":     { title: "Portfolio Watchdog",           subtitle: "" },
+  "specialist-portfolio-capital-raise":    { title: "Portfolio Capital Raise",      subtitle: "" },
   "specialist-resources-builder":          { title: "Resource Builder",             subtitle: "" },
   "specialist-constants-tax-research":         { title: "Tax Authority Research",          subtitle: "" },
   "specialist-constants-macro-research":       { title: "Macro Indicators Research",       subtitle: "" },
