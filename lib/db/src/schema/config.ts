@@ -125,6 +125,8 @@ export const globalAssumptions = pgTable("global_assumptions", {
   capitalRaise1Date: text("capital_raise_1_date").notNull().default(DEFAULT_CAPITAL_RAISE_1_DATE),
   capitalRaise2Amount: real("capital_raise_2_amount").notNull().default(800000),
   capitalRaise2Date: text("capital_raise_2_date").notNull().default(DEFAULT_CAPITAL_RAISE_2_DATE),
+  capitalRaise3Amount: real("capital_raise_3_amount"),
+  capitalRaise3Date: text("capital_raise_3_date"),
   capitalRaiseValuationCap: real("capital_raise_valuation_cap").notNull().default(DEFAULT_CAPITAL_RAISE_VALUATION_CAP),
   capitalRaiseDiscountRate: real("capital_raise_discount_rate").notNull().default(DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE),
   fundingInterestRate: real("funding_interest_rate").notNull().default(DEFAULT_FUNDING_INTEREST_RATE),
