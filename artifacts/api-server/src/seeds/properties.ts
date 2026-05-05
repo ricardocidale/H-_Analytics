@@ -24,7 +24,6 @@ import {
   DEFAULT_OFFICE_LEASE_START,
   DEFAULT_PROFESSIONAL_SERVICES_START,
   DEFAULT_TECH_INFRA_START,
-  DEFAULT_MARKETING_RATE,
   DEFAULT_MISC_OPS_RATE,
 } from "@shared/constants";
 import { DEFAULT_STAFF_SALARY, DEFAULT_TRAVEL_PER_CLIENT, DEFAULT_IT_LICENSE_PER_CLIENT } from "@shared/constants-staffing";
@@ -43,6 +42,10 @@ import {
 } from "./property-data";
 
 export { SEED_PROPERTY_DEFAULTS, SEED_SYNC_PROPERTIES } from "./property-data";
+
+// U2: 5% is above market for a sub-10-property boutique HM company in Year 1.
+// Benchmark: 2–4%; 3% aligns with the conservative ramp-up end of that range.
+const SEED_MARKETING_RATE = 0.03;
 
 export const SEED_COMPANY_IDENTITY = {
   companyName: "The Norfolk AI Group",
@@ -133,7 +136,7 @@ export async function seedGlobalAssumptions() {
     businessInsuranceStart: DEFAULT_BUSINESS_INSURANCE_START,
     travelCostPerClient: DEFAULT_TRAVEL_PER_CLIENT,
     itLicensePerClient: DEFAULT_IT_LICENSE_PER_CLIENT,
-    marketingRate: DEFAULT_MARKETING_RATE,
+    marketingRate: SEED_MARKETING_RATE,
     miscOpsRate: DEFAULT_MISC_OPS_RATE,
     commissionRate: DEFAULT_COMMISSION_RATE,
     standardAcqPackage: {
