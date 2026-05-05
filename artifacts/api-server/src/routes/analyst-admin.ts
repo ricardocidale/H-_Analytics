@@ -475,7 +475,7 @@ export async function analystRefreshHandler(req: Request, res: Response) {
 
   // Portfolio Capital Raise Specialist — portfolio-level LP equity analysis.
   // No Tier-0 fallback (no legacy runner covers this); returns 503 on failure.
-  if (specialistId === "portfolio.capitalRaise") {
+  if (specialistId === "portfolio.capital-raise") {
     try {
       const verdict = await runPortfolioRaiseV1Path(userId);
       if ("__noProperties" in verdict) {

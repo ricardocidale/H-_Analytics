@@ -117,6 +117,7 @@ const SPECIALIST_SUBTITLES: Record<SpecialistSection, string> = {
   "specialist-property-executive-summary": "Read-only assignment + health surface (evaluator pending).",
   "specialist-photos-photo-enhancer":      "Read-only assignment + health surface (evaluator pending).",
   "specialist-portfolio-ops-watchdog":     "Read-only assignment + health surface (evaluator pending).",
+  "specialist-portfolio-capital-raise":    "Read-only assignment + health surface for the Portfolio Capital Raise Specialist.",
   "specialist-resources-builder":          "Read-only assignment + health surface for the Resources Builder Specialist.",
   "specialist-constants-tax-research":         "Owns tax-rate, capital-gains, and property-tax constants. Authority-sourced; refresh per row.",
   "specialist-constants-macro-research":       "Owns inflation and country risk premium. Sourced from central banks and IMF.",

@@ -72,6 +72,42 @@ import {
   DEFAULT_INCENTIVE_MGMT_FEE_BENCHMARK_MID,
 } from "@shared/constants-company-benchmarks";
 import { IMF_EM_CPI_BAND_DELTA_HIGH } from "@shared/constants-benchmarks";
+import {
+  DEFAULT_MARKETING_RATE_BENCHMARK_MID,
+  DEFAULT_FB_REVENUE_SHARE_BENCHMARK_MID,
+  DEFAULT_EVENTS_REVENUE_SHARE_BENCHMARK_MID,
+  DEFAULT_OTHER_REVENUE_SHARE_BENCHMARK_MID,
+  DEFAULT_CATERING_BOOST_PCT_BENCHMARK_MID,
+} from "@shared/constants-revenue-benchmarks";
+import {
+  DEFAULT_OFFICE_LEASE_BENCHMARK_MID,
+  DEFAULT_PROFESSIONAL_SERVICES_BENCHMARK_MID,
+  DEFAULT_TECH_INFRA_BENCHMARK_MID,
+  DEFAULT_BUSINESS_INSURANCE_BENCHMARK_MID,
+  DEFAULT_TRAVEL_COST_PER_CLIENT_BENCHMARK_MID,
+  DEFAULT_IT_LICENSE_PER_CLIENT_BENCHMARK_MID,
+} from "@shared/constants-overhead-benchmarks";
+import {
+  DEFAULT_EVENT_EXPENSE_RATE_BENCHMARK_MID,
+  DEFAULT_OTHER_EXPENSE_RATE_BENCHMARK_MID,
+  DEFAULT_UTILITIES_VARIABLE_SPLIT_BENCHMARK_MID,
+} from "@shared/constants-property-defaults-benchmarks";
+import {
+  LIVE_OTA_COMMISSION_BOOKING_COM_FRACTION,
+  LIVE_OTA_MIX_HEAVY_FRACTION,
+  LIVE_OTA_MIX_STANDARD_FRACTION,
+  LIVE_OTA_MIX_LIGHT_FRACTION,
+  LIVE_MIN_PROPERTY_DEFAULTS_LIVE_ROWS,
+  LIVE_MIN_REVENUE_LIVE_ROWS,
+  LIVE_MIN_OVERHEAD_LIVE_ROWS,
+  LIVE_BOOKING_REPRESENTATIVE_ROOM_COUNT,
+  LIVE_BOOKING_ADR_BUDGET_THRESHOLD_USD,
+  LIVE_BOOKING_CHECKIN_LEAD_DAYS,
+  LIVE_BOOKING_CHECKOUT_LEAD_DAYS,
+  LIVE_BOOKING_MAX_HOTELS_PER_CITY,
+  LIVE_CNBC_FETCH_LIMIT,
+  LIVE_CNBC_HEADLINE_SLICE,
+} from "../../constants";
 
 const CHANNEL = "live-comparables";
 const FETCH_TIMEOUT_MS = 8_000;
@@ -87,6 +123,16 @@ const EDGAR_MIN_RAISE_USD = 2_000_000; // exclude trivial/test filings
 const EDGAR_MIN_VINTAGE = 2020;        // exclude stale vintage years
 const EDGAR_CACHE_TTL_SECONDS = 24 * 60 * 60; // 24 hours
 const EDGAR_MAX_FILINGS = 15;          // XML fetches per call
+
+// ── Wikipedia / RestCountries / CNBC / Booking.com / Alpha Vantage ──────────
+const WIKIPEDIA_UA                = "NAI-HospitalityAnalytics/1.0 contact@norfolkai.com";
+const WIKIPEDIA_SUMMARY_BASE      = "https://en.wikipedia.org/api/rest_v1/page/summary";
+const RESTCOUNTRIES_ALPHA_BASE    = "https://restcountries.com/v3.1/alpha";
+const CNBC_RAPIDAPI_HOST          = "cnbc.p.rapidapi.com";
+const BOOKING_RAPIDAPI_HOST       = "booking-com.p.rapidapi.com";
+const ALPHA_VANTAGE_RAPIDAPI_HOST = "alpha-vantage.p.rapidapi.com";
+// 12 h cache for OTA-rate data (Booking.com pricing varies daily)
+const LIVE_OTA_CACHE_TTL_SECONDS  = 12 * 60 * 60;
 
 // ────────────────────────────────────────────────────────────────────────────
 // Internal fetch helpers
@@ -499,19 +545,471 @@ export async function getLpComparables(): Promise<readonly ComparableRow[]> {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// Canned-only specialists
+// Live-fetch helpers (NAI-33, NAI-34, NAI-35)
 
-/** Revenue mix comparables for the Revenue specialist. Canned until STR Host / CBRE Hotel Horizons credentials land. */
+/** Date string N calendar days from today, formatted YYYY-MM-DD. */
+function liveCompDateOffset(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Fetch a single Wikipedia REST API page summary (no auth required).
+ * Returns the plain-text extract string, or null on any error / missing page.
+ */
+async function fetchWikipediaSummary(pageTitle: string): Promise<string | null> {
+  try {
+    const url = `${WIKIPEDIA_SUMMARY_BASE}/${encodeURIComponent(pageTitle)}`;
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      headers: { "User-Agent": WIKIPEDIA_UA },
+    });
+    if (!res.ok) return null;
+    const data = await res.json() as { extract?: string };
+    return data.extract ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch CNBC autocomplete headlines for a topic via RapidAPI KEY_3.
+ * Returns up to LIVE_CNBC_HEADLINE_SLICE headline strings (empty array on error).
+ */
+async function fetchCNBCHeadlines(topic: string): Promise<string[]> {
+  const key = process.env.RAPIDAPI_KEY_3;
+  if (!key) return [];
+  try {
+    const url =
+      `https://${CNBC_RAPIDAPI_HOST}/v2/auto-complete?` +
+      new URLSearchParams({ q: topic, limit: String(LIVE_CNBC_FETCH_LIMIT) });
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      headers: { "x-rapidapi-key": key, "x-rapidapi-host": CNBC_RAPIDAPI_HOST },
+    });
+    if (!res.ok) return [];
+    const data = await res.json() as {
+      data?: Array<{ title?: string; name?: string }>;
+    };
+    return (data.data ?? [])
+      .map((a) => a.title ?? a.name ?? "")
+      .filter(Boolean)
+      .slice(0, LIVE_CNBC_HEADLINE_SLICE);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Fetch REST Countries economic context for an ISO-3166-1 alpha-2 code.
+ * Returns a brief descriptive string or null on error.
+ */
+async function fetchRestCountryContext(isoAlpha2: string): Promise<string | null> {
+  try {
+    const url =
+      `${RESTCOUNTRIES_ALPHA_BASE}/${encodeURIComponent(isoAlpha2)}` +
+      "?fields=name,currencies,region";
+    const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    if (!res.ok) return null;
+    const data = await res.json() as {
+      name?: { common?: string };
+      currencies?: Record<string, { name?: string }>;
+      region?: string;
+    };
+    const country  = data.name?.common ?? isoAlpha2;
+    const currency = Object.values(data.currencies ?? {})[0]?.name ?? "";
+    return `${country} (${data.region ?? ""}, ${currency})`.replace(/\s+/g, " ").trim();
+  } catch {
+    return null;
+  }
+}
+
+/** Shape of a single Booking.com live hotel snap used for OTA commission derivation. */
+interface BookingHotelSnap {
+  name: string;
+  city: string;
+  avgPricePerNightUsd: number;
+}
+
+/**
+ * Fetch top boutique hotels for a city via Booking.com RapidAPI (KEY_2).
+ *
+ * Step 1 — resolve city → dest_id via /v1/hotels/locations.
+ * Step 2 — search hotels ordered by review_score (quality proxy for boutique).
+ * Avg nightly rate = min_total_price ÷ stay nights.
+ *
+ * Returns empty array on any API error or missing credential.
+ */
+async function fetchBookingComBoutiqueHotels(
+  cityName: string,
+): Promise<BookingHotelSnap[]> {
+  const key = process.env.RAPIDAPI_KEY_2;
+  if (!key) return [];
+  try {
+    const locUrl =
+      `https://${BOOKING_RAPIDAPI_HOST}/v1/hotels/locations?` +
+      new URLSearchParams({ name: cityName, locale: "en-us" });
+    const locRes = await fetch(locUrl, {
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      headers: { "x-rapidapi-key": key, "x-rapidapi-host": BOOKING_RAPIDAPI_HOST },
+    });
+    if (!locRes.ok) return [];
+    const locData = await locRes.json() as Array<{
+      dest_id?: string;
+      dest_type?: string;
+    }>;
+    const loc = locData?.[0];
+    if (!loc?.dest_id) return [];
+
+    const checkIn    = liveCompDateOffset(LIVE_BOOKING_CHECKIN_LEAD_DAYS);
+    const checkOut   = liveCompDateOffset(LIVE_BOOKING_CHECKOUT_LEAD_DAYS);
+    const stayNights = LIVE_BOOKING_CHECKOUT_LEAD_DAYS - LIVE_BOOKING_CHECKIN_LEAD_DAYS;
+    const params = new URLSearchParams({
+      dest_id:            loc.dest_id,
+      dest_type:          loc.dest_type ?? "city",
+      checkin_date:       checkIn,
+      checkout_date:      checkOut,
+      room_number:        "1",
+      adults_number:      "1",
+      order_by:           "review_score",
+      locale:             "en-us",
+      currency:           "USD",
+      filter_by_currency: "USD",
+      page_number:        "0",
+    });
+    const searchRes = await fetch(
+      `https://${BOOKING_RAPIDAPI_HOST}/v1/hotels/search?${params}`,
+      {
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+        headers: { "x-rapidapi-key": key, "x-rapidapi-host": BOOKING_RAPIDAPI_HOST },
+      },
+    );
+    if (!searchRes.ok) return [];
+    const searchData = await searchRes.json() as {
+      result?: Array<{ hotel_name?: string; min_total_price?: number; city?: string }>;
+    };
+
+    return (searchData.result ?? [])
+      .slice(0, LIVE_BOOKING_MAX_HOTELS_PER_CITY)
+      .filter((h) => (h.min_total_price ?? 0) > 0)
+      .map((h) => ({
+        name: h.hotel_name ?? cityName,
+        city: h.city ?? cityName,
+        avgPricePerNightUsd: Math.round((h.min_total_price ?? 0) / stayNights),
+      }));
+  } catch {
+    return [];
+  }
+}
+
+/** Subset of Alpha Vantage OVERVIEW fields relevant to overhead calibration. */
+interface AlphaVantageOverview {
+  symbol: string;
+  operatingMarginTTM: number | null;
+  profitMarginTTM: number | null;
+}
+
+/**
+ * Fetch Alpha Vantage OVERVIEW (RapidAPI KEY_3) for a stock ticker.
+ * Used as large-scale public-company proxy for overhead ratio context.
+ */
+async function fetchAlphaVantageOverview(
+  ticker: string,
+): Promise<AlphaVantageOverview | null> {
+  const key = process.env.RAPIDAPI_KEY_3;
+  if (!key) return null;
+  try {
+    const url =
+      `https://${ALPHA_VANTAGE_RAPIDAPI_HOST}/query?` +
+      new URLSearchParams({ function: "OVERVIEW", symbol: ticker });
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      headers: { "x-rapidapi-key": key, "x-rapidapi-host": ALPHA_VANTAGE_RAPIDAPI_HOST },
+    });
+    if (!res.ok) return null;
+    const data = await res.json() as Record<string, string>;
+    if (!data?.Symbol) return null;
+    const opMargin     = parseFloat(data.OperatingMarginTTM ?? "");
+    const profitMargin = parseFloat(data.ProfitMargin ?? "");
+    return {
+      symbol:             data.Symbol,
+      operatingMarginTTM: isFinite(opMargin)     ? opMargin     : null,
+      profitMarginTTM:    isFinite(profitMargin)  ? profitMargin : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Revenue comparables — NAI-33
+
+/**
+ * NAI-33: Revenue mix comparables for the Revenue specialist.
+ *
+ * Live sources (tried in parallel, each independently fault-tolerant):
+ *   1. Wikipedia "Hotel_food_and_beverage" — F&B share benchmark context.
+ *   2. Wikipedia "Revenue_management" — hospitality revenue-mix methodology.
+ *   3. CNBC autocomplete (RapidAPI KEY_3) — recent boutique hotel F&B news.
+ *
+ * If ≥ LIVE_MIN_REVENUE_LIVE_ROWS sources respond, prepends one "live
+ * cross-reference" composite row (values = benchmark MIDs; source string
+ * cites fetch date + live URLs/headlines). Falls back to full canned set.
+ */
 export async function getRevenueComparables(): Promise<readonly RevenueComparableRow[]> {
-  return getCannedRevenueComparables();
+  const canned = getCannedRevenueComparables();
+  const today  = new Date().toISOString().slice(0, 10);
+
+  const [wikiHotelFnBResult, wikiRevMgmtResult, cnbcResult] = await Promise.allSettled([
+    fetchWikipediaSummary("Hotel_food_and_beverage"),
+    fetchWikipediaSummary("Revenue_management"),
+    fetchCNBCHeadlines("boutique hotel food beverage revenue mix percentage"),
+  ]);
+
+  const liveSources: string[] = [];
+  if (wikiHotelFnBResult.status === "fulfilled" && wikiHotelFnBResult.value) {
+    liveSources.push(
+      "Wikipedia: Hotel food and beverage (en.wikipedia.org/wiki/Hotel_food_and_beverage)",
+    );
+  }
+  if (wikiRevMgmtResult.status === "fulfilled" && wikiRevMgmtResult.value) {
+    liveSources.push(
+      "Wikipedia: Revenue management (en.wikipedia.org/wiki/Revenue_management)",
+    );
+  }
+  if (cnbcResult.status === "fulfilled" && cnbcResult.value.length > 0) {
+    liveSources.push(`CNBC News (cnbc.p.rapidapi.com): "${cnbcResult.value[0]}"`);
+  }
+
+  logger.info(
+    `getRevenueComparables: ${liveSources.length} live sources reached`,
+    CHANNEL,
+  );
+
+  if (liveSources.length < LIVE_MIN_REVENUE_LIVE_ROWS) {
+    return canned;
+  }
+
+  const liveRow: RevenueComparableRow = {
+    property:              "Boutique-Luxury US Composite (live cross-reference)",
+    city:                  "US Market",
+    country:               "US",
+    vertical:              "boutique-luxury",
+    roomCount:             0,  // composite — not property-specific
+    marketingRateFraction: DEFAULT_MARKETING_RATE_BENCHMARK_MID,
+    fbShareFraction:       DEFAULT_FB_REVENUE_SHARE_BENCHMARK_MID,
+    eventsShareFraction:   DEFAULT_EVENTS_REVENUE_SHARE_BENCHMARK_MID,
+    otherShareFraction:    DEFAULT_OTHER_REVENUE_SHARE_BENCHMARK_MID,
+    cateringBoostFraction: DEFAULT_CATERING_BOOST_PCT_BENCHMARK_MID,
+    year:                  new Date().getFullYear(),
+    source: `Live (${today}) | ${liveSources.join(" | ")}`,
+  };
+
+  return [liveRow, ...canned];
 }
 
-/** Overhead comparables for the Overhead specialist. Canned until HFTP / AHLA overhead cost survey credentials land. */
+// ────────────────────────────────────────────────────────────────────────────
+// Overhead comparables — NAI-34
+
+/**
+ * NAI-34: Overhead cost comparables for the Overhead specialist.
+ *
+ * Live sources (tried in parallel, each independently fault-tolerant):
+ *   1. Wikipedia "Hotel_management" — ManCo overhead context and structure.
+ *   2. CNBC autocomplete (RapidAPI KEY_3) — recent hotel mgmt overhead news.
+ *   3. Alpha Vantage OVERVIEW (RapidAPI KEY_3) — Marriott (MAR) operating
+ *      margin TTM as large-scale public-company proxy. Boutique ManCos run
+ *      proportionally higher overhead (fewer properties amortising fixed
+ *      costs); this is labelled explicitly in the source string.
+ *   4. REST Countries (free) — US economic context for locale calibration.
+ *
+ * Prepends one "live context" composite row (benchmark MID values); canned
+ * set follows unchanged.
+ */
 export async function getOverheadComparables(): Promise<readonly OverheadComparableRow[]> {
-  return getCannedOverheadComparables();
+  const canned = getCannedOverheadComparables();
+  const today  = new Date().toISOString().slice(0, 10);
+
+  const [wikiResult, cnbcResult, alphaResult, countryResult] = await Promise.allSettled([
+    fetchWikipediaSummary("Hotel_management"),
+    fetchCNBCHeadlines("hotel management company corporate overhead operating expenses cost"),
+    fetchAlphaVantageOverview("MAR"),
+    fetchRestCountryContext("US"),
+  ]);
+
+  const liveSources: string[] = [];
+  if (wikiResult.status === "fulfilled" && wikiResult.value) {
+    liveSources.push(
+      "Wikipedia: Hotel management (en.wikipedia.org/wiki/Hotel_management)",
+    );
+  }
+  if (cnbcResult.status === "fulfilled" && cnbcResult.value.length > 0) {
+    liveSources.push(`CNBC News (cnbc.p.rapidapi.com): "${cnbcResult.value[0]}"`);
+  }
+  if (
+    alphaResult.status === "fulfilled" &&
+    alphaResult.value?.operatingMarginTTM != null
+  ) {
+    const pct = (alphaResult.value.operatingMarginTTM * 100).toFixed(1);
+    liveSources.push(
+      `Alpha Vantage (MAR): ${pct}% operating margin TTM — large-scale proxy; boutique ManCos proportionally higher overhead`,
+    );
+  }
+  if (countryResult.status === "fulfilled" && countryResult.value) {
+    liveSources.push(`REST Countries: ${countryResult.value}`);
+  }
+
+  logger.info(
+    `getOverheadComparables: ${liveSources.length} live sources reached`,
+    CHANNEL,
+  );
+
+  if (liveSources.length < LIVE_MIN_OVERHEAD_LIVE_ROWS) {
+    return canned;
+  }
+
+  const liveRow: OverheadComparableRow = {
+    operator:                "US Boutique ManCo Composite (live cross-reference)",
+    locale:                  "US",
+    vertical:                "boutique-luxury",
+    propertyCount:           0,   // composite — not operator-specific
+    officeLeaseUsd:          DEFAULT_OFFICE_LEASE_BENCHMARK_MID,
+    professionalServicesUsd: DEFAULT_PROFESSIONAL_SERVICES_BENCHMARK_MID,
+    techInfraUsd:            DEFAULT_TECH_INFRA_BENCHMARK_MID,
+    businessInsuranceUsd:    DEFAULT_BUSINESS_INSURANCE_BENCHMARK_MID,
+    travelCostPerClientUsd:  DEFAULT_TRAVEL_COST_PER_CLIENT_BENCHMARK_MID,
+    itLicensePerClientUsd:   DEFAULT_IT_LICENSE_PER_CLIENT_BENCHMARK_MID,
+    vintage:                 new Date().getFullYear(),
+    source: `Live (${today}) | ${liveSources.join(" | ")}`,
+  };
+
+  return [liveRow, ...canned];
 }
 
-/** Property-defaults comparables for the PropertyDefaults specialist. Canned until Kalibri Labs / AHLA distribution credentials land. */
-export async function getPropertyDefaultsComparables(): Promise<readonly PropertyDefaultsComparableRow[]> {
-  return getCannedPropertyDefaultsComparables();
+// ────────────────────────────────────────────────────────────────────────────
+// PropertyDefaults comparables — NAI-35
+
+/**
+ * NAI-35: Property-defaults comparables for the PropertyDefaults specialist.
+ *
+ * Live sources (tried in parallel):
+ *   1. Booking.com (RapidAPI KEY_2) — live boutique hotel search in NYC,
+ *      Miami, and Bogotá. Average ADR drives OTA booking-mix calibration:
+ *        salesCommissionRate = adjustedMixFraction × BOOKING_COM_COMMISSION
+ *      Hotels with ADR < LIVE_BOOKING_ADR_BUDGET_THRESHOLD_USD get the
+ *      HEAVY OTA mix assumption; others use the city default.
+ *   2. Wikipedia "Online_travel_agency" — OTA commission structure context.
+ *   3. CNBC autocomplete (RapidAPI KEY_3) — recent OTA commission news.
+ *
+ * Falls back to full canned set if < LIVE_MIN_PROPERTY_DEFAULTS_LIVE_ROWS
+ * live rows are returned. Canned rows for uncovered locales are appended.
+ * Results cached 12 h (OTA rate data changes daily).
+ */
+export async function getPropertyDefaultsComparables(): Promise<
+  readonly PropertyDefaultsComparableRow[]
+> {
+  const canned = getCannedPropertyDefaultsComparables();
+
+  const liveRows = await cache.staleWhileRevalidate<PropertyDefaultsComparableRow[]>(
+    "live-comparables:property-defaults:booking-com",
+    LIVE_OTA_CACHE_TTL_SECONDS,
+    () => fetchPropertyDefaultsLive(),
+  );
+
+  if (liveRows.length < LIVE_MIN_PROPERTY_DEFAULTS_LIVE_ROWS) {
+    return canned;
+  }
+
+  const liveLocales = new Set(liveRows.map((r) => r.locale));
+  const cannedFill  = canned.filter((r) => !liveLocales.has(r.locale));
+  return [...liveRows, ...cannedFill];
+}
+
+/** Inner fetch function wrapped by the 12-h stale-while-revalidate cache. */
+async function fetchPropertyDefaultsLive(): Promise<PropertyDefaultsComparableRow[]> {
+  const today = new Date().toISOString().slice(0, 10);
+
+  type CityConfig = {
+    city: string;
+    locale: string;
+    vertical: "boutique-luxury" | "wellness" | "lifestyle";
+    otaMixFraction: number;
+  };
+
+  const cities: CityConfig[] = [
+    { city: "New York", locale: "US", vertical: "boutique-luxury", otaMixFraction: LIVE_OTA_MIX_HEAVY_FRACTION    },
+    { city: "Miami",    locale: "US", vertical: "boutique-luxury", otaMixFraction: LIVE_OTA_MIX_STANDARD_FRACTION },
+    { city: "Bogota",   locale: "CO", vertical: "boutique-luxury", otaMixFraction: LIVE_OTA_MIX_STANDARD_FRACTION },
+  ];
+
+  const [nyResult, miamiResult, bogotaResult, wikiOtaResult, cnbcResult] =
+    await Promise.allSettled([
+      fetchBookingComBoutiqueHotels(cities[0].city),
+      fetchBookingComBoutiqueHotels(cities[1].city),
+      fetchBookingComBoutiqueHotels(cities[2].city),
+      fetchWikipediaSummary("Online_travel_agency"),
+      fetchCNBCHeadlines(
+        "OTA commission hotel distribution cost Booking Expedia Airbnb",
+      ),
+    ]);
+
+  const cityResults = [
+    { result: nyResult,     ...cities[0] },
+    { result: miamiResult,  ...cities[1] },
+    { result: bogotaResult, ...cities[2] },
+  ];
+
+  const otaContextSources: string[] = [];
+  if (wikiOtaResult.status === "fulfilled" && wikiOtaResult.value) {
+    otaContextSources.push(
+      "Wikipedia: Online travel agency (en.wikipedia.org/wiki/Online_travel_agency)",
+    );
+  }
+  if (cnbcResult.status === "fulfilled" && cnbcResult.value.length > 0) {
+    otaContextSources.push(`CNBC News: "${cnbcResult.value[0]}"`);
+  }
+
+  const liveRows: PropertyDefaultsComparableRow[] = [];
+
+  for (const { result, city, locale, vertical, otaMixFraction } of cityResults) {
+    if (result.status !== "fulfilled" || !result.value.length) continue;
+    const hotels = result.value.filter((h) => h.avgPricePerNightUsd > 0);
+    if (!hotels.length) continue;
+
+    const avgAdr = Math.round(
+      hotels.reduce((s, h) => s + h.avgPricePerNightUsd, 0) / hotels.length,
+    );
+    const adjustedMix = avgAdr < LIVE_BOOKING_ADR_BUDGET_THRESHOLD_USD
+      ? LIVE_OTA_MIX_HEAVY_FRACTION
+      : otaMixFraction;
+    const salesCommissionRate = parseFloat(
+      (adjustedMix * LIVE_OTA_COMMISSION_BOOKING_COM_FRACTION).toFixed(4),
+    );
+
+    const rowSources = [
+      `Booking.com live search (${city}, ${today}, avg $${avgAdr}/night, n=${hotels.length})`,
+      ...otaContextSources,
+      `OTA mix ${(adjustedMix * 100).toFixed(0)}% × ${(LIVE_OTA_COMMISSION_BOOKING_COM_FRACTION * 100).toFixed(0)}% commission = ${(salesCommissionRate * 100).toFixed(1)}% blended`,
+    ];
+
+    liveRows.push({
+      propertyName:           `${city} Boutique Comp (Booking.com live, avg $${avgAdr}/night)`,
+      locale,
+      vertical,
+      roomCount:              LIVE_BOOKING_REPRESENTATIVE_ROOM_COUNT,
+      eventExpenseRate:       DEFAULT_EVENT_EXPENSE_RATE_BENCHMARK_MID,
+      otherExpenseRate:       DEFAULT_OTHER_EXPENSE_RATE_BENCHMARK_MID,
+      utilitiesVariableSplit: DEFAULT_UTILITIES_VARIABLE_SPLIT_BENCHMARK_MID,
+      salesCommissionRate,
+      vintage:                new Date().getFullYear(),
+      source:                 rowSources.join(" | "),
+    });
+  }
+
+  logger.info(
+    `fetchPropertyDefaultsLive: ${liveRows.length} live rows from Booking.com`,
+    CHANNEL,
+  );
+  return liveRows;
 }

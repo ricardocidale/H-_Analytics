@@ -26,6 +26,10 @@ import { BaseIntegrationService } from "./BaseIntegrationService";
 import { cache } from "../cache";
 import type { ApifyMarketData, ApifyListingSnapshot } from "@shared/market-intelligence";
 
+// Forward import used by ApifyBizIntelService (declared after this class)
+// We import here at module level to avoid the require() anti-pattern.
+import { BaseIntegrationService as _BaseForBizIntel } from "./BaseIntegrationService";
+
 const APIFY_BASE_URL = "https://api.apify.com/v2/acts";
 const CACHE_TTL_SECONDS = 12 * 60 * 60; // 12 hours
 const ACTOR_TIMEOUT_SECONDS = 90;
@@ -259,3 +263,208 @@ export class ApifyService extends BaseIntegrationService {
     return d.toISOString().slice(0, 10);
   }
 }
+
+// ─── Business Intelligence Scrapers ──────────────────────────────────────────
+//
+// Lightweight output shapes from Apify business-intel actors.
+// Used as background context for Overhead (NAI-34) and Revenue (NAI-33)
+// specialist research. Actors run async/cached — not in the hot specialist path.
+
+/** Minimal profile returned by the LinkedIn company scraper. */
+export interface LinkedInCompanySnap {
+  name: string;
+  industry?: string;
+  employeeCount?: number;
+  description?: string;
+  url?: string;
+}
+
+/** Minimal funding entry from the Crunchbase scraper. */
+export interface CrunchbaseFundingSnap {
+  organizationName: string;
+  totalFundingUsd?: number;
+  lastFundingType?: string;
+  lastFundingDate?: string;
+  url?: string;
+}
+
+/** Minimal news article from Bloomberg or WSJ scrapers. */
+export interface NewsArticleSnap {
+  headline: string;
+  summary?: string;
+  publishedAt?: string;
+  url?: string;
+  source: "bloomberg" | "wsj";
+}
+
+/** Aggregated business intelligence result. */
+export interface ApifyBizIntelData {
+  linkedIn?: LinkedInCompanySnap[];
+  crunchbase?: CrunchbaseFundingSnap[];
+  bloomberg?: NewsArticleSnap[];
+  wsj?: NewsArticleSnap[];
+  fetchedAt: string;
+}
+
+/**
+ * ApifyBizIntelService — business intelligence scrapers for the Overhead and
+ * Revenue specialist research pipeline.
+ *
+ * Actor IDs (Apify public store):
+ *   LinkedIn company: bebity/linkedin-company-scraper
+ *   Crunchbase:       epctex/crunchbase-scraper
+ *   Bloomberg:        epctex/bloomberg-scraper
+ *   WSJ:              epctex/the-wall-street-journal-scraper
+ *
+ * Auth: APIFY_API_TOKEN environment variable (shared with ApifyService).
+ * Cache TTL: 24 h — business profile data changes slowly.
+ */
+export class ApifyBizIntelService extends _BaseForBizIntel {
+  private readonly apiToken: string | undefined;
+
+  constructor() {
+    super("ApifyBizIntel", 120_000); // 120 s — biz-intel actors can be slow
+    this.apiToken = process.env.APIFY_API_TOKEN;
+  }
+
+  isAvailable(): boolean {
+    return !!this.apiToken;
+  }
+
+  /**
+   * Fetch business intelligence for a hospitality query (e.g. "boutique hotel
+   * management company New York"). Runs LinkedIn, Crunchbase, Bloomberg, and
+   * WSJ scrapers in parallel; each is independently fault-tolerant.
+   */
+  async fetchBizIntel(query: string): Promise<ApifyBizIntelData> {
+    const cacheKey = `apify:bizintel:${query.toLowerCase().replace(/[^a-z0-9]+/g, "_").slice(0, 64)}`;
+    const { cache: cacheModule } = await import("../cache");
+    return cacheModule.staleWhileRevalidate<ApifyBizIntelData>(
+      cacheKey,
+      BIZ_INTEL_CACHE_TTL_SECONDS,
+      () => this.fetchBizIntelFresh(query),
+    );
+  }
+
+  private async fetchBizIntelFresh(query: string): Promise<ApifyBizIntelData> {
+    const [linkedInResult, crunchbaseResult, bloombergResult, wsjResult] =
+      await Promise.allSettled([
+        this.scrapeLinkedIn(query),
+        this.scrapeCrunchbase(query),
+        this.scrapeBloomberg(query),
+        this.scrapeWSJ(query),
+      ]);
+
+    return {
+      linkedIn:   linkedInResult.status   === "fulfilled" ? linkedInResult.value   : undefined,
+      crunchbase: crunchbaseResult.status === "fulfilled" ? crunchbaseResult.value : undefined,
+      bloomberg:  bloombergResult.status  === "fulfilled" ? bloombergResult.value  : undefined,
+      wsj:        wsjResult.status        === "fulfilled" ? wsjResult.value        : undefined,
+      fetchedAt:  new Date().toISOString(),
+    };
+  }
+
+  // ─── LinkedIn ─────────────────────────────────────────────────────────────
+
+  private async scrapeLinkedIn(query: string): Promise<LinkedInCompanySnap[]> {
+    const actorId = "bebity/linkedin-company-scraper";
+    const items = await this.runActor(actorId, {
+      searchQueries: [query],
+      maxResults: BIZ_INTEL_MAX_ITEMS,
+    });
+    return items.map((i: Record<string, unknown>) => ({
+      name:          String(i.name ?? i.companyName ?? ""),
+      industry:      i.industry != null ? String(i.industry) : undefined,
+      employeeCount: typeof i.employeeCount === "number" ? i.employeeCount : undefined,
+      description:   i.description != null ? String(i.description).slice(0, BIZ_INTEL_DESCRIPTION_MAX_CHARS) : undefined,
+      url:           i.url != null ? String(i.url) : undefined,
+    })).filter((s: LinkedInCompanySnap) => s.name);
+  }
+
+  // ─── Crunchbase ───────────────────────────────────────────────────────────
+
+  private async scrapeCrunchbase(query: string): Promise<CrunchbaseFundingSnap[]> {
+    const actorId = "epctex/crunchbase-scraper";
+    const items = await this.runActor(actorId, {
+      search: query,
+      maxItems: BIZ_INTEL_MAX_ITEMS,
+      type: "organizations",
+    });
+    return items.map((i: Record<string, unknown>) => ({
+      organizationName: String(i.name ?? i.organizationName ?? ""),
+      totalFundingUsd:  typeof i.totalFunding === "number" ? i.totalFunding
+                        : typeof i.total_funding_usd === "number" ? i.total_funding_usd
+                        : undefined,
+      lastFundingType:  i.lastFundingType != null ? String(i.lastFundingType) : undefined,
+      lastFundingDate:  i.lastFundingDate != null ? String(i.lastFundingDate) : undefined,
+      url:              i.url != null ? String(i.url) : undefined,
+    })).filter((s: CrunchbaseFundingSnap) => s.organizationName);
+  }
+
+  // ─── Bloomberg ────────────────────────────────────────────────────────────
+
+  private async scrapeBloomberg(query: string): Promise<NewsArticleSnap[]> {
+    const actorId = "epctex/bloomberg-scraper";
+    const items = await this.runActor(actorId, {
+      search: query,
+      maxItems: BIZ_INTEL_MAX_ITEMS,
+    });
+    return items.map((i: Record<string, unknown>) => ({
+      headline:    String(i.title ?? i.headline ?? ""),
+      summary:     i.summary != null ? String(i.summary).slice(0, BIZ_INTEL_DESCRIPTION_MAX_CHARS) : undefined,
+      publishedAt: i.publishedAt != null ? String(i.publishedAt) : undefined,
+      url:         i.url != null ? String(i.url) : undefined,
+      source:      "bloomberg" as const,
+    })).filter((s: NewsArticleSnap) => s.headline);
+  }
+
+  // ─── WSJ ──────────────────────────────────────────────────────────────────
+
+  private async scrapeWSJ(query: string): Promise<NewsArticleSnap[]> {
+    const actorId = "epctex/the-wall-street-journal-scraper";
+    const items = await this.runActor(actorId, {
+      search: query,
+      maxItems: BIZ_INTEL_MAX_ITEMS,
+    });
+    return items.map((i: Record<string, unknown>) => ({
+      headline:    String(i.title ?? i.headline ?? ""),
+      summary:     i.summary != null ? String(i.summary).slice(0, BIZ_INTEL_DESCRIPTION_MAX_CHARS) : undefined,
+      publishedAt: i.publishedAt != null ? String(i.publishedAt) : undefined,
+      url:         i.url != null ? String(i.url) : undefined,
+      source:      "wsj" as const,
+    })).filter((s: NewsArticleSnap) => s.headline);
+  }
+
+  // ─── Actor runner (mirrors ApifyService.runActor) ─────────────────────────
+
+  private async runActor(actorId: string, input: Record<string, unknown>): Promise<Record<string, unknown>[]> {
+    if (!this.apiToken) return [];
+    const url = [
+      `${APIFY_BIZ_BASE_URL}/${encodeURIComponent(actorId)}/run-sync-get-dataset-items`,
+      `?timeout=${BIZ_INTEL_ACTOR_TIMEOUT_SECONDS}`,
+      `&memory=${BIZ_INTEL_ACTOR_MEMORY_MB}`,
+    ].join("");
+    try {
+      const response = await this.fetchWithTimeout(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.apiToken}`,
+        },
+        body: JSON.stringify(input),
+      });
+      const data = await response.json();
+      return Array.isArray(data) ? (data as Record<string, unknown>[]) : [];
+    } catch {
+      return [];
+    }
+  }
+}
+
+// ─── Module-level constants for ApifyBizIntelService ─────────────────────────
+const APIFY_BIZ_BASE_URL              = "https://api.apify.com/v2/acts";
+const BIZ_INTEL_CACHE_TTL_SECONDS     = 24 * 60 * 60; // 24 h
+const BIZ_INTEL_ACTOR_TIMEOUT_SECONDS = 90;
+const BIZ_INTEL_ACTOR_MEMORY_MB       = 256;
+const BIZ_INTEL_MAX_ITEMS             = 10;
+const BIZ_INTEL_DESCRIPTION_MAX_CHARS = 500;

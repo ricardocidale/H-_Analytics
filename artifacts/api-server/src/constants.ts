@@ -347,3 +347,54 @@ export const PDF_REPORT_GRAY_RGB = 140;
 
 /** Max tokens for ICP research generation */
 export const AI_ICP_RESEARCH_MAX_TOKENS = 12000;
+
+// ─── Live-comparables: OTA commission and booking-mix calibration (NAI-35) ──
+//
+// Booking.com and Airbnb commission rates are publicly documented in their
+// partner programmes. The OTA booking-mix fractions reflect typical boutique-
+// luxury hotel distribution splits (AHLA Distribution Cost Study 2024).
+
+/** Booking.com host-side commission on confirmed reservations. Standard bracket 15–25% of room revenue; median used. Source: Booking.com Partner Hub 2024. */
+export const LIVE_OTA_COMMISSION_BOOKING_COM_FRACTION  = 0.20;
+
+/** Airbnb host-side service fee as fraction of booking subtotal. Source: Airbnb Help Center "Understanding Airbnb fees" 2024 (3% standard host fee). */
+export const LIVE_OTA_COMMISSION_AIRBNB_HOST_FRACTION  = 0.03;
+
+/** OTA booking-mix fraction for OTA-heavy urban boutique hotels (~45% of bookings via OTA channels). Source: AHLA Distribution Cost Study 2024. */
+export const LIVE_OTA_MIX_HEAVY_FRACTION               = 0.45;
+
+/** OTA booking-mix fraction for standard boutique hotels (~30% of bookings via OTA channels). Source: AHLA Distribution Cost Study 2024. */
+export const LIVE_OTA_MIX_STANDARD_FRACTION            = 0.30;
+
+/** OTA booking-mix fraction for direct-booking-optimised boutique hotels (~15% via OTA; strong direct-channel + loyalty programme). Source: AHLA 2024. */
+export const LIVE_OTA_MIX_LIGHT_FRACTION               = 0.15;
+
+/** Minimum live PropertyDefaults rows required before falling back to canned dataset. */
+export const LIVE_MIN_PROPERTY_DEFAULTS_LIVE_ROWS      = 2;
+
+/** Minimum live Revenue comparable rows required before falling back to canned dataset. */
+export const LIVE_MIN_REVENUE_LIVE_ROWS                = 1;
+
+/** Minimum live Overhead comparable rows required before falling back to canned dataset. */
+export const LIVE_MIN_OVERHEAD_LIVE_ROWS               = 1;
+
+/** Representative boutique hotel room count used for Booking.com live comp rows (room count is not exposed by the search API). */
+export const LIVE_BOOKING_REPRESENTATIVE_ROOM_COUNT    = 40;
+
+/** ADR threshold (USD/night): hotels below this rate are assumed OTA-heavy (price-sensitive guests skew toward OTA channels). */
+export const LIVE_BOOKING_ADR_BUDGET_THRESHOLD_USD     = 200;
+
+/** Days from today to hotel check-in when sampling live Booking.com rates (2-week lead). */
+export const LIVE_BOOKING_CHECKIN_LEAD_DAYS            = 14;
+
+/** Days from today to hotel check-out when sampling live Booking.com rates (3-night stay: check-out = check-in + 3). */
+export const LIVE_BOOKING_CHECKOUT_LEAD_DAYS           = 17;
+
+/** Maximum Booking.com hotel results to retain per city for comp-row derivation. */
+export const LIVE_BOOKING_MAX_HOTELS_PER_CITY          = 8;
+
+/** CNBC autocomplete API fetch limit (how many raw items to request). */
+export const LIVE_CNBC_FETCH_LIMIT                     = 10;
+
+/** CNBC headline slice — number of headlines to retain from the raw fetch. */
+export const LIVE_CNBC_HEADLINE_SLICE                  = 5;

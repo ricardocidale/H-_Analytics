@@ -25,29 +25,45 @@ const DEFAULTS = [
   { kind: "scraper", serviceKey: "rapidapi-booking", name: "Booking.com (RapidAPI)", sourceType: "RapidAPI", credentialEnvVar: "RAPIDAPI_KEY_2", host: "booking-com.p.rapidapi.com", isEnabled: true, isSubscribed: true, notes: "Booking.com hotel search & pricing (Key 2)", sortOrder: 3 },
   { kind: "scraper", serviceKey: "rapidapi-hotels", name: "Hotels.com (RapidAPI)", sourceType: "RapidAPI", credentialEnvVar: "RAPIDAPI_KEY_3", host: "hotels-com-provider.p.rapidapi.com", isEnabled: true, isSubscribed: true, notes: "Hotels.com search & pricing (Key 3)", sortOrder: 4 },
   { kind: "scraper", serviceKey: "rapidapi-tripadvisor", name: "TripAdvisor (RapidAPI)", sourceType: "RapidAPI", credentialEnvVar: "RAPIDAPI_KEY_3", host: "tripadvisor16.p.rapidapi.com", isEnabled: false, isSubscribed: false, notes: "NOT SUBSCRIBED — returns 404 on all keys", sortOrder: 5 },
+  // ── New RapidAPI source ────────────────────────────────────────────────────
+  { kind: "scraper", serviceKey: "rapidapi-skyscanner", name: "Skyscanner Hotels (RapidAPI)", sourceType: "RapidAPI", credentialEnvVar: "RAPIDAPI_KEY_3", host: "skyscanner50.p.rapidapi.com", isEnabled: true, isSubscribed: true, notes: "Hotel and flight price benchmarking for boutique property rate context (Key 3)", sortOrder: 6 },
+  // ── Apify business-intelligence scrapers ──────────────────────────────────
+  { kind: "scraper", serviceKey: "apify-linkedin", name: "LinkedIn Company Scraper (Apify)", sourceType: "Apify Platform", credentialEnvVar: "APIFY_API_TOKEN", host: "api.apify.com", isEnabled: true, isSubscribed: true, notes: "Boutique hotel ManCo profiles, headcount, funding context — actor: bebity/linkedin-company-scraper", sortOrder: 7 },
+  { kind: "scraper", serviceKey: "apify-crunchbase", name: "Crunchbase Scraper (Apify)", sourceType: "Apify Platform", credentialEnvVar: "APIFY_API_TOKEN", host: "api.apify.com", isEnabled: true, isSubscribed: true, notes: "Hospitality startup and ManCo funding data — actor: epctex/crunchbase-scraper", sortOrder: 8 },
+  { kind: "scraper", serviceKey: "apify-bloomberg", name: "Bloomberg News Scraper (Apify)", sourceType: "Apify Platform", credentialEnvVar: "APIFY_API_TOKEN", host: "api.apify.com", isEnabled: true, isSubscribed: true, notes: "Hotel industry and F&B revenue news — actor: epctex/bloomberg-scraper", sortOrder: 9 },
+  { kind: "scraper", serviceKey: "apify-wsj", name: "WSJ Scraper (Apify)", sourceType: "Apify Platform", credentialEnvVar: "APIFY_API_TOKEN", host: "api.apify.com", isEnabled: true, isSubscribed: true, notes: "Hotel industry and OTA distribution cost news — actor: epctex/the-wall-street-journal-scraper", sortOrder: 10 },
+  // ── Free public APIs (no auth required) ───────────────────────────────────
+  { kind: "api", serviceKey: "wikipedia", name: "Wikipedia REST API", sourceType: "Free Public API", credentialEnvVar: null, host: "en.wikipedia.org", isEnabled: true, isSubscribed: true, notes: "Hospitality benchmarks, OTA commission context, industry articles — no auth required (NAI-33, NAI-34, NAI-35)", sortOrder: 18 },
+  { kind: "api", serviceKey: "restcountries", name: "REST Countries", sourceType: "Free Public API", credentialEnvVar: null, host: "restcountries.com", isEnabled: true, isSubscribed: true, notes: "Country economic context (name, currency, region) for non-US ManCo overhead calibration — no auth required (NAI-34)", sortOrder: 19 },
+  { kind: "api", serviceKey: "cia-factbook-wiki", name: "CIA World Factbook (via Wikipedia)", sourceType: "Free Public API", credentialEnvVar: null, host: "en.wikipedia.org", isEnabled: true, isSubscribed: true, notes: "Country economic and political risk data via Wikipedia CIA Factbook pages — no auth required", sortOrder: 20 },
 ] as const;
 
 export async function seedExternalIntegrations() {
-  const existing = await db.select({ id: externalIntegrations.id }).from(externalIntegrations).limit(1);
-  if (existing.length > 0) {
-    log("external_integrations already seeded, skipping", "migration");
-    return;
-  }
-
+  // Use upsert semantics (onConflictDoNothing) so this is safe to re-run:
+  // new entries are inserted, existing rows are left untouched.
+  let inserted = 0;
   for (const row of DEFAULTS) {
-    await db.insert(externalIntegrations).values({
-      kind: row.kind,
-      serviceKey: row.serviceKey,
-      name: row.name,
-      sourceType: row.sourceType,
-      credentialEnvVar: row.credentialEnvVar,
-      host: row.host,
-      isEnabled: row.isEnabled,
-      isSubscribed: row.isSubscribed,
-      notes: row.notes,
-      sortOrder: row.sortOrder,
-    });
+    const result = await db
+      .insert(externalIntegrations)
+      .values({
+        kind: row.kind,
+        serviceKey: row.serviceKey,
+        name: row.name,
+        sourceType: row.sourceType,
+        credentialEnvVar: row.credentialEnvVar,
+        host: row.host,
+        isEnabled: row.isEnabled,
+        isSubscribed: row.isSubscribed,
+        notes: row.notes,
+        sortOrder: row.sortOrder,
+      })
+      .onConflictDoNothing();
+    if ((result.rowCount ?? 0) > 0) inserted++;
   }
 
-  log(`Seeded ${DEFAULTS.length} external integrations`, "migration");
+  if (inserted > 0) {
+    log(`Seeded ${inserted} new external integrations (${DEFAULTS.length} total configured)`, "migration");
+  } else {
+    log("external_integrations already up to date, nothing inserted", "migration");
+  }
 }

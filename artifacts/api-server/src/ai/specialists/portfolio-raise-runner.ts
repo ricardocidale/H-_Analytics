@@ -263,7 +263,7 @@ export async function runPortfolioRaiseSpecialist(
   const cognitiveRunId = `portfolio-raise-v1-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
   return buildAnalystVerdict({
-    specialistId: "portfolio.capitalRaise",
+    specialistId: "portfolio.capital-raise",
     dimensions,
     surfaceVoice,
     meta: {

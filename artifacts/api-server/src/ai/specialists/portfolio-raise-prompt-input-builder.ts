@@ -145,7 +145,7 @@ export interface PortfolioRaisePromptInputContext {
 // Assembled prompt input pack
 
 export interface PortfolioRaisePromptInput {
-  specialistId: "portfolio.capitalRaise";
+  specialistId: "portfolio.capital-raise";
   requiredFields: readonly PortfolioRaiseDimensionDescriptor[];
   analysisSummary: PortfolioRaiseAnalysisSummary;
   persona: FundingPersonaContext;
@@ -160,7 +160,7 @@ export function buildPortfolioRaisePromptInput(
   ctx: PortfolioRaisePromptInputContext,
 ): PortfolioRaisePromptInput {
   return {
-    specialistId: "portfolio.capitalRaise",
+    specialistId: "portfolio.capital-raise",
     requiredFields: PORTFOLIO_RAISE_DIMENSIONS,
     analysisSummary: ctx.analysisSummary,
     persona: ctx.persona,
