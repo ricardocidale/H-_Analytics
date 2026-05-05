@@ -36,6 +36,7 @@ import {
 } from "@engine/debt/loanCalculations";
 import { US_STATE_DEFAULTS } from "@shared/countryDefaults";
 import {
+  DEFAULT_ADR_GROWTH_RATE,
   DEFAULT_COMMISSION_RATE,
   DEFAULT_EXIT_CAP_RATE,
 } from "@shared/constants";
@@ -611,7 +612,7 @@ export function computeExitScenarios(input: ExitScenariosInput): ExitScenariosOu
   const horizons = (input.horizons ?? DEFAULT_EXIT_HORIZONS).slice();
   const ceilingYears = input.ceilingYears ?? 30;
 
-  const baseGrowth = property.adrGrowthRate ?? 0.03;
+  const baseGrowth = property.adrGrowthRate ?? DEFAULT_ADR_GROWTH_RATE;
   const scenarios = input.scenarios ?? defaultScenarios(baseGrowth);
 
   // Loan setup is shared across scenarios (the loan doesn't change with NOI).

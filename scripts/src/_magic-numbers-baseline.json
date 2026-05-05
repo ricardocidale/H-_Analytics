@@ -1389,7 +1389,6 @@
   "240": [
     "artifacts/api-server/src/data/researchSeeds.ts",
     "artifacts/api-server/src/notifications/constants-refresh-failure-digest.ts",
-    "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "artifacts/api-server/src/svg-charts.ts"
   ],
@@ -1400,7 +1399,6 @@
     "artifacts/api-server/src/data/researchSeeds.ts",
     "artifacts/api-server/src/routes/chat-insight.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
-    "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts",
     "lib/engine/src/helpers/default-resolver.ts"
   ],
@@ -1881,7 +1879,6 @@
     "artifacts/api-server/src/routes/chat-prompts.ts",
     "artifacts/api-server/src/routes/format-generators/pptx-generator.ts",
     "artifacts/api-server/src/seeds/properties.ts",
-    "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/shared/market-intelligence-pipeline.ts",
     "lib/calc/src/analysis/breakeven-targets.ts",
     "lib/shared/src/constants-benchmarks.ts",
@@ -1916,7 +1913,6 @@
     "artifacts/api-server/src/integrations/resend.ts",
     "artifacts/api-server/src/report/compiler.ts",
     "artifacts/api-server/src/routes/format-generators/pptx-generator.ts",
-    "artifacts/api-server/src/seeds/properties.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/shared/market-intelligence-pipeline.ts",
     "artifacts/api-server/src/syncHelpers.ts",
@@ -1930,23 +1926,6 @@
     "lib/shared/src/countryDefaults.ts",
     "lib/shared/src/field-registry.ts",
     "lib/shared/src/market-intelligence-pipeline.ts"
-  ],
-  "0.03": [
-    "artifacts/api-server/src/ai/executive-summary/finance-helpers.ts",
-    "artifacts/api-server/src/ai/executive-summary/templates.ts",
-    "artifacts/api-server/src/ai/portfolio-risk-scorer.ts",
-    "artifacts/api-server/src/ai/risk/insights-regulatory.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-prompt.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
-    "artifacts/api-server/src/seeds/properties.ts",
-    "artifacts/api-server/src/seeds/property-data.ts",
-    "artifacts/api-server/src/syncHelpers.ts",
-    "lib/calc/src/analysis/exit-scenarios.ts",
-    "lib/shared/src/constants-benchmarks.ts",
-    "lib/shared/src/constants-business-models.ts",
-    "lib/shared/src/constants-funding.ts",
-    "lib/shared/src/constants-operating-structures-data.ts",
-    "lib/shared/src/countryDefaults.ts"
   ],
   "0.15": [
     "artifacts/api-server/src/ai/analyst-watchdog.ts",
@@ -2347,6 +2326,20 @@
     "lib/shared/src/constants-operating-structures-data.ts",
     "lib/shared/src/constants.ts"
   ],
+  "0.03": [
+    "artifacts/api-server/src/ai/executive-summary/finance-helpers.ts",
+    "artifacts/api-server/src/ai/executive-summary/templates.ts",
+    "artifacts/api-server/src/ai/portfolio-risk-scorer.ts",
+    "artifacts/api-server/src/ai/risk/insights-regulatory.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-prompt.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
+    "artifacts/api-server/src/syncHelpers.ts",
+    "lib/shared/src/constants-benchmarks.ts",
+    "lib/shared/src/constants-business-models.ts",
+    "lib/shared/src/constants-funding.ts",
+    "lib/shared/src/constants-operating-structures-data.ts",
+    "lib/shared/src/countryDefaults.ts"
+  ],
   "0.005": [
     "artifacts/api-server/src/ai/guidance/extractor.ts",
     "artifacts/api-server/src/finance/sensitivity.ts",
@@ -2416,7 +2409,6 @@
     "artifacts/api-server/src/ai/specialists/mgmt-co-funding-prompt.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-funding-quant-panel-prompt.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
-    "artifacts/api-server/src/seeds/property-data.ts",
     "lib/shared/src/constants-business-models.ts",
     "lib/shared/src/constants-operating-structures-data.ts"
   ],
@@ -2443,13 +2435,6 @@
     "artifacts/api-server/src/seeds/property-data.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "lib/shared/src/constants-business-models.ts"
-  ],
-  "0.075": [
-    "artifacts/api-server/src/ai/specialists/mgmt-co-company-orchestrator-adapter.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-orchestrator-adapter.ts",
-    "artifacts/api-server/src/ai/specialists/property-risk-orchestrator-adapter.ts",
-    "artifacts/api-server/src/seeds/property-data.ts",
-    "lib/shared/src/constants-funding.ts"
   ],
   "1.1": [
     "artifacts/api-server/src/ai/data-routing/dispatchers/precollected-tables.ts",
@@ -2627,6 +2612,12 @@
     "artifacts/api-server/src/ai/specialists/portfolio-raise-live-comparables.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts"
+  ],
+  "0.075": [
+    "artifacts/api-server/src/ai/specialists/mgmt-co-company-orchestrator-adapter.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-orchestrator-adapter.ts",
+    "artifacts/api-server/src/ai/specialists/property-risk-orchestrator-adapter.ts",
+    "artifacts/api-server/src/seeds/property-data.ts"
   ],
   "0.45": [
     "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-orchestrator-adapter.ts",
