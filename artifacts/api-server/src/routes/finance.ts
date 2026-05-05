@@ -27,6 +27,14 @@ import type { PropertyInput, GlobalInput, MonthlyFinancials } from "@engine/type
 import type { AuditTrailPerProperty } from "../finance/service";
 import { computeIRR } from "@analytics/returns/irr";
 import { propertyEquityInvested } from "@engine/debt/equityCalculations";
+import { computeWaterfall } from "@calc/analysis/waterfall";
+import type { WaterfallOutput } from "@calc/analysis/waterfall";
+import { DEFAULT_ROUNDING } from "@calc/shared/utils";
+import {
+  DEFAULT_PREFERRED_RETURN,
+  DEFAULT_LP_EQUITY_PCT,
+  DEFAULT_WATERFALL_TIERS,
+} from "@shared/constants-research";
 
 const propertyInputSchema = z.object({
   operationsStartDate: z.string(),
@@ -91,6 +99,10 @@ const propertyInputSchema = z.object({
   depreciationYears: z.number().nullable().optional(),
   id: z.number().optional(),
   name: z.string().optional(),
+  // Waterfall / LP-GP capital structure (ADR-011)
+  lpEquityPct: z.number().min(0).max(1).nullable().optional(),
+  catchUpRate: z.number().min(0).max(1).nullable().optional(),
+  catchUpToGpPct: z.number().min(0).max(1).nullable().optional(),
 }).passthrough();
 
 const globalInputSchema = z.object({
@@ -193,6 +205,8 @@ interface PropertyReturnMetrics {
   equityInvested: number;
   exitValue: number;
   netCashFlowsByYear: number[];
+  // preferred_return_amount/shortfall are single-period approximations (totalEquity × preferred_return for 1 year, not multi-year accrual)
+  waterfallResult: WaterfallOutput | null;
 }
 
 interface ReturnsSummary {
@@ -246,6 +260,38 @@ function computeReturnsSummary(
     const exitVal = unified.yearlyCF[projectionYears - 1]?.exitValue ?? 0;
     const equity = propertyEquityInvested(property);
 
+    let waterfallResult: WaterfallOutput | null = null;
+    if (equity > 0) {
+      try {
+        const lpEquityPct = property.lpEquityPct ?? DEFAULT_LP_EQUITY_PCT;
+        const tiers =
+          Array.isArray(property.waterfallTiers) && property.waterfallTiers.length > 0
+            ? property.waterfallTiers
+            : DEFAULT_WATERFALL_TIERS;
+        const distributable = Array.from({ length: projectionYears }, (_, y) =>
+          Math.max(0, unified.yearlyCF[y]?.atcf ?? 0) +
+          (unified.yearlyCF[y]?.refinancingProceeds ?? 0) +
+          (unified.yearlyCF[y]?.exitValue ?? 0),
+        );
+        waterfallResult = computeWaterfall({
+          total_equity_invested: equity,
+          lp_equity: equity * lpEquityPct,
+          gp_equity: equity * (1 - lpEquityPct),
+          distributable_cash_flows: distributable,
+          preferred_return: property.ownerPriorityReturn ?? DEFAULT_PREFERRED_RETURN,
+          tiers,
+          catch_up_rate: property.catchUpRate ?? undefined,
+          catch_up_to_gp_pct: property.catchUpToGpPct ?? undefined,
+          rounding_policy: DEFAULT_ROUNDING,
+        });
+      } catch (err) {
+        logger.warn(
+          `Waterfall computation failed for property ${property.id}: ${err instanceof Error ? err.message : String(err)}`,
+          "finance",
+        );
+      }
+    }
+
     for (let y = 0; y < projectionYears; y++) {
       consolidatedFlows[y] += netFlows[y];
       consolidatedAtcf[y] += atcfFlows[y];
@@ -275,6 +321,7 @@ function computeReturnsSummary(
       equityInvested: equity,
       exitValue: exitVal,
       netCashFlowsByYear: netFlows,
+      waterfallResult,
     });
   }
 
