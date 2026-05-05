@@ -86,8 +86,13 @@ import {
   computeInputContextHash,
   type CompanyCacheInputs,
   type PropertyCacheInputs,
+  type VerdictCacheKey,
 } from "@engine/analyst/cognitive/cache-keys";
 import { createHash } from "node:crypto";
+import {
+  resolveCompanyPersona,
+  resolvePropertyPersona,
+} from "../ai/specialists/resolve-persona";
 
 const ANALYST_COOLDOWN_MS = 60 * 1000;
 
@@ -602,11 +607,7 @@ async function runFundingV1Path(userId: number) {
     burnFlexDownPct: overlaidGa.burnFlexDownPct,
   };
 
-  const persona: FundingPromptInputContext["persona"] = {
-    verticalSlug: portfolioVerticalSlug(properties),
-    marketTier: "L+B",
-    locale: "US",
-  };
+  const persona = resolveCompanyPersona(properties);
 
   // Portfolio aggregate — count + raise need from the saved Funding-tab amounts.
   // capitalRaise1Amount + capitalRaise2Amount are the actual management-company
@@ -664,6 +665,7 @@ async function runFundingV1Path(userId: number) {
       incentiveManagementFee: ga.incentiveManagementFee ?? null,
     };
     const verdictKey = buildFundingCacheKey({
+      specialistId: "mgmt-co.funding",
       companyInputs,
       persona,
       scenarioId: null,
@@ -735,12 +737,7 @@ async function runPropertyRiskIntelligenceV1Path(
     ? modelConstantToCountryInflationOutlook(canonicalRow)
     : null;
 
-  // Persona derived from property fields. G6-P3 replaces with full resolver.
-  const persona: PropertyRiskIntelligencePromptInputContext["persona"] = {
-    verticalSlug: hospitalityTypeToVerticalSlug(property.hospitalityType ?? "hotel"),
-    marketTier: (property.marketTier ?? "L+B") as string,
-    locale: property.country ?? "US",
-  };
+  const persona = resolvePropertyPersona(property);
 
   const ctx: PropertyRiskIntelligencePromptInputContext = {
     persona,
@@ -753,7 +750,54 @@ async function runPropertyRiskIntelligenceV1Path(
     countryInflationOutlook,
   };
 
-  return runPropertyRiskIntelligenceSpecialist(ctx, getCannedInflationComparables());
+  const startTime = Date.now();
+  const result = await runPropertyRiskIntelligenceSpecialist(ctx, getCannedInflationComparables());
+
+  // ── Phase 5C-task-1 (NAI-27): verdict cache write — non-fatal ──
+  try {
+    const propertyInputs: PropertyCacheInputs = {
+      type: property.hospitalityType ?? null,
+      businessModel: property.businessModel ?? null,
+      country: property.country ?? null,
+      stateProvince: property.stateProvince ?? null,
+      marketTier: property.marketTier ?? null,
+    };
+    const personaHash = createHash("sha256")
+      .update(JSON.stringify(persona))
+      .digest("hex");
+    const inputContextHash = computeInputContextHash("property", propertyInputs, []);
+    const verdictKey: VerdictCacheKey = {
+      scenarioId: null,
+      entityType: "property",
+      entityId: propertyId,
+      fieldGroup: [],
+      personaHash,
+      inputContextHash,
+      engineVersion: ENGINE_VERSION,
+    };
+    const runRecord = await storage.createResearchRun({
+      userId,
+      entityType: "property",
+      entityId: propertyId,
+      scenarioId: null,
+      tier: 1,
+      status: "completed",
+      completedAt: new Date(),
+      durationMs: Date.now() - startTime,
+      metadata: { specialist: "property.risk-intelligence" },
+    });
+    await storage.updateResearchRun(runRecord.id, {
+      cacheKey: computeCacheKey(verdictKey),
+      cacheInputsHash: inputContextHash,
+    });
+  } catch (cacheErr: unknown) {
+    logger.warn(
+      `runPropertyRiskIntelligenceV1Path: cache write failed for property ${propertyId}: ${cacheErr instanceof Error ? cacheErr.message : cacheErr}`,
+      "analyst-admin",
+    );
+  }
+
+  return result;
 }
 
 /**
@@ -810,47 +854,6 @@ function modelConstantToCountryInflationOutlook(
   };
 }
 
-/**
- * Map the property's `hospitalityType` string to a persona vertical slug
- * that the Property Risk Intelligence runner understands.
- */
-function hospitalityTypeToVerticalSlug(type: string): string {
-  const normalized = type.toLowerCase().replace(/[^a-z]/g, "-");
-  const knownSlugs: Record<string, string> = {
-    hotel: "boutique-luxury",
-    "boutique-hotel": "boutique-luxury",
-    resort: "boutique-luxury",
-    hostel: "budget-independent",
-    "bed-and-breakfast": "boutique-luxury",
-    "vacation-rental": "short-term-rental",
-    motel: "budget-independent",
-    vrbo: "short-term-rental",
-    "vrbo-owner-managed": "short-term-rental",
-  };
-  return knownSlugs[normalized] ?? "boutique-luxury";
-}
-
-/**
- * Derive the plurality vertical slug for a portfolio. Active properties
- * (roomCount > 0) are used when present; falls back to all properties.
- * Returns "boutique-luxury" for an empty portfolio.
- */
-function portfolioVerticalSlug(
-  properties: Array<{ hospitalityType?: string | null; roomCount?: unknown }>,
-): string {
-  const active = properties.filter(
-    (p) => p.roomCount != null && (p.roomCount as number) > 0,
-  );
-  const pool = active.length > 0 ? active : properties;
-  const freq: Record<string, number> = {};
-  for (const p of pool) {
-    const slug = hospitalityTypeToVerticalSlug(p.hospitalityType ?? "hotel");
-    freq[slug] = (freq[slug] ?? 0) + 1;
-  }
-  const entries = Object.entries(freq);
-  return entries.length > 0 ? entries.reduce((a, b) => (b[1] > a[1] ? b : a))[0] : "boutique-luxury";
-}
-
 // ────────────────────────────────────────────────────────────────────────────
 // G2-v1 — Revenue Specialist v1 path
 // ────────────────────────────────────────────────────────────────────────────
@@ -888,11 +891,7 @@ async function runRevenueV1Path(userId: number): Promise<Awaited<ReturnType<type
     cateringBoostPct: ga.defaultCateringBoostPct ?? null,
   };
 
-  const persona: RevenuePromptInputContext["persona"] = {
-    verticalSlug: portfolioVerticalSlug(properties),
-    marketTier: "L+B",
-    locale: "US",
-  };
+  const persona = resolveCompanyPersona(properties);
 
   // Portfolio aggregate — simple averages from saved property assumptions.
   // v1 uses startOccupancy + startAdr as a proxy for stabilized performance;
@@ -926,7 +925,48 @@ async function runRevenueV1Path(userId: number): Promise<Awaited<ReturnType<type
   };
 
   const comparables = getCannedRevenueComparables();
-  return runRevenueSpecialist(ctx, DEFAULT_REVENUE_BENCHMARKS, comparables);
+  const startTime = Date.now();
+  const result = await runRevenueSpecialist(ctx, DEFAULT_REVENUE_BENCHMARKS, comparables);
+
+  // ── Phase 5C-task-1 (NAI-27): verdict cache write — non-fatal ──
+  try {
+    const companyInputs: CompanyCacheInputs = {
+      country: ga.companyCountry ?? null,
+      numProperties: properties.length,
+      baseManagementFee: ga.baseManagementFee ?? null,
+      incentiveManagementFee: ga.incentiveManagementFee ?? null,
+    };
+    const verdictKey = buildRevenueCacheKey({
+      specialistId: "mgmt-co.revenue",
+      companyInputs,
+      persona,
+      scenarioId: null,
+      entityId: userId,
+      engineVersion: ENGINE_VERSION,
+    });
+    const runRecord = await storage.createResearchRun({
+      userId,
+      entityType: "company",
+      entityId: userId,
+      scenarioId: null,
+      tier: 1,
+      status: "completed",
+      completedAt: new Date(),
+      durationMs: Date.now() - startTime,
+      metadata: { specialist: "mgmt-co.revenue" },
+    });
+    await storage.updateResearchRun(runRecord.id, {
+      cacheKey: computeCacheKey(verdictKey),
+      cacheInputsHash: verdictKey.inputContextHash,
+    });
+  } catch (cacheErr: unknown) {
+    logger.warn(
+      `runRevenueV1Path: cache write failed for user ${userId}: ${cacheErr instanceof Error ? cacheErr.message : cacheErr}`,
+      "analyst-admin",
+    );
+  }
+
+  return result;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -965,11 +1005,7 @@ async function runCompensationV1Path(userId: number): Promise<Awaited<ReturnType
     staffTier3Fte: ga.staffTier3Fte ?? null,
   };
 
-  const persona: CompensationPromptInputContext["persona"] = {
-    verticalSlug: portfolioVerticalSlug(properties),
-    marketTier: "L+B",
-    locale: "US",
-  };
+  const persona = resolveCompanyPersona(properties);
 
   // Portfolio aggregate. ManCo revenue and burn are taken from the ICP model
   // selection when available; G3 uses the median Highline tier as a fallback
@@ -990,7 +1026,48 @@ async function runCompensationV1Path(userId: number): Promise<Awaited<ReturnType
   };
 
   const comparables = getCannedCompensationComparables();
-  return runCompensationSpecialist(ctx, DEFAULT_COMPENSATION_BENCHMARKS, comparables);
+  const startTime = Date.now();
+  const result = await runCompensationSpecialist(ctx, DEFAULT_COMPENSATION_BENCHMARKS, comparables);
+
+  // ── Phase 5C-task-1 (NAI-27): verdict cache write — non-fatal ──
+  try {
+    const companyInputs: CompanyCacheInputs = {
+      country: ga.companyCountry ?? null,
+      numProperties: properties.length,
+      baseManagementFee: ga.baseManagementFee ?? null,
+      incentiveManagementFee: ga.incentiveManagementFee ?? null,
+    };
+    const verdictKey = buildCompensationCacheKey({
+      specialistId: "mgmt-co.compensation",
+      companyInputs,
+      persona,
+      scenarioId: null,
+      entityId: userId,
+      engineVersion: ENGINE_VERSION,
+    });
+    const runRecord = await storage.createResearchRun({
+      userId,
+      entityType: "company",
+      entityId: userId,
+      scenarioId: null,
+      tier: 1,
+      status: "completed",
+      completedAt: new Date(),
+      durationMs: Date.now() - startTime,
+      metadata: { specialist: "mgmt-co.compensation" },
+    });
+    await storage.updateResearchRun(runRecord.id, {
+      cacheKey: computeCacheKey(verdictKey),
+      cacheInputsHash: verdictKey.inputContextHash,
+    });
+  } catch (cacheErr: unknown) {
+    logger.warn(
+      `runCompensationV1Path: cache write failed for user ${userId}: ${cacheErr instanceof Error ? cacheErr.message : cacheErr}`,
+      "analyst-admin",
+    );
+  }
+
+  return result;
 }
 
 /**
@@ -1026,11 +1103,7 @@ async function runOverheadV1Path(userId: number): Promise<Awaited<ReturnType<typ
     itLicensePerClient: ga.itLicensePerClient ?? null,
   };
 
-  const persona: OverheadPromptInputContext["persona"] = {
-    verticalSlug: portfolioVerticalSlug(properties),
-    marketTier: "L+B",
-    locale: "US",
-  };
+  const persona = resolveCompanyPersona(properties);
 
   // Portfolio aggregate. ManCo revenue and burn are taken from the ICP model
   // selection when available; Phase 2 uses the median Highline tier as a fallback
@@ -1051,7 +1124,48 @@ async function runOverheadV1Path(userId: number): Promise<Awaited<ReturnType<typ
   };
 
   const comparables = getCannedOverheadComparables();
-  return runOverheadSpecialist(ctx, DEFAULT_OVERHEAD_BENCHMARKS, comparables);
+  const startTime = Date.now();
+  const result = await runOverheadSpecialist(ctx, DEFAULT_OVERHEAD_BENCHMARKS, comparables);
+
+  // ── Phase 5C-task-1 (NAI-27): verdict cache write — non-fatal ──
+  try {
+    const companyInputs: CompanyCacheInputs = {
+      country: ga.companyCountry ?? null,
+      numProperties: properties.length,
+      baseManagementFee: ga.baseManagementFee ?? null,
+      incentiveManagementFee: ga.incentiveManagementFee ?? null,
+    };
+    const verdictKey = buildOverheadCacheKey({
+      specialistId: "mgmt-co.overhead",
+      companyInputs,
+      persona,
+      scenarioId: null,
+      entityId: userId,
+      engineVersion: ENGINE_VERSION,
+    });
+    const runRecord = await storage.createResearchRun({
+      userId,
+      entityType: "company",
+      entityId: userId,
+      scenarioId: null,
+      tier: 1,
+      status: "completed",
+      completedAt: new Date(),
+      durationMs: Date.now() - startTime,
+      metadata: { specialist: "mgmt-co.overhead" },
+    });
+    await storage.updateResearchRun(runRecord.id, {
+      cacheKey: computeCacheKey(verdictKey),
+      cacheInputsHash: verdictKey.inputContextHash,
+    });
+  } catch (cacheErr: unknown) {
+    logger.warn(
+      `runOverheadV1Path: cache write failed for user ${userId}: ${cacheErr instanceof Error ? cacheErr.message : cacheErr}`,
+      "analyst-admin",
+    );
+  }
+
+  return result;
 }
 
 /**
@@ -1085,11 +1199,7 @@ async function runCompanyV1Path(userId: number): Promise<Awaited<ReturnType<type
     costOfEquity: ga.costOfEquity ?? null,
   };
 
-  const persona: CompanyPromptInputContext["persona"] = {
-    verticalSlug: portfolioVerticalSlug(properties),
-    marketTier: "L+B",
-    locale: "US",
-  };
+  const persona = resolveCompanyPersona(properties);
 
   // Portfolio aggregate. ManCo revenue and burn are taken from the ICP model
   // selection when available; Phase 2 uses the median Highline tier as a fallback.
@@ -1109,7 +1219,48 @@ async function runCompanyV1Path(userId: number): Promise<Awaited<ReturnType<type
   };
 
   const comparables = getCannedCompanyComparables();
-  return runCompanySpecialist(ctx, DEFAULT_COMPANY_BENCHMARKS, comparables);
+  const startTime = Date.now();
+  const result = await runCompanySpecialist(ctx, DEFAULT_COMPANY_BENCHMARKS, comparables);
+
+  // ── Phase 5C-task-1 (NAI-27): verdict cache write — non-fatal ──
+  try {
+    const companyInputs: CompanyCacheInputs = {
+      country: ga.companyCountry ?? null,
+      numProperties: properties.length,
+      baseManagementFee: ga.baseManagementFee ?? null,
+      incentiveManagementFee: ga.incentiveManagementFee ?? null,
+    };
+    const verdictKey = buildCompanyCacheKey({
+      specialistId: "mgmt-co.company",
+      companyInputs,
+      persona,
+      scenarioId: null,
+      entityId: userId,
+      engineVersion: ENGINE_VERSION,
+    });
+    const runRecord = await storage.createResearchRun({
+      userId,
+      entityType: "company",
+      entityId: userId,
+      scenarioId: null,
+      tier: 1,
+      status: "completed",
+      completedAt: new Date(),
+      durationMs: Date.now() - startTime,
+      metadata: { specialist: "mgmt-co.company" },
+    });
+    await storage.updateResearchRun(runRecord.id, {
+      cacheKey: computeCacheKey(verdictKey),
+      cacheInputsHash: verdictKey.inputContextHash,
+    });
+  } catch (cacheErr: unknown) {
+    logger.warn(
+      `runCompanyV1Path: cache write failed for user ${userId}: ${cacheErr instanceof Error ? cacheErr.message : cacheErr}`,
+      "analyst-admin",
+    );
+  }
+
+  return result;
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -1147,11 +1298,7 @@ async function runPropertyDefaultsV1Path(userId: number): Promise<Awaited<Return
     salesCommissionRate: ga.salesCommissionRate ?? null,
   };
 
-  const persona: PropertyDefaultsPromptInputContext["persona"] = {
-    verticalSlug: portfolioVerticalSlug(properties),
-    marketTier: "L+B",
-    locale: "US",
-  };
+  const persona = resolveCompanyPersona(properties);
 
   // Portfolio aggregate. ManCo revenue and burn are taken from the ICP model
   // selection when available; Phase 2 uses the median Highline tier as a fallback.
@@ -1171,7 +1318,48 @@ async function runPropertyDefaultsV1Path(userId: number): Promise<Awaited<Return
   };
 
   const comparables = getCannedPropertyDefaultsComparables();
-  return runPropertyDefaultsSpecialist(ctx, DEFAULT_PROPERTY_DEFAULTS_BENCHMARKS, comparables);
+  const startTime = Date.now();
+  const result = await runPropertyDefaultsSpecialist(ctx, DEFAULT_PROPERTY_DEFAULTS_BENCHMARKS, comparables);
+
+  // ── Phase 5C-task-1 (NAI-27): verdict cache write — non-fatal ──
+  try {
+    const companyInputs: CompanyCacheInputs = {
+      country: ga.companyCountry ?? null,
+      numProperties: properties.length,
+      baseManagementFee: ga.baseManagementFee ?? null,
+      incentiveManagementFee: ga.incentiveManagementFee ?? null,
+    };
+    const verdictKey = buildPropertyDefaultsCacheKey({
+      specialistId: "mgmt-co.property-defaults",
+      companyInputs,
+      persona,
+      scenarioId: null,
+      entityId: userId,
+      engineVersion: ENGINE_VERSION,
+    });
+    const runRecord = await storage.createResearchRun({
+      userId,
+      entityType: "company",
+      entityId: userId,
+      scenarioId: null,
+      tier: 1,
+      status: "completed",
+      completedAt: new Date(),
+      durationMs: Date.now() - startTime,
+      metadata: { specialist: "mgmt-co.property-defaults" },
+    });
+    await storage.updateResearchRun(runRecord.id, {
+      cacheKey: computeCacheKey(verdictKey),
+      cacheInputsHash: verdictKey.inputContextHash,
+    });
+  } catch (cacheErr: unknown) {
+    logger.warn(
+      `runPropertyDefaultsV1Path: cache write failed for user ${userId}: ${cacheErr instanceof Error ? cacheErr.message : cacheErr}`,
+      "analyst-admin",
+    );
+  }
+
+  return result;
 }
 
 /**
