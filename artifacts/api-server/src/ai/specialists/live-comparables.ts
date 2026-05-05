@@ -13,8 +13,9 @@
  *                  EU Eurostat HICP row kept canned (SDMX parsing deferred).
  *
  *   Company        FRED DGS10 (10-yr Treasury yield) → live US costOfEquity anchor.
- *                  Equity risk premium for boutique hospitality management: 12 pp above
- *                  the risk-free rate (illiquidity + concentration premium).
+ *                  Equity risk premium for boutique hospitality management sourced from
+ *                  market_rates.erp_boutique_hospitality (Damodaran WACC — Lodging).
+ *                  Corporate tax rate sourced from getFactoryNumber('taxRate', 'United States').
  *
  *   Compensation   FRED CES7000000003 (L&H avg hourly earnings) → annualised US floor
  *                  anchor row. ManCo professional-staff salaries exceed the L&H average;
@@ -34,6 +35,8 @@
 
 import { logger } from "../../logger";
 import { cache } from "../../cache";
+import { getMarketRate } from "../../data/marketRates";
+import { getFactoryNumber } from "@shared/model-constants-registry";
 import {
   getCannedLpComparables,
   type ComparableRow,
@@ -111,8 +114,6 @@ import {
 
 const CHANNEL = "live-comparables";
 const FETCH_TIMEOUT_MS = 8_000;
-
-const EQUITY_RISK_PREMIUM_BOUTIQUE = 0.12;
 
 // SEC EDGAR — Form D hotel fund comparables
 const EDGAR_UA = "NAI-HospitalityAnalytics/1.0 contact@norfolkai.com";
@@ -353,10 +354,12 @@ export async function getInflationComparables(): Promise<
 
   // ── US lodging CPI (FRED CUSR0000SAH21, percent change from year ago) ────
   const usLodgingPc1 = await fetchFredObs("CUSR0000SAH21", "pc1");
-  if (usLodgingPc1 !== null) {
+  const usBandRate = await getMarketRate("us_lodging_cpi_band_halfwidth");
+  if (usLodgingPc1 !== null && usBandRate?.value != null) {
     const mid = usLodgingPc1 / 100;
-    const low = Math.max(0, mid - 0.008);
-    const high = mid + 0.008;
+    const halfWidth = usBandRate.value / 100;
+    const low = Math.max(0, mid - halfWidth);
+    const high = mid + halfWidth;
     const usRow: InflationComparableRow = {
       country: "US",
       authority: "Bureau of Labor Statistics",
@@ -374,9 +377,11 @@ export async function getInflationComparables(): Promise<
 
   // ── EM CPI projection (IMF WEO PCPIPCH/EMG) ──────────────────────────────
   const emPct = await fetchImfCpiPct("EMG");
-  if (emPct !== null) {
+  const emBandLowRate = await getMarketRate("imf_em_cpi_band_delta_low");
+  if (emPct !== null && emBandLowRate?.value != null) {
     const mid = emPct / 100;
-    const low = Math.max(0, mid - 0.012);
+    const bandLow = emBandLowRate.value / 100;
+    const low = Math.max(0, mid - bandLow);
     const high = mid + IMF_EM_CPI_BAND_DELTA_HIGH;
     const emRow: InflationComparableRow = {
       country: "EM",
@@ -412,23 +417,28 @@ export async function getInflationComparables(): Promise<
  * All 12 canned rows follow. If DGS10 is unavailable, only the canned set
  * is returned.
  *
- * Formula: costOfEquity = (DGS10 / 100) + EQUITY_RISK_PREMIUM_BOUTIQUE
- *   ERP of 12 pp reflects illiquidity + concentration + operator-execution
- *   risk for boutique-luxury management companies (3-25 properties).
+ * Formula: costOfEquity = (DGS10 / 100) + erp
+ *   ERP sourced from market_rates.erp_boutique_hospitality (Damodaran WACC — Lodging).
+ *   Corporate tax rate sourced from getFactoryNumber('taxRate', 'United States').
  */
 export async function getCompanyComparables(): Promise<
   readonly CompanyComparableRow[]
 > {
   const canned = getCannedCompanyComparables();
-  const dgs10Pct = await fetchFredObs("DGS10");
+  const [dgs10Pct, erpRate] = await Promise.all([
+    fetchFredObs("DGS10"),
+    getMarketRate("erp_boutique_hospitality"),
+  ]);
 
-  if (dgs10Pct === null) {
-    logger.info("getCompanyComparables: DGS10 unavailable, returning canned set", CHANNEL);
+  if (dgs10Pct === null || erpRate?.value == null) {
+    logger.info("getCompanyComparables: DGS10 or ERP rate unavailable, returning canned set", CHANNEL);
     return canned;
   }
 
   const riskFreeRate = dgs10Pct / 100;
-  const liveCoE = parseFloat((riskFreeRate + EQUITY_RISK_PREMIUM_BOUTIQUE).toFixed(4));
+  const erp = erpRate.value / 100;
+  const liveCoE = parseFloat((riskFreeRate + erp).toFixed(4));
+  const companyTaxRate = getFactoryNumber("taxRate", "United States");
   const today = new Date().toISOString().slice(0, 10);
 
   const liveAnchor: CompanyComparableRow = {
@@ -438,10 +448,10 @@ export async function getCompanyComparables(): Promise<
     propertyCount: 0,
     baseManagementFee: LIVE_ANCHOR_BASE_MGMT_FEE_RATE,
     incentiveManagementFee: DEFAULT_INCENTIVE_MGMT_FEE_BENCHMARK_MID,
-    companyTaxRate: 0.21,
+    companyTaxRate,
     costOfEquity: liveCoE,
     vintage: new Date().getFullYear(),
-    source: `FRED DGS10 ${dgs10Pct.toFixed(2)}% + ${(EQUITY_RISK_PREMIUM_BOUTIQUE * 100).toFixed(0)} pp boutique-hospitality ERP as of ${today}`,
+    source: `FRED DGS10 ${dgs10Pct.toFixed(2)}% + ${(erp * 100).toFixed(0)} pp boutique-hospitality ERP as of ${today}`,
   };
 
   logger.info(

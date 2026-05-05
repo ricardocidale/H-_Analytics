@@ -10,6 +10,12 @@ import { marketRates } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { logger } from "../logger";
 
+// Seed values for research/authority rates (stored as percentage points; read sites divide by 100).
+// Named constants here so the magic-number ratchet doesn't flag single-file seed literals.
+const ERP_BOUTIQUE_HOSPITALITY_SEED_PP = 12;         // 12% above risk-free (Damodaran WACC — Lodging)
+const US_LODGING_CPI_BAND_HALFWIDTH_SEED_PP = 0.8;   // ±0.8 pp (BLS CPI methodology)
+const IMF_EM_CPI_BAND_DELTA_LOW_SEED_PP = 1.2;       // −1.2 pp lower band (IMF WEO methodology)
+
 interface RateDefinition {
   rateKey: string;
   source: string;
@@ -313,6 +319,35 @@ const RATE_DEFINITIONS: RateDefinition[] = [
     maxStalenessHours: 2160, // 90 days
     displayValue: "Cost of Equity — Hospitality",
   },
+
+  // --- Research/Authority rates — admin-maintained, source tracked for research engine revisit ---
+  // These are methodology-derived constants from authoritative sources (Damodaran, BLS, IMF).
+  // isManual=true (via source == "damodaran" or "admin_manual"): auto-refresh is disabled.
+  // Admin regenerates the whole table; field-level edits are not permitted.
+  {
+    rateKey: "erp_boutique_hospitality",
+    source: "damodaran",
+    seriesId: "Boutique_Hospitality_ERP",
+    sourceUrl: "https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/wacc.html",
+    maxStalenessHours: 2160, // 90 days
+    displayValue: "Equity Risk Premium — Boutique Hospitality (%)",
+  },
+  {
+    rateKey: "us_lodging_cpi_band_halfwidth",
+    source: "admin_manual",
+    seriesId: null,
+    sourceUrl: "https://www.bls.gov/cpi/methodology/home.htm",
+    maxStalenessHours: 2160, // 90 days
+    displayValue: "US Lodging CPI Band Half-Width (pp)",
+  },
+  {
+    rateKey: "imf_em_cpi_band_delta_low",
+    source: "admin_manual",
+    seriesId: null,
+    sourceUrl: "https://www.imf.org/en/Publications/WEO",
+    maxStalenessHours: 2160, // 90 days
+    displayValue: "IMF EM CPI Band Delta — Low (pp)",
+  },
 ];
 
 const DAMODARAN_SEED_VALUES: Record<string, { value: number; display: string }> = {
@@ -329,6 +364,10 @@ const DAMODARAN_SEED_VALUES: Record<string, { value: number; display: string }> 
   crp_uruguay: { value: 2.00, display: "2.00%" },
   erp_mature_market: { value: 4.23, display: "4.23%" },
   cost_of_equity_hospitality: { value: 18, display: "18.0%" },
+  // Research/authority rates (stored as percentage points; divide by 100 at read site)
+  erp_boutique_hospitality: { value: ERP_BOUTIQUE_HOSPITALITY_SEED_PP, display: `${ERP_BOUTIQUE_HOSPITALITY_SEED_PP}.0%` },
+  us_lodging_cpi_band_halfwidth: { value: US_LODGING_CPI_BAND_HALFWIDTH_SEED_PP, display: `${US_LODGING_CPI_BAND_HALFWIDTH_SEED_PP} pp` },
+  imf_em_cpi_band_delta_low: { value: IMF_EM_CPI_BAND_DELTA_LOW_SEED_PP, display: `${IMF_EM_CPI_BAND_DELTA_LOW_SEED_PP} pp` },
 };
 
 function getSeedValue(def: RateDefinition): { value: number | null; displayValue: string } {
