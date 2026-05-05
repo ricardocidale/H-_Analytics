@@ -13,7 +13,7 @@ import {
   type AnalystRefreshAuditLog, type InsertAnalystRefreshAuditLog,
   type AnalystRefreshSettings, type InsertAnalystRefreshSettings,
 } from "@workspace/db";
-import { eq, and, desc, lte, sql } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import type { IntelligenceTx } from "../tx";
 
 /**
@@ -41,14 +41,14 @@ export class WatchdogStorage {
   /**
    * Atomic admission control for the analyst refresh cooldown.
    *
-   * INSERTs a fresh reservation, OR UPDATEs an existing one only when the
-   * prior reservation is older than `cooldownMs`. Returns `granted=true`
-   * when the slot is acquired (caller may run), or `granted=false` with
-   * `retryAfterMs` when the cooldown is still active.
-   *
-   * This is the only correct primitive for serving multiple admin clicks
-   * (or multiple app instances) without two of them passing the gate; a
-   * separate read-then-reserve sequence would race.
+   * A single CTE upserts the reservation row and RETURNS the final
+   * `reserved_at` value in one round-trip, eliminating the stale-hint
+   * window that existed when two statements were used. The DO UPDATE
+   * CASE always fires (so RETURNING always yields a row); the CASE
+   * branches the stored value — either `now` (cooldown had expired,
+   * slot granted) or the existing `reserved_at` (cooldown still active,
+   * slot denied). Comparing the returned timestamp to the `now` we sent
+   * in detects which branch was taken without a second SELECT.
    */
   async tryReserveAnalystCooldown(
     userId: number,
@@ -56,23 +56,30 @@ export class WatchdogStorage {
     cooldownMs: number,
   ): Promise<{ granted: true } | { granted: false; retryAfterMs: number }> {
     const cutoff = new Date(now.getTime() - cooldownMs);
-    const [row] = await this._ctx.db.insert(analystCooldowns)
-      .values({ userId, reservedAt: now })
-      .onConflictDoUpdate({
-        target: analystCooldowns.userId,
-        set: { reservedAt: now },
-        setWhere: lte(analystCooldowns.reservedAt, cutoff),
-      })
-      .returning({ reservedAt: analystCooldowns.reservedAt });
-    if (!row) {
-      const [existing] = await this._ctx.db.select().from(analystCooldowns)
-        .where(eq(analystCooldowns.userId, userId))
-        .limit(1);
-      const elapsed = existing ? now.getTime() - existing.reservedAt.getTime() : 0;
-      const retryAfterMs = Math.max(0, cooldownMs - elapsed);
-      return { granted: false, retryAfterMs };
+    const result = await this._ctx.db.execute<{ reserved_at: Date }>(sql`
+      WITH reservation AS (
+        INSERT INTO analyst_cooldowns (user_id, reserved_at)
+        VALUES (${userId}, ${now})
+        ON CONFLICT (user_id) DO UPDATE
+          SET reserved_at = CASE
+            WHEN analyst_cooldowns.reserved_at <= ${cutoff}
+            THEN EXCLUDED.reserved_at
+            ELSE analyst_cooldowns.reserved_at
+          END
+        RETURNING reserved_at
+      )
+      SELECT reserved_at FROM reservation
+    `);
+    const row = result.rows[0];
+    const reservedAtMs = row.reserved_at instanceof Date
+      ? row.reserved_at.getTime()
+      : new Date(row.reserved_at).getTime();
+    const granted = reservedAtMs === now.getTime();
+    if (granted) {
+      return { granted: true };
     }
-    return { granted: true };
+    const retryAfterMs = Math.max(0, cooldownMs - (now.getTime() - reservedAtMs));
+    return { granted: false, retryAfterMs };
   }
 
   /**
