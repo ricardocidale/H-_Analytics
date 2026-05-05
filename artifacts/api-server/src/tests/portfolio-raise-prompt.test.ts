@@ -80,7 +80,7 @@ describe("buildPortfolioRaiseSystemPrompt", () => {
 
   it("contains engine integrity caveat for refi understated", () => {
     const prompt = buildPortfolioRaiseSystemPrompt();
-    expect(prompt).toContain("refi-at-exit equity projections may be understated");
+    expect(prompt).toContain("Refi-at-exit equity projections may be understated");
   });
 
   it("contains LP preferred return and GP carry", () => {

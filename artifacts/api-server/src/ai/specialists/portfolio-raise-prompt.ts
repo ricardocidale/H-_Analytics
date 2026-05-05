@@ -117,7 +117,7 @@ Boutique luxury property portfolios are typically structured as:
 
 The engine provides per-property pro-forma data with two known conservative limitations:
 
-1. **Refi-at-exit equity understated (MAJOR-2):** Debt is modeled on acquisition cost basis, not income-cap valuation. Exit refinancing proceeds are excluded from the engine output. Achievable IRR and equity returns are therefore floor estimates — actual returns will likely be higher once refi proceeds are modeled.
+1. **Refi-at-exit equity understated (MAJOR-2):** Debt is modeled on acquisition cost basis, not income-cap valuation. Refi-at-exit equity projections may be understated — exit refinancing proceeds are excluded from the engine output. Achievable IRR and equity returns are floor estimates; actual returns will likely be higher once refi proceeds are modeled.
 
 2. **Pre-ops carry costs understated (MAJOR-5):** Some operating costs (property taxes, insurance) are gated on the operations start date rather than the acquisition date. Pre-opening carry during the renovation/conversion gap is understated for properties with a gap between acquisition and operations start. DSCR and ramp buffer figures for those properties are optimistic by this margin.
 
