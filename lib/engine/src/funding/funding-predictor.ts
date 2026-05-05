@@ -214,7 +214,7 @@ export function analyzeFundingNeeds(
     ? Math.ceil(totalRaiseRaw / DEFAULT_FUNDING_ROUNDING_INCREMENT) * DEFAULT_FUNDING_ROUNDING_INCREMENT
     : OPERATING_RESERVE_BUFFER + COMPANY_FUNDING_BUFFER;
 
-  const currentFunding = (global.capitalRaise1Amount ?? 0) + (global.capitalRaise2Amount ?? 0);
+  const currentFunding = (global.capitalRaise1Amount ?? 0) + (global.capitalRaise2Amount ?? 0) + (global.capitalRaise3Amount ?? 0);
   const fundingGap = totalRaiseNeeded - currentFunding;
 
   const revenueAtBreakeven = breakevenMonth !== null

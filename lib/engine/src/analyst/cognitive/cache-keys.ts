@@ -102,6 +102,7 @@ export type CompanyCacheInputs = {
   // Capital structure
   capitalRaise1Amount?: number | null;
   capitalRaise2Amount?: number | null;
+  capitalRaise3Amount?: number | null;
   // Fee tier (affects incentive/base fee ranges)
   baseManagementFee?: number | null;
   incentiveManagementFee?: number | null;
@@ -152,6 +153,7 @@ const FULL_COMPANY_INPUTS: (keyof CompanyCacheInputs)[] = [
   "country",
   "capitalRaise1Amount",
   "capitalRaise2Amount",
+  "capitalRaise3Amount",
   "baseManagementFee",
   "incentiveManagementFee",
 ];

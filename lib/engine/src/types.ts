@@ -184,6 +184,8 @@ export interface GlobalInput {
   capitalRaise1Date?: string;
   capitalRaise2Amount?: number;
   capitalRaise2Date?: string;
+  capitalRaise3Amount?: number;
+  capitalRaise3Date?: string;
   fundingInterestRate?: number;
   fundingInterestPaymentFrequency?: string;
   // Staffing tiers

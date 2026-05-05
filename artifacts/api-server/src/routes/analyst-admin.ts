@@ -120,6 +120,12 @@ function gaToGlobalInput(ga: Record<string, unknown>, projectionYears: number): 
       amortizationYears: Number(dbDebt?.amortizationYears ?? SEED_DEBT_ASSUMPTIONS.amortizationYears),
     },
     projectionYears,
+    capitalRaise1Amount: (ga.capitalRaise1Amount as number | null) ?? undefined,
+    capitalRaise1Date: (ga.capitalRaise1Date as string | null) ?? undefined,
+    capitalRaise2Amount: (ga.capitalRaise2Amount as number | null) ?? undefined,
+    capitalRaise2Date: (ga.capitalRaise2Date as string | null) ?? undefined,
+    capitalRaise3Amount: (ga.capitalRaise3Amount as number | null) ?? undefined,
+    capitalRaise3Date: (ga.capitalRaise3Date as string | null) ?? undefined,
   } as GlobalInput;
 }
 
@@ -641,7 +647,7 @@ async function runFundingV1Path(userId: number) {
   // raise targets saved by the user. sum(purchasePrice) is property acquisition
   // cost — a different quantity entirely (audit finding: data lineage).
   const totalRaiseNeedUsd =
-    (overlaidGa.capitalRaise1Amount ?? 0) + (overlaidGa.capitalRaise2Amount ?? 0);
+    (overlaidGa.capitalRaise1Amount ?? 0) + (overlaidGa.capitalRaise2Amount ?? 0) + ((overlaidGa.capitalRaise3Amount as number | null) ?? 0);
 
   // Engine analysis — non-fatal: computation failure must not block the verdict.
   // When properties exist, run the company engine to get projected cash flows,
