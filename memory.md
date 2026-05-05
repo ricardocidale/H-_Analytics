@@ -893,7 +893,7 @@ System: App Defaults, Verification, Database, Notifications, Navigation, Activit
 - **4,520 tests across 186 files** (as of April 11, 2026)
 
 ## Critical Rules
-- "Marcela" = "Rebecca" = text chat AI assistant
+- **Rebecca** is the only AI assistant — copilot-style chat, no voice agents
 - drizzle-zod: NEVER use `.omit()` — only `.pick()`
 - Domain boundary: Route files must NEVER import `db` or `drizzle-orm` directly
 - Always update replit.md AND claude.md AND memory.md after changes (Doc Harmony Rule)

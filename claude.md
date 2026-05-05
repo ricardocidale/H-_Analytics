@@ -145,7 +145,7 @@ One Railway service, no separate frontend deployments.
 
 ### AI assistant — Rebecca only
 
-This app has exactly one AI assistant: **Rebecca** — a semantic KB-search chatbot backed by pgvector + OpenAI embeddings. Marcela (ElevenLabs / Convai voice assistant) was removed from this codebase (`migrations/drop-marcela-columns.ts`). **Do not add Marcela, Convai, or ElevenLabs integrations.** Use the `embedded-ai-agent` skill for any Rebecca extension work.
+This app has exactly one AI assistant: **Rebecca** — a semantic KB-search chatbot backed by pgvector + OpenAI embeddings. **Do not add voice agents, Convai, or ElevenLabs integrations.** Use the `embedded-ai-agent` skill for any Rebecca extension work.
 
 ### Specialists
 

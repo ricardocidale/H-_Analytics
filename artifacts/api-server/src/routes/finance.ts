@@ -522,18 +522,19 @@ export function registerFinanceRoutes(router: Router): void {
       const singleEquity = propertyEquityInvested(stampedProperty);
       if (singleEquity > 0) {
         try {
+          const resolvedYears = result.projectionYears;
           const unified = aggregateUnifiedByYear(
             result.monthly,
             stampedProperty as LoanParams,
             globalAssumptions as GlobalLoanParams,
-            projectionYears,
+            resolvedYears,
           );
           const lpEquityPct = stampedProperty.lpEquityPct ?? DEFAULT_LP_EQUITY_PCT;
           const tiers =
             Array.isArray(stampedProperty.waterfallTiers) && stampedProperty.waterfallTiers.length > 0
               ? stampedProperty.waterfallTiers
               : DEFAULT_WATERFALL_TIERS;
-          const distributable = Array.from({ length: projectionYears }, (_, y) =>
+          const distributable = Array.from({ length: resolvedYears }, (_, y) =>
             Math.max(0, unified.yearlyCF[y]?.atcf ?? 0) +
             (unified.yearlyCF[y]?.refinancingProceeds ?? 0) +
             (unified.yearlyCF[y]?.exitValue ?? 0),

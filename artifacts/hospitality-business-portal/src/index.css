@@ -660,7 +660,7 @@
   animation: spherical 10s ease-in-out infinite;
 }
 
-/* ── Orb CSS Fallback Animations (ElevenLabs pattern) ──────────────── */
+/* ── Orb CSS Fallback Animations ──────────────────────────────────── */
 .orb-css {
   border-radius: 50%;
   position: relative;

@@ -616,8 +616,6 @@ async function runSchemaMigrations() {
 
   // scenario_system_unique_001 consolidated into 0036_batch7_pure_ddl.sql (Phase C batch 7)
 
-  // drop_marcela_columns_001 consolidated into 0031_batch2_drops.sql (Phase C batch 2)
-
   // seed_external_integrations_001 → moved to runSeeds() seedTasks (idempotent: skips if rows exist)
 
   // photo_image_data_001, scenario_access_001, source_call_logs_001, property_urls_001
