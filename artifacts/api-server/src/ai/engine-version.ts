@@ -27,10 +27,16 @@
 // semantic change (it defines how SynthesisOutput maps onto the legacy
 // envelope that extractGuidance + UI consume). Verdict cache must
 // cold-miss; ADR-004 invariant.
-export const ENGINE_VERSION = "v2-2026-04-20-a" as const;
+//
+// OT-A.5 C.3/C.4: bump to v3 — added CBRE/HVS management contract
+// source pointer to incentiveFee and brand FDD / STR HOST pointer to
+// svcFeeMarketing. Both are Class-1 watchlist fields; these anchors
+// prevent mode-collapse by naming the authoritative publication. Verdict
+// cache must cold-miss; ADR-004 invariant.
+export const ENGINE_VERSION = "v3-2026-05-05-a" as const;
 
 export const SYNTHESIS_FINGERPRINT =
-  "786aae354061bc8780e8f092a2dd78581c086b840a2ad0e032be383aa27d8769" as const;
+  "4a5ddf4d81e42483b634e2eb4cb5f7c8839d625a045ace2e214f9eee7fbff0ed" as const;
 
 export const COGNITIVE_MODEL_VERSIONS = {
   analystA: "gemini-2.5-flash",

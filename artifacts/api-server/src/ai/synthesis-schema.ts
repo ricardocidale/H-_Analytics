@@ -14,8 +14,9 @@
  *     "Occupancy Rate (Stabilized Year 3)" instead of the canonical
  *     "occupancy" key. 7 of 11 cases had zero field overlap with the
  *     legacy extractor. Enum-restricting fixes that at the type layer;
- *     the system prompt must also restate the canonical list (TODO in
- *     research-orchestrator.ts system prompt).
+ *     the system prompt must also restate the canonical list — resolved:
+ *     research-orchestrator.ts:241 injects the full CANONICAL_RESEARCH_FIELDS
+ *     enum into the synthesis system prompt at runtime.
  *   - `narrative[]` block removed from SynthesisOutput. It was unused
  *     by downstream consumers; generating it added ~10-20% latency.
  *   - `reasoning` max length tightened 1200 → 500 chars. 500 is enough
@@ -185,8 +186,8 @@ export const FIELD_DEFINITIONS: Record<CanonicalResearchField, FieldDefinition> 
   costPropertyTaxes: { key: "costPropertyTaxes", unit: "%", denominator: "annual property taxes as % of PROPERTY VALUE (effective mill rate). Reason per-market from the named jurisdiction's actual millage rate (county assessor or state Department of Revenue published rate × assessment ratio for commercial/lodging class). Do NOT emit a generic textbook rate; do NOT default to the state average when the property's specific county or municipality publishes its own rate", description: "Property tax rate" },
 
   // Management fees
-  incentiveFee: { key: "incentiveFee", unit: "%", denominator: "incentive management fee as % of GOP (Gross Operating Profit, hospitality-standard); NOT % of total revenue. Reason per-market from operator brand strength, owner negotiating leverage, and comparable management contracts; do NOT emit a generic textbook share of GOP", description: "Incentive management fee (% of GOP)" },
-  svcFeeMarketing: { key: "svcFeeMarketing", unit: "%", denominator: "service fee (marketing component) as % of TOTAL revenue. Reason per-market from operator brand marketing co-op intensity, regional brand penetration, and comparable management contracts in this market; do NOT emit a generic textbook rate", description: "Service fee — marketing" },
+  incentiveFee: { key: "incentiveFee", unit: "%", denominator: "incentive management fee as % of GOP (Gross Operating Profit, hospitality-standard); NOT % of total revenue. Reason per-market from operator brand strength, owner negotiating leverage, and comparable management contracts (per CBRE Hotels Research Management Contract Survey / HVS Management Agreement Study — distinguish full-service branded operators with GOP-threshold hurdle structures vs. soft-brand / independent operators with lower hurdles or flat GOP percentages); do NOT emit a generic textbook share of GOP", description: "Incentive management fee (% of GOP)" },
+  svcFeeMarketing: { key: "svcFeeMarketing", unit: "%", denominator: "service fee (marketing component) as % of TOTAL revenue. Reason per-market from the operator's brand franchise fee structure (brand Franchise Disclosure Document — FDD, Item 6: Other Fees — for the specific brand family) AND STR HOST brand contribution benchmarks for this brand tier; fully independent (unbranded) operators carry minimal or zero marketing service fees while branded operators carry the brand marketing co-op levy; do NOT emit a generic textbook rate", description: "Service fee — marketing" },
   svcFeeTechRes: { key: "svcFeeTechRes", unit: "%", denominator: "service fee (technology + reservations) as % of TOTAL revenue. Reason per-market from the operator's reservation-channel mix (brand.com share, GDS dependency), tech-stack intensity, and comparable management contracts; do NOT emit a generic textbook rate", description: "Service fee — tech/reservations" },
   svcFeeAccounting: { key: "svcFeeAccounting", unit: "%", denominator: "service fee (accounting) as % of TOTAL revenue", description: "Service fee — accounting" },
   svcFeeRevMgmt: { key: "svcFeeRevMgmt", unit: "%", denominator: "service fee (revenue management) as % of TOTAL revenue", description: "Service fee — revenue mgmt" },
