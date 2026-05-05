@@ -1,15 +1,16 @@
 /**
  * ApifyService — Web scraping for STR competitive set analysis.
  *
- * Runs Apify actors to pull live pricing from Airbnb, VRBO, Booking.com,
+ * Runs Apify actors to pull live pricing from Airbnb, Booking.com,
  * and TripAdvisor for a given location. Results feed the research AI with
  * real comp-set ADR, occupancy signals, and rating benchmarks.
  *
  * Actor IDs (public Apify store):
- *   Airbnb:      apify/airbnb-scraper
- *   VRBO:        tri_angle/vrbo-scraper
- *   Booking.com: apify/booking-scraper
- *   TripAdvisor: apify/tripadvisor-scraper
+ *   Airbnb:      tri_angle/new-fast-airbnb-scraper
+ *   Booking.com: voyager/booking-scraper
+ *   TripAdvisor: maxcopell/tripadvisor
+ *
+ * Note: VRBO omitted — no maintained public actor available as of 2025-05.
  *
  * Auth: APIFY_API_TOKEN environment variable.
  *
@@ -44,8 +45,9 @@ export class ApifyService extends BaseIntegrationService {
   }
 
   /**
-   * Main entry point — runs all four scrapers in parallel for a location.
-   * Each scraper is independently fault-tolerant; one failure doesn't block others.
+   * Main entry point — runs Airbnb, Booking.com, and TripAdvisor scrapers
+   * in parallel for a location. Each scraper is independently fault-tolerant;
+   * one failure doesn't block others.
    */
   async fetchCompSetData(location: string, roomCount = 1): Promise<ApifyMarketData> {
     const cacheKey = `apify:compset:${location.toLowerCase()}:rooms${roomCount}`;
@@ -61,16 +63,15 @@ export class ApifyService extends BaseIntegrationService {
     const checkIn = this.dateOffsetDays(14);
     const checkOut = this.dateOffsetDays(17);
 
-    const [airbnbResult, vrboResult, bookingResult, tripAdvisorResult] = await Promise.allSettled([
+    const [airbnbResult, bookingResult, tripAdvisorResult] = await Promise.allSettled([
       this.scrapeAirbnb(location, checkIn, checkOut, roomCount),
-      this.scrapeVrbo(location, checkIn, checkOut, roomCount),
       this.scrapeBooking(location, checkIn, checkOut),
       this.scrapeTripAdvisor(location),
     ]);
 
     return {
       airbnb:      airbnbResult.status === "fulfilled"      ? airbnbResult.value      : undefined,
-      vrbo:        vrboResult.status === "fulfilled"         ? vrboResult.value         : undefined,
+      vrbo:        undefined,
       booking:     bookingResult.status === "fulfilled"      ? bookingResult.value      : undefined,
       tripadvisor: tripAdvisorResult.status === "fulfilled"  ? tripAdvisorResult.value  : undefined,
     };
@@ -84,8 +85,9 @@ export class ApifyService extends BaseIntegrationService {
     checkOut: string,
     roomCount: number
   ): Promise<ApifyMarketData["airbnb"]> {
-    const items = await this.runActor("apify/airbnb-scraper", {
-      locationQueries: [location],
+    const actorId = "tri_angle/new-fast-airbnb-scraper";
+    const items = await this.runActor(actorId, {
+      location,
       checkIn,
       checkOut,
       currency: "USD",
@@ -112,58 +114,13 @@ export class ApifyService extends BaseIntegrationService {
 
     return {
       avgNightlyRate: prices.length
-        ? this.toDataPoint(this.avg(prices), "Airbnb scrape", "apify/airbnb-scraper")
+        ? this.toDataPoint(this.avg(prices), "Airbnb scrape", actorId)
         : undefined,
       priceRange: prices.length
         ? { min: Math.min(...prices), max: Math.max(...prices) }
         : undefined,
       listingCount: items.length,
       avgRating: this.avgOptional(items.map((i: any) => i.avgRating ?? i.rating)),
-      sampleListings: listings,
-      fetchedAt: new Date().toISOString(),
-    };
-  }
-
-  // ─── VRBO ─────────────────────────────────────────────────────────────────
-
-  private async scrapeVrbo(
-    location: string,
-    checkIn: string,
-    checkOut: string,
-    roomCount: number
-  ): Promise<ApifyMarketData["vrbo"]> {
-    const items = await this.runActor("tri_angle/vrbo-scraper", {
-      location,
-      checkin: checkIn,
-      checkout: checkOut,
-      minBedrooms: roomCount > 1 ? roomCount - 1 : 1,
-      maxItems: MAX_ITEMS,
-    });
-
-    if (!items.length) return undefined;
-
-    const prices = items
-      .map((i: any) => i.pricePerNight ?? i.price?.perNight ?? i.averagePrice)
-      .filter((p: any): p is number => typeof p === "number" && p > 0);
-
-    const listings: ApifyListingSnapshot[] = items.slice(0, 8).map((i: any) => ({
-      name: i.name ?? i.headline ?? "Vacation Rental",
-      pricePerNight: i.pricePerNight ?? i.price?.perNight,
-      rating: i.reviewAverage ?? i.rating,
-      reviewCount: i.reviewCount,
-      bedrooms: i.bedrooms,
-      maxGuests: i.sleepCount ?? i.maxGuests,
-      url: i.propertyUrl ?? i.url,
-    }));
-
-    return {
-      avgNightlyRate: prices.length
-        ? this.toDataPoint(this.avg(prices), "VRBO scrape", "tri_angle/vrbo-scraper")
-        : undefined,
-      priceRange: prices.length
-        ? { min: Math.min(...prices), max: Math.max(...prices) }
-        : undefined,
-      listingCount: items.length,
       sampleListings: listings,
       fetchedAt: new Date().toISOString(),
     };
@@ -176,7 +133,8 @@ export class ApifyService extends BaseIntegrationService {
     checkIn: string,
     checkOut: string
   ): Promise<ApifyMarketData["booking"]> {
-    const items = await this.runActor("apify/booking-scraper", {
+    const actorId = "voyager/booking-scraper";
+    const items = await this.runActor(actorId, {
       search: location,
       checkIn,
       checkOut,
@@ -201,7 +159,7 @@ export class ApifyService extends BaseIntegrationService {
 
     return {
       avgNightlyRate: prices.length
-        ? this.toDataPoint(this.avg(prices), "Booking.com scrape", "apify/booking-scraper")
+        ? this.toDataPoint(this.avg(prices), "Booking.com scrape", actorId)
         : undefined,
       priceRange: prices.length
         ? { min: Math.min(...prices), max: Math.max(...prices) }
@@ -215,7 +173,8 @@ export class ApifyService extends BaseIntegrationService {
   // ─── TripAdvisor ──────────────────────────────────────────────────────────
 
   private async scrapeTripAdvisor(location: string): Promise<ApifyMarketData["tripadvisor"]> {
-    const items = await this.runActor("apify/tripadvisor-scraper", {
+    const actorId = "maxcopell/tripadvisor";
+    const items = await this.runActor(actorId, {
       locationFullName: location,
       includeTag: "Hotels",
       maxItems: MAX_ITEMS,
@@ -236,7 +195,7 @@ export class ApifyService extends BaseIntegrationService {
 
     return {
       avgRating: ratings.length
-        ? this.toDataPoint(this.avg(ratings), "TripAdvisor scrape", "apify/tripadvisor-scraper")
+        ? this.toDataPoint(this.avg(ratings), "TripAdvisor scrape", actorId)
         : undefined,
       topHotels: hotels,
       fetchedAt: new Date().toISOString(),
