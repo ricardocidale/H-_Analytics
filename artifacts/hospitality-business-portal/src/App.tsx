@@ -307,6 +307,9 @@ function Router() {
         <Route path="/admin/lb-slides">
           <Redirect to="/lb-slides" />
         </Route>
+        <Route path="/slide-decks">
+          <Redirect to="/lb-slides" />
+        </Route>
         <Route path="/lb-slides">
           <AdminRoute component={LbSlides} />
         </Route>

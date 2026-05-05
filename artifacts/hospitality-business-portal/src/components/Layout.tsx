@@ -298,8 +298,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
     ...(isAdmin ? [{
       label: "Investor Materials",
       items: [
-        { href: "/slide-decks", label: "Slide Decks", icon: IconPresentation },
-        { href: "/lb-slides", label: "LB Slide Deck", icon: IconPresentation },
+        { href: "/lb-slides", label: "Slide Decks", icon: IconPresentation },
       ],
     }] : []),
     {
