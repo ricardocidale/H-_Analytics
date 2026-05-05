@@ -150,6 +150,10 @@
     "0037_hnsw_index_no_do_block": {
       "status": "self-idempotent",
       "reason": "NAI-26 fix: CREATE EXTENSION IF NOT EXISTS vector + CREATE INDEX IF NOT EXISTS vector_chunks_embedding_hnsw USING hnsw (embedding vector_cosine_ops). Replaces the DO-block approach in 0012 which Railway's migration runner mangled. All statements use IF NOT EXISTS; re-running is a no-op."
+    },
+    "0038_add_capital_raise_3": {
+      "status": "self-idempotent",
+      "reason": "ADD COLUMN IF NOT EXISTS capital_raise_3_amount real, capital_raise_3_date text on global_assumptions. Both statements use IF NOT EXISTS; re-running via migrate() is a no-op."
     }
   }
 }

@@ -39,6 +39,10 @@ here, and advance to the next.
 | Portfolio capital raise specialist + 3-tranche DB | plan-004 | ✅ Done |
 | Live specialist comparables: Revenue, Overhead, PropertyDefaults (NAI-33/34/35) | sprint | ✅ Done |
 | analyst-intelligence-display skill + compound doc | session | ✅ Done |
+| U1: MAJOR-2 refinance income-cap sizing | plan-006 | ✅ Done (CC) |
+| U2: MAJOR-4 fee subordination gate proof + fix | plan-006 | ✅ Done (CC) |
+| U3: Colombia seed tuning (exit caps + ADR) | plan-006 | ✅ Done (CC) |
+| U4: Waterfall LP/GP panel + API gap fix | plan-006 | ✅ Done (CC) |
 
 ### Linear workspace status (2026-05-05 scan)
 
@@ -114,9 +118,9 @@ Four categories of residual debt survive the sprint:
 
 ---
 
-## Lane 1 — Engine Correctness
+## Lane 1 — Engine Correctness ✅ Complete
 
-### L1-U1 · MAJOR-2: Refinance income-cap sizing
+### L1-U1 · MAJOR-2: Refinance income-cap sizing ✅ Done (CC)
 
 **Priority:** P0 — must ship first; blocks L1-U2 sequencing and all seed tuning  
 **Depends on:** Nothing  
@@ -149,7 +153,7 @@ Both scenarios must coexist; existing NOI=0 test stays.
 
 ---
 
-### L1-U2 · MAJOR-4: Incentive fee subordination proof test + fix
+### L1-U2 · MAJOR-4: Incentive fee subordination proof test + fix ✅ Done (CC)
 
 **Priority:** P0  
 **Depends on:** L1-U1 (review after refi fix, ensure ANOI chain is stable)  
@@ -182,12 +186,12 @@ levered cash happens to be larger.
 
 ---
 
-## Lane 2 — Seed & Demo Readiness
+## Lane 2 — Seed & Demo Readiness ✅ Partially complete (U3 done)
 
-**Sequencing:** Run after both L1 items are shipped. Seed values must be tuned against the
+**Sequencing:** L1 is complete. U3 (exit caps + ADRs) shipped with CC's sprint. Seed values must be tuned against the
 corrected engine — tuning before MAJOR-2/4 are fixed will produce wrong target metrics.
 
-### L2-U3 · Seed exit cap rate calibration
+### L2-U3 · Seed exit cap rate calibration ✅ Done (CC)
 
 **Priority:** P1  
 **Depends on:** L1-U1, L1-U2  
@@ -211,7 +215,7 @@ Values must be named `SEED_*` constants — no raw literals. Run `check:magic-nu
 
 ---
 
-### L2-U4 · Seed Colombia ADR adjustment
+### L2-U4 · Seed Colombia ADR adjustment ✅ Done (CC)
 
 **Priority:** P1  
 **Depends on:** L1-U1, L1-U2  
@@ -275,9 +279,9 @@ is needed unless the same value appears in ≥ 3 files with identical semantics.
 
 ---
 
-## Lane 3 — Investor UI
+## Lane 3 — Investor UI ✅ Complete
 
-### L3-U8 · Waterfall result UI panel
+### L3-U8 · Waterfall LP/GP panel + API gap fix ✅ Done (CC)
 
 **Priority:** P1 — no engine dependency; data already returned by API  
 **Depends on:** Nothing (waterfallResult already in API response)  
@@ -309,7 +313,7 @@ configured — add LP equity % and tranche structure in property settings."
 
 ## Lane 4 — Research Completeness + Tech Debt
 
-### L4-U9 · Portfolio raise live comparables (SEC EDGAR)
+### L4-U9 · Portfolio raise live comparables (SEC EDGAR) 🔄 In progress (CC)
 
 **Priority:** P2  
 **Depends on:** Nothing (no engine dependency)  
