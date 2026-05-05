@@ -23,6 +23,13 @@ import { generatePropertyProForma } from '@server/finance/core/property-pipeline
 import { aggregatePropertyByYear, aggregateUnifiedByYear } from '@engine/aggregation/yearlyAggregator';
 import { computeCashFlowSections } from '@engine/aggregation/cashFlowSections';
 import type { PropertyInput, GlobalInput } from '@engine/types';
+import { computeWaterfall } from '@calc/analysis/waterfall';
+import { DEFAULT_ROUNDING } from '@calc/shared/utils';
+import {
+  DEFAULT_PREFERRED_RETURN,
+  DEFAULT_LP_EQUITY_PCT,
+  DEFAULT_WATERFALL_TIERS,
+} from '@shared/constants-research';
 
 // ── Shared fixtures ────────────────────────────────────────────────────────────
 
@@ -479,5 +486,113 @@ describe('Finding #7 — aggregatePropertyByYear/aggregateUnifiedByYear parity (
         expect(a).toBeCloseTo(b, 4);
       }
     }
+  });
+});
+
+// ── Waterfall distribution wiring (ADR-011, U3) ───────────────────────────────
+//
+// Hand-derived arithmetic for the analytical-pin scenario:
+//   equity = $1,000,000  |  lpPct = 0.90  |  preferred_return = 0.08
+//   distributable = [$1,200,000] (single exit event)
+//   tiers = DEFAULT (Tier1 0.12/80/20, Tier2 0.18/70/30, Tier3 999/60/40)
+//   no catch-up
+//
+//   1. ROC:  min(1200000, 1000000) = 1000000  → LP 900000, GP 100000  | remaining 200000
+//   2. Pref: min(200000, 1000000×0.08=80000) = 80000 → LP 80000       | remaining 120000
+//   3. Tiers: Tier1 takes all 120000 → LP 120000×0.80=96000, GP 24000  | remaining 0
+//
+//   total_to_lp  = 900000 + 80000 + 96000 = 1076000
+//   total_to_gp  = 100000 + 24000         =  124000
+//   lp_multiple  = 1076000 / 900000       = 1.1956 (RATIO_ROUNDING precision 4)
+//   gp_multiple  = 124000  / 100000       = 1.24
+//   lp_irr_share = 1076000 / 1200000      = 0.8967
+//   gp_irr_share = 124000  / 1200000      = 0.1033
+
+describe('Waterfall distribution — analytical pin (T012-W1)', () => {
+  const EQUITY = 1_000_000;
+  const LP_PCT = DEFAULT_LP_EQUITY_PCT;  // 0.90
+  const input = {
+    total_equity_invested: EQUITY,
+    lp_equity: EQUITY * LP_PCT,        // 900 000
+    gp_equity: EQUITY * (1 - LP_PCT),  // 100 000
+    distributable_cash_flows: [1_200_000],
+    preferred_return: DEFAULT_PREFERRED_RETURN,  // 0.08
+    tiers: DEFAULT_WATERFALL_TIERS,
+    rounding_policy: DEFAULT_ROUNDING,
+  };
+
+  it('return_of_capital equals full equity when distributable exceeds equity', () => {
+    const out = computeWaterfall(input);
+    expect(out.return_of_capital).toBe(1_000_000);
+  });
+
+  it('preferred_return_amount equals totalEquity × preferred_return (single-period target, no shortfall)', () => {
+    // 1 000 000 × 0.08 = 80 000
+    const out = computeWaterfall(input);
+    expect(out.preferred_return_amount).toBe(80_000);
+    expect(out.preferred_return_shortfall).toBe(0);
+  });
+
+  it('Tier 1 absorbs all remaining capital after preferred return', () => {
+    // remaining after pref = 200000 − 80000 = 120000 → all goes to Tier 1
+    const out = computeWaterfall(input);
+    expect(out.tier_results[0].amount_distributed).toBe(120_000);
+    expect(out.tier_results[0].lp_amount).toBe(96_000);   // 120000 × 0.80
+    expect(out.tier_results[0].gp_amount).toBe(24_000);   // 120000 × 0.20
+    expect(out.tier_results[1].amount_distributed).toBe(0);
+    expect(out.tier_results[2].amount_distributed).toBe(0);
+  });
+
+  it('total_to_lp and total_to_gp match hand-derived sums', () => {
+    const out = computeWaterfall(input);
+    expect(out.total_to_lp).toBe(1_076_000);  // 900000 + 80000 + 96000
+    expect(out.total_to_gp).toBe(124_000);    // 100000 + 24000
+    expect(out.residual_undistributed).toBe(0);
+  });
+
+  it('lp_multiple and gp_multiple are correct to 4 decimal places', () => {
+    const out = computeWaterfall(input);
+    expect(out.lp_multiple).toBeCloseTo(1.1956, 4);  // 1076000 / 900000
+    expect(out.gp_multiple).toBeCloseTo(1.24, 4);    // 124000 / 100000
+  });
+
+  it('lp_irr_share + gp_irr_share sums to 1.0 (conservation of allocation)', () => {
+    const out = computeWaterfall(input);
+    expect(out.lp_irr_share + out.gp_irr_share).toBeCloseTo(1.0, 4);
+    expect(out.lp_irr_share).toBeCloseTo(0.8967, 4);  // 1076000 / 1200000
+    expect(out.gp_irr_share).toBeCloseTo(0.1033, 4);  // 124000  / 1200000
+  });
+
+  it('total_to_lp + total_to_gp + residual === total_distributable (fund conservation)', () => {
+    const out = computeWaterfall(input);
+    expect(out.total_to_lp + out.total_to_gp + out.residual_undistributed)
+      .toBeCloseTo(out.total_distributable, 2);
+  });
+});
+
+describe('Waterfall distribution — preferred return shortfall path (T012-W2)', () => {
+  // distributable < equity → ROC clips, preferred return cannot be met
+  // equity = $1,000,000, distributable = [$900,000]
+  // ROC = min(900000, 1000000) = 900000 → LP 810000, GP 90000 | remaining 0
+  // preferred target = 80000 → preferred_return_amount = 0, shortfall = 80000
+  const input = {
+    total_equity_invested: 1_000_000,
+    lp_equity: 900_000,
+    gp_equity: 100_000,
+    distributable_cash_flows: [900_000],
+    preferred_return: DEFAULT_PREFERRED_RETURN,
+    tiers: DEFAULT_WATERFALL_TIERS,
+    rounding_policy: DEFAULT_ROUNDING,
+  };
+
+  it('preferred_return_shortfall = preferred_return_target when distributable < equity', () => {
+    const out = computeWaterfall(input);
+    expect(out.preferred_return_amount).toBe(0);
+    expect(out.preferred_return_shortfall).toBe(80_000);  // 1000000 × 0.08
+  });
+
+  it('total_to_lp + total_to_gp equals the full distributable amount', () => {
+    const out = computeWaterfall(input);
+    expect(out.total_to_lp + out.total_to_gp).toBeCloseTo(900_000, 2);
   });
 });
