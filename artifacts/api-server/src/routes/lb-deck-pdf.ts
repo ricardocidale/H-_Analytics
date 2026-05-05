@@ -36,6 +36,7 @@ import {
 import {
   HTTP_200_OK,
   HTTP_202_ACCEPTED,
+  HTTP_400_BAD_REQUEST,
   HTTP_404_NOT_FOUND,
   HTTP_500_INTERNAL_SERVER_ERROR,
   HTTP_503_SERVICE_UNAVAILABLE,
@@ -108,7 +109,14 @@ router.get(
     try {
       const config = await storage.getLbSlidesConfig();
       return res.status(HTTP_200_OK).json(
-        config ?? { slide1PropertyId: null, slide2PropertyId: null, slide3PropertyId: null, slide5PropertyId: null },
+        config ?? {
+          slide1PropertyId: null,
+          slide2PropertyId: null,
+          slide3PropertyId: null,
+          slide5PropertyId: null,
+          slide4SectionSubtitle: null,
+          slide6Disclaimer: null,
+        },
       );
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to load LB config";
@@ -125,11 +133,20 @@ router.put(
   "/api/lb-slides/config",
   requireAdmin,
   async (req: Request, res: Response) => {
-    const { slide1PropertyId, slide2PropertyId, slide3PropertyId, slide5PropertyId } = req.body as {
+    const {
+      slide1PropertyId,
+      slide2PropertyId,
+      slide3PropertyId,
+      slide5PropertyId,
+      slide4SectionSubtitle,
+      slide6Disclaimer,
+    } = req.body as {
       slide1PropertyId?: number | null;
       slide2PropertyId?: number | null;
       slide3PropertyId?: number | null;
       slide5PropertyId?: number | null;
+      slide4SectionSubtitle?: string | null;
+      slide6Disclaimer?: string | null;
     };
     try {
       const updated = await storage.upsertLbSlidesConfig({
@@ -137,10 +154,46 @@ router.put(
         slide2PropertyId: slide2PropertyId ?? null,
         slide3PropertyId: slide3PropertyId ?? null,
         slide5PropertyId: slide5PropertyId ?? null,
+        slide4SectionSubtitle: slide4SectionSubtitle ?? null,
+        slide6Disclaimer: slide6Disclaimer ?? null,
       });
       return res.status(HTTP_200_OK).json(updated);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to save LB config";
+      return res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: message });
+    }
+  },
+);
+
+/**
+ * GET /api/lb-slides/canonical/:n
+ * Serves the canonical reference PNG for slide n (1–6) from R2.
+ * Key pattern: canonical/lb-6-slide/slides/slide-{n}.png
+ */
+router.get(
+  "/api/lb-slides/canonical/:n",
+  requireAdmin,
+  async (req: Request, res: Response) => {
+    const n = parseInt(String(req.params.n ?? ""), 10);
+    const SLIDE_MIN = 1;
+    const SLIDE_MAX = 6;
+    if (!Number.isFinite(n) || n < SLIDE_MIN || n > SLIDE_MAX) {
+      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Slide number must be 1–6" });
+    }
+    const key = `canonical/lb-6-slide/slides/slide-${n}.png`;
+    try {
+      const sp = await getStorageProviderAsync();
+      const result = await sp.downloadBuffer(key);
+      if (!result?.buffer) {
+        return res.status(HTTP_404_NOT_FOUND).json({ error: `Canonical slide ${n} not found in storage` });
+      }
+      res.setHeader("Content-Type", "image/png");
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.setHeader("Content-Length", String(result.buffer.length));
+      return res.end(result.buffer);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Fetch failed";
+      logger.error(`[lb-deck-pdf] Canonical fetch failed for slide ${n}: ${message}`, "lb-deck-pdf");
       return res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: message });
     }
   },

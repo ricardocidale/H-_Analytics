@@ -267,6 +267,13 @@
       "when": 1778025600000,
       "tag": "0038_add_capital_raise_3",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1746720000000,
+      "tag": "0039_lb_slides_global_copy",
+      "breakpoints": true
     }
   ]
 }
