@@ -155,10 +155,10 @@ export const FIELD_DEFINITIONS: Record<CanonicalResearchField, FieldDefinition> 
   adr: { key: "adr", unit: "$", denominator: "per available room per night", description: "Average Daily Rate" },
   adrGrowth: { key: "adrGrowth", unit: "%", denominator: "annual growth over prior-year ADR (per-year, not cumulative)", description: "Annual ADR growth rate" },
   occupancy: { key: "occupancy", unit: "%", denominator: "of available room-nights, stabilized (year 3+)", description: "Stabilized occupancy rate" },
-  startOccupancy: { key: "startOccupancy", unit: "%", denominator: "of available room-nights, month 1 of operations", description: "Day-one occupancy" },
+  startOccupancy: { key: "startOccupancy", unit: "%", denominator: "of available room-nights, month 1 of operations (NOT year-1 average — first calendar month only). Reason per-market from CBRE Hotels Research / HVS new-build ramp studies for this property class, comp-set lead time to bookable inventory, and seasonal opening month; do NOT emit a generic textbook ramp start", description: "Day-one occupancy" },
   occupancyStep: { key: "occupancyStep", unit: "%", denominator: "per-step increment in occupancy (NOT cumulative — the size of each ramp jump). Reason per-market from demand-build pace (premium leisure ramps faster than convention-dependent markets); do NOT emit a generic typical step", description: "Occupancy ramp step size" },
   rampMonths: { key: "rampMonths", unit: "months", denominator: "TOTAL months from opening to stabilized occupancy (end-to-end ramp duration). Reason per-market from demand profile, comp-set lead time to stabilization, and any seasonality compression; do NOT emit a generic textbook duration", description: "Total ramp duration to stabilization" },
-  catering: { key: "catering", unit: "%", denominator: "boost on F&B revenue (catering uplift multiplier)", description: "Catering boost on F&B" },
+  catering: { key: "catering", unit: "%", denominator: "boost on F&B revenue (catering uplift multiplier as % of base outlet F&B). Reason per-market from STR HOST F&B benchmarks for this property class plus on-site banquet/event capacity (ballroom sqft, meeting capture potential); resort and destination-wedding markets carry materially higher uplift than urban transient. Do NOT emit a generic textbook multiplier", description: "Catering boost on F&B" },
   revShareFB: { key: "revShareFB", unit: "%", denominator: "F&B revenue as % of TOTAL revenue", description: "F&B revenue share of total" },
   revShareEvents: { key: "revShareEvents", unit: "%", denominator: "Events revenue as % of TOTAL revenue", description: "Events revenue share of total" },
   revShareOther: { key: "revShareOther", unit: "%", denominator: "Other operated revenue as % of TOTAL revenue", description: "Other revenue share of total" },
@@ -169,12 +169,12 @@ export const FIELD_DEFINITIONS: Record<CanonicalResearchField, FieldDefinition> 
   saleCommission: { key: "saleCommission", unit: "%", denominator: "broker commission as % of gross sale value", description: "Disposition commission" },
 
   // Department costs — note denominators differ
-  costHousekeeping: { key: "costHousekeeping", unit: "%", denominator: "housekeeping cost as % of ROOM revenue", description: "Housekeeping cost rate" },
+  costHousekeeping: { key: "costHousekeeping", unit: "%", denominator: "housekeeping cost as % of ROOM revenue (USALI Schedule 1, Rooms Department, 'Cleaning Supplies' + 'Linen' + 'Labor — Room Attendants'). Reason per-market from STR HOST Almanac housekeeping benchmarks for this property class and ADR band, plus local hospitality wage / minimum-wage trajectory; do NOT emit a generic textbook ratio", description: "Housekeeping cost rate" },
   costFB: { key: "costFB", unit: "%", denominator: "F&B cost of sales as % of F&B revenue (hospitality-standard food cost ratio; NOT % of total revenue)", description: "F&B cost of sales" },
 
   // Undistributed expenses — all % of TOTAL revenue
   costAdmin: { key: "costAdmin", unit: "%", denominator: "admin & general as % of TOTAL revenue (USALI undistributed)", description: "Admin & general rate" },
-  costMarketing: { key: "costMarketing", unit: "%", denominator: "marketing as % of TOTAL revenue", description: "Marketing cost rate" },
+  costMarketing: { key: "costMarketing", unit: "%", denominator: "marketing as % of TOTAL revenue (USALI Schedule 5, Sales & Marketing — combined direct + brand-allocated). Reason per-market from STR HOST sales-and-marketing benchmarks for this segment, AND distinguish branded vs. independent (branded properties typically carry brand marketing co-op via service fees not duplicated here); do NOT emit a generic textbook ratio", description: "Marketing cost rate" },
   costPropertyOps: { key: "costPropertyOps", unit: "%", denominator: "property operations as % of TOTAL revenue", description: "Property ops rate" },
   costUtilities: { key: "costUtilities", unit: "%", denominator: "utilities as % of TOTAL revenue", description: "Utilities rate" },
   costFFE: { key: "costFFE", unit: "%", denominator: "FF&E reserve as % of TOTAL revenue", description: "FF&E reserve rate" },
@@ -182,7 +182,7 @@ export const FIELD_DEFINITIONS: Record<CanonicalResearchField, FieldDefinition> 
   costOther: { key: "costOther", unit: "%", denominator: "other operated as % of TOTAL revenue", description: "Other operated rate" },
 
   // Property-value-based
-  costPropertyTaxes: { key: "costPropertyTaxes", unit: "%", denominator: "annual property taxes as % of PROPERTY VALUE (effective mill rate). Reason per-market from the actual jurisdiction's millage and assessment ratio; do NOT emit a generic textbook rate", description: "Property tax rate" },
+  costPropertyTaxes: { key: "costPropertyTaxes", unit: "%", denominator: "annual property taxes as % of PROPERTY VALUE (effective mill rate). Reason per-market from the named jurisdiction's actual millage rate (county assessor or state Department of Revenue published rate × assessment ratio for commercial/lodging class). Do NOT emit a generic textbook rate; do NOT default to the state average when the property's specific county or municipality publishes its own rate", description: "Property tax rate" },
 
   // Management fees
   incentiveFee: { key: "incentiveFee", unit: "%", denominator: "incentive management fee as % of GOP (Gross Operating Profit, hospitality-standard); NOT % of total revenue. Reason per-market from operator brand strength, owner negotiating leverage, and comparable management contracts; do NOT emit a generic textbook share of GOP", description: "Incentive management fee (% of GOP)" },
@@ -200,12 +200,12 @@ export const FIELD_DEFINITIONS: Record<CanonicalResearchField, FieldDefinition> 
 
   // Capital structure
   ltv: { key: "ltv", unit: "%", denominator: "loan amount as % of property value (acquisition LTV)", description: "Loan-to-value ratio" },
-  costSeg5yrPct: { key: "costSeg5yrPct", unit: "%", denominator: "5-year MACRS class as % of BUILDING VALUE (depreciable basis = total project cost minus land allocation, per engine resolve-assumptions.ts:182 buildingValue * pct5). Reason from this market's project mix (FFE share, kitchen/back-of-house intensity, finish level); do NOT emit a generic typical range.", description: "Cost seg 5-yr class" },
+  costSeg5yrPct: { key: "costSeg5yrPct", unit: "%", denominator: "5-year MACRS class as % of BUILDING VALUE (depreciable basis = total project cost minus land allocation, per engine resolve-assumptions.ts:182 buildingValue * pct5). Reason from this market's project mix (FFE share, kitchen/back-of-house intensity, finish level) using the IRS Cost Segregation Audit Techniques Guide (ATG) — Hospitality Industry chapter — as the source for which hotel-property assets qualify for MACRS 5-year classification (FF&E, decorative lighting, carpeting, drapery, certain kitchen equipment); do NOT emit a generic typical range or default to a national-average split.", description: "Cost seg 5-yr class" },
   costSeg7yrPct: { key: "costSeg7yrPct", unit: "%", denominator: "7-year MACRS class as % of BUILDING VALUE (depreciable basis, see costSeg5yrPct). Reason per-market from operations equipment profile; do NOT emit a generic typical range.", description: "Cost seg 7-yr class" },
   costSeg15yrPct: { key: "costSeg15yrPct", unit: "%", denominator: "15-year MACRS class as % of BUILDING VALUE (depreciable basis, see costSeg5yrPct). Reason per-market from site improvements / land prep intensity (parking, hardscape, landscaping, exterior lighting); do NOT emit a generic typical range.", description: "Cost seg 15-yr class" },
   arDays: { key: "arDays", unit: "days", denominator: "accounts receivable days outstanding", description: "A/R days" },
   apDays: { key: "apDays", unit: "days", denominator: "accounts payable days outstanding", description: "A/P days" },
-  preOpeningCosts: { key: "preOpeningCosts", unit: "$", denominator: "total pre-opening expense budget in DOLLARS. Reason per-market from key-count, brand-standard hiring lead time, and local labor / training cost intensity; do NOT emit a generic textbook budget", description: "Pre-opening costs" },
+  preOpeningCosts: { key: "preOpeningCosts", unit: "$", denominator: "total pre-opening expense budget in DOLLARS (per ISHC — International Society of Hospitality Consultants — pre-opening cost guidance, scaled per-key by brand standard). Reason per-market from key-count, brand-standard hiring lead time (luxury-collection vs. select-service materially differ), and local labor / training cost intensity; do NOT emit a generic textbook budget", description: "Pre-opening costs" },
 
   // Platform (VRBO/STR)
   platformFee: { key: "platformFee", unit: "%", denominator: "platform fee rate as % of GROSS booking value (all-in: host + guest fees)", description: "Platform fee rate" },

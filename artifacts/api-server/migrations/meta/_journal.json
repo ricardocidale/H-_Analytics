@@ -246,6 +246,20 @@
       "when": 1777939200001,
       "tag": "0035_lb_slides_config",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1777982400000,
+      "tag": "0036_knowledge_registry",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1777982400001,
+      "tag": "0037_hnsw_index_no_do_block",
+      "breakpoints": true
     }
   ]
 }

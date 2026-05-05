@@ -15,6 +15,7 @@ import {
   RENOV_CONTINGENCY,
   RENOV_MAX_PCT_OF_PRICE,
   RENOV_MIN_PER_KEY,
+  DEFAULT_PROJECTION_YEARS,
 } from "@shared/constants";
 import { aggregateUnifiedByYear } from "@engine/aggregation/yearlyAggregator";
 import { calculateLoanParams, getAcquisitionYear } from "@engine/debt/loanCalculations";
@@ -85,7 +86,7 @@ const SLIDES_DEFAULT_AMORTIZATION_YEARS = 25;
 const SLIDES_DEFAULT_MAX_OCCUPANCY = 0.70;
 const SLIDES_DEFAULT_EXIT_CAP_RATE = 0.07;
 
-function buildGlobalInput(ga: Record<string, unknown>, projYears: number): GlobalInput {
+export function buildGlobalInput(ga: Record<string, unknown>, projYears: number): GlobalInput {
   const dbDebt = ga.debtAssumptions as Record<string, unknown> | null;
   return {
     modelStartDate: (ga.modelStartDate as string) ?? String(new Date().getFullYear()),
@@ -151,7 +152,7 @@ async function shrinkForCard(base64: string): Promise<string> {
 export async function buildSlidePayload(
   propertyId: number,
   userId: number | undefined,
-  projYears: number,
+  projYearsOverride?: number,
 ): Promise<SlidePayload & { _propertyName: string }> {
   const property = await storage.getProperty(propertyId);
   if (!property) throw new Error("Property not found");
@@ -226,8 +227,10 @@ export async function buildSlidePayload(
 
   try {
     const rawGlobal = userId ? await storage.getGlobalAssumptions(userId) : null;
+    const ga = (rawGlobal ?? {}) as Record<string, unknown>;
+    const projYears = projYearsOverride ?? Number(ga.projectionYears ?? DEFAULT_PROJECTION_YEARS);
     const globalAssumptions = await withModelConstants(
-      buildGlobalInput((rawGlobal ?? {}) as Record<string, unknown>, projYears),
+      buildGlobalInput(ga, projYears),
     );
     const stamped = { ...property, id: propertyId } as unknown as PropertyInput;
     const compute = await recomputeSinglePropertyAndStamp({
