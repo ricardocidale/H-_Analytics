@@ -15,6 +15,7 @@ import { logger } from "../logger";
 const ERP_BOUTIQUE_HOSPITALITY_SEED_PP = 12;         // 12% above risk-free (Damodaran WACC — Lodging)
 const US_LODGING_CPI_BAND_HALFWIDTH_SEED_PP = 0.8;   // ±0.8 pp (BLS CPI methodology)
 const IMF_EM_CPI_BAND_DELTA_LOW_SEED_PP = 1.2;       // −1.2 pp lower band (IMF WEO methodology)
+const IMF_EM_CPI_BAND_DELTA_HIGH_SEED_PP = 1.5;      // +1.5 pp upper band (IMF WEO methodology)
 
 interface RateDefinition {
   rateKey: string;
@@ -348,6 +349,14 @@ const RATE_DEFINITIONS: RateDefinition[] = [
     maxStalenessHours: 2160, // 90 days
     displayValue: "IMF EM CPI Band Delta — Low (pp)",
   },
+  {
+    rateKey: "imf_em_cpi_band_delta_high",
+    source: "admin_manual",
+    seriesId: null,
+    sourceUrl: "https://www.imf.org/en/Publications/WEO",
+    maxStalenessHours: 2160, // 90 days
+    displayValue: "IMF EM CPI Band Delta — High (pp)",
+  },
 ];
 
 const DAMODARAN_SEED_VALUES: Record<string, { value: number; display: string }> = {
@@ -368,6 +377,7 @@ const DAMODARAN_SEED_VALUES: Record<string, { value: number; display: string }> 
   erp_boutique_hospitality: { value: ERP_BOUTIQUE_HOSPITALITY_SEED_PP, display: `${ERP_BOUTIQUE_HOSPITALITY_SEED_PP}.0%` },
   us_lodging_cpi_band_halfwidth: { value: US_LODGING_CPI_BAND_HALFWIDTH_SEED_PP, display: `${US_LODGING_CPI_BAND_HALFWIDTH_SEED_PP} pp` },
   imf_em_cpi_band_delta_low: { value: IMF_EM_CPI_BAND_DELTA_LOW_SEED_PP, display: `${IMF_EM_CPI_BAND_DELTA_LOW_SEED_PP} pp` },
+  imf_em_cpi_band_delta_high: { value: IMF_EM_CPI_BAND_DELTA_HIGH_SEED_PP, display: `${IMF_EM_CPI_BAND_DELTA_HIGH_SEED_PP} pp` },
 };
 
 function getSeedValue(def: RateDefinition): { value: number | null; displayValue: string } {

@@ -74,7 +74,6 @@ import {
   LIVE_ANCHOR_BASE_MGMT_FEE_RATE,
   DEFAULT_INCENTIVE_MGMT_FEE_BENCHMARK_MID,
 } from "@shared/constants-company-benchmarks";
-import { IMF_EM_CPI_BAND_DELTA_HIGH } from "@shared/constants-benchmarks";
 import {
   DEFAULT_MARKETING_RATE_BENCHMARK_MID,
   DEFAULT_FB_REVENUE_SHARE_BENCHMARK_MID,
@@ -377,12 +376,16 @@ export async function getInflationComparables(): Promise<
 
   // ── EM CPI projection (IMF WEO PCPIPCH/EMG) ──────────────────────────────
   const emPct = await fetchImfCpiPct("EMG");
-  const emBandLowRate = await getMarketRate("imf_em_cpi_band_delta_low");
-  if (emPct !== null && emBandLowRate?.value != null) {
+  const [emBandLowRate, emBandHighRate] = await Promise.all([
+    getMarketRate("imf_em_cpi_band_delta_low"),
+    getMarketRate("imf_em_cpi_band_delta_high"),
+  ]);
+  if (emPct !== null && emBandLowRate?.value != null && emBandHighRate?.value != null) {
     const mid = emPct / 100;
     const bandLow = emBandLowRate.value / 100;
+    const bandHigh = emBandHighRate.value / 100;
     const low = Math.max(0, mid - bandLow);
-    const high = mid + IMF_EM_CPI_BAND_DELTA_HIGH;
+    const high = mid + bandHigh;
     const emRow: InflationComparableRow = {
       country: "EM",
       authority: "IMF World Economic Outlook",
