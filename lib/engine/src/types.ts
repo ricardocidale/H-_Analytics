@@ -26,6 +26,14 @@
  */
 import { ServiceTemplate, AggregatedServiceCosts } from '@calc/services/types';
 
+// Mirrors WaterfallTier from @calc/analysis/waterfall — kept local to avoid cross-package dependency.
+export interface WaterfallTierInput {
+  label: string;
+  hurdle_irr: number;
+  lp_split: number;
+  gp_split: number;
+}
+
 export interface PropertyInput {
   operationsStartDate: string;
   acquisitionDate?: string;
@@ -154,6 +162,12 @@ export interface PropertyInput {
   // Property identity
   id?: number;
   name?: string;
+  // Equity waterfall (ADR-011) — columns exist in DB; engine integration wired in finance route.
+  // null means "use defaults from DEFAULT_WATERFALL_TIERS / DEFAULT_LP_EQUITY_PCT etc."
+  lpEquityPct?: number | null;
+  catchUpRate?: number | null;
+  catchUpToGpPct?: number | null;
+  waterfallTiers?: WaterfallTierInput[] | null;
 }
 
 export interface GlobalInput {
