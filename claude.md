@@ -151,6 +151,32 @@ This app has exactly one AI assistant: **Rebecca** — a semantic KB-search chat
 
 Specialists are **dev-defined only** — see `.claude/rules/specialists-are-dev-defined-only.md`. Admins are operators, not authors. No admin UI should expose specialist creation or editing.
 
+### Intelligence Display — specialist-sourced UI affordances
+
+Every range badge, contextual tip, severity signal, or actionable suggestion shown in the UI must originate **100% from specialist or research-engine output**. No component may hard-code a range, write its own advice, or derive a suggestion through local logic.
+
+**Data flow:**
+```
+Specialist / research engine runs
+  → AnalystVerdict  (full verdict, per explicit Analyst button)
+  → GuidanceRecord[] (lightweight, per-field, from prior research run)
+  → stored in DB / returned from API
+  → UI component reads and renders — never generates
+```
+
+**Canonical display components:**
+- `AnalystRangeIndicator` — inline badge next to a form field (`GuidanceRecord[]` + `fieldKey`)
+- `AnalystVerdictDisplay` — full severity-tinted card stack after an Analyst run (`AnalystVerdict`)
+- `AnalystCheckDialog` — modal surfaced after Analyst click finds non-ok issues (`AnalystVerdict`)
+
+**Conviction floor:** if the Specialist's `qualityScore` for a field is below `CONVICTION_FLOOR` (from `@shared/analyst-conviction`), the badge shows "Insufficient data — needs research" instead of a range. Never fall back to a `DEFAULT_*` code constant as a displayed range.
+
+**Voice rule:** `verdict.voice.headline`, `verdict.voice.detail`, and per-dimension equivalents are produced exclusively by the Voice Renderer inside the Surface Router. Components render these strings verbatim — they never craft analyst-voice copy themselves.
+
+**Severity color system:** ok=emerald, advisory=sky, warning=amber, block=red. No new severity levels.
+
+Full rules, data contracts, anti-pattern list, and "what to use when" decision table: `.agents/skills/analyst-intelligence-display/SKILL.md`.
+
 ### Roles and permissions
 
 - `checker` and `investor` roles are still **live in the database** even though they have been removed from the `VALID_USER_ROLES` enum in code. Do not assume the enum is the full set of live roles.
@@ -350,6 +376,8 @@ vendor/
 | `hplus-renovation-benchmarks` | Per-key cost ranges and transformation cost lines used by the budget-realism check above |
 | `hplus-admin-nav-ia` | Placing data sources, APIs, Specialists, LLMs, or AI agents in the Admin / AI Intelligence sidebar |
 | `lb-slides-canonical-pngs` | Comparing any rendered slide output against the pixel-authoritative canonical PNGs — R2 keys, local paths, per-slide comparison checklist, re-upload workflow |
+| `analyst-research-buttons` | Any button that triggers a research job — canonical label, icon, voice, and guard rules |
+| `analyst-intelligence-display` | Any UI component that **displays** specialist research results — range badges, verdict cards, contextual tips, action dialogs. Complements `analyst-research-buttons` (the input side) with the display side |
 | `agent-memory-files` | Editing `claude.md` or `replit.md` — keep them harmonized |
 
 ### How to invoke
@@ -372,6 +400,9 @@ Rule: **if you touch `claude.md`, scan `replit.md` for related content and sync 
 
 | Date | Change |
 |---|---|
+| 2026-05-05 | **`analyst-intelligence-display` skill created.** Documents the display side of the Analyst pipeline: `AnalystRangeIndicator`, `AnalystVerdictDisplay`, `AnalystCheckDialog`, `AnalystVerdict` contract, `GuidanceRecord` shape, conviction floor, severity color system, voice rule, and anti-patterns. Pairs with `analyst-research-buttons` (trigger side). Added to key skills table in both memory files. |
+| 2026-05-05 | **B3 taxonomy fix — seed-from-default enforced.** `DEFAULT_INTEREST_RATE = 0.075` moved to `constants-funding.ts` across all 3 mirrors; `SEED_DEBT_ASSUMPTIONS.interestRate` now references it instead of a raw literal. Skills updated: `hplus-variable-taxonomy` (example value, new seed-from-default bullet + decision-table row), `no-magic-numbers` (seed anti-pattern row corrected), `constants-vs-defaults` (seed-from-default bullet with concrete example). `check:typecheck` PASS, `check:magic-numbers` PASS. |
+| 2026-05-05 | **B1 — `capitalRaise3Amount` / `capitalRaise3Date` fields added** throughout: `GlobalResponse` (`number?` / `string?`), `FundingSection`, `CurrentPlanTab`, `CompanyBalanceSheet`, `CompanyInvestmentTab`. |
 | 2026-05-04 | **Compound Engineering plugin v3.3.2 registered.** `.claude/settings.json` created with `extraKnownMarketplaces` (directory source → `vendor/compound-engineering-plugin/`) and `enabledPlugins` (`compound-engineering@compound-engineering-plugin`). Loads 37+ `ce-*` skills and 50+ agents on session start. |
 | 2026-05-04 | **Google OAuth iframe fix.** `Login.tsx` Google button changed to `window.open("/api/auth/google", "_blank")` + poll `refetch()` every 2 s — Google's sign-in page sends `X-Frame-Options: DENY` and cannot render inside the Replit preview iframe; opening a new tab avoids the iframe entirely. Rule 4 added to both memory files. |
 | 2026-05-04 | **Auth hardening — login always works in preview.** `GOOGLE_CLIENT_ID` documented as required in both Railway AND Replit secrets (was missing from Replit, silently disabling `/api/auth/google`). Login logo quick-login fixed: removed the `devLoginAvailable` async-fetch gate that silently failed in iframe/canvas contexts, making the logo a no-op. Logo now always fires `POST /api/auth/dev-login`; server blocks it in production via `isPublishedDeployment()`. Three inviolable auth rules added to `claude.md` and `replit.md`. |

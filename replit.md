@@ -40,6 +40,7 @@ H+ Analytics is a hospitality-sector financial analytics platform that helps ass
 - **Shared Proxy Routing:** All internal service communication must go through `localhost:80/<path>` rather than direct port access, ensuring consistent routing and base path handling.
 - **Production on Railway:** Production deployments explicitly use Railway via `git push`, not Replit Publish, due to past issues.
 - **External Services Only:** No Replit-managed infrastructure (DB, storage, auth) is used; all services are external (Neon, Cloudflare R2, Google OAuth, etc.) to maintain parity with production.
+- **Intelligence Display — 100% specialist-sourced:** Every range badge, contextual tip, severity signal, or actionable suggestion in the UI originates exclusively from specialist/research-engine output (`AnalystVerdict` or `GuidanceRecord[]`). No component hard-codes a range or derives suggestions locally. See `analyst-intelligence-display` skill.
 
 ## Product
 
@@ -47,6 +48,7 @@ H+ Analytics is a hospitality-sector financial analytics platform that helps ass
 - **Investor Slide Deck Generation (H+ Analytics):** Property-level slide decks (HTML to PDF via Playwright).
 - **LB Slide Deck Factory:** Canonical 6-slide portfolio investor deck generation (admin-only route `/lb-slides`).
 - **Rebecca AI Assistant:** Semantic knowledge base search.
+- **AI Intelligence (Analyst):** Specialist-driven research pipeline that surfaces range badges, verdict cards, contextual tips, and action dialogs directly in the UI. All intelligence data is 100% specialist-sourced — never hard-coded.
 
 ## User preferences
 
@@ -77,6 +79,8 @@ H+ Analytics is a hospitality-sector financial analytics platform that helps ass
 - **H+ Renovation Benchmarks:** `hplus-renovation-benchmarks` skill
 - **H+ Admin Nav IA:** `hplus-admin-nav-ia` skill
 - **LB Slides Canonical PNGs:** `lb-slides-canonical-pngs` skill
+- **Analyst Research Buttons (trigger side):** `analyst-research-buttons` skill
+- **Analyst Intelligence Display (output side):** `analyst-intelligence-display` skill
 - **Agent Memory Files:** `agent-memory-files` skill
 - **Production Deployment Contract:** `claude.md` § "Production Deployment"
 - **Environment Variables (API Server):** `claude.md` § "Environment Variables (api-server)"
