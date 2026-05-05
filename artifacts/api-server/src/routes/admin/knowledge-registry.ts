@@ -71,7 +71,7 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
         });
       }
 
-      const page = Math.max(1, parseInt(String(req.query.page ?? "1"), 10) || 1);
+      const page = Math.max(1, Number(req.query.page ?? "1") || 1);
       const offset = (page - 1) * CHUNKS_PAGE_SIZE;
       const namespace = entry.assetRef;
 
@@ -89,7 +89,7 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
       res.json({
         chunks: chunksResult.rows,
         page,
-        total: parseInt(countResult.rows[0]?.count ?? "0", 10),
+        total: Number(countResult.rows[0]?.count ?? "0"),
       });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch chunks for knowledge registry entry", error);
