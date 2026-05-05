@@ -10,10 +10,9 @@
  */
 
 import { z } from "zod";
-import { db } from "../db";
-import { marketRates, type MarketRate } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { type MarketRate } from "@workspace/db";
 import { EXTERNAL_API_TIMEOUT_MS } from "../constants";
+import { storage } from "../storage";
 import { FRED_BASE_URL } from "../services/FREDService";
 import { OpenExchangeRatesService } from "../services/OpenExchangeRatesService";
 import { logger } from "../logger";
@@ -170,16 +169,16 @@ export async function fetchFrankfurterRate(targetCurrency: string): Promise<{ va
 }
 
 // ---------------------------------------------------------------------------
-// Rate Storage Operations
+// Rate Storage Operations — delegated to MarketRatesStorage via the storage
+// layer boundary. Direct db imports have been removed from this file.
 // ---------------------------------------------------------------------------
 
 export async function getAllMarketRates(): Promise<MarketRate[]> {
-  return db.select().from(marketRates).orderBy(marketRates.rateKey);
+  return storage.getAllMarketRates();
 }
 
 export async function getMarketRate(rateKey: string): Promise<MarketRate | undefined> {
-  const [row] = await db.select().from(marketRates).where(eq(marketRates.rateKey, rateKey)).limit(1);
-  return row;
+  return storage.getMarketRate(rateKey);
 }
 
 export async function upsertMarketRate(data: {
@@ -195,38 +194,7 @@ export async function upsertMarketRate(data: {
   manualNote?: string | null;
   maxStalenessHours?: number;
 }): Promise<void> {
-  const existing = await getMarketRate(data.rateKey);
-  if (existing) {
-    await db.update(marketRates)
-      .set({
-        value: data.value,
-        displayValue: data.displayValue,
-        source: data.source,
-        sourceUrl: data.sourceUrl ?? existing.sourceUrl,
-        seriesId: data.seriesId ?? existing.seriesId,
-        publishedAt: data.publishedAt ?? existing.publishedAt,
-        fetchedAt: data.fetchedAt ?? new Date(),
-        isManual: data.isManual ?? existing.isManual,
-        manualNote: data.manualNote ?? existing.manualNote,
-        maxStalenessHours: data.maxStalenessHours ?? existing.maxStalenessHours,
-        updatedAt: new Date(),
-      })
-      .where(eq(marketRates.rateKey, data.rateKey));
-  } else {
-    await db.insert(marketRates).values({
-      rateKey: data.rateKey,
-      value: data.value,
-      displayValue: data.displayValue,
-      source: data.source,
-      sourceUrl: data.sourceUrl,
-      seriesId: data.seriesId,
-      publishedAt: data.publishedAt,
-      fetchedAt: data.fetchedAt ?? new Date(),
-      isManual: data.isManual ?? false,
-      manualNote: data.manualNote,
-      maxStalenessHours: data.maxStalenessHours ?? 24,
-    });
-  }
+  return storage.upsertMarketRate(data);
 }
 
 // ---------------------------------------------------------------------------

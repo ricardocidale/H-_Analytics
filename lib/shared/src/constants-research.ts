@@ -105,3 +105,6 @@ export const RGI_UNDERPERFORMING_THRESHOLD = 0.95;
 
 export const RESEARCH_CAP_RATE_VALUATION_MAX_MULTIPLIER = 3.0;
 export const RESEARCH_CAP_RATE_VALUATION_MIN_MULTIPLIER = 0.3;
+
+/** Max recent guidance records injected into the context pack for a deep-dive run. */
+export const RECENT_GUIDANCE_CONTEXT_LIMIT = 10;

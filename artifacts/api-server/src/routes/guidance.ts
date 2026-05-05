@@ -15,13 +15,16 @@ import { getAnthropicClient, getOpenAIClient, getGeminiClient } from "../ai/clie
 import { resolveLlmFor } from "../ai/llm-config-resolver";
 import { computeConfidenceBreakdown, computePerFieldConfidence } from "../ai/confidence-scorer";
 import type { IcpConfig } from "@workspace/db";
+import type { RecentContextPack } from "../ai/context-pack/types";
 import {
   HTTP_201_CREATED,
+  HTTP_204_NO_CONTENT,
   HTTP_400_BAD_REQUEST,
   HTTP_403_FORBIDDEN,
   HTTP_404_NOT_FOUND,
   HTTP_502_BAD_GATEWAY,
 } from "../constants";
+import { RECENT_GUIDANCE_CONTEXT_LIMIT } from "@shared/constants-research";
 
 const VALID_ENTITY_TYPES = ["property", "company"] as const;
 type EntityType = typeof VALID_ENTITY_TYPES[number];
@@ -311,11 +314,29 @@ export function register(app: Express) {
         ).join("\n");
       }
 
+      // Build session/workspace context (recent activity, guidance state, run history)
+      // so the AI knows which assumptions have already been analysed and how fresh
+      // the last research pass was — the three previously-missing injection points.
+      const [currentGuidance, recentRuns] = await Promise.all([
+        storage.getAssumptionGuidance(null, entityType, entityId),
+        storage.getResearchRuns(entityType, entityId),
+      ]);
+      const recentContext: RecentContextPack = {
+        recentGuidance: currentGuidance.slice(0, RECENT_GUIDANCE_CONTEXT_LIMIT).map(g => ({
+          assumptionKey: g.assumptionKey,
+          valueMid: g.valueMid ?? null,
+          confidence: g.confidence ?? null,
+        })),
+        lastResearchRun: recentRuns.length > 0
+          ? { tier: null, completedAt: recentRuns[0].completedAt, status: recentRuns[0].status }
+          : null,
+      };
+
       if (entityType === "property") {
         const property = await storage.getProperty(entityId);
         if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
         const icpConfig = (ga?.icpConfig as IcpConfig) ?? null;
-        const contextPack = buildPropertyContextPack(property, ga ?? null, icpConfig);
+        const contextPack = buildPropertyContextPack(property, ga ?? null, icpConfig, recentContext);
         v2Prompt = assembleResearchPrompt(contextPack, {
           tier: 2,
           entityType: "property",
@@ -337,6 +358,7 @@ export function register(app: Express) {
             serviceMarkup: st.serviceMarkup ?? 0,
             isActive: st.isActive !== false,
           })),
+          recentContext,
         );
         v2Prompt = assembleResearchPrompt(companyPack, {
           tier: 2,
@@ -432,6 +454,31 @@ export function register(app: Express) {
       });
     } catch (error: unknown) {
       logAndSendError(res, "Tier 2 deep-dive failed", error);
+    }
+  });
+
+  /**
+   * DELETE /api/guidance/record/:id
+   * Hard-delete a single assumption_guidance row. The caller must have access
+   * to the entity the record belongs to (property access check for property
+   * entities; admin-role check for company entities).
+   */
+  app.delete("/api/guidance/record/:id", requireAuth, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!Number.isFinite(id) || id <= 0) {
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid id" });
+      }
+      const user = getAuthUser(req);
+      const record = await storage.getAssumptionGuidanceById(id);
+      if (!record) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
+      if (!(await checkEntityAccess(user, record.entityType as EntityType, record.entityId))) {
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+      }
+      await storage.deleteAssumptionGuidance(id);
+      res.status(HTTP_204_NO_CONTENT).end();
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to delete guidance record", error);
     }
   });
 }

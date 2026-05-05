@@ -280,6 +280,16 @@ export class ResearchRunsStorage {
     return (rows.rows ?? []) as { entityId: number; completedAt: Date; durationMs: number | null }[];
   }
 
+  /**
+   * Hard-delete a single research_run row by primary key.
+   * Cascades to relaxation_traces and coverage_snapshots via FK constraints.
+   * Exposed to agent tools so failed / orphaned run records can be cleaned up
+   * without requiring a direct DB operation.
+   */
+  async deleteResearchRun(id: number): Promise<void> {
+    await this._rtx.db.delete(researchRuns).where(eq(researchRuns.id, id));
+  }
+
   async createRelaxationTrace(data: InsertRelaxationTrace): Promise<RelaxationTrace> {
     const [trace] = await this._rtx.db.insert(relaxationTraces)
       .values(data as typeof relaxationTraces.$inferInsert)

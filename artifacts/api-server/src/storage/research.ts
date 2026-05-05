@@ -118,6 +118,17 @@ export class ResearchStorage {
     }
   }
 
+  /**
+   * Hard-delete a single market_research row by primary key.
+   * When userId is supplied the delete is scoped to that user so agents cannot
+   * remove shared/seed reports they do not own.
+   */
+  async deleteMarketResearch(id: number, userId?: number): Promise<void> {
+    const conditions = [eq(marketResearch.id, id)];
+    if (userId !== undefined) conditions.push(eq(marketResearch.userId, userId));
+    await db.delete(marketResearch).where(and(...conditions));
+  }
+
   // ── Prospective Properties (Property Finder Favorites) ────────
 
   /** Get all properties a user has favorited from the Property Finder search. */

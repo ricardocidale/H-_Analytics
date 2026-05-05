@@ -1,6 +1,6 @@
 import type { Property, GlobalAssumptions } from "@workspace/db";
 import type { IcpConfig } from "@workspace/db";
-import type { PropertyContextPack } from "./types";
+import type { PropertyContextPack, RecentContextPack } from "./types";
 import { buildCompositeLabel, buildComparableDescription } from "./luxury-classifier";
 
 function pct(v: number | null | undefined): string {
@@ -184,6 +184,7 @@ export function buildPropertyContextPack(
   property: Property,
   globalAssumptions: GlobalAssumptions | null,
   icpConfig: IcpConfig | null,
+  recentContext?: RecentContextPack,
 ): PropertyContextPack {
   const p = property;
   const amenities = detectAmenities(p);
@@ -234,6 +235,22 @@ export function buildPropertyContextPack(
     `Comparable benchmark set: ${comparable}.`,
   ];
   if (globalContext) narrativeParts.push(globalContext);
+
+  if (recentContext) {
+    const contextLines: string[] = [];
+    if (recentContext.recentGuidance && recentContext.recentGuidance.length > 0) {
+      const keys = recentContext.recentGuidance.map(g => g.assumptionKey).join(", ");
+      contextLines.push(`Already analysed assumptions: ${keys}`);
+    }
+    if (recentContext.lastResearchRun) {
+      const run = recentContext.lastResearchRun;
+      const when = run.completedAt ? new Date(run.completedAt).toLocaleDateString("en-US") : "unknown";
+      contextLines.push(`Last research run: Tier ${run.tier ?? "?"}, status ${run.status} (${when})`);
+    }
+    if (contextLines.length > 0) {
+      narrativeParts.push(`\n**Session context (do not re-propose assumptions already listed here unless explicitly requested):**\n${contextLines.join("\n")}`);
+    }
+  }
 
   const sourceUrls = p.sourceUrls as string[] | null | undefined;
   if (sourceUrls && sourceUrls.length > 0) {
@@ -324,5 +341,6 @@ export function buildPropertyContextPack(
     icpAlignment,
     currentAssumptionsSummary: currentSummary,
     fullNarrative,
+    recentContext,
   };
 }

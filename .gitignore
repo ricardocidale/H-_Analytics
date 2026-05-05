@@ -58,3 +58,4 @@ artifacts/api-server/logs/api-costs.jsonl
 /screenshots/**
 !/screenshots/README.md
 .compound-engineering/*.local.yaml
+.claude/worktrees/
