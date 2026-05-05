@@ -309,6 +309,7 @@ export interface ServerSinglePropertyResult {
   outputHash: string;
   projectionYears: number;
   cached?: boolean;
+  waterfallResult?: WaterfallOutput | null;
 }
 
 export async function fetchSinglePropertyCompute(

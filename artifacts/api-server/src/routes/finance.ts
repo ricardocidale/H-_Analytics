@@ -498,17 +498,60 @@ export function registerFinanceRoutes(router: Router): void {
 
       // Engine recompute + DB freshness stamp travel together — see
       // server/finance/recompute.ts.
+      const stampedProperty = { ...property, id: routeId } as PropertyInput;
       const result = await recomputeSinglePropertyAndStamp({
-        property: { ...property, id: routeId } as PropertyInput,
+        property: stampedProperty,
         globalAssumptions: globalAssumptions as GlobalInput,
         projectionYears,
       });
+
+      // Compute waterfall split for the single property using the same logic as
+      // computeReturnsSummary. Attached to the result so PropertyDetail can render
+      // the LP/GP economics panel without a second request.
+      let singlePropertyWaterfallResult: WaterfallOutput | null = null;
+      const singleEquity = propertyEquityInvested(stampedProperty);
+      if (singleEquity > 0) {
+        try {
+          const unified = aggregateUnifiedByYear(
+            result.monthly,
+            stampedProperty as LoanParams,
+            globalAssumptions as GlobalLoanParams,
+            projectionYears,
+          );
+          const lpEquityPct = stampedProperty.lpEquityPct ?? DEFAULT_LP_EQUITY_PCT;
+          const tiers =
+            Array.isArray(stampedProperty.waterfallTiers) && stampedProperty.waterfallTiers.length > 0
+              ? stampedProperty.waterfallTiers
+              : DEFAULT_WATERFALL_TIERS;
+          const distributable = Array.from({ length: projectionYears }, (_, y) =>
+            Math.max(0, unified.yearlyCF[y]?.atcf ?? 0) +
+            (unified.yearlyCF[y]?.refinancingProceeds ?? 0) +
+            (unified.yearlyCF[y]?.exitValue ?? 0),
+          );
+          singlePropertyWaterfallResult = computeWaterfall({
+            total_equity_invested: singleEquity,
+            lp_equity: singleEquity * lpEquityPct,
+            gp_equity: singleEquity * (1 - lpEquityPct),
+            distributable_cash_flows: distributable,
+            preferred_return: stampedProperty.ownerPriorityReturn ?? DEFAULT_PREFERRED_RETURN,
+            tiers,
+            catch_up_rate: stampedProperty.catchUpRate ?? undefined,
+            catch_up_to_gp_pct: stampedProperty.catchUpToGpPct ?? undefined,
+            rounding_policy: DEFAULT_ROUNDING,
+          });
+        } catch (err) {
+          logger.warn(
+            `Waterfall computation failed for property ${routeId}: ${err instanceof Error ? err.message : String(err)}`,
+            "finance",
+          );
+        }
+      }
 
       res.setHeader("X-Finance-Engine-Version", result.engineVersion);
       res.setHeader("X-Finance-Output-Hash", result.outputHash);
       if (result.cached) res.setHeader("X-Finance-Cache-Hit", "true");
 
-      return sendSuperjson(res, result);
+      return sendSuperjson(res, { ...result, waterfallResult: singlePropertyWaterfallResult });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Property computation failed";
       logger.error(`Property compute error: ${message}`, "finance");

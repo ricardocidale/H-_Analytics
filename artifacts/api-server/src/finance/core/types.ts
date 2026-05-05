@@ -43,4 +43,5 @@ export interface SinglePropertyComputeResult {
     passed: number;
     failed: number;
   };
+  waterfallResult?: import("@calc/analysis/waterfall").WaterfallOutput | null;
 }

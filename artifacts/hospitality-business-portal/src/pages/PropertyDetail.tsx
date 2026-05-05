@@ -471,6 +471,7 @@ export default function PropertyDetail() {
               projectionYears={projectionYears}
               startYear={startYear}
               getFiscalYear={getFiscalYear}
+              waterfallResult={serverFinancials?.waterfallResult}
             />
           </TabsContent>
 

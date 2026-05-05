@@ -25,3 +25,4 @@ export { default as InvestmentReturnsTab } from "./InvestmentReturnsTab";
 export { default as DueDiligenceTab } from "./DueDiligenceTab";
 export { default as ExitScenariosSection } from "./ExitScenariosSection";
 export { default as ExecutiveSummaryTab } from "./ExecutiveSummaryTab";
+export { default as WaterfallPanel } from "./WaterfallPanel";

@@ -5,6 +5,8 @@ import { aggregatePropertyByYear } from "@/lib/financial/yearlyAggregator";
 import type { YearlyCashFlowResult } from "@/lib/financial/loanCalculations";
 import type { MonthlyFinancials } from "@engine/types";
 import type { GlobalResponse, PropertyResponse } from "@/lib/api/types";
+import type { WaterfallOutput } from "@calc/analysis/waterfall";
+import WaterfallPanel from "./WaterfallPanel";
 
 interface InvestmentReturnsTabProps {
   property: PropertyResponse;
@@ -14,6 +16,7 @@ interface InvestmentReturnsTabProps {
   projectionYears: number;
   startYear: number;
   getFiscalYear: (yearIndex: number) => number;
+  waterfallResult?: WaterfallOutput | null;
 }
 
 export default function InvestmentReturnsTab({
@@ -25,6 +28,7 @@ export default function InvestmentReturnsTab({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   startYear,
   getFiscalYear,
+  waterfallResult,
 }: InvestmentReturnsTabProps) {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
@@ -70,6 +74,11 @@ export default function InvestmentReturnsTab({
 
   return (
     <div className="space-y-6" data-testid="investment-returns-tab">
+      <WaterfallPanel
+        waterfallResult={waterfallResult}
+        lpEquityPct={property.lpEquityPct}
+      />
+
       <FinancialChart
         data={chartData}
         series={[
