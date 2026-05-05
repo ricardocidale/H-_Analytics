@@ -793,17 +793,17 @@ export function Slide6({ p }: { p: SlidePayload }) {
     ["Revenue", years.map(y => fmtCurrency(y.revenueTotal))],
     ["Operating Expenses", years.map(y => fmtCurrency(y.totalExpenses))],
     ["NOI", years.map(y => fmtCurrency(y.noi))],
-    ["Debt Service", financials.yearlyCF.slice(0, PROFORMA_YEARS).map(y => fmtCurrency(y.debtService))],
-    ["Net Cash Flow", financials.yearlyCF.slice(0, PROFORMA_YEARS).map(y => fmtCurrency(y.netCashFlowToInvestors))],
-    ["Cumulative CF", financials.yearlyCF.slice(0, PROFORMA_YEARS).map(y => fmtCurrency(y.cumulativeCashFlow))],
+    ["Debt Service", financials.yearlyCF.slice(0, yearCount).map(y => fmtCurrency(y.debtService))],
+    ["Net Cash Flow", financials.yearlyCF.slice(0, yearCount).map(y => fmtCurrency(y.netCashFlowToInvestors))],
+    ["Cumulative CF", financials.yearlyCF.slice(0, yearCount).map(y => fmtCurrency(y.cumulativeCashFlow))],
   ];
 
   const investorRows = [
-    ["IRR (5yr)", fmtPct(financials.irr)],
+    [`IRR (${yearCount}yr)`, fmtPct(financials.irr)],
     ["Equity Multiple", financials.equityMultiple != null ? `${financials.equityMultiple.toFixed(2)}×` : "—"],
     ["Stabilized NOI", fmtCurrency(stableNoi)],
     ["Exit Cap Rate", fmtPct(exitCap)],
-    ["Exit Value (Yr 5)", fmtCurrency(exitVal)],
+    [`Exit Value (Yr ${yearCount})`, fmtCurrency(exitVal)],
     ["Total Return", fmtCurrency(totalReturn)],
     ["Initial Equity", fmtCurrency(initialEquity)],
   ];
