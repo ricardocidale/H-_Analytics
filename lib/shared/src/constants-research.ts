@@ -63,6 +63,26 @@ export const HOLD_VS_SELL_INDIFFERENCE_PCT = 0.02;
 
 export const DEFAULT_GP_CATCH_UP_TARGET_PCT = 0.20;
 
+// Waterfall defaults (ADR-011 seed values — industry benchmarks per Preqin 2024 / ILPA 3.0)
+export const DEFAULT_PREFERRED_RETURN = 0.08;    // 8% annual preferred return to LP
+export const DEFAULT_LP_EQUITY_PCT   = 0.90;    // 90% LP / 10% GP equity split
+export const DEFAULT_CATCH_UP_RATE   = 1.00;    // 100% of catch-up dollars to GP
+
+// Structural type mirrors WaterfallTier from @calc/analysis/waterfall — compatible via structural typing.
+export interface WaterfallTierSeed {
+  label: string;
+  hurdle_irr: number;
+  lp_split: number;
+  gp_split: number;
+}
+
+// hurdle_irr: 999 = uncapped residual tier (standard PE convention).
+export const DEFAULT_WATERFALL_TIERS: WaterfallTierSeed[] = [
+  { label: "Tier 1", hurdle_irr: 0.12, lp_split: 0.80, gp_split: 0.20 },
+  { label: "Tier 2", hurdle_irr: 0.18, lp_split: 0.70, gp_split: 0.30 },
+  { label: "Tier 3", hurdle_irr: 999,  lp_split: 0.60, gp_split: 0.40 },
+];
+
 export const STRESS_TEST_MIN_DSCR = 1.25;
 export const STRESS_SEVERITY_MODERATE_PCT = -5;
 export const STRESS_SEVERITY_SEVERE_PCT = -15;
