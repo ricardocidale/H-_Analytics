@@ -378,6 +378,9 @@ export const LIVE_MIN_REVENUE_LIVE_ROWS                = 1;
 /** Minimum live Overhead comparable rows required before falling back to canned dataset. */
 export const LIVE_MIN_OVERHEAD_LIVE_ROWS               = 1;
 
+/** Minimum live Portfolio Raise comparable rows required before falling back to canned dataset. */
+export const LIVE_MIN_PORTFOLIO_RAISE_LIVE_ROWS        = 2;
+
 /** Representative boutique hotel room count used for Booking.com live comp rows (room count is not exposed by the search API). */
 export const LIVE_BOOKING_REPRESENTATIVE_ROOM_COUNT    = 40;
 

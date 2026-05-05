@@ -918,7 +918,7 @@ async function runPortfolioRaiseV1Path(userId: number) {
     priorVerdicts: [],
   };
 
-  const comparables = getPortfolioRaiseComparables();
+  const comparables = await getPortfolioRaiseComparables();
   return runPortfolioRaiseSpecialist(ctx, comparables);
 }
 
