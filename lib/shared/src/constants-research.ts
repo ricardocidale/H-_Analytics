@@ -76,11 +76,23 @@ export interface WaterfallTierSeed {
   gp_split: number;
 }
 
+// Waterfall tier splits and hurdles (ADR-011 / Preqin 2024 / ILPA 3.0 benchmarks).
+export const WATERFALL_TIER1_HURDLE_IRR = 0.12;  // 12% IRR — base return hurdle
+export const WATERFALL_TIER1_LP_SPLIT   = 0.80;  // 80% to LP below Tier 1 hurdle
+export const WATERFALL_TIER1_GP_SPLIT   = 0.20;  // 20% to GP below Tier 1 hurdle
+
+export const WATERFALL_TIER2_HURDLE_IRR = 0.18;  // 18% IRR — mid-tier hurdle
+export const WATERFALL_TIER2_LP_SPLIT   = 0.70;  // 70% to LP up to Tier 2 hurdle
+export const WATERFALL_TIER2_GP_SPLIT   = 0.30;  // 30% to GP up to Tier 2 hurdle
+
+export const WATERFALL_TIER3_LP_SPLIT   = 0.60;  // 60% to LP above Tier 2 hurdle
+export const WATERFALL_TIER3_GP_SPLIT   = 0.40;  // 40% to GP above Tier 2 hurdle
+
 // hurdle_irr: 999 = uncapped residual tier (standard PE convention).
 export const DEFAULT_WATERFALL_TIERS: WaterfallTierSeed[] = [
-  { label: "Tier 1", hurdle_irr: 0.12, lp_split: 0.80, gp_split: 0.20 },
-  { label: "Tier 2", hurdle_irr: 0.18, lp_split: 0.70, gp_split: 0.30 },
-  { label: "Tier 3", hurdle_irr: 999,  lp_split: 0.60, gp_split: 0.40 },
+  { label: "Tier 1", hurdle_irr: WATERFALL_TIER1_HURDLE_IRR, lp_split: WATERFALL_TIER1_LP_SPLIT, gp_split: WATERFALL_TIER1_GP_SPLIT },
+  { label: "Tier 2", hurdle_irr: WATERFALL_TIER2_HURDLE_IRR, lp_split: WATERFALL_TIER2_LP_SPLIT, gp_split: WATERFALL_TIER2_GP_SPLIT },
+  { label: "Tier 3", hurdle_irr: 999,                        lp_split: WATERFALL_TIER3_LP_SPLIT, gp_split: WATERFALL_TIER3_GP_SPLIT },
 ];
 
 export const STRESS_TEST_MIN_DSCR = 1.25;
