@@ -389,6 +389,7 @@ the stale `retryAfterMs` window.
 
 **Verification:**
 - `pnpm --filter @api-server tsc --noEmit` — clean
+- `scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts` — PASS
 - No second `SELECT` after the `INSERT ... ON CONFLICT` in `tryReserveAnalystCooldown`
 - Concurrent-access test scenario documented in proof (or integration test if harness permits)
 
