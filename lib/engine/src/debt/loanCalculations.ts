@@ -26,6 +26,7 @@ export interface LoanParams {
   preOpeningCosts: number;
   operatingReserve: number;
   type: string;
+  country?: string | null;
   acquisitionDate?: string | null;
   taxRate?: number | null;
   acquisitionLTV?: number | null;
@@ -150,9 +151,7 @@ export function calculateLoanParams(
   
   const interestRate = property.acquisitionInterestRate ?? DEFAULT_INTEREST_RATE;
   const termYears = property.acquisitionTermYears ?? DEFAULT_TERM_YEARS;
-  // LoanParams has no country field; registry returns US baseline. Admin/Specialist
-  // overrides still apply. For full country-awareness, add country to LoanParams.
-  const taxRate = property.taxRate ?? getFactoryNumber('taxRate');
+  const taxRate = property.taxRate ?? getFactoryNumber('taxRate', property.country ?? undefined);
   const commissionRate = property.dispositionCommission ?? DEFAULT_COMMISSION_RATE;
   
   // Depreciable basis: land doesn't depreciate (IRS Publication 946 / ASC 360)

@@ -48,6 +48,7 @@ export interface PropertyInput {
   buildingImprovements?: number | null;
   landValuePercent?: number | null;
   type: string;
+  country?: string | null;
   // Financing
   acquisitionLTV?: number | null;
   acquisitionInterestRate?: number | null;

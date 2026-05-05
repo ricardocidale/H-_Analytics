@@ -197,10 +197,8 @@ export function resolvePropertyAssumptions(
   const loanRate = property.acquisitionInterestRate ?? DEFAULT_INTEREST_RATE;
   const loanTerm = property.acquisitionTermYears ?? DEFAULT_TERM_YEARS;
   // Income tax rate (NOT property tax — property taxes use costRateTaxes).
-  // PropertyInput has no country field; registry returns US baseline.
   // Admin/Specialist overrides still apply via the registry.
-  // For full country-awareness, add country to PropertyInput.
-  const taxRate = property.taxRate ?? getFactoryNumber('taxRate');
+  const taxRate = property.taxRate ?? getFactoryNumber('taxRate', property.country ?? undefined);
   const dayCountConvention = property.dayCountConvention ?? '30/360';
   const monthlyRate = loanRate / MONTHS_PER_YEAR;
   const totalPayments = loanTerm * MONTHS_PER_YEAR;
