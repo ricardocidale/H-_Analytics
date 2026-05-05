@@ -1,7 +1,7 @@
 ---
 title: "feat: Property Portfolio Capital Raise Specialist + Variable Tranche Count"
 type: feat
-status: active
+status: completed
 date: 2026-05-05
 ---
 
