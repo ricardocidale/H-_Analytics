@@ -84,7 +84,7 @@ field. It does NOT override already-confirmed assumption variables.
 | `DEFAULT_MAX_OCCUPANCY` | 0.85 | Occupancy ramp ceiling |
 | `DEFAULT_EXIT_CAP_RATE` | 0.085 | Exit cap rate fallback |
 | `DEFAULT_LTV` | 0.75 | Acquisition loan-to-value |
-| `DEFAULT_INTEREST_RATE` | 0.09 | Debt interest rate fallback |
+| `DEFAULT_INTEREST_RATE` | 0.075 | Debt interest rate fallback (lives in `constants-funding.ts`) |
 | `DEFAULT_TERM_YEARS` | 25 | Amortization term |
 
 **Code rules:**
@@ -94,6 +94,11 @@ field. It does NOT override already-confirmed assumption variables.
 - **Never use the raw literal** when a `DEFAULT_*` constant exists
 - **Never duplicate a `DEFAULT_*` value** in two files — the constant is
   the single source of truth
+- **Seed files MUST reference `DEFAULT_*` constants** — never write a raw
+  literal in seed data. The flow is: `DEFAULT_X` defined in constants → seed
+  file imports `DEFAULT_X` → DB row initialised with `DEFAULT_X`. A raw
+  literal in a seed file breaks the single-source-of-truth chain and causes
+  silent drift the moment the constant is recalibrated.
 
 **Country-specific rates are a special case.** Tax rates, inflation baselines,
 and depreciation lives vary by country. They must use `getFactoryNumber()`,
@@ -203,6 +208,7 @@ const DEFAULT_COLOMBIA_INFLATION = 0.06;
 | A country-specific rate (tax, inflation, depreciation) | `getFactoryNumber(key, country)` | Registry lookup |
 | A null-check fallback in any route/engine file | `?? DEFAULT_X` — named constant | Import from `@shared/constants` |
 | A new constant with no named constant yet | Define `DEFAULT_X` first; then use | `constants*.ts` → import → use |
+| A seed value (DB row initial value) | Import `DEFAULT_X`; reference it in seed | Never a raw literal in seed files |
 | A rate in a country or financial data table | `getFactoryNumber()` or storage | DB table |
 | A per-entity user-configurable value | DB read + `?? DEFAULT_X` fallback | DB column |
 | `0` used as a structural floor/clamp | Inline `0` is fine | Inline |
@@ -238,7 +244,7 @@ table-sourced value.
 | `0.03` (inflation) | No | `getFactoryNumber('inflationRate', country)` |
 | `0.21` (US income tax) | No | `getFactoryNumber('taxRate', 'United States')` |
 | `0.085` (mgmt fee) | No | `DEFAULT_BASE_MANAGEMENT_FEE_RATE` |
-| `0.065` (interest rate) | No | `DEFAULT_INTEREST_RATE` |
+| `0.075` (interest rate) | No | `DEFAULT_INTEREST_RATE` (in `constants-funding.ts`) |
 | `0.30` (F&B share) | No | `DEFAULT_REV_SHARE_FB` |
 | `39` (depreciation years) | No | `getFactoryNumber('depreciationYears', country)` |
 | `30.5` (days/month) | Yes | `DAYS_PER_MONTH` — formula: `365/12` |

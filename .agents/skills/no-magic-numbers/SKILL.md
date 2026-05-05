@@ -276,7 +276,7 @@ Why it's wrong:
 | What the number is | Right fix |
 |---|---|
 | A user assumption (inflation rate, tax rate, interest rate) | Trace to `getFactoryNumber(key, country)` from the model constants registry |
-| A seed/ramp-up default used only in the initial DB seed | Leave as a documented literal in the seed file; run `--init` to lock in the baseline |
+| A seed/ramp-up default used only in the initial DB seed | Define a `DEFAULT_*` constant in `lib/shared/src/constants*.ts`; reference it from the seed file. **Never a raw literal in seed data.** Run `--init` after to lock the baseline. |
 | A domain constant for a specific algorithm (EDGAR row threshold, IMF band delta) | Named export in the relevant constants file (`constants-funding.ts`, `constants-benchmarks.ts`) |
 | A genuinely cross-file reused calibration | Named constant in `lib/shared/src/constants*.ts`, import everywhere it's used |
 

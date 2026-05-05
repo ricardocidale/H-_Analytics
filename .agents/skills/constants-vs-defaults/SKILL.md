@@ -53,6 +53,12 @@ A value that represents a reasonable starting estimate when no better data is av
 - Changes are calibration decisions, recorded in ADRs or commit messages.
 - Lives in code as a named constant (see `no-magic-numbers` skill).
 - IS a seed value: when persisted to a DB row (admin_resources benchmark, hospitality_benchmarks, model_defaults), the row's initial values come from the named code constant.
+- **Seed files MUST import and reference the `DEFAULT_*` constant** — never
+  write a raw literal in seed data. The canonical flow is:
+  `DEFAULT_X` defined in `constants*.ts` → seed file `import { DEFAULT_X }`
+  → DB row seeded with `DEFAULT_X`. Writing `0.075` directly in a seed file
+  instead of referencing `DEFAULT_INTEREST_RATE` breaks the single source of
+  truth and causes silent drift whenever the constant is recalibrated.
 - May have an admin-editable override per-property/per-portfolio, but the *default itself* is a code constant — recalibration goes through commit + ADR, not through admin keystrokes.
 
 **Range-shaped defaults — naming convention:**

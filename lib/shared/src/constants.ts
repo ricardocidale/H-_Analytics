@@ -329,7 +329,7 @@ export const COST_SEG_15YR_LIFE_YEARS = 15;
 
 // ── Loan / Financing Defaults ───────────────────────────────────────────
 export const DEFAULT_LTV = 0.75;
-export const DEFAULT_INTEREST_RATE = 0.09;
+// DEFAULT_INTEREST_RATE lives in constants-funding.ts (re-exported from constants.ts via export *)
 export const DEFAULT_TERM_YEARS = 25;
 export const DEFAULT_REFI_LTV = 0.65;
 export const DEFAULT_REFI_CLOSING_COST_RATE = 0.03;
