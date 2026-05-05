@@ -27,8 +27,6 @@ import {
 
 const router = Router();
 
-const PROJ_YEARS_DEFAULT = 5;
-
 router.get(
   "/api/internal/deck-payload/:id",
   async (req: Request, res: Response) => {
@@ -46,10 +44,10 @@ router.get(
     }
 
     try {
-      // userId=undefined → uses shared (userId=null) global assumptions, which
-      // is correct for an investor-facing snapshot. The token is the only
-      // capability check; we deliberately do NOT scope by user.
-      const payload = await buildSlidePayload(propertyId, undefined, PROJ_YEARS_DEFAULT);
+      // userId=undefined → sources projectionYears from stored global assumptions
+      // (falls back to DEFAULT_PROJECTION_YEARS). The token is the only capability
+      // check; we deliberately do NOT scope by user.
+      const payload = await buildSlidePayload(propertyId, undefined);
       res.setHeader("Cache-Control", "no-store");
       return res.json(payload);
     } catch (err: unknown) {

@@ -72,6 +72,18 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript project refer
 - Root-level `*.png`, `*.jpg`, `*.jpeg`, `*.webp` are blocked by `.gitignore` to keep the repo root clean.
 - When using the `screenshot` tool, always pass `save_to: "screenshots/<descriptive-name>.jpg"` instead of writing to the project root.
 
+## Assumption-class constants vs. cosmetic constants (magic numbers rule)
+
+This section mirrors `claude.md` § "Assumption-class constants vs. cosmetic constants" — keep wording in sync.
+
+**Assumption-class values** (projectionYears, inflationRate, interestRate, amortizationYears, exitCapRate, maxOccupancy) must **never** be hardcoded as numeric literals or wrapped in local ALL_CAPS constants. Source them from `storage.getGlobalAssumptions(userId)`, with `DEFAULT_*` exports from `lib/shared/src/constants.ts` as fallbacks only.
+
+`const LB_PROJ_YEARS = 10` in a non-constants file is a violation exactly like the literal `10`. Local shadow constants that mask assumption-class values are prohibited.
+
+**Canonical constants files** (where `export const DEFAULT_* = <number>` IS allowed): `lib/shared/src/constants*.ts`, `lib/db/src/constants.ts`. All other files: ALL_CAPS const definitions with numeric literals are flagged by `scripts/src/check-magic-numbers.ts`.
+
+**Slide Deck Factory rule:** The LB investor deck pipeline (`artifacts/api-server/src/slides/`) is a pure consumer. It sources every financial assumption from `storage.getGlobalAssumptions()` → `buildGlobalInput()` → the finance engine.
+
 ## Compound Engineering (CE) skills — Replit adaptation
 
 The CE plugin was vendored from upstream (Claude Code / Codex / Cursor). Many CE skills reference tools, git workflows, and directory structures that **do not exist on Replit Agent**. Before following any CE skill, read `.agents/ce-agents/REPLIT-ADAPTATION.md` — it is the authoritative override for all environment-specific instructions (no worktrees, no destructive git, no pre-commit hooks, no `.claude/` dirs, no `bun`, no `gh` CLI, no `Task` tool, no `TodoWrite`, workflows instead of `npm run dev`). See also `.agents/skills/ce-setup/SKILL.md` for the summary table.

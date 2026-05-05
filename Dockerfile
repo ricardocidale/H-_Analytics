@@ -6,7 +6,7 @@ FROM node:20-bookworm-slim AS build
 WORKDIR /app
 
 # Install pnpm via corepack
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@10.26.1 --activate
 
 # Copy manifest files needed for dependency resolution before any source.
 # pnpm install --frozen-lockfile requires every workspace package.json to
@@ -70,7 +70,7 @@ ENV NODE_ENV=production
 WORKDIR /app
 
 # Install pnpm so we can use it to prune if needed, and for corepack consistency.
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@10.26.1 --activate
 
 # Headless Chromium for Playwright PDF rendering (per-property investor decks).
 # `npx playwright install --with-deps chromium` installs both the apt system
@@ -90,10 +90,10 @@ COPY --from=build /app/artifacts/hospitality-business-portal/dist/public ./artif
 COPY --from=build /app/artifacts/mockup-sandbox/dist                     ./artifacts/api-server/dist/mockup-sandbox
 
 # Production seed SQL — loaded at first boot to sync canonical data.
-# Source-of-truth lives in artifacts/api-server/script/ (committed to git);
+# Source-of-truth lives in artifacts/api-server/seed/ (committed to git);
 # we stage it under /app/dist/ at runtime to match the path the api-server
 # checks first (process.cwd()/dist/seed-production.sql).
-COPY --from=build /app/artifacts/api-server/script/seed-production.sql ./dist/seed-production.sql
+COPY --from=build /app/artifacts/api-server/seed/seed-production.sql ./dist/seed-production.sql
 
 # Drizzle migrations — required at runtime by `migrate(db, { migrationsFolder:
 # "./migrations" })` in src/index.ts. The migrate() runner reads each SQL file
@@ -129,4 +129,4 @@ RUN pnpm --filter @workspace/api-server exec playwright install --with-deps chro
 
 EXPOSE 5000
 
-CMD ["node", "--enable-source-maps", "artifacts/api-server/dist/index.mjs"]
+CMD ["node", "--enable-source-maps", "--import", "./artifacts/api-server/dist/instrument.mjs", "artifacts/api-server/dist/index.mjs"]

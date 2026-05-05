@@ -157,6 +157,27 @@ Specialists are **dev-defined only** — see `.claude/rules/specialists-are-dev-
 - `canManageScenarios` is a boolean orthogonal to role — see the architecture audit at `.local/tasks/task-800.md`.
 - Dual share tables exist: `scenario_access` (enforcement) and `scenario_shares` (admin tracking). Both must be kept in sync.
 
+### Assumption-class constants vs. cosmetic constants (magic numbers rule)
+
+**Assumption-class values** — any financial, operational, or projection parameter that a user can configure or that varies by business context — must **never** be hardcoded as numeric literals or wrapped in local ALL_CAPS constants. The canonical sources are:
+
+- `storage.getGlobalAssumptions(userId)` for runtime values stored in the DB
+- `DEFAULT_*` exports from `lib/shared/src/constants.ts` (via `@shared/constants`) as **fallbacks only**
+
+Examples: `projectionYears`, `inflationRate`, `interestRate`, `amortizationYears`, `exitCapRate`, `maxOccupancy`.
+
+**Rule:** `const LB_PROJ_YEARS = 10` in a non-constants file is a violation exactly like the literal `10` itself. Local shadow constants that mask assumption-class values are prohibited — they hide the assumption from the configuration system.
+
+**Cosmetic constants** — values that are purely presentational and will never differ by business context (canvas dimensions, grid column counts, font sizes, viewport widths for PNG rendering) — may remain as named constants in the files that use them.
+
+**Canonical constants files** (where `export const DEFAULT_* = <number>` IS allowed):
+- `lib/shared/src/constants*.ts`
+- `lib/db/src/constants.ts`
+
+In all other files, ALL_CAPS const definitions with numeric literals are flagged by `scripts/src/check-magic-numbers.ts`.
+
+**Slide Deck Factory rule:** The LB investor deck pipeline (`artifacts/api-server/src/slides/`) is a pure consumer. It sources every financial assumption from `storage.getGlobalAssumptions()` → `buildGlobalInput()` → the finance engine. It never defines its own projection years, interest rates, or cap rates. After every change to the Slide Deck Factory, verify no local assumption constants were introduced.
+
 ### LB Slides — investor PDF decks (Playwright HTML→PDF)
 
 The "LB Slides" feature generates a 6-slide investor deck per property as a single PDF. Slide 7 ("The Ask") is always excluded. The output must match the canonical L+B reference deck (`attached_assets/L+B_Property_6-Slide_Cannonical_1777775653617.pdf`) — colors, fonts, layout, photo placement.
@@ -333,6 +354,12 @@ vendor/
 **Replit Agent:** Type the skill name as a command. Example: `use the ui-page-patterns skill`.
 
 **Full index:** See `.agents/skills/README.md`.
+
+### Memory-file harmonization (mandatory shipping gate)
+
+`claude.md` and `replit.md` are dual memory files covering identical ground for two different agents. They drift by default. **Every session that modifies either file must harmonize the other before shipping.** This applies equally when `ce-work` ships code that affects `claude.md` content (architecture rules, skill routing, known issues, recent changes).
+
+Rule: **if you touch `claude.md`, scan `replit.md` for related content and sync it. If you touch `replit.md`, do the same to `claude.md`.** Use the `agent-memory-files` skill for the full discipline (drift inventory, mirror-not-fork, per-session harmonize pass). Shared sections (architecture rules, inviolable rules, vocabulary, skill table) must have identical wording in both files. File-specific extras (Replit environment overrides, CC-specific tooling) stay only in their respective file.
 
 ---
 

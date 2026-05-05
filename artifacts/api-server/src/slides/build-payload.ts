@@ -16,6 +16,12 @@ import {
   RENOV_MAX_PCT_OF_PRICE,
   RENOV_MIN_PER_KEY,
   DEFAULT_PROJECTION_YEARS,
+  DEFAULT_PROPERTY_INFLATION_RATE,
+  DEFAULT_COST_RATE_MARKETING,
+  DEFAULT_INTEREST_RATE,
+  DEFAULT_TERM_YEARS,
+  DEFAULT_MAX_OCCUPANCY,
+  DEFAULT_EXIT_CAP_RATE,
 } from "@shared/constants";
 import { aggregateUnifiedByYear } from "@engine/aggregation/yearlyAggregator";
 import { calculateLoanParams, getAcquisitionYear } from "@engine/debt/loanCalculations";
@@ -79,22 +85,15 @@ export function computeRenovationBudget(input: {
 const MAX_PHOTOS = 8;
 const SIBLING_LIMIT = 4;
 
-const SLIDES_DEFAULT_INFLATION_RATE = 0.03;
-const SLIDES_DEFAULT_MARKETING_RATE = 0.01;
-const SLIDES_DEFAULT_INTEREST_RATE = 0.065;
-const SLIDES_DEFAULT_AMORTIZATION_YEARS = 25;
-const SLIDES_DEFAULT_MAX_OCCUPANCY = 0.70;
-const SLIDES_DEFAULT_EXIT_CAP_RATE = 0.07;
-
 export function buildGlobalInput(ga: Record<string, unknown>, projYears: number): GlobalInput {
   const dbDebt = ga.debtAssumptions as Record<string, unknown> | null;
   return {
     modelStartDate: (ga.modelStartDate as string) ?? String(new Date().getFullYear()),
-    inflationRate: Number(ga.inflationRate ?? SLIDES_DEFAULT_INFLATION_RATE),
-    marketingRate: Number(ga.marketingRate ?? SLIDES_DEFAULT_MARKETING_RATE),
+    inflationRate: Number(ga.inflationRate ?? DEFAULT_PROPERTY_INFLATION_RATE),
+    marketingRate: Number(ga.marketingRate ?? DEFAULT_COST_RATE_MARKETING),
     debtAssumptions: {
-      interestRate: Number(dbDebt?.interestRate ?? SLIDES_DEFAULT_INTEREST_RATE),
-      amortizationYears: Number(dbDebt?.amortizationYears ?? SLIDES_DEFAULT_AMORTIZATION_YEARS),
+      interestRate: Number(dbDebt?.interestRate ?? DEFAULT_INTEREST_RATE),
+      amortizationYears: Number(dbDebt?.amortizationYears ?? DEFAULT_TERM_YEARS),
     },
     projectionYears: projYears,
   } as unknown as GlobalInput;
@@ -272,7 +271,7 @@ export async function buildSlidePayload(
     county: (p.county ?? "") as string, country: property.country ?? "",
     purchasePrice: property.purchasePrice ?? 0, roomCount: property.roomCount ?? 0,
     startAdr: property.startAdr ?? 0,
-    maxOccupancy: property.maxOccupancy ?? SLIDES_DEFAULT_MAX_OCCUPANCY,
+    maxOccupancy: property.maxOccupancy ?? DEFAULT_MAX_OCCUPANCY,
     businessModel: property.businessModel ?? "hotel",
     hospitalityType: (p.hospitalityType ?? "") as string,
     qualityTier: (p.qualityTier ?? "") as string,
@@ -280,7 +279,7 @@ export async function buildSlidePayload(
     acquisitionStatus: (p.acquisitionStatus ?? "pipeline") as string,
     isHistoric: (p.isHistoric as boolean | string | undefined) ?? false,
     renovationScope: (p.renovationScope ?? "") as string,
-    exitCapRate: (p.exitCapRate ?? SLIDES_DEFAULT_EXIT_CAP_RATE) as number,
+    exitCapRate: (p.exitCapRate ?? DEFAULT_EXIT_CAP_RATE) as number,
   };
 
   const renovationBudget = computeRenovationBudget(propertyShape);
@@ -307,7 +306,7 @@ export async function buildSlidePayload(
       yearlyIS: yearlyIS as SlidePayload["financials"]["yearlyIS"],
       yearlyCF: yearlyCF as SlidePayload["financials"]["yearlyCF"],
       loanAmount, loanLtv, annualDebtService, irr, equityMultiple, renovationBudget,
-      exitCapRate: (p.exitCapRate ?? SLIDES_DEFAULT_EXIT_CAP_RATE) as number,
+      exitCapRate: (p.exitCapRate ?? DEFAULT_EXIT_CAP_RATE) as number,
     },
     siblings: siblings as unknown as SlidePayload["siblings"],
     deckPayloadV2,

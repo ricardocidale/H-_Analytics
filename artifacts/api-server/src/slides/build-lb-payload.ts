@@ -26,7 +26,7 @@ import { getBrowser } from "./playwright-browser";
 import { recomputeSinglePropertyAndStamp } from "../finance/recompute";
 import { withModelConstants } from "../finance/apply-model-constants";
 import { EMPTY_DECK_PAYLOAD_V2 } from "@shared/deck-payload-v2";
-import { DEFAULT_PROJECTION_YEARS } from "@shared/constants";
+import { DEFAULT_PROJECTION_YEARS, DEFAULT_EXIT_CAP_RATE } from "@shared/constants";
 import type { SlidePayload, YearlyIS, YearlyCF, SiblingProperty } from "./types";
 
 export interface LbSlidePayload {
@@ -117,8 +117,8 @@ function buildUsaliTableHtml(yearlyIS: YearlyIS[], yearlyCF: YearlyCF[], projYea
 </body></html>`;
 }
 
-async function renderUsaliTablePng(yearlyIS: YearlyIS[], yearlyCF: YearlyCF[]): Promise<string> {
-  const html = buildUsaliTableHtml(yearlyIS, yearlyCF);
+async function renderUsaliTablePng(yearlyIS: YearlyIS[], yearlyCF: YearlyCF[], projYears: number): Promise<string> {
+  const html = buildUsaliTableHtml(yearlyIS, yearlyCF, projYears);
   const browser = await getBrowser();
   const context = await browser.newContext({
     viewport: { width: USALI_TABLE_VIEWPORT_WIDTH, height: USALI_TABLE_VIEWPORT_HEIGHT },
@@ -255,7 +255,7 @@ async function buildSlide6Payload(allPropertyIds: number[]): Promise<SlidePayloa
   }
 
   // Sum yearlyIS across all properties for each year index
-  const maxYears = Math.max(...perPropertyResults.map(r => r.unified.yearlyIS.length), LB_PROJ_YEARS);
+  const maxYears = Math.max(...perPropertyResults.map(r => r.unified.yearlyIS.length), projYears);
   const summedYearlyIS: YearlyIS[] = [];
 
   for (let yi = 0; yi < maxYears; yi++) {
@@ -320,7 +320,7 @@ async function buildSlide6Payload(allPropertyIds: number[]): Promise<SlidePayloa
 
   let usaliPngBase64: string | undefined;
   try {
-    usaliPngBase64 = await renderUsaliTablePng(summedYearlyIS, summedYearlyCF);
+    usaliPngBase64 = await renderUsaliTablePng(summedYearlyIS, summedYearlyCF, projYears);
   } catch (err) {
     logger.warn(`[build-lb-payload] Failed to render USALI table PNG: ${err}`, "build-lb-payload");
   }
@@ -347,11 +347,11 @@ async function buildSlide6Payload(allPropertyIds: number[]): Promise<SlidePayloa
       renovationBudget: 0,
       irr,
       equityMultiple,
-      exitCapRate: SLIDES_DEFAULT_EXIT_CAP_RATE,
+      exitCapRate: Number((ga as Record<string, unknown>).exitCapRate ?? DEFAULT_EXIT_CAP_RATE),
     },
     siblings: [],
     deckPayloadV2: EMPTY_DECK_PAYLOAD_V2,
-    projYears: LB_PROJ_YEARS,
+    projYears,
     usaliMode: true,
     usaliPngBase64,
   };
@@ -377,10 +377,10 @@ export async function buildLbPayload(): Promise<LbSlidePayload> {
   }
 
   const [s1, s2, s3, s5] = await Promise.all([
-    buildSlidePayload(slide1PropertyId, undefined, 5),
-    buildSlidePayload(slide2PropertyId, undefined, 5),
-    buildSlidePayload(slide3PropertyId, undefined, 5),
-    buildSlidePayload(slide5PropertyId, undefined, 5),
+    buildSlidePayload(slide1PropertyId, undefined),
+    buildSlidePayload(slide2PropertyId, undefined),
+    buildSlidePayload(slide3PropertyId, undefined),
+    buildSlidePayload(slide5PropertyId, undefined),
   ]);
 
   const allProps = await storage.getAllProperties(undefined);

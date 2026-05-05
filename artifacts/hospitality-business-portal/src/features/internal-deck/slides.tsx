@@ -35,19 +35,17 @@ import {
 } from "./helpers";
 import { getCanonicalPhoto } from "./canonical-photos";
 import type { SiblingProperty, SlidePayload, SlidePhoto } from "./types";
+import { DEFAULT_PROJECTION_YEARS, DEFAULT_EXIT_CAP_RATE, DEFAULT_MAX_OCCUPANCY } from "@shared/constants";
 
 // ── Canvas aliases ──────────────────────────────────────────────────────────
 const W = CANVAS.width;   // 960
 const H = CANVAS.height;  // 540
 
 // ── Shared business-logic constants ─────────────────────────────────────────
-const SLIDE_EXIT_CAP_RATE_FALLBACK = 0.07;
-const DEFAULT_OCCUPANCY = 0.7;
 const STABLE_OCC_FLOOR = 0.55;
 const STABLE_OCC_CEILING = 0.85;
 const PCT_SCALE = 100;
 const DEFAULT_LTV_LABEL_PCT = "65%";
-const PROFORMA_YEARS = 5;
 const SIBLING_GRID_SLOTS = 6;
 const SIBLING_GRID_COLS = 3;
 
@@ -634,7 +632,7 @@ export function Slide5({ p }: { p: SlidePayload }) {
 
   const stableOcc = stable && stable.availableRooms > 0
     ? Math.min(STABLE_OCC_CEILING, Math.max(STABLE_OCC_FLOOR, stable.soldRooms / stable.availableRooms))
-    : (property.maxOccupancy ?? DEFAULT_OCCUPANCY);
+    : (property.maxOccupancy ?? DEFAULT_MAX_OCCUPANCY);
   const stableAdr = stable?.cleanAdr ?? property.startAdr ?? 0;
   const stableRevpar = stableAdr * stableOcc;
 
@@ -773,18 +771,18 @@ export function Slide6({ p }: { p: SlidePayload }) {
 
   const isLbMode = p.usaliMode === true;
   const hasUsaliPng = Boolean(usaliPngBase64);
-  const yearCount = projYears ?? PROFORMA_YEARS;
+  const yearCount = projYears ?? DEFAULT_PROJECTION_YEARS;
 
   const SLIDE6_DEFAULT_DISCLAIMER = isLbMode
-    ? "10-year portfolio pro forma aggregated across all portfolio properties. H+ Analytics projection engine. Projections are estimates; actual results may vary."
-    : "5-year pro forma based on H+ Analytics projection engine. Projections are estimates; actual results may vary.";
+    ? `${yearCount}-year portfolio pro forma aggregated across all portfolio properties. H+ Analytics projection engine. Projections are estimates; actual results may vary.`
+    : `${yearCount}-year pro forma based on H+ Analytics projection engine. Projections are estimates; actual results may vary.`;
 
   const years = financials.yearlyIS.slice(0, yearCount);
   const stable = getStableYear(financials.yearlyIS);
   const stableNoi = stable?.noi ?? 0;
   const exitVal = financials.yearlyCF[financials.yearlyCF.length - 1]?.exitValue ?? 0;
   const totalReturn = financials.yearlyCF.reduce((a, y) => a + (y.netCashFlowToInvestors ?? 0), 0) + exitVal;
-  const exitCap = financials.exitCapRate ?? property.exitCapRate ?? SLIDE_EXIT_CAP_RATE_FALLBACK;
+  const exitCap = financials.exitCapRate ?? property.exitCapRate ?? DEFAULT_EXIT_CAP_RATE;
   const initialEquity = financials.loanAmount > 0
     ? (property.purchasePrice ?? 0) - financials.loanAmount
     : property.purchasePrice ?? 0;
