@@ -20,8 +20,12 @@ import {
 import { withFundingDefaults } from "../finance/apply-funding-defaults";
 import type {
   FundingPromptInputContext,
+  FundingAnalysisSummary,
   ReferenceBrandSummary,
 } from "../ai/specialists/mgmt-co-funding-prompt-input-builder";
+import { computeCompanyProjection } from "../finance/service";
+import { analyzeFundingNeeds } from "@engine/funding/funding-predictor";
+import type { PropertyInput, GlobalInput } from "@engine/types";
 import type { CapitalRaiseInputs } from "@engine/watchdog/capitalRaiseEvaluator";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 import { DEFAULT_RUNWAY_NEED_MONTHS_PLACEHOLDER } from "@shared/constants-funding";
@@ -97,6 +101,20 @@ import {
 } from "../ai/specialists/resolve-persona";
 
 const ANALYST_COOLDOWN_MS = 60 * 1000;
+
+function gaToGlobalInput(ga: Record<string, unknown>, projectionYears: number): GlobalInput {
+  const dbDebt = ga.debtAssumptions as Record<string, unknown> | null;
+  return {
+    modelStartDate: (ga.modelStartDate as string) ?? String(new Date().getFullYear()),
+    inflationRate: Number(ga.inflationRate ?? 0.03),
+    marketingRate: Number(ga.marketingRate ?? 0.01),
+    debtAssumptions: {
+      interestRate: Number(dbDebt?.interestRate ?? 0.065),
+      amortizationYears: Number(dbDebt?.amortizationYears ?? 25),
+    },
+    projectionYears,
+  } as GlobalInput;
+}
 
 const refreshBodySchema = z.object({
   scope: z.enum(["global-assumptions", "property"]),
@@ -617,10 +635,45 @@ async function runFundingV1Path(userId: number) {
   // cost — a different quantity entirely (audit finding: data lineage).
   const totalRaiseNeedUsd =
     (overlaidGa.capitalRaise1Amount ?? 0) + (overlaidGa.capitalRaise2Amount ?? 0);
+
+  // Engine analysis — non-fatal: computation failure must not block the verdict.
+  // When properties exist, run the company engine to get projected cash flows,
+  // then feed them to analyzeFundingNeeds for actual tranche/burn/runway numbers.
+  let engineAnalysis: FundingAnalysisSummary | undefined;
+  try {
+    if (properties.length > 0) {
+      const globalInput = gaToGlobalInput(overlaidGa as unknown as Record<string, unknown>, 10);
+      const { companyMonthly } = computeCompanyProjection({
+        properties: properties as unknown as PropertyInput[],
+        globalAssumptions: globalInput,
+        projectionYears: 10,
+      });
+      const analysis = analyzeFundingNeeds(companyMonthly, {
+        ...globalInput,
+        capitalRaiseValuationCap: (overlaidGa.capitalRaiseValuationCap as number | null) ?? undefined,
+        capitalRaiseDiscountRate: (overlaidGa.capitalRaiseDiscountRate as number | null) ?? undefined,
+      });
+      engineAnalysis = {
+        totalRaiseNeeded: analysis.totalRaiseNeeded,
+        monthlyBurnRate: analysis.monthlyBurnRate,
+        breakevenMonth: analysis.breakevenMonth,
+        monthsOfRunway: analysis.monthsOfRunway,
+        fundingGap: analysis.fundingGap,
+        peakCashDeficit: analysis.peakCashDeficit,
+        tranches: analysis.tranches.map((t) => ({ amountUsd: t.amount, monthIndex: t.month })),
+      };
+    }
+  } catch (engineErr: unknown) {
+    logger.warn(
+      `runFundingV1Path: engine analysis failed for user ${userId}: ${engineErr instanceof Error ? engineErr.message : engineErr}`,
+      "analyst-admin",
+    );
+  }
+
   const portfolio: FundingPromptInputContext["portfolio"] = {
     propertyCount: properties.length,
     totalRaiseNeedUsd,
-    runwayNeedMonths: DEFAULT_RUNWAY_NEED_MONTHS_PLACEHOLDER,
+    runwayNeedMonths: engineAnalysis?.monthsOfRunway ?? DEFAULT_RUNWAY_NEED_MONTHS_PLACEHOLDER,
   };
 
   // Fetch reference brands and project to the slim summary shape. The
@@ -650,6 +703,7 @@ async function runFundingV1Path(userId: number) {
     icpModel,
     priorVerdicts: [], // v1: no composition; G6-P3 wires verdict-cache reads
     referenceBrands: referenceBrands.length > 0 ? referenceBrands : undefined,
+    engineAnalysis,
   };
 
   const comparables = await getLpComparables();

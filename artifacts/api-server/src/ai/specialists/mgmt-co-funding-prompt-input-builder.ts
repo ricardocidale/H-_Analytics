@@ -178,6 +178,22 @@ export interface ReferenceBrandSummary {
   geographicFocus: string | null;
 }
 
+/**
+ * Slim summary of engine-computed funding analysis for prompt injection.
+ * A subset of `FundingAnalysis` — scalars and the tranche array only.
+ * The full `cashRunway[]` array is excluded to keep prompt size manageable.
+ * Mapped by the route layer per ADR-007 (no engine imports in builder files).
+ */
+export interface FundingAnalysisSummary {
+  totalRaiseNeeded: number;
+  monthlyBurnRate: number;
+  breakevenMonth: number | null;
+  monthsOfRunway: number;
+  fundingGap: number;
+  peakCashDeficit: number;
+  tranches: Array<{ amountUsd: number; monthIndex: number }>;
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // Prompt-input pack
 
@@ -195,6 +211,13 @@ export interface FundingPromptInputContext {
    * referenceDisclaimer so the LLM stage doesn't over-weight these figures.
    */
   referenceBrands?: readonly ReferenceBrandSummary[];
+  /**
+   * Engine-computed funding analysis injected by the route layer (non-fatal).
+   * Undefined when the engine call fails or no properties exist. When present,
+   * the prompt layer uses this as primary grounding for raise adequacy analysis
+   * rather than redirecting to the Cash Flow Statement.
+   */
+  engineAnalysis?: FundingAnalysisSummary;
 }
 
 export interface FundingPromptInput {

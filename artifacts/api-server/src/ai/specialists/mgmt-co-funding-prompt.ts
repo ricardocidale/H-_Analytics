@@ -71,9 +71,19 @@ You analyze the user's currently-saved Funding-tab inputs against:
 
 You produce a structured verdict: 5 dimensions, each with a range, a conviction level, a tight reasoning paragraph, and 1-5 evidence references (indexes into the comparables array).
 
-# When you can't verify sufficiency
+# When engine-computed analysis is available
 
-You see the user's funding plan inputs — amounts, dates, buffers, overshoot targets. You do NOT see the computed monthly cash flows the financial engine produces. When your analysis raises concerns about raise adequacy or tranche timing that only the engine output can confirm, say so explicitly in the relevant dimension's reasoning AND in the overallNarrative:
+If the user message contains a `# Engine-computed funding analysis` section, those numbers are primary grounding — use them directly and cite them by field name:
+- `totalRaiseNeeded` overrides abstract raise-adequacy inference; anchor all sizing commentary to this figure.
+- `monthlyBurnRate` is the burn figure for runway analysis — not a guess, not a comparable.
+- `breakevenMonth` and `monthsOfRunway` replace the cash-flow-redirect hedge for runway adequacy.
+- Tranche amounts and month indices are the plan structure — validate their pacing against the comparable set.
+
+Do NOT redirect to the Cash Flow Statement for fields already visible in the engine section.
+
+# When engine data is absent
+
+You see the user's funding plan inputs — amounts, dates, buffers, overshoot targets. You do NOT see computed monthly cash flows. When your analysis raises concerns that only the engine output can confirm, say so explicitly in the relevant dimension's reasoning AND in the overallNarrative:
 
 > "The Analyst sees [concern]. Verify by checking your Cash Flow Statement — look for months where cumulative cash turns negative or where excess capital sits idle for more than 2-3 months."
 
@@ -82,7 +92,7 @@ Use this redirect when:
 - The raise size looks borderline relative to the portfolio aggregate and you can't confirm it clears overhead + pre-ops + debt service.
 - Tranche 2 timing may arrive too late to cover a revenue ramp gap, but the exact month depends on engine output.
 
-Do NOT fabricate sufficiency. Do NOT say "the plan looks fine" when you can't verify it. The Cash Flow Statement redirect is the honest answer when the engine has data you don't.
+Do NOT fabricate sufficiency. The Cash Flow Statement redirect is the honest answer when the engine section is absent.
 
 # How you write
 
@@ -197,6 +207,23 @@ export function buildFundingUserPrompt(
           )
           .join("\n");
 
+  const engineAnalysisBlock = ctx.engineAnalysis
+    ? `# Engine-computed funding analysis (primary grounding — use directly)\n\n` +
+      `  Total raise needed:   $${(ctx.engineAnalysis.totalRaiseNeeded / 1_000_000).toFixed(2)}M\n` +
+      `  Monthly burn rate:    $${(ctx.engineAnalysis.monthlyBurnRate / 1_000).toFixed(0)}K/mo\n` +
+      `  Breakeven month:      ${ctx.engineAnalysis.breakevenMonth != null ? `month ${ctx.engineAnalysis.breakevenMonth}` : "not reached within projection window"}\n` +
+      `  Months of runway:     ${ctx.engineAnalysis.monthsOfRunway.toFixed(0)}\n` +
+      `  Funding gap:          $${(ctx.engineAnalysis.fundingGap / 1_000).toFixed(0)}K (negative = surplus)\n` +
+      `  Peak cash deficit:    $${(ctx.engineAnalysis.peakCashDeficit / 1_000).toFixed(0)}K\n` +
+      (ctx.engineAnalysis.tranches.length > 0
+        ? `  Tranches:\n` +
+          ctx.engineAnalysis.tranches
+            .map((t, i) => `    [${i + 1}] $${(t.amountUsd / 1_000_000).toFixed(2)}M at month ${t.monthIndex}`)
+            .join("\n")
+        : `  Tranches:             none computed`) +
+      `\n`
+    : "";
+
   const icpBlock = ctx.icpModel
     ? `# Management company model (ICP — user-selected anchor)
 
@@ -231,6 +258,7 @@ ${personaLine}
 
 ${portfolioLine}
 
+${engineAnalysisBlock}
 ${icpBlock}
 
 # User's currently-saved Funding-tab values
