@@ -136,3 +136,8 @@ export const PORTFOLIO_RAISE_NARRATIVE_MAX_CHARS = 800;
  * (60–65% is the industry validation band; below 60% is still ramp, above 65% is stable). */
 export const PORTFOLIO_RAISE_TRANCHE2_OCCUPANCY_LOW  = 60;  // % lower trigger
 export const PORTFOLIO_RAISE_TRANCHE2_OCCUPANCY_HIGH = 65;  // % upper trigger
+
+/** LP waterfall economics — European waterfall default for boutique luxury portfolio funds. */
+export const PORTFOLIO_RAISE_LP_PREFERRED_RETURN_PCT = 8;   // 8% non-compounded preferred return
+export const PORTFOLIO_RAISE_GP_CARRY_PCT            = 20;  // 20% GP promote above hurdle
+export const PORTFOLIO_RAISE_ASSET_CONCENTRATION_MAX_PCT = 25;  // single-asset max % of total fund equity
