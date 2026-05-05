@@ -107,6 +107,14 @@ import {
   resolveCompanyPersona,
   resolvePropertyPersona,
 } from "../ai/specialists/resolve-persona";
+import {
+  runPortfolioRaiseSpecialist,
+  Tier1UnavailableError as PortfolioRaiseTier1UnavailableError,
+} from "../ai/specialists/portfolio-raise-runner";
+import type { PortfolioRaisePromptInputContext } from "../ai/specialists/portfolio-raise-prompt-input-builder";
+import { getPortfolioRaiseComparables } from "../ai/specialists/portfolio-raise-live-comparables";
+import { analyzePortfolioCapitalRaise } from "@engine/funding/portfolio-capital-raise";
+import { generatePropertyProForma } from "../finance/core/property-pipeline";
 
 const ANALYST_COOLDOWN_MS = 60 * 1000;
 
@@ -462,6 +470,43 @@ export async function analystRefreshHandler(req: Request, res: Response) {
         );
         return logAndSendError(res, "Property Defaults Specialist failed", err, "analyst-admin");
       }
+    }
+  }
+
+  // Portfolio Capital Raise Specialist — portfolio-level LP equity analysis.
+  // No Tier-0 fallback (no legacy runner covers this); returns 503 on failure.
+  if (specialistId === "portfolio.capitalRaise") {
+    try {
+      const verdict = await runPortfolioRaiseV1Path(userId);
+      if ("__noProperties" in verdict) {
+        return res.status(400).json({
+          code: "NO_PROPERTIES",
+          message: "Add at least one investment property to analyze a portfolio capital raise.",
+        });
+      }
+      logActivity(req, "analyst-refresh", "company", userId, "Portfolio Capital Raise (v1)", {
+        scope,
+        specialistId,
+        cognitiveRunId: verdict.meta.cognitiveRunId,
+        tier: verdict.meta.tier,
+      });
+      return res.json({ verdict });
+    } catch (err: unknown) {
+      if (err instanceof PortfolioRaiseTier1UnavailableError) {
+        logger.warn(
+          `portfolio.capitalRaise v1 unavailable; returning Tier-0 honest-fail: ${err.message}`,
+          "analyst-admin",
+        );
+        return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({
+          code: "TIER1_UNAVAILABLE",
+          message: "The Analyst is temporarily unavailable. Try again in a moment.",
+        });
+      }
+      logger.error(
+        `portfolio.capitalRaise v1 failed unexpectedly: ${err instanceof Error ? err.message : String(err)}`,
+        "analyst-admin",
+      );
+      return logAndSendError(res, "Portfolio Capital Raise Specialist failed", err, "analyst-admin");
     }
   }
 
