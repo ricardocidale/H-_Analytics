@@ -15,7 +15,7 @@ interface CompanyInvestmentTabProps {
   getFiscalYear: (yearIndex: number) => number;
   yearlyChartData: CompanyChartDataPoint[];
   propertyFinancials: { property: { isActive?: boolean }; financials: { noi: number }[] }[];
-  global: { companyOpsStartDate?: string; capitalRaise1Date?: string; capitalRaise1Amount?: number; capitalRaise2Amount?: number; capitalRaise3Amount?: number | null; companyName?: string };
+  global: { companyOpsStartDate?: string; capitalRaise1Date?: string; capitalRaise1Amount?: number; capitalRaise2Amount?: number; capitalRaise3Amount?: number; companyName?: string };
   fundingLabel: string;
   tableRef?: React.RefObject<HTMLDivElement | null>;
   activeTab?: string;

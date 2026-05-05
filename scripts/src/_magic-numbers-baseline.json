@@ -2444,16 +2444,12 @@
     "artifacts/api-server/src/seeds/reference-ranges.ts",
     "lib/shared/src/constants-business-models.ts"
   ],
-  "0.09": [
-    "artifacts/api-server/src/ai/risk/benchmarks.ts",
+  "0.075": [
     "artifacts/api-server/src/ai/specialists/mgmt-co-company-orchestrator-adapter.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-orchestrator-adapter.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-prompt.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-quant-panel-prompt.ts",
+    "artifacts/api-server/src/ai/specialists/property-risk-orchestrator-adapter.ts",
     "artifacts/api-server/src/seeds/property-data.ts",
-    "lib/shared/src/constants-funding.ts",
-    "lib/shared/src/constants-operating-structures-data.ts"
+    "lib/shared/src/constants-funding.ts"
   ],
   "1.1": [
     "artifacts/api-server/src/ai/data-routing/dispatchers/precollected-tables.ts",
@@ -2474,6 +2470,16 @@
     "artifacts/api-server/src/routes/format-generators/pptx-generator.ts",
     "artifacts/api-server/src/routes/research/generate-persist-guidance.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts",
+    "lib/shared/src/constants-operating-structures-data.ts"
+  ],
+  "0.09": [
+    "artifacts/api-server/src/ai/risk/benchmarks.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-company-orchestrator-adapter.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-orchestrator-adapter.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-prompt.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-quant-panel-prompt.ts",
+    "artifacts/api-server/src/seeds/property-data.ts",
     "lib/shared/src/constants-operating-structures-data.ts"
   ],
   "0.28": [
@@ -2621,12 +2627,6 @@
     "artifacts/api-server/src/ai/specialists/portfolio-raise-live-comparables.ts",
     "artifacts/api-server/src/seeds/market-data-tables.ts",
     "artifacts/api-server/src/seeds/reference-ranges.ts"
-  ],
-  "0.075": [
-    "artifacts/api-server/src/ai/specialists/mgmt-co-company-orchestrator-adapter.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-orchestrator-adapter.ts",
-    "artifacts/api-server/src/ai/specialists/property-risk-orchestrator-adapter.ts",
-    "artifacts/api-server/src/seeds/property-data.ts"
   ],
   "0.45": [
     "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-orchestrator-adapter.ts",

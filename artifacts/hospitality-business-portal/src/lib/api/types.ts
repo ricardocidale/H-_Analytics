@@ -24,8 +24,8 @@ export interface GlobalResponse {
   capitalRaise1Date: string;
   capitalRaise2Amount: number;
   capitalRaise2Date: string;
-  capitalRaise3Amount: number | null;
-  capitalRaise3Date: string | null;
+  capitalRaise3Amount?: number;
+  capitalRaise3Date?: string;
   capitalRaiseValuationCap: number;
   capitalRaiseDiscountRate: number;
   fundingInterestRate: number;
