@@ -144,6 +144,53 @@ Three items survive plan-007's execution:
 
 ---
 
+## Execution Routing
+
+Four of the five units are unblocked right now and have no file overlaps — they can be
+dispatched simultaneously across Claude Code and a Replit Agent.
+
+### Batch 1 — Parallel (all unblocked, no shared files)
+
+| Unit | Agent | Files touched | Why here |
+|---|---|---|---|
+| U1 · Seed refi rates | **Replit** | `seeds/property-data.ts` | Simple seed constants; no architecture sensitivity |
+| U2 · Overhead audit | **Replit** | `seeds/properties.ts` | Conditional, audit-then-change; browser not needed |
+| U4 · Country field | **CC** | `lib/engine/src/…` (3 files) | Engine types need taxonomy review; `?` field addition |
+| U5 · NAI-23 CTE | **CC** | `routes/analyst-admin.ts`, `watchdog.ts` | SQL atomicity; Drizzle/raw SQL judgment call |
+
+CC can dispatch U4 and U5 as parallel sub-agents (no file overlap, worktree-isolated).
+Replit runs U1 and U2 in parallel independently.
+
+### Batch 2 — After Batch 1 Replit merges
+
+| Unit | Agent | Dependency |
+|---|---|---|
+| U3 · Reseed + verify | **Replit** | After U1 + U2 land; requires browser for visual check |
+
+CC's U4 and U5 are independent of U3 — they can land before or after reseed without conflict.
+
+### Prompt for Replit
+
+> **Batch 1 — run U1 and U2 in parallel, then U3.**
+>
+> **U1 (property-data.ts):** Add named constants `SEED_REFI_INTEREST_RATE_US = 0.07` and
+> `SEED_REFI_INTEREST_RATE_COLOMBIA = 0.085` at the top of the `SEED_*` block. Replace every
+> `refinanceInterestRate: 0.09` with the appropriate constant (Colombia properties get Colombia
+> rate, all others get US rate). Run `pnpm --filter @workspace/scripts run check:magic-numbers`
+> after — must PASS.
+>
+> **U2 (properties.ts):** Read `seedGlobalAssumptions.marketingRate`. If it is `0.05`, change
+> it to `SEED_MARKETING_RATE = 0.03` — a 5% company-level marketing rate is above market for a
+> sub-10-property portfolio in Y1. If the value is already ≤ 0.04, leave it and document why.
+> Run `check:magic-numbers` after.
+>
+> **U3 (reseed + verify — after U1+U2 merge):** Run `pnpm --filter @workspace/api-server exec
+> tsx src/seed.ts`. Open the H+ Analytics dashboard. Verify: ≥ 4/6 active properties show
+> positive stabilized NOI; Company Funding shows break-even by Y3–Y4; at least one property
+> shows levered IRR ≥ 15%. Report what you see — do not paper over engine bugs with seed tweaks.
+
+---
+
 ## Implementation Units
 
 - U1. **Seed refinance interest rate correction**
