@@ -9,6 +9,7 @@
  * The background refresh loop (called from server/index.ts) only re-fetches stale rates.
  */
 
+import { z } from "zod";
 import { db } from "../db";
 import { marketRates, type MarketRate } from "@workspace/db";
 import { eq } from "drizzle-orm";
@@ -16,6 +17,17 @@ import { EXTERNAL_API_TIMEOUT_MS } from "../constants";
 import { FRED_BASE_URL } from "../services/FREDService";
 import { OpenExchangeRatesService } from "../services/OpenExchangeRatesService";
 import { logger } from "../logger";
+
+const fredResponseSchema = z.object({
+  observations: z
+    .array(z.object({ date: z.string(), value: z.string() }))
+    .optional(),
+});
+
+const frankfurterResponseSchema = z.object({
+  rates: z.record(z.number()).optional(),
+  date: z.string().optional(),
+});
 
 // Lazy-instantiated OXR client — only created on first fallback call.
 let oxrServiceSingleton: OpenExchangeRatesService | null = null;
@@ -96,9 +108,12 @@ export async function fetchFredRate(seriesId: string): Promise<{ value: number; 
       return null;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data = await response.json() as any;
-    const obs: FredObservation | undefined = data.observations?.[0];
+    const parsed = fredResponseSchema.safeParse(await response.json());
+    if (!parsed.success) {
+      logger.warn(`FRED response parse error for ${seriesId}: ${parsed.error.message}`, "market-rates");
+      return null;
+    }
+    const obs: FredObservation | undefined = parsed.data.observations?.[0];
     if (!obs || obs.value === ".") return null;
 
     return { value: parseFloat(obs.value), date: obs.date };
@@ -136,12 +151,15 @@ export async function fetchFrankfurterRate(targetCurrency: string): Promise<{ va
     }
 
     frankfurterWarned.delete(targetCurrency);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data = await response.json() as any;
-    const rate = data.rates?.[targetCurrency];
+    const parsed = frankfurterResponseSchema.safeParse(await response.json());
+    if (!parsed.success) {
+      logger.warn(`Frankfurter response parse error for ${targetCurrency}: ${parsed.error.message}`, "market-rates");
+      return null;
+    }
+    const rate = parsed.data.rates?.[targetCurrency];
     if (rate == null) return null;
 
-    return { value: rate, date: data.date };
+    return { value: rate, date: parsed.data.date ?? new Date().toISOString().slice(0, 10) };
   } catch (error: unknown) {
     if (!frankfurterWarned.has(targetCurrency)) {
       logger.warn(`Frankfurter fetch error for ${targetCurrency}: ${error instanceof Error ? error.message : error}`, "market-rates");

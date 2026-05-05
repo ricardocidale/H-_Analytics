@@ -19,9 +19,18 @@
  *   Economic series: 24 hours (published monthly/quarterly)
  */
 
+import { z } from "zod";
 import { BaseIntegrationService } from "./BaseIntegrationService";
 import { cache } from "../cache";
 import { rapidApiHeaders, isRapidApiAvailable } from "./rapidApiKeyRouter";
+
+const avWeeklySchema = z.object({
+  "Weekly Time Series": z.record(z.record(z.string())).optional(),
+});
+
+const avEconSchema = z.object({
+  data: z.array(z.object({ date: z.string(), value: z.string() })).optional(),
+});
 
 const HOST     = "alpha-vantage.p.rapidapi.com";
 const BASE_URL = `https://${HOST}/query`;
@@ -108,9 +117,10 @@ export class AlphaVantageService extends BaseIntegrationService {
         });
 
         const res  = await this.fetchWithTimeout(url, { headers: rapidApiHeaders(HOST, "tertiary") });
-        const data = await res.json() as any;
+        const parsed = avWeeklySchema.safeParse(await res.json());
+        if (!parsed.success) return null;
 
-        const series: Record<string, Record<string, string>> = data?.["Weekly Time Series"] ?? {};
+        const series: Record<string, Record<string, string>> = parsed.data["Weekly Time Series"] ?? {};
         const dates = Object.keys(series).sort().reverse();
 
         if (dates.length < 5) return null;
@@ -152,9 +162,10 @@ export class AlphaVantageService extends BaseIntegrationService {
       try {
         const url = `${BASE_URL}?` + new URLSearchParams({ function: "REAL_GDP", interval: "quarterly", datatype: "json" });
         const res  = await this.fetchWithTimeout(url, { headers: rapidApiHeaders(HOST, "tertiary") });
-        const data = await res.json() as any;
+        const parsed = avEconSchema.safeParse(await res.json());
+        if (!parsed.success) return null;
 
-        const series: { date: string; value: string }[] = data?.data ?? [];
+        const series = parsed.data.data ?? [];
         if (series.length < 2) return null;
 
         const latest = parseFloat(series[0].value);
@@ -173,9 +184,10 @@ export class AlphaVantageService extends BaseIntegrationService {
       try {
         const url = `${BASE_URL}?` + new URLSearchParams({ function: "INFLATION", datatype: "json" });
         const res  = await this.fetchWithTimeout(url, { headers: rapidApiHeaders(HOST, "tertiary") });
-        const data = await res.json() as any;
+        const parsed = avEconSchema.safeParse(await res.json());
+        if (!parsed.success) return null;
 
-        const series: { date: string; value: string }[] = data?.data ?? [];
+        const series = parsed.data.data ?? [];
         if (!series.length) return null;
 
         return parseFloat(series[0].value) || null;
