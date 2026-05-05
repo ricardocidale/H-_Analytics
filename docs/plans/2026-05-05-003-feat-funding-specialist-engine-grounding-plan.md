@@ -1,7 +1,7 @@
 ---
 title: "feat: Ground funding specialist in Capital Raise engine output"
 type: feat
-status: active
+status: completed
 date: 2026-05-05
 ---
 
