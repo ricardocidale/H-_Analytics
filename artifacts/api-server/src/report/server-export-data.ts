@@ -16,6 +16,16 @@ import { logger } from "../logger";
 import type { DdSummary } from "@shared/dd-template";
 import { DD_STATUS_LABELS, DD_WORKSTREAM_LABELS } from "@shared/dd-template";
 import { buildPropertyAssumptionsSection, buildCompanyAssumptionsSection } from "./assumption-sections";
+import { getMarketRate } from "../data/marketRates";
+
+const TRANSFER_TAX_KEYS = [
+  "transfer_tax_default", "transfer_tax_us", "transfer_tax_mexico",
+  "transfer_tax_netherlands", "transfer_tax_uk", "transfer_tax_france", "transfer_tax_spain",
+  "transfer_tax_state_florida", "transfer_tax_state_new_york", "transfer_tax_state_california",
+  "transfer_tax_state_texas", "transfer_tax_state_hawaii", "transfer_tax_state_washington",
+  "transfer_tax_state_pennsylvania", "transfer_tax_state_illinois",
+  "transfer_tax_state_massachusetts", "transfer_tax_state_colorado",
+] as const;
 
 interface ExportRow {
   category: string;
@@ -616,6 +626,13 @@ export async function buildPropertyExportData(
     );
     const loan = calculateLoanParams(stampedLoanProps, globalInput);
     const acquisitionYear = getAcquisitionYear(loan);
+    const transferTaxRateRows = await Promise.all(TRANSFER_TAX_KEYS.map(k => getMarketRate(k)));
+    const transferTaxRates: Record<string, number> = {};
+    for (let i = 0; i < TRANSFER_TAX_KEYS.length; i++) {
+      const row = transferTaxRateRows[i];
+      if (row?.value != null) transferTaxRates[TRANSFER_TAX_KEYS[i]] = row.value / 100;
+    }
+
     const exitData: ExitScenariosOutput = computeExitScenarios({
       property: property as unknown as Parameters<typeof computeExitScenarios>[0]["property"],
       global: globalInput,
@@ -623,6 +640,7 @@ export async function buildPropertyExportData(
       netCashFlowToInvestors: unified.yearlyCF.map(y => y.netCashFlowToInvestors),
       acquisitionYear,
       horizons: [...DEFAULT_EXIT_HORIZONS],
+      transferTaxRates,
     });
 
     if (exitData.scenarios.length > 0) {

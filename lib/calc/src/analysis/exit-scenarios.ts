@@ -166,6 +166,12 @@ export interface ExitScenariosInput {
   scenarios?: [ExitScenarioAssumption, ExitScenarioAssumption, ExitScenarioAssumption];
   /** Maximum year used when searching for breakeven and charting. Default 30. */
   ceilingYears?: number;
+  /**
+   * Transfer-tax rates keyed by market_rates rateKey (e.g. "transfer_tax_us"),
+   * as decimals (NOT percentage points). When provided, `lookupJurisdictionRates`
+   * prefers these over bootstrap constants. Missing keys fall back to bootstrap.
+   */
+  transferTaxRates?: Record<string, number>;
 }
 
 /** Top-level output of {@link computeExitScenarios}. */
@@ -190,31 +196,31 @@ export interface ExitScenariosOutput {
 /** FF&E disposition cost share of grossSale used across all jurisdictions. */
 const FFE_DISPOSITION_RATE_DEFAULT = 0.005;
 /** Catch-all transfer/stamp tax for jurisdictions without an explicit row. */
-const TRANSFER_TAX_RATE_DEFAULT_NON_US = 0.005;
+const TRANSFER_TAX_RATE_DEFAULT_NON_US_BOOTSTRAP = 0.005;
 /** Weighted national US transfer + recording fees average. */
-const TRANSFER_TAX_RATE_US_NATIONAL_AVG = 0.0075;
+const TRANSFER_TAX_RATE_US_NATIONAL_AVG_BOOTSTRAP = 0.0075;
 /** Mexico ISAI national average. */
-const TRANSFER_TAX_RATE_MEXICO = 0.02;
+const TRANSFER_TAX_RATE_MEXICO_BOOTSTRAP = 0.02;
 /** Netherlands overdrachtsbelasting (commercial 2024). */
-const TRANSFER_TAX_RATE_NETHERLANDS = 0.108;
+const TRANSFER_TAX_RATE_NETHERLANDS_BOOTSTRAP = 0.108;
 /** UK SDLT commercial top band. */
-const TRANSFER_TAX_RATE_UK = 0.05;
+const TRANSFER_TAX_RATE_UK_BOOTSTRAP = 0.05;
 /** France droits de mutation. */
-const TRANSFER_TAX_RATE_FRANCE = 0.058;
+const TRANSFER_TAX_RATE_FRANCE_BOOTSTRAP = 0.058;
 /** Spain ITP average autonomous community rate. */
-const TRANSFER_TAX_RATE_SPAIN = 0.07;
+const TRANSFER_TAX_RATE_SPAIN_BOOTSTRAP = 0.07;
 
 /** US state transfer/recording-fee rates (per state). */
-const STATE_TRANSFER_TAX_FLORIDA = 0.007;
-const STATE_TRANSFER_TAX_NEW_YORK = 0.014;
-const STATE_TRANSFER_TAX_CALIFORNIA = 0.0011;
-const STATE_TRANSFER_TAX_TEXAS = 0.0;
-const STATE_TRANSFER_TAX_HAWAII = 0.0125;
-const STATE_TRANSFER_TAX_WASHINGTON = 0.0128;
-const STATE_TRANSFER_TAX_PENNSYLVANIA = 0.02;
-const STATE_TRANSFER_TAX_ILLINOIS = 0.0075;
-const STATE_TRANSFER_TAX_MASSACHUSETTS = 0.00456;
-const STATE_TRANSFER_TAX_COLORADO = 0.0001;
+const STATE_TRANSFER_TAX_FLORIDA_BOOTSTRAP = 0.007;
+const STATE_TRANSFER_TAX_NEW_YORK_BOOTSTRAP = 0.014;
+const STATE_TRANSFER_TAX_CALIFORNIA_BOOTSTRAP = 0.0011;
+const STATE_TRANSFER_TAX_TEXAS_BOOTSTRAP = 0.0;
+const STATE_TRANSFER_TAX_HAWAII_BOOTSTRAP = 0.0125;
+const STATE_TRANSFER_TAX_WASHINGTON_BOOTSTRAP = 0.0128;
+const STATE_TRANSFER_TAX_PENNSYLVANIA_BOOTSTRAP = 0.02;
+const STATE_TRANSFER_TAX_ILLINOIS_BOOTSTRAP = 0.0075;
+const STATE_TRANSFER_TAX_MASSACHUSETTS_BOOTSTRAP = 0.00456;
+const STATE_TRANSFER_TAX_COLORADO_BOOTSTRAP = 0.0001;
 
 interface JurisdictionRates {
   /** Real-estate transfer / documentary-stamp tax as fraction of grossSale. */
@@ -226,71 +232,109 @@ interface JurisdictionRates {
 }
 
 const DEFAULT_JURISDICTION_RATES: JurisdictionRates = {
-  transferTaxRate: TRANSFER_TAX_RATE_DEFAULT_NON_US,
+  transferTaxRate: TRANSFER_TAX_RATE_DEFAULT_NON_US_BOOTSTRAP,
   ffeDispositionRate: FFE_DISPOSITION_RATE_DEFAULT,
   source: "Default (non-US)",
 };
 
 const COUNTRY_JURISDICTION_RATES: Record<string, JurisdictionRates> = {
   "United States": {
-    transferTaxRate: TRANSFER_TAX_RATE_US_NATIONAL_AVG,
+    transferTaxRate: TRANSFER_TAX_RATE_US_NATIONAL_AVG_BOOTSTRAP,
     ffeDispositionRate: FFE_DISPOSITION_RATE_DEFAULT,
     source: "US national avg (state transfer + recording fees)",
   },
   Mexico: {
-    transferTaxRate: TRANSFER_TAX_RATE_MEXICO,
+    transferTaxRate: TRANSFER_TAX_RATE_MEXICO_BOOTSTRAP,
     ffeDispositionRate: FFE_DISPOSITION_RATE_DEFAULT,
     source: "Mexico ISAI (Impuesto sobre Adquisición de Inmuebles)",
   },
   Netherlands: {
-    transferTaxRate: TRANSFER_TAX_RATE_NETHERLANDS,
+    transferTaxRate: TRANSFER_TAX_RATE_NETHERLANDS_BOOTSTRAP,
     ffeDispositionRate: FFE_DISPOSITION_RATE_DEFAULT,
     source: "Netherlands overdrachtsbelasting (commercial)",
   },
   "United Kingdom": {
-    transferTaxRate: TRANSFER_TAX_RATE_UK,
+    transferTaxRate: TRANSFER_TAX_RATE_UK_BOOTSTRAP,
     ffeDispositionRate: FFE_DISPOSITION_RATE_DEFAULT,
     source: "UK SDLT (commercial top band)",
   },
   France: {
-    transferTaxRate: TRANSFER_TAX_RATE_FRANCE,
+    transferTaxRate: TRANSFER_TAX_RATE_FRANCE_BOOTSTRAP,
     ffeDispositionRate: FFE_DISPOSITION_RATE_DEFAULT,
     source: "France droits de mutation",
   },
   Spain: {
-    transferTaxRate: TRANSFER_TAX_RATE_SPAIN,
+    transferTaxRate: TRANSFER_TAX_RATE_SPAIN_BOOTSTRAP,
     ffeDispositionRate: FFE_DISPOSITION_RATE_DEFAULT,
     source: "Spain ITP (avg autonomous community rate)",
   },
 };
 
 const US_STATE_TRANSFER_TAX: Record<string, number> = {
-  Florida: STATE_TRANSFER_TAX_FLORIDA,
-  "New York": STATE_TRANSFER_TAX_NEW_YORK,
-  California: STATE_TRANSFER_TAX_CALIFORNIA,
-  Texas: STATE_TRANSFER_TAX_TEXAS,
-  Hawaii: STATE_TRANSFER_TAX_HAWAII,
-  Washington: STATE_TRANSFER_TAX_WASHINGTON,
-  Pennsylvania: STATE_TRANSFER_TAX_PENNSYLVANIA,
-  Illinois: STATE_TRANSFER_TAX_ILLINOIS,
-  Massachusetts: STATE_TRANSFER_TAX_MASSACHUSETTS,
-  Colorado: STATE_TRANSFER_TAX_COLORADO,
+  Florida: STATE_TRANSFER_TAX_FLORIDA_BOOTSTRAP,
+  "New York": STATE_TRANSFER_TAX_NEW_YORK_BOOTSTRAP,
+  California: STATE_TRANSFER_TAX_CALIFORNIA_BOOTSTRAP,
+  Texas: STATE_TRANSFER_TAX_TEXAS_BOOTSTRAP,
+  Hawaii: STATE_TRANSFER_TAX_HAWAII_BOOTSTRAP,
+  Washington: STATE_TRANSFER_TAX_WASHINGTON_BOOTSTRAP,
+  Pennsylvania: STATE_TRANSFER_TAX_PENNSYLVANIA_BOOTSTRAP,
+  Illinois: STATE_TRANSFER_TAX_ILLINOIS_BOOTSTRAP,
+  Massachusetts: STATE_TRANSFER_TAX_MASSACHUSETTS_BOOTSTRAP,
+  Colorado: STATE_TRANSFER_TAX_COLORADO_BOOTSTRAP,
 };
 
 function lookupJurisdictionRates(
   country?: string | null,
   state?: string | null,
+  transferTaxRates?: Record<string, number>,
 ): JurisdictionRates {
-  const countryRow = (country && COUNTRY_JURISDICTION_RATES[country]) || DEFAULT_JURISDICTION_RATES;
-  // For US we let the state row override transferTaxRate (recording + state tax)
+  const ffeRate = FFE_DISPOSITION_RATE_DEFAULT;
+
+  // Helper: resolve rate from map or fall back to bootstrap with warn
+  function resolveRate(key: string, bootstrap: number): number {
+    if (transferTaxRates && key in transferTaxRates) {
+      return transferTaxRates[key]!;
+    }
+    console.warn(`[exit-scenarios] transfer tax key "${key}" missing from transferTaxRates; using bootstrap ${bootstrap}`);
+    return bootstrap;
+  }
+
+  // US state override
   if (country === "United States" && state && US_STATE_TRANSFER_TAX[state] !== undefined && US_STATE_DEFAULTS[state]) {
+    const stateKey = `transfer_tax_state_${state.toLowerCase().replace(/ /g, "_")}`;
     return {
-      ...countryRow,
-      transferTaxRate: US_STATE_TRANSFER_TAX[state]!,
+      ffeDispositionRate: ffeRate,
+      transferTaxRate: resolveRate(stateKey, US_STATE_TRANSFER_TAX[state]!),
       source: `${state} state transfer/recording`,
     };
   }
-  return countryRow;
+
+  // Country lookup
+  if (country && COUNTRY_JURISDICTION_RATES[country]) {
+    const countryTemplate = COUNTRY_JURISDICTION_RATES[country]!;
+    // Derive rate key from source label or country name
+    const countryKeyMap: Record<string, string> = {
+      "United States": "transfer_tax_us",
+      Mexico: "transfer_tax_mexico",
+      Netherlands: "transfer_tax_netherlands",
+      "United Kingdom": "transfer_tax_uk",
+      France: "transfer_tax_france",
+      Spain: "transfer_tax_spain",
+    };
+    const key = countryKeyMap[country] ?? "transfer_tax_default";
+    return {
+      ...countryTemplate,
+      ffeDispositionRate: ffeRate,
+      transferTaxRate: resolveRate(key, countryTemplate.transferTaxRate),
+    };
+  }
+
+  // Default (non-US)
+  return {
+    ...DEFAULT_JURISDICTION_RATES,
+    ffeDispositionRate: ffeRate,
+    transferTaxRate: resolveRate("transfer_tax_default", DEFAULT_JURISDICTION_RATES.transferTaxRate),
+  };
 }
 
 /* ------------------------------------------------------------------------- */
@@ -621,7 +665,7 @@ export function computeExitScenarios(input: ExitScenariosInput): ExitScenariosOu
 
   const exitCapRate = property.exitCapRate ?? global.exitCapRate ?? DEFAULT_EXIT_CAP_RATE;
   const brokerRate = property.dispositionCommission ?? global.commissionRate ?? DEFAULT_COMMISSION_RATE;
-  const jurisdiction = lookupJurisdictionRates(property.country, property.stateProvince);
+  const jurisdiction = lookupJurisdictionRates(property.country, property.stateProvince, input.transferTaxRates);
 
   // Engine cashflows include initial equity outflow at acquisitionYear; strip
   // it so we don't double-count equity (totalCashInvested already adds it).

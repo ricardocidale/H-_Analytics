@@ -17,6 +17,25 @@ const US_LODGING_CPI_BAND_HALFWIDTH_SEED_PP = 0.8;   // ±0.8 pp (BLS CPI method
 const IMF_EM_CPI_BAND_DELTA_LOW_SEED_PP = 1.2;       // −1.2 pp lower band (IMF WEO methodology)
 const IMF_EM_CPI_BAND_DELTA_HIGH_SEED_PP = 1.5;      // +1.5 pp upper band (IMF WEO methodology)
 
+// Transfer tax rates — stored as pp (divide by 100 at read site)
+const TRANSFER_TAX_DEFAULT_SEED_PP = 0.5;      // 0.5% catch-all non-US
+const TRANSFER_TAX_US_SEED_PP = 0.75;           // 0.75% US weighted national avg
+const TRANSFER_TAX_MEXICO_SEED_PP = 2.0;        // 2.0% ISAI national avg
+const TRANSFER_TAX_NETHERLANDS_SEED_PP = 10.8;  // 10.8% overdrachtsbelasting (commercial 2024)
+const TRANSFER_TAX_UK_SEED_PP = 5.0;            // 5.0% SDLT commercial top band
+const TRANSFER_TAX_FRANCE_SEED_PP = 5.8;        // 5.8% droits de mutation
+const TRANSFER_TAX_SPAIN_SEED_PP = 7.0;         // 7.0% ITP avg autonomous community
+const TRANSFER_TAX_STATE_FL_SEED_PP = 0.7;      // 0.7% Florida doc stamp
+const TRANSFER_TAX_STATE_NY_SEED_PP = 1.4;      // 1.4% New York
+const TRANSFER_TAX_STATE_CA_SEED_PP = 0.11;     // 0.11% California
+const TRANSFER_TAX_STATE_TX_SEED_PP = 0.0;      // 0.0% Texas (no state transfer tax)
+const TRANSFER_TAX_STATE_HI_SEED_PP = 1.25;     // 1.25% Hawaii
+const TRANSFER_TAX_STATE_WA_SEED_PP = 1.28;     // 1.28% Washington
+const TRANSFER_TAX_STATE_PA_SEED_PP = 2.0;      // 2.0% Pennsylvania
+const TRANSFER_TAX_STATE_IL_SEED_PP = 0.75;     // 0.75% Illinois
+const TRANSFER_TAX_STATE_MA_SEED_PP = 0.456;    // 0.456% Massachusetts
+const TRANSFER_TAX_STATE_CO_SEED_PP = 0.01;     // 0.01% Colorado
+
 interface RateDefinition {
   rateKey: string;
   source: string;
@@ -357,6 +376,145 @@ const RATE_DEFINITIONS: RateDefinition[] = [
     maxStalenessHours: 2160, // 90 days
     displayValue: "IMF EM CPI Band Delta — High (pp)",
   },
+
+  // --- Transfer / Documentary Stamp Taxes — admin-maintained, jurisdiction-specific ---
+  // Source URLs point to the authoritative statutory or agency source per jurisdiction.
+  {
+    rateKey: "transfer_tax_default",
+    source: "admin_manual",
+    seriesId: null,
+    sourceUrl: "https://www.imf.org/en/Topics/real-estate-prices",
+    maxStalenessHours: 8760, // 1 year
+    displayValue: "Transfer Tax — Default (non-US) (%)",
+  },
+  {
+    rateKey: "transfer_tax_us",
+    source: "admin_manual",
+    seriesId: null,
+    sourceUrl: "https://www.ncsl.org/fiscal/real-estate-transfer-taxes",
+    maxStalenessHours: 8760,
+    displayValue: "Transfer Tax — US National Avg (%)",
+  },
+  {
+    rateKey: "transfer_tax_mexico",
+    source: "admin_manual",
+    seriesId: null,
+    sourceUrl: "https://www.sat.gob.mx/tramites/10215/impuesto-sobre-adquisicion-de-inmuebles",
+    maxStalenessHours: 8760,
+    displayValue: "Transfer Tax — Mexico ISAI (%)",
+  },
+  {
+    rateKey: "transfer_tax_netherlands",
+    source: "admin_manual",
+    seriesId: null,
+    sourceUrl: "https://www.belastingdienst.nl/wps/wcm/connect/bldcontentnl/belastingdienst/zakelijk/btw/voor_welke_goederen_en_diensten_geldt_een_bijzondere_regeling/onroerende_zaken/overdrachtsbelasting",
+    maxStalenessHours: 8760,
+    displayValue: "Transfer Tax — Netherlands Overdrachtsbelasting (%)",
+  },
+  {
+    rateKey: "transfer_tax_uk",
+    source: "admin_manual",
+    seriesId: null,
+    sourceUrl: "https://www.gov.uk/stamp-duty-land-tax/commercial-property-rates",
+    maxStalenessHours: 8760,
+    displayValue: "Transfer Tax — UK SDLT Commercial (%)",
+  },
+  {
+    rateKey: "transfer_tax_france",
+    source: "admin_manual",
+    seriesId: null,
+    sourceUrl: "https://www.service-public.fr/particuliers/vosdroits/F17714",
+    maxStalenessHours: 8760,
+    displayValue: "Transfer Tax — France Droits de Mutation (%)",
+  },
+  {
+    rateKey: "transfer_tax_spain",
+    source: "admin_manual",
+    seriesId: null,
+    sourceUrl: "https://sede.agenciatributaria.gob.es/",
+    maxStalenessHours: 8760,
+    displayValue: "Transfer Tax — Spain ITP (%)",
+  },
+  {
+    rateKey: "transfer_tax_state_florida",
+    source: "admin_manual",
+    seriesId: null,
+    sourceUrl: "https://floridarevenue.com/taxes/taxesfees/pages/doc_stamp.aspx",
+    maxStalenessHours: 8760,
+    displayValue: "Transfer Tax — Florida Doc Stamp (%)",
+  },
+  {
+    rateKey: "transfer_tax_state_new_york",
+    source: "admin_manual",
+    seriesId: null,
+    sourceUrl: "https://www.tax.ny.gov/pit/property/transfer_tax.htm",
+    maxStalenessHours: 8760,
+    displayValue: "Transfer Tax — New York (%)",
+  },
+  {
+    rateKey: "transfer_tax_state_california",
+    source: "admin_manual",
+    seriesId: null,
+    sourceUrl: "https://www.boe.ca.gov/proptaxes/doc_transfer_tax.htm",
+    maxStalenessHours: 8760,
+    displayValue: "Transfer Tax — California Documentary Transfer (%)",
+  },
+  {
+    rateKey: "transfer_tax_state_texas",
+    source: "admin_manual",
+    seriesId: null,
+    sourceUrl: "https://www.hcad.org/",
+    maxStalenessHours: 8760,
+    displayValue: "Transfer Tax — Texas (none) (%)",
+  },
+  {
+    rateKey: "transfer_tax_state_hawaii",
+    source: "admin_manual",
+    seriesId: null,
+    sourceUrl: "https://tax.hawaii.gov/forms/a1_b1_4conveyancetax/",
+    maxStalenessHours: 8760,
+    displayValue: "Transfer Tax — Hawaii Conveyance (%)",
+  },
+  {
+    rateKey: "transfer_tax_state_washington",
+    source: "admin_manual",
+    seriesId: null,
+    sourceUrl: "https://dor.wa.gov/find-taxes-rates/excise-taxes/real-estate-excise-tax",
+    maxStalenessHours: 8760,
+    displayValue: "Transfer Tax — Washington REET (%)",
+  },
+  {
+    rateKey: "transfer_tax_state_pennsylvania",
+    source: "admin_manual",
+    seriesId: null,
+    sourceUrl: "https://www.revenue.pa.gov/TaxesAndForms/RealtorInformation/RealtorTransferTaxInfo/Pages/default.aspx",
+    maxStalenessHours: 8760,
+    displayValue: "Transfer Tax — Pennsylvania (%)",
+  },
+  {
+    rateKey: "transfer_tax_state_illinois",
+    source: "admin_manual",
+    seriesId: null,
+    sourceUrl: "https://www2.illinois.gov/rev/questions/Pages/Real-Property-Transfer-Tax.aspx",
+    maxStalenessHours: 8760,
+    displayValue: "Transfer Tax — Illinois (%)",
+  },
+  {
+    rateKey: "transfer_tax_state_massachusetts",
+    source: "admin_manual",
+    seriesId: null,
+    sourceUrl: "https://www.mass.gov/info-details/real-estate-transfer-tax",
+    maxStalenessHours: 8760,
+    displayValue: "Transfer Tax — Massachusetts (%)",
+  },
+  {
+    rateKey: "transfer_tax_state_colorado",
+    source: "admin_manual",
+    seriesId: null,
+    sourceUrl: "https://www.sos.state.co.us/",
+    maxStalenessHours: 8760,
+    displayValue: "Transfer Tax — Colorado (%)",
+  },
 ];
 
 const DAMODARAN_SEED_VALUES: Record<string, { value: number; display: string }> = {
@@ -378,6 +536,24 @@ const DAMODARAN_SEED_VALUES: Record<string, { value: number; display: string }> 
   us_lodging_cpi_band_halfwidth: { value: US_LODGING_CPI_BAND_HALFWIDTH_SEED_PP, display: `${US_LODGING_CPI_BAND_HALFWIDTH_SEED_PP} pp` },
   imf_em_cpi_band_delta_low: { value: IMF_EM_CPI_BAND_DELTA_LOW_SEED_PP, display: `${IMF_EM_CPI_BAND_DELTA_LOW_SEED_PP} pp` },
   imf_em_cpi_band_delta_high: { value: IMF_EM_CPI_BAND_DELTA_HIGH_SEED_PP, display: `${IMF_EM_CPI_BAND_DELTA_HIGH_SEED_PP} pp` },
+  // Transfer taxes (stored as pp; divide by 100 at read site)
+  transfer_tax_default: { value: TRANSFER_TAX_DEFAULT_SEED_PP, display: `${TRANSFER_TAX_DEFAULT_SEED_PP}%` },
+  transfer_tax_us: { value: TRANSFER_TAX_US_SEED_PP, display: `${TRANSFER_TAX_US_SEED_PP}%` },
+  transfer_tax_mexico: { value: TRANSFER_TAX_MEXICO_SEED_PP, display: `${TRANSFER_TAX_MEXICO_SEED_PP}%` },
+  transfer_tax_netherlands: { value: TRANSFER_TAX_NETHERLANDS_SEED_PP, display: `${TRANSFER_TAX_NETHERLANDS_SEED_PP}%` },
+  transfer_tax_uk: { value: TRANSFER_TAX_UK_SEED_PP, display: `${TRANSFER_TAX_UK_SEED_PP}%` },
+  transfer_tax_france: { value: TRANSFER_TAX_FRANCE_SEED_PP, display: `${TRANSFER_TAX_FRANCE_SEED_PP}%` },
+  transfer_tax_spain: { value: TRANSFER_TAX_SPAIN_SEED_PP, display: `${TRANSFER_TAX_SPAIN_SEED_PP}%` },
+  transfer_tax_state_florida: { value: TRANSFER_TAX_STATE_FL_SEED_PP, display: `${TRANSFER_TAX_STATE_FL_SEED_PP}%` },
+  transfer_tax_state_new_york: { value: TRANSFER_TAX_STATE_NY_SEED_PP, display: `${TRANSFER_TAX_STATE_NY_SEED_PP}%` },
+  transfer_tax_state_california: { value: TRANSFER_TAX_STATE_CA_SEED_PP, display: `${TRANSFER_TAX_STATE_CA_SEED_PP}%` },
+  transfer_tax_state_texas: { value: TRANSFER_TAX_STATE_TX_SEED_PP, display: `${TRANSFER_TAX_STATE_TX_SEED_PP}%` },
+  transfer_tax_state_hawaii: { value: TRANSFER_TAX_STATE_HI_SEED_PP, display: `${TRANSFER_TAX_STATE_HI_SEED_PP}%` },
+  transfer_tax_state_washington: { value: TRANSFER_TAX_STATE_WA_SEED_PP, display: `${TRANSFER_TAX_STATE_WA_SEED_PP}%` },
+  transfer_tax_state_pennsylvania: { value: TRANSFER_TAX_STATE_PA_SEED_PP, display: `${TRANSFER_TAX_STATE_PA_SEED_PP}%` },
+  transfer_tax_state_illinois: { value: TRANSFER_TAX_STATE_IL_SEED_PP, display: `${TRANSFER_TAX_STATE_IL_SEED_PP}%` },
+  transfer_tax_state_massachusetts: { value: TRANSFER_TAX_STATE_MA_SEED_PP, display: `${TRANSFER_TAX_STATE_MA_SEED_PP}%` },
+  transfer_tax_state_colorado: { value: TRANSFER_TAX_STATE_CO_SEED_PP, display: `${TRANSFER_TAX_STATE_CO_SEED_PP}%` },
 };
 
 function getSeedValue(def: RateDefinition): { value: number | null; displayValue: string } {

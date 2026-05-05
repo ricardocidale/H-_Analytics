@@ -35,6 +35,16 @@ import {
   DEFAULT_LP_EQUITY_PCT,
   DEFAULT_WATERFALL_TIERS,
 } from "@shared/constants-research";
+import { getMarketRate } from "../data/marketRates";
+
+const TRANSFER_TAX_KEYS = [
+  "transfer_tax_default", "transfer_tax_us", "transfer_tax_mexico",
+  "transfer_tax_netherlands", "transfer_tax_uk", "transfer_tax_france", "transfer_tax_spain",
+  "transfer_tax_state_florida", "transfer_tax_state_new_york", "transfer_tax_state_california",
+  "transfer_tax_state_texas", "transfer_tax_state_hawaii", "transfer_tax_state_washington",
+  "transfer_tax_state_pennsylvania", "transfer_tax_state_illinois",
+  "transfer_tax_state_massachusetts", "transfer_tax_state_colorado",
+] as const;
 
 const propertyInputSchema = z.object({
   operationsStartDate: z.string(),
@@ -612,6 +622,13 @@ export function registerFinanceRoutes(router: Router): void {
       const loan = calculateLoanParams(stampedLoanProps, globalAssumptions as GlobalInput);
       const acquisitionYear = getAcquisitionYear(loan);
 
+      const transferTaxRateRows = await Promise.all(TRANSFER_TAX_KEYS.map(k => getMarketRate(k)));
+      const transferTaxRates: Record<string, number> = {};
+      for (let i = 0; i < TRANSFER_TAX_KEYS.length; i++) {
+        const row = transferTaxRateRows[i];
+        if (row?.value != null) transferTaxRates[TRANSFER_TAX_KEYS[i]] = row.value / 100;
+      }
+
       const exitScenarios = computeExitScenarios({
         property: stamped as unknown as Parameters<typeof computeExitScenarios>[0]["property"],
         global: globalAssumptions as GlobalInput,
@@ -619,6 +636,7 @@ export function registerFinanceRoutes(router: Router): void {
         netCashFlowToInvestors: unified.yearlyCF.map(y => y.netCashFlowToInvestors),
         acquisitionYear,
         horizons: [...DEFAULT_EXIT_HORIZONS],
+        transferTaxRates,
       });
 
       res.setHeader("X-Finance-Engine-Version", compute.engineVersion);
