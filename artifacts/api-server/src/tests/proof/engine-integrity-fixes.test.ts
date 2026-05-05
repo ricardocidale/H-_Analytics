@@ -333,6 +333,59 @@ describe('Finding #2 — Refi income-capitalization (T012)', () => {
       expect(ratio).toBeLessThan(2.5);
     }
   });
+
+  it('Full Equity acquisition: income-cap refi loan >> cost-basis refi loan for high-NOI property', () => {
+    // Distinguishing scenario:
+    //   - acquisitionLTV: 0 → no acquisition debt → existingDebt = 0 at refi time
+    //   - Full equity means refinancingProceeds = refiLoan - closingCosts (no debt to repay)
+    //   - Cost-basis: $2,000,000 × 0.65 = $1,300,000 loan → ~$1,274,000 proceeds after 2% closing
+    //   - Income-cap: (~$521k NOI) / 0.08 × 0.65 ≈ $4,234,375 loan → ~$4,149,688 proceeds
+    //
+    // Under cost-basis, this test FAILS because proceeds ≈ $1,274,000 < $1,950,000.
+    // Under income-cap, this test PASSES because proceeds ≈ $4,150,000 >> $1,950,000.
+    const COST_BASIS_REFI = 2_000_000 * 0.65;  // $1,300,000 — what cost-basis would produce
+
+    const fullEquityProp: PropertyInput = {
+      ...BASE_COSTS,
+      operationsStartDate: '2024-01-01',
+      roomCount: 20,
+      startAdr: 200,
+      adrGrowthRate: 0,
+      startOccupancy: 0.7,
+      maxOccupancy: 0.7,
+      occupancyRampMonths: 0,
+      occupancyGrowthStep: 0,
+      purchasePrice: 2_000_000,
+      type: 'Financed',
+      acquisitionDate: '2024-01-01',
+      acquisitionLTV: 0,               // Full equity — no acquisition debt
+      acquisitionInterestRate: 0,
+      acquisitionTermYears: 25,
+      willRefinance: 'Yes',
+      refinanceDate: '2026-01-01',    // refi at month 24 (year 3 start)
+      refinanceLTV: 0.65,
+      exitCapRate: 0.08,
+    };
+
+    const fullEquityGlobal: GlobalInput = {
+      modelStartDate: '2024-01-01',
+      inflationRate: 0.0,
+      marketingRate: 0.0,
+      exitCapRate: 0.08,
+      debtAssumptions: { interestRate: 0.065, amortizationYears: 25, acqLTV: 0.0 },
+    };
+
+    // Run 36 months so month 24 (refi) is included
+    const monthly = generatePropertyProForma(fullEquityProp, fullEquityGlobal, 36);
+
+    // Refi fires at month 24; collect all refinancingProceeds across the full horizon
+    const totalRefiProceeds = monthly.reduce((s, m) => s + m.refinancingProceeds, 0);
+
+    // Under income-cap, this high-NOI property should produce substantially MORE than cost-basis
+    expect(totalRefiProceeds).toBeGreaterThan(COST_BASIS_REFI * 1.5);  // > $1,950,000
+    expect(totalRefiProceeds).toBeGreaterThan(2_000_000);
+    expect(totalRefiProceeds).toBeLessThan(6_000_000);
+  });
 });
 
 // ── Finding #5: Pre-ops taxes and insurance from acquisition date ─────────────

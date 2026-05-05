@@ -18,6 +18,7 @@ import {
   DEFAULT_TERM_YEARS,
   DEFAULT_REFI_LTV,
   DEFAULT_REFI_CLOSING_COST_RATE,
+  DEFAULT_EXIT_CAP_RATE,
 } from '@shared/constants';
 import { NOL_UTILIZATION_CAP, MONTHS_PER_YEAR } from '@shared/constants';
 import { PropertyInput, GlobalInput, MonthlyFinancials } from '../types';
@@ -74,10 +75,25 @@ export function applyRefinancePostProcessing(
   const closingCostRate = property.refinanceClosingCostRate ?? DEFAULT_REFI_CLOSING_COST_RATE;
   const existingDebt = refiMonthIndex > 0 ? financials[refiMonthIndex - 1].debtOutstanding : ctx.originalLoanAmount;
 
+  // Income-capitalization: refiLoan = (yearlyNOI[refiYear] / exitCapRate) × refiLTV
+  // Fallback to cost-basis when NOI ≤ 0 (zero-NOI or pre-stabilization property).
+  const exitCapRate = property.exitCapRate ?? global.exitCapRate ?? DEFAULT_EXIT_CAP_RATE;
+  const refiNOI = yearlyNOI[refiYear] ?? 0;
+  let propertyValueAtRefi: number;
+  if (refiNOI <= 0) {
+    console.warn(
+      `[refinance-pass] NOI ≤ 0 at refiYear=${refiYear} (NOI=${refiNOI}); falling back to cost-basis valuation.`
+    );
+    propertyValueAtRefi = costBasisValue;
+  } else {
+    // Direct income-cap: value = NOI / capRate; loan = value × LTV
+    propertyValueAtRefi = refiNOI / exitCapRate;
+  }
+
   const refiOutput = computeRefinance({
     refinance_date: property.refinanceDate!,
     current_loan_balance: existingDebt,
-    valuation: { method: "direct", property_value_at_refi: costBasisValue },
+    valuation: { method: "direct", property_value_at_refi: propertyValueAtRefi },
     ltv_max: refiLTV,
     closing_cost_pct: closingCostRate,
     prepayment_penalty: { type: "none", value: 0 },
