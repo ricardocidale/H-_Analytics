@@ -150,7 +150,9 @@ export function calculateLoanParams(
   
   const interestRate = property.acquisitionInterestRate ?? DEFAULT_INTEREST_RATE;
   const termYears = property.acquisitionTermYears ?? DEFAULT_TERM_YEARS;
-  const taxRate = property.taxRate ?? DEFAULT_PROPERTY_INCOME_TAX_RATE;
+  // LoanParams has no country field; registry returns US baseline. Admin/Specialist
+  // overrides still apply. For full country-awareness, add country to LoanParams.
+  const taxRate = property.taxRate ?? getFactoryNumber('taxRate');
   const commissionRate = property.dispositionCommission ?? DEFAULT_COMMISSION_RATE;
   
   // Depreciable basis: land doesn't depreciate (IRS Publication 946 / ASC 360)

@@ -90,6 +90,7 @@ export const DEFAULT_SERVICE_TEMPLATES = [
 // ──────────────────────────────────────────────────────────
 
 export const DEFAULT_EXIT_CAP_RATE = 0.085;
+/** @deprecated Use getFactoryNumber('taxRate', country) for country-aware rates. */
 export const DEFAULT_PROPERTY_INCOME_TAX_RATE = 0.25;
 export const DEFAULT_COMMISSION_RATE = 0.05;
 

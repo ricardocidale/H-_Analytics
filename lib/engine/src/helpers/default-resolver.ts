@@ -15,7 +15,6 @@ import { BUSINESS_MODEL_DEFAULTS, type BusinessModelType } from '@shared/constan
 import {
   DEFAULT_ADR_GROWTH_RATE,
   DEFAULT_MAX_OCCUPANCY,
-  DEFAULT_PROPERTY_INCOME_TAX_RATE,
   QUALITY_TIER_OCCUPANCY_BRACKETS,
   DEFAULT_FALLBACK_OCCUPANCY,
   SCALE_THRESHOLD_SMALL_ROOMS,
@@ -138,11 +137,10 @@ export function computePropertyDefaults(
       ? getUsStateDefaults(stateProvince)
       : undefined;
 
-  // Unknown-country fallbacks intentionally short-circuit the registry: the
-  // registry would silently return the US baseline, but for an unknown
-  // country we prefer an explicit "no data" stance (constants fallback for
-  // tax/depreciation, business-model rate for property tax) so nothing
-  // pretends to be locality-aware when it isn't.
+  // Unknown-country fallbacks: the registry returns the US baseline for an
+  // unrecognised country, so admin/Specialist overrides still flow through.
+  // Property tax falls back to the business-model rate (no registry entry for
+  // unknown countries) and is tracked as such in sources.
   let incomeTaxRate: number;
   let depreciationYears: number;
   let propertyTaxRate: number;
@@ -164,10 +162,10 @@ export function computePropertyDefaults(
       ? `registry:costRateTaxes:state:${stateProvince}`
       : `registry:costRateTaxes:country:${country}`;
   } else {
-    incomeTaxRate = DEFAULT_PROPERTY_INCOME_TAX_RATE;
+    incomeTaxRate = getFactoryNumber('taxRate', country);
     depreciationYears = getFactoryNumber('depreciationYears');
     propertyTaxRate = modelDefaults.costRateTaxes;
-    sources.incomeTaxRate = "fallback:constants";
+    sources.incomeTaxRate = `registry:taxRate:country:${country}:baseline`;
     sources.depreciationYears = "fallback:constants";
     sources.propertyTaxRate = `model:${bm}`;
   }
