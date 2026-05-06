@@ -136,3 +136,31 @@ The admin can only press the **Analyst button** to regenerate an entire table ro
 Individual cell editing is not supported and must not be implemented. Tables show:
 - Last-regenerated timestamp
 - Freshness dot (green = fresh, yellow = aging, red = stale/overdue)
+
+---
+
+## 9. Financial Engine Authoring Authority — ONLY shell CC
+
+**Only the Claude Code CLI session (shell CC) may edit code in the financial engine
+surface.** Replit Agent, other AI agents, and execute-this-plan handoffs must NOT
+touch this surface — neither directly nor via plan delegation.
+
+**Protected surface:** `lib/engine/src/`, `lib/calc/src/`, `lib/shared/src/constants*.ts`,
+`lib/db/src/constants*.ts`, `artifacts/api-server/src/finance/`,
+`artifacts/api-server/src/report/`, `artifacts/api-server/src/tests/proof/`,
+`artifacts/api-server/src/tests/engine/`. Schema columns that feed these are
+protected at the column level, not just the read site.
+
+**The discipline:** when handing a plan to a non-shell-CC agent, the plan's file
+scope MUST exclude every path above. Saying "do not touch the engine" in the
+prompt is insufficient — exclude it from scope. If the plan needs an engine
+change, carve that unit out and execute it as shell CC.
+
+**Why:** financial correctness is the product's integrity surface. Drift in PMT,
+amortization, NOI, debt-service, fee, or rollup math compounds across every
+projection. Single-hand authorship preserves audit trails and prevents
+context-poor agents from breaking invariants. This rule governs *who* writes;
+ADR-007 (Section 4) and the Determinism invariant govern *what* the code does.
+
+**Skill for full detail:** `.agents/skills/financial-engine/SKILL.md` —
+"Critical Invariant: Authoring Authority" section.
