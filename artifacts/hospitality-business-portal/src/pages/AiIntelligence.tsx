@@ -42,6 +42,7 @@ const MarketDataTablesPage = lazy(
   () => import("@/pages/ai-intelligence/MarketDataTablesPage"),
 );
 const GustavoInfoPage = lazy(() => import("@/pages/ai-intelligence/GustavoInfoPage"));
+const IrisPanel = lazy(() => import("@/components/iris/IrisPanel"));
 const SpecialistsDirectoryPage = lazy(() => import("@/pages/ai-intelligence/SpecialistsDirectoryPage"));
 const LlmWorkflowsPage = lazy(() => import("@/pages/ai-intelligence/LlmWorkflowsPage"));
 const AssumptionGuidancePage = lazy(() => import("@/pages/ai-intelligence/AssumptionGuidancePage"));
@@ -184,6 +185,7 @@ function SectionContent({ section }: { section: AiIntelligenceSection }) {
     case "analyst-orchestrator": return <SpecialistPage specialistId={ORCHESTRATOR_SPECIALIST_ID} />;
     case "specialist-photos-photo-enhancer": return <FernandaRenderConsolePage />;
     case "gustavo":           return <GustavoInfoPage />;
+    case "iris":              return <IrisPanel />;
     case "specialists":       return <SpecialistsDirectoryPage />;
     case "llm-workflows":     return <LlmWorkflowsPage />;
     case "assumption-guidance": return <AssumptionGuidancePage />;
@@ -210,6 +212,7 @@ const VALID_SECTIONS = new Set<AiIntelligenceSection>([
   "knowledge-base",
   "conversations",
   "gustavo",
+  "iris",
   "specialists",
   "llm-workflows",
   "assumption-guidance",
