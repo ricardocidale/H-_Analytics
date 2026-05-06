@@ -564,13 +564,41 @@ describe('Engine Edge Cases (T011)', () => {
     // acquisitionLTV — so interestExpense, principalPayment, and debtPayment are always 0
     // for those types. This test proves BOTH branches explicitly.
     //
-    // Financed scenario: $1M property, 70% LTV = $700,000 loan, 6% rate, 25yr amortization
-    //   originalLoanAmount = 1,000,000 × 0.7 = $700,000
-    //   PMT ≈ $700,000 × pmt(0.005, 300) ≈ $4,540.87/month
-    //   Annual debtPayment ≈ $70,492.49 (pinned from engine output)
-    //   Year-1 interestExpense ≈ $62,683.08 (declining balance — first year is mostly interest)
-    //   Year-1 principalPayment ≈ $7,809.42
-    //   Identity: interestExpense + principalPayment = debtPayment (exact, per amortisation math)
+    // The loan rate and term are pinned at the property level (acquisitionInterestRate,
+    // acquisitionTermYears) — NOT relied upon from globalAssumptions.debtAssumptions or
+    // from DEFAULT_* fallbacks. The property-engine reads these from the property fields
+    // (resolve-assumptions.ts:197-198); silently riding on a default would couple this
+    // test to whatever value the default has at any given moment and produced a stale
+    // failure when DEFAULT_INTEREST_RATE was lowered from 0.09 to 0.075.
+    //
+    // Expected debt-service values are derived from the textbook PMT formula in code
+    // below, not pinned as literals. This makes the test robust to default changes and
+    // self-documents the math the engine is verified against.
+
+    // ── Loan inputs (Category 2 — DEFAULT VARIABLES, pinned for this test only) ──
+    const TEST_LOAN_INTEREST_RATE = 0.06;     // 6% APR
+    const TEST_LOAN_TERM_YEARS = 25;          // 25-year amortization
+    const TEST_PROPERTY_VALUE = 1_000_000;    // $1M property
+    const TEST_ACQUISITION_LTV = 0.7;         // 70% LTV
+
+    // ── Derived expected values (from PMT amortisation math) ──
+    // monthly_rate = annual_rate / 12
+    // total_months = years × 12
+    // monthly_pmt  = P · r · (1+r)^n / ((1+r)^n - 1)
+    // year1_principal = P - balance_after_12_months
+    //   where balance_after_m = P·(1+r)^m - PMT·((1+r)^m - 1)/r
+    // year1_interest  = annual_pmt - year1_principal
+    const monthlyRate = TEST_LOAN_INTEREST_RATE / 12; // 12 = months/year (TRUE CONSTANT)
+    const totalMonths = TEST_LOAN_TERM_YEARS * 12;
+    const principal = TEST_PROPERTY_VALUE * TEST_ACQUISITION_LTV;
+    const compoundFactorTotal = Math.pow(1 + monthlyRate, totalMonths);
+    const monthlyPayment = principal * monthlyRate * compoundFactorTotal / (compoundFactorTotal - 1);
+    const expectedAnnualDebtPayment = monthlyPayment * 12;
+    const compoundFactor12 = Math.pow(1 + monthlyRate, 12);
+    const balanceAfter12Months = principal * compoundFactor12 - monthlyPayment * (compoundFactor12 - 1) / monthlyRate;
+    const expectedYear1Principal = principal - balanceAfter12Months;
+    const expectedYear1Interest = expectedAnnualDebtPayment - expectedYear1Principal;
+
     const sharedBase = {
       ...MINIMAL_COSTS,
       operationsStartDate: '2024-01-01',
@@ -582,37 +610,42 @@ describe('Engine Edge Cases (T011)', () => {
       maxOccupancy: 0.7,
       occupancyRampMonths: 0,
       occupancyGrowthStep: 0,
-      purchasePrice: 1_000_000,
-      acquisitionLTV: 0.7,
+      purchasePrice: TEST_PROPERTY_VALUE,
+      acquisitionLTV: TEST_ACQUISITION_LTV,
+      acquisitionInterestRate: TEST_LOAN_INTEREST_RATE, // pin loan rate at property level
+      acquisitionTermYears: TEST_LOAN_TERM_YEARS,       // pin loan term at property level
       businessModel: 'hotel' as const,
       pricingModel: 'per_room' as const,
-    };
-    const debtGlobal = {
-      ...ZERO_GROWTH_GLOBAL,
-      debtAssumptions: { interestRate: 0.06, amortizationYears: 25, acqLTV: 0.0 },
     };
 
     // ── Financed branch ──────────────────────────────────────────────────────
     const financed: PropertyInput = { ...sharedBase, type: 'Financed' };
-    const yrF = aggregatePropertyByYear(generatePropertyProForma(financed, debtGlobal, 12), 1)[0];
+    const yrF = aggregatePropertyByYear(generatePropertyProForma(financed, ZERO_GROWTH_GLOBAL, 12), 1)[0];
 
-    expect(yrF.debtPayment).toBeCloseTo(70_492.49, 1);
-    expect(yrF.interestExpense).toBeCloseTo(62_683.08, 1);
-    expect(yrF.principalPayment).toBeCloseTo(7_809.42, 1);
+    expect(yrF.debtPayment).toBeCloseTo(expectedAnnualDebtPayment, 1);
+    expect(yrF.interestExpense).toBeCloseTo(expectedYear1Interest, 1);
+    expect(yrF.principalPayment).toBeCloseTo(expectedYear1Principal, 1);
     // Amortisation identity: interest + principal = total debt payment (exact)
     expect(yrF.interestExpense + yrF.principalPayment).toBeCloseTo(yrF.debtPayment, 2);
 
     // ── Hotel branch (unlevered) ─────────────────────────────────────────────
     const hotel: PropertyInput = { ...sharedBase, type: 'hotel' };
-    const yrH = aggregatePropertyByYear(generatePropertyProForma(hotel, debtGlobal, 12), 1)[0];
+    const yrH = aggregatePropertyByYear(generatePropertyProForma(hotel, ZERO_GROWTH_GLOBAL, 12), 1)[0];
 
     expect(yrH.debtPayment).toBe(0);
     expect(yrH.interestExpense).toBe(0);
     expect(yrH.principalPayment).toBe(0);
 
-    // Revenue is identical — the financing structure does not affect operating income
+    // Revenue and pre-fee GOP are identical — operating income before fees is unaffected
+    // by financing structure.
     expect(yrF.revenueRooms).toBeCloseTo(yrH.revenueRooms, 2);
     expect(yrF.gop).toBeCloseTo(yrH.gop, 2);
-    expect(yrF.noi).toBeCloseTo(yrH.noi, 2);
+
+    // Post-MAJOR-4 (engine commit 6390b432) the incentive fee is gated on
+    // post-debt-service levered cash. The Financed branch's debt service reduces the
+    // incentive-fee base, yielding a smaller incentive fee and thus a higher AGOP/NOI
+    // than the unlevered branch. Pre-MAJOR-4 these were identical; the invariant
+    // changed, so assert the new relationship explicitly rather than the old equality.
+    expect(yrF.noi).toBeGreaterThanOrEqual(yrH.noi);
   });
 });
