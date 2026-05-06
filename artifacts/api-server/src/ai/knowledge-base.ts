@@ -13,6 +13,7 @@ import {
 import { extractMethodologyContent, extractVerificationManualContent, extractPlatformGuide, buildReferenceBrandsKbDoc } from "./kb-content";
 import { storage } from "../storage";
 import { isVectorStoreAvailable, upsertChunks, queryChunks, vectorCount, embed, embedBatch } from "./vector-store-service";
+import { readIrisContext } from "./iris/workspace";
 
 const EMBEDDING_MODEL = "text-embedding-3-small";
 const CHUNK_SIZE = 800;
@@ -138,6 +139,20 @@ export async function indexKnowledgeBase(): Promise<{ chunksIndexed: number; tim
 
     const assetChunks = await loadAttachedAssets();
     allChunks.push(...assetChunks);
+
+    // iris/context.md — Iris backstage agent status context. Loaded alongside
+    // attached_assets so Rebecca can answer questions about Iris state via RAG.
+    // Gracefully skipped if the file does not exist (returns "").
+    try {
+      const irisContext = await readIrisContext();
+      if (irisContext) {
+        const irisChunks = splitIntoChunks(irisContext, "iris/context.md", "iris/context.md", "iris-status");
+        allChunks.push(...irisChunks);
+        logger.info(`KB: added ${irisChunks.length} iris context chunk(s)`, "knowledge-base");
+      }
+    } catch (err: unknown) {
+      logger.warn(`KB: iris context load failed — skipping (${String(err)})`, "knowledge-base");
+    }
 
     // reference_brands — curated boutique brand comp-set data indexed so
     // Rebecca can surface brand benchmarks via semantic search. Fetched from

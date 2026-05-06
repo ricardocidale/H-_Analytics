@@ -3,6 +3,7 @@ import type { ToolParam } from "./tool-types";
 import type { Property, UpdateProperty, Scenario, UpdateScenario } from "@workspace/db";
 import { updatePropertySchema } from "@workspace/db";
 import { generateLocationAwareResearchValues } from "../data/researchSeeds";
+import { appendIrisGap } from "../ai/iris/workspace";
 
 // Named constant: estimated minutes for background research job (Category 2 — DEFAULT VARIABLE)
 const RESEARCH_ESTIMATED_MINUTES = 2;
@@ -133,6 +134,17 @@ export function getRebeccaTools(): ToolParam[] {
         required: ["propertyId"],
       },
     },
+    {
+      name: "write_retrieval_gap",
+      description: "Signal a retrieval gap — called when knowledge base search returns no confident results for a topic.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "The topic or query that returned no results" },
+        },
+        required: ["query"],
+      },
+    },
   ];
 }
 
@@ -167,6 +179,8 @@ export async function dispatchRebeccaTool(
         return await toolDeleteScenario(args, ctx);
       case "trigger_research":
         return await toolTriggerResearch(args, ctx);
+      case "write_retrieval_gap":
+        return await toolWriteRetrievalGap(args, ctx);
       default:
         return { result: { error: "Unknown tool" } };
     }
@@ -446,4 +460,14 @@ async function toolTriggerResearch(
     result: { queued: true, estimatedMinutes: RESEARCH_ESTIMATED_MINUTES },
     dataChanged: { entityType: "property", entityId: propertyId },
   };
+}
+
+async function toolWriteRetrievalGap(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  void ctx; // no user-scoped DB operation needed for gap logging
+  const query = args.query as string;
+  await appendIrisGap(query);
+  return { result: { recorded: true } };
 }
