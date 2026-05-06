@@ -14,7 +14,7 @@ import {
 } from "@workspace/db";
 import { db } from "../../db";
 import { eq, desc, isNull, sql, and } from "drizzle-orm";
-import { stripAutoFields } from "../utils";
+import { stripToColumns } from "../utils";
 import { indexScenarioSummary } from "../../ai/vector-store-service";
 import { logger } from "../../logger";
 
@@ -123,7 +123,7 @@ export class ScenariosCrudStorage {
   async updateScenario(id: number, data: UpdateScenario): Promise<Scenario | undefined> {
     const [scenario] = await db
       .update(scenarios)
-      .set({ ...stripAutoFields(data as Record<string, unknown>), updatedAt: new Date() })
+      .set({ ...stripToColumns(scenarios, data as Record<string, unknown>), updatedAt: new Date() })
       .where(eq(scenarios.id, id))
       .returning();
     if (scenario) {

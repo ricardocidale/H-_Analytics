@@ -95,9 +95,72 @@ Units that modify DB schema or seed files also need:
 
 ---
 
-## 6. Market Rates Table — Admin Regenerates, Never Cell-Edits
+## 6. Institutional Knowledge Store
+
+`docs/solutions/` contains documented solutions, architecture patterns, design decisions, and
+workflow learnings accumulated across sessions. Search it before implementing features, debugging
+issues, or making decisions in a documented area.
+
+**Structure:** Organized by category subdirectory (`architecture-patterns/`, `design-patterns/`,
+`best-practices/`, etc.). Each file has YAML frontmatter with searchable fields:
+- `module` — the area affected (e.g., `rebecca-agent-native-architecture`, `admin-navigation`)
+- `tags` — lowercase-hyphen keywords
+- `problem_type` — category enum (`architecture_pattern`, `design_pattern`, `best_practice`, etc.)
+
+**When to search:** Before starting any implementation unit, grep for relevant module names,
+tags, or component names in `docs/solutions/`. Learnings may cover bugs, patterns, workflow
+conventions, and architectural decisions that would otherwise be re-discovered.
+
+---
+
+## 7. Agent-Native Parity — Mandatory Discipline
+
+Every UI action a user can take, Rebecca must be able to achieve through conversation.
+
+**When adding any UI capability**, also add the corresponding Rebecca tool in the same PR
+and update `docs/discipline/agent-native-parity-map.md`.
+
+**Parity map status values:**
+- ✅ Tool exists and is documented in Rebecca's system prompt
+- ⚠️ UI action exists but no Rebecca tool — MUST be resolved before merging
+- 🚫 N/A — user-only action (file picker, camera, biometric auth) or admin-only
+
+**The parity audit skill:** run `/parity-audit` in any session to get a structured
+gap analysis comparing the current UI action list against known Rebecca tools.
+
+---
+
+## 8. Market Rates Table — Admin Regenerates, Never Cell-Edits
 
 The admin can only press the **Analyst button** to regenerate an entire table row.
 Individual cell editing is not supported and must not be implemented. Tables show:
 - Last-regenerated timestamp
 - Freshness dot (green = fresh, yellow = aging, red = stale/overdue)
+
+---
+
+## 9. Financial Engine Authoring Authority — ONLY shell CC
+
+**Only the Claude Code CLI session (shell CC) may edit code in the financial engine
+surface.** Replit Agent, other AI agents, and execute-this-plan handoffs must NOT
+touch this surface — neither directly nor via plan delegation.
+
+**Protected surface:** `lib/engine/src/`, `lib/calc/src/`, `lib/shared/src/constants*.ts`,
+`lib/db/src/constants*.ts`, `artifacts/api-server/src/finance/`,
+`artifacts/api-server/src/report/`, `artifacts/api-server/src/tests/proof/`,
+`artifacts/api-server/src/tests/engine/`. Schema columns that feed these are
+protected at the column level, not just the read site.
+
+**The discipline:** when handing a plan to a non-shell-CC agent, the plan's file
+scope MUST exclude every path above. Saying "do not touch the engine" in the
+prompt is insufficient — exclude it from scope. If the plan needs an engine
+change, carve that unit out and execute it as shell CC.
+
+**Why:** financial correctness is the product's integrity surface. Drift in PMT,
+amortization, NOI, debt-service, fee, or rollup math compounds across every
+projection. Single-hand authorship preserves audit trails and prevents
+context-poor agents from breaking invariants. This rule governs *who* writes;
+ADR-007 (Section 4) and the Determinism invariant govern *what* the code does.
+
+**Skill for full detail:** `.agents/skills/financial-engine/SKILL.md` —
+"Critical Invariant: Authoring Authority" section.

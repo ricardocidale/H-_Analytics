@@ -36,6 +36,7 @@ import { RebeccaEmailPreview } from "./RebeccaEmailPreview";
 import { RebeccaFeedbackForm } from "./RebeccaFeedbackForm";
 import { RebeccaConversationHistory } from "./RebeccaConversationHistory";
 import { SourcesUsedPanel, type ChatSourceUsed } from "./SourcesUsedPanel";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface AssetMatch {
   type: "photo" | "logo";
@@ -123,6 +124,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
   const [location] = useLocation();
   const currentPage = rebeccaContext?.currentPage ?? derivePageLabel(location);
   const addInsight = useRebeccaInsightStore(s => s.addInsight);
+  const queryClient = useQueryClient();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -356,12 +358,22 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
           }
         }
       }
+      if (Array.isArray(data.dataChanged)) {
+        for (const entry of data.dataChanged as Array<{ entityType: string; entityId: number }>) {
+          if (entry.entityType === "property") {
+            queryClient.invalidateQueries({ queryKey: ["properties"] });
+            queryClient.invalidateQueries({ queryKey: ["properties", entry.entityId] });
+          } else if (entry.entityType === "scenario") {
+            queryClient.invalidateQueries({ queryKey: ["scenarios"] });
+          }
+        }
+      }
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === "AbortError") return;
     } finally {
       setLoading(false);
     }
-  }, [rebeccaContext, conversationId, responseMode, currentPage, addInsight]);
+  }, [rebeccaContext, conversationId, responseMode, currentPage, addInsight, queryClient]);
   sendAutoGreetingRef.current = sendAutoGreeting;
 
   const sendMessage = useCallback(
@@ -472,6 +484,16 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                     if (parsed) {
                       const hash = `obs-${rebeccaContext?.entityId}-${parsed.fieldKey ?? obs.slice(0, 30)}`;
                       addInsight({ message: parsed.message, type: "observation", context: parsed.fieldKey ? `Tell me more about ${parsed.fieldKey === "revShareFB" ? "F&B revenue share" : "events revenue share"} for this property` : undefined }, hash);
+                    }
+                  }
+                }
+                if (Array.isArray(data.dataChanged)) {
+                  for (const entry of data.dataChanged as Array<{ entityType: string; entityId: number }>) {
+                    if (entry.entityType === "property") {
+                      queryClient.invalidateQueries({ queryKey: ["properties"] });
+                      queryClient.invalidateQueries({ queryKey: ["properties", entry.entityId] });
+                    } else if (entry.entityType === "scenario") {
+                      queryClient.invalidateQueries({ queryKey: ["scenarios"] });
                     }
                   }
                 }

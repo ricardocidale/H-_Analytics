@@ -303,6 +303,20 @@ app.use((req, res, next) => {
                 );
               });
           });
+
+          // ── Phase 3j: Iris backstage agent scheduler ────────
+          // Gated on migration success — Iris reads/writes the iris_runs
+          // table introduced in migration 0040. On a cold boot, the
+          // scheduler must wait for that migration before its first tick.
+          // Daily health check + weekly reindex. Skips if a run is already
+          // in progress (concurrency guard via getLatestIrisRun).
+          setImmediate(() => {
+            import("./ai/ambient/iris-scheduler").then(({ startIrisScheduler }) => {
+              startIrisScheduler();
+            }).catch(err => {
+              serverLog(`[iris-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+            });
+          });
         })
         .catch(err => {
           serverLog(
@@ -435,6 +449,12 @@ app.use((req, res, next) => {
         try {
           const { stopHeroPhotoUrlAuditScheduler } = await import("./jobs/hero-photo-url-audit");
           stopHeroPhotoUrlAuditScheduler();
+        } catch {
+          /* best-effort — module may not have loaded yet */
+        }
+        try {
+          const { stopIrisScheduler } = await import("./ai/ambient/iris-scheduler");
+          stopIrisScheduler();
         } catch {
           /* best-effort — module may not have loaded yet */
         }

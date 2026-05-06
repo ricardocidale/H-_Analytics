@@ -210,6 +210,43 @@ The financial engine is deterministic and authoritative. Given identical inputs,
 
 ---
 
+## Critical Invariant: Authoring Authority
+
+**Only the Claude Code CLI session ("shell CC") may edit code in the financial engine surface.** No Replit Agent, no other AI agent, no execute-this-plan handoff into this surface.
+
+This is independent of the magic-numbers and number-taxonomy rules — those govern *what* the code does. This rule governs *who* writes the code.
+
+### Why
+
+Financial correctness is the product's integrity surface. Even small drift in PMT, amortization, NOI, debt-service, fee, or rollup math compounds across every projection. A single trusted-hand rule keeps audit trails clean and prevents agents that don't carry full repo context from making engine changes that look reasonable but break invariants. The rule was established after a parallel-agent pass silently dropped a non-engine fix during an amend; the concern multiplies for engine code where every line affects financial output.
+
+### The protected surface
+
+The financial engine surface includes — non-exhaustively:
+
+- `lib/engine/src/` — Property Engine, Company Engine, debt, refinance, funding, helpers, types
+- `lib/calc/src/` — pure calculation primitives shared via `@calc/shared`
+- `lib/shared/src/constants*.ts` and `lib/db/src/constants*.ts` — `DEFAULT_*` values that the engine reads as fallbacks
+- `artifacts/api-server/src/finance/` — server-side Checker code, pipeline, aggregators
+- `artifacts/api-server/src/report/` — financial-statement and rollup code that consumes engine output
+- `artifacts/api-server/src/tests/proof/` and `artifacts/api-server/src/tests/engine/` — engine and pro-forma tests
+
+Schema columns that feed any of the above (e.g. loan params, rate fields on properties / scenarios) are protected on the columns themselves, not just on the engine reads.
+
+### How to apply
+
+- When orchestrating any non-shell-CC agent (Replit Agent, parallel CLI, prompt-engineered handoff) to execute a plan, the plan's **file scope must not include any path under the protected surface**. A handoff prompt that merely says "do not touch the financial engine" is insufficient — the file scope must exclude the surface.
+- If a plan needs an engine change, that unit gets carved out and executed by shell CC directly. The remainder of the plan can still be handed off if its scope is engine-free.
+- This rule does not block reading the engine surface for context. It blocks *editing*.
+- Agents and tools allowed to operate on user-facing code (e.g. UI panels, admin sidebars) may still need to *read* engine types or call engine entry points; that is fine. The bound is on writes to the surface above.
+
+### Conflict with other rules
+
+- The `no-magic-numbers` and `hplus-variable-taxonomy` rules apply to all numeric literals in this surface and are not relaxed by this rule.
+- The `Determinism` invariant above is the *what*; this rule is the *who*. Both must hold.
+
+---
+
 ## Financial Statement Structure
 
 ### Property-Level Statements
