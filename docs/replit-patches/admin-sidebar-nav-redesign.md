@@ -29,7 +29,7 @@ import {
 } from "@/components/icons";
 ```
 
-**Replace with:**
+**Replace with (what actually landed):**
 
 ```typescript
 import {
@@ -37,20 +37,19 @@ import {
   IconMenu, IconHelpCircle, IconPeople, IconUserCog, IconActivity, IconSwatchBook,
   IconPanelLeft, IconProperties,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  IconBot, IconBrain, IconFileCheck, IconDatabase, IconShield, IconSettingsGear, IconSettings2,
-  IconBriefcase, IconPhone, IconPalette, IconBuilding2, IconGitCompareArrows, IconRuler,
+  IconBot, IconBrain, IconFileCheck, IconDatabase, IconShield, IconSettingsGear, IconSliders,
+  IconBriefcase, IconPhone, IconPalette,
   IconShieldCheck,
-  IconCalculator, IconDashboard, IconImage,
+  IconCalculator, IconDashboard, IconImage, IconRuler, IconGitFork,
 } from "@/components/icons";
 ```
 
 **What changed:**
-- Removed `IconSliders` (was the "Steady State" group header icon — replaced by `IconSettings2`)
-- Removed `IconScenarios` (was used twice — group header and sub-item — both replaced)
-- Added `IconSettings2` (new "Model Defaults" group header)
-- Added `IconBuilding2` (new "Portfolio" group header)
-- Added `IconGitCompareArrows` (new "All Scenarios" sub-item)
+- Removed `IconScenarios` (was used for both group header and sub-item — both replaced)
+- Kept `IconSliders` (retained as the "Model Defaults" group header icon)
+- Added `IconGitFork` (new "All Scenarios" sub-item — Phosphor alias available in the icon registry)
 - Added `IconRuler` (new "Reference Ranges" sub-item — de-duplicates from `IconCalculator`)
+- Note: `IconSettings2`, `IconBuilding2`, `IconGitCompareArrows` were originally planned but are not in the portal's icon registry; the above Phosphor aliases were used instead.
 
 ---
 

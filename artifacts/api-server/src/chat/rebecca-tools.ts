@@ -474,6 +474,7 @@ async function toolWriteRetrievalGap(
   // input that writes into the shared Iris workspace markdown file.
   const rawQuery = ((args.query as string) ?? "").replace(/\s+/g, " ").trim();
   const query = rawQuery.slice(0, IRIS_GAP_MAX_QUERY_CHARS);
+  if (!query) return { result: { recorded: false } };
   await appendIrisGap(query);
   return { result: { recorded: true } };
 }

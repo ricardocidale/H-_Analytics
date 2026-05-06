@@ -8,6 +8,13 @@ import { readIrisGaps, clearIrisGaps } from "../../ai/iris/workspace";
 import { insertIrisRun, updateIrisRun, getLatestIrisRun } from "../../storage/iris-runs";
 import { HTTP_400_BAD_REQUEST, HTTP_409_CONFLICT } from "../../constants";
 
+// In-process concurrency guard for Iris runs.
+// Eliminates the TOCTOU window that exists between the async DB check and the
+// async insertIrisRun write on single-instance deployments. A DB advisory lock
+// would be needed for multi-instance deployments; H+ Analytics runs as a
+// single Docker container so this boolean is sufficient for the common case.
+let irisRunInProgress = false;
+
 const IRIS_TRIGGER_VALUES = [
   "manual",
   "scheduled-health",
@@ -33,7 +40,14 @@ export function registerIrisRoutes(app: Express) {
 
     const { trigger } = parsed.data;
 
-    // Overlap guard: reject if a run is already in progress.
+    // Fast synchronous in-process check — closes the TOCTOU window for
+    // concurrent requests on the same server instance.
+    if (irisRunInProgress) {
+      return sendError(res, HTTP_409_CONFLICT, "An Iris run is already in progress");
+    }
+
+    // DB guard: catches the case where the flag was cleared by a restart
+    // but the DB still shows a run as "running" (e.g., after a crash).
     try {
       const latest = await getLatestIrisRun();
       if (latest?.status === "running") {
@@ -43,10 +57,13 @@ export function registerIrisRoutes(app: Express) {
       return logAndSendError(res, "Failed to check Iris run status", error);
     }
 
+    irisRunInProgress = true;
+
     let run;
     try {
       run = await insertIrisRun({ trigger, status: "running" });
     } catch (error: unknown) {
+      irisRunInProgress = false;
       return logAndSendError(res, "Failed to create Iris run record", error);
     }
 
@@ -85,6 +102,9 @@ export function registerIrisRoutes(app: Express) {
             "iris",
           );
         });
+      })
+      .finally(() => {
+        irisRunInProgress = false;
       });
 
     res.json({ runId, status: "started" });

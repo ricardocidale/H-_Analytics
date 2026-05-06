@@ -1143,7 +1143,9 @@ export function register(app: Express) {
           // before the assistant tool turns so continuation calls have the full
           // context (user question → assistant tool call → tool result → ...).
           if (depth === 0) {
-            toolHistory.push({ role: "user", content: message });
+            // Mirror the <user_message> wrapper that callLlm/callLlmStream apply
+            // so continuation turns see the same prompt form as the initial call.
+            toolHistory.push({ role: "user", content: `<user_message>${message}</user_message>` });
           }
           toolHistory = appendToolResults(toolHistory, loopProvider, result.toolCalls, toolResults);
         }

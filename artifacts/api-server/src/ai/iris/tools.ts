@@ -278,11 +278,19 @@ export interface TestApiConnectionResult {
 /**
  * Fire an HTTP GET to `url` and measure latency.
  * NEVER throws — all errors are caught and returned as `{ reachable: false }`.
+ * Applies the same SSRF guard as `ingestDocument` — private/loopback hosts
+ * and non-http(s) schemes are rejected before any network call is made.
  */
 export async function testApiConnection(
   args: TestApiConnectionArgs,
 ): Promise<TestApiConnectionResult> {
   const { url } = args;
+
+  const urlError = validateIngestUrl(url);
+  if (urlError) {
+    return { reachable: false, latencyMs: 0, errorMessage: urlError };
+  }
+
   const start = Date.now();
 
   try {
@@ -473,7 +481,7 @@ export function getIrisTools(): ToolParam[] {
             description: "Maximum age in days (accepted for forward-compatibility; not yet enforced)",
           },
         },
-        required: ["maxAgeDays"],
+        required: [],
       },
     },
     {

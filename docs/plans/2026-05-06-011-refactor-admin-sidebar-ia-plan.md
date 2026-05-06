@@ -83,7 +83,7 @@ In the Phosphor icon import block:
 
 Replace the `"properties"` group object and the `"scenarios"` group object with a single `"portfolio"` entry:
 
-```
+```typescript
 {
   id: "portfolio",
   label: "Portfolio",
