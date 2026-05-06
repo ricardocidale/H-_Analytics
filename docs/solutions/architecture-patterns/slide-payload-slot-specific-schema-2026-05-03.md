@@ -1,6 +1,7 @@
 ---
 title: "Slide payloads must model per-slot semantics, not a generic property+vision bag"
 date: 2026-05-03
+last_updated: 2026-05-06
 category: architecture-patterns
 module: api-server/slides + hospitality-business-portal/internal-deck
 problem_type: architecture_pattern
@@ -29,6 +30,8 @@ tags:
 > **See also (2026-05-03 follow-ups):**
 > - [Canonical-contract rebuild: a four-layer architecture for fixed-design deck rendering](./canonical-contract-rebuild-architecture-2026-05-03.md) — this doc is the **schema layer** of that broader architecture (schema + theme + renderer + payload-builder + self-validation gate).
 > - [Three-way diff: diagnose generated-artifact drift against a canonical reference](../workflow-issues/three-way-diff-recon-methodology-2026-05-03.md) — the diagnostic methodology (human brief × machine-precise JSON spans × generated PDF) that surfaced this pattern. The "Diff that exposed the pattern" section below is a worked instance of it.
+>
+> **Update (2026-05-06):** The slot-specific schema is now the canonical-fidelity contract that the agent-native overlay's Builders produce against and Inspectors verify. See [Agent-Native Precision Pipeline Pattern](./agent-native-precision-pipeline-pattern-2026-05-06.md) — Builders are the schema producers, Inspectors are the schema verifiers, and the per-slot Zod constraints (max-length, role-typed photo slots) become Hallucination Defense B (schema as defense) in that overlay.
 
 ## Context
 
@@ -192,6 +195,7 @@ wasn't designed for.
 
 ## Related
 
+- `docs/solutions/architecture-patterns/agent-native-precision-pipeline-pattern-2026-05-06.md` — agent-native overlay that consumes this schema: Builders produce slot content, Inspectors verify against per-slot Zod constraints, Drafter + admin vetting upstream of Builder. The slot-specific schema becomes Hallucination Defense B (schema as defense).
 - `docs/solutions/architecture-patterns/two-format-slide-deck-generation-2026-05-02.md` — orthogonal: covers the editable-vs-image-locked PPTX architecture, not the payload-slot mismatch.
 - `docs/solutions/logic-errors/slide-renderer-table-padding-and-null-fallback-2026-05-02.md` — orthogonal: renderer-internals defensive coding (sparse tables, JSX fallback).
 - `docs/solutions/design-patterns/slide-decks-tab-dual-format-migration-2026-05-02.md` — orthogonal: admin-UI download state migration.
