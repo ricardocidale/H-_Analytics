@@ -113,7 +113,24 @@ conventions, and architectural decisions that would otherwise be re-discovered.
 
 ---
 
-## 7. Market Rates Table — Admin Regenerates, Never Cell-Edits
+## 7. Agent-Native Parity — Mandatory Discipline
+
+Every UI action a user can take, Rebecca must be able to achieve through conversation.
+
+**When adding any UI capability**, also add the corresponding Rebecca tool in the same PR
+and update `docs/discipline/agent-native-parity-map.md`.
+
+**Parity map status values:**
+- ✅ Tool exists and is documented in Rebecca's system prompt
+- ⚠️ UI action exists but no Rebecca tool — MUST be resolved before merging
+- 🚫 N/A — user-only action (file picker, camera, biometric auth) or admin-only
+
+**The parity audit skill:** run `/parity-audit` in any session to get a structured
+gap analysis comparing the current UI action list against known Rebecca tools.
+
+---
+
+## 8. Market Rates Table — Admin Regenerates, Never Cell-Edits
 
 The admin can only press the **Analyst button** to regenerate an entire table row.
 Individual cell editing is not supported and must not be implemented. Tables show:
