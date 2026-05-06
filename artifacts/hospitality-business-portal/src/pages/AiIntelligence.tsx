@@ -69,6 +69,7 @@ const sectionMeta: Record<AiIntelligenceSection, { title: string; subtitle: stri
   "resources-tables":      { title: "Market Data · Reference Tables", subtitle: "Actual benchmark and market data values (ADR index, labor rates, F&B, seasonal calendars) refreshed by The Analyst. The slug registry lives in Catalog → Benchmark Slugs." },
   "analyst-orchestrator":  { title: "Gustavo · The Analyst",   subtitle: "Orchestrator persona that routes work across the Specialist team." },
   "gustavo":               { title: "Gustavo · Analyst Orchestrator", subtitle: "Routes research tasks to the Specialist team and coordinates all intelligence gathering" },
+  "iris":                  { title: "Iris · Resource Maintainer",    subtitle: "Keeps resource registries and reference data current across the platform" },
   "specialists":           { title: "Specialists",              subtitle: "Research Specialists powering H+ Analytics — verify deployment and run health checks" },
   "llm-workflows":         { title: "LLMs",                     subtitle: "Language model configuration for each research workflow — vendor, model, and Analyst recommendations" },
   "assumption-guidance":   { title: "Assumption Guidance",      subtitle: "Analyst-generated calibration insights — suggested ranges and sources for financial assumptions" },
