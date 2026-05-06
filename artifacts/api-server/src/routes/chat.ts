@@ -32,6 +32,17 @@ import {
 } from "./chat-sources";
 import { buildContextContract, type RetrievalManifestEntry } from "../ai/rebecca-context-contract";
 import type { ToolParam, LlmResult, ToolCall } from "../chat/tool-types";
+import { dispatchRebeccaTool, getRebeccaTools } from "../chat/rebecca-tools";
+import type { DataChangedEntry as RebeccaDataChangedEntry } from "../chat/rebecca-tools";
+
+export type DataChangedEntry = { entityType: "property" | "scenario"; entityId: number };
+
+// Maximum number of tool-call/result round-trips before forcing a final text turn.
+const MAX_TOOL_DEPTH = 4;
+
+// Flexible history entry type that can carry either simple text turns or
+// provider-native tool call/result turns (which have non-string content).
+type MessageEntry = { role: string; content: unknown; [key: string]: unknown };
 
 const fieldContextSchema = z.object({
   entityType: z.enum(["property", "company"]),
@@ -88,7 +99,7 @@ export async function callLlm(
   provider: "openai" | "anthropic" | "gemini" | "perplexity",
   model: string,
   systemPrompt: string,
-  history: Array<{ role: string; content: string }>,
+  history: MessageEntry[],
   userMessage: string,
   sampling: { temperature: number; maxOutputTokens: number; topP: number },
   userId?: number,
@@ -119,7 +130,7 @@ export async function callLlm(
     const client = getPerplexityClient();
     const messages = [
       { role: "system" as const, content: systemPrompt },
-      ...history.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
+      ...history.map((m) => m as any),
       { role: "user" as const, content: wrappedUser },
     ];
     // Perplexity SDK's chat completion shape — `citations` is a runtime field
@@ -155,7 +166,7 @@ export async function callLlm(
     const client = getOpenAIClient();
     const messages = [
       { role: "system" as const, content: systemPrompt },
-      ...history.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
+      ...history.map((m) => m as any),
       { role: "user" as const, content: wrappedUser },
     ];
     const hasTools = tools && tools.length > 0;
@@ -207,7 +218,7 @@ export async function callLlm(
         temperature: sampling.temperature,
         top_p: sampling.topP,
         messages: [
-          ...history.map((m) => ({ role: (m.role === "assistant" ? "assistant" : "user") as "user" | "assistant", content: m.content })),
+          ...history.map((m) => m as any),
           { role: "user" as const, content: wrappedUser },
         ],
         ...(hasTools ? {
@@ -234,17 +245,21 @@ export async function callLlm(
 
   // gemini default
   const gemini = getGeminiClient();
-  const chatHistory = history.map((msg) => ({
-    role: msg.role === "user" ? "user" : ("model" as const),
-    content: msg.content,
-  }));
+  // Entries that already have `parts` (tool call/result turns appended by
+  // appendToolResults) are passed through as-is. Simple text entries are
+  // wrapped in the standard Gemini parts format.
   const contents = [
     { role: "user" as const, parts: [{ text: systemPrompt }] },
     { role: "model" as const, parts: [{ text: "Understood. I have the portfolio data and will answer questions based on it." }] },
-    ...chatHistory.map((m) => ({
-      role: (m.role === "user" ? "user" : "model") as "user" | "model",
-      parts: [{ text: m.content }],
-    })),
+    ...history.map((m) => {
+      if ("parts" in m && Array.isArray((m as any).parts)) {
+        return m as any;
+      }
+      return {
+        role: (m.role === "user" ? "user" : "model") as "user" | "model",
+        parts: [{ text: m.content as string }],
+      };
+    }),
     { role: "user" as const, parts: [{ text: wrappedUser }] },
   ];
   const hasGeminiTools = tools && tools.length > 0;
@@ -287,7 +302,7 @@ export async function callLlmStream(
   provider: "openai" | "anthropic" | "gemini" | "perplexity",
   model: string,
   systemPrompt: string,
-  history: Array<{ role: string; content: string }>,
+  history: MessageEntry[],
   userMessage: string,
   sampling: { temperature: number; maxOutputTokens: number; topP: number },
   onToken: (token: string) => void,
@@ -319,7 +334,7 @@ export async function callLlmStream(
     const client = getOpenAIClient();
     const messages = [
       { role: "system" as const, content: systemPrompt },
-      ...history.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
+      ...history.map((m) => m as any),
       { role: "user" as const, content: wrappedUser },
     ];
     const stream = await client.chat.completions.create({
@@ -352,7 +367,7 @@ export async function callLlmStream(
       temperature: sampling.temperature,
       top_p: sampling.topP,
       messages: [
-        ...history.map((m) => ({ role: (m.role === "assistant" ? "assistant" : "user") as "user" | "assistant", content: m.content })),
+        ...history.map((m) => m as any),
         { role: "user" as const, content: wrappedUser },
       ],
       stream: true,
@@ -373,17 +388,18 @@ export async function callLlmStream(
 
   // gemini — use generateContentStream
   const gemini = getGeminiClient();
-  const chatHistory = history.map((msg) => ({
-    role: msg.role === "user" ? "user" : ("model" as const),
-    content: msg.content,
-  }));
   const contents = [
     { role: "user" as const, parts: [{ text: systemPrompt }] },
     { role: "model" as const, parts: [{ text: "Understood. I have the portfolio data and will answer questions based on it." }] },
-    ...chatHistory.map((m) => ({
-      role: (m.role === "user" ? "user" : "model") as "user" | "model",
-      parts: [{ text: m.content }],
-    })),
+    ...history.map((m) => {
+      if ("parts" in m && Array.isArray((m as any).parts)) {
+        return m as any;
+      }
+      return {
+        role: (m.role === "user" ? "user" : "model") as "user" | "model",
+        parts: [{ text: m.content as string }],
+      };
+    }),
     { role: "user" as const, parts: [{ text: wrappedUser }] },
   ];
   const genStream = await gemini.models.generateContentStream({
@@ -409,6 +425,74 @@ export async function callLlmStream(
 
 function sseWrite(res: Response, event: string, data: unknown): void {
   res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+}
+
+/**
+ * Appends provider-native tool call and tool result turns to the message
+ * history so the LLM can continue the conversation after tool execution.
+ *
+ * Each provider has a different wire format for these turns:
+ *  - OpenAI:    assistant message with tool_calls array + individual tool messages
+ *  - Anthropic: assistant message with content blocks + user message with tool_result blocks
+ *  - Gemini:    model message with functionCall parts + user message with functionResponse parts
+ *  - Perplexity: tools not supported — returns history unchanged
+ */
+function appendToolResults(
+  history: MessageEntry[],
+  provider: "openai" | "anthropic" | "gemini" | "perplexity",
+  toolCalls: ToolCall[],
+  results: Array<{ id: string; name: string; result: unknown }>,
+): MessageEntry[] {
+  const next = [...history];
+
+  if (provider === "openai") {
+    next.push({
+      role: "assistant",
+      content: null,
+      tool_calls: toolCalls.map(tc => ({
+        id: tc.id,
+        type: "function",
+        function: { name: tc.name, arguments: JSON.stringify(tc.arguments) },
+      })),
+    });
+    for (const r of results) {
+      next.push({ role: "tool", content: JSON.stringify(r.result), tool_call_id: r.id });
+    }
+  } else if (provider === "anthropic") {
+    next.push({
+      role: "assistant",
+      content: toolCalls.map(tc => ({ type: "tool_use", id: tc.id, name: tc.name, input: tc.arguments })),
+    });
+    next.push({
+      role: "user",
+      content: results.map(r => ({ type: "tool_result", tool_use_id: r.id, content: JSON.stringify(r.result) })),
+    });
+  } else if (provider === "gemini") {
+    next.push({
+      role: "model",
+      content: null,
+      parts: toolCalls.map(tc => ({ functionCall: { name: tc.name, args: tc.arguments } })),
+    });
+    next.push({
+      role: "user",
+      content: null,
+      parts: results.map(r => ({ functionResponse: { name: r.name, response: { content: r.result } } })),
+    });
+  }
+  // Perplexity: tools not supported — return history unchanged
+
+  return next;
+}
+
+type ToolContext = { userId: number; req: Request };
+
+async function executeTool(
+  name: string,
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const outcome = await dispatchRebeccaTool(name, args, { userId: ctx.userId });
+  return outcome as { result: unknown; dataChanged?: DataChangedEntry };
 }
 
 export function register(app: Express) {
@@ -990,7 +1074,8 @@ export function register(app: Express) {
         streamActive = true;
       }
 
-      let responseText: string;
+      const dataChanged: DataChangedEntry[] = [];
+      let responseText = "";
       let resolvedModelName = model;
       let resolvedProvider = provider;
 
@@ -1000,36 +1085,66 @@ export function register(app: Express) {
         } catch (e: unknown) { logger.warn(`Failed to update conversation model: ${(e instanceof Error ? e.message : String(e))}`, "chat"); }
       }
 
-      if (useStream) {
-        try {
-          const r = await callLlmStream(provider, model, fullSystemPrompt, effectiveHistory, message, sampling, (token) => sseWrite(res, "delta", { token }), req.user?.id, webSearchEnabled);
-          responseText = r.text;
-        } catch (primaryErr: unknown) {
-          logger.warn(`Primary streaming LLM ${provider}:${model} failed: ${primaryErr instanceof Error ? primaryErr.message : String(primaryErr)}`, "chat");
-          if (fallback) {
-            const r = await callLlmStream(fallback.provider, fallback.model, fullSystemPrompt, effectiveHistory, message, sampling, (token) => sseWrite(res, "delta", { token }), req.user?.id, webSearchEnabled);
-            responseText = r.text;
-            resolvedModelName = fallback.model;
-            resolvedProvider = fallback.provider;
-          } else {
-            throw primaryErr;
+      const rebeccaTools: ToolParam[] = getRebeccaTools();
+      const toolCtx: ToolContext = { userId, req };
+
+      async function runAgenticLoop(
+        loopProvider: "openai" | "anthropic" | "gemini" | "perplexity",
+        loopModel: string,
+      ): Promise<string> {
+        let toolHistory: MessageEntry[] = [...effectiveHistory];
+        let loopFinalText = "";
+
+        for (let depth = 0; depth < MAX_TOOL_DEPTH; depth++) {
+          const isLastDepth = depth === MAX_TOOL_DEPTH - 1;
+          // On the last depth, pass no tools so the LLM is forced to produce a text response.
+          const activeTools = isLastDepth ? [] : rebeccaTools;
+
+          const result = depth === 0 && useStream
+            ? await callLlmStream(loopProvider, loopModel, fullSystemPrompt, toolHistory, message, sampling, (token) => sseWrite(res, "delta", { token }), req.user?.id, webSearchEnabled, activeTools.length > 0 ? activeTools : undefined)
+            : await callLlm(loopProvider, loopModel, fullSystemPrompt, toolHistory, depth === 0 ? message : "", sampling, req.user?.id, webSearchEnabled, activeTools.length > 0 ? activeTools : undefined);
+
+          if (!result.toolCalls?.length || result.stopReason === "end_turn") {
+            loopFinalText = result.text;
+            // On continuation turns with streaming, emit the final text as a single delta.
+            if (useStream && depth > 0 && result.text) {
+              sseWrite(res, "delta", { token: result.text });
+            }
+            break;
           }
+
+          // Execute all tool calls in parallel.
+          const toolResults = await Promise.all(
+            result.toolCalls.map(async (tc) => {
+              const { result: r, dataChanged: dc } = await executeTool(tc.name, tc.arguments, toolCtx);
+              if (dc) dataChanged.push(dc);
+              return { id: tc.id, name: tc.name, result: r };
+            }),
+          );
+
+          // On the first tool round, record the user's original message in history
+          // before the assistant tool turns so continuation calls have the full
+          // context (user question → assistant tool call → tool result → ...).
+          if (depth === 0) {
+            toolHistory.push({ role: "user", content: message });
+          }
+          toolHistory = appendToolResults(toolHistory, loopProvider, result.toolCalls, toolResults);
         }
-      } else {
-        try {
-          const r = await callLlm(provider, model, fullSystemPrompt, effectiveHistory, message, sampling, req.user?.id, webSearchEnabled);
-          responseText = r.text;
-        } catch (primaryErr: unknown) {
-          logger.warn(`Primary LLM ${provider}:${model} failed: ${primaryErr instanceof Error ? primaryErr.message : String(primaryErr)}`, "chat");
-          if (fallback) {
-            logger.info(`Falling back to ${fallback.provider}:${fallback.model}`, "chat");
-            const r = await callLlm(fallback.provider, fallback.model, fullSystemPrompt, effectiveHistory, message, sampling, req.user?.id, webSearchEnabled);
-            responseText = r.text;
-            resolvedModelName = fallback.model;
-            resolvedProvider = fallback.provider;
-          } else {
-            throw primaryErr;
-          }
+
+        return loopFinalText;
+      }
+
+      try {
+        responseText = await runAgenticLoop(provider, model);
+      } catch (primaryErr: unknown) {
+        logger.warn(`Primary LLM ${provider}:${model} failed: ${primaryErr instanceof Error ? primaryErr.message : String(primaryErr)}`, "chat");
+        if (fallback) {
+          logger.info(`Falling back to ${fallback.provider}:${fallback.model}`, "chat");
+          responseText = await runAgenticLoop(fallback.provider, fallback.model);
+          resolvedModelName = fallback.model;
+          resolvedProvider = fallback.provider;
+        } else {
+          throw primaryErr;
         }
       }
       // Web search only actually fires for the Perplexity provider. Mark
@@ -1102,6 +1217,7 @@ export function register(app: Express) {
         ...(autoGreeting ? { autoGreeting } : {}),
         ...(matchedAssets.length > 0 ? { assets: matchedAssets } : {}),
         ...(observations.length > 0 ? { observations } : {}),
+        ...(dataChanged.length > 0 ? { dataChanged } : {}),
       };
 
       if (useStream) {
