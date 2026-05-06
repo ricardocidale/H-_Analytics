@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { IconDownload, IconRefreshCw } from "@/components/icons";
+import { ChevronDown, ChevronRight } from "@/components/icons/themed-icons";
 import { Slide1EditorPanel } from "@/features/internal-deck/editor/Slide1EditorPanel";
 import { Slide2EditorPanel } from "@/features/internal-deck/editor/Slide2EditorPanel";
 import { Slide3EditorPanel } from "@/features/internal-deck/editor/Slide3EditorPanel";
@@ -170,13 +171,16 @@ function CanonicalReferenceToggle({
   const tab = `s${slideNum}`;
   const isShown = showCanonical[tab] ?? false;
 
+  const Icon = isShown ? ChevronDown : ChevronRight;
+
   return (
     <div className="space-y-2">
       <button
         type="button"
         onClick={() => onToggle(tab)}
-        className="text-xs text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
+        className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors rounded px-1.5 py-1 hover:bg-muted/50"
       >
+        <Icon className="w-3.5 h-3.5 shrink-0" />
         {isShown ? "Hide canonical reference" : "Show canonical reference"}
       </button>
       {isShown && (
@@ -378,25 +382,25 @@ export default function LbSlides() {
 
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as SlideTab)}>
             <TabsList className="flex flex-wrap h-auto gap-1 p-1">
-              <TabsTrigger value="config" className="text-xs">Config & Render</TabsTrigger>
+              <TabsTrigger value="config" className="text-xs">Setup</TabsTrigger>
               <TabsTrigger value="s1" className="text-xs">
-                Slide 1
+                1 · Spotlight
                 <ReadinessTabBadge staleMissingCount={r1?.staleMissingCount} />
               </TabsTrigger>
               <TabsTrigger value="s2" className="text-xs">
-                Slide 2
+                2 · Gallery
                 <ReadinessTabBadge staleMissingCount={r2?.staleMissingCount} />
               </TabsTrigger>
               <TabsTrigger value="s3" className="text-xs">
-                Slide 3
+                3 · Investment
                 <ReadinessTabBadge staleMissingCount={r3?.staleMissingCount} />
               </TabsTrigger>
-              <TabsTrigger value="s4" className="text-xs">Slide 4</TabsTrigger>
+              <TabsTrigger value="s4" className="text-xs">4 · Portfolio</TabsTrigger>
               <TabsTrigger value="s5" className="text-xs">
-                Slide 5
+                5 · Financials
                 <ReadinessTabBadge staleMissingCount={r5?.staleMissingCount} />
               </TabsTrigger>
-              <TabsTrigger value="s6" className="text-xs">Slide 6</TabsTrigger>
+              <TabsTrigger value="s6" className="text-xs">6 · Statement</TabsTrigger>
             </TabsList>
 
             {/* ── Config & Render tab ─────────────────────────────────── */}
@@ -417,10 +421,10 @@ export default function LbSlides() {
                   <SlidePropertySelector slideNum={3} description="Investment Model · concept + market rationale" value={slide3Id} onChange={setSlide3Id} properties={propertiesRaw} disabled={isLoading} />
                   <SlidePropertySelector slideNum={5} description="Financial Snapshot · transformation plan" value={slide5Id} onChange={setSlide5Id} properties={propertiesRaw} disabled={isLoading} />
 
-                  <div className="pt-2 border-t border-border/60 text-xs text-muted-foreground space-y-0.5">
-                    <div className="font-medium text-foreground/70">Auto-generated (no assignment needed)</div>
-                    <div>Slide 4 — Portfolio grid of all properties with hero photos</div>
-                    <div>Slide 6 — 10-year aggregated USALI consolidated income statement</div>
+                  <div className="rounded-md bg-muted/40 border border-border/50 px-3 py-2.5 text-sm space-y-0.5">
+                    <p className="font-medium text-foreground/80 text-xs uppercase tracking-wide mb-1">Auto-generated — no assignment needed</p>
+                    <p className="text-muted-foreground text-xs">Slide 4 — Portfolio grid of all properties with hero photos</p>
+                    <p className="text-muted-foreground text-xs">Slide 6 — 10-year aggregated USALI consolidated income statement</p>
                   </div>
 
                   <Button
@@ -436,43 +440,39 @@ export default function LbSlides() {
 
               {/* Readiness summary */}
               {(slide1Id || slide2Id || slide3Id || slide5Id) && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Slide Readiness</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {[
-                        { num: 1, label: "Pipeline Spotlight", r: r1 },
-                        { num: 2, label: "Photo Gallery", r: r2 },
-                        { num: 3, label: "Investment Model", r: r3 },
-                        { num: 5, label: "Financial Snapshot", r: r5 },
-                      ].map(({ num, label, r }) => {
-                        const missing = r?.staleMissingCount;
-                        return (
-                          <button
-                            key={num}
-                            type="button"
-                            onClick={() => setActiveTab(`s${num}` as SlideTab)}
-                            className="flex flex-col items-start gap-1 rounded-lg border p-3 text-left hover:bg-muted/50 transition-colors"
-                          >
-                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                              Slide {num}
-                            </span>
-                            <span className="text-xs text-foreground">{label}</span>
-                            {missing == null ? (
-                              <Badge variant="secondary" className="text-[10px]">Loading…</Badge>
-                            ) : missing === 0 ? (
-                              <Badge variant="outline" className="text-emerald-700 border-emerald-300 bg-emerald-50 text-[10px]">Ready</Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 text-[10px]">{missing} slot{missing !== 1 ? "s" : ""} missing/stale</Badge>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-foreground">Slide Readiness</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {[
+                      { num: 1, label: "Spotlight", r: r1 },
+                      { num: 2, label: "Gallery", r: r2 },
+                      { num: 3, label: "Investment", r: r3 },
+                      { num: 5, label: "Financials", r: r5 },
+                    ].map(({ num, label, r }) => {
+                      const missing = r?.staleMissingCount;
+                      return (
+                        <button
+                          key={num}
+                          type="button"
+                          onClick={() => setActiveTab(`s${num}` as SlideTab)}
+                          className="flex flex-col items-start gap-1 rounded-lg border p-3 text-left hover:bg-muted/50 transition-colors"
+                        >
+                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                            Slide {num}
+                          </span>
+                          <span className="text-xs text-foreground">{label}</span>
+                          {missing == null ? (
+                            <Badge variant="secondary" className="text-[10px]">Loading…</Badge>
+                          ) : missing === 0 ? (
+                            <Badge variant="outline" className="text-emerald-700 border-emerald-300 bg-emerald-50 text-[10px]">Ready</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50 text-[10px]">{missing} slot{missing !== 1 ? "s" : ""} missing/stale</Badge>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
 
               {/* PDF render */}
@@ -590,7 +590,7 @@ export default function LbSlides() {
                     disabled={saveMutation.isPending}
                   >
                     {saveMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
-                    Save
+                    Save Slide 4
                   </Button>
                 </CardContent>
               </Card>
@@ -638,7 +638,7 @@ export default function LbSlides() {
                     disabled={saveMutation.isPending}
                   >
                     {saveMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
-                    Save
+                    Save Slide 6
                   </Button>
                 </CardContent>
               </Card>
