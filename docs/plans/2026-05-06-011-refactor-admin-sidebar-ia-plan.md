@@ -32,11 +32,13 @@ The design doc at the origin path above specifies the target state. This plan im
 - Any group other than `"financial-defaults"`, `"properties"`, and `"scenarios"`
 - Backend changes
 
-## Single File
+## Files
 
-`artifacts/hospitality-business-portal/src/components/admin/AdminSidebar.tsx`
+- `artifacts/hospitality-business-portal/src/components/admin/AdminSidebar.tsx` — primary file. Changes are in `buildNavGroups()` and the Phosphor icon import block at the top of the file.
+- `artifacts/hospitality-business-portal/src/components/icons/index.ts` — icon barrel. Add `IconGitFork` (and any other newly used Phosphor icons that need to be re-exported from this barrel) so consumers outside `AdminSidebar.tsx` can import them.
+- `artifacts/hospitality-business-portal/src/components/icons/navigation-icons.tsx` — if `IconGitFork` is added to the barrel, ensure the underlying Phosphor import lives here per the existing icon-organization convention.
 
-All changes are in `buildNavGroups()` and the Phosphor icon import block at the top of the file.
+A clean-room implementation following only the AdminSidebar.tsx changes would miss the icon-barrel updates and break consumers; both the barrel and navigation-icons surfaces must be updated alongside `AdminSidebar.tsx`.
 
 ## Implementation Units
 
@@ -68,6 +70,7 @@ In the Phosphor icon import block:
 **Verification:**
 - [ ] `pnpm run typecheck` — clean (TypeScript confirms icon names are valid Phosphor exports)
 - [ ] `scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts` — PASS (no numeric literals added)
+- [ ] `pnpm --filter @workspace/hospitality-business-portal test` — no automated tests apply to sidebar nav structure (visual-only change); existing suite must remain green
 - [ ] Visual: "Model Defaults" label appears in sidebar; `reference-ranges` row shows `IconRuler` not `IconCalculator`
 
 ---
@@ -113,6 +116,7 @@ In the Phosphor icon import block:
 **Verification:**
 - [ ] `pnpm run typecheck` — clean (`AdminSection` union is derived from section `value` strings, which are unchanged; TypeScript will catch any broken references)
 - [ ] `scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts` — PASS
+- [ ] `pnpm --filter @workspace/hospitality-business-portal test` — no automated tests apply to sidebar nav structure (visual-only change); existing suite must remain green
 - [ ] Visual: "Portfolio" group appears with Buildings icon; "Properties" and "Scenarios" groups are gone; all four sub-items render under Portfolio; "All Scenarios" shows GitFork icon
 
 ---

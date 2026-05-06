@@ -79,7 +79,10 @@ Rebecca is the front-line communicator. Her quality is bounded by the freshness 
 
 - **Iris workspace files are filesystem-based, not DB rows.** `iris/context.md`, `iris/gaps.md`, and `iris/run-history/` are plain files parallel to `attached_assets/` in the KB content layer. Rationale: `indexKnowledgeBase()` already reads the filesystem for content; `iris/context.md` is re-indexed at startup by the same mechanism as `attached_assets/` without any new abstraction.
 - **`iris/context.md` feeds Rebecca via vector store re-indexing, not system prompt injection.** At startup (in the `setImmediate` sequence in `src/index.ts`), `iris/context.md` is loaded by `loadAttachedAssets()` or a parallel call and chunked into the `"knowledge-base"` namespace. Rebecca retrieves it semantically at query time via `retrieveRelevantChunks()`. Rationale: the `SystemPromptParts` interface has no slot for Iris state; raw text injection bypasses retrieval relevance scoring; the KB path is zero new infrastructure.
-- **`iris/health.md` is DB-persisted as a JSON blob.** Admin UI polling needs a single reliable source for last-run status and per-resource health. File read works for KB content but is fragile for real-time UI updates. A single `iris_runs` table row (latest run per type) is cleaner. Rationale: the UI needs structured data (timestamps, status codes per resource); markdown prose is wrong for that surface.
+- **Structured Iris health is DB-persisted; `iris/health.md` is the human-readable workspace file.** Two persistence layers, with distinct purposes:
+  - `iris/health.md` is a markdown workspace file (alongside `iris/context.md` and `iris/gaps.md`) that Iris writes after each run as a human-readable summary. It is NOT the source for admin UI polling.
+  - `iris_runs.health_summary` (a `jsonb` column on the `iris_runs` table) holds the structured payload — timestamps, per-resource status codes, error counts — that the admin UI reads via `GET /api/admin/iris/status`. This is the source of truth for real-time UI state.
+  Rationale: markdown prose is wrong for UI structure; a DB row is wrong for human inspection. Keeping both avoids repurposing either.
 - **Iris's LLM calls go through the existing `callLlm()` function**, not a new LLM abstraction. The provider and model are passed as parameters matching the existing function signature extended in the Rebecca plan (U1 of plan 009). Rationale: reuses all provider handling, SSE, and tool infrastructure already built.
 - **Gap signals are append-only until Iris clears them.** Rebecca appends one line to `iris/gaps.md` per failed retrieval. Iris reads all lines on startup, ingests coverage, then truncates the file. Rationale: append is safe under concurrent writes from multiple Rebecca sessions; truncate on Iris run avoids gap accumulation.
 - **Iris's admin UI lives in AI Intelligence → AI Agents group**, not in Admin sidebar or as a rail panel like Rebecca. The AI Agents group already holds Gustavo (orchestrator persona) and is the right place for another agent persona. Rebecca's rail panel (`panel-manager.ts`) is user-facing and accessible from any page — Iris is admin-only and accessed from `/ai-intelligence`. Rationale: separating user-facing (Rebecca rail) from admin-facing (Iris in AI Intelligence) prevents UI surface confusion and keeps Iris behind the admin route guard.
@@ -429,6 +432,8 @@ Rebecca's chat turn:
 
 **Verification:**
 - `pnpm --filter @workspace/hospitality-business-portal run typecheck` — clean
+- `scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts` — PASS
+- `pnpm --filter @workspace/hospitality-business-portal test` — no behavioral tests added for nav-entry addition; existing suite must remain green
 - Iris entry appears in the "AI Agents" group in the sidebar with correct label and icon
 
 ---
@@ -464,6 +469,8 @@ Rebecca's chat turn:
 
 **Verification:**
 - `pnpm --filter @workspace/hospitality-business-portal run typecheck` — clean
+- `scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts` — PASS
+- `pnpm --filter @workspace/hospitality-business-portal test` — no automated component tests added for IrisPanel (visual surface); existing suite must remain green
 - Iris panel renders at `/ai-intelligence?section=iris` without errors
 - "Run Health Check" button fires `POST /api/admin/iris/run` with `trigger: "scheduled-health"`
 - Per-resource rows render with correct status indicator and timestamp
