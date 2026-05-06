@@ -3,7 +3,9 @@ import type { ToolParam } from "./tool-types";
 import type { Property, UpdateProperty, Scenario, UpdateScenario } from "@workspace/db";
 import { updatePropertySchema } from "@workspace/db";
 import { generateLocationAwareResearchValues } from "../data/researchSeeds";
-import { appendIrisGap } from "../ai/iris/workspace";
+import { appendIrisGap, clearIrisGaps, readIrisGaps } from "../ai/iris/workspace";
+import { runIrisAgent, type IrisTrigger } from "../ai/iris/agent";
+import { insertIrisRun, updateIrisRun, getLatestIrisRun } from "../storage/iris-runs";
 
 // Named constant: estimated minutes for background research job (Category 2 — DEFAULT VARIABLE)
 const RESEARCH_ESTIMATED_MINUTES = 2;
@@ -145,6 +147,26 @@ export function getRebeccaTools(): ToolParam[] {
         required: ["query"],
       },
     },
+    {
+      name: "trigger_iris_health_check",
+      description: "Run a quick Iris health check across configured data sources. Admin only.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+    {
+      name: "trigger_iris_reindex",
+      description: "Run a full Iris reindex of the knowledge base. Slower than a health check. Admin only.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+    {
+      name: "clear_iris_gaps",
+      description: "Clear the queue of pending retrieval gaps Iris is scheduled to ingest. Admin only.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+    {
+      name: "get_iris_status",
+      description: "Read Iris's most recent run summary and current pending gaps count. Admin only.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
   ];
 }
 
@@ -181,6 +203,14 @@ export async function dispatchRebeccaTool(
         return await toolTriggerResearch(args, ctx);
       case "write_retrieval_gap":
         return await toolWriteRetrievalGap(args, ctx);
+      case "trigger_iris_health_check":
+        return await toolTriggerIrisHealthCheck(ctx);
+      case "trigger_iris_reindex":
+        return await toolTriggerIrisReindex(ctx);
+      case "clear_iris_gaps":
+        return await toolClearIrisGaps(ctx);
+      case "get_iris_status":
+        return await toolGetIrisStatus(ctx);
       default:
         return { result: { error: "Unknown tool" } };
     }
@@ -370,22 +400,31 @@ async function toolCreateScenario(
   };
 }
 
+// Whitelist of UpdateScenario keys Rebecca is allowed to mutate.
+// Hard gate against LLM-supplied keys outside the documented contract
+// (e.g. userId, kind, globalAssumptions) — stripToColumns at the storage
+// layer would still let real DB columns through.
+const REBECCA_SCENARIO_UPDATE_KEYS = ["name", "description", "tags"] as const;
+
 async function toolUpdateScenario(
   args: Record<string, unknown>,
   ctx: ToolContext,
 ): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   const id = args.id as number;
-  const fields = args.fields as Record<string, unknown>;
+  const rawFields = args.fields as Record<string, unknown>;
 
   const sc = await storage.getScenario(id);
   if (!sc || sc.userId !== ctx.userId) {
     return { result: { error: "Not found" } };
   }
 
-  // UpdateScenario type officially covers name/description/tags.
-  // Cast through unknown so callers can pass additional keys;
-  // the storage layer's stripAutoFields handles unrecognized keys at runtime.
-  await storage.updateScenario(id, fields as unknown as UpdateScenario);
+  const allowed = new Set<string>(REBECCA_SCENARIO_UPDATE_KEYS);
+  const fields: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(rawFields)) {
+    if (allowed.has(k)) fields[k] = v;
+  }
+
+  await storage.updateScenario(id, fields as UpdateScenario);
 
   return {
     result: { success: true, updated: Object.keys(fields) },
@@ -460,6 +499,111 @@ async function toolTriggerResearch(
     result: { queued: true, estimatedMinutes: RESEARCH_ESTIMATED_MINUTES },
     dataChanged: { entityType: "property", entityId: propertyId },
   };
+}
+
+// ---------------------------------------------------------------------------
+// Admin auth helper
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns an error result if the caller is not an admin, null otherwise.
+ * Mirrors the `requireAdmin` middleware used in routes/admin/iris.ts.
+ */
+async function requireAdminCtx(ctx: ToolContext): Promise<{ result: { error: string } } | null> {
+  const user = await storage.getUserById(ctx.userId);
+  if (user?.role !== "admin") {
+    return { result: { error: "Iris controls require admin access" } };
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Iris tool helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Shared implementation for the two Iris run-trigger tools.
+ * Creates a DB run record, fires runIrisAgent async (fire-and-forget), and
+ * returns immediately — mirroring POST /api/admin/iris/run behaviour.
+ */
+async function toolTriggerIrisRun(
+  trigger: IrisTrigger,
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  // Best-effort concurrency guard — no in-process lock available here, but the
+  // DB check catches the common case of a run already tracked as "running".
+  const latest = await getLatestIrisRun();
+  if (latest?.status === "running") {
+    return { result: { error: "An Iris run is already in progress" } };
+  }
+
+  const run = await insertIrisRun({ trigger, status: "running" });
+  const runId = run.id;
+  const startTs = Date.now();
+
+  void runIrisAgent(trigger)
+    .then((result) =>
+      updateIrisRun(runId, {
+        status: "completed",
+        modelUsed: result.model,
+        chunksIndexed: result.chunksIndexed,
+        errorsEncountered: result.errorsEncountered,
+        durationMs: result.durationMs,
+        healthSummary: {
+          summary: result.summary,
+          toolsInvoked: result.toolsInvoked,
+          runId: result.runId,
+        },
+      }),
+    )
+    .catch((err: unknown) => {
+      const durationMs = Date.now() - startTs;
+      return updateIrisRun(runId, {
+        status: "error",
+        durationMs,
+        healthSummary: { error: String(err) },
+      });
+    });
+
+  return { result: { runId, status: "started" } };
+}
+
+async function toolTriggerIrisHealthCheck(
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  return toolTriggerIrisRun("scheduled-health", ctx);
+}
+
+async function toolTriggerIrisReindex(
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  return toolTriggerIrisRun("scheduled-reindex", ctx);
+}
+
+async function toolClearIrisGaps(
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  await clearIrisGaps();
+  return { result: { success: true } };
+}
+
+async function toolGetIrisStatus(
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const [lastRun, gaps] = await Promise.all([
+    getLatestIrisRun(),
+    readIrisGaps(),
+  ]);
+  return { result: { lastRun, gapsCount: gaps.length } };
 }
 
 /** Max characters accepted for a retrieval-gap query before truncation. */

@@ -37,12 +37,11 @@ Rebecca is the front-line communicator. Her quality is bounded by the freshness 
 - Iris does not have a user-facing chat interface. She is admin-operated only.
 - Iris does not replace or wrap `vector-store-service.ts` — she calls its exported primitives directly.
 - Iris does not manage Specialist prompts or LLM configuration — those belong in the existing LLMs section of AI Intelligence.
-- Iris is not wired as a Rebecca tool (Rebecca cannot invoke Iris in real-time). Iris runs on her own trigger loop. Real-time invocation is deferred.
+- Rebecca can trigger Iris admin actions via tools — see plan 012 (parity cluster fix). Iris's ambient daily-health and weekly-reindex triggers continue to run on her own scheduler loop independent of Rebecca.
 - The Replit-proxy/direct-OpenAI two-client architecture is not changed. Iris uses the existing direct client in `vector-store-service.ts`.
 
 ### Deferred to Follow-Up Work
 
-- Iris as a callable Rebecca tool (real-time dispatch from within a user conversation): separate plan after core Iris ships.
 - Iris entry in AI Intelligence → LLMs page (as an LLM workflow card): follow-up to this plan.
 - Iris self-modification of her own system prompt or ingestion strategy: separate plan.
 

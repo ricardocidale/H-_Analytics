@@ -35,10 +35,20 @@ feature ships or a new Rebecca tool is added.
 
 ## AI Intelligence Actions
 
+### Iris Agent Controls
+
+| UI Action | UI Location | Rebecca Tool | Status |
+|---|---|---|---|
+| Run Health Check | Iris panel | `trigger_iris_health_check` | ✅ |
+| Run Full Reindex | Iris panel | `trigger_iris_reindex` | ✅ |
+| Clear Gaps | Iris panel | `clear_iris_gaps` | ✅ |
+| View Iris status | Iris panel | `get_iris_status` | ✅ |
+| Per-resource Sync | Iris panel | — | ⚠️ Deferred (no single-source admin route) |
+
+### Knowledge Base
+
 | UI Action | Route / Location | Rebecca Tool | Status |
 |---|---|---|---|
-| Trigger Iris health check | Admin → Observability → Run now | — | 🚫 N/A (admin-only) |
-| Trigger Iris reindex | Admin → Observability → Run now | — | 🚫 N/A (admin-only) |
 | Record retrieval gap | Auto (Rebecca unanswered query) | `write_retrieval_gap` | ✅ |
 
 ## When to Update This Map
