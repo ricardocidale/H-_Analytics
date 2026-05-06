@@ -164,3 +164,40 @@ ADR-007 (Section 4) and the Determinism invariant govern *what* the code does.
 
 **Skill for full detail:** `.agents/skills/financial-engine/SKILL.md` —
 "Critical Invariant: Authoring Authority" section.
+
+---
+
+## 10. Agentic Member Naming Convention
+
+All agents, minions, and orchestrators in H+ Analytics use human first names
+from Brazilian or Italian naming traditions (male or female).
+
+**Three roles — never conflate:**
+- **Orchestrators** — route work across agents; never produce content directly
+- **Agents** — do the substantive work (LLM or deterministic)
+- **Minions** — deterministic helpers called by agents; no LLM, no judgment
+
+**Name formats:**
+- **Swarm agents** (job-specific, only used in one pipeline): `Name-NN`
+  zero-padded (e.g., Sofia-01, Lorenzo-03)
+- **Cross-app specialists** (used in multiple surfaces): single name (e.g., Maya, Lucca)
+- **Orchestrators and minions**: single name
+
+**Every member has three fields:**
+- `role` — one-line title (e.g., "Slide 1 Builder")
+- `short_description` — 1-2 sentences for card/list views
+- `long_description` — full capabilities, inputs, outputs, model tier
+
+**Reserved names (already in use — never reuse):**
+- App agents: Rebecca, Iris
+- Analyst orchestrator: Gustavo
+- Research specialists: Ana, Bia, Cecília, Mariana, Natália, Olívia, Paula,
+  Daniela, Eloá, Fernanda, Giovanna, Helena, Isadora, Júlia, Kamila, Letícia
+- Slide factory orchestrator: Marco
+- Slide factory cross-app: Lucca, Maya
+- Slide factory swarms: Lorenzo, Sofia, Bianca, Chiara, Dario, Elisa, Felix
+- Slide factory minions: Aldo, Bruno, Carlo, Dino, Enzo
+
+**Never use:** Sergio, Milton
+
+**Skill for full detail:** `.agents/skills/slide-factory/SKILL.md`
