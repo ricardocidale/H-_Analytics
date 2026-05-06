@@ -92,6 +92,20 @@ export const SCHEDULER_REGISTRY = [
     description:
       "Nightly check that every property's cached hero URL (`properties.image_url`) matches the album hero (with the same first-photo-by-id fallback the resync script uses) and that the resolved URL still serves. Alerts on-call admins with the affected property IDs and the current/expected URLs (Task #937).",
   },
+  {
+    key: "iris-health",
+    label: "Iris Backstage Health Check",
+    cycleIntervalMs: 24 * 60 * 60 * 1000, // 24h
+    description:
+      "Daily Iris backstage agent health-check run. Reads workspace health state, invokes the agent with the scheduled-health trigger, and logs the outcome.",
+  },
+  {
+    key: "iris-reindex",
+    label: "Iris Backstage Reindex",
+    cycleIntervalMs: 7 * 24 * 60 * 60 * 1000, // 7 days
+    description:
+      "Weekly Iris backstage agent full reindex run. Invokes the agent with the scheduled-reindex trigger to re-index stale or missing workspace chunks.",
+  },
 ] as const;
 
 export type SchedulerKey = (typeof SCHEDULER_REGISTRY)[number]["key"];
@@ -195,6 +209,14 @@ export const SCHEDULER_DISPATCH: Record<SchedulerKey, () => Promise<unknown>> = 
   "hero-photo-url-audit": async () => {
     const mod = await import("./hero-photo-url-audit");
     return mod.runHeroPhotoUrlAuditCycle();
+  },
+  "iris-health": async () => {
+    const mod = await import("../ai/iris/agent");
+    return mod.runIrisAgent("scheduled-health");
+  },
+  "iris-reindex": async () => {
+    const mod = await import("../ai/iris/agent");
+    return mod.runIrisAgent("scheduled-reindex");
   },
 };
 

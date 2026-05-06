@@ -391,6 +391,15 @@ app.use((req, res, next) => {
         serverLog(`[hero-photo-url-audit] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
       });
 
+      // ── Phase 3j: Iris backstage agent scheduler ────────
+      // Daily health check + weekly reindex. Skips if a run is already
+      // in progress (concurrency guard via getLatestIrisRun).
+      import("./ai/ambient/iris-scheduler").then(({ startIrisScheduler }) => {
+        startIrisScheduler();
+      }).catch(err => {
+        serverLog(`[iris-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+      });
+
       const intervalHandles: NodeJS.Timeout[] = [];
 
       // ── Graceful shutdown handler ────────
