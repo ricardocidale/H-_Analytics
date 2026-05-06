@@ -1,5 +1,12 @@
 # Admin Sidebar Nav Redesign — Paste for Replit
 
+> **Status: Completed (2026-05-06).** This patch was executed. The implementation
+> used `IconSliders` (for Model Defaults group), `IconProperties` (for Portfolio
+> group), and `IconGitFork` (for All Scenarios sub-item) — the Phosphor icon
+> aliases available in the portal's icon registry — rather than `IconSettings2`,
+> `IconBuilding2`, and `IconGitCompareArrows` referenced in the patch below.
+> The patch sections below are preserved for historical context only.
+
 Two targeted replacements in:
 `artifacts/hospitality-business-portal/src/components/admin/AdminSidebar.tsx`
 

@@ -106,7 +106,7 @@ Rebecca is the front-line communicator. Her quality is bounded by the freshness 
 
 ## Output Structure
 
-```
+```text
 artifacts/api-server/src/ai/
 └── iris/
     ├── workspace.ts        # Read/write iris/ filesystem workspace
@@ -134,7 +134,7 @@ artifacts/hospitality-business-portal/src/
 
 > *This illustrates the intended approach and is directional guidance for review, not implementation specification.*
 
-```
+```text
 Admin button press / scheduled cron / gap-signal
          ↓
 POST /api/admin/iris/run  →  runIrisAgent(trigger, model)
@@ -157,7 +157,7 @@ POST /api/admin/iris/run  →  runIrisAgent(trigger, model)
          Frontend React Query invalidates iris/status query → IrisPanel re-renders
 ```
 
-```
+```text
 Rebecca's chat turn:
   RAG retrieval returns 0 results for query X
          ↓

@@ -8,6 +8,7 @@
  */
 
 import { promises as fs } from "fs";
+import path from "path";
 import { storage } from "../../storage";
 import {
   isVectorStoreAvailable,
@@ -33,6 +34,64 @@ const IRIS_RETRIEVAL_EVAL_TOP_K = 5;
 
 /** Max characters of chunk metadata content stored in the vector index per chunk. */
 const IRIS_INGEST_METADATA_PREVIEW_MAX_CHARS = 3_000;
+
+// ---------------------------------------------------------------------------
+// Security: URL and file-path validators for ingest_document
+// ---------------------------------------------------------------------------
+
+const IRIS_ALLOWED_URL_SCHEMES = new Set(["https:", "http:"]);
+
+// Patterns that match private/loopback/link-local addresses to block SSRF.
+const IRIS_BLOCKED_HOST_PATTERNS: RegExp[] = [
+  /^localhost$/i,
+  /^::1$/,
+  /^0\.0\.0\.0$/,
+  /^127\./,
+  /^10\./,
+  /^172\.(1[6-9]|2[0-9]|3[01])\./,
+  /^192\.168\./,
+  /^169\.254\./,
+];
+
+/**
+ * Returns an error message if the URL is disallowed, or null if it is safe.
+ * Blocks non-http(s) schemes and private/internal host ranges.
+ */
+function validateIngestUrl(rawUrl: string): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    return "Invalid URL format";
+  }
+  if (!IRIS_ALLOWED_URL_SCHEMES.has(parsed.protocol)) {
+    return `Unsupported URL scheme '${parsed.protocol}' — only http and https are allowed`;
+  }
+  const hostname = parsed.hostname;
+  for (const pattern of IRIS_BLOCKED_HOST_PATTERNS) {
+    if (pattern.test(hostname)) {
+      return `Host '${hostname}' is a private or internal address and cannot be fetched`;
+    }
+  }
+  return null;
+}
+
+/**
+ * Returns an error message if the file path escapes the server working directory,
+ * or null if the path is within the allowed workspace root.
+ */
+function validateIngestFilePath(rawPath: string): string | null {
+  const workspaceRoot = path.resolve(process.cwd());
+  const resolved = path.resolve(rawPath);
+  // Allow exact root match or any path strictly inside it
+  const insideRoot =
+    resolved === workspaceRoot ||
+    resolved.startsWith(workspaceRoot + path.sep);
+  if (!insideRoot) {
+    return `File path must be within the server workspace — '${rawPath}' is not allowed`;
+  }
+  return null;
+}
 
 // ---------------------------------------------------------------------------
 // Helper
@@ -65,6 +124,16 @@ export async function ingestDocument(
 
   if (!url && !filePath) {
     return { success: false, chunksIndexed: 0, error: "Either url or filePath must be provided" };
+  }
+
+  if (url) {
+    const urlError = validateIngestUrl(url);
+    if (urlError) return { success: false, chunksIndexed: 0, error: urlError };
+  }
+
+  if (filePath) {
+    const pathError = validateIngestFilePath(filePath);
+    if (pathError) return { success: false, chunksIndexed: 0, error: pathError };
   }
 
   if (!isVectorStoreAvailable()) {

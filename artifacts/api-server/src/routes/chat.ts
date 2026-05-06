@@ -1098,9 +1098,15 @@ export function register(app: Express) {
       const rebeccaTools: ToolParam[] = getRebeccaTools();
       const toolCtx: ToolContext = { userId, req };
 
+      // Tracks whether the primary loop executed any mutating tools before failing.
+      // If true, the fallback must not re-run the loop to avoid double-mutations
+      // (e.g., update_property called twice, scenario created twice).
+      let primaryLoopExecutedTools = false;
+
       async function runAgenticLoop(
         loopProvider: "openai" | "anthropic" | "gemini" | "perplexity",
         loopModel: string,
+        isPrimary: boolean,
       ): Promise<string> {
         let toolHistory: MessageEntry[] = [...effectiveHistory];
         let loopFinalText = "";
@@ -1126,6 +1132,7 @@ export function register(app: Express) {
           // Execute all tool calls in parallel.
           const toolResults = await Promise.all(
             result.toolCalls.map(async (tc) => {
+              if (isPrimary) primaryLoopExecutedTools = true;
               const { result: r, dataChanged: dc } = await executeTool(tc.name, tc.arguments, toolCtx);
               if (dc) dataChanged.push(dc);
               return { id: tc.id, name: tc.name, result: r };
@@ -1145,12 +1152,15 @@ export function register(app: Express) {
       }
 
       try {
-        responseText = await runAgenticLoop(provider, model);
+        responseText = await runAgenticLoop(provider, model, true);
       } catch (primaryErr: unknown) {
         logger.warn(`Primary LLM ${provider}:${model} failed: ${primaryErr instanceof Error ? primaryErr.message : String(primaryErr)}`, "chat");
-        if (fallback) {
+        if (fallback && !primaryLoopExecutedTools) {
+          // Safe to fall back only when no tools have been executed — once any
+          // mutating tool (update_property, create_scenario, etc.) has run,
+          // retrying with the fallback would re-execute those side effects.
           logger.info(`Falling back to ${fallback.provider}:${fallback.model}`, "chat");
-          responseText = await runAgenticLoop(fallback.provider, fallback.model);
+          responseText = await runAgenticLoop(fallback.provider, fallback.model, false);
           resolvedModelName = fallback.model;
           resolvedProvider = fallback.provider;
         } else {

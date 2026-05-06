@@ -6,7 +6,7 @@ import { logger } from "../../logger";
 import { runIrisAgent } from "../../ai/iris/agent";
 import { readIrisGaps, clearIrisGaps } from "../../ai/iris/workspace";
 import { insertIrisRun, updateIrisRun, getLatestIrisRun } from "../../storage/iris-runs";
-import { HTTP_400_BAD_REQUEST } from "../../constants";
+import { HTTP_400_BAD_REQUEST, HTTP_409_CONFLICT } from "../../constants";
 
 const IRIS_TRIGGER_VALUES = [
   "manual",
@@ -32,6 +32,16 @@ export function registerIrisRoutes(app: Express) {
     }
 
     const { trigger } = parsed.data;
+
+    // Overlap guard: reject if a run is already in progress.
+    try {
+      const latest = await getLatestIrisRun();
+      if (latest?.status === "running") {
+        return sendError(res, HTTP_409_CONFLICT, "An Iris run is already in progress");
+      }
+    } catch (error: unknown) {
+      return logAndSendError(res, "Failed to check Iris run status", error);
+    }
 
     let run;
     try {
