@@ -95,7 +95,25 @@ Units that modify DB schema or seed files also need:
 
 ---
 
-## 6. Market Rates Table — Admin Regenerates, Never Cell-Edits
+## 6. Institutional Knowledge Store
+
+`docs/solutions/` contains documented solutions, architecture patterns, design decisions, and
+workflow learnings accumulated across sessions. Search it before implementing features, debugging
+issues, or making decisions in a documented area.
+
+**Structure:** Organized by category subdirectory (`architecture-patterns/`, `design-patterns/`,
+`best-practices/`, etc.). Each file has YAML frontmatter with searchable fields:
+- `module` — the area affected (e.g., `rebecca-agent-native-architecture`, `admin-navigation`)
+- `tags` — lowercase-hyphen keywords
+- `problem_type` — category enum (`architecture_pattern`, `design_pattern`, `best_practice`, etc.)
+
+**When to search:** Before starting any implementation unit, grep for relevant module names,
+tags, or component names in `docs/solutions/`. Learnings may cover bugs, patterns, workflow
+conventions, and architectural decisions that would otherwise be re-discovered.
+
+---
+
+## 7. Market Rates Table — Admin Regenerates, Never Cell-Edits
 
 The admin can only press the **Analyst button** to regenerate an entire table row.
 Individual cell editing is not supported and must not be implemented. Tables show:
