@@ -56,6 +56,7 @@ export interface RebeccaConfigProps {
   onChatEngineChange: (v: "gemini" | "perplexity") => void;
   onSettingsChange: (next: RebeccaSettings) => void;
   onSave: () => void;
+  onCancel?: () => void;
   isSaving: boolean;
   isDirty: boolean;
   guardrailCount?: number;
@@ -190,6 +191,7 @@ export function RebeccaConfig({
   onChatEngineChange,
   onSettingsChange,
   onSave,
+  onCancel,
   isSaving,
   isDirty,
   guardrailCount,
@@ -335,13 +337,24 @@ export function RebeccaConfig({
           {isDirty && (
             <Badge variant="outline" className="text-xs" data-testid="badge-rebecca-dirty">Unsaved changes</Badge>
           )}
+          {isDirty && onCancel && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onCancel}
+              disabled={isSaving}
+              data-testid="button-rebecca-cancel"
+            >
+              Cancel
+            </Button>
+          )}
           <Button
             onClick={onSave}
             disabled={!isDirty || isSaving}
             size="sm"
             data-testid="button-rebecca-save"
           >
-            {isSaving ? "Saving…" : "Save"}
+            {isSaving ? "Saving…" : "Save configuration"}
           </Button>
         </div>
       </div>

@@ -133,6 +133,16 @@ export default function AIAgentsTab({ onSaveStateChange, initialTab }: AIAgentsT
     [queryClient, toast],
   );
 
+  const handleCancelRebecca = useCallback(() => {
+    if (!globalData) return;
+    setRebeccaEnabled(globalData.rebeccaEnabled ?? false);
+    setRebeccaDisplayName(globalData.rebeccaDisplayName ?? "Rebecca");
+    setRebeccaSystemPrompt(globalData.rebeccaSystemPrompt ?? "");
+    setRebeccaChatEngine((globalData.rebeccaChatEngine as "gemini" | "perplexity") ?? "gemini");
+    setRebeccaSettings(mergeRebeccaSettings(globalData.rebeccaConfig));
+    setRebeccaDirty(false);
+  }, [globalData]);
+
   const rebeccaSaveRef = useRef<(() => void) | undefined>(undefined);
   rebeccaSaveRef.current = () => saveRebeccaMutation.mutate();
 
@@ -311,6 +321,7 @@ export default function AIAgentsTab({ onSaveStateChange, initialTab }: AIAgentsT
             setRebeccaDirty(true);
           },
           onSave: () => saveRebeccaMutation.mutate(),
+          onCancel: handleCancelRebecca,
           isSaving: saveRebeccaMutation.isPending,
           isDirty: rebeccaDirty,
           guardrailCount,
