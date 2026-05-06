@@ -21,7 +21,21 @@
       "Bash(pnpm install *)",
       "Bash(pnpm typecheck *)",
       "Bash(pnpm --filter @workspace/api-server typecheck)",
-      "Bash(pnpm outdated *)"
+      "Bash(pnpm outdated *)",
+      "Bash(git stash *)",
+      "Bash(pnpm --filter @workspace/api-server run typecheck)",
+      "Bash(scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts)",
+      "Bash(pnpm --filter @workspace/api-server exec vitest run src/tests/rebecca-context-contract.test.ts src/tests/rebecca-persona-overlay.test.ts)",
+      "Bash(git commit --amend -m ' *)",
+      "Bash(git log *)",
+      "Bash(git checkout *)",
+      "Bash(git pull *)",
+      "Bash(pnpm --filter @workspace/api-server exec vitest run src/tests/proof/engine-edge-cases.test.ts)",
+      "Bash(git cherry-pick *)",
+      "Bash(git branch *)",
+      "Bash(bash *)",
+      "Bash(git rebase *)",
+      "Bash(git reset *)"
     ]
   }
 }
