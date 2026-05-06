@@ -359,6 +359,7 @@ async function toolCreateScenario(
   args: Record<string, unknown>,
   ctx: ToolContext,
 ): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const propertyId = args.propertyId as number;
   const name = args.name as string;
   const cloneFromId = args.cloneFromId as number | undefined;
 
@@ -372,14 +373,23 @@ async function toolCreateScenario(
     }
     sourceId = cloneFromId;
   } else {
-    // Clone from the user's default scenario; fall back to any available scenario.
-    // InsertScenario requires non-null globalAssumptions and properties columns,
-    // so we cannot create a blank scenario — we must clone an existing one.
+    // Find a source scenario that already covers the requested property.
+    // Prefer the user's default scenario for that property, then any scenario
+    // for that property. Surface an error if none exists rather than silently
+    // cloning an unrelated property's scenario.
     const allScenarios = await storage.getScenariosByUser(ctx.userId);
-    const defaultSc = allScenarios.find((s: Scenario) => s.kind === "default");
-    const sourceSc = defaultSc ?? allScenarios[0];
+    const matchesProperty = (s: Scenario): boolean =>
+      Array.isArray(s.properties)
+      && (s.properties as Array<{ id?: number }>).some((p) => p.id === propertyId);
+    const sourceSc =
+      allScenarios.find((s: Scenario) => s.kind === "default" && matchesProperty(s))
+      ?? allScenarios.find(matchesProperty);
     if (!sourceSc) {
-      return { result: { error: "Cannot create scenario — no existing scenario to clone from" } };
+      return {
+        result: {
+          error: `Cannot create scenario — no existing scenario covers property ${propertyId}`,
+        },
+      };
     }
     sourceId = sourceSc.id;
   }
