@@ -1,4 +1,4 @@
-# ADR-010 — Returns Intelligence (Q / Quitéria) + Distributions Intelligence (R / Rafaela) Specialists
+# ADR-010 — Returns Intelligence (R / Quitéria) + Distributions Intelligence (S / Rafaela) Specialists
 
 **Status:** Proposed (stub — roadmap, not active build)
 **Date filed:** 2026-05-01
@@ -24,13 +24,13 @@ Steps 2–5 are Specialist work (Tier-1 cognitive, citations, comparables tables
 
 Add two new Specialists to the roster:
 
-- **Letter Q — Returns Intelligence** (humanName: **Quitéria**, gender: female, subject: `property`)
+- **Letter R — Returns Intelligence** (humanName: **Quitéria**, gender: female, subject: `property`)
   - Owns operating-IRR health: `roomCount`, `startAdr`, `revShareEvents/FB/Other`, `cateringBoostPercent`, `buildingImprovements`, `occupancyRampCurve`, `exitCapRate`, `maxOccupancy`, `pricingModel`/`nightlyPropertyRate`
   - APIs (`assignmentRefs`): STR comp set, CBRE/HVS hospitality benchmarks, AirROI/AirDNA (STR-style markets), FRED inflation, BLS labor
   - Outputs `comparables: ComparableRow[]` table per numeric dimension
   - Deep-links to property-edit form fields via `verdictField` rows in catalog
 
-- **Letter R — Distributions Intelligence** (humanName: **Rafaela**, gender: female, subject: `property`)
+- **Letter S — Distributions Intelligence** (humanName: **Rafaela**, gender: female, subject: `property`)
   - Owns capital structure for LP-credibility: `ownerPriorityReturn`, preferred return rate, waterfall tier hurdles, catch-up rate, LP/GP equity split, LP-net IRR
   - APIs (`assignmentRefs`): Preqin / Carta / PitchBook (waterfall comps), NAREIM, ILPA standards
   - Outputs comparables table for waterfall structure (e.g., "Hospitality PE 2024 cohort: 8% pref / 80–20 / 70–30 / 60–40 tiers")
@@ -39,13 +39,15 @@ Add two new Specialists to the roster:
 
 **Giovanna (G) extension:** Tier-0 deterministic IRR-band tripwire. Property IRR outside `[20%, 50%]` or LP-net IRR outside `[10%, 25%]` → "Due for review" badge that nudges users to click `<AnalystButton />` on Q + R. No LLM cost. Adheres to `analyst-trigger-discipline.md` (watchdog flags; Specialists run only on user click).
 
-**Surface Router parallel dispatch:** one `<AnalystButton />` press on the property page fires Q + R concurrently. Same wall-clock as a single Specialist; double the source breadth. Eloá pulls from cache when she next runs her narrative pass.
+**Surface Router parallel dispatch:** one `<AnalystButton />` press on the property page fires R + S concurrently. Same wall-clock as a single Specialist; double the source breadth. Eloá pulls from cache when she next runs her narrative pass.
 
 ## Naming rationale
 
 Per `.claude/rules/analyst-team.md` (internal vs user-facing vocabulary), `Specialist` is internal vocabulary and may not appear in `displayName`. The user-tested candidates ("Financial Return Specialist," "Distribution of Proceeds Specialist") were rejected in the May 1 brainstorm for that reason and for verbosity. The chosen displayNames follow the established `X Intelligence` pattern (Funding Intelligence, Revenue Intelligence, Risk Intelligence, etc.). Plural "Returns" / "Distributions" matches industry parlance.
 
-Brazilian female persona names continue the alphabetical convention (Ana, Bia, Cecília, ..., Olívia, Paula, **Quitéria**, **Rafaela**).
+Brazilian female persona names continue the alphabetical convention (Ana, Bia, Cecília, ..., Olívia, Paula, Quentin, **Quitéria**, **Rafaela**).
+
+**Letter assignment note:** Q was originally reserved for Quitéria in this ADR, but letter Q was assigned to Quentin (Portfolio Capital Raise, `portfolio.capital-raise`) before this ADR's build phase opened. Letters are stable identifiers in the catalog — Q is immovable once a Specialist is built at that letter. Quitéria therefore takes R and Rafaela takes S. The alphabetical name sequence is preserved; only the catalog letters shifted.
 
 ## Prerequisites — DO NOT START BUILD UNTIL THESE LAND
 
@@ -71,15 +73,15 @@ Each phase ships green and stays committed before the next phase opens. Doctrine
 
 ## Trigger discipline
 
-Both Specialists evaluate **only** on `<AnalystButton />` press. Save handlers, useEffect hooks, and page loads MUST NOT fire Q or R. Per `.claude/rules/analyst-trigger-discipline.md`. Cache reads (`cacheState: "hit"`) of prior verdicts ARE allowed — that's reading paid-for intelligence, not a new evaluation.
+Both Specialists evaluate **only** on `<AnalystButton />` press. Save handlers, useEffect hooks, and page loads MUST NOT fire R or S. Per `.claude/rules/analyst-trigger-discipline.md`. Cache reads (`cacheState: "hit"`) of prior verdicts ARE allowed — that's reading paid-for intelligence, not a new evaluation.
 
 ## Cost discipline
 
-Per-property AnalystButton press fires Q + R Tier-1 cognitive runs in parallel. Each run uses 2+ vendors per `llm-vendor-roster.md`. Estimated per-run cost (May 2026 prices):
+Per-property AnalystButton press fires R + S Tier-1 cognitive runs in parallel. Each run uses 2+ vendors per `llm-vendor-roster.md`. Estimated per-run cost (May 2026 prices):
 
-- Q: ~$0.40 (Opus synthesis + Sonnet/Flash panels)
-- R: ~$0.40 (same shape)
-- Eloá pull-through: $0 (cache read of Q + R verdicts feeds into existing narrative pass)
+- R: ~$0.40 (Opus synthesis + Sonnet/Flash panels)
+- S: ~$0.40 (same shape)
+- Eloá pull-through: $0 (cache read of R + S verdicts feeds into existing narrative pass)
 - Giovanna: $0 (Tier-0 deterministic)
 
 **Total per AnalystButton press: ~$0.80.** Acceptable for an LP-credibility verdict that today doesn't exist anywhere in the product.
@@ -91,8 +93,8 @@ Every requirement in `.claude/rules/specialist-intelligence-bar.md` is intended 
 1. ✅ Tier-1 cognitive (Phase 2)
 2. ✅ Context-rich prompt (property + portfolio + market injected)
 3. ✅ ≥3 citation-backed evidence per dimension
-4. ✅ Tabular comparables for numeric dimensions (operating comps for Q; waterfall comps for R)
-5. ✅ Live API resources (STR/CBRE/HVS for Q; Preqin/Carta for R)
+4. ✅ Tabular comparables for numeric dimensions (operating comps for R; waterfall comps for S)
+5. ✅ Live API resources (STR/CBRE/HVS for R; Preqin/Carta for S)
 6. ✅ Range-first delivery (low/mid/high bands)
 7. ✅ Vendor-breadth N+1 (Anthropic + Google + DeepSeek minimum)
 8. ✅ LLM-driven Prompt Engineer pre-stage (per ADR-007)
@@ -111,7 +113,7 @@ A new `vrbo_owner_managed` business-model variant was added to
 Evolve Core tier (10% listing-only fee, owner does ops). The Medellin Duplex
 seed switched to this variant.
 
-**Implication for Specialist Q (Returns Intelligence):** Q must distinguish the
+**Implication for Specialist R (Returns Intelligence):** R must distinguish the
 four business-model archetypes (`hotel`, `lodge`, `vrbo`, `vrbo_owner_managed`)
 in its diagnostic logic. Operating-IRR root-cause analysis differs by archetype:
 
