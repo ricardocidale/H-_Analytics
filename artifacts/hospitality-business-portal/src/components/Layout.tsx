@@ -295,12 +295,6 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
         { href: "/company", label: "Management Company", icon: IconBriefcase },
       ],
     },
-    ...(isAdmin ? [{
-      label: "Investor Materials",
-      items: [
-        { href: "/lb-slides", label: "Investor Deck", icon: IconPresentation },
-      ],
-    }] : []),
     {
       label: "Intelligence",
       items: [
@@ -384,6 +378,20 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
           >
             <IconShield className="w-4 h-4 shrink-0" />
             <span>Admin</span>
+          </span>
+        </Link>
+      )}
+      {isAdmin && (
+        <Link href="/lb-slides" onClick={() => setMobileOpen(false)}>
+          <span
+            className={cn(
+              "flex items-center gap-2.5 w-full h-8 px-3 rounded-md text-[13px] transition-colors",
+              isActiveLink("/lb-slides") ? "bg-muted text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+            )}
+            data-testid="nav-slides"
+          >
+            <IconPresentation className="w-4 h-4 shrink-0" />
+            <span>Slides</span>
           </span>
         </Link>
       )}

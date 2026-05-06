@@ -152,8 +152,19 @@ export function MyScenariosCard({ actions }: MyScenariosCardProps) {
             <IconFileStack className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
             <p className="label-text text-muted-foreground font-medium">No scenarios saved yet</p>
             <p className="label-text text-muted-foreground mt-1">
-              Click "Save Current" to save your current assumptions and properties as a scenario
+              Save your current assumptions and properties as a named scenario to compare later.
             </p>
+            {canManageScenarios && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-4"
+                onClick={() => setIsCreating(true)}
+              >
+                <IconSave className="w-4 h-4 mr-1.5" />
+                Save current as scenario
+              </Button>
+            )}
           </div>
         ) : (
           <ScrollReveal>

@@ -35,6 +35,7 @@ import React, { useState, useRef, useCallback, lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useExportSave } from "@/hooks/useExportSave";
 import Layout from "@/components/Layout";
+import { Link } from "wouter";
 import { useProperties, useGlobalAssumptions } from "@/lib/api";
 import { getFiscalYearForModelYear } from "@/lib/financialEngine";
 import { Tabs, TabsContent, CurrentThemeTab } from "@/components/ui/tabs";
@@ -345,8 +346,11 @@ export default function Dashboard() {
   if (!financials) {
     return (
       <Layout>
-        <div className="flex flex-col items-center justify-center h-[60vh] gap-3">
+        <div className="flex flex-col items-center justify-center h-[60vh] gap-3 text-center">
           <p className="text-muted-foreground" data-testid="text-no-active-properties">No active properties in the portfolio. Activate at least one property to see financial data.</p>
+          <Link href="/portfolio" className="text-sm font-medium text-primary hover:text-primary/80 transition-colors">
+            Go to Properties →
+          </Link>
         </div>
       </Layout>
     );

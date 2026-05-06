@@ -295,6 +295,13 @@ export default function PropertyFinder() {
                 <IconBuilding2 className="w-12 h-12 text-primary/30 mx-auto mb-3" />
                 <p className="text-muted-foreground font-medium">No properties found matching your criteria.</p>
                 <p className="text-muted-foreground text-sm mt-1">Try adjusting your filters or searching a different location.</p>
+                <button
+                  type="button"
+                  onClick={() => setSearchParams(null)}
+                  className="mt-4 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+                >
+                  Clear filters
+                </button>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

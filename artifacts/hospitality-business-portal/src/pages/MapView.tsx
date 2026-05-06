@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { Link } from "wouter";
 import DOMPurify from "dompurify";
 import { useProperties } from "@/lib/api";
 import { IconBuilding2 } from "@/components/icons";
@@ -453,9 +454,12 @@ export default function MapView() {
         <div className="lg:col-span-3 min-h-0">
           <div className="rounded-xl border border-primary/20 overflow-hidden shadow-xl bg-muted relative h-full">
             {geoProperties.length === 0 && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10">
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-10 text-center">
                 <IconBuilding2 className="w-12 h-12 text-muted-foreground/30" />
                 <p className="text-sm text-muted-foreground">No properties to display on map</p>
+                <Link href="/portfolio" className="text-sm font-medium text-primary hover:text-primary/80 transition-colors">
+                  Go to Properties →
+                </Link>
               </div>
             )}
             <div ref={mapContainerRef} className="w-full h-full" />
