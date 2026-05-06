@@ -1,8 +1,10 @@
 import { useMemo } from "react";
+import { cn } from "@/lib/utils";
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
+  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -271,16 +273,13 @@ export function AiIntelligenceSidebarNav({ activeSection, onSectionChange }: AiI
               <SidebarGroup key={group.id} className="p-0">
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton
-                      isActive={isGroupActive}
+                    <SidebarGroupLabel
                       data-testid={`ai-intelligence-nav-group-${group.id}`}
-                      className="font-medium pointer-events-none"
-                      tabIndex={-1}
-                      aria-disabled
+                      className={cn("mb-0.5 gap-1.5", isGroupActive && "text-sidebar-foreground")}
                     >
-                      <GroupIcon className="size-4 shrink-0" />
-                      <span className="truncate">{group.label}</span>
-                    </SidebarMenuButton>
+                      <GroupIcon className="size-3.5 shrink-0" />
+                      <span className="truncate tracking-wide">{group.label}</span>
+                    </SidebarGroupLabel>
                     <SidebarMenuSub>
                       {group.sections.map((section) => {
                         const isActive = activeSection === section.value;

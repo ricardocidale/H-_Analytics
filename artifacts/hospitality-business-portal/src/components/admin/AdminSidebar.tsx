@@ -7,6 +7,7 @@ import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
+  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -239,16 +240,24 @@ function buildNavGroups(): NavGroup[] {
       ],
     },
     {
-      id: "app-settings",
-      label: "App Settings",
+      id: "configuration",
+      label: "Configuration",
       icon: IconSettingsGear,
-      description: "Notifications, sidebar visibility, system & activity logs",
+      description: "Notifications and UI preferences",
       sections: [
-        { value: "notifications",  label: "Notifications",  icon: IconPhone },
+        { value: "notifications",      label: "Notifications",      icon: IconPhone },
         { value: "sidebar-visibility", label: "Sidebar Visibility", icon: IconPanelLeft },
-        { value: "database",       label: "Database",       icon: IconDatabase },
-        { value: "observability",  label: "Observability",  icon: IconDashboard },
-        { value: "activity",       label: "Activity",       icon: IconActivity },
+      ],
+    },
+    {
+      id: "system",
+      label: "System",
+      icon: IconDashboard,
+      description: "Database, observability, and activity logs",
+      sections: [
+        { value: "database",      label: "Database",      icon: IconDatabase },
+        { value: "observability", label: "Observability", icon: IconDashboard },
+        { value: "activity",      label: "Activity",      icon: IconActivity },
       ],
     },
   ];
@@ -333,6 +342,9 @@ export function AdminSidebarNav({ activeSection, onSectionChange }: AdminSidebar
             </SidebarMenu>
           </SidebarGroup>
 
+          {/* Separator: navigation landmarks above, settings groups below */}
+          <div className="mx-2 border-t border-border/50" />
+
           {navGroups.map((group) => {
             const isGroupActive = group.id === activeGroup;
 
@@ -364,24 +376,21 @@ export function AdminSidebarNav({ activeSection, onSectionChange }: AdminSidebar
               );
             }
 
-            // Multi-section groups follow shadcn `sidebar-03`: a non-clickable
-            // group label with the submenu items rendered directly below
-            // (always visible — no collapsible chevron).
+            // Multi-section groups: a SidebarGroupLabel (non-interactive, muted
+            // label treatment) followed by indented sub-items — clearly a label,
+            // not a button.
             const GroupIcon = group.icon;
             return (
               <SidebarGroup key={group.id} className="p-0">
                 <SidebarMenu>
                   <SidebarMenuItem>
-                    <SidebarMenuButton
-                      isActive={isGroupActive}
+                    <SidebarGroupLabel
                       data-testid={`admin-nav-group-${group.id}`}
-                      className="font-medium pointer-events-none"
-                      tabIndex={-1}
-                      aria-disabled
+                      className={cn("mb-0.5 gap-1.5", isGroupActive && "text-sidebar-foreground")}
                     >
-                      <GroupIcon className="size-4 shrink-0" />
-                      <span className="truncate">{group.label}</span>
-                    </SidebarMenuButton>
+                      <GroupIcon className="size-3.5 shrink-0" />
+                      <span className="truncate tracking-wide">{group.label}</span>
+                    </SidebarGroupLabel>
                     <SidebarMenuSub>
                       {group.sections.map((section) => {
                         const sectionResolved = resolveSection(section.value);
