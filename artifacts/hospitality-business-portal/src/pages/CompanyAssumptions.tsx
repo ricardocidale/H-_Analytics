@@ -452,6 +452,7 @@ export default function CompanyAssumptions() {
             savingTab={formApi.savingTab}
             isUpdatePending={updateMutation.isPending}
             onSaveTab={handleSaveTab}
+            onCancelTab={formApi.discardEditsAndRefresh}
             generateResearch={requestAnalystRun}
             isGenerating={analyst.isGenerating || fundingRefresh.running}
             getTabGating={getTabGating}

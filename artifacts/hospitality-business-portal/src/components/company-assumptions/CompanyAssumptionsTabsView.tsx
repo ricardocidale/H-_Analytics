@@ -74,6 +74,7 @@ interface Props {
   savingTab: TabKey | null;
   isUpdatePending: boolean;
   onSaveTab: (tab: TabKey, opts?: { force?: boolean }) => void;
+  onCancelTab?: () => void;
 
   generateResearch: () => void | Promise<void>;
   isGenerating: boolean;
@@ -111,7 +112,7 @@ export function CompanyAssumptionsTabsView(props: Props) {
     formData, onChange, global, companyId, isAdmin: _isAdmin,
     properties, allFeeCategories, modelStartYear, researchValues,
     tabWarnings, onDismissWarning,
-    dirtyFields, savedTabs, savingTab, isUpdatePending, onSaveTab,
+    dirtyFields, savedTabs, savingTab, isUpdatePending, onSaveTab, onCancelTab,
     generateResearch, isGenerating, getTabGating,
     companyResearchUpdatedAt, lastAssumptionChangeAt,
     fundingVerdict,
@@ -283,6 +284,17 @@ export function CompanyAssumptionsTabsView(props: Props) {
                     freshnessStatus={freshnessStatus}
                     dataTestId={`button-ask-analyst-${activeTab}`}
                   />
+                )}
+                {onCancelTab && (activeDirty || activeNeverSaved) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onCancelTab}
+                    disabled={savingTab === activeTab && isUpdatePending}
+                    data-testid={`button-cancel-tab-${activeTab}`}
+                  >
+                    Cancel
+                  </Button>
                 )}
                 <SaveButton
                   onClick={() => onSaveTab(activeTab, { force: activeNeverSaved && !activeDirty })}

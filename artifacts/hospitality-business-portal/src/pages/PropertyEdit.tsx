@@ -488,6 +488,14 @@ export default function PropertyEdit() {
     markGlobalDirty();
   };
 
+  const handleCancel = () => {
+    if (property) setDraft({ ...property });
+    if (feeCategories) setFeeDraft([...feeCategories]);
+    setIsDirty(false);
+    setDirtyFields(new Set());
+    clearGlobalDirty();
+  };
+
   const totalServiceFeeRate = feeDraft?.filter(c => c.isActive).reduce((sum, c) => sum + c.rate, 0) ?? 0;
 
   const finishSave = async () => {
@@ -631,6 +639,15 @@ export default function PropertyEdit() {
                   Apply Research
                 </Button>
               )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCancel}
+                disabled={updateProperty.isPending}
+                data-testid="button-cancel-property-edit"
+              >
+                Cancel
+              </Button>
               <SaveButton
                 onClick={handleSave}
                 isPending={updateProperty.isPending}
@@ -747,9 +764,17 @@ export default function PropertyEdit() {
           </>
         )}
 
-        <div className="flex justify-end pb-8">
-          <SaveButton 
-            onClick={handleSave} 
+        <div className="flex justify-end gap-2 pb-8">
+          <Button
+            variant="ghost"
+            onClick={handleCancel}
+            disabled={updateProperty.isPending}
+            data-testid="button-cancel-property-edit-footer"
+          >
+            Cancel
+          </Button>
+          <SaveButton
+            onClick={handleSave}
             isPending={updateProperty.isPending}
             hasChanges={isDirty}
           >

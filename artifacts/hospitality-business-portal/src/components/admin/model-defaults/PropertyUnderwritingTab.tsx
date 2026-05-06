@@ -782,7 +782,17 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
               data-testid="input-default-platform-fee-rate"
             />
             <span className="text-sm text-muted-foreground">%</span>
-            <Button size="sm" variant="outline" onClick={savePlatformFee}>Save</Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                if (strDefaultRow?.value != null)
+                  setPlatformFeeDraft((+(strDefaultRow.value as number) * 100).toFixed(1));
+              }}
+            >
+              Cancel
+            </Button>
+            <Button size="sm" variant="outline" onClick={savePlatformFee}>Save platform fee</Button>
           </div>
         </div>
       </Section>
