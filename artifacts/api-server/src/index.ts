@@ -447,6 +447,12 @@ app.use((req, res, next) => {
         } catch {
           /* best-effort — module may not have loaded yet */
         }
+        try {
+          const { stopIrisScheduler } = await import("./ai/ambient/iris-scheduler");
+          stopIrisScheduler();
+        } catch {
+          /* best-effort — module may not have loaded yet */
+        }
         const forceTimer = setTimeout(() => { serverLog("Forced exit after timeout", "shutdown", "error"); process.exit(1); }, 10_000);
         httpServer.close(() => {
           serverLog("HTTP server closed", "shutdown", "info");

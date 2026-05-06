@@ -33,6 +33,9 @@ const IRIS_TEMPERATURE = 0.2;
 /** Maximum output tokens per LLM call. */
 const IRIS_MAX_OUTPUT_TOKENS = 2000;
 
+/** Max characters of the prior health report included in the kickoff context. */
+const IRIS_PRIOR_HEALTH_SUMMARY_MAX_CHARS = 1_000;
+
 /** Top-p nucleus sampling parameter. */
 const IRIS_TOP_P = 0.9;
 
@@ -168,17 +171,13 @@ export async function runIrisAgent(trigger: IrisTrigger): Promise<IrisRunResult>
       : "No knowledge gaps recorded.";
 
   const healthSummary = priorHealth
-    ? `Prior health report:\n${priorHealth.slice(0, 1000)}`
+    ? `Prior health report:\n${priorHealth.slice(0, IRIS_PRIOR_HEALTH_SUMMARY_MAX_CHARS)}`
     : "No prior health report available.";
 
   const userKickoff = `Trigger: ${trigger}\n\n${gapLines}\n\n${healthSummary}`;
 
-  // Step 3: Clear gaps after reading, only for gap-signal trigger
-  if (trigger === "gap-signal") {
-    await clearIrisGaps();
-  }
-
-  // Step 4: Agentic loop
+  // Step 3: Agentic loop — gaps are cleared AFTER a successful run so that
+  // data is not permanently lost if the loop throws before completing.
   const tools = getIrisTools();
   const toolsInvoked: string[] = [];
   const metrics = { chunksIndexed: 0, errorsEncountered: 0 };
@@ -186,52 +185,71 @@ export async function runIrisAgent(trigger: IrisTrigger): Promise<IrisRunResult>
   // Build initial message history — user message contains the context kickoff
   let history: MessageEntry[] = [{ role: "user", content: userKickoff }];
   let finalText = "";
+  let runError: unknown = undefined;
 
-  for (let depth = 0; depth < IRIS_MAX_TOOL_DEPTH; depth++) {
-    const isLastDepth = depth === IRIS_MAX_TOOL_DEPTH - 1;
-    // On last depth pass no tools so LLM is forced to produce a text response
-    const activeTools = isLastDepth ? [] : tools;
+  try {
+    for (let depth = 0; depth < IRIS_MAX_TOOL_DEPTH; depth++) {
+      const isLastDepth = depth === IRIS_MAX_TOOL_DEPTH - 1;
+      // On last depth pass no tools so LLM is forced to produce a text response
+      const activeTools = isLastDepth ? [] : tools;
 
-    const result = await callLlm(
-      IRIS_PROVIDER,
-      model,
-      IRIS_SYSTEM_PROMPT,
-      // On depth 0 the user kickoff is already in history; on subsequent turns
-      // history already includes the user kickoff + assistant tool turns
-      depth === 0 ? [] : history,
-      depth === 0 ? userKickoff : "",
-      sampling,
-      undefined, // no userId for backstage
-      undefined, // no webSearch
-      activeTools.length > 0 ? activeTools : undefined,
-    );
+      const result = await callLlm(
+        IRIS_PROVIDER,
+        model,
+        IRIS_SYSTEM_PROMPT,
+        // On depth 0 the user kickoff is already in history; on subsequent turns
+        // history already includes the user kickoff + assistant tool turns.
+        // Passing "" as userMessage on depth > 0 signals callLlm to skip
+        // appending an extra user turn (tool_result is already the last user
+        // turn in history — adding another would produce consecutive user-role
+        // messages that Anthropic/Gemini reject).
+        depth === 0 ? [] : history,
+        depth === 0 ? userKickoff : "",
+        sampling,
+        undefined, // no userId for backstage
+        undefined, // no webSearch
+        activeTools.length > 0 ? activeTools : undefined,
+      );
 
-    if (!result.toolCalls?.length || result.stopReason === "end_turn") {
-      finalText = result.text;
-      break;
+      if (!result.toolCalls?.length || result.stopReason === "end_turn") {
+        finalText = result.text;
+        break;
+      }
+
+      // Before first tool round, record the user kickoff in history so
+      // continuation calls have full context (mirrors chat.ts runAgenticLoop)
+      if (depth === 0) {
+        history = [{ role: "user", content: userKickoff }];
+      }
+
+      // Dispatch tool calls sequentially (Iris is a backstage agent, no parallelism needed)
+      const toolResults: Array<{ id: string; name: string; result: unknown }> = [];
+      for (const tc of result.toolCalls) {
+        toolsInvoked.push(tc.name);
+        const toolResult = await dispatchIrisTool(tc.name, tc.arguments ?? {});
+        accumulateToolMetrics(toolResult, metrics);
+        toolResults.push({ id: tc.id, name: tc.name, result: toolResult });
+      }
+
+      history = appendIrisToolResults(history, result.toolCalls, toolResults);
     }
 
-    // Before first tool round, record the user kickoff in history so
-    // continuation calls have full context (mirrors chat.ts runAgenticLoop)
-    if (depth === 0) {
-      history = [{ role: "user", content: userKickoff }];
+    // Clear gaps only after the loop completes without throwing — this
+    // prevents permanent data loss on provider outages or tool failures.
+    if (trigger === "gap-signal") {
+      await clearIrisGaps();
     }
-
-    // Dispatch tool calls sequentially (Iris is a backstage agent, no parallelism needed)
-    const toolResults: Array<{ id: string; name: string; result: unknown }> = [];
-    for (const tc of result.toolCalls) {
-      toolsInvoked.push(tc.name);
-      const toolResult = await dispatchIrisTool(tc.name, tc.arguments ?? {});
-      accumulateToolMetrics(toolResult, metrics);
-      toolResults.push({ id: tc.id, name: tc.name, result: toolResult });
+  } catch (err: unknown) {
+    runError = err;
+    metrics.errorsEncountered += 1;
+    if (!finalText) {
+      finalText = err instanceof Error ? `Run failed: ${err.message}` : "Run failed with unexpected error";
     }
-
-    history = appendIrisToolResults(history, result.toolCalls, toolResults);
   }
 
   const durationMs = Date.now() - startTime;
 
-  // Step 5: Record run in history
+  // Step 4: Record run in history — always, even on failure, for audit completeness.
   const today = new Date().toISOString().split("T")[0];
   const historyEntry = [
     `## Iris Run — ${runId}`,
@@ -250,6 +268,11 @@ export async function runIrisAgent(trigger: IrisTrigger): Promise<IrisRunResult>
     .trim();
 
   await appendRunHistory(today, historyEntry);
+
+  // Re-throw so callers (scheduler, manual-trigger route) can record the failure.
+  if (runError !== undefined) {
+    throw runError;
+  }
 
   return {
     runId,

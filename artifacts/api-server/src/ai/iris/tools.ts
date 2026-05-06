@@ -31,6 +31,9 @@ const IRIS_API_TEST_TIMEOUT_MS = 5_000;
 /** Number of candidate chunks retrieved for retrieval quality evaluation. */
 const IRIS_RETRIEVAL_EVAL_TOP_K = 5;
 
+/** Max characters of chunk metadata content stored in the vector index per chunk. */
+const IRIS_INGEST_METADATA_PREVIEW_MAX_CHARS = 3_000;
+
 // ---------------------------------------------------------------------------
 // Helper
 // ---------------------------------------------------------------------------
@@ -115,7 +118,7 @@ export async function ingestDocument(
     text: `${c.title}\n\n${c.content}`,
     metadata: {
       title: c.title,
-      content: c.content.slice(0, 3_000),
+      content: c.content.slice(0, IRIS_INGEST_METADATA_PREVIEW_MAX_CHARS),
       source: c.source,
       category: c.category,
     },

@@ -59,15 +59,7 @@ async function runHealthCycle(): Promise<void> {
       status = "ok";
       succeeded = 0;
       failed = 0;
-      void recordSchedulerCycle({
-        key: "iris-health",
-        considered: 1,
-        succeeded: 0,
-        failed: 0,
-        status,
-        notes,
-        durationMs: Date.now() - cycleStart,
-      });
+      // Do NOT call recordSchedulerCycle here — the finally block handles it.
       return;
     }
 
@@ -108,15 +100,9 @@ async function runReindexCycle(): Promise<void> {
       log("iris run already in progress — skipping scheduled reindex", "iris-scheduler", "warn");
       notes = "iris run already in progress";
       status = "ok";
-      void recordSchedulerCycle({
-        key: "iris-reindex",
-        considered: 1,
-        succeeded: 0,
-        failed: 0,
-        status,
-        notes,
-        durationMs: Date.now() - cycleStart,
-      });
+      succeeded = 0;
+      failed = 0;
+      // Do NOT call recordSchedulerCycle here — the finally block handles it.
       return;
     }
 
@@ -146,6 +132,13 @@ async function runReindexCycle(): Promise<void> {
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
+
+/**
+ * Exported so the "Run now" dispatcher in scheduler-run-tracker can call the
+ * full cycle function (including the concurrency guard) rather than calling
+ * runIrisAgent directly and bypassing it.
+ */
+export { runHealthCycle, runReindexCycle };
 
 export function startIrisScheduler(): void {
   log(

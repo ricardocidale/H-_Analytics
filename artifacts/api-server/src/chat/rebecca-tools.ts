@@ -462,12 +462,18 @@ async function toolTriggerResearch(
   };
 }
 
+/** Max characters accepted for a retrieval-gap query before truncation. */
+const IRIS_GAP_MAX_QUERY_CHARS = 500;
+
 async function toolWriteRetrievalGap(
   args: Record<string, unknown>,
   ctx: ToolContext,
 ): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   void ctx; // no user-scoped DB operation needed for gap logging
-  const query = args.query as string;
+  // Normalize: collapse whitespace, trim, and cap — the query is model/user
+  // input that writes into the shared Iris workspace markdown file.
+  const rawQuery = ((args.query as string) ?? "").replace(/\s+/g, " ").trim();
+  const query = rawQuery.slice(0, IRIS_GAP_MAX_QUERY_CHARS);
   await appendIrisGap(query);
   return { result: { recorded: true } };
 }

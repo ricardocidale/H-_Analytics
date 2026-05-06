@@ -211,12 +211,14 @@ export const SCHEDULER_DISPATCH: Record<SchedulerKey, () => Promise<unknown>> = 
     return mod.runHeroPhotoUrlAuditCycle();
   },
   "iris-health": async () => {
-    const mod = await import("../ai/iris/agent");
-    return mod.runIrisAgent("scheduled-health");
+    // Use the cycle function so the concurrency guard (getLatestIrisRun check)
+    // applies to "Run now" triggers just as it does to scheduled ticks.
+    const mod = await import("../ai/ambient/iris-scheduler");
+    return mod.runHealthCycle();
   },
   "iris-reindex": async () => {
-    const mod = await import("../ai/iris/agent");
-    return mod.runIrisAgent("scheduled-reindex");
+    const mod = await import("../ai/ambient/iris-scheduler");
+    return mod.runReindexCycle();
   },
 };
 

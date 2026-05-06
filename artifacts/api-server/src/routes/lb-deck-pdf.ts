@@ -177,6 +177,8 @@ router.get(
     const n = Number(String(req.params.n ?? ""));
     const SLIDE_MIN = 1;
     const SLIDE_MAX = 6;
+    /** 1 hour in seconds (unit conversion: 60min × 60s). */
+    const CANONICAL_SLIDE_CACHE_MAX_AGE_S = 60 * 60;
     if (!Number.isFinite(n) || n < SLIDE_MIN || n > SLIDE_MAX) {
       return res.status(HTTP_400_BAD_REQUEST).json({ error: "Slide number must be 1–6" });
     }
@@ -188,7 +190,7 @@ router.get(
         return res.status(HTTP_404_NOT_FOUND).json({ error: `Canonical slide ${n} not found in storage` });
       }
       res.setHeader("Content-Type", "image/png");
-      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.setHeader("Cache-Control", `public, max-age=${CANONICAL_SLIDE_CACHE_MAX_AGE_S}`);
       res.setHeader("Content-Length", String(result.buffer.length));
       return res.end(result.buffer);
     } catch (err: unknown) {

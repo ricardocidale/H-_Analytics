@@ -131,7 +131,9 @@ export async function callLlm(
     const messages = [
       { role: "system" as const, content: systemPrompt },
       ...history.map((m) => m as any),
-      { role: "user" as const, content: wrappedUser },
+      // Skip appending a user turn when userMessage is empty — continuation
+      // turns pass "" because history already ends with a tool_result user turn.
+      ...(userMessage ? [{ role: "user" as const, content: wrappedUser }] : []),
     ];
     // Perplexity SDK's chat completion shape — `citations` is a runtime field
     // returned by web-grounded models that is not on the typed Completion type.
@@ -167,7 +169,9 @@ export async function callLlm(
     const messages = [
       { role: "system" as const, content: systemPrompt },
       ...history.map((m) => m as any),
-      { role: "user" as const, content: wrappedUser },
+      // Skip appending a user turn when userMessage is empty — continuation
+      // turns pass "" because history already ends with a tool_result user turn.
+      ...(userMessage ? [{ role: "user" as const, content: wrappedUser }] : []),
     ];
     const hasTools = tools && tools.length > 0;
     const completion = await Promise.race([
@@ -219,7 +223,9 @@ export async function callLlm(
         top_p: sampling.topP,
         messages: [
           ...history.map((m) => m as any),
-          { role: "user" as const, content: wrappedUser },
+          // Skip appending a user turn when userMessage is empty — continuation
+          // turns pass "" because history already ends with a tool_result user turn.
+          ...(userMessage ? [{ role: "user" as const, content: wrappedUser }] : []),
         ],
         ...(hasTools ? {
           tools: tools.map(t => ({ name: t.name, description: t.description, input_schema: t.parameters as any })),
@@ -260,7 +266,9 @@ export async function callLlm(
         parts: [{ text: m.content as string }],
       };
     }),
-    { role: "user" as const, parts: [{ text: wrappedUser }] },
+    // Skip appending a user turn when userMessage is empty — continuation
+    // turns pass "" because history already ends with a tool_result user turn.
+    ...(userMessage ? [{ role: "user" as const, parts: [{ text: wrappedUser }] }] : []),
   ];
   const hasGeminiTools = tools && tools.length > 0;
   const response = await Promise.race([
@@ -400,7 +408,9 @@ export async function callLlmStream(
         parts: [{ text: m.content as string }],
       };
     }),
-    { role: "user" as const, parts: [{ text: wrappedUser }] },
+    // Skip appending a user turn when userMessage is empty — continuation
+    // turns pass "" because history already ends with a tool_result user turn.
+    ...(userMessage ? [{ role: "user" as const, parts: [{ text: wrappedUser }] }] : []),
   ];
   const genStream = await gemini.models.generateContentStream({
     model,

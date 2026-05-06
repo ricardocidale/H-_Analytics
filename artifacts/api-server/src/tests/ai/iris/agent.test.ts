@@ -191,7 +191,8 @@ describe("runIrisAgent — tool invocation", () => {
         toolCalls: [],
       });
 
-    vi.mocked(irisTools.dispatchIrisTool).mockResolvedValue({ reachable: true, latencyMs: 45 });
+    const FIXTURE_LATENCY_REACHABLE_MS = 45;
+    vi.mocked(irisTools.dispatchIrisTool).mockResolvedValue({ reachable: true, latencyMs: FIXTURE_LATENCY_REACHABLE_MS });
 
     const result = await runIrisAgent("manual");
     expect(result.toolsInvoked).toContain("test_api_connection");
@@ -216,9 +217,10 @@ describe("runIrisAgent — tool invocation", () => {
         toolCalls: [],
       });
 
+    const FIXTURE_CHUNKS_INDEXED = 7;
     vi.mocked(irisTools.dispatchIrisTool).mockResolvedValue({
       success: true,
-      chunksIndexed: 7,
+      chunksIndexed: FIXTURE_CHUNKS_INDEXED,
     });
 
     const result = await runIrisAgent("scheduled-reindex");
@@ -241,9 +243,10 @@ describe("runIrisAgent — tool invocation", () => {
         toolCalls: [],
       });
 
+    const FIXTURE_LATENCY_UNREACHABLE_MS = 5_000;
     vi.mocked(irisTools.dispatchIrisTool).mockResolvedValue({
       reachable: false,
-      latencyMs: 5000,
+      latencyMs: FIXTURE_LATENCY_UNREACHABLE_MS,
       errorMessage: "ECONNREFUSED",
     });
 

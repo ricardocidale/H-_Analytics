@@ -33,6 +33,14 @@ feature ships or a new Rebecca tool is added.
 | Manage users | Admin → Team | — | 🚫 N/A (admin-only) |
 | Change Rebecca config | Admin → AI | — | 🚫 N/A (admin-only) |
 
+## AI Intelligence Actions
+
+| UI Action | Route / Location | Rebecca Tool | Status |
+|---|---|---|---|
+| Trigger Iris health check | Admin → Observability → Run now | — | 🚫 N/A (admin-only) |
+| Trigger Iris reindex | Admin → Observability → Run now | — | 🚫 N/A (admin-only) |
+| Record retrieval gap | Auto (Rebecca unanswered query) | `write_retrieval_gap` | ✅ |
+
 ## When to Update This Map
 
 - When a new UI action is added → add a row and either implement the tool (✅) or document the gap (⚠️)
