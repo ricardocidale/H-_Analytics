@@ -31,6 +31,7 @@ import {
   type AssetHit,
 } from "./chat-sources";
 import { buildContextContract, type RetrievalManifestEntry } from "../ai/rebecca-context-contract";
+import type { ToolParam, LlmResult, ToolCall } from "../chat/tool-types";
 
 const fieldContextSchema = z.object({
   entityType: z.enum(["property", "company"]),
@@ -92,7 +93,8 @@ export async function callLlm(
   sampling: { temperature: number; maxOutputTokens: number; topP: number },
   userId?: number,
   webSearchEnabled?: boolean,
-): Promise<{ text: string }> {
+  tools?: ToolParam[],
+): Promise<LlmResult> {
   const wrappedUser = `<user_message>\n${userMessage}\n</user_message>`;
   const startTime = Date.now();
   const timeoutP = new Promise<never>((_, reject) =>
@@ -146,7 +148,7 @@ export async function callLlm(
     const inTok = completion.usage?.prompt_tokens ?? Math.round(userMessage.length / 4);
     const outTok = completion.usage?.completion_tokens ?? Math.round(text.length / 4);
     try { logApiCost({ timestamp: new Date().toISOString(), service: "perplexity", model, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("perplexity", model, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
-    return { text };
+    return { text, stopReason: "end_turn" };
   }
 
   if (provider === "openai") {
@@ -156,6 +158,7 @@ export async function callLlm(
       ...history.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
       { role: "user" as const, content: wrappedUser },
     ];
+    const hasTools = tools && tools.length > 0;
     const completion = await Promise.race([
       client.chat.completions.create({
         model,
@@ -163,19 +166,39 @@ export async function callLlm(
         max_tokens: sampling.maxOutputTokens,
         temperature: sampling.temperature,
         top_p: sampling.topP,
-      }),
+        ...(hasTools ? {
+          tools: tools.map(t => ({ type: "function" as const, function: { name: t.name, description: t.description, parameters: t.parameters } })),
+          tool_choice: "auto" as const,
+        } : {}),
+      } as any),
       timeoutP,
-    ]);
-    const text = completion.choices?.[0]?.message?.content?.toString() || "I'm sorry, I couldn't generate a response. Please try again.";
+    ]) as any;
     const inTok = completion.usage?.prompt_tokens ?? Math.round(userMessage.length / 4);
+    if (hasTools) {
+      const rawToolCalls = completion.choices?.[0]?.message?.tool_calls;
+      if (rawToolCalls && rawToolCalls.length > 0) {
+        const toolCallResults: ToolCall[] = rawToolCalls
+          .filter((tc: any) => tc.type === "function")
+          .map((tc: any) => {
+            let args: Record<string, unknown> = {};
+            try { args = JSON.parse(tc.function?.arguments ?? "{}"); } catch { args = {}; }
+            return { id: tc.id, name: tc.function?.name ?? "", arguments: args };
+          });
+        const outTok = completion.usage?.completion_tokens ?? 0;
+        try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("openai", model, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+        return { text: "", toolCalls: toolCallResults, stopReason: "tool_use" };
+      }
+    }
+    const text = completion.choices?.[0]?.message?.content?.toString() || "I'm sorry, I couldn't generate a response. Please try again.";
     const outTok = completion.usage?.completion_tokens ?? Math.round(text.length / 4);
     try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("openai", model, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
-    return { text };
+    return { text, stopReason: "end_turn" };
   }
 
   if (provider === "anthropic") {
     const client = getAnthropicClient();
     const normalized = normalizeModelId(model);
+    const hasTools = tools && tools.length > 0;
     const result = await Promise.race([
       client.messages.create({
         model: normalized,
@@ -187,15 +210,26 @@ export async function callLlm(
           ...history.map((m) => ({ role: (m.role === "assistant" ? "assistant" : "user") as "user" | "assistant", content: m.content })),
           { role: "user" as const, content: wrappedUser },
         ],
-      }),
+        ...(hasTools ? {
+          tools: tools.map(t => ({ name: t.name, description: t.description, input_schema: t.parameters as any })),
+        } : {}),
+      } as any),
       timeoutP,
-    ]);
+    ]) as any;
+    const inTok = result.usage?.input_tokens ?? Math.round(userMessage.length / 4);
+    if (hasTools && result.stop_reason === "tool_use") {
+      const toolCalls: ToolCall[] = result.content
+        .filter((b: any) => b.type === "tool_use")
+        .map((b: any) => ({ id: b.id, name: b.name, arguments: b.input ?? {} }));
+      const outTok = result.usage?.output_tokens ?? 0;
+      try { logApiCost({ timestamp: new Date().toISOString(), service: "anthropic", model: normalized, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("anthropic", normalized, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+      return { text: "", toolCalls, stopReason: "tool_use" };
+    }
     const blocks = result.content;
     const text = (Array.isArray(blocks) ? blocks.map((b: any) => (b.type === "text" ? b.text : "")).join("") : "") || "I'm sorry, I couldn't generate a response. Please try again.";
-    const inTok = result.usage?.input_tokens ?? Math.round(userMessage.length / 4);
     const outTok = result.usage?.output_tokens ?? Math.round(text.length / 4);
     try { logApiCost({ timestamp: new Date().toISOString(), service: "anthropic", model: normalized, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("anthropic", normalized, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
-    return { text };
+    return { text, stopReason: "end_turn" };
   }
 
   // gemini default
@@ -213,6 +247,7 @@ export async function callLlm(
     })),
     { role: "user" as const, parts: [{ text: wrappedUser }] },
   ];
+  const hasGeminiTools = tools && tools.length > 0;
   const response = await Promise.race([
     gemini.models.generateContent({
       model,
@@ -221,15 +256,31 @@ export async function callLlm(
         maxOutputTokens: sampling.maxOutputTokens,
         temperature: sampling.temperature,
         topP: sampling.topP,
-      },
+        ...(hasGeminiTools ? {
+          tools: [{ functionDeclarations: tools.map(t => ({ name: t.name, description: t.description, parameters: t.parameters })) }],
+        } : {}),
+      } as any,
     }),
     timeoutP,
   ]);
-  const text = response.text || "I'm sorry, I couldn't generate a response. Please try again.";
   const inTok = response.usageMetadata?.promptTokenCount ?? Math.round(userMessage.length / 4);
+  if (hasGeminiTools) {
+    const fnParts = (response.candidates?.[0]?.content?.parts ?? []).filter((p: any) => p.functionCall);
+    if (fnParts.length > 0) {
+      const toolCalls: ToolCall[] = fnParts.map((p: any) => ({
+        id: p.functionCall.name + "_" + Date.now(),
+        name: p.functionCall.name,
+        arguments: p.functionCall.args ?? {},
+      }));
+      const outTok = response.usageMetadata?.candidatesTokenCount ?? 0;
+      try { logApiCost({ timestamp: new Date().toISOString(), service: "gemini", model, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("gemini", model, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+      return { text: "", toolCalls, stopReason: "tool_use" };
+    }
+  }
+  const text = response.text || "I'm sorry, I couldn't generate a response. Please try again.";
   const outTok = response.usageMetadata?.candidatesTokenCount ?? Math.round(text.length / 4);
   try { logApiCost({ timestamp: new Date().toISOString(), service: "gemini", model, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("gemini", model, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
-  return { text };
+  return { text, stopReason: "end_turn" };
 }
 
 export async function callLlmStream(
@@ -242,13 +293,24 @@ export async function callLlmStream(
   onToken: (token: string) => void,
   userId?: number,
   webSearchEnabled?: boolean,
-): Promise<{ text: string }> {
+  tools?: ToolParam[],
+): Promise<LlmResult> {
   const wrappedUser = `<user_message>\n${userMessage}\n</user_message>`;
   const startTime = Date.now();
 
+  // When tools are provided, delegate to the non-streaming callLlm.
+  // Streaming tool-call deltas are complex; the agentic loop (U2) handles
+  // re-invocation, and the final text-generation turn re-enters this function
+  // without tools so streaming resumes normally.
+  if (tools && tools.length > 0) {
+    const result = await callLlm(provider, model, systemPrompt, history, userMessage, sampling, userId, webSearchEnabled, tools);
+    if (result.text) onToken(result.text);
+    return result;
+  }
+
   if (provider === "perplexity") {
     // No streaming API — batch and emit full text as single token
-    const result = await callLlm(provider, model, systemPrompt, history, userMessage, sampling, userId, webSearchEnabled);
+    const result = await callLlm(provider, model, systemPrompt, history, userMessage, sampling, userId, webSearchEnabled, tools);
     onToken(result.text);
     return result;
   }
@@ -277,7 +339,7 @@ export async function callLlmStream(
     const inTok = Math.round(userMessage.length / 4);
     const outTok = Math.round(text.length / 4);
     try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("openai", model, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch { /* non-fatal */ }
-    return { text };
+    return { text, stopReason: "end_turn" };
   }
 
   if (provider === "anthropic") {
@@ -306,7 +368,7 @@ export async function callLlmStream(
     const inTok = Math.round(userMessage.length / 4);
     const outTok = Math.round(text.length / 4);
     try { logApiCost({ timestamp: new Date().toISOString(), service: "anthropic", model: normalized, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("anthropic", normalized, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch { /* non-fatal */ }
-    return { text };
+    return { text, stopReason: "end_turn" };
   }
 
   // gemini — use generateContentStream
@@ -342,7 +404,7 @@ export async function callLlmStream(
   const inTok = Math.round(userMessage.length / 4);
   const outTok = Math.round(text.length / 4);
   try { logApiCost({ timestamp: new Date().toISOString(), service: "gemini", model, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("gemini", model, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch { /* non-fatal */ }
-  return { text };
+  return { text, stopReason: "end_turn" };
 }
 
 function sseWrite(res: Response, event: string, data: unknown): void {
