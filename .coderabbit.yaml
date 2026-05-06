@@ -1,0 +1,95 @@
+language: "en-US"
+
+reviews:
+  auto_review:
+    enabled: true
+    ignore_title_keywords:
+      - "WIP"
+      - "Draft"
+      - "DO NOT MERGE"
+    drafts: false
+    base_branches:
+      - main
+
+  profile: "chill"
+
+  request_changes_workflow: false
+
+  high_level_summary: true
+  high_level_summary_placeholder: "@coderabbitai summary"
+
+  poem: false
+
+  review_status: true
+
+  collapse_walkthrough: false
+
+  path_filters:
+    - "!**/*.lock"
+    - "!**/pnpm-lock.yaml"
+    - "!**/.turbo/**"
+    - "!**/dist/**"
+    - "!**/build/**"
+    - "!**/_generated/**"
+    - "!scripts/src/_magic-numbers-baseline.json"
+    - "!attached_assets/**"
+
+  path_instructions:
+    - path: "artifacts/api-server/src/**"
+      instructions: |
+        This is an Express 5 API server (TypeScript, Node.js).
+        - Flag any use of `console.log` — server code must use `req.log` in route handlers and the `logger` singleton elsewhere.
+        - Flag any raw numeric literals that should be named constants (see no-magic-numbers policy).
+        - Flag SSRF risks: any `fetch(userInput)` or URL construction from request data without validation via `validateIngestUrl()`.
+        - Flag any route handler that does not call `requireAdmin` or `requireAuth` if it touches user or financial data.
+        - Flag `DEV_SKIP_AUTH` being set to anything other than `false`.
+        - Flag any financial assumption value hardcoded in route/storage code instead of coming from `storage.getGlobalAssumptions()` or a `DEFAULT_*` constant.
+        - Flag any auth navigation using `window.top` — must use `window.location.href` or `window.location.replace()`.
+
+    - path: "artifacts/api-server/src/ai/**"
+      instructions: |
+        This is the AI layer (Rebecca chat agent, Iris backstage agent, tool implementations).
+        - Flag tool implementations that accept user-controlled URLs without calling `validateIngestUrl()`.
+        - Flag tool schemas where a parameter is listed in `required` but is never read or enforced in the implementation.
+        - Flag continuation `toolHistory` pushes that don't wrap the user message in `<user_message>` tags (the system prompt declares this contract).
+        - Flag any LLM provider call that bypasses `callLlm()` / `callLlmStream()` — all provider handling should go through the shared abstraction.
+
+    - path: "artifacts/api-server/src/routes/admin/**"
+      instructions: |
+        All routes here are admin-only and must be guarded by `requireAdmin`.
+        - Flag any route handler that uses async DB reads followed by async DB writes without an in-process or DB-level concurrency guard (TOCTOU risk).
+        - Flag fire-and-forget async chains that don't reset shared state in a `.finally()`.
+
+    - path: "artifacts/hospitality-business-portal/src/**"
+      instructions: |
+        This is a React + Vite SPA (TypeScript).
+        - Flag any component in `src/components/` (outside `src/components/admin/**`) that links or navigates to an admin route — the front-of-app must never navigate users to the Admin section directly.
+        - Flag hardcoded financial values or ranges that should come from specialist/research-engine output (`AnalystVerdict`, `GuidanceRecord`).
+        - Flag relative URL paths that start with `/api/` without the `BASE_URL` prefix — they bypass the shared proxy path routing.
+
+    - path: "lib/**"
+      instructions: |
+        These are shared TypeScript libraries consumed by both artifacts.
+        - New exports must be mirrored in `artifacts/api-server/src/shared/` — flag any new `lib/shared/src` export that is missing from the mirror.
+        - Libraries must declare shared runtimes (`react`, `react-dom`) as `peerDependencies`, not `dependencies`.
+
+    - path: "lib/db/**"
+      instructions: |
+        Drizzle ORM schema and migrations for Neon Postgres (with pgvector).
+        - Flag any migration file that uses `DROP COLUMN`, `DROP TABLE`, or `ALTER COLUMN ... TYPE` without a corresponding guard comment.
+        - Flag any new numeric column that doesn't have a `default` and isn't `notNull` — financial models depend on reliable defaults.
+
+    - path: "docs/plans/**"
+      instructions: |
+        Architecture decision and feature plan documents.
+        - Flag fenced code blocks that are missing a language specifier.
+        - Flag trigger enum values that don't match the canonical set: `manual`, `scheduled-health`, `scheduled-reindex`, `gap-signal`.
+
+    - path: "scripts/**"
+      instructions: |
+        Utility scripts run in CI and locally.
+        - Flag any script that shells out to `pnpm dev` at the workspace root.
+        - Flag any script that hardcodes a localhost port instead of using the shared proxy at port 80.
+
+chat:
+  auto_reply: true

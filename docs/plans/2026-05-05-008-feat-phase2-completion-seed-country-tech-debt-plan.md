@@ -1,7 +1,7 @@
 ---
 title: "feat: Phase 2 completion — seed calibration, engine country-awareness, NAI-23"
 type: feat
-status: active
+status: completed
 date: 2026-05-05
 origin: docs/plans/2026-05-05-007-master-priority-plan.md
 ---

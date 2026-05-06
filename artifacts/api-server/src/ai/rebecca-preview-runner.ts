@@ -149,7 +149,7 @@ export async function runFixtureReplayTurn(
       provider,
       model,
       fullSystemPrompt,
-      input.history,
+      input.history as Array<{ role: string; content: unknown; [key: string]: unknown }>,
       input.message,
       sampling,
       undefined, // no userId — replay is system-attributed
@@ -167,7 +167,7 @@ export async function runFixtureReplayTurn(
           fb,
           fbModel,
           fullSystemPrompt,
-          input.history,
+          input.history as Array<{ role: string; content: unknown; [key: string]: unknown }>,
           input.message,
           sampling,
           undefined,

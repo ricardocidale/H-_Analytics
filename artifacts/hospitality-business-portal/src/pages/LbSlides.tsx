@@ -7,10 +7,9 @@
  *   1. Property assignment for slides 1, 2, 3, 5 (top-level Config tab)
  *   2. Per-slide tabbed editor panels (Slide 1…6 tabs) — each embeds the
  *      corresponding SlideNEditorPanel component
- *   3. Slide readiness tracking badges on each tab
- *   4. PDF render trigger + download (Config tab)
- *
- * Slides 4 and 6 are auto-generated and have minimal authoring surfaces.
+ *   3. Canonical reference PNG toggle on every slide tab
+ *   4. Global copy fields for slides 4 (section subtitle) and 6 (disclaimer)
+ *   5. PDF render trigger + download (Config tab)
  */
 
 import { useState, useEffect } from "react";
@@ -21,6 +20,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "@/components/icons/themed-icons";
 import {
@@ -38,6 +39,15 @@ import { Slide3EditorPanel } from "@/features/internal-deck/editor/Slide3EditorP
 import { Slide5EditorPanel } from "@/features/internal-deck/editor/Slide5EditorPanel";
 import type { ReadinessResponse } from "@/features/internal-deck/editor/editor-shared";
 
+// ── Constants ──────────────────────────────────────────────────────────────
+
+const NONE = "__none__";
+const POLL_INTERVAL_MS = 3_000;
+const SLIDE_TABS = ["config", "s1", "s2", "s3", "s4", "s5", "s6"] as const;
+type SlideTab = (typeof SLIDE_TABS)[number];
+const SLIDE4_SUBTITLE_MAX = 80;
+const SLIDE6_DISCLAIMER_MAX = 200;
+
 // ── Types ──────────────────────────────────────────────────────────────────
 
 interface Property {
@@ -52,6 +62,8 @@ interface LbConfig {
   slide2PropertyId: number | null;
   slide3PropertyId: number | null;
   slide5PropertyId: number | null;
+  slide4SectionSubtitle?: string | null;
+  slide6Disclaimer?: string | null;
   updatedAt?: string | null;
 }
 
@@ -60,13 +72,6 @@ interface RenderStatus {
   lastRenderedAt: string | null;
   lastError: string | null;
 }
-
-// ── Constants ──────────────────────────────────────────────────────────────
-
-const NONE = "__none__";
-const POLL_INTERVAL_MS = 3_000;
-const SLIDE_TABS = ["config", "s1", "s2", "s3", "s4", "s5", "s6"] as const;
-type SlideTab = (typeof SLIDE_TABS)[number];
 
 // ── Data hooks ─────────────────────────────────────────────────────────────
 
@@ -86,7 +91,12 @@ function useLbConfig() {
     queryKey: ["lb-slides-config"],
     queryFn: async () => {
       const r = await fetch("/api/lb-slides/config", { credentials: "include" });
-      if (!r.ok) return { slide1PropertyId: null, slide2PropertyId: null, slide3PropertyId: null, slide5PropertyId: null };
+      if (!r.ok) return {
+        slide1PropertyId: null,
+        slide2PropertyId: null,
+        slide3PropertyId: null,
+        slide5PropertyId: null,
+      };
       return r.json() as Promise<LbConfig>;
     },
   });
@@ -108,7 +118,10 @@ function useSlideReadiness(propertyId: number | null) {
   return useQuery<ReadinessResponse>({
     queryKey: ["/api/admin/properties", propertyId, "deck-payload", "readiness"],
     queryFn: async () => {
-      const r = await fetch(`/api/admin/properties/${propertyId}/deck-payload/readiness`, { credentials: "include" });
+      const r = await fetch(
+        `/api/admin/properties/${propertyId}/deck-payload/readiness`,
+        { credentials: "include" },
+      );
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       return r.json() as Promise<ReadinessResponse>;
     },
@@ -140,6 +153,43 @@ function ReadinessTabBadge({ staleMissingCount }: { staleMissingCount: number | 
     <span className="ml-1.5 inline-flex items-center justify-center rounded-full w-4 h-4 text-[9px] font-bold bg-amber-100 text-amber-700">
       {staleMissingCount}
     </span>
+  );
+}
+
+// ── Canonical reference PNG toggle ─────────────────────────────────────────
+
+function CanonicalReferenceToggle({
+  slideNum,
+  showCanonical,
+  onToggle,
+}: {
+  slideNum: number;
+  showCanonical: Record<string, boolean>;
+  onToggle: (tab: string) => void;
+}) {
+  const tab = `s${slideNum}`;
+  const isShown = showCanonical[tab] ?? false;
+
+  return (
+    <div className="space-y-2">
+      <button
+        type="button"
+        onClick={() => onToggle(tab)}
+        className="text-xs text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline"
+      >
+        {isShown ? "Hide canonical reference" : "Show canonical reference"}
+      </button>
+      {isShown && (
+        <div className="rounded-md border overflow-hidden bg-muted/30">
+          <img
+            src={`/api/lb-slides/canonical/${slideNum}`}
+            alt={`Canonical reference for slide ${slideNum}`}
+            className="w-full"
+            loading="lazy"
+          />
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -201,16 +251,17 @@ export default function LbSlides() {
   const { data: savedConfig, isLoading: configLoading } = useLbConfig();
 
   const [activeTab, setActiveTab] = useState<SlideTab>("config");
-
   const [slide1Id, setSlide1Id] = useState<number | null>(null);
   const [slide2Id, setSlide2Id] = useState<number | null>(null);
   const [slide3Id, setSlide3Id] = useState<number | null>(null);
   const [slide5Id, setSlide5Id] = useState<number | null>(null);
+  const [slide4Subtitle, setSlide4Subtitle] = useState<string>("");
+  const [slide6Disclaimer, setSlide6Disclaimer] = useState<string>("");
+  const [showCanonical, setShowCanonical] = useState<Record<string, boolean>>({});
   const [isPolling, setIsPolling] = useState(false);
 
   const { data: renderStatus } = useRenderStatus(isPolling);
 
-  // Readiness for each assigned property
   const { data: r1 } = useSlideReadiness(slide1Id);
   const { data: r2 } = useSlideReadiness(slide2Id);
   const { data: r3 } = useSlideReadiness(slide3Id);
@@ -223,6 +274,8 @@ export default function LbSlides() {
     setSlide2Id(savedConfig.slide2PropertyId);
     setSlide3Id(savedConfig.slide3PropertyId);
     setSlide5Id(savedConfig.slide5PropertyId);
+    setSlide4Subtitle(savedConfig.slide4SectionSubtitle ?? "");
+    setSlide6Disclaimer(savedConfig.slide6Disclaimer ?? "");
   }, [savedConfig]);
 
   // Stop polling when render finishes
@@ -231,6 +284,10 @@ export default function LbSlides() {
       setIsPolling(false);
     }
   }, [renderStatus?.status]);
+
+  const toggleCanonical = (tab: string) => {
+    setShowCanonical(prev => ({ ...prev, [tab]: !prev[tab] }));
+  };
 
   const saveMutation = useMutation({
     mutationFn: async (config: LbConfig) => {
@@ -278,7 +335,14 @@ export default function LbSlides() {
   });
 
   const handleSave = () => {
-    saveMutation.mutate({ slide1PropertyId: slide1Id, slide2PropertyId: slide2Id, slide3PropertyId: slide3Id, slide5PropertyId: slide5Id });
+    saveMutation.mutate({
+      slide1PropertyId: slide1Id,
+      slide2PropertyId: slide2Id,
+      slide3PropertyId: slide3Id,
+      slide5PropertyId: slide5Id,
+      slide4SectionSubtitle: slide4Subtitle.trim() || null,
+      slide6Disclaimer: slide6Disclaimer.trim() || null,
+    });
   };
 
   const allConfigured = Boolean(slide1Id && slide2Id && slide3Id && slide5Id);
@@ -293,7 +357,6 @@ export default function LbSlides() {
   };
   const badge = statusBadgeMap[status] ?? statusBadgeMap.idle;
 
-  // Guard: if a slide tab is active but that property isn't assigned yet
   const noPropertyForTab: Record<SlideTab, boolean> = {
     config: false,
     s1: !slide1Id,
@@ -468,7 +531,8 @@ export default function LbSlides() {
             </TabsContent>
 
             {/* ── Slide editor tabs ──────────────────────────────────── */}
-            <TabsContent value="s1" className="mt-4">
+            <TabsContent value="s1" className="mt-4 space-y-3">
+              <CanonicalReferenceToggle slideNum={1} showCanonical={showCanonical} onToggle={toggleCanonical} />
               {noPropertyForTab.s1 ? (
                 <NoPropertyNotice slideNum={1} onGoToConfig={() => setActiveTab("config")} />
               ) : (
@@ -476,7 +540,8 @@ export default function LbSlides() {
               )}
             </TabsContent>
 
-            <TabsContent value="s2" className="mt-4">
+            <TabsContent value="s2" className="mt-4 space-y-3">
+              <CanonicalReferenceToggle slideNum={2} showCanonical={showCanonical} onToggle={toggleCanonical} />
               {noPropertyForTab.s2 ? (
                 <NoPropertyNotice slideNum={2} onGoToConfig={() => setActiveTab("config")} />
               ) : (
@@ -484,7 +549,8 @@ export default function LbSlides() {
               )}
             </TabsContent>
 
-            <TabsContent value="s3" className="mt-4">
+            <TabsContent value="s3" className="mt-4 space-y-3">
+              <CanonicalReferenceToggle slideNum={3} showCanonical={showCanonical} onToggle={toggleCanonical} />
               {noPropertyForTab.s3 ? (
                 <NoPropertyNotice slideNum={3} onGoToConfig={() => setActiveTab("config")} />
               ) : (
@@ -492,11 +558,46 @@ export default function LbSlides() {
               )}
             </TabsContent>
 
-            <TabsContent value="s4" className="mt-4">
-              <Slide4AutoNotice />
+            <TabsContent value="s4" className="mt-4 space-y-4">
+              <CanonicalReferenceToggle slideNum={4} showCanonical={showCanonical} onToggle={toggleCanonical} />
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Slide 4 — Portfolio Overview</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Slide 4 is a portfolio grid auto-generated from all properties. You can add an optional
+                    section subtitle that appears below the slide header.
+                  </p>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">
+                      Section subtitle{" "}
+                      <span className="font-normal text-muted-foreground">(optional)</span>
+                    </label>
+                    <Input
+                      value={slide4Subtitle}
+                      onChange={e => setSlide4Subtitle(e.target.value.slice(0, SLIDE4_SUBTITLE_MAX))}
+                      placeholder="e.g. Current acquisition pipeline across active markets"
+                      maxLength={SLIDE4_SUBTITLE_MAX}
+                    />
+                    <p className="text-xs text-muted-foreground text-right">
+                      {slide4Subtitle.length}/{SLIDE4_SUBTITLE_MAX}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={handleSave}
+                    disabled={saveMutation.isPending}
+                  >
+                    {saveMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
+                    Save
+                  </Button>
+                </CardContent>
+              </Card>
             </TabsContent>
 
-            <TabsContent value="s5" className="mt-4">
+            <TabsContent value="s5" className="mt-4 space-y-3">
+              <CanonicalReferenceToggle slideNum={5} showCanonical={showCanonical} onToggle={toggleCanonical} />
               {noPropertyForTab.s5 ? (
                 <NoPropertyNotice slideNum={5} onGoToConfig={() => setActiveTab("config")} />
               ) : (
@@ -504,8 +605,43 @@ export default function LbSlides() {
               )}
             </TabsContent>
 
-            <TabsContent value="s6" className="mt-4">
-              <Slide6AutoNotice />
+            <TabsContent value="s6" className="mt-4 space-y-4">
+              <CanonicalReferenceToggle slideNum={6} showCanonical={showCanonical} onToggle={toggleCanonical} />
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Slide 6 — Consolidated Income Statement</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Slide 6 is the 10-year aggregated USALI pro forma, calculated automatically from all
+                    portfolio properties. You can add an optional disclaimer for the callout box at the bottom.
+                  </p>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">
+                      Disclaimer{" "}
+                      <span className="font-normal text-muted-foreground">(optional)</span>
+                    </label>
+                    <Textarea
+                      value={slide6Disclaimer}
+                      onChange={e => setSlide6Disclaimer(e.target.value.slice(0, SLIDE6_DISCLAIMER_MAX))}
+                      placeholder="e.g. All projections are based on management's best estimates and subject to change."
+                      rows={3}
+                      maxLength={SLIDE6_DISCLAIMER_MAX}
+                    />
+                    <p className="text-xs text-muted-foreground text-right">
+                      {slide6Disclaimer.length}/{SLIDE6_DISCLAIMER_MAX}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={handleSave}
+                    disabled={saveMutation.isPending}
+                  >
+                    {saveMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
+                    Save
+                  </Button>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </div>
@@ -516,47 +652,22 @@ export default function LbSlides() {
 
 // ── Guard notice ───────────────────────────────────────────────────────────
 
-function Slide4AutoNotice() {
+function NoPropertyNotice({
+  slideNum,
+  onGoToConfig,
+}: {
+  slideNum: number;
+  onGoToConfig: () => void;
+}) {
   return (
     <Card>
       <CardContent className="py-10 flex flex-col items-center gap-3 text-center">
-        <p className="text-sm font-medium">Slide 4 — Portfolio Overview</p>
+        <p className="text-sm font-medium">No property assigned to Slide {slideNum}</p>
         <p className="text-sm text-muted-foreground max-w-md">
-          This slide is fully auto-generated from the property portfolio — a 3×2 grid of all
-          properties with hero photos, status badges, and acquisition prices. No authoring is
-          required here.
+          Go to the Config tab and assign a property to Slide {slideNum}, then save.
         </p>
-        <Badge variant="secondary">Auto-generated</Badge>
-      </CardContent>
-    </Card>
-  );
-}
-
-function Slide6AutoNotice() {
-  return (
-    <Card>
-      <CardContent className="py-10 flex flex-col items-center gap-3 text-center">
-        <p className="text-sm font-medium">Slide 6 — Consolidated Income Statement</p>
-        <p className="text-sm text-muted-foreground max-w-md">
-          This slide is fully auto-generated from the H+ Analytics financial engine — a
-          5-year pro forma income statement with key investor metrics (IRR, equity multiple,
-          exit value). No authoring is required here.
-        </p>
-        <Badge variant="secondary">Auto-generated</Badge>
-      </CardContent>
-    </Card>
-  );
-}
-
-function NoPropertyNotice({ slideNum, onGoToConfig }: { slideNum: number; onGoToConfig: () => void }) {
-  return (
-    <Card>
-      <CardContent className="py-10 flex flex-col items-center gap-3 text-center">
-        <p className="text-sm text-muted-foreground">
-          No property assigned to Slide {slideNum} yet.
-        </p>
-        <Button variant="outline" size="sm" onClick={onGoToConfig}>
-          Go to Config tab to assign a property
+        <Button size="sm" variant="outline" onClick={onGoToConfig}>
+          Go to Config →
         </Button>
       </CardContent>
     </Card>

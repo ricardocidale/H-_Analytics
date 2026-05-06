@@ -79,6 +79,7 @@ export {
   IconForward,
   IconGauge,
   IconGitCompareArrows,
+  IconGitFork,
   IconGlobe,
   IconGroupUsers,
   IconHardDrive,

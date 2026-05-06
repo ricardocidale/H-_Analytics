@@ -22,9 +22,9 @@ import {
   IconPanelLeft, IconProperties,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   IconBot, IconBrain, IconFileCheck, IconDatabase, IconShield, IconSettingsGear, IconSliders,
-  IconBriefcase, IconPhone, IconScenarios, IconPalette,
+  IconBriefcase, IconPhone, IconPalette,
   IconShieldCheck,
-  IconCalculator, IconDashboard, IconImage,
+  IconCalculator, IconDashboard, IconImage, IconRuler, IconGitFork,
 } from "@/components/icons";
 import { Link } from "wouter";
 
@@ -187,25 +187,27 @@ function buildNavGroups(): NavGroup[] {
   return [
     {
       id: "financial-defaults",
-      label: "Steady State",
+      label: "Model Defaults",
       icon: IconSliders,
-      description: "Defaults applied to new entities, model constants, and research LLM config",
+      description: "Default values and constants applied to new entities and financial model",
       sections: [
         { value: "defaults-management-company", label: "Management Company", icon: IconBriefcase },
         { value: "defaults-property",           label: "Property",           icon: IconProperties },
         { value: "constants",                   label: "Constants",          icon: IconCalculator },
         { value: "analyst-tables",              label: "Analyst Tables",     icon: IconBrain },
-        { value: "reference-ranges",            label: "Reference Ranges",   icon: IconCalculator },
+        { value: "reference-ranges",            label: "Reference Ranges",   icon: IconRuler },
       ],
     },
     {
-      id: "properties",
-      label: "Properties",
+      id: "portfolio",
+      label: "Portfolio",
       icon: IconProperties,
-      description: "Property-wide admin surfaces",
+      description: "Properties, scenarios, and default assignments",
       sections: [
-        { value: "required-fields",  label: "Required Fields",  icon: IconFileCheck },
-        { value: "property-heroes",  label: "Property Heroes",  icon: IconImage },
+        { value: "required-fields",     label: "Required Fields",     icon: IconFileCheck },
+        { value: "property-heroes",     label: "Property Heroes",     icon: IconImage },
+        { value: "scenarios",           label: "All Scenarios",       icon: IconGitFork },
+        { value: "default-assignments", label: "Default Assignments", icon: IconUserCog },
       ],
     },
     {
@@ -215,16 +217,6 @@ function buildNavGroups(): NavGroup[] {
       description: "Manage user accounts and assignments",
       sections: [
         { value: "users", label: "All Users", icon: IconPeople },
-      ],
-    },
-    {
-      id: "scenarios",
-      label: "Scenarios",
-      icon: IconScenarios,
-      description: "Scenario management and assignments",
-      sections: [
-        { value: "scenarios",           label: "All Scenarios",       icon: IconScenarios },
-        { value: "default-assignments", label: "Default Assignments", icon: IconUserCog },
       ],
     },
     {

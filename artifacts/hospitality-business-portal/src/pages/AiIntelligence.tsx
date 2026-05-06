@@ -42,6 +42,7 @@ const MarketDataTablesPage = lazy(
   () => import("@/pages/ai-intelligence/MarketDataTablesPage"),
 );
 const GustavoInfoPage = lazy(() => import("@/pages/ai-intelligence/GustavoInfoPage"));
+const IrisPanel = lazy(() => import("@/components/iris/IrisPanel"));
 const SpecialistsDirectoryPage = lazy(() => import("@/pages/ai-intelligence/SpecialistsDirectoryPage"));
 const LlmWorkflowsPage = lazy(() => import("@/pages/ai-intelligence/LlmWorkflowsPage"));
 const AssumptionGuidancePage = lazy(() => import("@/pages/ai-intelligence/AssumptionGuidancePage"));
@@ -69,6 +70,7 @@ const sectionMeta: Record<AiIntelligenceSection, { title: string; subtitle: stri
   "resources-tables":      { title: "Market Data · Reference Tables", subtitle: "Actual benchmark and market data values (ADR index, labor rates, F&B, seasonal calendars) refreshed by The Analyst. The slug registry lives in Catalog → Benchmark Slugs." },
   "analyst-orchestrator":  { title: "Gustavo · The Analyst",   subtitle: "Orchestrator persona that routes work across the Specialist team." },
   "gustavo":               { title: "Gustavo · Analyst Orchestrator", subtitle: "Routes research tasks to the Specialist team and coordinates all intelligence gathering" },
+  "iris":                  { title: "Iris · Resource Maintainer",    subtitle: "Keeps resource registries and reference data current across the platform" },
   "specialists":           { title: "Specialists",              subtitle: "Research Specialists powering H+ Analytics — verify deployment and run health checks" },
   "llm-workflows":         { title: "LLMs",                     subtitle: "Language model configuration for each research workflow — vendor, model, and Analyst recommendations" },
   "assumption-guidance":   { title: "Assumption Guidance",      subtitle: "Analyst-generated calibration insights — suggested ranges and sources for financial assumptions" },
@@ -183,6 +185,7 @@ function SectionContent({ section }: { section: AiIntelligenceSection }) {
     case "analyst-orchestrator": return <SpecialistPage specialistId={ORCHESTRATOR_SPECIALIST_ID} />;
     case "specialist-photos-photo-enhancer": return <FernandaRenderConsolePage />;
     case "gustavo":           return <GustavoInfoPage />;
+    case "iris":              return <IrisPanel />;
     case "specialists":       return <SpecialistsDirectoryPage />;
     case "llm-workflows":     return <LlmWorkflowsPage />;
     case "assumption-guidance": return <AssumptionGuidancePage />;
@@ -209,6 +212,7 @@ const VALID_SECTIONS = new Set<AiIntelligenceSection>([
   "knowledge-base",
   "conversations",
   "gustavo",
+  "iris",
   "specialists",
   "llm-workflows",
   "assumption-guidance",

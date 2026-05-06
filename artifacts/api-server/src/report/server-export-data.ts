@@ -629,8 +629,8 @@ export async function buildPropertyExportData(
     const transferTaxRateRows = await Promise.all(TRANSFER_TAX_KEYS.map(k => getMarketRate(k)));
     const transferTaxRates: Record<string, number> = {};
     for (let i = 0; i < TRANSFER_TAX_KEYS.length; i++) {
-      const row = transferTaxRateRows[i];
-      if (row?.value != null) transferTaxRates[TRANSFER_TAX_KEYS[i]] = row.value / 100;
+      const transferTaxRow = transferTaxRateRows[i];
+      if (transferTaxRow?.value != null) transferTaxRates[TRANSFER_TAX_KEYS[i]] = transferTaxRow.value / 100;
     }
 
     const exitData: ExitScenariosOutput = computeExitScenarios({

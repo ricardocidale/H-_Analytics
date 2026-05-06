@@ -24,6 +24,7 @@ import {
   IconPeople,
   IconCpu,
   IconActivity,
+  IconWand2,
 } from "@/components/icons";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -57,6 +58,7 @@ export type AiIntelligenceSection =
   | "knowledge-base"
   | "conversations"
   | "gustavo"
+  | "iris"
   | "specialists"
   | "llm-workflows"
   | "assumption-guidance"
@@ -123,6 +125,12 @@ function buildNavGroups(gustavoHumanName: string): NavGroup[] {
           label: gustavoHumanName,
           secondary: "Analyst Orchestrator",
           icon: IconBrain,
+        },
+        {
+          value: "iris",
+          label: "Iris",
+          secondary: "Resource Maintainer",
+          icon: IconWand2,
         },
       ],
     },

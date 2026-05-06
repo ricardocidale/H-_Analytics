@@ -154,6 +154,14 @@
     "0038_add_capital_raise_3": {
       "status": "self-idempotent",
       "reason": "ADD COLUMN IF NOT EXISTS capital_raise_3_amount real, capital_raise_3_date text on global_assumptions. Both statements use IF NOT EXISTS; re-running via migrate() is a no-op."
+    },
+    "0039_lb_slides_global_copy": {
+      "status": "self-idempotent",
+      "reason": "ALTER TABLE lb_slides_config ADD COLUMN IF NOT EXISTS slide4_section_subtitle + slide6_disclaimer. Both statements use IF NOT EXISTS; re-running via migrate() is a no-op."
+    },
+    "0040_iris_runs": {
+      "status": "self-idempotent",
+      "reason": "CREATE TABLE IF NOT EXISTS iris_runs — Iris backstage agent run log table (U4). Statement uses IF NOT EXISTS; re-running via migrate() is a no-op."
     }
   }
 }
