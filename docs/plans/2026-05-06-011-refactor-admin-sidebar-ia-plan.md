@@ -1,7 +1,7 @@
 ---
 title: "Refactor Admin Sidebar IA — Group Merge, Label Rename, Icon Deduplication"
 date: 2026-05-06
-status: active
+status: completed
 plan_type: refactor
 origin: docs/solutions/design-patterns/admin-sidebar-navigation-design-2026-05-05.md
 ---
