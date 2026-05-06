@@ -24,6 +24,7 @@ import { registerMarketDataTableRoutes } from "./market-data-tables";
 import { registerModelDefaultsRoutes } from "./model-defaults";
 import { registerBulkDraftRunRoutes } from "./bulk-draft-runs";
 import { registerKnowledgeRegistryRoutes } from "./knowledge-registry";
+import { registerIrisRoutes } from "./iris";
 
 export function register(app: Express) {
   registerUserRoutes(app);
@@ -54,4 +55,5 @@ export function register(app: Express) {
   registerModelDefaultsRoutes(app);
   registerBulkDraftRunRoutes(app);
   registerKnowledgeRegistryRoutes(app);
+  registerIrisRoutes(app);
 }
