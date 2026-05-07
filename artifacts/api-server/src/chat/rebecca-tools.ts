@@ -1470,15 +1470,13 @@ async function toolTriggerSlideFactoryBuild(
     };
   }
   await updateSlideFactoryRun(id, { status: "building" });
-  // Marco dispatch will be added in U1 of the slide factory completion plan.
-  // For now, the build status transition matches the route's behavior; Marco
-  // wiring lands when U1 ships.
+  const { runMarco } = await import("../slides/marco");
+  void runMarco(id);
   return {
     result: {
       id,
       status: "building",
-      message:
-        "Build triggered. Marco dispatch pending — see plan U1. Poll get_slide_factory_run for agent results once Marco is wired.",
+      message: "Build triggered. Marco dispatched. Poll get_slide_factory_run for agent results.",
     },
     dataChanged: { entityType: "slide_factory_run", entityId: id },
   };

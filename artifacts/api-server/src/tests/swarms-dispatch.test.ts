@@ -53,6 +53,15 @@ vi.mock("../slides/swarms/elisa", () => ({
   }),
 }));
 
+vi.mock("../slides/swarms/felix", () => ({
+  runFelixTeam: vi.fn().mockResolvedValue({
+    slideNumber: 6,
+    status: "ok",
+    payloadV2: { team: "felix", slide: 6 },
+    notes: null,
+  }),
+}));
+
 import { dispatchSlideTeam } from "../slides/swarms/dispatch";
 import {
   teamOutputToAgentStatus,
