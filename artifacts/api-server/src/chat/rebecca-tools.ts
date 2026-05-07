@@ -8,6 +8,10 @@ import {
   researchExitMultiples,
   researchReferenceBrands,
 } from "../ai/analyst-table-refresh";
+import {
+  triggerLbDeckRenderService,
+  getLbDeckRenderStatusService,
+} from "../routes/lb-deck-pdf";
 import { appendIrisGap, clearIrisGaps, readIrisGaps } from "../ai/iris/workspace";
 import { runIrisAgent, type IrisTrigger } from "../ai/iris/agent";
 import { insertIrisRun, updateIrisRun, getLatestIrisRun } from "../storage/iris-runs";
@@ -124,6 +128,32 @@ export function getRebeccaTools(): ToolParam[] {
       },
     },
     {
+      name: "configure_lb_deck",
+      description: "Assign properties to LB investor deck slides 1/2/3/5 and set optional slide 4 subtitle and slide 6 disclaimer. Admin only.",
+      parameters: {
+        type: "object",
+        properties: {
+          slide1PropertyId: { type: "number", description: "Property ID for Slide 1 (Pipeline Spotlight)" },
+          slide2PropertyId: { type: "number", description: "Property ID for Slide 2 (Photo Gallery)" },
+          slide3PropertyId: { type: "number", description: "Property ID for Slide 3 (Investment Model)" },
+          slide5PropertyId: { type: "number", description: "Property ID for Slide 5 (Financial Snapshot)" },
+          slide4SectionSubtitle: { type: "string", description: "Optional subtitle for Slide 4 portfolio grid section" },
+          slide6Disclaimer: { type: "string", description: "Optional disclaimer text for Slide 6 income statement" },
+        },
+        required: [],
+      },
+    },
+    {
+      name: "trigger_lb_deck_render",
+      description: "Trigger a background render of the LB investor deck PDF. Returns immediately — use get_lb_deck_render_status to poll progress. Admin only.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+    {
+      name: "get_lb_deck_render_status",
+      description: "Return the current LB deck render status (idle | rendering | ready | error), last rendered timestamp, and any error message. Admin only.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+    {
       name: "refresh_analyst_table",
       description: "Trigger an LLM-driven refresh of an analyst benchmark table and commit the results. Admin only. tableId must be one of: capital_raise_benchmarks, exit_multiples, reference_brands.",
       parameters: {
@@ -231,6 +261,12 @@ export async function dispatchRebeccaTool(
         return await toolUpdateScenario(args, ctx);
       case "update_scenario_assumptions":
         return await toolUpdateScenarioAssumptions(args, ctx);
+      case "configure_lb_deck":
+        return await toolConfigureLbDeck(args);
+      case "trigger_lb_deck_render":
+        return toolTriggerLbDeckRender();
+      case "get_lb_deck_render_status":
+        return toolGetLbDeckRenderStatus();
       case "refresh_analyst_table":
         return await toolRefreshAnalystTable(args);
       case "lock_scenario":
@@ -512,6 +548,29 @@ async function toolUpdateScenarioAssumptions(
     result: { success: true, updated: Object.keys(patches) },
     dataChanged: { entityType: "scenario", entityId: id },
   };
+}
+
+async function toolConfigureLbDeck(
+  args: Record<string, unknown>,
+): Promise<{ result: unknown }> {
+  const updated = await storage.upsertLbSlidesConfig({
+    slide1PropertyId: (args.slide1PropertyId as number | null | undefined) ?? null,
+    slide2PropertyId: (args.slide2PropertyId as number | null | undefined) ?? null,
+    slide3PropertyId: (args.slide3PropertyId as number | null | undefined) ?? null,
+    slide5PropertyId: (args.slide5PropertyId as number | null | undefined) ?? null,
+    slide4SectionSubtitle: (args.slide4SectionSubtitle as string | null | undefined) ?? null,
+    slide6Disclaimer: (args.slide6Disclaimer as string | null | undefined) ?? null,
+  });
+  return { result: { success: true, config: updated } };
+}
+
+function toolTriggerLbDeckRender(): { result: unknown } {
+  const status = triggerLbDeckRenderService();
+  return { result: status };
+}
+
+function toolGetLbDeckRenderStatus(): { result: unknown } {
+  return { result: getLbDeckRenderStatusService() };
 }
 
 async function toolRefreshAnalystTable(

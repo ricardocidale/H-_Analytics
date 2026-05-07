@@ -38,9 +38,9 @@ feature ships or a new Rebecca tool is added.
 
 | UI Action | UI Location | Rebecca Tool | Status |
 |---|---|---|---|
-| Configure deck (assign properties to slides 1/2/3/5) | Admin → Slides | — | ⚠️ PUT `/api/lb-slides/config` exists, no tool |
-| Trigger deck render | Admin → Slides | — | ⚠️ POST `/api/lb-slides/render` exists, no tool |
-| Check render status | Admin → Slides | — | ⚠️ GET `/api/lb-slides/render-status` exists, no tool |
+| Configure deck (assign properties to slides 1/2/3/5) | Admin → Slides | `configure_lb_deck` | ✅ |
+| Trigger deck render | Admin → Slides | `trigger_lb_deck_render` | ✅ |
+| Check render status | Admin → Slides | `get_lb_deck_render_status` | ✅ |
 | Download combined PDF | Admin → Slides | — | 🚫 N/A (file download) |
 
 ## Admin Actions (N/A or Deferred)

@@ -288,3 +288,39 @@ router.get(
 );
 
 export { router as lbDeckPdfRouter };
+
+// Service functions for non-HTTP callers (e.g. Rebecca tools)
+
+export function triggerLbDeckRenderService(): { queued: boolean; status: RenderStatus } {
+  if (currentStatus === "rendering") {
+    return { queued: true, status: "rendering" };
+  }
+  currentStatus = "rendering";
+  lastError = null;
+  void renderLimiter(async () => {
+    try {
+      const sp = await getStorageProviderAsync();
+      const pdf = await renderLbDeckPdf();
+      await sp.uploadBuffer(LB_PDF_R2_KEY, pdf, PDF_CONTENT_TYPE);
+      currentStatus = "ready";
+      lastRenderedAt = new Date();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "LB PDF render failed";
+      currentStatus = "error";
+      lastError = message;
+    }
+  });
+  return { queued: true, status: "rendering" };
+}
+
+export function getLbDeckRenderStatusService(): {
+  status: RenderStatus;
+  lastRenderedAt: string | null;
+  lastError: string | null;
+} {
+  return {
+    status: currentStatus,
+    lastRenderedAt: lastRenderedAt?.toISOString() ?? null,
+    lastError,
+  };
+}
