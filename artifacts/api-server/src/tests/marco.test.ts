@@ -186,6 +186,7 @@ describe("dispatchMarcoTool", () => {
   });
 
   it("transition_status to complete sets completedAt", async () => {
+    (getSlideFactoryRunById as Mock).mockResolvedValue(makeRun({ agentResults: {} }));
     await dispatchMarcoTool(
       "transition_status",
       { runId: 42, newStatus: "complete" },
@@ -194,6 +195,24 @@ describe("dispatchMarcoTool", () => {
     const patch = (updateSlideFactoryRun as Mock).mock.calls[0][1];
     expect(patch.status).toBe("complete");
     expect(patch.completedAt).toBeInstanceOf(Date);
+  });
+
+  it("transition_status to complete is downgraded to error if any slide is rejected", async () => {
+    (getSlideFactoryRunById as Mock).mockResolvedValue(makeRun({
+      agentResults: {
+        slide1: { status: "approved", pixelDiffPct: null, mayaVerdict: null, mayaNotes: null, approvedAt: "2026-05-07", errorMessage: null },
+        slide3: { status: "rejected", pixelDiffPct: null, mayaVerdict: null, mayaNotes: null, approvedAt: null, errorMessage: "block" },
+      },
+    }));
+    const out = await dispatchMarcoTool(
+      "transition_status",
+      { runId: 42, newStatus: "complete" },
+      { runId: 42 },
+    );
+    const patch = (updateSlideFactoryRun as Mock).mock.calls[0][1];
+    expect(patch.status).toBe("error");
+    expect(patch).not.toHaveProperty("completedAt");
+    expect(out.result).toMatchObject({ downgradedFrom: "complete" });
   });
 
   it("transition_status to error does NOT set completedAt", async () => {
@@ -237,9 +256,20 @@ describe("dispatchMarcoTool", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("runMarco", () => {
+  // Shared state so getSlideFactoryRunById sees status changes that
+  // updateSlideFactoryRun makes (simulating the database).
+  let currentStatus: string;
+
   beforeEach(() => {
     vi.clearAllMocks();
-    (getSlideFactoryRunById as Mock).mockResolvedValue(makeRun());
+    currentStatus = "building";
+    (getSlideFactoryRunById as Mock).mockImplementation(async () =>
+      makeRun({ status: currentStatus }),
+    );
+    (updateSlideFactoryRun as Mock).mockImplementation(async (_id, patch) => {
+      if (typeof patch.status === "string") currentStatus = patch.status;
+      return makeRun({ status: currentStatus });
+    });
     (dispatchSlideTeam as Mock).mockImplementation(async (input: { slideNumber: number }) => ({
       slideNumber: input.slideNumber,
       status: "ok",
@@ -367,6 +397,31 @@ describe("runMarco", () => {
     await runMarco(42);
 
     // No completion signal → error
+    const lastPatchCall = (updateSlideFactoryRun as Mock).mock.calls.at(-1);
+    expect(lastPatchCall?.[1].status).toBe("error");
+  });
+
+  it("complete_task fired without transition_status — post-loop guard forces error", async () => {
+    // Scripted run completes without ever calling transition_status. The
+    // shared currentStatus mock state stays at 'building' since no
+    // transition_status call mutates it; the post-loop re-read then sees
+    // 'building' and Marco forces 'error'.
+    const turns = [
+      { content: [makeToolUse("read_run", { runId: 42 })] },
+      ...slideTurns(1),
+      ...slideTurns(2),
+      ...slideTurns(3),
+      ...slideTurns(4),
+      ...slideTurns(5),
+      ...slideTurns(6),
+      // Skip transition_status — straight to complete_task
+      { content: [makeToolUse("complete_task", { summary: "forgot to transition" })] },
+    ];
+    (getAnthropicClient as Mock).mockReturnValue(scriptedAnthropic(turns));
+
+    await runMarco(42);
+
+    // Last updateSlideFactoryRun call should be the forced-error transition
     const lastPatchCall = (updateSlideFactoryRun as Mock).mock.calls.at(-1);
     expect(lastPatchCall?.[1].status).toBe("error");
   });

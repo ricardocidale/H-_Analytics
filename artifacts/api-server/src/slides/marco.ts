@@ -24,7 +24,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { logger } from "../logger";
 import { getAnthropicClient } from "../ai/clients";
-import { updateSlideFactoryRun } from "../storage/slide-factory-runs";
+import { getSlideFactoryRunById, updateSlideFactoryRun } from "../storage/slide-factory-runs";
 import {
   MARCO_MODEL,
   MARCO_MAX_TOKENS,
@@ -76,7 +76,7 @@ export async function runMarco(runId: number): Promise<void> {
     anthropic = getAnthropicClient();
   } catch (err: unknown) {
     logger.error(`[marco] run ${runId} — Anthropic client unavailable: ${String(err)}`, "slide-factory");
-    await markRunError(runId, "Marco: Anthropic client unavailable");
+    await markRunError(runId);
     return;
   }
 
@@ -145,18 +145,31 @@ export async function runMarco(runId: number): Promise<void> {
         `[marco] run ${runId} — exceeded MARCO_MAX_TOOL_DEPTH (${MARCO_MAX_TOOL_DEPTH}) without completing`,
         "slide-factory",
       );
-      await markRunError(runId, `Marco: exceeded ${MARCO_MAX_TOOL_DEPTH} tool-loop iterations`);
+      await markRunError(runId);
+      return;
+    }
+
+    // Stuck-state guard: complete_task fired but the LLM forgot to call
+    // transition_status first. Without this, the run sits at 'building'
+    // forever and the polling UI spins. Force terminal state.
+    const finalRun = await getSlideFactoryRunById(runId);
+    if (finalRun && finalRun.status === "building") {
+      logger.warn(
+        `[marco] run ${runId} — complete_task fired without transition_status; forcing error`,
+        "slide-factory",
+      );
+      await markRunError(runId);
       return;
     }
 
     logger.info(`[marco] run ${runId} complete — ${completedSummary}`, "slide-factory");
   } catch (err: unknown) {
     logger.error(`[marco] run ${runId} failed: ${String(err)}`, "slide-factory");
-    await markRunError(runId, `Marco: ${err instanceof Error ? err.message : String(err)}`);
+    await markRunError(runId);
   }
 }
 
-async function markRunError(runId: number, _reason: string): Promise<void> {
+async function markRunError(runId: number): Promise<void> {
   try {
     await updateSlideFactoryRun(runId, { status: "error" });
   } catch {

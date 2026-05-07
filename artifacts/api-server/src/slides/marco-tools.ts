@@ -270,13 +270,30 @@ async function handleUpdateAgentResult(
 }
 
 async function handleTransitionStatus(runId: number, newStatus: "complete" | "error") {
+  // Server-side gate: if the LLM asks for 'complete' but any slide is rejected,
+  // downgrade to 'error'. The system prompt tells the LLM not to do this, but
+  // a hard check protects the invariant — agentResults is the source of truth.
+  let effectiveStatus: "complete" | "error" = newStatus;
+  let downgradedFrom: "complete" | null = null;
+  if (newStatus === "complete") {
+    const run = await getSlideFactoryRunById(runId);
+    if (!run) return { error: `Run ${runId} not found` };
+    const results = run.agentResults ?? {};
+    const anyRejected = Object.values(results).some((r) => r.status === "rejected");
+    if (anyRejected) {
+      effectiveStatus = "error";
+      downgradedFrom = "complete";
+    }
+  }
   const patch =
-    newStatus === "complete"
+    effectiveStatus === "complete"
       ? { status: "complete" as const, completedAt: new Date() }
       : { status: "error" as const };
   const updated = await updateSlideFactoryRun(runId, patch);
   if (!updated) return { error: `Run ${runId} not found` };
-  return { ok: true, status: updated.status };
+  return downgradedFrom
+    ? { ok: true, status: updated.status, downgradedFrom }
+    : { ok: true, status: updated.status };
 }
 
 // ── Argument coercers ────────────────────────────────────────────────────────
