@@ -138,9 +138,14 @@ Section sizes (from header map):
 
 **Problem:** The Architecture Notes "LB Slides — investor PDF decks" section (lines 484–525, ~42 lines) contains dense implementation reference: active route names, source file paths, finance function call signatures, DB schema column names, slot-logic details, and Admin UI component names. An always-loaded contract file is wrong for this material — it should live in a dedicated reference doc and be loaded only when working on that surface.
 
+**⚠ Dependency:** Create the destination file FIRST, verify it is complete, then and only then replace the CLAUDE.md section. Do not delete source content before the destination file is confirmed on disk.
+
+**⚠ Pointer update required:** `replit.md` § "Pointers" table has no LB Slides row today, but if any row references the Architecture Notes LB Slides location by name, update it to `docs/slide-system/lb-slides-implementation-reference.md`.
+
 **Action:**
 1. Create `docs/slide-system/lb-slides-implementation-reference.md` containing the full current LB Slides content (verbatim, so no information is lost).
-2. Replace the CLAUDE.md section with an 8-line summary:
+2. Verify the file is on disk and complete before continuing.
+3. Replace the CLAUDE.md section with an 8-line summary:
    ```
    ### LB Slides — investor PDF decks (Playwright HTML→PDF)
 
@@ -173,6 +178,8 @@ Section sizes (from header map):
 ### U004 — Compress Production Deployment — Remove Inline Secrets Duplication
 
 **Problem:** The "Required production env vars on Railway" paragraph (line 380) is a long run-on list of ~25 env var names, most of which already appear in the § "Environment Variables (api-server)" table above. The Dockerfile, railway.toml, and single-container model descriptions are load-bearing and must stay.
+
+**⚠ Pre-edit validation:** Before removing the inline list, confirm that every var it names is already present in the §Environment Variables table above. Run: `grep -o '`[A-Z_]*`' CLAUDE.md | sort -u` and cross-check both sections. If any var appears only in the inline paragraph, add it to the §Environment Variables table first, then remove the paragraph.
 
 **Action:**
 - Remove the inline secrets paragraph (line 380 block starting "POSTGRES_URL (Neon), SESSION_SECRET, TOKEN_ENCRYPTION_KEY…") and replace with: "All variables in §Environment Variables above are required in Railway service variables (no Replit broker is reachable in production). Additionally: `SESSION_SECRET`, `RESEND_API_KEY`, `SENTRY_DSN`, `NODE_ENV=production`."
@@ -265,15 +272,20 @@ Section sizes (from header map):
 
 ## Execution Order
 
-Units are independent and can be applied in any order. Suggested sequence for minimal cognitive overhead:
+**Critical constraint (architect-identified):** Units that create destination files (U003, U007b) MUST run before the corresponding source content is removed from CLAUDE.md. Never delete source text until the destination file is confirmed on disk. Units that edit only CLAUDE.md without creating new files (U001, U002, U004, U005, U006) have no order dependency on each other.
 
-1. **U007** first — trim changelog and known issues (simplest, low risk, immediate line count drop)
-2. **U001** — dedup number taxonomy (high-confidence, no new files)
-3. **U002** — compress §11 (no new files)
-4. **U005** — compress intelligence display notes (no new files)
-5. **U003** — extract LB Slides (requires creating reference doc)
-6. **U004** — compress production deployment
+**Required sequence:**
+
+1. **U007b** — create `docs/issues/known-issues.md` (destination first, no source deleted yet)
+2. **U003** — create `docs/slide-system/lb-slides-implementation-reference.md` (destination first), then compress CLAUDE.md section
+3. **U001** — dedup number taxonomy (no new files, safe to run any time)
+4. **U002** — compress §11 frontend design (no new files)
+5. **U004** — compress production deployment (run pre-edit env var validation first)
+6. **U005** — compress intelligence display notes (no new files)
 7. **U006** — trim reference documents table
+8. **U007a** — trim changelog in CLAUDE.md and replace known-issues section with pointer
+9. **U007c** — trim changelog in replit.md to match CLAUDE.md
+10. **Harmonization pass** — run shared-section parity gate (see Verification)
 
 ---
 
@@ -303,7 +315,30 @@ grep "Number taxonomy — the permanent law" CLAUDE.md  # should still find Arch
 grep "analyst-intelligence-display" CLAUDE.md          # pointer still present
 ```
 
-**Memory-file harmonization gate:** After all edits, scan `replit.md` against `CLAUDE.md` shared sections (Inviolable Rules, Gotchas, Pointers table, Recent Changes) and confirm identical wording per `agent-memory-files` discipline. Any divergence found during the scan is a bug to fix before marking complete.
+**Memory-file harmonization gate (explicit — architect-identified requirement):**
+
+The following sections must be verbatim-identical between `CLAUDE.md` and `replit.md`. After all edits, run this mechanical check before marking complete:
+
+| Shared section | CLAUDE.md location | replit.md location |
+|---|---|---|
+| Inviolable login / auth rules | § "Inviolable login / auth rules" | § "Inviolable Rules" (condensed mirror) |
+| Gotchas | § "Architecture Notes" / "Shared proxy routing" + "Migration system" | § "Gotchas" |
+| Pointers / skills table | § "Key project-specific skills" | § "Pointers" |
+| Recent Significant Changes | § "Recent Significant Changes" | § "Recent Significant Changes" |
+
+**Mechanical check:**
+```bash
+# Extract and diff the shared Recent Changes entries
+grep -A2 "2026-05-07" CLAUDE.md
+grep -A2 "2026-05-07" replit.md
+# Must match. Repeat for every shared entry.
+
+# Confirm Inviolable Rules numbering and wording match
+grep "^[0-9]\." CLAUDE.md | head -10
+grep "^[0-9]\." replit.md | head -10
+```
+
+Any divergence found is a bug to fix before marking complete. Do not accept "close enough" — shared sections must be character-identical for rule text.
 
 ---
 
