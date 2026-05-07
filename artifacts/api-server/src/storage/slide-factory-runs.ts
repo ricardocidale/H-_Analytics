@@ -39,6 +39,16 @@ export async function getSlideFactoryRun(
   return row ?? null;
 }
 
+/** Pipeline-level read — no userId filter. For use by background jobs only. */
+export async function getSlideFactoryRunById(id: number): Promise<SlideFactoryRun | null> {
+  const [row] = await db
+    .select()
+    .from(slideFactoryRuns)
+    .where(eq(slideFactoryRuns.id, id))
+    .limit(1);
+  return row ?? null;
+}
+
 export async function listSlideFactoryRuns(userId: number): Promise<SlideFactoryRun[]> {
   return db
     .select()

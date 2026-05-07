@@ -31,10 +31,21 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconUpload } from "@/components/icons";
+import { IconCheckCircle, IconAlertCircle } from "@/components/icons/status-icons";
 
 // ── Constants ───────────────────────────────────────────────────────────────
 
 const FACTORY_POLL_MS = 5_000;
+/** Milliseconds per second — used to convert Date arithmetic to seconds */
+const MS_PER_SECOND = 1000;
+
+// ── Lorenzo ingestion step timing estimates ──────────────────────────────────
+// Cumulative elapsed seconds at which each pipeline step is expected to finish.
+// Used to derive simulated step progress during ingestion (no server-sent events).
+const EST_ALDO_COMPLETE_S = 10;
+const EST_VISION_COMPLETE_S = 150;
+const EST_CARLO_COMPLETE_S = 152;
+const EST_INSPECTOR_COMPLETE_S = 185;
 const ACCEPTED_FILE_ACCEPT =
   ".pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation";
 const ACCEPTED_MIME_TYPES = new Set([
@@ -92,6 +103,17 @@ interface LuccaSlotDraft {
   approved: boolean;
   approvedAt: string | null;
   source: "lucca" | "admin";
+}
+
+// Front-end view of LorenzoCanonicalSpec stored in canonicalSpec JSONB.
+// Only the fields Tab 2 needs to display — not the full spec shape.
+interface LorenzoFrontendSpec {
+  schemaVersion: string;
+  documentType: string;
+  slideCount: number;
+  blocksBySlide: Array<Array<{ variableBinding: string | null }>>;
+  inspectorApproved: boolean;
+  inspectorNotes: string | null;
 }
 
 interface Property {
@@ -539,6 +561,254 @@ function FactoryBriefTab({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+// ── Tab 2 — Lorenzo canonical ingestion ─────────────────────────────────────
+
+const LORENZO_PIPELINE_STEPS = [
+  {
+    id: "aldo",
+    label: "Aldo",
+    tag: "Extract",
+    description: "PDF text extraction — word-level bounding boxes",
+    completeSecs: EST_ALDO_COMPLETE_S,
+  },
+  {
+    id: "l03",
+    label: "Lorenzo-03",
+    tag: "Vision",
+    description: "Opus 4.7 vision enrichment — 6 slide passes",
+    completeSecs: EST_VISION_COMPLETE_S,
+  },
+  {
+    id: "carlo",
+    label: "Carlo",
+    tag: "Validate",
+    description: "Zod schema validation — font metrics and types",
+    completeSecs: EST_CARLO_COMPLETE_S,
+  },
+  {
+    id: "l05",
+    label: "Lorenzo-05",
+    tag: "Inspect",
+    description: "Holistic rebuild feasibility check — Opus 4.7",
+    completeSecs: EST_INSPECTOR_COMPLETE_S,
+  },
+] as const;
+
+type StepStatus = "complete" | "running" | "waiting";
+
+function getLorenzoStepStatus(stepIndex: number, elapsedS: number): StepStatus {
+  const step = LORENZO_PIPELINE_STEPS[stepIndex];
+  const prev = stepIndex > 0 ? LORENZO_PIPELINE_STEPS[stepIndex - 1] : null;
+  if (elapsedS >= step.completeSecs) return "complete";
+  if (!prev || elapsedS >= prev.completeSecs) return "running";
+  return "waiting";
+}
+
+function LorenzoIngestingView({ startedAt }: { startedAt: string | null }) {
+  const elapsedS = startedAt
+    ? Math.max(0, Math.floor((Date.now() - new Date(startedAt).getTime()) / MS_PER_SECOND))
+    : 0;
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+          <CardTitle className="text-sm font-semibold">Building canonical spec</CardTitle>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Lorenzo is extracting and enriching slide data. This takes 2–4 minutes.
+        </p>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="divide-y divide-border">
+          {LORENZO_PIPELINE_STEPS.map((step, i) => {
+            const status = getLorenzoStepStatus(i, elapsedS);
+            return (
+              <div
+                key={step.id}
+                className={[
+                  "flex items-start gap-3 py-3 transition-colors duration-300",
+                  status === "running"
+                    ? "border-l-2 border-primary pl-3 -ml-px"
+                    : "border-l-2 border-transparent pl-3 -ml-px",
+                ].join(" ")}
+              >
+                <div className="mt-0.5 shrink-0">
+                  {status === "complete" ? (
+                    <IconCheckCircle weight="fill" className="w-4 h-4 text-success" />
+                  ) : status === "running" ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  ) : (
+                    <div className="w-4 h-4 rounded-full border-2 border-border" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={[
+                        "text-xs font-medium",
+                        status === "waiting" ? "text-muted-foreground" : "text-foreground",
+                      ].join(" ")}
+                    >
+                      {step.label}
+                    </span>
+                    <span className="text-[10px] px-1.5 py-px rounded bg-muted text-muted-foreground uppercase tracking-wide leading-none">
+                      {step.tag}
+                    </span>
+                  </div>
+                  <p
+                    className={[
+                      "text-xs mt-0.5",
+                      status === "waiting"
+                        ? "text-muted-foreground/50"
+                        : "text-muted-foreground",
+                    ].join(" ")}
+                  >
+                    {step.description}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <p className="mt-3 text-[10px] text-muted-foreground/60 leading-relaxed">
+          Step progress is estimated from elapsed time. The pipeline advances automatically
+          once all steps are complete.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function LorenzoCompleteView({ spec }: { spec: LorenzoFrontendSpec }) {
+  const totalBlocks = spec.blocksBySlide.reduce((sum, s) => sum + s.length, 0);
+  const variableBindings = spec.blocksBySlide
+    .flat()
+    .filter((b) => b.variableBinding !== null).length;
+
+  return (
+    <div className="space-y-4">
+      {/* Status header */}
+      <Card>
+        <CardContent className="py-4 flex items-center gap-3">
+          <IconCheckCircle weight="fill" className="w-5 h-5 text-success shrink-0" />
+          <div>
+            <p className="text-sm font-medium">Canonical spec ready</p>
+            <p className="text-xs text-muted-foreground">
+              Schema {spec.schemaVersion} · {spec.documentType.toUpperCase()} ·{" "}
+              {spec.inspectorApproved ? "Inspector approved" : "Inspector rejected"}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Quick stats */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {(
+          [
+            { label: "Text blocks", value: String(totalBlocks) },
+            { label: "Slides", value: String(spec.slideCount) },
+            { label: "Variable slots", value: String(variableBindings) },
+            {
+              label: "Inspector",
+              value: spec.inspectorApproved ? "Approved" : "Rejected",
+              destructive: !spec.inspectorApproved,
+            },
+          ] as const
+        ).map((stat) => (
+          <Card key={stat.label} className="text-center">
+            <CardContent className="py-3">
+              <p
+                className={[
+                  "text-lg font-semibold tabular-nums leading-none",
+                  "destructive" in stat && stat.destructive ? "text-destructive" : "",
+                ].join(" ")}
+              >
+                {stat.value}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-1">{stat.label}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Per-slide breakdown */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Per-slide breakdown
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="divide-y divide-border">
+            {spec.blocksBySlide.map((slideBlocks, i) => {
+              const dynCount = slideBlocks.filter((b) => b.variableBinding !== null).length;
+              return (
+                <div
+                  key={i}
+                  className="flex items-center justify-between py-2 text-xs"
+                >
+                  <span className="text-muted-foreground">Slide {i + 1}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="tabular-nums">{slideBlocks.length} blocks</span>
+                    {dynCount > 0 && (
+                      <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
+                        {dynCount} dynamic
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Inspector gap notes (only when rejected) */}
+      {!spec.inspectorApproved && spec.inspectorNotes && (
+        <Card className="border-destructive/50">
+          <CardContent className="py-3 flex gap-2">
+            <IconAlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-medium text-destructive">Inspector gaps</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{spec.inspectorNotes}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function FactoryLorenzoTab({ run }: { run: SlideFactoryRun }) {
+  if (run.status === "new" || run.status === "brief_ready") {
+    return (
+      <PlaceholderTab
+        title="Lorenzo — Canonical ingestion"
+        description="Lorenzo will process the brief and build the canonical spec once the brief is accepted."
+      />
+    );
+  }
+
+  if (run.status === "ingesting") {
+    return <LorenzoIngestingView startedAt={run.startedAt} />;
+  }
+
+  // ingested or any later status — show the enriched spec if available
+  const spec = run.canonicalSpec as LorenzoFrontendSpec | null;
+  if (spec && Array.isArray(spec.blocksBySlide) && spec.blocksBySlide.length > 0) {
+    return <LorenzoCompleteView spec={spec} />;
+  }
+
+  return (
+    <PlaceholderTab
+      title="Canonical spec unavailable"
+      description="The run completed but no enriched spec was stored. Re-run to generate."
+    />
   );
 }
 
@@ -1043,19 +1313,11 @@ export function SlideFactoryPanel() {
         </TabsContent>
 
         <TabsContent value="f-lorenzo" className="mt-4">
-          {run?.status === "ingesting" ? (
-            <Card>
-              <CardContent className="py-10 flex flex-col items-center gap-3">
-                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                <p className="text-sm font-medium">Lorenzo is ingesting the brief…</p>
-                <p className="text-xs text-muted-foreground">
-                  Building the canonical spec. The pipeline advances automatically.
-                </p>
-              </CardContent>
-            </Card>
+          {run ? (
+            <FactoryLorenzoTab run={run} />
           ) : (
             <PlaceholderTab
-              title="Lorenzo — Ingesting brief"
+              title="Lorenzo — Canonical ingestion"
               description="Lorenzo will process the brief once it has been accepted."
             />
           )}
