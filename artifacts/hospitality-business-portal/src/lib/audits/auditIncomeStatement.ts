@@ -1,7 +1,7 @@
 import { MonthlyFinancials } from "../financialEngine";
 import { addMonths, isBefore, startOfMonth } from "date-fns";
 import { DEFAULT_PROPERTY_INCOME_TAX_RATE } from '../constants';
-import { NOL_UTILIZATION_CAP } from '@shared/constants';
+import { NOL_UTILIZATION_CAP } from '@norfolk/shared/constants';
 import type { AuditFinding, AuditSection, PropertyAuditInput, GlobalAuditInput } from "./types";
 import { parseLocalDate, withinTolerance, formatVariance } from "./helpers";
 

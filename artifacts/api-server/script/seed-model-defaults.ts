@@ -25,7 +25,7 @@ import { resolve } from "path";
 import { sql } from "drizzle-orm";
 import { db } from "../src/db";
 import { modelDefaults } from "@workspace/db";
-import { DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE } from "../src/shared/constants-business-models";
+import { DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE } from "@shared/constants-business-models";
 import {
   DEFAULT_MODEL_START_DATE,
   DEFAULT_COMPANY_OPS_START_DATE,
@@ -72,14 +72,14 @@ import {
   DEFAULT_OCCUPANCY_GROWTH_STEP,
   DEFAULT_PROPERTY_INFLATION_RATE,
   DEFAULT_COMPANY_INFLATION_RATE,
-} from "../src/shared/constants";
+} from "@shared/constants";
 import {
   DEFAULT_RUNWAY_BUFFER_MONTHS,
   DEFAULT_SIZING_OVERSHOOT_PCT,
   DEFAULT_REVENUE_RAMP_DELAY_MONTHS,
   DEFAULT_BURN_FLEX_DOWN_PCT,
-} from "../src/shared/constants-funding";
-import { getFactoryNumber } from "../src/shared/model-constants-registry";
+} from "@shared/constants-funding";
+import { getFactoryNumber } from "@shared/model-constants-registry";
 
 // Audit #406: registry-backed US baseline for company income tax (federal corporate = 0.21).
 const DEFAULT_COMPANY_TAX_RATE = getFactoryNumber("taxRate", "United States");

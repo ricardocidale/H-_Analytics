@@ -25,7 +25,7 @@ import {
   DEFAULT_RISK_FREE_RATE_SENSITIVITY,
   TRAILING_YEAR_MONTHS_OFFSET,
   MONTHS_PER_YEAR,
-} from '@shared/constants';
+} from '@norfolk/shared/constants';
 
 interface FundingGlobalInput extends GlobalInput {
   propertyLabel?: string;

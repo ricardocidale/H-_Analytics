@@ -50,6 +50,7 @@ export default defineConfig({
     alias: [
       { find: "@", replacement: path.resolve(import.meta.dirname, "src") },
       { find: "@assets", replacement: path.resolve(import.meta.dirname, "..", "..", "attached_assets") },
+      { find: "@norfolk/shared", replacement: path.resolve(import.meta.dirname, "../../lib/shared/src") },
       { find: "@shared", replacement: path.resolve(import.meta.dirname, "../../lib/shared/src") },
       { find: "@engine", replacement: path.resolve(import.meta.dirname, "../../lib/engine/src") },
       { find: "@calc", replacement: path.resolve(import.meta.dirname, "../../lib/calc/src") },
