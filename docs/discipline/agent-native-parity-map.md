@@ -30,9 +30,9 @@ feature ships or a new Rebecca tool is added.
 
 | UI Action | UI Location | Rebecca Tool | Status |
 |---|---|---|---|
-| Refresh Capital Raise benchmarks | Admin → Analyst tables | — | ⚠️ Route exists (`/api/analyst/capital-raise`), no tool |
-| Refresh Exit Multiples benchmarks | Admin → Analyst tables | — | ⚠️ Route exists (`/api/analyst/exit-multiples`), no tool |
-| Refresh Reference Brands | Admin → Analyst tables | — | ⚠️ Route exists (`/api/analyst/reference-brands`), no tool |
+| Refresh Capital Raise benchmarks | Admin → Analyst tables | `refresh_analyst_table` | ✅ |
+| Refresh Exit Multiples benchmarks | Admin → Analyst tables | `refresh_analyst_table` | ✅ |
+| Refresh Reference Brands | Admin → Analyst tables | `refresh_analyst_table` | ✅ |
 
 ## Slides / Deck Actions
 

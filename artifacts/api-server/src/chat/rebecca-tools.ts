@@ -3,6 +3,11 @@ import type { ToolParam } from "./tool-types";
 import type { Property, UpdateProperty, Scenario, UpdateScenario } from "@workspace/db";
 import { updatePropertySchema } from "@workspace/db";
 import { generateLocationAwareResearchValues } from "../data/researchSeeds";
+import {
+  researchCapitalRaiseBenchmarks,
+  researchExitMultiples,
+  researchReferenceBrands,
+} from "../ai/analyst-table-refresh";
 import { appendIrisGap, clearIrisGaps, readIrisGaps } from "../ai/iris/workspace";
 import { runIrisAgent, type IrisTrigger } from "../ai/iris/agent";
 import { insertIrisRun, updateIrisRun, getLatestIrisRun } from "../storage/iris-runs";
@@ -119,6 +124,20 @@ export function getRebeccaTools(): ToolParam[] {
       },
     },
     {
+      name: "refresh_analyst_table",
+      description: "Trigger an LLM-driven refresh of an analyst benchmark table and commit the results. Admin only. tableId must be one of: capital_raise_benchmarks, exit_multiples, reference_brands.",
+      parameters: {
+        type: "object",
+        properties: {
+          tableId: {
+            type: "string",
+            description: "Table to refresh: capital_raise_benchmarks | exit_multiples | reference_brands",
+          },
+        },
+        required: ["tableId"],
+      },
+    },
+    {
       name: "lock_scenario",
       description: "Lock a scenario so it cannot be edited.",
       parameters: {
@@ -212,6 +231,8 @@ export async function dispatchRebeccaTool(
         return await toolUpdateScenario(args, ctx);
       case "update_scenario_assumptions":
         return await toolUpdateScenarioAssumptions(args, ctx);
+      case "refresh_analyst_table":
+        return await toolRefreshAnalystTable(args);
       case "lock_scenario":
         return await toolLockScenario(args, ctx);
       case "delete_scenario":
@@ -491,6 +512,79 @@ async function toolUpdateScenarioAssumptions(
     result: { success: true, updated: Object.keys(patches) },
     dataChanged: { entityType: "scenario", entityId: id },
   };
+}
+
+async function toolRefreshAnalystTable(
+  args: Record<string, unknown>,
+): Promise<{ result: unknown }> {
+  const tableId = args.tableId as string;
+  const now = new Date();
+
+  if (tableId === "capital_raise_benchmarks") {
+    const current = await storage.getCapitalRaiseBenchmarks();
+    const result = await researchCapitalRaiseBenchmarks(current);
+    for (const r of result.proposedRanges) {
+      await storage.upsertCapitalRaiseBenchmark({
+        dimensionKey: r.dimensionKey,
+        label: r.label,
+        unit: r.unit ?? "usd",
+        valueLow: r.valueLow,
+        valueMid: r.valueMid,
+        valueHigh: r.valueHigh,
+        sourceCount: result.sourceCount,
+        lastRefreshedAt: now,
+      });
+    }
+    return {
+      result: {
+        tableId,
+        rangesCommitted: result.proposedRanges.length,
+        sourceCount: result.sourceCount,
+        tokensUsed: result.tokensUsed,
+      },
+    };
+  }
+
+  if (tableId === "exit_multiples") {
+    const current = await storage.getExitMultiples();
+    const result = await researchExitMultiples(current);
+    for (const r of result.proposedRanges) {
+      await storage.upsertExitMultiple({
+        dimensionKey: r.dimensionKey,
+        label: r.label,
+        unit: r.unit ?? "x_revenue",
+        valueLow: r.valueLow,
+        valueMid: r.valueMid,
+        valueHigh: r.valueHigh,
+        sourceCount: result.sourceCount,
+        lastRefreshedAt: now,
+      });
+    }
+    return {
+      result: {
+        tableId,
+        rangesCommitted: result.proposedRanges.length,
+        sourceCount: result.sourceCount,
+        tokensUsed: result.tokensUsed,
+      },
+    };
+  }
+
+  if (tableId === "reference_brands") {
+    const current = await storage.getReferenceBrands();
+    const result = await researchReferenceBrands(current);
+    return {
+      result: {
+        tableId,
+        autoCommitted: result.autoCommitted,
+        brandCount: result.brandCount,
+        sourceCount: result.sourceCount,
+        tokensUsed: result.tokensUsed,
+      },
+    };
+  }
+
+  return { result: { error: `Unknown tableId: ${tableId}. Use capital_raise_benchmarks, exit_multiples, or reference_brands.` } };
 }
 
 async function toolLockScenario(
