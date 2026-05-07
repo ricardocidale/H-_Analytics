@@ -1,4 +1,11 @@
 /**
+ * Davide — financial-agents shared service: pre-engine constants overlay.
+ *
+ * Cross-app single-name agent per CLAUDE.md §10. The single helper here
+ * (`withModelConstants`) is part of Davide's contract surface — see
+ * docs/discipline/financial-agents-contract.md. Authoring authority:
+ * CLAUDE.md §9 (shell CC only).
+ *
  * apply-model-constants — overlay admin-governed Model Constants onto the
  * GlobalInput before it reaches the financial engine.
  *

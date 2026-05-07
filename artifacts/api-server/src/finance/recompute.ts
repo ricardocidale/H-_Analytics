@@ -1,3 +1,13 @@
+/**
+ * Davide — financial-agents shared service: DB-aware wrappers.
+ *
+ * Cross-app single-name agent per CLAUDE.md §10. Wraps Davide's pure compute
+ * (in `./service.ts`) with property-stamping side effects. Per the original
+ * docstring below: "the one server-side seam where engine output meets the DB."
+ *
+ * Contract: docs/discipline/financial-agents-contract.md
+ * Authoring authority: CLAUDE.md §9 (shell CC only).
+ */
 import {
   computePortfolioProjection,
   computePortfolioProjectionWithAudit,

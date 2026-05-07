@@ -197,6 +197,9 @@ from Brazilian or Italian naming traditions (male or female).
 - Analyst orchestrator: Gustavo
 - Research specialists: Ana, Bia, Cecília, Mariana, Natália, Olívia, Paula,
   Daniela, Eloá, Fernanda, Giovanna, Helena, Isadora, Júlia, Kamila, Letícia
+- Cross-app financial-agents service: Davide (`finance/service.ts`,
+  `finance/recompute.ts`, `finance/apply-model-constants.ts` — see
+  `docs/discipline/financial-agents-contract.md`)
 - Slide factory orchestrator: Marco
 - Slide factory cross-app: Lucca, Maya
 - Slide factory swarms: Lorenzo, Sofia, Bianca, Chiara, Dario, Elisa, Felix

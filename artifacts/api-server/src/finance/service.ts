@@ -1,3 +1,15 @@
+/**
+ * Davide — financial-agents shared service: pure compute (zero IO).
+ *
+ * Cross-app single-name agent per CLAUDE.md §10. Three entrypoints
+ * (computePortfolioProjection / computeSingleProperty / computeCompanyProjection)
+ * make up Davide's pure-compute contract; DB-aware wrappers live in
+ * `./recompute.ts`. Consumers: slide factory (via Marco), property detail page,
+ * internal-deck PDF route, Rebecca tools, report compiler.
+ *
+ * Contract: docs/discipline/financial-agents-contract.md
+ * Authoring authority: CLAUDE.md §9 (shell CC only).
+ */
 import { generatePropertyProForma } from "./core/property-pipeline";
 import { aggregatePropertyByYear } from "./core/yearly-aggregator";
 import { consolidateYearlyFinancials } from "./core/consolidation";
