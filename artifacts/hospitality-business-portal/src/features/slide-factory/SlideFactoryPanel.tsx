@@ -21,7 +21,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -739,57 +738,60 @@ function SlotRow({ slotKey, draft, onApprove, onSaveValue, disabled }: SlotRowPr
   return (
     <div className="border rounded-lg p-3 space-y-2">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-2 min-w-0 flex-1">
-          <Checkbox
-            checked={draft.approved}
-            onCheckedChange={(checked) => void onApprove(slotKey, Boolean(checked))}
-            disabled={disabled}
-            className="mt-0.5 shrink-0"
-          />
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium text-muted-foreground">
-              {slotLabel(slotKey)}
-              {draft.source === "admin" && (
-                <span className="ml-1.5 text-xs text-blue-500">(edited)</span>
-              )}
-            </p>
-            {editing ? (
-              <div className="mt-1.5 space-y-2">
-                <Textarea
-                  value={editValue}
-                  onChange={(e) => setEditValue(e.target.value)}
-                  rows={3}
-                  className="text-sm"
-                  disabled={saving}
-                />
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={() => void handleSave()} disabled={saving}>
-                    {saving && <Loader2 className="w-3 h-3 animate-spin mr-1" />}
-                    Save
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={handleCancel} disabled={saving}>
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm mt-0.5 whitespace-pre-wrap break-words">{draft.value}</p>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium text-muted-foreground">
+            {slotLabel(slotKey)}
+            {draft.source === "admin" && (
+              <span className="ml-1.5 text-xs text-info">(edited)</span>
             )}
-          </div>
+          </p>
+          {editing ? (
+            <div className="mt-1.5 space-y-2">
+              <Textarea
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                rows={3}
+                className="text-sm"
+                disabled={saving}
+              />
+              <div className="flex gap-2">
+                <Button size="sm" onClick={() => void handleSave()} disabled={saving}>
+                  {saving && <Loader2 className="w-3 h-3 animate-spin mr-1" />}
+                  Save
+                </Button>
+                <Button size="sm" variant="ghost" onClick={handleCancel} disabled={saving}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm mt-0.5 whitespace-pre-wrap break-words">{draft.value}</p>
+          )}
         </div>
         {!editing && (
-          <Button
-            size="sm"
-            variant="ghost"
-            className="shrink-0 text-xs"
-            onClick={() => {
-              setEditValue(draft.value);
-              setEditing(true);
-            }}
-            disabled={disabled}
-          >
-            Edit
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-xs"
+              onClick={() => {
+                setEditValue(draft.value);
+                setEditing(true);
+              }}
+              disabled={disabled}
+            >
+              Edit
+            </Button>
+            <Button
+              size="sm"
+              variant={draft.approved ? "default" : "outline"}
+              className="text-xs h-7 min-w-[84px]"
+              onClick={() => void onApprove(slotKey, !draft.approved)}
+              disabled={disabled}
+            >
+              {draft.approved ? "✓ Approved" : "Approve"}
+            </Button>
+          </div>
         )}
       </div>
     </div>
@@ -1013,7 +1015,7 @@ export function SlideFactoryPanel() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-foreground">Factory Pipeline</p>
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Factory Pipeline</p>
         {badge && (
           <Badge variant={badge.variant} className="text-xs">
             {badge.label}
@@ -1029,6 +1031,7 @@ export function SlideFactoryPanel() {
               value={value}
               disabled={value !== activeTab}
               className="text-xs"
+              title={value !== activeTab ? "Complete the previous step to unlock" : undefined}
             >
               {label}
             </TabsTrigger>
@@ -1040,10 +1043,22 @@ export function SlideFactoryPanel() {
         </TabsContent>
 
         <TabsContent value="f-lorenzo" className="mt-4">
-          <PlaceholderTab
-            title="Lorenzo — Ingesting brief"
-            description="Lorenzo is processing the brief and building the canonical spec. This step runs automatically — the pipeline advances once ingestion is complete."
-          />
+          {run?.status === "ingesting" ? (
+            <Card>
+              <CardContent className="py-10 flex flex-col items-center gap-3">
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                <p className="text-sm font-medium">Lorenzo is ingesting the brief…</p>
+                <p className="text-xs text-muted-foreground">
+                  Building the canonical spec. The pipeline advances automatically.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <PlaceholderTab
+              title="Lorenzo — Ingesting brief"
+              description="Lorenzo will process the brief once it has been accepted."
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="f-properties" className="mt-4">
