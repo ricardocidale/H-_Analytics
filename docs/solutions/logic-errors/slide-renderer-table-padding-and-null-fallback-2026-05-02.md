@@ -132,6 +132,6 @@ Same shape applied to Slide 6. Both failure signals (`null` return and thrown ex
 
 ## Related
 
-- `docs/solutions/architecture-patterns/two-format-slide-deck-generation-2026-05-02.md` — canonical architecture reference for the H+ satori+sharp+pptxgenjs hybrid pipeline. This learning extends its per-slide `.catch(() => blank)` pattern into a three-tier hybrid → JSX → blank chain and adds sparse-array padding rules for synthesized tables.
+- `docs/solutions/architecture-patterns/slide-deck-generation-decision-reversal-2026-05-03.md` — decision record: the satori+sharp+pptxgenjs hybrid pipeline was superseded by Playwright HTML→PDF. This learning's per-slide `.catch(() => blank)` defensive pattern and sparse-array padding rules apply to any rendering pipeline regardless of format.
 - `docs/solutions/architecture-patterns/reference-brands-ai-pipeline-wiring-2026-05-02.md` — adjacent pattern for defensive null-coalescing in async pipelines (different domain, same defensive principle).
 - `docs/solutions/integration-issues/openai-sdk-env-base-url-overrides-embedding-client-2026-05-02.md` — adjacent pattern: try/catch swallowing failures while reporting success (this learning is the rendering-pipeline analogue).

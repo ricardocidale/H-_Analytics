@@ -28,7 +28,7 @@ tags:
 
 # Portfolio investor deck with per-slide property assignment: composite payload over multi-pass rendering
 
-> **Update (2026-05-06):** The composite payload described here is now produced by per-slide specialist team Builders (Ana / Bea / Cleo / Dani / Eli / Felix) rather than by a single rendering route. The Option B / single-Playwright-pass / one R2 key / one cache manifest decisions all stand; what changed is the producer side. See [Agent-Native Precision Pipeline Pattern](./agent-native-precision-pipeline-pattern-2026-05-06.md) for the per-team factory line and Foreman orchestrator that now drive composite-payload assembly.
+> **Update (2026-05-06):** The composite payload described here is now produced by per-slide specialist team Builders (Sofia / Bianca / Chiara / Dario / Elisa / Felix) rather than by a single rendering route. The Option B / single-Playwright-pass / one R2 key / one cache manifest decisions all stand; what changed is the producer side. See [Agent-Native Precision Pipeline Pattern](./agent-native-precision-pipeline-pattern-2026-05-06.md) for the per-team factory line and Marco orchestrator that now drive composite-payload assembly.
 
 ## Context
 
@@ -271,9 +271,9 @@ export function signLbDeckToken(ttlMs = DECK_TOKEN_TTL_MS): SignedLbDeckToken {
 
 - `docs/solutions/architecture-patterns/agent-native-precision-pipeline-pattern-2026-05-06.md` —
   agent-native overlay that produces the composite payload via per-slide specialist team
-  Builders + Foreman orchestrator + tabbed admin UX, with hallucination defenses on every LLM stage.
-- `docs/solutions/architecture-patterns/two-format-slide-deck-generation-2026-05-02.md` —
-  orthogonal: per-property editable vs image-locked PPTX dual-format pipeline.
+  Builders + Marco orchestrator + tabbed admin UX, with hallucination defenses on every LLM stage.
+- `docs/solutions/architecture-patterns/slide-deck-generation-decision-reversal-2026-05-03.md` —
+  decision record: Playwright HTML→PDF replaced the two-format PPTX pipeline; orthogonal to the composite payload pattern.
 - `docs/solutions/architecture-patterns/slide-payload-slot-specific-schema-2026-05-03.md` —
   related: per-slot semantics inside `SlidePayload`; this doc is about how
   to compose multiple payloads across slides, not the internal shape of each.

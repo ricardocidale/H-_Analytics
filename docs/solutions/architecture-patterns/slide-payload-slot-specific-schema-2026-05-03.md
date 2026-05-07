@@ -196,9 +196,8 @@ wasn't designed for.
 ## Related
 
 - `docs/solutions/architecture-patterns/agent-native-precision-pipeline-pattern-2026-05-06.md` — agent-native overlay that consumes this schema: Builders produce slot content, Inspectors verify against per-slot Zod constraints, Drafter + admin vetting upstream of Builder. The slot-specific schema becomes Hallucination Defense B (schema as defense).
-- `docs/solutions/architecture-patterns/two-format-slide-deck-generation-2026-05-02.md` — orthogonal: covers the editable-vs-image-locked PPTX architecture, not the payload-slot mismatch.
+- `docs/solutions/architecture-patterns/slide-deck-generation-decision-reversal-2026-05-03.md` — decision record: Playwright HTML→PDF replaced the two-format PPTX pipeline; orthogonal to the payload-slot mismatch.
 - `docs/solutions/logic-errors/slide-renderer-table-padding-and-null-fallback-2026-05-02.md` — orthogonal: renderer-internals defensive coding (sparse tables, JSX fallback).
-- `docs/solutions/design-patterns/slide-decks-tab-dual-format-migration-2026-05-02.md` — orthogonal: admin-UI download state migration.
 - Recipe assets: `attached_assets/Pasted-SLIDE-{1..6}-…txt`, `slide_analysis_agent_report.precise_1777824741855.json`, `L+B_Property_6-Slide_Cannonical_1777775653617.pdf`, `belleayre-mountain-slides_1777774635693.pptx`.
 - Generated diff source: `attached_assets/lakeview-haven-lodge-slide-1_(1)_1777845758180.pdf`.
 - Code: `artifacts/hospitality-business-portal/src/features/internal-deck/slides.tsx`, `…/types.ts`, `artifacts/api-server/src/slides/types.ts`.

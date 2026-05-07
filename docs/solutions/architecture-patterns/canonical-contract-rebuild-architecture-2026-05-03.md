@@ -27,7 +27,7 @@ tags:
 
 # Canonical-contract rebuild: a four-layer architecture for fixed-design deck rendering
 
-> **Update (2026-05-06):** This four-layer deterministic-render core is now wrapped (not replaced) by an agent-native overlay — see [Agent-Native Precision Pipeline Pattern](./agent-native-precision-pipeline-pattern-2026-05-06.md). The overlay adds a Sage intake pipeline, per-slide specialist teams (Ana / Bea / Cleo / Dani / Eli / Felix), a hybrid Inspector (deterministic Pass 1 + LLM-vision Pass 2), Drafter + admin vetting UX, and 10 hallucination defenses. The four layers below remain the foundation; the overlay treats the canonical contract as the bicameral validation target for its Inspectors.
+> **Update (2026-05-06):** This four-layer deterministic-render core is now wrapped (not replaced) by an agent-native overlay — see [Agent-Native Precision Pipeline Pattern](./agent-native-precision-pipeline-pattern-2026-05-06.md). The overlay adds the Lorenzo ingestion team (canonical extraction), per-slide specialist teams (Sofia / Bianca / Chiara / Dario / Elisa / Felix), a hybrid Inspector (deterministic Pass 1 + LLM-vision Pass 2 via Maya), Drafter + admin vetting UX (Lucca), and 10 hallucination defenses. Marco orchestrates. The four layers below remain the foundation; the overlay treats the canonical contract as the bicameral validation target for its Inspectors.
 
 ## Context
 
@@ -297,7 +297,7 @@ Renderer (single pattern repeats per element, no flex/grid):
 - `docs/solutions/architecture-patterns/slide-payload-slot-specific-schema-2026-05-03.md` — narrower precursor: the specific argument against a generic `SlidePayload` + `VisionText` bag, with a slot-by-slot diff table from the regression that surfaced this work. This doc generalizes that lesson into the four-layer architecture.
 - `docs/solutions/workflow-issues/three-way-diff-recon-methodology-2026-05-03.md` — sibling methodology doc: the three-way diff (human brief × machine-precise JSON spans × generated PDF) that surfaced the per-slot drift this architecture is designed to prevent. Diagnose with that, rebuild with this.
 - `docs/solutions/tooling/mirror-shared-package-sync.md` — operational prerequisite for Layer 1: any new Zod schema in `lib/shared/src` must be mirrored to `artifacts/api-server/src/shared`.
-- `docs/solutions/architecture-patterns/two-format-slide-deck-generation-2026-05-02.md` — adjacent pipeline (server-side dual-format PPTX); different layer of the slide system.
+- `docs/solutions/architecture-patterns/slide-deck-generation-decision-reversal-2026-05-03.md` — decision record: Playwright HTML→PDF replaced the two-format PPTX pipeline; adjacent pipeline history, different layer of the slide system.
 - `docs/slide-system/canonical/design-contract.json` — the JSON design contract.
 - `docs/slide-system/canonical/coding-agent-instructions.md` — the rendering-model rules.
 - `docs/slide-system/canonical/self-validation-checklist.md` — the 10-point checklist that becomes the vitest gate.

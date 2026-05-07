@@ -64,7 +64,7 @@ The pipeline has five canonical stages. The user-facing wizard surfaces them as 
 | Stage | Tab | Purpose | Gate |
 |---|---|---|---|
 | 1. Pre-intake | **Brief** (PO order) | Admin uploads canonical files, picks mode and target, answers fundamental questions | Acceptance agent (small/cheap LLM + Zod) verifies files valid, fields filled, answers cohere |
-| 2. Intake | **Canonical** | Sage runs: PDF/PPTX → structured JSON spec + canonical PNGs | Admin endorses Sage's output OR sends Sage back to refine |
+| 2. Intake | **Canonical** | Lorenzo team runs: PDF/PPTX → structured JSON spec + canonical PNGs | Admin endorses Lorenzo team's output OR sends it back to refine |
 | 3. Setup | **Property Setup** | Pick entities, projection windows, mode confirmation | Acceptance agent confirms entity data is loaded |
 | 4. Drafter + vetting | **Content Drafting & Vetting** | Drafter LLM writes per-slot copy with citations + open questions; admin vets | Every required slot filled, within character budget, admin-approved |
 | 5. Render + verification | **Render & Verification** | Per-team factory line runs: Reader → Builder → Inspector | Both Pass-1 (math) and Pass-2 (judgment) green per slide |
@@ -74,13 +74,13 @@ Tabs 2–6 are grayed out until Tab 1 is saved + accepted. Tab 4 is the natural 
 
 ### B. Per-team naming convention: shared first name + numeric suffix
 
-When multiple specialist agents share a mission, they share **one human first name** with a **numeric suffix indicating line stage**. Example: Ana 1, Ana 2, Ana 3 are three specialists on the Slide-1 line. The user explicitly stated this convention as load-bearing for discoverability and reasoning. (auto memory [claude])
+When multiple specialist agents share a mission, they share **one human first name** with a **numeric suffix indicating line stage**. Example: Sofia 1, Sofia 2, Sofia 3 are three specialists on the Slide-1 team. The user explicitly stated this convention as load-bearing for discoverability and reasoning. (auto memory [claude])
 
 Generic application:
 
-- One mission = one shared name. Six independent missions (six slides) = six distinct names (Ana, Bea, Cleo, Dani, Eli, Felix).
+- One mission = one shared name. Six independent missions (six slides) = six distinct names (Sofia, Bianca, Chiara, Dario, Elisa, Felix).
 - Within a mission, suffix in line-order: N1 first, N2 second.
-- Cross-mission shared infrastructure (orchestrator, primitives) gets a separate role name, not a numbered slot in a mission's name. The slide factory's orchestrator is **Foreman**.
+- Cross-mission shared infrastructure (orchestrator, primitives) gets a separate role name, not a numbered slot in a mission's name. The slide factory's orchestrator is **Marco**.
 
 This is a generic naming pattern, not slide-specific. Any agent-native mission-decomposition benefits.
 
@@ -100,7 +100,7 @@ N1 (Reader)        N2 (Builder)         N3 (Inspector)
 
 Two exceptions in the slide factory illustrate when to vary:
 
-- **Dani (deterministic slide 4)** collapses Reader+Builder into 2 agents — content is 100% deterministic from the siblings array.
+- **Dario (deterministic slide 4)** collapses Reader+Builder into 2 agents — content is 100% deterministic from the siblings array.
 - **Felix (slide-6 transformation)** expands to 5 agents — adds a sub-pipeline (Felix 4 IS Calculator + Felix 5 IS Formatter) feeding the Builder/Paster, who performs the layout judgment. (auto memory [claude])
 
 For content-needing-judgment slides, a **Drafter** is added as a fourth role that runs separately (in Tab 4) before Builder. Drafter writes narrative copy with citations and open questions; admin vets; Builder takes vetted content and fits it. Builder is **assemble-only**, never auto-drafting. This separation is what makes admin vetting (Defense J below) tractable.
@@ -130,19 +130,19 @@ async function holisticJudgmentPass(
 ): Promise<{ ok: boolean; concerns: Concern[] }> { /* Opus 4.7 with vision */ }
 ```
 
-### E. Sage intake pipeline: deterministic-extract + vision-reconcile
+### E. Lorenzo ingestion pipeline: deterministic-extract + vision-reconcile
 
 The intake pipeline that turns a canonical artifact (PDF/PPTX) into a structured spec is **architecturally symmetric to the Inspector**: deterministic primitive extraction provides the math floor, LLM vision contributes only interpretive fields. (auto memory [claude])
 
 | Stage | Role | Determinism |
 |---|---|---|
-| Sage 1 | PDF Primitive Extractor (PyMuPDF/pdfplumber) | Deterministic |
-| Sage 2 | Visual Renderer (PDF → PNG at canonical resolution) | Deterministic |
-| Sage 3 | Vision Reconciler (LLM + vision) | Interpretive fields only |
-| Sage 4 | Schema Validator (Zod / JSON Schema) | Deterministic |
-| Sage 5 | Inspector (LLM + vision, optional second pass) | Holistic judgment |
+| Lorenzo-01 | PDF Primitive Extractor (`pdftotext -bbox` → word-level elements) | Deterministic |
+| Lorenzo-02 | Visual Renderer (canonical PNGs at stable R2 keys) | Deterministic |
+| Lorenzo-03 | Vision Reconciler (Opus 4.7 per-slide, LLM + vision) | Interpretive fields only |
+| Lorenzo-04 | Carlo — Schema Validator (Zod) | Deterministic |
+| Lorenzo-05 | Holistic Inspector (Opus 4.7, optional second pass) | Holistic judgment |
 
-The schema lock is the key defense: Sage 3's output cannot overwrite numerical fields (bbox, font_size, color) that came from Sage 1. Sage 3 only contributes `semantic_role`, `variable_binding`, `overflow_behavior`, `character_count`. Schema validator (Sage 4) rejects numerical-field overwrites.
+The schema lock is the key defense: Lorenzo-03's output cannot overwrite numerical fields (bbox, font_size, color) that came from Lorenzo-01. Lorenzo-03 only contributes `semantic_role`, `variable_binding`, `overflow_behavior`, `character_count`. Schema validator (Lorenzo-04/Carlo) rejects numerical-field overwrites.
 
 This is a separate pipeline from the per-render hot path. It runs on demand when a new canonical is uploaded.
 
@@ -163,7 +163,7 @@ Builder runs only after the admin endorses the vetted slate. This is the stronge
 
 The tabbed wizard pattern (Section A above) is the right UX for any acceptance-gated multi-stage pipeline where some steps need human review. The user explicitly framed the model: *"if I am looking at a page with tabs… the first one would be asking the admin for basic information including for admin to upload or delete files… all other tabs… will be grayed out until the admin Saves the tab."* (auto memory [claude])
 
-Within each tab, a **scoped progress display** shows only the stages relevant to that phase, with status icons (`○` queued, `⚙` running, `✓` done, `✗` failed, `⏸` blocked-on-admin). A compact banner at the top of the page shows the global state (`Tab 2 — Canonical Comprehension · Sage 4 working on slide 3 (~32%)`). Stage events stream via SSE for live progress.
+Within each tab, a **scoped progress display** shows only the stages relevant to that phase, with status icons (`○` queued, `⚙` running, `✓` done, `✗` failed, `⏸` blocked-on-admin). A compact banner at the top of the page shows the global state (`Tab 2 — Lorenzo Ingestion · Lorenzo-03 working on slide 3 (~32%)`). Stage events stream via SSE for live progress.
 
 **Resumability is non-negotiable.** Each completed stage's output persists. Admin closes the tab, refresh resumes from the last completed stage. Runs persist indefinitely; admin can re-open a prior run, change Tab 1 inputs, re-run from any tab. The cache (Defense F below) shortcuts unchanged stages.
 
@@ -233,20 +233,20 @@ Failure recovery is **per failure class**, not one global retry policy: (auto me
 Prompts live in version-controlled skill files, organized DRY: (auto memory [claude])
 
 ```
-.agents/skills/
-  factory-shared/SKILL.md        # PALETTE, FONTS, canonical-fidelity rules,
-                                  # forbidden-claim list (defense C),
-                                  # conservative-fallback instruction (E),
-                                  # citation-required pattern,
-                                  # 10-point self-validation checklist
-  factory-ana/SKILL.md           # per-team prompts, ## Includes factory-shared
-  factory-bea/SKILL.md
-  factory-cleo/SKILL.md
-  factory-dani/SKILL.md
-  factory-eli/SKILL.md
-  factory-felix/SKILL.md
-  factory-foreman/SKILL.md
-  factory-sage/SKILL.md          # future
+.agents/skills/slide-factory/
+  SKILL.md                       # master roster, pipeline overview, hallucination
+                                  # defenses, model tiers, key files
+  teams/marco.md                 # factory orchestrator
+  teams/lorenzo-team.md          # canonical ingestion (Lorenzo-01..05)
+  teams/lucca.md                 # content drafter (Tab 4)
+  teams/maya.md                  # visual inspector (Pass 2)
+  teams/sofia-team.md            # Slide 1 team (Sofia-01..03)
+  teams/bianca-team.md           # Slide 2 team
+  teams/chiara-team.md           # Slide 3 team
+  teams/dario-team.md            # Slide 4 team (deterministic)
+  teams/elisa-team.md            # Slide 5 team
+  teams/felix-team.md            # Slide 6 team (expanded 5-agent)
+  minions/minions.md             # Aldo, Bruno, Carlo, Dino, Enzo
 ```
 
 Per-team skills reference shared content via `## Includes` sections; the skill loader resolves and concatenates at prompt-assembly time. Defense C and other shared rules live once; drift is structurally impossible.
@@ -270,7 +270,7 @@ The agent-native architecture **wraps** the existing deterministic render core, 
 - Call existing payload builders (`buildSlidePayload`, `buildLbPayload`); do not replace.
 - Render existing React components (`Slide{N}.tsx`); do not fork.
 - Use the existing singleton Playwright browser.
-- Foreman exposes a new entry point (`POST /api/factory/render-deck`); legacy endpoints (`/api/properties/:id/deck.pdf`, `/api/lb-slides/render`) remain as the backend for the manual fallback button.
+- Marco exposes a new entry point (Tab 5 dispatch via `POST /api/lb-slides/factory/runs/:id/trigger-build`); legacy endpoints (`/api/properties/:id/deck.pdf`, `POST /api/lb-slides/render`) remain as the backend for the manual fallback button.
 
 This keeps the deterministic-render layer (covered by the four prior architecture-pattern docs) intact and lets the agent overlay be developed, tested, and rolled back independently.
 
@@ -282,9 +282,9 @@ This keeps the deterministic-render layer (covered by the four prior architectur
 
 **Human time is the cheapest precision tool we have.** The vetting UI (J) is not a workaround for weak LLMs — it is a deliberate architectural choice. The user said it directly: *"the admin's time is cheaper than the cost of a hallucination shipping in front of an investor."* Designing the system to surface bets to a human, with citations and open questions, is more reliable than any prompt-engineering approach. (auto memory [claude])
 
-**Agent-native overlay enables emergent capability.** The Sage intake pipeline (E) means future canonicals can be ingested without code changes. The user explicitly mentioned this: *"the next set of slides, some day in the future, you would only ask me to upload a PDF file and the PNG file."* The deterministic render core can't deliver that — it requires hand-curated specs. The agent overlay makes it tractable. (auto memory [claude])
+**Agent-native overlay enables emergent capability.** The Lorenzo intake pipeline (E) means future canonicals can be ingested without code changes. The user explicitly mentioned this: *"the next set of slides, some day in the future, you would only ask me to upload a PDF file and the PNG file."* The deterministic render core can't deliver that — it requires hand-curated specs. The agent overlay makes it tractable. (auto memory [claude])
 
-**Naming conventions reduce cognitive overhead.** Six teams of three named `text-harvester-1`, `slot-fitter-1`, `inspector-1` per team is a denial-of-service attack on the developer's working memory. Six teams of three named Ana 1/2/3, Bea 1/2/3, etc., is reasoned about easily and lets `Foreman` stand out as the orchestrator without ambiguity.
+**Naming conventions reduce cognitive overhead.** Six teams of three named `text-harvester-1`, `slot-fitter-1`, `inspector-1` per team is a denial-of-service attack on the developer's working memory. Six teams named Sofia 1/2/3, Bianca 1/2/3, etc., is reasoned about easily and lets `Marco` stand out as the orchestrator without ambiguity.
 
 **Tiered failure handling and the manual fallback button are reliability tools, not safety nets.** The legacy render path stays available specifically *because* the factory has hard precision gates. When a gate trips, the admin gets a clear choice: fix the input (vetting Tab 4 question, cross-validation disagreement) or explicitly opt into the legacy path with metadata-tagged output. This is more honest than an auto-fallback that silently degrades quality.
 
@@ -322,18 +322,18 @@ The user wants a NEW render/photo from storage placed below an existing photo, *
 **After (agent-native overlay).**
 
 ```
-Cleo 1 (Reader)         loads canonical spec for slide 3, swap contract, payload, canonical PNG
-Cleo 2 (Builder, LLM)   reasons about: aspect-ratio match between hero photo and harmony-second
+Chiara 1 (Reader)       loads canonical spec for slide 3, swap contract, payload, canonical PNG
+Chiara 2 (Builder, LLM) reasons about: aspect-ratio match between hero photo and harmony-second
                         photo, vertical alignment, gap below existing photo, caption tone for new
-                        photo. Outputs schema-validated payload to Cleo 3.
-Cleo 3 (Inspector)      Pass 1: pixel-diff vs canonical Slide 3 PNG within ±2px (chrome must
+                        photo. Outputs schema-validated payload to Chiara 3.
+Chiara 3 (Inspector)    Pass 1: pixel-diff vs canonical Slide 3 PNG within ±2px (chrome must
                         match exactly); Pass 2: Opus 4.7 with vision evaluates whether the new
                         photo is genuinely harmonious — same crop ratio, same vertical rhythm
                         with existing photo, caption fitting the slot's editorial tone.
                         Cross-validated by GPT-5 (defense D).
 ```
 
-The judgment lives in Cleo 2; the math floor in Cleo 3 Pass 1; the holistic gate in Cleo 3 Pass 2. The admin vets the photo selection upstream in Tab 4 (per Defense J + Q11 confirmed: admin picks photos, LLM places them).
+The judgment lives in Chiara 2; the math floor in Chiara 3 Pass 1; the holistic gate in Chiara 3 Pass 2. The admin vets the photo selection upstream in Tab 4 (per Defense J + Q11 confirmed: admin picks photos, LLM places them).
 
 ### Example 2 — Slide 6 LB-mode layout transformation
 
@@ -360,22 +360,22 @@ Felix 3 (Inspector)           Pass 1: pixel-diff vs canonical Slide 6 PNG (ignor
 
 Felix 2 is where the judgment lives — *"respect proper padding against title, slide number, and other elements"*. The user described this as judgment, not policy. Without an LLM, you'd encode preserve/move/eliminate as a config table that breaks on any canonical that doesn't match the table's assumptions. (auto memory [claude])
 
-### Example 3 — Sage intake replaces ChatGPT-5.4 + PowerPoint manual workflow
+### Example 3 — Lorenzo ingestion replaces ChatGPT-5.4 + PowerPoint manual workflow
 
 **Before.** Admin had a new canonical PDF. Steps: (1) iterate with ChatGPT 5.4 producing JSON until an 8.3MB `spec_skeleton_v4.json` is "complete enough"; (2) export each slide from PPTX as a 960×540 PNG manually; (3) drop everything into `attached_assets/` and R2; (4) hand-edit the swap contract. Days of work, one-off, not reproducible. (auto memory [claude])
 
-**After (Sage team, 5 specialists).** Admin uploads PDF (and optionally PPTX) in Tab 1. In Tab 2:
+**After (Lorenzo team, 5 agents).** Admin uploads PDF (and optionally PPTX) in Tab 1. In Tab 2:
 
 ```
-Sage 1   PyMuPDF deterministic primitive extraction              -> raw extraction JSON
-Sage 2   PDF -> 960x540 PNG rasterization                        -> canonical PNGs
-Sage 3   LLM + vision reconciler (Opus 4.7, GPT-5 challenger)    -> semantic_role, variable_binding,
-         (schema-locked: cannot overwrite Sage 1's numerics)        overflow_behavior, character_count
-Sage 4   Schema validator (Zod)                                  -> pass / fail with diff
-Sage 5   LLM + vision inspector                                  -> punch list back to Sage 3
+Lorenzo-01   pdftotext -bbox primitive extraction                 -> word-level elements JSON
+Lorenzo-02   canonical PNGs at stable R2 keys (no per-run regen) -> canonical PNG paths
+Lorenzo-03   LLM + vision reconciler (Opus 4.7, per-slide)        -> semantic_role, variable_binding,
+             (schema-locked: cannot overwrite Lorenzo-01 numerics)   overflow_behavior, character_count
+Lorenzo-04   Carlo — Zod schema validator                         -> pass / fail with diff
+Lorenzo-05   Holistic inspector (Opus 4.7)                        -> punch list / approved verdict
 ```
 
-Sage 4 drives Sage 3's refinement loop. When Sage 4 passes and Sage 5 ships green, Tab 2 surfaces the JSON spec + canonical PNGs for admin endorsement. Admin endorses (or sends back with notes). Output lands in R2 at `canonical/<deck-name>/spec.json` + `slides/slide-{1..N}.png` + `r2-manifest.json`.
+Lorenzo-04/Carlo drives Lorenzo-03's refinement loop. When Carlo passes and Lorenzo-05 ships green, Tab 2 surfaces the JSON spec + canonical PNGs for admin endorsement. Admin endorses (or sends back with notes). Output is stored as `canonicalSpec` JSONB on the run row + R2 keys for canonical PNGs.
 
 The same architectural pattern (deterministic-extract + LLM-vision-reconcile + schema-lock) is what makes the Inspector work on the render side. Symmetry is intentional: hard truths get math, soft judgment gets vision, the two are kept separately accountable. (auto memory [claude])
 
@@ -415,9 +415,9 @@ This pattern layers on top of the deterministic render core. The four prior arch
 - `docs/solutions/architecture-patterns/canonical-contract-rebuild-architecture-2026-05-03.md` — Four-layer architecture for fixed-design deck rendering (schema / theme / renderer / payload-builder + self-validation gate). Moderate overlap (3/5): shared problem domain (LB slides), shared canonical-contract substrate the agents now consume, shared file references. Differs in motivation (renderer correctness vs agent orchestration). The four layers remain the foundation; this doc adds the agent-native overlay above them.
 - `docs/solutions/architecture-patterns/lb-deck-composite-payload-architecture-2026-05-04.md` — Composite payload over multi-pass rendering for the 6-slide LB deck. Moderate overlap (3/5): same deck, same per-slide-different-property structure that the six per-slide teams now produce; shared composite-payload solution approach. Differs in layer (rendering vs intake/build/inspect). Composite payload is now produced by per-slide team Builders rather than a single rendering route.
 - `docs/solutions/architecture-patterns/slide-payload-slot-specific-schema-2026-05-03.md` — Per-slot semantics in `SlidePayload` instead of a generic bag. Moderate overlap (2/5): the agent factory's Builder role outputs into exactly this slot-specific schema. Different problem (schema design vs production pipeline). Builders are the canonical schema producers; Inspectors are the canonical schema verifiers.
-- `docs/solutions/architecture-patterns/two-format-slide-deck-generation-2026-05-02.md` — Editable PPTX + image-locked PPTX dual pipeline on Railway. Low overlap (1/5): same deck domain, output-format only; orthogonal to the agent overlay.
-- `docs/solutions/architecture-patterns/rebecca-agent-native-architecture-2026-05-05.md` — Function-calling agentic loop, action parity. Moderate overlap (2/5): shared agent-native philosophy and per-stage model selection theme. Different agent (Rebecca conversational vs Sage/team factory) and different problem.
-- `docs/solutions/architecture-patterns/ai-intelligence-specialists-page-2026-05-02.md` — Specialists accordion IA. Moderate overlap (2/5): the eight Sage specialists + six team triads will surface here; same nav/IA surface, different layer.
+- `docs/solutions/architecture-patterns/slide-deck-generation-decision-reversal-2026-05-03.md` — Decision record: Playwright HTML→PDF replaced the two-format PPTX pipeline. Low overlap (1/5): same deck domain, output-format history only; orthogonal to the agent overlay.
+- `docs/solutions/architecture-patterns/rebecca-agent-native-architecture-2026-05-05.md` — Function-calling agentic loop, action parity. Moderate overlap (2/5): shared agent-native philosophy and per-stage model selection theme. Different agent (Rebecca conversational vs the slide factory's Lorenzo/Marco/per-slide-team pipeline) and different problem.
+- `docs/solutions/architecture-patterns/ai-intelligence-specialists-page-2026-05-02.md` — Specialists accordion IA. Moderate overlap (2/5): the Lorenzo ingestion team + six slide-build teams will surface here; same nav/IA surface, different layer.
 - `docs/solutions/workflow-issues/three-way-diff-recon-methodology-2026-05-03.md` — Three-way diff (human brief × machine-precise JSON spans × generated PDF) for diagnosing canonical drift. The hybrid Inspector's pixel-diff Pass 1 is conceptually descended from this slot-level diff methodology.
 - `docs/slide-system/canonical/spec_skeleton_v4.json`, `docs/slide-system/canonical/design-contract.json`, `docs/slide-system/canonical/coding-agent-instructions.md`, `docs/slide-system/canonical/self-validation-checklist.md` — the canonical contract artifacts the factory consumes and validates against.
 - `artifacts/api-server/src/slides/`, `artifacts/hospitality-business-portal/src/features/internal-deck/` — the existing render-pipeline modules wrapped by the agent overlay (not replaced).
