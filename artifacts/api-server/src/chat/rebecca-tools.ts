@@ -104,6 +104,21 @@ export function getRebeccaTools(): ToolParam[] {
       },
     },
     {
+      name: "update_scenario_assumptions",
+      description: "Patch a scenario's global financial assumptions (e.g. projectionYears, baseManagementFeePercent, modelStartDate). Merges the supplied key-value pairs into the existing snapshot. Fails if the scenario is locked.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "Scenario ID" },
+          patches: {
+            type: "object",
+            description: "Partial globalAssumptions fields to update (e.g. { projectionYears: 20, baseManagementFeePercent: 0.05 })",
+          },
+        },
+        required: ["id", "patches"],
+      },
+    },
+    {
       name: "lock_scenario",
       description: "Lock a scenario so it cannot be edited.",
       parameters: {
@@ -195,6 +210,8 @@ export async function dispatchRebeccaTool(
         return await toolCreateScenario(args, ctx);
       case "update_scenario":
         return await toolUpdateScenario(args, ctx);
+      case "update_scenario_assumptions":
+        return await toolUpdateScenarioAssumptions(args, ctx);
       case "lock_scenario":
         return await toolLockScenario(args, ctx);
       case "delete_scenario":
@@ -438,6 +455,40 @@ async function toolUpdateScenario(
 
   return {
     result: { success: true, updated: Object.keys(fields) },
+    dataChanged: { entityType: "scenario", entityId: id },
+  };
+}
+
+async function toolUpdateScenarioAssumptions(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const id = args.id as number;
+  const patches = args.patches as Record<string, unknown>;
+
+  const sc = await storage.getScenario(id);
+  if (!sc || sc.userId !== ctx.userId) {
+    return { result: { error: "Not found" } };
+  }
+  if (sc.isLocked) {
+    return { result: { error: "Scenario is locked and cannot be edited" } };
+  }
+
+  const mergedGA = {
+    ...(sc.globalAssumptions as Record<string, unknown>),
+    ...patches,
+  };
+
+  await storage.updateScenarioSnapshot(id, {
+    globalAssumptions: mergedGA,
+    properties: sc.properties as import("@workspace/db").ScenarioPropertySnapshot[],
+    feeCategories: sc.feeCategories as Record<string, import("@workspace/db").ScenarioFeeCategorySnapshot[]> | undefined,
+    propertyPhotos: sc.propertyPhotos as Record<string, import("@workspace/db").ScenarioPhotoSnapshot[]> | undefined,
+    serviceTemplates: sc.serviceTemplates as import("@workspace/db").ScenarioServiceTemplateSnapshot[] | undefined,
+  });
+
+  return {
+    result: { success: true, updated: Object.keys(patches) },
     dataChanged: { entityType: "scenario", entityId: id },
   };
 }

@@ -21,7 +21,7 @@ feature ships or a new Rebecca tool is added.
 | Create scenario | Scenarios → New | `create_scenario` | ✅ |
 | Clone scenario | Scenarios → Clone | `create_scenario (cloneFromId)` | ✅ |
 | Edit scenario name / description / tags | Scenario → Edit | `update_scenario` | ✅ |
-| Edit scenario financial assumptions | Scenario → Edit | — | ⚠️ `update_scenario` only touches name/description/tags — `globalAssumptions` snapshot unreachable |
+| Edit scenario financial assumptions | Scenario → Edit | `update_scenario_assumptions` | ✅ |
 | Lock scenario | Scenario → Lock | `lock_scenario` | ✅ |
 | Delete scenario | Scenario → Delete | `delete_scenario` | ✅ |
 | Run property research | Property → Research | `trigger_research` | ✅ |
