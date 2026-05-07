@@ -235,7 +235,7 @@ The "LB Slides" feature generates a 6-slide investor deck per property as a sing
 - Canonical reference deck: `attached_assets/canonical/pdf/L+B_Property_6-Slide_Cannonical_1777859377769.pdf`
 - **Canonical PNGs (pixel-authoritative):** `attached_assets/canonical/png/L+B_Property_6-Slide_Cannonical_Page_{1..6}_*.png` — also uploaded to R2 at `canonical/lb-6-slide/slides/slide-{1..6}.png`. Every rendered slide must be compared against the corresponding PNG before delivery. Use the `lb-slides-canonical-pngs` skill for comparison checklist and re-upload workflow. PNG wins over JSON spec when they disagree.
 - Machine-readable layout extract: `attached_assets/canonical/json/slide_analysis_agent_report.precise_1777824741855.json`
-- Per-slide briefs (full structural extraction): `attached_assets/Pasted-SLIDE-1-Sul-Monte-…txt`, `Pasted-SLIDE-2-Hazelnis-Retreat-…txt`, `Pasted-SLIDE-3-Cartagena-Duplex-…txt`
+- Per-slide briefs (full structural extraction): `attached_assets/canonical/briefs/Pasted-SLIDE-1-Sul-Monte-…txt`, `Pasted-SLIDE-2-Hazelnis-Retreat-…txt`, `Pasted-SLIDE-3-Cartagena-Duplex-…txt`
 - Generation workflow and comparison steps: `docs/slide-system/canonical/coding-agent-instructions.md` (Section 15 = mandatory canonical PNG comparison)
 - Text-field char limits and source priority: `hplus-vision-templates` skill
 - Budget realism for transformation copy: `hplus-renovation-benchmarks` skill
@@ -311,9 +311,9 @@ Use the `ui-page-patterns` skill before building or revising any page.
 | `attached_assets/canonical/pptx/belleayre-mountain-slides_1777774635693.pptx` | Canonical PPTX source — original design file; canonical photos extracted from here |
 | `attached_assets/canonical/json/slide_analysis_agent_report.precise_1777824741855.json` | **Machine-readable layout extract of the canonical deck** (PyMuPDF, 960×540 pt coords, ~650 KB, 6 pages). Per-span bbox / font / size / color and per-image bbox for every native element. Authoritative for text positions, fonts, colors. **Not authoritative** for: card chrome and band backgrounds (rasterized — sample from rendered PNG), z-order (use `paint_operation_log`), page backgrounds on pages 1–3 (PDF paint is `#FFFFFF`; the cream is baked into the page-background image), and image pixel data (bbox + digest only). Slides 1–3 each use a different sample property (Belleayre/Sul Monte body, Hazelnis, Cartagena); slides 4–6 are property-agnostic. |
 | `attached_assets/canonical/json/canonical_slide_render_spec_v4_pdf_deterministic_1777859022805.json` | Full PDF extraction with per-character bboxes (reference only — do not parse at runtime; 60 MB) |
-| `attached_assets/Pasted-SLIDE-1-Sul-Monte-Investment-Spotlight-0-Slide-Level-Me_1777741401797.txt` | Slide 1 full structural brief (coords, fonts, copy) |
-| `attached_assets/Pasted-SLIDE-2-Hazelnis-Retreat-Investment-Spotlight-0-Slide-L_1777741586519.txt` | Slide 2 full structural brief |
-| `attached_assets/Pasted-SLIDE-3-Cartagena-Duplex-Satellite-Expansion-0-Slide-Le_1777741627557.txt` | Slide 3 full structural brief |
+| `attached_assets/canonical/briefs/Pasted-SLIDE-1-Sul-Monte-Investment-Spotlight-0-Slide-Level-Me_1777741401797.txt` | Slide 1 full structural brief (coords, fonts, copy) |
+| `attached_assets/canonical/briefs/Pasted-SLIDE-2-Hazelnis-Retreat-Investment-Spotlight-0-Slide-L_1777741586519.txt` | Slide 2 full structural brief |
+| `attached_assets/canonical/briefs/Pasted-SLIDE-3-Cartagena-Duplex-Satellite-Expansion-0-Slide-Le_1777741627557.txt` | Slide 3 full structural brief |
 | `.agents/skills/hplus-vision-templates/SKILL.md` | Slide-text source-priority pipeline + char limits |
 | `.agents/skills/hplus-renovation-benchmarks/SKILL.md` | Per-key reno cost ranges + transformation cost lines |
 | `.agents/skills/lb-slides-canonical-pngs/SKILL.md` | Canonical PNG registry — R2 keys, local paths, per-slide content reference, comparison checklist, re-upload workflow |
