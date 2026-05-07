@@ -97,6 +97,10 @@ H+ Analytics is a hospitality-sector financial analytics platform that helps ass
 | Intelligence display components | `analyst-intelligence-display` skill |
 | Memory file harmonization | `agent-memory-files` skill |
 
+## User Preferences
+
+- **File storage:** All project files stay local to this MacBook. Do not use Google Drive or Dropbox for any project files, assets, or outputs.
+
 ## Recent Significant Changes
 
 | Date | Change |
