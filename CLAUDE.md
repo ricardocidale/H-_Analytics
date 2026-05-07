@@ -201,3 +201,62 @@ from Brazilian or Italian naming traditions (male or female).
 **Never use:** Sergio, Milton
 
 **Skill for full detail:** `.agents/skills/slide-factory/SKILL.md`
+
+---
+
+## 11. Frontend Design Standards — DESIGN GATE
+
+Every frontend coding or refactor unit (any change to `.tsx`, `.jsx`, `.ts`/`.js`
+that renders UI, `.css`, `.scss`, `.html`, `.vue`, `.svelte`) MUST be reviewed
+against design standards **before declaring the unit done.**
+
+**Hard mandate:** invoke `/post-coding-design-review` before marking any
+frontend-touching unit complete. The skill reads the diff, identifies the
+project's design system (Tailwind config, theme tokens, component library),
+and reports findings against the principles below.
+
+**Pinned principles (always loaded — full skill at `~/.claude/plugins/marketplaces/claude-plugins-official/plugins/frontend-design/skills/frontend-design/SKILL.md`):**
+
+- **Typography** — distinctive, intentional pairings; never default Inter/Roboto/Arial
+  unless the system explicitly mandates them.
+- **Color & Theme** — cohesive palette with dominant + accent; CSS variables for
+  consistency; avoid timid evenly-distributed palettes and the
+  purple-gradient-on-white AI cliché.
+- **Spatial Composition** — intentional asymmetry, controlled density or generous
+  negative space; avoid generic centered-card layouts.
+- **Motion** — high-impact moments (page-load orchestration, scroll-triggered
+  reveals, hover surprises); CSS-first for HTML, Motion for React.
+- **Backgrounds & Detail** — atmosphere via gradient meshes, noise, layered
+  transparencies, dramatic shadows, custom cursors, grain — never flat solids
+  by default.
+- **AI-slop avoidance** — predictable component layouts, generic fonts, cookie-cutter
+  patterns, and convergent choices (e.g., always reaching for Space Grotesk) are
+  violations.
+- **Implementation match** — maximalist visions get elaborate code; refined visions
+  demand precision in spacing, typography, and subtle detail.
+
+**When the skill flags a finding**, fix it before declaring done. A design finding is
+a build-failure-equivalent for UI work.
+
+---
+
+## 12. Model Cost Optimization — PRE-CODING SUGGESTION
+
+Before starting substantive coding work, evaluate whether the active model fits
+the task complexity and **suggest a switch when there's a meaningful cost win
+without quality loss.**
+
+**Default routing heuristic:**
+- **Haiku** — single-file edits, mechanical refactors, well-scoped fixes,
+  documentation, simple lookups, syntax-only changes.
+- **Sonnet** — multi-file changes within one module, standard feature work,
+  most test additions.
+- **Opus** — financial engine code (Rule #9 surface), cross-cutting refactors,
+  ambiguous problems, deep debugging, architectural decisions, security review.
+
+If the user is on Opus and the upcoming task is clearly Haiku-tier, surface a
+one-line recommendation: *"This looks like a Haiku-tier task. Switch with
+`/model haiku` to save cost?"* The user may accept, decline, or override.
+Never switch silently — the user controls the model.
+
+**Skill for full detail:** `~/.claude/skills/model-cost-optimizer/SKILL.md`
