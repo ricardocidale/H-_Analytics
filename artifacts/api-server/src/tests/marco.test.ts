@@ -1,12 +1,13 @@
 /**
- * Marco — Unit 1 tests.
+ * Marco — Unit 1 + Unit 7 tests.
  *
  * Two layers:
  *   1. dispatchMarcoTool — deterministic primitive tools (no LLM)
  *   2. runMarco          — bounded agent loop (scripted Anthropic mock)
  *
- * Maya/Dino-related scenarios are deferred to U7. Phase 1 verifies team
- * dispatch + result writes + status transitions + loop bound.
+ * U7 additions: invoke_maya, invoke_dino, and raw-signal update_agent_result.
+ * Per-slide sequence: dispatch_slide_team → invoke_maya → invoke_dino → update_agent_result.
+ * Approval logic lives in handleUpdateAgentResult (deterministic), not in Marco's prompt.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { Mock } from "vitest";
@@ -31,6 +32,14 @@ vi.mock("../slides/swarms/dispatch", () => ({
   dispatchSlideTeam: vi.fn(),
 }));
 
+vi.mock("../slides/maya", () => ({
+  runMaya: vi.fn().mockResolvedValue({ verdict: "ok", headline: "Looks good", notes: null }),
+}));
+
+vi.mock("../slides/dino", () => ({
+  runDino: vi.fn().mockResolvedValue({ pixelDiffPct: 1.2, exceedsThreshold: false, threshold: 5 }),
+}));
+
 vi.mock("../logger", () => ({
   logger: {
     info: vi.fn(),
@@ -46,6 +55,8 @@ import {
   updateAgentResult,
 } from "../storage/slide-factory-runs";
 import { dispatchSlideTeam } from "../slides/swarms/dispatch";
+import { runMaya } from "../slides/maya";
+import { runDino } from "../slides/dino";
 import { runMarco } from "../slides/marco";
 import { dispatchMarcoTool } from "../slides/marco-tools";
 import { MARCO_MAX_TOOL_DEPTH, TOTAL_SLIDES } from "../slides/deck-render-constants";
@@ -88,19 +99,31 @@ function scriptedAnthropic(turns: Array<{ content: unknown[]; stop_reason?: stri
   };
 }
 
-// Marco's natural tool sequence for one slide: dispatch → update_agent_result
-function slideTurns(slideNumber: number, status: "approved" | "rejected" = "approved") {
+/**
+ * Marco's U7 per-slide sequence: dispatch → maya → dino → update_agent_result.
+ * teamStatus defaults to "ok" (approved); pass "block" or "fail" for rejection.
+ */
+function slideTurns(
+  slideNumber: number,
+  opts: { teamStatus?: string; mayaVerdict?: string; dinoExceeds?: boolean } = {},
+) {
+  const { teamStatus = "ok", mayaVerdict = "ok", dinoExceeds = false } = opts;
+  const dinoPixelDiffPct = dinoExceeds ? 8.5 : 1.2;
   return [
-    {
-      content: [makeToolUse("dispatch_slide_team", { runId: 42, slideNumber })],
-    },
+    { content: [makeToolUse("dispatch_slide_team", { runId: 42, slideNumber })] },
+    { content: [makeToolUse("invoke_maya", { runId: 42, slideNumber })] },
+    { content: [makeToolUse("invoke_dino", { runId: 42, slideNumber })] },
     {
       content: [
         makeToolUse("update_agent_result", {
           runId: 42,
           slideNumber,
-          status,
-          errorMessage: status === "rejected" ? "team rejected" : null,
+          teamStatus,
+          mayaVerdict,
+          mayaHeadline: null,
+          mayaNotes: null,
+          dinoPixelDiffPct,
+          dinoExceedsThreshold: dinoExceeds,
         }),
       ],
     },
@@ -128,10 +151,10 @@ function happyPathTurns() {
 describe("dispatchMarcoTool", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (getSlideFactoryRunById as Mock).mockResolvedValue(makeRun());
   });
 
   it("read_run returns run state subset", async () => {
-    (getSlideFactoryRunById as Mock).mockResolvedValue(makeRun());
     const out = await dispatchMarcoTool("read_run", { runId: 42 }, { runId: 42 });
     expect(out.result).toMatchObject({
       id: 42,
@@ -148,7 +171,6 @@ describe("dispatchMarcoTool", () => {
   });
 
   it("dispatch_slide_team passes slot drafts filtered by slide prefix", async () => {
-    (getSlideFactoryRunById as Mock).mockResolvedValue(makeRun());
     (dispatchSlideTeam as Mock).mockResolvedValue({
       slideNumber: 1, status: "ok", payloadV2: { x: 1 }, notes: null,
     });
@@ -158,31 +180,109 @@ describe("dispatchMarcoTool", () => {
     expect(passed.canonicalPngKey).toContain("slide-1");
   });
 
-  it("update_agent_result writes approved result with approvedAt timestamp", async () => {
-    await dispatchMarcoTool(
-      "update_agent_result",
-      { runId: 42, slideNumber: 3, status: "approved", errorMessage: null },
-      { runId: 42 },
-    );
-    const [runId, slideNumber, written] = (updateAgentResult as Mock).mock.calls[0];
-    expect(runId).toBe(42);
-    expect(slideNumber).toBe(3);
-    expect(written.status).toBe("approved");
-    expect(written.approvedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
-    expect(written.errorMessage).toBeNull();
-    expect(written.pixelDiffPct).toBeNull(); // U7 fills this
+  it("invoke_maya calls runMaya with cached payloadV2 and returns { verdict, headline, notes }", async () => {
+    // Populate the cache via dispatch_slide_team first (tests T4 — cache-hit path)
+    (dispatchSlideTeam as Mock).mockResolvedValue({
+      slideNumber: 2, status: "ok", payloadV2: { assembled: true }, notes: null,
+    });
+    await dispatchMarcoTool("dispatch_slide_team", { runId: 42, slideNumber: 2 }, { runId: 42 });
+    (runMaya as Mock).mockResolvedValue({ verdict: "advisory", headline: "Minor phrasing", notes: "verbose" });
+    const out = await dispatchMarcoTool("invoke_maya", { runId: 42, slideNumber: 2 }, { runId: 42 });
+    expect(out.result).toEqual({ verdict: "advisory", headline: "Minor phrasing", notes: "verbose" });
+    expect(runMaya).toHaveBeenCalledWith(2, { assembled: true }, expect.any(Object));
   });
 
-  it("update_agent_result writes rejected result with errorMessage and no approvedAt", async () => {
-    await dispatchMarcoTool(
+  it("invoke_maya returns error when payloadV2 is missing (dispatch_slide_team not called first)", async () => {
+    const out = await dispatchMarcoTool("invoke_maya", { runId: 42, slideNumber: 5 }, { runId: 42 });
+    expect(out.result).toMatchObject({ error: expect.stringContaining("payloadV2 unavailable") });
+    expect(runMaya).not.toHaveBeenCalled();
+  });
+
+  it("invoke_dino calls runDino and returns { pixelDiffPct, exceedsThreshold, threshold }", async () => {
+    (runDino as Mock).mockResolvedValue({ pixelDiffPct: 3.7, exceedsThreshold: false, threshold: 5 });
+    const out = await dispatchMarcoTool("invoke_dino", { runId: 42, slideNumber: 3 }, { runId: 42 });
+    expect(out.result).toEqual({ pixelDiffPct: 3.7, exceedsThreshold: false, threshold: 5 });
+    expect(runDino).toHaveBeenCalledWith(3, expect.stringContaining("slide-3"));
+  });
+
+  it("update_agent_result computes approved when all signals pass", async () => {
+    const out = await dispatchMarcoTool(
       "update_agent_result",
-      { runId: 42, slideNumber: 5, status: "rejected", errorMessage: "team rejected" },
+      {
+        runId: 42, slideNumber: 3,
+        teamStatus: "ok", mayaVerdict: "ok", mayaHeadline: null, mayaNotes: null,
+        dinoPixelDiffPct: 1.5, dinoExceedsThreshold: false,
+      },
       { runId: 42 },
     );
-    const written = (updateAgentResult as Mock).mock.calls[0][2];
+    const [, , written] = (updateAgentResult as Mock).mock.calls[0];
+    expect(written.status).toBe("approved");
+    expect(written.pixelDiffPct).toBe(1.5);
+    expect(written.mayaVerdict).toBe("ok");
+    expect(written.approvedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(written.errorMessage).toBeNull();
+    expect(out.result).toMatchObject({ computedStatus: "approved" });
+  });
+
+  it("update_agent_result computes approved when maya verdict is advisory", async () => {
+    await dispatchMarcoTool(
+      "update_agent_result",
+      {
+        runId: 42, slideNumber: 1,
+        teamStatus: "ok", mayaVerdict: "advisory", mayaHeadline: "Minor phrasing", mayaNotes: null,
+        dinoPixelDiffPct: 0, dinoExceedsThreshold: false,
+      },
+      { runId: 42 },
+    );
+    const [, , written] = (updateAgentResult as Mock).mock.calls[0];
+    expect(written.status).toBe("approved");
+    expect(written.errorMessage).toBeNull();
+  });
+
+  it("update_agent_result computes rejected when dino exceeds threshold", async () => {
+    await dispatchMarcoTool(
+      "update_agent_result",
+      {
+        runId: 42, slideNumber: 5,
+        teamStatus: "ok", mayaVerdict: "ok", mayaHeadline: null, mayaNotes: null,
+        dinoPixelDiffPct: 8.3, dinoExceedsThreshold: true,
+      },
+      { runId: 42 },
+    );
+    const [, , written] = (updateAgentResult as Mock).mock.calls[0];
     expect(written.status).toBe("rejected");
-    expect(written.errorMessage).toBe("team rejected");
+    expect(written.errorMessage).toMatch(/dino=8\.3% > threshold/);
     expect(written.approvedAt).toBeNull();
+  });
+
+  it("update_agent_result computes rejected when maya verdict is warning", async () => {
+    await dispatchMarcoTool(
+      "update_agent_result",
+      {
+        runId: 42, slideNumber: 2,
+        teamStatus: "ok", mayaVerdict: "warning", mayaHeadline: "Revenue unverifiable", mayaNotes: "details",
+        dinoPixelDiffPct: 0, dinoExceedsThreshold: false,
+      },
+      { runId: 42 },
+    );
+    const [, , written] = (updateAgentResult as Mock).mock.calls[0];
+    expect(written.status).toBe("rejected");
+    expect(written.errorMessage).toMatch(/maya=warning/);
+  });
+
+  it("update_agent_result computes rejected when teamStatus is fail", async () => {
+    await dispatchMarcoTool(
+      "update_agent_result",
+      {
+        runId: 42, slideNumber: 4,
+        teamStatus: "fail", mayaVerdict: "ok", mayaHeadline: null, mayaNotes: null,
+        dinoPixelDiffPct: 0, dinoExceedsThreshold: false,
+      },
+      { runId: 42 },
+    );
+    const [, , written] = (updateAgentResult as Mock).mock.calls[0];
+    expect(written.status).toBe("rejected");
+    expect(written.errorMessage).toMatch(/team=fail/);
   });
 
   it("transition_status to complete sets completedAt", async () => {
@@ -200,8 +300,8 @@ describe("dispatchMarcoTool", () => {
   it("transition_status to complete is downgraded to error if any slide is rejected", async () => {
     (getSlideFactoryRunById as Mock).mockResolvedValue(makeRun({
       agentResults: {
-        slide1: { status: "approved", pixelDiffPct: null, mayaVerdict: null, mayaNotes: null, approvedAt: "2026-05-07", errorMessage: null },
-        slide3: { status: "rejected", pixelDiffPct: null, mayaVerdict: null, mayaNotes: null, approvedAt: null, errorMessage: "block" },
+        slide1: { status: "approved", pixelDiffPct: 1.0, mayaVerdict: "ok", mayaNotes: null, approvedAt: "2026-05-07T00:00:00Z", errorMessage: null },
+        slide3: { status: "rejected", pixelDiffPct: 9.0, mayaVerdict: "block", mayaNotes: "bad content", approvedAt: null, errorMessage: "maya=block" },
       },
     }));
     const out = await dispatchMarcoTool(
@@ -236,7 +336,6 @@ describe("dispatchMarcoTool", () => {
   });
 
   it("invalid slide number throws inside dispatch_slide_team", async () => {
-    (getSlideFactoryRunById as Mock).mockResolvedValue(makeRun());
     const out = await dispatchMarcoTool(
       "dispatch_slide_team",
       { runId: 42, slideNumber: 7 },
@@ -256,8 +355,6 @@ describe("dispatchMarcoTool", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("runMarco", () => {
-  // Shared state so getSlideFactoryRunById sees status changes that
-  // updateSlideFactoryRun makes (simulating the database).
   let currentStatus: string;
 
   beforeEach(() => {
@@ -276,6 +373,8 @@ describe("runMarco", () => {
       payloadV2: { stubbed: true },
       notes: null,
     }));
+    (runMaya as Mock).mockResolvedValue({ verdict: "ok", headline: "Looks good", notes: null });
+    (runDino as Mock).mockResolvedValue({ pixelDiffPct: 1.2, exceedsThreshold: false, threshold: 5 });
   });
 
   it("happy path — drives all 6 slides to approved and transitions to complete", async () => {
@@ -283,51 +382,40 @@ describe("runMarco", () => {
 
     await runMarco(42);
 
-    // Six dispatches, one per slide
     expect(dispatchSlideTeam).toHaveBeenCalledTimes(TOTAL_SLIDES);
-    // Six update_agent_result writes
+    expect(runMaya).toHaveBeenCalledTimes(TOTAL_SLIDES);
+    expect(runDino).toHaveBeenCalledTimes(TOTAL_SLIDES);
     expect(updateAgentResult).toHaveBeenCalledTimes(TOTAL_SLIDES);
-    // Final transition to complete
     const finalPatch = (updateSlideFactoryRun as Mock).mock.calls[0][1];
     expect(finalPatch.status).toBe("complete");
   });
 
-  it("team-block-on-slide-3 — slide 3 written rejected, run transitions to error", async () => {
-    // Override: slide 3 returns block
-    (dispatchSlideTeam as Mock).mockImplementation(async (input: { slideNumber: number }) => {
-      if (input.slideNumber === 3) {
-        return { slideNumber: 3, status: "block", payloadV2: null, notes: "schema invalid" };
-      }
-      return { slideNumber: input.slideNumber, status: "ok", payloadV2: {}, notes: null };
-    });
-
+  it("slide 3 dino exceeds threshold — slide 3 rejected, run transitions to error", async () => {
     const turns = [
       { content: [makeToolUse("read_run", { runId: 42 })] },
-      ...slideTurns(1, "approved"),
-      ...slideTurns(2, "approved"),
-      ...slideTurns(3, "rejected"),
-      ...slideTurns(4, "approved"),
-      ...slideTurns(5, "approved"),
-      ...slideTurns(6, "approved"),
+      ...slideTurns(1),
+      ...slideTurns(2),
+      ...slideTurns(3, { dinoExceeds: true }),
+      ...slideTurns(4),
+      ...slideTurns(5),
+      ...slideTurns(6),
       { content: [makeToolUse("transition_status", { runId: 42, newStatus: "error" })] },
-      { content: [makeToolUse("complete_task", { summary: "slide 3 rejected" })] },
+      { content: [makeToolUse("complete_task", { summary: "slide 3 dino rejected" })] },
     ];
     (getAnthropicClient as Mock).mockReturnValue(scriptedAnthropic(turns));
 
     await runMarco(42);
 
     expect(updateAgentResult).toHaveBeenCalledTimes(TOTAL_SLIDES);
-    // Verify slide 3 was written rejected
     const slide3Call = (updateAgentResult as Mock).mock.calls.find(
       ([, slideNumber]) => slideNumber === 3,
     );
     expect(slide3Call?.[2].status).toBe("rejected");
-    // Verify final transition to error
     const finalPatch = (updateSlideFactoryRun as Mock).mock.calls[0][1];
     expect(finalPatch.status).toBe("error");
   });
 
-  it("team dispatch throws — wrapped as error result, run continues", async () => {
+  it("team dispatch throws — wrapped as error result, run continues across all slides", async () => {
     (dispatchSlideTeam as Mock).mockImplementation(async (input: { slideNumber: number }) => {
       if (input.slideNumber === 2) throw new Error("Bianca exploded");
       return { slideNumber: input.slideNumber, status: "ok", payloadV2: {}, notes: null };
@@ -335,12 +423,13 @@ describe("runMarco", () => {
 
     const turns = [
       { content: [makeToolUse("read_run", { runId: 42 })] },
-      ...slideTurns(1, "approved"),
-      ...slideTurns(2, "rejected"),
-      ...slideTurns(3, "approved"),
-      ...slideTurns(4, "approved"),
-      ...slideTurns(5, "approved"),
-      ...slideTurns(6, "approved"),
+      ...slideTurns(1),
+      // Slide 2: dispatch returns { error }, Marco continues with maya/dino/update
+      ...slideTurns(2, { teamStatus: "fail" }),
+      ...slideTurns(3),
+      ...slideTurns(4),
+      ...slideTurns(5),
+      ...slideTurns(6),
       { content: [makeToolUse("transition_status", { runId: 42, newStatus: "error" })] },
       { content: [makeToolUse("complete_task", { summary: "Bianca threw" })] },
     ];
@@ -348,9 +437,7 @@ describe("runMarco", () => {
 
     await runMarco(42);
 
-    // The throw was caught inside dispatchMarcoTool, so the loop didn't crash
     expect(updateAgentResult).toHaveBeenCalledTimes(TOTAL_SLIDES);
-    // Slide 2 should still have a result written (rejected)
     const slide2Call = (updateAgentResult as Mock).mock.calls.find(
       ([, slideNumber]) => slideNumber === 2,
     );
@@ -358,7 +445,6 @@ describe("runMarco", () => {
   });
 
   it("loop bound — emitting tool_use forever transitions run to error", async () => {
-    // Anthropic mock that always returns dispatch_slide_team(1) — never completes
     const fakeAnthropic = {
       messages: {
         create: vi.fn().mockImplementation(async () => ({
@@ -371,9 +457,7 @@ describe("runMarco", () => {
 
     await runMarco(42);
 
-    // Loop ran exactly MARCO_MAX_TOOL_DEPTH times before giving up
     expect(fakeAnthropic.messages.create).toHaveBeenCalledTimes(MARCO_MAX_TOOL_DEPTH);
-    // Run was best-effort marked as error
     const lastPatchCall = (updateSlideFactoryRun as Mock).mock.calls.at(-1);
     expect(lastPatchCall?.[1].status).toBe("error");
   });
@@ -396,16 +480,11 @@ describe("runMarco", () => {
 
     await runMarco(42);
 
-    // No completion signal → error
     const lastPatchCall = (updateSlideFactoryRun as Mock).mock.calls.at(-1);
     expect(lastPatchCall?.[1].status).toBe("error");
   });
 
   it("complete_task fired without transition_status — post-loop guard forces error", async () => {
-    // Scripted run completes without ever calling transition_status. The
-    // shared currentStatus mock state stays at 'building' since no
-    // transition_status call mutates it; the post-loop re-read then sees
-    // 'building' and Marco forces 'error'.
     const turns = [
       { content: [makeToolUse("read_run", { runId: 42 })] },
       ...slideTurns(1),
@@ -421,7 +500,6 @@ describe("runMarco", () => {
 
     await runMarco(42);
 
-    // Last updateSlideFactoryRun call should be the forced-error transition
     const lastPatchCall = (updateSlideFactoryRun as Mock).mock.calls.at(-1);
     expect(lastPatchCall?.[1].status).toBe("error");
   });
