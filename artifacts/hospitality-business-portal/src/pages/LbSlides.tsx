@@ -39,6 +39,7 @@ import { Slide2EditorPanel } from "@/features/internal-deck/editor/Slide2EditorP
 import { Slide3EditorPanel } from "@/features/internal-deck/editor/Slide3EditorPanel";
 import { Slide5EditorPanel } from "@/features/internal-deck/editor/Slide5EditorPanel";
 import type { ReadinessResponse } from "@/features/internal-deck/editor/editor-shared";
+import { SlideFactoryPanel } from "@/features/slide-factory/SlideFactoryPanel";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -379,6 +380,19 @@ export default function LbSlides() {
             title="LB Slide Studio"
             subtitle="Canonical 6-slide portfolio investor deck. Assign properties, author each slide, then render the PDF."
           />
+
+          {/* ── Slide Factory V2 ─────────────────────────────────────── */}
+          <Card>
+            <CardContent className="pt-5 pb-5">
+              <SlideFactoryPanel />
+            </CardContent>
+          </Card>
+
+          <div className="border-t border-border/50 pt-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+              Slide Editor
+            </p>
+          </div>
 
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as SlideTab)}>
             <TabsList className="flex flex-wrap h-auto gap-1 p-1">
