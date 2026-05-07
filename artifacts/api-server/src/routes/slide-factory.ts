@@ -38,6 +38,7 @@ import {
 } from "../storage/slide-factory-runs";
 import { runLorenzoIngestion } from "../slides/lorenzo-ingestion";
 import { runLuccaDraft } from "../slides/lucca-draft";
+import { runMarco } from "../slides/marco";
 import {
   HTTP_200_OK,
   HTTP_201_CREATED,
@@ -429,7 +430,9 @@ router.post(
       const building = await updateSlideFactoryRun(id, { status: "building" });
       logActivity(req, "update", "slide_factory_run", id, `run-${id}`, { action: "build-triggered" });
 
-      // Marco dispatch (slide teams) will be added in a later build unit.
+      // Fire-and-forget Marco dispatch — same pattern as runLorenzoIngestion / runLuccaDraft.
+      // Marco's internal failures transition the run to 'error' as a best-effort terminal state.
+      void runMarco(id);
 
       return res.status(HTTP_202_ACCEPTED).json(building);
     } catch (err: unknown) {

@@ -54,3 +54,23 @@ export const CARLO_FONT_WEIGHT_MIN = 100;
 export const CARLO_FONT_WEIGHT_MAX = 900;
 /** Max number of blocking errors to include in a single error message string */
 export const CARLO_MAX_ERRORS_IN_MSG = 5;
+
+// ── Marco orchestrator constants (Unit 1 — paired with Unit 4 swarm framework) ──
+
+/**
+ * Anthropic model used by Marco. Orchestration is text-only (no vision needed),
+ * so Sonnet is the cost-appropriate tier per CLAUDE.md §12. Marco's job is
+ * sequencing primitive tool calls, not creative generation.
+ */
+export const MARCO_MODEL = "claude-sonnet-4-6";
+
+/** max_tokens per Marco LLM turn — small because turns are mostly tool-use blocks */
+export const MARCO_MAX_TOKENS = 1024;
+
+/**
+ * Upper bound on Marco's agent loop iterations (one iteration = one
+ * messages.create round-trip). For TOTAL_SLIDES=6 the natural call count is
+ * read_run + 6×(dispatch + update) + transition + complete ≈ 15 turns;
+ * 30 leaves 2× headroom for retries and non-tool turns.
+ */
+export const MARCO_MAX_TOOL_DEPTH = 30;

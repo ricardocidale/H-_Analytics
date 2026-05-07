@@ -90,3 +90,36 @@ export async function updateSlideFactoryRun(
     .returning();
   return row;
 }
+
+/**
+ * Merge a single slide's `SlideAgentResult` into the run's `agentResults`
+ * JSONB without clobbering other slides. Read-modify-write inside one
+ * transaction so concurrent Marco writes for different slides don't race.
+ *
+ * Key shape: "slide1".."slide6".
+ */
+export async function updateAgentResult(
+  runId: number,
+  slideNumber: number,
+  result: SlideAgentResult,
+): Promise<SlideFactoryRun | undefined> {
+  return db.transaction(async (tx) => {
+    const [current] = await tx
+      .select({ agentResults: slideFactoryRuns.agentResults })
+      .from(slideFactoryRuns)
+      .where(eq(slideFactoryRuns.id, runId))
+      .limit(1);
+
+    const merged: Record<string, SlideAgentResult> = {
+      ...(current?.agentResults ?? {}),
+      [`slide${slideNumber}`]: result,
+    };
+
+    const [row] = await tx
+      .update(slideFactoryRuns)
+      .set({ agentResults: merged, updatedAt: new Date() })
+      .where(eq(slideFactoryRuns.id, runId))
+      .returning();
+    return row;
+  });
+}

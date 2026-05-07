@@ -238,7 +238,7 @@ The two architectural moves:
 
 **Files:**
 - Create: `artifacts/api-server/src/slides/marco.ts`
-- Create: `artifacts/api-server/src/slides/marco-tools.ts` (primitive tools: `read_run`, `dispatch_slide_team`, `invoke_maya`, `invoke_dino`, `update_agent_result`, `transition_status`, `complete_task`)
+- Create: `artifacts/api-server/src/slides/marco-tools.ts` (primitive tools: `read_run`, `dispatch_slide_team`, `update_agent_result`, `transition_status`, `complete_task`)
 - Modify: `artifacts/api-server/src/routes/slide-factory.ts:432` (replace TODO with Marco dispatch on `building` transition)
 - Modify: `artifacts/api-server/src/storage/slide-factory-runs.ts` (add `updateAgentResult(runId, slideNumber, result)` if not present)
 - Test: `artifacts/api-server/src/tests/marco.test.ts`
@@ -246,26 +246,33 @@ The two architectural moves:
 **Approach:**
 - Marco identity: `Marco` (single name, orchestrator per §10). System prompt: "You are Marco, the slide factory orchestrator. Your job: …"
 - Tools are primitives (per ce-agent-native-architecture #3): inputs are data, outputs are rich.
-- Marco system prompt encodes the dispatch shape: dispatch all six teams in parallel; for each completed team, invoke Maya then Dino; if any blocker verdict → set status `error` with structured note; once all six pass → status `complete`.
-- Use Anthropic SDK `MAX_TOOL_DEPTH = 5` per Rebecca pattern.
+- Marco system prompt encodes the dispatch shape: read run → dispatch each of the six per-slide teams sequentially → for each completed team, write its result to `agentResults` via `update_agent_result`; if a team returns `block` or throws → set that slide's status to `rejected` with the team's notes; once all six are written, transition status to `complete` (or `error` if any slide rejected).
+- **Maya verdict + Dino pixel-diff are deferred to U7.** Phase 1 Marco does not invoke them. The team's own Inspector (Reader→Builder→Inspector triad in U5/U6) carries the per-slide verdict in `SlideTeamOutput.status`. U7 adds `invoke_maya` / `invoke_dino` tools to Marco's tool list and updates the system prompt to interleave them between team dispatch and `update_agent_result`. Test scenarios for Maya verdict / Dino pixel-diff move to U7.
+- Sequential dispatch (not parallel) for Phase 1. Stub teams return immediately so latency is irrelevant; real teams in U5/U6 may parallelize via Anthropic multi-tool-use turn shape, decided then. Don't bake parallelism into the dispatcher tool (would violate primitive-tool discipline).
+- Use a bounded tool loop modeled on `routes/chat.ts:appendToolResults` Anthropic shape; cap at `MARCO_MAX_TOOL_DEPTH` iterations.
 
 **Patterns to follow:**
 - `artifacts/api-server/src/slides/minions/aldo.ts`, `minions/carlo.ts` — primitive-tool template (deterministic, but the input/output shape is the model).
 - `docs/solutions/architecture-patterns/rebecca-agent-native-architecture-2026-05-05.md` — tool-design + bounded loop.
 - `docs/solutions/architecture-patterns/agent-native-precision-pipeline-pattern-2026-05-06.md` — Marco's role in the topology.
 
-**Test scenarios:**
-- *Happy path:* run with `draft_review` status + all slot drafts approved → Marco dispatches six teams in parallel → all teams + Maya + Dino pass → status transitions to `complete`. Asserts `agentResults` JSONB shape.
-- *Edge — Maya verdict blocker on slide 3:* Maya returns block-severity for slide 3 → Marco transitions status to `error`, populates `agentResults.slide3.mayaVerdict = block`, persists `mayaNotes`.
-- *Edge — Dino pixel-diff exceeds threshold on slide 5:* same shape as above.
-- *Error path — team dispatch failure:* one team dispatch fails (e.g., Sofia raises exception) → Marco logs structured error, sets status `error`, surfaces failed team in `agentResults`.
-- *Integration:* end-to-end from `draft_review` → `complete` with all six teams stubbed to succeed.
+**Test scenarios (Phase 1 scope — Maya/Dino tests deferred to U7):**
+- *Happy path:* run with `draft_review` status + all slot drafts approved → Marco dispatches six teams sequentially → all teams return `ok` → each slide's `agentResults[slideN].status = approved` → Marco transitions status to `complete`. Asserts `agentResults` JSONB shape per slide.
+- *Edge — team returns block on slide 3:* Sofia/Bianca/Chiara/Dario/Elisa/Felix returns `{ status: 'block', notes: '...' }` for slide 3 → Marco writes `agentResults.slide3 = { status: 'rejected', errorMessage: notes, ... }` and continues other slides → final status `error` (any rejected slide gates `complete`).
+- *Error path — team dispatch throws:* one team dispatch raises an exception → Marco catches, writes `agentResults[slideN] = { status: 'rejected', errorMessage: '...' }`, continues remaining teams, transitions to `error`.
+- *Tool-loop bound:* if Marco exceeds `MARCO_MAX_TOOL_DEPTH` iterations without calling `complete_task`, the run transitions to `error` with a depth-exceeded message (defense against runaway loops).
+- *Integration:* end-to-end from `draft_review` → `building` → `complete` via the route handler with all six teams stubbed (U4 stub modules) to return `ok`.
 
 **Verification:**
 - `pnpm run typecheck` clean.
 - `scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts` PASS.
 - `marco.test.ts` PASS.
 - Polling `/api/slide-factory/runs/:id` during a Marco run returns intermediate `agentResults` populated as teams complete.
+
+**Deferred to U7 (Maya + Dino integration):**
+- Add `invoke_maya` / `invoke_dino` to Marco's tool list.
+- Update Marco system prompt to interleave Maya verdict + Dino pixel-diff between team dispatch and `update_agent_result`.
+- Add Maya/Dino test scenarios to a new test file or extend `marco.test.ts` with a "with verification agents" suite.
 
 ---
 
@@ -471,7 +478,9 @@ The two architectural moves:
 - Create: `artifacts/api-server/src/slides/maya.ts` (cross-app verdict agent — single name)
 - Create: `artifacts/api-server/src/slides/dino.ts` (cross-app pixel-diff agent — single name)
 - Create: `artifacts/api-server/src/slides/dino-render.ts` (helper that renders a single slide via Playwright for pixel comparison)
-- Test: `artifacts/api-server/src/tests/maya.test.ts`, `dino.test.ts`
+- Modify: `artifacts/api-server/src/slides/marco-tools.ts` (add `invoke_maya` and `invoke_dino` primitive tools)
+- Modify: `artifacts/api-server/src/slides/marco.ts` (extend system prompt to interleave Maya/Dino between team dispatch and `update_agent_result`)
+- Test: `artifacts/api-server/src/tests/maya.test.ts`, `dino.test.ts`, extend `marco.test.ts` with Maya/Dino scenarios deferred from U1
 
 **Approach:**
 - Maya: takes `SlideTeamOutput` + canonical brief + Lucca slot drafts → returns `{ verdict: 'ok' | 'advisory' | 'warning' | 'block', headline: string, notes: string }`. LLM-based, judgment-criteria system prompt (per ce-agent-native-architecture #6: define criteria, not rules).
