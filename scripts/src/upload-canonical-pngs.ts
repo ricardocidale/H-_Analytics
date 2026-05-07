@@ -3,7 +3,7 @@
  *
  * Uploads the six pre-rendered canonical slide PNGs directly to R2.
  *
- * Source files (attached_assets/):
+ * Source files (attached_assets/canonical/png/):
  *   L+B_Property_6-Slide_Cannonical_Page_{1..6}_*.png
  *
  * R2 destination keys (per r2-manifest.json):
@@ -85,7 +85,7 @@ async function main() {
   let failed = 0;
 
   for (const { slideNum, filename } of SLIDE_FILES) {
-    const localPath = path.join(REPO_ROOT, "attached_assets", filename);
+    const localPath = path.join(REPO_ROOT, "attached_assets", "canonical", "png", filename);
     const r2Key = `${R2_PREFIX}/slide-${slideNum}.png`;
 
     if (!fs.existsSync(localPath)) {

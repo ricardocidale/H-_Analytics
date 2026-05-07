@@ -5,15 +5,12 @@
  * generates per-slide PNG rasters (300 dpi) + individual slide PDFs.
  *
  * CANONICAL SOURCE PDF (the only authoritative design source):
- *   attached_assets/L+B_Property_6-Slide_Cannonical_1777859377769.pdf
+ *   attached_assets/canonical/pdf/L+B_Property_6-Slide_Cannonical_1777859377769.pdf
  *
  * This file is the design authority for:
  *   • contract.ts    — palette, fonts, canvas dimensions (960×540), bb() coords
  *   • spec_skeleton_v4.json — element-level layout skeleton
  *   • slides.tsx     — renderer (to be rewritten against contract.ts)
- *
- * The OLDER file L+B_Property_6-Slide_Cannonical_1777775653617.pdf is NOT
- * referenced here and should NOT be used for slide generation.
  *
  * R2 output prefix: canonical/lb-6-slide/
  *   Full PDF:        canonical/lb-6-slide/lb-6-slide-canonical.pdf
@@ -72,7 +69,7 @@ async function upload(key: string, filePath: string, contentType: string): Promi
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../");
 const SOURCE_PDF = path.resolve(
   REPO_ROOT,
-  "attached_assets/L+B_Property_6-Slide_Cannonical_1777859377769.pdf",
+  "attached_assets/canonical/pdf/L+B_Property_6-Slide_Cannonical_1777859377769.pdf",
 );
 
 if (!fs.existsSync(SOURCE_PDF)) {

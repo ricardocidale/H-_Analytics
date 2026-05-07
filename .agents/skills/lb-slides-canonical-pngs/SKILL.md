@@ -15,16 +15,16 @@ The six PNG files registered here are the **pixel-authoritative** source of trut
 
 ---
 
-## Source Files (attached_assets/)
+## Source Files (attached_assets/canonical/png/)
 
 | Slide | Local filename |
 |-------|----------------|
-| 1 | `attached_assets/L+B_Property_6-Slide_Cannonical_Page_1_1777868023135.png` |
-| 2 | `attached_assets/L+B_Property_6-Slide_Cannonical_Page_2_1777868023137.png` |
-| 3 | `attached_assets/L+B_Property_6-Slide_Cannonical_Page_3_1777868023137.png` |
-| 4 | `attached_assets/L+B_Property_6-Slide_Cannonical_Page_4_1777868023136.png` |
-| 5 | `attached_assets/L+B_Property_6-Slide_Cannonical_Page_5_1777868023136.png` |
-| 6 | `attached_assets/L+B_Property_6-Slide_Cannonical_Page_6_1777868023136.png` |
+| 1 | `attached_assets/canonical/png/L+B_Property_6-Slide_Cannonical_Page_1_1777868023135.png` |
+| 2 | `attached_assets/canonical/png/L+B_Property_6-Slide_Cannonical_Page_2_1777868023137.png` |
+| 3 | `attached_assets/canonical/png/L+B_Property_6-Slide_Cannonical_Page_3_1777868023137.png` |
+| 4 | `attached_assets/canonical/png/L+B_Property_6-Slide_Cannonical_Page_4_1777868023136.png` |
+| 5 | `attached_assets/canonical/png/L+B_Property_6-Slide_Cannonical_Page_5_1777868023136.png` |
+| 6 | `attached_assets/canonical/png/L+B_Property_6-Slide_Cannonical_Page_6_1777868023136.png` |
 
 The timestamp suffix in each filename is the upload batch identifier — keep verbatim for provenance.
 
@@ -51,7 +51,7 @@ Access via `CANONICAL_ASSETS.slide(N, "png")` from `canonical-assets.ts` (both s
 
 If the canonical design changes (new approved reference images):
 
-1. Replace the source files in `attached_assets/` with the new PNGs
+1. Replace the source files in `attached_assets/canonical/png/` with the new PNGs
 2. Update the filename entries in `scripts/src/upload-canonical-pngs.ts` (the `SLIDE_FILES` array)
 3. Run the upload:
    ```bash
@@ -110,7 +110,7 @@ When you have rendered a slide and need to verify it:
 
 1. **Load the canonical PNG** for the slide you modified:
    - In the browser: use the R2 presigned URL via `CANONICAL_ASSETS.slide(N, "png")`
-   - In the agent context: reference `attached_assets/L+B_Property_6-Slide_Cannonical_Page_N_*.png` directly
+   - In the agent context: reference `attached_assets/canonical/png/L+B_Property_6-Slide_Cannonical_Page_N_*.png` directly
 
 2. **Take a screenshot** of your rendered slide at 960×540
 
@@ -144,15 +144,15 @@ This runs as part of the Project validation suite in `.replit`.
 
 ## Import Path (frontend)
 
-The PNGs in `attached_assets/` are available via the `@assets` Vite alias in the portal:
+The PNGs in `attached_assets/canonical/png/` are available via the `@assets` Vite alias in the portal:
 
 ```ts
-import slide1Png from "@assets/L+B_Property_6-Slide_Cannonical_Page_1_1777868023135.png";
-import slide2Png from "@assets/L+B_Property_6-Slide_Cannonical_Page_2_1777868023137.png";
-import slide3Png from "@assets/L+B_Property_6-Slide_Cannonical_Page_3_1777868023137.png";
-import slide4Png from "@assets/L+B_Property_6-Slide_Cannonical_Page_4_1777868023136.png";
-import slide5Png from "@assets/L+B_Property_6-Slide_Cannonical_Page_5_1777868023136.png";
-import slide6Png from "@assets/L+B_Property_6-Slide_Cannonical_Page_6_1777868023136.png";
+import slide1Png from "@assets/canonical/png/L+B_Property_6-Slide_Cannonical_Page_1_1777868023135.png";
+import slide2Png from "@assets/canonical/png/L+B_Property_6-Slide_Cannonical_Page_2_1777868023137.png";
+import slide3Png from "@assets/canonical/png/L+B_Property_6-Slide_Cannonical_Page_3_1777868023137.png";
+import slide4Png from "@assets/canonical/png/L+B_Property_6-Slide_Cannonical_Page_4_1777868023136.png";
+import slide5Png from "@assets/canonical/png/L+B_Property_6-Slide_Cannonical_Page_5_1777868023136.png";
+import slide6Png from "@assets/canonical/png/L+B_Property_6-Slide_Cannonical_Page_6_1777868023136.png";
 ```
 
 Do **not** reference `attached_assets/` paths in `src` attributes or URL strings — they are not served by the web server. Use the import alias or the R2 presigned URL from `CANONICAL_ASSETS`.

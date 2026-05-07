@@ -94,6 +94,7 @@ H+ Analytics is a hospitality-sector financial analytics platform that helps ass
 
 | Date | Change |
 |---|---|
+| 2026-05-07 | **Canonical slide assets reorganized.** `attached_assets/canonical/{pdf,png,json,pptx}/` — 10 canonical files, organized by format. 250MB → 106MB (144MB of stale PPTXs, old PDFs, session artifacts, test renders removed). All script, skill, doc, and `claude.md` references updated to new paths. |
 | 2026-05-07 | **Slide Factory V2 UI — Tab 1 (Brief) + Tab 3 (Properties).** `SlideFactoryPanel.tsx` in `features/slide-factory/`. Tab 1: PDF/PPTX brief upload via presigned R2, accept flow, status-driven lock. Tab 3: 4-property selectors (slides 1/2/3/5). Tabs 2/4/5/6 are pipeline-stage placeholders. Polls every 5 s only in transitional states. |
 | 2026-05-05 | **`analyst-intelligence-display` skill created.** Canonical display components (`AnalystRangeIndicator`, `AnalystVerdictDisplay`, `AnalystCheckDialog`), conviction floor, severity color system, voice rule, anti-patterns. |
 | 2026-05-04 | **LB Slide Studio + auth hardening.** `LbSlides.tsx` → 7-tab Slide Studio with per-slide editor panels. Auth: `GOOGLE_CLIENT_ID` required in both envs; `devLoginAvailable` async-fetch gate removed; Google OAuth opens `_blank`; 5 inviolable auth rules locked in. |

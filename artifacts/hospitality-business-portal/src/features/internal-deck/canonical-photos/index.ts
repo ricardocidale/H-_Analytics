@@ -1,6 +1,6 @@
 /**
  * Canonical photos extracted from the source PPTX
- * (`attached_assets/belleayre-mountain-slides_1777774635693.pptx`).
+ * (`attached_assets/canonical/pptx/belleayre-mountain-slides_1777774635693.pptx`).
  *
  * POLICY (per user 2026-05-03): These canonical photos are the SOURCE for
  * every slide+slot. The deck always renders them. DB property_photos do NOT

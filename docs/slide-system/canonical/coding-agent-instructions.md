@@ -208,12 +208,12 @@ Before completing any slide generation or modification task, compare the rendere
 ### Source files
 
 ```
-attached_assets/L+B_Property_6-Slide_Cannonical_Page_1_1777868023135.png  → Slide 1
-attached_assets/L+B_Property_6-Slide_Cannonical_Page_2_1777868023137.png  → Slide 2
-attached_assets/L+B_Property_6-Slide_Cannonical_Page_3_1777868023137.png  → Slide 3
-attached_assets/L+B_Property_6-Slide_Cannonical_Page_4_1777868023136.png  → Slide 4
-attached_assets/L+B_Property_6-Slide_Cannonical_Page_5_1777868023136.png  → Slide 5
-attached_assets/L+B_Property_6-Slide_Cannonical_Page_6_1777868023136.png  → Slide 6
+attached_assets/canonical/png/L+B_Property_6-Slide_Cannonical_Page_1_1777868023135.png  → Slide 1
+attached_assets/canonical/png/L+B_Property_6-Slide_Cannonical_Page_2_1777868023137.png  → Slide 2
+attached_assets/canonical/png/L+B_Property_6-Slide_Cannonical_Page_3_1777868023137.png  → Slide 3
+attached_assets/canonical/png/L+B_Property_6-Slide_Cannonical_Page_4_1777868023136.png  → Slide 4
+attached_assets/canonical/png/L+B_Property_6-Slide_Cannonical_Page_5_1777868023136.png  → Slide 5
+attached_assets/canonical/png/L+B_Property_6-Slide_Cannonical_Page_6_1777868023136.png  → Slide 6
 ```
 
 These are also in R2: `canonical/lb-6-slide/slides/slide-{1..6}.png`

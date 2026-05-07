@@ -7,7 +7,7 @@ This skill governs all work on the 6-slide L+B canonical investor deck renderer 
 The canonical deck is extracted from `L+B Property 6-Slide Canonical.pdf`. The authoritative render specification is stored at:
 
 - `docs/slide-system/canonical/spec_skeleton_v4.json` — element-level skeleton (chars stripped, machine-readable)
-- `attached_assets/canonical_slide_render_spec_v4_pdf_deterministic_*.json` — full PDF extraction with per-character bboxes (reference only, do not parse at runtime)
+- `attached_assets/canonical/json/canonical_slide_render_spec_v4_pdf_deterministic_*.json` — full PDF extraction with per-character bboxes (reference only, do not parse at runtime)
 - `docs/slide-system/canonical/design-contract.json` — earlier v3 spec (superseded by v4 for rendering; still useful for editorial notes)
 
 The TypeScript source of truth in the codebase is:
