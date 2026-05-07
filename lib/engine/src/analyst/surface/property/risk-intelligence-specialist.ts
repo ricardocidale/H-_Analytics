@@ -46,7 +46,7 @@ import type {
   SpecialistOutput,
 } from "../../router/surface-router";
 import { getFieldRegistryEntry } from "../../registry/field-registry";
-import { CONVICTION_FLOOR, SPECIALIST_RAW_QUALITY_SEED } from "@shared/analyst-conviction";
+import { CONVICTION_FLOOR, SPECIALIST_RAW_QUALITY_SEED } from "@norfolk/shared/analyst-conviction";
 
 /** Verdict-emitting field id Daniela targets for the Adjust deep-link. */
 const PROPERTY_INFLATION_FIELD = "propertyInflationRate";

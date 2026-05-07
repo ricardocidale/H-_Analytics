@@ -7,7 +7,7 @@ import {
   REBECCA_LENGTH_PREFERENCES,
   REBECCA_READING_LEVELS,
   RebeccaSettings,
-} from '../shared/rebecca-settings';
+} from '@shared/rebecca-settings';
 
 const NAME = "Rebecca";
 

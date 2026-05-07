@@ -21,7 +21,7 @@
  * save-tab plumbing, dialog UI, and action-button contract stay identical
  * across tabs.
  */
-import type { OverheadBenchmarks } from "@shared/constants-overhead-benchmarks";
+import type { OverheadBenchmarks } from "@norfolk/shared/constants-overhead-benchmarks";
 import type { WatchdogResult, WatchdogSeverity, WatchdogAction } from "./capitalRaiseEvaluator";
 
 export interface OverheadInputs {
