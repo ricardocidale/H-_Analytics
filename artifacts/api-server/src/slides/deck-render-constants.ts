@@ -74,3 +74,21 @@ export const MARCO_MAX_TOKENS = 1024;
  * 30 leaves 2× headroom for retries and non-tool turns.
  */
 export const MARCO_MAX_TOOL_DEPTH = 30;
+
+// ── Swarm team constants (Units 5–6) ────────────────────────────────────────
+
+/**
+ * Anthropic model used by all swarm team Builders (Sofia-02, Bianca-02, etc.).
+ * Sonnet is cost-appropriate for constraint-fitting / slot-assembly tasks;
+ * escalate to Opus for slides with high visual-judgment demands (§12).
+ */
+export const SWARM_BUILDER_MODEL = "claude-sonnet-4-6";
+
+/** max_tokens per swarm Builder call. */
+export const SWARM_BUILDER_MAX_TOKENS = 2048;
+
+/**
+ * max_tokens per swarm Inspector Pass 2 (LLM-vision) call. Shared across all
+ * six Inspector roles; Inspector Pass 2 uses LORENZO_VISION_MODEL (Opus 4.7).
+ */
+export const SWARM_INSPECTOR_MAX_TOKENS = 1024;
