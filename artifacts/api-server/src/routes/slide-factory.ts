@@ -16,7 +16,13 @@
  *   POST   /api/lb-slides/factory/runs/:id/brief               Record uploaded brief (Tab 1)
  *   POST   /api/lb-slides/factory/runs/:id/accept-brief        Accept brief, advance to brief_ready
  *   POST   /api/lb-slides/factory/runs/:id/trigger-ingestion   Start Lorenzo ingestion (Tab 2)
- *   POST   /api/lb-slides/factory/runs/:id/properties          Set property assignments (Tab 3)
+ *   POST   /api/lb-slides/factory/runs/:id/properties          Set property assignments + fire Lucca (Tab 3)
+ *   PATCH  /api/lb-slides/factory/runs/:id/slots/:key          Update a single Lucca slot value / approval
+ *   POST   /api/lb-slides/factory/runs/:id/approve-all-slots   Mark all Lucca slots approved
+ *   POST   /api/lb-slides/factory/runs/:id/trigger-build       Advance draft_review → building (Tab 4)
+ *
+ * Auto-fire pattern: accept-brief immediately starts Lorenzo; saving properties
+ * immediately starts Lucca. Both return 202 Accepted.
  */
 import { Router, type Request, type Response } from "express";
 import { z } from "zod/v4";
@@ -31,6 +37,7 @@ import {
   updateSlideFactoryRun,
 } from "../storage/slide-factory-runs";
 import { runLorenzoIngestion } from "../slides/lorenzo-ingestion";
+import { runLuccaDraft } from "../slides/lucca-draft";
 import {
   HTTP_200_OK,
   HTTP_201_CREATED,
@@ -124,7 +131,8 @@ router.post(
 );
 
 // ── POST /api/lb-slides/factory/runs/:id/accept-brief ───────────────────────
-// Admin has reviewed and accepted the brief. Advances status → brief_ready.
+// Admin has reviewed and accepted the brief. Auto-fires Lorenzo ingestion and
+// advances status → ingesting. Returns 202 Accepted.
 router.post(
   "/api/lb-slides/factory/runs/:id/accept-brief",
   requireAdmin,
@@ -145,12 +153,17 @@ router.post(
         });
       }
 
-      const updated = await updateSlideFactoryRun(id, {
+      const ingesting = await updateSlideFactoryRun(id, {
         briefAccepted: true,
-        status: "brief_ready",
+        status: "ingesting",
+        startedAt: new Date(),
       });
       logActivity(req, "update", "slide_factory_run", id, `run-${id}`, { action: "brief-accepted" });
-      return res.status(HTTP_200_OK).json(updated);
+
+      // Fire-and-forget: Lorenzo updates status to 'ingested' or 'error' when done.
+      void runLorenzoIngestion(id);
+
+      return res.status(HTTP_202_ACCEPTED).json(ingesting);
     } catch (err: unknown) {
       logAndSendError(res, "Failed to accept brief", err);
     }
@@ -251,16 +264,176 @@ router.post(
         }
       }
 
-      const updated = await updateSlideFactoryRun(id, {
+      const drafting = await updateSlideFactoryRun(id, {
         slide1PropertyId: parsed.data.slide1PropertyId ?? null,
         slide2PropertyId: parsed.data.slide2PropertyId ?? null,
         slide3PropertyId: parsed.data.slide3PropertyId ?? null,
         slide5PropertyId: parsed.data.slide5PropertyId ?? null,
+        status: "drafting",
       });
       logActivity(req, "update", "slide_factory_run", id, `run-${id}`, { action: "properties-set" });
-      return res.status(HTTP_200_OK).json(updated);
+
+      // Fire-and-forget: Lucca updates status to 'draft_review' or 'error' when done.
+      void runLuccaDraft(id);
+
+      return res.status(HTTP_202_ACCEPTED).json(drafting);
     } catch (err: unknown) {
       logAndSendError(res, "Failed to set property assignments", err);
+    }
+  },
+);
+
+// ── PATCH /api/lb-slides/factory/runs/:id/slots/:key ────────────────────────
+// Tab 4: Update a single Lucca slot's value and/or approval state.
+// Requires status 'draft_review'.
+const slotPatchSchema = z.object({
+  value: z.string().optional(),
+  approved: z.boolean().optional(),
+});
+
+router.patch(
+  "/api/lb-slides/factory/runs/:id/slots/:key",
+  requireAdmin,
+  async (req: Request, res: Response) => {
+    try {
+      const user = getAuthUser(req);
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID" });
+
+      const rawKey = req.params.key;
+      if (!rawKey || Array.isArray(rawKey)) {
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Missing or invalid slot key" });
+      }
+      const slotKey: string = rawKey;
+
+      const parsed = slotPatchSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
+      }
+
+      const run = await getSlideFactoryRun(id, user.id);
+      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
+      if (run.status !== "draft_review") {
+        return res.status(HTTP_409_CONFLICT).json({
+          error: `Slot edits require status 'draft_review', current: '${run.status}'`,
+        });
+      }
+      if (!run.luccaDraft) {
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "No Lucca draft present" });
+      }
+
+      const existing = run.luccaDraft[slotKey];
+      if (!existing) {
+        return res.status(HTTP_404_NOT_FOUND).json({ error: `Slot '${slotKey}' not found in draft` });
+      }
+
+      const valueChanged = parsed.data.value !== undefined && parsed.data.value !== existing.value;
+      const nowApproving = parsed.data.approved === true && !existing.approved;
+
+      const updatedSlot = {
+        ...existing,
+        ...(parsed.data.value !== undefined ? { value: parsed.data.value } : {}),
+        ...(parsed.data.approved !== undefined ? { approved: parsed.data.approved } : {}),
+        ...(valueChanged ? { source: "admin" as const } : {}),
+        ...(nowApproving ? { approvedAt: new Date().toISOString() } : {}),
+        ...(parsed.data.approved === false ? { approvedAt: null } : {}),
+      };
+
+      const updatedDraft = { ...run.luccaDraft, [slotKey]: updatedSlot };
+      const updated = await updateSlideFactoryRun(id, { luccaDraft: updatedDraft });
+      logActivity(req, "update", "slide_factory_run", id, `run-${id}`, {
+        action: "slot-updated",
+        slotKey,
+      });
+      return res.status(HTTP_200_OK).json(updated);
+    } catch (err: unknown) {
+      logAndSendError(res, "Failed to update slot", err);
+    }
+  },
+);
+
+// ── POST /api/lb-slides/factory/runs/:id/approve-all-slots ──────────────────
+// Tab 4: Mark every slot in luccaDraft as approved in a single write.
+// Requires status 'draft_review'.
+router.post(
+  "/api/lb-slides/factory/runs/:id/approve-all-slots",
+  requireAdmin,
+  async (req: Request, res: Response) => {
+    try {
+      const user = getAuthUser(req);
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID" });
+
+      const run = await getSlideFactoryRun(id, user.id);
+      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
+      if (run.status !== "draft_review") {
+        return res.status(HTTP_409_CONFLICT).json({
+          error: `Approve-all requires status 'draft_review', current: '${run.status}'`,
+        });
+      }
+      if (!run.luccaDraft) {
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "No Lucca draft present" });
+      }
+
+      const now = new Date().toISOString();
+      const approvedDraft: Record<string, typeof run.luccaDraft[string]> = {};
+      for (const [key, slot] of Object.entries(run.luccaDraft)) {
+        approvedDraft[key] = {
+          ...slot,
+          approved: true,
+          approvedAt: slot.approvedAt ?? now,
+        };
+      }
+
+      const updated = await updateSlideFactoryRun(id, { luccaDraft: approvedDraft });
+      logActivity(req, "update", "slide_factory_run", id, `run-${id}`, { action: "all-slots-approved" });
+      return res.status(HTTP_200_OK).json(updated);
+    } catch (err: unknown) {
+      logAndSendError(res, "Failed to approve all slots", err);
+    }
+  },
+);
+
+// ── POST /api/lb-slides/factory/runs/:id/trigger-build ──────────────────────
+// Tab 4: Admin has approved all Lucca slots. Advances draft_review → building.
+// Returns 409 if any slot is still unapproved.
+router.post(
+  "/api/lb-slides/factory/runs/:id/trigger-build",
+  requireAdmin,
+  async (req: Request, res: Response) => {
+    try {
+      const user = getAuthUser(req);
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID" });
+
+      const run = await getSlideFactoryRun(id, user.id);
+      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
+      if (run.status !== "draft_review") {
+        return res.status(HTTP_409_CONFLICT).json({
+          error: `Trigger-build requires status 'draft_review', current: '${run.status}'`,
+        });
+      }
+      if (!run.luccaDraft) {
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "No Lucca draft present" });
+      }
+
+      const unapproved = Object.entries(run.luccaDraft)
+        .filter(([, slot]) => !slot.approved)
+        .map(([key]) => key);
+      if (unapproved.length > 0) {
+        return res.status(HTTP_409_CONFLICT).json({
+          error: `${unapproved.length} slot(s) not yet approved: ${unapproved.slice(0, 3).join(", ")}${unapproved.length > 3 ? "…" : ""}`,
+        });
+      }
+
+      const building = await updateSlideFactoryRun(id, { status: "building" });
+      logActivity(req, "update", "slide_factory_run", id, `run-${id}`, { action: "build-triggered" });
+
+      // Marco dispatch (slide teams) will be added in a later build unit.
+
+      return res.status(HTTP_202_ACCEPTED).json(building);
+    } catch (err: unknown) {
+      logAndSendError(res, "Failed to trigger build", err);
     }
   },
 );

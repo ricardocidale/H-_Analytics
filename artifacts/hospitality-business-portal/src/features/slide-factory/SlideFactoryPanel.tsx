@@ -1,23 +1,27 @@
 /**
  * SlideFactoryPanel — Slide Factory V2 pipeline wizard
  *
- * 6-tab wizard driven by run status. Only Tab 1 (Brief) and Tab 3 (Properties)
- * have working UI; the others are placeholders for later build units.
+ * 6-tab wizard driven by run status.
  *
  *   Tab 1  f-brief       new / brief_ready
- *   Tab 2  f-lorenzo     ingesting            (placeholder)
+ *   Tab 2  f-lorenzo     ingesting
  *   Tab 3  f-properties  ingested
- *   Tab 4  f-lucca       drafting / draft_review (placeholder)
+ *   Tab 4  f-lucca       drafting / draft_review
  *   Tab 5  f-agents      building             (placeholder)
  *   Tab 6  f-download    complete             (placeholder)
+ *
+ * Auto-fire pattern: accept-brief immediately starts Lorenzo; saving properties
+ * immediately starts Lucca. Both endpoints return 202 Accepted.
  */
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -75,13 +79,20 @@ interface SlideFactoryRun {
   slide2PropertyId: number | null;
   slide3PropertyId: number | null;
   slide5PropertyId: number | null;
-  luccaDraft: Record<string, unknown> | null;
+  luccaDraft: Record<string, LuccaSlotDraft> | null;
   agentResults: Record<string, unknown> | null;
   deckR2Key: string | null;
   startedAt: string | null;
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+interface LuccaSlotDraft {
+  value: string;
+  approved: boolean;
+  approvedAt: string | null;
+  source: "lucca" | "admin";
 }
 
 interface Property {
@@ -436,24 +447,6 @@ function FactoryBriefTab({
     );
   }
 
-  // brief_ready — waiting for Lorenzo
-  if (run.status === "brief_ready") {
-    return (
-      <Card>
-        <CardContent className="py-8 text-center space-y-2">
-          <p className="text-sm font-medium">
-            Brief accepted — waiting for Lorenzo to process
-          </p>
-          {run.briefFilename && (
-            <p className="text-xs text-muted-foreground">
-              File: {run.briefFilename}
-            </p>
-          )}
-        </CardContent>
-      </Card>
-    );
-  }
-
   // status === "new" — upload + accept flow
   const briefOnServer = Boolean(run.briefR2Key);
   const showUploaded = upload.stage === "done" || briefOnServer;
@@ -687,6 +680,305 @@ function FactoryPropertiesTab({
   );
 }
 
+// ── Tab 4 — Lucca draft review ──────────────────────────────────────────────
+
+const SLOT_LABELS: Record<string, string> = {
+  "slide1.headerSubtitle":          "Slide 1 — Header subtitle",
+  "slide1.visionBullets":           "Slide 1 — Vision bullets",
+  "slide2.operationalModelText":    "Slide 2 — Operational model",
+  "slide2.revenueBullet":           "Slide 2 — Revenue bullet",
+  "slide2.programmingBullet":       "Slide 2 — Programming bullet",
+  "slide3.conceptParagraph":        "Slide 3 — Concept paragraph",
+  "slide3.marketRationale":         "Slide 3 — Market rationale",
+  "slide3.reasons":                 "Slide 3 — Investment reasons",
+  "slide3.closingLine":             "Slide 3 — Closing line",
+  "slide5.transformationDescription": "Slide 5 — Transformation description",
+  "slide5.transformationRows":      "Slide 5 — Transformation rows",
+  "slide5.transformationRows[0]":   "Slide 5 — Transformation row 1",
+  "slide5.transformationRows[1]":   "Slide 5 — Transformation row 2",
+  "slide5.transformationRows[2]":   "Slide 5 — Transformation row 3",
+  "slide5.transformationRows[3]":   "Slide 5 — Transformation row 4",
+};
+
+function slotLabel(key: string): string {
+  return SLOT_LABELS[key] ?? key;
+}
+
+interface SlotRowProps {
+  slotKey: string;
+  draft: LuccaSlotDraft;
+  onApprove: (key: string, approved: boolean) => Promise<void>;
+  onSaveValue: (key: string, value: string) => Promise<void>;
+  disabled: boolean;
+}
+
+function SlotRow({ slotKey, draft, onApprove, onSaveValue, disabled }: SlotRowProps) {
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState(draft.value);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (editValue === draft.value) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      await onSaveValue(slotKey, editValue);
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditValue(draft.value);
+    setEditing(false);
+  };
+
+  return (
+    <div className="border rounded-lg p-3 space-y-2">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-2 min-w-0 flex-1">
+          <Checkbox
+            checked={draft.approved}
+            onCheckedChange={(checked) => void onApprove(slotKey, Boolean(checked))}
+            disabled={disabled}
+            className="mt-0.5 shrink-0"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-medium text-muted-foreground">
+              {slotLabel(slotKey)}
+              {draft.source === "admin" && (
+                <span className="ml-1.5 text-xs text-blue-500">(edited)</span>
+              )}
+            </p>
+            {editing ? (
+              <div className="mt-1.5 space-y-2">
+                <Textarea
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  rows={3}
+                  className="text-sm"
+                  disabled={saving}
+                />
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => void handleSave()} disabled={saving}>
+                    {saving && <Loader2 className="w-3 h-3 animate-spin mr-1" />}
+                    Save
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={handleCancel} disabled={saving}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm mt-0.5 whitespace-pre-wrap break-words">{draft.value}</p>
+            )}
+          </div>
+        </div>
+        {!editing && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="shrink-0 text-xs"
+            onClick={() => {
+              setEditValue(draft.value);
+              setEditing(true);
+            }}
+            disabled={disabled}
+          >
+            Edit
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FactoryLuccaTab({
+  run,
+  onRunUpdate,
+}: {
+  run: SlideFactoryRun;
+  onRunUpdate: (r: SlideFactoryRun) => void;
+}) {
+  const { toast } = useToast();
+  const [approvingAll, setApprovingAll] = useState(false);
+  const [triggeringBuild, setTriggeringBuild] = useState(false);
+
+  const handleApproveSlot = useCallback(
+    async (key: string, approved: boolean) => {
+      try {
+        const r = await fetch(
+          `/api/lb-slides/factory/runs/${run.id}/slots/${encodeURIComponent(key)}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ approved }),
+          },
+        );
+        if (!r.ok) {
+          const b = (await r.json().catch(() => ({}))) as { error?: string };
+          throw new Error(b.error ?? "Failed to update slot");
+        }
+        onRunUpdate((await r.json()) as SlideFactoryRun);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Update failed";
+        toast({ title: "Failed to update slot", description: msg, variant: "destructive" });
+      }
+    },
+    [run.id, onRunUpdate, toast],
+  );
+
+  const handleSaveValue = useCallback(
+    async (key: string, value: string) => {
+      try {
+        const r = await fetch(
+          `/api/lb-slides/factory/runs/${run.id}/slots/${encodeURIComponent(key)}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ value }),
+          },
+        );
+        if (!r.ok) {
+          const b = (await r.json().catch(() => ({}))) as { error?: string };
+          throw new Error(b.error ?? "Failed to save slot value");
+        }
+        onRunUpdate((await r.json()) as SlideFactoryRun);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Save failed";
+        toast({ title: "Failed to save slot", description: msg, variant: "destructive" });
+      }
+    },
+    [run.id, onRunUpdate, toast],
+  );
+
+  const handleApproveAll = async () => {
+    setApprovingAll(true);
+    try {
+      const r = await fetch(
+        `/api/lb-slides/factory/runs/${run.id}/approve-all-slots`,
+        { method: "POST", credentials: "include" },
+      );
+      if (!r.ok) {
+        const b = (await r.json().catch(() => ({}))) as { error?: string };
+        throw new Error(b.error ?? "Failed to approve all slots");
+      }
+      onRunUpdate((await r.json()) as SlideFactoryRun);
+      toast({ title: "All slots approved" });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Approve failed";
+      toast({ title: "Failed to approve all", description: msg, variant: "destructive" });
+    } finally {
+      setApprovingAll(false);
+    }
+  };
+
+  const handleTriggerBuild = async () => {
+    setTriggeringBuild(true);
+    try {
+      const r = await fetch(
+        `/api/lb-slides/factory/runs/${run.id}/trigger-build`,
+        { method: "POST", credentials: "include" },
+      );
+      if (!r.ok) {
+        const b = (await r.json().catch(() => ({}))) as { error?: string };
+        throw new Error(b.error ?? "Failed to trigger build");
+      }
+      onRunUpdate((await r.json()) as SlideFactoryRun);
+      toast({ title: "Build triggered", description: "Slide agents are building the deck." });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Trigger failed";
+      toast({ title: "Failed to trigger build", description: msg, variant: "destructive" });
+    } finally {
+      setTriggeringBuild(false);
+    }
+  };
+
+  // Lucca is still running
+  if (run.status === "drafting") {
+    return (
+      <Card>
+        <CardContent className="py-10 flex flex-col items-center gap-3">
+          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          <p className="text-sm font-medium">Lucca is drafting slide content…</p>
+          <p className="text-xs text-muted-foreground">
+            The pipeline advances automatically once all slots are ready.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // draft_review
+  const draft = run.luccaDraft ?? {};
+  const slots = Object.entries(draft);
+  const allApproved = slots.length > 0 && slots.every(([, d]) => d.approved);
+  const approvedCount = slots.filter(([, d]) => d.approved).length;
+  const busy = approvingAll || triggeringBuild;
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between gap-3">
+          <CardTitle className="text-base">Lucca Draft Review</CardTitle>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-xs text-muted-foreground">
+              {approvedCount} / {slots.length} approved
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => void handleApproveAll()}
+              disabled={busy || allApproved}
+            >
+              {approvingAll && <Loader2 className="w-3 h-3 animate-spin mr-1" />}
+              Approve all
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {slots.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            No draft slots found.
+          </p>
+        ) : (
+          slots.map(([key, slotDraft]) => (
+            <SlotRow
+              key={key}
+              slotKey={key}
+              draft={slotDraft}
+              onApprove={handleApproveSlot}
+              onSaveValue={handleSaveValue}
+              disabled={busy}
+            />
+          ))
+        )}
+
+        <div className="pt-2 flex items-center gap-3">
+          <Button
+            onClick={() => void handleTriggerBuild()}
+            disabled={!allApproved || busy}
+          >
+            {triggeringBuild && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+            Proceed to build
+          </Button>
+          {!allApproved && slots.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Approve all slots before proceeding.
+            </p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Main panel ──────────────────────────────────────────────────────────────
 
 const FACTORY_TABS: Array<{ value: FactoryTab; label: string }> = [
@@ -766,10 +1058,14 @@ export function SlideFactoryPanel() {
         </TabsContent>
 
         <TabsContent value="f-lucca" className="mt-4">
-          <PlaceholderTab
-            title="Lucca — Drafting"
-            description="Lucca is drafting slide content from the canonical spec and property data. This step runs automatically."
-          />
+          {run && (run.status === "drafting" || run.status === "draft_review") ? (
+            <FactoryLuccaTab run={run} onRunUpdate={handleRunUpdate} />
+          ) : (
+            <PlaceholderTab
+              title="Lucca — Drafting"
+              description="Lucca will draft slide content once properties are assigned."
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="f-agents" className="mt-4">
