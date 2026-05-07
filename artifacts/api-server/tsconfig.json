@@ -6,7 +6,9 @@
     "jsx": "react-jsx",
     "types": ["node", "react"],
     "paths": {
-      "@shared/*": ["./src/shared/*"],
+      "@shared/*": ["../../lib/shared/src/*"],
+      "@norfolk/shared": ["../../lib/shared/src"],
+      "@norfolk/shared/*": ["../../lib/shared/src/*"],
       "@workspace/db": ["../../lib/db/src"],
       "@workspace/db/*": ["../../lib/db/src/*"],
       "@engine": ["../../lib/engine/src"],

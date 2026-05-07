@@ -8,8 +8,8 @@
  */
 
 import { startOfMonth } from "date-fns";
-import { parseLocalDate } from "@shared/dates";
-import { DEFAULT_LTV, MONTHS_PER_YEAR } from "@shared/constants";
+import { parseLocalDate } from "@norfolk/shared/dates";
+import { DEFAULT_LTV, MONTHS_PER_YEAR } from "@norfolk/shared/constants";
 
 /** Minimal property shape accepted by equity helpers. */
 export interface EquityPropertyInput {

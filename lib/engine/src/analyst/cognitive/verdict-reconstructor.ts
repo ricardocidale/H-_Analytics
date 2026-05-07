@@ -31,7 +31,7 @@
 
 import {
   CONVICTION_FLOOR,
-} from "@shared/analyst-conviction";
+} from "@norfolk/shared/analyst-conviction";
 import {
   type Evidence,
   type RawVerdictDimension,

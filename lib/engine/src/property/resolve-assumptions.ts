@@ -16,8 +16,8 @@ import {
   DEFAULT_LAND_VALUE_PERCENT,
   DEFAULT_OCCUPANCY_RAMP_MONTHS,
   BUSINESS_MODEL_DEFAULTS,
-} from '@shared/constants';
-import { getFactoryNumber } from '@shared/model-constants-registry';
+} from '@norfolk/shared/constants';
+import { getFactoryNumber } from '@norfolk/shared/model-constants-registry';
 import {
   DEFAULT_AR_DAYS,
   DEFAULT_AP_DAYS,
@@ -29,7 +29,7 @@ import {
   COST_SEG_7YR_LIFE_YEARS,
   COST_SEG_15YR_LIFE_YEARS,
   MONTHS_PER_YEAR,
-} from '@shared/constants';
+} from '@norfolk/shared/constants';
 import { PropertyInput, GlobalInput } from '../types';
 import { parseLocalDate } from '../helpers/utils';
 import { assertFinite, dDiv, dPow } from '@calc/shared/decimal.js';

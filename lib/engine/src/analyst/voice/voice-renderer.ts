@@ -25,7 +25,7 @@ import {
   CONVICTION_FLOOR,
   CONVICTION_HIGH_THRESHOLD,
   CONVICTION_MODERATE_THRESHOLD,
-} from "@shared/analyst-conviction";
+} from "@norfolk/shared/analyst-conviction";
 import {
   __castVoiceRendered,
   type PersonaContext,

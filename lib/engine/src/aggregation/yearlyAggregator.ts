@@ -30,7 +30,7 @@ import {
   calculateLoanParams,
   getAcquisitionYear,
 } from "../debt/loanCalculations";
-import { DEFAULT_EXIT_CAP_RATE, DEFAULT_COMMISSION_RATE, MONTHS_PER_YEAR } from "@shared/constants";
+import { DEFAULT_EXIT_CAP_RATE, DEFAULT_COMMISSION_RATE, MONTHS_PER_YEAR } from "@norfolk/shared/constants";
 
 /** Superset of all yearly fields needed by IS, CF, BS, and export consumers. */
 export interface YearlyPropertyFinancials {
