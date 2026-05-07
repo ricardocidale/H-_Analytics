@@ -121,31 +121,31 @@
     },
     "0030_evidence_based_indexes": {
       "status": "self-idempotent",
-      "reason": "Task #972 evidence-based composite/partial indexes. Every statement is CREATE INDEX IF NOT EXISTS — re-running via migrate() is a no-op."
+      "reason": "Task #972 evidence-based composite/partial indexes. Every statement is CREATE INDEX IF NOT EXISTS \u2014 re-running via migrate() is a no-op."
     },
     "0031_drop_unused_indexes": {
       "status": "self-idempotent",
-      "reason": "Task #973 audit-driven cleanup of unused indexes. All 45 statements are DROP INDEX IF EXISTS — re-running via migrate() is a no-op."
+      "reason": "Task #973 audit-driven cleanup of unused indexes. All 45 statements are DROP INDEX IF EXISTS \u2014 re-running via migrate() is a no-op."
     },
     "0032_property_deck_payloads": {
       "status": "self-idempotent",
-      "reason": "CREATE TABLE IF NOT EXISTS property_deck_payloads — sidecar editor table for the L+B canonical 6-slide investor deck. Re-running via migrate() is a no-op."
+      "reason": "CREATE TABLE IF NOT EXISTS property_deck_payloads \u2014 sidecar editor table for the L+B canonical 6-slide investor deck. Re-running via migrate() is a no-op."
     },
     "0033_property_slide_deck_variants_pdf_format": {
       "status": "self-idempotent",
-      "reason": "DROP CONSTRAINT IF EXISTS + ADD CONSTRAINT — widens the property_slide_deck_variants.format CHECK to include 'pdf'. Re-running drops and re-adds the same constraint, which is a no-op net change."
+      "reason": "DROP CONSTRAINT IF EXISTS + ADD CONSTRAINT \u2014 widens the property_slide_deck_variants.format CHECK to include 'pdf'. Re-running drops and re-adds the same constraint, which is a no-op net change."
     },
     "0034_fk_indexes": {
       "status": "self-idempotent",
-      "reason": "Task #971 — 13 CREATE INDEX IF NOT EXISTS statements adding btree indexes on FK columns missing from prior migrations. Re-running via migrate() is a no-op."
+      "reason": "Task #971 \u2014 13 CREATE INDEX IF NOT EXISTS statements adding btree indexes on FK columns missing from prior migrations. Re-running via migrate() is a no-op."
     },
     "0035_lb_slides_config": {
       "status": "self-idempotent",
-      "reason": "CREATE TABLE IF NOT EXISTS lb_slides_config — single-row config table for the LB Slide Deck portfolio investor presentation. Re-running via migrate() is a no-op."
+      "reason": "CREATE TABLE IF NOT EXISTS lb_slides_config \u2014 single-row config table for the LB Slide Deck portfolio investor presentation. Re-running via migrate() is a no-op."
     },
     "0036_knowledge_registry": {
       "status": "self-idempotent",
-      "reason": "CREATE TABLE IF NOT EXISTS knowledge_registry + CREATE TABLE IF NOT EXISTS knowledge_registry_assets — Knowledge Registry feature (U1). Both statements are guarded with IF NOT EXISTS; re-running via migrate() is a no-op."
+      "reason": "CREATE TABLE IF NOT EXISTS knowledge_registry + CREATE TABLE IF NOT EXISTS knowledge_registry_assets \u2014 Knowledge Registry feature (U1). Both statements are guarded with IF NOT EXISTS; re-running via migrate() is a no-op."
     },
     "0037_hnsw_index_no_do_block": {
       "status": "self-idempotent",
@@ -161,7 +161,11 @@
     },
     "0040_iris_runs": {
       "status": "self-idempotent",
-      "reason": "CREATE TABLE IF NOT EXISTS iris_runs — Iris backstage agent run log table (U4). Statement uses IF NOT EXISTS; re-running via migrate() is a no-op."
+      "reason": "CREATE TABLE IF NOT EXISTS iris_runs \u2014 Iris backstage agent run log table (U4). Statement uses IF NOT EXISTS; re-running via migrate() is a no-op."
+    },
+    "0041_slide_factory_runs": {
+      "status": "self-idempotent",
+      "reason": "CREATE TABLE IF NOT EXISTS slide_factory_runs + CREATE INDEX IF NOT EXISTS \u2014 slide factory V2 run-state table. All statements use IF NOT EXISTS; re-running via migrate() is a no-op."
     }
   }
 }
