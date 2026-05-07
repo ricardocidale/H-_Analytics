@@ -209,30 +209,8 @@ router.post(
   "/api/lb-slides/render",
   requireAdmin,
   (_req: Request, res: Response) => {
-    if (currentStatus === "rendering") {
-      return res.status(HTTP_202_ACCEPTED).json({ queued: true, status: "rendering" });
-    }
-
-    currentStatus = "rendering";
-    lastError = null;
-
-    void renderLimiter(async () => {
-      try {
-        const sp = await getStorageProviderAsync();
-        const pdf = await renderLbDeckPdf();
-        await sp.uploadBuffer(LB_PDF_R2_KEY, pdf, PDF_CONTENT_TYPE);
-        currentStatus = "ready";
-        lastRenderedAt = new Date();
-        logger.info(`[lb-deck-pdf] Rendered ${pdf.length}B → ${LB_PDF_R2_KEY}`, "lb-deck-pdf");
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "LB PDF render failed";
-        logger.error(`[lb-deck-pdf] Render failed: ${message}`, "lb-deck-pdf");
-        currentStatus = "error";
-        lastError = message;
-      }
-    });
-
-    return res.status(HTTP_202_ACCEPTED).json({ queued: true, status: "rendering" });
+    const result = triggerLbDeckRenderService();
+    return res.status(HTTP_202_ACCEPTED).json(result);
   },
 );
 
@@ -304,8 +282,10 @@ export function triggerLbDeckRenderService(): { queued: boolean; status: RenderS
       await sp.uploadBuffer(LB_PDF_R2_KEY, pdf, PDF_CONTENT_TYPE);
       currentStatus = "ready";
       lastRenderedAt = new Date();
+      logger.info(`[lb-deck-pdf] Rendered ${pdf.length}B → ${LB_PDF_R2_KEY}`, "lb-deck-pdf");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "LB PDF render failed";
+      logger.error(`[lb-deck-pdf] Render failed: ${message}`, "lb-deck-pdf");
       currentStatus = "error";
       lastError = message;
     }

@@ -86,7 +86,7 @@ export function getRebeccaTools(): ToolParam[] {
     },
     {
       name: "patch_property",
-      description: "Update multiple property fields in a single call. Validates each field against its schema. Use instead of repeated update_property calls when changing more than one field.",
+      description: "Update multiple property fields in a single call. Validates each field against its schema. Returns updated (fields written) and skipped (fields that failed validation). Always check the skipped array and inform the user if any fields were not written.",
       parameters: {
         type: "object",
         properties: {
@@ -321,6 +321,37 @@ export async function dispatchRebeccaTool(
 }
 
 // ---------------------------------------------------------------------------
+// Args validation helpers
+// ---------------------------------------------------------------------------
+
+/** Extracts a required numeric ID from LLM-supplied args, returning an error
+ *  result if the value is absent or not a finite number. LLMs sometimes return
+ *  string IDs ("123") rather than numbers — catching that here prevents silent
+ *  type confusion reaching the storage layer. */
+function requireNumericArg(
+  args: Record<string, unknown>,
+  key: string,
+): { ok: true; value: number } | { ok: false; result: { result: { error: string } } } {
+  const v = args[key];
+  if (typeof v !== "number" || !Number.isFinite(v)) {
+    return { ok: false, result: { result: { error: `${key} must be a number` } } };
+  }
+  return { ok: true, value: v };
+}
+
+/** Extracts a required object from LLM-supplied args. */
+function requireObjectArg(
+  args: Record<string, unknown>,
+  key: string,
+): { ok: true; value: Record<string, unknown> } | { ok: false; result: { result: { error: string } } } {
+  const v = args[key];
+  if (typeof v !== "object" || v === null || Array.isArray(v)) {
+    return { ok: false, result: { result: { error: `${key} must be an object` } } };
+  }
+  return { ok: true, value: v as Record<string, unknown> };
+}
+
+// ---------------------------------------------------------------------------
 // Individual tool implementations
 // ---------------------------------------------------------------------------
 
@@ -460,8 +491,12 @@ async function toolPatchProperty(
   args: Record<string, unknown>,
   ctx: ToolContext,
 ): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
-  const id = args.id as number;
-  const rawFields = args.fields as Record<string, unknown>;
+  const idResult = requireNumericArg(args, "id");
+  if (!idResult.ok) return idResult.result;
+  const id = idResult.value;
+  const fieldsResult = requireObjectArg(args, "fields");
+  if (!fieldsResult.ok) return fieldsResult.result;
+  const rawFields = fieldsResult.value;
 
   const prop = await storage.getProperty(id);
   if (!prop || prop.userId !== ctx.userId) {
@@ -605,9 +640,18 @@ async function toolUpdateScenarioAssumptions(
   args: Record<string, unknown>,
   ctx: ToolContext,
 ): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
-  const id = args.id as number;
-  const rawPatches = args.patches as Record<string, unknown>;
+  const idResult = requireNumericArg(args, "id");
+  if (!idResult.ok) return idResult.result;
+  const id = idResult.value;
+  const patchesResult = requireObjectArg(args, "patches");
+  if (!patchesResult.ok) return patchesResult.result;
+  const rawPatches = patchesResult.value;
 
+  // Note: this is a read-modify-write without a DB-level lock. Two concurrent
+  // calls on the same scenario (possible when the LLM emits multiple tool_use
+  // blocks in one response) will race and the last writer wins. The correct
+  // fix is optimistic locking on updateScenarioSnapshot using updatedAt or a
+  // version column — tracked as a known limitation.
   const sc = await storage.getScenario(id);
   if (!sc || sc.userId !== ctx.userId) {
     return { result: { error: "Not found" } };
@@ -641,12 +685,18 @@ async function toolUpdateScenarioAssumptions(
     ...validated,
   };
 
+  // Null out computedResults and computeHash so cached projections are not
+  // served against stale assumptions. The engine recomputes on the next
+  // scenario load. The auto-save route calls tryComputeResults before writing,
+  // but importing that here would violate ADR-007 DI discipline.
   await storage.updateScenarioSnapshot(id, {
     globalAssumptions: mergedGA,
     properties: sc.properties,
     feeCategories: sc.feeCategories ?? undefined,
     propertyPhotos: sc.propertyPhotos ?? undefined,
     serviceTemplates: sc.serviceTemplates ?? undefined,
+    computedResults: null,
+    computeHash: null,
   });
 
   return {
@@ -735,7 +785,11 @@ async function toolRefreshAnalystTable(
 ): Promise<{ result: unknown }> {
   const authError = await requireAdminCtx(ctx);
   if (authError) return authError;
-  const tableId = args.tableId as string;
+  const VALID_TABLE_IDS = ["capital_raise_benchmarks", "exit_multiples", "reference_brands"] as const;
+  const tableId = args.tableId;
+  if (typeof tableId !== "string" || !VALID_TABLE_IDS.includes(tableId as typeof VALID_TABLE_IDS[number])) {
+    return { result: { error: `tableId must be one of: ${VALID_TABLE_IDS.join(", ")}` } };
+  }
   const now = new Date();
 
   if (tableId === "capital_raise_benchmarks") {
