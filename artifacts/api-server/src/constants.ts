@@ -404,3 +404,6 @@ export const LIVE_CNBC_HEADLINE_SLICE                  = 5;
 
 /** Maximum number of slide factory runs returned in a list query (newest first). */
 export const SLIDE_FACTORY_RUNS_LIST_LIMIT             = 20;
+
+/** Maximum unapproved-slot keys returned in a Rebecca trigger-build error. */
+export const SLIDE_FACTORY_UNAPPROVED_SLOTS_PREVIEW    = 10;

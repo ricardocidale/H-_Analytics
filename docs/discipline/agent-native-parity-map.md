@@ -34,7 +34,12 @@ feature ships or a new Rebecca tool is added.
 | Refresh Exit Multiples benchmarks | Admin → Analyst tables | `refresh_analyst_table` | ✅ |
 | Refresh Reference Brands | Admin → Analyst tables | `refresh_analyst_table` | ✅ |
 
-## Slides / Deck Actions
+## Slides / Deck Actions (Legacy LB Deck — manual configure → render path)
+
+> The tools below target the **legacy** `lb-deck-pdf` route, NOT the new
+> Slide Factory pipeline (which has its own section below). The two surfaces
+> coexist; legacy stays for the manual configure-and-render workflow used
+> outside the wizard.
 
 | UI Action | UI Location | Rebecca Tool | Status |
 |---|---|---|---|
@@ -43,6 +48,40 @@ feature ships or a new Rebecca tool is added.
 | Trigger deck render | Admin → Slides | `trigger_lb_deck_render` | ✅ |
 | Check render status | Admin → Slides | `get_lb_deck_render_status` | ✅ |
 | Download combined PDF | Admin → Slides | — | 🚫 N/A (file download) |
+
+## Slide Factory Pipeline (V2 wizard — Tabs 1–6)
+
+> The Slide Factory is the agent-native deck pipeline: brief upload (Tab 1)
+> → Lorenzo ingestion (Tab 2) → property assignment (Tab 3) → Lucca draft
+> review (Tab 4) → Marco build with per-slide swarms (Tab 5) → Download
+> (Tab 6). Every UI action in `SlideFactoryPanel.tsx` is mapped below.
+> Endpoints are in `artifacts/api-server/src/routes/slide-factory.ts`.
+
+| UI Action | Endpoint | Rebecca Tool | Status |
+|---|---|---|---|
+| Create a new slide factory run | `POST /api/lb-slides/factory/runs` | `create_slide_factory_run` | ✅ |
+| List slide factory runs | `GET /api/lb-slides/factory/runs` | `list_slide_factory_runs` | ✅ |
+| Get a specific run (with full status + agent results) | `GET /api/lb-slides/factory/runs/:id` | `get_slide_factory_run` | ✅ |
+| Record uploaded brief R2 key (Tab 1) | `POST /api/lb-slides/factory/runs/:id/brief` | `record_slide_factory_brief` | ✅ |
+| Accept brief and auto-fire Lorenzo (Tab 1 → Tab 2) | `POST /api/lb-slides/factory/runs/:id/accept-brief` | `accept_slide_factory_brief` | ✅ |
+| Manually trigger Lorenzo ingestion (rare) | `POST /api/lb-slides/factory/runs/:id/trigger-ingestion` | — | 🚫 N/A (admin-only edge case; auto-fire is the canonical path) |
+| Assign properties to slides 1/2/3/5 + auto-fire Lucca (Tab 3) | `POST /api/lb-slides/factory/runs/:id/properties` | `assign_slide_factory_properties` | ✅ |
+| Edit a Lucca slot value or approval (Tab 4) | `PATCH /api/lb-slides/factory/runs/:id/slots/:key` | `update_slide_factory_slot` | ✅ |
+| Mark every Lucca slot approved at once (Tab 4) | `POST /api/lb-slides/factory/runs/:id/approve-all-slots` | `approve_all_slide_factory_slots` | ✅ |
+| Trigger Marco build (Tab 4 → Tab 5) | `POST /api/lb-slides/factory/runs/:id/trigger-build` | `trigger_slide_factory_build` | ✅ |
+| Upload brief PDF/PPTX file | Browser → R2 (presigned URL) | — | 🚫 N/A (file picker; user-only action) |
+| Download rendered deck PDF (Tab 6) | `GET /api/lb-slides/factory/runs/:id/download` (planned) | — | 🚫 N/A (file download; planned in plan U9) |
+
+**Auto-fire pattern note:** `accept-brief` and `assign-properties` are
+fire-and-forget transitions — they immediately advance status and return
+202 while Lorenzo / Lucca run in the background. Rebecca's tools mirror
+this; the corresponding tool returns a structured "advanced + dispatched"
+response without waiting for the background job.
+
+**`dataChanged` emission:** every mutation tool above emits
+`dataChanged: { entityType: "slide_factory_run", entityId: <runId> }` on
+the SSE `done` payload so the frontend invalidates its run query and
+re-renders the panel.
 
 ## Admin Actions (N/A or Deferred)
 

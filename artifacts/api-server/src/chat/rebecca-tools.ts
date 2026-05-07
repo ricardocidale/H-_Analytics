@@ -3,6 +3,7 @@ import { isAdminRole } from "@shared/constants";
 import type { ToolParam } from "./tool-types";
 import type { Property, UpdateProperty, Scenario, UpdateScenario } from "@workspace/db";
 import { updatePropertySchema } from "@workspace/db";
+import { SLIDE_FACTORY_UNAPPROVED_SLOTS_PREVIEW } from "../constants";
 import { generateLocationAwareResearchValues } from "../data/researchSeeds";
 import {
   researchCapitalRaiseBenchmarks,
@@ -22,7 +23,10 @@ const RESEARCH_ESTIMATED_MINUTES = 2;
 
 export type ToolContext = { userId: number };
 
-export type DataChangedEntry = { entityType: "property" | "scenario"; entityId: number };
+export type DataChangedEntry = {
+  entityType: "property" | "scenario" | "slide_factory_run";
+  entityId: number;
+};
 
 // ---------------------------------------------------------------------------
 // Tool definitions (JSON Schema for LLM tool-calling)
@@ -253,6 +257,115 @@ export function getRebeccaTools(): ToolParam[] {
       description: "Read Iris's most recent run summary and current pending gaps count. Admin only.",
       parameters: { type: "object", properties: {}, required: [] },
     },
+    // ─────────────────────────────────────────────────────────────────────────
+    // Slide Factory Pipeline (Tabs 1–6 wizard) — see
+    // docs/discipline/agent-native-parity-map.md § "Slide Factory Pipeline"
+    // ─────────────────────────────────────────────────────────────────────────
+    {
+      name: "create_slide_factory_run",
+      description:
+        "Create a new slide factory run (Tab 1). Returns the new run's ID and initial status ('new'). Admin only.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+    {
+      name: "list_slide_factory_runs",
+      description:
+        "List slide factory runs for the current admin (newest first). Returns each run's id, status, brief filename, and timestamps.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+    {
+      name: "get_slide_factory_run",
+      description:
+        "Read a single slide factory run with full state — status, brief, property assignments, Lucca draft, agent results, and deck R2 key when complete.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "Slide factory run ID" },
+        },
+        required: ["id"],
+      },
+    },
+    {
+      name: "record_slide_factory_brief",
+      description:
+        "Record an uploaded brief on a slide factory run (Tab 1). The browser uploads the PDF/PPTX to R2 via a presigned URL; this tool records the resulting R2 key + filename on the run. Requires status 'new'.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "Slide factory run ID" },
+          r2Key: { type: "string", description: "R2 object key from the presigned upload" },
+          filename: { type: "string", description: "Original filename (e.g., 'q1-2026-brief.pdf')" },
+        },
+        required: ["id", "r2Key", "filename"],
+      },
+    },
+    {
+      name: "accept_slide_factory_brief",
+      description:
+        "Accept the brief on a slide factory run and auto-fire Lorenzo ingestion (Tab 1 → Tab 2). Status advances to 'ingesting' immediately; Lorenzo runs in the background. Poll get_slide_factory_run for status. Requires status 'new' and a recorded brief.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "Slide factory run ID" },
+        },
+        required: ["id"],
+      },
+    },
+    {
+      name: "assign_slide_factory_properties",
+      description:
+        "Assign properties to slides 1, 2, 3, and 5 on a slide factory run and auto-fire Lucca drafting (Tab 3 → Tab 4). Slides 4 and 6 are auto-generated from portfolio data. Each property must be owned by the current admin. Requires status 'ingested'.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "Slide factory run ID" },
+          slide1PropertyId: { type: ["number", "null"], description: "Property ID for slide 1" },
+          slide2PropertyId: { type: ["number", "null"], description: "Property ID for slide 2" },
+          slide3PropertyId: { type: ["number", "null"], description: "Property ID for slide 3" },
+          slide5PropertyId: { type: ["number", "null"], description: "Property ID for slide 5" },
+        },
+        required: ["id"],
+      },
+    },
+    {
+      name: "update_slide_factory_slot",
+      description:
+        "Edit a single Lucca narrative slot on a slide factory run (Tab 4). Use to update the slot's value, mark it approved, or both. Requires status 'draft_review' and an existing slot at the given key.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "Slide factory run ID" },
+          slotKey: { type: "string", description: "Slot key within luccaDraft (e.g., 'slide1.headline')" },
+          value: { type: "string", description: "New text value (optional)" },
+          approved: { type: "boolean", description: "Approval state (optional)" },
+        },
+        required: ["id", "slotKey"],
+      },
+    },
+    {
+      name: "approve_all_slide_factory_slots",
+      description:
+        "Mark every Lucca narrative slot on a slide factory run as approved (Tab 4). Useful when the admin has reviewed and accepts the full draft. Requires status 'draft_review'.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "Slide factory run ID" },
+        },
+        required: ["id"],
+      },
+    },
+    {
+      name: "trigger_slide_factory_build",
+      description:
+        "Trigger Marco to build the deck (Tab 4 → Tab 5). Requires every Lucca slot to be approved. Status advances to 'building'. Marco dispatches per-slide swarm teams in the background; poll get_slide_factory_run for agent results.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "Slide factory run ID" },
+        },
+        required: ["id"],
+      },
+    },
   ];
 }
 
@@ -311,6 +424,24 @@ export async function dispatchRebeccaTool(
         return await toolClearIrisGaps(ctx);
       case "get_iris_status":
         return await toolGetIrisStatus(ctx);
+      case "create_slide_factory_run":
+        return await toolCreateSlideFactoryRun(ctx);
+      case "list_slide_factory_runs":
+        return await toolListSlideFactoryRuns(ctx);
+      case "get_slide_factory_run":
+        return await toolGetSlideFactoryRun(args, ctx);
+      case "record_slide_factory_brief":
+        return await toolRecordSlideFactoryBrief(args, ctx);
+      case "accept_slide_factory_brief":
+        return await toolAcceptSlideFactoryBrief(args, ctx);
+      case "assign_slide_factory_properties":
+        return await toolAssignSlideFactoryProperties(args, ctx);
+      case "update_slide_factory_slot":
+        return await toolUpdateSlideFactorySlot(args, ctx);
+      case "approve_all_slide_factory_slots":
+        return await toolApproveAllSlideFactorySlots(args, ctx);
+      case "trigger_slide_factory_build":
+        return await toolTriggerSlideFactoryBuild(args, ctx);
       default:
         return { result: { error: "Unknown tool" } };
     }
@@ -1064,4 +1195,291 @@ async function toolWriteRetrievalGap(
   if (!query) return { result: { recorded: false } };
   await appendIrisGap(query);
   return { result: { recorded: true } };
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Slide Factory Pipeline tool handlers
+// Every UI action in SlideFactoryPanel maps to one tool here. Mutations emit
+// dataChanged: { entityType: "slide_factory_run", entityId } so the frontend
+// invalidates its run query on SSE done. See parity map.
+// ───────────────────────────────────────────────────────────────────────────
+
+async function toolCreateSlideFactoryRun(
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const { createSlideFactoryRun } = await import("../storage/slide-factory-runs");
+  const run = await createSlideFactoryRun(ctx.userId);
+  return {
+    result: { id: run.id, status: run.status, createdAt: run.createdAt },
+    dataChanged: { entityType: "slide_factory_run", entityId: run.id },
+  };
+}
+
+async function toolListSlideFactoryRuns(
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const { listSlideFactoryRuns } = await import("../storage/slide-factory-runs");
+  const runs = await listSlideFactoryRuns(ctx.userId);
+  return {
+    result: runs.map((r) => ({
+      id: r.id,
+      status: r.status,
+      briefFilename: r.briefFilename,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+      completedAt: r.completedAt,
+    })),
+  };
+}
+
+async function toolGetSlideFactoryRun(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const id = Number(args.id);
+  if (!Number.isFinite(id)) return { result: { error: "Invalid slide factory run id" } };
+  const { getSlideFactoryRun } = await import("../storage/slide-factory-runs");
+  const run = await getSlideFactoryRun(id, ctx.userId);
+  if (!run) return { result: { error: `Slide factory run ${id} not found` } };
+  return { result: run };
+}
+
+async function toolRecordSlideFactoryBrief(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const id = Number(args.id);
+  const r2Key = String(args.r2Key ?? "");
+  const filename = String(args.filename ?? "");
+  if (!Number.isFinite(id) || !r2Key || !filename) {
+    return { result: { error: "id, r2Key, and filename are required" } };
+  }
+  const { getSlideFactoryRun, updateSlideFactoryRun } = await import(
+    "../storage/slide-factory-runs"
+  );
+  const run = await getSlideFactoryRun(id, ctx.userId);
+  if (!run) return { result: { error: `Slide factory run ${id} not found` } };
+  if (run.status !== "new") {
+    return {
+      result: { error: `Brief can only be recorded when status is 'new', current: '${run.status}'` },
+    };
+  }
+  const updated = await updateSlideFactoryRun(id, { briefR2Key: r2Key, briefFilename: filename });
+  return {
+    result: { id, status: updated?.status, briefFilename: updated?.briefFilename },
+    dataChanged: { entityType: "slide_factory_run", entityId: id },
+  };
+}
+
+async function toolAcceptSlideFactoryBrief(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const id = Number(args.id);
+  if (!Number.isFinite(id)) return { result: { error: "Invalid slide factory run id" } };
+  const { getSlideFactoryRun, updateSlideFactoryRun } = await import(
+    "../storage/slide-factory-runs"
+  );
+  const run = await getSlideFactoryRun(id, ctx.userId);
+  if (!run) return { result: { error: `Slide factory run ${id} not found` } };
+  if (!run.briefR2Key) return { result: { error: "No brief recorded yet" } };
+  if (run.status !== "new") {
+    return {
+      result: { error: `Brief can only be accepted when status is 'new', current: '${run.status}'` },
+    };
+  }
+  const updated = await updateSlideFactoryRun(id, {
+    briefAccepted: true,
+    status: "ingesting",
+    startedAt: new Date(),
+  });
+  // Fire-and-forget Lorenzo ingestion — matches the route's auto-fire pattern.
+  const { runLorenzoIngestion } = await import("../slides/lorenzo-ingestion");
+  void runLorenzoIngestion(id);
+  return {
+    result: {
+      id,
+      status: updated?.status,
+      message: "Brief accepted; Lorenzo ingestion dispatched. Poll get_slide_factory_run for status.",
+    },
+    dataChanged: { entityType: "slide_factory_run", entityId: id },
+  };
+}
+
+async function toolAssignSlideFactoryProperties(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const id = Number(args.id);
+  if (!Number.isFinite(id)) return { result: { error: "Invalid slide factory run id" } };
+  const slide1PropertyId = args.slide1PropertyId == null ? null : Number(args.slide1PropertyId);
+  const slide2PropertyId = args.slide2PropertyId == null ? null : Number(args.slide2PropertyId);
+  const slide3PropertyId = args.slide3PropertyId == null ? null : Number(args.slide3PropertyId);
+  const slide5PropertyId = args.slide5PropertyId == null ? null : Number(args.slide5PropertyId);
+
+  const { getSlideFactoryRun, updateSlideFactoryRun } = await import(
+    "../storage/slide-factory-runs"
+  );
+  const run = await getSlideFactoryRun(id, ctx.userId);
+  if (!run) return { result: { error: `Slide factory run ${id} not found` } };
+  if (run.status !== "ingested") {
+    return {
+      result: {
+        error: `Property assignment requires status 'ingested', current: '${run.status}'`,
+      },
+    };
+  }
+  // Verify ownership of each non-null property ID.
+  const slidePropertyIds: Array<[string, number | null]> = [
+    ["slide1PropertyId", slide1PropertyId],
+    ["slide2PropertyId", slide2PropertyId],
+    ["slide3PropertyId", slide3PropertyId],
+    ["slide5PropertyId", slide5PropertyId],
+  ];
+  for (const [field, propId] of slidePropertyIds) {
+    if (propId == null) continue;
+    const prop = await storage.getProperty(propId);
+    if (!prop || prop.userId !== ctx.userId) {
+      return { result: { error: `Property ${propId} for ${field} not found or not owned by you` } };
+    }
+  }
+  const updated = await updateSlideFactoryRun(id, {
+    slide1PropertyId,
+    slide2PropertyId,
+    slide3PropertyId,
+    slide5PropertyId,
+    status: "drafting",
+  });
+  // Fire-and-forget Lucca drafting — matches the route's auto-fire pattern.
+  const { runLuccaDraft } = await import("../slides/lucca-draft");
+  void runLuccaDraft(id);
+  return {
+    result: {
+      id,
+      status: updated?.status,
+      message: "Properties assigned; Lucca drafting dispatched. Poll get_slide_factory_run for status.",
+    },
+    dataChanged: { entityType: "slide_factory_run", entityId: id },
+  };
+}
+
+async function toolUpdateSlideFactorySlot(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const id = Number(args.id);
+  const slotKey = String(args.slotKey ?? "");
+  if (!Number.isFinite(id) || !slotKey) {
+    return { result: { error: "id and slotKey are required" } };
+  }
+  const value = args.value === undefined ? undefined : String(args.value);
+  const approved = args.approved === undefined ? undefined : Boolean(args.approved);
+  if (value === undefined && approved === undefined) {
+    return { result: { error: "At least one of value or approved must be provided" } };
+  }
+  const { getSlideFactoryRun, updateSlideFactoryRun } = await import(
+    "../storage/slide-factory-runs"
+  );
+  const run = await getSlideFactoryRun(id, ctx.userId);
+  if (!run) return { result: { error: `Slide factory run ${id} not found` } };
+  if (run.status !== "draft_review") {
+    return { result: { error: `Slot edits require status 'draft_review', current: '${run.status}'` } };
+  }
+  if (!run.luccaDraft) return { result: { error: "No Lucca draft present" } };
+  const existing = run.luccaDraft[slotKey];
+  if (!existing) return { result: { error: `Slot '${slotKey}' not found in draft` } };
+
+  const valueChanged = value !== undefined && value !== existing.value;
+  const nowApproving = approved === true && !existing.approved;
+  const updatedSlot = {
+    ...existing,
+    ...(value !== undefined ? { value } : {}),
+    ...(approved !== undefined ? { approved } : {}),
+    ...(valueChanged ? { source: "admin" as const } : {}),
+    ...(nowApproving ? { approvedAt: new Date().toISOString() } : {}),
+    ...(approved === false ? { approvedAt: null } : {}),
+  };
+  const updatedDraft = { ...run.luccaDraft, [slotKey]: updatedSlot };
+  await updateSlideFactoryRun(id, { luccaDraft: updatedDraft });
+  return {
+    result: { id, slotKey, slot: updatedSlot },
+    dataChanged: { entityType: "slide_factory_run", entityId: id },
+  };
+}
+
+async function toolApproveAllSlideFactorySlots(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const id = Number(args.id);
+  if (!Number.isFinite(id)) return { result: { error: "Invalid slide factory run id" } };
+  const { getSlideFactoryRun, updateSlideFactoryRun } = await import(
+    "../storage/slide-factory-runs"
+  );
+  const run = await getSlideFactoryRun(id, ctx.userId);
+  if (!run) return { result: { error: `Slide factory run ${id} not found` } };
+  if (run.status !== "draft_review") {
+    return {
+      result: { error: `Approve-all requires status 'draft_review', current: '${run.status}'` },
+    };
+  }
+  if (!run.luccaDraft) return { result: { error: "No Lucca draft present" } };
+
+  const now = new Date().toISOString();
+  const approvedDraft: Record<string, typeof run.luccaDraft[string]> = {};
+  for (const [key, slot] of Object.entries(run.luccaDraft)) {
+    approvedDraft[key] = {
+      ...slot,
+      approved: true,
+      approvedAt: slot.approvedAt ?? now,
+    };
+  }
+  await updateSlideFactoryRun(id, { luccaDraft: approvedDraft });
+  return {
+    result: { id, slotsApproved: Object.keys(approvedDraft).length },
+    dataChanged: { entityType: "slide_factory_run", entityId: id },
+  };
+}
+
+async function toolTriggerSlideFactoryBuild(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const id = Number(args.id);
+  if (!Number.isFinite(id)) return { result: { error: "Invalid slide factory run id" } };
+  const { getSlideFactoryRun, updateSlideFactoryRun } = await import(
+    "../storage/slide-factory-runs"
+  );
+  const run = await getSlideFactoryRun(id, ctx.userId);
+  if (!run) return { result: { error: `Slide factory run ${id} not found` } };
+  if (run.status !== "draft_review") {
+    return {
+      result: { error: `Trigger-build requires status 'draft_review', current: '${run.status}'` },
+    };
+  }
+  if (!run.luccaDraft) return { result: { error: "No Lucca draft present" } };
+  const unapproved = Object.entries(run.luccaDraft)
+    .filter(([, slot]) => !slot.approved)
+    .map(([key]) => key);
+  if (unapproved.length > 0) {
+    return {
+      result: {
+        error: `${unapproved.length} slot(s) not yet approved`,
+        unapprovedSlots: unapproved.slice(0, SLIDE_FACTORY_UNAPPROVED_SLOTS_PREVIEW),
+      },
+    };
+  }
+  await updateSlideFactoryRun(id, { status: "building" });
+  // Marco dispatch will be added in U1 of the slide factory completion plan.
+  // For now, the build status transition matches the route's behavior; Marco
+  // wiring lands when U1 ships.
+  return {
+    result: {
+      id,
+      status: "building",
+      message:
+        "Build triggered. Marco dispatch pending — see plan U1. Poll get_slide_factory_run for agent results once Marco is wired.",
+    },
+    dataChanged: { entityType: "slide_factory_run", entityId: id },
+  };
 }

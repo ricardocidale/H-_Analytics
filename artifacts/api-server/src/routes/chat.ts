@@ -35,7 +35,10 @@ import type { ToolParam, LlmResult, ToolCall } from "../chat/tool-types";
 import { dispatchRebeccaTool, getRebeccaTools } from "../chat/rebecca-tools";
 import type { DataChangedEntry as RebeccaDataChangedEntry } from "../chat/rebecca-tools";
 
-export type DataChangedEntry = { entityType: "property" | "scenario"; entityId: number };
+export type DataChangedEntry = {
+  entityType: "property" | "scenario" | "slide_factory_run";
+  entityId: number;
+};
 
 // Maximum number of tool-call/result round-trips before forcing a final text turn.
 const MAX_TOOL_DEPTH = 4;
