@@ -22,8 +22,8 @@
 import { pathToFileURL } from "url";
 import { resolve } from "path";
 import { sql } from "drizzle-orm";
-import { COUNTRY_DEFAULTS, US_STATE_DEFAULTS } from "@shared/countryDefaults";
-import { DAYS_PER_MONTH } from "@shared/constants";
+import { COUNTRY_DEFAULTS, US_STATE_DEFAULTS } from "../src/shared/countryDefaults";
+import { DAYS_PER_MONTH } from "../src/shared/constants";
 import { storage } from "../src/storage";
 import { db } from "../src/db";
 

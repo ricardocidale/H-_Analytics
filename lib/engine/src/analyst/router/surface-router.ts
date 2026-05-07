@@ -19,7 +19,7 @@
  *      failures throw InvalidVerdictError (from contracts/verdict.ts).
  */
 
-import { CONVICTION_FLOOR } from "@norfolk/shared/analyst-conviction";
+import { CONVICTION_FLOOR } from "@shared/analyst-conviction";
 import {
   buildAnalystVerdict,
   computeOverallQuality,

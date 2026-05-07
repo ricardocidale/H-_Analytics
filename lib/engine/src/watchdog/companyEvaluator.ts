@@ -16,7 +16,7 @@
  * Mirrors `overheadEvaluator.ts` and `compensationEvaluator.ts` in shape so
  * the save-tab plumbing, dialog UI, and action-button contract stay identical.
  */
-import type { CompanyBenchmarks } from "@norfolk/shared/constants-company-benchmarks";
+import type { CompanyBenchmarks } from "@shared/constants-company-benchmarks";
 import type { WatchdogResult, WatchdogSeverity, WatchdogAction } from "./capitalRaiseEvaluator";
 
 export interface CompanyInputs {

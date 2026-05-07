@@ -25,7 +25,7 @@
  */
 import {
   PROJECTION_MONTHS,
-} from '@norfolk/shared/constants';
+} from '@shared/constants';
 import {
   WORKING_CAPITAL_DAYS_PER_MONTH,
   COST_SEG_5YR_LIFE_MONTHS,
@@ -33,7 +33,7 @@ import {
   COST_SEG_15YR_LIFE_MONTHS,
   NOL_UTILIZATION_CAP,
   MONTHS_PER_YEAR,
-} from '@norfolk/shared/constants';
+} from '@shared/constants';
 import { PropertyInput, GlobalInput, MonthlyFinancials } from '../types';
 import { resolvePropertyAssumptions } from './resolve-assumptions';
 import { applyRefinancePostProcessing } from './refinance-pass';

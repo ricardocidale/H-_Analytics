@@ -20,8 +20,6 @@
       "@analytics/*": ["../../lib/analytics/src/*"],
       "@shared": ["../../lib/shared/src"],
       "@shared/*": ["../../lib/shared/src/*"],
-      "@norfolk/shared": ["../../lib/shared/src"],
-      "@norfolk/shared/*": ["../../lib/shared/src/*"],
       "@domain": ["../../lib/domain/src"],
       "@domain/*": ["../../lib/domain/src/*"]
     }

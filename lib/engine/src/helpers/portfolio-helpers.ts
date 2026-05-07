@@ -1,5 +1,5 @@
 import type { MonthlyFinancials } from "../types";
-import { MONTHS_PER_YEAR } from "@norfolk/shared/constants";
+import { MONTHS_PER_YEAR } from "@shared/constants";
 
 type NumericKeys<T> = {
   [K in keyof T]: T[K] extends number ? K : never;

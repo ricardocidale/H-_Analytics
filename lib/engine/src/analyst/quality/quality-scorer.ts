@@ -26,7 +26,7 @@ import {
   MIN_SOURCES_FOR_ADVICE,
   TIER_1_MIN_TOTAL_EVIDENCE,
   meetsConvictionFloor,
-} from "@norfolk/shared/analyst-conviction";
+} from "@shared/analyst-conviction";
 import type { Evidence, EvidenceTier, PersonaContext, VerdictRange } from "../contracts/verdict";
 
 // Re-export primitives so callers have one import target.

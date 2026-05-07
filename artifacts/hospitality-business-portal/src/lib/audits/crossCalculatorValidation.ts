@@ -1,12 +1,12 @@
 import type { MonthlyFinancials } from '../financialEngine';
 import { pmt } from '@calc/shared/pmt';
-import { getFactoryNumber } from '@norfolk/shared/model-constants-registry';
+import { getFactoryNumber } from '@shared/model-constants-registry';
 import {
   DEFAULT_LAND_VALUE_PERCENT,
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
   DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE,
   DEFAULT_COST_RATE_FFE,
-} from '@norfolk/shared/constants';
+} from '@shared/constants';
 
 import {
   DEFAULT_LTV,

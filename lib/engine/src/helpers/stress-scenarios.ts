@@ -26,8 +26,8 @@ import {
   STRESS_SEVERITY_NOI_THRESHOLD,
   REVENUE_ANCILLARY_SHARE_MAX,
   REVENUE_ROOM_SHARE_MIN,
-} from '@norfolk/shared/constants';
-import { getFactoryNumber } from '@norfolk/shared/model-constants-registry';
+} from '@shared/constants';
+import { getFactoryNumber } from '@shared/model-constants-registry';
 import { pmt } from '@calc/shared/pmt';
 
 // Audit #319 R4: registry-backed daysPerMonth (universal — same value as legacy).

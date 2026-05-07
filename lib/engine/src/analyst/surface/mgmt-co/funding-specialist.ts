@@ -51,7 +51,7 @@
  * Replit's route-handler slice per `claude-replit-split.md`.
  */
 import type { AnalystWatchdogBenchmarks } from "@workspace/db/schema";
-import { CONVICTION_FLOOR, SPECIALIST_RAW_QUALITY_SEED } from "@norfolk/shared/analyst-conviction";
+import { CONVICTION_FLOOR, SPECIALIST_RAW_QUALITY_SEED } from "@shared/analyst-conviction";
 import {
   evaluateCapitalRaise,
   type CapitalRaiseInputs,

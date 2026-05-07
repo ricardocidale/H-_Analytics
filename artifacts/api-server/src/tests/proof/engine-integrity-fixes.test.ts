@@ -29,7 +29,7 @@ import {
   DEFAULT_PREFERRED_RETURN,
   DEFAULT_LP_EQUITY_PCT,
   DEFAULT_WATERFALL_TIERS,
-} from '@norfolk/shared/constants-research';
+} from '@shared/constants-research';
 
 // ── Shared fixtures ────────────────────────────────────────────────────────────
 

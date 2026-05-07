@@ -27,7 +27,7 @@ import {
   getAcquisitionYear,
   YearlyCashFlowResult,
 } from "../debt/loanCalculations";
-import { DEFAULT_EXIT_CAP_RATE, DEFAULT_COMMISSION_RATE } from "@norfolk/shared/constants";
+import { DEFAULT_EXIT_CAP_RATE, DEFAULT_COMMISSION_RATE } from "@shared/constants";
 
 /**
  * Aggregate monthly engine data into yearly YearlyCashFlowResult[].

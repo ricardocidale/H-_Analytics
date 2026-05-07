@@ -17,7 +17,7 @@
  * Mirrors `capitalRaiseEvaluator.ts` in shape so the save-tab plumbing,
  * dialog UI, and action-button contract stay identical across tabs.
  */
-import type { RevenueBenchmarks } from "@norfolk/shared/constants-revenue-benchmarks";
+import type { RevenueBenchmarks } from "@shared/constants-revenue-benchmarks";
 import type { WatchdogResult, WatchdogSeverity, WatchdogAction } from "./capitalRaiseEvaluator";
 
 export interface RevenueInputs {

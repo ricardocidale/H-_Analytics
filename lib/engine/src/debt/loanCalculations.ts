@@ -87,7 +87,7 @@ interface RefinanceCalculation {
 }
 
 import { startOfMonth } from "date-fns";
-import { parseLocalDate } from "@norfolk/shared/dates";
+import { parseLocalDate } from "@shared/dates";
 import { pmt } from "@calc/shared/pmt";
 import {
   totalPropertyCost,
@@ -112,8 +112,8 @@ import {
   PROJECTION_MONTHS,
   DEFAULT_MODEL_START_DATE,
   MONTHS_PER_YEAR,
-} from '@norfolk/shared/constants';
-import { getFactoryNumber } from '@norfolk/shared/model-constants-registry';
+} from '@shared/constants';
+import { getFactoryNumber } from '@shared/model-constants-registry';
 
 // Re-export constants for backwards compatibility (legacy callers).
 // New code should read `getFactoryNumber('depreciationYears', country?)` instead.

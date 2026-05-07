@@ -4,7 +4,7 @@
  * contract. Same shape as funding-specialist.ts; see that file's header
  * for the full action-mapping rationale.
  */
-import type { RevenueBenchmarks } from "@norfolk/shared/constants-revenue-benchmarks";
+import type { RevenueBenchmarks } from "@shared/constants-revenue-benchmarks";
 import {
   evaluateRevenue,
   type RevenueInputs,
@@ -24,7 +24,7 @@ import {
 } from "../../contracts/verdict";
 import type { SpecialistFn, SpecialistOutput } from "../../router/surface-router";
 import { getFieldRegistryEntry } from "../../registry/field-registry";
-import { SPECIALIST_RAW_QUALITY_SEED } from "@norfolk/shared/analyst-conviction";
+import { SPECIALIST_RAW_QUALITY_SEED } from "@shared/analyst-conviction";
 
 const RAW_QUALITY_SEED = SPECIALIST_RAW_QUALITY_SEED;
 const BENCHMARK_SOURCE_LABEL = "L+B Revenue Benchmarks v1";

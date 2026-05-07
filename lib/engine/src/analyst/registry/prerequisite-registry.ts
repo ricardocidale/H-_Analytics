@@ -20,7 +20,7 @@ import {
   getRefreshCadenceDaysForConstant,
   getSpecialistForConstant,
 } from "./specialist-catalog";
-import { REGISTERED_CONSTANT_KEYS } from "@norfolk/shared/model-constants-registry";
+import { REGISTERED_CONSTANT_KEYS } from "@shared/model-constants-registry";
 
 /**
  * Storage-shape we depend on. Kept as a structural type so this module does

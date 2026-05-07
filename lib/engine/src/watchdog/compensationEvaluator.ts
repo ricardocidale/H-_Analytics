@@ -17,7 +17,7 @@
  * Mirrors `revenueEvaluator.ts` in shape so the save-tab plumbing, dialog
  * UI, and action-button contract stay identical across tabs.
  */
-import type { CompensationBenchmarks } from "@norfolk/shared/constants-compensation-benchmarks";
+import type { CompensationBenchmarks } from "@shared/constants-compensation-benchmarks";
 import type { WatchdogResult, WatchdogSeverity, WatchdogAction } from "./capitalRaiseEvaluator";
 
 export interface CompensationInputs {

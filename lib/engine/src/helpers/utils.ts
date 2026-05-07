@@ -2,7 +2,7 @@ import { startOfMonth, addMonths } from "date-fns";
 import { pmt } from "@calc/shared/pmt";
 
 // Re-export canonical parseLocalDate from shared — single source of truth
-import { parseLocalDate } from "@norfolk/shared/dates";
+import { parseLocalDate } from "@shared/dates";
 export { parseLocalDate };
 
 /**

@@ -34,9 +34,9 @@ import {
   DEFAULT_MARKETING_RATE,
   DEFAULT_MISC_OPS_RATE,
   DEFAULT_CAPITAL_RAISE_TRANCHE,
-} from '@norfolk/shared/constants';
-import { MONTHS_PER_YEAR } from '@norfolk/shared/constants';
-import { getFactoryNumber } from '@norfolk/shared/model-constants-registry';
+} from '@shared/constants';
+import { MONTHS_PER_YEAR } from '@shared/constants';
+import { getFactoryNumber } from '@shared/model-constants-registry';
 
 // Task #403 (follow-up to Audit #406): the management-company income tax
 // rate is sourced from the same registry key (`taxRate`) as the property
@@ -56,7 +56,7 @@ import { computeCostOfServices } from '@calc/services/cost-of-services';
 import type { ServiceTemplate, AggregatedServiceCosts } from '@calc/services/types';
 import { PropertyInput, GlobalInput, CompanyMonthlyFinancials, ServiceFeeBreakdown } from '../types';
 import { generatePropertyProForma } from '../property/property-engine';
-import { parseLocalDate } from '@norfolk/shared/dates';
+import { parseLocalDate } from '@shared/dates';
 import { assertFinite, dPow } from '@calc/shared/decimal.js';
 
 /** Extract { year, month (0-based) } from a date string using parseLocalDate. */

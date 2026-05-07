@@ -174,8 +174,7 @@ async function buildAll() {
     sourcemap: process.env.NODE_ENV === "production" ? false : "linked",
     plugins: [
       pathAliasPlugin({
-        "@norfolk/shared": path.resolve(artifactDir, "../../lib/shared/src"),
-        "@shared": path.resolve(artifactDir, "../../lib/shared/src"),
+        "@shared": path.resolve(artifactDir, "src/shared"),
         "@engine": path.resolve(artifactDir, "../../lib/engine/src"),
         "@calc": path.resolve(artifactDir, "../../lib/calc/src"),
         "@analytics": path.resolve(artifactDir, "../../lib/analytics/src"),

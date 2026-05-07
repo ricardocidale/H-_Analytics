@@ -1,5 +1,5 @@
 import type { CompanyMonthlyFinancials } from "../types";
-import { OPERATING_RESERVE_BUFFER, COMPANY_FUNDING_BUFFER } from "@norfolk/shared/constants";
+import { OPERATING_RESERVE_BUFFER, COMPANY_FUNDING_BUFFER } from "@shared/constants";
 
 export interface CompanyCashAnalysis {
   totalFunding: number;

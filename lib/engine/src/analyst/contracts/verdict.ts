@@ -23,7 +23,7 @@ import {
   CONVICTION_FLOOR,
   MIN_SOURCES_FOR_ADVICE,
   TIER_1_MIN_TOTAL_EVIDENCE,
-} from "@norfolk/shared/analyst-conviction";
+} from "@shared/analyst-conviction";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Severity
