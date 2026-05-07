@@ -15,13 +15,33 @@ feature ships or a new Rebecca tool is added.
 |---|---|---|---|
 | View property list | Properties sidebar | `list_properties` | ✅ |
 | View property detail | Property page | `get_property` | ✅ |
+| Create property | Properties → New | — | ⚠️ Route exists, tool missing |
 | Edit property field | Property → Edit | `update_property` | ✅ |
+| Delete property | Property → Delete | — | ⚠️ Route exists, tool missing |
 | Create scenario | Scenarios → New | `create_scenario` | ✅ |
 | Clone scenario | Scenarios → Clone | `create_scenario (cloneFromId)` | ✅ |
-| Edit scenario assumptions | Scenario → Edit | `update_scenario` | ✅ |
+| Edit scenario name / description / tags | Scenario → Edit | `update_scenario` | ✅ |
+| Edit scenario financial assumptions | Scenario → Edit | — | ⚠️ `update_scenario` only touches name/description/tags — `globalAssumptions` snapshot unreachable |
 | Lock scenario | Scenario → Lock | `lock_scenario` | ✅ |
 | Delete scenario | Scenario → Delete | `delete_scenario` | ✅ |
 | Run property research | Property → Research | `trigger_research` | ✅ |
+
+## Analyst Table Actions
+
+| UI Action | UI Location | Rebecca Tool | Status |
+|---|---|---|---|
+| Refresh Capital Raise benchmarks | Admin → Analyst tables | — | ⚠️ Route exists (`/api/analyst/capital-raise`), no tool |
+| Refresh Exit Multiples benchmarks | Admin → Analyst tables | — | ⚠️ Route exists (`/api/analyst/exit-multiples`), no tool |
+| Refresh Reference Brands | Admin → Analyst tables | — | ⚠️ Route exists (`/api/analyst/reference-brands`), no tool |
+
+## Slides / Deck Actions
+
+| UI Action | UI Location | Rebecca Tool | Status |
+|---|---|---|---|
+| Configure deck (assign properties to slides 1/2/3/5) | Admin → Slides | — | ⚠️ PUT `/api/lb-slides/config` exists, no tool |
+| Trigger deck render | Admin → Slides | — | ⚠️ POST `/api/lb-slides/render` exists, no tool |
+| Check render status | Admin → Slides | — | ⚠️ GET `/api/lb-slides/render-status` exists, no tool |
+| Download combined PDF | Admin → Slides | — | 🚫 N/A (file download) |
 
 ## Admin Actions (N/A or Deferred)
 
