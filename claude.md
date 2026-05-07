@@ -92,7 +92,7 @@ Health endpoint: `GET /api/health/live` (not `/api/healthz`).
 
 | File | Purpose |
 |---|---|
-| `Dockerfile` | Two-stage Node 20 + pnpm build. Builds all packages, ships the api-server bundle plus the two SPAs (H+ Analytics at `dist/public`, mockup-sandbox at `dist/mockup-sandbox`), runs `node artifacts/api-server/dist/index.mjs`. |
+| `Dockerfile` | Two-stage Node 24 + pnpm build. Builds all packages, ships the api-server bundle plus the two SPAs (H+ Analytics at `dist/public`, mockup-sandbox at `dist/mockup-sandbox`), runs `node artifacts/api-server/dist/index.mjs`. |
 | `railway.toml` | `builder = "dockerfile"`, `healthcheckPath = "/api/health/live"`, `healthcheckTimeout = 300`, `restartPolicyType = "ON_FAILURE"`. |
 | `artifacts/api-server/build.mjs` | Externalises heavy deps (AI SDKs, doc/media libs, country-state-city, Sentry, google-auth-library) so the bundle stays ~7.5 MB and pnpm installs the rest in the runtime container. |
 
@@ -249,6 +249,8 @@ The "LB Slides" feature generates a 6-slide investor deck per property as a sing
 **LB Portfolio Deck — one canonical 6-slide investor deck:**
 A separate pipeline produces a single portfolio-level deck (not per-property). Admin assigns properties to slides 1, 2, 3, 5 at `/lb-slides` (admin only); slides 4 (portfolio grid) and 6 (10-year USALI aggregate) are auto-generated. Playwright renders `/internal/lb-deck?token=<hmac-lb-token>` as a single 6-page PDF. DB: `lb_slides_config` table (single row, id = 1). Routes: `POST /api/lb-slides/render` (trigger), `GET /api/lb-slides/render-status`, `GET /api/lb-slides/download/combined.pdf` (serve), `GET /PUT /api/lb-slides/config` (admin assignment).
 
+**Slide Factory V2 UI (`SlideFactoryPanel`):** Admin wizard mounted above the slide editor in `LbSlides.tsx`. Component lives at `artifacts/hospitality-business-portal/src/features/slide-factory/SlideFactoryPanel.tsx`. Tab 1 (Brief): PDF/PPTX upload via presigned R2, accept flow. Tab 3 (Properties): 4-property selectors for slides 1/2/3/5. Tabs 2/4/5/6 are pipeline-stage placeholders. Tab navigation is status-driven (admin cannot freely jump tabs). Polls `GET /api/slide-factory/runs/:id` every 5 s only during transitional states (`ingesting`, `drafting`, `building`). Slide factory run storage: `artifacts/api-server/src/storage/slide-factory-runs.ts`; list limit constant: `SLIDE_FACTORY_RUNS_LIST_LIMIT`.
+
 ### `reference_brands` AI pipeline wiring
 
 The `reference_brands` table is wired into three AI surfaces:
@@ -362,7 +364,7 @@ vendor/
 
 ### Key project-specific skills
 
-> Wording in this table is mirrored in `replit.md` § "Key skills". Keep them identical — drift here is a bug per the `agent-memory-files` skill.
+> Wording in this table is mirrored in `replit.md` § "Pointers". Keep them identical — drift here is a bug per the `agent-memory-files` skill.
 
 | Skill | When to use |
 |---|---|
@@ -400,6 +402,7 @@ Rule: **if you touch `claude.md`, scan `replit.md` for related content and sync 
 
 | Date | Change |
 |---|---|
+| 2026-05-07 | **Slide Factory V2 UI — Tab 1 (Brief) + Tab 3 (Properties).** `SlideFactoryPanel.tsx` added to `artifacts/hospitality-business-portal/src/features/slide-factory/`. Tab 1: PDF/PPTX brief upload via presigned R2, accept flow, status-driven tab lock. Tab 3: 4-property selectors (slides 1/2/3/5). Tabs 2/4/5/6 placeholders for pipeline stages. Mounted above slide editor in `LbSlides.tsx`; polls every 5 s only in transitional states. Magic-number fix: `slide-factory-runs.ts` `.limit(20)` → `SLIDE_FACTORY_RUNS_LIST_LIMIT` named constant in `artifacts/api-server/src/constants.ts`. |
 | 2026-05-05 | **`analyst-intelligence-display` skill created.** Documents the display side of the Analyst pipeline: `AnalystRangeIndicator`, `AnalystVerdictDisplay`, `AnalystCheckDialog`, `AnalystVerdict` contract, `GuidanceRecord` shape, conviction floor, severity color system, voice rule, and anti-patterns. Pairs with `analyst-research-buttons` (trigger side). Added to key skills table in both memory files. |
 | 2026-05-05 | **B3 taxonomy fix — seed-from-default enforced.** `DEFAULT_INTEREST_RATE = 0.075` moved to `constants-funding.ts` across all 3 mirrors; `SEED_DEBT_ASSUMPTIONS.interestRate` now references it instead of a raw literal. Skills updated: `hplus-variable-taxonomy` (example value, new seed-from-default bullet + decision-table row), `no-magic-numbers` (seed anti-pattern row corrected), `constants-vs-defaults` (seed-from-default bullet with concrete example). `check:typecheck` PASS, `check:magic-numbers` PASS. |
 | 2026-05-05 | **B1 — `capitalRaise3Amount` / `capitalRaise3Date` fields added** throughout: `GlobalResponse` (`number?` / `string?`), `FundingSection`, `CurrentPlanTab`, `CompanyBalanceSheet`, `CompanyInvestmentTab`. |
