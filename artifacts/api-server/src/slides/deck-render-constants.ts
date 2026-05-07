@@ -92,3 +92,9 @@ export const SWARM_BUILDER_MAX_TOKENS = 2048;
  * six Inspector roles; Inspector Pass 2 uses LORENZO_VISION_MODEL (Opus 4.7).
  */
 export const SWARM_INSPECTOR_MAX_TOKENS = 1024;
+
+/**
+ * Number of projection years used by Felix-01 (Aggregator) for the slide-6
+ * USALI income-statement aggregate. Fixed at 10 per the canonical deck spec.
+ */
+export const FELIX_PROJECTION_YEARS = 10;

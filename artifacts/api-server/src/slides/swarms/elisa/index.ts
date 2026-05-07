@@ -1,21 +1,67 @@
 /**
- * Elisa — slide 5 swarm team (Reader→Builder→Inspector).
+ * Elisa swarm team — Slide 5 (Financial Snapshot / Transformation Plan).
  *
- * Members: Elisa-01 (Reader), Elisa-02 (Builder), Elisa-03 (Inspector).
- * Slide content: portfolio diagnostic / transformation rows. Reads cached
- * Gustavo verdicts via Lucca per
- * docs/solutions/architecture-patterns/slide-factory-financial-data-fork-diagnostic-vs-packaging-2026-05-06.md
- * (never triggers Gustavo from a slide build).
+ * Orchestrates the Reader → Builder → Inspector triad:
+ *   Elisa-01 (reader)    — deterministic input assembler
+ *   Elisa-02 (builder)   — Sonnet LLM, maps Lucca drafts → Slide5Payload
+ *   Elisa-03 (inspector) — Hybrid: Zod Pass 1 + Opus vision Pass 2
  *
- * **U4 stub** — replaced in U5 with the real Reader→Builder→Inspector triad.
+ * Slide content: portfolio-level transformation narrative. Left panel has
+ * an intro paragraph + before/after comparison table (Feature | Existing |
+ * Proposed). Right panel financial snapshot is deterministic (not authored
+ * by this team).
  */
+import { logger } from "../../../logger";
 import type { SlideTeamInput, SlideTeamOutput } from "../types";
+import { runElisaReader } from "./reader";
+import { runElisaBuilder } from "./builder";
+import { runElisaInspector } from "./inspector";
 
 export async function runElisaTeam(input: SlideTeamInput): Promise<SlideTeamOutput> {
+  logger.info(`[elisa] run ${input.runId} — starting slide 5 triad`, "slide-factory");
+
+  // Elisa-01: Reader (deterministic)
+  const readerOutput = runElisaReader(input);
+
+  // Elisa-02: Builder (LLM — Sonnet)
+  let payload;
+  try {
+    payload = await runElisaBuilder(readerOutput);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error(`[elisa-02] builder failed: ${msg}`, "slide-factory");
+    return {
+      slideNumber: input.slideNumber,
+      status: "fail",
+      payloadV2: null,
+      notes: `Builder error: ${msg}`,
+    };
+  }
+
+  // Elisa-03: Inspector (Hybrid)
+  let verdict;
+  try {
+    verdict = await runElisaInspector(payload, input.canonicalPngKey);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error(`[elisa-03] inspector failed: ${msg}`, "slide-factory");
+    return {
+      slideNumber: input.slideNumber,
+      status: "fail",
+      payloadV2: payload,
+      notes: `Inspector error: ${msg}`,
+    };
+  }
+
+  logger.info(
+    `[elisa] run ${input.runId} — slide 5 ${verdict.status.toUpperCase()}`,
+    "slide-factory",
+  );
+
   return {
     slideNumber: input.slideNumber,
-    status: "ok",
-    payloadV2: { stubbed: true, team: "elisa", slide: input.slideNumber },
-    notes: "U4 stub — replaced in U5/U6",
+    status: verdict.status,
+    payloadV2: payload,
+    notes: verdict.notes,
   };
 }
