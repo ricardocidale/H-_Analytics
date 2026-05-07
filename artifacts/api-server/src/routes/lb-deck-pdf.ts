@@ -46,6 +46,7 @@ import { renderLimiter } from "../slides/render-limiter";
 const router = Router();
 
 const LB_PDF_R2_KEY = `lb-slides/pdf/${DECK_LOGIC_VERSION}/lb-deck.pdf`;
+const INTERNAL_PROXY_PORT = 80; // shared internal proxy — same port used in property-deck-pdf.ts
 
 type RenderStatus = "idle" | "rendering" | "ready" | "error";
 
@@ -54,7 +55,7 @@ let lastError: string | null = null;
 let lastRenderedAt: Date | null = null;
 
 function lbDeckUrl(token: string): string {
-  return `http://localhost:80/internal/lb-deck?token=${encodeURIComponent(token)}`;
+  return `http://localhost:${INTERNAL_PROXY_PORT}/internal/lb-deck?token=${encodeURIComponent(token)}`;
 }
 
 function isDisconnectError(err: unknown): boolean {

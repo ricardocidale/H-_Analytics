@@ -1,4 +1,5 @@
 import { storage } from "../storage";
+import { isAdminRole } from "@shared/constants";
 import type { ToolParam } from "./tool-types";
 import type { Property, UpdateProperty, Scenario, UpdateScenario } from "@workspace/db";
 import { updatePropertySchema } from "@workspace/db";
@@ -630,10 +631,11 @@ async function toolUpdateScenario(
 // The engine reads many more keys from this blob (see company-engine.ts:93-147),
 // but those are internally managed; LLM-controlled writes are intentionally limited
 // to the three admin-facing fields below.
+const PROJECTION_YEARS_MAX = 50; // Category 1 — domain cap; sourced from ScenarioGlobalAssumptionsSnapshot
 const SCENARIO_ASSUMPTION_VALIDATORS: Record<string, (v: unknown) => boolean> = {
-  modelStartDate: (v) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v),
+  modelStartDate: (v) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) && !isNaN(new Date(v).getTime()),
   baseManagementFeePercent: (v) => typeof v === "number" && v >= 0 && v <= 1,
-  projectionYears: (v) => typeof v === "number" && Number.isInteger(v) && v >= 1 && v <= 50,
+  projectionYears: (v) => typeof v === "number" && Number.isInteger(v) && v >= 1 && v <= PROJECTION_YEARS_MAX,
 };
 
 async function toolUpdateScenarioAssumptions(
@@ -715,11 +717,16 @@ async function toolGetLbDeckConfig(
   const authError = await requireAdminCtx(ctx);
   if (authError) return authError;
   const config = await storage.getLbSlidesConfig();
+  // Normalize to { config: ... } so callers use the same path as configure_lb_deck's response.
+  // Include id and updatedAt so the null-config shape is structurally identical to the row shape.
   return {
-    result: config ?? {
-      slide1PropertyId: null, slide2PropertyId: null,
-      slide3PropertyId: null, slide5PropertyId: null,
-      slide4SectionSubtitle: null, slide6Disclaimer: null,
+    result: {
+      config: config ?? {
+        id: null, updatedAt: null,
+        slide1PropertyId: null, slide2PropertyId: null,
+        slide3PropertyId: null, slide5PropertyId: null,
+        slide4SectionSubtitle: null, slide6Disclaimer: null,
+      },
     },
   };
 }
@@ -742,23 +749,32 @@ async function toolConfigureLbDeck(
   for (const field of SLIDE_PROP_FIELDS) {
     const rawId = args[field];
     if (rawId === undefined || rawId === null) continue;
-    const id = rawId as number;
-    const prop = await storage.getProperty(id);
+    if (typeof rawId !== "number" || !Number.isFinite(rawId)) {
+      return { result: { error: `${field} must be a number` } };
+    }
+    const prop = await storage.getProperty(rawId);
     if (!prop || prop.userId !== ctx.userId) {
-      return { result: { error: `Property ID ${id} for ${field} not found or not owned by you` } };
+      return { result: { error: `Property ID ${rawId} for ${field} not found or not owned by you` } };
     }
   }
 
-  const merge = <T>(key: string, current: T): T =>
-    args[key] !== undefined ? (args[key] as T) : current;
+  const mergeNumericOrNull = (key: string, fallback: number | null): number | null =>
+    args[key] !== undefined ? (args[key] as number | null) : fallback;
+
+  const mergeStringOrNull = (key: string, fallback: string | null): string | null => {
+    const v = args[key];
+    if (v === undefined) return fallback;
+    if (v !== null && typeof v !== "string") return fallback;
+    return v as string | null;
+  };
 
   const updated = await storage.upsertLbSlidesConfig({
-    slide1PropertyId: merge("slide1PropertyId", current?.slide1PropertyId ?? null),
-    slide2PropertyId: merge("slide2PropertyId", current?.slide2PropertyId ?? null),
-    slide3PropertyId: merge("slide3PropertyId", current?.slide3PropertyId ?? null),
-    slide5PropertyId: merge("slide5PropertyId", current?.slide5PropertyId ?? null),
-    slide4SectionSubtitle: merge("slide4SectionSubtitle", current?.slide4SectionSubtitle ?? null),
-    slide6Disclaimer: merge("slide6Disclaimer", current?.slide6Disclaimer ?? null),
+    slide1PropertyId: mergeNumericOrNull("slide1PropertyId", current?.slide1PropertyId ?? null),
+    slide2PropertyId: mergeNumericOrNull("slide2PropertyId", current?.slide2PropertyId ?? null),
+    slide3PropertyId: mergeNumericOrNull("slide3PropertyId", current?.slide3PropertyId ?? null),
+    slide5PropertyId: mergeNumericOrNull("slide5PropertyId", current?.slide5PropertyId ?? null),
+    slide4SectionSubtitle: mergeStringOrNull("slide4SectionSubtitle", current?.slide4SectionSubtitle ?? null),
+    slide6Disclaimer: mergeStringOrNull("slide6Disclaimer", current?.slide6Disclaimer ?? null),
   });
   return { result: { success: true, config: updated } };
 }
@@ -938,7 +954,7 @@ async function toolTriggerResearch(
  */
 async function requireAdminCtx(ctx: ToolContext): Promise<{ result: { error: string } } | null> {
   const user = await storage.getUserById(ctx.userId);
-  if (user?.role !== "admin") {
+  if (!user || !isAdminRole(user.role)) {
     return { result: { error: "This action requires admin access" } };
   }
   return null;
