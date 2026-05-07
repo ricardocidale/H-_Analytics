@@ -1,11 +1,14 @@
-# H+ Analytics
+# H+ Analytics — replit.md (Replit Agent Contract)
+
+> **Canonical agent contract for Replit Agent sessions in this repo.**
+> Counterpart: `CLAUDE.md` (Claude Code Agent Contract). Shared sections (architecture, rules, vocabulary, skill table) must stay verbatim-identical between the two files. See § "Memory-file harmonization (mandatory shipping gate)" in `CLAUDE.md`.
 
 H+ Analytics is a hospitality-sector financial analytics platform that helps asset managers model scenarios, run portfolio projections, and generate property-level investor slide decks.
 
 ## Run & Operate
 
 - **Run:** Use `restart_workflow <artifact_name>` (e.g., `restart_workflow hospitality-business-portal`). Never run `pnpm dev` at the workspace root.
-- **Key secrets** (must exist in both Replit secrets AND Railway): `POSTGRES_URL`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `TOKEN_ENCRYPTION_KEY`, `OPENAI_EMBEDDING_KEY`, `FRED_API_KEY`, `GITHUB_PAT`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`. Full list: `claude.md` § "Environment Variables (api-server)".
+- **Key secrets** (must exist in both Replit secrets AND Railway): `POSTGRES_URL`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `TOKEN_ENCRYPTION_KEY`, `OPENAI_EMBEDDING_KEY`, `FRED_API_KEY`, `GITHUB_PAT`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`. Full list: `CLAUDE.md` § "Environment Variables (api-server)".
 - **Health check:** `GET /api/health/live`
 
 ## Stack
@@ -34,7 +37,7 @@ H+ Analytics is a hospitality-sector financial analytics platform that helps ass
 | OpenAPI spec | `lib/api-spec/`; generated hooks in `lib/api-client-react/` |
 | API routes | `artifacts/api-server/src/routes/` |
 | Production config | `Dockerfile`, `railway.toml` |
-| Canonical docs | `claude.md` (source of truth for architecture, stack, rules) |
+| Canonical docs | `CLAUDE.md` (source of truth for architecture, stack, rules) |
 | LB slide visual spec | `attached_assets/L+B_Property_6-Slide_Cannonical_*.pdf/png`, R2 `canonical/lb-6-slide/slides/slide-{1..6}.png` |
 
 ## Product
@@ -47,7 +50,7 @@ H+ Analytics is a hospitality-sector financial analytics platform that helps ass
 
 ## Inviolable Rules
 
-> Full rationale in `claude.md` § "Inviolable login / auth rules" and § "Architecture Notes".
+> Full rationale in `CLAUDE.md` § "Inviolable login / auth rules" and § "Architecture Notes".
 
 1. **Secrets parity.** Every env var must exist in both Railway AND Replit secrets. Absence silently disables features (`GOOGLE_CLIENT_ID` is the canonical example).
 2. **No silent async-fetch gates.** Never `useState(false)` gated by a fire-and-forget fetch. Client always attempts; server surfaces errors as toasts.
@@ -69,10 +72,10 @@ H+ Analytics is a hospitality-sector financial analytics platform that helps ass
 
 | Topic | Where |
 |---|---|
-| Architecture, auth rules, number taxonomy | `claude.md` (the canonical deep source) |
-| Production deployment + env vars | `claude.md` § "Production Deployment" and § "Environment Variables (api-server)" |
-| LB Slides pipeline + visual spec | `claude.md` § "LB Slides — investor PDF decks (Playwright HTML→PDF)" |
-| Agent & skill system | `claude.md` § "Agent & Skill System", `.agents/skills/README.md` |
+| Architecture, auth rules, number taxonomy | `CLAUDE.md` (the canonical deep source) |
+| Production deployment + env vars | `CLAUDE.md` § "Production Deployment" and § "Environment Variables (api-server)" |
+| LB Slides pipeline + visual spec | `CLAUDE.md` § "LB Slides — investor PDF decks (Playwright HTML→PDF)" |
+| Agent & skill system | `CLAUDE.md` § "Agent & Skill System", `.agents/skills/README.md` |
 | CE Replit adaptation | `.agents/ce-agents/REPLIT-ADAPTATION.md` |
 | pnpm workspace | `pnpm-workspace` skill |
 | UI pages | `ui-page-patterns` skill |
@@ -94,7 +97,7 @@ H+ Analytics is a hospitality-sector financial analytics platform that helps ass
 
 | Date | Change |
 |---|---|
-| 2026-05-07 | **Canonical slide assets reorganized.** `attached_assets/canonical/{pdf,png,json,pptx}/` — 10 canonical files, organized by format. 250MB → 106MB (144MB of stale PPTXs, old PDFs, session artifacts, test renders removed). All script, skill, doc, and `claude.md` references updated to new paths. |
+| 2026-05-07 | **Canonical slide assets reorganized.** `attached_assets/canonical/{pdf,png,json,pptx}/` — 10 canonical files, organized by format. 250MB → 106MB (144MB of stale PPTXs, old PDFs, session artifacts, test renders removed). All script, skill, doc, and `CLAUDE.md` references updated to new paths. |
 | 2026-05-07 | **Slide Factory V2 UI — Tab 1 (Brief) + Tab 3 (Properties).** `SlideFactoryPanel.tsx` in `features/slide-factory/`. Tab 1: PDF/PPTX brief upload via presigned R2, accept flow, status-driven lock. Tab 3: 4-property selectors (slides 1/2/3/5). Tabs 2/4/5/6 are pipeline-stage placeholders. Polls every 5 s only in transitional states. |
 | 2026-05-05 | **`analyst-intelligence-display` skill created.** Canonical display components (`AnalystRangeIndicator`, `AnalystVerdictDisplay`, `AnalystCheckDialog`), conviction floor, severity color system, voice rule, anti-patterns. |
 | 2026-05-04 | **LB Slide Studio + auth hardening.** `LbSlides.tsx` → 7-tab Slide Studio with per-slide editor panels. Auth: `GOOGLE_CLIENT_ID` required in both envs; `devLoginAvailable` async-fetch gate removed; Google OAuth opens `_blank`; 5 inviolable auth rules locked in. |

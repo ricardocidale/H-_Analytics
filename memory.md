@@ -334,7 +334,7 @@
 - **Rebecca chatbot skill created**: `.agents/skills/rebecca-chatbot/SKILL.md` — Agent Skills spec-compliant version for `.agents/` skills directory
 - **Admin configurator updated**: `.agents/skills/admin-configurator/SKILL.md` — AI Assistant group now shows all 5 tabs (Configuration, Knowledge Base, Guardrails, Conversations, Feedback)
 - **replit.md updated**: Added Rebecca Rich Blocks, Knowledge Base, and Guardrails to Key Rules section. Added Rebecca Chatbot to Skill Router table.
-- **claude.md updated**: Recent Changes (April 8) section added for Tasks #305-#307. Rebecca Enhancement Layer section added under Phase 4. Skill Router entry updated.
+- **CLAUDE.md updated**: Recent Changes (April 8) section added for Tasks #305-#307. Rebecca Enhancement Layer section added under Phase 4. Skill Router entry updated.
 - **memory.md updated**: Skills update entry added
 
 ### Task #307: Rebecca Rich Message Formatting (April 2026) — COMPLETED
@@ -374,7 +374,7 @@
 - **ConversationsTab.tsx stub deleted**: Old placeholder removed from `client/src/components/admin/`
 - **Admin.tsx cleaned**: Removed ConversationsTab import and switch case
 - **Sidebar redirect added**: `"conversations": "ai-agents"` in SECTION_REDIRECTS — clicking Conversations in sidebar now navigates to AI Agents (where the real conversations tab lives)
-- **claude.md updated**: T24 marked ✅, Phase 4 marked COMPLETE
+- **CLAUDE.md updated**: T24 marked ✅, Phase 4 marked COMPLETE
 - **replit.md updated**: Research Intelligence section updated to reflect Phase 4 complete
 - **Phase 4 (T19-T24) fully complete**: All Rebecca Layer tasks shipped
 
@@ -395,12 +395,12 @@
 - **12 `.claude/skills/` fixed**: balance-sheet-integrity, business-model, charts, design-export, help-page, integrations, product-vision, scenarios, server-finance, str-properties, tour, ui-blocks
 - **All 54 `.agents/skills/` and 44 `.claude/skills/` now have proper frontmatter**
 - **5 skills over 500 lines noted** (spec recommends <500): source-code (832), research-methodology (800), product-vision (761), design-system (714), ui-ux-pro-max (658) — not restructured this pass
-- **Doc updates**: replit.md and claude.md updated — skills description changed from "slim pointers" to "full skills with Agent Skills spec frontmatter"
+- **Doc updates**: replit.md and CLAUDE.md updated — skills description changed from "slim pointers" to "full skills with Agent Skills spec frontmatter"
 
 ### Task #304: Code Quality & Dead Code Audit (April 2026) — COMPLETED
 - **9 unused exports removed**: De-exported (made file-private) `LocationLinks` (map-utils.ts), `GlossaryEntry`+`lookupGlossary` (glossary.ts), `QueuedResearch` (research-queue.ts), `InsightResult` (rebecca-insights.ts), `HotelSnapshotData`+`HotelRateData`+`CityMedianData`+`PropertyValueEstimate` (api/types.ts)
 - **10 empty catch blocks annotated**: All `.catch(() => {})` patterns now have `/* ignore: reason */` comments explaining why the catch is intentionally empty (best-effort indexing, non-blocking seeding, background enrichment)
-- **Doc Harmony fixed**: Updated claude.md test counts from 4,024/172 to 4,047/173 across all 4 occurrences
+- **Doc Harmony fixed**: Updated CLAUDE.md test counts from 4,024/172 to 4,047/173 across all 4 occurrences
 - **Exports check**: 525 used, 0 unused, 21 API contracts
 - **Quick audit**: 0 empty catch blocks, 0 `any` types, 0 TODOs, 0 console.logs
 - **Large files noted** (>500 lines): intelligence.ts (1131), financial.ts (1061), properties.ts (865), pgvector-service.ts (833), sidebar.tsx (771) — all complex business logic, not safely decomposable without risk
@@ -887,7 +887,7 @@ System: App Defaults, Verification, Database, Notifications, Navigation, Activit
 - **PropertyFeeSummaryTable fix**: Inactive fee category cells now filter by `c.isActive` — headers AND cells consistently show active-only categories. Inactive cats show "—" dash.
 - **costSegEnabled UI toggle**: Added Switch toggle + 3 percentage sliders (5yr/7yr/15yr) in CapitalStructureSection.tsx after depreciation override, before Type of Funding. Only visible when toggle is ON. Shows remaining % for building depreciation.
 - **Service templates in scenarios**: Design decision PENDING — not captured in snapshots, may be by-design (company infrastructure).
-- **Doc Harmony**: Updated claude.md test counts from 4,478/184 → 4,495/185
+- **Doc Harmony**: Updated CLAUDE.md test counts from 4,478/184 → 4,495/185
 
 ## Current Test Count
 - **4,520 tests across 186 files** (as of April 11, 2026)
@@ -896,7 +896,7 @@ System: App Defaults, Verification, Database, Notifications, Navigation, Activit
 - **Rebecca** is the only AI assistant — copilot-style chat, no voice agents
 - drizzle-zod: NEVER use `.omit()` — only `.pick()`
 - Domain boundary: Route files must NEVER import `db` or `drizzle-orm` directly
-- Always update replit.md AND claude.md AND memory.md after changes (Doc Harmony Rule)
+- Always update replit.md AND CLAUDE.md AND memory.md after changes (Doc Harmony Rule)
 - useResearchQueue.getState() pattern for fresh Zustand reads
 - **E2E Test Login**: Click the spinning logo on `/login` page to trigger `POST /api/auth/dev-login`. Do NOT pass `authConfig` credentials (triggers blocked OAuth). Do NOT use Google sign-in button.
 

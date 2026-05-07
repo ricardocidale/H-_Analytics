@@ -239,7 +239,7 @@ When you encounter a number and need to decide what to do with it:
 | Create | `.agents/skills/hplus-variable-taxonomy/SKILL.md` | The four categories, decision table, code rules — CC-consumable format |
 | Create | `.agents/skills/hplus-assumption-lifecycle/SKILL.md` | Default → Assumption → Confirmed lifecycle, UX rules, seeding rules |
 | Update | `.agents/skills/no-magic-numbers/SKILL.md` | Cross-reference to taxonomy; strengthen "not a constant" list |
-| Update | `claude.md` | Replace existing assumption-class section with the full 4-category taxonomy |
+| Update | `CLAUDE.md` | Replace existing assumption-class section with the full 4-category taxonomy |
 
 ---
 
