@@ -234,7 +234,7 @@ The two architectural moves:
 
 **Requirements:** R1, R10.
 
-**Dependencies:** None within this plan; depends on existing `slide_factory_runs` schema and Lucca approve-all-slots path.
+**Dependencies:** **U4 (swarm framework) — paired execution unit.** Marco's `dispatch_slide_team` primitive tool dispatches into the swarm framework's `SlideTeamInput`/`SlideTeamOutput` interface. Without U4 the tool either returns hardcoded fake responses (busywork that U4 then deletes) or imports from modules that don't exist. U1 and U4 must ship together. This was identified at execution time during the 2026-05-07 ce-work session — the plan was originally drafted with U1 and U4 in different phases; that split does not survive contact with the test scenarios (which require the team interface to exist). Schema dependency unchanged: `slide_factory_runs` schema and Lucca approve-all-slots path are already in place.
 
 **Files:**
 - Create: `artifacts/api-server/src/slides/marco.ts`
