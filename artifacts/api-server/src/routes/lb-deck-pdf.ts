@@ -19,7 +19,7 @@
  */
 
 import { Router, type Request, type Response } from "express";
-import { requireAdmin } from "../auth";
+import { requireAdmin, getAuthUser } from "../auth";
 import { logger } from "../logger";
 import { storage } from "../storage";
 import { getStorageProviderAsync } from "../providers/storage";
@@ -150,6 +150,22 @@ router.put(
       slide6Disclaimer?: string | null;
     };
     try {
+      const userId = getAuthUser(req).id;
+      const slideProps: Array<[string, number | null | undefined]> = [
+        ["slide1PropertyId", slide1PropertyId],
+        ["slide2PropertyId", slide2PropertyId],
+        ["slide3PropertyId", slide3PropertyId],
+        ["slide5PropertyId", slide5PropertyId],
+      ];
+      for (const [field, id] of slideProps) {
+        if (id == null) continue;
+        const prop = await storage.getProperty(id);
+        if (!prop || prop.userId !== userId) {
+          return res.status(HTTP_400_BAD_REQUEST).json({
+            error: `Property ID ${id} for ${field} not found or not owned by you`,
+          });
+        }
+      }
       const updated = await storage.upsertLbSlidesConfig({
         slide1PropertyId: slide1PropertyId ?? null,
         slide2PropertyId: slide2PropertyId ?? null,

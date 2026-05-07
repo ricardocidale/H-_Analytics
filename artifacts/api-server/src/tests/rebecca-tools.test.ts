@@ -27,6 +27,8 @@ const mockGetReferenceBrands = vi.fn();
 const mockUpsertCapitalRaiseBenchmark = vi.fn();
 const mockUpsertExitMultiple = vi.fn();
 const mockGetUserById = vi.fn();
+const mockGetLbSlidesConfig = vi.fn();
+const mockUpsertLbSlidesConfig = vi.fn();
 
 vi.mock("../storage", () => ({
   storage: {
@@ -40,8 +42,8 @@ vi.mock("../storage", () => ({
     upsertCapitalRaiseBenchmark: (...a: unknown[]) => mockUpsertCapitalRaiseBenchmark(...a),
     upsertExitMultiple: (...a: unknown[]) => mockUpsertExitMultiple(...a),
     getUserById: (...a: unknown[]) => mockGetUserById(...a),
-    getLbSlidesConfig: vi.fn(async () => null),
-    upsertLbSlidesConfig: vi.fn(async (v: unknown) => v),
+    getLbSlidesConfig: (...a: unknown[]) => mockGetLbSlidesConfig(...a),
+    upsertLbSlidesConfig: (...a: unknown[]) => mockUpsertLbSlidesConfig(...a),
   },
 }));
 
@@ -358,5 +360,163 @@ describe("runAnalystScoped — property scope rejection", () => {
     const promise = runAnalystScoped({ scope: "company", userId: 1 });
     // If the scope guard threw, it would reject immediately with the scope error.
     await expect(promise).rejects.not.toMatchObject({ code: "ANALYST_SCOPE_NOT_IMPLEMENTED" });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// configure_lb_deck — auth, ownership, merge
+// ---------------------------------------------------------------------------
+
+describe("dispatchRebeccaTool — configure_lb_deck", () => {
+  const existingConfig = {
+    id: 1,
+    updatedAt: new Date("2026-01-01"),
+    slide1PropertyId: 10,
+    slide2PropertyId: 11,
+    slide3PropertyId: 12,
+    slide5PropertyId: 13,
+    slide4SectionSubtitle: "existing subtitle",
+    slide6Disclaimer: "existing disclaimer",
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetLbSlidesConfig.mockResolvedValue(existingConfig);
+    mockUpsertLbSlidesConfig.mockResolvedValue(existingConfig);
+    mockGetProperty.mockResolvedValue(makeProperty({ id: 42, userId: 2 }));
+  });
+
+  it.each([
+    ["admin", { id: 2, role: "admin" }],
+    ["super_admin", { id: 2, role: "super_admin" }],
+  ])("allows %s role", async (_, user) => {
+    // Regression lock: super_admin was rejected before commit 088f94a6.
+    mockGetUserById.mockResolvedValue(user);
+    const result = await dispatchRebeccaTool("configure_lb_deck", {}, CTX_ADMIN);
+    expect((result.result as Record<string, unknown>).error).toBeUndefined();
+  });
+
+  it("non-admin: returns auth error", async () => {
+    mockGetUserById.mockResolvedValue({ id: 1, role: "user" });
+    const result = await dispatchRebeccaTool("configure_lb_deck", {}, CTX_USER);
+    expect((result.result as Record<string, unknown>).error).toMatch(/admin/i);
+    expect(mockUpsertLbSlidesConfig).not.toHaveBeenCalled();
+  });
+
+  it("string property ID: rejected before getProperty is called", async () => {
+    // Regression lock: ownership loop previously cast rawId without type check.
+    mockGetUserById.mockResolvedValue({ id: 2, role: "admin" });
+    const result = await dispatchRebeccaTool(
+      "configure_lb_deck",
+      { slide1PropertyId: "42" },
+      CTX_ADMIN,
+    );
+    expect((result.result as Record<string, unknown>).error).toMatch(/slide1PropertyId must be a number/i);
+    expect(mockGetProperty).not.toHaveBeenCalled();
+    expect(mockUpsertLbSlidesConfig).not.toHaveBeenCalled();
+  });
+
+  it("property not owned by caller: returns error without writing", async () => {
+    mockGetUserById.mockResolvedValue({ id: 2, role: "admin" });
+    // Property belongs to userId 99, not ctx.userId (2)
+    mockGetProperty.mockResolvedValue(makeProperty({ id: 42, userId: 99 }));
+    const result = await dispatchRebeccaTool(
+      "configure_lb_deck",
+      { slide1PropertyId: 42 },
+      CTX_ADMIN,
+    );
+    expect((result.result as Record<string, unknown>).error).toMatch(/not found or not owned/i);
+    expect(mockUpsertLbSlidesConfig).not.toHaveBeenCalled();
+  });
+
+  it("merge: only supplied fields change, omitted fields preserved from current config", async () => {
+    mockGetUserById.mockResolvedValue({ id: 2, role: "admin" });
+    await dispatchRebeccaTool(
+      "configure_lb_deck",
+      { slide1PropertyId: 42 },
+      CTX_ADMIN,
+    );
+    const call = mockUpsertLbSlidesConfig.mock.calls[0][0];
+    // Supplied field is updated
+    expect(call.slide1PropertyId).toBe(42);
+    // Omitted fields preserve the current config values
+    expect(call.slide2PropertyId).toBe(existingConfig.slide2PropertyId);
+    expect(call.slide3PropertyId).toBe(existingConfig.slide3PropertyId);
+    expect(call.slide5PropertyId).toBe(existingConfig.slide5PropertyId);
+    expect(call.slide4SectionSubtitle).toBe(existingConfig.slide4SectionSubtitle);
+    expect(call.slide6Disclaimer).toBe(existingConfig.slide6Disclaimer);
+  });
+
+  it("merge when no current config: omitted fields default to null", async () => {
+    mockGetUserById.mockResolvedValue({ id: 2, role: "admin" });
+    mockGetLbSlidesConfig.mockResolvedValue(null);
+    await dispatchRebeccaTool(
+      "configure_lb_deck",
+      { slide4SectionSubtitle: "new subtitle" },
+      CTX_ADMIN,
+    );
+    const call = mockUpsertLbSlidesConfig.mock.calls[0][0];
+    expect(call.slide4SectionSubtitle).toBe("new subtitle");
+    expect(call.slide1PropertyId).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// refresh_analyst_table — exit_multiples and reference_brands branches
+// ---------------------------------------------------------------------------
+
+describe("dispatchRebeccaTool — refresh_analyst_table (additional branches)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetUserById.mockResolvedValue({ id: 2, role: "admin" });
+    mockGetExitMultiples.mockResolvedValue([]);
+    mockUpsertExitMultiple.mockResolvedValue(undefined);
+    mockResearchExitMultiples.mockResolvedValue({
+      proposedRanges: [
+        { dimensionKey: "saas", label: "SaaS", unit: "x_revenue", valueLow: 3, valueMid: 6, valueHigh: 12 },
+      ],
+      sourceCount: 3,
+      tokensUsed: 80,
+      narration: [],
+      evidence: [],
+    });
+    mockGetReferenceBrands.mockResolvedValue([]);
+    mockResearchReferenceBrands.mockResolvedValue({
+      autoCommitted: true,
+      brandCount: 18,
+      proposedRanges: [],
+      narration: [],
+      sourceCount: 3,
+      tokensUsed: 200,
+      evidence: [],
+    });
+  });
+
+  it("exit_multiples: calls researchExitMultiples and upserts with x_revenue unit", async () => {
+    const result = await dispatchRebeccaTool(
+      "refresh_analyst_table",
+      { tableId: "exit_multiples" },
+      CTX_ADMIN,
+    );
+    const r = result.result as Record<string, unknown>;
+    expect(mockResearchExitMultiples).toHaveBeenCalledOnce();
+    expect(mockUpsertExitMultiple).toHaveBeenCalledOnce();
+    expect(mockUpsertExitMultiple.mock.calls[0][0].unit).toBe("x_revenue");
+    expect(r.rangesCommitted).toBe(1);
+  });
+
+  it("reference_brands: calls researchReferenceBrands, returns autoCommitted + brandCount (no upsert loop)", async () => {
+    const result = await dispatchRebeccaTool(
+      "refresh_analyst_table",
+      { tableId: "reference_brands" },
+      CTX_ADMIN,
+    );
+    const r = result.result as Record<string, unknown>;
+    expect(mockResearchReferenceBrands).toHaveBeenCalledOnce();
+    expect(mockUpsertCapitalRaiseBenchmark).not.toHaveBeenCalled();
+    expect(mockUpsertExitMultiple).not.toHaveBeenCalled();
+    expect(r.autoCommitted).toBe(true);
+    expect(r.brandCount).toBe(18);
+    expect(r.rangesCommitted).toBeUndefined();
   });
 });
