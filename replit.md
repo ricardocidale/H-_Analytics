@@ -32,7 +32,9 @@ H+ Analytics is a hospitality-sector financial analytics platform that helps ass
 | Frontend | `artifacts/hospitality-business-portal/` |
 | API server | `artifacts/api-server/` |
 | Mockup sandbox | `artifacts/mockup-sandbox/` |
-| DB schema + migrations | `lib/db/src/` (`@workspace/db`) |
+| DB schema (Drizzle tables) | `lib/db/src/schema/` (`@workspace/db`) |
+| DB SQL migrations (applied at boot) | `artifacts/api-server/migrations/` + journal at `…/meta/_journal.json` |
+| DB runtime guards (belt-and-suspenders) | `artifacts/api-server/src/migrations/*.ts` — idempotent TS, run every boot |
 | Shared constants | `lib/shared/src/constants*.ts` |
 | OpenAPI spec | `lib/api-spec/`; generated hooks in `lib/api-client-react/` |
 | API routes | `artifacts/api-server/src/routes/` |
@@ -67,6 +69,8 @@ H+ Analytics is a hospitality-sector financial analytics platform that helps ass
 - **Duplicate worktrees:** Old `.claude/worktrees/agent-*/` directories cause `DUPLICATE_PREVIEW_PATH` errors. Clean with `git worktree remove --force` + `git worktree prune`.
 - **CE Skill Adaptation:** CE skills need Replit adaptation. Read `.agents/ce-agents/REPLIT-ADAPTATION.md` before following any CE skill.
 - **Shared proxy only.** Never call service ports directly. Always route through `localhost:80/<path>` in curl and application code.
+- **`executeSql` tool hits the wrong database.** The code-execution `executeSql()` callback connects to Replit's built-in PostgreSQL, NOT the app's Neon database. To audit or query the real DB: use admin API endpoints via `curl -b <auth-cookie>` (authenticate first with `POST /api/auth/dev-login`), or run a one-off Node.js script using `process.env.POSTGRES_URL` with the `pg` client from `artifacts/api-server/node_modules/pg`.
+- **Drizzle migration state can lag the journal.** `drizzle.__drizzle_migrations` tracks what Drizzle's `migrate()` has applied. If new `.sql` files are added to `artifacts/api-server/migrations/` but the server's bootstrap (`bootstrapDrizzleMigrationState`) already set count > 0, `migrate()` may not apply them in dev (the runner uses hash matching). After manually applying DDL via Node.js script, mark the journal entries applied: compute SHA-256 of each `.sql` file's content and `INSERT INTO drizzle."__drizzle_migrations" (hash, created_at)`. The migration state was synced to 52 entries on 2026-05-07.
 
 ## Pointers
 
@@ -97,6 +101,7 @@ H+ Analytics is a hospitality-sector financial analytics platform that helps ass
 
 | Date | Change |
 |---|---|
+| 2026-05-07 | **DB audit + 4 missing tables created.** `iris_runs`, `knowledge_registry`, `country_economic_data`, `slide_factory_runs` — all defined in schema + SQL migrations but never applied to Neon. Applied DDL directly; `drizzle.__drizzle_migrations` synced to 52 entries. Country economic data seeded (4 rows). Vector store healthy: 337 chunks, 8 namespaces. Known pre-existing: Iris agent errors with `temperature + top_p` conflict in its LLM call — table works, agent config needs fix. |
 | 2026-05-07 | **Canonical slide assets reorganized.** `attached_assets/canonical/{pdf,png,json,pptx}/` — 10 canonical files, organized by format. 250MB → 106MB (144MB of stale PPTXs, old PDFs, session artifacts, test renders removed). All script, skill, doc, and `CLAUDE.md` references updated to new paths. |
 | 2026-05-07 | **Slide Factory V2 UI — Tab 1 (Brief) + Tab 3 (Properties).** `SlideFactoryPanel.tsx` in `features/slide-factory/`. Tab 1: PDF/PPTX brief upload via presigned R2, accept flow, status-driven lock. Tab 3: 4-property selectors (slides 1/2/3/5). Tabs 2/4/5/6 are pipeline-stage placeholders. Polls every 5 s only in transitional states. |
 | 2026-05-05 | **`analyst-intelligence-display` skill created.** Canonical display components (`AnalystRangeIndicator`, `AnalystVerdictDisplay`, `AnalystCheckDialog`), conviction floor, severity color system, voice rule, anti-patterns. |

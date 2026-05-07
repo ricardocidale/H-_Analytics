@@ -544,8 +544,21 @@ ADR-007 §1 applies: prompt-builder and funding-builder layers are DB-import-fre
 ### Known issues to address
 
 - **Email-existence leak** at `POST /api/scenarios/shares` — returns 404 "No user found with that email address", leaking whether an email exists. Should return a generic 404.
-- DB audit (`.local/db-audit-phase-c-inventory.md`): 74 runtime migrations classified; 1 missing table (`cache_entries`), 17 missing indexes identified.
+- **Iris agent `temperature + top_p` conflict.** `POST /api/admin/iris/run` triggers the run successfully but the Iris LLM call fails with `"temperature and top_p cannot both be specified for this model"`. The `iris_runs` table is healthy; the fix is in the Iris agent's LLM call parameters (remove one of the two conflicting params).
 - `PROJECTION_YEARS` is exported from `lib/shared/src/constants.ts` as an alias of `DEFAULT_PROJECTION_YEARS`.
+
+### Migration system architecture
+
+Two-layer system — know both before touching the DB:
+
+| Layer | Location | When it runs |
+|---|---|---|
+| Drizzle SQL migrations | `artifacts/api-server/migrations/*.sql` + journal at `…/meta/_journal.json` | Once, at server boot via `migrate()` from `drizzle-orm/node-postgres/migrator` |
+| Runtime TypeScript guards | `artifacts/api-server/src/migrations/*.ts` | Every boot — idempotent `IF NOT EXISTS` DDL, belt-and-suspenders |
+
+**Drizzle migration state** is tracked in `drizzle.__drizzle_migrations` on Neon. If it drifts from the journal (e.g. after manually applying DDL), sync it: compute SHA-256 of each unapplied `.sql` file and `INSERT INTO drizzle."__drizzle_migrations" (hash, created_at)`. Synced to 52 entries on 2026-05-07.
+
+**Querying the real DB in dev:** The Replit code-execution `executeSql()` callback connects to Replit's built-in PostgreSQL, NOT the app's Neon database. To query the real DB: use admin API endpoints via `curl -b <cookie>` (authenticate with `POST /api/auth/dev-login`), or run a one-off Node.js script with `process.env.POSTGRES_URL` and the `pg` client at `artifacts/api-server/node_modules/pg`.
 
 ### Shared proxy routing
 
@@ -673,6 +686,7 @@ Rule: **if you touch `CLAUDE.md`, scan `replit.md` for related content and sync 
 
 | Date | Change |
 |---|---|
+| 2026-05-07 | **DB audit + 4 missing tables created.** `iris_runs`, `knowledge_registry`, `country_economic_data`, `slide_factory_runs` — all defined in schema + SQL migrations but never applied to Neon. Applied DDL directly; `drizzle.__drizzle_migrations` synced to 52 entries. Country economic data seeded (4 rows). Vector store healthy: 337 chunks, 8 namespaces. Known pre-existing: Iris agent errors with `temperature + top_p` conflict in its LLM call — table works, agent config needs fix. |
 | 2026-05-07 | **Slide Factory V2 UI — Tab 1 (Brief) + Tab 3 (Properties).** `SlideFactoryPanel.tsx` added to `artifacts/hospitality-business-portal/src/features/slide-factory/`. Tab 1: PDF/PPTX brief upload via presigned R2, accept flow, status-driven tab lock. Tab 3: 4-property selectors (slides 1/2/3/5). Tabs 2/4/5/6 placeholders for pipeline stages. Mounted above slide editor in `LbSlides.tsx`; polls every 5 s only in transitional states. Magic-number fix: `slide-factory-runs.ts` `.limit(20)` → `SLIDE_FACTORY_RUNS_LIST_LIMIT` named constant in `artifacts/api-server/src/constants.ts`. |
 | 2026-05-05 | **`analyst-intelligence-display` skill created.** Documents the display side of the Analyst pipeline: `AnalystRangeIndicator`, `AnalystVerdictDisplay`, `AnalystCheckDialog`, `AnalystVerdict` contract, `GuidanceRecord` shape, conviction floor, severity color system, voice rule, and anti-patterns. Pairs with `analyst-research-buttons` (trigger side). Added to key skills table in both memory files. |
 | 2026-05-05 | **B3 taxonomy fix — seed-from-default enforced.** `DEFAULT_INTEREST_RATE = 0.075` moved to `constants-funding.ts` across all 3 mirrors; `SEED_DEBT_ASSUMPTIONS.interestRate` now references it instead of a raw literal. Skills updated: `hplus-variable-taxonomy` (example value, new seed-from-default bullet + decision-table row), `no-magic-numbers` (seed anti-pattern row corrected), `constants-vs-defaults` (seed-from-default bullet with concrete example). `check:typecheck` PASS, `check:magic-numbers` PASS. |
