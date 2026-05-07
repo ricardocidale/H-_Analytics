@@ -143,15 +143,20 @@ export function getRebeccaTools(): ToolParam[] {
       },
     },
     {
+      name: "get_lb_deck_config",
+      description: "Read the current LB investor deck configuration — which properties are assigned to slides 1/2/3/5 and any slide 4/6 text. Admin only. Call before configure_lb_deck to see current state.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+    {
       name: "configure_lb_deck",
-      description: "Assign properties to LB investor deck slides 1/2/3/5 and set optional slide 4 subtitle and slide 6 disclaimer. Admin only.",
+      description: "Assign properties to LB investor deck slides 1/2/3/5 and set optional slide 4 subtitle and slide 6 disclaimer. Only the fields you supply are changed; omitted fields keep their current values. Admin only.",
       parameters: {
         type: "object",
         properties: {
-          slide1PropertyId: { type: "number", description: "Property ID for Slide 1 (Pipeline Spotlight)" },
-          slide2PropertyId: { type: "number", description: "Property ID for Slide 2 (Photo Gallery)" },
-          slide3PropertyId: { type: "number", description: "Property ID for Slide 3 (Investment Model)" },
-          slide5PropertyId: { type: "number", description: "Property ID for Slide 5 (Financial Snapshot)" },
+          slide1PropertyId: { type: "number", description: "Property ID for Slide 1 (Pipeline Spotlight). Must belong to the current user." },
+          slide2PropertyId: { type: "number", description: "Property ID for Slide 2 (Photo Gallery). Must belong to the current user." },
+          slide3PropertyId: { type: "number", description: "Property ID for Slide 3 (Investment Model). Must belong to the current user." },
+          slide5PropertyId: { type: "number", description: "Property ID for Slide 5 (Financial Snapshot). Must belong to the current user." },
           slide4SectionSubtitle: { type: "string", description: "Optional subtitle for Slide 4 portfolio grid section" },
           slide6Disclaimer: { type: "string", description: "Optional disclaimer text for Slide 6 income statement" },
         },
@@ -176,7 +181,8 @@ export function getRebeccaTools(): ToolParam[] {
         properties: {
           tableId: {
             type: "string",
-            description: "Table to refresh: capital_raise_benchmarks | exit_multiples | reference_brands",
+            enum: ["capital_raise_benchmarks", "exit_multiples", "reference_brands"],
+            description: "Table to refresh",
           },
         },
         required: ["tableId"],
@@ -279,13 +285,15 @@ export async function dispatchRebeccaTool(
       case "update_scenario_assumptions":
         return await toolUpdateScenarioAssumptions(args, ctx);
       case "configure_lb_deck":
-        return await toolConfigureLbDeck(args);
+        return await toolConfigureLbDeck(args, ctx);
+      case "get_lb_deck_config":
+        return await toolGetLbDeckConfig(ctx);
       case "trigger_lb_deck_render":
-        return toolTriggerLbDeckRender();
+        return await toolTriggerLbDeckRender(ctx);
       case "get_lb_deck_render_status":
-        return toolGetLbDeckRenderStatus();
+        return await toolGetLbDeckRenderStatus(ctx);
       case "refresh_analyst_table":
-        return await toolRefreshAnalystTable(args);
+        return await toolRefreshAnalystTable(args, ctx);
       case "lock_scenario":
         return await toolLockScenario(args, ctx);
       case "delete_scenario":
@@ -306,7 +314,9 @@ export async function dispatchRebeccaTool(
         return { result: { error: "Unknown tool" } };
     }
   } catch (err) {
-    return { result: { error: err instanceof Error ? err.message : String(err) } };
+    const message = err instanceof Error ? err.message : String(err);
+    const code = (err as Record<string, unknown>)?.code;
+    return { result: { error: message, ...(code !== undefined ? { code } : {}) } };
   }
 }
 
@@ -458,16 +468,17 @@ async function toolPatchProperty(
     return { result: { error: "Not found" } };
   }
 
-  const schemaShape = updatePropertySchema.shape as Record<string, { safeParse: (v: unknown) => { success: boolean; error?: unknown } }>;
+  const schemaShape = updatePropertySchema.shape;
   const validated: Record<string, unknown> = {};
   const errors: string[] = [];
 
   for (const [field, value] of Object.entries(rawFields)) {
-    if (!Object.keys(schemaShape).includes(field)) {
+    const fieldValidator = schemaShape[field as keyof typeof schemaShape];
+    if (!fieldValidator) {
       errors.push(`Unknown field: ${field}`);
       continue;
     }
-    const parsed = schemaShape[field].safeParse(value);
+    const parsed = fieldValidator.safeParse(value);
     if (!parsed.success) {
       errors.push(`Invalid value for "${field}": ${String(parsed.error)}`);
     } else {
@@ -579,12 +590,23 @@ async function toolUpdateScenario(
   };
 }
 
+// Allowlist of globalAssumptions keys Rebecca may write, with per-key type guards.
+// Derived from the three explicitly-typed fields in ScenarioGlobalAssumptionsSnapshot.
+// The engine reads many more keys from this blob (see company-engine.ts:93-147),
+// but those are internally managed; LLM-controlled writes are intentionally limited
+// to the three admin-facing fields below.
+const SCENARIO_ASSUMPTION_VALIDATORS: Record<string, (v: unknown) => boolean> = {
+  modelStartDate: (v) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v),
+  baseManagementFeePercent: (v) => typeof v === "number" && v >= 0 && v <= 1,
+  projectionYears: (v) => typeof v === "number" && Number.isInteger(v) && v >= 1 && v <= 50,
+};
+
 async function toolUpdateScenarioAssumptions(
   args: Record<string, unknown>,
   ctx: ToolContext,
 ): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   const id = args.id as number;
-  const patches = args.patches as Record<string, unknown>;
+  const rawPatches = args.patches as Record<string, unknown>;
 
   const sc = await storage.getScenario(id);
   if (!sc || sc.userId !== ctx.userId) {
@@ -594,51 +616,125 @@ async function toolUpdateScenarioAssumptions(
     return { result: { error: "Scenario is locked and cannot be edited" } };
   }
 
+  // Validate and filter patches through the allowlist.
+  const validated: Record<string, unknown> = {};
+  const rejected: string[] = [];
+  for (const [key, value] of Object.entries(rawPatches)) {
+    const validate = SCENARIO_ASSUMPTION_VALIDATORS[key];
+    if (!validate) {
+      rejected.push(`unknown key: ${key}`);
+      continue;
+    }
+    if (!validate(value)) {
+      rejected.push(`invalid value for ${key}`);
+      continue;
+    }
+    validated[key] = value;
+  }
+
+  if (Object.keys(validated).length === 0) {
+    return { result: { error: `No valid patches supplied. ${rejected.join("; ")}` } };
+  }
+
   const mergedGA = {
     ...(sc.globalAssumptions as Record<string, unknown>),
-    ...patches,
+    ...validated,
   };
 
   await storage.updateScenarioSnapshot(id, {
     globalAssumptions: mergedGA,
-    properties: sc.properties as import("@workspace/db").ScenarioPropertySnapshot[],
-    feeCategories: sc.feeCategories as Record<string, import("@workspace/db").ScenarioFeeCategorySnapshot[]> | undefined,
-    propertyPhotos: sc.propertyPhotos as Record<string, import("@workspace/db").ScenarioPhotoSnapshot[]> | undefined,
-    serviceTemplates: sc.serviceTemplates as import("@workspace/db").ScenarioServiceTemplateSnapshot[] | undefined,
+    properties: sc.properties,
+    feeCategories: sc.feeCategories ?? undefined,
+    propertyPhotos: sc.propertyPhotos ?? undefined,
+    serviceTemplates: sc.serviceTemplates ?? undefined,
   });
 
   return {
-    result: { success: true, updated: Object.keys(patches) },
+    result: {
+      success: true,
+      updated: Object.keys(validated),
+      ...(rejected.length > 0 ? { rejected } : {}),
+    },
     dataChanged: { entityType: "scenario", entityId: id },
+  };
+}
+
+async function toolGetLbDeckConfig(
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+  const config = await storage.getLbSlidesConfig();
+  return {
+    result: config ?? {
+      slide1PropertyId: null, slide2PropertyId: null,
+      slide3PropertyId: null, slide5PropertyId: null,
+      slide4SectionSubtitle: null, slide6Disclaimer: null,
+    },
   };
 }
 
 async function toolConfigureLbDeck(
   args: Record<string, unknown>,
+  ctx: ToolContext,
 ): Promise<{ result: unknown }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  // Read-merge-write: only supplied fields change; omitted fields keep current values.
+  const current = await storage.getLbSlidesConfig();
+
+  const SLIDE_PROP_FIELDS = [
+    "slide1PropertyId", "slide2PropertyId", "slide3PropertyId", "slide5PropertyId",
+  ] as const;
+
+  // Verify ownership of any supplied property IDs before writing.
+  for (const field of SLIDE_PROP_FIELDS) {
+    const rawId = args[field];
+    if (rawId === undefined || rawId === null) continue;
+    const id = rawId as number;
+    const prop = await storage.getProperty(id);
+    if (!prop || prop.userId !== ctx.userId) {
+      return { result: { error: `Property ID ${id} for ${field} not found or not owned by you` } };
+    }
+  }
+
+  const merge = <T>(key: string, current: T): T =>
+    args[key] !== undefined ? (args[key] as T) : current;
+
   const updated = await storage.upsertLbSlidesConfig({
-    slide1PropertyId: (args.slide1PropertyId as number | null | undefined) ?? null,
-    slide2PropertyId: (args.slide2PropertyId as number | null | undefined) ?? null,
-    slide3PropertyId: (args.slide3PropertyId as number | null | undefined) ?? null,
-    slide5PropertyId: (args.slide5PropertyId as number | null | undefined) ?? null,
-    slide4SectionSubtitle: (args.slide4SectionSubtitle as string | null | undefined) ?? null,
-    slide6Disclaimer: (args.slide6Disclaimer as string | null | undefined) ?? null,
+    slide1PropertyId: merge("slide1PropertyId", current?.slide1PropertyId ?? null),
+    slide2PropertyId: merge("slide2PropertyId", current?.slide2PropertyId ?? null),
+    slide3PropertyId: merge("slide3PropertyId", current?.slide3PropertyId ?? null),
+    slide5PropertyId: merge("slide5PropertyId", current?.slide5PropertyId ?? null),
+    slide4SectionSubtitle: merge("slide4SectionSubtitle", current?.slide4SectionSubtitle ?? null),
+    slide6Disclaimer: merge("slide6Disclaimer", current?.slide6Disclaimer ?? null),
   });
   return { result: { success: true, config: updated } };
 }
 
-function toolTriggerLbDeckRender(): { result: unknown } {
-  const status = triggerLbDeckRenderService();
-  return { result: status };
+async function toolTriggerLbDeckRender(
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+  return { result: triggerLbDeckRenderService() };
 }
 
-function toolGetLbDeckRenderStatus(): { result: unknown } {
+async function toolGetLbDeckRenderStatus(
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
   return { result: getLbDeckRenderStatusService() };
 }
 
 async function toolRefreshAnalystTable(
   args: Record<string, unknown>,
+  ctx: ToolContext,
 ): Promise<{ result: unknown }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
   const tableId = args.tableId as string;
   const now = new Date();
 
@@ -789,7 +885,7 @@ async function toolTriggerResearch(
 async function requireAdminCtx(ctx: ToolContext): Promise<{ result: { error: string } } | null> {
   const user = await storage.getUserById(ctx.userId);
   if (user?.role !== "admin") {
-    return { result: { error: "Iris controls require admin access" } };
+    return { result: { error: "This action requires admin access" } };
   }
   return null;
 }
