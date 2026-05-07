@@ -85,6 +85,21 @@ export function getRebeccaTools(): ToolParam[] {
       },
     },
     {
+      name: "patch_property",
+      description: "Update multiple property fields in a single call. Validates each field against its schema. Use instead of repeated update_property calls when changing more than one field.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "Property ID" },
+          fields: {
+            type: "object",
+            description: "Map of field names to new values (e.g. { startAdr: 250, maxOccupancy: 20 })",
+          },
+        },
+        required: ["id", "fields"],
+      },
+    },
+    {
       name: "create_scenario",
       description: "Create a new scenario. If cloneFromId is provided, clones that scenario; otherwise clones the user's default scenario. The new scenario is renamed to the provided name.",
       parameters: {
@@ -255,6 +270,8 @@ export async function dispatchRebeccaTool(
         return await toolGetScenario(args, ctx);
       case "update_property":
         return await toolUpdateProperty(args, ctx);
+      case "patch_property":
+        return await toolPatchProperty(args, ctx);
       case "create_scenario":
         return await toolCreateScenario(args, ctx);
       case "update_scenario":
@@ -425,6 +442,52 @@ async function toolUpdateProperty(
 
   return {
     result: { success: true, field, before, after: value, displayName: prop.name },
+    dataChanged: { entityType: "property", entityId: id },
+  };
+}
+
+async function toolPatchProperty(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const id = args.id as number;
+  const rawFields = args.fields as Record<string, unknown>;
+
+  const prop = await storage.getProperty(id);
+  if (!prop || prop.userId !== ctx.userId) {
+    return { result: { error: "Not found" } };
+  }
+
+  const schemaShape = updatePropertySchema.shape as Record<string, { safeParse: (v: unknown) => { success: boolean; error?: unknown } }>;
+  const validated: Record<string, unknown> = {};
+  const errors: string[] = [];
+
+  for (const [field, value] of Object.entries(rawFields)) {
+    if (!Object.keys(schemaShape).includes(field)) {
+      errors.push(`Unknown field: ${field}`);
+      continue;
+    }
+    const parsed = schemaShape[field].safeParse(value);
+    if (!parsed.success) {
+      errors.push(`Invalid value for "${field}": ${String(parsed.error)}`);
+    } else {
+      validated[field] = value;
+    }
+  }
+
+  if (errors.length > 0 && Object.keys(validated).length === 0) {
+    return { result: { error: errors.join("; ") } };
+  }
+
+  await storage.updateProperty(id, validated as UpdateProperty);
+
+  return {
+    result: {
+      success: true,
+      updated: Object.keys(validated),
+      ...(errors.length > 0 ? { skipped: errors } : {}),
+      displayName: prop.name,
+    },
     dataChanged: { entityType: "property", entityId: id },
   };
 }
