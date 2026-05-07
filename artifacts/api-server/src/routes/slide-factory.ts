@@ -10,12 +10,13 @@
  * are triggered by dedicated agent-dispatch routes added in later build units.
  *
  * Endpoints:
- *   POST   /api/lb-slides/factory/runs                   Create a new run
- *   GET    /api/lb-slides/factory/runs                   List runs (newest first)
- *   GET    /api/lb-slides/factory/runs/:id               Get a specific run
- *   POST   /api/lb-slides/factory/runs/:id/brief         Record uploaded brief (Tab 1)
- *   POST   /api/lb-slides/factory/runs/:id/accept-brief  Accept brief, advance to brief_ready
- *   POST   /api/lb-slides/factory/runs/:id/properties    Set property assignments (Tab 3)
+ *   POST   /api/lb-slides/factory/runs                         Create a new run
+ *   GET    /api/lb-slides/factory/runs                         List runs (newest first)
+ *   GET    /api/lb-slides/factory/runs/:id                     Get a specific run
+ *   POST   /api/lb-slides/factory/runs/:id/brief               Record uploaded brief (Tab 1)
+ *   POST   /api/lb-slides/factory/runs/:id/accept-brief        Accept brief, advance to brief_ready
+ *   POST   /api/lb-slides/factory/runs/:id/trigger-ingestion   Start Lorenzo ingestion (Tab 2)
+ *   POST   /api/lb-slides/factory/runs/:id/properties          Set property assignments (Tab 3)
  */
 import { Router, type Request, type Response } from "express";
 import { z } from "zod/v4";
@@ -29,9 +30,11 @@ import {
   listSlideFactoryRuns,
   updateSlideFactoryRun,
 } from "../storage/slide-factory-runs";
+import { runLorenzoIngestion } from "../slides/lorenzo-ingestion";
 import {
   HTTP_200_OK,
   HTTP_201_CREATED,
+  HTTP_202_ACCEPTED,
   HTTP_400_BAD_REQUEST,
   HTTP_404_NOT_FOUND,
   HTTP_409_CONFLICT,
@@ -150,6 +153,49 @@ router.post(
       return res.status(HTTP_200_OK).json(updated);
     } catch (err: unknown) {
       logAndSendError(res, "Failed to accept brief", err);
+    }
+  },
+);
+
+// ── POST /api/lb-slides/factory/runs/:id/trigger-ingestion ──────────────────
+// Tab 2: Starts the Lorenzo ingestion pipeline for this run.
+// Requires status 'brief_ready' (brief uploaded and accepted).
+// Immediately advances status → 'ingesting' and fires the Lorenzo job
+// asynchronously. Returns 202 Accepted; poll GET /runs/:id for status updates.
+router.post(
+  "/api/lb-slides/factory/runs/:id/trigger-ingestion",
+  requireAdmin,
+  async (req: Request, res: Response) => {
+    try {
+      const user = getAuthUser(req);
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID" });
+
+      const run = await getSlideFactoryRun(id, user.id);
+      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
+      if (!run.briefR2Key) {
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "No brief uploaded yet" });
+      }
+      if (run.status !== "brief_ready") {
+        return res.status(HTTP_409_CONFLICT).json({
+          error: `Ingestion requires status 'brief_ready', current: '${run.status}'`,
+        });
+      }
+
+      const ingesting = await updateSlideFactoryRun(id, {
+        status: "ingesting",
+        startedAt: new Date(),
+      });
+      logActivity(req, "update", "slide_factory_run", id, `run-${id}`, {
+        action: "ingestion-triggered",
+      });
+
+      // Fire-and-forget: Lorenzo updates status to 'ingested' or 'error' when done.
+      void runLorenzoIngestion(id);
+
+      return res.status(HTTP_202_ACCEPTED).json(ingesting);
+    } catch (err: unknown) {
+      logAndSendError(res, "Failed to trigger ingestion", err);
     }
   },
 );

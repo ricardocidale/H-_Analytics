@@ -15,6 +15,7 @@ import {
   type SlideAgentResult,
 } from "@workspace/db";
 import { desc, eq, and } from "drizzle-orm";
+import { SLIDE_FACTORY_RUNS_LIST_LIMIT } from "../constants";
 
 export type { SlideFactoryRun, SlideFactoryRunStatus, LuccaSlotDraft, SlideAgentResult };
 
@@ -44,7 +45,7 @@ export async function listSlideFactoryRuns(userId: number): Promise<SlideFactory
     .from(slideFactoryRuns)
     .where(eq(slideFactoryRuns.userId, userId))
     .orderBy(desc(slideFactoryRuns.createdAt))
-    .limit(20);
+    .limit(SLIDE_FACTORY_RUNS_LIST_LIMIT);
 }
 
 export type SlideFactoryRunPatch = Partial<

@@ -401,3 +401,6 @@ export const LIVE_CNBC_FETCH_LIMIT                     = 10;
 
 /** CNBC headline slice — number of headlines to retain from the raw fetch. */
 export const LIVE_CNBC_HEADLINE_SLICE                  = 5;
+
+/** Maximum number of slide factory runs returned in a list query (newest first). */
+export const SLIDE_FACTORY_RUNS_LIST_LIMIT             = 20;
