@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { cn } from "@/lib/utils";
 import LogosTab from "./LogosTab";
 import ThemesTab from "./ThemesTab";
+const BrandAssetsTab = lazy(() => import("./BrandAssetsTab"));
 
-type BrandSubTab = "logos" | "themes";
+type BrandSubTab = "logos" | "themes" | "brand-assets";
 
 const SUB_TABS: { value: BrandSubTab; label: string }[] = [
   { value: "logos", label: "Logos" },
   { value: "themes", label: "Themes" },
+  { value: "brand-assets", label: "Brand Assets" },
 ];
 
 export default function BrandTab() {
@@ -36,6 +38,11 @@ export default function BrandTab() {
       <div>
         {activeTab === "logos" && <LogosTab />}
         {activeTab === "themes" && <ThemesTab />}
+        {activeTab === "brand-assets" && (
+          <Suspense fallback={<div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>}>
+            <BrandAssetsTab />
+          </Suspense>
+        )}
       </div>
     </div>
   );

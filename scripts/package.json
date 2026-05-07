@@ -16,6 +16,7 @@
     "sync-db-to-railway": "tsx ./src/sync-db-to-railway.ts",
     "upload:canonical-slides": "tsx ./src/upload-canonical-slides.ts",
     "upload:canonical-pngs": "tsx ./src/upload-canonical-pngs.ts",
+    "upload:brand-assets": "tsx ./src/upload-brand-assets.ts",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

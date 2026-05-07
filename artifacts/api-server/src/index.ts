@@ -131,6 +131,7 @@ const PUBLIC_API_PREFIXES = [
   "/api/letter-logo/",
   "/api/media/",
   "/api/internal/",
+  "/api/brand-assets/",
 ];
 
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -819,6 +820,7 @@ async function runSeeds() {
     { name: "market-data-tables", run: seedMarketDataTables },
     { name: "reference-ranges",   run: async () => { const { seedReferenceRanges } = await import("./seeds/reference-ranges"); await seedReferenceRanges(); } },
     { name: "default-logos", run: seedDefaultLogos },
+    { name: "brand-asset-logos", run: async () => { const { seedBrandAssetLogos } = await import("./seed"); await seedBrandAssetLogos(); } },
     { name: "fee-categories", run: seedFeeCategories },
     { name: "service-templates", run: seedServiceTemplates },
     { name: "property-photos", run: seedPropertyPhotos },

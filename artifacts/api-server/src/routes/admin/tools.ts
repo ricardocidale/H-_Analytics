@@ -118,7 +118,7 @@ function docHarmonyCheckAll(content: string, file: string, pattern: RegExp, actu
 async function checkDocHarmonyServer(verifyOutput: string): Promise<{ passed: boolean; summary: string }> {
   try {
     const [claudeMd, replitMd] = await Promise.all([
-      readFile(resolve(".claude/claude.md"), "utf-8"),
+      readFile(resolve("CLAUDE.md"), "utf-8"),
       readFile(resolve("replit.md"), "utf-8"),
     ]);
 

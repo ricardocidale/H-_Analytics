@@ -9,6 +9,7 @@ import { seedHospitalityBenchmarks } from "./hospitality-benchmarks";
 import { seedMarketDataTables } from "./market-data-tables";
 import { seedSourceRegistry } from "./source-registry";
 import { seedPropertyPhotos } from "./photos";
+import { seedBrandAssetLogos } from "./brand-assets";
 import { seedKnowledgeBase } from "./knowledge-base-seeds";
 import { indexPropertyProfile } from "../ai/vector-store-service";
 import { logger } from "../logger";
@@ -109,6 +110,7 @@ export async function seed() {
     }
 
     await seedDefaultLogos();
+    await seedBrandAssetLogos();
     await seedCompanies();
 
     await seedServiceTemplates();
@@ -187,6 +189,7 @@ export {
   seedMarketDataTables,
   seedMissingMarketResearch,
   seedDefaultLogos,
+  seedBrandAssetLogos,
   seedCompanies,
   seedServiceTemplates,
   seedPropertyPhotos,

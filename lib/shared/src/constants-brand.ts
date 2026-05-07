@@ -75,3 +75,15 @@ export const SURFSIDE_MILESTONE_INSPECTION_COST = 75_000;
 export const IRR_BPS_PER_PCT_FFE_RESERVE = 25;
 export const IRR_BPS_PER_PCT_BRAND_FEE = 20;
 export const IRR_BPS_PER_MILLION_CAPITAL_EVENT = 15;
+
+// ── Canonical brand asset R2 keys ─────────────────────────────────────────
+// These are the R2 object keys for the three canonical H+ / L+B brand files
+// that live in attached_assets/canonical/brand/ and are uploaded to R2 by
+// `scripts/src/upload-brand-assets.ts`. They are served via
+// GET /api/brand-assets/:filename (public proxy route).
+export const R2_BRAND_KEY_H_PLUS_ENHANCED =
+  "canonical/brand/logos/h_logo_enhanced_1775405767509.png";
+export const R2_BRAND_KEY_H_PLUS_GLASS =
+  "canonical/brand/logos/H_Logo_Glass_No_Backgrond_Enhanced_Square_1775582100563.png";
+export const R2_BRAND_KEY_OG_BANNER =
+  "canonical/brand/og/og-banner.png";

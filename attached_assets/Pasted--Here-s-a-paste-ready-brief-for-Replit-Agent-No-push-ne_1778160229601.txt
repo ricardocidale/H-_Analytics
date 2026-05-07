@@ -1,0 +1,77 @@
+● Here's a paste-ready brief for Replit Agent. No push needed — Replit Agent runs in the same workspace and
+   will see your local commits. Push only when you want a Railway deploy.                                  
+                                                                                                           
+  ---                                                                                                      
+   
+  **Brief: Logos to R2 + seed pipeline + app Logo Album**                                                  
+                                                                     
+  **Recent state (committed locally, not pushed):**                                                        
+  - Brand artifacts now live in `attached_assets/canonical/brand/`:
+    - og-banner.png                                                                                        
+    - h_logo_enhanced_1775405767509.png                              
+    - H_Logo_Glass_No_Backgrond_Enhanced_Square_1775582100563.png                                          
+  - `CLAUDE.md` is the canonical agent contract (lowercase `claude.md` was                                 
+    merged into uppercase `CLAUDE.md` on 2026-05-07). Your contract is                                     
+    `replit.md`; counterpart is `CLAUDE.md` — keep them harmonized.                                        
+  - 4 local commits ahead of origin/main; do NOT push (project-task gate).                                 
+                                                                                                           
+  **Goal:** Make the brand artifacts first-class — uploaded to R2, included                                
+  in seeding, and surfaced in the app as a "Logo Album" admin view.                                        
+                                                                                                           
+  **Three pieces:**                                                  
+                                                                                                           
+  1. **R2 upload script.**                                           
+     Mirror the pattern in `scripts/src/upload-canonical-pngs.ts` and
+     R2 under a clean prefix (propose: `canonical/brand/logos/<filename>`                                  
+     and `canonical/brand/og/og-banner.png`). Make it idempotent. Do NOT                                   
+     hardcode the keys — put them in `lib/shared/src/constants*.ts` per                                    
+     the number-taxonomy rules.                                                                            
+                                                                                                           
+  2. **Seed pipeline integration.**                                  
+     Wire the R2 upload into the relevant seed/setup so a fresh environment                                
+     has the logos pre-loaded. Find the existing seed entry point and slot 
+     the brand-asset step in.                                                                              
+                                                                                                           
+  3. **App "Logo Album" admin view.**                                                                      
+     Surface the brand assets in an admin-accessible UI. Search the codebase                               
+     first — if a brand-asset gallery, document gallery, or internal-deck                                  
+     photo grid already exists, REUSE the pattern. Otherwise propose a                                     
+     minimal admin page: grid of brand assets pulled from R2, each with                                    
+     preview + R2 key + last-updated timestamp. Confirm the design with                                    
+     me before implementing if there's no existing pattern.                                                
+                                                                                                           
+  **Constraints (read CLAUDE.md first):**                                                                  
+  - §9 — Do NOT touch `lib/engine/`, `lib/calc/`, `artifacts/api-server/src/finance/`,                     
+    `…/report/`, or proof/engine test directories. Financial engine is                
+    shell-CC-only territory.                                                                               
+  - §11 — Run /post-coding-design-review on any frontend changes before                                    
+    declaring done. Match the project's existing design system.                                            
+  - §1+§2 — Magic-number gate. Run                                                                         
+    `scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts`                                     
+    before declaring done.                                                                                 
+  - Use the `prefer-external-dependencies`, `replit-independence`,                                         
+    `ui-page-patterns`, `analyst-intelligence-display` (if surfacing                                       
+    metadata) skills as relevant.                                                                          
+  - Do NOT push to origin/main when finished. I'll push when ready.                                        
+                                                                                                           
+  **Acceptance:**                                                                                          
+  - `pnpm run typecheck` clean.                                                                            
+  - `check-magic-numbers` PASS.                                                                            
+  - New tests cover the upload script + the admin route handler.                                           
+  - Logo Album page renders correctly in the local preview.     
+  - CLAUDE.md and replit.md harmonized for any new architecture rules                                      
+    introduced.                                                                                            
+                                                                                                           
+  **Question to clarify before starting:**                                                                 
+  Does a "Logo Album" or brand-asset gallery concept already exist in the                                  
+  admin UI? If yes, point me at it and I'll extend it. If no, I'll propose                                 
+  a minimal design and confirm before building.                                                            
+                                                                                                           
+  ---                                                                                                      
+  Two smaller items I parked separately — only paste these into the same Replit session if you want them   
+  bundled:                                                                                                 
+                                                                                                           
+  - Brand folder schema: clarify if canonical/brand/ should stay flat or get subdirs (logos/, og/, future  
+  icons/, screenshots/). Best decided based on what the Logo Album surfaces.                               
+  - admin/tools.ts:121 broken .claude/claude.md path — currently dead code with silent catch (returns "PASS
+   skipped"). Easy 1-line fix to read CLAUDE.md (uppercase, root) instead. Not urgent but tidy.  

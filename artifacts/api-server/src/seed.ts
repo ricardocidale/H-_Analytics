@@ -4,6 +4,7 @@ export * from "./seeds/index";
 export * from "./seeds/users";
 export * from "./seeds/properties";
 export * from "./seeds/branding";
+export * from "./seeds/brand-assets";
 export * from "./seeds/research";
 
 const isMain = process.argv[1]?.endsWith("seed.ts") || process.argv[1]?.endsWith("seed.js");
