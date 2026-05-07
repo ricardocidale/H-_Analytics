@@ -32,7 +32,7 @@ import type { LlmVendor, ResearchConfig } from "@workspace/db";
 import type { CompanyCacheInputs } from "@engine/analyst/cognitive/cache-keys";
 import type { CanonicalResearchField } from "./synthesis-schema";
 
-export type AnalystScope = "company";
+export type AnalystScope = "company" | "property";
 
 export interface RunAnalystScopedParams {
   scope: AnalystScope;
@@ -88,7 +88,16 @@ export async function runAnalystScoped(
 ): Promise<RunAnalystScopedResult> {
   const { scope, userId, fields, specialistId } = params;
   if (scope !== "company") {
-    throw new Error(`runAnalystScoped: unsupported scope "${scope}"`);
+    // Property-scope research pipeline not yet built — return a structured
+    // error so callers can surface a user-facing message rather than crashing.
+    // When implementing: build a property context pack (similar to
+    // buildCompanyContextPack), wire entityType="property"/entityId=propertyId,
+    // and dispatch through orchestrateResearch with property-scoped fields.
+    return Promise.reject(
+      Object.assign(new Error(`runAnalystScoped: scope "${scope}" not yet implemented`), {
+        code: "ANALYST_SCOPE_NOT_IMPLEMENTED",
+      }),
+    );
   }
 
   const startTime = Date.now();
