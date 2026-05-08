@@ -444,6 +444,7 @@ function SlideFactoryDetail({ runId }: { runId: number }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isRetriggering, setIsRetriggering] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const { data: run, isLoading, error } = useQuery<SlideFactoryRun>({
     queryKey: ["factory-run-detail", runId],
@@ -478,6 +479,28 @@ function SlideFactoryDetail({ runId }: { runId: number }) {
       toast({ title: "Re-trigger failed", description: msg, variant: "destructive" });
     } finally {
       setIsRetriggering(false);
+    }
+  }
+
+  async function handleCancel() {
+    setIsCancelling(true);
+    try {
+      const r = await fetch(`/api/lb-slides/factory/runs/${runId}/cancel`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!r.ok) {
+        const body = await r.json().catch(() => ({})) as { error?: string };
+        throw new Error(body.error ?? `Server error ${r.status}`);
+      }
+      toast({ title: "Build cancelled", description: "The in-progress build has been stopped." });
+      await queryClient.invalidateQueries({ queryKey: ["factory-run-detail", runId] });
+      await queryClient.invalidateQueries({ queryKey: ["factory-run-list-all"] });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast({ title: "Cancel failed", description: msg, variant: "destructive" });
+    } finally {
+      setIsCancelling(false);
     }
   }
 
@@ -523,6 +546,30 @@ function SlideFactoryDetail({ runId }: { runId: number }) {
           </div>
         )}
       </div>
+
+      {/* Cancel button — only shown while build is in progress */}
+      {isBuilding && (
+        <div className="rounded-md border border-amber-200 bg-amber-50/60 px-3 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-start gap-2">
+            <Loader2 className="w-3.5 h-3.5 text-amber-600 animate-spin shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-800">
+              Build in progress. Cancel to stop Marco and mark this run as failed.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="shrink-0 border-amber-300 text-amber-800 hover:bg-amber-100"
+            disabled={isCancelling}
+            onClick={handleCancel}
+          >
+            {isCancelling ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+            ) : null}
+            Cancel build
+          </Button>
+        </div>
+      )}
 
       {/* Re-trigger button — only shown when build failed */}
       {isError && (

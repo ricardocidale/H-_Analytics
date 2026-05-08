@@ -47,6 +47,19 @@ const SMOKE_PROPERTY_IDS = {
   slide5: 68,
 };
 
+/** Total slides in one L+B deck — used to assert buildLbPayloadFromFactoryRun output. */
+const SMOKE_TOTAL_SLIDES = 6;
+
+/** Synthetic pixel-diff percentages for the approved agentResults fixture. */
+const SMOKE_PIXEL_DIFFS = {
+  slide1: 0.5,
+  slide2: 0.6,
+  slide3: 0.4,
+  slide4: 0.3,
+  slide5: 0.7,
+  slide6: 0.4,
+};
+
 const ISO_NOW = new Date().toISOString();
 const draft = (value: string): LuccaSlotDraft => ({
   value,
@@ -131,12 +144,12 @@ async function main() {
         slide5PropertyId: SMOKE_PROPERTY_IDS.slide5,
         luccaDraft: SMOKE_LUCCA_DRAFT,
         agentResults: {
-          slide1: { status: "approved", pixelDiffPct: 0.5, mayaVerdict: "ok", mayaNotes: null, approvedAt: ISO_NOW, errorMessage: null },
-          slide2: { status: "approved", pixelDiffPct: 0.6, mayaVerdict: "ok", mayaNotes: null, approvedAt: ISO_NOW, errorMessage: null },
-          slide3: { status: "approved", pixelDiffPct: 0.4, mayaVerdict: "ok", mayaNotes: null, approvedAt: ISO_NOW, errorMessage: null },
-          slide4: { status: "approved", pixelDiffPct: 0.3, mayaVerdict: "ok", mayaNotes: null, approvedAt: ISO_NOW, errorMessage: null },
-          slide5: { status: "approved", pixelDiffPct: 0.7, mayaVerdict: "ok", mayaNotes: null, approvedAt: ISO_NOW, errorMessage: null },
-          slide6: { status: "approved", pixelDiffPct: 0.4, mayaVerdict: "ok", mayaNotes: null, approvedAt: ISO_NOW, errorMessage: null },
+          slide1: { status: "approved", pixelDiffPct: SMOKE_PIXEL_DIFFS.slide1, mayaVerdict: "ok", mayaNotes: null, approvedAt: ISO_NOW, errorMessage: null },
+          slide2: { status: "approved", pixelDiffPct: SMOKE_PIXEL_DIFFS.slide2, mayaVerdict: "ok", mayaNotes: null, approvedAt: ISO_NOW, errorMessage: null },
+          slide3: { status: "approved", pixelDiffPct: SMOKE_PIXEL_DIFFS.slide3, mayaVerdict: "ok", mayaNotes: null, approvedAt: ISO_NOW, errorMessage: null },
+          slide4: { status: "approved", pixelDiffPct: SMOKE_PIXEL_DIFFS.slide4, mayaVerdict: "ok", mayaNotes: null, approvedAt: ISO_NOW, errorMessage: null },
+          slide5: { status: "approved", pixelDiffPct: SMOKE_PIXEL_DIFFS.slide5, mayaVerdict: "ok", mayaNotes: null, approvedAt: ISO_NOW, errorMessage: null },
+          slide6: { status: "approved", pixelDiffPct: SMOKE_PIXEL_DIFFS.slide6, mayaVerdict: "ok", mayaNotes: null, approvedAt: ISO_NOW, errorMessage: null },
         },
       })
       .returning({ id: slideFactoryRuns.id });
@@ -172,7 +185,7 @@ async function main() {
     checks.push({
       name: "buildLbPayloadFromFactoryRun shape",
       pass:
-        lb.slides.length === 6 &&
+        lb.slides.length === SMOKE_TOTAL_SLIDES &&
         allSlidesShareSameV2 &&
         lb.config.slide1PropertyId === SMOKE_PROPERTY_IDS.slide1,
       detail: `slides=${lb.slides.length}, sharedV2=${allSlidesShareSameV2}, propertyIds=${JSON.stringify(lb.config)}`,

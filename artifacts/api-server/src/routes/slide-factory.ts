@@ -452,6 +452,38 @@ router.post(
   },
 );
 
+// ── POST /api/lb-slides/factory/runs/:id/cancel ─────────────────────────────
+// Detail panel: Admin cancels a run that is stuck in 'building'. Transitions
+// status → 'error' and sets completedAt so the panel stops polling.
+router.post(
+  "/api/lb-slides/factory/runs/:id/cancel",
+  requireAdmin,
+  async (req: Request, res: Response) => {
+    try {
+      const user = getAuthUser(req);
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID" });
+
+      const run = await getSlideFactoryRun(id, user.id);
+      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
+      if (run.status !== "building") {
+        return res.status(HTTP_409_CONFLICT).json({
+          error: `Cancel requires status 'building', current: '${run.status}'`,
+        });
+      }
+
+      const cancelled = await updateSlideFactoryRun(id, {
+        status: "error",
+        completedAt: new Date(),
+      });
+      logActivity(req, "update", "slide_factory_run", id, `run-${id}`, { action: "build-cancelled" });
+      return res.status(HTTP_200_OK).json(cancelled);
+    } catch (err: unknown) {
+      logAndSendError(res, "Failed to cancel slide factory run", err);
+    }
+  },
+);
+
 // ── GET /api/lb-slides/factory/runs/:id/download ─────────────────────────────
 // Tab 6: Stream the completed deck PDF from R2. Returns 422 when deckR2Key is
 // not yet set (build complete but PDF render hasn't written the key).
