@@ -829,6 +829,9 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                         {msg.toolSteps && msg.toolSteps.length > 0 && (
                           <ToolCallStepIndicator steps={msg.toolSteps} />
                         )}
+                        {msg.toolSteps && msg.toolSteps.length > 0 && msg.content && msg.content.trim().length > 0 && (
+                          <div className="border-t border-border/50 my-2" aria-hidden="true" />
+                        )}
                         {msg.detectedLanguage === "es" && (
                           <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-teal-600 bg-teal-50 dark:bg-teal-900/30 dark:text-teal-400 px-1.5 py-0.5 rounded mb-1 w-fit" data-testid="language-badge-es">
                             ES

@@ -62,7 +62,7 @@ const SKIP_DIRS = new Set([
 ]);
 
 /** File name suffixes to skip — test files and dev harnesses use specific fixture values that are not production magic numbers. */
-const SKIP_FILE_SUFFIXES = new Set([".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx", "_render-harness.ts"]);
+const SKIP_FILE_SUFFIXES = new Set([".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx", "_render-harness.ts", "smoke-producer.ts"]);
 
 /**
  * Numeric literals whose duplication is correct and expected.
