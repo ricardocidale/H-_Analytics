@@ -31,6 +31,20 @@
       "headers": {
         "X-API-KEY": "${DALOOPA_API_KEY}"
       }
+    },
+    "expedia": {
+      "type": "http",
+      "url": "https://mcp.apify.com/sse?actors=crawlerbros/expedia-hotels-scraper",
+      "headers": {
+        "Authorization": "Bearer ${APIFY_API_TOKEN}"
+      }
+    },
+    "fmp": {
+      "command": "npx",
+      "args": ["-y", "financial-modeling-prep-mcp-server"],
+      "env": {
+        "FMP_ACCESS_TOKEN": "${FMP_ACCESS_TOKEN}"
+      }
     }
   }
 }
