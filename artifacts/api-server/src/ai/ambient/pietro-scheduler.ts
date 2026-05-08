@@ -162,7 +162,7 @@ export { runPietroTick };
 
 export function startPietroScheduler(): void {
   log(
-    `Starting — initial tick in ${PIETRO_STARTUP_DELAY_MS / 1_000}s, then every ${PIETRO_REFRESH_INTERVAL_MS / 3_600_000}h`,
+    `Starting — initial tick in ${PIETRO_STARTUP_DELAY_MS / 1_000}s, then every ${PIETRO_REFRESH_INTERVAL_MS / (60 * 60 * 1_000)}h`,
     "pietro-scheduler",
   );
 

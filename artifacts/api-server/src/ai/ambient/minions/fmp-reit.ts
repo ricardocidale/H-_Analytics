@@ -37,10 +37,12 @@ interface FmpKeyMetric {
 }
 
 function periodFromDate(dateStr: string): string {
-  // FMP dates are "YYYY-MM-DD" quarterly; convert to "YYYY-Q#"
+  // FMP dates are "YYYY-MM-DD" (UTC). Use UTC getters to avoid timezone drift
+  // where getMonth()/getFullYear() could return the previous month/year in
+  // timezones west of UTC (e.g. UTC-5 at midnight).
   const d = new Date(dateStr);
-  const quarter = Math.ceil((d.getMonth() + 1) / MONTHS_PER_QUARTER);
-  return `${d.getFullYear()}-Q${quarter}`;
+  const quarter = Math.ceil((d.getUTCMonth() + 1) / MONTHS_PER_QUARTER);
+  return `${d.getUTCFullYear()}-Q${quarter}`;
 }
 
 async function fetchFmpMetrics(ticker: string, apiKey: string): Promise<InsertReitBenchmark[]> {

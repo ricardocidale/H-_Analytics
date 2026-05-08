@@ -7,6 +7,7 @@
 import { db } from "../../../db";
 import { competitorRates, type InsertCompetitorRate } from "@workspace/db";
 import { logger } from "../../../logger";
+import { nextFriday, toIsoDate } from "./date-utils";
 import type { MinionResult } from "./index";
 
 const TAG = "[minion:expedia-rates]";
@@ -16,6 +17,11 @@ const EXPEDIA_ACTOR_ID = "crawlerbros~expedia-hotels-scraper";
 const APIFY_RUN_TIMEOUT_MS = 60_000;
 const APIFY_POLL_INTERVAL_MS = 5_000;
 const APIFY_MAX_POLLS = 10;
+const APIFY_POLL_STATUS_TIMEOUT_MS = 10_000;
+const APIFY_POLL_DATASET_TIMEOUT_MS = 15_000;
+const EXPEDIA_DEFAULT_ADULTS = 2;
+const EXPEDIA_DEFAULT_ROOMS = 1;
+const EXPEDIA_MAX_RESULTS_PER_MARKET = 20;
 
 const COMPETITOR_MARKETS = [
   "Miami, FL",
@@ -26,22 +32,6 @@ const COMPETITOR_MARKETS = [
 ] as const;
 
 const NIGHTS_TO_FETCH = 2;
-// getDay() returns 0=Sunday … 5=Friday … 6=Saturday
-const FRIDAY_DAY_OF_WEEK = 5;
-const EXPEDIA_MAX_RESULTS_PER_MARKET = 20;
-
-function nextFriday(): Date {
-  const now = new Date();
-  const day = now.getDay();
-  const daysUntilFriday = day <= FRIDAY_DAY_OF_WEEK ? FRIDAY_DAY_OF_WEEK - day : 7 - day + FRIDAY_DAY_OF_WEEK;
-  const friday = new Date(now);
-  friday.setDate(now.getDate() + (daysUntilFriday === 0 ? 7 : daysUntilFriday));
-  return friday;
-}
-
-function toIsoDate(d: Date): string {
-  return d.toISOString().split("T")[0];
-}
 
 interface ApifyRunResponse {
   data?: { id?: string; status?: string };
@@ -68,8 +58,8 @@ async function triggerApifyRun(
         location: market,
         checkIn,
         checkOut,
-        adults: 2,
-        rooms: 1,
+        adults: EXPEDIA_DEFAULT_ADULTS,
+        rooms: EXPEDIA_DEFAULT_ROOMS,
         maxResults: EXPEDIA_MAX_RESULTS_PER_MARKET,
       }),
       signal: AbortSignal.timeout(APIFY_RUN_TIMEOUT_MS),
@@ -88,7 +78,7 @@ async function pollApifyRun(runId: string, apiKey: string): Promise<ApifyDataset
 
     const statusRes = await fetch(
       `${APIFY_BASE_URL}/actor-runs/${runId}?token=${apiKey}`,
-      { signal: AbortSignal.timeout(10_000) },
+      { signal: AbortSignal.timeout(APIFY_POLL_STATUS_TIMEOUT_MS) },
     );
     if (!statusRes.ok) continue;
 
@@ -97,7 +87,7 @@ async function pollApifyRun(runId: string, apiKey: string): Promise<ApifyDataset
 
     const dataRes = await fetch(
       `${APIFY_BASE_URL}/actor-runs/${runId}/dataset/items?token=${apiKey}&clean=true`,
-      { signal: AbortSignal.timeout(15_000) },
+      { signal: AbortSignal.timeout(APIFY_POLL_DATASET_TIMEOUT_MS) },
     );
     if (!dataRes.ok) throw new Error(`HTTP ${dataRes.status} fetching dataset`);
     return (await dataRes.json()) as ApifyDatasetItem[];
