@@ -51,6 +51,10 @@ const PIETRO_MANAGED_KINDS = ["source", "mcp"] as const;
 let schedulerInterval: ReturnType<typeof setInterval> | null = null;
 let startupTimeout: ReturnType<typeof setTimeout> | null = null;
 let isRunning = false;
+// Guards against the stop-during-startup race: if stopPietroScheduler() is
+// called after the setTimeout fires but before setInterval is installed, the
+// callback checks this flag and exits without installing the interval.
+let isStopped = false;
 
 // ---------------------------------------------------------------------------
 // Staleness check
@@ -133,7 +137,7 @@ async function runPietroTick(): Promise<void> {
     const considered = succeeded + failed;
     const status: "ok" | "warn" | "error" = cycleThrew
       ? "error"
-      : failed > 0
+      : failed > 0 || allErrors.length > 0
         ? "warn"
         : "ok";
     const notes = cycleThrew
@@ -166,8 +170,10 @@ export function startPietroScheduler(): void {
     "pietro-scheduler",
   );
 
+  isStopped = false;
   startupTimeout = setTimeout(async () => {
     startupTimeout = null;
+    if (isStopped) return; // stop was called during startup delay
     try {
       await runPietroTick();
     } catch (err: unknown) {
@@ -178,6 +184,7 @@ export function startPietroScheduler(): void {
       );
     }
 
+    if (isStopped) return; // stop was called while initial tick ran
     schedulerInterval = setInterval(async () => {
       try {
         await runPietroTick();
@@ -193,6 +200,7 @@ export function startPietroScheduler(): void {
 }
 
 export function stopPietroScheduler(): void {
+  isStopped = true;
   if (startupTimeout) { clearTimeout(startupTimeout); startupTimeout = null; }
   if (schedulerInterval) { clearInterval(schedulerInterval); schedulerInterval = null; }
   log("Stopped", "pietro-scheduler");
