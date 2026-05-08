@@ -6,6 +6,7 @@ module: intelligence-nav
 problem_type: best_practice
 component: frontend_nav
 severity: high
+formerly: ai-intelligence-specialists-page-2026-05-02.md
 applies_when:
   - Building or modifying the Intelligence sidebar
   - Adding a new Specialist

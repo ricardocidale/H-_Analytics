@@ -1,6 +1,6 @@
 /**
  * agent-taxonomy.ts — canonical user-facing labels for every tier and named
- * agent in the H+ Analytics AI Intelligence system.
+ * agent in the H+ Analytics Intelligence system.
  *
  * ALL UI surfaces must import from this file instead of hardcoding strings.
  * Changing a label here propagates everywhere automatically.
@@ -150,7 +150,7 @@ export type RunType = keyof typeof RUN_TYPE_LABELS;
 
 // ── Nav group labels ────────────────────────────────────────────────────────
 
-/** Canonical nav group labels used in AiIntelligenceSidebar. */
+/** Canonical nav group labels used in IntelligenceSidebar. */
 export const NAV_GROUP_LABELS = {
   analyst: "Analyst",
   agents: "Agents",
