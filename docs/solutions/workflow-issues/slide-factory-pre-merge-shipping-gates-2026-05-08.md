@@ -128,7 +128,7 @@ Status values follow CLAUDE.md §7: ✅ tool exists, ⚠️ gap that must be res
 
 After PR #29 merged as `48c66e97`, local `main` held 7 un-squashed U-numbered commits (U2, U5, Felix, CLAUDE.md compression, etc.). The two diff stats came back as inverses:
 
-```
+```text
 git diff origin/main..main --stat | tail
  23 files changed, 1860 insertions(+), 225 deletions(-)
 git diff main..origin/main --stat | tail

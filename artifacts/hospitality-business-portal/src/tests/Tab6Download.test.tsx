@@ -9,7 +9,7 @@
  * Scope: this file covers the conditional rendering surface only. The
  * download fetch flow (AbortController, blob handling, error toast,
  * downloading state) is exercised by the server-side route tests in
- * artifacts/api-server/src/tests/routes/slide-factory-download.test.ts and
+ * artifacts/api-server/src/tests/slide-factory-download-route.test.ts and
  * would require a JSDOM integration test to verify end-to-end on the client.
  *
  * Uses renderToString — no DOM environment required.
