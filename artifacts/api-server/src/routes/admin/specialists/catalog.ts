@@ -35,7 +35,24 @@ import { idParamSchema, toConfigView } from "./_shared";
 import { getSpecialistGlobalLlmDefaults } from "../../../ai/specialist-llm-resolver";
 
 /** How long after a run completes before the phase signal resets to null (ms). */
-const RECENT_RUN_THRESHOLD_MS = 30_000;
+export const RECENT_RUN_THRESHOLD_MS = 30_000;
+
+/** Pure helper — determines the UI phase for a specialist run-status response.
+ *  Exported for unit testing; `now` defaults to Date.now() in route usage. */
+export function deriveSpecialistPhase(
+  runningCount: number,
+  recentRun: { completedAt: Date | string | null; status: string } | null | undefined,
+  now: number,
+): "thinking" | "complete" | "error" | null {
+  if (runningCount > 0) return "thinking";
+  if (!recentRun) return null;
+  const completedAt = recentRun.completedAt;
+  const ageMs = completedAt ? now - new Date(completedAt).getTime() : Infinity;
+  if (ageMs >= RECENT_RUN_THRESHOLD_MS) return null;
+  if (recentRun.status === "completed") return "complete";
+  if (recentRun.status === "failed") return "error";
+  return null;
+}
 
 export function registerCatalogRoutes(app: Express) {
   // ── List catalog ────────────────────────────────────────────────
@@ -194,25 +211,8 @@ export function registerCatalogRoutes(app: Express) {
 
       const runningCount = await storage.countRunningResearchRunsForSpecialist(id);
       const isRunning = runningCount > 0;
-
-      let phase: "thinking" | "complete" | "error" | null = null;
-
-      if (isRunning) {
-        phase = "thinking";
-      } else {
-        const recent = await storage.getResearchRunsForSpecialist(id, 1);
-        if (recent.length > 0) {
-          const run = recent[0];
-          const completedAt = run.completedAt;
-          const ageMs = completedAt
-            ? Date.now() - new Date(completedAt).getTime()
-            : Infinity;
-          if (ageMs < RECENT_RUN_THRESHOLD_MS) {
-            if (run.status === "completed") phase = "complete";
-            else if (run.status === "failed") phase = "error";
-          }
-        }
-      }
+      const recentRuns = isRunning ? [] : await storage.getResearchRunsForSpecialist(id, 1);
+      const phase = deriveSpecialistPhase(runningCount, recentRuns[0] ?? null, Date.now());
 
       res.json({ isRunning, runningCount, phase });
     } catch (error: unknown) {

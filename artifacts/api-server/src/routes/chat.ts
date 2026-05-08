@@ -437,6 +437,7 @@ export async function callLlmStream(
 }
 
 function sseWrite(res: Response, event: string, data: unknown): void {
+  if (res.writableEnded) return;
   res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 }
 

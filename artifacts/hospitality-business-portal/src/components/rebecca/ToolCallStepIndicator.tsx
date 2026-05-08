@@ -35,6 +35,7 @@ export interface ToolStep {
 const SLIDE_FACTORY_TOOLS = new Set([
   "produce_slide_factory_deck",
   "trigger_slide_factory_build",
+  "cancel_slide_factory_build",
   "create_slide_factory_run",
   "record_slide_factory_brief",
   "accept_slide_factory_brief",
@@ -62,7 +63,7 @@ const GUSTAVO_TOOLS = new Set([
   "refresh_analyst_table",
 ]);
 
-function toolToPersona(name: string): AgentPersona {
+export function toolToPersona(name: string): AgentPersona {
   if (SLIDE_FACTORY_TOOLS.has(name)) return "marco";
   if (IRIS_TOOLS.has(name)) return "iris";
   if (GUSTAVO_TOOLS.has(name)) return "gustavo";
@@ -101,10 +102,11 @@ const TOOL_FRIENDLY_NAMES: Record<string, string> = {
   update_slide_factory_slot:      "Updating slide slot",
   approve_all_slide_factory_slots:"Approving all slots",
   trigger_slide_factory_build:    "Building slides",
+  cancel_slide_factory_build:     "Cancelling build",
   produce_slide_factory_deck:     "Building investor deck",
 };
 
-function toolFriendlyName(name: string): string {
+export function toolFriendlyName(name: string): string {
   return TOOL_FRIENDLY_NAMES[name] ?? name.replace(/_/g, " ");
 }
 
@@ -121,7 +123,7 @@ const PHASE_COLOR: Record<ToolStep["phase"], string> = {
 };
 
 /** Format elapsed milliseconds as "0.8 s" (one decimal). */
-function formatElapsed(ms: number): string {
+export function formatElapsed(ms: number): string {
   return `${(ms / 1000).toFixed(1)} s`;
 }
 
