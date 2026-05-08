@@ -42,6 +42,7 @@ import {
   SLIDE_AGENT_NAMES,
   SLIDE_TEAM_TAGS,
   ORCHESTRATORS,
+  MINIONS,
 } from "@/lib/agent-taxonomy";
 import { AgentThinkingState } from "@/components/agent-animations";
 
@@ -70,6 +71,30 @@ const NONE_VALUE = "__none__";
 /** Total number of slides in one LB deck (matches TOTAL_SLIDES in deck-render-constants.ts) */
 const TOTAL_DECK_SLIDES = 6;
 
+/** Pixel-diff percentage at which Dino's verdict downgrades from pass → warn */
+const DINO_WARN_THRESHOLD_PCT = 5;
+/** Pixel-diff percentage at which Dino's verdict downgrades from warn → fail */
+const DINO_FAIL_THRESHOLD_PCT = 15;
+
+type DinoVerdict = "pass" | "warn" | "fail";
+
+function dinoPctVerdict(pct: number): DinoVerdict {
+  if (pct >= DINO_FAIL_THRESHOLD_PCT) return "fail";
+  if (pct >= DINO_WARN_THRESHOLD_PCT) return "warn";
+  return "pass";
+}
+
+const DINO_VERDICT_CLASS: Record<DinoVerdict, string> = {
+  pass: "text-emerald-700 bg-emerald-50",
+  warn: "text-amber-700 bg-amber-50",
+  fail: "text-red-700 bg-red-50",
+};
+
+const DINO_VERDICT_LABEL: Record<DinoVerdict, string> = {
+  pass: "Pass",
+  warn: "Warn",
+  fail: "Fail",
+};
 
 const MAYA_VERDICT_LABEL: Record<NonNullable<SlideAgentResultFE["mayaVerdict"]>, string> = {
   ok: "OK",
@@ -1518,11 +1543,17 @@ function FactoryAgentsTab({ run }: { run: SlideFactoryRun }) {
                         Maya: {MAYA_VERDICT_LABEL[result.mayaVerdict]}
                       </span>
                     )}
-                    {result?.pixelDiffPct != null && (
-                      <span className="text-[10px] px-1.5 py-px rounded bg-muted text-muted-foreground leading-none">
-                        Dino: {result.pixelDiffPct.toFixed(1)}%
-                      </span>
-                    )}
+                    {result?.pixelDiffPct != null && (() => {
+                      const verdict = dinoPctVerdict(result.pixelDiffPct);
+                      return (
+                        <span
+                          className={`text-[10px] px-1.5 py-px rounded leading-none font-medium ${DINO_VERDICT_CLASS[verdict]}`}
+                          title={`${MINIONS.dino.role}: ${result.pixelDiffPct.toFixed(2)}% pixel diff`}
+                        >
+                          {MINIONS.dino.label} · {result.pixelDiffPct.toFixed(1)}% · {DINO_VERDICT_LABEL[verdict]}
+                        </span>
+                      );
+                    })()}
                   </div>
                   {result?.errorMessage && (
                     <p
