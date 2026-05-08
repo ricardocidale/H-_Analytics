@@ -62,3 +62,4 @@ artifacts/api-server/logs/api-costs.jsonl
 !/screenshots/README.md
 .compound-engineering/*.local.yaml
 .claude/worktrees/
+artifacts/api-server/iris/run-history/
