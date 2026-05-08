@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, CheckCircle2, SkipForward } from "@/components/icons/themed-icons";
-import { GustavoOrb } from "@/components/agent-animations";
+import { AgentThinkingState } from "@/components/agent-animations";
 
 interface StaleWorkflow {
   id: number;
@@ -201,9 +201,10 @@ export function ScheduledResearchOverlay({
           className="relative z-10 w-full max-w-md mx-4"
         >
           <div className="text-center mb-6">
-            {/* Gustavo persona orb — phase driven by run status */}
+            {/* Gustavo persona animation — phase driven by run status */}
             <div className="flex justify-center mb-6">
-              <GustavoOrb
+              <AgentThinkingState
+                persona="gustavo"
                 phase={allDone ? (failedCount > 0 ? "error" : "complete") : "thinking"}
                 size="lg"
               />

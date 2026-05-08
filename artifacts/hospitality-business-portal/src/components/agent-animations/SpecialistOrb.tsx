@@ -5,6 +5,8 @@
  * but with only two rings and a more compact footprint. Communicates "same
  * family as The Analyst, but scoped to a single research domain".
  *
+ * complete/error phases play once and settle (finite transient), not looping.
+ *
  * Color: primary / muted (subdued relative to Gustavo's full gold).
  * Character: focused, efficient, single-domain.
  */
@@ -17,12 +19,12 @@ import { ORB_SIZE_PX } from "./types";
 
 /** Pulse cycle duration in seconds per phase — faster than Gustavo. */
 const PHASE_DURATION_S: Record<AgentPhase, number> = {
-  idle:         3.0, // noticeably slower than active
+  idle:         3.0,  // noticeably slower than active
   dispatching:  1.8,
   thinking:     1.0,
   synthesizing: 0.75,
-  complete:     0.5,
-  error:        0.45,
+  complete:     0.5,  // quick settle (plays once)
+  error:        0.45, // brief alarm (plays once)
 };
 
 /** Opacity of the rings per phase. */
@@ -45,10 +47,15 @@ const INNER_R_FRAC = 0.40;
 /** Stagger delay between ring pulses — creates cascade feel (seconds). */
 const RING_STAGGER_S = 0.25;
 
+/** Scale swell for outer ring. */
+const OUTER_SCALE_MAX = 1.07;
+/** Scale swell for inner nucleus. */
+const INNER_SCALE_MAX = 1.12;
+
 // ── Colors ────────────────────────────────────────────────────────────────────
 
-const COLOR_RING   = "hsl(var(--accent-pop) / 0.75)"; // subdued gold
-const COLOR_INNER  = "hsl(var(--accent-pop))";
+const COLOR_RING  = "hsl(var(--accent-pop) / 0.75)"; // subdued gold
+const COLOR_INNER = "hsl(var(--accent-pop))";
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -66,6 +73,9 @@ export function SpecialistOrb({ phase, size = "md", className }: SpecialistOrbPr
   const outerR    = center * OUTER_R_FRAC;
   const innerR    = center * INNER_R_FRAC;
   const strokeW   = Math.max(1, diameter * 0.07);
+
+  // complete/error phases: play once then settle — not an infinite loop
+  const isTransient = phase === "complete" || phase === "error";
 
   return (
     <motion.svg
@@ -85,11 +95,11 @@ export function SpecialistOrb({ phase, size = "md", className }: SpecialistOrbPr
         strokeWidth={strokeW}
         animate={{
           opacity: [alpha * 0.45, alpha * 0.85, alpha * 0.45],
-          scale:   [1, 1.07, 1],
+          scale:   [1, OUTER_SCALE_MAX, 1],
         }}
         transition={{
           duration: dur,
-          repeat: Infinity,
+          repeat: isTransient ? 0 : Infinity,
           ease: "easeInOut",
           delay: RING_STAGGER_S,
         }}
@@ -104,11 +114,11 @@ export function SpecialistOrb({ phase, size = "md", className }: SpecialistOrbPr
         fill={COLOR_INNER}
         animate={{
           opacity: [alpha * 0.7, alpha, alpha * 0.7],
-          scale:   [1, 1.12, 1],
+          scale:   [1, INNER_SCALE_MAX, 1],
         }}
         transition={{
           duration: dur,
-          repeat: Infinity,
+          repeat: isTransient ? 0 : Infinity,
           ease: "easeInOut",
           delay: 0,
         }}

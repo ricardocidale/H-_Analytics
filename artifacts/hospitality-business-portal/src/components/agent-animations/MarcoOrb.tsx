@@ -1,65 +1,81 @@
 /**
  * MarcoOrb — Slide Factory orchestrator persona animation.
  *
- * Six dots positioned at the vertices of a regular hexagon, rotating around
- * a central dot. Each vertex dot scales independently, creating a "team
- * assembling" visual metaphor that matches Marco's role as swarm orchestrator.
- * Color: green (success / accent-pop-2).
+ * Six equilateral triangles positioned at hexagon vertices, each pointing
+ * inward toward the center. The whole assembly rotates as one piece.
+ * The visual metaphor: "six teams assembling into a coherent structure" —
+ * triangles that collectively resolve into a hexagon form.
  *
- * Character: geometric precision, coordinated motion, structured assembly.
+ * Color: green (success token).
+ * Character: geometric precision, structured assembly, coordinated motion.
  */
 
 import { motion } from "framer-motion";
 import type { AgentPhase, AgentOrbSize } from "./types";
 import { ORB_SIZE_PX } from "./types";
 
-// ── Phase parameters ─────────────────────────────────────────────────────────
+// ── Phase parameters ──────────────────────────────────────────────────────────
 
-/** Rotation speed for the hexagon vertex ring, in seconds per full revolution. */
+/** Full-revolution rotation duration per phase (seconds). */
 const PHASE_ROTATION_S: Record<AgentPhase, number> = {
-  idle:         14.0, // barely drifting
-  dispatching:  5.5,  // picking up
-  thinking:     2.8,  // coordinating
-  synthesizing: 1.8,  // peak assembly
-  complete:     8.0,  // slowing to rest
-  error:        1.0,  // tight anxious spin
+  idle:         16.0, // barely drifting — sentinel presence only
+  dispatching:   5.5, // picking up momentum
+  thinking:      2.8, // coordinating six teams
+  synthesizing:  1.6, // peak — full assembly in motion
+  complete:      8.0, // slowing to rest after completion
+  error:         1.0, // tight anxious spin
 };
 
-/** Opacity of vertex dots per phase. */
+/** Triangle fill opacity per phase. */
 const PHASE_OPACITY: Record<AgentPhase, number> = {
-  idle:         0.35,
-  dispatching:  0.55,
-  thinking:     0.78,
+  idle:         0.30,
+  dispatching:  0.52,
+  thinking:     0.75,
   synthesizing: 1.0,
   complete:     0.85,
-  error:        0.65,
+  error:        0.60,
 };
 
-// ── Geometry ────────────────────────────────────────────────────────────────
+// ── Geometry constants ────────────────────────────────────────────────────────
 
-/** Number of vertices on the hexagon — defines team-of-six visual identity. */
-const VERTEX_COUNT = 6;
+/** Number of triangles — one per hexagon vertex. */
+const TRIANGLE_COUNT = 6;
 
-/** Orbit radius as fraction of half the orb diameter. */
-const ORBIT_R_FRAC = 0.66;
+/** Angle between adjacent triangles (degrees). */
+const TRI_ANGLE_STEP = 360 / TRIANGLE_COUNT; // 60°
 
-/** Dot radius for vertex dots as fraction of half the orb diameter. */
-const VERTEX_DOT_R_FRAC = 0.12;
+/** Triangle orbit radius as fraction of half the orb diameter. */
+const ORBIT_R_FRAC = 0.60;
+
+/** Triangle side length as fraction of half the orb diameter. */
+const TRI_SIDE_FRAC = 0.36;
 
 /** Center nucleus dot radius as fraction of half the orb diameter. */
 const CENTER_DOT_R_FRAC = 0.18;
 
-/** Stagger delay between vertex dot scale pulses (seconds). */
-const VERTEX_STAGGER_S = 0.14; // total stagger = 6 × 0.14 = 0.84 s wave
+/** Stagger delay between triangle opacity pulses (seconds). */
+const VERTEX_STAGGER_S = 0.12; // 6 × 0.12 = 0.72 s wave
 
-// ── Color ────────────────────────────────────────────────────────────────────
+// ── Equilateral triangle geometry ────────────────────────────────────────────
+// For an equilateral triangle with side length `s`:
+//   height h = s × (√3 / 2)
+//   centroid divides height: 2h/3 from tip, h/3 from base
+
+/** √3 / 2 — height-to-side ratio for an equilateral triangle. */
+const SQRT3_OVER_2 = Math.sqrt(3) / 2;
+/** Fraction of height from centroid to tip (2/3). */
+const CENTROID_TO_TIP_FRAC = 2 / 3;
+/** Fraction of height from centroid to base (1/3). */
+const CENTROID_TO_BASE_FRAC = 1 / 3;
+
+// ── Opacity pulse duration for individual triangles (seconds). ────────────────
+const TRI_PULSE_DUR_S = 1.4;
+
+// ── Color ─────────────────────────────────────────────────────────────────────
 
 const COLOR_GREEN = "hsl(var(--success))";
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-/** Convert degrees to radians. */
-const DEG_TO_RAD = Math.PI / 180;
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 interface MarcoOrbProps {
   phase: AgentPhase;
@@ -68,74 +84,79 @@ interface MarcoOrbProps {
 }
 
 export function MarcoOrb({ phase, size = "md", className }: MarcoOrbProps) {
-  const diameter  = ORB_SIZE_PX[size];
-  const center    = diameter / 2;
-  const alpha     = PHASE_OPACITY[phase];
-  const rotDur    = PHASE_ROTATION_S[phase];
-  const orbitR    = center * ORBIT_R_FRAC;
-  const vDotR     = center * VERTEX_DOT_R_FRAC;
-  const cDotR     = center * CENTER_DOT_R_FRAC;
+  const diameter = ORB_SIZE_PX[size];
+  const center   = diameter / 2;
+  const alpha    = PHASE_OPACITY[phase];
+  const rotDur   = PHASE_ROTATION_S[phase];
+  const orbitR   = center * ORBIT_R_FRAC;
+
+  // ── Triangle geometry (centroid at origin, tip pointing toward +y = center) ─
+  const triSide  = center * TRI_SIDE_FRAC;
+  const triH     = triSide * SQRT3_OVER_2;
+  const tipY     = triH * CENTROID_TO_TIP_FRAC;  // below centroid (toward center)
+  const baseY    = -triH * CENTROID_TO_BASE_FRAC; // above centroid (away from center)
+  const halfBase = triSide / 2;
+
+  // SVG polygon points string: tip → left base corner → right base corner
+  const triPoints = [
+    `0,${tipY.toFixed(2)}`,
+    `${(-halfBase).toFixed(2)},${baseY.toFixed(2)}`,
+    `${halfBase.toFixed(2)},${baseY.toFixed(2)}`,
+  ].join(" ");
+
+  // complete/error phases: play animation once and stop (transient, then settle)
+  const isTransient = phase === "complete" || phase === "error";
 
   return (
-    <div
-      style={{ width: diameter, height: diameter, position: "relative" }}
+    <motion.svg
+      width={diameter}
+      height={diameter}
+      viewBox={`0 0 ${diameter} ${diameter}`}
       className={className}
       aria-hidden
+      animate={{ rotate: 360 }}
+      transition={{
+        duration: rotDur,
+        repeat: isTransient ? 0 : Infinity,
+        ease: "linear",
+      }}
     >
-      {/* Rotating vertex ring */}
-      <motion.svg
-        width={diameter}
-        height={diameter}
-        viewBox={`0 0 ${diameter} ${diameter}`}
-        style={{ position: "absolute", inset: 0 }}
-        animate={{ rotate: 360 }}
-        transition={{ duration: rotDur, repeat: Infinity, ease: "linear" }}
-      >
-        {Array.from({ length: VERTEX_COUNT }).map((_, i) => {
-          // Compute vertex position: 0° = top, equally spaced at 60°
-          const angleDeg = (i / VERTEX_COUNT) * 360 - 90;
-          const angleRad = angleDeg * DEG_TO_RAD;
-          const vx = center + orbitR * Math.cos(angleRad);
-          const vy = center + orbitR * Math.sin(angleRad);
-
-          return (
-            <motion.circle
-              key={i}
-              cx={vx}
-              cy={vy}
-              r={vDotR}
-              fill={COLOR_GREEN}
-              animate={{
-                opacity: [alpha * 0.5, alpha, alpha * 0.5],
-                r: [vDotR * 0.8, vDotR * 1.3, vDotR * 0.8],
-              }}
-              transition={{
-                duration: 1.2,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: i * VERTEX_STAGGER_S,
-              }}
-            />
-          );
-        })}
-      </motion.svg>
-
-      {/* Static center nucleus */}
-      <svg
-        width={diameter}
-        height={diameter}
-        viewBox={`0 0 ${diameter} ${diameter}`}
-        style={{ position: "absolute", inset: 0 }}
-      >
-        <motion.circle
-          cx={center}
-          cy={center}
-          r={cDotR}
+      {/*
+        Each triangle i is placed at hexagon vertex i:
+          rotate(i×60°, center, center)  — swing to vertex position
+          translate(center, center−orbitR) — move out to orbit radius
+        Triangle points are defined with centroid at origin and tip pointing +y
+        (toward center), so the transform places it correctly at each vertex.
+      */}
+      {Array.from({ length: TRIANGLE_COUNT }).map((_, i) => (
+        <motion.polygon
+          key={i}
+          transform={`rotate(${i * TRI_ANGLE_STEP}, ${center}, ${center}) translate(${center}, ${center - orbitR})`}
+          points={triPoints}
           fill={COLOR_GREEN}
-          animate={{ opacity: [alpha * 0.7, alpha, alpha * 0.7] }}
-          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+          animate={{ opacity: [alpha * 0.45, alpha, alpha * 0.45] }}
+          transition={{
+            duration: TRI_PULSE_DUR_S,
+            repeat: isTransient ? 0 : Infinity,
+            ease: "easeInOut",
+            delay: i * VERTEX_STAGGER_S,
+          }}
         />
-      </svg>
-    </div>
+      ))}
+
+      {/* Central nucleus — the orchestrator at the core of the assembly */}
+      <motion.circle
+        cx={center}
+        cy={center}
+        r={center * CENTER_DOT_R_FRAC}
+        fill={COLOR_GREEN}
+        animate={{ opacity: [alpha * 0.65, alpha, alpha * 0.65] }}
+        transition={{
+          duration: 1.8,
+          repeat: isTransient ? 0 : Infinity,
+          ease: "easeInOut",
+        }}
+      />
+    </motion.svg>
   );
 }

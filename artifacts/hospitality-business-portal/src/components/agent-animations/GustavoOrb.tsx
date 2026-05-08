@@ -5,6 +5,8 @@
  * slow gravitational weight; the inner nucleus is always the brightest.
  * Phase drives animation speed and overall luminosity.
  *
+ * complete/error phases play once and settle (finite transient), not looping.
+ *
  * Character: authority, depth, deliberate thought.
  */
 
@@ -20,8 +22,8 @@ const PHASE_DURATION_S: Record<AgentPhase, number> = {
   dispatching:  2.2, // waking up
   thinking:     1.2, // actively processing
   synthesizing: 0.9, // peak — all rings firing
-  complete:     0.6, // quick settle
-  error:        0.5, // brief alarm
+  complete:     0.6, // quick settle (plays once)
+  error:        0.5, // brief alarm (plays once)
 };
 
 /** Base opacity of each ring at each phase. Outer rings are always dimmer. */
@@ -53,6 +55,13 @@ const INNER_SCALE_MAX = 1.14;
 /** Delay factor between ring animations (seconds) — creates wave-like cascade. */
 const RING_STAGGER_S = 0.35;
 
+// ── Shake geometry (error phase) ──────────────────────────────────────────
+
+/** Horizontal shake keyframes in px — brief alarm, plays once. */
+const ERROR_SHAKE_X = [0, -3, 3, -2, 2, 0];
+/** Duration of the shake animation (seconds). */
+const ERROR_SHAKE_DUR_S = 0.4;
+
 // ── Color ─────────────────────────────────────────────────────────────────
 
 const COLOR_GOLD = "hsl(var(--accent-pop))";
@@ -75,12 +84,13 @@ export function GustavoOrb({ phase, size = "md", className }: GustavoOrbProps) {
   const midR   = center * MID_RING_R_FRAC;
   const innerR = center * INNER_R_FRAC;
 
-  // error phase: horizontal shake via x offset
-  const shakeAnim = phase === "error"
-    ? { x: [0, -3, 3, -2, 2, 0] }
-    : {};
+  // complete/error phases: play once then settle — not an infinite loop
+  const isTransient = phase === "complete" || phase === "error";
+
+  // error phase: one horizontal shake then rest
+  const shakeAnim  = phase === "error" ? { x: ERROR_SHAKE_X } : {};
   const shakeTrans = phase === "error"
-    ? { duration: 0.4, ease: "easeInOut" as const, repeat: Infinity, repeatDelay: 1.6 }
+    ? { duration: ERROR_SHAKE_DUR_S, ease: "easeInOut" as const, repeat: 0 }
     : {};
 
   return (
@@ -102,12 +112,12 @@ export function GustavoOrb({ phase, size = "md", className }: GustavoOrbProps) {
         stroke={COLOR_GOLD}
         strokeWidth={Math.max(1, diameter * 0.06)}
         animate={{
-          opacity:    [baseAlpha * 0.5, baseAlpha * 0.85, baseAlpha * 0.5],
-          scale:      [1, OUTER_SCALE_MAX, 1],
+          opacity: [baseAlpha * 0.5, baseAlpha * 0.85, baseAlpha * 0.5],
+          scale:   [1, OUTER_SCALE_MAX, 1],
         }}
         transition={{
           duration: dur,
-          repeat: Infinity,
+          repeat: isTransient ? 0 : Infinity,
           ease: "easeInOut",
           delay: RING_STAGGER_S * 2,
         }}
@@ -128,7 +138,7 @@ export function GustavoOrb({ phase, size = "md", className }: GustavoOrbProps) {
         }}
         transition={{
           duration: dur,
-          repeat: Infinity,
+          repeat: isTransient ? 0 : Infinity,
           ease: "easeInOut",
           delay: RING_STAGGER_S,
         }}
@@ -147,7 +157,7 @@ export function GustavoOrb({ phase, size = "md", className }: GustavoOrbProps) {
         }}
         transition={{
           duration: dur,
-          repeat: Infinity,
+          repeat: isTransient ? 0 : Infinity,
           ease: "easeInOut",
           delay: 0,
         }}
