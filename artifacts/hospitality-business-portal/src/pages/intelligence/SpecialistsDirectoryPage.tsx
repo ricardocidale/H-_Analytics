@@ -14,7 +14,7 @@
  * it does NOT regenerate source data and does NOT modify LLM settings.
  */
 
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -98,7 +98,7 @@ function SpecialistRow({ id, liveHumanNames: _liveHumanNames }: SpecialistRowPro
   // flight (phase "thinking") and stops automatically when phase is null.
   // Uses the same admin-gated endpoint — the Intelligence section is already
   // admin-accessible (it calls /api/admin/specialists for the catalog list).
-  const { data: runStatus } = useQuery<SpecialistRunStatus>({
+  const { data: runStatus, refetch: refetchRunStatus } = useQuery<SpecialistRunStatus>({
     queryKey: [`/api/admin/specialists/${id}/run-status`],
     queryFn: async () => {
       const res = await fetch(`/api/admin/specialists/${encodeURIComponent(id)}/run-status`, {
@@ -110,6 +110,15 @@ function SpecialistRow({ id, liveHumanNames: _liveHumanNames }: SpecialistRowPro
     refetchInterval: (query) =>
       query.state.data?.isRunning ? SPECIALIST_STATUS_POLL_INTERVAL_MS : false,
   });
+
+  // Once the orb reaches a terminal phase (complete/error), the server's
+  // 30-second recency window will eventually clear it back to null. Schedule
+  // one deferred refetch after that window so the orb disappears on time.
+  useEffect(() => {
+    if (runStatus?.phase !== "complete" && runStatus?.phase !== "error") return;
+    const timerId = setTimeout(() => void refetchRunStatus(), SPECIALIST_STATUS_POLL_INTERVAL_MS + 500);
+    return () => clearTimeout(timerId);
+  }, [runStatus?.phase, refetchRunStatus]);
 
   const probeMutation = useMutation<ProbeResult>({
     mutationFn: async () => {

@@ -16,21 +16,11 @@ import {
 } from "../routes/lb-deck-pdf";
 import { appendIrisGap, clearIrisGaps, readIrisGaps } from "../ai/iris/workspace";
 import { runIrisAgent, type IrisTrigger } from "../ai/iris/agent";
+import { capErrors, IRIS_HEALTH_SUMMARY_MAX_ERRORS } from "../ai/iris/format";
 import { insertIrisRun, updateIrisRun, getLatestIrisRun } from "../storage/iris-runs";
 
 // Named constant: estimated minutes for background research job (Category 2 — DEFAULT VARIABLE)
 const RESEARCH_ESTIMATED_MINUTES = 2;
-
-// Maximum number of error messages stored per Iris run in health_summary.errors.
-// Prevents pathological runs from writing unbounded JSONB blobs to iris_runs.
-const IRIS_HEALTH_SUMMARY_MAX_ERRORS = 50;
-
-function capErrors(errors: string[] | undefined, limit: number): string[] | undefined {
-  if (!errors || errors.length <= limit) return errors;
-  const truncated = errors.slice(0, limit);
-  truncated.push(`... and ${errors.length - limit} more`);
-  return truncated;
-}
 
 export type ToolContext = { userId: number };
 
@@ -368,7 +358,19 @@ export function getRebeccaTools(): ToolParam[] {
     {
       name: "trigger_slide_factory_build",
       description:
-        "Trigger Marco to build the deck (Tab 4 → Tab 5). Requires every Lucca slot to be approved. Status advances to 'building'. Marco dispatches per-slide swarm teams in the background; poll get_slide_factory_run for agent results.",
+        "Trigger Marco to build the deck (Tab 4 → Tab 5), or re-trigger after a failed build (status 'error'). On a normal trigger, every Lucca slot must be approved first. On an error re-trigger, prior slot approval stands and the check is skipped. Status advances to 'building'. Marco dispatches per-slide swarm teams in the background; poll get_slide_factory_run for agent results.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "Slide factory run ID" },
+        },
+        required: ["id"],
+      },
+    },
+    {
+      name: "cancel_slide_factory_build",
+      description:
+        "Cancel an in-progress Marco build. Only works when status is 'building'. Transitions the run to status 'error' and sets completedAt so the panel stops polling. Use when a build is stuck or must be stopped before it completes.",
       parameters: {
         type: "object",
         properties: {
@@ -465,6 +467,8 @@ export async function dispatchRebeccaTool(
         return await toolApproveAllSlideFactorySlots(args, ctx);
       case "trigger_slide_factory_build":
         return await toolTriggerSlideFactoryBuild(args, ctx);
+      case "cancel_slide_factory_build":
+        return await toolCancelSlideFactoryBuild(args, ctx);
       case "produce_slide_factory_deck":
         return await toolProduceSlideFactoryDeck(args, ctx);
       default:
@@ -1498,22 +1502,26 @@ async function toolTriggerSlideFactoryBuild(
   );
   const run = await getSlideFactoryRun(id, ctx.userId);
   if (!run) return { result: { error: `Slide factory run ${id} not found` } };
-  if (run.status !== "draft_review") {
+  const isRetrigger = run.status === "error";
+  if (run.status !== "draft_review" && !isRetrigger) {
     return {
-      result: { error: `Trigger-build requires status 'draft_review', current: '${run.status}'` },
+      result: { error: `Trigger-build requires status 'draft_review' or 'error', current: '${run.status}'` },
     };
   }
-  if (!run.luccaDraft) return { result: { error: "No Lucca draft present" } };
-  const unapproved = Object.entries(run.luccaDraft)
-    .filter(([, slot]) => !slot.approved)
-    .map(([key]) => key);
-  if (unapproved.length > 0) {
-    return {
-      result: {
-        error: `${unapproved.length} slot(s) not yet approved`,
-        unapprovedSlots: unapproved.slice(0, SLIDE_FACTORY_UNAPPROVED_SLOTS_PREVIEW),
-      },
-    };
+  // Slot-approval check only applies to fresh builds; error re-triggers keep prior approval.
+  if (!isRetrigger) {
+    if (!run.luccaDraft) return { result: { error: "No Lucca draft present" } };
+    const unapproved = Object.entries(run.luccaDraft)
+      .filter(([, slot]) => !slot.approved)
+      .map(([key]) => key);
+    if (unapproved.length > 0) {
+      return {
+        result: {
+          error: `${unapproved.length} slot(s) not yet approved`,
+          unapprovedSlots: unapproved.slice(0, SLIDE_FACTORY_UNAPPROVED_SLOTS_PREVIEW),
+        },
+      };
+    }
   }
   await updateSlideFactoryRun(id, { status: "building" });
   const { runMarco } = await import("../slides/marco");
@@ -1522,8 +1530,31 @@ async function toolTriggerSlideFactoryBuild(
     result: {
       id,
       status: "building",
-      message: "Build triggered. Marco dispatched. Poll get_slide_factory_run for agent results.",
+      message: isRetrigger
+        ? "Re-trigger from error initiated. Marco dispatched. Poll get_slide_factory_run for agent results."
+        : "Build triggered. Marco dispatched. Poll get_slide_factory_run for agent results.",
     },
+    dataChanged: { entityType: "slide_factory_run", entityId: id },
+  };
+}
+
+async function toolCancelSlideFactoryBuild(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const id = Number(args.id);
+  if (!Number.isFinite(id)) return { result: { error: "Invalid slide factory run id" } };
+  const { getSlideFactoryRun, updateSlideFactoryRun } = await import(
+    "../storage/slide-factory-runs"
+  );
+  const run = await getSlideFactoryRun(id, ctx.userId);
+  if (!run) return { result: { error: `Slide factory run ${id} not found` } };
+  if (run.status !== "building") {
+    return { result: { error: `Cancel requires status 'building', current: '${run.status}'` } };
+  }
+  await updateSlideFactoryRun(id, { status: "error", completedAt: new Date() });
+  return {
+    result: { id, status: "error", message: "Build cancelled." },
     dataChanged: { entityType: "slide_factory_run", entityId: id },
   };
 }
