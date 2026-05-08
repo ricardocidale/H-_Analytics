@@ -20,6 +20,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -32,6 +37,14 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconUpload, IconDownload } from "@/components/icons";
 import { IconCheckCircle, IconAlertCircle } from "@/components/icons/status-icons";
+
+import {
+  SLIDE_AGENT_NAMES,
+  SLIDE_TEAM_TAGS,
+  ORCHESTRATORS,
+  MINIONS,
+} from "@/lib/agent-taxonomy";
+import { AgentThinkingState } from "@/components/agent-animations";
 
 // ── Constants ───────────────────────────────────────────────────────────────
 
@@ -58,22 +71,29 @@ const NONE_VALUE = "__none__";
 /** Total number of slides in one LB deck (matches TOTAL_SLIDES in deck-render-constants.ts) */
 const TOTAL_DECK_SLIDES = 6;
 
-const SLIDE_AGENT_NAMES: Record<number, string> = {
-  1: "Sofia",
-  2: "Bianca",
-  3: "Chiara",
-  4: "Dario",
-  5: "Elisa",
-  6: "Felix",
+/** Pixel-diff percentage at which Dino's verdict downgrades from pass → warn */
+const DINO_WARN_THRESHOLD_PCT = 5;
+/** Pixel-diff percentage at which Dino's verdict downgrades from warn → fail */
+const DINO_FAIL_THRESHOLD_PCT = 15;
+
+type DinoVerdict = "pass" | "warn" | "fail";
+
+function dinoPctVerdict(pct: number): DinoVerdict {
+  if (pct >= DINO_FAIL_THRESHOLD_PCT) return "fail";
+  if (pct >= DINO_WARN_THRESHOLD_PCT) return "warn";
+  return "pass";
+}
+
+const DINO_VERDICT_CLASS: Record<DinoVerdict, string> = {
+  pass: "text-emerald-700 bg-emerald-50",
+  warn: "text-amber-700 bg-amber-50",
+  fail: "text-red-700 bg-red-50",
 };
 
-const SLIDE_AGENT_TAGS: Record<number, string> = {
-  1: "Reader→Builder→Inspector",
-  2: "Reader→Builder→Inspector",
-  3: "Reader→Builder→Inspector",
-  4: "Builder→Inspector",
-  5: "Reader→Builder→Inspector",
-  6: "5-step USALI",
+const DINO_VERDICT_LABEL: Record<DinoVerdict, string> = {
+  pass: "Pass",
+  warn: "Warn",
+  fail: "Fail",
 };
 
 const MAYA_VERDICT_LABEL: Record<NonNullable<SlideAgentResultFE["mayaVerdict"]>, string> = {
@@ -611,14 +631,12 @@ function FactoryBriefTab({
 
 // ── Tab 2 — Lorenzo canonical ingestion ─────────────────────────────────────
 
+/**
+ * Visible pipeline steps — shown in the Lorenzo ingestion card.
+ * These are the "named" team steps. Minions (Aldo, Carlo) run as sub-steps
+ * and are surfaced only in the Technical Details collapsible.
+ */
 const LORENZO_PIPELINE_STEPS = [
-  {
-    id: "aldo",
-    label: "Aldo",
-    tag: "Extract",
-    description: "PDF text extraction — word-level bounding boxes",
-    completeSecs: EST_ALDO_COMPLETE_S,
-  },
   {
     id: "l03",
     label: "Lorenzo-03",
@@ -627,18 +645,32 @@ const LORENZO_PIPELINE_STEPS = [
     completeSecs: EST_VISION_COMPLETE_S,
   },
   {
-    id: "carlo",
-    label: "Carlo",
-    tag: "Validate",
-    description: "Zod schema validation — font metrics and types",
-    completeSecs: EST_CARLO_COMPLETE_S,
-  },
-  {
     id: "l05",
     label: "Lorenzo-05",
     tag: "Inspect",
     description: "Holistic rebuild feasibility check — Opus 4.7",
     completeSecs: EST_INSPECTOR_COMPLETE_S,
+  },
+] as const;
+
+/**
+ * Minion steps — deterministic utilities hidden by default.
+ * Shown in the Technical Details collapsible (agent-taxonomy: Minion tier).
+ */
+const LORENZO_MINION_STEPS = [
+  {
+    id: "aldo",
+    label: "Aldo",
+    tag: "Extract",
+    description: "PDF text extraction — word-level bounding boxes",
+    completeSecs: EST_ALDO_COMPLETE_S,
+  },
+  {
+    id: "carlo",
+    label: "Carlo",
+    tag: "Validate",
+    description: "Zod schema validation — font metrics and types",
+    completeSecs: EST_CARLO_COMPLETE_S,
   },
 ] as const;
 
@@ -652,10 +684,74 @@ function getLorenzoStepStatus(stepIndex: number, elapsedS: number): StepStatus {
   return "waiting";
 }
 
+function LorenzoStepRow({
+  label,
+  tag,
+  description,
+  status,
+}: {
+  label: string;
+  tag: string;
+  description: string;
+  status: StepStatus;
+}) {
+  return (
+    <div
+      className={[
+        "flex items-start gap-3 py-3 transition-colors duration-300",
+        status === "running"
+          ? "border-l-2 border-primary pl-3 -ml-px"
+          : "border-l-2 border-transparent pl-3 -ml-px",
+      ].join(" ")}
+    >
+      <div className="mt-0.5 shrink-0">
+        {status === "complete" ? (
+          <IconCheckCircle weight="fill" className="w-4 h-4 text-success" />
+        ) : status === "running" ? (
+          <Loader2 className="w-4 h-4 animate-spin text-primary" />
+        ) : (
+          <div className="w-4 h-4 rounded-full border-2 border-border" />
+        )}
+      </div>
+      <div className="min-w-0">
+        <div className="flex items-center gap-1.5">
+          <span
+            className={[
+              "text-xs font-medium",
+              status === "waiting" ? "text-muted-foreground" : "text-foreground",
+            ].join(" ")}
+          >
+            {label}
+          </span>
+          <span className="text-[10px] px-1.5 py-px rounded bg-muted text-muted-foreground uppercase tracking-wide leading-none">
+            {tag}
+          </span>
+          <span className="text-[10px] px-1 py-px rounded bg-muted/50 text-muted-foreground/60 leading-none italic">
+            Minion
+          </span>
+        </div>
+        <p
+          className={[
+            "text-xs mt-0.5",
+            status === "waiting"
+              ? "text-muted-foreground/50"
+              : "text-muted-foreground",
+          ].join(" ")}
+        >
+          {description}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function LorenzoIngestingView({ startedAt }: { startedAt: string | null }) {
+  const [minionOpen, setMinionOpen] = useState(false);
   const elapsedS = startedAt
     ? Math.max(0, Math.floor((Date.now() - new Date(startedAt).getTime()) / MS_PER_SECOND))
     : 0;
+
+  const allDoneMinions = elapsedS >= EST_CARLO_COMPLETE_S;
 
   return (
     <Card>
@@ -720,6 +816,55 @@ function LorenzoIngestingView({ startedAt }: { startedAt: string | null }) {
             );
           })}
         </div>
+
+        {/* Technical Details — Minion steps (Aldo, Carlo) */}
+        <Collapsible open={minionOpen} onOpenChange={setMinionOpen} className="mt-2 border-t border-border/50 pt-2">
+          <CollapsibleTrigger className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer py-1 w-full">
+            <span
+              className={`transition-transform duration-150 ${minionOpen ? "rotate-90" : ""}`}
+              aria-hidden
+            >
+              ▶
+            </span>
+            <span>Technical Details</span>
+            {allDoneMinions && (
+              <span className="ml-auto text-[10px] text-success font-medium">
+                Minions complete
+              </span>
+            )}
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="pt-1 divide-y divide-border/50">
+              {LORENZO_MINION_STEPS.map((step) => {
+                const statusFn = (id: string): StepStatus => {
+                  if (id === "aldo") {
+                    if (elapsedS >= EST_ALDO_COMPLETE_S) return "complete";
+                    return "running";
+                  }
+                  if (id === "carlo") {
+                    if (elapsedS >= EST_CARLO_COMPLETE_S) return "complete";
+                    if (elapsedS >= EST_ALDO_COMPLETE_S) return "running";
+                    return "waiting";
+                  }
+                  return "waiting";
+                };
+                return (
+                  <LorenzoStepRow
+                    key={step.id}
+                    label={step.label}
+                    tag={step.tag}
+                    description={step.description}
+                    status={statusFn(step.id)}
+                  />
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-muted-foreground/50 mt-2 pb-1">
+              Minions are narrow deterministic utilities that run automatically — no LLM calls.
+            </p>
+          </CollapsibleContent>
+        </Collapsible>
+
         <p className="mt-3 text-[10px] text-muted-foreground/60 leading-relaxed">
           Step progress is estimated from elapsed time. The pipeline advances automatically
           once all steps are complete.
@@ -1307,13 +1452,46 @@ function FactoryAgentsTab({ run }: { run: SlideFactoryRun }) {
   return (
     <Card>
       <CardHeader className="pb-3">
+        {/* Orchestrator row — taxonomy: Marco [Orchestrator] above the Swarm */}
+        <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border/60">
+          {isBuilding ? (
+            <AgentThinkingState
+              persona="marco"
+              phase="thinking"
+              size="sm"
+              aria-label="Marco is orchestrating the build"
+              className="shrink-0"
+            />
+          ) : isComplete ? (
+            <AgentThinkingState
+              persona="marco"
+              phase="complete"
+              size="sm"
+              aria-label="Marco build complete"
+              className="shrink-0"
+            />
+          ) : (
+            <AgentThinkingState
+              persona="marco"
+              phase="error"
+              size="sm"
+              aria-label="Marco build error"
+              className="shrink-0"
+            />
+          )}
+          <div className="flex-1 min-w-0">
+            <span className="text-sm font-semibold text-foreground">
+              {ORCHESTRATORS.marco.swarmHeader}
+            </span>
+          </div>
+          <span className="text-[10px] px-1.5 py-px rounded bg-muted text-muted-foreground uppercase tracking-wide leading-none shrink-0">
+            Orchestrator
+          </span>
+        </div>
         <div className="flex items-center gap-2">
-          {isBuilding && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
-          {isComplete && <IconCheckCircle weight="fill" className="w-4 h-4 text-success" />}
-          {isError && <IconAlertCircle weight="fill" className="w-4 h-4 text-destructive" />}
-          <CardTitle className="text-sm font-semibold">
+          <CardTitle className="text-sm font-semibold text-muted-foreground">
             {isBuilding
-              ? "Slide agents are building…"
+              ? "6 teams building…"
               : isComplete
               ? "Build complete"
               : "Build failed"}
@@ -1348,14 +1526,15 @@ function FactoryAgentsTab({ run }: { run: SlideFactoryRun }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
+                    {/* Persona-first label: "Sofia — Building Slide 1" */}
                     <span className="text-xs font-medium">
-                      {SLIDE_AGENT_NAMES[slideNum]}
+                      {SLIDE_AGENT_NAMES[slideNum]} — Building Slide {slideNum}
                     </span>
                     <span className="text-[10px] px-1.5 py-px rounded bg-muted text-muted-foreground uppercase tracking-wide leading-none">
-                      Slide {slideNum}
+                      Team · Slide {slideNum}
                     </span>
                     <span className="text-[10px] px-1.5 py-px rounded bg-muted/60 text-muted-foreground leading-none">
-                      {SLIDE_AGENT_TAGS[slideNum]}
+                      {SLIDE_TEAM_TAGS[slideNum]}
                     </span>
                     {result?.mayaVerdict && (
                       <span
@@ -1364,11 +1543,17 @@ function FactoryAgentsTab({ run }: { run: SlideFactoryRun }) {
                         Maya: {MAYA_VERDICT_LABEL[result.mayaVerdict]}
                       </span>
                     )}
-                    {result?.pixelDiffPct != null && (
-                      <span className="text-[10px] px-1.5 py-px rounded bg-muted text-muted-foreground leading-none">
-                        Dino: {result.pixelDiffPct.toFixed(1)}%
-                      </span>
-                    )}
+                    {result?.pixelDiffPct != null && (() => {
+                      const verdict = dinoPctVerdict(result.pixelDiffPct);
+                      return (
+                        <span
+                          className={`text-[10px] px-1.5 py-px rounded leading-none font-medium ${DINO_VERDICT_CLASS[verdict]}`}
+                          title={`${MINIONS.dino.role}: ${result.pixelDiffPct.toFixed(2)}% pixel diff`}
+                        >
+                          {MINIONS.dino.label} · {result.pixelDiffPct.toFixed(1)}% · {DINO_VERDICT_LABEL[verdict]}
+                        </span>
+                      );
+                    })()}
                   </div>
                   {result?.errorMessage && (
                     <p

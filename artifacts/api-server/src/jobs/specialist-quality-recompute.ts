@@ -10,7 +10,7 @@
  *
  * What this job does on every cycle:
  *   1. Iterate every Specialist in `engine/analyst/registry/specialist-
- *      catalog.ts` (Gaspar / non-catalog Specialists are intentionally
+ *      catalog.ts` (Gustavo / non-catalog Specialists are intentionally
  *      excluded — only catalog-driven Specialists have probeable resources
  *      and candidate fields).
  *   2. Read the prior latest `specialist_research_quality_snapshots` row
@@ -25,7 +25,7 @@
  *      transitions are visible on the Specialist quality sparkline but
  *      do not need to wake an admin up. Each dropping Specialist gets
  *      its own notification event with a deep link straight to that
- *      Specialist's page (`/ai-intelligence?section=specialist-…`) so
+ *      Specialist's page (`/intelligence?section=specialist-…`) so
  *      the admin can land on the new score and gap list immediately.
  *   5. Suppression is **per-Specialist and event-scoped**: we remember
  *      the last drop fingerprint (`prior→new`) for each Specialist so
@@ -151,13 +151,13 @@ export function specialistSectionForId(specialistId: string): string {
 }
 
 /**
- * Build the deep link to a Specialist's page on the AI Intelligence
- * surface. The `?section=…` query param is read by AiIntelligence on
- * mount and routed through `setAiIntelligenceSection`, so admins land
+ * Build the deep link to a Specialist's page on the Intelligence
+ * surface. The `?section=…` query param is read by Intelligence on
+ * mount and routed through `setIntelligenceSection`, so admins land
  * directly on the affected Specialist's score + gap list.
  */
 export function specialistDeepLink(specialistId: string): string {
-  return `${getAppUrl()}/ai-intelligence?section=${specialistSectionForId(specialistId)}`;
+  return `${getAppUrl()}/intelligence?section=${specialistSectionForId(specialistId)}`;
 }
 
 async function notifyAdminsOfBandDrop(transition: BandTransition): Promise<void> {

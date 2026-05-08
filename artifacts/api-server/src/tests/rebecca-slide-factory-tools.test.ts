@@ -50,10 +50,15 @@ vi.mock("../slides/marco", () => ({
   runMarco: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("../slides/minions/franco", () => ({
+  runFranco: vi.fn(),
+}));
+
 // ── Imports (after mocks) ────────────────────────────────────────────────────
 
 import { dispatchRebeccaTool } from "../chat/rebecca-tools";
 import { runMarco } from "../slides/marco";
+import { runFranco } from "../slides/minions/franco";
 import type { Mock } from "vitest";
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
@@ -423,6 +428,73 @@ describe("trigger_slide_factory_build", () => {
     const result = await dispatchRebeccaTool("trigger_slide_factory_build", { id: 99 }, CTX);
     expect((result.result as Record<string, unknown>).error).toMatch(/draft_review/);
     expect((runMarco as Mock)).not.toHaveBeenCalled();
+  });
+});
+
+// ── produce_slide_factory_deck ────────────────────────────────────────────────
+
+describe("produce_slide_factory_deck", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetSlideFactoryRun.mockResolvedValue(
+      makeRun({ id: 99, status: "complete", deckR2Key: null }),
+    );
+  });
+
+  it("happy path: calls Franco, returns { ok: true, deckR2Key } and emits dataChanged", async () => {
+    (runFranco as Mock).mockResolvedValue({ deckR2Key: "factory-runs/99/deck.pdf" });
+    const result = await dispatchRebeccaTool(
+      "produce_slide_factory_deck",
+      { runId: 99 },
+      CTX,
+    );
+    const r = result.result as Record<string, unknown>;
+    expect(r.ok).toBe(true);
+    expect(r.deckR2Key).toBe("factory-runs/99/deck.pdf");
+    expect(result.dataChanged).toMatchObject({
+      entityType: "slide_factory_run",
+      entityId: 99,
+    });
+    expect(runFranco).toHaveBeenCalledWith(99, { caller: "rebecca" });
+  });
+
+  it("error path: Franco throws → returns { ok: false, error } (still emits dataChanged so panel re-renders)", async () => {
+    (runFranco as Mock).mockRejectedValue(new Error("Playwright disconnected"));
+    const result = await dispatchRebeccaTool(
+      "produce_slide_factory_deck",
+      { runId: 99 },
+      CTX,
+    );
+    const r = result.result as Record<string, unknown>;
+    expect(r.ok).toBe(false);
+    expect(r.error).toMatch(/Playwright disconnected/);
+    expect(result.dataChanged).toMatchObject({
+      entityType: "slide_factory_run",
+      entityId: 99,
+    });
+  });
+
+  it("run not found: returns error without calling Franco", async () => {
+    mockGetSlideFactoryRun.mockResolvedValue(null);
+    const result = await dispatchRebeccaTool(
+      "produce_slide_factory_deck",
+      { runId: 9999 },
+      CTX,
+    );
+    expect((result.result as Record<string, unknown>).error).toMatch(/9999/);
+    expect(runFranco).not.toHaveBeenCalled();
+    expect(result.dataChanged).toBeUndefined();
+  });
+
+  it("invalid runId: returns error without calling storage or Franco", async () => {
+    const result = await dispatchRebeccaTool(
+      "produce_slide_factory_deck",
+      { runId: "not-a-number" },
+      CTX,
+    );
+    expect((result.result as Record<string, unknown>).error).toBeDefined();
+    expect(mockGetSlideFactoryRun).not.toHaveBeenCalled();
+    expect(runFranco).not.toHaveBeenCalled();
   });
 });
 

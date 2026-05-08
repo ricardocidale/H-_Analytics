@@ -188,7 +188,7 @@ from Brazilian or Italian naming traditions (male or female).
 - Slide factory orchestrator: Marco
 - Slide factory cross-app: Lucca, Maya
 - Slide factory swarms: Lorenzo, Sofia, Bianca, Chiara, Dario, Elisa, Felix
-- Slide factory minions: Aldo, Bruno, Carlo, Dino, Enzo
+- Slide factory minions: Aldo, Bruno, Carlo, Dino, Enzo, Franco
 
 **Never use:** Sergio, Milton
 
@@ -545,7 +545,7 @@ vendor/
 | `architecture-decision-records` | Any irreversible technical decision future contributors might re-litigate |
 | `hplus-vision-templates` | Filling in any slide text field — sourcing pipeline (DB → benchmarks → LLM with web research → templates), per-field char-limit enforcement, and budget-realism guardrails for transformation proposals |
 | `hplus-renovation-benchmarks` | Per-key cost ranges and transformation cost lines used by the budget-realism check above |
-| `hplus-admin-nav-ia` | Placing data sources, APIs, Specialists, LLMs, or AI agents in the Admin / AI Intelligence sidebar |
+| `hplus-admin-nav-ia` | Placing data sources, APIs, Specialists, LLMs, or AI agents in the Admin / Intelligence sidebar |
 | `lb-slides-canonical-pngs` | Comparing any rendered slide output against the pixel-authoritative canonical PNGs — R2 keys, local paths, per-slide comparison checklist, re-upload workflow |
 | `analyst-research-buttons` | Any button that triggers a research job — canonical label, icon, voice, and guard rules |
 | `analyst-intelligence-display` | Any UI component that **displays** specialist research results — range badges, verdict cards, contextual tips, action dialogs. Complements `analyst-research-buttons` (the input side) with the display side |

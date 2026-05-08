@@ -34,7 +34,7 @@
  * sky / violet / emerald) — chosen for memorability rather than for
  * mapping back to a theme token. The text colors carry an explicit
  * `dark:` variant so the chips read in light and dark mode alike;
- * Gaspar (the orchestrator) is the lone exception and uses the brand
+ * Gustavo (the orchestrator) is the lone exception and uses the brand
  * `accent-pop` semantic token so a future palette refresh tracks him.
  */
 
@@ -55,7 +55,7 @@ export type SpecialistNameSize = "sm" | "md" | "lg";
 export interface SpecialistDisplay {
   /** The id passed in. Stable, slug-form. */
   id: string;
-  /** Persona-first name to lead with ("Ana", "Fernanda", "Gaspar"). */
+  /** Persona-first name to lead with ("Ana", "Fernanda", "Gustavo"). */
   humanName: string;
   /** Role/displayName for the secondary line ("Funding Intelligence"). */
   role: string;
@@ -80,7 +80,7 @@ const SUBJECT_PALETTE: Record<SpecialistDisplay["subject"] & string, string> = {
   "portfolio-ops": "bg-sky-500/15 text-sky-700 dark:text-sky-300 ring-sky-500/20",
   constants: "bg-violet-500/15 text-violet-700 dark:text-violet-300 ring-violet-500/20",
   resources: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 ring-emerald-500/20",
-  // Gaspar (the orchestrator) lives outside the six subjects; he gets
+  // Gustavo (the orchestrator) lives outside the six subjects; he gets
   // the brand intelligence accent so he reads as the conductor, not
   // a peer of the twelve-plus catalog Specialists.
   analyst: "bg-accent-pop/15 text-accent-pop ring-accent-pop/20",
@@ -104,7 +104,7 @@ interface AdminSpecialistRow {
 
 /**
  * Live override map — the same `/api/admin/specialists` query the
- * AI Intelligence sidebar uses. Memoized at the React-Query level so a
+ * Intelligence sidebar uses. Memoized at the React-Query level so a
  * page with many `<SpecialistName />` instances does only one fetch.
  */
 function useLiveHumanNames(): Map<string, string> {
@@ -199,16 +199,16 @@ export function resolveSpecialistDisplay(
 /**
  * Compose the canonical persona-first page-header *title* for a Specialist
  * id ("Ana · Funding Intelligence", "Daniela · Risk Intelligence",
- * "Gaspar · The Analyst"), reusing the shared resolution chain in
- * `resolveSpecialistDisplay`. Both `client/src/pages/AiIntelligence.tsx`
- * and `client/src/pages/Admin.tsx` call this so the AI Intelligence page,
- * the Admin shell, and the AI sidebar's `specialistRow` can never drift
+ * "Gustavo · The Analyst"), reusing the shared resolution chain in
+ * `resolveSpecialistDisplay`. Both `client/src/pages/Intelligence.tsx`
+ * and `client/src/pages/Admin.tsx` call this so the Intelligence page,
+ * the Admin shell, and the Intelligence sidebar's `specialistRow` can never drift
  * on what name to lead with.
  *
  * `fallbackRole` is what to render when the catalog doesn't know the id
  * (and the resolver therefore returns a non-catalog placeholder). Each
  * page picks a different fallback that makes sense for its own chrome —
- * e.g. the section's marketing-copy title for AI Intelligence, or the
+ * e.g. the section's marketing-copy title for Intelligence, or the
  * raw section slug for Admin — so the fallback stays a per-page concern
  * even though the persona-first assembly is shared.
  *

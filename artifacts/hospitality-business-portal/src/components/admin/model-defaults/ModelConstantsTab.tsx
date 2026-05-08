@@ -3,7 +3,7 @@
  *
  * Locked principle (replit.md, docs/audits/constants-specialist-ownership-
  * gap.md): Constants are authority-sourced (US Fed, IRS, IMF, central
- * banks, GAAP/USALI). They are written EXCLUSIVELY by AI Intelligence
+ * banks, GAAP/USALI). They are written EXCLUSIVELY by Intelligence
  * Specialists. Admins cannot type a value. The two paths supported on
  * each row are:
  *

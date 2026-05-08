@@ -37,6 +37,7 @@ import { IconSparkles } from "@/components/icons";
 import { BreathingDots } from "@/components/ui/ai-loader";
 import { cn } from "@/lib/utils";
 import { studyingLinesFor, type StudyTopic } from "./studying-lines";
+import { ANALYST_BRAND } from "@/lib/agent-taxonomy";
 
 export type AnalystStudyingSize = "sm" | "md" | "lg";
 export type AnalystStudyingVariant = "inline" | "block" | "centered";
@@ -170,7 +171,7 @@ export function AnalystStudyingIndicator({
       data-testid={dataTestId}
     >
       <span className="sr-only" role="status">
-        The Analyst is studying.
+        {ANALYST_BRAND} is studying.
       </span>
       <span aria-hidden>{row}</span>
     </div>

@@ -1,5 +1,5 @@
 /**
- * Marco's primitive tools — Unit 1 + Unit 7.
+ * Marco's primitive tools — Unit 1 + Unit 7 + Unit 3 (deck producer hook).
  *
  * Marco is the slide factory orchestrator. Its tools are atomic primitives,
  * not bundled workflows: each tool does one thing, returns rich data, and
@@ -12,6 +12,7 @@
  *   invoke_dino          → run Dino pixel-diff agent for one slide
  *   update_agent_result  → write one slide's verdict (raw signals; handler computes approved/rejected)
  *   transition_status    → move the run to 'complete' or 'error'
+ *   produce_deck         → call Franco to render the PDF + upload to R2 + write deckR2Key
  *   complete_task        → exit signal for the bounded tool loop
  *
  * Approval logic lives in handleUpdateAgentResult (deterministic), NOT in
@@ -34,6 +35,7 @@ import type { LuccaSlotDraft } from "@workspace/db";
 import { runMaya } from "./maya";
 import type { MayaVerdictLevel } from "./maya";
 import { runDino } from "./dino";
+import { runFranco } from "./minions/franco";
 import { CANONICAL_ASSETS } from "./canonical-assets";
 import { TOTAL_SLIDES } from "./deck-render-constants";
 
@@ -178,6 +180,16 @@ export const MARCO_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: "produce_deck",
+    description:
+      "Render the 6-slide PDF via Franco (Playwright + R2 upload) and write deckR2Key onto the run. Call exactly once, only after `transition_status({newStatus:'complete'})` returns ok. Takes no arguments — Franco reads runId from context. Returns { ok: true, deckR2Key } on success or { error } on render/upload failure (do NOT retry on error; finish the run anyway — Rebecca can manually retry via her produce_slide_factory_deck tool).",
+    input_schema: {
+      type: "object",
+      required: [],
+      properties: {},
+    },
+  },
+  {
     name: "complete_task",
     description:
       "Signal that Marco has finished orchestrating this run. Always call last. The summary is logged for diagnostics.",
@@ -267,6 +279,9 @@ export async function dispatchMarcoTool(
             asEnum(args.newStatus, ["complete", "error"] as const),
           ),
         };
+
+      case "produce_deck":
+        return { result: await handleProduceDeck(ctx.runId) };
 
       case "complete_task":
         return {
@@ -435,6 +450,25 @@ async function handleTransitionStatus(runId: number, newStatus: "complete" | "er
   return downgradedFrom
     ? { ok: true, status: updated.status, downgradedFrom }
     : { ok: true, status: updated.status };
+}
+
+/**
+ * Render the deck PDF via Franco and write deckR2Key onto the run.
+ *
+ * Marco calls this once, immediately after `transition_status` returns
+ * `complete`. Errors thrown by Franco (render or upload failure) are
+ * converted to a structured `{ error }` result so the agent loop does not
+ * crash — primitive-tool philosophy: surface failures, don't throw across
+ * the agent boundary. Marco's system prompt instructs it not to retry on
+ * `{ error }` (Rebecca handles manual retry).
+ */
+export async function handleProduceDeck(runId: number) {
+  try {
+    const { deckR2Key } = await runFranco(runId, { caller: "marco" });
+    return { ok: true, deckR2Key };
+  } catch (err: unknown) {
+    return { error: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 // ── Argument coercers ────────────────────────────────────────────────────────

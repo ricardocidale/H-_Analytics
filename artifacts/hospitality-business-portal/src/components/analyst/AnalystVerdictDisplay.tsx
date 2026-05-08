@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { IconSparkles, IconCheckCircle, IconAlertTriangle } from "@/components/icons";
 import { ExternalLink } from "@/components/icons/themed-icons";
+import { ANALYST_BRAND } from "@/lib/agent-taxonomy";
 import type {
   AnalystVerdict,
   VerdictDimension,
@@ -231,7 +232,7 @@ function DimensionCard({
               </span>
             </TooltipTrigger>
             <TooltipContent side="top" className="max-w-xs text-xs">
-              <p className="font-semibold mb-1">The Analyst suggests {range}</p>
+              <p className="font-semibold mb-1">{ANALYST_BRAND} suggests {range}</p>
               {dimension.range?.mid != null ? (
                 <p className="text-muted-foreground">
                   Midpoint: {dimension.range.unit === "%"

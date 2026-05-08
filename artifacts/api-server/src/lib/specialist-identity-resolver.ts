@@ -34,7 +34,7 @@ function catalogFor(id: string): IdentityCatalogDefault | null {
 
 /**
  * Resolve the currently-effective identity for a single specialist (or
- * the orchestrator if `id === "gaspar"`). Returns null for unknown ids
+ * the orchestrator if `id === ORCHESTRATOR_SPECIALIST_ID`). Returns null for unknown ids
  * so callers can decide whether to fall back to the slug or 404.
  */
 export async function getEffectiveSpecialistIdentity(
@@ -48,7 +48,7 @@ export async function getEffectiveSpecialistIdentity(
 
 /**
  * Convenience wrapper for the orchestrator. Equivalent to
- * `getEffectiveSpecialistIdentity("gaspar")` but returns a non-null
+ * `getEffectiveSpecialistIdentity(ORCHESTRATOR_SPECIALIST_ID)` but returns a non-null
  * resolved identity (the orchestrator catalog default always exists).
  */
 export async function getEffectiveOrchestratorIdentity(): Promise<ResolvedIdentity> {

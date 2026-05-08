@@ -23,15 +23,15 @@ tags:
 
 ## Context
 
-Repeated clarification was needed across multiple sessions about where "Sources" and "Resources" belong in the admin navigation, and what each section contains. The mismatch between the old legacy redirect (`"sources" → "data-sources"`) and the intended product design caused agents to incorrectly place these sections inside `/ai-intelligence` instead of the Admin sidebar.
+Repeated clarification was needed across multiple sessions about where "Sources" and "Resources" belong in the admin navigation, and what each section contains. The mismatch between the old legacy redirect (`"sources" → "data-sources"`) and the intended product design caused agents to incorrectly place these sections inside `/intelligence` instead of the Admin sidebar.
 
 ## Guidance
 
-The Admin sidebar (`AdminSidebar.tsx`, route `/admin`) has two distinct top-level sections for external data and integrations. These are **Admin sidebar sections**, not AI Intelligence sections.
+The Admin sidebar (`AdminSidebar.tsx`, route `/admin`) has two distinct top-level sections for external data and integrations. These are **Admin sidebar sections**, not Intelligence sections.
 
 ### Sources (Admin sidebar — top-level section — ONLY location for "Sources" in the app)
 
-A dedicated **Sources** section in the Admin sidebar. **This label belongs exclusively to the Admin sidebar. Do not create anything labelled "Sources" inside `/ai-intelligence`.**
+A dedicated **Sources** section in the Admin sidebar. **This label belongs exclusively to the Admin sidebar. Do not create anything labelled "Sources" inside `/intelligence`.**
 
 Sub-items:
 
@@ -62,16 +62,16 @@ The **APIs page** specifically is a purpose-built admin tool — not just a list
 
 ## Why This Matters
 
-Placing Sources or Resources inside `/ai-intelligence` (the AI-specific area) hides them from admins who think of these as operational/infrastructure concerns rather than AI concerns. The Admin sidebar is the correct home because:
+Placing Sources or Resources inside `/intelligence` (the AI-specific area) hides them from admins who think of these as operational/infrastructure concerns rather than AI concerns. The Admin sidebar is the correct home because:
 
 - These sections are relevant to all admins, not only those configuring AI behavior
 - Sources and Resources feed the whole app (financial engine, research, chat), not just AI specialists
-- The AI Intelligence section (`/ai-intelligence`) is focused on AI agent configuration, knowledge management, and research orchestration — not general data source management
+- The Intelligence section (`/intelligence`) is focused on AI agent configuration, knowledge management, and research orchestration — not general data source management
 
 ## When to Apply
 
 - Any task that involves adding a new external data source, API, file upload capability, or link registry to the admin UI → put it under **Admin sidebar → Sources** or **Admin sidebar → Resources**
-- Any task that says "Sources section" or "Resources section" in the admin context → these are Admin sidebar sections, not AI Intelligence tabs
+- Any task that says "Sources section" or "Resources section" in the admin context → these are Admin sidebar sections, not Intelligence tabs
 - The existing `"sources" → "data-sources"` redirect in `SECTION_REDIRECTS` is a legacy alias that predates this IA decision. When implementing the new Sources section, remove or update this redirect so it lands on the new canonical Sources page
 
 ## Examples
@@ -87,11 +87,11 @@ Admin sidebar (/admin)
     └── APIs  (with live test button per API)
 ```
 
-Do NOT put these under `/ai-intelligence`:
+Do NOT put these under `/intelligence`:
 ```
 # WRONG — do not do this
-AI Intelligence → Resources → Catalog → [APIs tab]   ← this is the old pattern
-AI Intelligence → Knowledge Registry → Sources        ← wrong; Sources belongs in Admin
+Intelligence → Resources → Catalog → [APIs tab]   ← this is the old pattern
+Intelligence → Knowledge Registry → Sources        ← wrong; Sources belongs in Admin
 ```
 
 ## Relevant Files
@@ -100,4 +100,4 @@ AI Intelligence → Knowledge Registry → Sources        ← wrong; Sources bel
 - `artifacts/hospitality-business-portal/src/pages/Admin.tsx` — add route cases for new sections
 - `artifacts/api-server/src/seeds/source-registry.ts` — existing seed pattern for source data (APIs, connections)
 - `artifacts/api-server/src/routes/admin/intelligence-sources.ts` — existing API registry routes (may be the basis for the new APIs page)
-- `docs/brainstorms/knowledge-registry-requirements.md` — Knowledge Registry feature (AI Intelligence area) is separate from Sources/Resources in Admin sidebar
+- `docs/brainstorms/knowledge-registry-requirements.md` — Knowledge Registry feature (Intelligence area) is separate from Sources/Resources in Admin sidebar

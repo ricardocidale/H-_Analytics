@@ -721,7 +721,7 @@ export function getSpecialistsBySubject(
 }
 
 /**
- * Resolve the AI Intelligence Specialist that owns a given Model Constants
+ * Resolve the Intelligence Specialist that owns a given Model Constants
  * registry key. Returns `undefined` when no Specialist claims the key — the
  * coverage test in `tests/registry/constants-specialist-coverage.test.ts`
  * asserts every registered key has an owner, so a `undefined` here at runtime

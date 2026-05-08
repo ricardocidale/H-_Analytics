@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
-import type { AiIntelligenceSection } from "@/components/ai-intelligence/AiIntelligenceSidebar";
+import type { IntelligenceSection } from "@/components/intelligence/IntelligenceSidebar";
 
-let currentSection: AiIntelligenceSection = "specialist-mgmt-co-funding";
+let currentSection: IntelligenceSection = "specialist-mgmt-co-funding";
 const listeners = new Set<() => void>();
 
 function subscribe(listener: () => void) {
@@ -13,23 +13,23 @@ function getSnapshot() {
   return currentSection;
 }
 
-export function setAiIntelligenceSection(section: AiIntelligenceSection) {
+export function setIntelligenceSection(section: IntelligenceSection) {
   currentSection = section;
   listeners.forEach((fn) => fn());
 }
 
-export function useAiIntelligenceSection(): [AiIntelligenceSection, typeof setAiIntelligenceSection] {
+export function useIntelligenceSection(): [IntelligenceSection, typeof setIntelligenceSection] {
   const section = useSyncExternalStore(subscribe, getSnapshot);
-  return [section, setAiIntelligenceSection];
+  return [section, setIntelligenceSection];
 }
 
 // Task #502 — one-shot deep-link tab hint. The sidebar's per-Specialist
-// "Overrides" badge calls `setAiIntelligenceTabHint(specialistId, "llm-config")`
+// "Overrides" badge calls `setIntelligenceTabHint(specialistId, "llm-config")`
 // before switching the section so the freshly-mounted SpecialistPage can
 // open straight to the LLM Config tab without needing URL plumbing.
 //
 // "One-shot" semantics: SpecialistPage consumes the hint in a useEffect and
-// calls `consumeAiIntelligenceTabHint(specialistId)` to clear it, so a stale
+// calls `consumeIntelligenceTabHint(specialistId)` to clear it, so a stale
 // hint can't survive a page-level back/forward and re-trigger later.
 // Internal-only hint type. The set of admissible tabs is closed and
 // callers always pass a string literal, so we don't need to expose the
@@ -39,16 +39,16 @@ export function useAiIntelligenceSection(): [AiIntelligenceSection, typeof setAi
 // straight to the owning Specialist's Recommendations card (which lives
 // inside the RequiredFieldsTab) instead of dropping the admin on the
 // default Overview tab.
-type AiIntelligenceTabHint = "llm-config" | "required-fields";
-type PendingHint = { specialistId: string; tab: AiIntelligenceTabHint; nonce: number };
+type IntelligenceTabHint = "llm-config" | "required-fields";
+type PendingHint = { specialistId: string; tab: IntelligenceTabHint; nonce: number };
 
 let pendingTabHint: PendingHint | null = null;
 let nextHintNonce = 1;
 const tabHintListeners = new Set<() => void>();
 
-export function setAiIntelligenceTabHint(
+export function setIntelligenceTabHint(
   specialistId: string,
-  tab: AiIntelligenceTabHint,
+  tab: IntelligenceTabHint,
 ) {
   // Bump the nonce on every set so two consecutive identical hints
   // (same specialistId + tab) still register as a distinct event.
@@ -59,9 +59,9 @@ export function setAiIntelligenceTabHint(
   tabHintListeners.forEach((fn) => fn());
 }
 
-export function consumeAiIntelligenceTabHint(
+export function consumeIntelligenceTabHint(
   specialistId: string,
-): AiIntelligenceTabHint | null {
+): IntelligenceTabHint | null {
   if (!pendingTabHint || pendingTabHint.specialistId !== specialistId) {
     return null;
   }
@@ -84,17 +84,17 @@ function getTabHintSnapshot() {
  * Reactive subscription for a pending tab hint. SpecialistPage uses
  * this so that clicking the "Overrides" badge for the *currently open*
  * Specialist still flips the page to its LLM Config tab — without it,
- * `consumeAiIntelligenceTabHint` would only fire on a `specialistId`
+ * `consumeIntelligenceTabHint` would only fire on a `specialistId`
  * change, and a same-page badge click would silently do nothing.
  */
-export function usePendingAiIntelligenceTabHint(): PendingHint | null {
+export function usePendingIntelligenceTabHint(): PendingHint | null {
   return useSyncExternalStore(subscribeTabHint, getTabHintSnapshot, getTabHintSnapshot);
 }
 
 // admin-cleanup #7 — Resources catalog kind hint. Legacy admin deep links
 // `resources-apis|sources|benchmarks|models` collapsed into a single
-// `resources` AI section with internal tabs. To preserve sub-tab fidelity
-// for those legacy links, `setAdminSection` (admin-nav.ts) sets the
+// `resources` Intelligence section with internal tabs. To preserve sub-tab
+// fidelity for those legacy links, `setAdminSection` (admin-nav.ts) sets the
 // matching kind here before navigating; `ResourcesAdminPage` consumes
 // it on mount as the initial selected tab. One-shot to avoid stale
 // hints surviving a back/forward.

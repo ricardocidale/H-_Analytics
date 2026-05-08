@@ -38,8 +38,8 @@ export function registerCatalogRoutes(app: Express) {
   // Overlays the Phase-3 admin identity override (humanName + gender) onto
   // each catalog row so the sidebar / list surfaces show the currently-
   // effective persona, not the stale catalog default. Also appends a
-  // synthetic row for Gaspar (the orchestrator) so admins can navigate to
-  // the same SpecialistPage and edit Gaspar's identity through the same UI.
+  // synthetic row for Gustavo (the orchestrator) so admins can navigate to
+  // the same SpecialistPage and edit Gustavo's identity through the same UI.
   app.get("/api/admin/specialists", requireAdmin, async (_req, res) => {
     try {
       const [overrides, llmOverrideIds] = await Promise.all([
@@ -85,29 +85,29 @@ export function registerCatalogRoutes(app: Express) {
           })),
         };
       });
-      const gasparOverride = overrideById.get(ORCHESTRATOR_SPECIALIST_ID) ?? null;
-      const gasparResolved = resolveSpecialistIdentity(
+      const gustavoOverride = overrideById.get(ORCHESTRATOR_SPECIALIST_ID) ?? null;
+      const gustavoResolved = resolveSpecialistIdentity(
         { humanName: ORCHESTRATOR_IDENTITY.humanName, gender: ORCHESTRATOR_IDENTITY.gender },
-        gasparOverride,
+        gustavoOverride,
       );
-      const gasparRow = {
+      const gustavoRow = {
         id: ORCHESTRATOR_SPECIALIST_ID,
         letter: "G",
         realName: ORCHESTRATOR_IDENTITY.humanName,
         displayName: ORCHESTRATOR_IDENTITY.role,
-        humanName: gasparResolved.humanName,
-        gender: gasparResolved.gender,
+        humanName: gustavoResolved.humanName,
+        gender: gustavoResolved.gender,
         description: ORCHESTRATOR_IDENTITY.description,
         subject: "orchestrator" as const,
         capabilities: [] as string[],
         status: "built" as const,
-        // Gaspar declares no editable LLM Config tab — overrides are not
+        // Gustavo declares no editable LLM Config tab — overrides are not
         // possible for the orchestrator, so this is always false.
         hasLlmOverrides: false,
         candidateFields: [] as never[],
         prerequisites: [] as never[],
       };
-      res.json([gasparRow, ...catalogRows]);
+      res.json([gustavoRow, ...catalogRows]);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to list specialists", error);
     }
@@ -168,7 +168,7 @@ export function registerCatalogRoutes(app: Express) {
   );
 
   // ── Detail (definition + config + assignments-with-health) ──────
-  // Accepts id="gaspar" via a synthetic detail response so the orchestrator
+  // Accepts ORCHESTRATOR_SPECIALIST_ID ("gaspar") via a synthetic detail response so the orchestrator
   // can be edited through the same SpecialistPage as the 12 catalog
   // specialists. Catalog rows have their humanName/gender overlaid with
   // any Phase-3 admin override so the page header matches what the
@@ -192,7 +192,7 @@ export function registerCatalogRoutes(app: Express) {
             gender: resolved.gender,
             description: ORCHESTRATOR_IDENTITY.description,
             subject: "orchestrator",
-            // Gaspar declares no editable capability tabs — the synthetic
+            // Gustavo declares no editable capability tabs — the synthetic
             // Identity tab (added unconditionally by SpecialistPage) is the
             // only editable surface for the orchestrator.
             capabilities: [],

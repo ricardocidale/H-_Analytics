@@ -1,21 +1,21 @@
 /**
- * SpecialistQuickSearch.tsx — Type-to-jump search for the AI Intelligence
+ * SpecialistQuickSearch.tsx — Type-to-jump search for the Intelligence
  * specialist catalog (Task #492).
  *
- * Renders a compact search button in the AiIntelligence page header that
+ * Renders a compact search button in the Intelligence page header that
  * opens a CommandDialog. Admins can type the human name ("Helena"), the
  * role ("Tax Authority Research"), or the catalog letter ("H") to filter
  * the list and press Enter to navigate to that specialist's page.
  *
  * Source of truth for the catalog rows is `SPECIALIST_CATALOG`. Rows are
- * mapped to AI Intelligence sidebar sections via the canonical
+ * mapped to Intelligence sidebar sections via the canonical
  * `SPECIALIST_SECTION_TO_ID` map so navigation stays in lockstep with the
- * sidebar groups. Gaspar (the Analyst orchestrator) is added on top with
+ * sidebar groups. Gustavo (the Analyst orchestrator) is added on top with
  * the `analyst-orchestrator` section so admins can also jump to him.
  *
  * humanName overrides: the `/api/admin/specialists` list endpoint
  * resolves Identity-tab renames against the catalog. We prefer that
- * resolved name over the static catalog value so renaming "Gaspar" to
+ * resolved name over the static catalog value so renaming "Gustavo" to
  * something else immediately makes the search match the new spelling
  * (matching the sidebar behavior).
  */
@@ -36,8 +36,8 @@ import { SPECIALIST_CATALOG } from "@engine/analyst/registry/specialist-catalog"
 import { ORCHESTRATOR_SPECIALIST_ID } from "@engine/analyst/identity";
 import {
   SPECIALIST_SECTION_TO_ID,
-  type AiIntelligenceSection,
-} from "@/components/ai-intelligence/AiIntelligenceSidebar";
+  type IntelligenceSection,
+} from "@/components/intelligence/IntelligenceSidebar";
 
 interface SpecialistListItem {
   id: string;
@@ -45,7 +45,7 @@ interface SpecialistListItem {
 }
 
 interface SearchEntry {
-  section: AiIntelligenceSection;
+  section: IntelligenceSection;
   specialistId: string;
   primary: string;
   secondary: string;
@@ -55,7 +55,7 @@ interface SearchEntry {
 }
 
 interface SpecialistQuickSearchProps {
-  onSelect: (section: AiIntelligenceSection) => void;
+  onSelect: (section: IntelligenceSection) => void;
 }
 
 export function SpecialistQuickSearch({ onSelect }: SpecialistQuickSearchProps) {
@@ -78,16 +78,16 @@ export function SpecialistQuickSearch({ onSelect }: SpecialistQuickSearchProps) 
   }, [specialists]);
 
   const entries = useMemo<SearchEntry[]>(() => {
-    const sectionBySpecialistId = new Map<string, AiIntelligenceSection>();
+    const sectionBySpecialistId = new Map<string, IntelligenceSection>();
     for (const [section, id] of Object.entries(SPECIALIST_SECTION_TO_ID) as Array<
-      [AiIntelligenceSection, string]
+      [IntelligenceSection, string]
     >) {
       sectionBySpecialistId.set(id, section);
     }
 
     const rows: SearchEntry[] = [];
 
-    // Gaspar — orchestrator persona. Lives outside SPECIALIST_SECTION_TO_ID
+    // Gustavo — orchestrator persona. Lives outside SPECIALIST_SECTION_TO_ID
     // because his admin surface routes through the dedicated
     // "analyst-orchestrator" section, not a catalog id.
     {
@@ -157,7 +157,7 @@ export function SpecialistQuickSearch({ onSelect }: SpecialistQuickSearchProps) 
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  function handleSelect(section: AiIntelligenceSection) {
+  function handleSelect(section: IntelligenceSection) {
     onSelect(section);
     setOpen(false);
   }

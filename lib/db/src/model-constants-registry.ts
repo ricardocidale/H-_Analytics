@@ -37,7 +37,7 @@ export interface ConstantRegistryEntry {
   meta: GovernedFieldMeta;
   /**
    * Phase 3 (Constants doctrine): when true, this constant is authority-
-   * sourced and is owned by an AI Intelligence Specialist (declared via
+   * sourced and is owned by an Intelligence Specialist (declared via
    * `constantsOwned[]` in `engine/analyst/registry/specialist-catalog.ts`).
    * The server-side guard in `PUT /api/admin/model-constants/:key` rejects
    * any `source = 'manual'` write for these keys with HTTP 422 — the only

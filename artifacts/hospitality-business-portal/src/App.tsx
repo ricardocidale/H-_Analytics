@@ -82,7 +82,7 @@ const CompanyIcpDefinition = lazy(() => import("@/pages/CompanyIcpDefinition"));
 const CompanyGuidance = lazy(() => import("@/pages/CompanyGuidance"));
 const _ResearchHub = lazy(() => import("@/pages/ResearchHub"));
 const Admin = lazy(() => import("@/pages/Admin"));
-const AiIntelligence = lazy(() => import("@/pages/AiIntelligence"));
+const Intelligence = lazy(() => import("@/pages/Intelligence"));
 const Scenarios = lazy(() => import("@/pages/Scenarios"));
 const PropertyFinder = lazy(() => import("@/pages/PropertyFinder"));
 const Analysis = lazy(() => import("@/pages/Analysis"));
@@ -295,8 +295,11 @@ function Router() {
         <Route path="/admin">
           <AdminRoute component={Admin} />
         </Route>
+        <Route path="/intelligence">
+          <AdminRoute component={Intelligence} />
+        </Route>
         <Route path="/ai-intelligence">
-          <AdminRoute component={AiIntelligence} />
+          <Redirect to={`/intelligence${typeof window !== "undefined" ? window.location.search : ""}`} />
         </Route>
         <Route path="/admin/logos">
           <Redirect to="/admin" />

@@ -4,7 +4,7 @@
 --
 -- Why: TabActions.tsx in client/src/components/company-assumptions used
 -- to hardcode entityId: 0 on the change-log POST when a user clicked
--- "Keep my value" on a Gaspar warning. That broke audit-trail queries
+-- "Keep my value" on a Gustavo warning. That broke audit-trail queries
 -- in `getAssumptionHistory("company", <real id>)` because the override
 -- rows lived under the phantom id 0. The TS code now sends `global.id`;
 -- this migration repoints existing history so the audit trail is

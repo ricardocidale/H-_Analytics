@@ -135,7 +135,7 @@ export const SpecialistDefinitionSchema = z
     displayName: z.string().min(1).optional(),
     /**
      * Humanized first name for the Specialist persona. The orchestrator
-     * (Gaspar) and the 12 Specialists use first names in narration and
+     * (Gustavo) and the 12 Specialists use first names in narration and
      * activity logs to make the engine feel like a team rather than a
      * faceless pipeline. The persona is fixed in the catalog — admins
      * cannot rename a Specialist at runtime (that would corrupt the
@@ -145,7 +145,7 @@ export const SpecialistDefinitionSchema = z
     /**
      * Persona gender. Used by `engine/analyst/identity.ts` and the log
      * prefix helper to drive pronoun selection in narration. The
-     * orchestrator Gaspar is male; the 12 Specialists are female today.
+     * orchestrator Gustavo is male; the 12 Specialists are female today.
      * `"neutral"` is reserved for future personas (a Specialist whose
      * persona prefers they/them, or an automated tool persona surfaced
      * in narration without a gendered pronoun).
@@ -675,7 +675,7 @@ export type SpecialistConfigPublicView = z.infer<typeof SpecialistConfigPublicVi
 // The catalog is the factory default. Admins may override per Specialist
 // without a code deploy via the SpecialistPage Identity tab. The override
 // row is single-row-per-specialistId; absence ⇒ catalog wins. The orchestrator
-// "gaspar" is editable through the same routes (its catalog default lives in
+// "gustavo" (ORCHESTRATOR_SPECIALIST_ID) is editable through the same routes (its catalog default lives in
 // `engine/analyst/identity.ts`, not the SPECIALIST_CATALOG).
 //
 // Audit trail lives in `specialist_identity_override_versions` — a focused

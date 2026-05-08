@@ -366,7 +366,7 @@ export default function FernandaRenderConsolePage() {
     // ever rebranded.
     <div className="space-y-6" data-testid="page-fernanda-render-console">
       {/* Inner Suspense isolates the SpecialistPage chunk so that if the
-          outer AiIntelligence Suspense already resolved Fernanda's
+          outer Intelligence Suspense already resolved Fernanda's
           render console, a slow nested chunk doesn't blank the whole
           layout — the render history below stays visible. */}
       <Suspense

@@ -1,24 +1,24 @@
 ---
-title: "AI Intelligence → LLMs: workflow cards spec — accordion, vendor/model preferences, Analyst button, dirty-state guard"
+title: "Intelligence → LLMs: workflow cards spec — accordion, vendor/model preferences, Analyst button, dirty-state guard"
 date: 2026-05-02
 category: architecture-patterns
-module: ai-intelligence-llms
+module: intelligence-llms
 problem_type: best_practice
 component: frontend_admin
 severity: high
 applies_when:
-  - Building or modifying the AI Intelligence → LLMs page
+  - Building or modifying the Intelligence → LLMs page
   - Adding a new LLM workflow to the system
   - Designing vendor/model preference UI
   - Adding Analyst button behavior for LLM workflows
-tags: llms, ai-intelligence, accordion, vendor-model, analyst-button, save-button, dirty-state, prompts
+tags: llms, intelligence, accordion, vendor-model, analyst-button, save-button, dirty-state, prompts
 ---
 
-# AI Intelligence → LLMs: workflow cards spec
+# Intelligence → LLMs: workflow cards spec
 
 ## Context
 
-The LLMs page (`AI Intelligence → LLMs`) is the single home for managing every LLM
+The LLMs page (`Intelligence → LLMs`) is the single home for managing every LLM
 workflow in the system — what they do, which vendors and models they use, what prompts
 they run, which Specialists are responsible for them, and whether they are working.
 Admin users can read the configuration, change vendor/model preferences, save, and
@@ -217,5 +217,5 @@ Each LLM workflow entry needs:
 - `.agents/skills/hplus-admin-nav-ia/SKILL.md` — canonical nav tree and all placement rules
 - `.agents/skills/analyst-research-buttons/SKILL.md` — Analyst button naming convention
 - `.agents/skills/save-button-placement/SKILL.md` — Save button placement standards
-- `docs/solutions/architecture-patterns/ai-intelligence-specialists-page-2026-05-02.md` — Specialists accordion (same UX pattern)
+- `docs/solutions/architecture-patterns/intelligence-specialists-page-2026-05-02.md` — Specialists accordion (same UX pattern)
 - `docs/solutions/architecture-patterns/sources-ux-status-analyst-button-2026-05-02.md` — Sources UX (same Analyst button pattern)

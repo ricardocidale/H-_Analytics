@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, CheckCircle2, SkipForward } from "@/components/icons/themed-icons";
+import { AgentThinkingState } from "@/components/agent-animations";
 
 interface StaleWorkflow {
   id: number;
@@ -19,79 +20,6 @@ interface StaleCheckResponse {
 
 type WorkflowStatus = "pending" | "running" | "completed" | "failed";
 
-const pulseKeyframes = {
-  scale: [1, 1.05, 1],
-  opacity: [0.6, 1, 0.6],
-};
-
-function BrainAnimation() {
-  return (
-    <div className="relative w-32 h-32 mx-auto mb-6">
-      <motion.div
-        className="absolute inset-0 rounded-full bg-primary/10"
-        animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.1, 0.3] }}
-        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="absolute inset-2 rounded-full bg-primary/15"
-        animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.15, 0.4] }}
-        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
-      />
-      <motion.div
-        className="absolute inset-4 rounded-full bg-primary/20 flex items-center justify-center"
-        animate={pulseKeyframes}
-        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
-      >
-        <svg viewBox="0 0 64 64" className="w-16 h-16 text-primary" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <motion.path
-            d="M32 8C18.7 8 8 18.7 8 32s10.7 24 24 24 24-10.7 24-24S45.3 8 32 8z"
-            strokeDasharray="150"
-            animate={{ strokeDashoffset: [150, 0] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          />
-          <motion.path
-            d="M22 24c0-5.5 4.5-10 10-10s10 4.5 10 10"
-            animate={{ pathLength: [0, 1] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <motion.path
-            d="M20 32h24M26 40h12M28 48h8"
-            animate={{ opacity: [0.3, 1, 0.3] }}
-            transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
-          />
-          <circle cx="28" cy="28" r="2" fill="currentColor" opacity="0.6" />
-          <circle cx="36" cy="28" r="2" fill="currentColor" opacity="0.6" />
-          <motion.circle
-            cx="32" cy="20" r="3"
-            fill="currentColor"
-            animate={{ opacity: [0.2, 0.8, 0.2], r: [2, 3.5, 2] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-          />
-        </svg>
-      </motion.div>
-      {[0, 1, 2, 3, 4, 5].map(i => (
-        <motion.div
-          key={i}
-          className="absolute w-1.5 h-1.5 rounded-full bg-primary/40"
-          style={{
-            left: `${50 + 42 * Math.cos(i * Math.PI / 3)}%`,
-            top: `${50 + 42 * Math.sin(i * Math.PI / 3)}%`,
-          }}
-          animate={{
-            scale: [0, 1.5, 0],
-            opacity: [0, 0.8, 0],
-          }}
-          transition={{
-            duration: 2.5,
-            repeat: Infinity,
-            delay: i * 0.4,
-            ease: "easeOut",
-          }}
-        />
-      ))}
-    </div>
-  );
-}
 
 function WorkflowProgressItem({
   workflow,
@@ -273,7 +201,14 @@ export function ScheduledResearchOverlay({
           className="relative z-10 w-full max-w-md mx-4"
         >
           <div className="text-center mb-6">
-            <BrainAnimation />
+            {/* Gustavo persona animation — phase driven by run status */}
+            <div className="flex justify-center mb-6">
+              <AgentThinkingState
+                persona="gustavo"
+                phase={allDone ? (failedCount > 0 ? "error" : "complete") : "thinking"}
+                size="lg"
+              />
+            </div>
 
             <motion.h2
               className="text-xl font-semibold text-foreground mb-2"

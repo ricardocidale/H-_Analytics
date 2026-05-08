@@ -3,7 +3,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import {
   consumeResourcesCatalogKindHint,
   type ResourcesCatalogKind,
-} from "@/lib/ai-intelligence-nav";
+} from "@/lib/intelligence-nav";
 
 const ResourcesTab = lazy(() => import("./ResourcesTab"));
 

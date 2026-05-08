@@ -27,12 +27,18 @@ import {
   IconCpu,
   IconActivity,
   IconWand2,
+  IconList,
 } from "@/components/icons";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { SPECIALIST_SECTION_TO_ID } from "@/components/admin/AdminSidebar";
 import type { SpecialistSection } from "@/components/admin/AdminSidebar";
 import { ORCHESTRATOR_SPECIALIST_ID } from "@engine/analyst/identity";
+import {
+  ANALYST_BRAND,
+  NAV_GROUP_LABELS,
+  AGENTS,
+} from "@/lib/agent-taxonomy";
 
 interface SpecialistListItem {
   id: string;
@@ -41,19 +47,20 @@ interface SpecialistListItem {
 }
 
 /**
- * Canonical section union for the AI Intelligence sidebar.
+ * Canonical section union for the Intelligence sidebar.
  *
- * New sections added for the restructured nav (hplus-admin-nav-ia):
- *   "gustavo"            — Gustavo's read-only orchestrator info page (AI Agents group)
- *   "specialists"        — All 16 research Specialists in one accordion directory
- *   "llm-workflows"      — LLM workflow cards (the only place to manage LLM config)
- *   "assumption-guidance"— Analyst-generated calibration insights
+ * Restructured per agent-taxonomy task (Task #1129):
+ *   Analyst       — Gustavo [Orchestrator] card + Specialists directory
+ *   Agents        — Rebecca (config/KB/conversations) + Iris
+ *   Runs          — Unified cross-type run log (Analyst / Slide / Iris)
+ *   Knowledge & Resources — Knowledge Registry + Market Data
+ *   System        — System Health, Scheduled Research, Vector Search Latency
  *
  * Legacy SpecialistSection values (specialist-mgmt-co-funding, etc.) are kept in
  * the union for URL deep-link backward compat — they are no longer exposed in the
- * sidebar nav but the routing in AiIntelligence.tsx still handles them.
+ * sidebar nav but the routing in Intelligence.tsx still handles them.
  */
-export type AiIntelligenceSection =
+export type IntelligenceSection =
   | SpecialistSection
   | "analyst-orchestrator"
   | "ai-agents"
@@ -70,10 +77,11 @@ export type AiIntelligenceSection =
   | "resources"
   | "resources-tables"
   | "knowledge-registry"
-  | "knowledge-registry-country-data";
+  | "knowledge-registry-country-data"
+  | "runs";
 
 interface SectionItem {
-  value: AiIntelligenceSection;
+  value: IntelligenceSection;
   label: string;
   /**
    * Quieter secondary line beneath the primary label. Used by persona-named
@@ -93,80 +101,46 @@ interface NavGroup {
 }
 
 /**
- * Canonical AI Intelligence nav tree (hplus-admin-nav-ia):
+ * Canonical Intelligence nav tree (agent-taxonomy Task #1129):
  *
- *   AI Agents
- *     Configuration  (Rebecca)
- *     Knowledge Base (Rebecca)
- *     Conversations  (Rebecca)
- *     Gustavo        (orchestrator info — read-only)
- *   Specialists       (all 16 in one accordion)
- *   LLMs              (workflow cards)
- *   Assumption Guidance
+ *   Analyst
+ *     Gustavo        (Orchestrator info — read-only)
+ *     Specialists    (all 16 in one accordion directory)
+ *     Assumption Guidance
+ *   Agents
+ *     Rebecca        (Configuration / Knowledge Base / Conversations)
+ *     Iris           (Resource Maintainer)
+ *   Runs             (unified cross-type log)
+ *   Knowledge & Resources
+ *     Knowledge Registry
+ *     Country Economic Data
+ *     Market Data
  *   System
  *     System Health
  *     Scheduled Research
  *     Vector Search Latency
- *
- * Removed: per-domain specialist groups (Management Company, Property, Photos,
- * Portfolio Ops, Constants & Authority Sources, Resources Builder, Resources).
- * Removed: standalone "The Analyst" entry.
+ *     LLMs
  */
 function buildNavGroups(gustavoHumanName: string): NavGroup[] {
   return [
     {
-      id: "ai-agents",
-      label: "AI Agents",
-      icon: IconBot,
+      id: "analyst",
+      label: ANALYST_BRAND,
+      icon: IconBrain,
       sections: [
-        { value: "ai-agents",      label: "Configuration",   icon: IconBot          },
-        { value: "knowledge-base", label: "Knowledge Base",  icon: IconBookOpen     },
-        { value: "conversations",  label: "Conversations",   icon: IconMessageSquare },
         {
           value: "gustavo",
           label: gustavoHumanName,
-          secondary: "Analyst Orchestrator",
+          secondary: "Orchestrator",
           icon: IconBrain,
+          tooltip: `${gustavoHumanName} — ${ANALYST_BRAND} Orchestrator. Routes research tasks across the Specialist team.`,
         },
-        {
-          value: "iris",
-          label: "Iris",
-          secondary: "Resource Maintainer",
-          icon: IconWand2,
-        },
-      ],
-    },
-    {
-      id: "specialists",
-      label: "Specialists",
-      icon: IconPeople,
-      sections: [
         {
           value: "specialists",
           label: "Specialists",
           icon: IconPeople,
-          tooltip: "All 16 research Specialists — verify deployment, review configuration, run health checks",
+          tooltip: "All research Specialists — verify deployment, review configuration, run health checks",
         },
-      ],
-    },
-    {
-      id: "llms",
-      label: "LLMs",
-      icon: IconCpu,
-      sections: [
-        {
-          value: "llm-workflows",
-          label: "LLMs",
-          icon: IconCpu,
-          tooltip: "Language model configuration for each research workflow — the only place to manage LLM settings",
-        },
-      ],
-    },
-    {
-      id: "assumption-guidance",
-      label: "Assumption Guidance",
-      icon: IconActivity,
-      sections: [
         {
           value: "assumption-guidance",
           label: "Assumption Guidance",
@@ -176,8 +150,38 @@ function buildNavGroups(gustavoHumanName: string): NavGroup[] {
       ],
     },
     {
-      id: "knowledge-registry",
-      label: "Knowledge Registry",
+      id: "agents",
+      label: NAV_GROUP_LABELS.agents,
+      icon: IconBot,
+      sections: [
+        { value: "ai-agents",      label: "Rebecca",        secondary: AGENTS.rebecca.role, icon: IconBot          },
+        { value: "knowledge-base", label: "Knowledge Base",  icon: IconBookOpen     },
+        { value: "conversations",  label: "Conversations",   icon: IconMessageSquare },
+        {
+          value: "iris",
+          label: AGENTS.iris.humanName,
+          secondary: AGENTS.iris.role,
+          icon: IconWand2,
+          tooltip: "Iris — Resource Maintainer. Keeps resource registries and reference data current.",
+        },
+      ],
+    },
+    {
+      id: "runs",
+      label: NAV_GROUP_LABELS.runs,
+      icon: IconList,
+      sections: [
+        {
+          value: "runs",
+          label: "All Runs",
+          icon: IconList,
+          tooltip: "Unified log of all agent runs — Analyst research, Slide Factory, and Iris. Filter by type, agent, status, or date.",
+        },
+      ],
+    },
+    {
+      id: "knowledge-resources",
+      label: NAV_GROUP_LABELS.knowledgeResources,
       icon: IconBookOpen,
       sections: [
         {
@@ -190,42 +194,59 @@ function buildNavGroups(gustavoHumanName: string): NavGroup[] {
           label: "Country Economic Data",
           icon: IconActivity,
         },
+        {
+          value: "resources",
+          label: "Resources Catalog",
+          icon: IconSettingsGear,
+        },
+        {
+          value: "resources-tables",
+          label: "Market Data",
+          icon: IconActivity,
+        },
       ],
     },
     {
       id: "system",
-      label: "System",
+      label: NAV_GROUP_LABELS.system,
       icon: IconSettingsGear,
       sections: [
         { value: "engine-health",      label: "System Health",         icon: IconGauge  },
         { value: "scheduled-research", label: "Scheduled Research",    icon: IconTimer  },
         { value: "vector-bench",       label: "Vector Search Latency", icon: IconBrain  },
+        {
+          value: "llm-workflows",
+          label: "LLMs",
+          icon: IconCpu,
+          tooltip: "Language model configuration for each research workflow — the only place to manage LLM settings",
+        },
       ],
     },
   ];
 }
 
-function getGroupForSection(section: AiIntelligenceSection, groups: NavGroup[]): string {
+function getGroupForSection(section: IntelligenceSection, groups: NavGroup[]): string {
   for (const group of groups) {
     if (group.sections.some((s) => s.value === section)) return group.id;
   }
-  // Legacy specialist deep links → highlight Specialists group so the sidebar
+  // Legacy specialist deep links → highlight Analyst group so the sidebar
   // still responds visually even though individual specialist rows are gone.
   if (section in SPECIALIST_SECTION_TO_ID || section === "analyst-orchestrator") {
-    return "specialists";
+    return "analyst";
   }
-  return "ai-agents";
+  // Rebecca sub-sections that aren't in the nav map to agents group
+  return "agents";
 }
 
-interface AiIntelligenceSidebarProps {
-  activeSection: AiIntelligenceSection;
-  onSectionChange: (section: AiIntelligenceSection) => void;
+interface IntelligenceSidebarProps {
+  activeSection: IntelligenceSection;
+  onSectionChange: (section: IntelligenceSection) => void;
 }
 
-export function AiIntelligenceSidebarNav({ activeSection, onSectionChange }: AiIntelligenceSidebarProps) {
+export function IntelligenceSidebarNav({ activeSection, onSectionChange }: IntelligenceSidebarProps) {
   // Pull the live Specialist list so Gustavo's sidebar label reflects any
   // Identity-tab rename without a page reload. Falls back to "Gustavo"
-  // (the canonical human name — NOT "Gaspar" which is the internal system
+  // (the canonical human name — NOT "gaspar" which is the internal system
   // ID only). See hplus-admin-nav-ia Rule 7.
   const { data: specialists } = useQuery<SpecialistListItem[]>({
     queryKey: ["/api/admin/specialists"],
@@ -257,7 +278,7 @@ export function AiIntelligenceSidebarNav({ activeSection, onSectionChange }: AiI
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Admin">
-                  <Link href="/admin" data-testid="ai-intelligence-nav-admin">
+                  <Link href="/admin" data-testid="intelligence-nav-admin">
                     <IconShield className="size-4 shrink-0" />
                     <span className="truncate">Admin</span>
                   </Link>
@@ -274,7 +295,7 @@ export function AiIntelligenceSidebarNav({ activeSection, onSectionChange }: AiI
                 <SidebarMenu>
                   <SidebarMenuItem>
                     <SidebarGroupLabel
-                      data-testid={`ai-intelligence-nav-group-${group.id}`}
+                      data-testid={`intelligence-nav-group-${group.id}`}
                       className={cn("mb-0.5 gap-1.5", isGroupActive && "text-sidebar-foreground")}
                     >
                       <GroupIcon className="size-3.5 shrink-0" />
@@ -289,7 +310,7 @@ export function AiIntelligenceSidebarNav({ activeSection, onSectionChange }: AiI
                             <SidebarMenuSubButton
                               isActive={isActive}
                               onClick={() => onSectionChange(section.value)}
-                              data-testid={`ai-intelligence-nav-${section.value}`}
+                              data-testid={`intelligence-nav-${section.value}`}
                               title={section.tooltip}
                               className={`cursor-pointer ${section.secondary ? "h-auto py-1.5" : ""}`}
                             >
@@ -298,13 +319,13 @@ export function AiIntelligenceSidebarNav({ activeSection, onSectionChange }: AiI
                                 <span className="flex flex-col min-w-0 leading-tight flex-1">
                                   <span
                                     className="truncate"
-                                    data-testid={`ai-intelligence-nav-${section.value}-primary`}
+                                    data-testid={`intelligence-nav-${section.value}-primary`}
                                   >
                                     {section.label}
                                   </span>
                                   <span
                                     className="truncate text-[11px] font-normal text-muted-foreground"
-                                    data-testid={`ai-intelligence-nav-${section.value}-secondary`}
+                                    data-testid={`intelligence-nav-${section.value}-secondary`}
                                   >
                                     {section.secondary}
                                   </span>
@@ -327,7 +348,7 @@ export function AiIntelligenceSidebarNav({ activeSection, onSectionChange }: AiI
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Help">
-                  <Link href="/help" data-testid="ai-intelligence-nav-help">
+                  <Link href="/help" data-testid="intelligence-nav-help">
                     <IconHelpCircle className="size-4 shrink-0" />
                     <span className="truncate">Help</span>
                   </Link>

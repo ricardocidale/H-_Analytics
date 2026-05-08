@@ -34,10 +34,10 @@ import { applyThemeColors, resetThemeColors, type ThemeColor as DesignColor } fr
 import { applyColorMode, applyFont, applyBgAnimation, startOsColorModeListener, stopOsColorModeListener, resolveColorMode, resolveFontPreference, resolveBgAnimation } from "@/lib/theme/appearance";
 import type { ColorMode, FontPreference, BgAnimation, AppearanceDefaults } from "@/lib/theme/appearance";
 import { useAdminSection } from "@/lib/admin-nav";
-import { useAiIntelligenceSection } from "@/lib/ai-intelligence-nav";
+import { useIntelligenceSection } from "@/lib/intelligence-nav";
 import { resolveSection, AdminSidebarNav } from "@/components/admin/AdminSidebar";
 import type { AdminSection } from "@/components/admin/AdminSidebar";
-import { AiIntelligenceSidebarNav } from "@/components/ai-intelligence/AiIntelligenceSidebar";
+import { IntelligenceSidebarNav } from "@/components/intelligence/IntelligenceSidebar";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
 
 type NavLink = { href: string; label: string; icon: React.ComponentType<{ className?: string }>; onClick?: () => void };
@@ -282,9 +282,9 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
   const sb = (key: string) => (global as unknown as Record<string, unknown>)?.[key] !== false;
   const showAnalysis = sb("sidebarSensitivity");
   const onAdminRoute = location.startsWith("/admin");
-  const onAiIntelligenceRoute = location.startsWith("/ai-intelligence");
+  const onIntelligenceRoute = location.startsWith("/intelligence");
   const [adminSection, setAdminSectionState] = useAdminSection();
-  const [aiIntelligenceSection, setAiIntelligenceSectionState] = useAiIntelligenceSection();
+  const [intelligenceSection, setIntelligenceSectionState] = useIntelligenceSection();
 
   const homeNavGroups: NavGroupDef[] = useMemo(() => [
     {
@@ -340,7 +340,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
 
   const sidebarFooter = (
     <div className="px-2 pb-3 pt-1 space-y-0.5">
-      {!onAdminRoute && !onAiIntelligenceRoute && (
+      {!onAdminRoute && !onIntelligenceRoute && (
         <button
           onClick={() => {
             setMobileOpen(false);
@@ -367,7 +367,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
           </span>
         </Link>
       )}
-      {isAdmin && !onAdminRoute && !onAiIntelligenceRoute && (
+      {isAdmin && !onAdminRoute && !onIntelligenceRoute && (
         <Link href="/admin" onClick={() => setMobileOpen(false)}>
           <span
             className={cn(
@@ -438,11 +438,11 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
     <div className="flex min-h-svh w-full">
       <aside className="hidden md:flex w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border h-svh sticky top-0">
         {sidebarHeader}
-        {onAiIntelligenceRoute ? (
+        {onIntelligenceRoute ? (
           <div className="flex-1 overflow-y-auto pt-1">
-            <AiIntelligenceSidebarNav
-              activeSection={aiIntelligenceSection}
-              onSectionChange={setAiIntelligenceSectionState}
+            <IntelligenceSidebarNav
+              activeSection={intelligenceSection}
+              onSectionChange={setIntelligenceSectionState}
             />
           </div>
         ) : onAdminRoute ? (
@@ -464,11 +464,11 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
             <SheetTitle>Navigation</SheetTitle>
           </SheetHeader>
           {sidebarHeader}
-          {onAiIntelligenceRoute ? (
+          {onIntelligenceRoute ? (
             <div className="flex-1 overflow-y-auto pt-1">
-              <AiIntelligenceSidebarNav
-                activeSection={aiIntelligenceSection}
-                onSectionChange={(s) => { setAiIntelligenceSectionState(s); setMobileOpen(false); }}
+              <IntelligenceSidebarNav
+                activeSection={intelligenceSection}
+                onSectionChange={(s) => { setIntelligenceSectionState(s); setMobileOpen(false); }}
               />
             </div>
           ) : onAdminRoute ? (

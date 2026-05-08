@@ -30,7 +30,7 @@
  *     it in; missing/non-numeric values fall back to the reliability
  *     score alone.
  *
- * Catalog-driven specialists (Gaspar excluded) only.
+ * Catalog-driven specialists (Gustavo excluded) only.
  */
 import { storage } from "../storage";
 import {

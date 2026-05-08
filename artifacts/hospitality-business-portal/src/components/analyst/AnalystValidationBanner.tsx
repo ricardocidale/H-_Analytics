@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { IconAlertTriangle, IconSparkles } from "@/components/icons";
 import { AnalystActionButton } from "./AnalystActionButton";
 import type { Property } from "@shared/schema";
+import { ANALYST_BRAND } from "@/lib/agent-taxonomy";
 
 interface GuidanceRecord {
   assumptionKey: string;
@@ -46,7 +47,7 @@ export function AnalystValidationBanner({ property, guidance = [], isGenerating,
           <IconSparkles className="w-4 h-4 text-amber-600" />
         </div>
         <div className="flex-1">
-          <p className="text-sm font-medium text-foreground">The Analyst hasn't reviewed this property yet.</p>
+          <p className="text-sm font-medium text-foreground">{ANALYST_BRAND} hasn't reviewed this property yet.</p>
           <p className="text-xs text-muted-foreground mt-0.5">Running intelligence analysis to validate your assumptions against market data.</p>
         </div>
         {onTriggerResearch && !isGenerating && (
@@ -80,7 +81,7 @@ export function AnalystValidationBanner({ property, guidance = [], isGenerating,
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium text-foreground">
-              The Analyst flagged {flagCount} assumption{flagCount !== 1 ? "s" : ""} that need review
+              {ANALYST_BRAND} flagged {flagCount} assumption{flagCount !== 1 ? "s" : ""} that need review
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">Some values fall outside expected ranges for this market.</p>
           </div>
@@ -95,7 +96,7 @@ export function AnalystValidationBanner({ property, guidance = [], isGenerating,
                   <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
                   <span className="text-foreground font-medium">{g.assumptionKey}</span>
                   {hasVal && <span className="text-muted-foreground">({formatVal(g.assumptionKey, currentVal as number)})</span>}
-                  <span className="text-muted-foreground">— The Analyst suggests {formatVal(g.assumptionKey, g.valueLow!)}–{formatVal(g.assumptionKey, g.valueHigh!)}</span>
+                  <span className="text-muted-foreground">— {ANALYST_BRAND} suggests {formatVal(g.assumptionKey, g.valueLow!)}–{formatVal(g.assumptionKey, g.valueHigh!)}</span>
                   {onAcceptRange && g.valueMid != null && (
                     <Button
                       variant="ghost"

@@ -1,6 +1,6 @@
 /**
  * SourcesTab — admin-editable connected-sources surface for a Specialist
- * (and for The Analyst / Gaspar via the same component). Cards are grouped
+ * (and for The Analyst / Gustavo via the same component). Cards are grouped
  * into the four canonical Sources groups with per-card health lights and
  * per-card Test buttons that update the dot in place. The bulk
  * "Test sources" button fans out across the visible cards with per-card

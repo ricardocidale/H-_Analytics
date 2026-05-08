@@ -22,12 +22,14 @@ import type { PropertyInput, GlobalInput } from "@engine/types";
 import { logger } from "../logger";
 import { storage } from "../storage";
 import { buildSlidePayload, buildGlobalInput } from "./build-payload";
+import { buildFactoryPayload } from "./build-factory-payload";
 import { getBrowser } from "./playwright-browser";
 import { recomputeSinglePropertyAndStamp } from "../finance/recompute";
 import { withModelConstants } from "../finance/apply-model-constants";
 import { EMPTY_DECK_PAYLOAD_V2 } from "@shared/deck-payload-v2";
 import { DEFAULT_PROJECTION_YEARS, DEFAULT_EXIT_CAP_RATE } from "@shared/constants";
 import type { SlidePayload, YearlyIS, YearlyCF, SiblingProperty } from "./types";
+import type { SlideFactoryRun } from "@workspace/db";
 
 export interface LbSlidePayload {
   slides: [SlidePayload, SlidePayload, SlidePayload, SlidePayload, SlidePayload, SlidePayload];
@@ -391,6 +393,71 @@ export async function buildLbPayload(): Promise<LbSlidePayload> {
 
   return {
     slides: [s1, s2, s3, s4, s5, s6],
+    config: { slide1PropertyId, slide2PropertyId, slide3PropertyId, slide5PropertyId },
+  };
+}
+
+/**
+ * Build the full LbSlidePayload from a slide-factory run instead of from
+ * the legacy `lb_slides_config` table. The property data + photos +
+ * financials assembly is shared with the legacy path (`buildSlidePayload`,
+ * `buildSlide4Payload`, `buildSlide6Payload`); the only delta is that each
+ * slide's `deckPayloadV2` is overlaid with the run's lucca-drafted slot
+ * copy (via `buildFactoryPayload`) instead of the property's own published
+ * copy.
+ *
+ * Caller is responsible for verifying the run's status is `complete`. This
+ * function does not gate on status — that's the route layer's job.
+ *
+ * Throws if any of the four `slide<N>PropertyId` columns on the run is
+ * unset or invalid (Marco's `transition_status` to `complete` should never
+ * leave them unset, but defending here keeps the contract explicit).
+ */
+export async function buildLbPayloadFromFactoryRun(
+  run: SlideFactoryRun,
+): Promise<LbSlidePayload> {
+  const slide1PropertyId = run.slide1PropertyId ?? null;
+  const slide2PropertyId = run.slide2PropertyId ?? null;
+  const slide3PropertyId = run.slide3PropertyId ?? null;
+  const slide5PropertyId = run.slide5PropertyId ?? null;
+
+  if (!slide1PropertyId || !slide2PropertyId || !slide3PropertyId || !slide5PropertyId) {
+    throw new Error(
+      `Slide factory run ${run.id} is not fully configured: ` +
+      `all four properties (slides 1, 2, 3, 5) must be assigned before building the deck payload.`,
+    );
+  }
+
+  const [s1, s2, s3, s5] = await Promise.all([
+    buildSlidePayload(slide1PropertyId, undefined),
+    buildSlidePayload(slide2PropertyId, undefined),
+    buildSlidePayload(slide3PropertyId, undefined),
+    buildSlidePayload(slide5PropertyId, undefined),
+  ]);
+
+  const allProps = await storage.getAllProperties(undefined);
+  const allPropertyIds = allProps.map((p) => p.id);
+
+  const s4 = await buildSlide4Payload(allPropertyIds, s1);
+  const s6 = await buildSlide6Payload(allPropertyIds);
+
+  // Overlay: replace each slide's `.deckPayloadV2` with the run's lucca-drafted
+  // slot copy. The factory's DeckPayloadV2 carries all 6 slide slices; every
+  // SlidePayload.deckPayloadV2 references the SAME shared object (each slide
+  // reads its own slice via `deckPayloadV2.slide<N>` on the React side, so
+  // sharing one object across all slides is correct).
+  const factoryDeckPayloadV2 = buildFactoryPayload(run);
+  const slides: LbSlidePayload["slides"] = [
+    { ...s1, deckPayloadV2: factoryDeckPayloadV2 },
+    { ...s2, deckPayloadV2: factoryDeckPayloadV2 },
+    { ...s3, deckPayloadV2: factoryDeckPayloadV2 },
+    { ...s4, deckPayloadV2: factoryDeckPayloadV2 },
+    { ...s5, deckPayloadV2: factoryDeckPayloadV2 },
+    { ...s6, deckPayloadV2: factoryDeckPayloadV2 },
+  ];
+
+  return {
+    slides,
     config: { slide1PropertyId, slide2PropertyId, slide3PropertyId, slide5PropertyId },
   };
 }

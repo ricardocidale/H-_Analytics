@@ -3,7 +3,7 @@
  *
  * Doctrine (binding):
  *   hplus-admin-nav-ia — Assumption Guidance is research RUN OUTPUT from
- *     the Analyst, not a data source. It lives in AI Intelligence, not Admin → Sources.
+ *     the Analyst, not a data source. It lives in Intelligence, not Admin → Sources.
  *
  * Shows AI-generated suggested ranges with sources for financial assumptions.
  * These are the Analyst's recommended calibration values that the admin can

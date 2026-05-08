@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import type { Property } from "@shared/schema";
+import { ANALYST_BRAND } from "@/lib/agent-taxonomy";
 
 type ValidationStatus = "pending_validation" | "validated" | "flagged" | "stale";
 
@@ -11,12 +12,12 @@ interface ValidationStatusBadgeProps {
 
 const statusConfig: Record<ValidationStatus, { label: (count: number) => string; classes: string; dot: string }> = {
   pending_validation: {
-    label: () => "Awaiting The Analyst",
+    label: () => `Awaiting ${ANALYST_BRAND}`,
     classes: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20",
     dot: "bg-amber-500 animate-pulse",
   },
   validated: {
-    label: () => "Validated by The Analyst",
+    label: () => `Validated by ${ANALYST_BRAND}`,
     classes: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
     dot: "bg-emerald-500",
   },

@@ -4,13 +4,13 @@ description: >
   H+ Admin navigation information architecture — where Sources, Resources, APIs,
   benchmarks, market data, knowledge-related sections, Constants, Specialists,
   LLMs, and AI Agents belong in the admin UI. Load before any task that touches
-  the Admin sidebar, AI Intelligence sidebar, adds a new admin section, or places
+  the Admin sidebar, Intelligence sidebar, adds a new admin section, or places
   data-source, API, Specialist, or LLM management anywhere in the admin UI.
 ---
 
 # H+ Admin Navigation IA
 
-Load this skill before adding any section to the Admin sidebar or AI Intelligence
+Load this skill before adding any section to the Admin sidebar or Intelligence
 sidebar, or planning where a feature lives. The distinctions below have been
 clarified by the product owner and must not be relitigated.
 
@@ -21,20 +21,20 @@ clarified by the product owner and must not be relitigated.
 | Area | URL | Sidebar file | Purpose |
 |------|-----|-------------|---------|
 | **Admin** | `/admin` | `AdminSidebar.tsx` | Operational management — users, scenarios, brand, financial defaults, sources, integrations |
-| **AI Intelligence** | `/ai-intelligence` | `AiIntelligenceSidebar.tsx` | AI agent configuration — Specialists directory, Rebecca assistant, Gustavo orchestrator, LLMs, research tooling |
+| **Intelligence** | `/intelligence` | `IntelligenceSidebar.tsx` | AI agent configuration — Specialists directory, Rebecca assistant, Gustavo orchestrator, LLMs, research tooling |
 
-The "AI" item in the Admin sidebar navigates from Admin → AI Intelligence.
+The "AI" item in the Admin sidebar navigates from Admin → Intelligence.
 
 ---
 
 ## Orchestrator identity
 
-The orchestrator's canonical **human name is Gustavo** (not Gaspar).
+The orchestrator's canonical **human name is Gustavo**.
 - `ORCHESTRATOR_HUMAN_NAME = "Gustavo"` in `lib/engine/src/analyst/registry/specialist-names.ts`
 - `ORCHESTRATOR_SPECIALIST_ID = "gaspar"` — internal system ID / logKey only, never shown in UI
-- `GASPAR_IDENTITY.humanName` resolves to `Gustavo` via `ORCHESTRATOR_HUMAN_NAME`
-- Hardcoded fallback strings `|| "Gaspar"` in `AiIntelligenceSidebar.tsx` and elsewhere **must be updated to `|| "Gustavo"`** when encountered
-- The sidebar reads the humanName dynamically from `/api/admin/specialists` — the static fallback is the only place Gaspar still leaks into UI
+- `ORCHESTRATOR_IDENTITY.humanName` resolves to `Gustavo` via `ORCHESTRATOR_HUMAN_NAME`
+- Hardcoded fallback strings must use `|| "Gustavo"` (the canonical human name)
+- The sidebar reads the humanName dynamically from `/api/admin/specialists` — the static fallback must always be "Gustavo"
 
 ---
 
@@ -79,9 +79,9 @@ Admin  (/admin)
 ├── Resources                             ← top-level Admin sidebar section
 │   └── APIs     — full API registry with live test button (see Rule 3)
 │
-└── AI ──────────────────────────────────── navigates to /ai-intelligence
+└── AI ──────────────────────────────────── navigates to /intelligence
     │
-    └── AI Intelligence  (/ai-intelligence)
+    └── Intelligence  (/intelligence)
         │
         ├── AI Agents                     ← section grouping the two AI agents
         │   │
@@ -136,7 +136,7 @@ Admin  (/admin)
             └── Vector Search Latency
 
 NOTES:
-- "Constants & Authority Sources" group is REMOVED from AI Intelligence entirely.
+- "Constants & Authority Sources" group is REMOVED from Intelligence entirely.
   Its DATA (tax constants, macro indicators, depreciation, reporting conventions)
   lives in Admin → Sources → Tables. The [Run Analyst] buttons there trigger the
   relevant Specialist directly.
@@ -213,13 +213,13 @@ The log is append-only. Retention policy TBD.
 
 ## Specialists page UX requirements
 
-The Specialists accordion page (`AI Intelligence → Specialists`) shows all research
+The Specialists accordion page (`Intelligence → Specialists`) shows all research
 Specialists in a single scrollable list. Rules:
 
 ### Read-only display for all resource references
 - LLMs, Sources, and APIs shown in an expanded specialist row are **display-only labels**
 - No links, no click-throughs, no edit controls from the Specialists page
-- To manage LLMs: navigate to `AI Intelligence → LLMs`
+- To manage LLMs: navigate to `Intelligence → LLMs`
 - To manage Sources: navigate to `Admin → Sources`
 - Admin cannot configure or invoke resources from the Specialists page
 
@@ -227,7 +227,7 @@ Specialists in a single scrollable list. Rules:
 - The [Run Analyst] button in each expanded specialist row performs a **health check only**:
   verifies the specialist is deployed and responding
 - It does NOT regenerate source data (that lives in Admin → Sources)
-- It does NOT modify LLM settings (that lives in AI Intelligence → LLMs)
+- It does NOT modify LLM settings (that lives in Intelligence → LLMs)
 - Result is written to the internal activity log and shown as "Last called: X ago"
 
 ### Gustavo is NOT in the Specialists accordion
@@ -239,7 +239,7 @@ Specialists in a single scrollable list. Rules:
 
 ## Gustavo's page UX requirements
 
-`AI Intelligence → AI Agents → Gustavo` is a read-only informational page. Rules:
+`Intelligence → AI Agents → Gustavo` is a read-only informational page. Rules:
 
 - Describes Gustavo's role as Analyst Orchestrator (how he dispatches and coordinates Specialists)
 - Shows a 🟢/🔴 status icon: is the orchestrator deployed and healthy?
@@ -254,9 +254,9 @@ Specialists in a single scrollable list. Rules:
 
 ### Rule 1 — Sources belongs ONLY in the Admin sidebar
 
-**Sources is an Admin sidebar top-level section. It does not appear anywhere inside `/ai-intelligence`.**
+**Sources is an Admin sidebar top-level section. It does not appear anywhere inside `/intelligence`.**
 
-Never label any sub-item or page inside AI Intelligence as "Sources".
+Never label any sub-item or page inside Intelligence as "Sources".
 
 ### Rule 2 — Tables under Sources holds ALL structured/grid data
 
@@ -289,17 +289,17 @@ it gets its own sub-item under Sources at the same level as Tables — not neste
 
 - Platform documentation Rebecca reads → `AI Agents → Rebecca → Knowledge Base` only
 - External/authority data the app reads → `Sources → [appropriate sub-item]` only
-- Analyst-generated output → `AI Intelligence → Assumption Guidance` only
-- Specialist read-only directory → `AI Intelligence → Specialists` only
-- LLM management → `AI Intelligence → LLMs` only
-- Orchestrator info → `AI Intelligence → AI Agents → Gustavo` only
-- Knowledge source registry → `AI Intelligence → Knowledge Registry` only
-- Country economic data registry → `AI Intelligence → Knowledge Registry → Country Economic Data` only
+- Analyst-generated output → `Intelligence → Assumption Guidance` only
+- Specialist read-only directory → `Intelligence → Specialists` only
+- LLM management → `Intelligence → LLMs` only
+- Orchestrator info → `Intelligence → AI Agents → Gustavo` only
+- Knowledge source registry → `Intelligence → Knowledge Registry` only
+- Country economic data registry → `Intelligence → Knowledge Registry → Country Economic Data` only
 
-### Rule 5 — "Catalog" is not a label to use in AI Intelligence
+### Rule 5 — "Catalog" is not a label to use in Intelligence
 
-The old "Resources → Catalog" tab in AI Intelligence (APIs / Sources / Benchmark Slugs / Models)
-is deprecated and being reorganised. Do not add new things labelled "Catalog" in AI Intelligence.
+The old "Resources → Catalog" tab in Intelligence (APIs / Sources / Benchmark Slugs / Models)
+is deprecated and being reorganised. Do not add new things labelled "Catalog" in Intelligence.
 
 ### Rule 6 — Legacy redirect
 
@@ -307,36 +307,36 @@ is deprecated and being reorganised. Do not add new things labelled "Catalog" in
 alias. When implementing the new Sources section, update this to point to the canonical
 Sources → Tables page.
 
-### Rule 7 — Orchestrator is Gustavo, not Gaspar
+### Rule 7 — Orchestrator persona name is Gustavo
 
 In all user-facing strings: sidebar labels, page headers, tooltips, activity log display,
 narration theater — the orchestrator's name is **Gustavo**.
 
-"Gaspar" appears only as:
-- Internal `logKey` in log channel prefixes: `[gaspar] dispatched Helena…`
-- `ORCHESTRATOR_SPECIALIST_ID = "gaspar"` — DB/system identifier
-- Stale hardcoded fallback strings `|| "Gaspar"` — must be replaced with `|| "Gustavo"`
+`"gaspar"` (lowercase) appears only as:
+- Internal `logKey` in log channel prefixes: `[gustavo] dispatched Helena…`
+- `ORCHESTRATOR_SPECIALIST_ID = "gaspar"` — DB/system identifier (stored key, not the persona name)
+- Stale hardcoded fallback strings `|| "Gustavo"` — always use the human name
 
-Never write "Gaspar" in any user-facing string. Use `GASPAR_IDENTITY.humanName` or
+Never write the internal id `"gaspar"` in any user-facing string. Use `ORCHESTRATOR_IDENTITY.humanName` or
 `ORCHESTRATOR_HUMAN_NAME` (both resolve to "Gustavo") at every callsite.
 
-### Rule 8 — "Constants & Authority Sources" is fully removed from AI Intelligence
+### Rule 8 — "Constants & Authority Sources" is fully removed from Intelligence
 
 This group is gone entirely. Its DATA lives in Admin → Sources → Tables. The 4 Specialists
 who produced that data are now listed in the Specialists accordion page like all other
-Specialists. No separate group or menu item for them in AI Intelligence.
+Specialists. No separate group or menu item for them in Intelligence.
 
 ### Rule 9 — Specialists page replaces all individual Specialist group menu items
 
 The old per-domain group items (Management Company, Property, Photos, Portfolio Ops) no longer
 exist as sidebar navigation entries. All research Specialists are accessed through the single
-`AI Intelligence → Specialists` accordion page.
+`Intelligence → Specialists` accordion page.
 
 ### Rule 10 — Specialists page is strictly read-only for resource references
 
 LLMs, Sources, and APIs displayed within an expanded Specialist row are display labels only.
 Admins cannot click, configure, or invoke them from the Specialists page.
-- To manage LLMs → `AI Intelligence → LLMs`
+- To manage LLMs → `Intelligence → LLMs`
 - To manage Sources → `Admin → Sources`
 
 ### Rule 11 — Gustavo's page has no interactive controls
@@ -344,11 +344,11 @@ Admins cannot click, configure, or invoke them from the Specialists page.
 `AI Agents → Gustavo` is informational only. No buttons (except status display), no forms,
 no edit fields. The only "action" is the automatic status check that fires on page load.
 
-### Rule 12 — LLMs is the only place in AI Intelligence to manage LLM configuration
+### Rule 12 — LLMs is the only place in Intelligence to manage LLM configuration
 
 LLM model names, endpoints, API key references, rate limits, and fallback chains are managed
-exclusively in `AI Intelligence → LLMs`. Never add LLM configuration controls to the
-Specialists page, Gustavo's page, or anywhere else in AI Intelligence.
+exclusively in `Intelligence → LLMs`. Never add LLM configuration controls to the
+Specialists page, Gustavo's page, or anywhere else in Intelligence.
 
 ### Rule 13 — LLMs page uses workflow cards (accordion), not an LLM registry
 
@@ -371,8 +371,8 @@ Key requirements per card:
 - `artifacts/hospitality-business-portal/src/components/admin/AdminSidebar.tsx` — `AdminSection` union type, `SECTION_REDIRECTS`, nav groups
 - `artifacts/hospitality-business-portal/src/pages/Admin.tsx` — renders component per `AdminSection`
 - `artifacts/hospitality-business-portal/src/components/admin/resources/ResourcesAdminPage.tsx` — old Catalog page (4 tabs: APIs / Sources / Benchmark Slugs / Models) — being reorganised
-- `artifacts/hospitality-business-portal/src/components/ai-intelligence/AiIntelligenceSidebar.tsx` — `AiIntelligenceSection` union type, `buildNavGroups()`, hardcoded `|| "Gaspar"` fallback to fix
-- `artifacts/hospitality-business-portal/src/pages/AiIntelligence.tsx` — renders component per `AiIntelligenceSection`, `orchestratorMeta()` fallback to fix
+- `artifacts/hospitality-business-portal/src/components/intelligence/IntelligenceSidebar.tsx` — `IntelligenceSection` union type, `buildNavGroups()`, hardcoded fallback must be `|| "Gustavo"`
+- `artifacts/hospitality-business-portal/src/pages/Intelligence.tsx` — renders component per `IntelligenceSection`, `orchestratorMeta()` fallback to fix
 - `artifacts/hospitality-business-portal/src/components/admin/intelligence/AnalystTables.tsx` — existing benchmark table Analyst UI (moves to Sources → Tables)
 - `artifacts/api-server/src/routes/admin/intelligence-sources.ts` — existing source registry API routes
 - `artifacts/api-server/src/seeds/source-registry.ts` — existing seed pattern for external API/source entries
@@ -383,4 +383,4 @@ Key requirements per card:
 - `docs/solutions/architecture-patterns/no-duplicate-menu-items-hierarchical-nav-2026-05-02.md` — one-destination rule
 - `docs/solutions/architecture-patterns/sources-ux-status-analyst-button-2026-05-02.md` — Sources UX requirements
 - `docs/solutions/architecture-patterns/llms-page-workflow-cards-spec-2026-05-02.md` — LLMs page full spec (workflow accordion, vendor/model dropdowns, Analyst recommendation, Save, dirty-state guard, prompt display, specialist warning)
-- `docs/solutions/architecture-patterns/ai-intelligence-specialists-page-2026-05-02.md` — Specialists accordion page spec
+- `docs/solutions/architecture-patterns/intelligence-specialists-page-2026-05-02.md` — Specialists accordion page spec

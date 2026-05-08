@@ -9,7 +9,7 @@ date: 2026-05-06
 
 ## Summary
 
-Adds Iris, a second AI agent who operates entirely backstage to keep Rebecca's resources healthy. Iris has atomic tools for knowledge base ingestion, vector store pruning, API connection testing, and retrieval quality evaluation. She runs on three triggers: admin button press, a scheduled cadence, and gap signals Rebecca writes when retrieval fails. Iris writes her outputs to a shared `iris/` workspace that Rebecca reads at startup. The UI is a dedicated Iris panel under the AI Intelligence sidebar's "AI Agents" group — her own space alongside the existing Configuration, Knowledge Base, and Gustavo sections.
+Adds Iris, a second AI agent who operates entirely backstage to keep Rebecca's resources healthy. Iris has atomic tools for knowledge base ingestion, vector store pruning, API connection testing, and retrieval quality evaluation. She runs on three triggers: admin button press, a scheduled cadence, and gap signals Rebecca writes when retrieval fails. Iris writes her outputs to a shared `iris/` workspace that Rebecca reads at startup. The UI is a dedicated Iris panel under the Intelligence sidebar's "AI Agents" group — her own space alongside the existing Configuration, Knowledge Base, and Gustavo sections.
 
 ---
 
@@ -25,7 +25,7 @@ Rebecca is the front-line communicator. Her quality is bounded by the freshness 
 - R2. Iris runs on three triggers: manual (admin button), scheduled (daily health check, weekly full reindex), and gap-signal (Rebecca writes to `iris/gaps.md` on retrieval failure; Iris ingests coverage on next run).
 - R3. Iris writes `iris/context.md`, `iris/health.md`, and `iris/run-history/` after every run. `iris/context.md` is indexed into the `"knowledge-base"` vector namespace at startup so Rebecca retrieves it semantically — not injected as raw system prompt text.
 - R4. Iris uses Haiku model for health-check runs; Sonnet for full ingestion/reindex runs.
-- R5. Iris has a dedicated panel under the AI Intelligence sidebar's "AI Agents" group, following the existing Sources UX pattern: green/red status icon + last-run timestamp + per-resource run button.
+- R5. Iris has a dedicated panel under the Intelligence sidebar's "AI Agents" group, following the existing Sources UX pattern: green/red status icon + last-run timestamp + per-resource run button.
 - R6. Iris's embedding client explicitly sets `baseURL: "https://api.openai.com/v1"` — not inherited from `OPENAI_BASE_URL` — preserving the two-client architecture established in `vector-store-service.ts`.
 - R7. Iris reports her mutations in the SSE `dataChanged` payload so the frontend invalidates relevant React Query caches without polling.
 - R8. Multi-source operations use `Promise.allSettled`; a single failing source does not abort the run.
@@ -36,13 +36,13 @@ Rebecca is the front-line communicator. Her quality is bounded by the freshness 
 
 - Iris does not have a user-facing chat interface. She is admin-operated only.
 - Iris does not replace or wrap `vector-store-service.ts` — she calls its exported primitives directly.
-- Iris does not manage Specialist prompts or LLM configuration — those belong in the existing LLMs section of AI Intelligence.
+- Iris does not manage Specialist prompts or LLM configuration — those belong in the existing LLMs section of Intelligence.
 - Rebecca can trigger Iris admin actions via tools — see plan 012 (parity cluster fix). Iris's ambient daily-health and weekly-reindex triggers continue to run on her own scheduler loop independent of Rebecca.
 - The Replit-proxy/direct-OpenAI two-client architecture is not changed. Iris uses the existing direct client in `vector-store-service.ts`.
 
 ### Deferred to Follow-Up Work
 
-- Iris entry in AI Intelligence → LLMs page (as an LLM workflow card): follow-up to this plan.
+- Iris entry in Intelligence → LLMs page (as an LLM workflow card): follow-up to this plan.
 - Iris self-modification of her own system prompt or ingestion strategy: separate plan.
 
 ---
@@ -59,15 +59,15 @@ Rebecca is the front-line communicator. Her quality is bounded by the freshness 
 - `artifacts/api-server/src/routes/admin/source-health.ts` — existing source health check routes. `test_api_connection` tool mirrors this logic.
 - `artifacts/api-server/src/routes/chat.ts` — SSE `done` payload at line 1094-1108. U6 surfaces Iris-related `dataChanged` entries here.
 - `lib/shared/src/rebecca-settings.ts` lines 249-270 — `SystemPromptParts` interface and `assembleSystemPrompt()`. R3's `iris/context.md` is indexed as KB content (not a `SystemPromptParts` field) — retrieved semantically via `retrieveRelevantChunks()` at chat time.
-- `artifacts/hospitality-business-portal/src/components/ai-intelligence/AiIntelligenceSidebar.tsx` — `AiIntelligenceSection` type and `buildNavGroups()`. U7 adds `"iris"` here under the `"ai-agents"` group.
-- `artifacts/hospitality-business-portal/src/pages/AiIntelligence.tsx` — section routing. U8 adds the Iris case.
+- `artifacts/hospitality-business-portal/src/components/intelligence/IntelligenceSidebar.tsx` — `IntelligenceSection` type and `buildNavGroups()`. U7 adds `"iris"` here under the `"ai-agents"` group.
+- `artifacts/hospitality-business-portal/src/pages/Intelligence.tsx` — section routing. U8 adds the Iris case.
 - `artifacts/api-server/src/routes/admin/intelligence-sources.ts` — `source_registry` table REST API (GET/POST/PATCH). `sync_data_source` reads from this table to know which external sources to refresh.
 - `lib/db/src/schema/intelligence-v2.ts` line 394 — `source_registry` table schema (`serviceKey`, `name`, `sourceType`, `endpoint`, `lastHealthCheck`, etc.).
 
 ### Institutional Learnings
 
 - **Embedding client must be direct, not proxied** (`docs/solutions/integration-issues/openai-sdk-env-base-url-overrides-embedding-client-2026-05-02.md`): `baseURL` must be explicitly set to `"https://api.openai.com/v1"` on any embedding client. `upsertChunks` swallows errors and logs "upserted" even on failure — Iris health checks must probe `vectorCount("knowledge-base")` directly.
-- **Admin sidebar IA placement** (`docs/solutions/architecture-patterns/admin-sidebar-ia-sources-resources-2026-05-02.md`): Knowledge base ingestion surfaces belong under Admin → Sources; API connection management belongs under Admin → Resources → APIs. But Iris as an agent belongs under AI Intelligence → AI Agents — her panel is the agent's operational dashboard, not a raw infrastructure control.
+- **Admin sidebar IA placement** (`docs/solutions/architecture-patterns/admin-sidebar-ia-sources-resources-2026-05-02.md`): Knowledge base ingestion surfaces belong under Admin → Sources; API connection management belongs under Admin → Resources → APIs. But Iris as an agent belongs under Intelligence → AI Agents — her panel is the agent's operational dashboard, not a raw infrastructure control.
 - **Sources UX convention** (`docs/solutions/architecture-patterns/sources-ux-status-analyst-button-2026-05-02.md`): Every Iris-managed resource row must show: green/red status icon (left), last-run timestamp (right, relative with ISO on hover), and a run trigger button. Spinner + "Running…" during active run. This is the team's established pattern for all source rows.
 - **Fault-tolerant fetch pattern** (`docs/solutions/architecture-patterns/live-comparables-specialist-integration-pattern-2026-05-05.md`): Use `Promise.allSettled`, never `Promise.all`, for multi-source operations. Maintain a minimum-threshold constant; fall back to last good state if below threshold.
 - **Rebecca agent-native architecture** (`docs/solutions/architecture-patterns/rebecca-agent-native-architecture-2026-05-05.md`): SSE `done` payload's `dataChanged` array is the established write-back mechanism. Iris mutations should surface here. Do not add a separate polling endpoint.
@@ -85,7 +85,7 @@ Rebecca is the front-line communicator. Her quality is bounded by the freshness 
   Rationale: markdown prose is wrong for UI structure; a DB row is wrong for human inspection. Keeping both avoids repurposing either.
 - **Iris's LLM calls go through the existing `callLlm()` function**, not a new LLM abstraction. The provider and model are passed as parameters matching the existing function signature extended in the Rebecca plan (U1 of plan 009). Rationale: reuses all provider handling, SSE, and tool infrastructure already built.
 - **Gap signals are append-only until Iris clears them.** Rebecca appends one line to `iris/gaps.md` per failed retrieval. Iris reads all lines on startup, ingests coverage, then truncates the file. Rationale: append is safe under concurrent writes from multiple Rebecca sessions; truncate on Iris run avoids gap accumulation.
-- **Iris's admin UI lives in AI Intelligence → AI Agents group**, not in Admin sidebar or as a rail panel like Rebecca. The AI Agents group already holds Gustavo (orchestrator persona) and is the right place for another agent persona. Rebecca's rail panel (`panel-manager.ts`) is user-facing and accessible from any page — Iris is admin-only and accessed from `/ai-intelligence`. Rationale: separating user-facing (Rebecca rail) from admin-facing (Iris in AI Intelligence) prevents UI surface confusion and keeps Iris behind the admin route guard.
+- **Iris's admin UI lives in Intelligence → AI Agents group**, not in Admin sidebar or as a rail panel like Rebecca. The AI Agents group already holds Gustavo (orchestrator persona) and is the right place for another agent persona. Rebecca's rail panel (`panel-manager.ts`) is user-facing and accessible from any page — Iris is admin-only and accessed from `/intelligence`. Rationale: separating user-facing (Rebecca rail) from admin-facing (Iris in Intelligence) prevents UI surface confusion and keeps Iris behind the admin route guard.
 - **Model tier selection is trigger-driven.** `trigger: "scheduled-health"` → Haiku. `trigger: "manual" | "gap-signal" | "scheduled-reindex"` → Sonnet. Rationale: health checks are tool-loop-heavy with simple per-tool reasoning; Sonnet is reserved for ingestion runs that require judgment about what to ingest.
 
 ---
@@ -94,7 +94,7 @@ Rebecca is the front-line communicator. Her quality is bounded by the freshness 
 
 ### Resolved During Planning
 
-- **Where does Iris's UI panel live?** AI Intelligence → AI Agents group (alongside Gustavo), not Admin sidebar. (See Key Technical Decisions.)
+- **Where does Iris's UI panel live?** Intelligence → AI Agents group (alongside Gustavo), not Admin sidebar. (See Key Technical Decisions.)
 - **Does Iris use the existing `callLlm()` or a new executor?** Existing `callLlm()` with tool support from plan 009 U1. (Iris plan depends on Rebecca plan 009 U1 being merged first.)
 - **Filesystem vs DB for workspace files?** Split: context/gaps/history → filesystem; health status → DB row. (See Key Technical Decisions.)
 
@@ -408,24 +408,24 @@ Rebecca's chat turn:
 
 ---
 
-- U7. **AiIntelligenceSidebar — Iris nav entry**
+- U7. **IntelligenceSidebar — Iris nav entry**
 
-**Goal:** Add `"iris"` to the `AiIntelligenceSection` type and add an Iris entry under the "AI Agents" group in the sidebar.
+**Goal:** Add `"iris"` to the `IntelligenceSection` type and add an Iris entry under the "AI Agents" group in the sidebar.
 
 **Requirements:** R5
 
 **Dependencies:** None (can run in parallel with backend units)
 
 **Files:**
-- Modify: `artifacts/hospitality-business-portal/src/components/ai-intelligence/AiIntelligenceSidebar.tsx`
+- Modify: `artifacts/hospitality-business-portal/src/components/intelligence/IntelligenceSidebar.tsx`
 
 **Approach:**
-- Add `"iris"` to the `AiIntelligenceSection` union type
+- Add `"iris"` to the `IntelligenceSection` union type
 - Add `{ value: "iris", label: "Iris", secondary: "Resource Maintainer", icon: IconWand2 }` under the `"ai-agents"` group sections, after Gustavo
 - `IconWand2` is exported from `@/components/icons` and not currently used by any other nav item — verify against the icon table in `docs/solutions/design-patterns/admin-sidebar-navigation-design-2026-05-05.md` before finalizing
 
 **Patterns to follow:**
-- Gustavo entry in `AiIntelligenceSidebar.tsx` — `secondary` label pattern for persona-named items
+- Gustavo entry in `IntelligenceSidebar.tsx` — `secondary` label pattern for persona-named items
 
 **Test scenarios:**
 - Test expectation: none — this is a nav entry addition with no behavioral change. Typecheck and visual review are sufficient.
@@ -448,7 +448,7 @@ Rebecca's chat turn:
 
 **Files:**
 - Create: `artifacts/hospitality-business-portal/src/components/iris/IrisPanel.tsx`
-- Modify: `artifacts/hospitality-business-portal/src/pages/AiIntelligence.tsx` (add "iris" case to section routing)
+- Modify: `artifacts/hospitality-business-portal/src/pages/Intelligence.tsx` (add "iris" case to section routing)
 
 **Approach:**
 - Fetches from `GET /api/admin/iris/status` via React Query key `["iris", "status"]`
@@ -471,7 +471,7 @@ Rebecca's chat turn:
 - `pnpm --filter @workspace/hospitality-business-portal run typecheck` — clean
 - `scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts` — PASS
 - `pnpm --filter @workspace/hospitality-business-portal test` — no automated component tests added for IrisPanel (visual surface); existing suite must remain green
-- Iris panel renders at `/ai-intelligence?section=iris` without errors
+- Iris panel renders at `/intelligence?section=iris` without errors
 - "Run Health Check" button fires `POST /api/admin/iris/run` with `trigger: "scheduled-health"`
 - Per-resource rows render with correct status indicator and timestamp
 

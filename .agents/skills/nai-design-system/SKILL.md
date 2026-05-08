@@ -209,6 +209,29 @@ Every NAI app must include at minimum:
 - `skeleton.tsx` — loading placeholders
 - `spinner.tsx` — async action indicator
 
+### Spinner Usage
+
+The `Spinner` component defaults to `text-accent-pop` (amber gold). This color **fails WCAG 3:1 non-text contrast** inside filled buttons:
+
+| Context | Required color | Reason |
+|---|---|---|
+| Default background, muted backgrounds | `text-accent-pop` (default) | Sufficient contrast on light/muted surfaces |
+| `Button variant="default"` (sage/olive fill) | `text-white` | ~1.7:1 contrast with amber — fails WCAG |
+| `Button variant="destructive"` (red fill) | `text-white` | ~1.2:1 contrast with amber — fails WCAG |
+
+```tsx
+// Correct — inside a filled button
+<Button variant="default" disabled={isLoading}>
+  {isLoading && <Spinner className="text-white" />}
+  Save
+</Button>
+
+// Correct — on a light/muted background
+<Spinner />  // defaults to text-accent-pop
+```
+
+The `check:spinner-contrast` CI script enforces this rule automatically. Do not bypass it.
+
 ### Card Pattern
 
 ```tsx
@@ -266,7 +289,9 @@ import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyActi
 
 ## Icon System
 
-All icons must be imported from a project-local `@/components/icons/` barrel — never directly from `lucide-react`, `@tabler/icons-react`, or any other icon library in page/component code.
+All icons must be imported from a project-local `@/components/icons/` barrel — never directly from `@phosphor-icons/react` or any other icon library in page/component code.
+
+**Installed library:** `@phosphor-icons/react` v2.1.7 (Phosphor Icons). This is the icon library in use — NOT lucide-react or @tabler/icons-react. The barrel wraps Phosphor exports behind design-system-sized wrappers. When adding a new icon, look up its name in the [Phosphor Icons catalog](https://phosphoricons.com/), then add a wrapper to the appropriate barrel file.
 
 ### Icon Sizing
 
@@ -347,6 +372,19 @@ const item = { hidden: { opacity: 0, y: 8 }, visible: { opacity: 1, y: 0, transi
 - Never loop animations on data elements
 - Gate enter transitions with `key` to prevent re-firing on re-renders
 
+### Animation Exceptions
+
+The no-loop rule applies to **data and UI elements**. The following are documented brand exceptions:
+
+| Component | Animation | Reason |
+|---|---|---|
+| `SpinningLogo3D.tsx` (login screen) | `@keyframes spinLogo3D` — `6s ease-in-out infinite` 3D rotation | Brand logo on a decorative, non-interactive, non-data element |
+
+**Rules for adding a new looping animation:**
+1. It must be on a non-data, non-interactive, decorative element only (e.g., brand logo, splash screen illustration).
+2. It must be accompanied by an inline code comment: `/* Animation exception: brand/decorative — see nai-design-system Animation Exceptions */`
+3. It must be listed in the table above when added.
+
 ---
 
 ## Accessibility
@@ -425,7 +463,7 @@ Examples:
 | ❌ Anti-Pattern | ✅ Correct |
 |---|---|
 | `style={{ color: '#D4A017' }}` raw hex in JSX | Use `text-accent-pop` CSS token class |
-| `import { X } from "lucide-react"` in a page/component | Import from `@/components/icons/` |
+| `import { X } from "@phosphor-icons/react"` in a page/component | Import from `@/components/icons/` barrel |
 | Custom `<div>` card surface | Use `<Card>` from shadcn/ui |
 | Custom page header `<div><h1>` | Use `<PageHeader>` component |
 | `transition: all` in CSS | List specific properties |

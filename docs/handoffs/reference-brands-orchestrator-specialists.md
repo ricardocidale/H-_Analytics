@@ -12,7 +12,7 @@ Wire the `reference_brands` table into three remaining channels so the AI layer 
 
 1. **Gap 1** — Interactive specialist research tool (`get_reference_brands` in `research-tool-prompts.ts` / `research-resources.ts`)
 2. **Gap 2** — Funding specialist prompt context (`mgmt-co-funding-prompt-input-builder.ts` + its route caller)
-3. **Gap 4** — Marcela/Gaspar webhook tool (find and extend the ElevenLabs server-side tool surface)
+3. **Gap 4** — Marcela/Gustavo webhook tool (find and extend the ElevenLabs server-side tool surface)
 
 Gap 3 (Rebecca KB vector indexing) is **already done by this agent** — `buildReferenceBrandsKbDoc()` is in `kb-content.ts` and `indexKnowledgeBase()` calls it. Do not redo Gap 3.
 
@@ -195,7 +195,7 @@ export function buildFundingPromptInput(ctx: FundingPromptInputContext): Funding
 
 ---
 
-### Gap 4 — Marcela / Gaspar webhook tool
+### Gap 4 — Marcela / Gustavo webhook tool
 
 **Important:** The grep-search for existing webhook tool registrations (`getProperties`, `getPortfolioSummary`, `getGlobalAssumptions`) returned no results in the route files. This means one of:
 - (a) The Marcela webhook surface is defined in the ElevenLabs Convai agent config (external, not in this codebase), or
@@ -209,7 +209,7 @@ export function buildFundingPromptInput(ctx: FundingPromptInputContext): Funding
 Once you locate where tools are registered, add a `getReferenceBrands` webhook tool following the same pattern as existing tools. The tool response should call `storage.getReferenceBrands()` and return a compact JSON summary (max 25 brands, fields: `brandName`, `niche`, `adrUsd`, `occupancyPct`, `revparUsd`, `propertyCount`, `geographicFocus`).
 
 **Acceptance criteria for Gap 4:**
-- Marcela/Gaspar can invoke `getReferenceBrands` during a voice conversation turn
+- Marcela/Gustavo can invoke `getReferenceBrands` during a voice conversation turn
 - The tool returns structured brand data without exposing admin-only refresh surfaces
 - Existing webhook tools (`getProperties`, etc.) are unchanged
 
@@ -221,7 +221,7 @@ Once you locate where tools are registered, add a `getReferenceBrands` webhook t
 2. `research-tool-prompts.ts` tool handlers should be pure where possible; `get_reference_brands` is the one async exception, accessed via DI `deps` pattern
 3. `handleToolCall`'s existing signature callers must get a safe default — the new `deps?` param is optional; legacy callers work unchanged
 4. KB reindex (`indexKnowledgeBase`) is already hooked — do not add a second call path from `researchReferenceBrands`; risk of double-write
-5. Specialist persona names: use `humanName` strings (Gaspar, Ana, Bia…), never role strings in any user-facing copy you touch
+5. Specialist persona names: use `humanName` strings (Gustavo, Ana, Bia…), never role strings in any user-facing copy you touch
 6. No new DB migrations needed — `reference_brands` table and schema are fully in place
 
 ---

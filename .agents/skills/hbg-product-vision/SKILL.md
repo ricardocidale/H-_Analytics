@@ -74,7 +74,7 @@ Before marking any new page done, verify against these skills:
 | `integrations-infrastructure` | External services and their boundaries |
 | `marcela-ai-system` | AI agent architecture and research pipeline |
 | `api-backend-contract` | Server routes, storage interface, auth middleware |
-| `specialist-persona-naming` | AI specialist names (Gaspar, Ana, Bia…) |
+| `specialist-persona-naming` | AI specialist names (Gustavo, Ana, Bia…) |
 | `nai-web-guidelines` | Accessibility, forms, animation, anti-patterns |
 | `nai-design-system` | Component patterns, icon rules, design tokens |
 | `nai-code-review` | Code review checklist for NAI repos |

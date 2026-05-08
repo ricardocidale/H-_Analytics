@@ -29,7 +29,7 @@ The current mgmt-co funding specialist silently caps its reasoning at two tranch
 - R6. Silent-field-drop prevention is mandatory for every new context field: grep coverage check + prompt content unit test
 - R7. v1 uses single-shot Opus and a canned LP comparables dataset (no verdict cache, no N+1 panels)
 - R8. Engine integrity caveats (MAJOR-2 refi sizing, MAJOR-5 pre-ops gating) must be surfaced in the portfolio specialist's prompt grounding so Opus does not over-rely on affected fields
-- R9. The portfolio specialist registers in the flat AI Intelligence accordion list, not as a new sidebar group
+- R9. The portfolio specialist registers in the flat Intelligence accordion list, not as a new sidebar group
 
 ---
 
@@ -88,7 +88,7 @@ The current mgmt-co funding specialist silently caps its reasoning at two tranch
 - All thresholds come from named constants in `lib/shared/src/constants-funding.ts`
 
 **UI registration precedent:**
-- `docs/solutions/architecture-patterns/ai-intelligence-specialists-page-2026-05-02.md`
+- `docs/solutions/architecture-patterns/intelligence-specialists-page-2026-05-02.md`
 - Flat accordion list, one row per specialist, no new sidebar group
 
 **DB schema (properties and globalAssumptions):**
@@ -546,7 +546,7 @@ portfolio-raise-runner.ts → Opus → PortfolioRaiseOutputSchema (5 dimensions 
 
 - U9. **Specialist catalog entry + UI accordion row**
 
-**Goal:** Register `portfolio.capitalRaise` in the specialist catalog and add its accordion row to the AI Intelligence panel.
+**Goal:** Register `portfolio.capitalRaise` in the specialist catalog and add its accordion row to the Intelligence panel.
 
 **Requirements:** R9
 
@@ -554,7 +554,7 @@ portfolio-raise-runner.ts → Opus → PortfolioRaiseOutputSchema (5 dimensions 
 
 **Files:**
 - Modify: `lib/engine/src/analyst/registry/specialist-catalog.ts` — add `"portfolio.capitalRaise"` entry
-- Modify: relevant UI component file for the AI Intelligence accordion (identify from `docs/solutions/architecture-patterns/ai-intelligence-specialists-page-2026-05-02.md`)
+- Modify: relevant UI component file for the Intelligence accordion (identify from `docs/solutions/architecture-patterns/intelligence-specialists-page-2026-05-02.md`)
 
 **Approach:**
 - Catalog entry: `id: "portfolio.capitalRaise"`, `label: "Portfolio Capital Raise"`, `description: "LP equity raise strategy for the property portfolio — per-property equity, acquisition timeline, DSCR, ramp exposure, and IRR achievability"`, `candidateFields` uses the 5 `PORTFOLIO_RAISE_DIMENSION_KEYS`, `prerequisites: ["all-properties-financials-computed"]`
@@ -562,7 +562,7 @@ portfolio-raise-runner.ts → Opus → PortfolioRaiseOutputSchema (5 dimensions 
 - Do NOT add a new sidebar item or domain group — flat accordion list only (per the architecture pattern learning)
 
 **Test scenarios:**
-- Test expectation: none — UI wiring and catalog entry have no behavioral logic to unit-test. Covered by manual smoke test: navigating to AI Intelligence panel shows the new row; clicking [Run Analyst] invokes the POST with the correct specialistId.
+- Test expectation: none — UI wiring and catalog entry have no behavioral logic to unit-test. Covered by manual smoke test: navigating to Intelligence panel shows the new row; clicking [Run Analyst] invokes the POST with the correct specialistId.
 
 **Verification:**
 - Catalog entry is present and parseable by the registry
@@ -614,5 +614,5 @@ portfolio-raise-runner.ts → Opus → PortfolioRaiseOutputSchema (5 dimensions 
 - Institutional learnings: `docs/solutions/architecture-patterns/reference-brands-ai-pipeline-wiring-2026-05-02.md`
 - Institutional learnings: `docs/solutions/logic-errors/reference-brands-dropped-from-llm-prompt-2026-05-02.md`
 - Institutional learnings: `docs/solutions/logic-errors/financial-engine-audit-findings-2026-05-04.md`
-- Institutional learnings: `docs/solutions/architecture-patterns/ai-intelligence-specialists-page-2026-05-02.md`
+- Institutional learnings: `docs/solutions/architecture-patterns/intelligence-specialists-page-2026-05-02.md`
 - External: PE/hospitality fund structures, OpCo raise milestone norms, LP waterfall precedents (KHP Capital Partners, Limestone Capital, Lore Group precedents)

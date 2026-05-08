@@ -343,7 +343,7 @@ export function registerModelConstantsRoutes(app: Express) {
       const entry = MODEL_CONSTANTS_REGISTRY[key];
       if (!entry) return res.status(HTTP_404_NOT_FOUND).json({ error: `Unknown constant key: ${key}` });
 
-      // Phase 3 doctrine guard: Constants owned by an AI Intelligence
+      // Phase 3 doctrine guard: Constants owned by an Intelligence
       // Specialist (every entry in MODEL_CONSTANTS_REGISTRY today) are
       // authority-sourced and cannot be hand-edited. Reject with 422 and
       // point the caller at the analyst-apply path. The DELETE (reset to
@@ -352,7 +352,7 @@ export function registerModelConstantsRoutes(app: Express) {
       if (entry.specialistOwned) {
         return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
           error:
-            `Constant '${key}' is authority-sourced and owned by an AI Intelligence Specialist. ` +
+            `Constant '${key}' is authority-sourced and owned by an Intelligence Specialist. ` +
             `Manual overrides are not permitted. Use the "Refresh research" button on the Constants tab ` +
             `(POST /api/admin/model-constants/${key}/regenerate then /apply-research) to update the value.`,
           code: "SPECIALIST_OWNED_CONSTANT",
@@ -541,7 +541,7 @@ export function registerModelConstantsRoutes(app: Express) {
         return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
           error:
             `Apply requires a researchRunId returned by POST /api/admin/model-constants/${key}/regenerate. ` +
-            `Only AI Intelligence Specialists may set Constants — re-run /regenerate or /refresh and apply the result unchanged.`,
+            `Only Intelligence Specialists may set Constants — re-run /regenerate or /refresh and apply the result unchanged.`,
           code: "RESEARCH_RUN_ID_REQUIRED",
         });
       }
@@ -622,7 +622,7 @@ export function registerModelConstantsRoutes(app: Express) {
           error:
             `research_run ${parsed.data.researchRunId} belongs to ${persistedConstant.key ?? "(unknown)"} ` +
             `(${persistedLoc}), not ${key} (${loc}). ` +
-            `Only AI Intelligence Specialists may set Constants — re-run /regenerate or /refresh for this row.`,
+            `Only Intelligence Specialists may set Constants — re-run /regenerate or /refresh for this row.`,
           code: "RESEARCH_RUN_LOCALITY_MISMATCH",
           expected: { key, country, subdivision },
           actual: {
@@ -683,7 +683,7 @@ export function registerModelConstantsRoutes(app: Express) {
           error:
             `Apply payload does not match the persisted Specialist proposal for research_run ${run.id}. ` +
             `Mismatched fields: ${tamperedFields.join(", ")}. ` +
-            `Only AI Intelligence Specialists may set Constants — re-run /regenerate or /refresh and apply the result unchanged.`,
+            `Only Intelligence Specialists may set Constants — re-run /regenerate or /refresh and apply the result unchanged.`,
           code: "RESEARCH_RUN_TAMPERED",
           mismatchedFields: tamperedFields,
         });

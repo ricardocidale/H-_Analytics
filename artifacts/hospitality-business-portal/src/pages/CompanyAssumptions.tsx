@@ -57,6 +57,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconAlertTriangle, IconRefreshCw } from "@/components/icons";
+import { ANALYST_BRAND } from "@/lib/agent-taxonomy";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { DEFAULT_MODEL_START_DATE } from "@/lib/constants";
@@ -167,7 +168,7 @@ export default function CompanyAssumptions() {
   // live in Admin → Model Defaults and are seeded before this page loads.
   const getTabGating = (tab: TabKey): { enabled: boolean; reason?: string } => {
     if (!formApi.formData.companyName) {
-      return { enabled: false, reason: "Set a company name in Admin → Model Defaults first." };
+      return { enabled: false, reason: "Set a company name in Admin → Steady State first." };
     }
     if (properties.length === 0) {
       return { enabled: false, reason: "Add at least one property to your portfolio first." };
@@ -273,7 +274,7 @@ export default function CompanyAssumptions() {
     open: boolean;
     specialistLabel: string;
     missingFields: { key: string; label: string; surface: string; surfaceAnchor?: string }[];
-  }>({ open: false, specialistLabel: "The Analyst", missingFields: [] });
+  }>({ open: false, specialistLabel: ANALYST_BRAND, missingFields: [] });
 
   // ICP model gate state. Server returns 400 ICP_MODEL_REQUIRED when the
   // user presses the Funding-tab Analyst with no `icpModelTier` saved.
@@ -299,7 +300,7 @@ export default function CompanyAssumptions() {
     onMissingRequiredFields: ({ missingFields }) => {
       setMissingFieldsPrompt({
         open: true,
-        specialistLabel: "The Analyst",
+        specialistLabel: ANALYST_BRAND,
         missingFields,
       });
     },

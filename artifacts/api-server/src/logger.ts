@@ -17,11 +17,11 @@ export const logger = {
 /**
  * Persona-prefixed logger. Produces log lines like
  *   `[helena] refreshing taxRate for US/CA`
- *   `[gaspar] dispatched Helena to refresh tax constants`
+ *   `[gustavo] dispatched Helena to refresh tax constants`
  * so the activity stream reads as a named team rather than opaque
  * specialist ids.
  *
- * `personaKey` MUST be a lower-case first name (Gaspar or one of the 12
+ * `personaKey` MUST be a lower-case first name (Gustavo or one of the 12
  * Specialist humanNames). Callers should derive the key from
  * `engine/analyst/identity.ts` (orchestrator) or from
  * `def.humanName.toLowerCase()` (Specialist) — never hand-type the

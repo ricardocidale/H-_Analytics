@@ -20,7 +20,7 @@ import { resolveLlmFor } from "./llm-config-resolver";
 import { loggerFor } from "../logger";
 import { ORCHESTRATOR_IDENTITY } from "@engine/analyst/identity";
 
-// Table-refresh runs as Gaspar dispatching specialist tools — narrate
+// Table-refresh runs as Gustavo dispatching specialist tools — narrate
 // the path under his persona so admin logs read uniformly with the rest
 // of the orchestrator surface.
 const refreshLog = loggerFor(ORCHESTRATOR_IDENTITY.logKey);

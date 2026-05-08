@@ -27,7 +27,7 @@ vi.mock('../logger', () => ({
 }));
 
 vi.mock('@engine/analyst/identity', () => ({
-  ORCHESTRATOR_IDENTITY: { logKey: 'gaspar', name: 'Gaspar' },
+  ORCHESTRATOR_IDENTITY: { logKey: 'gustavo', name: 'Gustavo' },
 }));
 
 vi.mock('../ai/clients', () => ({
@@ -145,7 +145,7 @@ describe('POST /api/admin/analyst-tables/reference_brands/refresh — route inte
       tokensUsed: 500,
       evidence: [],
     });
-    mockNarrateHandoff.mockResolvedValue('Gaspar: Reference Brands refresh complete.');
+    mockNarrateHandoff.mockResolvedValue('Gustavo: Reference Brands refresh complete.');
 
     const res = await agent
       .post('/api/admin/analyst-tables/reference_brands/refresh')
@@ -156,7 +156,7 @@ describe('POST /api/admin/analyst-tables/reference_brands/refresh — route inte
     expect(res.body.proposedRanges).toHaveLength(2);
     expect(Array.isArray(res.body.narration)).toBe(true);
     // narrateSpecialistHandoff result is prepended to narration
-    expect(res.body.narration[0]).toContain('Gaspar');
+    expect(res.body.narration[0]).toContain('Gustavo');
   });
 
   it('autoCommitted is false for non-auto-commit tables (capital_raise_benchmarks)', async () => {

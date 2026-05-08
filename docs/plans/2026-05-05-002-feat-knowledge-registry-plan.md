@@ -10,7 +10,7 @@ origin: docs/brainstorms/knowledge-registry-requirements.md
 
 ## Summary
 
-Adds a Knowledge Registry section to AI Intelligence: a `knowledge_registry` DB table seeded with 8 assets, API routes for listing and regenerating those assets, and two new frontend pages (the registry overview with type-specific content viewers and an Analyst regeneration button per asset; plus a Country Economic Data sub-page). Implements the control-plane described in §§4–9 of the origin requirements doc. Three constraints discovered during planning shape the implementation: `assumption-guidance` is display-only (no Analyst button — it is populated by per-entity analyst runs, not a portfolio-wide batch); benchmark regeneration must route through the existing single-flight guard chain; and `country_economic_data` is an observability surface, not a financial-engine input.
+Adds a Knowledge Registry section to Intelligence: a `knowledge_registry` DB table seeded with 8 assets, API routes for listing and regenerating those assets, and two new frontend pages (the registry overview with type-specific content viewers and an Analyst regeneration button per asset; plus a Country Economic Data sub-page). Implements the control-plane described in §§4–9 of the origin requirements doc. Three constraints discovered during planning shape the implementation: `assumption-guidance` is display-only (no Analyst button — it is populated by per-entity analyst runs, not a portfolio-wide batch); benchmark regeneration must route through the existing single-flight guard chain; and `country_economic_data` is an observability surface, not a financial-engine input.
 
 ---
 
@@ -25,12 +25,12 @@ Every AI knowledge asset in H+ — vector namespaces, benchmark tables, country 
 - R1. A `knowledge_registry` DB table stores metadata for all 8 AI knowledge assets; seeded at startup via idempotent upsert.
 - R2. A `country_economic_data` DB table stores per-country macro figures (inflation, FX, GDP, interest rate) for the initial 4 countries (US, MX, CO, BR).
 - R3. API routes under `/api/admin/knowledge-registry` expose list, detail, regenerate, and country-data endpoints; all gated by `requireAdmin`.
-- R4. The Knowledge Registry page in AI Intelligence renders one collapsible asset panel per registry entry, collapsed by default, showing name, freshness badge, chunk/row count, and Analyst button (where applicable).
+- R4. The Knowledge Registry page in Intelligence renders one collapsible asset panel per registry entry, collapsed by default, showing name, freshness badge, chunk/row count, and Analyst button (where applicable).
 - R5. Each asset panel's expanded state shows a type-specific content viewer: text-chunk cards (`vector_namespace`), ranges grid (`benchmark_table`), brands card grid (`benchmark_brands`), compact inline country table (`country_data`). No link-outs that navigate away from the page — each panel always shows inline content.
 - R6. Freshness is derived client-side from `last_refreshed_at` vs. the global 30-day cadence: `missing` (null or zero count), `stale` (>30 days), `fresh` (within cadence).
 - R7. The Analyst button on each panel opens `AnalystRefreshTheater`; on completion `last_refreshed_at` is updated in `knowledge_registry` and the asset panel refreshes its live stats.
 - R8. A Country Economic Data sub-page shows a wide read-only table with all country rows, per-row freshness, and a global Analyst button that triggers a live fetch from FRED + Frankfurter + IMF/World Bank.
-- R9. The nav IA SKILL.md canonical tree is updated to include "Knowledge Registry" in AI Intelligence so the decision is durable.
+- R9. The nav IA SKILL.md canonical tree is updated to include "Knowledge Registry" in Intelligence so the decision is durable.
 - R10. No OpenAPI codegen step — this repo uses plain Express route registration; §8 of the origin doc does not apply.
 - R11. The `assumption-guidance` asset has no Analyst button — it is populated by per-entity analyst runs and has no portfolio-wide regeneration path. Its panel is display-only (freshness badge + chunk count + metadata footer).
 - R12. The `country_economic_data` table is an observability surface only — it does not feed the financial engine. The engine continues to read macro constants from `model_constants`. Stale country data does not cause financial-engine errors; the badge communicates data currency to admins.
@@ -44,7 +44,7 @@ Every AI knowledge asset in H+ — vector namespaces, benchmark tables, country 
 ## Scope Boundaries
 
 - Admin sidebar Sources / Resources sections are separate implementation tasks (origin §10) — not touched by this plan.
-- Knowledge Base, Comparables, Assumption Guidance nav placement outside AI Intelligence is TBD (origin §2) — not resolved here.
+- Knowledge Base, Comparables, Assumption Guidance nav placement outside Intelligence is TBD (origin §2) — not resolved here.
 - Per-asset cadence override is post-v1 (origin §15).
 - Specialist connection management from the registry panel is post-v1 (origin §15).
 - `AnalystTables.tsx` and its existing endpoints are untouched (origin §13).
@@ -64,14 +64,14 @@ Every AI knowledge asset in H+ — vector namespaces, benchmark tables, country 
 - **Vector stats:** `GET /api/admin/vector-store/stats` already returns `{ namespaces: Record<VectorNamespace, number> }` — use this for live chunk counts; no need to query vector store directly
 - **AnalystRefreshTheater:** `artifacts/hospitality-business-portal/src/components/admin/intelligence/AnalystRefreshTheater.tsx` — props: `tableLabel`, optional `narration[]`, `onCancel`
 - **ReferenceBrandsGrid:** `artifacts/hospitality-business-portal/src/components/admin/intelligence/ReferenceBrandsGrid.tsx`
-- **AI Intelligence page/section wiring:** `artifacts/hospitality-business-portal/src/pages/AiIntelligence.tsx` — `sectionMeta`, `lazy()` imports, `SectionContent` switch
+- **Intelligence page/section wiring:** `artifacts/hospitality-business-portal/src/pages/Intelligence.tsx` — `sectionMeta`, `lazy()` imports, `SectionContent` switch
 - **Boot-gate migration:** `artifacts/api-server/src/index.ts` `isMigrationApplied / markMigrationApplied` pattern — use for any post-schema data initialisation
 
 ### Institutional Learnings
 
 - **Seed idempotency (critical):** `docs/solutions/database-issues/seed-insert-no-conflict-financial-assumptions-lost-2026-05-02.md` — plain `db.insert()` silently no-ops on non-empty DB; use `onConflictDoUpdate` keyed on the natural slug (`id`) for all seed records.
 - **Sources UX — status icon + timestamp + button:** `docs/solutions/architecture-patterns/sources-ux-status-analyst-button-2026-05-02.md` — every regenerable entry needs three affordances: 🟢/🔴 status icon, relative "last refreshed" timestamp, [Run Analyst] button with spinner during run.
-- **Nav IA placement:** `docs/solutions/architecture-patterns/admin-sidebar-ia-sources-resources-2026-05-02.md` — Knowledge Registry belongs in AI Intelligence, not Admin. Structured tables (benchmarks, country data, constants) belong in Admin → Sources → Tables — the Knowledge Registry overview for those types is a read-only mirror viewer, not the management surface.
+- **Nav IA placement:** `docs/solutions/architecture-patterns/admin-sidebar-ia-sources-resources-2026-05-02.md` — Knowledge Registry belongs in Intelligence, not Admin. Structured tables (benchmarks, country data, constants) belong in Admin → Sources → Tables — the Knowledge Registry overview for those types is a read-only mirror viewer, not the management surface.
 - **OpenAI embedding client baseURL:** `docs/solutions/integration-issues/openai-sdk-env-base-url-overrides-embedding-client-2026-05-02.md` — any new OpenAI client for embeddings must pass `baseURL: "https://api.openai.com/v1"` explicitly; Replit AI proxy silently reroutes otherwise.
 - **No-duplicate nav items:** `docs/solutions/architecture-patterns/no-duplicate-menu-items-hierarchical-nav-2026-05-02.md` — one destination = one menu item. Knowledge Registry was pruned in a prior iteration; confirm placement against nav IA SKILL.md before adding sidebar items.
 
@@ -332,28 +332,28 @@ Frontend (KnowledgeRegistryPage)
 
 ---
 
-- U6. **AI Intelligence sidebar wiring**
+- U6. **Intelligence sidebar wiring**
 
-**Goal:** Add `"knowledge-registry"` and `"knowledge-registry-country-data"` sections to the AI Intelligence sidebar and page router, and update the nav IA SKILL.md canonical tree.
+**Goal:** Add `"knowledge-registry"` and `"knowledge-registry-country-data"` sections to the Intelligence sidebar and page router, and update the nav IA SKILL.md canonical tree.
 
 **Requirements:** R4, R8, R9
 
 **Dependencies:** None (can run in parallel with U1–U5)
 
 **Files:**
-- Modify: `artifacts/hospitality-business-portal/src/components/ai-intelligence/AiIntelligenceSidebar.tsx`
-- Modify: `artifacts/hospitality-business-portal/src/pages/AiIntelligence.tsx`
+- Modify: `artifacts/hospitality-business-portal/src/components/intelligence/IntelligenceSidebar.tsx`
+- Modify: `artifacts/hospitality-business-portal/src/pages/Intelligence.tsx`
 - Modify: `.agents/skills/hplus-admin-nav-ia/SKILL.md`
 
 **Approach:**
-- Add `"knowledge-registry"` and `"knowledge-registry-country-data"` to the `AiIntelligenceSection` union type.
+- Add `"knowledge-registry"` and `"knowledge-registry-country-data"` to the `IntelligenceSection` union type.
 - Add a `"Knowledge Registry"` nav group to `buildNavGroups()` with two sub-items: "Knowledge Registry" and "Country Economic Data".
-- In `AiIntelligence.tsx`: add `sectionMeta` entries for both sections, add `lazy()` imports for `KnowledgeRegistryPage` and `CountryEconomicDataPage`, add `case` branches in `SectionContent`.
-- Update the canonical nav tree in `.agents/skills/hplus-admin-nav-ia/SKILL.md` to add the Knowledge Registry group under AI Intelligence — prevents future agents from incorrectly pruning it again.
+- In `Intelligence.tsx`: add `sectionMeta` entries for both sections, add `lazy()` imports for `KnowledgeRegistryPage` and `CountryEconomicDataPage`, add `case` branches in `SectionContent`.
+- Update the canonical nav tree in `.agents/skills/hplus-admin-nav-ia/SKILL.md` to add the Knowledge Registry group under Intelligence — prevents future agents from incorrectly pruning it again.
 
 **Patterns to follow:**
-- Existing section type additions in `AiIntelligenceSidebar.tsx`
-- `lazy()` import + `sectionMeta` + `switch` case pattern in `AiIntelligence.tsx`
+- Existing section type additions in `IntelligenceSidebar.tsx`
+- `lazy()` import + `sectionMeta` + `switch` case pattern in `Intelligence.tsx`
 
 **Test scenarios:**
 - Happy path: navigating to `knowledge-registry` section renders the `KnowledgeRegistryPage` without errors (smoke test)
@@ -376,7 +376,7 @@ Frontend (KnowledgeRegistryPage)
 **Dependencies:** U4, U6
 
 **Files:**
-- Create: `artifacts/hospitality-business-portal/src/pages/ai-intelligence/KnowledgeRegistryPage.tsx`
+- Create: `artifacts/hospitality-business-portal/src/pages/intelligence/KnowledgeRegistryPage.tsx`
 - Create: `artifacts/hospitality-business-portal/src/components/admin/intelligence/knowledge-registry/AssetPanel.tsx`
 - Create: `artifacts/hospitality-business-portal/src/components/admin/intelligence/knowledge-registry/FreshnessBadge.tsx`
 - Create: `artifacts/hospitality-business-portal/src/components/admin/intelligence/knowledge-registry/VectorChunkViewer.tsx`
@@ -418,7 +418,7 @@ Frontend (KnowledgeRegistryPage)
 **Dependencies:** U4, U5, U6
 
 **Files:**
-- Create: `artifacts/hospitality-business-portal/src/pages/ai-intelligence/CountryEconomicDataPage.tsx`
+- Create: `artifacts/hospitality-business-portal/src/pages/intelligence/CountryEconomicDataPage.tsx`
 
 **Approach:**
 - `useQuery({ queryKey: ["/api/admin/knowledge-registry/country-economic-data"] })`.
@@ -430,7 +430,7 @@ Frontend (KnowledgeRegistryPage)
 - Table is read-only. No inline editing.
 
 **Patterns to follow:**
-- `artifacts/hospitality-business-portal/src/pages/ai-intelligence/MarketDataTablesPage.tsx` for wide data table layout
+- `artifacts/hospitality-business-portal/src/pages/intelligence/MarketDataTablesPage.tsx` for wide data table layout
 
 **Test scenarios:**
 - Happy path: page renders a table with 4 country rows (US, MX, CO, BR) after regeneration
@@ -446,7 +446,7 @@ Frontend (KnowledgeRegistryPage)
 
 ## System-Wide Impact
 
-- **Interaction graph:** `seeds/index.ts` startup path gains a new seed call. Admin routes gain 6 new endpoints. `IntelligenceV2Storage` gains 5 new methods delegated to `KnowledgeRegistryStorage`. `AiIntelligenceSidebar` type union and nav groups change — existing sections are unaffected but the type change must be exhaustive.
+- **Interaction graph:** `seeds/index.ts` startup path gains a new seed call. Admin routes gain 6 new endpoints. `IntelligenceV2Storage` gains 5 new methods delegated to `KnowledgeRegistryStorage`. `IntelligenceSidebar` type union and nav groups change — existing sections are unaffected but the type change must be exhaustive.
 - **Error propagation:** Regeneration failures are caught per-route, logged, and returned as 500 with a message. They do not affect other assets. Country data partial-API failures are an implementation-time decision (see deferred questions).
 - **State lifecycle risks:** `last_refreshed_at` is updated only on successful regeneration completion — if the theater is cancelled mid-stream, the timestamp is not updated. Chunk upserts on vector namespaces are idempotent (namespace+id key) per the existing `upsertChunks` contract.
 - **API surface parity:** None — no client-side SDK or agent SDK needs updating for these new routes.
@@ -477,7 +477,7 @@ Frontend (KnowledgeRegistryPage)
 - Admin route pattern: `artifacts/api-server/src/routes/admin/intelligence-sources.ts`
 - Vector stats endpoint: `artifacts/api-server/src/routes/admin/intelligence-vector-store.ts`
 - Storage composition: `artifacts/api-server/src/storage/intelligence-v2.ts`
-- AI Intelligence sidebar: `artifacts/hospitality-business-portal/src/components/ai-intelligence/AiIntelligenceSidebar.tsx`
-- AI Intelligence page router: `artifacts/hospitality-business-portal/src/pages/AiIntelligence.tsx`
+- Intelligence sidebar: `artifacts/hospitality-business-portal/src/components/intelligence/IntelligenceSidebar.tsx`
+- Intelligence page router: `artifacts/hospitality-business-portal/src/pages/Intelligence.tsx`
 - Nav IA canonical tree: `.agents/skills/hplus-admin-nav-ia/SKILL.md`
 - Institutional learnings: `docs/solutions/database-issues/seed-insert-no-conflict-financial-assumptions-lost-2026-05-02.md`, `docs/solutions/architecture-patterns/sources-ux-status-analyst-button-2026-05-02.md`, `docs/solutions/integration-issues/openai-sdk-env-base-url-overrides-embedding-client-2026-05-02.md`
