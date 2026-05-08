@@ -1,6 +1,7 @@
 ---
 title: "Magic-Numbers Ratchet: Test Exclusion and Content-Hash Deduplication"
 date: 2026-05-01
+last_updated: 2026-05-08
 category: tooling
 module: scripts/check-magic-numbers
 problem_type: tooling_decision
@@ -10,19 +11,23 @@ applies_when:
   - "The magic-numbers ratchet reports new regressions after adding test files"
   - "The ratchet inflates suspect counts due to lib/shared ↔ api-server/shared mirror"
   - "Regulatory citation strings (IRS Pub 946, NOM-030) appear as magic numbers"
-tags: [magic-numbers, ratchet, testing, shared-constants, deduplication]
-related_components: [scripts/src/check-magic-numbers.ts, scripts/src/_magic-numbers-baseline.json]
+  - "Industry-spec dimensional values (PDF page sizes, HD/4K resolutions, DPI, RGBA channels) trip the gate"
+  - "Tempted to wrap a literal in a route-local ALL_CAPS const to satisfy the gate (the masking-literal anti-pattern)"
+  - "Choosing a home for a new DEFAULT_* or operational constant"
+tags: [magic-numbers, ratchet, testing, shared-constants, deduplication, industry-standards, masking-anti-pattern, business-assumptions]
+related_components: [scripts/src/check-magic-numbers.ts, scripts/src/_magic-numbers-baseline.json, .agents/skills/no-magic-numbers/SKILL.md]
 ---
 
 # Magic-Numbers Ratchet: Test Exclusion and Content-Hash Deduplication
 
 ## Problem
 
-Three classes of false positives caused the ratchet at `scripts/src/check-magic-numbers.ts` to flag legitimate code as regressions:
+Four classes of false positives caused the ratchet at `scripts/src/check-magic-numbers.ts` to flag legitimate code as regressions:
 
 1. **Test fixture values** — `.test.ts` files contain literal values that are inputs under test (e.g., `score: 0.75`, `weight: 80`). These are assertions, not production magic numbers.
 2. **Mirror inflation** — `lib/shared/src/` is mirrored verbatim to `artifacts/api-server/src/shared/`. Every constant defined once was counted in 2 files, pushing many legitimate constants over the 4-file threshold.
 3. **Regulatory citation fragments** — strings like `"IRS Publication 946"` or `"NOM-030-SSA3-2013"` contain digit sequences the scanner extracts as bare numerals.
+4. **Industry-standard dimensional/encoding constants** *(2026-05-08)* — PDF page sizes (`595 × 842` for A4 per ISO 216, `612 × 792` for US Letter), HD/4K resolutions (`1920 × 1080`, `1280 × 720`, `3840 × 2160` per ITU-R BT.709/2020), canonical slide canvas (`960 × 540`), DPI conventions (`72` PDF / `96` CSS), unit conversions (`25.4` mm/inch, `2.54` cm/inch — NIST exact), and 8-bit color depth (`256`/`255`). These are spec-fixed by external standards bodies and don't carry the cross-jurisdictional drift risk the gate exists to catch.
 
 ## Solution
 
