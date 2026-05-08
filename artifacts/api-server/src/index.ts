@@ -835,15 +835,28 @@ async function runSeeds() {
     { name: "rebecca-kb", run: async () => { const { runRebeccaKB001 } = await import("./migrations/rebecca-kb-001"); await runRebeccaKB001(); } },
     { name: "admin-resources-004", run: async () => { const { runAdminResources004 } = await import("./migrations/admin-resources-004"); await runAdminResources004(); } },
     { name: "admin-resources-005", run: async () => { const { runAdminResources005 } = await import("./migrations/admin-resources-005"); await runAdminResources005(); } },
-    { name: "admin-resources-006", run: async () => { const { runAdminResources006 } = await import("./migrations/admin-resources-006"); await runAdminResources006(); } },
-    { name: "pietro-tables-001", run: async () => { const { runPietroTables001 } = await import("./migrations/pietro-tables-001"); await runPietroTables001(); } },
-    { name: "pietro-resources-001", run: async () => { const { runPietroResources001 } = await import("./migrations/pietro-resources-001"); await runPietroResources001(); } },
     { name: "rebecca-rail-open", run: async () => { const { runRebeccaRailOpen001 } = await import("./migrations/rebecca-rail-open-001"); await runRebeccaRailOpen001(); } },
     { name: "rebecca-chat-prefs", run: async () => { const { runRebeccaChatPrefs001 } = await import("./migrations/rebecca-chat-prefs-001"); await runRebeccaChatPrefs001(); } },
     { name: "rebecca-history-chips", run: async () => { const { runRebeccaHistoryChips001 } = await import("./migrations/rebecca-history-chips-001"); await runRebeccaHistoryChips001(); } },
     { name: "knowledge-registry", run: async () => { const { seedKnowledgeRegistry } = await import("./seeds/knowledge-registry"); await seedKnowledgeRegistry(); } },
     { name: "country-economic-data", run: async () => { const { seedCountryEconomicDataIfEmpty } = await import("./seeds/knowledge-registry"); await seedCountryEconomicDataIfEmpty(); } },
   ];
+
+  // Pietro schema DDL guards must run sequentially BEFORE the parallel fan-out.
+  // admin-resources-006 adds the daily_request_budget column; pietro-resources-001
+  // inserts rows referencing that column. Running them in the same Promise.allSettled
+  // batch races the ALTER TABLE against the INSERT on a fresh DB.
+  for (const ddlTask of [
+    { name: "admin-resources-006", run: async () => { const { runAdminResources006 } = await import("./migrations/admin-resources-006"); await runAdminResources006(); } },
+    { name: "pietro-tables-001",   run: async () => { const { runPietroTables001 }   = await import("./migrations/pietro-tables-001");   await runPietroTables001();   } },
+    { name: "pietro-resources-001",run: async () => { const { runPietroResources001 }= await import("./migrations/pietro-resources-001"); await runPietroResources001(); } },
+  ]) {
+    try {
+      await ddlTask.run();
+    } catch (err) {
+      serverLog(`[seed:${ddlTask.name}] FAILED: ${err instanceof Error ? err.message : String(err)}`, "startup", "error");
+    }
+  }
 
   const results = await Promise.allSettled(seedTasks.map(t => t.run()));
   results.forEach((r, i) => {

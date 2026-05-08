@@ -10,20 +10,20 @@
 import { db } from "../db";
 import { sql } from "drizzle-orm";
 import { logger } from "../logger";
+import { type InsertAdminResource } from "@workspace/db";
+
+// FMP free tier: 250 req/day; 5 tickers × ~4 endpoints = ~20 req/run.
+const SEED_FMP_REIT_DAILY_BUDGET = 200;
+// Daloopa MCP has a tighter daily limit than FMP.
+const SEED_DALOOPA_REIT_DAILY_BUDGET = 100;
+// RapidAPI Booking.com scraper: 5 markets × weekly cadence.
+const SEED_BOOKING_RATES_DAILY_BUDGET = 50;
+// Apify Expedia scraper: same 5-market weekly cadence as Booking.com.
+const SEED_EXPEDIA_RATES_DAILY_BUDGET = 50;
 
 const TAG = "[migration] pietro-resources-001";
 
-interface PietroSeedRow {
-  kind: string;
-  slug: string;
-  displayName: string;
-  description: string;
-  config: Record<string, unknown>;
-  secretRef: string | null;
-  dailyRequestBudget: number | null;
-}
-
-const PIETRO_SEED_ROWS: PietroSeedRow[] = [
+const PIETRO_SEED_ROWS: InsertAdminResource[] = [
   {
     kind: "source",
     slug: "fred-extended",
@@ -40,8 +40,7 @@ const PIETRO_SEED_ROWS: PietroSeedRow[] = [
     description: "Quarterly income statement and KPI data for hotel REITs (HST, RHP, PEB, APLE, SHO) from Financial Modeling Prep API v3. Populates reit_benchmarks table weekly.",
     config: { baseUrl: "https://financialmodelingprep.com/api/v3" },
     secretRef: "FMP_ACCESS_TOKEN",
-    // FMP free tier: 250 requests/day. 5 tickers × ~4 endpoints = ~20 req/run.
-    dailyRequestBudget: 200,
+    dailyRequestBudget: SEED_FMP_REIT_DAILY_BUDGET,
   },
   {
     kind: "mcp",
@@ -50,7 +49,7 @@ const PIETRO_SEED_ROWS: PietroSeedRow[] = [
     description: "Higher-fidelity REIT fundamentals from Daloopa via MCP (SEC filings, earnings transcripts). Same tickers as FMP; falls back to FMP if DALOOPA_API_KEY is absent.",
     config: { baseUrl: "https://mcp.daloopa.com/server/mcp" },
     secretRef: "DALOOPA_API_KEY",
-    dailyRequestBudget: 100,
+    dailyRequestBudget: SEED_DALOOPA_REIT_DAILY_BUDGET,
   },
   {
     kind: "mcp",
@@ -59,7 +58,7 @@ const PIETRO_SEED_ROWS: PietroSeedRow[] = [
     description: "Weekly competitor hotel rate snapshots for key US markets (Miami, New York, Denver, Los Angeles, Chicago) via RapidAPI Booking.com scraper. Populates competitor_rates table.",
     config: { baseUrl: "https://booking-com15.p.rapidapi.com" },
     secretRef: "RAPIDAPI_KEY",
-    dailyRequestBudget: 50,
+    dailyRequestBudget: SEED_BOOKING_RATES_DAILY_BUDGET,
   },
   {
     kind: "mcp",
@@ -68,7 +67,7 @@ const PIETRO_SEED_ROWS: PietroSeedRow[] = [
     description: "Weekly competitor hotel rate snapshots for key US markets via Apify Expedia scraper. Populates competitor_rates table alongside Booking.com data.",
     config: { baseUrl: "https://api.apify.com/v2/acts/crawlerbros~expedia-hotels-scraper/runs" },
     secretRef: "APIFY_API_TOKEN",
-    dailyRequestBudget: 50,
+    dailyRequestBudget: SEED_EXPEDIA_RATES_DAILY_BUDGET,
   },
   {
     kind: "mcp",
@@ -93,25 +92,30 @@ const PIETRO_SEED_ROWS: PietroSeedRow[] = [
 
 export async function runPietroResources001(): Promise<void> {
   let inserted = 0;
+  let failed = 0;
   for (const row of PIETRO_SEED_ROWS) {
-    const result = await db.execute(sql`
-      INSERT INTO admin_resources
-        (kind, slug, display_name, description, config, secret_ref, daily_request_budget)
-      VALUES (
-        ${row.kind},
-        ${row.slug},
-        ${row.displayName},
-        ${row.description},
-        ${JSON.stringify(row.config)}::jsonb,
-        ${row.secretRef},
-        ${row.dailyRequestBudget}
-      )
-      ON CONFLICT (kind, slug) DO NOTHING
-      RETURNING id
-    `);
-    if (Array.isArray(result.rows) && result.rows.length > 0) inserted++;
+    try {
+      const result = await db.execute(sql`
+        INSERT INTO admin_resources
+          (kind, slug, display_name, description, config, secret_ref, daily_request_budget)
+        VALUES (
+          ${row.kind},
+          ${row.slug},
+          ${row.displayName},
+          ${row.description},
+          ${JSON.stringify(row.config)}::jsonb,
+          ${row.secretRef},
+          ${row.dailyRequestBudget}
+        )
+        ON CONFLICT (kind, slug) DO NOTHING
+        RETURNING id
+      `);
+      if (Array.isArray(result.rows) && result.rows.length > 0) inserted++;
+    } catch (err) {
+      failed++;
+      logger.error(`${TAG} failed to seed row ${row.slug}: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
-  logger.info(
-    `${TAG} Pietro resource rows: ${inserted} seeded (${PIETRO_SEED_ROWS.length - inserted} already existed)`,
-  );
+  const skipped = PIETRO_SEED_ROWS.length - inserted - failed;
+  logger.info(`${TAG} Pietro resource rows: ${inserted} seeded, ${skipped} already existed, ${failed} failed`);
 }

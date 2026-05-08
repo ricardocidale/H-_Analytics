@@ -562,9 +562,10 @@ export function toResourcePublicView(row: AdminResourceRow, now: Date = new Date
   const kind = row.kind as ResourceKind;
   const storedBand = row.lastHealthStatus as ResourceHealthStatus;
   let band: ResourceHealthStatus = storedBand;
-  if (storedBand === "green" && row.lastCheckedAt) {
+  const profile = PROBE_PROFILES[kind];
+  if (storedBand === "green" && row.lastCheckedAt && profile) {
     const ageMs = now.getTime() - row.lastCheckedAt.getTime();
-    const ttlMs = PROBE_PROFILES[kind].ttlSeconds * 1000;
+    const ttlMs = profile.ttlSeconds * 1000;
     if (ageMs > ttlMs) band = "amber";
   }
   return {

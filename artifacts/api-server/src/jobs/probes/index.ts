@@ -109,7 +109,7 @@ async function probeTable(row: AdminResourceRow): Promise<ProbeOutcome> {
     );
     const rows = (result as unknown as { rows?: unknown[] }).rows ?? (result as unknown as unknown[]);
     const found = Array.isArray(rows) && rows.length > 0;
-    if (!found) return { status: "fail", latencyMs: Date.now() - t0, errorCode: "TABLE_MISSING", errorMessage: `Table ${tableName} not found` };
+    if (!found) return { status: "fail", latencyMs: Date.now() - t0, errorCode: "TABLE_MISSING", errorMessage: "Table not found in schema" };
     return { status: "ok", latencyMs: Date.now() - t0 };
   } catch (err: unknown) {
     return { status: "fail", latencyMs: Date.now() - t0, errorCode: "DB_ERROR", errorMessage: err instanceof Error ? err.message : String(err) };
