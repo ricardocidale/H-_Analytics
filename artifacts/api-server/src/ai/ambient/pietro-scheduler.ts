@@ -51,10 +51,11 @@ const PIETRO_MANAGED_KINDS = ["source", "mcp"] as const;
 let schedulerInterval: ReturnType<typeof setInterval> | null = null;
 let startupTimeout: ReturnType<typeof setTimeout> | null = null;
 let isRunning = false;
-// Guards against the stop-during-startup race: if stopPietroScheduler() is
-// called after the setTimeout fires but before setInterval is installed, the
-// callback checks this flag and exits without installing the interval.
-let isStopped = false;
+// Monotonic generation counter: every startPietroScheduler() call increments
+// this. Callbacks capture their generation at dispatch time and bail if the
+// current generation differs, preventing stop→start overlaps from allowing
+// stale callbacks to install duplicate intervals.
+let schedulerGeneration = 0;
 
 // ---------------------------------------------------------------------------
 // Staleness check
@@ -170,10 +171,10 @@ export function startPietroScheduler(): void {
     "pietro-scheduler",
   );
 
-  isStopped = false;
+  const gen = ++schedulerGeneration;
   startupTimeout = setTimeout(async () => {
     startupTimeout = null;
-    if (isStopped) return; // stop was called during startup delay
+    if (schedulerGeneration !== gen) return; // superseded by stop→start
     try {
       await runPietroTick();
     } catch (err: unknown) {
@@ -184,7 +185,7 @@ export function startPietroScheduler(): void {
       );
     }
 
-    if (isStopped) return; // stop was called while initial tick ran
+    if (schedulerGeneration !== gen) return; // superseded while tick ran
     schedulerInterval = setInterval(async () => {
       try {
         await runPietroTick();
@@ -200,7 +201,7 @@ export function startPietroScheduler(): void {
 }
 
 export function stopPietroScheduler(): void {
-  isStopped = true;
+  schedulerGeneration++; // invalidate any in-flight startup callbacks
   if (startupTimeout) { clearTimeout(startupTimeout); startupTimeout = null; }
   if (schedulerInterval) { clearInterval(schedulerInterval); schedulerInterval = null; }
   log("Stopped", "pietro-scheduler");

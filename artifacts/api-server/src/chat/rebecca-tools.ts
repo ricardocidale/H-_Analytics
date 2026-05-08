@@ -513,11 +513,11 @@ export async function dispatchRebeccaTool(
       case "produce_slide_factory_deck":
         return await toolProduceSlideFactoryDeck(args, ctx);
       case "get_data_source_status":
-        return await toolGetDataSourceStatus();
+        return await toolGetDataSourceStatus(ctx);
       case "probe_data_source":
-        return await toolProbeDataSource(args);
+        return await toolProbeDataSource(args, ctx);
       case "regenerate_data_source":
-        return await toolRegenerateDataSource(args);
+        return await toolRegenerateDataSource(args, ctx);
       default:
         return { result: { error: "Unknown tool" } };
     }
@@ -1649,7 +1649,10 @@ async function toolProduceSlideFactoryDeck(
 // Pietro data infrastructure tools
 // ---------------------------------------------------------------------------
 
-async function toolGetDataSourceStatus(): Promise<{ result: unknown }> {
+async function toolGetDataSourceStatus(ctx: ToolContext): Promise<{ result: unknown }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
   const { db } = await import("../db");
   const { adminResources } = await import("@workspace/db");
   const { or, eq } = await import("drizzle-orm");
@@ -1675,7 +1678,10 @@ async function toolGetDataSourceStatus(): Promise<{ result: unknown }> {
   };
 }
 
-async function toolProbeDataSource(args: Record<string, unknown>): Promise<{ result: unknown }> {
+async function toolProbeDataSource(args: Record<string, unknown>, ctx: ToolContext): Promise<{ result: unknown }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
   const id = typeof args.id === "number" ? args.id : Number(args.id);
   if (!id || isNaN(id)) return { result: { error: "id must be a positive integer" } };
 
@@ -1691,7 +1697,10 @@ async function toolProbeDataSource(args: Record<string, unknown>): Promise<{ res
   return { result: outcome };
 }
 
-async function toolRegenerateDataSource(args: Record<string, unknown>): Promise<{ result: unknown }> {
+async function toolRegenerateDataSource(args: Record<string, unknown>, ctx: ToolContext): Promise<{ result: unknown }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
   const slug = typeof args.slug === "string" ? args.slug : "";
   if (!slug) return { result: { error: "slug is required" } };
 
