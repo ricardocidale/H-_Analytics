@@ -1,12 +1,17 @@
 /**
- * MinionFmpReit — REIT fundamentals from Financial Modeling Prep.
+ * MinionFmpReit — REIT fundamentals via RapidAPI Yahoo Finance.
  *
- * Fetches quarterly key-metrics for hotel REITs (HST, RHP, PEB, APLE, SHO)
- * from FMP API v3 and upserts into reit_benchmarks.
+ * Previously Financial Modeling Prep; replaced with RapidAPI Yahoo Finance
+ * (apidojo-yahoo-finance-v1.p.rapidapi.com). Fetches TTM key metrics for
+ * hotel REITs (HST, RHP, PEB, APLE, SHO) and upserts into reit_benchmarks.
+ * Source field = "rapidapi-yf". Period = current calendar quarter (TTM
+ * snapshot — Yahoo Finance does not expose per-quarter history on this
+ * endpoint).
  *
- * FMP free tier: 250 req/day. Each run consumes ~10 requests (5 tickers × 2
- * endpoints). daily_request_budget = 200 on the admin_resources row enforces
- * the cap upstream before dispatch.
+ * Requires RAPIDAPI_KEY with a subscription to "Yahoo Finance" on rapidapi.com
+ * (free tier: https://rapidapi.com/apidojo/api/yahoo-finance1).
+ * Gracefully skips (not an error) when the key is absent or the API returns
+ * 403 (not subscribed).
  */
 import { db } from "../../../db";
 import { reitBenchmarks, type InsertReitBenchmark } from "@workspace/db";
@@ -16,74 +21,87 @@ import type { MinionResult } from "./index";
 
 const TAG = "[minion:fmp-reit]";
 
-const FMP_REIT_FETCH_TIMEOUT_MS = 15_000;
-const FMP_BASE_URL = "https://financialmodelingprep.com/api/v3";
-// 3 months per quarter (calendar constant: 12 months / 4 quarters)
+const YF_FETCH_TIMEOUT_MS = 15_000;
+const YF_HOST = "apidojo-yahoo-finance-v1.p.rapidapi.com";
+const YF_BASE_URL = `https://${YF_HOST}`;
+// 3 months per quarter (12 months / 4 quarters)
 const MONTHS_PER_QUARTER = 3;
-const FMP_QUARTERS_TO_FETCH = 4;
 
 const REIT_TICKERS = ["HST", "RHP", "PEB", "APLE", "SHO"] as const;
 
-interface FmpKeyMetric {
-  date?: string;
-  capexToOperatingCashFlow?: number;
-  debtToEquity?: number;
-  currentRatio?: number;
-  priceToOperatingCashFlowsRatio?: number;
-  netProfitMargin?: number;
-  returnOnEquity?: number;
-  dividendYield?: number;
-  enterpriseValueOverEBITDA?: number;
+interface YfRawValue {
+  raw?: number;
 }
 
-function periodFromDate(dateStr: string): string {
-  // FMP dates are "YYYY-MM-DD" (UTC). Use UTC getters to avoid timezone drift
-  // where getMonth()/getFullYear() could return the previous month/year in
-  // timezones west of UTC (e.g. UTC-5 at midnight).
-  const d = new Date(dateStr);
-  const quarter = Math.ceil((d.getUTCMonth() + 1) / MONTHS_PER_QUARTER);
-  return `${d.getUTCFullYear()}-Q${quarter}`;
+interface YfStatistics {
+  defaultKeyStatistics?: {
+    debtToEquity?: YfRawValue;
+    enterpriseToEbitda?: YfRawValue;
+  };
+  financialData?: {
+    profitMargins?: YfRawValue;
+    returnOnEquity?: YfRawValue;
+  };
+  summaryDetail?: {
+    trailingAnnualDividendYield?: YfRawValue;
+  };
 }
 
-async function fetchFmpMetrics(ticker: string, apiKey: string): Promise<InsertReitBenchmark[]> {
-  const url = `${FMP_BASE_URL}/key-metrics/${ticker}?period=quarter&limit=${FMP_QUARTERS_TO_FETCH}&apikey=${apiKey}`;
-  const response = await fetch(url, { signal: AbortSignal.timeout(FMP_REIT_FETCH_TIMEOUT_MS) });
+function currentQuarterPeriod(): string {
+  const now = new Date();
+  const q = Math.ceil((now.getUTCMonth() + 1) / MONTHS_PER_QUARTER);
+  return `${now.getUTCFullYear()}-Q${q}`;
+}
+
+async function fetchYfStatistics(ticker: string, apiKey: string): Promise<InsertReitBenchmark[]> {
+  const url = `${YF_BASE_URL}/stock/v2/get-statistics?symbol=${encodeURIComponent(ticker)}&region=US`;
+  const response = await fetch(url, {
+    headers: {
+      "x-rapidapi-host": YF_HOST,
+      "x-rapidapi-key": apiKey,
+    },
+    signal: AbortSignal.timeout(YF_FETCH_TIMEOUT_MS),
+  });
+
+  if (response.status === 403) {
+    throw new Error("NOT_SUBSCRIBED");
+  }
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-  const data = (await response.json()) as FmpKeyMetric[];
-  if (!Array.isArray(data) || data.length === 0) return [];
+  const data = (await response.json()) as YfStatistics;
+  const period = currentQuarterPeriod();
 
-  const rows: InsertReitBenchmark[] = [];
-  for (const q of data) {
-    if (!q.date) continue;
-    const period = periodFromDate(q.date);
+  const raw: Record<string, number | undefined> = {
+    debt_to_equity:    data.defaultKeyStatistics?.debtToEquity?.raw,
+    ev_over_ebitda:    data.defaultKeyStatistics?.enterpriseToEbitda?.raw,
+    net_profit_margin: data.financialData?.profitMargins?.raw,
+    return_on_equity:  data.financialData?.returnOnEquity?.raw,
+    dividend_yield:    data.summaryDetail?.trailingAnnualDividendYield?.raw,
+  };
 
-    const metrics: Record<string, number | undefined> = {
-      debt_to_equity: q.debtToEquity,
-      net_profit_margin: q.netProfitMargin,
-      return_on_equity: q.returnOnEquity,
-      dividend_yield: q.dividendYield,
-      ev_over_ebitda: q.enterpriseValueOverEBITDA,
-    };
-
-    for (const [metricKey, value] of Object.entries(metrics)) {
-      if (value === undefined || value === null) continue;
-      rows.push({ ticker, metricKey, value, period, source: "fmp", fetchedAt: new Date() });
-    }
-  }
-  return rows;
+  return Object.entries(raw)
+    .filter(([, v]) => v !== undefined && v !== null)
+    .map(([metricKey, value]) => ({
+      ticker,
+      metricKey,
+      value: value as number,
+      period,
+      source: "rapidapi-yf",
+      fetchedAt: new Date(),
+    }));
 }
 
 export async function runMinionFmpReit(): Promise<MinionResult> {
   const t0 = Date.now();
-  const apiKey = process.env.FMP_ACCESS_TOKEN;
+  const apiKey = process.env.RAPIDAPI_KEY;
+
   if (!apiKey) {
-    logger.warn(`${TAG} FMP_ACCESS_TOKEN not set — skipping`);
-    return { source: "fmp-reit", rowsUpserted: 0, rowsFailed: 0, errors: ["FMP_ACCESS_TOKEN not set — skipping"], durationMs: Date.now() - t0 };
+    logger.warn(`${TAG} RAPIDAPI_KEY not set — skipping`);
+    return { source: "fmp-reit", rowsUpserted: 0, rowsFailed: 0, errors: ["RAPIDAPI_KEY not set — skipping"], durationMs: Date.now() - t0 };
   }
 
   const results = await Promise.allSettled(
-    REIT_TICKERS.map(ticker => fetchFmpMetrics(ticker, apiKey)),
+    REIT_TICKERS.map(ticker => fetchYfStatistics(ticker, apiKey)),
   );
 
   let rowsUpserted = 0;
@@ -94,7 +112,12 @@ export async function runMinionFmpReit(): Promise<MinionResult> {
     const result = results[i];
 
     if (result.status === "rejected") {
-      errors.push(`${ticker}: ${result.reason instanceof Error ? result.reason.message : String(result.reason)}`);
+      const msg = result.reason instanceof Error ? result.reason.message : String(result.reason);
+      if (msg === "NOT_SUBSCRIBED") {
+        logger.info(`${TAG} RapidAPI Yahoo Finance not subscribed — skipping (subscribe at rapidapi.com/apidojo/api/yahoo-finance1)`);
+        return { source: "fmp-reit", rowsUpserted: 0, rowsFailed: 0, errors: [], durationMs: Date.now() - t0 };
+      }
+      errors.push(`${ticker}: ${msg}`);
       continue;
     }
 
@@ -108,7 +131,7 @@ export async function runMinionFmpReit(): Promise<MinionResult> {
           });
         rowsUpserted++;
       } catch (err: unknown) {
-        errors.push(`${ticker} ${row.metricKey} ${row.period}: ${err instanceof Error ? err.message : String(err)}`);
+        errors.push(`${ticker} ${row.metricKey}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
   }
