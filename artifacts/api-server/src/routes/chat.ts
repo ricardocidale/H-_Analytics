@@ -1,5 +1,5 @@
 import { type Express, type Request, type Response } from "express";
-import { getGeminiClient, getPerplexityClient, getOpenAIClient, getAnthropicClient, normalizeModelId, searchWithExa, getExaApiKey } from "../ai/clients";
+import { getGeminiClient, getPerplexityClient, getOpenAIClient, getAnthropicClient, normalizeModelId, searchWithExa } from "../ai/clients";
 import { mergeRebeccaSettings, buildPersonaOverlay, assembleSystemPrompt, computeBlocksIncluded, rebeccaSettingsPatchSchema, type RebeccaSettings, type SourceBlockPresence, REBECCA_DEFAULT_MODEL } from "@shared/rebecca-settings";
 import { requireAuth , getAuthUser } from "../auth";
 import { aiRateLimit } from "../middleware/rate-limit";
@@ -193,7 +193,11 @@ export async function callLlm(
     }
     const inTok = Math.round(query.length / 4);
     const outTok = Math.round(text.length / 4);
-    try { logApiCost({ timestamp: new Date().toISOString(), service: "exa", model: "exa-search", operation: "search", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: 0, durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+    try {
+      logApiCost({ timestamp: new Date().toISOString(), service: "exa", model: "exa-search", operation: "search", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: 0, durationMs: Date.now() - startTime, userId, route: "/api/chat" });
+    } catch (e: unknown) {
+      logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger");
+    }
     return { text, stopReason: "end_turn" };
   }
 
@@ -1220,7 +1224,7 @@ export function register(app: Express) {
           throw primaryErr;
         }
       }
-      // Web search only actually fires for the Perplexity provider. Mark
+      // Web search only fires for the Perplexity and Exa providers. Mark
       // presence honestly so admins don't see "web search" in the badge
       // list when, e.g., a Gemini fallback served the reply.
       blockPresence.webSearch = webSearchEnabled && (resolvedProvider === "perplexity" || resolvedProvider === "exa");
