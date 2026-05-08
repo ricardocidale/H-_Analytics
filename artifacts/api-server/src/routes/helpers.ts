@@ -68,6 +68,8 @@ export function userResponse(u: any, extra?: Record<string, any>) {
     fontPreference: u.fontPreference ?? null,
     rebeccaResponseMode: u.rebeccaResponseMode ?? null,
     rebeccaShowToolTiming: u.rebeccaShowToolTiming ?? null,
+    rebeccaHistoryOpen: u.rebeccaHistoryOpen ?? null,
+    rebeccaSuggestedChips: Array.isArray(u.rebeccaSuggestedChips) ? u.rebeccaSuggestedChips as string[] : null,
     ...extra 
   };
 }

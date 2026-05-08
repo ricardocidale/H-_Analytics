@@ -17,6 +17,7 @@ import { loginSchema, adminLoginSchema, userResponse, logAndSendError, zodErrorM
 import { ensureDefaultScenario } from "./scenario-helpers";
 import { z } from "zod";
 import { isAdminRole } from "@shared/constants";
+import { REBECCA_SUGGESTED_CHIPS_MAX_COUNT, REBECCA_SUGGESTED_CHIP_MAX_LENGTH } from "@shared/rebecca-settings";
 import seedUsersConfig from "../seed-users.json" with { type: "json" };
 import { isPublishedDeployment } from "../providers/config";
 import {
@@ -293,6 +294,8 @@ export function register(app: Express) {
       const schema = z.object({
         rebeccaResponseMode: z.enum(["concise", "standard", "detailed"]).nullable().optional(),
         rebeccaShowToolTiming: z.boolean().nullable().optional(),
+        rebeccaHistoryOpen: z.boolean().nullable().optional(),
+        rebeccaSuggestedChips: z.array(z.string().max(REBECCA_SUGGESTED_CHIP_MAX_LENGTH)).max(REBECCA_SUGGESTED_CHIPS_MAX_COUNT).nullable().optional(),
       });
       const validation = schema.safeParse(req.body);
       if (!validation.success) {
@@ -301,8 +304,10 @@ export function register(app: Express) {
       const user = await storage.updateUserChatPreferences(getAuthUser(req).id, {
         rebeccaResponseMode: validation.data.rebeccaResponseMode,
         rebeccaShowToolTiming: validation.data.rebeccaShowToolTiming,
+        rebeccaHistoryOpen: validation.data.rebeccaHistoryOpen,
+        rebeccaSuggestedChips: validation.data.rebeccaSuggestedChips,
       });
-      res.json({ rebeccaResponseMode: user.rebeccaResponseMode, rebeccaShowToolTiming: user.rebeccaShowToolTiming });
+      res.json({ rebeccaResponseMode: user.rebeccaResponseMode, rebeccaShowToolTiming: user.rebeccaShowToolTiming, rebeccaHistoryOpen: user.rebeccaHistoryOpen, rebeccaSuggestedChips: user.rebeccaSuggestedChips });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update chat preferences", error);
     }

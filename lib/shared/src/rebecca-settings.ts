@@ -12,6 +12,11 @@ export const REBECCA_CITATION_STYLES = ["inline", "footnotes", "none"] as const;
 export const REBECCA_UNCERTAINTY = ["acknowledge", "hedge", "skip"] as const;
 
 export const REBECCA_SOURCE_KEYS = ["knowledgeBase", "portfolio", "research", "documents", "webSearch", "uploadedFiles"] as const;
+
+/** Maximum number of AI-generated chip suggestions persisted per user. */
+export const REBECCA_SUGGESTED_CHIPS_MAX_COUNT = 8;
+/** Maximum character length per individual chip suggestion string. */
+export const REBECCA_SUGGESTED_CHIP_MAX_LENGTH = 200;
 export type RebeccaSourceKey = typeof REBECCA_SOURCE_KEYS[number];
 
 export const REBECCA_PROVIDER_MODELS: Record<RebeccaLlmProvider, { value: string; label: string }[]> = {

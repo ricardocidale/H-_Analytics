@@ -129,12 +129,16 @@ function parseObservationField(obs: string): { message: string; fieldKey?: strin
   return { message: obs, fieldKey };
 }
 
-function syncChatPrefsToServer(prefs: { rebeccaResponseMode?: string; rebeccaShowToolTiming?: boolean }) {
+function syncChatPrefsToServer(prefs: { rebeccaResponseMode?: string; rebeccaShowToolTiming?: boolean; rebeccaHistoryOpen?: boolean; rebeccaSuggestedChips?: string[] }) {
   fetch("/api/profile/chat-preferences", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
     body: JSON.stringify(prefs),
+  }).then((res) => {
+    if (!res.ok) {
+      console.warn("[Rebecca] Chat preferences PATCH rejected by server:", res.status, Object.keys(prefs).join(", "));
+    }
   }).catch((err: unknown) => {
     console.warn("[Rebecca] Failed to sync chat preferences to server:", err);
   });
@@ -160,12 +164,17 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
   const [responseMode, setResponseMode] = useState<ResponseMode>(getStoredMode);
   const [showTiming, setShowTiming] = useState<boolean>(getStoredShowTiming);
   const serverPrefsAppliedForUserId = useRef<number | null>(null);
+  const historyOpenInitializedRef = useRef(false);
+  const suggestedChipsInitializedRef = useRef(false);
 
   useEffect(() => {
     if (!user || serverPrefsAppliedForUserId.current === user.id) return;
+    // Reset per-user guards so stale state from a previous user never leaks
+    historyOpenInitializedRef.current = false;
+    suggestedChipsInitializedRef.current = false;
     serverPrefsAppliedForUserId.current = user.id;
 
-    const backfill: { rebeccaResponseMode?: string; rebeccaShowToolTiming?: boolean } = {};
+    const backfill: { rebeccaResponseMode?: string; rebeccaShowToolTiming?: boolean; rebeccaHistoryOpen?: boolean } = {};
 
     const serverMode = user.rebeccaResponseMode;
     if (serverMode === "concise" || serverMode === "standard" || serverMode === "detailed") {
@@ -184,11 +193,42 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
       if (!localTiming) backfill.rebeccaShowToolTiming = localTiming;
     }
 
+    if (user.rebeccaHistoryOpen !== null && user.rebeccaHistoryOpen !== undefined) {
+      setHistoryOpen(user.rebeccaHistoryOpen);
+    }
+
+    if (Array.isArray(user.rebeccaSuggestedChips) && user.rebeccaSuggestedChips.length > 0) {
+      setSuggestedChips(user.rebeccaSuggestedChips);
+    }
+
     if (Object.keys(backfill).length > 0) {
       syncChatPrefsToServer(backfill);
     }
   }, [user]);
 
+  useEffect(() => {
+    // Only sync after the initial server value has been applied — skip the
+    // first render and the server-load pass to avoid a redundant write.
+    if (!user || serverPrefsAppliedForUserId.current !== user.id) return;
+    if (!historyOpenInitializedRef.current) {
+      historyOpenInitializedRef.current = true;
+      return;
+    }
+    syncChatPrefsToServer({ rebeccaHistoryOpen: historyOpen });
+  }, [historyOpen, user]);
+
+  useEffect(() => {
+    // Sync the latest AI-generated chips to the server so they roam across
+    // devices. Empty arrays are skipped — they indicate a cleared/reset state
+    // and should not overwrite the last meaningful chip set.
+    if (!user || serverPrefsAppliedForUserId.current !== user.id) return;
+    if (!suggestedChipsInitializedRef.current) {
+      suggestedChipsInitializedRef.current = true;
+      return;
+    }
+    if (suggestedChips.length === 0) return;
+    syncChatPrefsToServer({ rebeccaSuggestedChips: suggestedChips });
+  }, [suggestedChips, user]);
 
   const [isStreaming, setIsStreaming] = useState(false);
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);

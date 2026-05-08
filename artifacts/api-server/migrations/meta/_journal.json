@@ -295,6 +295,13 @@
       "when": 1746748800000,
       "tag": "0042_rebecca_chat_prefs",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1746835200000,
+      "tag": "0043_rebecca_history_chips",
+      "breakpoints": true
     }
   ]
 }

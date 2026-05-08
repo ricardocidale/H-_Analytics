@@ -57,10 +57,12 @@ export class UserStorage {
     });
   }
 
-  async updateUserChatPreferences(id: number, prefs: { rebeccaResponseMode?: string | null; rebeccaShowToolTiming?: boolean | null }): Promise<User> {
+  async updateUserChatPreferences(id: number, prefs: { rebeccaResponseMode?: string | null; rebeccaShowToolTiming?: boolean | null; rebeccaHistoryOpen?: boolean | null; rebeccaSuggestedChips?: string[] | null }): Promise<User> {
     const updates: Record<string, unknown> = { updatedAt: new Date() };
     if (prefs.rebeccaResponseMode !== undefined) updates.rebeccaResponseMode = prefs.rebeccaResponseMode;
     if (prefs.rebeccaShowToolTiming !== undefined) updates.rebeccaShowToolTiming = prefs.rebeccaShowToolTiming;
+    if (prefs.rebeccaHistoryOpen !== undefined) updates.rebeccaHistoryOpen = prefs.rebeccaHistoryOpen;
+    if (prefs.rebeccaSuggestedChips !== undefined) updates.rebeccaSuggestedChips = prefs.rebeccaSuggestedChips;
     const [user] = await db.update(users).set(updates).where(eq(users.id, id)).returning();
     return user;
   }
@@ -181,6 +183,8 @@ export class UserStorage {
           fontPreference: users.fontPreference,
           rebeccaResponseMode: users.rebeccaResponseMode,
           rebeccaShowToolTiming: users.rebeccaShowToolTiming,
+          rebeccaHistoryOpen: users.rebeccaHistoryOpen,
+          rebeccaSuggestedChips: users.rebeccaSuggestedChips,
           createdAt: users.createdAt,
           updatedAt: users.updatedAt,
         },

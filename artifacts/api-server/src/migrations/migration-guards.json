@@ -171,6 +171,11 @@
       "status": "guarded",
       "guard": "rebecca-chat-prefs-001.ts",
       "reason": "ADD COLUMN IF NOT EXISTS rebecca_response_mode + rebecca_show_tool_timing on users. Guarded by rebecca-chat-prefs-001.ts to ensure columns are present on pre-existing DBs regardless of Drizzle journal state."
+    },
+    "0043_rebecca_history_chips": {
+      "status": "guarded",
+      "guard": "rebecca-history-chips-001.ts",
+      "reason": "ADD COLUMN IF NOT EXISTS rebecca_history_open + rebecca_suggested_chips on users. Guarded by rebecca-history-chips-001.ts to ensure columns exist on pre-existing DBs regardless of Drizzle journal state."
     }
   }
 }

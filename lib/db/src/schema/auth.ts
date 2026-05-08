@@ -34,6 +34,8 @@ export const users = pgTable("users", {
   fontPreference: text("font_preference"),
   rebeccaResponseMode: text("rebecca_response_mode"),
   rebeccaShowToolTiming: boolean("rebecca_show_tool_timing"),
+  rebeccaHistoryOpen: boolean("rebecca_history_open"),
+  rebeccaSuggestedChips: jsonb("rebecca_suggested_chips"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [

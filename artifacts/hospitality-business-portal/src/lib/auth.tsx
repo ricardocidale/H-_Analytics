@@ -41,6 +41,8 @@ interface User {
   fontPreference: string | null;
   rebeccaResponseMode: string | null;
   rebeccaShowToolTiming: boolean | null;
+  rebeccaHistoryOpen: boolean | null;
+  rebeccaSuggestedChips: string[] | null;
 }
 
 interface AuthContextType {

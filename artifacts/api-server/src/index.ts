@@ -837,6 +837,7 @@ async function runSeeds() {
     { name: "admin-resources-005", run: async () => { const { runAdminResources005 } = await import("./migrations/admin-resources-005"); await runAdminResources005(); } },
     { name: "rebecca-rail-open", run: async () => { const { runRebeccaRailOpen001 } = await import("./migrations/rebecca-rail-open-001"); await runRebeccaRailOpen001(); } },
     { name: "rebecca-chat-prefs", run: async () => { const { runRebeccaChatPrefs001 } = await import("./migrations/rebecca-chat-prefs-001"); await runRebeccaChatPrefs001(); } },
+    { name: "rebecca-history-chips", run: async () => { const { runRebeccaHistoryChips001 } = await import("./migrations/rebecca-history-chips-001"); await runRebeccaHistoryChips001(); } },
     { name: "knowledge-registry", run: async () => { const { seedKnowledgeRegistry } = await import("./seeds/knowledge-registry"); await seedKnowledgeRegistry(); } },
     { name: "country-economic-data", run: async () => { const { seedCountryEconomicDataIfEmpty } = await import("./seeds/knowledge-registry"); await seedCountryEconomicDataIfEmpty(); } },
   ];
