@@ -140,7 +140,7 @@ export default function IrisPanel() {
       {/* Header */}
       <div>
         <h2 className="text-2xl font-display font-bold text-foreground">Iris</h2>
-        <p className="text-sm text-muted-foreground mt-0.5">Rebecca's corner team</p>
+        <p className="text-sm text-muted-foreground mt-0.5">Resource Maintainer</p>
       </div>
 
       {/* Action buttons */}

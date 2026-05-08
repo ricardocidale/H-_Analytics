@@ -7,6 +7,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { ANALYST_BRAND } from "@/lib/agent-taxonomy";
 
 type AnalystActionButtonVariant = "header" | "save-row" | "modal";
 
@@ -67,7 +68,7 @@ export function AnalystActionButton({
     tooltipTextOverride ??
     "Have the Analyst research this section and suggest ranges with sources.";
   const tooltipText = running
-    ? "The Analyst is studying…"
+    ? `${ANALYST_BRAND} is studying…`
     : onCooldown
       ? `Available again in ${formatCooldown(cooldownRemainingMs)}`
       : idleTooltip;
