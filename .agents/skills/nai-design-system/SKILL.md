@@ -303,16 +303,25 @@ All icons must be imported from a project-local `@/components/icons/` barrel —
 | Section header | `w-5 h-5` or `w-6 h-6` |
 | Empty state media | `w-6 h-6` |
 
+### Icon Catalog
+
+For a complete list of every available `Icon*` name with visual descriptions organized by category, see **[ICON-CATALOG.md](./ICON-CATALOG.md)** in this skill directory.
+
+Use the catalog to pick the right icon on the first try without inspecting source files. It covers all 280+ exports including aliases, the Phosphor source name for each icon, and instructions for adding new icons.
+
 ### Barrel Structure
 
 ```
 src/components/icons/
-  index.ts            ← re-exports everything
-  action-icons.tsx    ← buttons, CTAs
-  navigation-icons.tsx
-  status-icons.tsx    ← check, x, warning, info
-  data-display-icons.tsx
-  themed-icons.tsx    ← wrappers with design-system styling
+  index.ts              ← re-exports everything (source of truth for available names)
+  brand-icons.tsx       ← aggregates all category files + defines *Icon aliases
+  action-icons.tsx      ← add, edit, delete, search, filter, lock, share …
+  navigation-icons.tsx  ← routing, layout, chevrons, arrows, property nav …
+  status-icons.tsx      ← alerts, checks, settings, loading, time, theme …
+  financial-icons.tsx   ← charts, money, trends, accounting statements …
+  data-display-icons.tsx← files, folders, database, code, terminal …
+  media-icons.tsx       ← audio, video, chat, AI, camera, phone …
+  misc-icons.tsx        ← people, hospitality amenities, research, drag …
 ```
 
 ---

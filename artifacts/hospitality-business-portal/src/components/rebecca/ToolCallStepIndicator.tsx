@@ -25,7 +25,10 @@ export interface ToolStep {
   name: string;
   /** Current execution phase. */
   phase: "dispatching" | "complete" | "error";
-  /** Wall-clock milliseconds the tool took, populated on completion. */
+  /**
+   * Wall-clock duration in milliseconds from tool_start to tool_done.
+   * Only present after the step has completed or errored.
+   */
   elapsedMs?: number;
 }
 
@@ -117,6 +120,21 @@ const PHASE_COLOR: Record<ToolStep["phase"], string> = {
   error: "text-destructive",
 };
 
+/** Format elapsed milliseconds as "0.8 s" (one decimal). */
+function formatElapsed(ms: number): string {
+  return `${(ms / 1000).toFixed(1)} s`;
+}
+
+/** Feature flag: read once per render — defaults to showing timing. */
+function isTimingEnabled(): boolean {
+  try {
+    const v = localStorage.getItem("rebecca-show-tool-timing");
+    return v !== "false";
+  } catch {
+    return true;
+  }
+}
+
 interface ToolCallStepIndicatorProps {
   steps: ToolStep[];
   className?: string;
@@ -124,6 +142,7 @@ interface ToolCallStepIndicatorProps {
 
 export function ToolCallStepIndicator({ steps, className }: ToolCallStepIndicatorProps) {
   const reducedMotion = useReducedMotion();
+  const showTiming = isTimingEnabled();
 
   if (steps.length === 0) return null;
 
@@ -149,6 +168,11 @@ export function ToolCallStepIndicator({ steps, className }: ToolCallStepIndicato
           const phase: AgentPhase = step.phase;
           const icon = PHASE_ICON[step.phase];
           const colorClass = PHASE_COLOR[step.phase];
+          const isDone = step.phase === "complete" || step.phase === "error";
+          const timingLabel =
+            showTiming && isDone && step.elapsedMs != null
+              ? formatElapsed(step.elapsedMs)
+              : null;
 
           return reducedMotion ? (
             <div
@@ -164,6 +188,11 @@ export function ToolCallStepIndicator({ steps, className }: ToolCallStepIndicato
               <span className="leading-none">{label}</span>
               {icon && (
                 <span className={cn("leading-none font-semibold", colorClass)}>{icon}</span>
+              )}
+              {timingLabel && (
+                <span className="leading-none text-[10px] text-muted-foreground/60 tabular-nums">
+                  {timingLabel}
+                </span>
               )}
             </div>
           ) : (
@@ -199,6 +228,17 @@ export function ToolCallStepIndicator({ steps, className }: ToolCallStepIndicato
                   className={cn("leading-none font-semibold text-[10px]", colorClass)}
                 >
                   {icon}
+                </motion.span>
+              )}
+              {timingLabel && (
+                <motion.span
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3, delay: 0.1 }}
+                  className="leading-none text-[10px] text-muted-foreground/60 tabular-nums"
+                  aria-label={`took ${timingLabel}`}
+                >
+                  {timingLabel}
                 </motion.span>
               )}
             </motion.div>

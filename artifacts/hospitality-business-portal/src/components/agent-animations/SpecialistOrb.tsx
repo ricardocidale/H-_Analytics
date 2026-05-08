@@ -52,6 +52,7 @@ export function SpecialistOrb({ phase, size = "md", className }: SpecialistOrbPr
   const outerR      = center * OUTER_R_FRAC;
   const innerR      = center * INNER_R_FRAC;
   const strokeW     = Math.max(1, diameter * 0.07);
+  // complete/error phases: play once then settle — not an infinite loop
   const isTransient = phase === "complete" || phase === "error";
 
   // complete/error phases: play once then settle — not an infinite loop

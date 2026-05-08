@@ -156,13 +156,13 @@ async function main() {
 
     // 3. buildFactoryPayload ────────────────────────────────────────────────
     const v2 = buildFactoryPayload(run);
-    const slide1Ok = !!v2.slide1.headerSubtitle && (v2.slide1.visionBullets?.length ?? 0) === 3;
-    const slide3Ok = (v2.slide3.reasons?.length ?? 0) === 3;
-    const slide5Ok = (v2.slide5.transformationRows?.length ?? 0) === 4;
+    const slide1Ok = !!v2.slide1?.headerSubtitle && (v2.slide1?.visionBullets?.length ?? 0) === 3;
+    const slide3Ok = (v2.slide3?.reasons?.length ?? 0) === 3;
+    const slide5Ok = (v2.slide5?.transformationRows?.length ?? 0) === 4;
     checks.push({
       name: "buildFactoryPayload schema",
       pass: typeof v2.schemaVersion === "string" && slide1Ok && slide3Ok && slide5Ok,
-      detail: `schemaVersion=${v2.schemaVersion}, bullets=${v2.slide1.visionBullets?.length}, reasons=${v2.slide3.reasons?.length}, rows=${v2.slide5.transformationRows?.length}`,
+      detail: `schemaVersion=${v2.schemaVersion}, bullets=${v2.slide1?.visionBullets?.length}, reasons=${v2.slide3?.reasons?.length}, rows=${v2.slide5?.transformationRows?.length}`,
     });
     console.log(`[3/5] buildFactoryPayload — schemaVersion=${v2.schemaVersion}`);
 

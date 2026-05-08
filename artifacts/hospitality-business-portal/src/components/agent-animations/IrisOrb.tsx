@@ -67,6 +67,7 @@ export function IrisOrb({ phase, size = "md", className }: IrisOrbProps) {
   const dotR      = center * INDICATOR_R_FRAC;
   const circumference = TWO_PI * ringR;
   const dashArray = `${circumference * DASH_FRACTION} ${circumference * GAP_FRACTION}`;
+  // complete/error phases: rotate once then stop — not an infinite loop
   const isTransient = phase === "complete" || phase === "error";
 
   // complete/error phases: rotate once then stop — not an infinite loop

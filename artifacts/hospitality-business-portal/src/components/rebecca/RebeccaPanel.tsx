@@ -149,6 +149,8 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
   const pendingMessageRef = useRef<string | null>(null);
   const streamingIdRef = useRef<string | null>(null);
   const postAbortSendRef = useRef<string | null>(null);
+  /** Maps tool-call id → Date.now() recorded when tool_start fires. */
+  const toolStartTimesRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     if (!isOpen) return;
@@ -502,6 +504,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
               } else if (currentEvent === "tool_start") {
                 const stepId = typeof data.id === "string" ? data.id : String(data.id);
                 const stepName = typeof data.name === "string" ? data.name : "";
+                toolStartTimesRef.current.set(stepId, Date.now());
                 const newStep: ToolStep = { id: stepId, name: stepName, phase: "dispatching" };
                 setMessages((prev) => prev.map((m) =>
                   m.id === streamId
@@ -511,13 +514,17 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
               } else if (currentEvent === "tool_done") {
                 const doneId = typeof data.id === "string" ? data.id : String(data.id);
                 const success = data.success !== false;
-                const elapsedMs = typeof data.elapsedMs === "number" ? data.elapsedMs : undefined;
+                const startedAt = toolStartTimesRef.current.get(doneId);
+                const elapsedMs = startedAt != null ? Date.now() - startedAt : undefined;
+                toolStartTimesRef.current.delete(doneId);
                 setMessages((prev) => prev.map((m) =>
                   m.id === streamId
                     ? {
                         ...m,
                         toolSteps: (m.toolSteps ?? []).map((s) =>
-                          s.id === doneId ? { ...s, phase: success ? "complete" : "error", elapsedMs } : s
+                          s.id === doneId
+                            ? { ...s, phase: success ? "complete" : "error", elapsedMs }
+                            : s
                         ),
                       }
                     : m
