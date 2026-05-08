@@ -1,13 +1,13 @@
 ---
 name: analyst-research-buttons
-description: Use whenever you create, modify, or review a UI control that triggers a research job — Refresh research, Refresh rate, Re-fetch from authority, Run specialist, Run analysis, "ask the model" / "have the AI study this" buttons. Applies to every surface that kicks off The Analyst or an AI Intelligence specialist research job (Constants tabs, Specialist pages, Market Rates, Property Edit, Company Assumptions, Industry Research, etc.). Replaces ad-hoc labels like "Refresh research", "Refresh", "Run", "Update", or bare refresh-icon buttons with the canonical Analyst affordance.
+description: Use whenever you create, modify, or review a UI control that triggers a research job — Refresh research, Refresh rate, Re-fetch from authority, Run specialist, Run analysis, "ask the model" / "have the AI study this" buttons. Applies to every surface that kicks off The Analyst or an Intelligence specialist research job (Constants tabs, Specialist pages, Market Rates, Property Edit, Company Assumptions, Industry Research, etc.). Replaces ad-hoc labels like "Refresh research", "Refresh", "Run", "Update", or bare refresh-icon buttons with the canonical Analyst affordance.
 ---
 
 # Analyst Research Button — Canonical Affordance
 
 ## The rule (non-negotiable)
 
-Every UI control that triggers a research job (a call into The Analyst or one of the AI Intelligence specialists) MUST present as:
+Every UI control that triggers a research job (a call into The Analyst or one of the Intelligence specialists) MUST present as:
 
 - **Label:** `Analyst` (idle) / `Studying…` (in-flight). Nothing else. Not "Refresh research", not "Refresh", not "Run", not "Re-fetch", not "Update from source".
 - **Icon:** the sparkle icon — `Sparkles` from `lucide-react` (or the project alias `IconSparkles` from `@/components/icons`). Nothing else. Not `RefreshCw`, not `Play`, not `Zap`.

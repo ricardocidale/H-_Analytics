@@ -58,7 +58,7 @@ import type { ModelConstant } from "@workspace/db";
  * regulatory constant. It is governed by `.claude/rules/inflation-cascade.md`
  * and the cascade `property → companyAssumptions → marketMacroFallback`.
  * Adding `inflationRate` to this set requires ALL THREE of:
- *   (a) Specialist-sourced canonical rows — written by an AI Intelligence
+ *   (a) Specialist-sourced canonical rows — written by an Intelligence
  *       specialist from a monetary-authority publication (US Fed target,
  *       IMF WEO, central-bank target). Admin hand-typed canonical rows
  *       without an `authoritySource`/`authorityRef` do NOT qualify.

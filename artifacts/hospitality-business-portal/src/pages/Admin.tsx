@@ -128,8 +128,8 @@ const SPECIALIST_SUBTITLES: Record<SpecialistSection, string> = {
 /**
  * Persona-first page header for an admin Specialist section. Delegates
  * the title assembly to the shared `buildSpecialistTitle()` helper in
- * `@/components/specialists` so the Admin page header, the AI Intelligence
- * page header, the AI sidebar's `specialistRow`, and the `<SpecialistName />`
+ * `@/components/specialists` so the Admin page header, the Intelligence
+ * page header, the Intelligence sidebar's `specialistRow`, and the `<SpecialistName />`
  * component can never drift on what name to lead with. See
  * `.agents/skills/specialist-persona-naming/SKILL.md` for the rule.
  *
@@ -284,7 +284,7 @@ export default function Admin() {
   // query on save, so the header refreshes the moment the override is
   // persisted. Falls back to the catalog `humanName` while the query is in
   // flight or if the request fails. Mirrors the same hook in
-  // `client/src/pages/AiIntelligence.tsx`.
+  // `client/src/pages/Intelligence.tsx`.
   const { data: specialists } = useQuery<SpecialistListItem[]>({
     queryKey: ["/api/admin/specialists"],
   });

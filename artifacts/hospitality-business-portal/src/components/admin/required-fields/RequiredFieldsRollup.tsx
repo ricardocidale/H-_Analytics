@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { useAdminSection } from "@/lib/admin-nav";
-import { setAiIntelligenceTabHint } from "@/lib/ai-intelligence-nav";
+import { setIntelligenceTabHint } from "@/lib/intelligence-nav";
 import {
   SPECIALIST_SECTION_TO_ID,
   type AdminSection,
@@ -124,7 +124,7 @@ export default function RequiredFieldsRollup() {
   const openRecommendations = (specialistId: string) => {
     const sectionValue = specialistSectionForId(specialistId);
     if (!sectionValue) return;
-    setAiIntelligenceTabHint(specialistId, "required-fields");
+    setIntelligenceTabHint(specialistId, "required-fields");
     setSection(sectionValue as AdminSection);
   };
 

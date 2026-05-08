@@ -1,5 +1,5 @@
 /**
- * AI Intelligence Resources transparency hub (Task #500).
+ * Intelligence Resources transparency hub (Task #500).
  *
  * These routes power the per-tab "Used by / Working / Quality" columns,
  * the gaps banner, and the per-resource detail page that answers:

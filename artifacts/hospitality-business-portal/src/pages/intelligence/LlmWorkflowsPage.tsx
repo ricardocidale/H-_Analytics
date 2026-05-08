@@ -1,5 +1,5 @@
 /**
- * LlmWorkflowsPage — the ONLY place in AI Intelligence to manage LLM configuration.
+ * LlmWorkflowsPage — the ONLY place in Intelligence to manage LLM configuration.
  *
  * Doctrine (binding):
  *   hplus-admin-nav-ia Rule 12 — LLM model names, endpoints, API key references,
@@ -60,9 +60,9 @@ import {
   LLM_VENDORS,
 } from "@/components/admin/research-center/research-shared";
 import {
-  setAiIntelligenceSection,
-  setAiIntelligenceTabHint,
-} from "@/lib/ai-intelligence-nav";
+  setIntelligenceSection,
+  setIntelligenceTabHint,
+} from "@/lib/intelligence-nav";
 import {
   SPECIALIST_SECTION_TO_ID,
   type SpecialistSection,
@@ -425,9 +425,9 @@ export default function LlmWorkflowsPage() {
   const jumpToSpecialistLlmConfig = (id: string) => {
     const section = SPECIALIST_ID_TO_SECTION[id];
     if (!section) return;
-    setAiIntelligenceTabHint(id, "llm-config");
-    setAiIntelligenceSection(section);
-    setLocation("/ai-intelligence");
+    setIntelligenceTabHint(id, "llm-config");
+    setIntelligenceSection(section);
+    setLocation("/intelligence");
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────

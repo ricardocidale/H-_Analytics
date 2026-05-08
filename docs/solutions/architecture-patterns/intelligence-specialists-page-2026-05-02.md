@@ -1,24 +1,24 @@
 ---
-title: "AI Intelligence: Specialists accordion page replaces individual Specialist group menu items"
+title: "Intelligence: Specialists accordion page replaces individual Specialist group menu items"
 date: 2026-05-02
 category: architecture-patterns
-module: ai-intelligence-nav
+module: intelligence-nav
 problem_type: best_practice
 component: frontend_nav
 severity: high
 applies_when:
-  - Building or modifying the AI Intelligence sidebar
+  - Building or modifying the Intelligence sidebar
   - Adding a new Specialist
   - Building the Specialists directory page
   - Referencing LLMs, Sources, or APIs from within a Specialist panel
-tags: ai-intelligence, specialists, accordion, read-only, nav-ia
+tags: intelligence, specialists, accordion, read-only, nav-ia
 ---
 
-# AI Intelligence: Specialists accordion page replaces individual Specialist group menu items
+# Intelligence: Specialists accordion page replaces individual Specialist group menu items
 
 ## Context
 
-The AI Intelligence sidebar previously grouped Specialists by domain (Management Company,
+The Intelligence sidebar previously grouped Specialists by domain (Management Company,
 Property, Photos, Portfolio Ops, Constants & Authority Sources). Each domain was a separate
 sidebar item with its own sub-items. This caused sidebar clutter and forced admins to hunt
 across groups to find a specific Specialist.
@@ -29,10 +29,10 @@ sidebar entirely.
 
 ## Guidance
 
-### Sidebar structure (AI Intelligence)
+### Sidebar structure (Intelligence)
 
 ```
-AI Intelligence (/ai-intelligence)
+Intelligence (/intelligence)
 ├── AI Agents
 │   ├── Rebecca  (Configuration, Knowledge Base, Conversations)
 │   └── Gustavo  (informational / read-only — see separate doc)
@@ -64,7 +64,7 @@ The following items are **removed** from the sidebar:
 **Expanded row shows (ALL READ-ONLY — no interactive controls on resources):**
 - Description of what the Specialist does
 - LLMs used: display labels only (e.g. "GPT-4o", "Claude 3.5 Sonnet")
-  → To manage: `AI Intelligence → LLMs`
+  → To manage: `Intelligence → LLMs`
 - Sources used: display labels only (e.g. "IRS Tax Tables", "FRED API")
   → To manage: `Admin → Sources`
 - APIs used: display labels only
@@ -87,11 +87,11 @@ The following items are **removed** from the sidebar:
 
 - Single entry point for all Specialist management reduces sidebar clutter from 5+ groups to 1 item
 - Read-only resource display enforces the single-source-of-truth principle:
-  Sources are managed in Admin → Sources, LLMs are managed in AI Intelligence → LLMs
+  Sources are managed in Admin → Sources, LLMs are managed in Intelligence → LLMs
 - Accordion pattern scales to any number of Specialists without sidebar growth
 
 ## Related
 
 - `.agents/skills/hplus-admin-nav-ia/SKILL.md` — canonical nav tree and all rules
-- `docs/solutions/architecture-patterns/ai-intelligence-ai-agents-gustavo-page-2026-05-02.md` — Gustavo page spec
-- `artifacts/hospitality-business-portal/src/components/ai-intelligence/AiIntelligenceSidebar.tsx`
+- `docs/solutions/architecture-patterns/intelligence-ai-agents-gustavo-page-2026-05-02.md` — Gustavo page spec
+- `artifacts/hospitality-business-portal/src/components/intelligence/IntelligenceSidebar.tsx`

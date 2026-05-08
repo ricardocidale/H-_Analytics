@@ -2,7 +2,7 @@
 title: "Analyst Intelligence Display: 100%-Specialist-Sourced UI Pattern"
 date: 2026-05-05
 category: docs/solutions/architecture-patterns/
-module: "AI Intelligence / Analyst"
+module: "Intelligence / Analyst"
 problem_type: architecture_pattern
 component: documentation
 severity: high
@@ -242,7 +242,7 @@ useEffect(() => { runAnalyst(); }, []);
 - `artifacts/hospitality-business-portal/src/components/intelligence/AnalystCheckDialog.tsx`
 
 **Related architecture patterns in this repo:**
-- `docs/solutions/architecture-patterns/ai-intelligence-specialists-page-2026-05-02.md` — read-only specialist display + single-source-of-truth for specialist admin surfaces
+- `docs/solutions/architecture-patterns/intelligence-specialists-page-2026-05-02.md` — read-only specialist display + single-source-of-truth for specialist admin surfaces
 - `docs/solutions/architecture-patterns/reference-brands-ai-pipeline-wiring-2026-05-02.md` — how specialist data flows through prompt layers (DI pattern, layer purity)
 - `docs/solutions/architecture-patterns/sources-ux-status-analyst-button-2026-05-02.md` — UI triggers for specialist regeneration (the input/trigger side of this pattern)
 - `docs/solutions/logic-errors/reference-brands-dropped-from-llm-prompt-2026-05-02.md` — prevention rules for coverage checks when adding context fields

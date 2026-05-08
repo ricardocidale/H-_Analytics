@@ -10,9 +10,9 @@
 
 Every AI knowledge asset in H+ Analytics — vector namespaces, benchmark tables, country economic data — lives in a different system with no unified place to see it, understand it, or regenerate it. Admins cannot answer basic questions like "what does the AI actually know about comparables?" or "when was the country inflation data last updated?" without digging into code or the database directly.
 
-The Knowledge Registry gives every AI knowledge asset a human-readable home in the **AI Intelligence** admin area: a single section where each asset is visible as a purpose-built table, explained in plain language, and regenerable via the canonical Analyst button. Nothing is editable by hand — the Analyst is the only update path.
+The Knowledge Registry gives every AI knowledge asset a human-readable home in the **Intelligence** admin area: a single section where each asset is visible as a purpose-built table, explained in plain language, and regenerable via the canonical Analyst button. Nothing is editable by hand — the Analyst is the only update path.
 
-> **Important navigation note:** The Knowledge Registry is an AI Intelligence section (`/ai-intelligence`), not the Admin sidebar. "Sources" and "Resources" as Admin sidebar top-level sections are separate features — see §10 below and the skill at `.agents/skills/hplus-admin-nav-ia/SKILL.md`.
+> **Important navigation note:** The Knowledge Registry is an Intelligence section (`/intelligence`), not the Admin sidebar. "Sources" and "Resources" as Admin sidebar top-level sections are separate features — see §10 below and the skill at `.agents/skills/hplus-admin-nav-ia/SKILL.md`.
 
 ---
 
@@ -26,7 +26,7 @@ a simple grid). It is stored as vector chunks in the `market-research` namespace
 
 Knowledge Base, Comparables, and Assumption Guidance are the same kind of content
 (vector text chunks). Their placement is **not yet confirmed** — they may follow
-Market Research to Admin → Sources, or remain in AI Intelligence for AI-specific reasons.
+Market Research to Admin → Sources, or remain in Intelligence for AI-specific reasons.
 
 | Asset | Backing System | Confirmed home | Status |
 |-------|---------------|----------------|--------|
@@ -54,14 +54,14 @@ The `research-history`, `documents`, `scenarios`, and `properties` namespaces ar
 
 ## 3. Navigation
 
-The Knowledge Registry lives inside the existing **AI Intelligence** section (`/ai-intelligence`), accessible via the "AI" item in the main Admin sidebar.
+The Knowledge Registry lives inside the existing **Intelligence** section (`/intelligence`), accessible via the "AI" item in the main Admin sidebar.
 
-> **Critical:** "Sources" is an Admin sidebar section and must NOT appear anywhere inside AI Intelligence. Benchmarks, market data, and country economic data all live under Admin → Sources → Tables. See §10 and `.agents/skills/hplus-admin-nav-ia/SKILL.md`.
+> **Critical:** "Sources" is an Admin sidebar section and must NOT appear anywhere inside Intelligence. Benchmarks, market data, and country economic data all live under Admin → Sources → Tables. See §10 and `.agents/skills/hplus-admin-nav-ia/SKILL.md`.
 
-A new **"Knowledge Registry"** group is added to `AiIntelligenceSidebar.tsx`. It contains the AI's **vector/text knowledge namespaces** — the text chunks the AI reads when answering questions. These are distinct from structured data tables (which live in Admin → Sources → Tables) because they are text with embeddings, not rows and columns.
+A new **"Knowledge Registry"** group is added to `IntelligenceSidebar.tsx`. It contains the AI's **vector/text knowledge namespaces** — the text chunks the AI reads when answering questions. These are distinct from structured data tables (which live in Admin → Sources → Tables) because they are text with embeddings, not rows and columns.
 
 ```
-AI Intelligence (/ai-intelligence)
+Intelligence (/intelligence)
 │
 └── Knowledge Registry               ← NEW group
     └── [vector namespaces — Market Research, Knowledge Base,
@@ -69,7 +69,7 @@ AI Intelligence (/ai-intelligence)
           + Analyst regeneration button per namespace]
 ```
 
-`AiIntelligenceSection` type adds: `"knowledge-registry"`.
+`IntelligenceSection` type adds: `"knowledge-registry"`.
 
 **What moves OUT of the Knowledge Registry (vs earlier drafts):**
 - Benchmark tables (Capital Raise, Exit Multiples, Reference Brands) → Admin → Sources → Tables
@@ -247,7 +247,7 @@ pnpm --filter @workspace/api-spec run codegen
 
 ## 10. Related but Separate: Admin Sidebar Sources & Resources
 
-The following features belong in the Admin sidebar (`/admin`) as separate top-level sections. They are **not** part of the Knowledge Registry and the word "Sources" must NOT appear inside AI Intelligence.
+The following features belong in the Admin sidebar (`/admin`) as separate top-level sections. They are **not** part of the Knowledge Registry and the word "Sources" must NOT appear inside Intelligence.
 
 ### Admin → Sources
 
@@ -272,7 +272,7 @@ These are separate implementation tasks from the Knowledge Registry. See `.agent
 ## 11. Permissions & Access Control
 
 - **Admin role:** Read asset metadata, view content, trigger regeneration via Analyst button. No inline edit of any value.
-- Existing middleware gate for `/ai-intelligence` remains unchanged.
+- Existing middleware gate for `/intelligence` remains unchanged.
 
 ---
 
@@ -292,7 +292,7 @@ Same `globalCadenceDays` setting used by AnalystTables applies here (shared, not
 
 - `AnalystTables.tsx` and its endpoints are untouched. The benchmark tables remain in "Market Data" and are additionally mirrored in the Knowledge Registry overview.
 - Vector namespace management in `intelligence-vector-store.ts` is untouched.
-- `source-registry.ts` and the existing "Resources → Catalog" page in AI Intelligence are untouched.
+- `source-registry.ts` and the existing "Resources → Catalog" page in Intelligence are untouched.
 - Rebecca's chat interface and configuration are untouched.
 
 ---
@@ -305,7 +305,7 @@ Same `globalCadenceDays` setting used by AnalystTables applies here (shared, not
 4. **OpenAPI spec** — new paths + codegen run
 5. **Frontend: Sources overview page** — `KnowledgeRegistry.tsx` with asset panels, type-specific content viewers, Analyst button wiring
 6. **Frontend: Country Data sub-page** — `CountryEconomicData.tsx`
-7. **Sidebar wiring** — new sections in `AiIntelligenceSidebar.tsx` and `AiIntelligence.tsx`
+7. **Sidebar wiring** — new sections in `IntelligenceSidebar.tsx` and `Intelligence.tsx`
 8. **Regeneration logic** — Analyst prompts and data-write handlers per asset type
 
 Steps 1–4 (backend) are parallelizable with steps 5–7 (frontend shell with loading states).

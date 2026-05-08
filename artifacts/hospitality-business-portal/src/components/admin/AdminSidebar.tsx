@@ -122,9 +122,9 @@ export const SECTION_REDIRECTS: Partial<Record<AdminSection, AdminSection>> = {
  * Legacy in-memory deep-link aliases that are no longer part of the
  * `AdminSection` union. The Resources surface (APIs/Sources/Tables/
  * Benchmarks/Models) used to render under /admin via these section ids;
- * it now lives only under /ai-intelligence and is intercepted by
+ * it now lives only under /intelligence and is intercepted by
  * `setAdminSection` in `client/src/lib/admin-nav.ts` (which navigates
- * to /ai-intelligence and sets the AiIntelligenceSection). They are
+ * to /intelligence and sets the IntelligenceSection). They are
  * intentionally NOT listed here — `setAdminSection` handles them
  * before this map is consulted.
  */
@@ -132,11 +132,11 @@ const LEGACY_ADMIN_SECTION_REDIRECTS: Record<string, AdminSection> = {
   // No legacy admin-only string aliases remain after Phase 1.
   // `required-fields` is now a real canonical AdminSection (see union above)
   // rendered by `RequiredFieldsRollup`; resources-* keys are intercepted by
-  // `setAdminSection` and routed to /ai-intelligence.
+  // `setAdminSection` and routed to /intelligence.
 };
 
 /**
- * Legacy resources-* deep-link aliases that now live under /ai-intelligence.
+ * Legacy resources-* deep-link aliases that now live under /intelligence.
  * Exported so `setAdminSection` (admin-nav.ts) and tests can recognise them
  * from the same source of truth.
  */
@@ -286,7 +286,7 @@ interface AdminSidebarProps {
 export function AdminSidebarNav({ activeSection, onSectionChange }: AdminSidebarProps) {
   const navGroups = useMemo(() => buildNavGroups(), []);
   const [location] = useLocation();
-  const isAiIntelligenceActive = location.startsWith("/ai-intelligence");
+  const isIntelligenceActive = location.startsWith("/intelligence");
 
   // Keep the freshness query alive so the API is exercised on admin loads.
   // The badge UI was removed when the AI Research group was retired.
@@ -322,20 +322,14 @@ export function AdminSidebarNav({ activeSection, onSectionChange }: AdminSidebar
             </SidebarMenu>
           </SidebarGroup>
 
-          {/* AI — top-level link to the dedicated AI area (formerly "AI
-              Intelligence" in the menu; the inside surface still talks
-              about "AI Intelligence" in body copy and is allowed to. The
-              menu label is shortened so the sidebar reads as a clean noun
-              alongside Home / Companies / Properties / etc., per the
-              persona-first naming doctrine in
-              `.agents/skills/specialist-persona-naming/SKILL.md`). */}
+          {/* Intelligence — top-level link to the dedicated Intelligence area. */}
           <SidebarGroup className="p-0">
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isAiIntelligenceActive} tooltip="AI">
-                  <Link href="/ai-intelligence" data-testid="admin-nav-ai-intelligence">
+                <SidebarMenuButton asChild isActive={isIntelligenceActive} tooltip="Intelligence">
+                  <Link href="/intelligence" data-testid="admin-nav-intelligence">
                     <IconBrain className="size-4 shrink-0" />
-                    <span className="truncate">AI</span>
+                    <span className="truncate">Intelligence</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

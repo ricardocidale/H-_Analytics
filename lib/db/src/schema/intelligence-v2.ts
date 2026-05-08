@@ -918,7 +918,7 @@ export type InsertTaxBulletinCache = z.infer<typeof insertTaxBulletinCacheSchema
 //
 // Normalized list of comp-hotel new-supply projects in a property's
 // submarket. Specialist-supplied (Daniela / property.risk-intelligence in
-// the AI Intelligence catalog), refreshed on demand via the Analyst
+// the Intelligence catalog), refreshed on demand via the Analyst
 // affordance. One row per project. `propertyId` anchors the project to the
 // subject asset's submarket; `submarketKey` is a free-form locality slug
 // (e.g. "austin-downtown-tx") so the same row set can be re-used across

@@ -128,7 +128,7 @@ never "the specialist is processing your request".
 
 Audit every one of these the next time you touch them:
 
-- AI sidebar (`AiIntelligenceSidebar.tsx`) — already compliant via
+- Intelligence sidebar (`IntelligenceSidebar.tsx`) — already compliant via
   `specialistRow()`; keep it that way
 - Specialist page headers (`SpecialistPage.tsx` and friends) — already
   compliant via `orchestratorMeta()` / `sectionMeta`; extend the same

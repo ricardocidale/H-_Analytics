@@ -379,7 +379,7 @@ export type SpecialistAssignmentRow = typeof specialistAssignments.$inferSelect;
 
 // ────────────────────────────────────────────────────────────────────────────
 // specialist_research_quality_snapshots — lightweight per-Specialist quality
-// store powering the AI Intelligence transparency hub (Task #500).
+// store powering the Intelligence transparency hub (Task #500).
 //
 // One row per (specialistId) is the "current" snapshot; older rows are kept
 // as history (queried by changedAt DESC). The score is a 0–100 blend of:

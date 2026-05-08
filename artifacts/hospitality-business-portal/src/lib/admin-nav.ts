@@ -7,10 +7,10 @@ import {
   type AdminSection,
 } from "@/components/admin/AdminSidebar";
 import {
-  setAiIntelligenceSection,
+  setIntelligenceSection,
   setResourcesCatalogKindHint,
   type ResourcesCatalogKind,
-} from "@/lib/ai-intelligence-nav";
+} from "@/lib/intelligence-nav";
 
 // admin-cleanup #7 — map collapsed legacy resources keys to the matching
 // internal Catalog tab kind so old deep links land on the right sub-tab.
@@ -34,9 +34,9 @@ function getSnapshot() {
 }
 
 export function setAdminSection(section: AdminSection | string) {
-  // Resources surface lives under /ai-intelligence now. Intercept the
+  // Resources surface lives under /intelligence now. Intercept the
   // legacy keys before they hit the admin section map and route the user
-  // there with the right AI Intelligence section pre-selected.
+  // there with the right Intelligence section pre-selected.
   if (typeof section === "string" && isResourcesLegacySection(section)) {
     // The 4 catalog leaves (apis/sources/benchmarks/models) collapsed into
     // a single "resources" entry with internal tabs; "resources-tables"
@@ -47,9 +47,9 @@ export function setAdminSection(section: AdminSection | string) {
     // consumed on mount.
     const kindHint = LEGACY_RESOURCES_TO_KIND[section];
     if (kindHint) setResourcesCatalogKindHint(kindHint);
-    setAiIntelligenceSection(target);
-    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/ai-intelligence")) {
-      navigate("/ai-intelligence");
+    setIntelligenceSection(target);
+    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/intelligence")) {
+      navigate("/intelligence");
     }
     return;
   }
@@ -59,7 +59,7 @@ export function setAdminSection(section: AdminSection | string) {
   // /property/edit/:id), updating internal state alone has no visible
   // effect — the Admin layout isn't mounted there. Navigate to /admin so
   // the user actually lands on the section they asked for. Mirrors the
-  // legacy-resources branch above which redirects to /ai-intelligence.
+  // legacy-resources branch above which redirects to /intelligence.
   if (typeof window !== "undefined" && !window.location.pathname.startsWith("/admin")) {
     navigate("/admin");
   }

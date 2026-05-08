@@ -47,7 +47,7 @@ interface SpecialistListItem {
 }
 
 /**
- * Canonical section union for the AI Intelligence sidebar.
+ * Canonical section union for the Intelligence sidebar.
  *
  * Restructured per agent-taxonomy task (Task #1129):
  *   Analyst       — Gustavo [Orchestrator] card + Specialists directory
@@ -56,11 +56,11 @@ interface SpecialistListItem {
  *   Knowledge & Resources — Knowledge Registry + Market Data
  *   System        — System Health, Scheduled Research, Vector Search Latency
  *
- * Legacy SpecialistSection values (specialist-mgmt-co-funding, etc.) are kept
- * in the union for URL deep-link backward compat — they are no longer exposed
- * in the sidebar nav but routing in AiIntelligence.tsx still handles them.
+ * Legacy SpecialistSection values (specialist-mgmt-co-funding, etc.) are kept in
+ * the union for URL deep-link backward compat — they are no longer exposed in the
+ * sidebar nav but the routing in Intelligence.tsx still handles them.
  */
-export type AiIntelligenceSection =
+export type IntelligenceSection =
   | SpecialistSection
   | "analyst-orchestrator"
   | "ai-agents"
@@ -81,7 +81,7 @@ export type AiIntelligenceSection =
   | "runs";
 
 interface SectionItem {
-  value: AiIntelligenceSection;
+  value: IntelligenceSection;
   label: string;
   /**
    * Quieter secondary line beneath the primary label. Used by persona-named
@@ -101,7 +101,7 @@ interface NavGroup {
 }
 
 /**
- * Canonical AI Intelligence nav tree (agent-taxonomy Task #1129):
+ * Canonical Intelligence nav tree (agent-taxonomy Task #1129):
  *
  *   Analyst
  *     Gustavo        (Orchestrator info — read-only)
@@ -225,7 +225,7 @@ function buildNavGroups(gustavoHumanName: string): NavGroup[] {
   ];
 }
 
-function getGroupForSection(section: AiIntelligenceSection, groups: NavGroup[]): string {
+function getGroupForSection(section: IntelligenceSection, groups: NavGroup[]): string {
   for (const group of groups) {
     if (group.sections.some((s) => s.value === section)) return group.id;
   }
@@ -238,12 +238,12 @@ function getGroupForSection(section: AiIntelligenceSection, groups: NavGroup[]):
   return "agents";
 }
 
-interface AiIntelligenceSidebarProps {
-  activeSection: AiIntelligenceSection;
-  onSectionChange: (section: AiIntelligenceSection) => void;
+interface IntelligenceSidebarProps {
+  activeSection: IntelligenceSection;
+  onSectionChange: (section: IntelligenceSection) => void;
 }
 
-export function AiIntelligenceSidebarNav({ activeSection, onSectionChange }: AiIntelligenceSidebarProps) {
+export function IntelligenceSidebarNav({ activeSection, onSectionChange }: IntelligenceSidebarProps) {
   // Pull the live Specialist list so Gustavo's sidebar label reflects any
   // Identity-tab rename without a page reload. Falls back to "Gustavo"
   // (the canonical human name — NOT "gaspar" which is the internal system
@@ -278,7 +278,7 @@ export function AiIntelligenceSidebarNav({ activeSection, onSectionChange }: AiI
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Admin">
-                  <Link href="/admin" data-testid="ai-intelligence-nav-admin">
+                  <Link href="/admin" data-testid="intelligence-nav-admin">
                     <IconShield className="size-4 shrink-0" />
                     <span className="truncate">Admin</span>
                   </Link>
@@ -295,7 +295,7 @@ export function AiIntelligenceSidebarNav({ activeSection, onSectionChange }: AiI
                 <SidebarMenu>
                   <SidebarMenuItem>
                     <SidebarGroupLabel
-                      data-testid={`ai-intelligence-nav-group-${group.id}`}
+                      data-testid={`intelligence-nav-group-${group.id}`}
                       className={cn("mb-0.5 gap-1.5", isGroupActive && "text-sidebar-foreground")}
                     >
                       <GroupIcon className="size-3.5 shrink-0" />
@@ -310,7 +310,7 @@ export function AiIntelligenceSidebarNav({ activeSection, onSectionChange }: AiI
                             <SidebarMenuSubButton
                               isActive={isActive}
                               onClick={() => onSectionChange(section.value)}
-                              data-testid={`ai-intelligence-nav-${section.value}`}
+                              data-testid={`intelligence-nav-${section.value}`}
                               title={section.tooltip}
                               className={`cursor-pointer ${section.secondary ? "h-auto py-1.5" : ""}`}
                             >
@@ -319,13 +319,13 @@ export function AiIntelligenceSidebarNav({ activeSection, onSectionChange }: AiI
                                 <span className="flex flex-col min-w-0 leading-tight flex-1">
                                   <span
                                     className="truncate"
-                                    data-testid={`ai-intelligence-nav-${section.value}-primary`}
+                                    data-testid={`intelligence-nav-${section.value}-primary`}
                                   >
                                     {section.label}
                                   </span>
                                   <span
                                     className="truncate text-[11px] font-normal text-muted-foreground"
-                                    data-testid={`ai-intelligence-nav-${section.value}-secondary`}
+                                    data-testid={`intelligence-nav-${section.value}-secondary`}
                                   >
                                     {section.secondary}
                                   </span>
@@ -348,7 +348,7 @@ export function AiIntelligenceSidebarNav({ activeSection, onSectionChange }: AiI
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Help">
-                  <Link href="/help" data-testid="ai-intelligence-nav-help">
+                  <Link href="/help" data-testid="intelligence-nav-help">
                     <IconHelpCircle className="size-4 shrink-0" />
                     <span className="truncate">Help</span>
                   </Link>

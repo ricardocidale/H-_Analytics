@@ -340,7 +340,7 @@ async function fetchPropertyDefaultsLive(): Promise<PropertyDefaultsComparableRo
 
 **Seed upsert (session history):** The original early-return guard in `seed-external-integrations.ts` silently blocked the 7 new sources (Skyscanner, Apify LinkedIn/Crunchbase/Bloomberg/WSJ, Wikipedia, REST Countries, CIA Factbook) from ever being inserted. Switching to `onConflictDoNothing()` fixed this. *(session history)*
 
-**Admin.tsx exhaustive type check:** `SPECIALIST_SUBTITLES: Record<SpecialistSection, string>` was missing `"specialist-portfolio-capital-raise"` — a pre-existing TypeScript error that blocked the full typecheck. Added the missing entry. This is a pattern to watch: when a new `SpecialistSection` value is added to `AdminSidebar.tsx`, all exhaustive Records in `Admin.tsx` and `AiIntelligence.tsx` must be updated in the same PR.
+**Admin.tsx exhaustive type check:** `SPECIALIST_SUBTITLES: Record<SpecialistSection, string>` was missing `"specialist-portfolio-capital-raise"` — a pre-existing TypeScript error that blocked the full typecheck. Added the missing entry. This is a pattern to watch: when a new `SpecialistSection` value is added to `AdminSidebar.tsx`, all exhaustive Records in `Admin.tsx` and `Intelligence.tsx` must be updated in the same PR.
 
 ## Related
 

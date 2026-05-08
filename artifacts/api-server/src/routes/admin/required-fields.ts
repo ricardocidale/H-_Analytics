@@ -55,7 +55,7 @@ export function registerRequiredFieldsRoutes(app: Express) {
   app.put("/api/admin/required-fields", requireAdmin, (_req, res) => {
     res.status(410).json({
       error:
-        "The global Required Fields write API is retired. Each Specialist now owns its own required-field toggles. Edit them at Admin → AI Intelligence → <Specialist> → Required Fields, or use the read-only roll-up at Admin → Required Fields.",
+        "The global Required Fields write API is retired. Each Specialist now owns its own required-field toggles. Edit them at Admin → Intelligence → <Specialist> → Required Fields, or use the read-only roll-up at Admin → Required Fields.",
       replacement: {
         toggles: "PUT /api/admin/specialists/:id/field-toggles",
         prerequisites: "PUT /api/admin/specialists/:id/prerequisite-toggles",

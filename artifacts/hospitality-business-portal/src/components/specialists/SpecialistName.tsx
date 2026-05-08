@@ -104,7 +104,7 @@ interface AdminSpecialistRow {
 
 /**
  * Live override map — the same `/api/admin/specialists` query the
- * AI Intelligence sidebar uses. Memoized at the React-Query level so a
+ * Intelligence sidebar uses. Memoized at the React-Query level so a
  * page with many `<SpecialistName />` instances does only one fetch.
  */
 function useLiveHumanNames(): Map<string, string> {
@@ -200,15 +200,15 @@ export function resolveSpecialistDisplay(
  * Compose the canonical persona-first page-header *title* for a Specialist
  * id ("Ana · Funding Intelligence", "Daniela · Risk Intelligence",
  * "Gustavo · The Analyst"), reusing the shared resolution chain in
- * `resolveSpecialistDisplay`. Both `client/src/pages/AiIntelligence.tsx`
- * and `client/src/pages/Admin.tsx` call this so the AI Intelligence page,
- * the Admin shell, and the AI sidebar's `specialistRow` can never drift
+ * `resolveSpecialistDisplay`. Both `client/src/pages/Intelligence.tsx`
+ * and `client/src/pages/Admin.tsx` call this so the Intelligence page,
+ * the Admin shell, and the Intelligence sidebar's `specialistRow` can never drift
  * on what name to lead with.
  *
  * `fallbackRole` is what to render when the catalog doesn't know the id
  * (and the resolver therefore returns a non-catalog placeholder). Each
  * page picks a different fallback that makes sense for its own chrome —
- * e.g. the section's marketing-copy title for AI Intelligence, or the
+ * e.g. the section's marketing-copy title for Intelligence, or the
  * raw section slug for Admin — so the fallback stays a per-page concern
  * even though the persona-first assembly is shared.
  *

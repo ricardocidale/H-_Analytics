@@ -9,12 +9,12 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { IconAlertTriangle } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { setAiIntelligenceSection, useAiIntelligenceSection } from "@/lib/ai-intelligence-nav";
+import { setIntelligenceSection, useIntelligenceSection } from "@/lib/intelligence-nav";
 import {
-  type AiIntelligenceSection,
+  type IntelligenceSection,
   SPECIALIST_SECTION_TO_ID,
-} from "@/components/ai-intelligence/AiIntelligenceSidebar";
-import { SpecialistQuickSearch } from "@/components/ai-intelligence/SpecialistQuickSearch";
+} from "@/components/intelligence/IntelligenceSidebar";
+import { SpecialistQuickSearch } from "@/components/intelligence/SpecialistQuickSearch";
 import { useRefreshLlmRegistry } from "@/lib/api/admin";
 import { ORCHESTRATOR_SPECIALIST_ID } from "@engine/analyst/identity";
 import { SPECIALIST_CATALOG } from "@engine/analyst/registry/specialist-catalog";
@@ -36,31 +36,31 @@ const SpecialistPage = lazy(() => import("@/pages/admin/specialist/SpecialistPag
 // SpecialistPage console so admins can see, share, and re-use every past
 // render across sessions and devices.
 const FernandaRenderConsolePage = lazy(
-  () => import("@/pages/ai-intelligence/FernandaRenderConsolePage"),
+  () => import("@/pages/intelligence/FernandaRenderConsolePage"),
 );
 const MarketDataTablesPage = lazy(
-  () => import("@/pages/ai-intelligence/MarketDataTablesPage"),
+  () => import("@/pages/intelligence/MarketDataTablesPage"),
 );
-const GustavoInfoPage = lazy(() => import("@/pages/ai-intelligence/GustavoInfoPage"));
+const GustavoInfoPage = lazy(() => import("@/pages/intelligence/GustavoInfoPage"));
 const IrisPanel = lazy(() => import("@/components/iris/IrisPanel"));
-const SpecialistsDirectoryPage = lazy(() => import("@/pages/ai-intelligence/SpecialistsDirectoryPage"));
-const LlmWorkflowsPage = lazy(() => import("@/pages/ai-intelligence/LlmWorkflowsPage"));
-const AssumptionGuidancePage = lazy(() => import("@/pages/ai-intelligence/AssumptionGuidancePage"));
-const KnowledgeRegistryPage = lazy(() => import("@/pages/ai-intelligence/KnowledgeRegistryPage"));
-const CountryEconomicDataPage = lazy(() => import("@/pages/ai-intelligence/CountryEconomicDataPage"));
-const UnifiedRunsPage = lazy(() => import("@/pages/ai-intelligence/UnifiedRunsPage"));
+const SpecialistsDirectoryPage = lazy(() => import("@/pages/intelligence/SpecialistsDirectoryPage"));
+const LlmWorkflowsPage = lazy(() => import("@/pages/intelligence/LlmWorkflowsPage"));
+const AssumptionGuidancePage = lazy(() => import("@/pages/intelligence/AssumptionGuidancePage"));
+const KnowledgeRegistryPage = lazy(() => import("@/pages/intelligence/KnowledgeRegistryPage"));
+const CountryEconomicDataPage = lazy(() => import("@/pages/intelligence/CountryEconomicDataPage"));
+const UnifiedRunsPage = lazy(() => import("@/pages/intelligence/UnifiedRunsPage"));
 
-const REBECCA_SUB_TAB: Partial<Record<AiIntelligenceSection, string>> = {
+const REBECCA_SUB_TAB: Partial<Record<IntelligenceSection, string>> = {
   "ai-agents":      "configuration",
   "knowledge-base": "knowledge-base",
   "conversations":  "conversations",
 };
 
-function isSpecialistSection(s: AiIntelligenceSection): s is keyof typeof SPECIALIST_SECTION_TO_ID {
+function isSpecialistSection(s: IntelligenceSection): s is keyof typeof SPECIALIST_SECTION_TO_ID {
   return s in SPECIALIST_SECTION_TO_ID;
 }
 
-const sectionMeta: Record<AiIntelligenceSection, { title: string; subtitle: string }> = {
+const sectionMeta: Record<IntelligenceSection, { title: string; subtitle: string }> = {
   "ai-agents":           { title: "Rebecca Configuration", subtitle: "System prompt, personality, and configuration for your AI assistant" },
   "knowledge-base":      { title: "Knowledge Base",        subtitle: "Documents, training data, and research sources for Rebecca" },
   "conversations":       { title: "Conversations",         subtitle: "Chat history, feedback, and conversation analytics" },
@@ -75,7 +75,7 @@ const sectionMeta: Record<AiIntelligenceSection, { title: string; subtitle: stri
   "specialists":           { title: "Specialists",              subtitle: "Research Specialists powering H+ Analytics — verify deployment and run health checks" },
   "llm-workflows":         { title: "LLMs",                     subtitle: "Language model configuration for each research workflow — vendor, model, and Analyst recommendations" },
   "assumption-guidance":   { title: "Assumption Guidance",      subtitle: "Analyst-generated calibration insights — suggested ranges and sources for financial assumptions" },
-  "knowledge-registry":        { title: "Knowledge Registry",        subtitle: "Registry of knowledge sources and documents powering AI Intelligence" },
+  "knowledge-registry":        { title: "Knowledge Registry",        subtitle: "Registry of knowledge sources and documents powering Intelligence" },
   "knowledge-registry-country-data": { title: "Country Economic Data", subtitle: "Inflation, FX rates, GDP growth, and interest rate data per country" },
   "runs":                      { title: "Run Log",                    subtitle: "Unified log of all agent runs — Analyst research, Slide Factory, and Iris" },
   "specialist-mgmt-co-funding":            { title: "Funding Intelligence",         subtitle: "" },
@@ -105,7 +105,7 @@ const sectionMeta: Record<AiIntelligenceSection, { title: string; subtitle: stri
  * then to just the role label if neither is set.
  *
  * The resolution chain itself lives in `resolveSpecialistDisplay`
- * (`@/components/specialists`) so this page header, the AI sidebar's
+ * (`@/components/specialists`) so this page header, the Intelligence sidebar's
  * `specialistRow`, and the `<SpecialistName />` component all agree on
  * what name to lead with. See
  * `.agents/skills/specialist-persona-naming/SKILL.md` for the rule.
@@ -116,7 +116,7 @@ function specialistMeta(
 ): { title: string; subtitle: string } {
   const id = SPECIALIST_SECTION_TO_ID[section];
   // Title goes through the shared `buildSpecialistTitle` helper so this
-  // page header, the Admin shell's specialist sections, and the AI
+  // page header, the Admin shell's specialist sections, and the Intelligence
   // sidebar's `specialistRow` can never drift on what name to lead with.
   // The fallback role for an unknown id is the section's marketing-copy
   // title — when the resolver can't find the id in the catalog we'd
@@ -135,7 +135,7 @@ function specialistMeta(
 }
 
 // Page header for the orchestrator section. The role label ("The Analyst")
-// is the marketing copy used throughout the AI Intelligence surface and
+// is the marketing copy used throughout the Intelligence surface and
 // stays fixed; only the persona name in front of it tracks the Identity-
 // tab override so a rename shows up here without a page reload.
 function orchestratorMeta(humanNameById: Map<string, string>): { title: string; subtitle: string } {
@@ -158,7 +158,7 @@ function gustavoMeta(humanNameById: Map<string, string>): { title: string; subti
   };
 }
 
-function SectionContent({ section }: { section: AiIntelligenceSection }) {
+function SectionContent({ section }: { section: IntelligenceSection }) {
   switch (section) {
     case "ai-agents":
     case "knowledge-base":
@@ -207,9 +207,9 @@ function SectionContent({ section }: { section: AiIntelligenceSection }) {
 // validate against this set so a stray `?section=…` cannot push an
 // unknown value into the section store. Specialist sections are derived
 // from the canonical SPECIALIST_SECTION_TO_ID map; the literal section
-// keys mirror the sidebar groups in AiIntelligenceSidebar.tsx.
-const VALID_SECTIONS = new Set<AiIntelligenceSection>([
-  ...(Object.keys(SPECIALIST_SECTION_TO_ID) as AiIntelligenceSection[]),
+// keys mirror the sidebar groups in IntelligenceSidebar.tsx.
+const VALID_SECTIONS = new Set<IntelligenceSection>([
+  ...(Object.keys(SPECIALIST_SECTION_TO_ID) as IntelligenceSection[]),
   "analyst-orchestrator",
   "ai-agents",
   "knowledge-base",
@@ -229,8 +229,8 @@ const VALID_SECTIONS = new Set<AiIntelligenceSection>([
   "runs",
 ]);
 
-export default function AiIntelligence() {
-  const [activeSection] = useAiIntelligenceSection();
+export default function Intelligence() {
+  const [activeSection] = useIntelligenceSection();
   const refreshLlmRegistry = useRefreshLlmRegistry();
   const didRefreshRef = useRef(false);
 
@@ -261,8 +261,8 @@ export default function AiIntelligence() {
     didApplyDeepLinkRef.current = true;
     const params = new URLSearchParams(urlSearch);
     const requested = params.get("section");
-    if (requested && VALID_SECTIONS.has(requested as AiIntelligenceSection)) {
-      setAiIntelligenceSection(requested as AiIntelligenceSection);
+    if (requested && VALID_SECTIONS.has(requested as IntelligenceSection)) {
+      setIntelligenceSection(requested as IntelligenceSection);
     }
   }, [urlSearch]);
 
@@ -302,12 +302,12 @@ export default function AiIntelligence() {
               variant="dark"
               actions={
                 <SpecialistQuickSearch
-                  onSelect={(section) => setAiIntelligenceSection(section)}
+                  onSelect={(section) => setIntelligenceSection(section)}
                 />
               }
             />
 
-            <div className="space-y-6" data-testid={`ai-intelligence-content-${activeSection}`}>
+            <div className="space-y-6" data-testid={`intelligence-content-${activeSection}`}>
               <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-accent-pop" /></div>}>
                 <SectionContent section={activeSection} />
               </Suspense>

@@ -25,8 +25,8 @@ import {
 import LeticiaToolbox from "./LeticiaToolbox";
 import { ResourceDetailDialog } from "./ResourceDetailDialog";
 import { formatLastBuilt, useSpecialistTools, type ToolView } from "./specialist-tools-shared";
-import { SPECIALIST_SECTION_TO_ID } from "@/components/ai-intelligence/AiIntelligenceSidebar";
-import { setAiIntelligenceSection } from "@/lib/ai-intelligence-nav";
+import { SPECIALIST_SECTION_TO_ID } from "@/components/intelligence/IntelligenceSidebar";
+import { setIntelligenceSection } from "@/lib/intelligence-nav";
 
 const KIND_BLURBS: Record<ResourceKind, string> = {
   api: "Live external HTTP services (FRED, vendor proxies, etc.). Each row is wired to Specialists in code via the catalog.",
@@ -269,22 +269,22 @@ export default function ResourcesTab({ kind }: ResourcesTabProps) {
   function openDetail(id: number) {
     const params = new URLSearchParams(urlSearch);
     params.set("resource", String(id));
-    setLocation(`/ai-intelligence?${params.toString()}`);
+    setLocation(`/intelligence?${params.toString()}`);
   }
   function closeDetail() {
     const params = new URLSearchParams(urlSearch);
     params.delete("resource");
     const qs = params.toString();
-    setLocation(qs ? `/ai-intelligence?${qs}` : "/ai-intelligence");
+    setLocation(qs ? `/intelligence?${qs}` : "/intelligence");
   }
   function jumpToSpecialist(specialistId: string) {
     closeDetail();
-    // Ask the AI Intelligence sidebar to switch to this Specialist's
+    // Ask the Intelligence sidebar to switch to this Specialist's
     // section — looked up via the canonical SPECIALIST_SECTION_TO_ID map.
     const section = (Object.entries(SPECIALIST_SECTION_TO_ID) as Array<[string, string]>).find(([, id]) => id === specialistId)?.[0];
     if (section) {
-      setAiIntelligenceSection(section as Parameters<typeof setAiIntelligenceSection>[0]);
-      setLocation("/ai-intelligence");
+      setIntelligenceSection(section as Parameters<typeof setIntelligenceSection>[0]);
+      setLocation("/intelligence");
     }
   }
 

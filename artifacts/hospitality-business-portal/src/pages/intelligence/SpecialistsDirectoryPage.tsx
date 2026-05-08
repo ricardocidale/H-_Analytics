@@ -151,7 +151,7 @@ function SpecialistRow({ id, liveHumanNames: _liveHumanNames }: SpecialistRowPro
             </p>
             <p>
               LLM configuration →{" "}
-              <span className="font-medium text-foreground/80">AI Intelligence → LLMs</span>
+              <span className="font-medium text-foreground/80">Intelligence → LLMs</span>
             </p>
             <p>
               Source data →{" "}
@@ -244,7 +244,7 @@ export default function SpecialistsDirectoryPage() {
       {/* Doctrine note */}
       <p className="text-xs text-muted-foreground px-1">
         LLM settings are managed in{" "}
-        <span className="font-medium text-foreground/80">AI Intelligence → LLMs</span>.
+        <span className="font-medium text-foreground/80">Intelligence → LLMs</span>.
         Source data is managed in{" "}
         <span className="font-medium text-foreground/80">Admin → Sources</span>.
       </p>

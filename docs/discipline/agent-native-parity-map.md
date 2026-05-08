@@ -94,7 +94,7 @@ re-renders the panel.
 | Manage users | Admin → Team | — | 🚫 N/A (admin-only) |
 | Change Rebecca config | Admin → AI | — | 🚫 N/A (admin-only) |
 
-## AI Intelligence Actions
+## Intelligence Actions
 
 ### Iris Agent Controls
 

@@ -55,6 +55,6 @@ export function IcpRedirect() {
   const { user, isLoading } = useAuth();
   if (isLoading) return <PageLoader />;
   if (!user) return <Redirect to="/login" />;
-  return <Redirect to="/ai-intelligence" />;
+  return <Redirect to="/intelligence" />;
 }
 

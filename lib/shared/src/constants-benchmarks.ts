@@ -8,7 +8,7 @@
  *   - Standard LP/lender covenant conventions (DSCR thresholds)
  *   - Industry stress-test conventions (shock magnitudes)
  *
- * Long-term home: Neon model_canonicals (written by AI Intelligence specialists).
+ * Long-term home: Neon model_canonicals (written by Intelligence specialists).
  * These constants are the fallback until that migration lands.
  *
  * NEVER inline these values in engine/, calc/, or client/ files.
@@ -142,7 +142,7 @@ export const SERVICE_FEE_FALLBACK_RATE = {
 //   - Central services (IT + mktg + accounting + rev mgmt): 4–8% of revenue
 //   - Incentive: 10–15% of GOP above a performance threshold
 //
-// Long-term home: Neon model_canonicals, refreshed by AI Intelligence specialists.
+// Long-term home: Neon model_canonicals, refreshed by Intelligence specialists.
 // These constants are the cold-start seed; Admin can press Analyst to refresh.
 
 export type IcpModelTier = "A" | "B" | "C";

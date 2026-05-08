@@ -12,7 +12,7 @@
  *     Specialist OWNS — same `/api/admin/specialist-tools` payload, no
  *     second source of truth.
  *   • Read-only. The escape hatch for a closer look is the "Open in
- *     Resources →" link on each row, which jumps to the AI Intelligence
+ *     Resources →" link on each row, which jumps to the Intelligence
  *     Resources surface where Letícia's toolbox renders the full
  *     per-tool inspectability strip.
  *   • Renders nothing when the Specialist owns no registered tools, so

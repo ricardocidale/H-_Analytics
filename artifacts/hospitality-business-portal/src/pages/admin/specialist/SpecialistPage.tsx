@@ -26,7 +26,7 @@ import { Loader2 } from "@/components/icons/themed-icons";
 import { IconAlertTriangle } from "@/components/icons";
 
 import type { Capability, SpecialistDetailResponse } from "./types";
-import { consumeAiIntelligenceTabHint, usePendingAiIntelligenceTabHint } from "@/lib/ai-intelligence-nav";
+import { consumeIntelligenceTabHint, usePendingIntelligenceTabHint } from "@/lib/intelligence-nav";
 import { IdentityTab } from "./tabs/IdentityTab";
 import { SourcesTab } from "./tabs/SourcesTab";
 import { RequiredFieldsTab } from "./tabs/RequiredFieldsTab";
@@ -79,7 +79,7 @@ export default function SpecialistPage({ specialistId }: { specialistId: string 
   // can survive the swap to a Specialist that doesn't declare that
   // capability — Radix Tabs then renders no active trigger and an empty
   // content pane. See the inline mount sites in Admin.tsx and
-  // AiIntelligence.tsx — they don't pass key={specialistId}, so the
+  // Intelligence.tsx — they don't pass key={specialistId}, so the
   // component instance is reused across id changes.
   //
   // Task #502 — deep-link tab hints (from the sidebar's per-Specialist
@@ -104,13 +104,13 @@ export default function SpecialistPage({ specialistId }: { specialistId: string 
   // Specialist that doesn't declare the capability) from wedging Radix
   // Tabs into an empty active state — the hint is dropped silently and
   // the default first tab remains selected.
-  const pendingHint = usePendingAiIntelligenceTabHint();
+  const pendingHint = usePendingIntelligenceTabHint();
   useEffect(() => {
     if (!data) return;
     if (!pendingHint || pendingHint.specialistId !== specialistId) return;
     const declaresCapability = data.definition.capabilities.includes(pendingHint.tab as Capability);
     if (!declaresCapability) return;
-    const tab = consumeAiIntelligenceTabHint(specialistId);
+    const tab = consumeIntelligenceTabHint(specialistId);
     if (tab) setActiveTab(tab);
   }, [pendingHint, specialistId, data]);
 

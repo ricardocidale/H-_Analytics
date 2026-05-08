@@ -27,9 +27,9 @@ import {
   type ResourceHealthStatus,
   type QualityGap,
 } from "@shared/schema";
-import { setAiIntelligenceSection } from "@/lib/ai-intelligence-nav";
-import { SPECIALIST_SECTION_TO_ID } from "@/components/ai-intelligence/AiIntelligenceSidebar";
-import type { AiIntelligenceSection } from "@/components/ai-intelligence/AiIntelligenceSidebar";
+import { setIntelligenceSection } from "@/lib/intelligence-nav";
+import { SPECIALIST_SECTION_TO_ID } from "@/components/intelligence/IntelligenceSidebar";
+import type { IntelligenceSection } from "@/components/intelligence/IntelligenceSidebar";
 import {
   QualityHistoryChart,
   type QualityHistoryPoint,
@@ -40,10 +40,10 @@ import {
 // "which sidebar section opens this Specialist's page?" from a snapshot
 // row. Anything not in the map (e.g. an experimental Specialist not yet
 // surfaced in the sidebar) falls back to no-op navigation.
-const SPECIALIST_ID_TO_SECTION: Record<string, AiIntelligenceSection> = (() => {
-  const out: Record<string, AiIntelligenceSection> = {};
+const SPECIALIST_ID_TO_SECTION: Record<string, IntelligenceSection> = (() => {
+  const out: Record<string, IntelligenceSection> = {};
   for (const [section, id] of Object.entries(SPECIALIST_SECTION_TO_ID)) {
-    out[id] = section as AiIntelligenceSection;
+    out[id] = section as IntelligenceSection;
   }
   return out;
 })();
@@ -363,8 +363,8 @@ export function ResourceDetailDialog({ resourceId, onOpenChange }: Props) {
       toast({ title: "No sidebar entry for this Specialist", variant: "destructive" });
       return;
     }
-    setAiIntelligenceSection(section);
-    setLocation("/ai-intelligence");
+    setIntelligenceSection(section);
+    setLocation("/intelligence");
     onOpenChange(false);
   }
 

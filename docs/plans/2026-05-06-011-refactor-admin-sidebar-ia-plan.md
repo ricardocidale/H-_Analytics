@@ -109,7 +109,7 @@ In the Phosphor icon import block:
 
 **Check `SECTION_REDIRECTS`** — if the file defines a `SECTION_REDIRECTS` map keyed by group id (`"properties"`, `"scenarios"`), update those keys to `"portfolio"`. Section value strings are unaffected.
 
-**Check for any URL or hash routing** — grep the file and `AiIntelligence.tsx` for `"properties"` and `"scenarios"` as literal strings to confirm no group-id-based deep links exist outside `buildNavGroups()`.
+**Check for any URL or hash routing** — grep the file and `Intelligence.tsx` for `"properties"` and `"scenarios"` as literal strings to confirm no group-id-based deep links exist outside `buildNavGroups()`.
 
 **Patterns to follow:** Existing group object shape; the Portfolio group above follows the same interface as all other groups.
 

@@ -1,6 +1,6 @@
 ---
 name: inflation-cascade
-description: Apply the H+ Analytics inflation-rate cascade rule. Use when adding, moving, or overlaying any inflation-rate value across Company Assumptions, Property Edit, Macro & Market defaults, or the Constants/Source-of-Truth tab. Also use when extending `COUNTRY_KEYS_OVERLAID_ON_GLOBAL` in `server/finance/apply-model-constants.ts`, or when a specialist in the AI Intelligence realm produces an inflation recommendation. Replaces the "treat inflation like depreciation" reflex with the correct cascade-and-specialist-sourced model.
+description: Apply the H+ Analytics inflation-rate cascade rule. Use when adding, moving, or overlaying any inflation-rate value across Company Assumptions, Property Edit, Macro & Market defaults, or the Constants/Source-of-Truth tab. Also use when extending `COUNTRY_KEYS_OVERLAID_ON_GLOBAL` in `server/finance/apply-model-constants.ts`, or when a specialist in the Intelligence realm produces an inflation recommendation. Replaces the "treat inflation like depreciation" reflex with the correct cascade-and-specialist-sourced model.
 ---
 
 # Inflation Cascade
@@ -11,7 +11,7 @@ Authoritative rule: `.claude/rules/inflation-cascade.md`. Read it before making 
 
 - Adding, removing, or moving an inflation-rate field on any page (Company Assumptions, Property Edit, Defaults Admin Market & Macro, Constants tab).
 - Extending `COUNTRY_KEYS_OVERLAID_ON_GLOBAL` in `server/finance/apply-model-constants.ts`.
-- Writing a specialist (in the AI Intelligence realm) that produces inflation values.
+- Writing a specialist (in the Intelligence realm) that produces inflation values.
 - Reviewing a Constants Admin canonical row for `inflationRate`.
 - Reviewing an audit doc that proposes "inflation as a Constant" (e.g. Task #379 follow-ups).
 
@@ -19,7 +19,7 @@ Authoritative rule: `.claude/rules/inflation-cascade.md`. Read it before making 
 
 1. **Engine cascade (do not change):** `property.inflationRate ?? mcAssumptions.inflationRate ?? marketMacroFallback`.
 2. **MC Assumptions = source of truth.** Property = override. Defaults Market & Macro = seed + last-resort fallback.
-3. **Constants table holds inflation as authority-sourced reference.** Rows are written exclusively by AI Intelligence specialists from a monetary-authority publication. Admin and users **cannot edit** Constants rows.
+3. **Constants table holds inflation as authority-sourced reference.** Rows are written exclusively by Intelligence specialists from a monetary-authority publication. Admin and users **cannot edit** Constants rows.
 4. **Admin's only Constants action = "Refresh research" button** per row → triggers the specialist to re-fetch the authority and update the row. No typing, no Apply form, no value entry by admin.
 5. **`source = "manual"` is deprecated** for inflation (and any other authority-derived Constant). Only `source = "analyst"` (specialist verdict) is legitimate.
 6. **Never a TS literal.** No `const INFLATION_RATE = 0.03` in `calc/`, `engine/`, `server/`, `client/`, or routes.

@@ -497,7 +497,7 @@ export async function proposeConstantRegeneration(args: {
     // governed key. The coverage test catches drifts at build time, so this
     // is a runtime safety net, not the primary enforcement.
     throw new Error(
-      `No AI Intelligence Specialist owns constant '${args.key}'. ` +
+      `No Intelligence Specialist owns constant '${args.key}'. ` +
       `Add it to a Specialist's constantsOwned[] in engine/analyst/registry/specialist-catalog.ts.`,
     );
   }
