@@ -30,6 +30,31 @@ export default tseslint.config(
       "@typescript-eslint/no-redeclare": "error",
       "no-shadow": "off",
       "no-redeclare": "off",
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@phosphor-icons/react",
+              message:
+                "Import Phosphor icons from 'src/components/icons' barrel files, not directly from @phosphor-icons/react.",
+            },
+          ],
+          patterns: [
+            {
+              group: ["@phosphor-icons/react/*"],
+              message:
+                "Import Phosphor icons from 'src/components/icons' barrel files, not directly from @phosphor-icons/react.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["src/components/icons/**/*.ts", "src/components/icons/**/*.tsx"],
+    rules: {
+      "no-restricted-imports": "off",
     },
   }
 );
