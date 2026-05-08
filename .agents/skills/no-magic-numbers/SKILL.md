@@ -1,19 +1,25 @@
 ---
 name: no-magic-numbers
-description: Forbid raw numeric literals in code. Every number is either a named constant, an enumerated math/physics derivation with the formula in a comment, a documented unit conversion, or a structural index/length. Use whenever you write or review code that contains numbers — especially in financial, engine, calibration, threshold, weight, or limit code. Catches the failure mode where a tier threshold gets duplicated across files and silently drifts, where a calibration weight gets re-tuned in one place but not its sibling, and where the meaning of a literal is lost the day after it was written.
+description: Forbid raw numeric literals that encode business-model assumptions, financial calculations, or info-source thresholds. Every such number is either a named constant, an enumerated math/physics derivation with the formula in a comment, a documented unit conversion, or a structural index/length. Use whenever you write or review code that contains numbers tied to the app's purpose — pricing, calibration, source thresholds, weights, tier cutoffs. Design tokens, CS constants, and industry-spec dimensions (PDF page sizes, HD resolutions, DPI, aspect ratios) are explicitly out of scope. Catches the failure mode where a tier threshold gets duplicated across files and silently drifts, where a calibration weight gets re-tuned in one place but not its sibling, and where the meaning of a literal is lost the day after it was written.
 ---
 
 # No Magic Numbers
 
-A discipline for treating every numeric literal in code as a question: *what does this number mean, and where else does it live?* Magic numbers are the most reliable source of cross-file drift in financial, calibration, and threshold code, and they are invisible to TypeScript and most lint rules.
+A discipline for treating every numeric literal **that encodes a business-model assumption, a financial calculation, or a source-of-information threshold** as a question: *what does this number mean, and where else does it live?* Those numbers are the most reliable source of cross-file drift in this app, and they are invisible to TypeScript and most lint rules.
+
+## What this skill is — and isn't — for
+
+The concern is values that **feed the app's main purpose**: business-model assumptions, financial calculations, and source-of-information thresholds. Those are the literals that drift, get re-tuned, vary by jurisdiction, and produce silent divergence across files.
+
+This skill is **not** for design tokens (margins, paddings, font sizes), computer-science constants (bit depth, port numbers, buffer sizes), or industry-standard dimensional values (PDF page sizes, HD resolutions, DPI, aspect ratios). Those literals are spec-fixed by external standards, don't vary by jurisdiction or market, and are a separate problem (design-system consistency, CS hygiene). See "Out-of-scope literals" below.
 
 ## The rule (one sentence)
 
-**Every numeric literal in source code must be either a named constant, a math/physics derivation accompanied by its formula in a comment, a documented unit conversion factor, or a structural index/length/clamp.** Anything else is a violation.
+**Every numeric literal that encodes a business-model assumption, financial calculation, or source-of-information threshold must be either a named constant, a math/physics derivation accompanied by its formula in a comment, a documented unit conversion factor, or a structural index/length/clamp.** Anything else, in those domains, is a violation.
 
 ## When to use
 
-Before writing or merging any code that contains a number. Especially:
+Before writing or merging any code that contains a number tied to the app's purpose. Especially:
 
 - Financial calibration values (tax rates, discount rates, expense ratios, exit caps).
 - Engine thresholds (conviction floors, severity boundaries, tier cutoffs).
@@ -27,6 +33,27 @@ Before writing or merging any code that contains a number. Especially:
 - Pure formatting or whitespace changes.
 - Generated code (e.g. Drizzle migrations, codegen output) — file the issue against the generator, not the output.
 - Test fixture data where the literal *is* the input under test (e.g. `expect(score(input)).toBe(72)` — `72` is the answer being asserted, not a magic number).
+- **Out-of-scope literal classes** — see the dedicated section below.
+
+## Out-of-scope literals (not the concern of this skill)
+
+The following literal classes are **explicitly out of scope**, even when they appear in many files:
+
+| Class | Examples | Why out of scope |
+|---|---|---|
+| **Industry-standard dimensions** | `1920 × 1080` (Full HD, ITU-R BT.709), `1280 × 720` (HD), `595 × 842` (A4 in PDF points, ISO 216), `612 × 792` (US Letter), `960 × 540` (canonical slide canvas) | Fixed by an external technical spec. Same value in every country, every market, every era. Engineers do not "re-tune" them; changing the value means you no longer have that spec. |
+| **Industry-standard ratios** | `16:9`, `4:3`, `21:9`, golden ratio | Mathematical ratios. The choice to *use* 16:9 may be a design decision, but the ratio's value is fixed. |
+| **DPI / unit definitions** | `72` pt/inch (PDF spec), `96` px/inch (CSS spec), `25.4` mm/inch, `2.54` cm/inch (NIST exact) | Spec/unit definitions. Always category 3 (documented unit conversion). |
+| **CS constants** | `4` RGBA channels, `256` 8-bit color depth, `255` max-channel value, `8` bits/byte, `1024` bytes/KiB | Properties of the data structure or encoding spec. Not opinions. |
+| **Design tokens** | `8`/`16`/`24`-px spacing scales, `4`-px grid units, `12`/`14`/`16`-px typography scales | A design-system concern; consistency belongs to the token system, not this skill. |
+| **HTTP / network constants** | `200`, `404`, `500`, port numbers, MIME-type lengths | Protocol-defined; should still be named (`HTTP_OK`) for readability, but cross-file duplication is expected. |
+
+Two practical implications:
+
+1. **Naming is still encouraged for readability.** `DECK_VIEWPORT_WIDTH = 1920` is better than a bare `1920` even though `1920` is industry-standard. The skill just doesn't *require* it the way it does for `MAX_PROPERTIES_PER_PORTFOLIO`.
+2. **Cross-file duplication is acceptable for these classes.** The cross-file ratchet (Layer 1 below) treats common spec/CS values as pre-allowlisted — they may appear in many files without flagging.
+
+The reverse is also true: **wrapping a business-model literal in a named constant in a non-canonical file is still a violation**. See "The masking anti-pattern" — a route-local `const DEFAULT_INFLATION_RATE = 0.03` is the same magic number whether you spell it as `0.03` or as the named constant.
 
 ## The four allowed categories
 
@@ -67,13 +94,21 @@ If it isn't a true physical constant or a definitional unit relationship, it doe
 
 #### Universal vs. authority-dictated — a critical distinction
 
-A literal qualifies for category 2 or 3 (and the cross-file allowlist) **only** when its value is fixed by math, by the calendar, by physics, or by a unit definition that is the same in every country. Examples that qualify:
+A literal qualifies for category 2 or 3 (and the cross-file allowlist) **only** when its value is fixed by math, by the calendar, by physics, by a unit definition, or by an **international technical standard** that is the same in every country and market. Examples that qualify:
 
 - `30.5` — days per month, derives from `365 / 12`. Same arithmetic everywhere.
 - `365.25` — days in a Julian year. Astronomy, not policy.
 - `86400` — seconds per day. Definitional.
 - `10000` — basis points per 100%. The definition of a basis point.
 - `Math.PI`, `Math.E`, `√2` — constants of nature.
+- `25.4` — mm per inch (NIST exact). `2.54` — cm per inch.
+- `72` — PDF points per inch (ISO 32000 spec). `96` — CSS px per inch (W3C CSS spec).
+- `1920 × 1080`, `1280 × 720`, `3840 × 2160` — HD/4K display resolutions (ITU-R BT.709 / BT.2020).
+- `595 × 842` (A4), `612 × 792` (US Letter) — paper dimensions in PDF points (ISO 216 / ANSI).
+- `256`, `255` — 8-bit channel depth and max value. Encoding-spec.
+- `4` channels in RGBA. Spec.
+
+The unifying property: changing the value means you are no longer producing the named output. `1920 × 1080` is Full HD by definition; if you change it to `1920 × 1081`, you do not have HD. There is no "engineer's calibration choice" inside these literals.
 
 Examples that **do NOT qualify** (these vary by jurisdiction and belong in the country-scoped Constants table — see the `constants-vs-defaults` skill):
 
@@ -83,7 +118,9 @@ Examples that **do NOT qualify** (these vary by jurisdiction and belong in the c
 - Trading-day counts — 252 for NYSE, different for Tokyo, different again for São Paulo.
 - "Standard" cap rates, "standard" mgmt fee bps, "industry" labor burden.
 
-**The rule:** if the number could legitimately be different under a different country's rules, it is policy, not math. Promote it to the database-backed, country-scoped Constants table. The cross-file duplication detector EXISTS to catch jurisdictional values that have been hardcoded in multiple files instead of being sourced from the table.
+**The rule:** if the number could legitimately be different under a different country's rules — or if it represents an engineering *choice* that could be re-tuned for a different market — it is policy, not math. Promote it to the database-backed, country-scoped Constants table. The cross-file duplication detector EXISTS to catch jurisdictional values that have been hardcoded in multiple files instead of being sourced from the table.
+
+**The mirror rule:** if the number is fixed by an external technical spec (PDF, ISO, W3C, ITU-R, IEEE, NIST) and could not legitimately be different in any country, era, or market without breaking conformance to that spec, it is math/spec, not policy. It belongs on the universal allowlist; it does not need a country-scoped table.
 
 ### 4. Structural index / length / clamp
 

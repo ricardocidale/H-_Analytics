@@ -73,7 +73,7 @@ const SKIP_FILE_SUFFIXES = new Set([".test.ts", ".test.tsx", ".spec.ts", ".spec.
 const ALLOWED_DUPLICATED_VALUES = new Set<string>([
   "12",       // months per year
   "52",       // weeks per year
-  "4",        // quarters per year
+  "4",        // quarters per year — also: RGBA channels (encoding spec)
   "7",        // days per week
   "24",       // hours per day
   "60",       // seconds/minute or minutes/hour
@@ -85,6 +85,29 @@ const ALLOWED_DUPLICATED_VALUES = new Set<string>([
   "1000",     // milliseconds per second
   "10000",    // basis points per 100%
   "100",      // percent scale
+  // Industry-standard dimensional / encoding constants — fixed by external
+  // technical spec (PDF, ISO 216, ITU-R, W3C, NIST). Out of scope for the
+  // business-model magic-number gate. See SKILL.md "Out-of-scope literals".
+  "1920",     // Full HD width  (ITU-R BT.709)
+  "1080",     // Full HD height (ITU-R BT.709)
+  "1280",     // HD width       (ITU-R BT.709)
+  "720",      // HD height      (ITU-R BT.709) — also matches PDF Letter half-points
+  "3840",     // 4K UHD width   (ITU-R BT.2020)
+  "2160",     // 4K UHD height  (ITU-R BT.2020)
+  "960",      // canonical slide canvas width  (1920 / 2)
+  "540",      // canonical slide canvas height (1080 / 2)
+  "595",      // A4 width  in PDF points (ISO 216)
+  "842",      // A4 height in PDF points (ISO 216)
+  "612",      // US Letter width  in PDF points (ANSI)
+  "792",      // US Letter height in PDF points (ANSI)
+  "210",      // A4 width  (mm)
+  "297",      // A4 height (mm)
+  "72",       // PDF points per inch (ISO 32000)
+  "96",       // CSS px per inch (W3C CSS spec)
+  "25.4",     // mm per inch (NIST exact)
+  "2.54",     // cm per inch (NIST exact)
+  "256",      // 8-bit color depth
+  "255",      // max 8-bit channel value
   // Regulatory/legal citation substrings — scanner sees these as numeric literals
   // because they appear as bare digits in strings like "IRS Publication 946" or
   // "NOM-030-SSA3-2013". Not executable numeric values; safe to allowlist.
