@@ -46,7 +46,6 @@ const SMOKE_PROPERTY_IDS = {
   slide3: 67,
   slide5: 68,
 };
-
 /** Total slides in one L+B deck — used to assert buildLbPayloadFromFactoryRun output. */
 const SMOKE_TOTAL_SLIDES = 6;
 
