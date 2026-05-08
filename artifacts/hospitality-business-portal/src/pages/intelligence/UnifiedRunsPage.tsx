@@ -25,14 +25,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconCheckCircle, IconAlertCircle } from "@/components/icons/status-icons";
 import { IconList, IconBot, IconBrain, IconWand2 } from "@/components/icons";
+import { ChevronRight } from "@/components/icons/themed-icons";
 import {
   RUN_TYPE_LABELS,
   ANALYST_BRAND,
   AGENTS,
   ORCHESTRATORS,
+  SLIDE_AGENT_NAMES,
+  SLIDE_TEAM_TAGS,
   type RunType,
 } from "@/lib/agent-taxonomy";
 
@@ -44,6 +54,9 @@ const RUNS_POLL_MS = 8_000;
 /** Number of Slide Factory runs to request. */
 const SLIDE_RUNS_LIMIT = 20;
 
+/** Total slide count in one L+B deck. */
+const TOTAL_DECK_SLIDES = 6;
+
 const MS_PER_MINUTE = 60 * 1_000;
 const MS_PER_HOUR = 60 * 60 * 1_000;
 const MS_PER_DAY = 24 * 60 * 60 * 1_000;
@@ -51,6 +64,14 @@ const MS_PER_DAY = 24 * 60 * 60 * 1_000;
 // ── Types ─────────────────────────────────────────────────────────────────
 
 type UnifiedRunStatus = "running" | "completed" | "complete" | "error" | "pending" | "new" | "brief_ready" | "ingesting" | "ingested" | "drafting" | "draft_review" | "building";
+
+/** Health summary stored in iris_runs.health_summary (JSONB). */
+interface IrisHealthSummary {
+  summary?: string;
+  toolsInvoked?: number;
+  runId?: string;
+  error?: string;
+}
 
 interface UnifiedRun {
   id: string;
@@ -61,8 +82,28 @@ interface UnifiedRun {
   startedAt: string | null;
   completedAt: string | null;
   durationMs: number | null;
-  detailLink?: string;
-  meta?: Record<string, string | number | null>;
+  /** Raw numeric ID for slide factory runs — used to fetch detail. */
+  slideFactoryRunId?: number;
+  /** Scheduler key for analyst/iris scheduler runs. */
+  schedulerKey?: string;
+  meta?: {
+    chunksIndexed?: number | null;
+    errorsEncountered?: number | null;
+    trigger?: string | null;
+    modelUsed?: string | null;
+    brief?: string | null;
+    /** Iris health summary — text from the agent's final report or error string. */
+    healthSummary?: IrisHealthSummary | null;
+    /** Notes from the scheduler cycle (Analyst runs). */
+    notes?: string | null;
+    /** Items considered this cycle. */
+    considered?: number | null;
+    /** Items succeeded this cycle. */
+    succeeded?: number | null;
+    /** Items failed this cycle. */
+    failed?: number | null;
+    [k: string]: string | number | null | undefined | IrisHealthSummary;
+  };
 }
 
 interface IrisLastRun {
@@ -74,6 +115,7 @@ interface IrisLastRun {
   errorsEncountered: number;
   durationMs: number | null;
   runAt: string;
+  healthSummary: IrisHealthSummary | null;
 }
 
 interface IrisStatus {
@@ -81,10 +123,24 @@ interface IrisStatus {
   gapsCount: number;
 }
 
+interface SlideAgentResultFE {
+  status: "pending" | "running" | "approved" | "rejected";
+  pixelDiffPct: number | null;
+  mayaVerdict: "ok" | "advisory" | "warning" | "block" | null;
+  mayaNotes: string | null;
+  approvedAt: string | null;
+  errorMessage: string | null;
+}
+
+type FactoryStatus =
+  | "new" | "brief_ready" | "ingesting" | "ingested"
+  | "drafting" | "draft_review" | "building" | "complete" | "error";
+
 interface SlideFactoryRun {
   id: number;
-  status: string;
+  status: FactoryStatus;
   briefFilename: string | null;
+  agentResults: Record<string, SlideAgentResultFE> | null;
   startedAt: string | null;
   completedAt: string | null;
   createdAt: string;
@@ -95,6 +151,10 @@ interface SchedulerRecentRun {
   ranAt: string;
   status: "ok" | "warn" | "error";
   durationMs: number | null;
+  notes: string | null;
+  considered: number;
+  succeeded: number;
+  failed: number;
 }
 
 interface SchedulerRunRow {
@@ -103,6 +163,7 @@ interface SchedulerRunRow {
   lastRunAt: string | null;
   status: string | null;
   durationMs: number | null;
+  notes: string | null;
   recentRuns: SchedulerRecentRun[];
 }
 
@@ -123,6 +184,12 @@ function formatRelativeTime(isoString: string | null): string {
   }
   const days = Math.floor(diffMs / MS_PER_DAY);
   return `${days}d ago`;
+}
+
+function formatAbsoluteTime(isoString: string | null): string {
+  if (!isoString) return "—";
+  const d = new Date(isoString);
+  return `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
 }
 
 function formatDuration(ms: number | null): string {
@@ -197,14 +264,7 @@ function withinDateRange(isoString: string | null, range: DateRange): boolean {
 }
 
 // ── Scheduler key classification ───────────────────────────────────────────
-// Only a subset of scheduler keys represent agent runs in the taxonomy.
-// Keys not listed here are infra/maintenance cycles and are excluded from
-// the unified run log.
 
-/**
- * Scheduler keys that represent Analyst-tier runs (specialist research cycles).
- * Maps schedulerKey → user-facing agent name.
- */
 const ANALYST_SCHEDULER_KEYS: Record<string, string> = {
   "research-workflows": ORCHESTRATORS.gustavo.humanName,
   "constants-refresh": "Constants Refresh",
@@ -212,13 +272,25 @@ const ANALYST_SCHEDULER_KEYS: Record<string, string> = {
   "specialist-photos-batch": "Fernanda",
 };
 
-/**
- * Scheduler keys that represent Iris-tier runs.
- * Maps schedulerKey → user-facing agent name.
- */
 const IRIS_SCHEDULER_KEYS: Record<string, string> = {
   "iris-health": AGENTS.iris.humanName,
   "iris-reindex": AGENTS.iris.humanName,
+};
+
+// ── Maya verdict display maps ──────────────────────────────────────────────
+
+const MAYA_VERDICT_LABEL: Record<NonNullable<SlideAgentResultFE["mayaVerdict"]>, string> = {
+  ok: "OK",
+  advisory: "Advisory",
+  warning: "Warning",
+  block: "Block",
+};
+
+const MAYA_VERDICT_CLASS: Record<NonNullable<SlideAgentResultFE["mayaVerdict"]>, string> = {
+  ok: "text-emerald-700 bg-emerald-50",
+  advisory: "text-sky-700 bg-sky-50",
+  warning: "text-amber-700 bg-amber-50",
+  block: "text-red-700 bg-red-50",
 };
 
 // ── Type icon ─────────────────────────────────────────────────────────────
@@ -231,30 +303,19 @@ function RunTypeIcon({ type }: { type: RunType }) {
 
 // ── Run row ───────────────────────────────────────────────────────────────
 
-function RunRow({ run }: { run: UnifiedRun }) {
+function RunRow({ run, isSelected, onClick }: { run: UnifiedRun; isSelected: boolean; onClick: (id: string) => void }) {
   const active = isActiveRun(run.status);
   const timeStr = run.startedAt ?? run.completedAt;
-  const Wrapper = run.detailLink
-    ? ({ children }: { children: React.ReactNode }) => (
-        <a
-          href={run.detailLink}
-          className="flex items-start gap-3 py-3 border-b border-border/50 last:border-0 hover:bg-muted/30 rounded transition-colors cursor-pointer"
-          data-testid={`run-row-${run.id}`}
-        >
-          {children}
-        </a>
-      )
-    : ({ children }: { children: React.ReactNode }) => (
-        <div
-          className="flex items-start gap-3 py-3 border-b border-border/50 last:border-0"
-          data-testid={`run-row-${run.id}`}
-        >
-          {children}
-        </div>
-      );
 
   return (
-    <Wrapper>
+    <button
+      type="button"
+      className={`w-full text-left flex items-start gap-3 py-3 border-b border-border/50 last:border-0 rounded transition-colors cursor-pointer group ${
+        isSelected ? "bg-muted/50" : "hover:bg-muted/30"
+      }`}
+      data-testid={`run-row-${run.id}`}
+      onClick={() => onClick(run.id)}
+    >
       <div className="mt-0.5 shrink-0">
         {run.status === "completed" || run.status === "complete" ? (
           <IconCheckCircle weight="fill" className="w-4 h-4 text-success" />
@@ -303,7 +364,399 @@ function RunRow({ run }: { run: UnifiedRun }) {
           )}
         </div>
       </div>
-    </Wrapper>
+
+      <ChevronRight className={`w-3.5 h-3.5 shrink-0 mt-1 transition-colors ${
+        isSelected ? "text-muted-foreground" : "text-muted-foreground/40 group-hover:text-muted-foreground"
+      }`} />
+    </button>
+  );
+}
+
+// ── Detail panel sub-components ────────────────────────────────────────────
+
+/** Slide Factory detail: fetches full run to show per-slide agent results. */
+function SlideFactoryDetail({ runId }: { runId: number }) {
+  const { data: run, isLoading, error } = useQuery<SlideFactoryRun>({
+    queryKey: ["factory-run-detail", runId],
+    queryFn: async () => {
+      const r = await fetch(`/api/lb-slides/factory/runs/${runId}`, {
+        credentials: "include",
+      });
+      if (!r.ok) throw new Error("Failed to fetch run details");
+      return r.json() as Promise<SlideFactoryRun>;
+    },
+    refetchInterval: (query) => {
+      const s = query.state.data?.status;
+      return s === "building" || s === "drafting" || s === "ingesting" ? RUNS_POLL_MS : false;
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-10">
+        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error || !run) {
+    return (
+      <p className="text-sm text-destructive py-4">
+        Failed to load run details.
+      </p>
+    );
+  }
+
+  const agentResults = run.agentResults ?? {};
+  const isBuilding = run.status === "building";
+  const isComplete = run.status === "complete";
+
+  return (
+    <div className="space-y-4 mt-2">
+      {/* Run metadata */}
+      <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2.5 space-y-1 text-xs">
+        {run.briefFilename && (
+          <div className="flex gap-2">
+            <span className="text-muted-foreground w-24 shrink-0">Brief</span>
+            <span className="text-foreground font-medium truncate">{run.briefFilename}</span>
+          </div>
+        )}
+        <div className="flex gap-2">
+          <span className="text-muted-foreground w-24 shrink-0">Started</span>
+          <span className="font-mono">{formatAbsoluteTime(run.startedAt ?? run.createdAt)}</span>
+        </div>
+        {run.completedAt && (
+          <div className="flex gap-2">
+            <span className="text-muted-foreground w-24 shrink-0">Completed</span>
+            <span className="font-mono">{formatAbsoluteTime(run.completedAt)}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Per-slide agent results */}
+      <div>
+        <div className="flex items-center gap-2 mb-2 pb-2 border-b border-border/60">
+          {isBuilding ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-primary shrink-0" />
+          ) : isComplete ? (
+            <IconCheckCircle weight="fill" className="w-3.5 h-3.5 text-success shrink-0" />
+          ) : (
+            <IconAlertCircle weight="fill" className="w-3.5 h-3.5 text-destructive shrink-0" />
+          )}
+          <span className="text-xs font-semibold text-foreground">
+            {ORCHESTRATORS.marco.swarmHeader}
+          </span>
+          <span className="text-[10px] px-1.5 py-px rounded bg-muted text-muted-foreground uppercase tracking-wide leading-none ml-auto">
+            Orchestrator
+          </span>
+        </div>
+
+        <p className="text-xs text-muted-foreground mb-3">
+          {isBuilding
+            ? "6 teams building — polling for updates…"
+            : isComplete
+            ? "All slides built and verified."
+            : "Build pipeline — per-slide results below."}
+        </p>
+
+        <div className="divide-y divide-border/60">
+          {Array.from({ length: TOTAL_DECK_SLIDES }, (_, i) => {
+            const slideNum = i + 1;
+            const key = `slide${slideNum}`;
+            const result = agentResults[key] ?? null;
+            const slotStatus = result?.status ?? (isBuilding ? "pending" : null);
+
+            return (
+              <div key={key} className="flex items-start gap-3 py-2.5">
+                <div className="mt-0.5 shrink-0">
+                  {slotStatus === "approved" ? (
+                    <IconCheckCircle weight="fill" className="w-3.5 h-3.5 text-success" />
+                  ) : slotStatus === "rejected" ? (
+                    <IconAlertCircle weight="fill" className="w-3.5 h-3.5 text-destructive" />
+                  ) : slotStatus === "running" ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+                  ) : (
+                    <div className="w-3.5 h-3.5 rounded-full border-2 border-border" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-xs font-medium">
+                      {SLIDE_AGENT_NAMES[slideNum]} — Slide {slideNum}
+                    </span>
+                    <span className="text-[10px] px-1.5 py-px rounded bg-muted text-muted-foreground uppercase tracking-wide leading-none">
+                      {SLIDE_TEAM_TAGS[slideNum]}
+                    </span>
+                    {result?.mayaVerdict && (
+                      <span
+                        className={`text-[10px] px-1.5 py-px rounded leading-none font-medium ${MAYA_VERDICT_CLASS[result.mayaVerdict]}`}
+                      >
+                        Maya: {MAYA_VERDICT_LABEL[result.mayaVerdict]}
+                      </span>
+                    )}
+                    {result?.pixelDiffPct != null && (
+                      <span className="text-[10px] px-1.5 py-px rounded bg-muted text-muted-foreground leading-none">
+                        Dino: {result.pixelDiffPct.toFixed(1)}%
+                      </span>
+                    )}
+                  </div>
+                  {result?.errorMessage && (
+                    <p className="text-xs text-destructive mt-0.5 break-words">
+                      {result.errorMessage}
+                    </p>
+                  )}
+                  {result?.mayaNotes && result.mayaVerdict !== "ok" && (
+                    <p className="text-xs text-muted-foreground mt-0.5 break-words">
+                      {result.mayaNotes}
+                    </p>
+                  )}
+                  {result?.approvedAt && (
+                    <p className="text-[10px] text-muted-foreground/70 mt-0.5 font-mono">
+                      Approved {formatAbsoluteTime(result.approvedAt)}
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Iris detail: shows chunksIndexed, errorsEncountered, trigger, modelUsed, and health summary. */
+function IrisDetail({ run }: { run: UnifiedRun }) {
+  const meta = run.meta ?? {};
+  const hasErrors = (meta.errorsEncountered ?? 0) > 0;
+  const health = meta.healthSummary as IrisHealthSummary | null | undefined;
+  const isError = run.status === "error";
+
+  return (
+    <div className="space-y-4 mt-2">
+      {/* Metadata */}
+      <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2.5 space-y-1.5 text-xs">
+        {meta.trigger && (
+          <div className="flex gap-2">
+            <span className="text-muted-foreground w-28 shrink-0">Trigger</span>
+            <span className="text-foreground capitalize">{String(meta.trigger)}</span>
+          </div>
+        )}
+        {meta.modelUsed && (
+          <div className="flex gap-2">
+            <span className="text-muted-foreground w-28 shrink-0">Model</span>
+            <span className="font-mono">{String(meta.modelUsed)}</span>
+          </div>
+        )}
+        <div className="flex gap-2">
+          <span className="text-muted-foreground w-28 shrink-0">Started</span>
+          <span className="font-mono">{formatAbsoluteTime(run.startedAt)}</span>
+        </div>
+        {run.durationMs != null && (
+          <div className="flex gap-2">
+            <span className="text-muted-foreground w-28 shrink-0">Duration</span>
+            <span className="font-mono tabular-nums">{formatDuration(run.durationMs)}</span>
+          </div>
+        )}
+        {health?.toolsInvoked != null && (
+          <div className="flex gap-2">
+            <span className="text-muted-foreground w-28 shrink-0">Tools invoked</span>
+            <span className="font-mono tabular-nums">{health.toolsInvoked}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-md border border-border/60 bg-muted/10 px-3 py-2.5 text-center">
+          <p className="text-2xl font-semibold tabular-nums text-foreground">
+            {meta.chunksIndexed ?? "—"}
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">Chunks indexed</p>
+        </div>
+        <div className={`rounded-md border px-3 py-2.5 text-center ${
+          hasErrors ? "border-destructive/40 bg-destructive/5" : "border-border/60 bg-muted/10"
+        }`}>
+          <p className={`text-2xl font-semibold tabular-nums ${hasErrors ? "text-destructive" : "text-foreground"}`}>
+            {meta.errorsEncountered ?? "—"}
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">Errors encountered</p>
+        </div>
+      </div>
+
+      {/* Error message from healthSummary */}
+      {isError && health?.error && (
+        <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2.5">
+          <div className="flex items-start gap-2 mb-1.5">
+            <IconAlertCircle weight="fill" className="w-3.5 h-3.5 text-destructive shrink-0 mt-0.5" />
+            <p className="text-xs font-medium text-destructive">Error details</p>
+          </div>
+          <p className="text-xs text-destructive/90 break-words font-mono leading-relaxed pl-5">
+            {health.error}
+          </p>
+        </div>
+      )}
+
+      {/* Agent summary from healthSummary (on success) */}
+      {!isError && health?.summary && (
+        <div className="rounded-md border border-border/60 bg-muted/10 px-3 py-2.5">
+          <p className="text-xs font-medium text-muted-foreground mb-1.5">Agent summary</p>
+          <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap break-words">
+            {health.summary}
+          </p>
+        </div>
+      )}
+
+      {/* General error count warning when no specific message */}
+      {hasErrors && !health?.error && (
+        <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2.5">
+          <IconAlertCircle weight="fill" className="w-3.5 h-3.5 text-destructive shrink-0 mt-0.5" />
+          <p className="text-xs text-destructive">
+            {meta.errorsEncountered} error{Number(meta.errorsEncountered) !== 1 ? "s" : ""} were encountered during indexing.
+            Check the Iris admin tab for more detail.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Analyst / scheduler run detail: shows notes, considered/succeeded/failed counts, and timing. */
+function AnalystDetail({ run }: { run: UnifiedRun }) {
+  const meta = run.meta ?? {};
+  const hasCounts = meta.considered != null || meta.succeeded != null || meta.failed != null;
+
+  return (
+    <div className="space-y-4 mt-2">
+      {/* Metadata */}
+      <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2.5 space-y-1.5 text-xs">
+        <div className="flex gap-2">
+          <span className="text-muted-foreground w-28 shrink-0">Agent</span>
+          <span className="text-foreground font-medium">{run.agentName}</span>
+        </div>
+        <div className="flex gap-2">
+          <span className="text-muted-foreground w-28 shrink-0">Role</span>
+          <span className="text-foreground">{run.agentRole}</span>
+        </div>
+        {run.schedulerKey && (
+          <div className="flex gap-2">
+            <span className="text-muted-foreground w-28 shrink-0">Scheduler key</span>
+            <span className="font-mono text-foreground">{run.schedulerKey}</span>
+          </div>
+        )}
+        <div className="flex gap-2">
+          <span className="text-muted-foreground w-28 shrink-0">Ran at</span>
+          <span className="font-mono">{formatAbsoluteTime(run.startedAt ?? run.completedAt)}</span>
+        </div>
+        {run.durationMs != null && (
+          <div className="flex gap-2">
+            <span className="text-muted-foreground w-28 shrink-0">Duration</span>
+            <span className="font-mono tabular-nums">{formatDuration(run.durationMs)}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Cycle result counts */}
+      {hasCounts && (
+        <div className="grid grid-cols-3 gap-2">
+          {meta.considered != null && (
+            <div className="rounded-md border border-border/60 bg-muted/10 px-2 py-2 text-center">
+              <p className="text-xl font-semibold tabular-nums text-foreground">{meta.considered}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Considered</p>
+            </div>
+          )}
+          {meta.succeeded != null && (
+            <div className="rounded-md border border-border/60 bg-muted/10 px-2 py-2 text-center">
+              <p className="text-xl font-semibold tabular-nums text-foreground">{meta.succeeded}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Succeeded</p>
+            </div>
+          )}
+          {meta.failed != null && (
+            <div className={`rounded-md border px-2 py-2 text-center ${
+              Number(meta.failed) > 0 ? "border-destructive/40 bg-destructive/5" : "border-border/60 bg-muted/10"
+            }`}>
+              <p className={`text-xl font-semibold tabular-nums ${Number(meta.failed) > 0 ? "text-destructive" : "text-foreground"}`}>
+                {meta.failed}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Failed</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Probe notes / cycle result */}
+      {meta.notes && (
+        <div className="rounded-md border border-border/60 bg-muted/10 px-3 py-2.5">
+          <p className="text-xs font-medium text-muted-foreground mb-1.5">Cycle notes</p>
+          <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap break-words">
+            {String(meta.notes)}
+          </p>
+        </div>
+      )}
+
+      {/* Fallback when no notes */}
+      {!meta.notes && !hasCounts && (
+        <div className="text-xs text-muted-foreground bg-muted/20 rounded-md border border-border/60 px-3 py-2.5">
+          Specialist research runs are triggered by the scheduler on a recurring cadence.
+          Detailed probe results and model notes are stored in the Specialist admin pages.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Run detail panel ───────────────────────────────────────────────────────
+
+function RunDetailPanel({
+  run,
+  onClose,
+}: {
+  run: UnifiedRun | null;
+  onClose: () => void;
+}) {
+  const active = run ? isActiveRun(run.status) : false;
+  const timeStr = run?.startedAt ?? run?.completedAt ?? null;
+
+  return (
+    <Sheet open={run != null} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <SheetContent
+        className="w-full sm:max-w-[520px] overflow-y-auto"
+        aria-describedby="run-detail-desc"
+      >
+        {run && (
+          <>
+            <SheetHeader className="pr-6">
+              <div className="flex items-center gap-2">
+                <RunTypeIcon type={run.type} />
+                <SheetTitle className="text-base leading-tight">{run.agentName}</SheetTitle>
+                <Badge
+                  variant={statusVariant(run.status)}
+                  className="text-[10px] h-4 px-1.5 ml-1"
+                >
+                  {active && <Loader2 className="w-2.5 h-2.5 animate-spin mr-1" />}
+                  {statusLabel(run.status)}
+                </Badge>
+              </div>
+              <SheetDescription id="run-detail-desc" className="text-xs">
+                {run.agentRole} · {RUN_TYPE_LABELS[run.type]}
+                {timeStr ? ` · ${formatRelativeTime(timeStr)}` : ""}
+                {run.durationMs != null ? ` · ${formatDuration(run.durationMs)}` : ""}
+              </SheetDescription>
+            </SheetHeader>
+
+            <div className="mt-4">
+              {run.type === "slide" && run.slideFactoryRunId != null ? (
+                <SlideFactoryDetail runId={run.slideFactoryRunId} />
+              ) : run.type === "iris" ? (
+                <IrisDetail run={run} />
+              ) : (
+                <AnalystDetail run={run} />
+              )}
+            </div>
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -356,6 +809,12 @@ export default function UnifiedRunsPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | "running" | "completed" | "error">("all");
   const [dateRange, setDateRange] = useState<DateRange>("30d");
   const [agentSearch, setAgentSearch] = useState("");
+  /**
+   * ID of the selected run. We store just the ID and derive the full
+   * UnifiedRun from the latest `runs` memo so the panel stays live as
+   * queries refresh (real-time updates without a separate fetch).
+   */
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
 
   const { data: irisStatus, isLoading: irisLoading } = useIrisRun();
   const { data: slideRuns = [], isLoading: slideLoading } = useSlideFactoryRuns();
@@ -381,6 +840,9 @@ export default function UnifiedRunsPage() {
         meta: {
           chunksIndexed: lr.chunksIndexed,
           errorsEncountered: lr.errorsEncountered,
+          trigger: lr.trigger,
+          modelUsed: lr.modelUsed,
+          healthSummary: lr.healthSummary,
         },
       });
     }
@@ -399,7 +861,7 @@ export default function UnifiedRunsPage() {
           run.completedAt && run.startedAt
             ? new Date(run.completedAt).getTime() - new Date(run.startedAt).getTime()
             : null,
-        detailLink: `/lb-slides`,
+        slideFactoryRunId: run.id,
         meta: run.briefFilename ? { brief: run.briefFilename } : undefined,
       });
     }
@@ -411,13 +873,11 @@ export default function UnifiedRunsPage() {
       const agentName = analystName ?? irisName;
       const runType: RunType | null = analystName ? "analyst" : irisName ? "iris" : null;
 
-      // Skip scheduler keys that are infra/maintenance cycles (not agent-taxonomy runs)
       if (!runType || !agentName) continue;
 
       const agentRole = runType === "analyst" ? "Analyst" : AGENTS.iris.role;
 
       if (row.recentRuns && row.recentRuns.length > 0) {
-        // Use the per-run history so this is a real log, not just a snapshot
         for (const run of row.recentRuns) {
           out.push({
             id: `scheduler-${row.schedulerKey}-${run.ranAt}`,
@@ -428,10 +888,16 @@ export default function UnifiedRunsPage() {
             startedAt: run.ranAt,
             completedAt: run.ranAt,
             durationMs: run.durationMs,
+            schedulerKey: row.schedulerKey,
+            meta: {
+              notes: run.notes,
+              considered: run.considered,
+              succeeded: run.succeeded,
+              failed: run.failed,
+            },
           });
         }
       } else if (row.lastRunAt) {
-        // Fallback: no run history strip — use the last-run snapshot
         out.push({
           id: `scheduler-${row.schedulerKey}`,
           type: runType,
@@ -441,6 +907,10 @@ export default function UnifiedRunsPage() {
           startedAt: row.lastRunAt,
           completedAt: row.lastRunAt,
           durationMs: row.durationMs,
+          schedulerKey: row.schedulerKey,
+          meta: {
+            notes: row.notes,
+          },
         });
       }
     }
@@ -455,6 +925,13 @@ export default function UnifiedRunsPage() {
       return bTime.localeCompare(aTime);
     });
   }, [irisStatus, slideRuns, schedulerRuns]);
+
+  // Derive the selected run from the live runs array so the panel reflects
+  // the latest state whenever queries refresh (real-time for all run types).
+  const selectedRun = useMemo(
+    () => (selectedRunId ? (runs.find((r) => r.id === selectedRunId) ?? null) : null),
+    [selectedRunId, runs],
+  );
 
   const filtered = useMemo(() => {
     const searchLower = agentSearch.trim().toLowerCase();
@@ -557,6 +1034,7 @@ export default function UnifiedRunsPage() {
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <IconList className="w-4 h-4 text-muted-foreground" />
             Run Log
+            <span className="text-xs font-normal text-muted-foreground ml-1">— click any row to see details</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
@@ -583,7 +1061,12 @@ export default function UnifiedRunsPage() {
           ) : (
             <div className="divide-y divide-border/50">
               {filtered.map((run) => (
-                <RunRow key={run.id} run={run} />
+                <RunRow
+                  key={run.id}
+                  run={run}
+                  isSelected={run.id === selectedRunId}
+                  onClick={setSelectedRunId}
+                />
               ))}
             </div>
           )}
@@ -605,6 +1088,9 @@ export default function UnifiedRunsPage() {
           {AGENTS.iris.humanName} — knowledge base maintenance runs
         </span>
       </div>
+
+      {/* Run detail panel — derives run from live runs array for real-time updates */}
+      <RunDetailPanel run={selectedRun} onClose={() => setSelectedRunId(null)} />
     </div>
   );
 }
