@@ -337,6 +337,13 @@ app.use((req, res, next) => {
         serverLog(`[ambient-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
       });
 
+      // ── Phase 3b-Pietro: Pietro data infrastructure scheduler ────────
+      import("./ai/ambient/pietro-scheduler").then(({ startPietroScheduler }) => {
+        startPietroScheduler();
+      }).catch(err => {
+        serverLog(`[pietro-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+      });
+
       // ── Phase 3b: Scheduled research workflow runner ────────
       import("./ai/ambient/research-scheduler").then(({ startResearchScheduler }) => {
         startResearchScheduler();

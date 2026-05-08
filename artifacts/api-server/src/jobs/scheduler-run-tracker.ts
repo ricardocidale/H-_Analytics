@@ -106,6 +106,13 @@ export const SCHEDULER_REGISTRY = [
     description:
       "Weekly Iris backstage agent full reindex run. Invokes the agent with the scheduled-reindex trigger to re-index stale or missing workspace chunks.",
   },
+  {
+    key: "pietro-data-refresh",
+    label: "Pietro Data Infrastructure Refresh",
+    cycleIntervalMs: 60 * 60 * 1000, // 1h
+    description:
+      "Hourly Pietro scheduler tick: checks staleness of source/mcp admin_resource rows and dispatches registered minions (MinionFredExtended, MinionFmpReit, MinionDaloopaReit, MinionBookingRates, MinionExpediaRates) for stale sources.",
+  },
 ] as const;
 
 export type SchedulerKey = (typeof SCHEDULER_REGISTRY)[number]["key"];
@@ -219,6 +226,10 @@ export const SCHEDULER_DISPATCH: Record<SchedulerKey, () => Promise<unknown>> = 
   "iris-reindex": async () => {
     const mod = await import("../ai/ambient/iris-scheduler");
     return mod.runReindexCycle();
+  },
+  "pietro-data-refresh": async () => {
+    const mod = await import("../ai/ambient/pietro-scheduler");
+    return mod.runPietroTick();
   },
 };
 
