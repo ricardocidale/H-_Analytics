@@ -166,6 +166,11 @@
     "0041_slide_factory_runs": {
       "status": "self-idempotent",
       "reason": "CREATE TABLE IF NOT EXISTS slide_factory_runs + CREATE INDEX IF NOT EXISTS \u2014 slide factory V2 run-state table. All statements use IF NOT EXISTS; re-running via migrate() is a no-op."
+    },
+    "0042_rebecca_chat_prefs": {
+      "status": "guarded",
+      "guard": "rebecca-chat-prefs-001.ts",
+      "reason": "ADD COLUMN IF NOT EXISTS rebecca_response_mode + rebecca_show_tool_timing on users. Guarded by rebecca-chat-prefs-001.ts to ensure columns are present on pre-existing DBs regardless of Drizzle journal state."
     }
   }
 }

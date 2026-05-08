@@ -66,6 +66,8 @@ export function userResponse(u: any, extra?: Record<string, any>) {
     colorMode: u.colorMode ?? null,
     bgAnimation: u.bgAnimation ?? null,
     fontPreference: u.fontPreference ?? null,
+    rebeccaResponseMode: u.rebeccaResponseMode ?? null,
+    rebeccaShowToolTiming: u.rebeccaShowToolTiming ?? null,
     ...extra 
   };
 }

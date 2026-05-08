@@ -39,6 +39,8 @@ interface User {
   colorMode: string | null;
   bgAnimation: string | null;
   fontPreference: string | null;
+  rebeccaResponseMode: string | null;
+  rebeccaShowToolTiming: boolean | null;
 }
 
 interface AuthContextType {

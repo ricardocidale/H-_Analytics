@@ -38,6 +38,7 @@ import { RebeccaConversationHistory } from "./RebeccaConversationHistory";
 import { SourcesUsedPanel, type ChatSourceUsed } from "./SourcesUsedPanel";
 import { ToolCallStepIndicator, type ToolStep } from "./ToolCallStepIndicator";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/lib/auth";
 
 interface AssetMatch {
   type: "photo" | "logo";
@@ -128,6 +129,17 @@ function parseObservationField(obs: string): { message: string; fieldKey?: strin
   return { message: obs, fieldKey };
 }
 
+function syncChatPrefsToServer(prefs: { rebeccaResponseMode?: string; rebeccaShowToolTiming?: boolean }) {
+  fetch("/api/profile/chat-preferences", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(prefs),
+  }).catch((err: unknown) => {
+    console.warn("[Rebecca] Failed to sync chat preferences to server:", err);
+  });
+}
+
 export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
   const { rebeccaContext, closeRebecca, openRebecca } = usePanelManager();
   const isOpen = usePanelManager(isRebeccaRailVisible);
@@ -135,6 +147,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
   const currentPage = rebeccaContext?.currentPage ?? derivePageLabel(location);
   const addInsight = useRebeccaInsightStore(s => s.addInsight);
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -146,6 +159,35 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [responseMode, setResponseMode] = useState<ResponseMode>(getStoredMode);
   const [showTiming, setShowTiming] = useState<boolean>(getStoredShowTiming);
+  const serverPrefsAppliedForUserId = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!user || serverPrefsAppliedForUserId.current === user.id) return;
+    serverPrefsAppliedForUserId.current = user.id;
+
+    const backfill: { rebeccaResponseMode?: string; rebeccaShowToolTiming?: boolean } = {};
+
+    const serverMode = user.rebeccaResponseMode;
+    if (serverMode === "concise" || serverMode === "standard" || serverMode === "detailed") {
+      setResponseMode(serverMode);
+      try { localStorage.setItem("rebecca-response-mode", serverMode); } catch { }
+    } else {
+      const localMode = getStoredMode();
+      if (localMode !== "standard") backfill.rebeccaResponseMode = localMode;
+    }
+
+    if (user.rebeccaShowToolTiming !== null && user.rebeccaShowToolTiming !== undefined) {
+      setShowTiming(user.rebeccaShowToolTiming);
+      try { localStorage.setItem("rebecca-show-tool-timing", String(user.rebeccaShowToolTiming)); } catch { }
+    } else {
+      const localTiming = getStoredShowTiming();
+      if (!localTiming) backfill.rebeccaShowToolTiming = localTiming;
+    }
+
+    if (Object.keys(backfill).length > 0) {
+      syncChatPrefsToServer(backfill);
+    }
+  }, [user]);
 
 
   const [isStreaming, setIsStreaming] = useState(false);
@@ -942,6 +984,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                       onClick={() => {
                         setResponseMode(m.value);
                         try { localStorage.setItem("rebecca-response-mode", m.value); } catch (e: unknown) { console.warn("Failed to save response mode", e); }
+                        if (user) syncChatPrefsToServer({ rebeccaResponseMode: m.value });
                       }}
                       className={cn(active && "text-primary")}
                       data-testid={`button-mode-${m.value}`}
@@ -961,6 +1004,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                     const next = !showTiming;
                     setShowTiming(next);
                     try { localStorage.setItem("rebecca-show-tool-timing", String(next)); } catch (e: unknown) { console.warn("Failed to save tool timing setting", e); }
+                    if (user) syncChatPrefsToServer({ rebeccaShowToolTiming: next });
                   }}
                   data-testid="button-toggle-tool-timing"
                 >

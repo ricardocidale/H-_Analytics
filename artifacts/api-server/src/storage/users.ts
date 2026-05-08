@@ -57,6 +57,14 @@ export class UserStorage {
     });
   }
 
+  async updateUserChatPreferences(id: number, prefs: { rebeccaResponseMode?: string | null; rebeccaShowToolTiming?: boolean | null }): Promise<User> {
+    const updates: Record<string, unknown> = { updatedAt: new Date() };
+    if (prefs.rebeccaResponseMode !== undefined) updates.rebeccaResponseMode = prefs.rebeccaResponseMode;
+    if (prefs.rebeccaShowToolTiming !== undefined) updates.rebeccaShowToolTiming = prefs.rebeccaShowToolTiming;
+    const [user] = await db.update(users).set(updates).where(eq(users.id, id)).returning();
+    return user;
+  }
+
   async updateUserProfile(id: number, data: { firstName?: string; lastName?: string; email?: string; company?: string; title?: string; canManageScenarios?: boolean; rebeccaOptOut?: boolean; rebeccaRailOpen?: boolean }): Promise<User> {
     const [user] = await db
       .update(users)
@@ -171,6 +179,8 @@ export class UserStorage {
           colorMode: users.colorMode,
           bgAnimation: users.bgAnimation,
           fontPreference: users.fontPreference,
+          rebeccaResponseMode: users.rebeccaResponseMode,
+          rebeccaShowToolTiming: users.rebeccaShowToolTiming,
           createdAt: users.createdAt,
           updatedAt: users.updatedAt,
         },

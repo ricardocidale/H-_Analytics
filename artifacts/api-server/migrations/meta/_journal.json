@@ -288,6 +288,13 @@
       "when": 1778284800000,
       "tag": "0041_slide_factory_runs",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1746748800000,
+      "tag": "0042_rebecca_chat_prefs",
+      "breakpoints": true
     }
   ]
 }

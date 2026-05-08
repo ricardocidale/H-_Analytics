@@ -288,6 +288,26 @@ export function register(app: Express) {
     }
   });
 
+  app.patch("/api/profile/chat-preferences", requireAuth, async (req, res) => {
+    try {
+      const schema = z.object({
+        rebeccaResponseMode: z.enum(["concise", "standard", "detailed"]).nullable().optional(),
+        rebeccaShowToolTiming: z.boolean().nullable().optional(),
+      });
+      const validation = schema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
+      }
+      const user = await storage.updateUserChatPreferences(getAuthUser(req).id, {
+        rebeccaResponseMode: validation.data.rebeccaResponseMode,
+        rebeccaShowToolTiming: validation.data.rebeccaShowToolTiming,
+      });
+      res.json({ rebeccaResponseMode: user.rebeccaResponseMode, rebeccaShowToolTiming: user.rebeccaShowToolTiming });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to update chat preferences", error);
+    }
+  });
+
   app.patch("/api/profile/theme", requireAuth, async (req, res) => {
     try {
       const schema = z.object({ themeId: z.number().nullable() });
