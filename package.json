@@ -11,6 +11,7 @@
     "check:replit-independence": "pnpm --filter @workspace/scripts run check:replit-independence",
     "check:magic-numbers": "pnpm --filter @workspace/scripts run check:magic-numbers",
     "check:migration-guards": "pnpm --filter @workspace/scripts run check:migration-guards",
+    "check:schema-drift": "pnpm --filter @workspace/scripts run check:schema-drift",
     "check:spinner-contrast": "pnpm --filter @workspace/scripts run check:spinner-contrast",
     "check:production-image": "pnpm --filter @workspace/scripts run check:production-image",
     "check:types-mirror": "pnpm --filter @workspace/scripts run check:types-mirror",

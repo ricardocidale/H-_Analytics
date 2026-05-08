@@ -1,0 +1,7 @@
+#!/bin/sh
+# Run check:schema-drift only when schema source files are staged.
+# Keeps pre-commit latency near-zero for non-schema commits.
+if git diff --cached --name-only | grep -q 'lib/db/src/schema/'; then
+  echo "Schema files staged — running check:schema-drift..."
+  pnpm run check:schema-drift
+fi
