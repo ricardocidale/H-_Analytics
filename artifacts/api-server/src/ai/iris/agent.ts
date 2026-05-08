@@ -52,6 +52,8 @@ export interface IrisRunResult {
   toolsInvoked: string[];
   chunksIndexed: number;
   errorsEncountered: number;
+  /** Individual error messages collected during the run. */
+  errors: string[];
   durationMs: number;
   summary: string;
 }
@@ -118,8 +120,9 @@ function appendIrisToolResults(
 // ---------------------------------------------------------------------------
 
 function accumulateToolMetrics(
+  toolName: string,
   toolResult: unknown,
-  metricsRef: { chunksIndexed: number; errorsEncountered: number },
+  metricsRef: { chunksIndexed: number; errorsEncountered: number; errors: string[] },
 ): void {
   if (typeof toolResult !== "object" || toolResult === null) {
     return;
@@ -130,16 +133,23 @@ function accumulateToolMetrics(
     metricsRef.chunksIndexed += r.chunksIndexed;
   }
 
-  // Count as error if any error indicator is present
-  const hasError =
-    typeof r.error === "string" ||
-    typeof r.errorMessage === "string" ||
-    r.success === false ||
-    r.reachable === false ||
-    r.written === false;
+  // Collect individual error message if any error indicator is present
+  const errorMessage =
+    typeof r.error === "string"
+      ? r.error
+      : typeof r.errorMessage === "string"
+      ? r.errorMessage
+      : r.success === false
+      ? `${toolName}: operation failed`
+      : r.reachable === false
+      ? `${toolName}: target unreachable`
+      : r.written === false
+      ? `${toolName}: write failed`
+      : null;
 
-  if (hasError) {
+  if (errorMessage !== null) {
     metricsRef.errorsEncountered += 1;
+    metricsRef.errors.push(errorMessage);
   }
 }
 
@@ -180,7 +190,7 @@ export async function runIrisAgent(trigger: IrisTrigger): Promise<IrisRunResult>
   // data is not permanently lost if the loop throws before completing.
   const tools = getIrisTools();
   const toolsInvoked: string[] = [];
-  const metrics = { chunksIndexed: 0, errorsEncountered: 0 };
+  const metrics = { chunksIndexed: 0, errorsEncountered: 0, errors: [] as string[] };
 
   // Build initial message history — user message contains the context kickoff
   let history: MessageEntry[] = [{ role: "user", content: userKickoff }];
@@ -227,7 +237,7 @@ export async function runIrisAgent(trigger: IrisTrigger): Promise<IrisRunResult>
       for (const tc of result.toolCalls) {
         toolsInvoked.push(tc.name);
         const toolResult = await dispatchIrisTool(tc.name, tc.arguments ?? {});
-        accumulateToolMetrics(toolResult, metrics);
+        accumulateToolMetrics(tc.name, toolResult, metrics);
         toolResults.push({ id: tc.id, name: tc.name, result: toolResult });
       }
 
@@ -241,9 +251,11 @@ export async function runIrisAgent(trigger: IrisTrigger): Promise<IrisRunResult>
     }
   } catch (err: unknown) {
     runError = err;
+    const catchMsg = err instanceof Error ? `Run failed: ${err.message}` : "Run failed with unexpected error";
     metrics.errorsEncountered += 1;
+    metrics.errors.push(catchMsg);
     if (!finalText) {
-      finalText = err instanceof Error ? `Run failed: ${err.message}` : "Run failed with unexpected error";
+      finalText = catchMsg;
     }
   }
 
@@ -281,6 +293,7 @@ export async function runIrisAgent(trigger: IrisTrigger): Promise<IrisRunResult>
     toolsInvoked,
     chunksIndexed: metrics.chunksIndexed,
     errorsEncountered: metrics.errorsEncountered,
+    errors: metrics.errors,
     durationMs,
     summary: finalText,
   };

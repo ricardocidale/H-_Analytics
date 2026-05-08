@@ -1132,13 +1132,27 @@ export function register(app: Express) {
             break;
           }
 
+          // Emit tool_start events before execution so the client can show
+          // per-tool dispatching animations immediately.
+          if (useStream) {
+            for (const tc of result.toolCalls) {
+              sseWrite(res, "tool_start", { id: tc.id, name: tc.name });
+            }
+          }
+
           // Execute all tool calls in parallel.
           const toolResults = await Promise.all(
             result.toolCalls.map(async (tc) => {
               if (isPrimary) primaryLoopExecutedTools = true;
-              const { result: r, dataChanged: dc } = await executeTool(tc.name, tc.arguments, toolCtx);
-              if (dc) dataChanged.push(dc);
-              return { id: tc.id, name: tc.name, result: r };
+              try {
+                const { result: r, dataChanged: dc } = await executeTool(tc.name, tc.arguments, toolCtx);
+                if (dc) dataChanged.push(dc);
+                if (useStream) sseWrite(res, "tool_done", { id: tc.id, name: tc.name, success: true });
+                return { id: tc.id, name: tc.name, result: r };
+              } catch (toolErr) {
+                if (useStream) sseWrite(res, "tool_done", { id: tc.id, name: tc.name, success: false });
+                throw toolErr;
+              }
             }),
           );
 

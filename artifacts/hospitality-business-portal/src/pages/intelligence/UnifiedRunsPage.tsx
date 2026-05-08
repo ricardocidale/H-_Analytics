@@ -13,7 +13,8 @@
  */
 
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,7 @@ const SLIDE_RUNS_LIMIT = 20;
 /** Total slide count in one L+B deck. */
 const TOTAL_DECK_SLIDES = 6;
 
+
 const MS_PER_MINUTE = 60 * 1_000;
 const MS_PER_HOUR = 60 * 60 * 1_000;
 const MS_PER_DAY = 24 * 60 * 60 * 1_000;
@@ -68,9 +70,17 @@ type UnifiedRunStatus = "running" | "completed" | "complete" | "error" | "pendin
 /** Health summary stored in iris_runs.health_summary (JSONB). */
 interface IrisHealthSummary {
   summary?: string;
-  toolsInvoked?: number;
+  toolsInvoked?: number | string[];
   runId?: string;
   error?: string;
+  /** Individual error messages collected during the run. */
+  errors?: string[];
+}
+
+/** A single failed slide entry for display in the run list row. */
+interface FailedSlide {
+  num: number;
+  reason: string | null;
 }
 
 interface UnifiedRun {
@@ -86,6 +96,11 @@ interface UnifiedRun {
   slideFactoryRunId?: number;
   /** Scheduler key for analyst/iris scheduler runs. */
   schedulerKey?: string;
+  /**
+   * Rejected slides for Slide Factory error runs. Populated directly from
+   * the agentResults in the list response — no extra fetch required.
+   */
+  failedSlides?: FailedSlide[];
   meta?: {
     chunksIndexed?: number | null;
     errorsEncountered?: number | null;
@@ -165,6 +180,30 @@ interface SchedulerRunRow {
   durationMs: number | null;
   notes: string | null;
   recentRuns: SchedulerRecentRun[];
+}
+
+/** Per-workflow detail returned by GET /api/admin/scheduler-runs/:key/last-run */
+interface WorkflowRunDetail {
+  workflowKey: string;
+  name: string;
+  lastRunStatus: string | null;
+  lastRunError: string | null;
+  lastRunAt: string | null;
+  lastRunDurationMs: number | null;
+}
+
+interface SchedulerLastRun {
+  schedulerKey: string;
+  schedulerLabel: string | null;
+  lastRunAt: string | null;
+  status: string | null;
+  notes: string | null;
+  durationMs: number | null;
+  considered: number | null;
+  succeeded: number | null;
+  failed: number | null;
+  /** Only present for research-workflows key */
+  workflows?: WorkflowRunDetail[];
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -363,6 +402,31 @@ function RunRow({ run, isSelected, onClick }: { run: UnifiedRun; isSelected: boo
             </span>
           )}
         </div>
+
+        {/* Per-slide failure summary — shown inline on error rows so admins
+            can triage without opening the detail panel. */}
+        {run.status === "error" && run.failedSlides && run.failedSlides.length > 0 && (
+          <div className="flex flex-col gap-1 mt-0.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[10px] font-medium text-destructive/80 uppercase tracking-wide leading-none">
+                {run.failedSlides.length === 1
+                  ? `Slide ${run.failedSlides[0].num} rejected`
+                  : `Slides ${run.failedSlides.map((s) => s.num).join(", ")} rejected`}
+              </span>
+            </div>
+            {run.failedSlides.map((s) =>
+              s.reason ? (
+                <p
+                  key={s.num}
+                  className="text-[10px] text-destructive/70 leading-tight truncate max-w-xs"
+                  title={s.reason}
+                >
+                  Slide {s.num}: {s.reason}
+                </p>
+              ) : null,
+            )}
+          </div>
+        )}
       </div>
 
       <ChevronRight className={`w-3.5 h-3.5 shrink-0 mt-1 transition-colors ${
@@ -376,6 +440,10 @@ function RunRow({ run, isSelected, onClick }: { run: UnifiedRun; isSelected: boo
 
 /** Slide Factory detail: fetches full run to show per-slide agent results. */
 function SlideFactoryDetail({ runId }: { runId: number }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isRetriggering, setIsRetriggering] = useState(false);
+
   const { data: run, isLoading, error } = useQuery<SlideFactoryRun>({
     queryKey: ["factory-run-detail", runId],
     queryFn: async () => {
@@ -390,6 +458,27 @@ function SlideFactoryDetail({ runId }: { runId: number }) {
       return s === "building" || s === "drafting" || s === "ingesting" ? RUNS_POLL_MS : false;
     },
   });
+
+  async function handleRetrigger() {
+    setIsRetriggering(true);
+    try {
+      const r = await fetch(`/api/lb-slides/factory/runs/${runId}/trigger-build`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!r.ok) {
+        const body = await r.json().catch(() => ({})) as { error?: string };
+        throw new Error(body.error ?? `Server error ${r.status}`);
+      }
+      toast({ title: "Build re-triggered", description: "Marco is rebuilding failed slides." });
+      await queryClient.invalidateQueries({ queryKey: ["factory-run-detail", runId] });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast({ title: "Re-trigger failed", description: msg, variant: "destructive" });
+    } finally {
+      setIsRetriggering(false);
+    }
+  }
 
   if (isLoading) {
     return (
@@ -410,6 +499,7 @@ function SlideFactoryDetail({ runId }: { runId: number }) {
   const agentResults = run.agentResults ?? {};
   const isBuilding = run.status === "building";
   const isComplete = run.status === "complete";
+  const isError = run.status === "error";
 
   return (
     <div className="space-y-4 mt-2">
@@ -432,6 +522,30 @@ function SlideFactoryDetail({ runId }: { runId: number }) {
           </div>
         )}
       </div>
+
+      {/* Re-trigger button — only shown when build failed */}
+      {isError && (
+        <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-start gap-2">
+            <IconAlertCircle weight="fill" className="w-3.5 h-3.5 text-destructive shrink-0 mt-0.5" />
+            <p className="text-xs text-destructive/90">
+              One or more slides failed. Re-trigger to rebuild from the last approved draft.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="destructive"
+            className="shrink-0"
+            disabled={isRetriggering}
+            onClick={handleRetrigger}
+          >
+            {isRetriggering ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+            ) : null}
+            Re-trigger build
+          </Button>
+        </div>
+      )}
 
       {/* Per-slide agent results */}
       <div>
@@ -561,7 +675,11 @@ function IrisDetail({ run }: { run: UnifiedRun }) {
         {health?.toolsInvoked != null && (
           <div className="flex gap-2">
             <span className="text-muted-foreground w-28 shrink-0">Tools invoked</span>
-            <span className="font-mono tabular-nums">{health.toolsInvoked}</span>
+            <span className="font-mono tabular-nums">
+              {Array.isArray(health.toolsInvoked)
+                ? health.toolsInvoked.length
+                : health.toolsInvoked}
+            </span>
           </div>
         )}
       </div>
@@ -607,13 +725,31 @@ function IrisDetail({ run }: { run: UnifiedRun }) {
         </div>
       )}
 
-      {/* General error count warning when no specific message */}
-      {hasErrors && !health?.error && (
+      {/* Individual error list (preferred when available) */}
+      {hasErrors && !health?.error && health?.errors && health.errors.length > 0 && (
+        <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2.5 space-y-1.5">
+          <div className="flex items-center gap-2 mb-1">
+            <IconAlertCircle weight="fill" className="w-3.5 h-3.5 text-destructive shrink-0" />
+            <p className="text-xs font-medium text-destructive">
+              {health.errors.length} error{health.errors.length !== 1 ? "s" : ""} during indexing
+            </p>
+          </div>
+          <ul className="space-y-1 pl-5">
+            {health.errors.map((msg, i) => (
+              <li key={i} className="text-xs text-destructive/90 font-mono leading-relaxed break-words">
+                {msg}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Fallback: error count with no individual messages (older runs or caught exceptions) */}
+      {hasErrors && !health?.error && (!health?.errors || health.errors.length === 0) && (
         <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2.5">
           <IconAlertCircle weight="fill" className="w-3.5 h-3.5 text-destructive shrink-0 mt-0.5" />
           <p className="text-xs text-destructive">
             {meta.errorsEncountered} error{Number(meta.errorsEncountered) !== 1 ? "s" : ""} were encountered during indexing.
-            Check the Iris admin tab for more detail.
           </p>
         </div>
       )}
@@ -621,10 +757,33 @@ function IrisDetail({ run }: { run: UnifiedRun }) {
   );
 }
 
-/** Analyst / scheduler run detail: shows notes, considered/succeeded/failed counts, and timing. */
+/** Analyst / scheduler run detail: shows notes, considered/succeeded/failed counts, and timing.
+ *
+ * Task #1142 — also fetches /api/admin/scheduler-runs/:key/last-run to surface
+ * probe result notes and per-workflow error messages inline, so admins don't
+ * have to navigate to a separate Specialist admin page.
+ */
 function AnalystDetail({ run }: { run: UnifiedRun }) {
   const meta = run.meta ?? {};
   const hasCounts = meta.considered != null || meta.succeeded != null || meta.failed != null;
+
+  const { data: lastRun, isLoading: lastRunLoading } = useQuery<SchedulerLastRun>({
+    queryKey: ["scheduler-last-run", run.schedulerKey],
+    queryFn: async () => {
+      const r = await fetch(`/api/admin/scheduler-runs/${run.schedulerKey}/last-run`, {
+        credentials: "include",
+      });
+      if (!r.ok) throw new Error("Failed to fetch run detail");
+      return r.json() as Promise<SchedulerLastRun>;
+    },
+    enabled: !!run.schedulerKey,
+    staleTime: 30_000,
+  });
+
+  const failedWorkflows = lastRun?.workflows?.filter(
+    (w) => w.lastRunStatus === "failed" || w.lastRunError,
+  ) ?? [];
+  const allWorkflows = lastRun?.workflows ?? [];
 
   return (
     <div className="space-y-4 mt-2">
@@ -694,11 +853,135 @@ function AnalystDetail({ run }: { run: UnifiedRun }) {
         </div>
       )}
 
-      {/* Fallback when no notes */}
-      {!meta.notes && !hasCounts && (
+      {/* Per-run detail from /scheduler-runs/:key/last-run */}
+      {run.schedulerKey && (
+        <>
+          {lastRunLoading && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Loading probe detail…
+            </div>
+          )}
+
+          {/* Cycle-level error notes from the server (when not already shown via meta.notes) */}
+          {!lastRunLoading && lastRun?.notes && lastRun.notes !== String(meta.notes ?? "") && (
+            <div className="rounded-md border border-border/60 bg-muted/10 px-3 py-2.5">
+              <p className="text-xs font-medium text-muted-foreground mb-1.5">Probe notes</p>
+              <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap break-words">
+                {lastRun.notes}
+              </p>
+            </div>
+          )}
+
+          {/* Failed workflow details */}
+          {!lastRunLoading && failedWorkflows.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">
+                Failed workflows ({failedWorkflows.length})
+              </p>
+              {failedWorkflows.map((w) => (
+                <div
+                  key={w.workflowKey}
+                  className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2.5"
+                >
+                  <div className="flex items-start gap-2 mb-1">
+                    <IconAlertCircle weight="fill" className="w-3.5 h-3.5 text-destructive shrink-0 mt-0.5" />
+                    <p className="text-xs font-medium text-destructive leading-tight">{w.name}</p>
+                    {w.lastRunDurationMs != null && (
+                      <span className="ml-auto text-[10px] font-mono text-destructive/70 tabular-nums shrink-0">
+                        {formatDuration(w.lastRunDurationMs)}
+                      </span>
+                    )}
+                  </div>
+                  {w.lastRunError && (
+                    <p className="text-xs text-destructive/90 break-words font-mono leading-relaxed pl-5">
+                      {w.lastRunError}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* All workflow statuses (when research-workflows, show full list) */}
+          {!lastRunLoading && allWorkflows.length > 0 && failedWorkflows.length === 0 && (
+            <div className="rounded-md border border-border/60 bg-muted/10 px-3 py-2.5">
+              <p className="text-xs font-medium text-muted-foreground mb-2">Workflow results</p>
+              <div className="divide-y divide-border/50">
+                {allWorkflows.map((w) => {
+                  const isOk = w.lastRunStatus === "completed" || w.lastRunStatus === "running";
+                  return (
+                    <div key={w.workflowKey} className="flex items-center gap-2 py-1.5">
+                      {isOk ? (
+                        <IconCheckCircle weight="fill" className="w-3 h-3 text-success shrink-0" />
+                      ) : (
+                        <div className="w-3 h-3 rounded-full border-2 border-border shrink-0" />
+                      )}
+                      <span className="text-xs text-foreground flex-1 min-w-0 truncate">{w.name}</span>
+                      {w.lastRunStatus && (
+                        <span className="text-[10px] px-1.5 py-px rounded bg-muted text-muted-foreground uppercase tracking-wide leading-none shrink-0">
+                          {w.lastRunStatus}
+                        </span>
+                      )}
+                      {w.lastRunDurationMs != null && (
+                        <span className="text-[10px] font-mono text-muted-foreground/70 tabular-nums shrink-0">
+                          {formatDuration(w.lastRunDurationMs)}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Mixed state: some workflows failed, show all for context */}
+          {!lastRunLoading && allWorkflows.length > failedWorkflows.length && failedWorkflows.length > 0 && (
+            <div className="rounded-md border border-border/60 bg-muted/10 px-3 py-2.5">
+              <p className="text-xs font-medium text-muted-foreground mb-2">All workflows</p>
+              <div className="divide-y divide-border/50">
+                {allWorkflows.map((w) => {
+                  const failed = w.lastRunStatus === "failed" || !!w.lastRunError;
+                  return (
+                    <div key={w.workflowKey} className="flex items-center gap-2 py-1.5">
+                      {!failed ? (
+                        <IconCheckCircle weight="fill" className="w-3 h-3 text-success shrink-0" />
+                      ) : (
+                        <IconAlertCircle weight="fill" className="w-3 h-3 text-destructive shrink-0" />
+                      )}
+                      <span className={`text-xs flex-1 min-w-0 truncate ${failed ? "text-destructive" : "text-foreground"}`}>
+                        {w.name}
+                      </span>
+                      {w.lastRunStatus && (
+                        <span className="text-[10px] px-1.5 py-px rounded bg-muted text-muted-foreground uppercase tracking-wide leading-none shrink-0">
+                          {w.lastRunStatus}
+                        </span>
+                      )}
+                      {w.lastRunDurationMs != null && (
+                        <span className="text-[10px] font-mono text-muted-foreground/70 tabular-nums shrink-0">
+                          {formatDuration(w.lastRunDurationMs)}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Fallback when no detail data available */}
+          {!lastRunLoading && !lastRun?.notes && allWorkflows.length === 0 && !hasCounts && !meta.notes && (
+            <div className="text-xs text-muted-foreground bg-muted/20 rounded-md border border-border/60 px-3 py-2.5">
+              No probe detail recorded for this run. Check the Specialist admin pages for more information.
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Fallback when no schedulerKey (non-scheduler analyst runs) */}
+      {!run.schedulerKey && !meta.notes && !hasCounts && (
         <div className="text-xs text-muted-foreground bg-muted/20 rounded-md border border-border/60 px-3 py-2.5">
-          Specialist research runs are triggered by the scheduler on a recurring cadence.
-          Detailed probe results and model notes are stored in the Specialist admin pages.
+          No probe detail recorded for this run.
         </div>
       )}
     </div>
@@ -849,6 +1132,17 @@ export default function UnifiedRunsPage() {
 
     // Slide Factory runs
     for (const run of slideRuns) {
+      // Derive rejected slides from agentResults so the row can display them
+      // without an extra API call — the list endpoint returns the full row.
+      const agentResults = run.agentResults ?? {};
+      const failedSlides: FailedSlide[] = Object.entries(agentResults)
+        .filter(([, r]) => (r as SlideAgentResultFE).status === "rejected")
+        .map(([key, r]) => ({
+          num: parseInt(key.replace("slide", ""), 10),
+          reason: (r as SlideAgentResultFE).errorMessage,
+        }))
+        .sort((a, b) => a.num - b.num);
+
       out.push({
         id: `slide-${run.id}`,
         type: "slide",
@@ -862,6 +1156,7 @@ export default function UnifiedRunsPage() {
             ? new Date(run.completedAt).getTime() - new Date(run.startedAt).getTime()
             : null,
         slideFactoryRunId: run.id,
+        failedSlides: failedSlides.length > 0 ? failedSlides : undefined,
         meta: run.briefFilename ? { brief: run.briefFilename } : undefined,
       });
     }
@@ -932,6 +1227,7 @@ export default function UnifiedRunsPage() {
     () => (selectedRunId ? (runs.find((r) => r.id === selectedRunId) ?? null) : null),
     [selectedRunId, runs],
   );
+
 
   const filtered = useMemo(() => {
     const searchLower = agentSearch.trim().toLowerCase();

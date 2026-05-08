@@ -19,4 +19,8 @@ export {
   Monitor as IconMonitor,
   Note as IconStickyNote,
   Keyboard as IconKeyboard,
+  Code as IconCode,
+  Archive as IconArchive,
+  Cloud as IconCloud,
+  Terminal as IconTerminal,
 } from "@phosphor-icons/react";

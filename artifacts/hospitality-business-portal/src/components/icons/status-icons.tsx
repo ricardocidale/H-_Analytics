@@ -31,4 +31,8 @@ export {
   Article as IconExecutive,
   Check as IconCheck,
   X as IconX,
+  SpinnerGap as IconLoader,
+  Sun as IconSun,
+  Moon as IconMoon,
+  Hourglass as IconHourglass,
 } from "@phosphor-icons/react";

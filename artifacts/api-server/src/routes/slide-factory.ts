@@ -411,26 +411,35 @@ router.post(
 
       const run = await getSlideFactoryRun(id, user.id);
       if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
-      if (run.status !== "draft_review") {
-        return res.status(HTTP_409_CONFLICT).json({
-          error: `Trigger-build requires status 'draft_review', current: '${run.status}'`,
-        });
-      }
-      if (!run.luccaDraft) {
-        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "No Lucca draft present" });
-      }
 
-      const unapproved = Object.entries(run.luccaDraft)
-        .filter(([, slot]) => !slot.approved)
-        .map(([key]) => key);
-      if (unapproved.length > 0) {
+      const allowedStatuses = ["draft_review", "error"] as const;
+      if (!(allowedStatuses as readonly string[]).includes(run.status)) {
         return res.status(HTTP_409_CONFLICT).json({
-          error: `${unapproved.length} slot(s) not yet approved: ${unapproved.slice(0, 3).join(", ")}${unapproved.length > 3 ? "…" : ""}`,
+          error: `Trigger-build requires status 'draft_review' or 'error', current: '${run.status}'`,
         });
       }
 
+      // For draft_review: require all Lucca slots to be approved.
+      // For error re-triggers: skip this check — the draft was already approved previously.
+      if (run.status === "draft_review") {
+        if (!run.luccaDraft) {
+          return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "No Lucca draft present" });
+        }
+        const unapproved = Object.entries(run.luccaDraft)
+          .filter(([, slot]) => !slot.approved)
+          .map(([key]) => key);
+        if (unapproved.length > 0) {
+          return res.status(HTTP_409_CONFLICT).json({
+            error: `${unapproved.length} slot(s) not yet approved: ${unapproved.slice(0, 3).join(", ")}${unapproved.length > 3 ? "…" : ""}`,
+          });
+        }
+      }
+
+      const isRetrigger = run.status === "error";
       const building = await updateSlideFactoryRun(id, { status: "building" });
-      logActivity(req, "update", "slide_factory_run", id, `run-${id}`, { action: "build-triggered" });
+      logActivity(req, "update", "slide_factory_run", id, `run-${id}`, {
+        action: isRetrigger ? "build-retriggered" : "build-triggered",
+      });
 
       // Fire-and-forget Marco dispatch — same pattern as runLorenzoIngestion / runLuccaDraft.
       // Marco's internal failures transition the run to 'error' as a best-effort terminal state.

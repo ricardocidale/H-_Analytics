@@ -16,4 +16,9 @@ export {
   Translate as IconLanguages,
   Ruler as IconRuler,
   CursorClick as IconMousePointerClick,
+  DotsSixVertical as IconGripVertical,
+  Flag as IconFlag,
+  Trophy as IconTrophy,
+  AlignLeft as IconAlignLeft,
+  IconContext,
 } from "@phosphor-icons/react";

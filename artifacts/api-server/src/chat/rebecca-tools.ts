@@ -21,6 +21,17 @@ import { insertIrisRun, updateIrisRun, getLatestIrisRun } from "../storage/iris-
 // Named constant: estimated minutes for background research job (Category 2 — DEFAULT VARIABLE)
 const RESEARCH_ESTIMATED_MINUTES = 2;
 
+// Maximum number of error messages stored per Iris run in health_summary.errors.
+// Prevents pathological runs from writing unbounded JSONB blobs to iris_runs.
+const IRIS_HEALTH_SUMMARY_MAX_ERRORS = 50;
+
+function capErrors(errors: string[] | undefined, limit: number): string[] | undefined {
+  if (!errors || errors.length <= limit) return errors;
+  const truncated = errors.slice(0, limit);
+  truncated.push(`... and ${errors.length - limit} more`);
+  return truncated;
+}
+
 export type ToolContext = { userId: number };
 
 export type DataChangedEntry = {
@@ -1144,6 +1155,7 @@ async function toolTriggerIrisRun(
           summary: result.summary,
           toolsInvoked: result.toolsInvoked,
           runId: result.runId,
+          errors: capErrors(result.errors, IRIS_HEALTH_SUMMARY_MAX_ERRORS),
         },
       }),
     )
@@ -1191,7 +1203,27 @@ async function toolGetIrisStatus(
     getLatestIrisRun(),
     readIrisGaps(),
   ]);
-  return { result: { lastRun, gapsCount: gaps.length } };
+
+  // Extract individual error messages from healthSummary so Rebecca can
+  // surface them directly rather than just reporting the count.
+  const healthSummary = lastRun?.healthSummary as
+    | { summary?: string; toolsInvoked?: string[]; runId?: string; errors?: string[]; error?: string }
+    | null
+    | undefined;
+  const errorMessages: string[] = [];
+  if (healthSummary?.errors && Array.isArray(healthSummary.errors) && healthSummary.errors.length > 0) {
+    errorMessages.push(...healthSummary.errors);
+  } else if (healthSummary?.error) {
+    errorMessages.push(healthSummary.error);
+  }
+
+  return {
+    result: {
+      lastRun,
+      gapsCount: gaps.length,
+      ...(errorMessages.length > 0 && { errorMessages }),
+    },
+  };
 }
 
 /** Max characters accepted for a retrieval-gap query before truncation. */

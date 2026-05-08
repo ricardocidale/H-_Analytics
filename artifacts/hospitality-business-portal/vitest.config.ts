@@ -6,7 +6,10 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'node',
-    include: ['src/tests/**/*.test.{ts,tsx}'],
+    include: [
+      'src/tests/**/*.test.{ts,tsx}',
+      'src/components/**/__tests__/**/*.test.{ts,tsx}',
+    ],
     alias: {
       '@': path.resolve(__dirname, './src'),
     },

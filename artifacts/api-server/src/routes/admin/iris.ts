@@ -8,6 +8,17 @@ import { readIrisGaps, clearIrisGaps } from "../../ai/iris/workspace";
 import { insertIrisRun, updateIrisRun, getLatestIrisRun } from "../../storage/iris-runs";
 import { HTTP_400_BAD_REQUEST, HTTP_409_CONFLICT } from "../../constants";
 
+// Maximum number of error messages stored per Iris run in health_summary.errors.
+// Prevents pathological runs from writing unbounded JSONB blobs to iris_runs.
+const IRIS_HEALTH_SUMMARY_MAX_ERRORS = 50;
+
+function capErrors(errors: string[] | undefined, limit: number): string[] | undefined {
+  if (!errors || errors.length <= limit) return errors;
+  const truncated = errors.slice(0, limit);
+  truncated.push(`... and ${errors.length - limit} more`);
+  return truncated;
+}
+
 // In-process concurrency guard for Iris runs.
 // Eliminates the TOCTOU window that exists between the async DB check and the
 // async insertIrisRun write on single-instance deployments. A DB advisory lock
@@ -83,6 +94,7 @@ export function registerIrisRoutes(app: Express) {
             summary: result.summary,
             toolsInvoked: result.toolsInvoked,
             runId: result.runId,
+            errors: capErrors(result.errors, IRIS_HEALTH_SUMMARY_MAX_ERRORS),
           },
         }),
       )

@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconAlertTriangle } from "@/components/icons";
-
+import { AgentThinkingState } from "@/components/agent-animations";
 import type { Capability, SpecialistDetailResponse } from "./types";
 import { consumeIntelligenceTabHint, usePendingIntelligenceTabHint } from "@/lib/intelligence-nav";
 import { IdentityTab } from "./tabs/IdentityTab";
@@ -40,9 +40,43 @@ import { SpecialistToolsICall } from "./SpecialistToolsICall";
 import { SpecialistToolsIBuild } from "./SpecialistToolsIBuild";
 import { ConstantsOwnedCard } from "./ConstantsOwnedCard";
 
+// ─── Named constants (no magic numbers) ───────────────────────────────────────
+
+/** Poll interval while a Specialist run is in progress (ms). */
+const SPECIALIST_STATUS_POLL_INTERVAL_MS = 3_000;
+
+// ─── Run-status type ──────────────────────────────────────────────────────────
+
+interface SpecialistRunStatus {
+  isRunning: boolean;
+  runningCount: number;
+  phase: "thinking" | "complete" | "error" | null;
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export default function SpecialistPage({ specialistId }: { specialistId: string }) {
   const { data, isLoading, error } = useQuery<SpecialistDetailResponse>({
     queryKey: [`/api/admin/specialists/${specialistId}`],
+  });
+
+  // ── Run-status polling for persona orb ──────────────────────────
+  // Polls /run-status while a research job is in flight. Poll cadence
+  // backs off to false (no poll) when the phase is null so idle pages
+  // don't generate unnecessary requests. Resets the cache key on
+  // specialist switch so stale phase from the previous specialist
+  // never bleeds into the incoming one.
+  const { data: runStatus } = useQuery<SpecialistRunStatus>({
+    queryKey: [`/api/admin/specialists/${specialistId}/run-status`],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/specialists/${specialistId}/run-status`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch specialist run status");
+      return res.json() as Promise<SpecialistRunStatus>;
+    },
+    refetchInterval: (query) =>
+      query.state.data?.isRunning ? SPECIALIST_STATUS_POLL_INTERVAL_MS : false,
   });
 
   // "identity" is a synthetic tab — always present, regardless of declared
@@ -156,6 +190,23 @@ export default function SpecialistPage({ specialistId }: { specialistId: string 
           >
             {definition.status === "built" ? "Built" : definition.status === "stub" ? "Stub" : "Needs page"}
           </Badge>
+          {/* Persona orb — visible while this Specialist has an active research
+              run. Phase maps from the run-status endpoint:
+                thinking  → research in flight
+                complete  → finished within the last 30 s
+                error     → failed within the last 30 s
+              Mirrors the IrisPanel pattern exactly so the animation vocabulary
+              is consistent across every agent surface. */}
+          {runStatus?.phase != null && (
+            <AgentThinkingState
+              persona="specialist"
+              phase={runStatus.phase}
+              size="md"
+              showLabel
+              aria-label={`${definition.humanName ?? definition.realName} is ${runStatus.phase}`}
+              className="shrink-0"
+            />
+          )}
           <span className="text-sm text-muted-foreground ml-auto" data-testid="text-specialist-subject">
             Subject: {definition.subject}
           </span>

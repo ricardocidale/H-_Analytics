@@ -69,6 +69,9 @@ export function IrisOrb({ phase, size = "md", className }: IrisOrbProps) {
   const dashArray = `${circumference * DASH_FRACTION} ${circumference * GAP_FRACTION}`;
   const isTransient = phase === "complete" || phase === "error";
 
+  // complete/error phases: rotate once then stop — not an infinite loop
+  const isTransient = phase === "complete" || phase === "error";
+
   return (
     <div style={{ width: diameter, height: diameter, position: "relative" }} className={className} aria-hidden>
       <motion.svg

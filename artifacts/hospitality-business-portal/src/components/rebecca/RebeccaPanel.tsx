@@ -36,6 +36,7 @@ import { RebeccaEmailPreview } from "./RebeccaEmailPreview";
 import { RebeccaFeedbackForm } from "./RebeccaFeedbackForm";
 import { RebeccaConversationHistory } from "./RebeccaConversationHistory";
 import { SourcesUsedPanel, type ChatSourceUsed } from "./SourcesUsedPanel";
+import { ToolCallStepIndicator, type ToolStep } from "./ToolCallStepIndicator";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface AssetMatch {
@@ -56,6 +57,7 @@ interface ChatMessage {
   assets?: AssetMatch[];
   detectedLanguage?: string;
   sources?: ChatSourceUsed[];
+  toolSteps?: ToolStep[];
 }
 
 
@@ -497,6 +499,28 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                     }
                   }
                 }
+              } else if (currentEvent === "tool_start") {
+                const stepId = typeof data.id === "string" ? data.id : String(data.id);
+                const stepName = typeof data.name === "string" ? data.name : "";
+                const newStep: ToolStep = { id: stepId, name: stepName, phase: "dispatching" };
+                setMessages((prev) => prev.map((m) =>
+                  m.id === streamId
+                    ? { ...m, toolSteps: [...(m.toolSteps ?? []), newStep] }
+                    : m
+                ));
+              } else if (currentEvent === "tool_done") {
+                const doneId = typeof data.id === "string" ? data.id : String(data.id);
+                const success = data.success !== false;
+                setMessages((prev) => prev.map((m) =>
+                  m.id === streamId
+                    ? {
+                        ...m,
+                        toolSteps: (m.toolSteps ?? []).map((s) =>
+                          s.id === doneId ? { ...s, phase: success ? "complete" : "error" } : s
+                        ),
+                      }
+                    : m
+                ));
               } else if (currentEvent === "error") {
                 if (retryCount === 0) {
                   setMessages((prev) => prev.map((m) =>
@@ -794,6 +818,9 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                   >
                     {msg.role === "assistant" ? (
                       <>
+                        {msg.toolSteps && msg.toolSteps.length > 0 && (
+                          <ToolCallStepIndicator steps={msg.toolSteps} />
+                        )}
                         {msg.detectedLanguage === "es" && (
                           <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-teal-600 bg-teal-50 dark:bg-teal-900/30 dark:text-teal-400 px-1.5 py-0.5 rounded mb-1 w-fit" data-testid="language-badge-es">
                             ES

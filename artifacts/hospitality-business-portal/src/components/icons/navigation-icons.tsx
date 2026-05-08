@@ -34,4 +34,12 @@ export {
   ClockCounterClockwise as IconHistory,
   FolderOpen as IconScenarios,
   GitFork as IconGitFork,
+  CaretDown as IconChevronDown,
+  CaretUp as IconChevronUp,
+  CaretLeft as IconChevronLeft,
+  CaretRight as IconChevronRight,
+  ArrowLeft as IconArrowLeft,
+  ArrowRight as IconArrowRight,
+  ArrowUp as IconArrowUp,
+  ArrowDown as IconArrowDown,
 } from "@phosphor-icons/react";

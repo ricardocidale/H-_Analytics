@@ -92,6 +92,73 @@ export function registerObservabilityRoutes(app: Express) {
     }
   });
 
+  // Task #1142 — per-run detail endpoint: returns the latest scheduler-run
+  // record for a given key, plus per-workflow probe results for the
+  // `research-workflows` key so the UnifiedRunsPage AnalystDetail panel
+  // can show model output and error messages without opening a separate
+  // Specialist admin page.
+  app.get("/api/admin/scheduler-runs/:key/last-run", requireAdmin, async (req, res) => {
+    try {
+      const key = req.params.key;
+      const rows = await storage.listSchedulerRuns();
+      const row = rows.find((r) => r.schedulerKey === key);
+
+      type WorkflowDetail = {
+        workflowKey: string;
+        name: string;
+        lastRunStatus: string | null;
+        lastRunError: string | null;
+        lastRunAt: string | null;
+        lastRunDurationMs: number | null;
+      };
+      let workflows: WorkflowDetail[] | undefined;
+
+      if (key === "research-workflows") {
+        const wfs = await storage.getScheduledResearchWorkflows();
+        workflows = wfs
+          .filter((w) => w.lastRunAt != null || w.lastRunStatus != null)
+          .map((w) => ({
+            workflowKey: w.workflowKey,
+            name: w.name,
+            lastRunStatus: w.lastRunStatus,
+            lastRunError: w.lastRunError ?? null,
+            lastRunAt: w.lastRunAt
+              ? (w.lastRunAt instanceof Date
+                  ? w.lastRunAt.toISOString()
+                  : new Date(w.lastRunAt as unknown as string).toISOString())
+              : null,
+            lastRunDurationMs: w.lastRunDurationMs ?? null,
+          }));
+      }
+
+      if (!row && !workflows) {
+        res.status(404).json({ error: "No run data found for scheduler key" });
+        return;
+      }
+
+      const lastRunAt = row?.lastRunAt
+        ? (row.lastRunAt instanceof Date
+            ? row.lastRunAt.toISOString()
+            : new Date(row.lastRunAt as unknown as string).toISOString())
+        : null;
+
+      res.json({
+        schedulerKey: key,
+        schedulerLabel: row?.schedulerLabel ?? null,
+        lastRunAt,
+        status: row?.status ?? null,
+        notes: row?.notes ?? null,
+        durationMs: row?.durationMs ?? null,
+        considered: row?.considered ?? null,
+        succeeded: row?.succeeded ?? null,
+        failed: row?.failed ?? null,
+        ...(workflows !== undefined ? { workflows } : {}),
+      });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to fetch scheduler run detail", error);
+    }
+  });
+
   // Task #556 — admin "Run now" button. Triggers one cycle of the named
   // scheduler immediately, instead of waiting up to 24h for the next tick.
   // The cycle runs in the background (fire-and-forget) so the request

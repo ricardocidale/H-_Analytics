@@ -1,8 +1,9 @@
 /**
  * Admin Specialist catalog + detail routes (Task #482 split).
  *
- *   GET /api/admin/specialists       — full catalog with overlay identity
- *   GET /api/admin/specialists/:id   — definition + config + assignments
+ *   GET /api/admin/specialists              — full catalog with overlay identity
+ *   GET /api/admin/specialists/:id          — definition + config + assignments
+ *   GET /api/admin/specialists/:id/run-status — current run phase for persona orb
  *
  * Split rationale: catalog rendering and detail composition are read-only
  * and share the catalog/identity overlay machinery. They have no
@@ -166,6 +167,58 @@ export function registerCatalogRoutes(app: Express) {
       }
     },
   );
+
+  // ── Per-Specialist run-status (for persona orb animation) ───────
+  // Returns the current cognitive phase for the SpecialistPage header
+  // animation. Polled by the client every SPECIALIST_STATUS_POLL_INTERVAL_MS
+  // while a run is in progress; polls stop automatically when phase is null.
+  //
+  // Phase derivation:
+  //   running count > 0       → "thinking"  (active research in flight)
+  //   last run completed <30s → "complete"  (brief success signal)
+  //   last run failed <30s    → "error"     (brief failure signal)
+  //   otherwise               → null        (orb hidden)
+  //
+  // Must be registered BEFORE the `/:id` detail route so Express does not
+  // attempt to match "run-status" as a specialist id.
+
+  /** Recent-run threshold for complete/error phase display (ms). */
+  const RECENT_RUN_THRESHOLD_MS = 30_000;
+
+  app.get("/api/admin/specialists/:id/run-status", requireAdmin, async (req, res) => {
+    try {
+      const { id } = idParamSchema.parse(req.params);
+      const isDefined =
+        id === ORCHESTRATOR_SPECIALIST_ID || getSpecialistById(id) !== undefined;
+      if (!isDefined) return res.status(404).json({ error: "Specialist not found" });
+
+      const runningCount = await storage.countRunningResearchRunsForSpecialist(id);
+      const isRunning = runningCount > 0;
+
+      let phase: "thinking" | "complete" | "error" | null = null;
+
+      if (isRunning) {
+        phase = "thinking";
+      } else {
+        const recent = await storage.getResearchRunsForSpecialist(id, 1);
+        if (recent.length > 0) {
+          const run = recent[0];
+          const completedAt = run.completedAt;
+          const ageMs = completedAt
+            ? Date.now() - new Date(completedAt).getTime()
+            : Infinity;
+          if (ageMs < RECENT_RUN_THRESHOLD_MS) {
+            if (run.status === "completed") phase = "complete";
+            else if (run.status === "failed") phase = "error";
+          }
+        }
+      }
+
+      res.json({ isRunning, runningCount, phase });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to fetch specialist run status", error);
+    }
+  });
 
   // ── Detail (definition + config + assignments-with-health) ──────
   // Accepts ORCHESTRATOR_SPECIALIST_ID ("gaspar") via a synthetic detail response so the orchestrator
