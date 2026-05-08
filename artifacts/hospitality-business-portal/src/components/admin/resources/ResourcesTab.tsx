@@ -18,6 +18,47 @@ import {
   type ResourceHealthStatus,
 } from "@shared/schema";
 import { TestButton } from "./health-bits";
+
+// Slugs that have a registered Pietro minion — Regenerate is enabled for these only.
+const PIETRO_MINION_SLUGS = new Set([
+  "fred-extended",
+  "fmp-reit",
+  "daloopa-reit",
+  "booking-rates",
+  "expedia-rates",
+]);
+
+function RegenerateButton({ resourceId, slug }: { resourceId: number; slug: string }) {
+  const { toast } = useToast();
+  const regenerate = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/admin/resources/${resourceId}/regenerate`),
+    onSuccess: (data: unknown) => {
+      const r = data as { rowsUpserted?: number; errors?: string[] };
+      if (r.errors && r.errors.length > 0) {
+        toast({ title: "Regenerated with errors", description: r.errors[0], variant: "destructive" });
+      } else {
+        toast({ title: "Regenerated", description: `${r.rowsUpserted ?? 0} rows upserted` });
+      }
+    },
+    onError: (err: Error) => {
+      toast({ title: "Regenerate failed", description: err.message, variant: "destructive" });
+    },
+  });
+
+  if (!PIETRO_MINION_SLUGS.has(slug)) return null;
+
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      disabled={regenerate.isPending}
+      onClick={() => regenerate.mutate()}
+      data-testid={`button-regenerate-${resourceId}`}
+    >
+      {regenerate.isPending ? "Refreshing…" : "Regenerate"}
+    </Button>
+  );
+}
 import { ConnectedToCell } from "./ConnectedToCell";
 import {
   CreateResourceDialog, EditResourceDialog, VersionHistoryDialog, DeleteResourceDialog,
@@ -459,6 +500,7 @@ export default function ResourcesTab({ kind }: ResourcesTabProps) {
                       <TableCell className="text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         <div className="inline-flex items-center gap-1">
                           <TestButton resourceId={r.id} kindLabel={RESOURCE_KIND_LABELS[kind]} />
+                          <RegenerateButton resourceId={r.id} slug={r.slug} />
                           <Button size="sm" variant="ghost" data-testid={`button-edit-${r.id}`} onClick={() => setEditTarget(r)}>Edit</Button>
                           <Button size="sm" variant="ghost" data-testid={`button-history-${r.id}`} onClick={() => setHistoryTarget(r)}>History</Button>
                           <Button size="sm" variant="ghost" className="text-rose-600 hover:text-rose-700" data-testid={`button-delete-${r.id}`} onClick={() => setDeleteTarget(r)}>Delete</Button>

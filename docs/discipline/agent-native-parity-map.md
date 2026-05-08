@@ -117,9 +117,9 @@ re-renders the panel.
 
 | UI Action | UI Location | Rebecca Tool | Status |
 |---|---|---|---|
-| Probe / health-check a data source (Analyst button) | Admin → Sources | `probe_data_source` | ⚠️ Deferred to U10 |
-| Regenerate a data source (triggers minion) | Admin → Sources | `regenerate_data_source` | ⚠️ Deferred to U10 |
-| View all data source statuses | Admin → Sources | `get_data_source_status` | ⚠️ Deferred to U10 |
+| Probe / health-check a data source (Analyst button) | Admin → Sources | `probe_data_source` | ✅ |
+| Regenerate a data source (triggers minion) | Admin → Sources | `regenerate_data_source` | ✅ |
+| View all data source statuses | Admin → Sources | `get_data_source_status` | ✅ |
 
 ## When to Update This Map
 
