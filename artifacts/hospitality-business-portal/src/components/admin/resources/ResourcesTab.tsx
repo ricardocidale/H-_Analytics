@@ -35,7 +35,7 @@ const KIND_BLURBS: Record<ResourceKind, string> = {
   benchmark: "Hospitality benchmark slugs (ADR, RevPAR, occupancy, etc.). Health probe verifies a snapshot is ingested.",
   model: "LLM model rows. Health probe verifies provider + secret wiring without firing a billable inference.",
   llm_slot: "Named usage slots that map a feature (e.g. 'vision', 'risk-brief') to a model row. Edit to swap models without a deploy.",
-  mcp: "MCP server connections managed by Pietro. Each row has a registered minion that pre-populates a DB cache table on a schedule.",
+  mcp: "MCP server connections managed by Pietro. Data-fetching rows have a registered minion that pre-populates a DB cache table on a schedule; discovery-only rows (e.g. Context7) are never dispatched.",
   search_url: "Curated research URLs for hospitality market data, REIT filings, and macro indicators. Used by Rebecca and research specialists.",
   research_prompt: "Prompt templates for structured research workflows (cap rate benchmarking, REIT comps, competitive set analysis).",
 };

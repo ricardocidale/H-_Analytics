@@ -5,6 +5,7 @@ import {
   doublePrecision,
   date,
   timestamp,
+  unique,
   uniqueIndex,
   index,
 } from "drizzle-orm/pg-core";
@@ -62,12 +63,11 @@ export const competitorRates = pgTable(
     fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
   },
   (t) => [
-    uniqueIndex("competitor_rates_market_category_checkin_source_uniq").on(
-      t.market,
-      t.propertyCategory,
-      t.checkInDate,
-      t.source,
-    ),
+    // NULLS NOT DISTINCT: treat NULL nullable columns as equal for dedup purposes.
+    // Prevents unbounded duplicate rows from weekly re-fetches that omit optional fields.
+    unique("competitor_rates_market_category_checkin_source_uniq")
+      .on(t.market, t.propertyCategory, t.checkInDate, t.source)
+      .nullsNotDistinct(),
     index("competitor_rates_market_fetched_idx").on(t.market, t.fetchedAt),
   ],
 );

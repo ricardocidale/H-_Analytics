@@ -143,10 +143,14 @@ async function probeLlmSlot(_row: AdminResourceRow): Promise<ProbeOutcome> {
   return { status: "ok", latencyMs: 0 };
 }
 
-// Research prompt rows are static catalog entries (templates in config.template).
-// No external service to call — config presence is sufficient.
-async function probeResearchCatalog(_row: AdminResourceRow): Promise<ProbeOutcome> {
-  return { status: "ok", latencyMs: 0 };
+// Research prompt rows must have a non-empty config.template to be usable.
+async function probeResearchCatalog(row: AdminResourceRow): Promise<ProbeOutcome> {
+  const t0 = Date.now();
+  const config = (row.config ?? {}) as Record<string, unknown>;
+  if (!config.template || typeof config.template !== "string" || config.template.trim().length === 0) {
+    return { status: "fail", latencyMs: Date.now() - t0, errorCode: "CONFIG_INCOMPLETE", errorMessage: "config.template missing or empty" };
+  }
+  return { status: "ok", latencyMs: Date.now() - t0 };
 }
 
 const PROBES: Record<ResourceKind, (row: AdminResourceRow) => Promise<ProbeOutcome>> = {

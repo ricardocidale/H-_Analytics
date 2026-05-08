@@ -31,8 +31,11 @@ CREATE TABLE IF NOT EXISTS competitor_rates (
   fetched_at        timestamp NOT NULL DEFAULT now()
 );
 
+-- NULLS NOT DISTINCT ensures NULL property_category / check_in_date are treated as
+-- equal in the uniqueness check, preventing duplicate rows from weekly re-fetches
+-- that omit optional fields (requires PostgreSQL 15+).
 CREATE UNIQUE INDEX IF NOT EXISTS competitor_rates_market_category_checkin_source_uniq
-  ON competitor_rates (market, property_category, check_in_date, source);
+  ON competitor_rates (market, property_category, check_in_date, source) NULLS NOT DISTINCT;
 
 CREATE INDEX IF NOT EXISTS competitor_rates_market_fetched_idx
   ON competitor_rates (market, fetched_at);

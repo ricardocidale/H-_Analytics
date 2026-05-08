@@ -846,16 +846,17 @@ async function runSeeds() {
   // admin-resources-006 adds the daily_request_budget column; pietro-resources-001
   // inserts rows referencing that column. Running them in the same Promise.allSettled
   // batch races the ALTER TABLE against the INSERT on a fresh DB.
+  // Pietro schema DDL — run sequentially and rethrow on failure.
+  // These are schema repairs, not optional seeds: a failure here means the
+  // Pietro tables or column don't exist, which will break every subsequent
+  // Pietro minion dispatch. Boot should surface this loudly rather than
+  // continuing with a broken schema.
   for (const ddlTask of [
     { name: "admin-resources-006", run: async () => { const { runAdminResources006 } = await import("./migrations/admin-resources-006"); await runAdminResources006(); } },
     { name: "pietro-tables-001",   run: async () => { const { runPietroTables001 }   = await import("./migrations/pietro-tables-001");   await runPietroTables001();   } },
     { name: "pietro-resources-001",run: async () => { const { runPietroResources001 }= await import("./migrations/pietro-resources-001"); await runPietroResources001(); } },
   ]) {
-    try {
-      await ddlTask.run();
-    } catch (err) {
-      serverLog(`[seed:${ddlTask.name}] FAILED: ${err instanceof Error ? err.message : String(err)}`, "startup", "error");
-    }
+    await ddlTask.run();
   }
 
   const results = await Promise.allSettled(seedTasks.map(t => t.run()));
