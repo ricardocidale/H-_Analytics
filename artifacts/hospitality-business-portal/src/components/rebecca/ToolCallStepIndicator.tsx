@@ -25,6 +25,8 @@ export interface ToolStep {
   name: string;
   /** Current execution phase. */
   phase: "dispatching" | "complete" | "error";
+  /** Wall-clock milliseconds the tool took, populated on completion. */
+  elapsedMs?: number;
 }
 
 const SLIDE_FACTORY_TOOLS = new Set([
@@ -125,6 +127,15 @@ export function ToolCallStepIndicator({ steps, className }: ToolCallStepIndicato
 
   if (steps.length === 0) return null;
 
+  const allComplete = steps.length > 0 && steps.every((s) => s.phase !== "dispatching");
+  const showTotal =
+    allComplete &&
+    steps.length >= 2 &&
+    steps.some((s) => s.elapsedMs != null);
+  const totalMs = showTotal
+    ? steps.reduce((acc, s) => acc + (s.elapsedMs ?? 0), 0)
+    : 0;
+
   return (
     <div
       className={cn("flex flex-col gap-1 mb-2", className)}
@@ -194,6 +205,22 @@ export function ToolCallStepIndicator({ steps, className }: ToolCallStepIndicato
           );
         })}
       </AnimatePresence>
+      {showTotal && (
+        reducedMotion ? (
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground/70 mt-0.5 pl-0.5">
+            <span className="leading-none">Total: {(totalMs / 1000).toFixed(1)} s</span>
+          </div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="flex items-center gap-1 text-[10px] text-muted-foreground/70 mt-0.5 pl-0.5"
+          >
+            <span className="leading-none">Total: {(totalMs / 1000).toFixed(1)} s</span>
+          </motion.div>
+        )
+      )}
     </div>
   );
 }

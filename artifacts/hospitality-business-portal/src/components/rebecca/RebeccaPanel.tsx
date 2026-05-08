@@ -511,12 +511,13 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
               } else if (currentEvent === "tool_done") {
                 const doneId = typeof data.id === "string" ? data.id : String(data.id);
                 const success = data.success !== false;
+                const elapsedMs = typeof data.elapsedMs === "number" ? data.elapsedMs : undefined;
                 setMessages((prev) => prev.map((m) =>
                   m.id === streamId
                     ? {
                         ...m,
                         toolSteps: (m.toolSteps ?? []).map((s) =>
-                          s.id === doneId ? { ...s, phase: success ? "complete" : "error" } : s
+                          s.id === doneId ? { ...s, phase: success ? "complete" : "error", elapsedMs } : s
                         ),
                       }
                     : m

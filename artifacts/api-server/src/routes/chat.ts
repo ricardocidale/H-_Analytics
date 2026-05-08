@@ -1144,13 +1144,14 @@ export function register(app: Express) {
           const toolResults = await Promise.all(
             result.toolCalls.map(async (tc) => {
               if (isPrimary) primaryLoopExecutedTools = true;
+              const toolStartMs = Date.now();
               try {
                 const { result: r, dataChanged: dc } = await executeTool(tc.name, tc.arguments, toolCtx);
                 if (dc) dataChanged.push(dc);
-                if (useStream) sseWrite(res, "tool_done", { id: tc.id, name: tc.name, success: true });
+                if (useStream) sseWrite(res, "tool_done", { id: tc.id, name: tc.name, success: true, elapsedMs: Date.now() - toolStartMs });
                 return { id: tc.id, name: tc.name, result: r };
               } catch (toolErr) {
-                if (useStream) sseWrite(res, "tool_done", { id: tc.id, name: tc.name, success: false });
+                if (useStream) sseWrite(res, "tool_done", { id: tc.id, name: tc.name, success: false, elapsedMs: Date.now() - toolStartMs });
                 throw toolErr;
               }
             }),
