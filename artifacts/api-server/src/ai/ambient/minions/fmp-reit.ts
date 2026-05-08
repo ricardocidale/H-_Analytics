@@ -11,7 +11,7 @@
  * Requires RAPIDAPI_KEY with a subscription to "Yahoo Finance" on rapidapi.com
  * (free tier: https://rapidapi.com/apidojo/api/yahoo-finance1).
  * Gracefully skips (not an error) when the key is absent or the API returns
- * 403 (not subscribed).
+ * a not-subscribed response.
  */
 import { db } from "../../../db";
 import { reitBenchmarks, type InsertReitBenchmark } from "@workspace/db";
@@ -63,10 +63,17 @@ async function fetchYfStatistics(ticker: string, apiKey: string): Promise<Insert
     signal: AbortSignal.timeout(YF_FETCH_TIMEOUT_MS),
   });
 
-  if (response.status === 403) {
-    throw new Error("NOT_SUBSCRIBED");
+  if (!response.ok) {
+    const body = await response.text();
+    if (
+      body.includes("not subscribed") ||
+      body.includes("This API's plan") ||
+      body.includes("You are not subscribed")
+    ) {
+      throw new Error("NOT_SUBSCRIBED");
+    }
+    throw new Error(`HTTP ${response.status}`);
   }
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
   const data = (await response.json()) as YfStatistics;
   const period = currentQuarterPeriod();
