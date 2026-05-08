@@ -1,33 +1,28 @@
 /**
  * AgentThinkingState — canonical persona animation component.
  *
- * Single import for all surfaces. Composes the persona-specific orb with a
- * phase-aware narration label. Falls back to a static avatar when the user
- * has opted into reduced motion.
+ * Routes to the persona-specific orb + phase label. Falls back to a static
+ * letter avatar + static label with no motion when the user prefers reduced
+ * motion (prefers-reduced-motion: reduce).
  *
  * Usage:
  *   <AgentThinkingState persona="gustavo" phase="synthesizing" size="sm" />
  *   <AgentThinkingState persona="marco" phase="dispatching" size="md" showLabel />
- *
- * The `showLabel` prop adds the phase narration text next to the orb.
- * Omit it when you only want the visual mark (e.g. inside a header badge).
  */
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useReducedMotion } from "./useReducedMotion";
-import { GustavoOrb }   from "./GustavoOrb";
-import { MarcoOrb }     from "./MarcoOrb";
-import { RebeccaOrb }   from "./RebeccaOrb";
-import { IrisOrb }      from "./IrisOrb";
+import { GustavoOrb }    from "./GustavoOrb";
+import { MarcoOrb }      from "./MarcoOrb";
+import { RebeccaOrb }    from "./RebeccaOrb";
+import { IrisOrb }       from "./IrisOrb";
 import { SpecialistOrb } from "./SpecialistOrb";
 import { cn } from "@/lib/utils";
 import type { AgentPhase, AgentPersona, AgentOrbSize } from "./types";
+import { ORB_SIZE_PX } from "./types";
 
 export type { AgentPhase, AgentPersona, AgentOrbSize };
 
-// ── Narration labels ──────────────────────────────────────────────────────────
-
-/** Phase narration strings per persona. Only active phases (non-idle) have labels. */
 const PHASE_NARRATION: Record<AgentPersona, Partial<Record<AgentPhase, string>>> = {
   gustavo: {
     dispatching:  "Dispatching specialists…",
@@ -66,9 +61,6 @@ const PHASE_NARRATION: Record<AgentPersona, Partial<Record<AgentPhase, string>>>
   },
 };
 
-// ── Reduced-motion static avatars ─────────────────────────────────────────────
-
-/** Single-letter avatar shown in place of animation when reduced motion is on. */
 const PERSONA_LETTER: Record<AgentPersona, string> = {
   gustavo:    "G",
   marco:      "M",
@@ -77,7 +69,6 @@ const PERSONA_LETTER: Record<AgentPersona, string> = {
   specialist: "S",
 };
 
-/** Brand color class for each persona's static avatar. */
 const PERSONA_AVATAR_COLOR: Record<AgentPersona, string> = {
   gustavo:    "text-accent-pop",
   marco:      "text-success",
@@ -86,19 +77,11 @@ const PERSONA_AVATAR_COLOR: Record<AgentPersona, string> = {
   specialist: "text-muted-foreground",
 };
 
-// ── Label text size per orb size ───────────────────────────────────────────────
-
 const LABEL_TEXT_SIZE: Record<AgentOrbSize, string> = {
   sm: "text-xs",
   md: "text-sm",
   lg: "text-base",
 };
-
-// ── Orb pixel diameter for the static avatar letter font size ─────────────────
-
-import { ORB_SIZE_PX } from "./types";
-
-// ── Main component ─────────────────────────────────────────────────────────────
 
 export interface AgentThinkingStateProps {
   persona: AgentPersona;
@@ -129,49 +112,43 @@ export function AgentThinkingState({
       role="status"
       aria-label={accessibleLabel}
     >
-      {/* Orb — animated or static fallback */}
       {reducedMotion ? (
         <StaticAvatar persona={persona} size={size} />
       ) : (
         <OrbSwitch persona={persona} phase={phase} size={size} />
       )}
 
-      {/* Phase narration label */}
-      {showLabel && (
-        <AnimatePresence mode="wait">
-          {label ? (
+      {showLabel && label && (
+        reducedMotion ? (
+          // No motion — plain static label
+          <span
+            className={cn(LABEL_TEXT_SIZE[size], "text-muted-foreground leading-none")}
+            aria-hidden
+          >
+            {label}
+          </span>
+        ) : (
+          // Animated label with fade+blur transition between phases
+          <AnimatePresence mode="wait">
             <motion.span
               key={`${persona}-${phase}`}
               initial={{ opacity: 0, y: 3, filter: "blur(3px)" }}
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
               exit={{ opacity: 0, y: -3, filter: "blur(3px)" }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className={cn(
-                LABEL_TEXT_SIZE[size],
-                "text-muted-foreground leading-none",
-              )}
-              aria-hidden // label already announced via aria-label above
+              className={cn(LABEL_TEXT_SIZE[size], "text-muted-foreground leading-none")}
+              aria-hidden
             >
               {label}
             </motion.span>
-          ) : null}
-        </AnimatePresence>
+          </AnimatePresence>
+        )
       )}
     </div>
   );
 }
 
-// ── Internal sub-components ────────────────────────────────────────────────────
-
-function OrbSwitch({
-  persona,
-  phase,
-  size,
-}: {
-  persona: AgentPersona;
-  phase: AgentPhase;
-  size: AgentOrbSize;
-}) {
+function OrbSwitch({ persona, phase, size }: { persona: AgentPersona; phase: AgentPhase; size: AgentOrbSize }) {
   switch (persona) {
     case "gustavo":    return <GustavoOrb phase={phase} size={size} />;
     case "marco":      return <MarcoOrb phase={phase} size={size} />;
@@ -181,30 +158,15 @@ function OrbSwitch({
   }
 }
 
-function StaticAvatar({
-  persona,
-  size,
-}: {
-  persona: AgentPersona;
-  size: AgentOrbSize;
-}) {
+function StaticAvatar({ persona, size }: { persona: AgentPersona; size: AgentOrbSize }) {
   const diameter = ORB_SIZE_PX[size];
   const fontSize = Math.round(diameter * 0.52);
 
   return (
     <span
-      style={{
-        width:          diameter,
-        height:         diameter,
-        fontSize:       fontSize,
-        lineHeight:     `${diameter}px`,
-        display:        "inline-flex",
-        alignItems:     "center",
-        justifyContent: "center",
-        borderRadius:   "50%",
-      }}
+      style={{ width: diameter, height: diameter, fontSize, lineHeight: `${diameter}px` }}
       className={cn(
-        "font-semibold bg-muted",
+        "inline-flex items-center justify-center rounded-full font-semibold bg-muted",
         PERSONA_AVATAR_COLOR[persona],
       )}
       aria-hidden
