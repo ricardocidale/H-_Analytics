@@ -14,6 +14,7 @@
     "check:canonical-schema": "tsx ./src/check-canonical-schema.ts",
     "check:production-image": "tsx ./src/check-production-image.ts",
     "sync-db-to-railway": "tsx ./src/sync-db-to-railway.ts",
+    "sync-capital-raise-3-migration": "tsx ./src/sync-capital-raise-3-migration.ts",
     "upload:canonical-slides": "tsx ./src/upload-canonical-slides.ts",
     "upload:canonical-pngs": "tsx ./src/upload-canonical-pngs.ts",
     "upload:brand-assets": "tsx ./src/upload-brand-assets.ts",
@@ -23,10 +24,12 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1039.0",
     "@workspace/db": "workspace:*",
-    "drizzle-orm": "catalog:"
+    "drizzle-orm": "catalog:",
+    "pg": "^8.20.0"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@types/pg": "^8.11.14",
     "tsx": "catalog:",
     "vitest": "catalog:"
   }

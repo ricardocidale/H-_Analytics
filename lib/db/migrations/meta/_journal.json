@@ -285,6 +285,13 @@
     {
       "idx": 42,
       "version": "7",
+      "when": 1746835200000,
+      "tag": "0043_add_capital_raise_3",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
       "when": 1778284800000,
       "tag": "0044_users_rebecca_history_open",
       "breakpoints": true

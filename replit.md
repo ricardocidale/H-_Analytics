@@ -77,6 +77,7 @@ See `CLAUDE.md` §§ 1–12 (magic numbers, number taxonomy, seed rules, ADR-007
 <!-- keep ≤ 3 entries; remove oldest when adding new ones -->
 | Date | Change |
 |---|---|
+| 2026-05-08 | **Migration journal sync for `0043_add_capital_raise_3` (Task #1198).** Added idx 42 entry to `lib/db/migrations/meta/_journal.json`; bumped `0044` from idx 42→43; inserted row id=55 (hash=`b26e86...`) into `drizzle.__drizzle_migrations`. Journal now 42 entries; DB now 55 rows. check:migration-guards passes (43 api-server entries). |
 | 2026-05-08 | **Drizzle migration journal sync for `rebecca_history_open` (Task #1196).** Created `0044_users_rebecca_history_open.sql`; added idx 42 entry to `_journal.json`; replaced synthetic hash in `drizzle.__drizzle_migrations` row id=54 with real SHA-256 of migration file. Journal now 41 entries; DB now 54 rows, all hashes real. |
 | 2026-05-08 | **Server-side chat preferences (Task #1185).** `rebecca_response_mode` + `rebecca_show_tool_timing` columns on `users` table (migration 0042). `PATCH /api/profile/chat-preferences` endpoint. `RebeccaPanel` seeds from server on first load; syncs to server on change. `drizzle.__drizzle_migrations` now 53 entries. |
 | 2026-05-08 | **Agent persona animations wave merged.** 5 persona orbs (Gustavo, Marco, Rebecca, Iris, Specialist), SpecialistOrb 3-phase wiring (`dispatching / thinking / synthesizing`), Rebecca tool-step animations, collapsible reasoning trail, Dino verdict chips, Slide Factory cancel button, ESLint Phosphor import guard. |
