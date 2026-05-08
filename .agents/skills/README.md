@@ -31,6 +31,8 @@ These five skills form the CE workflow. Run them in order for any non-trivial fe
 | `specialist-persona-naming` | Naming conventions for AI specialist personas in this codebase |
 | `steady-state-naming` | Naming conventions for steady-state/stable values |
 | `inflation-cascade` | Rules for propagating inflation assumptions through the projection engine |
+| `external-data-source-integration` | Five-layer FRED template for adding any new API/MCP/data source — admin_resources + minion + DB cache + Rebecca tool + parity map |
+| `hplus-resource-catalog` | Full inventory of H+ data resources (APIs, MCPs, URLs, prompts) — the platform data moat; check before building features that need market or financial data |
 
 ---
 

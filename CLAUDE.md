@@ -189,6 +189,8 @@ from Brazilian or Italian naming traditions (male or female).
 - Slide factory cross-app: Lucca, Maya
 - Slide factory swarms: Lorenzo, Sofia, Bianca, Chiara, Dario, Elisa, Felix
 - Slide factory minions: Aldo, Bruno, Carlo, Dino, Enzo, Franco
+- Data infrastructure orchestrator: Pietro
+- Data infrastructure minions: MinionFredExtended, MinionFmpReit, MinionDaloopaReit, MinionBookingRates, MinionExpediaRates, MinionExa
 
 **Never use:** Sergio, Milton
 
@@ -608,6 +610,8 @@ vendor/
 | `analyst-research-buttons` | Any button that triggers a research job — canonical label, icon, voice, and guard rules |
 | `analyst-intelligence-display` | Any UI component that **displays** specialist research results — range badges, verdict cards, contextual tips, action dialogs. Complements `analyst-research-buttons` (the input side) with the display side |
 | `agent-memory-files` | Editing `CLAUDE.md` or `replit.md` — keep them harmonized |
+| `external-data-source-integration` | Adding any new external data source (API, MCP, scraper) — five-layer FRED template: admin_resources row + minion fetcher + DB cache + Rebecca tool + parity map entry |
+| `hplus-resource-catalog` | Listing all H+ data resources (APIs, MCPs, research URLs, prompt templates) — inventory of the platform's data moat; use before planning features that need market or financial data |
 
 ### How to invoke
 
