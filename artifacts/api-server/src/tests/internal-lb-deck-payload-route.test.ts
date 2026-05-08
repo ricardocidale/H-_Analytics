@@ -173,6 +173,9 @@ describe("GET /api/internal/lb-deck-payload — factory token, signature failure
     const { token } = signFactoryDeckToken(FAKE_RUN_ID, 0);
     // Wait one tick so Date.now() > expiresAtMs
     await new Promise((r) => setTimeout(r, 5));
+    // Legacy fallback verifier rejects too — expired factory token shouldn't
+    // accidentally pass the lb-kind check.
+    mockVerifyLbDeckToken.mockReturnValue({ ok: false, reason: "wrong-kind" });
 
     const res = await agent.get(`/api/internal/lb-deck-payload?token=${encodeURIComponent(token)}`);
 
