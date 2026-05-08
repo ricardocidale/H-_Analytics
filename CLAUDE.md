@@ -270,7 +270,8 @@ docs/solutions/ Documented solutions, organized by category with YAML frontmatte
 pnpm run typecheck                              # full typecheck across all packages
 pnpm run build                                 # typecheck + build all packages
 pnpm --filter @workspace/api-spec run codegen  # regenerate API hooks + Zod schemas
-pnpm --filter @workspace/db run push           # push DB schema changes (dev only)
+pnpm --filter @workspace/db run generate       # generate a new Drizzle migration from schema changes
+pnpm --filter @workspace/db run push           # push DB schema changes directly (dev only; skips migration files)
 ```
 
 Health endpoint: `GET /api/health/live` (not `/api/healthz`).
@@ -446,12 +447,67 @@ Two-layer system — know both before touching the DB:
 
 | Layer | Location | When it runs |
 |---|---|---|
-| Drizzle SQL migrations | `artifacts/api-server/migrations/*.sql` + journal at `…/meta/_journal.json` | Once, at server boot via `migrate()` from `drizzle-orm/node-postgres/migrator` |
+| Drizzle SQL migrations | `lib/db/migrations/*.sql` + journal at `lib/db/migrations/meta/_journal.json` | Once, at server boot via `migrate()` from `drizzle-orm/node-postgres/migrator` |
 | Runtime TypeScript guards | `artifacts/api-server/src/migrations/*.ts` | Every boot — idempotent `IF NOT EXISTS` DDL, belt-and-suspenders |
 
 **Drizzle migration state** is tracked in `drizzle.__drizzle_migrations` on Neon. If it drifts from the journal (e.g. after manually applying DDL), sync it: compute SHA-256 of each unapplied `.sql` file and `INSERT INTO drizzle."__drizzle_migrations" (hash, created_at)`. Synced to 53 entries on 2026-05-08 (after migration 0042 — `rebecca_chat_prefs`).
 
 **Drizzle snapshot baseline:** `lib/db/migrations/meta/0042_snapshot.json` is the canonical up-to-date snapshot (added Task #1199, May 2026), describing all 112 tables as of `0044_users_rebecca_history_open`. The original `0000_snapshot.json` (8 tables) is kept as the historical root and must not be replaced — it anchors the snapshot chain. Run `pnpm --filter @workspace/db run generate` to produce a new migration from the current TypeScript schema; drizzle-kit will automatically write a new numbered snapshot alongside the SQL file.
+
+#### Schema change workflow (one command — always use this)
+
+Use this cycle for every column addition, table creation, or schema modification:
+
+```
+1. Edit the TypeScript schema
+   └── lib/db/src/schema/<table>.ts
+
+2. Generate the migration
+   └── pnpm --filter @workspace/db run generate
+       Writes lib/db/migrations/<next-N>_<name>.sql
+       and    lib/db/migrations/meta/<next-N>_snapshot.json
+
+3. Review the generated SQL
+   └── Open the new .sql file — confirm it matches the intended DDL.
+       drizzle-kit derives the diff from the previous snapshot, so
+       check especially for accidental DROP statements.
+
+4. Apply the migration
+   Option A (preferred — applies via the normal boot path):
+     Commit the migration file and deploy / restart the server.
+     drizzle-orm/node-postgres/migrator runs it once at boot.
+
+   Option B (dev shortcut — applies immediately without restart):
+     Run a one-off pg script:
+       node -e "
+         const { Pool } = require('./artifacts/api-server/node_modules/pg');
+         const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
+         const fs = require('fs');
+         pool.query(fs.readFileSync('lib/db/migrations/<N>_<name>.sql','utf8'))
+           .then(() => { console.log('done'); pool.end(); });
+       "
+
+5. Sync drizzle.__drizzle_migrations (only needed after Option B)
+   Compute the SHA-256 of the new .sql file and insert a row:
+     node -e "
+       const { Pool } = require('./artifacts/api-server/node_modules/pg');
+       const crypto = require('crypto');
+       const fs = require('fs');
+       const sql = fs.readFileSync('lib/db/migrations/<N>_<name>.sql');
+       const hash = crypto.createHash('sha256').update(sql).digest('hex');
+       const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
+       pool.query(
+         'INSERT INTO drizzle.__drizzle_migrations (hash, created_at) VALUES (\$1, \$2)',
+         [hash, Date.now()]
+       ).then(() => { console.log('inserted', hash); pool.end(); });
+     "
+
+6. Run the migration guard check
+   └── pnpm --filter @workspace/scripts run check:migration-guards
+       Must pass before the change is considered done.
+```
+
+**Never craft migration SQL by hand** unless drizzle-kit cannot express the change (e.g. a complex data backfill). In that case, write the SQL file manually into `lib/db/migrations/` using the correct sequence number, then follow steps 5–6 above to register the hash.
 
 **Querying the real DB in dev:** The Replit code-execution `executeSql()` callback connects to Replit's built-in PostgreSQL, NOT the app's Neon database. To query the real DB: use admin API endpoints via `curl -b <cookie>` (authenticate with `POST /api/auth/dev-login`), or run a one-off Node.js script with `process.env.POSTGRES_URL` and the `pg` client at `artifacts/api-server/node_modules/pg`.
 
@@ -480,7 +536,7 @@ Use the `ui-page-patterns` skill before building or revising any page.
 |---|---|
 | `references/openapi.md` | OpenAPI spec + codegen setup |
 | `references/server.md` | Route conventions, logging, tips |
-| `references/db.md` | Schema additions + migration runbook |
+| `.local/skills/pnpm-workspace/references/db.md` | Schema additions + migration runbook (generate workflow, push commands, pitfalls) |
 | `.local/tasks/task-800.md` | Full architecture audit (scenarios, portfolios, sharing, roles) |
 | `.local/db-audit-phase-c-inventory.md` | DB migration inventory (Phase C) |
 | `attached_assets/canonical/pdf/L+B_Property_6-Slide_Cannonical_1777859377769.pdf` | Canonical visual reference for all 6 LB slides — every rebuild must pixel-match this |
@@ -528,7 +584,7 @@ vendor/
 
 | Work type | Owner | Notes |
 |---|---|---|
-| DB migrations | Claude Code | Use `apply-0029.mjs` pattern (pg client, idempotent SQL) |
+| DB migrations | Claude Code | Run `pnpm --filter @workspace/db run generate` first; fall back to manual SQL only for complex backfills |
 | UI pages / components | Replit Agent | Use `ui-page-patterns` skill |
 | AI/chatbot features | Either | Use `embedded-ai-agent` skill |
 | Architecture decisions | Claude Code | Use `architecture-decision-records` skill |
@@ -574,6 +630,6 @@ Rule: **if you touch `CLAUDE.md`, scan `replit.md` for related content and sync 
 <!-- keep ≤ 3 entries; remove oldest when adding new ones -->
 | Date | Change |
 |---|---|
+| 2026-05-08 | **Schema change workflow documented (Task #1201).** Added "Schema change workflow" runbook to CLAUDE.md § Migration system architecture and to `.local/skills/pnpm-workspace/references/db.md`. Updated Key Commands to include `generate`. Updated CC/Replit lane split to drop the manual-SQL fallback instruction. |
 | 2026-05-08 | **Server-side chat preferences (Task #1185).** `rebecca_response_mode` + `rebecca_show_tool_timing` columns on `users` table (migration 0042). `PATCH /api/profile/chat-preferences` endpoint. `RebeccaPanel` seeds from server on first load; syncs to server on change. `drizzle.__drizzle_migrations` now 53 entries. |
 | 2026-05-08 | **Agent persona animations wave merged.** 5 persona orbs (Gustavo, Marco, Rebecca, Iris, Specialist), SpecialistOrb 3-phase wiring (`dispatching / thinking / synthesizing`), Rebecca tool-step animations, collapsible reasoning trail, Dino verdict chips, Slide Factory cancel button, ESLint Phosphor import guard. |
-| 2026-05-07 | **Slide Factory V2 UI — Tab 1 (Brief) + Tab 3 (Properties).** `SlideFactoryPanel.tsx` in `features/slide-factory/`. Tab 1: PDF/PPTX brief upload via presigned R2. Tab 3: 4-property selectors (slides 1/2/3/5). Tabs 2/4/5/6 pipeline-stage placeholders. Polls every 5 s only in transitional states. |
