@@ -53,7 +53,7 @@ export async function runPietroTables001(): Promise<void> {
 
   await db.execute(sql`
     CREATE UNIQUE INDEX IF NOT EXISTS competitor_rates_market_category_checkin_source_uniq
-      ON competitor_rates (market, property_category, check_in_date, source)
+      ON competitor_rates (market, property_category, check_in_date, source) NULLS NOT DISTINCT
   `);
 
   await db.execute(sql`
