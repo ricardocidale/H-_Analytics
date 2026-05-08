@@ -115,3 +115,47 @@ export function getPerplexityClient(): Perplexity {
   _perplexity = new Perplexity({ apiKey });
   return _perplexity;
 }
+
+// ── Exa ─────────────────────────────────────────────────
+
+export interface ExaSearchResult {
+  url: string;
+  title?: string;
+  text?: string;
+  publishedDate?: string;
+  author?: string;
+}
+
+export interface ExaSearchResponse {
+  results: ExaSearchResult[];
+}
+
+const EXA_BASE_URL = "https://api.exa.ai";
+const EXA_SEARCH_TIMEOUT_MS = 15_000;
+const EXA_DEFAULT_NUM_RESULTS = 8;
+const EXA_DEFAULT_MAX_CHARS = 2_000;
+
+export function getExaApiKey(): string {
+  return requireApiKey("Exa", ["EXA_API_KEY"]);
+}
+
+export async function searchWithExa(query: string): Promise<ExaSearchResponse> {
+  const apiKey = getExaApiKey();
+  const response = await fetch(`${EXA_BASE_URL}/search`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+    },
+    body: JSON.stringify({
+      query,
+      numResults: EXA_DEFAULT_NUM_RESULTS,
+      contents: { text: { maxCharacters: EXA_DEFAULT_MAX_CHARS } },
+    }),
+    signal: AbortSignal.timeout(EXA_SEARCH_TIMEOUT_MS),
+  });
+  if (!response.ok) {
+    throw new Error(`Exa search failed: HTTP ${response.status}`);
+  }
+  return response.json() as Promise<ExaSearchResponse>;
+}

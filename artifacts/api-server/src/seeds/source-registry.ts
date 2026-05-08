@@ -82,8 +82,19 @@ const SOURCE_SEEDS: SourceSeed[] = [
     endpoint: "https://api.perplexity.ai/chat/completions",
     apiKeyRef: "PERPLEXITY_API_KEY",
     rateLimitPerMin: 20,
+    isActive: false, // Replaced by Exa as the primary web-grounded search provider
+    description: "Perplexity Sonar for grounded web research. Replaced by Exa — kept for reference and fallback.",
+  },
+  {
+    serviceKey: "exa",
+    name: "Exa Neural Search",
+    sourceType: "api",
+    category: "web_research",
+    endpoint: "https://api.exa.ai",
+    apiKeyRef: "EXA_API_KEY",
+    rateLimitPerMin: 60,
     isActive: true,
-    description: "Perplexity Sonar for grounded web research with source citations. Returns real-time web data with provenance — critical for regulatory lookups and market news.",
+    description: "Exa neural web search for grounded market intelligence, property research, and competitive analysis. Replaces Perplexity as the primary web-grounded search provider in Rebecca.",
   },
   {
     serviceKey: "tavily",

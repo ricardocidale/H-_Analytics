@@ -1,5 +1,5 @@
 import { type Express, type Request, type Response } from "express";
-import { getGeminiClient, getPerplexityClient, getOpenAIClient, getAnthropicClient, normalizeModelId } from "../ai/clients";
+import { getGeminiClient, getPerplexityClient, getOpenAIClient, getAnthropicClient, normalizeModelId, searchWithExa, getExaApiKey } from "../ai/clients";
 import { mergeRebeccaSettings, buildPersonaOverlay, assembleSystemPrompt, computeBlocksIncluded, rebeccaSettingsPatchSchema, type RebeccaSettings, type SourceBlockPresence, REBECCA_DEFAULT_MODEL } from "@shared/rebecca-settings";
 import { requireAuth , getAuthUser } from "../auth";
 import { aiRateLimit } from "../middleware/rate-limit";
@@ -99,7 +99,7 @@ class ChatPolicyError extends Error {
 // same provider matrix the live preview uses, instead of duplicating the
 // switch statement and silently drifting from the real chat behavior.
 export async function callLlm(
-  provider: "openai" | "anthropic" | "gemini" | "perplexity",
+  provider: "openai" | "anthropic" | "gemini" | "perplexity" | "exa",
   model: string,
   systemPrompt: string,
   history: MessageEntry[],
@@ -164,6 +164,37 @@ export async function callLlm(
     const inTok = completion.usage?.prompt_tokens ?? Math.round(userMessage.length / 4);
     const outTok = completion.usage?.completion_tokens ?? Math.round(text.length / 4);
     try { logApiCost({ timestamp: new Date().toISOString(), service: "perplexity", model, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("perplexity", model, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+    return { text, stopReason: "end_turn" };
+  }
+
+  if (provider === "exa") {
+    // Exa is a neural web-search provider — every response is grounded in live
+    // web results. Same policy gate as Perplexity: the Knowledge & Sources →
+    // Web Search toggle controls this behavior.
+    if (webSearchEnabled === false) {
+      throw new ChatPolicyError(
+        "Exa (web-grounded search) is disabled by Knowledge & Sources → Web Search. Enable the toggle in Rebecca Configuration, or select a non-Exa provider.",
+      );
+    }
+    // Verify key is present before attempting — surfaces a clear error rather
+    // than a raw fetch failure from the Exa endpoint.
+    getExaApiKey();
+    // Build the query from the last user message in history, falling back to
+    // userMessage. Exa is search-first; we pass the user's intent as the query.
+    const query = userMessage || (history.filter(m => m.role === "user").pop()?.content as string) || "";
+    const exaResult = await searchWithExa(query);
+    const resultTexts = exaResult.results
+      .filter(r => r.text)
+      .map(r => `**${r.title ?? r.url}**\n${r.text}`)
+      .join("\n\n---\n\n");
+    let text = resultTexts || "No results found.";
+    const sources = exaResult.results.filter(r => r.url);
+    if (sources.length > 0) {
+      text += "\n\n**Sources:**\n" + sources.map((r, i) => `[${i + 1}] ${r.url}`).join("\n");
+    }
+    const inTok = Math.round(query.length / 4);
+    const outTok = Math.round(text.length / 4);
+    try { logApiCost({ timestamp: new Date().toISOString(), service: "exa", model: "exa-search", operation: "search", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: 0, durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
     return { text, stopReason: "end_turn" };
   }
 
@@ -310,7 +341,7 @@ export async function callLlm(
 }
 
 export async function callLlmStream(
-  provider: "openai" | "anthropic" | "gemini" | "perplexity",
+  provider: "openai" | "anthropic" | "gemini" | "perplexity" | "exa",
   model: string,
   systemPrompt: string,
   history: MessageEntry[],
@@ -334,7 +365,7 @@ export async function callLlmStream(
     return result;
   }
 
-  if (provider === "perplexity") {
+  if (provider === "perplexity" || provider === "exa") {
     // No streaming API — batch and emit full text as single token
     const result = await callLlm(provider, model, systemPrompt, history, userMessage, sampling, userId, webSearchEnabled, tools);
     onToken(result.text);
@@ -453,7 +484,7 @@ function sseWrite(res: Response, event: string, data: unknown): void {
  */
 function appendToolResults(
   history: MessageEntry[],
-  provider: "openai" | "anthropic" | "gemini" | "perplexity",
+  provider: "openai" | "anthropic" | "gemini" | "perplexity" | "exa",
   toolCalls: ToolCall[],
   results: Array<{ id: string; name: string; result: unknown }>,
 ): MessageEntry[] {
@@ -1108,7 +1139,7 @@ export function register(app: Express) {
       let primaryLoopExecutedTools = false;
 
       async function runAgenticLoop(
-        loopProvider: "openai" | "anthropic" | "gemini" | "perplexity",
+        loopProvider: "openai" | "anthropic" | "gemini" | "perplexity" | "exa",
         loopModel: string,
         isPrimary: boolean,
       ): Promise<string> {
@@ -1193,7 +1224,7 @@ export function register(app: Express) {
       // Web search only actually fires for the Perplexity provider. Mark
       // presence honestly so admins don't see "web search" in the badge
       // list when, e.g., a Gemini fallback served the reply.
-      blockPresence.webSearch = webSearchEnabled && resolvedProvider === "perplexity";
+      blockPresence.webSearch = webSearchEnabled && (resolvedProvider === "perplexity" || resolvedProvider === "exa");
       // Suppress unused warnings around the legacy engine variable when no
       // settings have ever been written (still informative for logs).
       void legacyEngine;

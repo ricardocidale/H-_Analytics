@@ -123,8 +123,16 @@ export const MODEL_SEED_ROWS: SeedRow[] = [
     kind: "model",
     slug: "sonar",
     displayName: "Perplexity Sonar",
-    description: "Perplexity Sonar — grounded web search with citations, used for market research",
+    description: "Perplexity Sonar — grounded web search with citations. Replaced by Exa; kept for legacy configurations.",
     config: { vendor: "perplexity", modelId: "sonar" },
+  },
+  // ── Exa ────────────────────────────────────────────────────────────────────
+  {
+    kind: "model",
+    slug: "exa-search",
+    displayName: "Exa Neural Search",
+    description: "Exa neural web search — grounded market intelligence and property research. Primary web-search provider replacing Perplexity.",
+    config: { vendor: "exa", modelId: "exa-search" },
   },
   // ── Google additional models ───────────────────────────────────────────────
   {
@@ -211,8 +219,8 @@ export const LLM_SLOT_SEED_ROWS: SeedRow[] = [
     kind: "llm_slot",
     slug: "grounded-web-research",
     displayName: "Grounded Web Research",
-    description: "LLM used for live web research with citations (Perplexity Sonar)",
-    config: { modelSlug: "sonar" },
+    description: "Provider used for live web research with citations. Default: Exa neural search (exa). Legacy: Perplexity Sonar (sonar).",
+    config: { modelSlug: "exa-search" },
   },
   {
     kind: "llm_slot",
