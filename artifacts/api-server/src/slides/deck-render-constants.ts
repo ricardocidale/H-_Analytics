@@ -69,8 +69,61 @@ export const MARCO_MAX_TOKENS = 1024;
 
 /**
  * Upper bound on Marco's agent loop iterations (one iteration = one
- * messages.create round-trip). For TOTAL_SLIDES=6 the natural call count is
- * read_run + 6×(dispatch + update) + transition + complete ≈ 15 turns;
- * 30 leaves 2× headroom for retries and non-tool turns.
+ * messages.create round-trip). With U7 Maya + Dino the natural call count is
+ * read_run(1) + 6×(dispatch+maya+dino+update)(24) + transition(1) + complete(1)
+ * ≈ 27 turns; 50 gives ~2× headroom for retries and non-tool turns.
  */
-export const MARCO_MAX_TOOL_DEPTH = 30;
+export const MARCO_MAX_TOOL_DEPTH = 50;
+
+// ── Maya cross-app verification (Unit 7) ────────────────────────────────────
+
+/** Anthropic model used by Maya (cross-app holistic content judge). Opus tier: judgment-intensive. */
+export const MAYA_MODEL = "claude-opus-4-7";
+/** max_tokens for Maya per-slide verdict call */
+export const MAYA_MAX_TOKENS = 1024;
+/** Max characters of serialised payloadV2 sent to Maya (truncated for token budget) */
+export const MAYA_PAYLOAD_TRUNCATE_CHARS = 4000;
+/** Max characters of serialised slotDrafts sent to Maya (truncated for token budget) */
+export const MAYA_DRAFTS_TRUNCATE_CHARS = 2000;
+
+// ── Dino pixel-diff agent (Unit 7) ──────────────────────────────────────────
+
+/** RGB channel count in a raw RGBA buffer (always 4: R, G, B, A) */
+export const DINO_RGBA_CHANNELS = 4;
+/** Playwright poll interval while waiting for __deckReady (ms) */
+export const DINO_POLL_INTERVAL_MS = 500;
+
+/** Maximum pixel-diff percentage before Dino flags a slide as visually divergent */
+export const DINO_PIXEL_DIFF_THRESHOLD_PCT = 5;
+/** Viewport width for Dino single-slide screenshots (matches canonical slide dimensions) */
+export const DINO_VIEWPORT_WIDTH = 960;
+/** Viewport height for Dino single-slide screenshots */
+export const DINO_VIEWPORT_HEIGHT = 540;
+/** Per-channel RGB delta above which a pixel is counted as "different" (0–255) */
+export const DINO_CHANNEL_DIFF_TOLERANCE = 10;
+/** Local reverse-proxy port used to render the LB deck via Playwright */
+export const SLIDE_INTERNAL_PROXY_PORT = 80;
+
+// ── Swarm team constants (Units 5–6) ────────────────────────────────────────
+
+/**
+ * Anthropic model used by all swarm team Builders (Sofia-02, Bianca-02, etc.).
+ * Sonnet is cost-appropriate for constraint-fitting / slot-assembly tasks;
+ * escalate to Opus for slides with high visual-judgment demands (§12).
+ */
+export const SWARM_BUILDER_MODEL = "claude-sonnet-4-6";
+
+/** max_tokens per swarm Builder call. */
+export const SWARM_BUILDER_MAX_TOKENS = 2048;
+
+/**
+ * max_tokens per swarm Inspector Pass 2 (LLM-vision) call. Shared across all
+ * six Inspector roles; Inspector Pass 2 uses LORENZO_VISION_MODEL (Opus 4.7).
+ */
+export const SWARM_INSPECTOR_MAX_TOKENS = 1024;
+
+/**
+ * Number of projection years used by Felix-01 (Aggregator) for the slide-6
+ * USALI income-statement aggregate. Fixed at 10 per the canonical deck spec.
+ */
+export const FELIX_PROJECTION_YEARS = 10;

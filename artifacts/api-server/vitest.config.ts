@@ -6,7 +6,8 @@ export default defineConfig({
     environment: 'node',
     include: ['src/tests/**/*.test.ts'],
     alias: {
-      '@shared': path.resolve(__dirname, './src/shared'),
+      '@shared': path.resolve(__dirname, '../../lib/shared/src'),
+      '@norfolk/shared': path.resolve(__dirname, '../../lib/shared/src'),
       '@server': path.resolve(__dirname, './src'),
       '@workspace/db': path.resolve(__dirname, '../../lib/db/src'),
       '@engine': path.resolve(__dirname, '../../lib/engine/src'),

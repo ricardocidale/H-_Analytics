@@ -1,25 +1,17 @@
 /**
- * Marco — slide factory orchestrator agent (Unit 1).
+ * Marco — slide factory orchestrator agent (Unit 1 + Unit 7).
  *
  * Status flow: building → complete (or error).
  *
- * Marco is a thin LLM-driven orchestrator. Its primitive tools (read_run,
- * dispatch_slide_team, update_agent_result, transition_status, complete_task)
- * encode no decision logic — Marco's system prompt drives sequencing.
+ * Marco is a thin LLM-driven orchestrator. Its primitive tools encode no
+ * decision logic — Marco's system prompt drives sequencing. Approval
+ * computation lives entirely in handleUpdateAgentResult (deterministic).
  *
- * Phase 1 scope:
- *   - dispatch each of six per-slide teams sequentially (Sofia, Bianca,
- *     Chiara, Dario, Elisa, Felix)
- *   - write each team's verdict to agentResults JSONB
- *   - transition the run to 'complete' (all approved) or 'error' (any rejected)
+ * Per-slide sequence (Units 1 + 7):
+ *   dispatch_slide_team → invoke_maya → invoke_dino → update_agent_result
  *
- * Maya verdict + Dino pixel-diff integration is U7. Phase 1 Marco approves
- * a slide on the team's own Inspector verdict; cross-app verification
- * layers on top later by extending Marco's tool list and system prompt.
- *
- * The route handler at routes/slide-factory.ts:432 calls runMarco(runId) as
- * fire-and-forget after transitioning status to 'building' — same pattern
- * as runLorenzoIngestion / runLuccaDraft.
+ * The route handler at routes/slide-factory.ts calls runMarco(runId) as
+ * fire-and-forget after transitioning status to 'building'.
  */
 import Anthropic from "@anthropic-ai/sdk";
 import { logger } from "../logger";
@@ -31,37 +23,45 @@ import {
   MARCO_MAX_TOOL_DEPTH,
   TOTAL_SLIDES,
 } from "./deck-render-constants";
-import { MARCO_TOOLS, dispatchMarcoTool } from "./marco-tools";
+import { MARCO_TOOLS, dispatchMarcoTool, clearRunPayloads } from "./marco-tools";
 
 const MARCO_SYSTEM_PROMPT = `You are Marco, the slide factory orchestrator.
 
-Your job: take a slide_factory_runs row in 'building' status and drive it to 'complete' (or 'error' if any per-slide team rejects).
+Your job: take a slide_factory_runs row in 'building' status and drive it to 'complete' (or 'error' if any per-slide team is rejected).
 
 You have these primitive tools:
-  read_run(runId)                                — fetch run state
-  dispatch_slide_team(runId, slideNumber)        — invoke the team for slide 1..${TOTAL_SLIDES}
-  update_agent_result(runId, slideNumber, status, errorMessage?) — write verdict
-  transition_status(runId, newStatus)            — move run to 'complete' or 'error'
-  complete_task(summary)                         — exit signal (always call last)
+  read_run(runId)                                      — fetch run state
+  dispatch_slide_team(runId, slideNumber)              — invoke the swarm team for slide 1..${TOTAL_SLIDES}
+  invoke_maya(runId, slideNumber)                      — run cross-app content judge for one slide
+  invoke_dino(runId, slideNumber)                      — run pixel-diff agent for one slide
+  update_agent_result(runId, slideNumber, teamStatus, mayaVerdict, mayaHeadline, mayaNotes, dinoPixelDiffPct, dinoExceedsThreshold)
+                                                       — write verdict (handler decides approved/rejected)
+  transition_status(runId, newStatus)                  — move run to 'complete' or 'error'
+  complete_task(summary)                               — exit signal (always call last)
 
 Sequence (sequential; do not skip steps):
   - First, read_run to confirm status='building' and inspect property assignments.
   - Then for each slide from slide 1 through slide ${TOTAL_SLIDES}, in order:
-       a. dispatch_slide_team(runId, slideNumber).
-       b. If the team returns status='ok': update_agent_result with status='approved' and errorMessage=null.
-          Otherwise (status='block' or 'fail', or the tool returned an error):
-          update_agent_result with status='rejected' and errorMessage = the team's notes (or the error string).
-       c. Continue to the next slide regardless — do not stop on the first rejection.
+       a. dispatch_slide_team(runId, slideNumber) — note the returned status and notes.
+          If the result contains an "error" field, treat teamStatus as "fail" and notes as the error message.
+       b. invoke_maya(runId, slideNumber) — note the returned verdict, headline, and notes.
+          If the result contains an "error" field, pass mayaVerdict="block" and mayaNotes as the error message.
+       c. invoke_dino(runId, slideNumber) — note the returned pixelDiffPct and exceedsThreshold.
+          If the result contains an "error" field, pass dinoPixelDiffPct=0 and dinoExceedsThreshold=false.
+       d. update_agent_result with all raw signals from steps a–c passed through exactly as returned.
+          The tool returns computedStatus ('approved' or 'rejected') — use that to track rejections.
+       e. Continue to the next slide regardless — do not stop on the first rejection.
   - After every slide has agentResults written:
-       — If every slide's status is 'approved': transition_status(runId, 'complete').
-       — If any slide is 'rejected': transition_status(runId, 'error').
+       — If every slide's computedStatus was 'approved': transition_status(runId, 'complete').
+       — If any slide's computedStatus was 'rejected': transition_status(runId, 'error').
   - Finally, complete_task with a one-sentence summary.
 
 Constraints:
   • Do not invent slide numbers outside 1..${TOTAL_SLIDES}.
-  • Do not call dispatch_slide_team more than once per slide.
+  • Do not call dispatch_slide_team, invoke_maya, or invoke_dino more than once per slide.
+  • Do not interpret or modify the raw signals — pass them through to update_agent_result as-is.
   • Do not transition_status until every slide has been written.
-  • Do not call any tool other than the five listed above.`;
+  • Do not call any tool other than the seven listed above.`;
 
 /**
  * Run Marco for one slide_factory_run.
@@ -170,6 +170,7 @@ export async function runMarco(runId: number): Promise<void> {
 }
 
 async function markRunError(runId: number): Promise<void> {
+  clearRunPayloads(runId);
   try {
     await updateSlideFactoryRun(runId, { status: "error" });
   } catch {

@@ -1,5 +1,5 @@
 /**
- * Marco's primitive tools — Unit 1.
+ * Marco's primitive tools — Unit 1 + Unit 7.
  *
  * Marco is the slide factory orchestrator. Its tools are atomic primitives,
  * not bundled workflows: each tool does one thing, returns rich data, and
@@ -8,13 +8,14 @@
  * Tools:
  *   read_run             → fetch run state (status + slot drafts + assignments)
  *   dispatch_slide_team  → invoke per-slide team via U4 swarm dispatcher
- *   update_agent_result  → write one slide's verdict to agentResults JSONB
+ *   invoke_maya          → run Maya cross-app content judge for one slide
+ *   invoke_dino          → run Dino pixel-diff agent for one slide
+ *   update_agent_result  → write one slide's verdict (raw signals; handler computes approved/rejected)
  *   transition_status    → move the run to 'complete' or 'error'
  *   complete_task        → exit signal for the bounded tool loop
  *
- * Maya verdict + Dino pixel-diff tools are added in U7. Phase 1 Marco
- * approves a slide on the team's own Inspector verdict; cross-app
- * verification layers on top later.
+ * Approval logic lives in handleUpdateAgentResult (deterministic), NOT in
+ * Marco's system prompt. Marco passes raw signals through; the handler decides.
  *
  * See:
  *   docs/solutions/architecture-patterns/agent-native-precision-pipeline-pattern-2026-05-06.md
@@ -29,12 +30,22 @@ import {
 import type { SlideAgentResult } from "../storage/slide-factory-runs";
 import { dispatchSlideTeam } from "./swarms/dispatch";
 import type { SlideTeamInput, SlideTeamOutput, SlideNumber } from "./swarms/types";
-import { teamOutputToAgentStatus } from "./swarms/types";
+import type { LuccaSlotDraft } from "@workspace/db";
+import { runMaya } from "./maya";
+import type { MayaVerdictLevel } from "./maya";
+import { runDino } from "./dino";
 import { CANONICAL_ASSETS } from "./canonical-assets";
 import { TOTAL_SLIDES } from "./deck-render-constants";
 
 const SLIDE_NUMBER_RANGE_DESC = `Slide number in 1..${TOTAL_SLIDES}`;
 const SLIDE_NUMBER_MIN = 1;
+
+/**
+ * In-memory cache: payloadV2 produced by dispatch_slide_team, consumed by
+ * invoke_maya. Keyed as `${runId}:${slideNumber}`. Deleted immediately after
+ * Maya reads it to prevent unbounded growth.
+ */
+const dispatchedPayloads = new Map<string, unknown>();
 
 // ── Tool schemas (Anthropic.Tool) ────────────────────────────────────────────
 
@@ -54,7 +65,43 @@ export const MARCO_TOOLS: Anthropic.Tool[] = [
   {
     name: "dispatch_slide_team",
     description:
-      `Dispatch the per-slide swarm team for one slide (Sofia=slide ${SLIDE_NUMBER_MIN}, then Bianca, Chiara, Dario, Elisa, Felix in order through slide ${TOTAL_SLIDES}). Returns the team's SlideTeamOutput { status, payloadV2, notes }.`,
+      `Dispatch the per-slide swarm team for one slide (Sofia=slide ${SLIDE_NUMBER_MIN}, then Bianca, Chiara, Dario, Elisa, Felix in order through slide ${TOTAL_SLIDES}). Returns the team's SlideTeamOutput { status, notes }.`,
+    input_schema: {
+      type: "object",
+      required: ["runId", "slideNumber"],
+      properties: {
+        runId: { type: "number", description: "Slide factory run id" },
+        slideNumber: {
+          type: "integer",
+          minimum: SLIDE_NUMBER_MIN,
+          maximum: TOTAL_SLIDES,
+          description: SLIDE_NUMBER_RANGE_DESC,
+        },
+      },
+    },
+  },
+  {
+    name: "invoke_maya",
+    description:
+      "Run Maya (cross-app content judge) for one slide. Call after dispatch_slide_team succeeds. Returns { verdict, headline, notes }. Pass verdict and notes to update_agent_result.",
+    input_schema: {
+      type: "object",
+      required: ["runId", "slideNumber"],
+      properties: {
+        runId: { type: "number", description: "Slide factory run id" },
+        slideNumber: {
+          type: "integer",
+          minimum: SLIDE_NUMBER_MIN,
+          maximum: TOTAL_SLIDES,
+          description: SLIDE_NUMBER_RANGE_DESC,
+        },
+      },
+    },
+  },
+  {
+    name: "invoke_dino",
+    description:
+      "Run Dino (pixel-diff agent) for one slide. Call after invoke_maya. Returns { pixelDiffPct, exceedsThreshold, threshold }. Pass exceedsThreshold to update_agent_result.",
     input_schema: {
       type: "object",
       required: ["runId", "slideNumber"],
@@ -72,10 +119,10 @@ export const MARCO_TOOLS: Anthropic.Tool[] = [
   {
     name: "update_agent_result",
     description:
-      "Write one slide's verdict to agentResults JSONB. Use status='approved' when the team returned ok, 'rejected' when block/fail/throw. Pass errorMessage when rejected.",
+      "Write one slide's verdict to agentResults JSONB. Pass the raw signals from dispatch_slide_team (teamStatus), invoke_maya (mayaVerdict, mayaNotes), and invoke_dino (dinoPixelDiffPct, dinoExceedsThreshold). The handler computes approved/rejected — do not interpret these yourself.",
     input_schema: {
       type: "object",
-      required: ["runId", "slideNumber", "status"],
+      required: ["runId", "slideNumber", "teamStatus", "mayaVerdict", "dinoPixelDiffPct", "dinoExceedsThreshold"],
       properties: {
         runId: { type: "number", description: "Slide factory run id" },
         slideNumber: {
@@ -84,14 +131,31 @@ export const MARCO_TOOLS: Anthropic.Tool[] = [
           maximum: TOTAL_SLIDES,
           description: SLIDE_NUMBER_RANGE_DESC,
         },
-        status: {
+        teamStatus: {
           type: "string",
-          enum: ["approved", "rejected"],
-          description: "Final per-slide verdict",
+          enum: ["ok", "block", "fail"],
+          description: "Status from dispatch_slide_team",
         },
-        errorMessage: {
+        mayaVerdict: {
+          type: "string",
+          enum: ["ok", "advisory", "warning", "block"],
+          description: "Verdict from invoke_maya",
+        },
+        mayaHeadline: {
           type: ["string", "null"],
-          description: "Required when status='rejected'; null when 'approved'",
+          description: "Headline from invoke_maya; null if unavailable",
+        },
+        mayaNotes: {
+          type: ["string", "null"],
+          description: "Notes from invoke_maya; null if none",
+        },
+        dinoPixelDiffPct: {
+          type: "number",
+          description: "pixelDiffPct from invoke_dino",
+        },
+        dinoExceedsThreshold: {
+          type: "boolean",
+          description: "exceedsThreshold from invoke_dino",
         },
       },
     },
@@ -166,13 +230,33 @@ export async function dispatchMarcoTool(
           ),
         };
 
+      case "invoke_maya":
+        return {
+          result: await handleInvokeMaya(
+            asNumber(args.runId),
+            asSlideNumber(args.slideNumber),
+          ),
+        };
+
+      case "invoke_dino":
+        return {
+          result: await handleInvokeDino(
+            asNumber(args.runId),
+            asSlideNumber(args.slideNumber),
+          ),
+        };
+
       case "update_agent_result":
         return {
           result: await handleUpdateAgentResult(
             asNumber(args.runId),
             asSlideNumber(args.slideNumber),
-            args.status as SlideAgentResult["status"],
-            (args.errorMessage as string | null | undefined) ?? null,
+            asEnum(args.teamStatus, ["ok", "block", "fail"] as const),
+            asEnum(args.mayaVerdict, ["ok", "advisory", "warning", "block"] as const),
+            (args.mayaHeadline as string | null | undefined) ?? null,
+            (args.mayaNotes as string | null | undefined) ?? null,
+            asNumber(args.dinoPixelDiffPct),
+            asBoolean(args.dinoExceedsThreshold),
           ),
         };
 
@@ -180,7 +264,7 @@ export async function dispatchMarcoTool(
         return {
           result: await handleTransitionStatus(
             asNumber(args.runId),
-            args.newStatus as "complete" | "error",
+            asEnum(args.newStatus, ["complete", "error"] as const),
           ),
         };
 
@@ -231,48 +315,105 @@ async function handleDispatchTeam(runId: number, slideNumber: SlideNumber) {
     runId,
     slideNumber,
     slotDrafts,
-    // financialInputs will flow from Davide via the route handler in U5/U6.
-    // Phase 1 stub teams ignore this field; passing null makes the absence
-    // explicit rather than silently undefined.
     financialInputs: null,
     canonicalPngKey: CANONICAL_ASSETS.slide(slideNumber, "png"),
     briefR2Key: run.briefR2Key,
   };
 
   const output: SlideTeamOutput = await dispatchSlideTeam(input);
+
+  // Cache payloadV2 for invoke_maya — deleted there after read
+  const cacheKey = `${runId}:${slideNumber}`;
+  dispatchedPayloads.set(cacheKey, output.payloadV2);
+
   return {
     slideNumber: output.slideNumber,
     status: output.status,
     notes: output.notes,
-    // Don't echo payloadV2 to the LLM — it's large and Marco doesn't need
-    // to inspect it. Marco only needs to know whether the team succeeded.
+    // payloadV2 not echoed to LLM — large and Marco doesn't need to inspect it
+  };
+}
+
+async function handleInvokeMaya(runId: number, slideNumber: SlideNumber) {
+  const run = await getSlideFactoryRunById(runId);
+  if (!run) return { error: `Run ${runId} not found` };
+
+  const cacheKey = `${runId}:${slideNumber}`;
+  const payloadV2 = dispatchedPayloads.get(cacheKey) ?? null;
+  dispatchedPayloads.delete(cacheKey);
+
+  if (!payloadV2) {
+    return { error: `payloadV2 unavailable for slide ${slideNumber} — dispatch_slide_team must be called first` };
+  }
+
+  const luccaDraft = run.luccaDraft ?? {};
+  const slidePrefix = `slide${slideNumber}.`;
+  const slotDrafts = Object.fromEntries(
+    Object.entries(luccaDraft).filter(([k]) => k.startsWith(slidePrefix)),
+  );
+
+  const output = await runMaya(slideNumber, payloadV2, slotDrafts as Record<string, LuccaSlotDraft>);
+  return {
+    verdict: output.verdict,
+    headline: output.headline,
+    notes: output.notes,
+  };
+}
+
+async function handleInvokeDino(_runId: number, slideNumber: SlideNumber) {
+  const canonicalPngKey = CANONICAL_ASSETS.slide(slideNumber, "png");
+  const output = await runDino(slideNumber, canonicalPngKey);
+  return {
+    pixelDiffPct: output.pixelDiffPct,
+    exceedsThreshold: output.exceedsThreshold,
+    threshold: output.threshold,
   };
 }
 
 async function handleUpdateAgentResult(
   runId: number,
   slideNumber: SlideNumber,
-  status: SlideAgentResult["status"],
-  errorMessage: string | null,
+  teamStatus: SlideTeamOutput["status"],
+  mayaVerdict: MayaVerdictLevel,
+  mayaHeadline: string | null,
+  mayaNotes: string | null,
+  dinoPixelDiffPct: number,
+  dinoExceedsThreshold: boolean,
 ) {
+  // Deterministic approval gate — Marco is a pass-through, not the decision maker
+  const approved =
+    teamStatus === "ok" &&
+    (mayaVerdict === "ok" || mayaVerdict === "advisory") &&
+    !dinoExceedsThreshold;
+
+  const computedStatus: SlideAgentResult["status"] = approved ? "approved" : "rejected";
+
+  const errorParts: string[] = [];
+  if (teamStatus !== "ok") errorParts.push(`team=${teamStatus}`);
+  if (mayaVerdict === "warning" || mayaVerdict === "block") {
+    errorParts.push(`maya=${mayaVerdict}: ${mayaHeadline ?? ""}`);
+  }
+  if (dinoExceedsThreshold) {
+    errorParts.push(`dino=${dinoPixelDiffPct.toFixed(1)}% > threshold`);
+  }
+
   const result: SlideAgentResult = {
-    status,
-    pixelDiffPct: null,   // populated by Dino in U7
-    mayaVerdict: null,     // populated by Maya in U7
-    mayaNotes: null,       // populated by Maya in U7
-    approvedAt: status === "approved" ? new Date().toISOString() : null,
-    errorMessage,
+    status: computedStatus,
+    pixelDiffPct: dinoPixelDiffPct,
+    mayaVerdict,
+    mayaNotes: mayaNotes ?? mayaHeadline ?? null,
+    approvedAt: computedStatus === "approved" ? new Date().toISOString() : null,
+    errorMessage: errorParts.length > 0 ? errorParts.join("; ") : null,
   };
 
   const updated = await updateAgentResult(runId, slideNumber, result);
   if (!updated) return { error: `Run ${runId} not found` };
-  return { ok: true, slideNumber, written: result };
+  return { ok: true, slideNumber, computedStatus, written: result };
 }
 
 async function handleTransitionStatus(runId: number, newStatus: "complete" | "error") {
   // Server-side gate: if the LLM asks for 'complete' but any slide is rejected,
-  // downgrade to 'error'. The system prompt tells the LLM not to do this, but
-  // a hard check protects the invariant — agentResults is the source of truth.
+  // downgrade to 'error'. agentResults is the source of truth.
   let effectiveStatus: "complete" | "error" = newStatus;
   let downgradedFrom: "complete" | null = null;
   if (newStatus === "complete") {
@@ -315,5 +456,21 @@ function asSlideNumber(v: unknown): SlideNumber {
   throw new Error(`Expected ${SLIDE_NUMBER_RANGE_DESC}, got ${v}`);
 }
 
-// Re-export for tests
-export { teamOutputToAgentStatus };
+/** Remove all cached payloadV2 entries for a run — called by markRunError to prevent leaks. */
+export function clearRunPayloads(runId: number): void {
+  for (const key of dispatchedPayloads.keys()) {
+    if (key.startsWith(`${runId}:`)) dispatchedPayloads.delete(key);
+  }
+}
+
+function asBoolean(v: unknown): boolean {
+  if (v === true || v === false) return v;
+  if (v === "true" || v === "1") return true;
+  if (v === "false" || v === "0" || v === null || v === undefined) return false;
+  throw new Error(`Expected boolean, got ${typeof v}: ${JSON.stringify(v)}`);
+}
+
+function asEnum<T extends string>(v: unknown, allowed: readonly T[]): T {
+  if (typeof v === "string" && (allowed as readonly string[]).includes(v)) return v as T;
+  throw new Error(`Expected one of [${allowed.join(", ")}], got ${JSON.stringify(v)}`);
+}

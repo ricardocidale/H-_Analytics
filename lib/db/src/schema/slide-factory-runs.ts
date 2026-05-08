@@ -60,7 +60,7 @@ export interface LuccaSlotDraft {
 export interface SlideAgentResult {
   status: "pending" | "running" | "approved" | "rejected";
   pixelDiffPct: number | null;      // Dino Pass 1 (0–100 %)
-  mayaVerdict: "pass" | "fail" | null; // Maya Pass 2
+  mayaVerdict: "ok" | "advisory" | "warning" | "block" | null; // Maya Pass 2
   mayaNotes: string | null;         // Maya rejection reason
   approvedAt: string | null;        // ISO 8601
   errorMessage: string | null;

@@ -84,26 +84,93 @@ function useImagesReady(rootRef: React.RefObject<HTMLDivElement | null>, ready: 
   useEffect(() => {
     if (!ready || !rootRef.current) return;
     const root = rootRef.current;
-    const raf = requestAnimationFrame(() => {
-      const imgs = Array.from(root.querySelectorAll("img"));
-      if (imgs.length === 0) { setImgsReady(true); return; }
-      let pending = imgs.length;
-      const done = () => { pending -= 1; if (pending <= 0) setImgsReady(true); };
-      imgs.forEach((img) => {
-        if (img.complete) { done(); return; }
-        img.addEventListener("load", done, { once: true });
-        img.addEventListener("error", done, { once: true });
-      });
+
+    let pending = 0;
+    let observing = true;
+    const tracked = new Set<HTMLImageElement>();
+
+    function trySettle() {
+      if (!observing && pending === 0) setImgsReady(true);
+    }
+
+    function trackImg(img: HTMLImageElement) {
+      if (tracked.has(img)) return;
+      tracked.add(img);
+      // img.complete is true for both loaded images AND broken/empty-src images.
+      // naturalWidth > 0 distinguishes a successfully decoded image from a broken one.
+      if (img.complete && img.naturalWidth > 0) return;
+      if (img.complete && img.naturalWidth === 0) return; // broken/no-src — skip
+      pending++;
+      const done = () => { pending = Math.max(0, pending - 1); trySettle(); };
+      img.addEventListener("load", done, { once: true });
+      img.addEventListener("error", done, { once: true });
+    }
+
+    // Snapshot images already in the DOM
+    Array.from(root.querySelectorAll("img")).forEach(trackImg);
+
+    // Watch for images React commits after the snapshot (covers concurrent-mode splits)
+    const mo = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        for (const node of m.addedNodes) {
+          if (node instanceof HTMLImageElement) trackImg(node);
+          else if (node instanceof HTMLElement) node.querySelectorAll("img").forEach((img) => trackImg(img as HTMLImageElement));
+        }
+      }
     });
-    return () => cancelAnimationFrame(raf);
+    mo.observe(root, { subtree: true, childList: true });
+
+    // After one rAF, React's synchronous commit is complete — stop observing and settle
+    const raf = requestAnimationFrame(() => {
+      mo.disconnect();
+      observing = false;
+      trySettle();
+    });
+
+    return () => {
+      cancelAnimationFrame(raf);
+      mo.disconnect();
+      observing = false;
+    };
   }, [ready, rootRef]);
   return imgsReady;
+}
+
+class DeckErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { caught: boolean }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { caught: false };
+  }
+  static getDerivedStateFromError() { return { caught: true }; }
+  componentDidCatch(err: Error) {
+    window.__deckError = err.message;
+  }
+  render() {
+    if (this.state.caught) {
+      return (
+        <div style={{ padding: 24, fontFamily: "monospace", color: "#b91c1c" }}>
+          <div>LB Deck render error (error boundary):</div>
+          <pre style={{ whiteSpace: "pre-wrap" }}>{window.__deckError}</pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 export default function LbInternalDeck() {
   const token = useMemo(() => {
     const usp = new URLSearchParams(window.location.search);
     return usp.get("token") ?? "";
+  }, []);
+
+  const slideFilter = useMemo(() => {
+    const usp = new URLSearchParams(window.location.search);
+    const n = parseInt(usp.get("slide") ?? "", 10);
+    return Number.isFinite(n) && n >= 1 && n <= TOTAL_SLIDES ? n : null;
   }, []);
 
   const { data, error } = useLbDeckPayload(token);
@@ -140,7 +207,7 @@ export default function LbInternalDeck() {
   const [s1, s2, s3, s4, s5, s6] = data.slides;
 
   return (
-    <>
+    <DeckErrorBoundary>
       <style>{`
         @page { size: ${SLIDE_WIDTH_PX}px ${SLIDE_HEIGHT_PX}px; margin: 0; }
         html, body, #root { margin: 0; padding: 0; background: #fff; }
@@ -171,13 +238,25 @@ export default function LbInternalDeck() {
         }
       `}</style>
       <div ref={rootRef} className="deck-root" data-deck-total={TOTAL_SLIDES} data-deck-kind="lb">
-        <div className="deck-page"><Slide1 p={s1} /></div>
-        <div className="deck-page"><Slide2 p={s2} /></div>
-        <div className="deck-page"><Slide3 p={s3} /></div>
-        <div className="deck-page"><Slide4 p={s4} /></div>
-        <div className="deck-page"><Slide5 p={s5} /></div>
-        <div className="deck-page"><Slide6 p={s6} /></div>
+        {(slideFilter === null || slideFilter === 1) && (
+          <div className="deck-page" data-slide={1}><Slide1 p={s1} /></div>
+        )}
+        {(slideFilter === null || slideFilter === 2) && (
+          <div className="deck-page" data-slide={2}><Slide2 p={s2} /></div>
+        )}
+        {(slideFilter === null || slideFilter === 3) && (
+          <div className="deck-page" data-slide={3}><Slide3 p={s3} /></div>
+        )}
+        {(slideFilter === null || slideFilter === 4) && (
+          <div className="deck-page" data-slide={4}><Slide4 p={s4} /></div>
+        )}
+        {(slideFilter === null || slideFilter === 5) && (
+          <div className="deck-page" data-slide={5}><Slide5 p={s5} /></div>
+        )}
+        {(slideFilter === null || slideFilter === 6) && (
+          <div className="deck-page" data-slide={6}><Slide6 p={s6} /></div>
+        )}
       </div>
-    </>
+    </DeckErrorBoundary>
   );
 }

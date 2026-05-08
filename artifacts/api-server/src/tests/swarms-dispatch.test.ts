@@ -2,10 +2,66 @@
  * Swarm dispatch — Unit 4 tests.
  *
  * Verifies the dispatch table routes to the correct team module and that
- * the stub teams return well-formed SlideTeamOutput. Phase 1 stubs only —
- * U5/U6 will replace the team implementations and extend these tests.
+ * each team returns a well-formed SlideTeamOutput. All teams are mocked here
+ * to keep this as a pure routing test — team internals are covered in each
+ * team's own test file (e.g., tests/swarms/sofia.test.ts, elisa.test.ts).
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+
+vi.mock("../slides/swarms/sofia", () => ({
+  runSofiaTeam: vi.fn().mockResolvedValue({
+    slideNumber: 1,
+    status: "ok",
+    payloadV2: { team: "sofia", slide: 1 },
+    notes: null,
+  }),
+}));
+
+vi.mock("../slides/swarms/bianca", () => ({
+  runBiancaTeam: vi.fn().mockResolvedValue({
+    slideNumber: 2,
+    status: "ok",
+    payloadV2: { team: "bianca", slide: 2 },
+    notes: null,
+  }),
+}));
+
+vi.mock("../slides/swarms/chiara", () => ({
+  runChiaraTeam: vi.fn().mockResolvedValue({
+    slideNumber: 3,
+    status: "ok",
+    payloadV2: { team: "chiara", slide: 3 },
+    notes: null,
+  }),
+}));
+
+vi.mock("../slides/swarms/dario", () => ({
+  runDarioTeam: vi.fn().mockResolvedValue({
+    slideNumber: 4,
+    status: "ok",
+    payloadV2: { team: "dario", slide: 4 },
+    notes: null,
+  }),
+}));
+
+vi.mock("../slides/swarms/elisa", () => ({
+  runElisaTeam: vi.fn().mockResolvedValue({
+    slideNumber: 5,
+    status: "ok",
+    payloadV2: { team: "elisa", slide: 5 },
+    notes: null,
+  }),
+}));
+
+vi.mock("../slides/swarms/felix", () => ({
+  runFelixTeam: vi.fn().mockResolvedValue({
+    slideNumber: 6,
+    status: "ok",
+    payloadV2: { team: "felix", slide: 6 },
+    notes: null,
+  }),
+}));
+
 import { dispatchSlideTeam } from "../slides/swarms/dispatch";
 import {
   teamOutputToAgentStatus,

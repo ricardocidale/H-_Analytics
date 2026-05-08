@@ -7,8 +7,8 @@
  *   Tab 2  f-lorenzo     ingesting
  *   Tab 3  f-properties  ingested
  *   Tab 4  f-lucca       drafting / draft_review
- *   Tab 5  f-agents      building             (placeholder)
- *   Tab 6  f-download    complete             (placeholder)
+ *   Tab 5  f-agents      building / complete / error
+ *   Tab 6  f-download    complete / error
  *
  * Auto-fire pattern: accept-brief immediately starts Lorenzo; saving properties
  * immediately starts Lucca. Both endpoints return 202 Accepted.
@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconUpload } from "@/components/icons";
+import { IconUpload, IconDownload } from "@/components/icons";
 import { IconCheckCircle, IconAlertCircle } from "@/components/icons/status-icons";
 
 // ── Constants ───────────────────────────────────────────────────────────────
@@ -55,7 +55,52 @@ const ACCEPTED_MIME_TYPES = new Set([
 const ACCEPTED_EXTENSIONS = new Set([".pdf", ".pptx"]);
 const NONE_VALUE = "__none__";
 
+/** Total number of slides in one LB deck (matches TOTAL_SLIDES in deck-render-constants.ts) */
+const TOTAL_DECK_SLIDES = 6;
+
+const SLIDE_AGENT_NAMES: Record<number, string> = {
+  1: "Sofia",
+  2: "Bianca",
+  3: "Chiara",
+  4: "Dario",
+  5: "Elisa",
+  6: "Felix",
+};
+
+const SLIDE_AGENT_TAGS: Record<number, string> = {
+  1: "Reader→Builder→Inspector",
+  2: "Reader→Builder→Inspector",
+  3: "Reader→Builder→Inspector",
+  4: "Builder→Inspector",
+  5: "Reader→Builder→Inspector",
+  6: "5-step USALI",
+};
+
+const MAYA_VERDICT_LABEL: Record<NonNullable<SlideAgentResultFE["mayaVerdict"]>, string> = {
+  ok: "OK",
+  advisory: "Advisory",
+  warning: "Warning",
+  block: "Block",
+};
+
+const MAYA_VERDICT_CLASS: Record<NonNullable<SlideAgentResultFE["mayaVerdict"]>, string> = {
+  ok: "text-emerald-700 bg-emerald-50",
+  advisory: "text-sky-700 bg-sky-50",
+  warning: "text-amber-700 bg-amber-50",
+  block: "text-red-700 bg-red-50",
+};
+
 // ── Types ───────────────────────────────────────────────────────────────────
+
+// Mirrors SlideAgentResult from lib/db/src/schema/slide-factory-runs.ts
+interface SlideAgentResultFE {
+  status: "pending" | "running" | "approved" | "rejected";
+  pixelDiffPct: number | null;
+  mayaVerdict: "ok" | "advisory" | "warning" | "block" | null;
+  mayaNotes: string | null;
+  approvedAt: string | null;
+  errorMessage: string | null;
+}
 
 type FactoryStatus =
   | "new"
@@ -90,7 +135,7 @@ interface SlideFactoryRun {
   slide3PropertyId: number | null;
   slide5PropertyId: number | null;
   luccaDraft: Record<string, LuccaSlotDraft> | null;
-  agentResults: Record<string, unknown> | null;
+  agentResults: Record<string, SlideAgentResultFE> | null;
   deckR2Key: string | null;
   startedAt: string | null;
   completedAt: string | null;
@@ -1251,6 +1296,205 @@ function FactoryLuccaTab({
   );
 }
 
+// ── Tab 5 — Agents (build progress) ─────────────────────────────────────────
+
+function FactoryAgentsTab({ run }: { run: SlideFactoryRun }) {
+  const agentResults = run.agentResults ?? {};
+  const isBuilding = run.status === "building";
+  const isComplete = run.status === "complete";
+  const isError = run.status === "error";
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          {isBuilding && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+          {isComplete && <IconCheckCircle weight="fill" className="w-4 h-4 text-success" />}
+          {isError && <IconAlertCircle weight="fill" className="w-4 h-4 text-destructive" />}
+          <CardTitle className="text-sm font-semibold">
+            {isBuilding
+              ? "Slide agents are building…"
+              : isComplete
+              ? "Build complete"
+              : "Build failed"}
+          </CardTitle>
+        </div>
+        {isBuilding && (
+          <p className="text-xs text-muted-foreground">
+            Each slide is processed by a dedicated agent team, then verified by Maya and Dino.
+          </p>
+        )}
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="divide-y divide-border">
+          {Array.from({ length: TOTAL_DECK_SLIDES }, (_, i) => {
+            const slideNum = i + 1;
+            const key = `slide${slideNum}`;
+            const result = agentResults[key] ?? null;
+            const slotStatus = result?.status ?? (isBuilding ? "pending" : isError ? "rejected" : null);
+
+            return (
+              <div key={key} className="flex items-start gap-3 py-3">
+                <div className="mt-0.5 shrink-0">
+                  {slotStatus === "approved" ? (
+                    <IconCheckCircle weight="fill" className="w-4 h-4 text-success" />
+                  ) : slotStatus === "rejected" ? (
+                    <IconAlertCircle weight="fill" className="w-4 h-4 text-destructive" />
+                  ) : slotStatus === "running" ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  ) : (
+                    <div className="w-4 h-4 rounded-full border-2 border-border" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-xs font-medium">
+                      {SLIDE_AGENT_NAMES[slideNum]}
+                    </span>
+                    <span className="text-[10px] px-1.5 py-px rounded bg-muted text-muted-foreground uppercase tracking-wide leading-none">
+                      Slide {slideNum}
+                    </span>
+                    <span className="text-[10px] px-1.5 py-px rounded bg-muted/60 text-muted-foreground leading-none">
+                      {SLIDE_AGENT_TAGS[slideNum]}
+                    </span>
+                    {result?.mayaVerdict && (
+                      <span
+                        className={`text-[10px] px-1.5 py-px rounded leading-none font-medium ${MAYA_VERDICT_CLASS[result.mayaVerdict]}`}
+                      >
+                        Maya: {MAYA_VERDICT_LABEL[result.mayaVerdict]}
+                      </span>
+                    )}
+                    {result?.pixelDiffPct != null && (
+                      <span className="text-[10px] px-1.5 py-px rounded bg-muted text-muted-foreground leading-none">
+                        Dino: {result.pixelDiffPct.toFixed(1)}%
+                      </span>
+                    )}
+                  </div>
+                  {result?.errorMessage && (
+                    <p
+                      className="text-xs text-destructive mt-0.5 truncate"
+                      title={result.errorMessage}
+                    >
+                      {result.errorMessage}
+                    </p>
+                  )}
+                  {result?.mayaNotes && result.mayaVerdict !== "ok" && (
+                    <p
+                      className="text-xs text-muted-foreground mt-0.5 truncate"
+                      title={result.mayaNotes}
+                    >
+                      {result.mayaNotes}
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {isBuilding && (
+          <p className="mt-3 text-[10px] text-muted-foreground/60 leading-relaxed">
+            The pipeline advances to download when all slides are approved.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Tab 6 — Download (complete) ──────────────────────────────────────────────
+
+function FactoryDownloadTab({ run }: { run: SlideFactoryRun }) {
+  const { toast } = useToast();
+  const [downloading, setDownloading] = useState(false);
+  const hasDeck = Boolean(run.deckR2Key);
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const r = await fetch(`/api/lb-slides/factory/runs/${run.id}/download`, {
+        credentials: "include",
+      });
+      if (!r.ok) {
+        const b = (await r.json().catch(() => ({}))) as { error?: string };
+        throw new Error(b.error ?? "Download failed");
+      }
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `slide-deck-run-${run.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Download failed";
+      toast({ title: "Download failed", description: msg, variant: "destructive" });
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  if (run.status === "error") {
+    return (
+      <Card>
+        <CardContent className="py-6">
+          <div className="flex items-start gap-3">
+            <IconAlertCircle weight="fill" className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium">Build failed</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                One or more slides were rejected. Review the Agents tab for details, then
+                re-trigger the build.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <IconCheckCircle weight="fill" className="w-4 h-4 text-success" />
+          <CardTitle className="text-sm font-semibold">Deck ready</CardTitle>
+        </div>
+        {run.completedAt && (
+          <p className="text-xs text-muted-foreground">
+            Completed {new Date(run.completedAt).toLocaleDateString()} at{" "}
+            {new Date(run.completedAt).toLocaleTimeString()}
+          </p>
+        )}
+      </CardHeader>
+      <CardContent>
+        {hasDeck ? (
+          <Button onClick={() => void handleDownload()} disabled={downloading}>
+            {downloading ? (
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            ) : (
+              <IconDownload className="w-4 h-4 mr-2" />
+            )}
+            Download PDF
+          </Button>
+        ) : (
+          <div className="flex items-start gap-3 rounded-md border border-border bg-muted/30 p-4">
+            <IconAlertCircle className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium">Deck not yet rendered</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                The build completed but the PDF has not been generated. Please contact your
+                administrator.
+              </p>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Main panel ──────────────────────────────────────────────────────────────
 
 const FACTORY_TABS: Array<{ value: FactoryTab; label: string }> = [
@@ -1346,17 +1590,25 @@ export function SlideFactoryPanel() {
         </TabsContent>
 
         <TabsContent value="f-agents" className="mt-4">
-          <PlaceholderTab
-            title="Agents — Building slides"
-            description="The slide agents are building each individual slide. This step runs automatically."
-          />
+          {run && (run.status === "building" || run.status === "complete" || run.status === "error") ? (
+            <FactoryAgentsTab run={run} />
+          ) : (
+            <PlaceholderTab
+              title="Agents — Building slides"
+              description="The slide agents will build each individual slide once the draft review is complete."
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="f-download" className="mt-4">
-          <PlaceholderTab
-            title="Complete — Download deck"
-            description="The deck is ready. Download functionality will be available here once the build unit is complete."
-          />
+          {run && (run.status === "complete" || run.status === "error") ? (
+            <FactoryDownloadTab run={run} />
+          ) : (
+            <PlaceholderTab
+              title="Complete — Download deck"
+              description="The deck will be available for download once all slides are built and approved."
+            />
+          )}
         </TabsContent>
       </Tabs>
     </div>

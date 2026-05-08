@@ -43,12 +43,7 @@ Every number falls into exactly one category. Never invent a fifth.
 | 3 | ASSUMPTION VARIABLES | Per-entity DB values. Read from DB, fallback `?? DEFAULT_*` |
 | 4 | TABLE-SOURCED VALUES | Authority rates (tax, inflation, depreciation). `getMarketRate()` or `getFactoryNumber()` |
 
-**Masking anti-pattern — never do this:**
-```ts
-const DEFAULT_INFLATION_RATE = 0.03;  // still a magic number one level up
-```
-
-**Skill for full detail:** `.agents/skills/hplus-variable-taxonomy/SKILL.md`
+Full law, violations, and canonical constants files: § "Number taxonomy — the permanent law" in Architecture Notes. Skill: `.agents/skills/hplus-variable-taxonomy/SKILL.md`
 
 ---
 
@@ -155,19 +150,9 @@ touch this surface — neither directly nor via plan delegation.
 `artifacts/api-server/src/tests/engine/`. Schema columns that feed these are
 protected at the column level, not just the read site.
 
-**The discipline:** when handing a plan to a non-shell-CC agent, the plan's file
-scope MUST exclude every path above. Saying "do not touch the engine" in the
-prompt is insufficient — exclude it from scope. If the plan needs an engine
-change, carve that unit out and execute it as shell CC.
+**The discipline:** when handing a plan to a non-shell-CC agent, the plan's file scope MUST exclude every path above. Saying "do not touch the engine" is insufficient — exclude it from scope. If the plan needs an engine change, carve that unit out and execute it as shell CC.
 
-**Why:** financial correctness is the product's integrity surface. Drift in PMT,
-amortization, NOI, debt-service, fee, or rollup math compounds across every
-projection. Single-hand authorship preserves audit trails and prevents
-context-poor agents from breaking invariants. This rule governs *who* writes;
-ADR-007 (Section 4) and the Determinism invariant govern *what* the code does.
-
-**Skill for full detail:** `.agents/skills/financial-engine/SKILL.md` —
-"Critical Invariant: Authoring Authority" section.
+**Skill for full detail:** `.agents/skills/financial-engine/SKILL.md` — "Critical Invariant: Authoring Authority".
 
 ---
 
@@ -213,60 +198,15 @@ from Brazilian or Italian naming traditions (male or female).
 
 ## 11. Frontend Design Standards — DESIGN GATE
 
-Every frontend coding or refactor unit (any change to `.tsx`, `.jsx`, `.ts`/`.js`
-that renders UI, `.css`, `.scss`, `.html`, `.vue`, `.svelte`) MUST be reviewed
-against design standards **before declaring the unit done.**
+Every frontend unit (any `.tsx`, `.jsx`, `.ts`/`.js` that renders UI, `.css`, `.scss`, `.html`) MUST invoke `/post-coding-design-review` before declaring done. A design finding is a build-failure-equivalent — fix before marking complete.
 
-**Hard mandate:** invoke `/post-coding-design-review` before marking any
-frontend-touching unit complete. The skill reads the diff, identifies the
-project's design system (Tailwind config, theme tokens, component library),
-and reports findings against the principles below.
-
-**Pinned principles (always loaded — full skill at `~/.claude/plugins/marketplaces/claude-plugins-official/plugins/frontend-design/skills/frontend-design/SKILL.md`):**
-
-- **Typography** — distinctive, intentional pairings; never default Inter/Roboto/Arial
-  unless the system explicitly mandates them.
-- **Color & Theme** — cohesive palette with dominant + accent; CSS variables for
-  consistency; avoid timid evenly-distributed palettes and the
-  purple-gradient-on-white AI cliché.
-- **Spatial Composition** — intentional asymmetry, controlled density or generous
-  negative space; avoid generic centered-card layouts.
-- **Motion** — high-impact moments (page-load orchestration, scroll-triggered
-  reveals, hover surprises); CSS-first for HTML, Motion for React.
-- **Backgrounds & Detail** — atmosphere via gradient meshes, noise, layered
-  transparencies, dramatic shadows, custom cursors, grain — never flat solids
-  by default.
-- **AI-slop avoidance** — predictable component layouts, generic fonts, cookie-cutter
-  patterns, and convergent choices (e.g., always reaching for Space Grotesk) are
-  violations.
-- **Implementation match** — maximalist visions get elaborate code; refined visions
-  demand precision in spacing, typography, and subtle detail.
-
-**When the skill flags a finding**, fix it before declaring done. A design finding is
-a build-failure-equivalent for UI work.
+**Full principles:** `.agents/skills/ce-frontend-design/SKILL.md`
 
 ---
 
 ## 12. Model Cost Optimization — PRE-CODING SUGGESTION
 
-Before starting substantive coding work, evaluate whether the active model fits
-the task complexity and **suggest a switch when there's a meaningful cost win
-without quality loss.**
-
-**Default routing heuristic:**
-- **Haiku** — single-file edits, mechanical refactors, well-scoped fixes,
-  documentation, simple lookups, syntax-only changes.
-- **Sonnet** — multi-file changes within one module, standard feature work,
-  most test additions.
-- **Opus** — financial engine code (Rule #9 surface), cross-cutting refactors,
-  ambiguous problems, deep debugging, architectural decisions, security review.
-
-If the user is on Opus and the upcoming task is clearly Haiku-tier, surface a
-one-line recommendation: *"This looks like a Haiku-tier task. Switch with
-`/model haiku` to save cost?"* The user may accept, decline, or override.
-Never switch silently — the user controls the model.
-
-**Skill for full detail:** `~/.claude/skills/model-cost-optimizer/SKILL.md`
+Suggest a model switch before starting work when there's a cost win without quality loss. **Haiku** — single-file/mechanical. **Sonnet** — multi-file feature work. **Opus** — financial engine (§9), cross-cutting refactors, deep debugging. Never switch silently — the user controls the model.
 
 ---
 
@@ -353,6 +293,9 @@ Health endpoint: `GET /api/health/live` (not `/api/healthz`).
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID — **must be present in both Railway AND Replit secrets**; absence silently disables the `/api/auth/google` route (404) in whichever environment is missing it |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret — same dual-env requirement as above |
 | `OPENAI_EMBEDDING_KEY` | Separate embedding key |
+| `AI_INTEGRATIONS_GEMINI_API_KEY` | Gemini AI provider |
+| `RESEND_API_KEY` | Transactional email (Resend) |
+| `SENTRY_DSN` | Error monitoring (Sentry) |
 
 ---
 
@@ -375,9 +318,7 @@ Health endpoint: `GET /api/health/live` (not `/api/healthz`).
 
 One Railway service, no separate frontend deployments.
 
-**Required production env vars on Railway** — every value must be set as a Railway service variable (no Replit-managed broker is reachable in production):
-
-`POSTGRES_URL` (Neon), `SESSION_SECRET`, `TOKEN_ENCRYPTION_KEY`, `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET` / `R2_PUBLIC_URL` (Cloudflare R2), `STORAGE_PROVIDER=r2`, `AUTH_PROVIDER` set to `replit` or `local` (the only two values the adapter accepts — see `artifacts/api-server/src/providers/auth/index.ts`; setting it to anything else throws at boot), `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` (Google OAuth — production users sign in here, mounted at `/api/auth/google`), `OPENAI_API_KEY` + `OPENAI_EMBEDDING_KEY` (OpenAI), `ANTHROPIC_API_KEY` (Anthropic), `AI_INTEGRATIONS_GEMINI_API_KEY` (Gemini), `FRED_API_KEY` (FRED), `RESEND_API_KEY` (email), `SENTRY_DSN` (Sentry), `NODE_ENV=production`. The `PASSWORD_*` fallbacks are optional dev shortcuts and should be **omitted** in production.
+**Required production env vars on Railway** — all variables in §Environment Variables above must be set as Railway service variables (no Replit broker is reachable in production). `PASSWORD_*` fallbacks are optional dev shortcuts and must be **omitted** in production.
 
 **External services this app depends on** (all owned by the user, all reachable from Railway with the secrets above — none are Replit-managed):
 
@@ -425,29 +366,12 @@ Specialists are **dev-defined only** — see `.claude/rules/specialists-are-dev-
 
 ### Intelligence Display — specialist-sourced UI affordances
 
-Every range badge, contextual tip, severity signal, or actionable suggestion shown in the UI must originate **100% from specialist or research-engine output**. No component may hard-code a range, write its own advice, or derive a suggestion through local logic.
+Every range badge, tip, severity signal, or suggestion must originate **100% from specialist/research-engine output**. No component may hard-code a range, write its own advice, or derive a suggestion locally.
 
-**Data flow:**
-```
-Specialist / research engine runs
-  → AnalystVerdict  (full verdict, per explicit Analyst button)
-  → GuidanceRecord[] (lightweight, per-field, from prior research run)
-  → stored in DB / returned from API
-  → UI component reads and renders — never generates
-```
+**Canonical components:** `AnalystRangeIndicator`, `AnalystVerdictDisplay`, `AnalystCheckDialog`
+**Severity:** ok=emerald, advisory=sky, warning=amber, block=red — no new levels.
 
-**Canonical display components:**
-- `AnalystRangeIndicator` — inline badge next to a form field (`GuidanceRecord[]` + `fieldKey`)
-- `AnalystVerdictDisplay` — full severity-tinted card stack after an Analyst run (`AnalystVerdict`)
-- `AnalystCheckDialog` — modal surfaced after Analyst click finds non-ok issues (`AnalystVerdict`)
-
-**Conviction floor:** if the Specialist's `qualityScore` for a field is below `CONVICTION_FLOOR` (from `@shared/analyst-conviction`), the badge shows "Insufficient data — needs research" instead of a range. Never fall back to a `DEFAULT_*` code constant as a displayed range.
-
-**Voice rule:** `verdict.voice.headline`, `verdict.voice.detail`, and per-dimension equivalents are produced exclusively by the Voice Renderer inside the Surface Router. Components render these strings verbatim — they never craft analyst-voice copy themselves.
-
-**Severity color system:** ok=emerald, advisory=sky, warning=amber, block=red. No new severity levels.
-
-Full rules, data contracts, anti-pattern list, and "what to use when" decision table: `.agents/skills/analyst-intelligence-display/SKILL.md`.
+Full contract, data flow, conviction floor, voice rule, anti-patterns: `.agents/skills/analyst-intelligence-display/SKILL.md`
 
 ### Roles and permissions
 
@@ -483,45 +407,13 @@ In all other files, ALL_CAPS const definitions with numeric literals are flagged
 
 ### LB Slides — investor PDF decks (Playwright HTML→PDF)
 
-The "LB Slides" feature generates a 6-slide investor deck per property as a single PDF. Slide 7 ("The Ask") is always excluded. The output must match the canonical L+B reference deck (`attached_assets/canonical/pdf/L+B_Property_6-Slide_Cannonical_1777859377769.pdf`) — colors, fonts, layout, photo placement.
+Generates a 6-slide investor deck per property as a PDF matched to the canonical L+B reference deck. Slide 7 ("The Ask") is always excluded.
 
-**One pipeline (HTML → PDF):**
-- React deck pages live in `artifacts/hospitality-business-portal/src/features/internal-deck/` (`slides.tsx`, `theme.ts`, `helpers.tsx`, `fonts.css`) and are mounted at `/internal/deck/:propertyId` via `pages/InternalDeck.tsx`.
-- `artifacts/api-server/src/routes/property-deck-pdf.ts` opens that page in headless Chromium (Playwright) with an internal token, prints to PDF, uploads to R2, and serves it back. Source files: `internal-deck-payload.ts`, `pdf-html-templates.ts`, `premium-pdf-pipeline.ts`, `slides/playwright-browser.ts`, `slides/internal-token.ts`.
-- The legacy Python + `python-pptx` track and the satori image-PPTX track are removed. Do **not** add Puppeteer; Playwright is the single supported renderer (Chromium installed at build time into `.cache/ms-playwright/`).
+**One pipeline:** React pages at `features/internal-deck/` → api-server opens headless Chromium (Playwright) → prints to PDF → uploads to R2 → serves back. Route: `GET /api/properties/:id/deck.pdf`.
 
-**DB schema:** `property_slide_deck_variants` table holds only `format='pdf'` rows (migration 0042 dropped `'pptx'` and `'image'`):
-- Composite PK: `(property_id, format)` with `format = 'pdf'`
-- Columns: `property_id` FK→properties.id (cascade delete), `format`, `status` ('idle'|'generating'|'ready'|'error'), `r2_key`, `file_size_bytes`, `generated_at`, `triggered_by`, `error_message`, `updated_at`
+**Do not add Puppeteer.** Playwright is the single renderer. Legacy Python and satori tracks are removed.
 
-**Active API routes** (`artifacts/api-server/src/routes/property-deck-pdf.ts`):
-- `GET /api/properties/:id/deck.pdf` — render or serve cached deck
-- `GET /api/slides/status` — admin: PDF variant status rows (in `property-slides.ts`, the legacy file kept only for the status feed + hero-image ZIP)
-- Auth: `requireAuth` guard; internal page load uses a short-lived signed token from `slides/internal-token.ts`
-- Finance: uses `recomputeSinglePropertyAndStamp` → `aggregateUnifiedByYear` (same path as finance.ts)
-- Loan data: `calculateLoanParams` returns `LoanCalculation` — use `equityInvested`, `monthlyPayment * 12` (not `.ltv` or `.annualDebtService` — those fields don't exist)
-- IRR: `computeIRR([-equity, ...annualFlows])` — first element must be the negative initial outlay
-- Slot drafting: `artifacts/api-server/src/routes/property-deck-payload.ts` — slot-specific LLM helpers (`draftHeaderSubtitle`, `draftVisionBullets`) with inline fallbacks; no separate vision module
-
-**Visual spec source-of-truth:**
-- Canonical reference deck: `attached_assets/canonical/pdf/L+B_Property_6-Slide_Cannonical_1777859377769.pdf`
-- **Canonical PNGs (pixel-authoritative):** `attached_assets/canonical/png/L+B_Property_6-Slide_Cannonical_Page_{1..6}_*.png` — also uploaded to R2 at `canonical/lb-6-slide/slides/slide-{1..6}.png`. Every rendered slide must be compared against the corresponding PNG before delivery. Use the `lb-slides-canonical-pngs` skill for comparison checklist and re-upload workflow. PNG wins over JSON spec when they disagree.
-- Machine-readable layout extract: `attached_assets/canonical/json/slide_analysis_agent_report.precise_1777824741855.json`
-- Per-slide briefs (full structural extraction): `attached_assets/canonical/briefs/Pasted-SLIDE-1-Sul-Monte-…txt`, `Pasted-SLIDE-2-Hazelnis-Retreat-…txt`, `Pasted-SLIDE-3-Cartagena-Duplex-…txt`
-- Generation workflow and comparison steps: `docs/slide-system/canonical/coding-agent-instructions.md` (Section 15 = mandatory canonical PNG comparison)
-- Text-field char limits and source priority: `hplus-vision-templates` skill
-- Budget realism for transformation copy: `hplus-renovation-benchmarks` skill
-
-**Admin UI:** `artifacts/hospitality-business-portal/src/components/admin/SlideDecksTab.tsx` — card grid per property; one "Download PDF" action per ready card; Analyst-style regenerate button.
-
-**Skills (only those present on disk):**
-- `.agents/skills/hplus-vision-templates/` — text generation pipeline + char-limit enforcement
-- `.agents/skills/hplus-renovation-benchmarks/` — per-key cost ranges, transformation cost lines
-
-**LB Portfolio Deck — one canonical 6-slide investor deck:**
-A separate pipeline produces a single portfolio-level deck (not per-property). Admin assigns properties to slides 1, 2, 3, 5 at `/lb-slides` (admin only); slides 4 (portfolio grid) and 6 (10-year USALI aggregate) are auto-generated. Playwright renders `/internal/lb-deck?token=<hmac-lb-token>` as a single 6-page PDF. DB: `lb_slides_config` table (single row, id = 1). Routes: `POST /api/lb-slides/render` (trigger), `GET /api/lb-slides/render-status`, `GET /api/lb-slides/download/combined.pdf` (serve), `GET /PUT /api/lb-slides/config` (admin assignment).
-
-**Slide Factory V2 UI (`SlideFactoryPanel`):** Admin wizard mounted above the slide editor in `LbSlides.tsx`. Component lives at `artifacts/hospitality-business-portal/src/features/slide-factory/SlideFactoryPanel.tsx`. Tab 1 (Brief): PDF/PPTX upload via presigned R2, accept flow. Tab 3 (Properties): 4-property selectors for slides 1/2/3/5. Tabs 2/4/5/6 are pipeline-stage placeholders. Tab navigation is status-driven (admin cannot freely jump tabs). Polls `GET /api/slide-factory/runs/:id` every 5 s only during transitional states (`ingesting`, `drafting`, `building`). Slide factory run storage: `artifacts/api-server/src/storage/slide-factory-runs.ts`; list limit constant: `SLIDE_FACTORY_RUNS_LIST_LIMIT`.
+**Full implementation reference** (routes, schema, finance calls, slot logic, visual spec paths, Admin UI, Slide Factory V2): `docs/slide-system/lb-slides-implementation-reference.md`
 
 ### `reference_brands` AI pipeline wiring
 
@@ -534,21 +426,19 @@ ADR-007 §1 applies: prompt-builder and funding-builder layers are DB-import-fre
 
 ### Inviolable login / auth rules
 
-1. **Railway ↔ Replit secrets must stay in parity.** Any env var the api-server reads at runtime must exist in *both* Railway service variables *and* Replit Repl secrets. Absence in either environment silently disables the dependent feature (Google auth 404, AI routes dead, etc.). After adding a var to Railway, add it to Replit secrets immediately in the same session. `GOOGLE_CLIENT_ID` was absent from Replit until 2026-05-04 — that is the canonical example of what this rule prevents.
+1. **Railway ↔ Replit secrets must stay in parity.** Any env var the api-server reads must exist in *both* Railway service variables *and* Replit secrets. Absence in either silently disables the feature (`GOOGLE_CLIENT_ID` missing → Google auth 404). After adding a var to Railway, add it to Replit secrets immediately.
 
-2. **Never gate UI behaviour on a silent async fetch.** The `devLoginAvailable` pattern — where a `useState(false)` flag only flips to `true` if a fire-and-forget `fetch()` succeeds — is banned. Silent `.catch(() => {})` means any network hiccup (iframe context, canvas preview, proxy quirk) leaves the feature permanently disabled with no visible error. **Rule: the server is the authority; the client should always attempt the action and surface server-returned errors as toasts.** The logo quick-login on the login page was fixed 2026-05-04 by removing the fetch gate.
+2. **Never gate UI behaviour on a silent async fetch.** `useState(false)` flags flipped by fire-and-forget fetches are banned — any network hiccup leaves the feature permanently disabled with no visible error. The server is the authority; the client always attempts and surfaces server errors as toasts.
 
-3. **Dev-login is dev-only by server gate, not client gate.** `/api/auth/dev-login` is blocked by `isPublishedDeployment()` (checks `REPLIT_DEPLOYMENT` env var). The client does not need to pre-check availability — clicking the logo always fires the request, and the server returns a 403 with a clear error if called in production.
+3. **Dev-login is dev-only by server gate, not client gate.** `/api/auth/dev-login` is blocked by `isPublishedDeployment()` (checks `REPLIT_DEPLOYMENT`). The client never pre-checks — the server returns 403 in production.
 
-4. **Auth navigations must use `window.location`, never `window.top`.** The Replit canvas wraps the app in a `workspace_iframe.html` shell, making `window.top` the cross-origin Replit Agent UI — setting `window.top.location.href` is blocked by the browser's same-origin policy. Use `window.location.href` / `window.location.replace()` directly: the app iframe navigates itself, and `window.location` works identically in a standalone browser tab (where `window.top === window`). Applies to dev-login success in `Login.tsx` and logout in `lib/auth.tsx` (`onSuccess`). Google OAuth uses `window.open("/api/auth/google", "_blank")` to escape the iframe (Google pages send `X-Frame-Options: DENY`); `Login.tsx` polls `refetch()` until the session is established. Corrected 2026-05-04.
+4. **Auth navigations must use `window.location`, never `window.top`.** `window.top` is cross-origin in the Replit canvas iframe. Use `window.location.href` / `window.location.replace()`. Google OAuth uses `window.open("/api/auth/google", "_blank")` (Google pages send `X-Frame-Options: DENY`); poll `refetch()` until session is established.
 
-5. **`DEV_SKIP_AUTH` must remain `false`.** The flag in `artifacts/api-server/src/dev-flags.ts` must never be set back to `true`. Real auth is always active in development — this prevents masked auth bugs from reaching production. Decided 2026-05-04.
+5. **`DEV_SKIP_AUTH` must remain `false`.** Never edit `artifacts/api-server/src/dev-flags.ts`. Real auth is always active in development.
 
 ### Known issues to address
 
-- **Email-existence leak** at `POST /api/scenarios/shares` — returns 404 "No user found with that email address", leaking whether an email exists. Should return a generic 404.
-- **Iris agent `temperature + top_p` conflict.** `POST /api/admin/iris/run` triggers the run successfully but the Iris LLM call fails with `"temperature and top_p cannot both be specified for this model"`. The `iris_runs` table is healthy; the fix is in the Iris agent's LLM call parameters (remove one of the two conflicting params).
-- `PROJECTION_YEARS` is exported from `lib/shared/src/constants.ts` as an alias of `DEFAULT_PROJECTION_YEARS`.
+See `docs/issues/known-issues.md`.
 
 ### Migration system architecture
 
@@ -591,19 +481,11 @@ Use the `ui-page-patterns` skill before building or revising any page.
 | `references/db.md` | Schema additions + migration runbook |
 | `.local/tasks/task-800.md` | Full architecture audit (scenarios, portfolios, sharing, roles) |
 | `.local/db-audit-phase-c-inventory.md` | DB migration inventory (Phase C) |
-| `.local/tasks/build-property-slides.md` | Property slide deck build plan |
 | `attached_assets/canonical/pdf/L+B_Property_6-Slide_Cannonical_1777859377769.pdf` | Canonical visual reference for all 6 LB slides — every rebuild must pixel-match this |
 | `attached_assets/canonical/pptx/belleayre-mountain-slides_1777774635693.pptx` | Canonical PPTX source — original design file; canonical photos extracted from here |
-| `attached_assets/canonical/json/slide_analysis_agent_report.precise_1777824741855.json` | **Machine-readable layout extract of the canonical deck** (PyMuPDF, 960×540 pt coords, ~650 KB, 6 pages). Per-span bbox / font / size / color and per-image bbox for every native element. Authoritative for text positions, fonts, colors. **Not authoritative** for: card chrome and band backgrounds (rasterized — sample from rendered PNG), z-order (use `paint_operation_log`), page backgrounds on pages 1–3 (PDF paint is `#FFFFFF`; the cream is baked into the page-background image), and image pixel data (bbox + digest only). Slides 1–3 each use a different sample property (Belleayre/Sul Monte body, Hazelnis, Cartagena); slides 4–6 are property-agnostic. |
-| `attached_assets/canonical/json/canonical_slide_render_spec_v4_pdf_deterministic_1777859022805.json` | Full PDF extraction with per-character bboxes (reference only — do not parse at runtime; 60 MB) |
-| `attached_assets/canonical/briefs/Pasted-SLIDE-1-Sul-Monte-Investment-Spotlight-0-Slide-Level-Me_1777741401797.txt` | Slide 1 full structural brief (coords, fonts, copy) |
-| `attached_assets/canonical/briefs/Pasted-SLIDE-2-Hazelnis-Retreat-Investment-Spotlight-0-Slide-L_1777741586519.txt` | Slide 2 full structural brief |
-| `attached_assets/canonical/briefs/Pasted-SLIDE-3-Cartagena-Duplex-Satellite-Expansion-0-Slide-Le_1777741627557.txt` | Slide 3 full structural brief |
-| `.agents/skills/hplus-vision-templates/SKILL.md` | Slide-text source-priority pipeline + char limits |
-| `.agents/skills/hplus-renovation-benchmarks/SKILL.md` | Per-key reno cost ranges + transformation cost lines |
-| `.agents/skills/lb-slides-canonical-pngs/SKILL.md` | Canonical PNG registry — R2 keys, local paths, per-slide content reference, comparison checklist, re-upload workflow |
-| `.agents/skills/lb-slides-renderer/SKILL.md` | Slide renderer contract — spec_skeleton_v4, PALETTE, FONTS, bb() helpers, v_canonical_png validation rule |
-| `docs/slide-system/canonical/coding-agent-instructions.md` | Agent generation workflow for slide content — §15 = mandatory canonical PNG comparison (Step 0: load PNG; PNG wins over JSON spec) |
+| `attached_assets/canonical/json/slide_analysis_agent_report.precise_1777824741855.json` | Machine-readable layout extract (~650 KB). Per-span bbox/font/color and per-image bbox. Authoritative for text positions, fonts, colors. Not authoritative for card chrome/backgrounds (rasterized) or z-order. |
+| `docs/slide-system/lb-slides-implementation-reference.md` | LB Slides full implementation reference — routes, schema, finance calls, slot logic, visual spec paths, Admin UI |
+| `docs/slide-system/canonical/coding-agent-instructions.md` | Agent generation workflow — §15 = mandatory canonical PNG comparison (PNG wins over JSON spec) |
 
 ---
 
@@ -689,27 +571,7 @@ Rule: **if you touch `CLAUDE.md`, scan `replit.md` for related content and sync 
 
 | Date | Change |
 |---|---|
-| 2026-05-07 | **DB audit + 4 missing tables created.** `iris_runs`, `knowledge_registry`, `country_economic_data`, `slide_factory_runs` — all defined in schema + SQL migrations but never applied to Neon. Applied DDL directly; `drizzle.__drizzle_migrations` synced to 52 entries. Country economic data seeded (4 rows). Vector store healthy: 337 chunks, 8 namespaces. Known pre-existing: Iris agent errors with `temperature + top_p` conflict in its LLM call — table works, agent config needs fix. |
-| 2026-05-07 | **Slide Factory V2 UI — Tab 1 (Brief) + Tab 3 (Properties).** `SlideFactoryPanel.tsx` added to `artifacts/hospitality-business-portal/src/features/slide-factory/`. Tab 1: PDF/PPTX brief upload via presigned R2, accept flow, status-driven tab lock. Tab 3: 4-property selectors (slides 1/2/3/5). Tabs 2/4/5/6 placeholders for pipeline stages. Mounted above slide editor in `LbSlides.tsx`; polls every 5 s only in transitional states. Magic-number fix: `slide-factory-runs.ts` `.limit(20)` → `SLIDE_FACTORY_RUNS_LIST_LIMIT` named constant in `artifacts/api-server/src/constants.ts`. |
-| 2026-05-05 | **`analyst-intelligence-display` skill created.** Documents the display side of the Analyst pipeline: `AnalystRangeIndicator`, `AnalystVerdictDisplay`, `AnalystCheckDialog`, `AnalystVerdict` contract, `GuidanceRecord` shape, conviction floor, severity color system, voice rule, and anti-patterns. Pairs with `analyst-research-buttons` (trigger side). Added to key skills table in both memory files. |
-| 2026-05-05 | **B3 taxonomy fix — seed-from-default enforced.** `DEFAULT_INTEREST_RATE = 0.075` moved to `constants-funding.ts` across all 3 mirrors; `SEED_DEBT_ASSUMPTIONS.interestRate` now references it instead of a raw literal. Skills updated: `hplus-variable-taxonomy` (example value, new seed-from-default bullet + decision-table row), `no-magic-numbers` (seed anti-pattern row corrected), `constants-vs-defaults` (seed-from-default bullet with concrete example). `check:typecheck` PASS, `check:magic-numbers` PASS. |
-| 2026-05-05 | **B1 — `capitalRaise3Amount` / `capitalRaise3Date` fields added** throughout: `GlobalResponse` (`number?` / `string?`), `FundingSection`, `CurrentPlanTab`, `CompanyBalanceSheet`, `CompanyInvestmentTab`. |
-| 2026-05-04 | **Compound Engineering plugin v3.3.2 registered.** `.claude/settings.json` created with `extraKnownMarketplaces` (directory source → `vendor/compound-engineering-plugin/`) and `enabledPlugins` (`compound-engineering@compound-engineering-plugin`). Loads 37+ `ce-*` skills and 50+ agents on session start. |
-| 2026-05-04 | **Google OAuth iframe fix.** `Login.tsx` Google button changed to `window.open("/api/auth/google", "_blank")` + poll `refetch()` every 2 s — Google's sign-in page sends `X-Frame-Options: DENY` and cannot render inside the Replit preview iframe; opening a new tab avoids the iframe entirely. Rule 4 added to both memory files. |
-| 2026-05-04 | **Auth hardening — login always works in preview.** `GOOGLE_CLIENT_ID` documented as required in both Railway AND Replit secrets (was missing from Replit, silently disabling `/api/auth/google`). Login logo quick-login fixed: removed the `devLoginAvailable` async-fetch gate that silently failed in iframe/canvas contexts, making the logo a no-op. Logo now always fires `POST /api/auth/dev-login`; server blocks it in production via `isPublishedDeployment()`. Three inviolable auth rules added to `CLAUDE.md` and `replit.md`. |
-| 2026-05-04 | **Canonical slide PNGs registered in R2 + skill infrastructure.** All 6 L+B canonical slide PNGs uploaded to `canonical/lb-6-slide/slides/slide-{1..6}.png` (source: `attached_assets/L+B_Property_6-Slide_Cannonical_Page_N_*.png`). New `lb-slides-canonical-pngs` skill documents R2 keys, local paths, per-slide content reference, and the 7-point comparison checklist. `lb-slides-renderer` skill updated with mandatory `v_canonical_png` validation rule. `coding-agent-instructions.md` Section 15 added — "Step 0: load canonical PNG"; PNG wins over JSON spec when they disagree. Magic number constants (`VISION_DRAFT_MAX_TOKENS`, `VISION_BADGE_MAX_CHARS`, `VISION_BULLET_MAX_CHARS`, `VISION_PARAGRAPH_MAX_CHARS`, `RETREAT_GUESTS_PER_KEY_MIN/MAX`, `VRBO_GUESTS_PER_KEY`) moved from inline in `property-vision.ts` to `lib/shared/src/constants-benchmarks.ts` + api-server mirror; baseline re-locked (`check:magic-numbers` PASS, 9 improvements). Slide2/Slide3/Slide5 editor panels now have "Draft via Analyst" buttons for all slots. |
-| 2026-05-03 | **Property nicknames clarified** (user-confirmed): canonical "Sul Monte" / "Su Monte" is the **owner's nickname for Belleayre Mountain** — same property, not throwaway filler. The canonical Sul Monte / Galli-Curci copy is therefore valid Belleayre source material (voice, tone, narrative arc); we still bind structured fields (price, key count, region) to the seed so every numeric flows from the engine (decision #6 unchanged). **Likely-but-not-yet-confirmed parallels**: "Hazelnis Retreat" matches Loch Sheldrake's street address (59 Hazelnis Drive); "Cartagena Duplex" matches San Diego's location (Cartagena, Colombia) — treat as probable owner/location nicknames pending user confirmation. **Supersedes** the "Sul Monte/Hazelnis/Cartagena are filler, discard" claim in the prior LB Slides entry. |
-| 2026-05-03 | **Property DB IDs corrected** (verified via SQL against the dev Neon DB): Slide 1 Belleayre Mountain = id **52** (was incorrectly recorded as 32). Slide 2 Loch Sheldrake = id **51** (was 43). Slide 3 San Diego = id **55** (was 41). The seed file array order ≠ DB primary key — always query `SELECT id, name FROM properties WHERE name ILIKE '%…%'` before minting deck tokens. Mint tokens with: `node -e "const c=require('crypto'); const pid=52, exp=Date.now()+30*60*1000; console.log(pid+'.'+exp+'.'+c.createHmac('sha256',Buffer.from(process.env.TOKEN_ENCRYPTION_KEY,'utf8')).update(pid+':'+exp).digest('base64url'))"`. The deck-payload endpoint takes ~18s to respond (6 MB JSON with base64 photo embeds), so the screenshot tool times out before render — preview decks via the cached `/api/properties/:id/deck.pdf` route or by warming `/api/internal/deck-payload/:id` first. |
-| 2026-05-03 | **LB Slides rebuild canon locked** (six-slide deck rebuild, scope decisions persisted): (1) Treat the canonical PDF as a pure visual spec (positions, fonts, colors, card geometry); body text comes from each slide's assigned property in seed/engine. (2) Page 6 Pro Forma is text-dense by design — prioritize spreadsheet-like readability; do not reproduce canonical's `######` overflow cells; pull every numeric from the engine. (3) Font policy: be consistent; canonical font exceptions may be intentional (human-designed) — for any deviation from a single global font stack, evaluate the design + padding intent with the strongest available reasoning model (Opus/GPT-5) before deciding. (4) Page background: CSS `#FFFFFF` (canonical PDF paint is white; the cream tone visible in renders is baked into a full-page raster image — most of the slide canvas is covered by element chrome anyway, so CSS white is faithful enough for v1). (5) **Multi-property scope**: each slide binds to a different property (slides 1–3); slides 4–6 are property-agnostic. **Provisional** until user previews v1 and confirms — these 6 slides are part of a much larger deck. (6) All numbers — every $ / % / count on every slide — sourced from app/seed financial data; canonical numbers are reference only. **Property mapping** (DB-verified, see "Property DB IDs corrected" entry above): Slide 1 = `Belleayre Mountain` (DB id 52, Western Catskills NY, owner-nicknamed "Sul Monte"). Slide 2 = `Loch Sheldrake` (DB id 51, Sullivan County NY, canonical alias "Hazelnis Retreat" matches its 59 Hazelnis Drive address). Slide 3 = `San Diego` (DB id 55, Barrio San Diego, Cartagena, Colombia, canonical alias "Cartagena Duplex"). Seed-canonical names remain the IDs of record. |
-| 2026-05-03 | **`CLAUDE.md` and `replit.md` re-harmonized** per the `agent-memory-files` skill. Identity updated (PDF, not PPTX). LB Slides section rewritten to reflect the Playwright HTML→PDF pipeline. Removed routing entries for skills that don't exist on disk (`hplus-pptx-generator`, `hplus-slide-mapping`, `hplus-canonical-slide-1`, `hplus-canonical-slide-2`, `norfolk-code-review`). Skill table mirrored identically across both files. SPA count corrected from 3 → 2 (the `property-slides` SPA never shipped). |
-| 2026-05-03 | **Investor deck pipeline migrated to Playwright HTML→PDF.** Python + `python-pptx` track and satori image-PPTX track are removed. New flow: React deck pages in `internal-deck/` → `GET /api/properties/:id/deck.pdf` (`property-deck-pdf.ts`) prints to PDF via headless Chromium and caches to R2. `property_slide_deck_variants.format` is now `'pdf'`-only (migration 0042). |
-| 2026-05-03 | **Dockerfile migrations fix** (commit b91ca7c5) unblocked Railway deploys. |
-| 2026-05-03 | **One-command Railway data sync** — `pnpm sync-db-to-railway` (Task #978) mirrors the dev Neon DB to the Railway production DB for parity testing. |
-| 2026-05-03 | **Sensitivity heatmap now reports Equity Multiple correctly** (Task #967). Added `equityMultipleValue` to `SensitivityScenarioResult` (shared + api-server mirror); server `runScenario` uses `computeEquityMultiple`; client fallback mirrored; HeatMapSection re-labelled "Equity Multiple" with `${v.toFixed(2)}x`, breakeven 1.0, "—" for v ≤ 0. |
-| 2026-05-04 | **LB Slide Studio — renderer rewrite + authoring environment.** `slides.tsx` and `helpers.tsx` fully rewritten at 960×540 using PALETTE/FONTS/FW from `contract.ts` only — zero `theme.ts` imports. `LbInternalDeck.tsx` updated to import `SLIDE_WIDTH_PX`/`SLIDE_HEIGHT_PX` from `contract.ts`. `LbSlides.tsx` expanded into a 7-tab Slide Studio (Config & Render + Slides 1–6), each slide tab embedding the corresponding `SlideNEditorPanel` with readiness badges. Pre-existing regressions from documents task merge fixed: `VARCHAR_SHORT_MAX` constant promoted (255 literal), `DocumentExtractionPanel.tsx` deps fixed. All 9 CI checks green. |
-| 2026-05-03 | **Spinner / icon contrast guard wired into CI** (Task #922). `.github/workflows/contrast-guard.yml` runs `check-spinner-contrast` on every PR + push to main. |
-| 2026-05-03 | **Better DB error logs on auth failures** (Task #968). `formatError()` in `artifacts/api-server/src/logger.ts` now surfaces Postgres `code`, `column`, `table`, `constraint`, etc. |
-| 2026-05-02 | **Production hosting moved to Railway.** Replit Publish (both autoscale and Reserved VM) repeatedly failed; the project now ships via `Dockerfile` + `railway.toml` (single container, healthcheck `/api/health/live`). All infra is external (Neon Postgres, Cloudflare R2, Google OAuth, direct OpenAI/Anthropic/Gemini SDKs). Replit Workspace is dev-preview only. |
-| 2026-05-02 | api-server bundle reduced from ~32 MB → ~7.5 MB by externalising AI SDKs, doc/media libs, country-state-city, Sentry, and google-auth-library in `build.mjs` (Tasks #942, #948). |
-| 2026-05-02 | `reference_brands` table wired into research orchestrator (tool DI), Funding Specialist PE prompt, and Rebecca KB. |
-| 2026-05-02 | Marcela removed from codebase. Rebecca is the only AI assistant. |
+<!-- keep ≤ 3 entries; remove oldest when adding new ones -->
+| 2026-05-07 | **DB audit + 4 missing tables created.** `iris_runs`, `knowledge_registry`, `country_economic_data`, `slide_factory_runs` — all defined in schema + SQL migrations but never applied to Neon. Applied DDL directly; `drizzle.__drizzle_migrations` synced to 52 entries. Country economic data seeded (4 rows). Vector store healthy: 337 chunks, 8 namespaces. |
+| 2026-05-07 | **Slide Factory V2 UI — Tab 1 (Brief) + Tab 3 (Properties).** `SlideFactoryPanel.tsx` in `features/slide-factory/`. Tab 1: PDF/PPTX brief upload via presigned R2, accept flow, status-driven tab lock. Tab 3: 4-property selectors (slides 1/2/3/5). Tabs 2/4/5/6 pipeline-stage placeholders. Polls every 5 s only in transitional states. |
+| 2026-05-07 | **Agent memory files compressed.** CLAUDE.md + replit.md reduced to < 40 KB combined. LB Slides spec extracted to `docs/slide-system/lb-slides-implementation-reference.md`. Known issues moved to `docs/issues/known-issues.md`. replit.md rewritten as a lean Replit-specific wrapper. |
