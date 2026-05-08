@@ -7,11 +7,20 @@
  *   - Maya verdict badge visibility and class
  *   - Dino pixel-diff badge visibility
  *
+ * The fixture imports `deriveSlotStatus` and `MAYA_VERDICT_CLASS` from the
+ * Panel directly so logic drift between fixture and real component is
+ * structurally impossible. Direct unit tests for `deriveSlotStatus` cover the
+ * coercion branches that previously lived only in inline ternaries.
+ *
  * Uses renderToString — no DOM environment required.
  */
 import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { describe, it, expect } from 'vitest';
+import {
+  deriveSlotStatus,
+  MAYA_VERDICT_CLASS,
+} from '../features/slide-factory/SlideFactoryPanel';
 
 // ── Types (mirrors SlideAgentResultFE + SlideFactoryRun shape) ────────────────
 
@@ -29,20 +38,16 @@ interface RunFixture {
   agentResults: Record<string, SlideAgentResultFE> | null;
 }
 
-// ── Constants (mirrors SlideFactoryPanel) ─────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────────────
 
 const TOTAL_DECK_SLIDES = 6;
 const SLIDE_AGENT_NAMES: Record<number, string> = {
   1: 'Sofia', 2: 'Bianca', 3: 'Chiara', 4: 'Dario', 5: 'Elisa', 6: 'Felix',
 };
-const MAYA_VERDICT_CLASS: Record<NonNullable<SlideAgentResultFE['mayaVerdict']>, string> = {
-  ok: 'text-emerald-700 bg-emerald-50',
-  advisory: 'text-sky-700 bg-sky-50',
-  warning: 'text-amber-700 bg-amber-50',
-  block: 'text-red-700 bg-red-50',
-};
 
 // ── Fixture component ─────────────────────────────────────────────────────────
+// Uses deriveSlotStatus and MAYA_VERDICT_CLASS imported from SlideFactoryPanel
+// so the fixture cannot drift from the real component's rendering logic.
 
 function AgentsTabFixture({ run }: { run: RunFixture }) {
   const agentResults = run.agentResults ?? {};
@@ -62,7 +67,10 @@ function AgentsTabFixture({ run }: { run: RunFixture }) {
         const slideNum = i + 1;
         const key = `slide${slideNum}`;
         const result = agentResults[key] ?? null;
-        const slotStatus = result?.status ?? (isBuilding ? 'pending' : null);
+        const slotStatus = deriveSlotStatus(
+          result?.status,
+          isBuilding ? 'building' : isComplete ? 'complete' : 'error',
+        );
 
         return (
           <div key={key} data-testid={`slide-row-${slideNum}`}>
@@ -320,5 +328,125 @@ describe('Tab5 FactoryAgentsTab — mid-build partial state', () => {
     for (let n = 3; n <= 6; n++) {
       expect(html).toContain(`data-testid="status-pending-${n}"`);
     }
+  });
+});
+
+// ── deriveSlotStatus — terminal-run coercion ─────────────────────────────────
+// Direct unit tests for the helper, covering the branches that used to live as
+// inline ternaries and silently mishandled terminal-run states.
+
+describe('deriveSlotStatus — building', () => {
+  it('returns the per-slide status when present', () => {
+    expect(deriveSlotStatus('approved', 'building')).toBe('approved');
+    expect(deriveSlotStatus('rejected', 'building')).toBe('rejected');
+    expect(deriveSlotStatus('running', 'building')).toBe('running');
+    expect(deriveSlotStatus('pending', 'building')).toBe('pending');
+  });
+
+  it('falls back to "pending" when result is missing', () => {
+    expect(deriveSlotStatus(undefined, 'building')).toBe('pending');
+  });
+});
+
+describe('deriveSlotStatus — complete (terminal success)', () => {
+  it('preserves an approved slide', () => {
+    expect(deriveSlotStatus('approved', 'complete')).toBe('approved');
+  });
+
+  it('preserves a rejected slide (rare but possible mid-flight write)', () => {
+    expect(deriveSlotStatus('rejected', 'complete')).toBe('rejected');
+  });
+
+  it('coerces "running" to "approved" on a complete run (was an infinite spinner before)', () => {
+    expect(deriveSlotStatus('running', 'complete')).toBe('approved');
+  });
+
+  it('coerces "pending" to "approved" on a complete run', () => {
+    expect(deriveSlotStatus('pending', 'complete')).toBe('approved');
+  });
+
+  it('coerces missing result to "approved" on a complete run (was a blank circle before)', () => {
+    expect(deriveSlotStatus(undefined, 'complete')).toBe('approved');
+  });
+});
+
+describe('deriveSlotStatus — error (terminal failure)', () => {
+  it('preserves a rejected slide', () => {
+    expect(deriveSlotStatus('rejected', 'error')).toBe('rejected');
+  });
+
+  it('preserves an approved slide (some slides may have passed before the failure)', () => {
+    expect(deriveSlotStatus('approved', 'error')).toBe('approved');
+  });
+
+  it('coerces "running" to "rejected" on an errored run (was an infinite spinner before)', () => {
+    expect(deriveSlotStatus('running', 'error')).toBe('rejected');
+  });
+
+  it('coerces "pending" to "rejected" on an errored run', () => {
+    expect(deriveSlotStatus('pending', 'error')).toBe('rejected');
+  });
+
+  it('coerces missing result to "rejected" on an errored run', () => {
+    expect(deriveSlotStatus(undefined, 'error')).toBe('rejected');
+  });
+});
+
+// ── Fixture-rendering tests for terminal-run coercion ─────────────────────────
+// Confirms the fixture (which now uses deriveSlotStatus) renders the correct
+// per-slide icons in the previously-broken edge cases.
+
+describe('Tab5 FactoryAgentsTab — complete with missing slide results', () => {
+  it('renders all six slides as approved when status=complete and agentResults is empty', () => {
+    const html = renderToString(
+      React.createElement(AgentsTabFixture, {
+        run: { status: 'complete', agentResults: {} },
+      }),
+    );
+    for (let n = 1; n <= 6; n++) {
+      expect(html).toContain(`data-testid="status-approved-${n}"`);
+      expect(html).not.toContain(`data-testid="status-pending-${n}"`);
+    }
+  });
+
+  it('renders a "running" slide on a complete run as approved (no infinite spinner)', () => {
+    const agentResults: Record<string, SlideAgentResultFE> = {
+      slide3: {
+        status: 'running', pixelDiffPct: null, mayaVerdict: null,
+        mayaNotes: null, approvedAt: null, errorMessage: null,
+      },
+    };
+    const html = renderToString(
+      React.createElement(AgentsTabFixture, { run: { status: 'complete', agentResults } }),
+    );
+    expect(html).toContain('data-testid="status-approved-3"');
+    expect(html).not.toContain('data-testid="status-running-3"');
+  });
+});
+
+describe('Tab5 FactoryAgentsTab — error with missing or non-terminal slide results', () => {
+  it('renders all six slides as rejected when status=error and agentResults is empty', () => {
+    const html = renderToString(
+      React.createElement(AgentsTabFixture, {
+        run: { status: 'error', agentResults: {} },
+      }),
+    );
+    for (let n = 1; n <= 6; n++) {
+      expect(html).toContain(`data-testid="status-rejected-${n}"`);
+    }
+  });
+
+  it('renders a "running" slide on an errored run as rejected (no infinite spinner)', () => {
+    const agentResults: Record<string, SlideAgentResultFE> = {
+      slide2: {
+        status: 'running', pixelDiffPct: null, mayaVerdict: null,
+        mayaNotes: null, approvedAt: null, errorMessage: null,
+      },
+    };
+    const html = renderToString(
+      React.createElement(AgentsTabFixture, { run: { status: 'error', agentResults } }),
+    );
+    expect(html).toContain('data-testid="status-rejected-2"');
+    expect(html).not.toContain('data-testid="status-running-2"');
   });
 });

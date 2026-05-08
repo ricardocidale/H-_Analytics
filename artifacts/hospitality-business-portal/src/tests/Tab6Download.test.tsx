@@ -1,10 +1,16 @@
 /**
  * Tab 6 (Complete — download) rendering tests.
  *
- * Verifies the key conditional branches in FactoryDownloadTab:
+ * Verifies the conditional rendering branches in FactoryDownloadTab:
  *   - Build-failed state (status=error)
  *   - Download enabled (deckR2Key set + status=complete)
  *   - No-deck state (deckR2Key null + status=complete)
+ *
+ * Scope: this file covers the conditional rendering surface only. The
+ * download fetch flow (AbortController, blob handling, error toast,
+ * downloading state) is exercised by the server-side route tests in
+ * artifacts/api-server/src/tests/routes/slide-factory-download.test.ts and
+ * would require a JSDOM integration test to verify end-to-end on the client.
  *
  * Uses renderToString — no DOM environment required.
  */
