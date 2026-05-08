@@ -45,6 +45,9 @@ export const RESOURCE_KINDS = [
   "benchmark",
   "model",
   "llm_slot",
+  "mcp",
+  "search_url",
+  "research_prompt",
 ] as const;
 export type ResourceKind = typeof RESOURCE_KINDS[number];
 export const ResourceKindSchema = z.enum(RESOURCE_KINDS);
@@ -56,6 +59,9 @@ export const RESOURCE_KIND_LABELS: Record<ResourceKind, string> = {
   benchmark: "Benchmarks",
   model: "Models",
   llm_slot: "LLM Slots",
+  mcp: "MCPs",
+  search_url: "Research URLs",
+  research_prompt: "Research Prompts",
 };
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -162,6 +168,8 @@ export const adminResources = pgTable(
     version: integer("version").notNull().default(1),
     lastHealthStatus: text("last_health_status").notNull().default("gray"),
     lastCheckedAt: timestamp("last_checked_at"),
+    // Pietro scheduler: max API calls per day for rate-limited sources. null = unlimited.
+    dailyRequestBudget: integer("daily_request_budget"),
     createdByUserId: integer("created_by_user_id").references(() => users.id, { onDelete: "set null" }),
     updatedByUserId: integer("updated_by_user_id").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -191,6 +199,11 @@ export const PROBE_PROFILES: Record<ResourceKind, { ttlSeconds: number; rateLimi
   benchmark: { ttlSeconds: 3600, rateLimitPerMinute: 6, maxCostUsd: 0.001 },
   // LLM slot rows are pure configuration — no external service to probe.
   llm_slot: { ttlSeconds: 86400, rateLimitPerMinute: 1, maxCostUsd: 0 },
+  // Pietro external sources: MCPs have same TTL as source (5 min).
+  mcp: { ttlSeconds: 300, rateLimitPerMinute: 6, maxCostUsd: 0.001 },
+  // Research catalog entries: URLs are long-lived (1 h), prompts are static (24 h).
+  search_url: { ttlSeconds: 3600, rateLimitPerMinute: 6, maxCostUsd: 0 },
+  research_prompt: { ttlSeconds: 86400, rateLimitPerMinute: 1, maxCostUsd: 0 },
 };
 
 export const ProbeStatusSchema = z.enum(["ok", "fail", "skipped"]);
@@ -225,6 +238,7 @@ export const insertAdminResourceSchema = z.object({
   description: z.string().nullable().optional(),
   config: z.record(z.string(), z.unknown()).default({}),
   secretRef: z.string().min(1).nullable().optional(),
+  dailyRequestBudget: z.number().int().nonnegative().nullable().optional(),
 });
 
 export type AdminResourceRow = typeof adminResources.$inferSelect;
@@ -500,11 +514,15 @@ export function bucketResourceForSourcesTab(row: {
     case "table":
       return "tables";
     case "api":
+    case "mcp":
+    case "search_url":
       return "apis";
     case "source": {
       const cfg = row.config ?? {};
       return cfg["uploadedFile"] === true ? "uploaded-files" : "bulk-sources";
     }
+    case "research_prompt":
+      return "bulk-sources";
     default:
       return null;
   }
@@ -526,6 +544,7 @@ export const ResourcePublicViewSchema = z.object({
   version: z.number().int().min(1),
   lastHealthStatus: ResourceHealthStatusSchema,
   lastCheckedAt: z.string().nullable(),
+  dailyRequestBudget: z.number().int().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -543,9 +562,10 @@ export function toResourcePublicView(row: AdminResourceRow, now: Date = new Date
   const kind = row.kind as ResourceKind;
   const storedBand = row.lastHealthStatus as ResourceHealthStatus;
   let band: ResourceHealthStatus = storedBand;
-  if (storedBand === "green" && row.lastCheckedAt) {
+  const profile = PROBE_PROFILES[kind];
+  if (storedBand === "green" && row.lastCheckedAt && profile) {
     const ageMs = now.getTime() - row.lastCheckedAt.getTime();
-    const ttlMs = PROBE_PROFILES[kind].ttlSeconds * 1000;
+    const ttlMs = profile.ttlSeconds * 1000;
     if (ageMs > ttlMs) band = "amber";
   }
   return {
@@ -559,6 +579,7 @@ export function toResourcePublicView(row: AdminResourceRow, now: Date = new Date
     version: row.version,
     lastHealthStatus: band,
     lastCheckedAt: row.lastCheckedAt ? row.lastCheckedAt.toISOString() : null,
+    dailyRequestBudget: row.dailyRequestBudget ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };

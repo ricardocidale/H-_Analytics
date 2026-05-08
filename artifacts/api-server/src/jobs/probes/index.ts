@@ -109,7 +109,7 @@ async function probeTable(row: AdminResourceRow): Promise<ProbeOutcome> {
     );
     const rows = (result as unknown as { rows?: unknown[] }).rows ?? (result as unknown as unknown[]);
     const found = Array.isArray(rows) && rows.length > 0;
-    if (!found) return { status: "fail", latencyMs: Date.now() - t0, errorCode: "TABLE_MISSING", errorMessage: `Table ${tableName} not found` };
+    if (!found) return { status: "fail", latencyMs: Date.now() - t0, errorCode: "TABLE_MISSING", errorMessage: "Table not found in schema" };
     return { status: "ok", latencyMs: Date.now() - t0 };
   } catch (err: unknown) {
     return { status: "fail", latencyMs: Date.now() - t0, errorCode: "DB_ERROR", errorMessage: err instanceof Error ? err.message : String(err) };
@@ -143,6 +143,12 @@ async function probeLlmSlot(_row: AdminResourceRow): Promise<ProbeOutcome> {
   return { status: "ok", latencyMs: 0 };
 }
 
+// Research prompt rows are static catalog entries (templates in config.template).
+// No external service to call — config presence is sufficient.
+async function probeResearchCatalog(_row: AdminResourceRow): Promise<ProbeOutcome> {
+  return { status: "ok", latencyMs: 0 };
+}
+
 const PROBES: Record<ResourceKind, (row: AdminResourceRow) => Promise<ProbeOutcome>> = {
   api: probeApiOrSource,
   source: probeApiOrSource,
@@ -150,6 +156,11 @@ const PROBES: Record<ResourceKind, (row: AdminResourceRow) => Promise<ProbeOutco
   table: probeTable,
   benchmark: probeBenchmark,
   llm_slot: probeLlmSlot,
+  // Pietro external sources: MCPs and research URLs use the same secret+baseUrl check.
+  mcp: probeApiOrSource,
+  search_url: probeApiOrSource,
+  // Research prompts are static — no network check needed.
+  research_prompt: probeResearchCatalog,
 };
 
 export async function runProbe(row: AdminResourceRow): Promise<ProbeOutcome> {

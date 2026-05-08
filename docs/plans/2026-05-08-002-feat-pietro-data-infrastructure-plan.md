@@ -162,6 +162,7 @@ artifacts/api-server/src/seeds/
 
 ┌─ Pietro agent (LLM, triggered on manual-refresh / health-check) ─────────────┐
 │  callLlm(anthropic, HAIKU, systemPrompt, [], kickoff)                         │
+│  → tool: list_data_sources(filter)    → discovers which sources need work     │
 │  → tool: assess_source_health(slug)   → runs probe, returns status            │
 │  → tool: dispatch_minion(slug)        → calls minion, returns FetcherResult   │
 │  → tool: write_health_report(summary) → always last                           │
@@ -383,6 +384,7 @@ artifacts/api-server/src/seeds/
 `workspace.ts` — stores Pietro run history in a markdown file at `artifacts/api-server/pietro/run-history/<date>.md`. Exports `readPietroHealth()` and `appendRunHistory()`. Mirrors `iris/workspace.ts`.
 
 `tools.ts` — `getPietroTools()` returns Pietro's LLM tool definitions:
+- `list_data_sources(filter?: "stale" | "failed" | "all")` — queries `admin_resources` for all source/mcp kinds, applies optional filter, returns array of `{ slug, kind, displayName, lastHealthStatus, lastCheckedAt, fetchedAt }`. Pietro calls this FIRST on every run to discover which sources need attention — enables dynamic dispatch without hard-coding slugs in the system prompt.
 - `assess_source_health(slug)` — calls `runProbe` for the admin_resource row matching slug; returns health status
 - `dispatch_minion(slug)` — calls the minion from `MINION_REGISTRY` matching slug; returns MinionResult
 - `write_health_report(summary)` — writes to workspace run history; always the last tool called
@@ -402,8 +404,10 @@ artifacts/api-server/src/seeds/
 
 **Test scenarios:**
 - Happy path: `runPietroAgent("health-check")` completes without throwing, returns `PietroRunResult` with `summary` string
+- Happy path `list_data_sources`: called with `filter = "stale"` → returns only sources where `lastCheckedAt` is beyond their kind TTL
 - Edge case: `ANTHROPIC_API_KEY` absent → throws with readable error (same behavior as Iris)
 - Edge case: `dispatch_minion` called with unknown slug → returns error in result, loop continues
+- Edge case: `list_data_sources` called with no sources in DB → returns empty array without error
 - Integration: Pietro run history file is written after a successful run
 
 **Verification:**

@@ -842,6 +842,22 @@ async function runSeeds() {
     { name: "country-economic-data", run: async () => { const { seedCountryEconomicDataIfEmpty } = await import("./seeds/knowledge-registry"); await seedCountryEconomicDataIfEmpty(); } },
   ];
 
+  // Pietro schema DDL guards must run sequentially BEFORE the parallel fan-out.
+  // admin-resources-006 adds the daily_request_budget column; pietro-resources-001
+  // inserts rows referencing that column. Running them in the same Promise.allSettled
+  // batch races the ALTER TABLE against the INSERT on a fresh DB.
+  for (const ddlTask of [
+    { name: "admin-resources-006", run: async () => { const { runAdminResources006 } = await import("./migrations/admin-resources-006"); await runAdminResources006(); } },
+    { name: "pietro-tables-001",   run: async () => { const { runPietroTables001 }   = await import("./migrations/pietro-tables-001");   await runPietroTables001();   } },
+    { name: "pietro-resources-001",run: async () => { const { runPietroResources001 }= await import("./migrations/pietro-resources-001"); await runPietroResources001(); } },
+  ]) {
+    try {
+      await ddlTask.run();
+    } catch (err) {
+      serverLog(`[seed:${ddlTask.name}] FAILED: ${err instanceof Error ? err.message : String(err)}`, "startup", "error");
+    }
+  }
+
   const results = await Promise.allSettled(seedTasks.map(t => t.run()));
   results.forEach((r, i) => {
     const name = seedTasks[i].name;

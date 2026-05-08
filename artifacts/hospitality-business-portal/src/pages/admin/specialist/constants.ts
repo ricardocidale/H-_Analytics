@@ -24,6 +24,9 @@ export const RESOURCE_KIND_TO_SECTION: Record<ResourceKind, IntelligenceSection>
   benchmark: "resources",
   model: "resources",
   llm_slot: "resources",
+  mcp: "resources",
+  search_url: "resources",
+  research_prompt: "resources",
 };
 
 export function navigateToResources(

@@ -113,6 +113,14 @@ re-renders the panel.
 |---|---|---|---|
 | Record retrieval gap | Auto (Rebecca unanswered query) | `write_retrieval_gap` | ✅ |
 
+### Data Infrastructure (Pietro — Tools Deferred to U10)
+
+| UI Action | UI Location | Rebecca Tool | Status |
+|---|---|---|---|
+| Probe / health-check a data source (Analyst button) | Admin → Sources | `probe_data_source` | ⚠️ Deferred to U10 |
+| Regenerate a data source (triggers minion) | Admin → Sources | `regenerate_data_source` | ⚠️ Deferred to U10 |
+| View all data source statuses | Admin → Sources | `get_data_source_status` | ⚠️ Deferred to U10 |
+
 ## When to Update This Map
 
 - When a new UI action is added → add a row and either implement the tool (✅) or document the gap (⚠️)

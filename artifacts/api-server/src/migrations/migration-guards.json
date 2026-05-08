@@ -176,6 +176,16 @@
       "status": "guarded",
       "guard": "rebecca-history-chips-001.ts",
       "reason": "ADD COLUMN IF NOT EXISTS rebecca_history_open + rebecca_suggested_chips on users. Guarded by rebecca-history-chips-001.ts to ensure columns exist on pre-existing DBs regardless of Drizzle journal state."
+    },
+    "0044_admin_resources_budget_and_kinds": {
+      "status": "guarded",
+      "guard": "admin-resources-006.ts",
+      "reason": "ADD COLUMN IF NOT EXISTS daily_request_budget on admin_resources for Pietro scheduler rate limiting. Guarded by admin-resources-006.ts to ensure column exists on pre-existing DBs regardless of Drizzle journal state."
+    },
+    "0045_create_reit_benchmarks_and_competitor_rates": {
+      "status": "guarded",
+      "guard": "pietro-tables-001.ts",
+      "reason": "CREATE TABLE IF NOT EXISTS reit_benchmarks + competitor_rates — Pietro data cache tables for REIT fundamentals and competitor hotel rates. Guarded by pietro-tables-001.ts to ensure tables exist on pre-existing DBs regardless of Drizzle journal state."
     }
   }
 }
