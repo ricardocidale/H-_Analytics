@@ -59,10 +59,6 @@ export function RebeccaOrb({ phase, size = "md", className }: RebeccaOrbProps) {
   const bounceH     = orbDiameter * BOUNCE_HEIGHT_FRAC[phase];
   const alpha       = PHASE_OPACITY[phase];
   const totalWidth  = DOT_COUNT * dotSize + (DOT_COUNT - 1) * gap;
-  // complete/error phases: play bounce once then settle — not an infinite loop
-  const isTransient = phase === "complete" || phase === "error";
-
-  // complete/error phases: play bounce once then settle — not an infinite loop
   const isTransient = phase === "complete" || phase === "error";
 
   return (
