@@ -167,7 +167,7 @@ export default function CompanyAssumptions() {
   // live in Admin → Model Defaults and are seeded before this page loads.
   const getTabGating = (tab: TabKey): { enabled: boolean; reason?: string } => {
     if (!formApi.formData.companyName) {
-      return { enabled: false, reason: "Set a company name in Admin → Model Defaults first." };
+      return { enabled: false, reason: "Set a company name in Admin → Steady State first." };
     }
     if (properties.length === 0) {
       return { enabled: false, reason: "Add at least one property to your portfolio first." };

@@ -221,7 +221,7 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
               <p className="text-xs text-muted-foreground leading-relaxed">
                 39 years: nonresidential real property (hotels per IRC §168(e)(2)(A)).
                 27.5 years applies only to residential rental property. Sourced from
-                Admin → Model Defaults → <strong>Model Constants</strong> (United States
+                Admin → Steady State → <strong>Model Constants</strong> (United States
                 baseline). Edit there to change the value the financial engine consumes —
                 per-property overrides on each property's edit page still win the cascade.{" "}
                 <a

@@ -188,7 +188,7 @@ function buildNavGroups(): NavGroup[] {
   return [
     {
       id: "financial-defaults",
-      label: "Model Defaults",
+      label: "Steady State",
       icon: IconSliders,
       description: "Default values and constants applied to new entities and financial model",
       sections: [
