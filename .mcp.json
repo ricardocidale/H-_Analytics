@@ -6,6 +6,13 @@
       "env": {
         "FRED_API_KEY": "${FRED_API_KEY}"
       }
+    },
+    "booking": {
+      "command": "npx",
+      "args": ["-y", "@pullapi/booking-scraper-mcp"],
+      "env": {
+        "RAPIDAPI_KEY": "${RAPIDAPI_KEY}"
+      }
     }
   }
 }
