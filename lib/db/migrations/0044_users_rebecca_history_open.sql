@@ -1,0 +1,18 @@
+-- 0044_users_rebecca_history_open.sql
+--
+-- Adds the `rebecca_history_open` column to `users`. The Drizzle schema in
+-- `lib/db/src/schema/auth.ts` has declared this column for some time. The
+-- column was applied to the Neon database directly via a one-off ALTER TABLE
+-- script (wrapped in Promise.allSettled) rather than through a generated
+-- Drizzle migration file. This migration formalises that change so that:
+--   - Fresh database builds include the column automatically.
+--   - The Drizzle migration journal (`_journal.json` and the
+--     `drizzle.__drizzle_migrations` table) accurately reflects the schema
+--     state. (Task #1196.)
+--
+-- Nullable boolean — no default — so that a NULL can be distinguished from
+-- an explicit false (i.e. "never set" vs. "explicitly collapsed").
+--
+-- Idempotent: `IF NOT EXISTS` makes this safe to re-apply on environments
+-- where the one-off script already ran.
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "rebecca_history_open" boolean;
