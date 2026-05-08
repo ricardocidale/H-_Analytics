@@ -16,6 +16,7 @@ const TAG = "[minion:daloopa-reit]";
 
 const DALOOPA_FETCH_TIMEOUT_MS = 20_000;
 const DALOOPA_MCP_URL = "https://mcp.daloopa.com/server/mcp";
+const DALOOPA_QUARTERLY_PERIODS_TO_FETCH = 4;
 
 const REIT_TICKERS = ["HST", "RHP", "PEB", "APLE", "SHO"] as const;
 
@@ -39,7 +40,7 @@ async function fetchDaloopaFundamentals(ticker: string, apiKey: string): Promise
       id: 1,
       params: {
         name: "get_fundamentals_data",
-        arguments: { ticker, period: "quarterly", limit: 4 },
+        arguments: { ticker, period: "quarterly", limit: DALOOPA_QUARTERLY_PERIODS_TO_FETCH },
       },
     }),
     signal: AbortSignal.timeout(DALOOPA_FETCH_TIMEOUT_MS),

@@ -15,15 +15,17 @@ const TAG = "[minion:fred-extended]";
 const FRED_EXTENSION_FETCH_TIMEOUT_MS = 10_000;
 
 const HOSPITALITY_SERIES = [
-  { id: "CUUR0000SEHB", label: "Hospitality CPI", category: "hospitality_inflation" },
-  { id: "CES7000000001", label: "Leisure & Hospitality Employment", category: "hospitality_labor" },
-  { id: "HSNGSTARTW", label: "Housing Starts (Weekly Proxy)", category: "housing_starts" },
+  { id: "CUUR0000SEHB", label: "Hospitality CPI", category: "hospitality_inflation", cadence: "monthly" as const },
+  { id: "CES7000000001", label: "Leisure & Hospitality Employment", category: "hospitality_labor", cadence: "monthly" as const },
+  // HSNGSTARTW is a weekly series — use "weekly" to reflect actual FRED release cadence.
+  { id: "HSNGSTARTW", label: "Housing Starts (Weekly Proxy)", category: "housing_starts", cadence: "weekly" as const },
 ] as const;
 
 async function fetchHospitalitySeries(
   seriesId: string,
   label: string,
   category: string,
+  cadence: string,
   apiKey: string,
 ): Promise<{ snapshot: Omit<InsertBenchmarkSnapshot, "id"> | null; error: string | null }> {
   try {
@@ -50,7 +52,7 @@ async function fetchHospitalitySeries(
         source: "FRED",
         sourceUrl: `https://fred.stlouisfed.org/series/${seriesId}`,
         staleness: "fresh",
-        cadence: "monthly",
+        cadence,
       },
       error: null,
     };
@@ -71,7 +73,7 @@ export async function runMinionFredExtended(): Promise<MinionResult> {
   }
 
   const results = await Promise.allSettled(
-    HOSPITALITY_SERIES.map(s => fetchHospitalitySeries(s.id, s.label, s.category, apiKey)),
+    HOSPITALITY_SERIES.map(s => fetchHospitalitySeries(s.id, s.label, s.category, s.cadence, apiKey)),
   );
 
   let rowsUpserted = 0;

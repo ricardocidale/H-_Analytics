@@ -7,12 +7,15 @@
 import { db } from "../../../db";
 import { competitorRates, type InsertCompetitorRate } from "@workspace/db";
 import { logger } from "../../../logger";
+import { nextFriday, toIsoDate } from "./date-utils";
 import type { MinionResult } from "./index";
 
 const TAG = "[minion:booking-rates]";
 
 const BOOKING_FETCH_TIMEOUT_MS = 20_000;
 const BOOKING_HOST = "booking-com15.p.rapidapi.com";
+const BOOKING_DEFAULT_ADULTS = 2;
+const BOOKING_DEFAULT_ROOMS = 1;
 
 const COMPETITOR_MARKETS = [
   "Miami, FL",
@@ -23,21 +26,6 @@ const COMPETITOR_MARKETS = [
 ] as const;
 
 const NIGHTS_TO_FETCH = 2;
-// getDay() returns 0=Sunday … 5=Friday … 6=Saturday
-const FRIDAY_DAY_OF_WEEK = 5;
-
-function nextFriday(): Date {
-  const now = new Date();
-  const day = now.getDay();
-  const daysUntilFriday = day <= FRIDAY_DAY_OF_WEEK ? FRIDAY_DAY_OF_WEEK - day : 7 - day + FRIDAY_DAY_OF_WEEK;
-  const friday = new Date(now);
-  friday.setDate(now.getDate() + (daysUntilFriday === 0 ? 7 : daysUntilFriday));
-  return friday;
-}
-
-function toIsoDate(d: Date): string {
-  return d.toISOString().split("T")[0];
-}
 
 interface BookingHotel {
   min_total_price?: number;
@@ -50,8 +38,8 @@ async function fetchBookingRates(market: string, apiKey: string, checkIn: string
     search_type: "city",
     arrival_date: checkIn,
     departure_date: checkOut,
-    adults: "2",
-    room_qty: "1",
+    adults: String(BOOKING_DEFAULT_ADULTS),
+    room_qty: String(BOOKING_DEFAULT_ROOMS),
     languagecode: "en-us",
     currency_code: "USD",
   });
