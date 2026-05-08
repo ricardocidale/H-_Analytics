@@ -188,7 +188,7 @@ from Brazilian or Italian naming traditions (male or female).
 - Slide factory orchestrator: Marco
 - Slide factory cross-app: Lucca, Maya
 - Slide factory swarms: Lorenzo, Sofia, Bianca, Chiara, Dario, Elisa, Felix
-- Slide factory minions: Aldo, Bruno, Carlo, Dino, Enzo
+- Slide factory minions: Aldo, Bruno, Carlo, Dino, Enzo, Franco
 
 **Never use:** Sergio, Milton
 

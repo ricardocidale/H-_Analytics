@@ -40,6 +40,10 @@ vi.mock("../slides/dino", () => ({
   runDino: vi.fn().mockResolvedValue({ pixelDiffPct: 1.2, exceedsThreshold: false, threshold: 5 }),
 }));
 
+vi.mock("../slides/minions/franco", () => ({
+  runFranco: vi.fn().mockResolvedValue({ deckR2Key: "factory-runs/42/deck.pdf" }),
+}));
+
 vi.mock("../logger", () => ({
   logger: {
     info: vi.fn(),
@@ -57,9 +61,11 @@ import {
 import { dispatchSlideTeam } from "../slides/swarms/dispatch";
 import { runMaya } from "../slides/maya";
 import { runDino } from "../slides/dino";
+import { runFranco } from "../slides/minions/franco";
 import { runMarco } from "../slides/marco";
-import { dispatchMarcoTool } from "../slides/marco-tools";
+import { MARCO_TOOLS, dispatchMarcoTool, handleProduceDeck } from "../slides/marco-tools";
 import { MARCO_MAX_TOOL_DEPTH, TOTAL_SLIDES } from "../slides/deck-render-constants";
+import { MARCO_SYSTEM_PROMPT } from "../slides/marco";
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -347,6 +353,79 @@ describe("dispatchMarcoTool", () => {
   it("unknown tool returns structured error", async () => {
     const out = await dispatchMarcoTool("nonsense", {}, { runId: 42 });
     expect(out.result).toMatchObject({ error: expect.stringContaining("Unknown tool") });
+  });
+
+  it("produce_deck happy path: returns { ok: true, deckR2Key }", async () => {
+    (runFranco as Mock).mockResolvedValue({ deckR2Key: "factory-runs/42/deck.pdf" });
+    const out = await dispatchMarcoTool("produce_deck", {}, { runId: 42 });
+    expect(out.result).toEqual({ ok: true, deckR2Key: "factory-runs/42/deck.pdf" });
+    expect(runFranco).toHaveBeenCalledWith(42, { caller: "marco" });
+  });
+
+  it("produce_deck error path: runFranco throws → returns { error } (no throw across boundary)", async () => {
+    (runFranco as Mock).mockRejectedValue(new Error("R2 upload failed"));
+    const out = await dispatchMarcoTool("produce_deck", {}, { runId: 42 });
+    expect(out.result).toMatchObject({ error: expect.stringContaining("R2 upload failed") });
+    // Make sure no `ok: true` slipped through on the error path
+    expect((out.result as Record<string, unknown>).ok).toBeUndefined();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Layer 1b: handleProduceDeck (direct call — bypasses dispatcher)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("handleProduceDeck", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("happy path: returns { ok: true, deckR2Key } on Franco success", async () => {
+    (runFranco as Mock).mockResolvedValue({ deckR2Key: "k" });
+    const out = await handleProduceDeck(7);
+    expect(out).toEqual({ ok: true, deckR2Key: "k" });
+    expect(runFranco).toHaveBeenCalledWith(7, { caller: "marco" });
+  });
+
+  it("error path: returns { error } when Franco throws (does not propagate)", async () => {
+    (runFranco as Mock).mockRejectedValue(new Error("Playwright render timeout"));
+    const out = await handleProduceDeck(7);
+    expect(out).toMatchObject({ error: expect.stringContaining("Playwright render timeout") });
+    expect((out as Record<string, unknown>).ok).toBeUndefined();
+  });
+
+  it("error path with non-Error throw: stringifies the value", async () => {
+    (runFranco as Mock).mockRejectedValue("plain string failure");
+    const out = await handleProduceDeck(7);
+    expect(out).toMatchObject({ error: "plain string failure" });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Layer 1c: MARCO_TOOLS schema + system prompt sanity
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("MARCO_TOOLS schema + system prompt", () => {
+  // U3 added produce_deck — Marco is now an 8-tool agent
+  const MARCO_TOOL_COUNT = 8;
+
+  it("MARCO_TOOLS has 8 entries (was 7 before U3)", () => {
+    expect(MARCO_TOOLS).toHaveLength(MARCO_TOOL_COUNT);
+  });
+
+  it("MARCO_TOOLS includes produce_deck", () => {
+    const names = MARCO_TOOLS.map((t) => t.name);
+    expect(names).toContain("produce_deck");
+  });
+
+  it("system prompt mentions produce_deck and transition_status", () => {
+    expect(MARCO_SYSTEM_PROMPT).toContain("produce_deck");
+    expect(MARCO_SYSTEM_PROMPT).toContain("transition_status");
+  });
+
+  it("system prompt's tool-count constraint mentions 'eight' (not 'seven')", () => {
+    expect(MARCO_SYSTEM_PROMPT).toContain("eight");
+    expect(MARCO_SYSTEM_PROMPT).not.toMatch(/other than the seven listed/);
   });
 });
 

@@ -69,6 +69,7 @@ feature ships or a new Rebecca tool is added.
 | Edit a Lucca slot value or approval (Tab 4) | `PATCH /api/lb-slides/factory/runs/:id/slots/:key` | `update_slide_factory_slot` | ✅ |
 | Mark every Lucca slot approved at once (Tab 4) | `POST /api/lb-slides/factory/runs/:id/approve-all-slots` | `approve_all_slide_factory_slots` | ✅ |
 | Trigger Marco build (Tab 4 → Tab 5) | `POST /api/lb-slides/factory/runs/:id/trigger-build` | `trigger_slide_factory_build` | ✅ |
+| Produce / re-render deck PDF | Internal Marco tool + Rebecca `produce_slide_factory_deck` | `produce_slide_factory_deck` | ✅ |
 | Upload brief PDF/PPTX file | Browser → R2 (presigned URL) | — | 🚫 N/A (file picker; user-only action) |
 | Download rendered deck PDF (Tab 6) | `GET /api/lb-slides/factory/runs/:id/download` (planned) | — | 🚫 N/A (file download; planned in plan U9) |
 

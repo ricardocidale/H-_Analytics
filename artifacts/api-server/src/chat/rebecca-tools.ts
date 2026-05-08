@@ -366,6 +366,18 @@ export function getRebeccaTools(): ToolParam[] {
         required: ["id"],
       },
     },
+    {
+      name: "produce_slide_factory_deck",
+      description:
+        "Manually produce (or re-produce) the deck PDF for a complete slide factory run. Use this when a run reached 'complete' status but its deckR2Key is null (Tab 6 stuck on 'Deck not yet rendered'), or when an operator wants to refresh the rendered PDF. Calls Franco directly — bypasses Marco's automatic post-completion call. Idempotent: re-running on a successful run overwrites the same R2 key.",
+      parameters: {
+        type: "object",
+        properties: {
+          runId: { type: "number", description: "Slide factory run ID" },
+        },
+        required: ["runId"],
+      },
+    },
   ];
 }
 
@@ -442,6 +454,8 @@ export async function dispatchRebeccaTool(
         return await toolApproveAllSlideFactorySlots(args, ctx);
       case "trigger_slide_factory_build":
         return await toolTriggerSlideFactoryBuild(args, ctx);
+      case "produce_slide_factory_deck":
+        return await toolProduceSlideFactoryDeck(args, ctx);
       default:
         return { result: { error: "Unknown tool" } };
     }
@@ -1480,4 +1494,43 @@ async function toolTriggerSlideFactoryBuild(
     },
     dataChanged: { entityType: "slide_factory_run", entityId: id },
   };
+}
+
+/**
+ * Manually trigger Franco to produce (or re-produce) the deck PDF for a
+ * complete slide factory run. Mirror of Marco's automatic produce_deck
+ * call (marco-tools.ts handleProduceDeck) — same deterministic core
+ * (`runFranco`), exposed as an agent-native parity entry point.
+ *
+ * Ownership-gated: loads the run via the userId-scoped getter so an admin
+ * cannot render another admin's run by guessing a runId. Per CLAUDE.md §7,
+ * the Rebecca tool maps 1:1 onto the Tab 6 "stuck on Deck not yet rendered"
+ * recovery path.
+ */
+async function toolProduceSlideFactoryDeck(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const runIdResult = requireNumericArg(args, "runId");
+  if (!runIdResult.ok) return runIdResult.result;
+  const runId = runIdResult.value;
+
+  const { getSlideFactoryRun } = await import("../storage/slide-factory-runs");
+  const run = await getSlideFactoryRun(runId, ctx.userId);
+  if (!run) return { result: { error: `Slide factory run ${runId} not found` } };
+
+  const { runFranco } = await import("../slides/minions/franco");
+  try {
+    const { deckR2Key } = await runFranco(runId, { caller: "rebecca" });
+    return {
+      result: { ok: true, deckR2Key },
+      dataChanged: { entityType: "slide_factory_run", entityId: runId },
+    };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    return {
+      result: { ok: false, error: message },
+      dataChanged: { entityType: "slide_factory_run", entityId: runId },
+    };
+  }
 }
