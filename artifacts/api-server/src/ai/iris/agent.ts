@@ -36,8 +36,6 @@ const IRIS_MAX_OUTPUT_TOKENS = 2000;
 /** Max characters of the prior health report included in the kickoff context. */
 const IRIS_PRIOR_HEALTH_SUMMARY_MAX_CHARS = 1_000;
 
-/** Top-p nucleus sampling parameter. */
-const IRIS_TOP_P = 0.9;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -167,7 +165,6 @@ export async function runIrisAgent(trigger: IrisTrigger): Promise<IrisRunResult>
   const sampling = {
     temperature: IRIS_TEMPERATURE,
     maxOutputTokens: IRIS_MAX_OUTPUT_TOKENS,
-    topP: IRIS_TOP_P,
   };
 
   // Step 1: Read workspace state

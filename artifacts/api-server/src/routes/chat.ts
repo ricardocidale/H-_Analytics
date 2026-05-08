@@ -104,7 +104,7 @@ export async function callLlm(
   systemPrompt: string,
   history: MessageEntry[],
   userMessage: string,
-  sampling: { temperature: number; maxOutputTokens: number; topP: number },
+  sampling: { temperature: number; maxOutputTokens: number; topP?: number },
   userId?: number,
   webSearchEnabled?: boolean,
   tools?: ToolParam[],
@@ -223,7 +223,7 @@ export async function callLlm(
         system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
         max_tokens: sampling.maxOutputTokens,
         temperature: sampling.temperature,
-        top_p: sampling.topP,
+        ...(sampling.topP !== undefined ? { top_p: sampling.topP } : {}),
         messages: [
           ...history.map((m) => m as any),
           // Skip appending a user turn when userMessage is empty — continuation
@@ -315,7 +315,7 @@ export async function callLlmStream(
   systemPrompt: string,
   history: MessageEntry[],
   userMessage: string,
-  sampling: { temperature: number; maxOutputTokens: number; topP: number },
+  sampling: { temperature: number; maxOutputTokens: number; topP?: number },
   onToken: (token: string) => void,
   userId?: number,
   webSearchEnabled?: boolean,
@@ -376,7 +376,7 @@ export async function callLlmStream(
       system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
       max_tokens: sampling.maxOutputTokens,
       temperature: sampling.temperature,
-      top_p: sampling.topP,
+      ...(sampling.topP !== undefined ? { top_p: sampling.topP } : {}),
       messages: [
         ...history.map((m) => m as any),
         { role: "user" as const, content: wrappedUser },
