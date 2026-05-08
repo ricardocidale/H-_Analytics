@@ -26,6 +26,7 @@ vi.mock("../../../ai/iris/agent", () => ({
     toolsInvoked: [],
     chunksIndexed: 0,
     errorsEncountered: 0,
+    errors: [],
     durationMs: 100,
     summary: "ok",
   })),

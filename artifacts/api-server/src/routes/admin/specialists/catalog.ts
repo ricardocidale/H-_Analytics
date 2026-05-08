@@ -34,6 +34,9 @@ import {
 import { idParamSchema, toConfigView } from "./_shared";
 import { getSpecialistGlobalLlmDefaults } from "../../../ai/specialist-llm-resolver";
 
+/** How long after a run completes before the phase signal resets to null (ms). */
+const RECENT_RUN_THRESHOLD_MS = 30_000;
+
 export function registerCatalogRoutes(app: Express) {
   // ── List catalog ────────────────────────────────────────────────
   // Overlays the Phase-3 admin identity override (humanName + gender) onto
@@ -181,9 +184,6 @@ export function registerCatalogRoutes(app: Express) {
   //
   // Must be registered BEFORE the `/:id` detail route so Express does not
   // attempt to match "run-status" as a specialist id.
-
-  /** Recent-run threshold for complete/error phase display (ms). */
-  const RECENT_RUN_THRESHOLD_MS = 30_000;
 
   app.get("/api/admin/specialists/:id/run-status", requireAdmin, async (req, res) => {
     try {

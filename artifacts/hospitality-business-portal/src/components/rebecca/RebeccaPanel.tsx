@@ -544,8 +544,9 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                     m.id === streamId ? { ...m, content: "Let me try that again…" } : m
                   ));
                   await new Promise((r) => setTimeout(r, 600));
+                  toolStartTimesRef.current.clear();
                   setMessages((prev) => prev.map((m) =>
-                    m.id === streamId ? { ...m, content: "" } : m
+                    m.id === streamId ? { ...m, content: "", toolSteps: [] } : m
                   ));
                   await runStream(1);
                 } else {
@@ -564,14 +565,21 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
         await runStream();
       } catch (err: unknown) {
         if (err instanceof DOMException && err.name === "AbortError") {
-          // Intentional abort — remove the empty streaming stub
-          setMessages((prev) => prev.filter((m) => m.id !== streamId || m.content.length > 0));
+          // Intentional abort — remove the empty streaming stub; transition any
+          // in-flight tool steps to error so dispatching orbs don't spin forever.
+          toolStartTimesRef.current.clear();
+          setMessages((prev) => prev.filter((m) => m.id !== streamId || m.content.length > 0).map((m) =>
+            m.id === streamId
+              ? { ...m, toolSteps: (m.toolSteps ?? []).map((s) => s.phase === "dispatching" ? { ...s, phase: "error" as const } : s) }
+              : m
+          ));
         } else {
           setMessages((prev) => prev.map((m) =>
             m.id === streamId ? { ...m, content: "Sorry, I couldn't process your request. Please try again." } : m
           ));
         }
       } finally {
+        toolStartTimesRef.current.clear();
         setIsStreaming(false);
         setLoading(false);
         streamingIdRef.current = null;

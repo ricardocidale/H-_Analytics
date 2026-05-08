@@ -151,7 +151,7 @@ export async function callLlm(
         messages,
         max_tokens: sampling.maxOutputTokens,
         temperature: sampling.temperature,
-        top_p: sampling.topP,
+        ...(sampling.topP !== undefined ? { top_p: sampling.topP } : {}),
       }),
       timeoutP,
     ])) as unknown as PerplexityCompletion;
@@ -183,7 +183,7 @@ export async function callLlm(
         messages,
         max_tokens: sampling.maxOutputTokens,
         temperature: sampling.temperature,
-        top_p: sampling.topP,
+        ...(sampling.topP !== undefined ? { top_p: sampling.topP } : {}),
         ...(hasTools ? {
           tools: tools.map(t => ({ type: "function" as const, function: { name: t.name, description: t.description, parameters: t.parameters } })),
           tool_choice: "auto" as const,
@@ -281,7 +281,7 @@ export async function callLlm(
       config: {
         maxOutputTokens: sampling.maxOutputTokens,
         temperature: sampling.temperature,
-        topP: sampling.topP,
+        ...(sampling.topP !== undefined ? { topP: sampling.topP } : {}),
         ...(hasGeminiTools ? {
           tools: [{ functionDeclarations: tools.map(t => ({ name: t.name, description: t.description, parameters: t.parameters })) }],
         } : {}),
@@ -353,7 +353,7 @@ export async function callLlmStream(
       messages,
       max_tokens: sampling.maxOutputTokens,
       temperature: sampling.temperature,
-      top_p: sampling.topP,
+      ...(sampling.topP !== undefined ? { top_p: sampling.topP } : {}),
       stream: true,
     });
     let text = "";
@@ -421,7 +421,7 @@ export async function callLlmStream(
     config: {
       maxOutputTokens: sampling.maxOutputTokens,
       temperature: sampling.temperature,
-      topP: sampling.topP,
+      ...(sampling.topP !== undefined ? { topP: sampling.topP } : {}),
     },
   });
   let text = "";
