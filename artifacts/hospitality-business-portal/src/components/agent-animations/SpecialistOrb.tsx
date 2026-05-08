@@ -55,6 +55,9 @@ export function SpecialistOrb({ phase, size = "md", className }: SpecialistOrbPr
   // complete/error phases: play once then settle — not an infinite loop
   const isTransient = phase === "complete" || phase === "error";
 
+  // complete/error phases: play once then settle — not an infinite loop
+  const isTransient = phase === "complete" || phase === "error";
+
   return (
     <motion.svg width={diameter} height={diameter} viewBox={`0 0 ${diameter} ${diameter}`} className={className} aria-hidden>
       <motion.circle

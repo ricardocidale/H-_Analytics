@@ -26,13 +26,25 @@ import {
 } from "@/components/ui/accordion";
 import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
 import { SpecialistName } from "@/components/specialists/SpecialistName";
+import { AgentThinkingState } from "@/components/agent-animations";
 import { SPECIALIST_CATALOG } from "@engine/analyst/registry/specialist-catalog";
 import { IconPeople } from "@/components/icons";
 import { Loader2 } from "@/components/icons/themed-icons";
 
+// ─── Named constants (no magic numbers) ──────────────────────────────────────
+
+/** Poll interval while a Specialist run is in progress (ms). */
+const SPECIALIST_STATUS_POLL_INTERVAL_MS = 3_000;
+
 interface ProbeResult {
   healthy: boolean;
   message?: string;
+}
+
+interface SpecialistRunStatus {
+  isRunning: boolean;
+  runningCount: number;
+  phase: "thinking" | "complete" | "error" | null;
 }
 
 type ProbeStatusValue = "idle" | "healthy" | "degraded" | "error";
@@ -81,6 +93,24 @@ interface SpecialistRowProps {
 function SpecialistRow({ id, liveHumanNames: _liveHumanNames }: SpecialistRowProps) {
   const def = useMemo(() => SPECIALIST_CATALOG.find((d) => d.id === id), [id]);
 
+  // ── Run-status polling for persona orb ──────────────────────────────────
+  // Mirrors the SpecialistPage pattern: polls while a research job is in
+  // flight (phase "thinking") and stops automatically when phase is null.
+  // Uses the same admin-gated endpoint — the Intelligence section is already
+  // admin-accessible (it calls /api/admin/specialists for the catalog list).
+  const { data: runStatus } = useQuery<SpecialistRunStatus>({
+    queryKey: [`/api/admin/specialists/${id}/run-status`],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/specialists/${encodeURIComponent(id)}/run-status`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to fetch specialist run status");
+      return res.json() as Promise<SpecialistRunStatus>;
+    },
+    refetchInterval: (query) =>
+      query.state.data?.isRunning ? SPECIALIST_STATUS_POLL_INTERVAL_MS : false,
+  });
+
   const probeMutation = useMutation<ProbeResult>({
     mutationFn: async () => {
       const res = await fetch(`/api/admin/specialists/${encodeURIComponent(id)}/probe`, {
@@ -114,6 +144,18 @@ function SpecialistRow({ id, liveHumanNames: _liveHumanNames }: SpecialistRowPro
         <div className="flex items-center gap-3 w-full min-w-0">
           <StatusDot status={probeStatus} />
           <SpecialistName id={id} variant="stacked" size="sm" />
+          {/* Persona orb — visible while this Specialist has an active
+              research run. Mirrors the SpecialistPage header pattern so
+              the animation vocabulary is consistent across every surface. */}
+          {runStatus?.phase != null && (
+            <AgentThinkingState
+              persona="specialist"
+              phase={runStatus.phase}
+              size="sm"
+              aria-label={`${def.humanName ?? def.realName} is ${runStatus.phase}`}
+              className="shrink-0"
+            />
+          )}
           <span className="hidden sm:block text-xs text-muted-foreground truncate flex-1 text-left">
             {def.description}
           </span>

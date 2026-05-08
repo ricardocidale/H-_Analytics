@@ -1147,11 +1147,13 @@ export function register(app: Express) {
               const toolStartMs = Date.now();
               try {
                 const { result: r, dataChanged: dc } = await executeTool(tc.name, tc.arguments, toolCtx);
+                const elapsedMs = Date.now() - toolStartMs;
                 if (dc) dataChanged.push(dc);
-                if (useStream) sseWrite(res, "tool_done", { id: tc.id, name: tc.name, success: true, elapsedMs: Date.now() - toolStartMs });
+                if (useStream) sseWrite(res, "tool_done", { id: tc.id, name: tc.name, success: true, elapsedMs });
                 return { id: tc.id, name: tc.name, result: r };
               } catch (toolErr) {
-                if (useStream) sseWrite(res, "tool_done", { id: tc.id, name: tc.name, success: false, elapsedMs: Date.now() - toolStartMs });
+                const elapsedMs = Date.now() - toolStartMs;
+                if (useStream) sseWrite(res, "tool_done", { id: tc.id, name: tc.name, success: false, elapsedMs });
                 throw toolErr;
               }
             }),
