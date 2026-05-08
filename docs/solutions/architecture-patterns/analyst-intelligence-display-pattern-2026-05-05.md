@@ -136,7 +136,7 @@ research is the server-side scheduler's job
 
 3. **Consistency of voice:** The Voice Renderer enforces the platform's branded
    persona tone. Component-crafted advice creates inconsistent, unverifiable
-   analyst personas that conflict with named Specialists (Gaspar, Ana, Fernanda,
+   analyst personas that conflict with named Specialists (Gustavo, Ana, Fernanda,
    etc.).
 
 4. **Conviction floor protects users:** The pipeline self-reports when it lacks

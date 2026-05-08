@@ -57,7 +57,7 @@ export class SpecialistIdentityStorage {
     return row ? rowToRecord(row) : null;
   }
 
-  /** Bulk read — used by the catalog list view to resolve all 12 + Gaspar. */
+  /** Bulk read — used by the catalog list view to resolve all 12 + Gustavo. */
   async listIdentityOverrides(): Promise<IdentityOverrideRecord[]> {
     const rows = await db.select().from(specialistIdentityOverrides);
     return rows.map(rowToRecord);

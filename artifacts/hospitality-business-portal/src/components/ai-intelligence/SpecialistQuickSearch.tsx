@@ -10,12 +10,12 @@
  * Source of truth for the catalog rows is `SPECIALIST_CATALOG`. Rows are
  * mapped to AI Intelligence sidebar sections via the canonical
  * `SPECIALIST_SECTION_TO_ID` map so navigation stays in lockstep with the
- * sidebar groups. Gaspar (the Analyst orchestrator) is added on top with
+ * sidebar groups. Gustavo (the Analyst orchestrator) is added on top with
  * the `analyst-orchestrator` section so admins can also jump to him.
  *
  * humanName overrides: the `/api/admin/specialists` list endpoint
  * resolves Identity-tab renames against the catalog. We prefer that
- * resolved name over the static catalog value so renaming "Gaspar" to
+ * resolved name over the static catalog value so renaming "Gustavo" to
  * something else immediately makes the search match the new spelling
  * (matching the sidebar behavior).
  */
@@ -87,7 +87,7 @@ export function SpecialistQuickSearch({ onSelect }: SpecialistQuickSearchProps) 
 
     const rows: SearchEntry[] = [];
 
-    // Gaspar — orchestrator persona. Lives outside SPECIALIST_SECTION_TO_ID
+    // Gustavo — orchestrator persona. Lives outside SPECIALIST_SECTION_TO_ID
     // because his admin surface routes through the dedicated
     // "analyst-orchestrator" section, not a catalog id.
     {

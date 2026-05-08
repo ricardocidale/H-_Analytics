@@ -28,7 +28,7 @@ Reviewers must watch these cross-cutting invariants:
 - **Schema ↔ Drizzle ↔ seeds ↔ engine** — all four surfaces must stay in sync on any column add/change
 - **`lib/calc/` functions are pure math** — any behavioral change needs a test verifying the new numeric output
 - **Waterfall tiers**: `WaterfallInput` ↔ schema columns ↔ `computeWaterfall` — shape changes cascade to all three
-- **AI Specialist personas are named** (Gaspar, Ana, Bia, Cecília, Daniela, Eloá, Fernanda, Giovanna, Helena…) — never use role-strings like "Risk Intelligence" in user-facing copy (`specialist-persona-naming` skill)
+- **AI Specialist personas are named** (Gustavo, Ana, Bia, Cecília, Daniela, Eloá, Fernanda, Giovanna, Helena…) — never use role-strings like "Risk Intelligence" in user-facing copy (`specialist-persona-naming` skill)
 - **Admin routes never reachable by non-admin roles** (`front-of-app-admin-isolation` skill)
 - **Icons must route through `@/components/icons/`** — never import directly from `lucide-react` or `@tabler/icons-react` in page/component code
 - **Financial figures must use `font-mono tabular-nums`** — Money component and all KPI displays

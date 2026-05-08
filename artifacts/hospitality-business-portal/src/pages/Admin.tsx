@@ -279,7 +279,7 @@ export default function Admin() {
   }, []);
 
   // Pull the live Specialist list so the page header for any Specialist
-  // section tracks an Identity-tab rename (including a future Gaspar
+  // section tracks an Identity-tab rename (including a future Gustavo
   // override) without a reload. The IdentityTab already invalidates this
   // query on save, so the header refreshes the moment the override is
   // persisted. Falls back to the catalog `humanName` while the query is in

@@ -1,6 +1,6 @@
 ---
 name: specialist-persona-naming
-description: Persona-first / role-second naming rule for the AI Specialists across every admin surface. Use whenever you create, modify, or review any user-facing string, component, toast, status line, page header, mention, conversation log entry, sidebar row, or system message that names one of the AI Specialists or the Analyst orchestrator (Gaspar, Ana, Bia, Cecília, Daniela, Eloá, Fernanda, Giovanna, Helena, Isabela, Júlia, Larissa, …). Replaces the reflex of "specialist-property-risk-intelligence" / "Risk Intelligence" / "the specialist" with the canonical persona name, optionally followed by a quieter role tag.
+description: Persona-first / role-second naming rule for the AI Specialists across every admin surface. Use whenever you create, modify, or review any user-facing string, component, toast, status line, page header, mention, conversation log entry, sidebar row, or system message that names one of the AI Specialists or the Analyst orchestrator (Gustavo, Ana, Bia, Cecília, Daniela, Eloá, Fernanda, Giovanna, Helena, Isabela, Júlia, Larissa, …). Replaces the reflex of "specialist-property-risk-intelligence" / "Risk Intelligence" / "the specialist" with the canonical persona name, optionally followed by a quieter role tag.
 ---
 
 # Persona-first naming for the Analyst Specialists
@@ -22,7 +22,7 @@ primary affordance.
 | Status copy | "The specialist is studying…" | "**Ana** is studying current STR data…" |
 | Page header | "Funding Intelligence" | "**Ana** · Funding Intelligence" |
 | Mention chip in body copy | "the funding agent" / "@funding" | "**Ana**" with a tinted A-monogram chip |
-| System message | "the orchestrator delegated this to a specialist" | "**Gaspar** delegated this to **Ana**" |
+| System message | "the orchestrator delegated this to a specialist" | "**Gustavo** delegated this to **Ana**" |
 | Email subject | "[Risk] Update available" | "Daniela has an update for you" |
 
 Why: the user has hired colleagues, not modules. Twelve-plus role
@@ -46,8 +46,8 @@ Always resolve through this chain — never hard-code a name:
 5. **The raw id** — last-resort fallback so the UI never crashes on a
    stale or renamed Specialist.
 
-The orchestrator (Gaspar) lives outside `SPECIALIST_CATALOG`; resolve
-him via `GASPAR_IDENTITY` from `engine/analyst/identity.ts`. The
+The orchestrator (Gustavo) lives outside `SPECIALIST_CATALOG`; resolve
+him via `GUSTAVO_IDENTITY` from `engine/analyst/identity.ts`. The
 canonical resolver in `useSpecialistDisplay` already handles this —
 prefer the resolver over hand-rolled lookups.
 
@@ -79,7 +79,7 @@ The component handles:
   sidebar of twelve-plus rows is still scannable at a glance
 - Three variants (stacked / inline / chip) and three sizes (sm / md / lg)
 - A tooltip on the chip variant carrying the role for context
-- The orchestrator (Gaspar) explicitly, with the brand intelligence
+- The orchestrator (Gustavo) explicitly, with the brand intelligence
   accent color
 - A stable `data-testid` of `specialist-name-{id}`
 
@@ -97,7 +97,7 @@ label every time:
 | `portfolio-ops` | sky | Giovanna |
 | `constants` | violet | Helena, Isabela, Júlia, Larissa |
 | `resources` | emerald | (resources builder) |
-| `analyst` (Gaspar, the orchestrator) | accent-pop (gold) | Gaspar |
+| `analyst` (Gustavo, the orchestrator) | accent-pop (gold) | Gustavo |
 
 Tints are intentionally soft (`/15` background, `/20` ring) so multiple
 chips on one line don't shout at each other; the persona's *initial*

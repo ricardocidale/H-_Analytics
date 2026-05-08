@@ -236,7 +236,7 @@ The Voice Renderer is the **only** place that translates a specialist's raw
 dimension (`intent`, `range`, `severity`) into a branded sentence. Components
 are pure renderers of already-rendered voice.
 
-Similarly: persona names (`Gaspar`, `Ana`, `Fernanda`, …) must follow the
+Similarly: persona names (`Gustavo`, `Ana`, `Fernanda`, …) must follow the
 `specialist-persona-naming` skill — never show role strings like
 "Funding Specialist" in user-facing text.
 

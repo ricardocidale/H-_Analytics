@@ -31,9 +31,9 @@ export interface OrchestratorIdentity {
   readonly gender: "male";
   /**
    * Lower-case identifier used as the bracketed log prefix:
-   *   `[gaspar] dispatched Helena to refresh tax constants`
+   *   `[gustavo] dispatched Helena to refresh tax constants`
    */
-  readonly logKey: "gaspar";
+  readonly logKey: "gustavo";
   /** 1-line description rendered above the orchestrator dashboard. */
   readonly description: string;
   /**
@@ -164,7 +164,7 @@ export const ORCHESTRATOR_IDENTITY: OrchestratorIdentity = {
   name: ORCHESTRATOR_HUMAN_NAME,
   role: "Orchestrator",
   gender: "male",
-  logKey: "gaspar",
+  logKey: "gustavo",
   description:
     "Coordinates the team of 12 Specialists, dispatches research jobs, and reconciles their outputs into the model.",
   voice: {

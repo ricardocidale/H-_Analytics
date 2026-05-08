@@ -2,7 +2,7 @@
  * AnalystRefreshTheater.tsx — Full-screen overlay shown while a benchmark
  * refresh is in flight. Mirrors the look-and-feel of ResearchTheater (the
  * existing app pattern) but uses an Analyst-specific narration ticker so
- * the admin sees what Gaspar is "looking at" while they wait.
+ * the admin sees what Gustavo is "looking at" while they wait.
  *
  * The narration is rotated locally on a fixed cadence; once the server
  * returns, the parent component swaps this overlay for RefreshDiffDialog.

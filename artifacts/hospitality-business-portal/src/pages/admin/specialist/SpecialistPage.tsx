@@ -47,9 +47,9 @@ export default function SpecialistPage({ specialistId }: { specialistId: string 
 
   // "identity" is a synthetic tab — always present, regardless of declared
   // capabilities. Phase 3 (Task #453) makes humanName + gender admin-editable
-  // for every Specialist (and for Gaspar through the same surface).
+  // for every Specialist (and for Gustavo through the same surface).
   // "identity" + "sources" are synthetic tabs — always present, even for
-  // Specialists (and Gaspar) that declare no editable capability tabs.
+  // Specialists (and Gustavo) that declare no editable capability tabs.
   type TabValue = Capability | "workflow" | "identity" | "sources";
   const tabsList = useMemo(() => {
     if (!data) return [] as { value: TabValue; label: string }[];

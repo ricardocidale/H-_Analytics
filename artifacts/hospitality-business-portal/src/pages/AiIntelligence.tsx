@@ -231,7 +231,7 @@ export default function AiIntelligence() {
   const didRefreshRef = useRef(false);
 
   // Pull the live Specialist list so the page header tracks any Identity-
-  // tab rename (including Gaspar) without a reload. The IdentityTab
+  // tab rename (including Gustavo) without a reload. The IdentityTab
   // already invalidates this query on save, so the header refreshes the
   // moment the override is persisted. Falls back to the static catalog
   // name while the query is in flight or if the request fails.

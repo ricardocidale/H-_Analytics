@@ -8,7 +8,7 @@
  *   - `toConfigView` — the SpecialistConfig → public-view mapper.
  *   - `idParamSchema` / `resetIdentityBodySchema` / `identityHistoryQuerySchema`
  *   - `getIdentityCatalogDefault` — resolves catalog identity for the 12
- *     specialists plus the synthetic id "gaspar" (orchestrator).
+ *     specialists plus the synthetic orchestrator id (ORCHESTRATOR_SPECIALIST_ID).
  */
 import { z } from "zod";
 import {

@@ -36,11 +36,11 @@ import { retrieveSimilarResearch, indexResearchResult, isVectorStoreAvailable } 
 import { loggerFor } from "../logger";
 import { ORCHESTRATOR_IDENTITY } from "@engine/analyst/identity";
 
-// Orchestrator-side log channel — Gaspar narrates panel + synthesis
-// failures so the activity stream reads as `[gaspar] …` instead of
+// Orchestrator-side log channel — Gustavo narrates panel + synthesis
+// failures so the activity stream reads as `[gustavo] …` instead of
 // the legacy `[orchestrator] …`. Specialist-owned errors should use
 // their own loggerFor(humanName) channel (Phase 4).
-const gasparLog = loggerFor(ORCHESTRATOR_IDENTITY.logKey);
+const gustavoLog = loggerFor(ORCHESTRATOR_IDENTITY.logKey);
 import { AI_GENERATION_TIMEOUT_MS } from "../constants";
 import { resolveLlmFor } from "./llm-config-resolver";
 
@@ -144,7 +144,7 @@ async function runAnalystPanel(
 
     return { model, role, output, durationMs: Date.now() - start };
   } catch (err: unknown) {
-    gasparLog.warn(`Analyst panel failed (${model}): ${err instanceof Error ? err.message : err}`);
+    gustavoLog.warn(`Analyst panel failed (${model}): ${err instanceof Error ? err.message : err}`);
     return {
       model, role,
       output: {},
@@ -385,8 +385,8 @@ export async function* orchestrateResearch(
   // ── Phase 1: Parallel analyst panels ──
 
   yield { type: "phase", data: "Launching parallel research panels…" };
-  yield { type: "phase", data: `Gaspar dispatching quantitative panel (${ANALYST_A_MODEL})` };
-  yield { type: "phase", data: `Gaspar dispatching market-strategy panel (${ANALYST_B_MODEL})` };
+  yield { type: "phase", data: `Gustavo dispatching quantitative panel (${ANALYST_A_MODEL})` };
+  yield { type: "phase", data: `Gustavo dispatching market-strategy panel (${ANALYST_B_MODEL})` };
 
   let propertyUrlContext = "";
   if (params.propertyId && isVectorStoreAvailable()) {
@@ -400,7 +400,7 @@ export async function* orchestrateResearch(
         yield { type: "phase", data: `Retrieved ${urlChunks.length} validated property URLs from knowledge base` };
       }
     } catch (e: unknown) {
-      gasparLog.warn(`Failed to retrieve property URLs from Vector store: ${(e instanceof Error ? e.message : String(e))}`);
+      gustavoLog.warn(`Failed to retrieve property URLs from Vector store: ${(e instanceof Error ? e.message : String(e))}`);
     }
   }
 
@@ -422,7 +422,7 @@ export async function* orchestrateResearch(
         request_type: params.type,
       },
     });
-    yield { type: "error", data: "ORCHESTRATOR_BOTH_FAILED: Both research panels failed — Gaspar falling back to single-model research." };
+    yield { type: "error", data: "ORCHESTRATOR_BOTH_FAILED: Both research panels failed — Gustavo falling back to single-model research." };
     return;
   }
 
@@ -527,16 +527,16 @@ export async function* orchestrateResearch(
               cacheReadInputTokens?: number;
             }
           | undefined;
-        gasparLog.info(
+        gustavoLog.info(
           `[cache] synthesis usage (ai-sdk): input=${usage?.inputTokens ?? 0} output=${usage?.outputTokens ?? 0} cache_create=${provider?.cacheCreationInputTokens ?? 0} cache_read=${provider?.cacheReadInputTokens ?? 0}`);
       } catch (err: unknown) {
-        gasparLog.warn(`[cache] failed to read synthesis usage (ai-sdk): ${err instanceof Error ? err.message : err}`);
+        gustavoLog.warn(`[cache] failed to read synthesis usage (ai-sdk): ${err instanceof Error ? err.message : err}`);
       }
     }
   } catch (err: unknown) {
     clearTimeout(synthesisTimer);
     const msg = err instanceof Error ? err.message : String(err);
-    gasparLog.warn(`Synthesis streamObject failed: ${msg}`);
+    gustavoLog.warn(`Synthesis streamObject failed: ${msg}`);
     captureException(err instanceof Error ? err : new Error(msg), {
       extra: {
         fallback_reason: "streamobject_zod_fail",
@@ -596,7 +596,7 @@ export async function* orchestrateResearch(
       type:         params.type,
       summary,
       completedAt:  new Date().toISOString(),
-    }).catch(err => gasparLog.warn(`Failed to index research to Vector store: ${err}`));
+    }).catch(err => gustavoLog.warn(`Failed to index research to Vector store: ${err}`));
   }
 
   yield { type: "done", data: "" };

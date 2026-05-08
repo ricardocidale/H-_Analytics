@@ -31,7 +31,7 @@ vi.mock('../logger', () => ({
 }));
 
 vi.mock('@engine/analyst/identity', () => ({
-  ORCHESTRATOR_IDENTITY: { logKey: 'gaspar', name: 'Gaspar' },
+  ORCHESTRATOR_IDENTITY: { logKey: 'gustavo', name: 'Gustavo' },
 }));
 
 vi.mock('../storage', () => ({

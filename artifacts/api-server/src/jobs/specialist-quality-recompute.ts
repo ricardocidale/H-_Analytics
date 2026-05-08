@@ -10,7 +10,7 @@
  *
  * What this job does on every cycle:
  *   1. Iterate every Specialist in `engine/analyst/registry/specialist-
- *      catalog.ts` (Gaspar / non-catalog Specialists are intentionally
+ *      catalog.ts` (Gustavo / non-catalog Specialists are intentionally
  *      excluded — only catalog-driven Specialists have probeable resources
  *      and candidate fields).
  *   2. Read the prior latest `specialist_research_quality_snapshots` row

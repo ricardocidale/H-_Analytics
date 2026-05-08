@@ -209,7 +209,7 @@ export function registerSourcesTabRoutes(app: Express) {
   app.get("/api/admin/specialists/:id/sources", requireAdmin, async (req, res) => {
     try {
       const { id } = specialistIdParamSchema.parse(req.params);
-      // Gaspar uses the same UI but routes to the Analyst connection bucket
+      // Gustavo uses the same UI but routes to the Analyst connection bucket
       // since it acts as the orchestrator and has no catalog assignments.
       const target =
         id === ORCHESTRATOR_SPECIALIST_ID

@@ -225,7 +225,7 @@ interface AiIntelligenceSidebarProps {
 export function AiIntelligenceSidebarNav({ activeSection, onSectionChange }: AiIntelligenceSidebarProps) {
   // Pull the live Specialist list so Gustavo's sidebar label reflects any
   // Identity-tab rename without a page reload. Falls back to "Gustavo"
-  // (the canonical human name — NOT "Gaspar" which is the internal system
+  // (the canonical human name — NOT "gaspar" which is the internal system
   // ID only). See hplus-admin-nav-ia Rule 7.
   const { data: specialists } = useQuery<SpecialistListItem[]>({
     queryKey: ["/api/admin/specialists"],

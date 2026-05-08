@@ -29,12 +29,12 @@ The "AI" item in the Admin sidebar navigates from Admin → AI Intelligence.
 
 ## Orchestrator identity
 
-The orchestrator's canonical **human name is Gustavo** (not Gaspar).
+The orchestrator's canonical **human name is Gustavo**.
 - `ORCHESTRATOR_HUMAN_NAME = "Gustavo"` in `lib/engine/src/analyst/registry/specialist-names.ts`
 - `ORCHESTRATOR_SPECIALIST_ID = "gaspar"` — internal system ID / logKey only, never shown in UI
-- `GASPAR_IDENTITY.humanName` resolves to `Gustavo` via `ORCHESTRATOR_HUMAN_NAME`
-- Hardcoded fallback strings `|| "Gaspar"` in `AiIntelligenceSidebar.tsx` and elsewhere **must be updated to `|| "Gustavo"`** when encountered
-- The sidebar reads the humanName dynamically from `/api/admin/specialists` — the static fallback is the only place Gaspar still leaks into UI
+- `ORCHESTRATOR_IDENTITY.humanName` resolves to `Gustavo` via `ORCHESTRATOR_HUMAN_NAME`
+- Hardcoded fallback strings must use `|| "Gustavo"` (the canonical human name)
+- The sidebar reads the humanName dynamically from `/api/admin/specialists` — the static fallback must always be "Gustavo"
 
 ---
 
@@ -307,17 +307,17 @@ is deprecated and being reorganised. Do not add new things labelled "Catalog" in
 alias. When implementing the new Sources section, update this to point to the canonical
 Sources → Tables page.
 
-### Rule 7 — Orchestrator is Gustavo, not Gaspar
+### Rule 7 — Orchestrator persona name is Gustavo
 
 In all user-facing strings: sidebar labels, page headers, tooltips, activity log display,
 narration theater — the orchestrator's name is **Gustavo**.
 
-"Gaspar" appears only as:
-- Internal `logKey` in log channel prefixes: `[gaspar] dispatched Helena…`
-- `ORCHESTRATOR_SPECIALIST_ID = "gaspar"` — DB/system identifier
-- Stale hardcoded fallback strings `|| "Gaspar"` — must be replaced with `|| "Gustavo"`
+`"gaspar"` (lowercase) appears only as:
+- Internal `logKey` in log channel prefixes: `[gustavo] dispatched Helena…`
+- `ORCHESTRATOR_SPECIALIST_ID = "gaspar"` — DB/system identifier (stored key, not the persona name)
+- Stale hardcoded fallback strings `|| "Gustavo"` — always use the human name
 
-Never write "Gaspar" in any user-facing string. Use `GASPAR_IDENTITY.humanName` or
+Never write the internal id `"gaspar"` in any user-facing string. Use `ORCHESTRATOR_IDENTITY.humanName` or
 `ORCHESTRATOR_HUMAN_NAME` (both resolve to "Gustavo") at every callsite.
 
 ### Rule 8 — "Constants & Authority Sources" is fully removed from AI Intelligence
@@ -371,7 +371,7 @@ Key requirements per card:
 - `artifacts/hospitality-business-portal/src/components/admin/AdminSidebar.tsx` — `AdminSection` union type, `SECTION_REDIRECTS`, nav groups
 - `artifacts/hospitality-business-portal/src/pages/Admin.tsx` — renders component per `AdminSection`
 - `artifacts/hospitality-business-portal/src/components/admin/resources/ResourcesAdminPage.tsx` — old Catalog page (4 tabs: APIs / Sources / Benchmark Slugs / Models) — being reorganised
-- `artifacts/hospitality-business-portal/src/components/ai-intelligence/AiIntelligenceSidebar.tsx` — `AiIntelligenceSection` union type, `buildNavGroups()`, hardcoded `|| "Gaspar"` fallback to fix
+- `artifacts/hospitality-business-portal/src/components/ai-intelligence/AiIntelligenceSidebar.tsx` — `AiIntelligenceSection` union type, `buildNavGroups()`, hardcoded fallback must be `|| "Gustavo"`
 - `artifacts/hospitality-business-portal/src/pages/AiIntelligence.tsx` — renders component per `AiIntelligenceSection`, `orchestratorMeta()` fallback to fix
 - `artifacts/hospitality-business-portal/src/components/admin/intelligence/AnalystTables.tsx` — existing benchmark table Analyst UI (moves to Sources → Tables)
 - `artifacts/api-server/src/routes/admin/intelligence-sources.ts` — existing source registry API routes

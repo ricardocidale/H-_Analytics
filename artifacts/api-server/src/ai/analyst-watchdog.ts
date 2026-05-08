@@ -29,10 +29,10 @@ import { validateAllAssumptions, validateAssumptionRange, computeDataQuality, me
 import { loggerFor } from "../logger";
 import { ORCHESTRATOR_IDENTITY } from "@engine/analyst/identity";
 
-// The watchdog runs as Gaspar (the orchestrator persona) — it reconciles
+// The watchdog runs as Gustavo (the orchestrator persona) — it reconciles
 // the team's outputs against staleness/consistency rules, no single
 // Specialist owns it. Routing through the persona-prefixed helper keeps
-// the activity log readable: `[gaspar] Analyst staleness check: …`.
+// the activity log readable: `[gustavo] Analyst staleness check: …`.
 const watchdogLog = loggerFor(ORCHESTRATOR_IDENTITY.logKey);
 
 // Fields where country_defaults is authoritative — deviation > threshold = auto-flag
@@ -241,7 +241,7 @@ export async function validatePropertyAssumptions(propertyId: number): Promise<V
   //      startAdr ≥ STR_ARCHETYPE_DETECTION_MIN_ADR (heuristic fallback)
   // When the property's businessModel is NOT vrbo or vrbo_owner_managed and
   // any signal fires, surface as a flag with a recommendation to review the
-  // archetype.  Tier-0 deterministic — no LLM cost.  Logged under [gaspar].
+  // archetype.  Tier-0 deterministic — no LLM cost.  Logged under [gustavo].
   const businessModel = ((property as Record<string, unknown>).businessModel ?? "hotel") as string;
   const pricingModel = (property as Record<string, unknown>).pricingModel as string | null;
   const hospitalityType = (property as Record<string, unknown>).hospitalityType as string | null;
@@ -384,7 +384,7 @@ export async function validateAllProperties(): Promise<ValidationResult[]> {
     `Analyst validation complete: ${total} properties (${validated} validated, ${flagged} flagged, ${totalFlags} total flags)`);
 
   // Phase 4 (Task #454) — C–G parity: stamp observed-missing for the
-  // watchdog specialist (G) at the end of each run. Gaspar's catalog
+  // watchdog specialist (G) at the end of each run. Gustavo's catalog
   // entry has no candidate fields, so the recorded list is always
   // empty; the purpose of the write is to refresh `last_observed_missing`
   // so the Catalog Calibration dashboard can tell "G has run recently"

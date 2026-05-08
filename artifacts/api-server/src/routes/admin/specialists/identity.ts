@@ -6,7 +6,7 @@
  *   DELETE /api/admin/specialists/:id/identity
  *   GET    /api/admin/specialists/:id/identity/history
  *
- * Accepts the 12 catalog specialist ids AND the synthetic id "gaspar"
+ * Accepts the 12 catalog specialist ids AND the synthetic orchestrator id
  * (the orchestrator). The catalog supplies factory defaults; the
  * override row in `specialist_identity_overrides` wins per-field when
  * present. Per-field nullability lets an admin override only humanName
