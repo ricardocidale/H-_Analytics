@@ -451,6 +451,8 @@ Two-layer system — know both before touching the DB:
 
 **Drizzle migration state** is tracked in `drizzle.__drizzle_migrations` on Neon. If it drifts from the journal (e.g. after manually applying DDL), sync it: compute SHA-256 of each unapplied `.sql` file and `INSERT INTO drizzle."__drizzle_migrations" (hash, created_at)`. Synced to 53 entries on 2026-05-08 (after migration 0042 — `rebecca_chat_prefs`).
 
+**Drizzle snapshot baseline:** `lib/db/migrations/meta/0042_snapshot.json` is the canonical up-to-date snapshot (added Task #1199, May 2026), describing all 112 tables as of `0044_users_rebecca_history_open`. The original `0000_snapshot.json` (8 tables) is kept as the historical root and must not be replaced — it anchors the snapshot chain. Run `pnpm --filter @workspace/db run generate` to produce a new migration from the current TypeScript schema; drizzle-kit will automatically write a new numbered snapshot alongside the SQL file.
+
 **Querying the real DB in dev:** The Replit code-execution `executeSql()` callback connects to Replit's built-in PostgreSQL, NOT the app's Neon database. To query the real DB: use admin API endpoints via `curl -b <cookie>` (authenticate with `POST /api/auth/dev-login`), or run a one-off Node.js script with `process.env.POSTGRES_URL` and the `pg` client at `artifacts/api-server/node_modules/pg`.
 
 ### Shared proxy routing
