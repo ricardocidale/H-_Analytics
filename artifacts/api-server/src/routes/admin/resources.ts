@@ -289,6 +289,29 @@ export function registerAdminResourceRoutes(app: Express) {
     }
   });
 
+  // ── Regenerate button: dispatch Pietro minion to refresh a source's cache ──
+  app.post("/api/admin/resources/:id/regenerate", requireAdmin, async (req, res) => {
+    try {
+      const { id } = idParamSchema.parse(req.params);
+      const row = await storage.getAdminResourceById(id);
+      if (!row) return res.status(HTTP_404_NOT_FOUND).json({ error: "Resource not found" });
+
+      const { MINION_REGISTRY } = await import("../../ai/ambient/pietro-scheduler");
+      const minion = MINION_REGISTRY[row.slug];
+      if (!minion) {
+        return res.status(HTTP_400_BAD_REQUEST).json({
+          error: `No minion registered for slug '${row.slug}'. Regenerate is only available for data-fetching sources.`,
+        });
+      }
+
+      logActivity(req, "regenerate-admin-resource", "admin_resource", id, `${row.kind}/${row.slug}`);
+      const result = await minion();
+      res.json(result);
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to regenerate admin resource", error);
+    }
+  });
+
   // ── Catalog sync (admin-triggered) ──────────────────────────────
   app.post("/api/admin/specialist-catalog/sync", requireAdmin, async (req, res) => {
     try {

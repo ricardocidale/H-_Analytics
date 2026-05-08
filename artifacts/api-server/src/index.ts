@@ -862,6 +862,7 @@ async function runSeeds() {
     { name: "admin-resources-006", run: async () => { const { runAdminResources006 } = await import("./migrations/admin-resources-006"); await runAdminResources006(); } },
     { name: "pietro-tables-001",   run: async () => { const { runPietroTables001 }   = await import("./migrations/pietro-tables-001");   await runPietroTables001();   } },
     { name: "pietro-resources-001",run: async () => { const { runPietroResources001 }= await import("./migrations/pietro-resources-001"); await runPietroResources001(); } },
+    { name: "pietro-research-catalog-001", run: async () => { const { runPietroResearchCatalog001 } = await import("./migrations/pietro-research-catalog-001"); await runPietroResearchCatalog001(); } },
   ]) {
     await ddlTask.run();
   }

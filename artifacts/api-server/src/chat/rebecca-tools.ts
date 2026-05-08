@@ -391,6 +391,47 @@ export function getRebeccaTools(): ToolParam[] {
         required: ["runId"],
       },
     },
+    // ── Pietro data infrastructure tools ──────────────────────────────────
+    {
+      name: "get_data_source_status",
+      description:
+        "Get health and freshness status for all Pietro-managed data sources (source and mcp kinds). " +
+        "Returns slug, kind, displayName, lastHealthStatus, lastCheckedAt, and dailyRequestBudget for each row. " +
+        "Use to understand which data sources are healthy, stale, or failing.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
+    },
+    {
+      name: "probe_data_source",
+      description:
+        "Run a live health probe of a specific admin_resource row by ID. " +
+        "Verifies secret presence and connectivity. Returns { status, latencyMs, errorCode?, errorMessage? }. " +
+        "Use to diagnose a failing data source before requesting a regeneration.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "The admin_resource row ID to probe." },
+        },
+        required: ["id"],
+      },
+    },
+    {
+      name: "regenerate_data_source",
+      description:
+        "Dispatch Pietro's minion for a data source slug to refresh its cached DB table. " +
+        "Only works for source/mcp kinds with a registered minion (not search_url, research_prompt, or context7). " +
+        "Returns a MinionResult with rowsUpserted, rowsFailed, errors[], durationMs.",
+      parameters: {
+        type: "object",
+        properties: {
+          slug: { type: "string", description: "The admin_resource slug, e.g. 'fmp-reit' or 'fred-extended'." },
+        },
+        required: ["slug"],
+      },
+    },
   ];
 }
 
@@ -471,6 +512,12 @@ export async function dispatchRebeccaTool(
         return await toolCancelSlideFactoryBuild(args, ctx);
       case "produce_slide_factory_deck":
         return await toolProduceSlideFactoryDeck(args, ctx);
+      case "get_data_source_status":
+        return await toolGetDataSourceStatus(ctx);
+      case "probe_data_source":
+        return await toolProbeDataSource(args, ctx);
+      case "regenerate_data_source":
+        return await toolRegenerateDataSource(args, ctx);
       default:
         return { result: { error: "Unknown tool" } };
     }
@@ -1596,4 +1643,71 @@ async function toolProduceSlideFactoryDeck(
       dataChanged: { entityType: "slide_factory_run", entityId: runId },
     };
   }
+}
+
+// ---------------------------------------------------------------------------
+// Pietro data infrastructure tools
+// ---------------------------------------------------------------------------
+
+async function toolGetDataSourceStatus(ctx: ToolContext): Promise<{ result: unknown }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const { db } = await import("../db");
+  const { adminResources } = await import("@workspace/db");
+  const { or, eq } = await import("drizzle-orm");
+
+  const rows = await db
+    .select({
+      id: adminResources.id,
+      slug: adminResources.slug,
+      kind: adminResources.kind,
+      displayName: adminResources.displayName,
+      lastHealthStatus: adminResources.lastHealthStatus,
+      lastCheckedAt: adminResources.lastCheckedAt,
+      dailyRequestBudget: adminResources.dailyRequestBudget,
+    })
+    .from(adminResources)
+    .where(or(eq(adminResources.kind, "source"), eq(adminResources.kind, "mcp")));
+
+  return {
+    result: rows.map(r => ({
+      ...r,
+      lastCheckedAt: r.lastCheckedAt?.toISOString() ?? null,
+    })),
+  };
+}
+
+async function toolProbeDataSource(args: Record<string, unknown>, ctx: ToolContext): Promise<{ result: unknown }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const id = typeof args.id === "number" ? args.id : Number(args.id);
+  if (!id || isNaN(id)) return { result: { error: "id must be a positive integer" } };
+
+  const { db } = await import("../db");
+  const { adminResources } = await import("@workspace/db");
+  const { eq } = await import("drizzle-orm");
+  const { runProbe } = await import("../jobs/probes");
+
+  const [row] = await db.select().from(adminResources).where(eq(adminResources.id, id)).limit(1);
+  if (!row) return { result: { error: `Resource not found: id=${id}` } };
+
+  const outcome = await runProbe(row);
+  return { result: outcome };
+}
+
+async function toolRegenerateDataSource(args: Record<string, unknown>, ctx: ToolContext): Promise<{ result: unknown }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const slug = typeof args.slug === "string" ? args.slug : "";
+  if (!slug) return { result: { error: "slug is required" } };
+
+  const { MINION_REGISTRY } = await import("../ai/ambient/pietro-scheduler");
+  const minion = MINION_REGISTRY[slug];
+  if (!minion) return { result: { error: `No minion registered for slug: ${slug}` } };
+
+  const result = await minion();
+  return { result };
 }

@@ -51,6 +51,11 @@ const PIETRO_MANAGED_KINDS = ["source", "mcp"] as const;
 let schedulerInterval: ReturnType<typeof setInterval> | null = null;
 let startupTimeout: ReturnType<typeof setTimeout> | null = null;
 let isRunning = false;
+// Monotonic generation counter: every startPietroScheduler() call increments
+// this. Callbacks capture their generation at dispatch time and bail if the
+// current generation differs, preventing stop→start overlaps from allowing
+// stale callbacks to install duplicate intervals.
+let schedulerGeneration = 0;
 
 // ---------------------------------------------------------------------------
 // Staleness check
@@ -133,7 +138,7 @@ async function runPietroTick(): Promise<void> {
     const considered = succeeded + failed;
     const status: "ok" | "warn" | "error" = cycleThrew
       ? "error"
-      : failed > 0
+      : failed > 0 || allErrors.length > 0
         ? "warn"
         : "ok";
     const notes = cycleThrew
@@ -166,8 +171,10 @@ export function startPietroScheduler(): void {
     "pietro-scheduler",
   );
 
+  const gen = ++schedulerGeneration;
   startupTimeout = setTimeout(async () => {
     startupTimeout = null;
+    if (schedulerGeneration !== gen) return; // superseded by stop→start
     try {
       await runPietroTick();
     } catch (err: unknown) {
@@ -178,6 +185,7 @@ export function startPietroScheduler(): void {
       );
     }
 
+    if (schedulerGeneration !== gen) return; // superseded while tick ran
     schedulerInterval = setInterval(async () => {
       try {
         await runPietroTick();
@@ -193,6 +201,7 @@ export function startPietroScheduler(): void {
 }
 
 export function stopPietroScheduler(): void {
+  schedulerGeneration++; // invalidate any in-flight startup callbacks
   if (startupTimeout) { clearTimeout(startupTimeout); startupTimeout = null; }
   if (schedulerInterval) { clearInterval(schedulerInterval); schedulerInterval = null; }
   log("Stopped", "pietro-scheduler");
