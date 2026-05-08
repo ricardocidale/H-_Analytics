@@ -40,6 +40,20 @@ When you edit the **left**, also verify the **right**.
 
 Add project-specific pairs to your local copy of this rule.
 
+## H+ Analytics — project-specific pairs
+
+These pairs were learned from real review sessions. Each row is an invariant the generic table above does not cover.
+
+| If you edit… | Also verify… | Why |
+|---|---|---|
+| `callLlm` or `callLlmStream` sampling parameter type (e.g. making a field optional) | **All provider call sites**: Perplexity (line ~154), OpenAI (~186), Anthropic (~226), Gemini (~284), streaming OpenAI (~356), streaming Anthropic (~379), streaming Gemini (~424) | Each provider branch independently constructs its SDK call. Making a field optional in the type does not propagate the guard — every branch must be updated manually. Missed guards send `undefined` to strict SDKs and can cause silent API errors. |
+| A new Rebecca tool in `rebecca-tools.ts` (tool definition + switch case) | `ToolCallStepIndicator.tsx`: (1) the correct Set (`SLIDE_FACTORY_TOOLS`, `IRIS_TOOLS`, `GUSTAVO_TOOLS` — or the default `rebecca` fallback is intentional), (2) `TOOL_FRIENDLY_NAMES` map with a human label | The UI animation system routes each tool to a persona orb at render time. A new tool not in any Set silently falls back to "rebecca" persona and shows a generic label, which may be wrong. |
+| A new Rebecca tool | `docs/discipline/agent-native-parity-map.md` — add a row (✅ or 🚫 N/A) | Map drift means the next parity audit misreports coverage. Run `/parity-audit` after adding any tool. |
+| A new HTTP route in `slide-factory.ts`, `lb-deck-pdf.ts`, or any surface with an existing parity-map section | `rebecca-tools.ts` + `docs/discipline/agent-native-parity-map.md` | CLAUDE.md §7: every UI action a user can take, Rebecca must be able to achieve. Missing tools are blocking parity gaps, not optional follow-ups. |
+| `IrisRunResult` interface fields (add/remove/rename) | All test mocks that return `IrisRunResult` (grep `runIrisAgent.*vi.fn`) | `vi.fn()` return types are untyped by default — TypeScript won't catch the drift. The mock silently drifts from the interface until runtime. |
+| `deriveSpecialistPhase` or `RECENT_RUN_THRESHOLD_MS` in `catalog.ts` | `specialist-phase.test.ts` — update boundary tests | The phase derivation has a `>=` boundary condition (not `>`) that tests explicitly pin. Changing the threshold requires updating the test fixtures too. |
+| The SSE event types emitted by the agentic loop in `chat.ts` | `RebeccaPanel.tsx` SSE handler (the `currentEvent ===` block) | New event types silently fall through the handler. The server emits; the client must handle. |
+
 ## The three recurring failure patterns
 
 ### Pattern 1 — Contract drift hidden by `any`

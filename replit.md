@@ -33,7 +33,7 @@ See `CLAUDE.md` §§ 1–12 (magic numbers, number taxonomy, seed rules, ADR-007
 - **CE Skill Adaptation:** CE skills need Replit adaptation. Read `.agents/ce-agents/REPLIT-ADAPTATION.md` before following any CE skill.
 - **Shared proxy only.** Never call service ports directly. Always route through `localhost:80/<path>` in curl and application code.
 - **`executeSql` tool hits the wrong database.** The code-execution `executeSql()` callback connects to Replit's built-in PostgreSQL, NOT the app's Neon database. To query the real DB: use admin API endpoints via `curl -b <auth-cookie>` (authenticate with `POST /api/auth/dev-login`), or run a one-off Node.js script using `process.env.POSTGRES_URL` with the `pg` client from `artifacts/api-server/node_modules/pg`.
-- **Drizzle migration state can lag the journal.** After manually applying DDL, sync `drizzle.__drizzle_migrations`: compute SHA-256 of each unapplied `.sql` file and `INSERT INTO drizzle."__drizzle_migrations" (hash, created_at)`. Synced to 52 entries on 2026-05-07.
+- **Drizzle migration state can lag the journal.** After manually applying DDL, sync `drizzle.__drizzle_migrations`: compute SHA-256 of each unapplied `.sql` file and `INSERT INTO drizzle."__drizzle_migrations" (hash, created_at)`. Synced to 53 entries on 2026-05-08 (after migration 0042 — `rebecca_chat_prefs`).
 
 ---
 
@@ -77,6 +77,6 @@ See `CLAUDE.md` §§ 1–12 (magic numbers, number taxonomy, seed rules, ADR-007
 <!-- keep ≤ 3 entries; remove oldest when adding new ones -->
 | Date | Change |
 |---|---|
-| 2026-05-07 | **DB audit + 4 missing tables created.** `iris_runs`, `knowledge_registry`, `country_economic_data`, `slide_factory_runs` applied to Neon. `drizzle.__drizzle_migrations` synced to 52 entries. Country economic data seeded. Vector store: 337 chunks, 8 namespaces. |
-| 2026-05-07 | **Slide Factory V2 UI — Tab 1 (Brief) + Tab 3 (Properties).** `SlideFactoryPanel.tsx` in `features/slide-factory/`. Tabs 2/4/5/6 are pipeline-stage placeholders. Polls every 5 s only in transitional states. |
-| 2026-05-07 | **Agent memory files compressed.** CLAUDE.md + replit.md reduced to < 40 KB combined. LB Slides spec → `docs/slide-system/lb-slides-implementation-reference.md`. Known issues → `docs/issues/known-issues.md`. |
+| 2026-05-08 | **Server-side chat preferences (Task #1185).** `rebecca_response_mode` + `rebecca_show_tool_timing` columns on `users` table (migration 0042). `PATCH /api/profile/chat-preferences` endpoint. `RebeccaPanel` seeds from server on first load; syncs to server on change. `drizzle.__drizzle_migrations` now 53 entries. |
+| 2026-05-08 | **Agent persona animations wave merged.** 5 persona orbs (Gustavo, Marco, Rebecca, Iris, Specialist), SpecialistOrb 3-phase wiring (`dispatching / thinking / synthesizing`), Rebecca tool-step animations, collapsible reasoning trail, Dino verdict chips, Slide Factory cancel button, ESLint Phosphor import guard. |
+| 2026-05-07 | **Slide Factory V2 UI — Tab 1 (Brief) + Tab 3 (Properties).** `SlideFactoryPanel.tsx` in `features/slide-factory/`. Tab 1: PDF/PPTX brief upload via presigned R2. Tab 3: 4-property selectors (slides 1/2/3/5). Tabs 2/4/5/6 pipeline-stage placeholders. Polls every 5 s only in transitional states. |

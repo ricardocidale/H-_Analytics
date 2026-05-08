@@ -449,7 +449,7 @@ Two-layer system — know both before touching the DB:
 | Drizzle SQL migrations | `artifacts/api-server/migrations/*.sql` + journal at `…/meta/_journal.json` | Once, at server boot via `migrate()` from `drizzle-orm/node-postgres/migrator` |
 | Runtime TypeScript guards | `artifacts/api-server/src/migrations/*.ts` | Every boot — idempotent `IF NOT EXISTS` DDL, belt-and-suspenders |
 
-**Drizzle migration state** is tracked in `drizzle.__drizzle_migrations` on Neon. If it drifts from the journal (e.g. after manually applying DDL), sync it: compute SHA-256 of each unapplied `.sql` file and `INSERT INTO drizzle."__drizzle_migrations" (hash, created_at)`. Synced to 52 entries on 2026-05-07.
+**Drizzle migration state** is tracked in `drizzle.__drizzle_migrations` on Neon. If it drifts from the journal (e.g. after manually applying DDL), sync it: compute SHA-256 of each unapplied `.sql` file and `INSERT INTO drizzle."__drizzle_migrations" (hash, created_at)`. Synced to 53 entries on 2026-05-08 (after migration 0042 — `rebecca_chat_prefs`).
 
 **Querying the real DB in dev:** The Replit code-execution `executeSql()` callback connects to Replit's built-in PostgreSQL, NOT the app's Neon database. To query the real DB: use admin API endpoints via `curl -b <cookie>` (authenticate with `POST /api/auth/dev-login`), or run a one-off Node.js script with `process.env.POSTGRES_URL` and the `pg` client at `artifacts/api-server/node_modules/pg`.
 
@@ -569,9 +569,9 @@ Rule: **if you touch `CLAUDE.md`, scan `replit.md` for related content and sync 
 
 ## Recent Significant Changes
 
+<!-- keep ≤ 3 entries; remove oldest when adding new ones -->
 | Date | Change |
 |---|---|
-<!-- keep ≤ 3 entries; remove oldest when adding new ones -->
-| 2026-05-07 | **DB audit + 4 missing tables created.** `iris_runs`, `knowledge_registry`, `country_economic_data`, `slide_factory_runs` — all defined in schema + SQL migrations but never applied to Neon. Applied DDL directly; `drizzle.__drizzle_migrations` synced to 52 entries. Country economic data seeded (4 rows). Vector store healthy: 337 chunks, 8 namespaces. |
-| 2026-05-07 | **Slide Factory V2 UI — Tab 1 (Brief) + Tab 3 (Properties).** `SlideFactoryPanel.tsx` in `features/slide-factory/`. Tab 1: PDF/PPTX brief upload via presigned R2, accept flow, status-driven tab lock. Tab 3: 4-property selectors (slides 1/2/3/5). Tabs 2/4/5/6 pipeline-stage placeholders. Polls every 5 s only in transitional states. |
-| 2026-05-07 | **Agent memory files compressed.** CLAUDE.md + replit.md reduced to < 40 KB combined. LB Slides spec extracted to `docs/slide-system/lb-slides-implementation-reference.md`. Known issues moved to `docs/issues/known-issues.md`. replit.md rewritten as a lean Replit-specific wrapper. |
+| 2026-05-08 | **Server-side chat preferences (Task #1185).** `rebecca_response_mode` + `rebecca_show_tool_timing` columns on `users` table (migration 0042). `PATCH /api/profile/chat-preferences` endpoint. `RebeccaPanel` seeds from server on first load; syncs to server on change. `drizzle.__drizzle_migrations` now 53 entries. |
+| 2026-05-08 | **Agent persona animations wave merged.** 5 persona orbs (Gustavo, Marco, Rebecca, Iris, Specialist), SpecialistOrb 3-phase wiring (`dispatching / thinking / synthesizing`), Rebecca tool-step animations, collapsible reasoning trail, Dino verdict chips, Slide Factory cancel button, ESLint Phosphor import guard. |
+| 2026-05-07 | **Slide Factory V2 UI — Tab 1 (Brief) + Tab 3 (Properties).** `SlideFactoryPanel.tsx` in `features/slide-factory/`. Tab 1: PDF/PPTX brief upload via presigned R2. Tab 3: 4-property selectors (slides 1/2/3/5). Tabs 2/4/5/6 pipeline-stage placeholders. Polls every 5 s only in transitional states. |
