@@ -82,6 +82,14 @@ function getStoredMode(): ResponseMode {
   return "standard";
 }
 
+function getStoredShowTiming(): boolean {
+  try {
+    return localStorage.getItem("rebecca-show-tool-timing") !== "false";
+  } catch {
+    return true;
+  }
+}
+
 const DEFAULT_CHIPS = [
   "How are my properties performing?",
   "Tell me about the management company",
@@ -137,6 +145,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [responseMode, setResponseMode] = useState<ResponseMode>(getStoredMode);
+  const [showTiming, setShowTiming] = useState<boolean>(getStoredShowTiming);
 
 
   const [isStreaming, setIsStreaming] = useState(false);
@@ -827,7 +836,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                     {msg.role === "assistant" ? (
                       <>
                         {msg.toolSteps && msg.toolSteps.length > 0 && (
-                          <ToolCallStepIndicator steps={msg.toolSteps} />
+                          <ToolCallStepIndicator steps={msg.toolSteps} showTiming={showTiming} />
                         )}
                         {msg.toolSteps && msg.toolSteps.length > 0 && msg.content && msg.content.trim().length > 0 && (
                           <div className="border-t border-border/50 my-2" aria-hidden="true" />
@@ -935,6 +944,21 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                     </DropdownMenuItem>
                   );
                 })}
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Display
+                </DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => {
+                    const next = !showTiming;
+                    setShowTiming(next);
+                    try { localStorage.setItem("rebecca-show-tool-timing", String(next)); } catch (e: unknown) { console.warn("Failed to save tool timing setting", e); }
+                  }}
+                  data-testid="button-toggle-tool-timing"
+                >
+                  Show tool timing
+                  {showTiming && <Check className="w-3.5 h-3.5 ml-auto" />}
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             <Button

@@ -125,24 +125,15 @@ function formatElapsed(ms: number): string {
   return `${(ms / 1000).toFixed(1)} s`;
 }
 
-/** Feature flag: read once per render — defaults to showing timing. */
-function isTimingEnabled(): boolean {
-  try {
-    const v = localStorage.getItem("rebecca-show-tool-timing");
-    return v !== "false";
-  } catch {
-    return true;
-  }
-}
-
 interface ToolCallStepIndicatorProps {
   steps: ToolStep[];
+  /** Whether to show per-tool elapsed time labels. Defaults to true. */
+  showTiming?: boolean;
   className?: string;
 }
 
-export function ToolCallStepIndicator({ steps, className }: ToolCallStepIndicatorProps) {
+export function ToolCallStepIndicator({ steps, showTiming = true, className }: ToolCallStepIndicatorProps) {
   const reducedMotion = useReducedMotion();
-  const showTiming = isTimingEnabled();
 
   if (steps.length === 0) return null;
 
