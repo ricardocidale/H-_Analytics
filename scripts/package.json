@@ -11,6 +11,7 @@
     "check:migration-guards": "tsx ./src/check-migration-guards.ts",
     "check:spinner-contrast": "tsx ./src/check-spinner-contrast.ts",
     "check:types-mirror": "tsx ./src/check-types-mirror.ts",
+    "check:schema-drift": "tsx ./src/check-schema-drift.ts",
     "check:canonical-schema": "tsx ./src/check-canonical-schema.ts",
     "check:production-image": "tsx ./src/check-production-image.ts",
     "sync-db-to-railway": "tsx ./src/sync-db-to-railway.ts",
