@@ -144,6 +144,15 @@ export const RETRY_BASE_DELAY_MS = 200;
 export const RETRY_MAX_DELAY_MS = 5_000;
 
 // ---------------------------------------------------------------------------
+// Internal LB-deck payload rate limit (token-gated Playwright fetch)
+// ---------------------------------------------------------------------------
+
+/** Max token-gated /api/internal/lb-deck-payload requests per IP per window. Playwright renders make 1 fetch per PDF; wide headroom. */
+export const LB_DECK_PAYLOAD_RATE_LIMIT_MAX_REQ = 60;
+/** Rate-limit window (ms) — 1 minute. */
+export const LB_DECK_PAYLOAD_RATE_LIMIT_WINDOW_MS = 60_000;
+
+// ---------------------------------------------------------------------------
 // Knowledge base / RAG
 // ---------------------------------------------------------------------------
 

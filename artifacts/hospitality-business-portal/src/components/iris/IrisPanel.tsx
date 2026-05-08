@@ -14,6 +14,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "@/components/icons/themed-icons";
+import { AgentThinkingState } from "@/components/agent-animations";
 
 // ─── Named constants (no magic numbers) ───────────────────────────────────────
 
@@ -138,9 +139,21 @@ export default function IrisPanel() {
   return (
     <div className="space-y-6" data-testid="iris-panel">
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-display font-bold text-foreground">Iris</h2>
-        <p className="text-sm text-muted-foreground mt-0.5">Resource Maintainer</p>
+      <div className="flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <h2 className="text-2xl font-display font-bold text-foreground">Iris</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">Resource Maintainer</p>
+        </div>
+        {isRunning && (
+          <AgentThinkingState
+            persona="iris"
+            phase="thinking"
+            size="md"
+            showLabel
+            aria-label="Iris is running"
+            className="mt-1 shrink-0"
+          />
+        )}
       </div>
 
       {/* Action buttons */}

@@ -31,18 +31,27 @@ import { buildLbPayload, buildLbPayloadFromFactoryRun } from "../slides/build-lb
 import { verifyLbDeckToken } from "../slides/lb-token";
 import { verifyFactoryDeckToken } from "../slides/factory-token";
 import { getSlideFactoryRunById } from "../storage/slide-factory-runs";
+import { aiRateLimit } from "../middleware/rate-limit";
 import {
   HTTP_401_UNAUTHORIZED,
   HTTP_404_NOT_FOUND,
   HTTP_409_CONFLICT,
   HTTP_503_SERVICE_UNAVAILABLE,
   HTTP_500_INTERNAL_SERVER_ERROR,
+  LB_DECK_PAYLOAD_RATE_LIMIT_MAX_REQ,
+  LB_DECK_PAYLOAD_RATE_LIMIT_WINDOW_MS,
 } from "../constants";
 
 const router = Router();
 
+const lbDeckPayloadLimiter = aiRateLimit(
+  LB_DECK_PAYLOAD_RATE_LIMIT_MAX_REQ,
+  LB_DECK_PAYLOAD_RATE_LIMIT_WINDOW_MS,
+);
+
 router.get(
   "/api/internal/lb-deck-payload",
+  lbDeckPayloadLimiter,
   async (req: Request, res: Response) => {
     const token = typeof req.query.token === "string" ? req.query.token : "";
 

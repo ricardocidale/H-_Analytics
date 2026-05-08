@@ -43,6 +43,7 @@ import {
   SLIDE_TEAM_TAGS,
   ORCHESTRATORS,
 } from "@/lib/agent-taxonomy";
+import { AgentThinkingState } from "@/components/agent-animations";
 
 // ── Constants ───────────────────────────────────────────────────────────────
 
@@ -1429,11 +1430,29 @@ function FactoryAgentsTab({ run }: { run: SlideFactoryRun }) {
         {/* Orchestrator row — taxonomy: Marco [Orchestrator] above the Swarm */}
         <div className="flex items-center gap-2 mb-3 pb-3 border-b border-border/60">
           {isBuilding ? (
-            <Loader2 className="w-4 h-4 animate-spin text-primary shrink-0" />
+            <AgentThinkingState
+              persona="marco"
+              phase="thinking"
+              size="sm"
+              aria-label="Marco is orchestrating the build"
+              className="shrink-0"
+            />
           ) : isComplete ? (
-            <IconCheckCircle weight="fill" className="w-4 h-4 text-success shrink-0" />
+            <AgentThinkingState
+              persona="marco"
+              phase="complete"
+              size="sm"
+              aria-label="Marco build complete"
+              className="shrink-0"
+            />
           ) : (
-            <IconAlertCircle weight="fill" className="w-4 h-4 text-destructive shrink-0" />
+            <AgentThinkingState
+              persona="marco"
+              phase="error"
+              size="sm"
+              aria-label="Marco build error"
+              className="shrink-0"
+            />
           )}
           <div className="flex-1 min-w-0">
             <span className="text-sm font-semibold text-foreground">
