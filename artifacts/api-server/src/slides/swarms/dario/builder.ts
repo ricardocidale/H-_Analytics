@@ -17,6 +17,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { getAnthropicClient } from "../../../ai/clients";
 import { logger } from "../../../logger";
 import type { SlideTeamInput } from "../types";
+import { makeProvenance } from "../provenance";
 import type { Slide4Payload } from "@shared/deck-payload-v2";
 import { SLIDE4_SECTION_SUBTITLE_MAX } from "@shared/deck-payload-v2";
 import {
@@ -60,15 +61,6 @@ const DARIO_01_SYSTEM =
   "emitting it verbatim. If a sectionSubtitle draft exists in the slot drafts, " +
   "emit it verbatim. If none exists, emit null. " +
   "DO NOT invent, rephrase, or improve copy.";
-
-// ── Provenance builder ───────────────────────────────────────────────────────
-
-function makeProvenance(source: "lucca" | "admin", approvedAt: string | null) {
-  return {
-    source: source === "admin" ? ("user" as const) : ("llm" as const),
-    updatedAt: approvedAt ?? new Date().toISOString(),
-  };
-}
 
 // ── Public API ───────────────────────────────────────────────────────────────
 

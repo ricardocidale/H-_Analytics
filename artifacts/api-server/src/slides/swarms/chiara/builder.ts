@@ -18,6 +18,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { getAnthropicClient } from "../../../ai/clients";
 import { logger } from "../../../logger";
 import type { ChiaraReaderOutput } from "./reader";
+import { makeProvenance } from "../provenance";
 import type { Slide3Payload } from "@shared/deck-payload-v2";
 import {
   SLIDE3_CONCEPT_PARAGRAPH_MAX,
@@ -136,15 +137,6 @@ function parseReasons(raw: string): ReasonInput[] | null {
   } catch {
     return null;
   }
-}
-
-// ── Provenance builder ───────────────────────────────────────────────────────
-
-function makeProvenance(source: "lucca" | "admin", approvedAt: string | null) {
-  return {
-    source: source === "admin" ? ("user" as const) : ("llm" as const),
-    updatedAt: approvedAt ?? new Date().toISOString(),
-  };
 }
 
 // ── Public API ───────────────────────────────────────────────────────────────

@@ -14,6 +14,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { getAnthropicClient } from "../../../ai/clients";
 import { logger } from "../../../logger";
 import type { ElisaReaderOutput } from "./reader";
+import { makeProvenance } from "../provenance";
 import type { Slide5Payload } from "@shared/deck-payload-v2";
 import {
   SLIDE5_TRANSFORMATION_DESCRIPTION_MAX,
@@ -121,15 +122,6 @@ function parseRows(raw: string): TransformationRow[] | null {
   } catch {
     return null;
   }
-}
-
-// ── Provenance builder ───────────────────────────────────────────────────────
-
-function makeProvenance(source: "lucca" | "admin", approvedAt: string | null) {
-  return {
-    source: source === "admin" ? ("user" as const) : ("llm" as const),
-    updatedAt: approvedAt ?? new Date().toISOString(),
-  };
 }
 
 // ── Public API ───────────────────────────────────────────────────────────────

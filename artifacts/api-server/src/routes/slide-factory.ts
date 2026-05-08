@@ -20,6 +20,7 @@
  *   PATCH  /api/lb-slides/factory/runs/:id/slots/:key          Update a single Lucca slot value / approval
  *   POST   /api/lb-slides/factory/runs/:id/approve-all-slots   Mark all Lucca slots approved
  *   POST   /api/lb-slides/factory/runs/:id/trigger-build       Advance draft_review → building (Tab 4)
+ *   GET    /api/lb-slides/factory/runs/:id/download            Stream completed deck PDF from R2 (Tab 6)
  *
  * Auto-fire pattern: accept-brief immediately starts Lorenzo; saving properties
  * immediately starts Lucca. Both return 202 Accepted.
@@ -28,6 +29,7 @@ import { Router, type Request, type Response } from "express";
 import { z } from "zod/v4";
 import { requireAdmin, getAuthUser } from "../auth";
 import { storage } from "../storage";
+import { getStorageProviderAsync } from "../providers/storage";
 import { logAndSendError, parseRouteId, zodErrorMessage } from "./helpers";
 import { logActivity } from "./helpers";
 import {
@@ -437,6 +439,47 @@ router.post(
       return res.status(HTTP_202_ACCEPTED).json(building);
     } catch (err: unknown) {
       logAndSendError(res, "Failed to trigger build", err);
+    }
+  },
+);
+
+// ── GET /api/lb-slides/factory/runs/:id/download ─────────────────────────────
+// Tab 6: Stream the completed deck PDF from R2. Returns 422 when deckR2Key is
+// not yet set (build complete but PDF render hasn't written the key).
+router.get(
+  "/api/lb-slides/factory/runs/:id/download",
+  requireAdmin,
+  async (req: Request, res: Response) => {
+    try {
+      const user = getAuthUser(req);
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID" });
+
+      const run = await getSlideFactoryRun(id, user.id);
+      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
+      if (run.status !== "complete") {
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
+          error: `Deck not ready — run status is ${run.status}`,
+        });
+      }
+      if (!run.deckR2Key) {
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
+          error: "Deck PDF not yet generated for this run",
+        });
+      }
+
+      const sp = await getStorageProviderAsync();
+      const { buffer } = await sp.downloadBuffer(run.deckR2Key);
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="slide-deck-run-${run.id}.pdf"`,
+      );
+      res.setHeader("Cache-Control", "no-store");
+      return res.send(buffer);
+    } catch (err: unknown) {
+      logAndSendError(res, "Failed to download factory deck", err);
     }
   },
 );

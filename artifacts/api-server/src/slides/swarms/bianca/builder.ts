@@ -15,6 +15,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { getAnthropicClient } from "../../../ai/clients";
 import { logger } from "../../../logger";
 import type { BiancaReaderOutput } from "./reader";
+import { makeProvenance } from "../provenance";
 import type { Slide2Payload } from "@shared/deck-payload-v2";
 import {
   SLIDE2_OPERATIONAL_MODEL_MAX,
@@ -73,15 +74,6 @@ const BIANCA_02_SYSTEM =
   "Your only job is to call emit_slide2_payload with the Lucca-drafted text. " +
   "DO NOT invent, rephrase, or improve copy — emit it verbatim. " +
   "If a slot has no draft, pass null for that field.";
-
-// ── Provenance builder ───────────────────────────────────────────────────────
-
-function makeProvenance(source: "lucca" | "admin", approvedAt: string | null) {
-  return {
-    source: source === "admin" ? ("user" as const) : ("llm" as const),
-    updatedAt: approvedAt ?? new Date().toISOString(),
-  };
-}
 
 // ── Public API ───────────────────────────────────────────────────────────────
 

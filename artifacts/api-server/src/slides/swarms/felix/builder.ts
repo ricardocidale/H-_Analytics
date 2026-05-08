@@ -13,6 +13,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { getAnthropicClient } from "../../../ai/clients";
 import { logger } from "../../../logger";
 import type { SlideTeamInput } from "../types";
+import { makeProvenance } from "../provenance";
 import type { Slide6Payload } from "@shared/deck-payload-v2";
 import { SLIDE6_DISCLAIMER_MAX } from "@shared/deck-payload-v2";
 import {
@@ -57,15 +58,6 @@ const FELIX_02_SYSTEM =
   "emitting it verbatim. If a disclaimer draft exists in the slot drafts, " +
   "emit it verbatim. If none exists, emit null. " +
   "DO NOT invent, rephrase, or improve copy.";
-
-// ── Provenance builder ───────────────────────────────────────────────────────
-
-function makeProvenance(source: "lucca" | "admin", approvedAt: string | null) {
-  return {
-    source: source === "admin" ? ("user" as const) : ("llm" as const),
-    updatedAt: approvedAt ?? new Date().toISOString(),
-  };
-}
 
 // ── Public API ───────────────────────────────────────────────────────────────
 

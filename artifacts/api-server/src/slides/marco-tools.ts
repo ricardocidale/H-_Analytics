@@ -466,7 +466,7 @@ export function clearRunPayloads(runId: number): void {
 function asBoolean(v: unknown): boolean {
   if (v === true || v === false) return v;
   if (v === "true" || v === "1") return true;
-  if (v === "false" || v === "0" || v === "" || v === null || v === undefined) return false;
+  if (v === "false" || v === "0" || v === null || v === undefined) return false;
   throw new Error(`Expected boolean, got ${typeof v}: ${JSON.stringify(v)}`);
 }
 
