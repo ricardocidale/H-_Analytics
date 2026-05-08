@@ -446,3 +446,9 @@ export const DEFAULT_PROPERTY_DEFAULTS_SPECIALIST_MODEL = "claude-opus-4-7";
 export const DEFAULT_PROPERTY_DEFAULTS_QUANT_PANEL_MODEL = "gemini-2.5-flash";
 export const DEFAULT_PROPERTY_DEFAULTS_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
 export const DEFAULT_PROPERTY_DEFAULTS_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";
+
+// ── Pietro data infrastructure ───────────────────────────────────────────────
+// Default daily API call budget for Pietro-managed sources. null = unlimited.
+// Rate-limited sources (FMP free tier: 250 req/day) override this via their
+// admin_resources row.
+export const DEFAULT_ADMIN_RESOURCE_DAILY_REQUEST_BUDGET: number | null = null;
