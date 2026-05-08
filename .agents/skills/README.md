@@ -66,7 +66,8 @@ These five skills form the CE workflow. Run them in order for any non-trivial fe
 |---|---|
 | `architecture-decision-records` | Write ADRs for irreversible decisions |
 | `ce-debug` | Systematic debugging workflow |
-| `cross-check-invariants` | Verify invariants across subsystems |
+| `cross-check-invariants` | Verify invariants across subsystems (includes H+-specific pairs) |
+| `sse-streaming-discipline` | Checklist for React SSE-consuming components — ref cleanup, retry state, terminal-phase polling |
 | `constants-vs-defaults` | When to use constants vs. configurable defaults |
 | `no-magic-numbers` | Eliminate magic numbers; use named constants |
 | `inventory-before-build` | Before adding new tooling/gates, inventory what already exists |
