@@ -176,21 +176,20 @@ export async function callLlm(
         "Exa (web-grounded search) is disabled by Knowledge & Sources → Web Search. Enable the toggle in Rebecca Configuration, or select a non-Exa provider.",
       );
     }
-    // Verify key is present before attempting — surfaces a clear error rather
-    // than a raw fetch failure from the Exa endpoint.
-    getExaApiKey();
     // Build the query from the last user message in history, falling back to
     // userMessage. Exa is search-first; we pass the user's intent as the query.
-    const query = userMessage || (history.filter(m => m.role === "user").pop()?.content as string) || "";
+    const lastUserContent = history.filter(m => m.role === "user").pop()?.content;
+    const query = userMessage || (typeof lastUserContent === "string" ? lastUserContent : "") || "";
     const exaResult = await searchWithExa(query);
-    const resultTexts = exaResult.results
-      .filter(r => r.text)
-      .map(r => `**${r.title ?? r.url}**\n${r.text}`)
-      .join("\n\n---\n\n");
+    // Null-guard: Exa can return 200 with results:null on quota/error bodies.
+    const allResults = exaResult.results ?? [];
+    // Use the same usable set for both text and sources so the Sources block
+    // never appears alongside "No results found." (contradictory output).
+    const usable = allResults.filter(r => r.text);
+    const resultTexts = usable.map(r => `**${r.title ?? r.url}**\n${r.text}`).join("\n\n---\n\n");
     let text = resultTexts || "No results found.";
-    const sources = exaResult.results.filter(r => r.url);
-    if (sources.length > 0) {
-      text += "\n\n**Sources:**\n" + sources.map((r, i) => `[${i + 1}] ${r.url}`).join("\n");
+    if (usable.length > 0) {
+      text += "\n\n**Sources:**\n" + usable.map((r, i) => `[${i + 1}] ${r.url}`).join("\n");
     }
     const inTok = Math.round(query.length / 4);
     const outTok = Math.round(text.length / 4);
@@ -480,7 +479,7 @@ function sseWrite(res: Response, event: string, data: unknown): void {
  *  - OpenAI:    assistant message with tool_calls array + individual tool messages
  *  - Anthropic: assistant message with content blocks + user message with tool_result blocks
  *  - Gemini:    model message with functionCall parts + user message with functionResponse parts
- *  - Perplexity: tools not supported — returns history unchanged
+ *  - Perplexity and Exa: no tool support — returns history unchanged
  */
 function appendToolResults(
   history: MessageEntry[],
@@ -524,7 +523,7 @@ function appendToolResults(
       parts: results.map(r => ({ functionResponse: { name: r.name, response: { content: r.result } } })),
     });
   }
-  // Perplexity: tools not supported — return history unchanged
+  // Perplexity and Exa: no tool support — return history unchanged
 
   return next;
 }

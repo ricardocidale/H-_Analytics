@@ -299,6 +299,7 @@ Health endpoint: `GET /api/health/live` (not `/api/healthz`).
 | `AI_INTEGRATIONS_GEMINI_API_KEY` | Gemini AI provider |
 | `RESEND_API_KEY` | Transactional email (Resend) |
 | `SENTRY_DSN` | Error monitoring (Sentry) |
+| `EXA_API_KEY` | Exa neural web search — required when Exa is selected as Rebecca's web-search provider (`grounded-web-research` LLM slot) |
 
 ---
 

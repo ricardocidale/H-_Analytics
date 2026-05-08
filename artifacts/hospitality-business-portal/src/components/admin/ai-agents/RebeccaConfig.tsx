@@ -67,7 +67,7 @@ const SOURCE_LABELS: Record<RebeccaSourceKey, { label: string; description: stri
   portfolio: { label: "Portfolio Data", description: "Live property metrics, scenarios, and company assumptions." },
   research: { label: "Research History", description: "Past research jobs and assumption guidance." },
   documents: { label: "Documents", description: "Uploaded property documents indexed in the vector store." },
-  webSearch: { label: "Web Search", description: "Live web grounding via Perplexity (only used when provider is Perplexity)." },
+  webSearch: { label: "Web Search", description: "Live web grounding via the configured web-search provider (Exa or Perplexity). Enable this toggle when using Exa or Perplexity as the primary provider." },
   uploadedFiles: { label: "Asset Library", description: "Uploaded photos, logos, and visual assets." },
 };
 
