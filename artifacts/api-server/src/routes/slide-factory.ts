@@ -41,6 +41,8 @@ import {
 import { runLorenzoIngestion } from "../slides/lorenzo-ingestion";
 import { runLuccaDraft } from "../slides/lucca-draft";
 import { runMarco } from "../slides/marco";
+import { runFranco } from "../slides/minions/franco";
+import { logger } from "../logger";
 import {
   HTTP_200_OK,
   HTTP_201_CREATED,
@@ -287,8 +289,9 @@ router.post(
 );
 
 // ── PATCH /api/lb-slides/factory/runs/:id/slots/:key ────────────────────────
-// Tab 4: Update a single Lucca slot's value and/or approval state.
-// Requires status 'draft_review'.
+// Update a single Lucca slot's value and/or approval state.
+// Allowed on 'draft_review' (Tab 4) and 'complete' (Tab 6 override panel).
+// Denied on 'rebuilding' to prevent concurrent edits during an in-flight render.
 const slotPatchSchema = z.object({
   value: z.string().optional(),
   approved: z.boolean().optional(),
@@ -316,9 +319,10 @@ router.patch(
 
       const run = await getSlideFactoryRun(id, user.id);
       if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
-      if (run.status !== "draft_review") {
+      const slotEditAllowed = run.status === "draft_review" || run.status === "complete";
+      if (!slotEditAllowed) {
         return res.status(HTTP_409_CONFLICT).json({
-          error: `Slot edits require status 'draft_review', current: '${run.status}'`,
+          error: `Slot edits require status 'draft_review' or 'complete', current: '${run.status}'`,
         });
       }
       if (!run.luccaDraft) {
@@ -332,12 +336,19 @@ router.patch(
 
       const valueChanged = parsed.data.value !== undefined && parsed.data.value !== existing.value;
       const nowApproving = parsed.data.approved === true && !existing.approved;
+      // Distinguish override-after-completion from Tab 4 inline edits so provenance
+      // is traceable in the rebuilt deck's AuthoredString.
+      const newSource = valueChanged
+        ? run.status === "complete"
+          ? ("admin-override" as const)
+          : ("admin" as const)
+        : undefined;
 
       const updatedSlot = {
         ...existing,
         ...(parsed.data.value !== undefined ? { value: parsed.data.value } : {}),
         ...(parsed.data.approved !== undefined ? { approved: parsed.data.approved } : {}),
-        ...(valueChanged ? { source: "admin" as const } : {}),
+        ...(newSource !== undefined ? { source: newSource } : {}),
         ...(nowApproving ? { approvedAt: new Date().toISOString() } : {}),
         ...(parsed.data.approved === false ? { approvedAt: null } : {}),
       };
@@ -480,6 +491,69 @@ router.post(
       return res.status(HTTP_200_OK).json(cancelled);
     } catch (err: unknown) {
       logAndSendError(res, "Failed to cancel slide factory run", err);
+    }
+  },
+);
+
+// ── POST /api/lb-slides/factory/runs/:id/rebuild ────────────────────────────
+// Tab 6: Trigger a lightweight PDF re-render after admin has overridden one or
+// more slots on a completed run. Transitions complete → rebuilding, fires Franco
+// asynchronously, and writes status + deckR2Key + completedAt atomically on
+// success. On failure, reverts to complete so the admin can retry.
+// Returns 409 if the run is already rebuilding (single-flight guard).
+router.post(
+  "/api/lb-slides/factory/runs/:id/rebuild",
+  requireAdmin,
+  async (req: Request, res: Response) => {
+    try {
+      const user = getAuthUser(req);
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID" });
+
+      const run = await getSlideFactoryRun(id, user.id);
+      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
+
+      if (run.status === "rebuilding") {
+        return res.status(HTTP_409_CONFLICT).json({
+          error: "A rebuild is already in progress for this run",
+        });
+      }
+      if (run.status !== "complete") {
+        return res.status(HTTP_409_CONFLICT).json({
+          error: `Rebuild requires status 'complete', current: '${run.status}'`,
+        });
+      }
+
+      const rebuilding = await updateSlideFactoryRun(id, { status: "rebuilding" });
+      logActivity(req, "update", "slide_factory_run", id, `run-${id}`, { action: "rebuild-started" });
+
+      // Fire-and-forget Franco render. skipDeckKeyWrite=true so we can write
+      // status + deckR2Key + completedAt in a single atomic call on success.
+      void (async () => {
+        try {
+          const { deckR2Key } = await runFranco(id, {
+            caller: "rebuild",
+            skipDeckKeyWrite: true,
+          });
+          await updateSlideFactoryRun(id, {
+            status: "complete",
+            deckR2Key,
+            completedAt: new Date(),
+          });
+          logger.info(`[rebuild] run ${id}: rebuild complete (${deckR2Key})`, "slide-factory");
+        } catch (err) {
+          logger.error(
+            `[rebuild] run ${id}: Franco failed — reverting to complete: ${String(err)}`,
+            "slide-factory",
+          );
+          // Revert so the admin can trigger another rebuild.
+          await updateSlideFactoryRun(id, { status: "complete" }).catch(() => {});
+        }
+      })();
+
+      return res.status(HTTP_202_ACCEPTED).json(rebuilding);
+    } catch (err: unknown) {
+      logAndSendError(res, "Failed to start rebuild", err);
     }
   },
 );

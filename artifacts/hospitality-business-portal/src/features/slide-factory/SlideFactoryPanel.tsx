@@ -237,6 +237,7 @@ function statusBadge(status: FactoryStatus): {
     draft_review: { label: "Draft review",  variant: "outline" },
     building:     { label: "Building…",     variant: "outline" },
     complete:     { label: "Complete",      variant: "default" },
+    rebuilding:   { label: "Rebuilding…",  variant: "outline" },
     error:        { label: "Error",         variant: "destructive" },
   };
   return map[status] ?? { label: status, variant: "secondary" };

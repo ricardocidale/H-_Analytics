@@ -44,6 +44,7 @@ export const SLIDE_FACTORY_RUN_STATUSES = [
   "draft_review",  // Tab 4: awaiting admin slot approval
   "building",      // Tab 5: Marco dispatching slide teams
   "complete",      // Tab 6: deck rendered and downloadable
+  "rebuilding",    // Tab 6: admin override triggered lightweight PDF re-render
   "error",         // Any stage failed fatally
 ] as const;
 export type SlideFactoryRunStatus = (typeof SLIDE_FACTORY_RUN_STATUSES)[number];
@@ -53,7 +54,9 @@ export interface LuccaSlotDraft {
   value: string;
   approved: boolean;
   approvedAt: string | null; // ISO 8601
-  source: "lucca" | "admin"; // who authored it
+  // "lucca" = original LLM-authored; "admin" = edited during Tab 4 draft_review;
+  // "admin-override" = edited post-completion via the Tab 6 override panel
+  source: "lucca" | "admin" | "admin-override";
 }
 
 // JSONB shape for one slide's agent result (Tab 5)
