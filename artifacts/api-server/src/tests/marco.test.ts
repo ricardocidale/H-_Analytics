@@ -769,8 +769,13 @@ describe("runMarco", () => {
     expect(runMaya).toHaveBeenCalledTimes(TOTAL_SLIDES);
     expect(runDino).toHaveBeenCalledTimes(TOTAL_SLIDES);
     expect(updateAgentResult).toHaveBeenCalledTimes(TOTAL_SLIDES);
-    const finalPatch = (updateSlideFactoryRun as Mock).mock.calls[0][1];
-    expect(finalPatch.status).toBe("complete");
+    // Enzo writes slotContentHashes after each successful Maya call, so
+    // updateSlideFactoryRun is called 6 times (hash writes) + 1 (transition_status).
+    // Find the call that sets status (transition_status call).
+    const statusPatch = (updateSlideFactoryRun as Mock).mock.calls.find(
+      ([, patch]) => typeof (patch as Record<string, unknown>).status === "string",
+    );
+    expect(statusPatch?.[1].status).toBe("complete");
   });
 
   it("slide 3 dino exceeds threshold — slide 3 rejected, run transitions to error", async () => {
@@ -794,8 +799,12 @@ describe("runMarco", () => {
       ([, slideNumber]) => slideNumber === 3,
     );
     expect(slide3Call?.[2].status).toBe("rejected");
-    const finalPatch = (updateSlideFactoryRun as Mock).mock.calls[0][1];
-    expect(finalPatch.status).toBe("error");
+    // Enzo writes slotContentHashes for approved slides (ok/advisory verdicts);
+    // find the transition_status call by its `status` field.
+    const statusPatch = (updateSlideFactoryRun as Mock).mock.calls.find(
+      ([, patch]) => typeof (patch as Record<string, unknown>).status === "string",
+    );
+    expect(statusPatch?.[1].status).toBe("error");
   });
 
   it("team dispatch throws — wrapped as error result, run continues across all slides", async () => {

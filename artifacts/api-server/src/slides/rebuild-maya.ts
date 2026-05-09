@@ -24,9 +24,13 @@ import { buildFactoryPayload } from "./build-factory-payload";
 import { runMaya } from "./maya";
 import { logger } from "../logger";
 import type { SlideNumber } from "./swarms/types";
+import { TOTAL_SLIDES } from "./deck-render-constants";
 
-/** Slide numbers supported by the factory pipeline. */
-const ALL_SLIDE_NUMBERS: SlideNumber[] = [1, 2, 3, 4, 5, 6];
+/** All slide numbers in the factory pipeline, derived from TOTAL_SLIDES. */
+const ALL_SLIDE_NUMBERS = Array.from(
+  { length: TOTAL_SLIDES },
+  (_, i) => (i + 1) as SlideNumber,
+);
 
 /**
  * Re-run Maya for every slide that has at least one `admin-override` slot in
