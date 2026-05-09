@@ -128,7 +128,7 @@ export async function runVitoAgent(trigger: VitoTrigger): Promise<VitoRunResult>
   const mode = trigger === "manual-full" ? "full" : "runtime";
 
   // Resolve model at runtime from admin_resources — never hardcode
-  const resolved = await resolveLlmFor("vito_compliance_audit");
+  const resolved = await resolveLlmFor("vito-compliance-audit");
   const { vendor, modelId } = resolved;
 
   const runId = await createVitoRun(trigger, mode);
