@@ -1,11 +1,11 @@
 /**
  * server/ai/clients.ts — Singleton AI SDK clients
  *
- * Centralized lazy-singleton factories for OpenAI, Anthropic, Gemini, and
- * Perplexity. Each client is created once on first use and reused for all
- * subsequent calls. This prevents per-request instantiation overhead (TCP
- * connections, token refresh) and provides a single place to configure base
- * URLs, API versions, etc.
+ * Centralized lazy-singleton factories for OpenAI, Anthropic, Gemini,
+ * Perplexity, and Exa. Each client is created once on first use and reused
+ * for all subsequent calls. This prevents per-request instantiation overhead
+ * (TCP connections, token refresh) and provides a single place to configure
+ * base URLs, API versions, etc.
  *
  * All factories share the same missing-key error shape via `requireApiKey`,
  * so downstream callers can rely on a consistent message format. The module
@@ -15,12 +15,13 @@
  * error has a chance to surface).
  *
  * Usage:
- *   import { getOpenAIClient, getAnthropicClient, getGeminiClient, getPerplexityClient } from "../ai/clients";
+ *   import { getOpenAIClient, getAnthropicClient, getGeminiClient, getExaClient } from "../ai/clients";
  */
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenAI } from "@google/genai";
 import { Perplexity } from "@perplexity-ai/perplexity_ai";
+import Exa from "exa-js";
 
 // ── Shared key check ────────────────────────────────────
 
@@ -105,7 +106,7 @@ export function normalizeModelId(model: string): string {
   return DEPRECATED_MODEL_MAP[model] || model;
 }
 
-// ── Perplexity ──────────────────────────────────────────
+// ── Perplexity (used by web-research.ts and GroundedResearchService) ────────
 
 let _perplexity: Perplexity | null = null;
 
@@ -114,4 +115,15 @@ export function getPerplexityClient(): Perplexity {
   const apiKey = requireApiKey("Perplexity", ["PERPLEXITY_API_KEY"]);
   _perplexity = new Perplexity({ apiKey });
   return _perplexity;
+}
+
+// ── Exa ─────────────────────────────────────────────────
+
+let _exa: Exa | null = null;
+
+export function getExaClient(): Exa {
+  if (_exa) return _exa;
+  const apiKey = requireApiKey("Exa", ["EXA_API_KEY"]);
+  _exa = new Exa(apiKey);
+  return _exa;
 }
