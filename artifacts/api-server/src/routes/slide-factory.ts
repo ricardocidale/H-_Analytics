@@ -536,14 +536,8 @@ router.post(
             caller: "rebuild",
             skipDeckKeyWrite: true,
           });
-          await updateSlideFactoryRun(id, {
-            status: "complete",
-            deckR2Key,
-            completedAt: new Date(),
-          });
-          logger.info(`[rebuild] run ${id}: rebuild complete (${deckR2Key})`, "slide-factory");
-          // Re-judge Maya for any slide with admin-override slots. Non-fatal:
-          // deck is already downloadable; Maya failure is logged and swallowed.
+          // Run Maya for overridden slides BEFORE flipping to complete so a
+          // concurrent override cannot race in while Maya is still evaluating.
           try {
             await runMayaForOverriddenSlides(id);
           } catch (mayaErr) {
@@ -552,6 +546,12 @@ router.post(
               "slide-factory",
             );
           }
+          await updateSlideFactoryRun(id, {
+            status: "complete",
+            deckR2Key,
+            completedAt: new Date(),
+          });
+          logger.info(`[rebuild] run ${id}: rebuild complete (${deckR2Key})`, "slide-factory");
         } catch (err) {
           logger.error(
             `[rebuild] run ${id}: Franco failed — reverting to complete: ${String(err)}`,

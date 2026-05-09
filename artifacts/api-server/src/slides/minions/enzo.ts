@@ -8,10 +8,9 @@
  *
  * Verdicts of "warning" or "block" always force a re-judgment — no cache hit.
  *
- * Content hash: sort all luccaDraft keys that start with the slide prefix, join
- * their `.value` strings with "|". This is a fast deterministic fingerprint —
- * not cryptographically secure, but sufficient for equality checks inside a
- * single run session.
+ * Content hash: sort all luccaDraft keys that start with the slide prefix,
+ * encode each value as `<length>:<value>` (length-prefixed), and join with "|".
+ * Length-prefixing avoids ambiguous collisions when slot values contain "|".
  *
  * Per CLAUDE.md §10 — deterministic helper, no LLM, no judgment. Minion role.
  */
@@ -26,7 +25,8 @@ export type EnzoCacheResult =
  * Compute the content hash for a slide's slot drafts.
  *
  * Sorts all keys in `luccaDraft` that begin with `slideKey + "."` alphabetically,
- * then joins their `value` strings with "|" as the separator.
+ * encodes each value as `<length>:<value>`, and joins with "|". Length-prefixing
+ * prevents false cache hits when a slot value itself contains "|".
  *
  * @param luccaDraft - The full luccaDraft map from the run row.
  * @param slideKey   - e.g. "slide1", "slide2".
@@ -41,7 +41,7 @@ export function computeSlideContentHash(
   const sorted = Object.entries(luccaDraft)
     .filter(([k]) => k.startsWith(prefix))
     .sort(([a], [b]) => a.localeCompare(b));
-  return sorted.map(([, draft]) => draft.value).join("|");
+  return sorted.map(([, draft]) => `${draft.value.length}:${draft.value}`).join("|");
 }
 
 /**

@@ -50,7 +50,7 @@ vi.mock("../ai/clients", () => ({
   }),
 }));
 
-vi.mock("./helpers", () => ({
+vi.mock("../routes/helpers", () => ({
   parseRouteId: (s: string) => {
     const n = parseInt(s, 10);
     return isNaN(n) ? null : n;

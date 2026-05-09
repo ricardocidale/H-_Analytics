@@ -168,6 +168,7 @@ vi.mock('../providers/storage', () => ({
 
 // ── Import the router (after all mocks) ──────────────────────────────────────
 import { slideFactoryRouter } from '../routes/slide-factory';
+import { runMayaForOverriddenSlides } from '../slides/rebuild-maya';
 
 // ── App setup ─────────────────────────────────────────────────────────────────
 let agent: ReturnType<typeof supertest>;

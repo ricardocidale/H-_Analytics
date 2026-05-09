@@ -97,12 +97,14 @@ export async function runMayaForOverriddenSlides(runId: number): Promise<void> {
         errorMessage: null,
       };
 
+      const newStatus: "approved" | "rejected" =
+        result.verdict === "ok" || result.verdict === "advisory" ? "approved" : "rejected";
       await updateAgentResult(runId, slideN, {
-        status: "approved",
+        status: newStatus,
         pixelDiffPct: existingResult.pixelDiffPct,
         mayaVerdict: result.verdict,
         mayaNotes: result.notes ?? null,
-        approvedAt: existingResult.approvedAt,
+        approvedAt: newStatus === "approved" ? existingResult.approvedAt : null,
         errorMessage: null,
       });
 
