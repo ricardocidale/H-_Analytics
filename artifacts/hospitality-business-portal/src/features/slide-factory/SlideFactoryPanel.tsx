@@ -131,6 +131,7 @@ type FactoryStatus =
   | "draft_review"
   | "building"
   | "complete"
+  | "rebuilding"
   | "error";
 
 type FactoryTab =
