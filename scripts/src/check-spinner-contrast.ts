@@ -103,6 +103,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { computeInputsHash, tryCacheHit, writeCacheHit } from "./lib/check-cache.js";
+
 // ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
@@ -397,6 +399,23 @@ function findEnclosingSaveButton(contextLines: string[]): boolean {
 // Main
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Input-hash cache (task #1214) — short-circuits when no .tsx file under the
+// scan dirs has changed since the last successful run.
+// ---------------------------------------------------------------------------
+
+const CACHE_NAME = "spinner-contrast";
+
+const cacheInputFiles: string[] = [fileURLToPath(import.meta.url)];
+for (const scanDir of SCAN_DIRS) {
+  const absDir = path.join(WORKSPACE_ROOT, scanDir);
+  if (!fs.existsSync(absDir)) continue;
+  for (const absPath of walkFiles(absDir)) cacheInputFiles.push(absPath);
+}
+
+const cacheHash = computeInputsHash({ files: cacheInputFiles });
+if (tryCacheHit(CACHE_NAME, cacheHash)) process.exit(0);
+
 let violations = 0;
 
 for (const scanDir of SCAN_DIRS) {
@@ -451,6 +470,7 @@ if (violations === 0) {
   console.log(
     "check:spinner-contrast  PASS — no contrast violations in dark-fill buttons"
   );
+  writeCacheHit(CACHE_NAME, cacheHash);
   process.exit(0);
 } else {
   console.error(

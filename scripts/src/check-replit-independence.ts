@@ -32,6 +32,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { computeInputsHash, tryCacheHit, writeCacheHit } from "./lib/check-cache.js";
+
 // ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
@@ -126,11 +128,27 @@ function isAllowed(absolutePath: string): boolean {
 // Main
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Input-hash cache (task #1214) — short-circuits when no input has changed.
+// Walks the tree once to enumerate inputs, hashes them, checks .cache/ ;
+// only proceeds with the (relatively expensive) per-line regex scan on miss.
+// ---------------------------------------------------------------------------
+
+const CACHE_NAME = "replit-independence";
+
+const inputFiles: string[] = [fileURLToPath(import.meta.url)];
+for (const absPath of walkFiles(WORKSPACE_ROOT)) {
+  if (!CHECKED_EXTENSIONS.has(path.extname(absPath))) continue;
+  inputFiles.push(absPath);
+}
+
+const cacheHash = computeInputsHash({ files: inputFiles });
+if (tryCacheHit(CACHE_NAME, cacheHash)) process.exit(0);
+
 let violations = 0;
 
-for (const absPath of walkFiles(WORKSPACE_ROOT)) {
-  const ext = path.extname(absPath);
-  if (!CHECKED_EXTENSIONS.has(ext)) continue;
+for (const absPath of inputFiles) {
+  if (absPath === fileURLToPath(import.meta.url)) continue;
   if (isAllowed(absPath)) continue;
 
   const rel = path.relative(WORKSPACE_ROOT, absPath);
@@ -146,6 +164,7 @@ for (const absPath of walkFiles(WORKSPACE_ROOT)) {
 
 if (violations === 0) {
   console.log("check:replit-independence  PASS — no violations found");
+  writeCacheHit(CACHE_NAME, cacheHash);
   process.exit(0);
 } else {
   console.error(
