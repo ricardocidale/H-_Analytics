@@ -1,7 +1,7 @@
 ---
 title: "feat: Pietro — Financial Data Infrastructure Agent"
 type: feat
-status: active
+status: completed
 date: 2026-05-08
 origin: docs/brainstorms/pietro-data-infrastructure-requirements.md
 ---

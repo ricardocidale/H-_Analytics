@@ -1,7 +1,7 @@
 ---
 title: "Slide Factory — Deferred Follow-Ups: Photo Override, Maya Re-Judgment, Re-Suggest, Enzo"
 type: feat
-status: active
+status: completed
 date: 2026-05-09
 origin: |
   docs/plans/2026-05-09-001-feat-slide-factory-override-rebuild-plan.md (deferred list)

@@ -1,7 +1,7 @@
 ---
 title: "Slide Factory deck render + R2 upload (post-Marco producer)"
 type: feat
-status: active
+status: completed
 date: 2026-05-08
 origin: docs/plans/2026-05-07-001-feat-slide-factory-completion-plan.md
 ---
