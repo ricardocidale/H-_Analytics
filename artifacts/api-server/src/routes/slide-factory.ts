@@ -350,7 +350,9 @@ router.patch(
         ...(parsed.data.value !== undefined ? { value: parsed.data.value } : {}),
         ...(parsed.data.approved !== undefined ? { approved: parsed.data.approved } : {}),
         ...(newSource !== undefined ? { source: newSource } : {}),
-        ...(nowApproving ? { approvedAt: new Date().toISOString() } : {}),
+        // Stamp approvedAt when explicitly approving OR when an admin overrides
+        // the value on a complete run (the slot is implicitly re-approved at edit time).
+        ...(nowApproving || (valueChanged && newSource === "admin-override") ? { approvedAt: new Date().toISOString() } : {}),
         ...(parsed.data.approved === false ? { approvedAt: null } : {}),
       };
 

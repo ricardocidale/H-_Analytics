@@ -1957,6 +1957,7 @@ function FactoryOverridePanel({
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Rebuild failed";
       toast({ title: "Rebuild failed", description: msg, variant: "destructive" });
+    } finally {
       setRebuilding(false);
     }
   };
