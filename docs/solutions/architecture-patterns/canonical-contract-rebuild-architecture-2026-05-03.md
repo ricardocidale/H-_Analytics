@@ -167,7 +167,7 @@ Persistence: store the authored payload as a `jsonb` column on the property row 
 
 Photos require slot tagging: `hero / secondary / inset / amenity / pipeline-thumb` — `isHero` + `sortOrder` is not enough (a Slide 1 inset is not a Slide 2 lounge).
 
-Operational note: any Zod schema added to `lib/shared/src` must be mirrored to `artifacts/api-server/src/shared` per the mirror rule in `docs/solutions/tooling/mirror-shared-package-sync.md`.
+Operational note: `@shared/*` resolves directly to `lib/shared/src/*` in both api-server and portal tsconfigs — no manual mirror copy is needed.
 
 ### Cross-cutting — SELF-VALIDATION as a build gate
 
@@ -296,7 +296,7 @@ Renderer (single pattern repeats per element, no flex/grid):
 - `docs/solutions/architecture-patterns/agent-native-precision-pipeline-pattern-2026-05-06.md` — agent-native overlay above this deterministic core: Sage intake pipeline, per-slide specialist teams, hybrid Inspector, Drafter + vetting UX, hallucination defenses. The four layers documented here become the substrate that overlay's Inspectors validate against.
 - `docs/solutions/architecture-patterns/slide-payload-slot-specific-schema-2026-05-03.md` — narrower precursor: the specific argument against a generic `SlidePayload` + `VisionText` bag, with a slot-by-slot diff table from the regression that surfaced this work. This doc generalizes that lesson into the four-layer architecture.
 - `docs/solutions/workflow-issues/three-way-diff-recon-methodology-2026-05-03.md` — sibling methodology doc: the three-way diff (human brief × machine-precise JSON spans × generated PDF) that surfaced the per-slot drift this architecture is designed to prevent. Diagnose with that, rebuild with this.
-- `docs/solutions/tooling/mirror-shared-package-sync.md` — operational prerequisite for Layer 1: any new Zod schema in `lib/shared/src` must be mirrored to `artifacts/api-server/src/shared`.
+- ~~`docs/solutions/tooling/mirror-shared-package-sync.md`~~ — (deleted 2026-05-09): the `@shared/*` mirror has been eliminated; tsconfig path aliases now resolve directly to `lib/shared/src/*` in both packages.
 - `docs/solutions/architecture-patterns/slide-deck-generation-decision-reversal-2026-05-03.md` — decision record: Playwright HTML→PDF replaced the two-format PPTX pipeline; adjacent pipeline history, different layer of the slide system.
 - `docs/slide-system/canonical/design-contract.json` — the JSON design contract.
 - `docs/slide-system/canonical/coding-agent-instructions.md` — the rendering-model rules.

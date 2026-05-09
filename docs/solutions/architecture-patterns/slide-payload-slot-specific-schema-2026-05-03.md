@@ -187,7 +187,7 @@ wasn't designed for.
 
 ### Migration sketch
 
-1. Define the `DeckPayloadV2` Zod schema in `lib/shared` (mirrored to api-server + portal per the `shared-mirror-sync` skill).
+1. Define the `DeckPayloadV2` Zod schema in `lib/shared` (the `@shared/*` tsconfig alias resolves directly to `lib/shared/src/*` in both api-server and portal — no manual mirror sync needed).
 2. Build a server-side `composeDeckPayloadV2(propertyId)` that maps property + portfolio + financials data into the v2 shape, honoring length constraints (truncate/expand sources, derive editorial strings, choose photo roles).
 3. Rewrite each `Slide N` component to take its own slice (`Slide1Payload`) instead of the generic `SlidePayload`. The component reads slot fields by role name; no `property.description` reach-throughs.
 4. Add a registry (`slideRegistry`) that declares for each slide: `kind` (per-property | portfolio), `requiredPhotoSlots`, `requiredNarrativeFields`, `requiredFinancialFields`. Drives validation and the "Rebuild deck" cache pipeline.

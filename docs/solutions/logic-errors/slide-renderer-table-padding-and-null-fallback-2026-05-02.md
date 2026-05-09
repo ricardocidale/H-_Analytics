@@ -27,6 +27,8 @@ tags:
 
 # Hybrid slide renderer — pad sparse tables and chain fallbacks on both null and throw
 
+> **Note (2026-05-09):** The `hybrid-renderer.ts` and `image-renderer.ts` files referenced in this doc were deleted when the satori+sharp+pptxgenjs pipeline was replaced by Playwright HTML→PDF on 2026-05-03 (see `slide-deck-generation-decision-reversal-2026-05-03.md`). The specific code fixes below no longer exist. The **Prevention** section's defensive-coding principles (three-tier fallback chains, sparse-array padding, `null` vs `throw` distinction) remain applicable to any rendering pipeline.
+
 ## Problem
 
 The H+ Analytics PPTX slide generator's hybrid renderer (sharp + satori, no headless browser) shipped two latent logic defects when Slides 5 and 6 were converted from full-JSX rendering to the recipe-driven hybrid path. Properties with sparse financial arrays produced a malformed Slide 6 income-statement table, and any property whose slide background or recipe was missing skipped the available JSX fallback and rendered as a blank placeholder.
