@@ -18,12 +18,13 @@
  *   • PartnerCompSectionProps   – adds modelStartYear for year labels in the table
  *   • PropertyExpenseRatesSectionProps – adds researchValues for expense benchmarks
  */
-import type { GlobalResponse, FeeCategoryResponse } from "@/lib/api";
+import type { GlobalResponse, FeeCategoryResponse, GuidanceRecord } from "@/lib/api";
 
 export interface CompanyAssumptionsSectionProps {
   formData: Partial<GlobalResponse>;
   onChange: <K extends keyof GlobalResponse>(field: K, value: GlobalResponse[K]) => void;
   global: GlobalResponse;
+  guidance?: GuidanceRecord[];
 }
 
 /**

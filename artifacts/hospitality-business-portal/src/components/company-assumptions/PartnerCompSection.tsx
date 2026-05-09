@@ -23,9 +23,10 @@ import { formatMoney } from "@/lib/financialEngine";
 import { DEFAULT_PARTNER_COMP, DEFAULT_PARTNER_COUNT } from "@/lib/constants";
 import EditableValue from "./EditableValue";
 import type { PartnerCompSectionProps } from "./types";
+import { AssumptionGuidancePopover } from "@/components/analyst";
 import { CITATIONS } from "@shared/citations";
 
-export default function PartnerCompSection({ formData, onChange, global, modelStartYear, researchValues }: PartnerCompSectionProps) {
+export default function PartnerCompSection({ formData, onChange, global, modelStartYear, researchValues, guidance }: PartnerCompSectionProps) {
   const gc = (key: string, label?: string) => ({ entityType: "company" as const, entityId: 0, assumptionKey: key, fieldLabel: label });
   // Deep-link marker manifest. The 10-year grid below renders dynamic
   // data-field={compKey} / data-field={countKey} attributes — the Analyst
@@ -51,7 +52,10 @@ export default function PartnerCompSection({ formData, onChange, global, modelSt
             currentValue={formData.partnerCompYear1 ?? global.partnerCompYear1 ?? DEFAULT_PARTNER_COMP[0]}
             className="text-lg font-display text-foreground"
           />
-          <p className="text-muted-foreground text-sm label-text">Configure total management compensation and headcount by year</p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-muted-foreground text-sm label-text">Configure total management compensation and headcount by year</p>
+            <AssumptionGuidancePopover fieldKey="partnerComp" guidance={guidance} isCurrency />
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

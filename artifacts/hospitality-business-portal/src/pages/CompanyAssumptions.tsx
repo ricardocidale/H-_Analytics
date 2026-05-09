@@ -53,6 +53,7 @@ import {
   useUpdateGlobalAssumptions,
   useProperties,
   useAllFeeCategories,
+  useCompanyGuidance,
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Loader2 } from "@/components/icons/themed-icons";
@@ -115,6 +116,7 @@ export default function CompanyAssumptions() {
   const { user } = useAuth();
   const isAdmin = user ? isAdminRole(user.role) : false;
   const entityId = user?.id ?? 1;
+  const { data: companyGuidance } = useCompanyGuidance(entityId);
 
   const formApi = useCompanyAssumptionsForm({
     global,
@@ -462,6 +464,7 @@ export default function CompanyAssumptions() {
             fundingVerdict={fundingRefresh.lastVerdict}
             icpModelTier={global.icpModelTier ?? null}
             onSelectIcpModel={openIcpModelPicker}
+            guidance={companyGuidance}
           />
 
           <AnalystUnsavedChangesDialog

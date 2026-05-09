@@ -25,10 +25,11 @@ import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
 import EditableValue from "./EditableValue";
 import type { CompensationSectionProps } from "./types";
+import { AssumptionGuidancePopover } from "@/components/analyst";
 import { CITATIONS } from "@shared/citations";
 import { STAFFING_TIERS } from "@/lib/constants";
 
-export default function CompensationSection({ formData, onChange, global, researchValues }: CompensationSectionProps) {
+export default function CompensationSection({ formData, onChange, global, researchValues, guidance }: CompensationSectionProps) {
   const gc = (key: string, label?: string) => ({ entityType: "company" as const, entityId: 0, assumptionKey: key, fieldLabel: label });
 
   return (
@@ -62,13 +63,17 @@ export default function CompensationSection({ formData, onChange, global, resear
               />
             </span>
           </div>
-          <Slider
-            value={[formData.staffSalary ?? global.staffSalary]}
-            onValueChange={([v]) => onChange("staffSalary", v)}
-            min={40000}
-            max={200000}
-            step={5000}
-          />
+          <div className="flex items-center gap-2">
+            <Slider
+              value={[formData.staffSalary ?? global.staffSalary]}
+              onValueChange={([v]) => onChange("staffSalary", v)}
+              min={40000}
+              max={200000}
+              step={5000}
+              className="flex-1"
+            />
+            <AssumptionGuidancePopover fieldKey="staffSalary" guidance={guidance} isCurrency />
+          </div>
         </div>
 
         <div className="pt-4 border-t border-border">

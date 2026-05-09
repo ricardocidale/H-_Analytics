@@ -22,6 +22,7 @@ import { ResearchContextFieldLabel } from "@/components/research/ResearchContext
 import { DEFAULT_EXIT_CAP_RATE, DEFAULT_COMMISSION_RATE } from "@/lib/constants";
 import EditableValue from "./EditableValue";
 import type { CompanyAssumptionsSectionProps } from "./types";
+import { AssumptionGuidancePopover } from "@/components/analyst";
 import { CITATIONS } from "@shared/citations";
 
 interface PropertyExitDefaultsCardProps extends CompanyAssumptionsSectionProps {
@@ -43,7 +44,7 @@ interface IndustryVerticalSuggestion {
   rationale: string;
 }
 
-export default function PropertyExitDefaultsCard({ formData, onChange, global, researchValues }: PropertyExitDefaultsCardProps) {
+export default function PropertyExitDefaultsCard({ formData, onChange, global, researchValues, guidance }: PropertyExitDefaultsCardProps) {
   const gc = (key: string, label?: string) => ({ entityType: "company" as const, entityId: 0, assumptionKey: key, fieldLabel: label });
 
   // Admin-managed exit-multiple bands (per industry vertical) used to populate
@@ -124,13 +125,17 @@ export default function PropertyExitDefaultsCard({ formData, onChange, global, r
                 step={0.005}
               />
             </div>
-            <Slider
-              value={[(formData.exitCapRate ?? global.exitCapRate ?? DEFAULT_EXIT_CAP_RATE) * 100]}
-              onValueChange={([v]) => onChange("exitCapRate", v / 100)}
-              min={4}
-              max={15}
-              step={0.5}
-            />
+            <div className="flex items-center gap-2">
+              <Slider
+                value={[(formData.exitCapRate ?? global.exitCapRate ?? DEFAULT_EXIT_CAP_RATE) * 100]}
+                onValueChange={([v]) => onChange("exitCapRate", v / 100)}
+                min={4}
+                max={15}
+                step={0.5}
+                className="flex-1"
+              />
+              <AssumptionGuidancePopover fieldKey="exitCapRate" guidance={guidance} isPercent />
+            </div>
           </div>
 
           {/* Industry Vertical + Exit Revenue Multiple — Analyst-managed band check.
@@ -259,13 +264,17 @@ export default function PropertyExitDefaultsCard({ formData, onChange, global, r
                 step={0.005}
               />
             </div>
-            <Slider
-              value={[(formData.salesCommissionRate ?? global.salesCommissionRate ?? DEFAULT_COMMISSION_RATE) * 100]}
-              onValueChange={([v]) => onChange("salesCommissionRate", v / 100)}
-              min={0}
-              max={10}
-              step={0.5}
-            />
+            <div className="flex items-center gap-2">
+              <Slider
+                value={[(formData.salesCommissionRate ?? global.salesCommissionRate ?? DEFAULT_COMMISSION_RATE) * 100]}
+                onValueChange={([v]) => onChange("salesCommissionRate", v / 100)}
+                min={0}
+                max={10}
+                step={0.5}
+                className="flex-1"
+              />
+              <AssumptionGuidancePopover fieldKey="dispositionCommission" guidance={guidance} isPercent />
+            </div>
           </div>
         </div>
       </div>
