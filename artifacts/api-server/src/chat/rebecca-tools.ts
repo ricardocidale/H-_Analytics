@@ -1,4 +1,5 @@
 import { storage } from "../storage";
+import { logger } from "../logger";
 import { isAdminRole } from "@shared/constants";
 import type { ToolParam } from "./tool-types";
 import type { Property, UpdateProperty, Scenario, UpdateScenario } from "@workspace/db";
@@ -331,7 +332,7 @@ export function getRebeccaTools(): ToolParam[] {
     {
       name: "update_slide_factory_slot",
       description:
-        "Edit a single Lucca narrative slot on a slide factory run (Tab 4). Use to update the slot's value, mark it approved, or both. Requires status 'draft_review' and an existing slot at the given key.",
+        "Edit a single Lucca narrative slot on a slide factory run. Works on 'draft_review' (Tab 4) and 'complete' (Tab 6 override panel). On draft_review runs source stamps as 'admin'; on complete runs it stamps as 'admin-override' for provenance tracking. Use to update the slot's value, mark it approved, or both.",
       parameters: {
         type: "object",
         properties: {
@@ -389,6 +390,18 @@ export function getRebeccaTools(): ToolParam[] {
           runId: { type: "number", description: "Slide factory run ID" },
         },
         required: ["runId"],
+      },
+    },
+    {
+      name: "rebuild_slide_factory_deck",
+      description:
+        "Trigger a lightweight PDF re-render after overriding one or more slots on a completed run (Tab 6 override panel). Transitions the run to 'rebuilding', fires Franco asynchronously, and atomically writes status + deckR2Key + completedAt on success. Returns error if a rebuild is already in progress (single-flight guard) or if the run is not 'complete'. Poll get_slide_factory_run to detect completion (status returns to 'complete').",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "Slide factory run ID" },
+        },
+        required: ["id"],
       },
     },
     // ── Pietro data infrastructure tools ──────────────────────────────────
@@ -539,6 +552,8 @@ export async function dispatchRebeccaTool(
         return await toolCancelSlideFactoryBuild(args, ctx);
       case "produce_slide_factory_deck":
         return await toolProduceSlideFactoryDeck(args, ctx);
+      case "rebuild_slide_factory_deck":
+        return await toolRebuildSlideFactoryDeck(args, ctx);
       case "get_data_source_status":
         return await toolGetDataSourceStatus(ctx);
       case "probe_data_source":
