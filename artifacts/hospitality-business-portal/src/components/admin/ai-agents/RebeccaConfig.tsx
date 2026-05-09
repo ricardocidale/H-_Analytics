@@ -48,12 +48,12 @@ export interface RebeccaConfigProps {
   enabled: boolean;
   displayName: string;
   systemPrompt: string;
-  chatEngine: "gemini" | "perplexity";
+  chatEngine: "gemini" | "exa";
   settings: RebeccaSettings;
   onEnabledChange: (v: boolean) => void;
   onDisplayNameChange: (v: string) => void;
   onSystemPromptChange: (v: string) => void;
-  onChatEngineChange: (v: "gemini" | "perplexity") => void;
+  onChatEngineChange: (v: "gemini" | "exa") => void;
   onSettingsChange: (next: RebeccaSettings) => void;
   onSave: () => void;
   onCancel?: () => void;
@@ -67,7 +67,7 @@ const SOURCE_LABELS: Record<RebeccaSourceKey, { label: string; description: stri
   portfolio: { label: "Portfolio Data", description: "Live property metrics, scenarios, and company assumptions." },
   research: { label: "Research History", description: "Past research jobs and assumption guidance." },
   documents: { label: "Documents", description: "Uploaded property documents indexed in the vector store." },
-  webSearch: { label: "Web Search", description: "Live web grounding via Perplexity (only used when provider is Perplexity)." },
+  webSearch: { label: "Web Search", description: "Live web grounding via Exa (only used when provider is Exa)." },
   uploadedFiles: { label: "Asset Library", description: "Uploaded photos, logos, and visual assets." },
 };
 
@@ -559,7 +559,7 @@ export function RebeccaConfig({
                   patch.fallbackModel = null;
                 }
                 update("llm", patch);
-                if (provider === "gemini" || provider === "perplexity") {
+                if (provider === "gemini" || provider === "exa") {
                   onChatEngineChange(provider);
                 }
               }}
