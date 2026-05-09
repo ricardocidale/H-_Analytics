@@ -115,7 +115,7 @@ export default function CompanyAssumptions() {
   const { toast } = useToast();
   const { user } = useAuth();
   const isAdmin = user ? isAdminRole(user.role) : false;
-  const entityId = user?.id ?? 1;
+  const entityId = user?.id ?? 0;
   const { data: companyGuidance } = useCompanyGuidance(entityId);
 
   const formApi = useCompanyAssumptionsForm({
