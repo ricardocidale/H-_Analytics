@@ -16,6 +16,7 @@
 import { db } from "../../db";
 import { sql } from "drizzle-orm";
 import type { AdminResourceRow, ResourceKind, ProbeStatus } from "@workspace/db";
+import { validateIngestUrl } from "../../lib/validate-url";
 
 export interface ProbeOutcome {
   status: ProbeStatus;
@@ -173,7 +174,38 @@ const PROBES: Record<ResourceKind, (row: AdminResourceRow) => Promise<ProbeOutco
   parameter: async () => ({ status: "skipped" as const, latencyMs: 0 }),
 };
 
+/**
+ * Pre-flight: if the resource has `config.healthProbe.url`, validate it
+ * against the SSRF block-list before running any kind-specific probe.
+ * Returns a fail outcome with errorCode SSRF_BLOCKED_URL when the URL is
+ * blocked; returns null when the pre-flight passes (url absent or safe).
+ */
+function checkHealthProbeUrl(row: AdminResourceRow): ProbeOutcome | null {
+  const config = (row.config ?? {}) as Record<string, unknown>;
+  const healthProbe = config.healthProbe;
+  if (!healthProbe || typeof healthProbe !== "object" || Array.isArray(healthProbe)) {
+    return null;
+  }
+  const probeUrl = (healthProbe as Record<string, unknown>).url;
+  if (typeof probeUrl !== "string" || probeUrl.length === 0) {
+    return null;
+  }
+  const urlError = validateIngestUrl(probeUrl);
+  if (!urlError) return null;
+  return {
+    status: "fail",
+    latencyMs: 0,
+    errorCode: "SSRF_BLOCKED_URL",
+    errorMessage: `config.healthProbe.url is blocked: ${urlError}`,
+  };
+}
+
 export async function runProbe(row: AdminResourceRow): Promise<ProbeOutcome> {
+  // SSRF pre-flight: reject blocked healthProbe URLs before any kind-specific
+  // logic runs. This catches resources saved before the save-time guard existed.
+  const ssrfOutcome = checkHealthProbeUrl(row);
+  if (ssrfOutcome) return ssrfOutcome;
+
   const probe = PROBES[row.kind as ResourceKind];
   if (!probe) {
     return { status: "skipped", latencyMs: 0, errorCode: "UNKNOWN_KIND", errorMessage: `No probe registered for kind=${row.kind}` };

@@ -1,9 +1,5 @@
 import { z } from "zod";
 
-export const REBECCA_LLM_PROVIDERS = ["openai", "anthropic", "gemini", "exa"] as const;
-export type RebeccaLlmProvider = typeof REBECCA_LLM_PROVIDERS[number];
-
-
 export const REBECCA_TONE_PRESETS = ["professional", "conversational", "coaching", "concise", "playful"] as const;
 export type RebeccaTonePreset = typeof REBECCA_TONE_PRESETS[number];
 
@@ -19,37 +15,6 @@ export const REBECCA_SUGGESTED_CHIPS_MAX_COUNT = 8;
 /** Maximum character length per individual chip suggestion string. */
 export const REBECCA_SUGGESTED_CHIP_MAX_LENGTH = 200;
 export type RebeccaSourceKey = typeof REBECCA_SOURCE_KEYS[number];
-
-export const REBECCA_PROVIDER_MODELS: Record<RebeccaLlmProvider, { value: string; label: string }[]> = {
-  openai: [
-    { value: "gpt-4.1",     label: "GPT-4.1" },
-    { value: "gpt-4o",      label: "GPT-4o" },
-    { value: "gpt-4o-mini", label: "GPT-4o Mini" },
-    { value: "o4-mini",     label: "o4 Mini" },
-  ],
-  anthropic: [
-    { value: "claude-opus-4-7",           label: "Claude Opus 4.7" },
-    { value: "claude-sonnet-4-6",         label: "Claude Sonnet 4.6" },
-    { value: "claude-sonnet-4-5",         label: "Claude Sonnet 4.5" },
-    { value: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5" },
-  ],
-  gemini: [
-    { value: "gemini-2.5-pro",   label: "Gemini 2.5 Pro" },
-    { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
-    { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
-  ],
-  exa: [
-    { value: "exa", label: "Exa Answer" },
-  ],
-};
-
-export const REBECCA_DEFAULT_MODEL: Record<RebeccaLlmProvider, string> = {
-  openai: "gpt-4.1",
-  anthropic: "claude-sonnet-4-6",
-  gemini: "gemini-2.5-flash",
-  exa: "exa",
-};
-
 
 const sourceSchema = z.object({
   enabled: z.boolean(),
