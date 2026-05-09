@@ -149,7 +149,7 @@ Four target sections, each trimmed to: one-sentence rule + link to authoritative
 **Verification:**
 - Each of the four sections is under ~5 lines (rule + link) after editing.
 - `wc -l CLAUDE.md` should drop meaningfully (target: under 550 lines).
-- Every routing link in the trimmed sections resolves to an existing file.
+- Every routing link in the trimmed sections resolves to an existing file. Verify with: `grep -o '`[^`]*\.md`' CLAUDE.md | tr -d '\`' | xargs -I{} test -f {} || echo "MISSING: {}"` (or equivalent targeted check for each new link added).
 
 ---
 
@@ -172,9 +172,9 @@ Four target sections, each trimmed to: one-sentence rule + link to authoritative
 2. **Harmonize Recent Significant Changes tables**:
    - **Add Inflation policy to CLAUDE.md**: The Inflation policy USD-base calculations change (2026-05-09) appears in replit.md's Recent Changes but not in CLAUDE.md's. Add it to CLAUDE.md.
    - **Add Schema change workflow to replit.md**: The "Schema change workflow documented (Task #1201)" entry (2026-05-09) appears in CLAUDE.md's Recent Changes but not in replit.md's. Add it to replit.md.
-   - Both tables should carry the same 3 entries after this (all 2026-05-09: Inflation policy, Agent-native Wave 0, Schema change workflow, Costantino — prune to 3 per the "keep ≤ 3 entries" comment in replit.md, or expand both to 4 entries).
+   - replit.md has a `<!-- keep ≤ 3 entries -->` comment — respect it. Pick the 3 most impactful entries for replit.md. CLAUDE.md has no such limit and can carry all 4. The two tables do not need identical counts; they need to agree on the entries that are architecturally significant for both agents.
 
-3. **Spot-check for any other routing gaps** introduced by U2 (if U2 added new skill links, verify replit.md Pointers table points to the same skills).
+3. **Carry forward U2 routing links to replit.md Pointers table**: U2 trims four sections and adds new skill/doc links in each. For each new link added in U2, check whether replit.md's Pointers table already covers that skill. If not, add a row. The four U2 links are: db.md runbook, `slide-factory` skill, `costantino-data-custodian` skill, `reference-brands-ai-pipeline-wiring` doc — verify each has a Pointers row or is intentionally CC-only.
 
 **Patterns to follow:**
 - `.agents/skills/agent-memory-files/SKILL.md` §"A harmonize pass per session"
