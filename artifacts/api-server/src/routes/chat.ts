@@ -1096,7 +1096,7 @@ export function register(app: Express) {
             const ageMs = now - new Date(l.createdAt).getTime();
             const ageMin = Math.round(ageMs / 60000);
             const age = ageMin < 60 ? `${ageMin}m ago` : `${Math.round(ageMin / 60)}h ago`;
-            return `- ${l.action} on ${l.entityType}${l.entityLabel ? ` "${l.entityLabel}"` : ""} — ${age}`;
+            return `- ${l.action} on ${l.entityType}${l.entityName ? ` "${l.entityName}"` : ""} — ${age}`;
           });
           assembledPrompt += `\n\n## Recent Activity\n${lines.join("\n")}`;
         }
@@ -1262,11 +1262,32 @@ export function register(app: Express) {
       // the saved Rebecca chat too (not just the admin Test Chat preview).
       const sourcesUsedSorted = collectChatSourcesFromManifest(manifest, rebeccaSettings.sources);
 
+      const totalMessages = dbHistory.length + 2;
+
+      // U7 — parse LLM-suggested follow-up chips from the FOLLOW_UPS: footer.
+      // Strip the footer from the visible response text before emitting.
+      let visibleResponseText = responseText;
+      let suggestedChips: string[];
+      const followUpsLineIdx = responseText.lastIndexOf(FOLLOW_UPS_MARKER);
+      if (followUpsLineIdx !== -1) {
+        const followUpsLine = responseText.slice(followUpsLineIdx);
+        const chipsRaw = followUpsLine.slice(FOLLOW_UPS_MARKER.length).trim();
+        const parsedChips = chipsRaw.split("|").map(s => s.trim()).filter(s => s.length > 0);
+        if (parsedChips.length > 0) {
+          suggestedChips = parsedChips.slice(0, 3);
+          visibleResponseText = responseText.slice(0, followUpsLineIdx).trimEnd();
+        } else {
+          suggestedChips = generateFollowUpChips(responseText, totalMessages, fieldCtx?.fieldKey, detectedLanguage);
+        }
+      } else {
+        suggestedChips = generateFollowUpChips(responseText, totalMessages, fieldCtx?.fieldKey, detectedLanguage);
+      }
+
       if (!isPreview) {
         const assistantMessage = await storage.addRebeccaMessage({
           conversationId,
           role: "assistant",
-          content: responseText,
+          content: visibleResponseText,
           metadata: {
             responseMode: responseMode ?? "standard",
             model: resolvedModelName,
@@ -1293,12 +1314,10 @@ export function register(app: Express) {
         }).catch(err => logger.warn(`Context contract logging failed: ${err instanceof Error ? err.message : String(err)}`, "chat"));
       }
 
-      const totalMessages = dbHistory.length + 2;
-      const suggestedChips = generateFollowUpChips(responseText, totalMessages, fieldCtx?.fieldKey, detectedLanguage);
       logActivity(req, "rebecca-chat", "rebecca_conversation", conversationId, null, { responseMode, detectedLanguage, totalMessages });
 
       const responsePayload = {
-        response: responseText,
+        response: visibleResponseText,
         conversationId,
         suggestedChips,
         detectedLanguage,

@@ -213,7 +213,18 @@ Use tools when:
 - When scope is ambiguous (property not named, field not clear), ask before acting. Don't guess.
 - Never write to multiple entities in one turn without first listing what you're about to change and getting confirmation.
 - After every successful write, show the before → after delta. Don't just say "done".
-- If the user's request would change something irreversible (delete a scenario), confirm explicitly: "I'll delete [scenario name]. Is that right?"`;
+- If the user's request would change something irreversible (delete a scenario), confirm explicitly: "I'll delete [scenario name]. Is that right?"
+
+## Follow-Up Suggestions
+
+After every response, on the final line output exactly:
+FOLLOW_UPS: <suggestion 1>|<suggestion 2>|<suggestion 3>
+
+Rules:
+- Pipe-separated, no extra spaces around the pipe
+- Each suggestion is a short action or question (under 6 words)
+- Make them specific to what was just discussed, not generic
+- The FOLLOW_UPS line is stripped before displaying to the user — do not reference it in your visible response`;
 
 const SPANISH_DIACRITICS = /[áéíóúñ¿¡ü]/;
 const SPANISH_UNIQUE_WORDS = /(?:^|\s)(?:hola|cómo|qué|gracias|necesito|ayuda|cuánto|dónde|cuál|quiero|tengo|estoy|también|porque|mucho|poco|nada|algún|ningún|todas|todos|hacer|poder|tener|deber|saber|querer|decir|poner|creer|quedar|seguir|encontrar|llamar|llegar|llevar|dejar|traer|sentir|pensar|conocer|hablar|escuchar|comprar|vender|pagar|cobrar|ganar|perder|subir|bajar|abrir|cerrar|empezar|terminar|preguntar|responder|explicar|mostrar|enseñar|aprender|recordar|olvidar|dime|cuéntame|explícame|muéstrame|propiedad|inversión|rendimiento|ingreso|gasto|ocupación|tarifa|habitación)\b/i;
