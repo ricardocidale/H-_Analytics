@@ -475,6 +475,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
             queryClient.invalidateQueries({ queryKey: ["lb-slides-config"] });
           } else if (entry.entityType === "kb_entry") {
             queryClient.invalidateQueries({ queryKey: ["/api/rebecca/kb"] });
+            queryClient.invalidateQueries({ queryKey: ["kb-entry", entry.entityId] });
           } else if (entry.entityType === "global_assumptions") {
             queryClient.invalidateQueries({ queryKey: ["/api/global-assumptions"] });
           } else if (entry.entityType === "research_job") {
@@ -624,6 +625,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                       queryClient.invalidateQueries({ queryKey: ["lb-slides-config"] });
                     } else if (entry.entityType === "kb_entry") {
                       queryClient.invalidateQueries({ queryKey: ["/api/rebecca/kb"] });
+                      queryClient.invalidateQueries({ queryKey: ["kb-entry", entry.entityId] });
                     } else if (entry.entityType === "global_assumptions") {
                       queryClient.invalidateQueries({ queryKey: ["/api/global-assumptions"] });
                     } else if (entry.entityType === "research_job") {

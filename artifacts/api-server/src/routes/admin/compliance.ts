@@ -33,6 +33,7 @@ import {
   HTTP_404_NOT_FOUND,
 } from "../../constants";
 import { runVitoAgent, type VitoTrigger } from "../../ai/vito/agent";
+import { createVitoRun } from "../../ai/vito/workspace";
 import { logger } from "../../logger";
 
 // ---------------------------------------------------------------------------
@@ -73,7 +74,7 @@ const runsQuerySchema = z.object({
 });
 const violationsQuerySchema = z.object({
   severity: z.enum(["block", "warning", "advisory", "info"]).optional(),
-  resolved: z.enum(["true", "false"]).optional(),
+  resolved: z.enum(["true", "false", "accepted"]).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(VIOLATIONS_MAX_PAGE_SIZE).default(VIOLATIONS_DEFAULT_PAGE_SIZE),
 });
@@ -99,6 +100,8 @@ export function registerComplianceRoutes(app: Express): void {
       if (severity) conditions.push(eq(complianceViolations.severity, severity));
       if (resolved === "true") {
         conditions.push(isNotNull(complianceViolations.resolvedAt));
+      } else if (resolved === "accepted") {
+        conditions.push(isNotNull(complianceViolations.acceptedAt));
       } else if (resolved === "false") {
         conditions.push(
           and(
@@ -225,15 +228,12 @@ export function registerComplianceRoutes(app: Express): void {
     const trigger = parsed.data.trigger as VitoTrigger;
 
     try {
-      // runVitoAgent creates the vito_runs row itself — do not pre-create one here.
-      // We fire the agent async and return immediately; the runId is determined
-      // inside the agent after the row is inserted.
-      let resolvedRunId: number | null = null;
+      const mode = trigger === "manual-full" ? "full" : "runtime";
+      const runId = await createVitoRun(trigger, mode);
 
       void (async () => {
         try {
-          const result = await runVitoAgent(trigger);
-          resolvedRunId = result.runId;
+          await runVitoAgent(trigger, runId);
         } catch (err: unknown) {
           logger.warn(
             `[compliance-run] Agent error: ${err instanceof Error ? err.message : String(err)}`,
@@ -241,10 +241,7 @@ export function registerComplianceRoutes(app: Express): void {
         }
       })();
 
-      // Return a placeholder immediately — the real runId is only available
-      // after the agent creates its row, but that's async. The client can
-      // poll GET /api/admin/compliance/runs to see the latest run.
-      return res.status(HTTP_202_ACCEPTED).json({ trigger, status: "started" });
+      return res.status(HTTP_202_ACCEPTED).json({ trigger, status: "started", runId });
     } catch (error) {
       return logAndSendError(res, "Failed to start compliance audit", error);
     }

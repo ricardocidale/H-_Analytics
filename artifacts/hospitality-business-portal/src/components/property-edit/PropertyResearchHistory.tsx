@@ -51,7 +51,7 @@ export function PropertyResearchHistory({ propertyId }: { propertyId: number }) 
         `/api/research/runs?entityType=property&entityId=${propertyId}`,
         { credentials: "include" },
       );
-      if (!res.ok) return [];
+      if (!res.ok) throw new Error(`Failed to load research history: ${res.status}`);
       return res.json();
     },
     enabled: open,

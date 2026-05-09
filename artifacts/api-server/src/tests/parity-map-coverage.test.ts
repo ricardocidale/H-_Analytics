@@ -31,6 +31,10 @@ describe("agent-native-parity-map coverage", () => {
   const toolNames = extractToolNames(toolsSrc);
   const mapMentions = extractMapMentions(mapMd);
 
+  it("extractToolNames returns at least one tool", () => {
+    expect(toolNames.length, "extractToolNames returned 0 — regex may have drifted from rebecca-tools.ts format").toBeGreaterThan(0);
+  });
+
   it("parity map references every rebecca tool", () => {
     const missing = toolNames.filter((name) => !mapMentions.has(name));
     expect(missing, `Tools not in parity map: ${missing.join(", ")}`).toHaveLength(0);

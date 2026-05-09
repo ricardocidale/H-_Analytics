@@ -123,15 +123,15 @@ function appendVitoToolResults(
 // Main export
 // ---------------------------------------------------------------------------
 
-export async function runVitoAgent(trigger: VitoTrigger): Promise<VitoRunResult> {
+export async function runVitoAgent(trigger: VitoTrigger, preCreatedRunId?: number): Promise<VitoRunResult> {
   const startTime = Date.now();
   const mode = trigger === "manual-full" ? "full" : "runtime";
 
   // Resolve model at runtime from admin_resources — never hardcode
-  const resolved = await resolveLlmFor("vito_compliance_audit");
+  const resolved = await resolveLlmFor("vito-compliance-audit");
   const { vendor, modelId } = resolved;
 
-  const runId = await createVitoRun(trigger, mode);
+  const runId = preCreatedRunId ?? await createVitoRun(trigger, mode);
 
   serverLog(`Starting run ${runId} (trigger=${trigger}, mode=${mode}, model=${modelId})`, SOURCE);
 
@@ -212,10 +212,15 @@ export async function runVitoAgent(trigger: VitoTrigger): Promise<VitoRunResult>
         ? "warn"
         : "ok";
 
-  // Infer passes from distinct tool families invoked (each pass has a distinct
-  // anchor call). list_admin_resources is called in passes 1 and 2; we count
-  // distinct anchor tools to approximate pass completion without bare literals.
-  const passesCompleted = new Set(toolsInvoked).size > 0 ? (mode === "full" ? toolsInvoked.filter((t) => t === "scan_lib_constants").length + toolsInvoked.filter((t) => t === "list_resolver_call_sites").length + toolsInvoked.filter((t) => t === "list_kb_entry_domains").length + toolsInvoked.filter((t) => t === "scan_agent_source_files").length : toolsInvoked.filter((t) => t === "scan_lib_constants").length + toolsInvoked.filter((t) => t === "list_resolver_call_sites").length + toolsInvoked.filter((t) => t === "list_kb_entry_domains").length) : 0;
+  // Infer passes from distinct anchor tool types invoked (each pass has a
+  // distinct anchor call). Using Set membership prevents a revisited anchor
+  // from counting as an extra pass.
+  const invokedSet = new Set(toolsInvoked);
+  const runtimeAnchors = ["scan_lib_constants", "list_resolver_call_sites", "list_kb_entry_domains"];
+  const fullAnchors = [...runtimeAnchors, "scan_agent_source_files"];
+  const passesCompleted = invokedSet.size > 0
+    ? (mode === "full" ? fullAnchors : runtimeAnchors).filter(a => invokedSet.has(a)).length
+    : 0;
 
   await finalizeVitoRun(runId, {
     passesCompleted,

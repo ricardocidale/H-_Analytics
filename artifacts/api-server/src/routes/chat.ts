@@ -1145,6 +1145,7 @@ export function register(app: Express) {
           const macroBlock = await buildCompanyDataInjection(properties);
           if (macroBlock) {
             assembledPrompt += macroBlock;
+            blockPresence.research = true;
           }
         } catch (err: unknown) {
           logger.warn(`Failed to build macro-economic context (non-blocking): ${err instanceof Error ? err.message : String(err)}`, "chat");
@@ -1243,7 +1244,7 @@ export function register(app: Express) {
                 const { result: r, dataChanged: dc } = await executeTool(tc.name, tc.arguments, toolCtx);
                 const elapsedMs = Date.now() - toolStartMs;
                 if (dc) dataChanged.push(dc);
-                if (useStream) sseWrite(res, "tool_done", { id: tc.id, name: tc.name, success: true, elapsedMs, result: r });
+                if (useStream) sseWrite(res, "tool_done", { id: tc.id, name: tc.name, success: true, elapsedMs });
                 return { id: tc.id, name: tc.name, result: r };
               } catch (toolErr) {
                 const elapsedMs = Date.now() - toolStartMs;

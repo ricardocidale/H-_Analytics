@@ -150,21 +150,26 @@ export default function ComplianceTab() {
   });
   const runsData = runsRaw as RunsResponse | undefined;
 
-  // Summary counts across unresolved violations (filter-independent)
-  const { data: summaryRaw } = useQuery({
-    queryKey: ["/api/admin/compliance/violations", "summary"],
+  // Summary counts: 4 parallel limit=1 queries so the total field gives the
+  // accurate count per severity without being capped by the page size limit.
+  const summaryQueryOpts = (severity: string) => ({
+    queryKey: ["/api/admin/compliance/violations", "count", severity],
     queryFn: () =>
-      apiRequest("GET", "/api/admin/compliance/violations?resolved=false&limit=200"),
+      apiRequest("GET", `/api/admin/compliance/violations?resolved=false&severity=${severity}&limit=1`) as unknown as Promise<ViolationsResponse>,
+    staleTime: 30_000,
   });
-  const summaryData = summaryRaw as ViolationsResponse | undefined;
+  const { data: blockSummary } = useQuery(summaryQueryOpts("block"));
+  const { data: warningSummary } = useQuery(summaryQueryOpts("warning"));
+  const { data: advisorySummary } = useQuery(summaryQueryOpts("advisory"));
+  const { data: infoSummary } = useQuery(summaryQueryOpts("info"));
 
   const latestRun = runsData?.runs?.[0] ?? null;
 
   const counts = {
-    block: summaryData?.violations.filter((v: ComplianceViolation) => v.severity === "block").length ?? 0,
-    warning: summaryData?.violations.filter((v: ComplianceViolation) => v.severity === "warning").length ?? 0,
-    advisory: summaryData?.violations.filter((v: ComplianceViolation) => v.severity === "advisory").length ?? 0,
-    info: summaryData?.violations.filter((v: ComplianceViolation) => v.severity === "info").length ?? 0,
+    block: blockSummary?.total ?? 0,
+    warning: warningSummary?.total ?? 0,
+    advisory: advisorySummary?.total ?? 0,
+    info: infoSummary?.total ?? 0,
   };
 
   // ── Run audit mutation ──────────────────────────────────────────────────
