@@ -3,6 +3,7 @@ title: "feat: Costantino Data Custodian — Step 0 (agent-native skeleton + admi
 type: feat
 status: active
 date: 2026-05-09
+deepened: 2026-05-09
 ---
 
 # feat: Costantino Data Custodian — Step 0
@@ -28,8 +29,8 @@ Step 0 addresses (1) end-to-end on dev AND prod, and lays the agent-native found
 - **R1.** A new agent named **Costantino** exists with a documented charter, a system prompt, and atomic primitive tools. Costantino runs in an LLM loop — his behavior lives in prose, not in TS conditionals.
 - **R2.** A new persistent table `costantino_findings` records anything Costantino observes worth tracking, with full CRUD reachable through his tools and through SQL.
 - **R3.** Costantino's first probe correctly classifies every `admin_resources` row of `kind='integration'` into one of `{ ok, key_missing, key_invalid, rate_limited, api_down }` based on a real HTTP probe — not on env-var presence — and writes the result to `admin_resources.last_health_status` / `last_health_message`.
-- **R4.** Costantino runs on a scheduler (hourly cadence) on both dev and prod. The hook lives in `artifacts/api-server/src/index.ts` as Phase 3l, immediately after the Phase 3k Vito hook.
-- **R5.** Every threshold, timeout, cadence, and depth used by Costantino is a `DEFAULT_COSTANTINO_*` constant in `lib/shared/src/constants.ts`. No numeric literals in source.
+- **R4.** Costantino runs on a scheduler whose cadence is **admin-editable at runtime** (no redeploy needed). Initial seed value is **5 days**. The cadence lives as a row in `admin_resources` (`kind='parameter'`, `slug='costantino-health-cycle-interval-ms'`); the scheduler re-reads it at the start of every cycle so an admin edit takes effect within one cycle. The Phase 3l hook lives in `artifacts/api-server/src/index.ts` immediately after the Phase 3k Vito hook.
+- **R5.** Every threshold, timeout, max-depth, and **fallback** cadence used by Costantino is a `DEFAULT_COSTANTINO_*` constant in `lib/shared/src/constants.ts`. No numeric literals in source. The cadence constant is a *fallback only* — used when the admin row is unreachable (DB error) or missing.
 - **R6.** Costantino's LLM model is selected at runtime via `resolveLlmFor("costantino-orchestration")` against an `admin_resources` row of `kind='llm_slot'`. No hardcoded model names.
 - **R7.** Probe recipes (endpoint URL, auth header pattern, success-status set) live as JSON in `admin_resources.config_json.healthProbe` per integration row, not in TS code. Adding a new integration = SQL row, not code change.
 - **R8.** The Drizzle migration is reversible (down migration), is added to the journal, and applies cleanly on prod startup.
@@ -47,6 +48,8 @@ Step 0 addresses (1) end-to-end on dev AND prod, and lays the agent-native found
 - No LLM data-sanity audit of other minions' writes (Step 3).
 - No cross-env parity verifier or prod backfill action (Step 4).
 - No Costantino admin UI — findings viewer + manual "run now" button come in Step 5.
+
+> **Note on cadence escape hatch.** Because the default cadence is 5 days, the Step 5 "Run Costantino now" admin button is the primary on-demand trigger. Until Step 5 ships, the SQL workaround in the Risks section (temporarily lower the cadence parameter row, wait for tick, restore) is the supported way to force an immediate run.
 - No Rebecca tool integration (Step 6).
 - No automated remediation. Costantino *observes* and *reports*; he does not silently rewrite other agents' data.
 - No replacement of `resource-health-checker.ts` callers. The legacy file stays in place; Costantino subsumes its responsibility but the migration is not in this step.
@@ -107,9 +110,9 @@ This plan is architected per `.agents/skills/ce-agent-native-architecture/SKILL.
 |---|---|---|
 | **Parity** (every UI action has an agent capability) | Partial — satisfied for Step 0 surface | No Costantino UI ships in Step 0, but the tool primitives (`list_findings`, `resolve_finding`, manual probe trigger) are designed so the future Step 5 admin UI is a thin wrapper. Each future UI verb has an existing tool. |
 | **Granularity** (atomic primitives, not workflow tools) | ✅ Satisfied | Tools are read/write/probe primitives. There is **no** `fix_health_check` workflow tool — Costantino's loop composes `list_admin_resources` + `get_probe_recipe` + `probe_integration_endpoint` + `update_admin_resource_health` + `write_finding` + `complete_task`. Behavior lives in the system prompt. |
-| **Composability** (new features = new prompts) | ✅ Foundation laid | Step 1's DB-integrity probes will be a new prompt section + new primitive tools (`count_orphans`, `list_dangling_fks`), not a refactor of Costantino's loop. |
+| **Composability** (new features = new prompts) | ✅ Foundation laid | Step 1's DB-integrity probes will be a new prompt section + new primitive tools (`count_orphans`, `list_dangling_fks`), not a refactor of Costantino's loop. **Cadence is data, not code** (admin_resources parameter row) — operator can change scheduler behavior without redeploy, exactly the composition pattern the skill targets. |
 | **Emergent capability** (handle unanticipated requests) | ✅ Foundation laid | Once findings exist, asking Costantino "why was Perplexity down last Thursday?" works by `list_findings({target_kind:'integration', target_id:'perplexity', since:'2026-05-02'})` + reasoning. No "root-cause-by-date" feature is built. |
-| **Improvement over time** | ✅ Foundation laid | Findings table accumulates context. Future system-prompt iterations get sharper without code changes. |
+| **Improvement over time** | ✅ Foundation laid | Findings table accumulates context AND operators can tune cadence at runtime (parameter row) — responsiveness improves without redeploy. Future system-prompt iterations refine behavior over time without code changes. |
 
 ### Tool Design
 
@@ -156,7 +159,7 @@ This plan is architected per `.agents/skills/ce-agent-native-architecture/SKILL.
 
 ## Key Technical Decisions
 
-- **Cadence: hourly.** `DEFAULT_COSTANTINO_HEALTH_CYCLE_INTERVAL_MS = 60 * 60 * 1000`. Frequent enough to keep admin health fresh; low enough that paid integrations don't see meaningful traffic from probes.
+- **Cadence: 5 days, admin-editable at runtime.** Lives as `admin_resources` row `kind='parameter' slug='costantino-health-cycle-interval-ms'` with `config_json.value_ms` storing the integer. Initial seed = `5 * 24 * 60 * 60 * 1000` (5 days). The TS-side fallback constant `DEFAULT_COSTANTINO_HEALTH_CYCLE_INTERVAL_MS` carries the same value and is used **only** when the DB row is unreachable or missing. The scheduler re-reads the row at the start of every cycle (cheap single-row SELECT) — admin edits take effect within one cycle without any redeploy or restart. Why 5 days: integration health is slow-moving (keys rarely revoke, endpoints rarely change). Hourly probing is overkill, costs LLM tokens, and adds noise. The Step 5 admin UI will expose a "Run Costantino now" button for ad-hoc triggering between scheduled cycles.
 - **Replace vs side-by-side: side-by-side in Step 0.** `resource-health-checker.ts` stays in place this step. Costantino runs alongside, writing his own findings + updating `last_health_status`. The two writers are idempotent on the same column. Removing the legacy checker happens in Step 1 cleanup once Costantino is proven on prod for one cycle.
 - **LLM loop, not deterministic.** The probe RECIPE is data; the DECISION (is 429 a temporary rate-limit or persistent over-quota? is a slow 200 healthy?) is the agent's judgment in the loop. This honors the agent-native granularity principle and avoids the "agent executes your code" anti-pattern.
 - **`costantino_findings` schema** — full column list:
@@ -187,14 +190,18 @@ This plan is architected per `.agents/skills/ce-agent-native-architecture/SKILL.
 - **Q: Should the first probe be deterministic or agent-loop?** → Agent-loop. (User explicitly invoked `ce-agent-native-architecture`.)
 - **Q: Replace `resource-health-checker.ts` or run side-by-side?** → Side-by-side in Step 0; legacy retires in Step 1 after one prod cycle proves Costantino correct.
 - **Q: Where do probe recipes live?** → `admin_resources.config_json.healthProbe` JSON, not TS code.
-- **Q: Cadence?** → Hourly.
+- **Q: Cadence?** → 5 days, admin-editable at runtime via `admin_resources` row. TS constant is fallback only.
+- **Q: How does an admin change the cadence after deploy?** → Edit the `admin_resources` row `slug='costantino-health-cycle-interval-ms'`, field `config_json.value_ms`. Step 0 supports SQL or the existing admin_resources admin page (already exists). Step 5 will add a friendlier "Costantino settings" panel.
+- **Q: What if the admin sets cadence to something insane (e.g. 100ms or 999 years)?** → Scheduler clamps to `[DEFAULT_COSTANTINO_MIN_CYCLE_INTERVAL_MS, DEFAULT_COSTANTINO_MAX_CYCLE_INTERVAL_MS]` after reading the row. Out-of-range values log a warning and use the clamped value; the row is not auto-corrected.
 - **Q: Findings table — append-only or hard-deletable?** → Append-only in Step 0; `resolve_finding` sets `resolved_at`. Hard delete requires SQL admin until Step 5 UI.
+- **Q: Should we codegen the U1 migration SQL from `DEFAULT_COSTANTINO_*` constants to avoid integer literals (432000000, 60000, 2592000000) in the seed?** → No. A header comment in the migration citing each constant + value is sufficient for traceability. SQL files inside `lib/db/drizzle/*.sql` are exempt from the magic-numbers gate; codegen here would be over-engineering for a one-time seed row.
 
 ### Deferred to Implementation
 
 - **Q: Exact text of Costantino's system prompt?** → Authored during U3 implementation; will read like Pietro's but with the data-custody charter.
 - **Q: Should `evidence.response_summary` truncate the body, hash it, or store full JSON?** → Decide during U4; default plan: truncate to first 1KB, store full status + headers.
 - **Q: Does `admin_resources.config_json` exist on the current schema?** → Verify in U1; add column if missing. Migration is reversible either way.
+- **Q: Where do scheduler clamp warnings (admin set cadence below floor / above ceiling) surface beyond the api-server log?** → Step 0: log + `scheduler_run_tracker.notes.cadence_ms_used` (admin can SELECT to compare requested vs effective). Step 5 will surface clamp warnings in the Costantino admin panel alongside the "Run now" button.
 
 ---
 
@@ -250,7 +257,8 @@ replit.md                               # MODIFIED — Pointers + Recent Changes
 - Migration verifies/adds `admin_resources.config_json jsonb default '{}'::jsonb` if missing.
 - Migration seeds `healthProbe` recipes for every existing `kind='integration'` row currently in `admin_resources` (Perplexity / Tavily / Exa / Google Maps / Tripadvisor / OpenAI / Anthropic / Gemini / FRED / GitHub PAT / R2 — all SET in env per current secrets).
 - Migration seeds one new row: `kind='llm_slot' slug='costantino-orchestration'` pointing at the existing default orchestrator model resource.
-- Down migration drops the table, removes the seed rows by slug, leaves `config_json` column in place (data preservation > clean rollback when adding a column).
+- Migration seeds one new row: `kind='parameter' slug='costantino-health-cycle-interval-ms'` with `config_json = '{"value_ms": 432000000, "min_ms": 60000, "max_ms": 2592000000, "unit": "ms", "human": "5 days"}'::jsonb` (5 days = 432,000,000 ms; min = 1 minute = 60,000; max = 30 days = 2,592,000,000). All raw integers in the SQL seed are computed from `DEFAULT_COSTANTINO_*` constants in U2 via a code-generation comment header on the migration file (the SQL still contains literal numbers — that's allowed inside `lib/db/drizzle/*.sql`, but the comment cites the source constants for traceability).
+- Down migration drops the table, removes all three seed rows by slug, leaves `config_json` column in place (data preservation > clean rollback when adding a column).
 
 **Patterns to follow:**
 - `lib/db/drizzle/0042_*` for migration file structure and journal-entry shape
@@ -285,8 +293,16 @@ Add this block:
 
 ```ts
 // ── Costantino Data Custodian ──────────────────────────────────────────
-/** Hourly cycle for Costantino's data-custody scheduler. */
-export const DEFAULT_COSTANTINO_HEALTH_CYCLE_INTERVAL_MS = 60 * 60 * 1000;
+/**
+ * FALLBACK cycle interval, used only when the admin_resources row
+ * `slug='costantino-health-cycle-interval-ms'` is unreachable or missing.
+ * The runtime cadence is admin-editable — see R4. Initial seed = 5 days.
+ */
+export const DEFAULT_COSTANTINO_HEALTH_CYCLE_INTERVAL_MS = 5 * 24 * 60 * 60 * 1000;
+/** Lower clamp on the admin-editable cadence (1 minute). Protects against accidental DOSing of integrations. */
+export const DEFAULT_COSTANTINO_MIN_CYCLE_INTERVAL_MS = 60 * 1000;
+/** Upper clamp on the admin-editable cadence (30 days). Protects against accidental "never run". */
+export const DEFAULT_COSTANTINO_MAX_CYCLE_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000;
 /** Startup delay so other schedulers settle first. */
 export const DEFAULT_COSTANTINO_STARTUP_DELAY_MS = 120 * 1000;
 /** Max tool-call iterations per Costantino run. */
@@ -301,6 +317,8 @@ export const DEFAULT_COSTANTINO_PROBE_TIMEOUT_MS = 10_000;
 export const DEFAULT_COSTANTINO_FINDINGS_CONTEXT_LIMIT = 50;
 /** Max bytes of integration response body stored in evidence.response_summary. */
 export const DEFAULT_COSTANTINO_EVIDENCE_BODY_MAX_BYTES = 1_024;
+/** Slug of the admin_resources parameter row that controls cadence. */
+export const COSTANTINO_CADENCE_PARAM_SLUG = "costantino-health-cycle-interval-ms";
 ```
 
 **Patterns to follow:**
@@ -400,49 +418,65 @@ export const DEFAULT_COSTANTINO_EVIDENCE_BODY_MAX_BYTES = 1_024;
 
 ---
 
-### U5. Scheduler + Phase 3l startup hook
+### U5. Scheduler + admin-editable cadence + Phase 3l startup hook
 
-**Goal:** Costantino runs hourly on dev and prod.
+**Goal:** Costantino runs at the admin-configured cadence (5 days seed) on dev and prod, with admin edits taking effect within one cycle without redeploy.
 
 **Requirements:** R4, R10
 
-**Dependencies:** U3, U4
+**Dependencies:** U1 (admin_resources cadence row), U3, U4
 
 **Files:**
 - Create: `artifacts/api-server/src/jobs/costantino-scheduler.ts`
 - Modify: `artifacts/api-server/src/index.ts` (add Phase 3l hook)
 
 **Approach:**
-- Scheduler is a near-verbatim port of `vito-compliance-scheduler.ts`:
-  - `SOURCE = "costantino-data-custodian"`
-  - `CYCLE_INTERVAL_MS = DEFAULT_COSTANTINO_HEALTH_CYCLE_INTERVAL_MS`
-  - `STARTUP_DELAY_MS = DEFAULT_COSTANTINO_STARTUP_DELAY_MS`
-  - `isRunning` boolean concurrency guard
-  - `runCostantinoCycle()` calls `runCostantinoAgent("scheduled")`, catches errors, finally calls `recordSchedulerCycle({ key: "costantino-data-custodian", ... })`.
-  - `startCostantinoScheduler()` exports the lazy-import target.
+- Scheduler does **not** use `setInterval` with a fixed period (that would freeze cadence at startup time and ignore admin edits). Instead, it uses a self-rescheduling `setTimeout` chain:
+  1. On startup, after `DEFAULT_COSTANTINO_STARTUP_DELAY_MS`, fire the first cycle.
+  2. After each cycle (success or failure), call `resolveCadenceMs()` and `setTimeout(runCostantinoCycle, resolvedMs)` for the next tick.
+  3. `resolveCadenceMs()`: SELECT `config_json->>'value_ms'` from `admin_resources` WHERE `slug=COSTANTINO_CADENCE_PARAM_SLUG`. Parse to integer. Clamp to `[DEFAULT_COSTANTINO_MIN_CYCLE_INTERVAL_MS, DEFAULT_COSTANTINO_MAX_CYCLE_INTERVAL_MS]`. On any error (DB unreachable, row missing, parse failure), log warning + return `DEFAULT_COSTANTINO_HEALTH_CYCLE_INTERVAL_MS` (the fallback constant).
+  4. `runCostantinoCycle()` reads cadence FIRST (so the log line at cycle start reports the active cadence), then calls `runCostantinoAgent("scheduled")`, catches errors, finally calls `recordSchedulerCycle({ key: "costantino-data-custodian", notes: { cadence_ms_used } })`.
+  5. `isRunning` boolean concurrency guard against accidental double-fires.
+- `SOURCE = "costantino-data-custodian"`. No `CYCLE_INTERVAL_MS` module-level constant — cadence is dynamic.
+- `startCostantinoScheduler()` exports the lazy-import target.
 - `index.ts` Phase 3l hook (immediately after Phase 3k Vito):
   ```ts
-  // ── Phase 3l: Costantino data-custody scheduler ────────
+  // ── Phase 3l: Costantino data-custody scheduler (cadence admin-editable) ────────
   import("./jobs/costantino-scheduler").then(({ startCostantinoScheduler }) => {
     startCostantinoScheduler();
   });
   ```
 
 **Patterns to follow:**
-- `vito-compliance-scheduler.ts` (canonical)
-- `index.ts` Phase 3k block (exact import-then-call shape)
+- `vito-compliance-scheduler.ts` for shape (startup delay, concurrency guard, recordSchedulerCycle), but **swap `setInterval` for self-rescheduling `setTimeout` chain** so cadence reads dynamically per cycle
+- `index.ts` Phase 3k block for the exact import-then-call shape
+- `llm-config-resolver.ts` for the "read config from admin_resources at use time" pattern
 
 **Test scenarios:**
-- *Happy path:* `restart_workflow artifacts/api-server: API Server` → log shows `[costantino-data-custodian] Starting — initial run in 120s, then every 60 minute(s)`.
-- *Happy path:* After 120s, log shows `Cycle complete — N admin_resources probed, M findings written`.
-- *Edge case:* Two cycles overlap (artificially trigger via direct call) — second call no-ops with "Cycle already in progress — skipping".
-- *Error path:* Cycle throws — log captures error, scheduler-run-tracker records `status=error`, next tick still fires.
-- *Integration:* `SELECT * FROM scheduler_run_tracker WHERE key='costantino-data-custodian' ORDER BY created_at DESC LIMIT 1` shows the run after the first tick.
+- *Happy path:* `restart_workflow artifacts/api-server: API Server` → log shows `[costantino-data-custodian] Starting — initial run in 120s, then cadence read from admin_resources (seed 5 days)`.
+- *Happy path:* After 120s, log shows `[costantino-data-custodian] Cycle starting — cadence_ms=432000000 (5 days)` then `Cycle complete — N admin_resources probed, M findings written, next tick in 5 days`.
+- *Happy path admin-edit:* Update `admin_resources` cadence row to 60000 (1 minute) via SQL → next cycle log line shows `cadence_ms=60000 (1 minute)` and the following tick fires after 1 minute, not 5 days.
+- *Edge case (clamp low):* Set cadence row to 100ms → log warns `cadence 100ms below floor; using 60000ms`, scheduler waits 1 minute.
+- *Edge case (clamp high):* Set cadence row to 999 days → log warns `cadence above ceiling; using 30 days`, scheduler waits 30 days.
+- *Edge case (missing row):* Delete cadence row → log warns `cadence row missing; using fallback 5 days`, scheduler waits 5 days.
+- *Edge case (DB error during cadence read):* Mock SELECT failure → log warns `cadence read failed; using fallback 5 days`, scheduler waits 5 days; cycle still runs.
+- *Edge case (overlap):* Direct second call before first completes → second call no-ops with "Cycle already in progress — skipping".
+- *Error path:* Cycle throws — log captures error, scheduler-run-tracker records `status=error`, next tick still scheduled at current cadence.
+- *Integration:* `SELECT * FROM scheduler_run_tracker WHERE key='costantino-data-custodian' ORDER BY created_at DESC LIMIT 1` shows the run with `notes.cadence_ms_used` after the first tick.
+
+**Resilience notes (self-rescheduling setTimeout chain):**
+- (a) **Restart mid-cycle:** No durable state on the timer. On next boot, Phase 3l hook re-fires; scheduler waits `STARTUP_DELAY_MS` and resumes. In-flight cycle is lost (next-tick was never scheduled), which is fine — the post-restart cycle is the resumed cycle.
+- (b) **Cycle longer than cadence** (e.g. cadence=30s, cycle takes 60s): The `setTimeout` for next tick is scheduled in the `finally` block AFTER the cycle completes — never during. So the next tick fires `cadence_ms` after cycle-completion, not after cycle-start. `isRunning` guard prevents overlap if a manual-trigger path is added later. Effective real cadence in this pathological case = `cycle_duration + cadence_ms`. Acceptable; documented.
+- (c) **Process exit during the setTimeout wait:** Chain is non-durable (in-memory only). Phase 3l hook on next boot restarts the chain after `STARTUP_DELAY_MS`. No work is lost since cycles are stateless.
+- (d) **No timer accumulation:** Single chain — exactly one outstanding `setTimeout` handle at any moment. No memory leak risk.
+- (e) **Downtime backfill:** Not implemented. If multiple ticks "should have" fired during downtime, Costantino runs once on resume and continues from there. Acceptable for slow-moving health data; not acceptable for transactional work (out of Step 0 scope).
 
 **Verification:**
 - `pnpm run typecheck` clean.
-- Workflow log shows Costantino tick + cycle complete on dev.
-- `GET /api/admin/resources` on dev shows previously-RED rows now reflect actual health (ok / key_invalid / rate_limited / api_down) within one cycle.
+- `pnpm --filter @workspace/scripts run check:magic-numbers` clean.
+- Workflow log shows Costantino first tick + cycle complete on dev with cadence reported.
+- `GET /api/admin/resources` on dev shows previously-RED rows now reflect actual health within one cycle.
+- **Admin-edit verification:** Temporarily set cadence row to 60000ms via SQL, observe two consecutive 1-minute ticks in the log, then restore to 5 days.
 
 ---
 
@@ -479,7 +513,7 @@ export const DEFAULT_COSTANTINO_EVIDENCE_BODY_MAX_BYTES = 1_024;
 
 - **Interaction graph:** Costantino reads `admin_resources` (read+write `last_health_status`/`last_health_message`/`config_json`), writes `costantino_findings`, reads `scheduler_run_tracker` indirectly via `recordSchedulerCycle`, calls `callLlm` (which logs to `llm_calls`). No interaction with property data, slide pipeline, or Rebecca chat in Step 0.
 - **Error propagation:** Tool errors stay inside the agent loop as structured `{ error }` results. Cycle-level errors are caught by the scheduler's try/finally and surfaced via `recordSchedulerCycle({ status: "error", notes })`. No exception escapes to the api-server top level.
-- **State lifecycle risks:** `admin_resources.last_health_status` has two writers in Step 0 (legacy `resource-health-checker.ts` and Costantino). Last-writer-wins is acceptable because both writers are read-only on the column and Costantino's hourly cadence interleaves with the legacy 60s tick; the only visible effect is that Costantino's hourly verdict overwrites the legacy verdict, which is the desired direction.
+- **State lifecycle risks:** `admin_resources.last_health_status` has two writers in Step 0 (legacy `resource-health-checker.ts` and Costantino). Last-writer-wins is acceptable because both writers are column-scoped and Costantino's 5-day cadence interleaves rarely with the legacy 60s tick; the only visible effect is that Costantino's verdict (real probe) overwrites the legacy verdict (env-var presence) for ~one minute every 5 days, which is the desired direction. Admin lowering cadence for debugging makes Costantino's verdict dominate more often — also desired.
 - **API surface parity:** No new public HTTP routes in Step 0. `GET /api/admin/resources` returns the same shape with more accurate `last_health_status` values.
 - **Integration coverage:** First Costantino tick fires real HTTP probes against every configured integration. This is observable in each integration's request logs (Perplexity/Tavily/Exa/etc) — desired but worth noting.
 - **Unchanged invariants:** `resource-health-checker.ts` behavior, all Pietro/Vito/Gustavo/Marco/Rebecca code paths, all property-fact tables, all slide-pipeline tables, all auth/session behavior, the migration journal sync mechanism.
@@ -490,13 +524,14 @@ export const DEFAULT_COSTANTINO_EVIDENCE_BODY_MAX_BYTES = 1_024;
 
 | Risk | Mitigation |
 |---|---|
-| Costantino's first probe blasts all integrations at once and trips a rate limit | Cadence is hourly; probes are sequential within a tick; each is a single GET. Total probe count ≤ ~15 per hour. Well below any free-tier limit. |
+| Costantino's first probe blasts all integrations at once and trips a rate limit | Cadence is 5 days by default; probes are sequential within a tick; each is a single GET. Total probe count ≤ ~15 per cycle. Far below any free-tier limit. |
+| 5-day cadence delays detection of new integration breakages | Mitigated by Step 5 "Run Costantino now" admin button (the primary escape hatch). Until Step 5 ships, an admin can SQL-update the `admin_resources` parameter row (`slug='costantino-health-cycle-interval-ms'`) to a small value (e.g. 60000ms), wait for the next tick to fire, then restore to 432000000ms (5 days). The self-rescheduling chain picks up the new cadence on the very next tick. |
 | LLM loop loops forever | `DEFAULT_COSTANTINO_MAX_TOOL_DEPTH = 12` cap; explicit `complete_task` requirement in system prompt. |
 | Probe accidentally logs a secret | `probe_integration_endpoint` reads the secret only into the `Authorization` header value at request-build time; never assigns it to a logged variable; tool result `error` strings are sanitized. Code review must enforce. |
 | Two writers race on `admin_resources.last_health_status` | Both are idempotent and column-scoped. Last-writer-wins is the desired outcome; legacy retires in Step 1. |
 | Migration fails on prod (e.g. `gen_random_uuid()` extension missing) | Drizzle journal applies on prod startup with rollback on error per existing CLAUDE.md migration discipline; verify `pgcrypto`/`uuid-ossp` present (they are — used by `properties.id`). |
 | Costantino's model-resolver row missing in admin_resources on prod | Migration U1 seeds it idempotently. Failure mode: `runCostantinoAgent` throws on `resolveLlmFor`, scheduler catches, marks cycle error — non-fatal to api-server. |
-| Cost overrun from per-tick LLM call | Costantino runs hourly = 24 calls/day. At ~3K output tokens with Claude Sonnet, well under $1/day. Negligible. |
+| Cost overrun from per-tick LLM call | Costantino runs every 5 days = ~0.2 calls/day at default cadence. At ~3K output tokens with Claude Sonnet, cost is rounding-error per month. Even if an admin temporarily lowers cadence to 1 minute for debugging, capped exposure is ≤ $5/day until restored. |
 
 ---
 
@@ -509,23 +544,78 @@ export const DEFAULT_COSTANTINO_EVIDENCE_BODY_MAX_BYTES = 1_024;
 3. `pnpm --filter @workspace/scripts run check:migration-guards` — clean.
 4. `pnpm --filter @workspace/scripts run check:schema-drift` — clean.
 5. `pnpm run check:lint` — clean.
-6. `restart_workflow artifacts/api-server: API Server` — log shows Phase 3l Costantino hook starting.
-7. Wait `DEFAULT_COSTANTINO_STARTUP_DELAY_MS` (~2 minutes) — log shows first Costantino cycle complete with non-zero `admin_resources probed`.
-8. `curl -b <auth> localhost:80/api/admin/resources` — confirms previously-RED rows now show accurate statuses (mix of OK / key_invalid / rate_limited).
-9. `psql $POSTGRES_URL -c "SELECT count(*), severity FROM costantino_findings GROUP BY severity"` — non-zero rows with appropriate severities.
-10. `psql $POSTGRES_URL -c "SELECT * FROM scheduler_run_tracker WHERE key='costantino-data-custodian' ORDER BY created_at DESC LIMIT 1"` — last cycle has `status='ok'` or `status='warn'`.
+6. `restart_workflow artifacts/api-server: API Server` — log shows Phase 3l Costantino hook starting and the cadence read (initial 5 days).
+7. **Temporarily lower cadence for verification** so we don't wait 5 days: `psql $POSTGRES_URL -c "UPDATE admin_resources SET config_json = jsonb_set(config_json, '{value_ms}', '60000'::jsonb) WHERE slug='costantino-health-cycle-interval-ms'"`.
+8. Wait `DEFAULT_COSTANTINO_STARTUP_DELAY_MS` (~2 min) for first tick, then ~1 min for the second tick. Log shows two `Cycle complete` lines with `cadence_ms=60000 (1 minute)`.
+9. **Restore cadence:** `psql $POSTGRES_URL -c "UPDATE admin_resources SET config_json = jsonb_set(config_json, '{value_ms}', '432000000'::jsonb) WHERE slug='costantino-health-cycle-interval-ms'"`. Confirm next-tick log line shows `cadence_ms=432000000 (5 days)`.
+10. `curl -b <auth> localhost:80/api/admin/resources` — confirms previously-RED rows now show accurate statuses (mix of OK / key_invalid / rate_limited).
+11. `psql $POSTGRES_URL -c "SELECT count(*), severity FROM costantino_findings GROUP BY severity"` — non-zero rows with appropriate severities.
+12. `psql $POSTGRES_URL -c "SELECT created_at, status, notes->>'cadence_ms_used' AS cadence_used FROM scheduler_run_tracker WHERE key='costantino-data-custodian' ORDER BY created_at DESC LIMIT 5"` — last cycles have `status='ok'` or `status='warn'`, and `cadence_used` reflects the temporary 60000 then 432000000.
+
+### Pull Request (between dev verification and prod rollout)
+
+After all dev verification steps pass, ship via the `ce-commit-push-pr` skill (read `.agents/skills/ce-commit-push-pr/SKILL.md` first). Manual `git push` / `gh pr create` is acceptable as fallback if the skill is unavailable; the structure below is identical either way.
+
+- **Branch name:** `feat/costantino-data-custodian-step0`
+  - Created from `main`, single branch for all six implementation units (U1–U6). Do **not** spread across multiple PRs — Step 0 is one cohesive primitive (agent + scheduler + migration + skill) and each piece is non-functional without the others.
+- **Commit strategy:** One squash-able PR. Implementation may be multiple commits per unit (U1, U2, …, U6) for review readability, but the merge to `main` is a single squash commit. Conventional commit type = `feat`. Subject line: `feat(api-server): add Costantino data-custodian agent (Step 0)`.
+- **PR title:** `feat: Costantino — Data Custodian (Step 0: agent-native skeleton + admin_resources health probe)`
+- **PR body skeleton** (fill in during PR creation; the skill auto-drafts most of this from the diff + plan):
+
+  ```markdown
+  ## What ships
+  Costantino — first agent in the data-custody roster. Step 0 of a 7-step plan.
+
+  - New agent at `artifacts/api-server/src/ai/costantino/{agent,tools,workspace}.ts`
+  - New scheduler at `artifacts/api-server/src/jobs/costantino-scheduler.ts` (Phase 3l in `index.ts`)
+  - New table `costantino_findings` (migration `00NN_costantino_findings.sql`)
+  - New `admin_resources` rows: `kind='llm_slot' slug='costantino-orchestration'` + `kind='parameter' slug='costantino-health-cycle-interval-ms'` (initial 5 days, admin-editable)
+  - Probe recipes seeded into `admin_resources.config_json.healthProbe` per integration
+  - New skill `.agents/skills/costantino-data-custodian/SKILL.md`
+  - Updates to `CLAUDE.md` and `replit.md` (Recent Significant Changes — drop oldest)
+
+  ## Plan
+  Full plan + agent-native architecture review: `docs/plans/2026-05-09-007-feat-costantino-data-custodian-step0-plan.md`
+
+  ## Requirements satisfied
+  R1–R10 (see plan § Requirements). Each verified in dev — log evidence below.
+
+  ## Verification evidence (dev)
+  - [ ] All 12 dev-verification steps pass (paste log snippets — Phase 3l boot line, two `Cycle complete` lines, restored cadence line, admin_resources status distribution, findings count, scheduler_run_tracker rows)
+  - [ ] All seven `check:*` workflows green (typecheck, lint, magic-numbers, migration-guards, schema-drift, replit-independence, types-mirror)
+
+  ## Agent-native architecture
+  Cadence is data, not code (admin_resources parameter). Tools are atomic primitives, not workflow tools. Behavior in system prompt, not TS conditionals. Full review in plan § Agent-Native Architecture Review.
+
+  ## Risks & rollback
+  See plan § Risks & Dependencies and § Rollback. Fast-disable: comment Phase 3l hook + redeploy. Migration is reversible.
+
+  ## Prod rollout
+  Auto-deploy on merge. Prod verification is agent-owned (not human-owned) per plan § Prod verification — temporarily lower cadence to 60s, observe two ticks, restore to 5 days.
+
+  ## Out of scope (deferred)
+  Steps 1–6 of the 7-step plan — see plan § Scope Boundaries.
+  ```
+
+- **Required PR checks (all must be green before merge):**
+  - `check:typecheck`, `check:lint`, `check:magic-numbers`, `check:migration-guards`, `check:schema-drift`, `check:replit-independence`, `check:types-mirror`, `check:production-image`, `check:spinner-contrast`, `test:calc` (existing CI workflows; no new check added in Step 0)
+- **Required PR review:** `nai-code-review` skill (per `replit.md` Pointers table). Reviewer focus areas to call out in the PR body: (1) no hardcoded numbers/slugs, (2) no secret leakage in probe error strings, (3) self-rescheduling setTimeout chain ordering correctness, (4) migration reversibility, (5) parity-map updated if any new tool surface is reachable from UI in Step 0 (it isn't — confirm).
+- **Linear ticket linkage:** If a Linear issue exists for the data-custody initiative, reference it in the PR body footer (`Closes ENG-NNNN` or `Refs ENG-NNNN`). If none exists yet, the `linear` integration is configured — create one before opening the PR titled "Costantino — Data Custodian (Step 0)".
+- **Demo reel:** Not required — Step 0 has no UI surface. (Step 5 PR will need one per `ce-demo-reel` skill.)
+- **Merge gate:** Do NOT click merge until (a) all checks green, (b) one human approval, (c) verification evidence pasted into the PR body. The merge itself triggers prod auto-deploy on Railway, so treat merge = prod release.
 
 ### Prod rollout
 
-1. Merge to `main` — Railway deploys api-server image automatically.
+1. Merge the PR to `main` — Railway deploys api-server image automatically.
 2. Migration `00NN_costantino_findings.sql` auto-applies on prod startup via Drizzle journal.
 3. Phase 3l hook fires on prod startup; Costantino scheduler waits `DEFAULT_COSTANTINO_STARTUP_DELAY_MS`.
 4. First prod tick runs ~2 minutes after deploy.
 
 ### Prod verification (post-deploy, agent-owned not human-owned)
 
-1. `curl -b <prod-auth> https://<prod-domain>/api/admin/resources` after first scheduled prod tick — confirm `last_health_status` distribution mirrors dev shape (not 96 RED).
-2. Hit prod `GET /api/admin/observability/scheduler-runs?key=costantino-data-custodian&limit=1` — confirm status `ok` or `warn`.
+0. **Temporarily lower prod cadence for verification** (don't wait 5 days for the first scheduled tick): `psql $PROD_POSTGRES_URL -c "UPDATE admin_resources SET config_json = jsonb_set(config_json, '{value_ms}', '60000'::jsonb) WHERE slug='costantino-health-cycle-interval-ms'"`. Wait ~2 min STARTUP_DELAY + 2 min for two ticks, then **restore**: `UPDATE … '{value_ms}', '432000000'`. Confirm next-tick prod log line shows `cadence_ms=432000000 (5 days)`.
+1. `curl -b <prod-auth> https://<prod-domain>/api/admin/resources` after the verification ticks — confirm `last_health_status` distribution mirrors dev shape (not 96 RED).
+2. Hit prod `GET /api/admin/observability/scheduler-runs?key=costantino-data-custodian&limit=5` — confirm last cycles have status `ok` or `warn` and `notes.cadence_ms_used` reflects the temporary 60000 then 432000000.
 3. Spot-check one finding via `GET /api/admin/...` (or `psql $PROD_POSTGRES_URL`) to confirm `evidence` JSONB contains real probe response data.
 4. Compare prod and dev `admin_resources` health distribution side-by-side — they should match in shape (same integrations report same statuses; differences only where dev/prod actually differ on secrets or quotas).
 
