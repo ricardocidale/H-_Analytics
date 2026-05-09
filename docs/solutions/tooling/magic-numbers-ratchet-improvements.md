@@ -164,3 +164,4 @@ The scanner is a cross-file duplicate detector, not an in-file linter. Its value
 - `.agents/skills/no-magic-numbers/SKILL.md` — the discipline doc, kept in sync with this learning's scope clarification (in-scope vs. out-of-scope literal classes, masking anti-pattern, three canonical constants files)
 - `docs/solutions/tooling/mirror-shared-package-sync.md` — sync invariant that the content-hash deduplication relies on
 - `CLAUDE.md` §2 — the four-category number taxonomy that the masking-literal rule enforces
+- `docs/solutions/conventions/no-hardcoded-integration-identifiers-convention-2026-05-09.md` — the string-identifier extension of this rule: LLM model names, API slugs, MCP slugs, and endpoint URLs must come from `admin_resources` rows, not TypeScript constants. The `check-magic-numbers.ts` script cannot detect these; code review is the enforcement mechanism.
