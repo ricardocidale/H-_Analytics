@@ -1,7 +1,7 @@
 # H+ Analytics — CLAUDE.md (Claude Code Agent Contract)
 
 > **Canonical agent contract for Claude Code sessions in this repo.**
-> Counterpart: `replit.md` (Replit Agent contract). Shared sections (architecture, rules, vocabulary, skill table) must stay verbatim-identical between the two files. See § "Memory-file harmonization (mandatory shipping gate)" below.
+> Counterpart: `replit.md` (Replit Agent contract) — uses the **pointer model**: replit.md holds Replit-specific extras and a routing table; this file is the canonical source for all shared content. When touching either file, run a harmonization pass on the other before shipping (see § "Memory-file harmonization (mandatory shipping gate)" below).
 
 These rules apply to every session, every agent, every plan and implementation unit.
 They are non-negotiable. Skills (`no-magic-numbers`, `hplus-variable-taxonomy`) provide
@@ -190,25 +190,7 @@ from Brazilian or Italian naming traditions (male or female).
 - `short_description` — 1-2 sentences for card/list views
 - `long_description` — full capabilities, inputs, outputs, model tier
 
-**Reserved names (already in use — never reuse):**
-- App agents: Rebecca, Iris
-- Analyst orchestrator: Gustavo
-- Research specialists: Ana, Bia, Cecília, Mariana, Natália, Olívia, Paula,
-  Daniela, Eloá, Fernanda, Giovanna, Helena, Isadora, Júlia, Kamila, Letícia
-- Cross-app financial-agents service: Davide (`finance/service.ts`,
-  `finance/recompute.ts`, `finance/apply-model-constants.ts` — see
-  `docs/discipline/financial-agents-contract.md`)
-- Slide factory orchestrator: Marco
-- Slide factory cross-app: Lucca, Maya
-- Slide factory swarms: Lorenzo, Sofia, Bianca, Chiara, Dario, Elisa, Felix
-- Slide factory minions: Aldo, Bruno, Carlo, Dino, Enzo, Franco
-- Data infrastructure orchestrator: Pietro
-- Data infrastructure minions: MinionFredExtended, MinionFmpReit, MinionDaloopaReit, MinionBookingRates, MinionExpediaRates, MinionExa
-- Data custodian (integration-health audit): Costantino
-
-**Never use:** Sergio, Milton
-
-**Skill for full detail:** `.agents/skills/slide-factory/SKILL.md`
+**Reserved names and full inventory:** `.agents/skills/slide-factory/SKILL.md`. Never use: Sergio, Milton.
 
 ---
 
@@ -383,7 +365,7 @@ Specialists are **dev-defined only** — see `.claude/rules/specialists-are-dev-
 
 ### Costantino — Data Custodian (Step 0)
 
-Costantino is the periodic agentic loop that audits every external integration registered in `admin_resources` (kinds `api`, `source`, `mcp`). He probes each row that has a `config.healthProbe` recipe, persists the outcome via `storage.recordProbeResult` (atomic write to `resource_health_checks` + parent), and opens/closes rows in `costantino_findings`. Cadence is admin-editable at runtime via the `admin_resources` parameter row `costantino-health-cycle-interval-ms` (default 5 days, clamp 60s–30d). Self-rescheduling `setTimeout` chain (NOT `setInterval`) so the cadence change takes effect on the next tick. **Step 0 boundary:** runs side-by-side with the legacy `resource-health-checker.ts` — Step 1 retires it. Skill: `.agents/skills/costantino-data-custodian/SKILL.md`.
+Periodic agentic health-audit loop for all `admin_resources` rows with a `config.healthProbe` recipe. Runs side-by-side with legacy `resource-health-checker.ts` (Step 1 retires it). Admin-editable cadence via parameter row `costantino-health-cycle-interval-ms`. Full contract: `.agents/skills/costantino-data-custodian/SKILL.md`.
 
 ### Intelligence Display — specialist-sourced UI affordances
 
@@ -451,12 +433,7 @@ Generates a 6-slide investor deck per property as a PDF matched to the canonical
 
 ### `reference_brands` AI pipeline wiring
 
-The `reference_brands` table is wired into three AI surfaces:
-1. **Research orchestrator** — `get_reference_brands` tool (DI pattern on `handleToolCall`)
-2. **Funding Specialist** — orientation-grade comp-set injected into the Prompt Engineer user prompt
-3. **Rebecca KB** — brand summaries indexed at rebuild time via `buildReferenceBrandsKbDoc()`
-
-ADR-007 §1 applies: prompt-builder and funding-builder layers are DB-import-free; the route layer does all fetching. Full pattern: `docs/solutions/architecture-patterns/reference-brands-ai-pipeline-wiring-2026-05-02.md`.
+`reference_brands` feeds three AI surfaces (research orchestrator, Funding Specialist, Rebecca KB) via the DI pattern — route layer fetches, calc/engine layers are DB-import-free (ADR-007 §1). Full pattern: `docs/solutions/architecture-patterns/reference-brands-ai-pipeline-wiring-2026-05-02.md`.
 
 ### Inviolable login / auth rules
 
@@ -487,60 +464,9 @@ Two-layer system — know both before touching the DB:
 
 **Drizzle snapshot baseline:** `lib/db/migrations/meta/0042_snapshot.json` is the canonical up-to-date snapshot (added Task #1199, May 2026), describing all 112 tables as of `0044_users_rebecca_history_open`. The original `0000_snapshot.json` (8 tables) is kept as the historical root and must not be replaced — it anchors the snapshot chain. Run `pnpm --filter @workspace/db run generate` to produce a new migration from the current TypeScript schema; drizzle-kit will automatically write a new numbered snapshot alongside the SQL file.
 
-#### Schema change workflow (one command — always use this)
+#### Schema change workflow
 
-Use this cycle for every column addition, table creation, or schema modification:
-
-```
-1. Edit the TypeScript schema
-   └── lib/db/src/schema/<table>.ts
-
-2. Generate the migration
-   └── pnpm --filter @workspace/db run generate
-       Writes lib/db/migrations/<next-N>_<name>.sql
-       and    lib/db/migrations/meta/<next-N>_snapshot.json
-
-3. Review the generated SQL
-   └── Open the new .sql file — confirm it matches the intended DDL.
-       drizzle-kit derives the diff from the previous snapshot, so
-       check especially for accidental DROP statements.
-
-4. Apply the migration
-   Option A (preferred — applies via the normal boot path):
-     Commit the migration file and deploy / restart the server.
-     drizzle-orm/node-postgres/migrator runs it once at boot.
-
-   Option B (dev shortcut — applies immediately without restart):
-     Run a one-off pg script:
-       node -e "
-         const { Pool } = require('./artifacts/api-server/node_modules/pg');
-         const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
-         const fs = require('fs');
-         pool.query(fs.readFileSync('lib/db/migrations/<N>_<name>.sql','utf8'))
-           .then(() => { console.log('done'); pool.end(); });
-       "
-
-5. Sync drizzle.__drizzle_migrations (only needed after Option B)
-   Compute the SHA-256 of the new .sql file and insert a row:
-     node -e "
-       const { Pool } = require('./artifacts/api-server/node_modules/pg');
-       const crypto = require('crypto');
-       const fs = require('fs');
-       const sql = fs.readFileSync('lib/db/migrations/<N>_<name>.sql');
-       const hash = crypto.createHash('sha256').update(sql).digest('hex');
-       const pool = new Pool({ connectionString: process.env.POSTGRES_URL });
-       pool.query(
-         'INSERT INTO drizzle.__drizzle_migrations (hash, created_at) VALUES (\$1, \$2)',
-         [hash, Date.now()]
-       ).then(() => { console.log('inserted', hash); pool.end(); });
-     "
-
-6. Run the migration guard check
-   └── pnpm --filter @workspace/scripts run check:migration-guards
-       Must pass before the change is considered done.
-```
-
-**Never craft migration SQL by hand** unless drizzle-kit cannot express the change (e.g. a complex data backfill). In that case, write the SQL file manually into `lib/db/migrations/` using the correct sequence number, then follow steps 5–6 above to register the hash.
+Always use `pnpm --filter @workspace/db run generate` to produce migrations; never craft SQL by hand (except complex backfills). Full step-by-step runbook with bash scripts: `.local/skills/pnpm-workspace/references/db.md`.
 
 **Querying the real DB in dev:** The Replit code-execution `executeSql()` callback connects to Replit's built-in PostgreSQL, NOT the app's Neon database. To query the real DB: use admin API endpoints via `curl -b <cookie>` (authenticate with `POST /api/auth/dev-login`), or run a one-off Node.js script with `process.env.POSTGRES_URL` and the `pg` client at `artifacts/api-server/node_modules/pg`.
 
