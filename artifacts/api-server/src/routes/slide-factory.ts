@@ -298,6 +298,41 @@ const slotPatchSchema = z.object({
   approved: z.boolean().optional(),
 });
 
+/** Slots whose value is a fetchable URL — must be validated to block javascript:,
+ *  data:, and private-network hosts before the value lands in the deck payload
+ *  (mirrors Iris ingest validation). Empty string is allowed (clears the override). */
+const URL_VALUED_SLOT_KEYS = new Set<string>(["slide3.interiorPhotoUrl"]);
+
+const SLOT_URL_ALLOWED_SCHEMES = new Set(["http:", "https:"]);
+const SLOT_URL_BLOCKED_HOST_PATTERNS: RegExp[] = [
+  /^localhost$/i,
+  /^127\./,
+  /^0\.0\.0\.0$/,
+  /^10\./,
+  /^172\.(1[6-9]|2[0-9]|3[01])\./,
+  /^192\.168\./,
+  /^169\.254\./,
+];
+
+function validateSlotUrlValue(rawUrl: string): string | null {
+  if (rawUrl === "") return null; // empty clears the slot override
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    return "Invalid URL format";
+  }
+  if (!SLOT_URL_ALLOWED_SCHEMES.has(parsed.protocol)) {
+    return `Unsupported URL scheme '${parsed.protocol}' — only http and https are allowed`;
+  }
+  for (const pattern of SLOT_URL_BLOCKED_HOST_PATTERNS) {
+    if (pattern.test(parsed.hostname)) {
+      return `Host '${parsed.hostname}' is a private or internal address and cannot be used`;
+    }
+  }
+  return null;
+}
+
 router.patch(
   "/api/lb-slides/factory/runs/:id/slots/:key",
   requireAdmin,
@@ -316,6 +351,15 @@ router.patch(
       const parsed = slotPatchSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
+      }
+
+      // URL slots get an extra hop of validation — block javascript:, data:,
+      // and private/internal hosts before the value lands in the rendered deck.
+      if (parsed.data.value !== undefined && URL_VALUED_SLOT_KEYS.has(slotKey)) {
+        const urlError = validateSlotUrlValue(parsed.data.value);
+        if (urlError) {
+          return res.status(HTTP_400_BAD_REQUEST).json({ error: urlError });
+        }
       }
 
       const run = await getSlideFactoryRun(id, user.id);
@@ -532,6 +576,9 @@ router.post(
 
       // Fire-and-forget Franco render. skipDeckKeyWrite=true so we can write
       // status + deckR2Key + completedAt in a single atomic call on success.
+      // Use req.log inside the IIFE so all rebuild work is correlated with the
+      // originating request in the structured logs (project guideline).
+      const reqLog = req.log;
       void (async () => {
         try {
           const { deckR2Key } = await runFranco(id, {
@@ -543,9 +590,8 @@ router.post(
           try {
             await runMayaForOverriddenSlides(id);
           } catch (mayaErr) {
-            logger.error(
+            reqLog.error(
               `[rebuild] run ${id}: runMayaForOverriddenSlides failed — ${String(mayaErr)}`,
-              "slide-factory",
             );
           }
           await updateSlideFactoryRun(id, {
@@ -553,11 +599,10 @@ router.post(
             deckR2Key,
             completedAt: new Date(),
           });
-          logger.info(`[rebuild] run ${id}: rebuild complete (${deckR2Key})`, "slide-factory");
+          reqLog.info(`[rebuild] run ${id}: rebuild complete (${deckR2Key})`);
         } catch (err) {
-          logger.error(
+          reqLog.error(
             `[rebuild] run ${id}: Franco failed — reverting to complete: ${String(err)}`,
-            "slide-factory",
           );
           // Revert so the admin can trigger another rebuild.
           await updateSlideFactoryRun(id, { status: "complete" }).catch(() => {});

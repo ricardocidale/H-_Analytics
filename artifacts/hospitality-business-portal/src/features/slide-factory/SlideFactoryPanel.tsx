@@ -1737,7 +1737,10 @@ function SlotEditor({
     setLocalValue(draft?.value ?? "");
   }, [draft?.value]);
 
-  const handleSave = async () => {
+  const handleSave = async (valueOverride?: string) => {
+    // Accept an explicit value to bypass React state-batching staleness when
+    // a caller (e.g. the photo "clear" button) needs to save a value it just set.
+    const valueToSave = valueOverride !== undefined ? valueOverride : localValue;
     setSaving(true);
     try {
       const r = await fetch(
@@ -1746,7 +1749,7 @@ function SlotEditor({
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ value: localValue }),
+          body: JSON.stringify({ value: valueToSave }),
         },
       );
       if (!r.ok) {
@@ -1848,7 +1851,9 @@ function SlotEditor({
                 type="button"
                 onClick={() => {
                   setLocalValue("");
-                  void handleSave();
+                  // Pass "" explicitly — React state batching means localValue
+                  // would still hold the old URL inside handleSave's closure.
+                  void handleSave("");
                 }}
                 disabled={disabled}
                 className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center"
