@@ -416,3 +416,9 @@ export const SLIDE_FACTORY_RUNS_LIST_LIMIT             = 20;
 
 /** Maximum unapproved-slot keys returned in a Rebecca trigger-build error. */
 export const SLIDE_FACTORY_UNAPPROVED_SLOTS_PREVIEW    = 10;
+
+/** Max tokens for a slot suggest call (short copywriting improvement; must fit in one response). */
+export const AI_SLOT_SUGGEST_MAX_TOKENS = 400;
+
+/** Temperature for slot suggest calls — deterministic-leaning for consistent copywriting output. */
+export const AI_SLOT_SUGGEST_TEMPERATURE = 0.4;

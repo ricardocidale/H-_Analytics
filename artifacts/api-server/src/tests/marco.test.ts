@@ -1,11 +1,13 @@
 /**
- * Marco — Unit 1 + Unit 7 tests.
+ * Marco — Unit 1 + Unit 7 + U4 (Enzo) tests.
  *
- * Two layers:
+ * Three layers:
  *   1. dispatchMarcoTool — deterministic primitive tools (no LLM)
- *   2. runMarco          — bounded agent loop (scripted Anthropic mock)
+ *   2. checkVerdictCache — Enzo unit tests (pure function, no mocks needed)
+ *   3. runMarco          — bounded agent loop (scripted Anthropic mock)
  *
  * U7 additions: invoke_maya, invoke_dino, and raw-signal update_agent_result.
+ * U4 Enzo: verdict cache skip for unchanged slides on Marco retrigger.
  * Per-slide sequence: dispatch_slide_team → invoke_maya → invoke_dino → update_agent_result.
  * Approval logic lives in handleUpdateAgentResult (deterministic), not in Marco's prompt.
  */
@@ -64,6 +66,7 @@ import { runDino } from "../slides/dino";
 import { runFranco } from "../slides/minions/franco";
 import { runMarco } from "../slides/marco";
 import { MARCO_TOOLS, dispatchMarcoTool, handleProduceDeck } from "../slides/marco-tools";
+import { checkVerdictCache, computeSlideContentHash } from "../slides/minions/enzo";
 import { MARCO_MAX_TOOL_DEPTH, TOTAL_SLIDES } from "../slides/deck-render-constants";
 import { MARCO_SYSTEM_PROMPT } from "../slides/marco";
 
@@ -402,7 +405,308 @@ describe("handleProduceDeck", () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Layer 1c: MARCO_TOOLS schema + system prompt sanity
+// Layer 1c: Enzo verdict cache (checkVerdictCache + invoke_maya cache integration)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Build a minimal SlideFactoryRun-like fixture for Enzo tests. */
+function makeEnzoRun(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 42,
+    status: "building",
+    luccaDraft: {
+      "slide1.headerSubtitle": { value: "Hotel Alpha", approved: true, approvedAt: "2026-05-07", source: "lucca" },
+      "slide1.tagline": { value: "Luxury at its finest", approved: true, approvedAt: "2026-05-07", source: "lucca" },
+      "slide2.operationalModelText": { value: "Strong ops", approved: true, approvedAt: "2026-05-07", source: "lucca" },
+    },
+    agentResults: {
+      slide1: {
+        status: "approved",
+        pixelDiffPct: 1.0,
+        mayaVerdict: "ok",
+        mayaNotes: null,
+        approvedAt: "2026-05-07T00:00:00Z",
+        errorMessage: null,
+      },
+    },
+    slotContentHashes: null,
+    briefR2Key: "uploads/brief.pdf",
+    ...overrides,
+  };
+}
+
+describe("Enzo — computeSlideContentHash", () => {
+  it("returns sorted-key concatenation with | separator", () => {
+    const draft = {
+      "slide1.tagline": { value: "Luxury at its finest" },
+      "slide1.headerSubtitle": { value: "Hotel Alpha" },
+      "slide2.body": { value: "Other slide" },
+    };
+    // Keys sorted alphabetically: slide1.headerSubtitle < slide1.tagline
+    const hash = computeSlideContentHash(draft as never, "slide1");
+    expect(hash).toBe("Hotel Alpha|Luxury at its finest");
+  });
+
+  it("returns empty string when no keys match the slide prefix", () => {
+    const draft = { "slide2.body": { value: "Other" } };
+    expect(computeSlideContentHash(draft as never, "slide1")).toBe("");
+  });
+
+  it("is sensitive to value changes", () => {
+    const draft1 = { "slide1.title": { value: "V1" } };
+    const draft2 = { "slide1.title": { value: "V2" } };
+    expect(computeSlideContentHash(draft1 as never, "slide1")).not.toBe(
+      computeSlideContentHash(draft2 as never, "slide1"),
+    );
+  });
+});
+
+describe("Enzo — checkVerdictCache", () => {
+  it("cache hit: matching hash + ok verdict → fromCache: true", async () => {
+    // Pre-compute what the hash will be for the slide1 slots in makeEnzoRun
+    const luccaDraft = {
+      "slide1.headerSubtitle": { value: "Hotel Alpha" },
+      "slide1.tagline": { value: "Luxury at its finest" },
+    };
+    const hash = computeSlideContentHash(luccaDraft as never, "slide1");
+
+    const run = makeEnzoRun({
+      slotContentHashes: { slide1: hash },
+    });
+
+    const result = await checkVerdictCache(run as never, "slide1");
+    expect(result.fromCache).toBe(true);
+    if (result.fromCache) {
+      expect(result.mayaVerdict).toBe("ok");
+      expect(result.mayaNotes).toBeNull();
+    }
+  });
+
+  it("cache hit: matching hash + advisory verdict → fromCache: true", async () => {
+    const luccaDraft = {
+      "slide1.headerSubtitle": { value: "Hotel Alpha" },
+      "slide1.tagline": { value: "Luxury at its finest" },
+    };
+    const hash = computeSlideContentHash(luccaDraft as never, "slide1");
+
+    const run = makeEnzoRun({
+      agentResults: {
+        slide1: { status: "approved", pixelDiffPct: 1.0, mayaVerdict: "advisory", mayaNotes: "minor phrasing", approvedAt: "2026-05-07T00:00:00Z", errorMessage: null },
+      },
+      slotContentHashes: { slide1: hash },
+    });
+
+    const result = await checkVerdictCache(run as never, "slide1");
+    expect(result.fromCache).toBe(true);
+    if (result.fromCache) {
+      expect(result.mayaVerdict).toBe("advisory");
+      expect(result.mayaNotes).toBe("minor phrasing");
+    }
+  });
+
+  it("cache miss: content changed (hash mismatch) → fromCache: false", async () => {
+    // Store a stale hash (computed from different content)
+    const run = makeEnzoRun({
+      slotContentHashes: { slide1: "stale-hash-value" },
+    });
+
+    const result = await checkVerdictCache(run as never, "slide1");
+    expect(result.fromCache).toBe(false);
+  });
+
+  it("cache miss: no prior slotContentHashes entry → fromCache: false", async () => {
+    const run = makeEnzoRun({
+      slotContentHashes: null,
+    });
+
+    const result = await checkVerdictCache(run as never, "slide1");
+    expect(result.fromCache).toBe(false);
+  });
+
+  it("cache miss: no prior agentResult for slide → fromCache: false", async () => {
+    const run = makeEnzoRun({
+      agentResults: null,
+      slotContentHashes: { slide1: "some-hash" },
+    });
+
+    const result = await checkVerdictCache(run as never, "slide1");
+    expect(result.fromCache).toBe(false);
+  });
+
+  it("cache miss: prior verdict is 'block' → always re-judges, fromCache: false", async () => {
+    const luccaDraft = {
+      "slide1.headerSubtitle": { value: "Hotel Alpha" },
+      "slide1.tagline": { value: "Luxury at its finest" },
+    };
+    const hash = computeSlideContentHash(luccaDraft as never, "slide1");
+
+    const run = makeEnzoRun({
+      agentResults: {
+        slide1: { status: "rejected", pixelDiffPct: 1.0, mayaVerdict: "block", mayaNotes: "serious issue", approvedAt: null, errorMessage: "maya=block" },
+      },
+      slotContentHashes: { slide1: hash },
+    });
+
+    const result = await checkVerdictCache(run as never, "slide1");
+    expect(result.fromCache).toBe(false);
+  });
+
+  it("cache miss: prior verdict is 'warning' → always re-judges, fromCache: false", async () => {
+    const luccaDraft = {
+      "slide1.headerSubtitle": { value: "Hotel Alpha" },
+      "slide1.tagline": { value: "Luxury at its finest" },
+    };
+    const hash = computeSlideContentHash(luccaDraft as never, "slide1");
+
+    const run = makeEnzoRun({
+      agentResults: {
+        slide1: { status: "rejected", pixelDiffPct: 1.0, mayaVerdict: "warning", mayaNotes: "revenue unverifiable", approvedAt: null, errorMessage: "maya=warning" },
+      },
+      slotContentHashes: { slide1: hash },
+    });
+
+    const result = await checkVerdictCache(run as never, "slide1");
+    expect(result.fromCache).toBe(false);
+  });
+});
+
+describe("Enzo — invoke_maya cache integration via dispatchMarcoTool", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("cache hit: runMaya not called when slotContentHashes matches and verdict is ok", async () => {
+    // Build a run where the hash matches current luccaDraft content
+    const luccaDraft: Record<string, { value: string; approved: boolean; approvedAt: string | null; source: string }> = {
+      "slide1.headerSubtitle": { value: "Hotel Alpha", approved: true, approvedAt: "2026-05-07", source: "lucca" },
+      "slide1.tagline": { value: "Luxury at its finest", approved: true, approvedAt: "2026-05-07", source: "lucca" },
+    };
+    const hash = computeSlideContentHash(luccaDraft as never, "slide1");
+
+    (getSlideFactoryRunById as Mock).mockResolvedValue(
+      makeRun({
+        luccaDraft,
+        agentResults: {
+          slide1: { status: "approved", pixelDiffPct: 1.0, mayaVerdict: "ok", mayaNotes: null, approvedAt: "2026-05-07T00:00:00Z", errorMessage: null },
+        },
+        slotContentHashes: { slide1: hash },
+      }),
+    );
+
+    // Populate dispatch cache so invoke_maya can find it (even though Enzo should skip it)
+    (dispatchSlideTeam as Mock).mockResolvedValue({
+      slideNumber: 1, status: "ok", payloadV2: { x: 1 }, notes: null,
+    });
+    await dispatchMarcoTool("dispatch_slide_team", { runId: 42, slideNumber: 1 }, { runId: 42 });
+
+    const out = await dispatchMarcoTool("invoke_maya", { runId: 42, slideNumber: 1 }, { runId: 42 });
+    expect(runMaya).not.toHaveBeenCalled();
+    expect(out.result).toMatchObject({ verdict: "ok", headline: null });
+  });
+
+  it("cache miss (content changed): runMaya IS called when hash mismatches", async () => {
+    const luccaDraft: Record<string, { value: string; approved: boolean; approvedAt: string | null; source: string }> = {
+      "slide1.headerSubtitle": { value: "Hotel Alpha NEW", approved: true, approvedAt: "2026-05-07", source: "lucca" },
+    };
+
+    (getSlideFactoryRunById as Mock).mockResolvedValue(
+      makeRun({
+        luccaDraft,
+        agentResults: {
+          slide1: { status: "approved", pixelDiffPct: 1.0, mayaVerdict: "ok", mayaNotes: null, approvedAt: "2026-05-07T00:00:00Z", errorMessage: null },
+        },
+        // stale hash — content changed
+        slotContentHashes: { slide1: "old-hash-value" },
+      }),
+    );
+
+    (runMaya as Mock).mockResolvedValue({ verdict: "ok", headline: "Good", notes: null });
+    (dispatchSlideTeam as Mock).mockResolvedValue({
+      slideNumber: 1, status: "ok", payloadV2: { assembled: true }, notes: null,
+    });
+    await dispatchMarcoTool("dispatch_slide_team", { runId: 42, slideNumber: 1 }, { runId: 42 });
+
+    await dispatchMarcoTool("invoke_maya", { runId: 42, slideNumber: 1 }, { runId: 42 });
+    expect(runMaya).toHaveBeenCalledTimes(1);
+  });
+
+  it("cache miss (no prior hash): runMaya IS called when slotContentHashes is null", async () => {
+    (getSlideFactoryRunById as Mock).mockResolvedValue(
+      makeRun({
+        agentResults: {
+          slide1: { status: "approved", pixelDiffPct: 1.0, mayaVerdict: "ok", mayaNotes: null, approvedAt: "2026-05-07T00:00:00Z", errorMessage: null },
+        },
+        slotContentHashes: null,
+      }),
+    );
+
+    (runMaya as Mock).mockResolvedValue({ verdict: "ok", headline: "Good", notes: null });
+    (dispatchSlideTeam as Mock).mockResolvedValue({
+      slideNumber: 1, status: "ok", payloadV2: { assembled: true }, notes: null,
+    });
+    await dispatchMarcoTool("dispatch_slide_team", { runId: 42, slideNumber: 1 }, { runId: 42 });
+
+    await dispatchMarcoTool("invoke_maya", { runId: 42, slideNumber: 1 }, { runId: 42 });
+    expect(runMaya).toHaveBeenCalledTimes(1);
+  });
+
+  it("cache miss (block verdict): runMaya IS called even if hash matches", async () => {
+    const luccaDraft: Record<string, { value: string; approved: boolean; approvedAt: string | null; source: string }> = {
+      "slide1.headerSubtitle": { value: "Hotel Alpha", approved: true, approvedAt: "2026-05-07", source: "lucca" },
+    };
+    const hash = computeSlideContentHash(luccaDraft as never, "slide1");
+
+    (getSlideFactoryRunById as Mock).mockResolvedValue(
+      makeRun({
+        luccaDraft,
+        agentResults: {
+          slide1: { status: "rejected", pixelDiffPct: 1.0, mayaVerdict: "block", mayaNotes: "bad", approvedAt: null, errorMessage: "maya=block" },
+        },
+        slotContentHashes: { slide1: hash },
+      }),
+    );
+
+    (runMaya as Mock).mockResolvedValue({ verdict: "ok", headline: "Fixed now", notes: null });
+    (dispatchSlideTeam as Mock).mockResolvedValue({
+      slideNumber: 1, status: "ok", payloadV2: { assembled: true }, notes: null,
+    });
+    await dispatchMarcoTool("dispatch_slide_team", { runId: 42, slideNumber: 1 }, { runId: 42 });
+
+    await dispatchMarcoTool("invoke_maya", { runId: 42, slideNumber: 1 }, { runId: 42 });
+    expect(runMaya).toHaveBeenCalledTimes(1);
+  });
+
+  it("after a successful Maya call with ok verdict, updateSlideFactoryRun writes slotContentHashes", async () => {
+    const luccaDraft: Record<string, { value: string; approved: boolean; approvedAt: string | null; source: string }> = {
+      "slide2.operationalModelText": { value: "Strong ops", approved: true, approvedAt: "2026-05-07", source: "lucca" },
+    };
+
+    (getSlideFactoryRunById as Mock).mockResolvedValue(
+      makeRun({
+        luccaDraft,
+        agentResults: null,
+        slotContentHashes: null,
+      }),
+    );
+    (updateSlideFactoryRun as Mock).mockResolvedValue({ id: 42, status: "building" });
+    (runMaya as Mock).mockResolvedValue({ verdict: "ok", headline: "Good", notes: null });
+    (dispatchSlideTeam as Mock).mockResolvedValue({
+      slideNumber: 2, status: "ok", payloadV2: { assembled: true }, notes: null,
+    });
+
+    await dispatchMarcoTool("dispatch_slide_team", { runId: 42, slideNumber: 2 }, { runId: 42 });
+    await dispatchMarcoTool("invoke_maya", { runId: 42, slideNumber: 2 }, { runId: 42 });
+
+    expect(updateSlideFactoryRun).toHaveBeenCalledWith(
+      42,
+      expect.objectContaining({
+        slotContentHashes: expect.objectContaining({ slide2: expect.any(String) }),
+      }),
+    );
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Layer 1d: MARCO_TOOLS schema + system prompt sanity
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("MARCO_TOOLS schema + system prompt", () => {

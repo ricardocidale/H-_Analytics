@@ -124,6 +124,13 @@ export const slideFactoryRuns = pgTable(
     // Tab 6 — Final rendered deck
     deckR2Key: text("deck_r2_key"),
 
+    // Enzo verdict cache — keyed by "slide1".."slide6"; value is the
+    // SHA-256-like content hash of all slot draft values for that slide at the
+    // time the last approved Maya verdict was recorded. Used to skip re-judging
+    // unchanged slides on Marco retrigger from `error` status.
+    slotContentHashes: jsonb("slot_content_hashes")
+      .$type<Record<string, string>>(),
+
     // Timestamps
     startedAt: timestamp("started_at", { withTimezone: true }),
     completedAt: timestamp("completed_at", { withTimezone: true }),

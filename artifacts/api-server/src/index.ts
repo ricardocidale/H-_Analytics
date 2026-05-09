@@ -33,6 +33,7 @@ import { internalLbDeckPayloadRouter } from "./routes/internal-lb-deck-payload";
 import { propertyDeckPayloadRouter } from "./routes/property-deck-payload";
 import { lbDeckPdfRouter } from "./routes/lb-deck-pdf";
 import { slideFactoryRouter } from "./routes/slide-factory";
+import { registerSlideFactorySuggestRoutes } from "./routes/slide-factory-suggest";
 import { indexKnowledgeBase } from "./ai/knowledge-base";
 import { indexAllAssets } from "./ai/asset-intelligence";
 import { indexAllMarketResearch } from "./ai/vector-indexing";
@@ -209,6 +210,7 @@ app.use((req, res, next) => {
   app.use(propertyDeckPayloadRouter);
   app.use(lbDeckPdfRouter);
   app.use(slideFactoryRouter);
+  registerSlideFactorySuggestRoutes(app);
   const { registerGoogleAuthRoutes } = await import("./routes/google-auth");
   registerGoogleAuthRoutes(app);
   await registerRoutes(httpServer, app);

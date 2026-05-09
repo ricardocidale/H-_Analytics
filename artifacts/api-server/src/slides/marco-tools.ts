@@ -28,6 +28,7 @@ import {
   updateSlideFactoryRun,
   updateAgentResult,
 } from "../storage/slide-factory-runs";
+import { logger } from "../logger";
 import type { SlideAgentResult } from "../storage/slide-factory-runs";
 import { dispatchSlideTeam } from "./swarms/dispatch";
 import type { SlideTeamInput, SlideTeamOutput, SlideNumber } from "./swarms/types";
@@ -36,6 +37,7 @@ import { runMaya } from "./maya";
 import type { MayaVerdictLevel } from "./maya";
 import { runDino } from "./dino";
 import { runFranco } from "./minions/franco";
+import { checkVerdictCache, computeSlideContentHash } from "./minions/enzo";
 import { CANONICAL_ASSETS } from "./canonical-assets";
 import { TOTAL_SLIDES } from "./deck-render-constants";
 
@@ -353,7 +355,25 @@ async function handleInvokeMaya(runId: number, slideNumber: SlideNumber) {
   const run = await getSlideFactoryRunById(runId);
   if (!run) return { error: `Run ${runId} not found` };
 
+  const slideKey = `slide${slideNumber}`;
   const cacheKey = `${runId}:${slideNumber}`;
+
+  // Check Enzo verdict cache before calling the Maya LLM. Always delete the
+  // dispatched payload regardless of cache outcome to avoid memory leaks.
+  const cacheResult = await checkVerdictCache(run, slideKey);
+  if (cacheResult.fromCache) {
+    dispatchedPayloads.delete(cacheKey);
+    logger.info(
+      `[enzo] cache hit for ${slideKey} on run ${runId} — skipping Maya call`,
+      "slide-factory",
+    );
+    return {
+      verdict: cacheResult.mayaVerdict,
+      headline: null,
+      notes: cacheResult.mayaNotes,
+    };
+  }
+
   const payloadV2 = dispatchedPayloads.get(cacheKey) ?? null;
   dispatchedPayloads.delete(cacheKey);
 
@@ -368,6 +388,18 @@ async function handleInvokeMaya(runId: number, slideNumber: SlideNumber) {
   );
 
   const output = await runMaya(slideNumber, payloadV2, slotDrafts as Record<string, LuccaSlotDraft>);
+
+  // Write content hash after a successful Maya verdict so Enzo can detect
+  // unchanged slides on future retriggers. Only write for approved-ish
+  // verdicts — warning/block are not cached (Enzo won't use this hash).
+  if (output.verdict === "ok" || output.verdict === "advisory") {
+    const newHash = computeSlideContentHash(luccaDraft, slideKey);
+    const existingHashes = run.slotContentHashes ?? {};
+    await updateSlideFactoryRun(runId, {
+      slotContentHashes: { ...existingHashes, [slideKey]: newHash },
+    });
+  }
+
   return {
     verdict: output.verdict,
     headline: output.headline,

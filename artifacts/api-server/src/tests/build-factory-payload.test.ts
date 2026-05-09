@@ -138,6 +138,7 @@ function makeCompleteRun(
       },
     },
     deckR2Key: null,
+    slotContentHashes: null,
     startedAt: now,
     completedAt: now,
     createdAt: now,

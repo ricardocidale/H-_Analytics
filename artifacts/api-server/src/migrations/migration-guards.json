@@ -190,6 +190,10 @@
     "0046_reference_data_tables": {
       "status": "self-idempotent",
       "reason": "CREATE TABLE IF NOT EXISTS geography_dimension, jurisdictional_taxes, market_cap_rates, regulatory_fees — reference data tables for geo/tax/fees/cap-rate Analyst research. All CREATE TABLE statements use IF NOT EXISTS; indexes use CREATE INDEX IF NOT EXISTS; FK constraints and competitor_rates unique-constraint change use DO block guards. Re-running via migrate() is a no-op."
+    },
+    "0046_previous_justin_hammer": {
+      "status": "self-idempotent",
+      "reason": "ALTER TABLE slide_factory_runs ADD COLUMN slot_content_hashes jsonb — Enzo verdict cache column. ADD COLUMN on a nullable column is additive; re-running via migrate() is a no-op."
     }
   }
 }

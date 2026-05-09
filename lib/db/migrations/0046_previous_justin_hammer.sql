@@ -1,0 +1,1 @@
+ALTER TABLE "slide_factory_runs" ADD COLUMN "slot_content_hashes" jsonb;
