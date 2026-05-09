@@ -27,7 +27,7 @@ const RESEARCH_ESTIMATED_MINUTES = 2;
 export type ToolContext = { userId: number };
 
 export type DataChangedEntry = {
-  entityType: "property" | "scenario" | "slide_factory_run" | "analyst_table" | "lb_deck_config";
+  entityType: "property" | "scenario" | "slide_factory_run" | "analyst_table" | "lb_deck_config" | "compliance_run";
   entityId: number;
 };
 
@@ -244,6 +244,15 @@ export function getRebeccaTools(): ToolParam[] {
       name: "trigger_iris_health_check",
       description: "Run a quick Iris health check across configured data sources. Admin only.",
       parameters: { type: "object", properties: {}, required: [] },
+    },
+    {
+      name: "run_compliance_audit",
+      description: "Triggers the Vito compliance audit agent to scan the codebase for rule violations. Admin only. Returns a run ID.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
     },
     {
       name: "trigger_iris_reindex",
@@ -604,6 +613,8 @@ export async function dispatchRebeccaTool(
         return await toolTriggerIrisHealthCheck(ctx);
       case "trigger_iris_reindex":
         return await toolTriggerIrisReindex(ctx);
+      case "run_compliance_audit":
+        return await toolRunComplianceAudit(ctx);
       case "clear_iris_gaps":
         return await toolClearIrisGaps(ctx);
       case "get_iris_status":
@@ -1292,6 +1303,32 @@ async function toolTriggerResearch(
 // ---------------------------------------------------------------------------
 // Admin auth helper
 // ---------------------------------------------------------------------------
+
+/**
+ * Trigger a Vito compliance audit run (fire-and-forget).
+ * Admin only. Returns the new run id immediately.
+ */
+async function toolRunComplianceAudit(
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const { createVitoRun } = await import("../ai/vito/workspace");
+  const { runVitoAgent } = await import("../ai/vito/agent");
+
+  const runId = await createVitoRun("manual", "runtime");
+
+  // Fire and forget — agent updates the row on completion
+  void runVitoAgent("manual").catch((err: unknown) => {
+    console.error("[compliance-audit] agent error:", err);
+  });
+
+  return {
+    result: { message: "Compliance audit started", runId },
+    dataChanged: { entityType: "compliance_run", entityId: runId },
+  };
+}
 
 /**
  * Returns an error result if the caller is not an admin, null otherwise.
