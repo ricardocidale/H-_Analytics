@@ -122,6 +122,9 @@ re-renders the panel.
 | UI Action | Route / Location | Rebecca Tool | Status |
 |---|---|---|---|
 | Record retrieval gap | Auto (Rebecca unanswered query) | `write_retrieval_gap` | ✅ |
+| Create KB entry | Admin → Knowledge Base | `create_kb_entry` | ✅ |
+| Update KB entry | Admin → Knowledge Base | `update_kb_entry` | ✅ |
+| Delete KB entry | Admin → Knowledge Base | `delete_kb_entry` | ✅ |
 
 ### Data Infrastructure (Pietro — Tools Deferred to U10)
 

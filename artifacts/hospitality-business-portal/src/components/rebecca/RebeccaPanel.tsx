@@ -464,6 +464,8 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
             queryClient.invalidateQueries({ queryKey: ["/api/admin/analyst-tables"] });
           } else if (entry.entityType === "lb_deck_config") {
             queryClient.invalidateQueries({ queryKey: ["lb-slides-config"] });
+          } else if (entry.entityType === "kb_entry") {
+            queryClient.invalidateQueries({ queryKey: ["/api/rebecca/kb"] });
           }
         }
       }
@@ -597,6 +599,8 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                       queryClient.invalidateQueries({ queryKey: ["/api/admin/analyst-tables"] });
                     } else if (entry.entityType === "lb_deck_config") {
                       queryClient.invalidateQueries({ queryKey: ["lb-slides-config"] });
+                    } else if (entry.entityType === "kb_entry") {
+                      queryClient.invalidateQueries({ queryKey: ["/api/rebecca/kb"] });
                     }
                   }
                 }
