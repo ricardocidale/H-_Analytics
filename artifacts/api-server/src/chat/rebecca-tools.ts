@@ -22,6 +22,10 @@ import { capErrors, IRIS_HEALTH_SUMMARY_MAX_ERRORS } from "../ai/iris/format";
 import { insertIrisRun, updateIrisRun, getLatestIrisRun } from "../storage/iris-runs";
 import { upsertChunks, deleteVectors } from "../ai/vector-store-service";
 import { insertRebeccaKBSchema } from "@workspace/db";
+import { sendScenarioShareNotification, sendAdminShareNotification } from "../integrations/resend";
+import { getAppUrl } from "../providers/config";
+import { fullName } from "../routes/helpers";
+import { getAllMarketRates, getMarketRate, upsertMarketRate } from "../data/marketRates";
 
 // Named constant: estimated minutes for background research job (Category 2 — DEFAULT VARIABLE)
 const RESEARCH_ESTIMATED_MINUTES = 2;
@@ -33,7 +37,8 @@ export const KB_CONTENT_VECTOR_PREVIEW_CHARS = 3_000;
 
 export type DataChangedEntry = {
   entityType: "property" | "scenario" | "slide_factory_run" | "analyst_table" | "lb_deck_config"
-            | "kb_entry" | "global_assumptions" | "research_job" | "iris_run" | "iris_gap" | "data_source" | "compliance_run";
+            | "kb_entry" | "global_assumptions" | "research_job" | "iris_run" | "iris_gap" | "data_source" | "compliance_run"
+            | "company" | "market_rate";
   entityId: number;
 };
 
@@ -222,6 +227,19 @@ export function getRebeccaTools(): ToolParam[] {
           id: { type: "number", description: "Scenario ID" },
         },
         required: ["id"],
+      },
+    },
+    {
+      name: "share_scenario",
+      description:
+        "Share a specific scenario with another user by email. Sends an email notification to the recipient. Returns empty shares array (not an error) if the email is not a registered user — this is intentional to avoid leaking email existence.",
+      parameters: {
+        type: "object",
+        properties: {
+          scenarioId: { type: "number", description: "ID of the scenario to share." },
+          recipientEmail: { type: "string", description: "Email address of the recipient." },
+        },
+        required: ["scenarioId", "recipientEmail"],
       },
     },
     {
@@ -543,6 +561,32 @@ export function getRebeccaTools(): ToolParam[] {
       },
     },
     {
+      name: "delete_property_photo",
+      description:
+        "Delete a photo from a property's gallery. Cannot delete the last photo unless you are an admin. Returns an error if the photo does not belong to the specified property.",
+      parameters: {
+        type: "object",
+        properties: {
+          propertyId: { type: "number", description: "Property ID the photo belongs to." },
+          photoId: { type: "number", description: "ID of the photo to delete." },
+        },
+        required: ["propertyId", "photoId"],
+      },
+    },
+    {
+      name: "set_hero_photo",
+      description:
+        "Set a photo as the hero (primary) image for a property. The photo must belong to the specified property.",
+      parameters: {
+        type: "object",
+        properties: {
+          propertyId: { type: "number", description: "Property ID." },
+          photoId: { type: "number", description: "ID of the photo to set as hero." },
+        },
+        required: ["propertyId", "photoId"],
+      },
+    },
+    {
       name: "list_companies",
       description:
         "List all active companies (legal entities) in the system — both management companies and SPVs (Special Purpose Vehicles). " +
@@ -561,6 +605,22 @@ export function getRebeccaTools(): ToolParam[] {
         type: "object",
         properties: {
           id: { type: "number", description: "Company id." },
+        },
+        required: ["id"],
+      },
+    },
+    {
+      name: "update_company",
+      description:
+        "Update a company's name, type, description, or active status. Admin-only.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "Company id." },
+          name: { type: "string", description: "New company name (must be unique)." },
+          type: { type: "string", description: "Company type: 'management' or 'spv'." },
+          description: { type: "string", description: "Company description." },
+          isActive: { type: "boolean", description: "Whether the company is active." },
         },
         required: ["id"],
       },
@@ -616,6 +676,29 @@ export function getRebeccaTools(): ToolParam[] {
       },
     },
     {
+      name: "list_kb_entries",
+      description:
+        "List Knowledge Base entries, optionally filtered by category. Admin-only. Use before deleting or updating entries to verify they exist.",
+      parameters: {
+        type: "object",
+        properties: {
+          category: { type: "string", description: "Filter by category tag (e.g. 'hospitality'). Omit to list all entries." },
+        },
+      },
+    },
+    {
+      name: "get_kb_entry",
+      description:
+        "Retrieve a single Knowledge Base entry by ID. Returns title, content, category, and source.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "KB entry ID." },
+        },
+        required: ["id"],
+      },
+    },
+    {
       name: "compare_scenarios",
       description:
         "Compare two financial scenarios side-by-side. Returns a comparison of their assumptions, projections, and key financial metrics. Read-only.",
@@ -627,6 +710,12 @@ export function getRebeccaTools(): ToolParam[] {
         },
         required: ["scenarioId1", "scenarioId2"],
       },
+    },
+    {
+      name: "get_global_assumptions",
+      description:
+        "Read the current global assumptions for this organisation. Use before calling update_global_assumptions to see the current values.",
+      parameters: { type: "object", properties: {} },
     },
     {
       name: "update_global_assumptions",
@@ -689,6 +778,8 @@ export async function dispatchRebeccaTool(
         return await toolLockScenario(args, ctx);
       case "delete_scenario":
         return await toolDeleteScenario(args, ctx);
+      case "share_scenario":
+        return await toolShareScenario(args, ctx);
       case "trigger_research":
         return await toolTriggerResearch(args, ctx);
       case "write_retrieval_gap":
@@ -739,10 +830,16 @@ export async function dispatchRebeccaTool(
         return await toolCreateProperty(args, ctx);
       case "delete_property":
         return await toolDeleteProperty(args, ctx);
+      case "delete_property_photo":
+        return await toolDeletePropertyPhoto(args, ctx);
+      case "set_hero_photo":
+        return await toolSetHeroPhoto(args, ctx);
       case "list_companies":
         return await toolListCompanies(ctx);
       case "get_company":
         return await toolGetCompany(args, ctx);
+      case "update_company":
+        return await toolUpdateCompany(args, ctx);
       case "get_tripadvisor_hotels":
         return await toolGetTripadvisorHotels(args);
       case "create_kb_entry":
@@ -751,8 +848,14 @@ export async function dispatchRebeccaTool(
         return await toolUpdateKbEntry(args, ctx);
       case "delete_kb_entry":
         return await toolDeleteKbEntry(args, ctx);
+      case "list_kb_entries":
+        return await toolListKbEntries(args, ctx);
+      case "get_kb_entry":
+        return await toolGetKbEntry(args, ctx);
       case "compare_scenarios":
         return await toolCompareScenarios(args, ctx);
+      case "get_global_assumptions":
+        return await toolGetGlobalAssumptions(ctx);
       case "update_global_assumptions":
         return await toolUpdateGlobalAssumptions(args, ctx);
       default:
@@ -1228,10 +1331,13 @@ async function toolConfigureLbDeck(
 
 async function toolTriggerLbDeckRender(
   ctx: ToolContext,
-): Promise<{ result: unknown }> {
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   const authError = await requireAdminCtx(ctx);
   if (authError) return authError;
-  return { result: triggerLbDeckRenderService() };
+  return {
+    result: triggerLbDeckRenderService(),
+    dataChanged: { entityType: "lb_deck_config" as const, entityId: 0 },
+  };
 }
 
 async function toolGetLbDeckRenderStatus(
@@ -1362,6 +1468,70 @@ async function toolDeleteScenario(
   return {
     result: { success: true },
     dataChanged: { entityType: "scenario", entityId: id },
+  };
+}
+
+async function toolShareScenario(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const scenarioId = typeof args.scenarioId === "number" ? args.scenarioId : Number(args.scenarioId);
+  const recipientEmail = typeof args.recipientEmail === "string" ? args.recipientEmail.trim() : "";
+  if (!scenarioId || isNaN(scenarioId)) return { result: { error: "scenarioId must be a positive integer" } };
+  if (!recipientEmail) return { result: { error: "recipientEmail is required" } };
+
+  const sharer = await storage.getUserById(ctx.userId);
+  if (!sharer) return { result: { error: "Authenticated user not found" } };
+
+  if (recipientEmail === sharer.email) {
+    return { result: { error: "You cannot share scenarios with yourself" } };
+  }
+
+  const scenario = await storage.getScenario(scenarioId);
+  if (!scenario || scenario.userId !== ctx.userId) {
+    return { result: { error: "Not found" } };
+  }
+
+  const recipient = await storage.getUserByEmail(recipientEmail);
+  if (!recipient) {
+    // Privacy-preserving: same shape as success, no status difference
+    return { result: { shares: [], recipientName: null } };
+  }
+
+  const share = await storage.shareScenarioWithUser(scenarioId, recipient.id, ctx.userId);
+  const sharerDisplayName = fullName(sharer) || sharer.email;
+  const recipientDisplayName = fullName(recipient) || recipient.email;
+  const portalUrl = `${getAppUrl()}/scenarios`;
+
+  sendScenarioShareNotification({
+    to: recipient.email,
+    recipientName: recipientDisplayName,
+    sharerName: sharerDisplayName,
+    sharerEmail: sharer.email,
+    scenarioNames: [scenario.name],
+    mode: "single",
+    portalUrl,
+  }).catch(err => logger.warn(`Failed to send share notification: ${err instanceof Error ? err.message : String(err)}`, "rebecca"));
+
+  if (!isAdminRole(sharer.role)) {
+    const allUsers = await storage.getAllUsers();
+    const admins = allUsers.filter(u => isAdminRole(u.role) && u.email !== sharer.email);
+    for (const admin of admins) {
+      sendAdminShareNotification({
+        to: admin.email,
+        sharerName: sharerDisplayName,
+        sharerEmail: sharer.email,
+        recipientName: recipientDisplayName,
+        recipientEmail: recipient.email,
+        scenarioNames: [scenario.name],
+        mode: "single",
+      }).catch(err => logger.warn(`Failed to send admin share notification: ${err instanceof Error ? err.message : String(err)}`, "rebecca"));
+    }
+  }
+
+  return {
+    result: { shares: share ? [share] : [], recipientName: recipientDisplayName },
+    dataChanged: { entityType: "scenario", entityId: scenarioId },
   };
 }
 
@@ -2161,6 +2331,74 @@ async function toolDeleteProperty(
 }
 
 // ---------------------------------------------------------------------------
+// delete_property_photo + set_hero_photo (U5)
+// ---------------------------------------------------------------------------
+
+async function toolDeletePropertyPhoto(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const propertyId = typeof args.propertyId === "number" ? args.propertyId : Number(args.propertyId);
+  const photoId = typeof args.photoId === "number" ? args.photoId : Number(args.photoId);
+  if (!propertyId || isNaN(propertyId)) return { result: { error: "propertyId must be a positive integer" } };
+  if (!photoId || isNaN(photoId)) return { result: { error: "photoId must be a positive integer" } };
+
+  const user = await storage.getUserById(ctx.userId);
+  if (!user) return { result: { error: "User not found" } };
+
+  const property = await storage.getProperty(propertyId);
+  if (!property || (property.userId !== ctx.userId && !isAdminRole(user.role) && property.userId !== null)) {
+    return { result: { error: "Not found" } };
+  }
+
+  const photo = await storage.getPhotoById(photoId);
+  if (!photo || photo.propertyId !== propertyId) {
+    return { result: { error: "Not found" } };
+  }
+
+  // Mirror the route: non-admins cannot delete the last photo
+  const photos = await storage.getPropertyPhotos(propertyId);
+  if (photos.length <= 1 && !isAdminRole(user.role)) {
+    return { result: { error: "Cannot delete the last photo — admin required" } };
+  }
+
+  await storage.deletePropertyPhoto(photoId);
+  return {
+    result: { success: true },
+    dataChanged: { entityType: "property", entityId: propertyId },
+  };
+}
+
+async function toolSetHeroPhoto(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const propertyId = typeof args.propertyId === "number" ? args.propertyId : Number(args.propertyId);
+  const photoId = typeof args.photoId === "number" ? args.photoId : Number(args.photoId);
+  if (!propertyId || isNaN(propertyId)) return { result: { error: "propertyId must be a positive integer" } };
+  if (!photoId || isNaN(photoId)) return { result: { error: "photoId must be a positive integer" } };
+
+  const user = await storage.getUserById(ctx.userId);
+  if (!user) return { result: { error: "User not found" } };
+
+  const property = await storage.getProperty(propertyId);
+  if (!property || (property.userId !== ctx.userId && !isAdminRole(user.role) && property.userId !== null)) {
+    return { result: { error: "Not found" } };
+  }
+
+  const photo = await storage.getPhotoById(photoId);
+  if (!photo || photo.propertyId !== propertyId) {
+    return { result: { error: "Not found" } };
+  }
+
+  await storage.setHeroPhoto(propertyId, photoId);
+  return {
+    result: { success: true },
+    dataChanged: { entityType: "property", entityId: propertyId },
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Company read tools (U4)
 // ---------------------------------------------------------------------------
 
@@ -2207,6 +2445,49 @@ async function toolGetCompany(
       ...row,
       createdAt: row.createdAt?.toISOString() ?? null,
     },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// update_company (U6) — admin-only company metadata patch
+// ---------------------------------------------------------------------------
+
+async function toolUpdateCompany(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const id = typeof args.id === "number" ? args.id : Number(args.id);
+  if (!id || isNaN(id)) return { result: { error: "id must be a positive integer" } };
+
+  const { db } = await import("../db");
+  const { companies } = await import("@workspace/db");
+  const { eq } = await import("drizzle-orm");
+
+  const [existing] = await db.select().from(companies).where(eq(companies.id, id)).limit(1);
+  if (!existing) return { result: { error: `Company not found: id=${id}` } };
+
+  const patch: Record<string, unknown> = {};
+  if (typeof args.name === "string") patch.name = args.name;
+  if (typeof args.type === "string") patch.type = args.type;
+  if (typeof args.description === "string") patch.description = args.description;
+  if (typeof args.isActive === "boolean") patch.isActive = args.isActive;
+
+  if (Object.keys(patch).length === 0) {
+    return { result: { message: "No changes applied" } };
+  }
+
+  const [updated] = await db
+    .update(companies)
+    .set(patch)
+    .where(eq(companies.id, id))
+    .returning({ id: companies.id, name: companies.name });
+
+  return {
+    result: { success: true, id: updated.id, name: updated.name },
+    dataChanged: { entityType: "company" as const, entityId: id },
   };
 }
 
@@ -2318,6 +2599,43 @@ async function toolDeleteKbEntry(
 }
 
 // ---------------------------------------------------------------------------
+// list_kb_entries + get_kb_entry (U3) — read KB content before delete/update
+// ---------------------------------------------------------------------------
+
+async function toolListKbEntries(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const category = typeof args.category === "string" ? args.category : undefined;
+  const entries = await storage.getRebeccaKBEntries(category);
+  return { result: entries };
+}
+
+async function toolGetKbEntry(
+  args: Record<string, unknown>,
+  _ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const id = typeof args.id === "number" ? args.id : Number(args.id);
+  if (!id || isNaN(id)) return { result: { error: "id must be a positive integer" } };
+
+  const entry = await storage.getRebeccaKBEntry(id);
+  if (!entry || !entry.isActive) return { result: { error: "Not found" } };
+
+  return {
+    result: {
+      id: entry.id,
+      title: entry.title,
+      content: entry.content,
+      category: entry.category,
+      source: entry.source,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
 // compare_scenarios (U5) — read-only scenario comparison
 // ---------------------------------------------------------------------------
 
@@ -2344,6 +2662,18 @@ async function toolCompareScenarios(
 
   const comparison = storage.compareScenarios(s1, s2);
   return { result: comparison };
+}
+
+// ---------------------------------------------------------------------------
+// get_global_assumptions (U2) — read current global assumptions
+// ---------------------------------------------------------------------------
+
+async function toolGetGlobalAssumptions(
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const ga = await storage.getGlobalAssumptions(ctx.userId);
+  if (!ga) return { result: { error: "Global assumptions not found" } };
+  return { result: ga };
 }
 
 // ---------------------------------------------------------------------------
