@@ -25,9 +25,6 @@ import { motion } from "framer-motion";
 import { SourcesUsedPanel } from "@/components/rebecca/SourcesUsedPanel";
 import {
   DEFAULT_REBECCA_SETTINGS,
-  REBECCA_LLM_PROVIDERS,
-  REBECCA_PROVIDER_MODELS,
-  REBECCA_DEFAULT_MODEL,
   REBECCA_TONE_PRESETS,
   REBECCA_LENGTH_PREFERENCES,
   REBECCA_READING_LEVELS,
@@ -37,27 +34,41 @@ import {
   REBECCA_SOURCE_LABELS,
   mergeRebeccaSettings,
   type RebeccaSettings,
-  type RebeccaLlmProvider,
   type RebeccaSourceKey,
 } from "@shared/rebecca-settings";
 import { RebeccaFixturesPanel } from "./RebeccaFixturesPanel";
 
 export const DEFAULT_PROMPT = `You are Rebecca, the sharpest analyst at H+ Analytics. You know the portfolio inside out — every property's ADR, every cap rate assumption, every USALI line item. You have opinions about this work, backed by quiet confidence from watching the data compound.`;
 
+export interface LlmProvider {
+  id: string;
+  label: string;
+  models: Array<{ value: string; label: string }>;
+}
+
+export interface ChatSearchProvider {
+  slug: string;
+  label: string;
+}
+
 export interface RebeccaConfigProps {
   enabled: boolean;
   displayName: string;
   systemPrompt: string;
-  chatEngine: "gemini" | "exa";
+  chatEngine: string;
   settings: RebeccaSettings;
   onEnabledChange: (v: boolean) => void;
   onDisplayNameChange: (v: string) => void;
   onSystemPromptChange: (v: string) => void;
-  onChatEngineChange: (v: "gemini" | "exa") => void;
+  onChatEngineChange: (v: string) => void;
   onSettingsChange: (next: RebeccaSettings) => void;
   onSave: () => void;
   onCancel?: () => void;
   isSaving: boolean;
+  /** LLM providers fetched from admin_resources (kind='model'). */
+  llmProviders?: LlmProvider[];
+  /** Web-search API providers fetched from admin_resources (kind='api', rebeccaSearchProvider=true). */
+  chatSearchProviders?: ChatSearchProvider[];
   isDirty: boolean;
   guardrailCount?: number;
 }
@@ -67,7 +78,7 @@ const SOURCE_LABELS: Record<RebeccaSourceKey, { label: string; description: stri
   portfolio: { label: "Portfolio Data", description: "Live property metrics, scenarios, and company assumptions." },
   research: { label: "Research History", description: "Past research jobs and assumption guidance." },
   documents: { label: "Documents", description: "Uploaded property documents indexed in the vector store." },
-  webSearch: { label: "Web Search", description: "Live web grounding via Exa (only used when provider is Exa)." },
+  webSearch: { label: "Web Search", description: "Live web grounding via the configured Web Search Provider below." },
   uploadedFiles: { label: "Asset Library", description: "Uploaded photos, logos, and visual assets." },
 };
 
@@ -195,6 +206,8 @@ export function RebeccaConfig({
   isSaving,
   isDirty,
   guardrailCount,
+  llmProviders = [],
+  chatSearchProviders = [],
 }: RebeccaConfigProps) {
   const { toast } = useToast();
   const update = <K extends keyof RebeccaSettings>(section: K, patch: Partial<RebeccaSettings[K]>) => {
@@ -210,8 +223,10 @@ export function RebeccaConfig({
     onSettingsChange({ ...settings, [section]: DEFAULT_REBECCA_SETTINGS[section] });
   };
 
-  const providerModels = REBECCA_PROVIDER_MODELS[settings.llm.provider];
-  const fallbackModels = settings.llm.fallbackProvider ? REBECCA_PROVIDER_MODELS[settings.llm.fallbackProvider] : [];
+  const currentProvider = llmProviders.find(p => p.id === settings.llm.provider);
+  const providerModels = currentProvider?.models ?? [];
+  const fallbackProvider = llmProviders.find(p => p.id === settings.llm.fallbackProvider);
+  const fallbackModels = fallbackProvider?.models ?? [];
 
   // Test chat preview state
   // Task #539 — assistant turns also carry the list of retrieved chunks the
@@ -547,26 +562,23 @@ export function RebeccaConfig({
             <Select
               value={settings.llm.provider}
               onValueChange={(v) => {
-                const provider = v as RebeccaLlmProvider;
+                const provider = v;
+                const firstModel = llmProviders.find(p => p.id === v)?.models[0]?.value ?? "";
                 const patch: Partial<typeof settings.llm> = {
                   provider,
-                  model: REBECCA_DEFAULT_MODEL[provider],
+                  model: firstModel,
                 };
-                // If the new primary equals the current fallback, clear the
-                // fallback so failover never silently retries the same engine.
                 if (settings.llm.fallbackProvider === provider) {
                   patch.fallbackProvider = null;
                   patch.fallbackModel = null;
                 }
                 update("llm", patch);
-                if (provider === "gemini" || provider === "exa") {
-                  onChatEngineChange(provider);
-                }
+                onChatEngineChange(provider);
               }}
             >
               <SelectTrigger data-testid="select-llm-provider"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {REBECCA_LLM_PROVIDERS.map(p => <SelectItem key={p} value={p} data-testid={`option-provider-${p}`}>{p[0].toUpperCase() + p.slice(1)}</SelectItem>)}
+                {llmProviders.map(p => <SelectItem key={p.id} value={p.id} data-testid={`option-provider-${p.id}`}>{p.label}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -614,12 +626,19 @@ export function RebeccaConfig({
             <Label className="label-text font-medium text-xs">Fallback Provider</Label>
             <Select
               value={settings.llm.fallbackProvider ?? "__none"}
-              onValueChange={(v) => update("llm", v === "__none" ? { fallbackProvider: null, fallbackModel: null } : { fallbackProvider: v as RebeccaLlmProvider, fallbackModel: REBECCA_DEFAULT_MODEL[v as RebeccaLlmProvider] })}
+              onValueChange={(v) => {
+                if (v === "__none") {
+                  update("llm", { fallbackProvider: null, fallbackModel: null });
+                } else {
+                  const firstModel = llmProviders.find(p => p.id === v)?.models[0]?.value ?? "";
+                  update("llm", { fallbackProvider: v, fallbackModel: firstModel });
+                }
+              }}
             >
               <SelectTrigger data-testid="select-fallback-provider"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none">None</SelectItem>
-                {REBECCA_LLM_PROVIDERS.filter(p => p !== settings.llm.provider).map(p => <SelectItem key={p} value={p}>{p[0].toUpperCase() + p.slice(1)}</SelectItem>)}
+                {llmProviders.filter(p => p.id !== settings.llm.provider).map(p => <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -684,6 +703,27 @@ export function RebeccaConfig({
             );
           })}
         </div>
+
+        {chatSearchProviders.length > 0 && (
+          <div className="pt-3 border-t border-border/40 space-y-1.5">
+            <Label className="label-text font-medium text-xs">Web Search Provider</Label>
+            <Select
+              value={settings.sources.webSearchProvider ?? "perplexity"}
+              onValueChange={(v) => onSettingsChange({ ...settings, sources: { ...settings.sources, webSearchProvider: v } })}
+              data-testid="select-web-search-provider"
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {chatSearchProviders.map(p => (
+                  <SelectItem key={p.slug} value={p.slug}>{p.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-[11px] text-muted-foreground/70">
+              API used for live web-grounded research when Web Search is enabled. Configured via Admin → Resources.
+            </p>
+          </div>
+        )}
       </SectionCard>
       </div>
 

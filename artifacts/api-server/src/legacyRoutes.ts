@@ -18,6 +18,7 @@ import * as tileRoutes from "./routes/tiles";
 import * as photoRoutes from "./routes/property-photos";
 import * as mediaRoutes from "./routes/media";
 import * as chatRoutes from "./routes/chat";
+import * as llmProvidersRoutes from "./routes/llm-providers";
 import * as aiRoutes from "./routes/ai";
 import * as premiumExportRoutes from "./routes/premium-exports";
 import * as exportGenerateRoutes from "./routes/export-generate";
@@ -77,6 +78,7 @@ export async function registerRoutes(
   photoRoutes.register(app);
   mediaRoutes.register(app);
   chatRoutes.register(app);
+  llmProvidersRoutes.register(app);
   aiRoutes.register(app);
   premiumExportRoutes.register(app);
   exportGenerateRoutes.register(app);

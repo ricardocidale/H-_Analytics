@@ -1,6 +1,6 @@
 import { type Express, type Request, type Response } from "express";
 import { getGeminiClient, getExaClient, getPerplexityClient, getOpenAIClient, getAnthropicClient, normalizeModelId } from "../ai/clients";
-import { mergeRebeccaSettings, buildPersonaOverlay, assembleSystemPrompt, computeBlocksIncluded, rebeccaSettingsPatchSchema, type RebeccaSettings, type SourceBlockPresence, REBECCA_DEFAULT_MODEL } from "@shared/rebecca-settings";
+import { mergeRebeccaSettings, buildPersonaOverlay, assembleSystemPrompt, computeBlocksIncluded, rebeccaSettingsPatchSchema, type RebeccaSettings, type SourceBlockPresence } from "@shared/rebecca-settings";
 import { requireAuth , getAuthUser } from "../auth";
 import { aiRateLimit } from "../middleware/rate-limit";
 import { storage } from "../storage";
@@ -42,6 +42,32 @@ export type DataChangedEntry = {
 
 // Maximum number of tool-call/result round-trips before forcing a final text turn.
 const MAX_TOOL_DEPTH = 4;
+
+// Vendor → provider-id mapping (mirrors llm-providers.ts VENDOR_MAP).
+const VENDOR_TO_PROVIDER_ID: Record<string, string> = {
+  anthropic: "anthropic",
+  openai: "openai",
+  google: "gemini",
+};
+
+// Simple in-process cache: provider-id → first available modelId. TTL 5 min.
+const _modelCache = new Map<string, { value: string; expiresAt: number }>();
+
+async function resolveDefaultModel(providerId: string): Promise<string> {
+  const now = Date.now();
+  const cached = _modelCache.get(providerId);
+  if (cached && cached.expiresAt > now) return cached.value;
+
+  const rows = await storage.listAdminResources("model");
+  const targetVendor = Object.entries(VENDOR_TO_PROVIDER_ID).find(([, id]) => id === providerId)?.[0];
+  const match = rows.find(r => (r.config as Record<string, unknown>).vendor === targetVendor);
+  const modelId = match
+    ? String((match.config as Record<string, unknown>).modelId ?? providerId)
+    : providerId;
+
+  _modelCache.set(providerId, { value: modelId, expiresAt: now + 5 * 60 * 1000 });
+  return modelId;
+}
 
 // Flexible history entry type that can carry either simple text turns or
 // provider-native tool call/result turns (which have non-string content).
@@ -99,7 +125,7 @@ class ChatPolicyError extends Error {
 // same provider matrix the live preview uses, instead of duplicating the
 // switch statement and silently drifting from the real chat behavior.
 export async function callLlm(
-  provider: "openai" | "anthropic" | "gemini" | "exa",
+  provider: string,
   model: string,
   systemPrompt: string,
   history: MessageEntry[],
@@ -288,7 +314,7 @@ export async function callLlm(
 }
 
 export async function callLlmStream(
-  provider: "openai" | "anthropic" | "gemini" | "exa",
+  provider: string,
   model: string,
   systemPrompt: string,
   history: MessageEntry[],
@@ -431,7 +457,7 @@ function sseWrite(res: Response, event: string, data: unknown): void {
  */
 function appendToolResults(
   history: MessageEntry[],
-  provider: "openai" | "anthropic" | "gemini" | "exa",
+  provider: string,
   toolCalls: ToolCall[],
   results: Array<{ id: string; name: string; result: unknown }>,
 ): MessageEntry[] {
@@ -1043,14 +1069,14 @@ export function register(app: Express) {
       // un-customized default (preserves prior behavior for upgraded rows).
       const legacyEngine = ga?.rebeccaChatEngine ?? "gemini";
       const provider = rebeccaSettings.llm.provider;
-      const model = rebeccaSettings.llm.model || REBECCA_DEFAULT_MODEL[provider];
+      const model = rebeccaSettings.llm.model || await resolveDefaultModel(provider);
       const sampling = {
         temperature: rebeccaSettings.llm.temperature,
         maxOutputTokens: Math.min(rebeccaSettings.llm.maxOutputTokens, modeConfig.maxTokens),
         topP: rebeccaSettings.llm.topP,
       };
       const fallback = rebeccaSettings.llm.fallbackProvider
-        ? { provider: rebeccaSettings.llm.fallbackProvider, model: rebeccaSettings.llm.fallbackModel || REBECCA_DEFAULT_MODEL[rebeccaSettings.llm.fallbackProvider] }
+        ? { provider: rebeccaSettings.llm.fallbackProvider, model: rebeccaSettings.llm.fallbackModel || await resolveDefaultModel(rebeccaSettings.llm.fallbackProvider) }
         : null;
 
       // Honor the admin's Web Search toggle (Knowledge & Sources tab in
@@ -1086,7 +1112,7 @@ export function register(app: Express) {
       let primaryLoopExecutedTools = false;
 
       async function runAgenticLoop(
-        loopProvider: "openai" | "anthropic" | "gemini" | "exa",
+        loopProvider: string,
         loopModel: string,
         isPrimary: boolean,
       ): Promise<string> {

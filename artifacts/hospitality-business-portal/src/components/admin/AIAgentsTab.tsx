@@ -48,7 +48,7 @@ export default function AIAgentsTab({ onSaveStateChange, initialTab }: AIAgentsT
   const [rebeccaEnabled, setRebeccaEnabled] = useState(false);
   const [rebeccaDisplayName, setRebeccaDisplayName] = useState("Rebecca");
   const [rebeccaSystemPrompt, setRebeccaSystemPrompt] = useState("");
-  const [rebeccaChatEngine, setRebeccaChatEngine] = useState<"gemini" | "exa">("gemini");
+  const [rebeccaChatEngine, setRebeccaChatEngine] = useState<string>("gemini");
   const [rebeccaSettings, setRebeccaSettings] = useState<RebeccaSettings>(DEFAULT_REBECCA_SETTINGS);
   const [rebeccaInitialized, setRebeccaInitialized] = useState(false);
   const [rebeccaDirty, setRebeccaDirty] = useState(false);
@@ -62,6 +62,24 @@ export default function AIAgentsTab({ onSaveStateChange, initialTab }: AIAgentsT
       return res.json();
     },
   });
+
+  const { data: llmProvidersData } = useQuery<{ providers: Array<{ id: string; label: string; models: Array<{ value: string; label: string }> }> }>({
+    queryKey: ["/api/llm-providers"],
+    queryFn: async () => {
+      const res = await fetch("/api/llm-providers", { credentials: "include" });
+      if (!res.ok) return { providers: [] };
+      return res.json();
+    },
+  });
+
+  const { data: chatSearchProvidersData } = useQuery<{ providers: Array<{ slug: string; label: string }> }>({
+    queryKey: ["/api/chat-search-providers"],
+    queryFn: async () => {
+      const res = await fetch("/api/chat-search-providers", { credentials: "include" });
+      if (!res.ok) return { providers: [] };
+      return res.json();
+    },
+  });
   const guardrailCount = (guardrails ?? []).filter(g => g.isActive).length;
 
   useEffect(() => {
@@ -69,7 +87,7 @@ export default function AIAgentsTab({ onSaveStateChange, initialTab }: AIAgentsT
       setRebeccaEnabled(globalData.rebeccaEnabled ?? false);
       setRebeccaDisplayName(globalData.rebeccaDisplayName ?? "Rebecca");
       setRebeccaSystemPrompt(globalData.rebeccaSystemPrompt ?? "");
-      setRebeccaChatEngine((globalData.rebeccaChatEngine as "gemini" | "exa") ?? "gemini");
+      setRebeccaChatEngine((globalData.rebeccaChatEngine as string) ?? "gemini");
       setRebeccaSettings(mergeRebeccaSettings(globalData.rebeccaConfig));
       setRebeccaInitialized(true);
     }
@@ -138,7 +156,7 @@ export default function AIAgentsTab({ onSaveStateChange, initialTab }: AIAgentsT
     setRebeccaEnabled(globalData.rebeccaEnabled ?? false);
     setRebeccaDisplayName(globalData.rebeccaDisplayName ?? "Rebecca");
     setRebeccaSystemPrompt(globalData.rebeccaSystemPrompt ?? "");
-    setRebeccaChatEngine((globalData.rebeccaChatEngine as "gemini" | "exa") ?? "gemini");
+    setRebeccaChatEngine((globalData.rebeccaChatEngine as string) ?? "gemini");
     setRebeccaSettings(mergeRebeccaSettings(globalData.rebeccaConfig));
     setRebeccaDirty(false);
   }, [globalData]);
@@ -325,6 +343,8 @@ export default function AIAgentsTab({ onSaveStateChange, initialTab }: AIAgentsT
           isSaving: saveRebeccaMutation.isPending,
           isDirty: rebeccaDirty,
           guardrailCount,
+          llmProviders: llmProvidersData?.providers ?? [],
+          chatSearchProviders: chatSearchProvidersData?.providers ?? [],
         }}
       />
     </div>

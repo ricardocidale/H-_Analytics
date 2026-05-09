@@ -53,7 +53,6 @@ import {
   mergeRebeccaSettings,
   buildPersonaOverlay,
   assembleSystemPrompt,
-  REBECCA_DEFAULT_MODEL,
   type RebeccaSettings,
 } from "@shared/rebecca-settings";
 import { callLlm } from "../routes/chat";
@@ -88,7 +87,7 @@ export interface RunFixtureReplayTurnInput {
 export interface RunFixtureReplayTurnResult {
   response: string;
   /** Provider that produced the response (after any fallback). */
-  provider: "openai" | "anthropic" | "gemini" | "exa";
+  provider: string;
   model: string;
   /** True if the primary provider failed and we used the fallback. */
   usedFallback: boolean;
@@ -136,7 +135,7 @@ export async function runFixtureReplayTurn(
   );
 
   const provider = settings.llm.provider;
-  const model = settings.llm.model || REBECCA_DEFAULT_MODEL[provider];
+  const model = settings.llm.model || provider;
   const sampling = {
     temperature: settings.llm.temperature,
     maxOutputTokens: settings.llm.maxOutputTokens,
@@ -161,7 +160,7 @@ export async function runFixtureReplayTurn(
     // declare a fallback, try it once.
     const fb = settings.llm.fallbackProvider;
     if (fb) {
-      const fbModel = settings.llm.fallbackModel || REBECCA_DEFAULT_MODEL[fb];
+      const fbModel = settings.llm.fallbackModel || fb;
       try {
         const r = await callLlm(
           fb,
