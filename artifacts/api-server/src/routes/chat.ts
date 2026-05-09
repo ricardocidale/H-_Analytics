@@ -740,6 +740,20 @@ export function register(app: Express) {
         logger.warn(`Scenario context build failed (non-blocking): ${(err instanceof Error ? err.message : String(err))}`, "chat");
       }
 
+      // W0.2 — verification opinion + per-source freshness when a property is in scope.
+      let verificationContextBlock = "";
+      if (fieldCtx?.entityType === "property") {
+        try {
+          const [latestRun] = await storage.getVerificationRuns(1);
+          if (latestRun) {
+            const runDate = new Date(latestRun.createdAt).toLocaleDateString();
+            verificationContextBlock = `\n\nPORTFOLIO VERIFICATION (as of ${runDate}):\nOpinion: ${latestRun.auditOpinion} | Checks: ${latestRun.totalChecks} total, ${latestRun.passed} passed, ${latestRun.failed} failed`;
+          }
+        } catch (err: unknown) {
+          logger.warn(`Verification context load failed (non-blocking): ${(err instanceof Error ? err.message : String(err))}`, "chat");
+        }
+      }
+
       const contextBlock = [
         ...userContextLines,
         "",
@@ -756,6 +770,7 @@ export function register(app: Express) {
         "FUNDING:",
         ...fundingLines,
         scenarioContextBlock,
+        verificationContextBlock,
       ].join("\n");
 
       // Task #539 / #551 — every retrieval branch fills a typed slot on
