@@ -8,7 +8,7 @@ import { logActivity, parseRouteId } from "./helpers";
 import { insertRebeccaKBSchema } from "@workspace/db";
 import { upsertChunks, deleteVectors, vectorCount } from "../ai/vector-store-service";
 import { rebeccaSettingsSchema, tryParseRebeccaSettings } from "@shared/rebecca-settings";
-import { HTTP_422_UNPROCESSABLE_ENTITY, HTTP_405_METHOD_NOT_ALLOWED, HTTP_409_CONFLICT } from "../constants";
+import { HTTP_422_UNPROCESSABLE_ENTITY, HTTP_405_METHOD_NOT_ALLOWED, HTTP_409_CONFLICT, HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR } from "../constants";
 
 const previewTurnSchema = z.object({
   role: z.enum(["user", "assistant"]),
@@ -278,6 +278,20 @@ export function register(app: Express) {
 
   app.delete("/api/rebecca/guardrails/:id", requireAuth, requireAdmin, (_req: Request, res: Response) => {
     res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Rebecca guardrails are dev-defined. Edit source code and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
+  });
+
+  app.get("/api/rebecca/kb/entry/:id", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      if (!Number.isFinite(id)) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid id" });
+      const entry = await storage.getRebeccaKBEntry(id);
+      if (!entry) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
+      if (!entry.isActive) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
+      return res.json({ id: entry.id, title: entry.title, content: entry.content, category: entry.category, source: entry.source });
+    } catch (err: unknown) {
+      logger.error(`Failed to get KB entry: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
+      return res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Failed to get KB entry" });
+    }
   });
 
   app.get("/api/rebecca/kb", requireAuth, requireAdmin, async (req: Request, res: Response) => {

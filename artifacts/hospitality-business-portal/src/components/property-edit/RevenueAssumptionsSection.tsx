@@ -39,7 +39,7 @@ import {
   DEFAULT_CATERING_BOOST_PCT,
 } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-import { AnalystRangeIndicator } from "@/components/analyst";
+import { AnalystRangeIndicator, AssumptionGuidancePopover } from "@/components/analyst";
 import type { PropertyEditSectionProps } from "./types";
 
 export default function RevenueAssumptionsSection({ draft, onChange, researchValues, guidance }: PropertyEditSectionProps) {
@@ -82,6 +82,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                 className="[&_[role=slider]]:bg-primary flex-1"
               />
               <AnalystRangeIndicator fieldKey="startAdr" currentValue={draft.startAdr} guidance={guidance} isCurrency />
+              <AssumptionGuidancePopover fieldKey="startAdr" guidance={guidance} isCurrency />
             </div>
           </div>
           <div className="space-y-2">

@@ -24,6 +24,7 @@ export type ChatSourceUsed = {
   namespace: string;
   score: number;
   weight: number;
+  itemId?: string;
 };
 
 /** Raw doc hit kept in chat.ts after vector-store + score filtering. */
@@ -103,6 +104,7 @@ export function finalizeSourcesUsed(sourcesUsed: ChatSourceUsed[]): ChatSourceUs
     const key = `${s.namespace}::${s.title}`;
     const prev = sourcesByKey.get(key);
     if (!prev || s.score > prev.score) sourcesByKey.set(key, s);
+    else if (prev && !prev.itemId && s.itemId) sourcesByKey.set(key, { ...prev, itemId: s.itemId });
   }
   return Array.from(sourcesByKey.values()).sort(
     (a, b) => b.score * (b.weight / 100) - a.score * (a.weight / 100),
@@ -195,6 +197,7 @@ export function collectChatSourcesFromManifest(
       namespace: entry.namespace,
       score: entry.score ?? 0,
       weight: entry.weight ?? weight,
+      itemId: entry.itemId,
     });
   }
 

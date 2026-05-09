@@ -39,6 +39,7 @@ import { SourcesUsedPanel, type ChatSourceUsed } from "./SourcesUsedPanel";
 import { ToolCallStepIndicator, type ToolStep } from "./ToolCallStepIndicator";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
+import { useToast } from "@/hooks/use-toast";
 
 interface AssetMatch {
   type: "photo" | "logo";
@@ -144,6 +145,13 @@ function syncChatPrefsToServer(prefs: { rebeccaResponseMode?: string; rebeccaSho
   });
 }
 
+const BACKGROUND_TOOL_LABELS: Record<string, string> = {
+  trigger_iris_health_check: "Iris health check",
+  trigger_iris_reindex: "Iris reindex",
+  clear_iris_gaps: "Iris gap queue clear",
+  regenerate_data_source: "Data source regeneration",
+};
+
 export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
   const { rebeccaContext, closeRebecca, openRebecca } = usePanelManager();
   const isOpen = usePanelManager(isRebeccaRailVisible);
@@ -152,6 +160,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
   const addInsight = useRebeccaInsightStore(s => s.addInsight);
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -617,6 +626,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
               } else if (currentEvent === "tool_done") {
                 const doneId = typeof data.id === "string" ? data.id : String(data.id);
                 const success = data.success !== false;
+                const toolName = typeof data.name === "string" ? data.name : "";
                 const startedAt = toolStartTimesRef.current.get(doneId);
                 const elapsedMs = startedAt != null ? Date.now() - startedAt : undefined;
                 toolStartTimesRef.current.delete(doneId);
@@ -632,6 +642,17 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                       }
                     : m
                 ));
+                if (BACKGROUND_TOOL_LABELS[toolName]) {
+                  const label = BACKGROUND_TOOL_LABELS[toolName];
+                  const result = data.result as Record<string, unknown> | undefined;
+                  const runId = result?.runId ?? result?.id;
+                  toast({
+                    title: success ? `${label} started` : `${label} failed`,
+                    description: runId ? `Run #${runId}` : undefined,
+                    variant: success ? "default" : "destructive",
+                    duration: 4000,
+                  });
+                }
               } else if (currentEvent === "error") {
                 if (retryCount === 0) {
                   setMessages((prev) => prev.map((m) =>
