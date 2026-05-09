@@ -27,7 +27,7 @@ const RESEARCH_ESTIMATED_MINUTES = 2;
 export type ToolContext = { userId: number };
 
 export type DataChangedEntry = {
-  entityType: "property" | "scenario" | "slide_factory_run";
+  entityType: "property" | "scenario" | "slide_factory_run" | "analyst_table" | "lb_deck_config";
   entityId: number;
 };
 
@@ -1073,7 +1073,7 @@ async function toolGetLbDeckConfig(
 async function toolConfigureLbDeck(
   args: Record<string, unknown>,
   ctx: ToolContext,
-): Promise<{ result: unknown }> {
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   const authError = await requireAdminCtx(ctx);
   if (authError) return authError;
 
@@ -1115,7 +1115,10 @@ async function toolConfigureLbDeck(
     slide4SectionSubtitle: mergeStringOrNull("slide4SectionSubtitle", current?.slide4SectionSubtitle ?? null),
     slide6Disclaimer: mergeStringOrNull("slide6Disclaimer", current?.slide6Disclaimer ?? null),
   });
-  return { result: { success: true, config: updated } };
+  return {
+    result: { success: true, config: updated },
+    dataChanged: { entityType: "lb_deck_config" as const, entityId: 0 },
+  };
 }
 
 async function toolTriggerLbDeckRender(
@@ -1137,7 +1140,7 @@ async function toolGetLbDeckRenderStatus(
 async function toolRefreshAnalystTable(
   args: Record<string, unknown>,
   ctx: ToolContext,
-): Promise<{ result: unknown }> {
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   const authError = await requireAdminCtx(ctx);
   if (authError) return authError;
   const VALID_TABLE_IDS = ["capital_raise_benchmarks", "exit_multiples", "reference_brands"] as const;
@@ -1169,6 +1172,7 @@ async function toolRefreshAnalystTable(
         sourceCount: result.sourceCount,
         tokensUsed: result.tokensUsed,
       },
+      dataChanged: { entityType: "analyst_table" as const, entityId: 0 },
     };
   }
 
@@ -1194,6 +1198,7 @@ async function toolRefreshAnalystTable(
         sourceCount: result.sourceCount,
         tokensUsed: result.tokensUsed,
       },
+      dataChanged: { entityType: "analyst_table" as const, entityId: 0 },
     };
   }
 
@@ -1208,6 +1213,7 @@ async function toolRefreshAnalystTable(
         sourceCount: result.sourceCount,
         tokensUsed: result.tokensUsed,
       },
+      dataChanged: { entityType: "analyst_table" as const, entityId: 0 },
     };
   }
 

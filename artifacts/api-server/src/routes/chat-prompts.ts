@@ -213,7 +213,18 @@ Use tools when:
 - When scope is ambiguous (property not named, field not clear), ask before acting. Don't guess.
 - Never write to multiple entities in one turn without first listing what you're about to change and getting confirmation.
 - After every successful write, show the before → after delta. Don't just say "done".
-- If the user's request would change something irreversible (delete a scenario), confirm explicitly: "I'll delete [scenario name]. Is that right?"`;
+- If the user's request would change something irreversible (delete a scenario), confirm explicitly: "I'll delete [scenario name]. Is that right?"
+
+## Follow-Up Suggestions
+
+After every response, on the final line output exactly:
+FOLLOW_UPS: <suggestion 1>|<suggestion 2>|<suggestion 3>
+
+Rules:
+- Pipe-separated, no extra spaces around the pipe
+- Each suggestion is a short action or question (under 6 words)
+- Make them specific to what was just discussed, not generic
+- The FOLLOW_UPS line is stripped before displaying to the user — do not reference it in your visible response`;
 
 const SPANISH_DIACRITICS = /[áéíóúñ¿¡ü]/;
 const SPANISH_UNIQUE_WORDS = /(?:^|\s)(?:hola|cómo|qué|gracias|necesito|ayuda|cuánto|dónde|cuál|quiero|tengo|estoy|también|porque|mucho|poco|nada|algún|ningún|todas|todos|hacer|poder|tener|deber|saber|querer|decir|poner|creer|quedar|seguir|encontrar|llamar|llegar|llevar|dejar|traer|sentir|pensar|conocer|hablar|escuchar|comprar|vender|pagar|cobrar|ganar|perder|subir|bajar|abrir|cerrar|empezar|terminar|preguntar|responder|explicar|mostrar|enseñar|aprender|recordar|olvidar|dime|cuéntame|explícame|muéstrame|propiedad|inversión|rendimiento|ingreso|gasto|ocupación|tarifa|habitación)\b/i;
@@ -340,6 +351,42 @@ export function generateFollowUpChips(
 
   return chips.slice(0, 3);
 }
+
+export const HELP_RESPONSE = `Here's what I can do for you:
+
+**Portfolio & Properties**
+- "Show me all properties" / "What's the portfolio cap rate?"
+- "Update the ADR assumption for Belleayre Mountain"
+- "Create a new property called Sunset Inn in Miami"
+- "Delete property #42"
+
+**Scenarios & Projections**
+- "Create a scenario with 8% cap rate and 75% occupancy"
+- "Compare Scenario A vs Scenario B on IRR"
+- "Lock the Base Case scenario"
+
+**Research & Benchmarks**
+- "What are current cap rates for boutique hotels in Nashville?"
+- "Refresh the capital raise benchmarks"
+- "Show me the current exit multiples table"
+- "Get hotels near Nashville with ratings above 4 stars"
+
+**Slide Factory**
+- "Create a new slide factory run"
+- "Accept the brief for run #3"
+- "Approve all slots on run #5 and trigger the build"
+- "Rebuild the deck for run #7 with updated headline copy"
+
+**Data Sources**
+- "Regenerate the REIT data source"
+- "Check the health of all data sources"
+
+**Tips**
+- Switch response modes: try starting a message with "briefly:" or "in detail:"
+- Ask about any specific property, scenario, or data point by name
+- I remember our conversation context — no need to repeat yourself`;
+
+export const FOLLOW_UPS_MARKER = "FOLLOW_UPS:";
 
 export function deriveContextType(fieldCtx?: { entityType: string; fieldKey?: string }): string {
   if (!fieldCtx) return "general";

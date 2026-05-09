@@ -460,6 +460,10 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
             queryClient.invalidateQueries({ queryKey: ["properties", entry.entityId] });
           } else if (entry.entityType === "scenario") {
             queryClient.invalidateQueries({ queryKey: ["scenarios"] });
+          } else if (entry.entityType === "analyst_table") {
+            queryClient.invalidateQueries({ queryKey: ["/api/admin/analyst-tables"] });
+          } else if (entry.entityType === "lb_deck_config") {
+            queryClient.invalidateQueries({ queryKey: ["lb-slides-config"] });
           }
         }
       }
@@ -589,6 +593,10 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                       queryClient.invalidateQueries({ queryKey: ["properties", entry.entityId] });
                     } else if (entry.entityType === "scenario") {
                       queryClient.invalidateQueries({ queryKey: ["scenarios"] });
+                    } else if (entry.entityType === "analyst_table") {
+                      queryClient.invalidateQueries({ queryKey: ["/api/admin/analyst-tables"] });
+                    } else if (entry.entityType === "lb_deck_config") {
+                      queryClient.invalidateQueries({ queryKey: ["lb-slides-config"] });
                     }
                   }
                 }

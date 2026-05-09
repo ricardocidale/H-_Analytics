@@ -18,7 +18,7 @@ import type { PageKey } from "@shared/rebecca-pages";
 import { retrieveDocumentContext, multiNamespaceQuery, hybridQuery } from "../ai/vector-store-service";
 import { retrieveRelevantChunks } from "../ai/knowledge-base";
 import { searchAssets, buildAssetContext, type AssetMatch } from "../ai/asset-intelligence";
-import { RESPONSE_MODE_CONFIG, DEFAULT_SYSTEM_PROMPT, SPANISH_MULTILINGUAL_OVERLAY, detectLanguage, generateFollowUpChips, deriveContextType, deriveContextKey } from "./chat-prompts";
+import { RESPONSE_MODE_CONFIG, DEFAULT_SYSTEM_PROMPT, SPANISH_MULTILINGUAL_OVERLAY, detectLanguage, generateFollowUpChips, deriveContextType, deriveContextKey, HELP_RESPONSE, FOLLOW_UPS_MARKER } from "./chat-prompts";
 import { registerInsightRoute } from "./chat-insight";
 import { logActivity, parseRouteId } from "./helpers";
 import { MAX_MESSAGE_LENGTH, MAX_HISTORY_LENGTH, HTTP_422_UNPROCESSABLE_ENTITY, HTTP_503_SERVICE_UNAVAILABLE } from "../constants";
@@ -610,6 +610,28 @@ export function register(app: Express) {
         return res.status(403).json({ error: "Chat assistant is disabled in your profile settings" });
       }
 
+      // /help intercept — return capability list without invoking the LLM.
+      if (message.trim() === "/help") {
+        const helpPayload = {
+          response: HELP_RESPONSE,
+          conversationId: null,
+          suggestedChips: ["Show me all properties", "Create a scenario", "Refresh benchmarks"],
+          detectedLanguage: "en",
+          sourcesUsed: [],
+        };
+        if (useStream) {
+          res.setHeader("Content-Type", "text/event-stream");
+          res.setHeader("Cache-Control", "no-cache");
+          res.setHeader("Connection", "keep-alive");
+          res.flushHeaders();
+          sseWrite(res, "done", helpPayload);
+          res.end();
+        } else {
+          res.json(helpPayload);
+        }
+        return;
+      }
+
       // Task #499 — load persisted Rebecca settings, then optionally apply
       // an admin-only `previewSettings` overlay so the Test Chat UI can try
       // unsaved configurations without touching the database.
@@ -1039,7 +1061,7 @@ export function register(app: Express) {
       // gating that matters here is the admin's `sources.portfolio` toggle,
       // which `assembleSystemPrompt` enforces.
       blockPresence.portfolio = (contextBlock?.length ?? 0) > 0;
-      const fullSystemPrompt = assembleSystemPrompt(
+      let assembledPrompt = assembleSystemPrompt(
         {
           baseSystem: systemPrompt,
           personaOverlay,
@@ -1055,6 +1077,34 @@ export function register(app: Express) {
         },
         rebeccaSettings.sources,
       );
+
+      // U6 — recent-activity context: inject the last 5 non-chat actions so
+      // Rebecca can reference what the user just did without being asked.
+      try {
+        const RECENT_ACTIVITY_HOURS = 24;
+        const RECENT_ACTIVITY_LIMIT = 5;
+        const from = new Date(Date.now() - RECENT_ACTIVITY_HOURS * 60 * 60 * 1000);
+        const recentLogs = await storage.getActivityLogs({
+          userId,
+          from,
+          limit: RECENT_ACTIVITY_LIMIT,
+        });
+        const filtered = recentLogs.filter(l => l.action !== "rebecca-chat");
+        if (filtered.length > 0) {
+          const now = Date.now();
+          const lines = filtered.map(l => {
+            const ageMs = now - new Date(l.createdAt).getTime();
+            const ageMin = Math.round(ageMs / 60000);
+            const age = ageMin < 60 ? `${ageMin}m ago` : `${Math.round(ageMin / 60)}h ago`;
+            return `- ${l.action} on ${l.entityType}${l.entityName ? ` "${l.entityName}"` : ""} — ${age}`;
+          });
+          assembledPrompt += `\n\n## Recent Activity\n${lines.join("\n")}`;
+        }
+      } catch (err: unknown) {
+        logger.warn(`Failed to load recent activity (non-blocking): ${err instanceof Error ? err.message : String(err)}`, "chat");
+      }
+
+      const fullSystemPrompt = assembledPrompt;
 
       // Task #499 — pluggable LLM dispatch. Choose provider/model from settings,
       // fall back to legacy `rebeccaChatEngine` only if settings are at the
@@ -1212,11 +1262,32 @@ export function register(app: Express) {
       // the saved Rebecca chat too (not just the admin Test Chat preview).
       const sourcesUsedSorted = collectChatSourcesFromManifest(manifest, rebeccaSettings.sources);
 
+      const totalMessages = dbHistory.length + 2;
+
+      // U7 — parse LLM-suggested follow-up chips from the FOLLOW_UPS: footer.
+      // Strip the footer from the visible response text before emitting.
+      let visibleResponseText = responseText;
+      let suggestedChips: string[];
+      const followUpsLineIdx = responseText.lastIndexOf(FOLLOW_UPS_MARKER);
+      if (followUpsLineIdx !== -1) {
+        const followUpsLine = responseText.slice(followUpsLineIdx);
+        const chipsRaw = followUpsLine.slice(FOLLOW_UPS_MARKER.length).trim();
+        const parsedChips = chipsRaw.split("|").map(s => s.trim()).filter(s => s.length > 0);
+        if (parsedChips.length > 0) {
+          suggestedChips = parsedChips.slice(0, 3);
+          visibleResponseText = responseText.slice(0, followUpsLineIdx).trimEnd();
+        } else {
+          suggestedChips = generateFollowUpChips(responseText, totalMessages, fieldCtx?.fieldKey, detectedLanguage);
+        }
+      } else {
+        suggestedChips = generateFollowUpChips(responseText, totalMessages, fieldCtx?.fieldKey, detectedLanguage);
+      }
+
       if (!isPreview) {
         const assistantMessage = await storage.addRebeccaMessage({
           conversationId,
           role: "assistant",
-          content: responseText,
+          content: visibleResponseText,
           metadata: {
             responseMode: responseMode ?? "standard",
             model: resolvedModelName,
@@ -1243,12 +1314,10 @@ export function register(app: Express) {
         }).catch(err => logger.warn(`Context contract logging failed: ${err instanceof Error ? err.message : String(err)}`, "chat"));
       }
 
-      const totalMessages = dbHistory.length + 2;
-      const suggestedChips = generateFollowUpChips(responseText, totalMessages, fieldCtx?.fieldKey, detectedLanguage);
       logActivity(req, "rebecca-chat", "rebecca_conversation", conversationId, null, { responseMode, detectedLanguage, totalMessages });
 
       const responsePayload = {
-        response: responseText,
+        response: visibleResponseText,
         conversationId,
         suggestedChips,
         detectedLanguage,
