@@ -17,10 +17,10 @@ import supertest from 'supertest';
 
 // ── Hoisted state (must be available inside vi.mock factory closures) ────────
 const { store, getId, STUB_LUCCA_DRAFT, STUB_AGENT_RESULTS } = vi.hoisted(() => {
-  const store = new Map<number, Record<string, unknown>>();
+  const _store = new Map<number, Record<string, unknown>>();
   let _nextId = 1;
 
-  const STUB_LUCCA_DRAFT: Record<string, unknown> = {
+  const _STUB_LUCCA_DRAFT: Record<string, unknown> = {
     'slide1.headerSubtitle':          { value: 'stub', approved: false, approvedAt: null, source: 'lucca' },
     'slide1.visionBullets':           { value: '• Bullet 1\n• Bullet 2\n• Bullet 3', approved: false, approvedAt: null, source: 'lucca' },
     'slide2.operationalModelText':    { value: 'stub', approved: false, approvedAt: null, source: 'lucca' },
@@ -38,12 +38,12 @@ const { store, getId, STUB_LUCCA_DRAFT, STUB_AGENT_RESULTS } = vi.hoisted(() => 
 
   const iso = new Date().toISOString();
   const approvedSlot = { status: 'approved', pixelDiffPct: 0, mayaVerdict: 'ok', mayaNotes: null, approvedAt: iso, errorMessage: null };
-  const STUB_AGENT_RESULTS: Record<string, unknown> = {
+  const _STUB_AGENT_RESULTS: Record<string, unknown> = {
     slide1: approvedSlot, slide2: approvedSlot, slide3: approvedSlot,
     slide4: approvedSlot, slide5: approvedSlot, slide6: approvedSlot,
   };
 
-  return { store, getId: () => _nextId++, STUB_LUCCA_DRAFT, STUB_AGENT_RESULTS };
+  return { store: _store, getId: () => _nextId++, STUB_LUCCA_DRAFT: _STUB_LUCCA_DRAFT, STUB_AGENT_RESULTS: _STUB_AGENT_RESULTS };
 });
 
 // ── Module mocks ─────────────────────────────────────────────────────────────
