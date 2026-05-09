@@ -1,7 +1,7 @@
 ---
 title: "Slide Factory — Post-Completion Override + Lightweight Rebuild"
 type: feat
-status: active
+status: completed
 date: 2026-05-09
 ---
 
