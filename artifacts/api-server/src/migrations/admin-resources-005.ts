@@ -25,7 +25,7 @@ import { logger } from "../logger";
 
 const TAG = "[migration] admin-resources-005";
 
-type ResourceKind = "api" | "source" | "model" | "table" | "benchmark" | "llm_slot";
+type ResourceKind = "api" | "source" | "model" | "table" | "benchmark" | "llm_slot" | "parameter";
 
 interface SeedRow {
   kind: ResourceKind;
@@ -277,6 +277,36 @@ export const LLM_SLOT_SEED_ROWS: SeedRow[] = [
     description: "LLM for the prompt-engineer pre-stage across all Specialist types",
     config: { modelSlug: "gemini-2-5-flash" },
   },
+  // ── Iris agent slots ────────────────────────────────────────────────────────
+  {
+    kind: "llm_slot",
+    slug: "iris-health-check",
+    displayName: "Iris Health Check",
+    description: "LLM used by Iris for lightweight scheduled health-check runs (Haiku tier)",
+    config: { modelSlug: "claude-haiku-4-5-20251001" },
+  },
+  {
+    kind: "llm_slot",
+    slug: "iris-reindex",
+    displayName: "Iris Reindex",
+    description: "LLM used by Iris for full reindex and gap-signal runs (Sonnet tier)",
+    config: { modelSlug: "claude-sonnet-4-6" },
+  },
+  // ── Pietro agent slots ──────────────────────────────────────────────────────
+  {
+    kind: "llm_slot",
+    slug: "pietro-health-check",
+    displayName: "Pietro Health Check",
+    description: "LLM used by Pietro for lightweight health-check trigger runs (Haiku tier)",
+    config: { modelSlug: "claude-haiku-4-5-20251001" },
+  },
+  {
+    kind: "llm_slot",
+    slug: "pietro-orchestration",
+    displayName: "Pietro Orchestration",
+    description: "LLM used by Pietro for scheduled-prefetch, manual, and source-added orchestration runs (Sonnet tier)",
+    config: { modelSlug: "claude-sonnet-4-6" },
+  },
 ];
 
 // ── Source / API / Benchmark rows ──────────────────────────────────────────
@@ -468,6 +498,52 @@ export const SOURCE_SEED_ROWS: SeedRow[] = [
   },
 ];
 
+// ── Parameter seed rows ────────────────────────────────────────────────────
+// Named SEED_* constants (§3 Seed File Rule) — never raw numeric literals in
+// seed data. These values mirror the named constants used in runner files so
+// the DB row and the in-code fallback are always identical.
+
+const SEED_SPECIALIST_CONVERGENCE_MIN_CONVICTION = 55;
+const SEED_SPECIALIST_MAX_REGRESS_ATTEMPTS = 2;
+const SEED_SLIDE_PIXEL_DIFF_THRESHOLD_PCT = 5;
+
+export const PARAMETER_SEED_ROWS: SeedRow[] = [
+  {
+    kind: "parameter",
+    slug: "specialist-convergence-min-conviction",
+    displayName: "Specialist Convergence Min Conviction",
+    description:
+      "Min avg conviction (0-100) to pass specialist convergence check. Below this value the quant panel emits an honest-fail verdict.",
+    config: {
+      value: SEED_SPECIALIST_CONVERGENCE_MIN_CONVICTION,
+      description:
+        "Min avg conviction (0-100) to pass specialist convergence check",
+    },
+  },
+  {
+    kind: "parameter",
+    slug: "specialist-max-regress-attempts",
+    displayName: "Specialist Max Regress Attempts",
+    description:
+      "Max synthesis regress iterations before failing a specialist run. 0 = first-pass success, value = exhausted.",
+    config: {
+      value: SEED_SPECIALIST_MAX_REGRESS_ATTEMPTS,
+      description: "Max synthesis regress iterations before failing a specialist run",
+    },
+  },
+  {
+    kind: "parameter",
+    slug: "slide-pixel-diff-threshold-pct",
+    displayName: "Slide Pixel Diff Threshold (%)",
+    description:
+      "Max pixel-diff % before Dino flags a slide as visually divergent from the canonical PNG.",
+    config: {
+      value: SEED_SLIDE_PIXEL_DIFF_THRESHOLD_PCT,
+      description: "Max pixel-diff % before Dino flags a slide as mismatched",
+    },
+  },
+];
+
 // ── Runner ─────────────────────────────────────────────────────────────────
 
 async function batchInsert(rows: SeedRow[]): Promise<number> {
@@ -502,5 +578,10 @@ export async function runAdminResources005(): Promise<void> {
   const slotsSeeded = await batchInsert(LLM_SLOT_SEED_ROWS);
   logger.info(
     `${TAG} llm_slot rows: ${slotsSeeded} seeded (${LLM_SLOT_SEED_ROWS.length - slotsSeeded} already existed)`,
+  );
+
+  const parametersSeeded = await batchInsert(PARAMETER_SEED_ROWS);
+  logger.info(
+    `${TAG} parameter rows: ${parametersSeeded} seeded (${PARAMETER_SEED_ROWS.length - parametersSeeded} already existed)`,
   );
 }
