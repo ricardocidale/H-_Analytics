@@ -259,6 +259,194 @@ describe("probe_integration_endpoint — SSRF guard via dispatchCostantinoTool",
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  // ── IPv6 loopback (::1) ──────────────────────────────────────────────────
+
+  it("blocks IPv6 loopback [::1] and does NOT call fetch", async () => {
+    const blockedUrl = "http://[::1]/internal";
+    limitMock.mockResolvedValueOnce([makeAdminResourceRow(blockedUrl)]);
+
+    const metrics = makeEmptyMetrics();
+    const result = await dispatchCostantinoTool(
+      "probe_integration_endpoint",
+      { slug: "test-resource" },
+      metrics,
+    ) as Record<string, unknown>;
+
+    expect(result.status).toBe("fail");
+    expect(result.errorCode).toBe("BLOCKED_URL");
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(metrics.probesFailed).toBe(1);
+  });
+
+  // ── IPv6 link-local (fe80::/10) ──────────────────────────────────────────
+
+  it("blocks IPv6 link-local [fe80::1] and does NOT call fetch", async () => {
+    const blockedUrl = "http://[fe80::1]/resource";
+    limitMock.mockResolvedValueOnce([makeAdminResourceRow(blockedUrl)]);
+
+    const metrics = makeEmptyMetrics();
+    const result = await dispatchCostantinoTool(
+      "probe_integration_endpoint",
+      { slug: "test-resource" },
+      metrics,
+    ) as Record<string, unknown>;
+
+    expect(result.status).toBe("fail");
+    expect(result.errorCode).toBe("BLOCKED_URL");
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(metrics.probesFailed).toBe(1);
+  });
+
+  it("blocks IPv6 link-local [fe80::dead:beef] and does NOT call fetch", async () => {
+    const blockedUrl = "http://[fe80::dead:beef]/admin";
+    limitMock.mockResolvedValueOnce([makeAdminResourceRow(blockedUrl)]);
+
+    const metrics = makeEmptyMetrics();
+    const result = await dispatchCostantinoTool(
+      "probe_integration_endpoint",
+      { slug: "test-resource" },
+      metrics,
+    ) as Record<string, unknown>;
+
+    expect(result.status).toBe("fail");
+    expect(result.errorCode).toBe("BLOCKED_URL");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("blocks IPv6 link-local [fe90::1] (fe80::/10 non-fe80 prefix) and does NOT call fetch", async () => {
+    const blockedUrl = "http://[fe90::1]/resource";
+    limitMock.mockResolvedValueOnce([makeAdminResourceRow(blockedUrl)]);
+
+    const metrics = makeEmptyMetrics();
+    const result = await dispatchCostantinoTool(
+      "probe_integration_endpoint",
+      { slug: "test-resource" },
+      metrics,
+    ) as Record<string, unknown>;
+
+    expect(result.status).toBe("fail");
+    expect(result.errorCode).toBe("BLOCKED_URL");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("blocks IPv6 link-local [fea0::1] (fe80::/10 non-fe80 prefix) and does NOT call fetch", async () => {
+    const blockedUrl = "http://[fea0::1]/resource";
+    limitMock.mockResolvedValueOnce([makeAdminResourceRow(blockedUrl)]);
+
+    const metrics = makeEmptyMetrics();
+    const result = await dispatchCostantinoTool(
+      "probe_integration_endpoint",
+      { slug: "test-resource" },
+      metrics,
+    ) as Record<string, unknown>;
+
+    expect(result.status).toBe("fail");
+    expect(result.errorCode).toBe("BLOCKED_URL");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("blocks IPv6 link-local [febf::1] (fe80::/10 upper boundary) and does NOT call fetch", async () => {
+    const blockedUrl = "http://[febf::1]/resource";
+    limitMock.mockResolvedValueOnce([makeAdminResourceRow(blockedUrl)]);
+
+    const metrics = makeEmptyMetrics();
+    const result = await dispatchCostantinoTool(
+      "probe_integration_endpoint",
+      { slug: "test-resource" },
+      metrics,
+    ) as Record<string, unknown>;
+
+    expect(result.status).toBe("fail");
+    expect(result.errorCode).toBe("BLOCKED_URL");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  // ── IPv6 ULA (fc00::/7 — fc and fd prefixes) ─────────────────────────────
+
+  it("blocks IPv6 ULA fc prefix [fc00::1] and does NOT call fetch", async () => {
+    const blockedUrl = "http://[fc00::1]/secret";
+    limitMock.mockResolvedValueOnce([makeAdminResourceRow(blockedUrl)]);
+
+    const metrics = makeEmptyMetrics();
+    const result = await dispatchCostantinoTool(
+      "probe_integration_endpoint",
+      { slug: "test-resource" },
+      metrics,
+    ) as Record<string, unknown>;
+
+    expect(result.status).toBe("fail");
+    expect(result.errorCode).toBe("BLOCKED_URL");
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(metrics.probesFailed).toBe(1);
+  });
+
+  it("blocks IPv6 ULA fd prefix [fd12:3456::1] and does NOT call fetch", async () => {
+    const blockedUrl = "http://[fd12:3456::1]/internal";
+    limitMock.mockResolvedValueOnce([makeAdminResourceRow(blockedUrl)]);
+
+    const metrics = makeEmptyMetrics();
+    const result = await dispatchCostantinoTool(
+      "probe_integration_endpoint",
+      { slug: "test-resource" },
+      metrics,
+    ) as Record<string, unknown>;
+
+    expect(result.status).toBe("fail");
+    expect(result.errorCode).toBe("BLOCKED_URL");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  // ── IPv4-mapped IPv6 (::ffff:<ipv4>) ─────────────────────────────────────
+
+  it("blocks IPv4-mapped link-local [::ffff:169.254.169.254] and does NOT call fetch", async () => {
+    const blockedUrl = "http://[::ffff:169.254.169.254]/latest/meta-data";
+    limitMock.mockResolvedValueOnce([makeAdminResourceRow(blockedUrl)]);
+
+    const metrics = makeEmptyMetrics();
+    const result = await dispatchCostantinoTool(
+      "probe_integration_endpoint",
+      { slug: "test-resource" },
+      metrics,
+    ) as Record<string, unknown>;
+
+    expect(result.status).toBe("fail");
+    expect(result.errorCode).toBe("BLOCKED_URL");
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(metrics.probesFailed).toBe(1);
+  });
+
+  it("blocks IPv4-mapped RFC-1918 [::ffff:10.0.0.1] and does NOT call fetch", async () => {
+    const blockedUrl = "http://[::ffff:10.0.0.1]/internal/api";
+    limitMock.mockResolvedValueOnce([makeAdminResourceRow(blockedUrl)]);
+
+    const metrics = makeEmptyMetrics();
+    const result = await dispatchCostantinoTool(
+      "probe_integration_endpoint",
+      { slug: "test-resource" },
+      metrics,
+    ) as Record<string, unknown>;
+
+    expect(result.status).toBe("fail");
+    expect(result.errorCode).toBe("BLOCKED_URL");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("blocks IPv4-mapped RFC-1918 [::ffff:192.168.1.1] and does NOT call fetch", async () => {
+    const blockedUrl = "http://[::ffff:192.168.1.1]/admin";
+    limitMock.mockResolvedValueOnce([makeAdminResourceRow(blockedUrl)]);
+
+    const metrics = makeEmptyMetrics();
+    const result = await dispatchCostantinoTool(
+      "probe_integration_endpoint",
+      { slug: "test-resource" },
+      metrics,
+    ) as Record<string, unknown>;
+
+    expect(result.status).toBe("fail");
+    expect(result.errorCode).toBe("BLOCKED_URL");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   // ── sanity check: valid public URL is NOT blocked ────────────────────────
 
   it("allows a legitimate public https URL and calls fetch", async () => {

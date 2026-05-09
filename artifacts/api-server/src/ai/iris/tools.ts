@@ -42,16 +42,52 @@ const IRIS_INGEST_METADATA_PREVIEW_MAX_CHARS = 3_000;
 const IRIS_ALLOWED_URL_SCHEMES = new Set(["https:", "http:"]);
 
 // Patterns that match private/loopback/link-local addresses to block SSRF.
+// IPv6 hostnames in URLs are bracket-wrapped by the URL parser (e.g. [fe80::1]),
+// so IPv6 patterns must match the bracketed form produced by `new URL(…).hostname`.
 const IRIS_BLOCKED_HOST_PATTERNS: RegExp[] = [
+  // ── IPv4 loopback / private / link-local ──────────────────────────────────
   /^localhost$/i,
-  /^::1$/,
   /^0\.0\.0\.0$/,
   /^127\./,
   /^10\./,
   /^172\.(1[6-9]|2[0-9]|3[01])\./,
   /^192\.168\./,
   /^169\.254\./,
+  // ── IPv6 loopback (::1) ───────────────────────────────────────────────────
+  /^::1$/, // bare form (direct string comparison)
+  /^\[::1\]$/, // bracket-wrapped form produced by URL parser
+  // ── IPv6 link-local (fe80::/10) ───────────────────────────────────────────
+  // fe80::/10 spans second bytes 0x80–0xbf (high nibble 8, 9, a, b).
+  /^\[fe8[0-9a-f]:/i, // 0x80–0x8f
+  /^\[fe9[0-9a-f]:/i, // 0x90–0x9f
+  /^\[fea[0-9a-f]:/i, // 0xa0–0xaf
+  /^\[feb[0-9a-f]:/i, // 0xb0–0xbf
+  // ── IPv6 ULA (fc00::/7 — covers fc and fd prefixes) ──────────────────────
+  /^\[f[cd][0-9a-f]/i,
 ];
+
+/**
+ * Node.js normalises IPv4-mapped IPv6 addresses to compressed hex notation,
+ * e.g. `http://[::ffff:169.254.169.254]/` → hostname `[::ffff:a9fe:a9fe]`.
+ *
+ * This helper decodes the two 4-hex-digit groups back to dotted-decimal IPv4
+ * so the existing IPv4 patterns in `IRIS_BLOCKED_HOST_PATTERNS` can be reused
+ * without maintaining a parallel set of opaque hex-encoded range patterns.
+ *
+ * Returns the dotted-decimal IPv4 string when `hostname` matches the
+ * `[::ffff:HHHH:HHHH]` shape, or `null` otherwise.
+ */
+function extractIpv4FromMappedIpv6(hostname: string): string | null {
+  const match = hostname.match(/^\[::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})\]$/i);
+  if (!match) return null;
+  const hiStr = match[1].padStart(4, "0");
+  const loStr = match[2].padStart(4, "0");
+  const b0 = Number("0x" + hiStr.slice(0, 2));
+  const b1 = Number("0x" + hiStr.slice(2, 4));
+  const b2 = Number("0x" + loStr.slice(0, 2));
+  const b3 = Number("0x" + loStr.slice(2, 4));
+  return `${b0}.${b1}.${b2}.${b3}`;
+}
 
 /**
  * Returns an error message if the URL is disallowed, or null if it is safe.
@@ -75,6 +111,17 @@ export function validateIngestUrl(rawUrl: string): string | null {
   for (const pattern of IRIS_BLOCKED_HOST_PATTERNS) {
     if (pattern.test(hostname)) {
       return `Host '${hostname}' is a private or internal address and cannot be fetched`;
+    }
+  }
+  // IPv4-mapped IPv6 addresses (e.g. ::ffff:169.254.x.x) are normalised by
+  // Node.js URL parser to hex notation ([::ffff:a9fe:a9fe]). Extract the
+  // embedded IPv4 and re-run the IPv4 patterns against it.
+  const mappedIpv4 = extractIpv4FromMappedIpv6(hostname);
+  if (mappedIpv4 !== null) {
+    for (const pattern of IRIS_BLOCKED_HOST_PATTERNS) {
+      if (pattern.test(mappedIpv4)) {
+        return `Host '${hostname}' (IPv4-mapped: ${mappedIpv4}) is a private or internal address and cannot be fetched`;
+      }
     }
   }
   return null;

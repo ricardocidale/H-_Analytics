@@ -51,6 +51,7 @@ import {
   writeHealthReport,
   getIrisTools,
   dispatchIrisTool,
+  validateIngestUrl,
 } from "../../../ai/iris/tools";
 
 import * as vectorStore from "../../../ai/vector-store-service";
@@ -439,5 +440,117 @@ describe("writeHealthReport", () => {
     await writeHealthReport({ results });
     const markdown = vi.mocked(workspaceModule.writeIrisHealth).mock.calls[0][0];
     expect(markdown).toContain("2/3 tools passed");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// validateIngestUrl — SSRF guard (direct unit tests)
+// ---------------------------------------------------------------------------
+
+describe("validateIngestUrl", () => {
+  // ── scheme checks ─────────────────────────────────────────────────────────
+
+  it("returns null for a valid public https URL", () => {
+    expect(validateIngestUrl("https://api.example.com/data")).toBeNull();
+  });
+
+  it("returns null for a valid public http URL", () => {
+    expect(validateIngestUrl("http://api.example.com/data")).toBeNull();
+  });
+
+  it("blocks ftp:// scheme", () => {
+    expect(validateIngestUrl("ftp://example.com/file")).not.toBeNull();
+  });
+
+  it("blocks file:// scheme", () => {
+    expect(validateIngestUrl("file:///etc/passwd")).not.toBeNull();
+  });
+
+  it("returns error for a malformed URL", () => {
+    expect(validateIngestUrl("not a url")).not.toBeNull();
+  });
+
+  // ── IPv4 private / loopback / link-local ──────────────────────────────────
+
+  it("blocks localhost", () => {
+    expect(validateIngestUrl("http://localhost/api")).not.toBeNull();
+  });
+
+  it("blocks 127.0.0.1 loopback", () => {
+    expect(validateIngestUrl("http://127.0.0.1/api")).not.toBeNull();
+  });
+
+  it("blocks RFC-1918 10.x range", () => {
+    expect(validateIngestUrl("http://10.0.0.1/api")).not.toBeNull();
+  });
+
+  it("blocks RFC-1918 192.168.x.x range", () => {
+    expect(validateIngestUrl("http://192.168.1.1/api")).not.toBeNull();
+  });
+
+  it("blocks RFC-1918 172.16–31.x range", () => {
+    expect(validateIngestUrl("http://172.16.0.1/api")).not.toBeNull();
+  });
+
+  it("blocks link-local 169.254.x.x (IMDS)", () => {
+    expect(validateIngestUrl("http://169.254.169.254/latest/meta-data")).not.toBeNull();
+  });
+
+  // ── IPv6 loopback ─────────────────────────────────────────────────────────
+
+  it("blocks IPv6 loopback [::1]", () => {
+    expect(validateIngestUrl("http://[::1]/api")).not.toBeNull();
+  });
+
+  // ── IPv6 link-local (fe80::/10) ───────────────────────────────────────────
+
+  it("blocks IPv6 link-local [fe80::1]", () => {
+    expect(validateIngestUrl("http://[fe80::1]/api")).not.toBeNull();
+  });
+
+  it("blocks IPv6 link-local [fe90::1] (fe80::/10, non-fe80 prefix)", () => {
+    expect(validateIngestUrl("http://[fe90::1]/api")).not.toBeNull();
+  });
+
+  it("blocks IPv6 link-local [fea0::1] (fe80::/10, non-fe80 prefix)", () => {
+    expect(validateIngestUrl("http://[fea0::1]/api")).not.toBeNull();
+  });
+
+  it("blocks IPv6 link-local [febf::1] (fe80::/10, upper boundary)", () => {
+    expect(validateIngestUrl("http://[febf::1]/api")).not.toBeNull();
+  });
+
+  // ── IPv6 ULA (fc00::/7) ───────────────────────────────────────────────────
+
+  it("blocks IPv6 ULA [fc00::1] (fc prefix)", () => {
+    expect(validateIngestUrl("http://[fc00::1]/api")).not.toBeNull();
+  });
+
+  it("blocks IPv6 ULA [fd12:3456::1] (fd prefix)", () => {
+    expect(validateIngestUrl("http://[fd12:3456::1]/api")).not.toBeNull();
+  });
+
+  // ── IPv4-mapped IPv6 (::ffff:<ipv4>) ─────────────────────────────────────
+
+  it("blocks IPv4-mapped link-local [::ffff:169.254.169.254]", () => {
+    expect(validateIngestUrl("http://[::ffff:169.254.169.254]/api")).not.toBeNull();
+  });
+
+  it("blocks IPv4-mapped RFC-1918 [::ffff:10.0.0.1]", () => {
+    expect(validateIngestUrl("http://[::ffff:10.0.0.1]/api")).not.toBeNull();
+  });
+
+  it("blocks IPv4-mapped RFC-1918 [::ffff:192.168.1.1]", () => {
+    expect(validateIngestUrl("http://[::ffff:192.168.1.1]/api")).not.toBeNull();
+  });
+
+  // ── allow-list: public IPv6 addresses must NOT be blocked ─────────────────
+
+  it("allows a public global unicast IPv6 address [2001:db8::1]", () => {
+    expect(validateIngestUrl("http://[2001:db8::1]/api")).toBeNull();
+  });
+
+  it("allows a public IPv6 address [2606:4700::1] (Cloudflare range)", () => {
+    expect(validateIngestUrl("http://[2606:4700::1]/api")).toBeNull();
   });
 });
