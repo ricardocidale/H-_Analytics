@@ -15,9 +15,9 @@ feature ships or a new Rebecca tool is added.
 |---|---|---|---|
 | View property list | Properties sidebar | `list_properties` | ✅ |
 | View property detail | Property page | `get_property` | ✅ |
-| Create property | Properties → New | — | ⚠️ Route exists, tool missing |
+| Create property | Properties → New | `create_property` | ✅ |
 | Edit property field | Property → Edit | `update_property` | ✅ |
-| Delete property | Property → Delete | — | ⚠️ Route exists, tool missing |
+| Delete property | Property → Delete | `delete_property` | ✅ |
 | Create scenario | Scenarios → New | `create_scenario` | ✅ |
 | Clone scenario | Scenarios → Clone | `create_scenario (cloneFromId)` | ✅ |
 | Edit scenario name / description / tags | Scenario → Edit | `update_scenario` | ✅ |
@@ -33,6 +33,14 @@ feature ships or a new Rebecca tool is added.
 | Refresh Capital Raise benchmarks | Admin → Analyst tables | `refresh_analyst_table` | ✅ |
 | Refresh Exit Multiples benchmarks | Admin → Analyst tables | `refresh_analyst_table` | ✅ |
 | Refresh Reference Brands | Admin → Analyst tables | `refresh_analyst_table` | ✅ |
+| Read current rows of an analyst table | Admin → Analyst tables | `get_analyst_table` | ✅ |
+
+## Company Actions
+
+| UI Action | UI Location | Rebecca Tool | Status |
+|---|---|---|---|
+| List active companies (management cos + SPVs) | Admin → Companies | `list_companies` | ✅ |
+| View a single company by id | Admin → Companies → detail | `get_company` | ✅ |
 
 ## Slides / Deck Actions (Legacy LB Deck — manual configure → render path)
 

@@ -3,7 +3,8 @@ import { logger } from "../logger";
 import { isAdminRole } from "@shared/constants";
 import type { ToolParam } from "./tool-types";
 import type { Property, UpdateProperty, Scenario, UpdateScenario } from "@workspace/db";
-import { updatePropertySchema } from "@workspace/db";
+import { updatePropertySchema, insertPropertySchema, type InsertProperty } from "@workspace/db";
+import { createPropertyForUser, archivePropertyForUser } from "../routes/properties";
 import { SLIDE_FACTORY_UNAPPROVED_SLOTS_PREVIEW } from "../constants";
 import { generateLocationAwareResearchValues } from "../data/researchSeeds";
 import {
@@ -472,6 +473,83 @@ export function getRebeccaTools(): ToolParam[] {
         required: ["market"],
       },
     },
+    {
+      name: "get_analyst_table",
+      description:
+        "Read the current rows of an analyst-managed benchmark table (Capital Raise benchmarks, Exit Multiples, or Reference Brands). " +
+        "Use this to inspect what the table currently contains before deciding whether to refresh it. Admin-only.",
+      parameters: {
+        type: "object",
+        properties: {
+          tableId: {
+            type: "string",
+            enum: ["capital_raise_benchmarks", "exit_multiples", "reference_brands"],
+            description: "Which analyst table to read.",
+          },
+        },
+        required: ["tableId"],
+      },
+    },
+    {
+      name: "create_property",
+      description:
+        "Create a new property (hotel) in the portfolio. Mirrors the UI's 'New Property' action: applies global assumption defaults, " +
+        "smart defaults from quality tier / business model / country / room count, suggests a star rating, seeds default fee categories, " +
+        "and creates a hero photo if an imageUrl is provided. Returns the new property id and name.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Property name (required)." },
+          country: { type: "string", description: "Country, e.g. 'United States'." },
+          stateProvince: { type: "string", description: "State or province." },
+          city: { type: "string", description: "City." },
+          location: { type: "string", description: "Free-form location string." },
+          propertyType: { type: "string", description: "Property type, e.g. 'hotel', 'resort', 'inn'." },
+          businessModel: { type: "string", description: "Business model classification, e.g. 'hotel', 'resort'." },
+          qualityTier: { type: "string", description: "Quality tier, e.g. 'Luxury', 'Upscale', 'Midscale'." },
+          roomCount: { type: "number", description: "Total number of guest rooms." },
+          imageUrl: { type: "string", description: "Optional hero image URL." },
+        },
+        required: ["name"],
+      },
+    },
+    {
+      name: "delete_property",
+      description:
+        "Soft-delete (archive) a property. This is reversible by an admin via the restore endpoint, but it removes the property from " +
+        "all standard list/detail views and clears its vector index. Confirm with the user before calling. Caller must be the property " +
+        "owner or an admin.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "Property id to archive." },
+        },
+        required: ["id"],
+      },
+    },
+    {
+      name: "list_companies",
+      description:
+        "List all active companies (legal entities) in the system — both management companies and SPVs (Special Purpose Vehicles). " +
+        "Admin-only. Returns id, name, type, and isActive for each.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
+    },
+    {
+      name: "get_company",
+      description:
+        "Get the full record for a single company by id. Admin-only.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "Company id." },
+        },
+        required: ["id"],
+      },
+    },
   ];
 }
 
@@ -560,6 +638,16 @@ export async function dispatchRebeccaTool(
         return await toolProbeDataSource(args, ctx);
       case "regenerate_data_source":
         return await toolRegenerateDataSource(args, ctx);
+      case "get_analyst_table":
+        return await toolGetAnalystTable(args, ctx);
+      case "create_property":
+        return await toolCreateProperty(args, ctx);
+      case "delete_property":
+        return await toolDeleteProperty(args, ctx);
+      case "list_companies":
+        return await toolListCompanies(ctx);
+      case "get_company":
+        return await toolGetCompany(args, ctx);
       case "get_tripadvisor_hotels":
         return await toolGetTripadvisorHotels(args);
       default:
@@ -1838,4 +1926,148 @@ async function toolGetTripadvisorHotels(
 
   const result = await searchTripadvisorHotels(market, query, rawLimit);
   return { result };
+}
+
+// ---------------------------------------------------------------------------
+// Analyst-table read tool (U2)
+// ---------------------------------------------------------------------------
+
+async function toolGetAnalystTable(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const VALID_TABLE_IDS = ["capital_raise_benchmarks", "exit_multiples", "reference_brands"] as const;
+  const tableId = args.tableId;
+  if (typeof tableId !== "string" || !VALID_TABLE_IDS.includes(tableId as typeof VALID_TABLE_IDS[number])) {
+    return { result: { error: `tableId must be one of: ${VALID_TABLE_IDS.join(", ")}` } };
+  }
+
+  if (tableId === "capital_raise_benchmarks") {
+    const rows = await storage.getCapitalRaiseBenchmarks();
+    return { result: { tableId, rowCount: rows.length, rows } };
+  }
+  if (tableId === "exit_multiples") {
+    const rows = await storage.getExitMultiples();
+    return { result: { tableId, rowCount: rows.length, rows } };
+  }
+  // reference_brands
+  const rows = await storage.getReferenceBrands();
+  return { result: { tableId, rowCount: rows.length, rows } };
+}
+
+// ---------------------------------------------------------------------------
+// Property create / delete tools (U3)
+//
+// These delegate to shared helpers in routes/properties.ts so Rebecca stays
+// at full parity with POST /api/properties and DELETE /api/properties/:id.
+// ---------------------------------------------------------------------------
+
+async function toolCreateProperty(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const user = await storage.getUserById(ctx.userId);
+  if (!user) return { result: { error: "User not found" } };
+
+  const validation = insertPropertySchema.safeParse(args);
+  if (!validation.success) {
+    const message = validation.error.issues
+      .map(i => `${i.path.join(".") || "(root)"}: ${i.message}`)
+      .join("; ");
+    return { result: { error: `Invalid property data: ${message}` } };
+  }
+
+  try {
+    const property = await createPropertyForUser(
+      user as unknown as Express.User,
+      validation.data as InsertProperty,
+    );
+    return {
+      result: { id: property.id, name: property.name },
+      dataChanged: { entityType: "property", entityId: property.id },
+    };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { result: { error: `Failed to create property: ${message}` } };
+  }
+}
+
+async function toolDeleteProperty(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const id = typeof args.id === "number" ? args.id : Number(args.id);
+  if (!id || isNaN(id)) return { result: { error: "id must be a positive integer" } };
+
+  const user = await storage.getUserById(ctx.userId);
+  if (!user) return { result: { error: "User not found" } };
+
+  // Ownership check inline — mirrors checkPropertyAccess in auth.ts.
+  // Admin → any property; owner → own property; shared (userId=null) → any user.
+  const property = await storage.getProperty(id);
+  if (!property) return { result: { error: "Property not found" } };
+  const canAccess =
+    isAdminRole(user.role) ||
+    property.userId === ctx.userId ||
+    property.userId === null;
+  if (!canAccess) return { result: { error: "Access denied" } };
+
+  await archivePropertyForUser(id, ctx.userId);
+  return {
+    result: { success: true, displayName: property.name },
+    dataChanged: { entityType: "property", entityId: id },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Company read tools (U4)
+// ---------------------------------------------------------------------------
+
+async function toolListCompanies(ctx: ToolContext): Promise<{ result: unknown }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const { db } = await import("../db");
+  const { companies } = await import("@workspace/db");
+  const { eq } = await import("drizzle-orm");
+
+  const rows = await db
+    .select({
+      id: companies.id,
+      name: companies.name,
+      type: companies.type,
+      isActive: companies.isActive,
+    })
+    .from(companies)
+    .where(eq(companies.isActive, true));
+
+  return { result: { rowCount: rows.length, companies: rows } };
+}
+
+async function toolGetCompany(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const id = typeof args.id === "number" ? args.id : Number(args.id);
+  if (!id || isNaN(id)) return { result: { error: "id must be a positive integer" } };
+
+  const { db } = await import("../db");
+  const { companies } = await import("@workspace/db");
+  const { eq } = await import("drizzle-orm");
+
+  const [row] = await db.select().from(companies).where(eq(companies.id, id)).limit(1);
+  if (!row) return { result: { error: `Company not found: id=${id}` } };
+
+  return {
+    result: {
+      ...row,
+      createdAt: row.createdAt?.toISOString() ?? null,
+    },
+  };
 }
