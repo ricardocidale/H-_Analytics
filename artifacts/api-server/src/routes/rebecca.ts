@@ -7,6 +7,7 @@ import { logger } from "../logger";
 import { logActivity, parseRouteId } from "./helpers";
 import { insertRebeccaKBSchema } from "@workspace/db";
 import { upsertChunks, deleteVectors, vectorCount } from "../ai/vector-store-service";
+import { KB_CONTENT_VECTOR_PREVIEW_CHARS } from "../chat/rebecca-tools";
 import { rebeccaSettingsSchema, tryParseRebeccaSettings } from "@shared/rebecca-settings";
 import { HTTP_422_UNPROCESSABLE_ENTITY, HTTP_405_METHOD_NOT_ALLOWED, HTTP_409_CONFLICT, HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR } from "../constants";
 
@@ -908,7 +909,7 @@ function syncKBEntryToVectorStore(entryId: number, title: string, content: strin
   upsertChunks("knowledge-base", [{
     id: `admin-kb:${entryId}`,
     text: `${title}\n\n${content}`,
-    metadata: { title, content: content.slice(0, 3_000), source: "admin-kb", category },
+    metadata: { title, content: content.slice(0, KB_CONTENT_VECTOR_PREVIEW_CHARS), source: "admin-kb", category },
   }]).catch(e =>
     logger.warn(`Vector store sync failed for KB ${entryId}: ${e instanceof Error ? e.message : e}`, "rebecca")
   );

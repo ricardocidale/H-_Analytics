@@ -80,6 +80,8 @@ interface RunsResponse {
 
 type SeverityFilter = "all" | "block" | "warning" | "advisory" | "info" | "resolved";
 
+const SUMMARY_STALE_TIME_MS = 30_000;
+
 const SEVERITY_COLORS: Record<"block" | "warning" | "advisory" | "info", string> = {
   block: "bg-red-100 text-red-800 border-red-200",
   warning: "bg-amber-100 text-amber-800 border-amber-200",
@@ -156,21 +158,23 @@ export default function ComplianceTab() {
     queryKey: ["/api/admin/compliance/violations", "count", severity],
     queryFn: () =>
       apiRequest("GET", `/api/admin/compliance/violations?resolved=false&severity=${severity}&limit=1`) as unknown as Promise<ViolationsResponse>,
-    staleTime: 30_000,
+    staleTime: SUMMARY_STALE_TIME_MS,
   });
   const { data: blockSummary } = useQuery(summaryQueryOpts("block"));
   const { data: warningSummary } = useQuery(summaryQueryOpts("warning"));
   const { data: advisorySummary } = useQuery(summaryQueryOpts("advisory"));
   const { data: infoSummary } = useQuery(summaryQueryOpts("info"));
+  const summaryReady = blockSummary !== undefined && warningSummary !== undefined
+    && advisorySummary !== undefined && infoSummary !== undefined;
 
   const latestRun = runsData?.runs?.[0] ?? null;
 
-  const counts = {
-    block: blockSummary?.total ?? 0,
-    warning: warningSummary?.total ?? 0,
-    advisory: advisorySummary?.total ?? 0,
-    info: infoSummary?.total ?? 0,
-  };
+  const counts = summaryReady ? {
+    block: blockSummary.total,
+    warning: warningSummary.total,
+    advisory: advisorySummary.total,
+    info: infoSummary.total,
+  } : null;
 
   // ── Run audit mutation ──────────────────────────────────────────────────
   const runMutation = useMutation<{ runId: number; trigger: string }, Error, "manual" | "manual-full">({
@@ -220,10 +224,10 @@ export default function ComplianceTab() {
 
   const filterOptions: { value: SeverityFilter; label: string }[] = [
     { value: "all", label: "All" },
-    { value: "block", label: `Block${counts.block > 0 ? ` (${counts.block})` : ""}` },
-    { value: "warning", label: `Warning${counts.warning > 0 ? ` (${counts.warning})` : ""}` },
-    { value: "advisory", label: `Advisory${counts.advisory > 0 ? ` (${counts.advisory})` : ""}` },
-    { value: "info", label: `Info${counts.info > 0 ? ` (${counts.info})` : ""}` },
+    { value: "block", label: counts ? `Block${counts.block > 0 ? ` (${counts.block})` : ""}` : "Block" },
+    { value: "warning", label: counts ? `Warning${counts.warning > 0 ? ` (${counts.warning})` : ""}` : "Warning" },
+    { value: "advisory", label: counts ? `Advisory${counts.advisory > 0 ? ` (${counts.advisory})` : ""}` : "Advisory" },
+    { value: "info", label: counts ? `Info${counts.info > 0 ? ` (${counts.info})` : ""}` : "Info" },
     { value: "resolved", label: "Resolved" },
   ];
 
@@ -266,19 +270,20 @@ export default function ComplianceTab() {
           <div className="flex flex-wrap gap-4 text-sm">
             {/* Counts */}
             <div className="flex items-center gap-2">
-              {counts.block > 0 && (
+              {!counts && <span className="text-muted-foreground">Loading…</span>}
+              {counts && counts.block > 0 && (
                 <span className="font-semibold text-red-600">{counts.block} block</span>
               )}
-              {counts.warning > 0 && (
+              {counts && counts.warning > 0 && (
                 <span className="font-semibold text-amber-600">{counts.warning} warning</span>
               )}
-              {counts.advisory > 0 && (
+              {counts && counts.advisory > 0 && (
                 <span className="font-semibold text-sky-600">{counts.advisory} advisory</span>
               )}
-              {counts.info > 0 && (
+              {counts && counts.info > 0 && (
                 <span className="font-semibold text-emerald-600">{counts.info} info</span>
               )}
-              {counts.block === 0 && counts.warning === 0 && counts.advisory === 0 && counts.info === 0 && (
+              {counts && counts.block === 0 && counts.warning === 0 && counts.advisory === 0 && counts.info === 0 && (
                 <span className="text-muted-foreground">No open violations</span>
               )}
             </div>

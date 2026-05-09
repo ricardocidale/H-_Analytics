@@ -29,7 +29,7 @@ const RESEARCH_ESTIMATED_MINUTES = 2;
 export type ToolContext = { userId: number };
 
 /** Max chars of KB entry content stored in the vector store metadata preview. */
-const KB_CONTENT_VECTOR_PREVIEW_CHARS = 3_000;
+export const KB_CONTENT_VECTOR_PREVIEW_CHARS = 3_000;
 
 export type DataChangedEntry = {
   entityType: "property" | "scenario" | "slide_factory_run" | "analyst_table" | "lb_deck_config"

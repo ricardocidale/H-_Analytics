@@ -604,14 +604,21 @@ export async function runPropertyRiskIntelligenceSpecialist(
   const persona = asPersonaContext(ctx.persona);
 
   // ── Behavioral parameters (admin-tunable via admin_resources) ────────────
-  const convergenceMinConviction = Math.max(0, Math.min(1, await getParameterValue(
+  const rawConviction = await getParameterValue(
     "specialist-convergence-min-conviction",
     CONVERGENCE_MIN_QUANT_CONVICTION,
-  )));
-  const maxSynthesisRegresses = Math.max(0, Math.round(await getParameterValue(
+  );
+  const convergenceMinConviction = Number.isFinite(rawConviction)
+    ? Math.max(0, Math.min(100, rawConviction))
+    : CONVERGENCE_MIN_QUANT_CONVICTION;
+
+  const rawRegresses = await getParameterValue(
     "specialist-max-regress-attempts",
     MAX_SYNTHESIS_REGRESSES,
-  )));
+  );
+  const maxSynthesisRegresses = Number.isFinite(rawRegresses)
+    ? Math.max(0, Math.round(rawRegresses))
+    : MAX_SYNTHESIS_REGRESSES;
 
   // ── Phase 0: Prompt Engineer pre-stage (IB req #8) ─────────────────────────
   const peAbort = new AbortController();
