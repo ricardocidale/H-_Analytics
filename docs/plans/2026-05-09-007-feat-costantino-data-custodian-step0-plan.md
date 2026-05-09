@@ -1,7 +1,7 @@
 ---
 title: "feat: Costantino Data Custodian — Step 0 (agent-native skeleton + admin_resources health probe)"
 type: feat
-status: active
+status: completed
 date: 2026-05-09
 deepened: 2026-05-09
 ---
