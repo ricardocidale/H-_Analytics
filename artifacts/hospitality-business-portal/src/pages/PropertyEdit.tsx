@@ -29,6 +29,7 @@ import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 import { useProperty, useUpdateProperty, useGlobalAssumptions, useMarketResearch, useFeeCategories, useUpdateFeeCategories, usePropertyGuidance, type FeeCategoryResponse } from "@/lib/api";
 import { useMarketRates } from "@/lib/api/market-rates";
 import { ValidationStatusBadge, AnalystValidationBanner } from "@/components/analyst";
+import { PropertyResearchHistory } from "@/components/property-edit/PropertyResearchHistory";
 import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -713,6 +714,8 @@ export default function PropertyEdit() {
               totalServiceFeeRate={totalServiceFeeRate}
             />
             <OtherAssumptionsSection {...sectionProps} exitYear={exitYear} />
+
+            <PropertyResearchHistory propertyId={propertyId} />
 
             {/* Property-scoped Analyst verdict surface (task #779). The
                 "Ask Analyst" button POSTs to `/api/analyst/refresh`
