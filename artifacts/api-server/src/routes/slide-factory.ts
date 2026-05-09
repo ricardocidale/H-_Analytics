@@ -42,6 +42,7 @@ import { runLorenzoIngestion } from "../slides/lorenzo-ingestion";
 import { runLuccaDraft } from "../slides/lucca-draft";
 import { runMarco } from "../slides/marco";
 import { runFranco } from "../slides/minions/franco";
+import { runMayaForOverriddenSlides } from "../slides/rebuild-maya";
 import { logger } from "../logger";
 import {
   HTTP_200_OK,
@@ -541,6 +542,16 @@ router.post(
             completedAt: new Date(),
           });
           logger.info(`[rebuild] run ${id}: rebuild complete (${deckR2Key})`, "slide-factory");
+          // Re-judge Maya for any slide with admin-override slots. Non-fatal:
+          // deck is already downloadable; Maya failure is logged and swallowed.
+          try {
+            await runMayaForOverriddenSlides(id);
+          } catch (mayaErr) {
+            logger.error(
+              `[rebuild] run ${id}: runMayaForOverriddenSlides failed — ${String(mayaErr)}`,
+              "slide-factory",
+            );
+          }
         } catch (err) {
           logger.error(
             `[rebuild] run ${id}: Franco failed — reverting to complete: ${String(err)}`,

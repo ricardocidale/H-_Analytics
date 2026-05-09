@@ -128,6 +128,35 @@ vi.mock('../slides/minions/franco', () => ({
   runFranco: vi.fn(async (id: number) => ({ deckR2Key: `factory-runs/${id}/deck-v2.pdf` })),
 }));
 
+vi.mock('../slides/rebuild-maya', () => ({
+  runMayaForOverriddenSlides: vi.fn(async (id: number) => {
+    // Synchronous stub: find slides with admin-override slots and write a fresh
+    // maya verdict to the in-memory store, mirroring what the real impl does.
+    const run = store.get(id) ?? {};
+    const draft = (run.luccaDraft ?? {}) as Record<string, { source?: string }>;
+    const affected = new Set<string>();
+    for (const key of Object.keys(draft)) {
+      if (draft[key]?.source === 'admin-override') {
+        const prefix = key.split('.')[0]; // e.g. "slide1"
+        if (prefix) affected.add(prefix);
+      }
+    }
+    if (affected.size === 0) return;
+    const agentResults = { ...((run.agentResults as Record<string, unknown>) ?? {}) };
+    for (const slideKey of affected) {
+      const existing = (agentResults[slideKey] as Record<string, unknown>) ?? {};
+      agentResults[slideKey] = {
+        ...existing,
+        mayaVerdict: 'ok',
+        mayaNotes: null,
+        status: 'approved',
+        errorMessage: null,
+      };
+    }
+    store.set(id, { ...run, agentResults });
+  }),
+}));
+
 vi.mock('../providers/storage', () => ({
   getStorageProviderAsync: vi.fn(() =>
     Promise.resolve({
@@ -280,6 +309,19 @@ describe('Slide factory pipeline — rebuild loop', () => {
     const res = await agent.get(`/api/lb-slides/factory/runs/${runId}/download`);
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toMatch(/application\/pdf/);
+  });
+
+  it('rebuild after admin override runs Maya for overridden slide — mayaVerdict present on slide1', async () => {
+    // Run 1 is at complete with deckR2Key set. slide1.headerSubtitle was patched
+    // to source=admin-override in the prior test, and rebuild was triggered.
+    // The mock runMayaForOverriddenSlides wrote mayaVerdict='ok' for slide1.
+    const get = await agent.get(`/api/lb-slides/factory/runs/${runId}`);
+    expect(get.status).toBe(200);
+    expect(get.body.agentResults?.slide1?.mayaVerdict).toBeDefined();
+    expect(get.body.agentResults?.slide1?.mayaVerdict).toBe('ok');
+    // Non-overridden slides should not have had their verdicts changed by Maya
+    // (they retain their original STUB_AGENT_RESULTS value, also 'ok' in this stub).
+    expect(get.body.agentResults?.slide2?.mayaVerdict).toBeDefined();
   });
 });
 
