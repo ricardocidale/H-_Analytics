@@ -28,7 +28,7 @@ export type ToolContext = { userId: number };
 
 export type DataChangedEntry = {
   entityType: "property" | "scenario" | "slide_factory_run" | "analyst_table" | "lb_deck_config"
-            | "research_job" | "iris_run" | "iris_gap" | "data_source" | "compliance_run";
+            | "global_assumptions" | "research_job" | "iris_run" | "iris_gap" | "data_source" | "compliance_run";
   entityId: number;
 };
 
@@ -560,6 +560,34 @@ export function getRebeccaTools(): ToolParam[] {
         required: ["id"],
       },
     },
+    {
+      name: "compare_scenarios",
+      description:
+        "Compare two financial scenarios side-by-side. Returns a comparison of their assumptions, projections, and key financial metrics. Read-only.",
+      parameters: {
+        type: "object",
+        properties: {
+          scenarioId1: { type: "number", description: "ID of the first scenario." },
+          scenarioId2: { type: "number", description: "ID of the second scenario." },
+        },
+        required: ["scenarioId1", "scenarioId2"],
+      },
+    },
+    {
+      name: "update_global_assumptions",
+      description:
+        "Update one or more global assumption fields (admin only). Accepts a partial patch object with the fields to update.",
+      parameters: {
+        type: "object",
+        properties: {
+          patch: {
+            type: "object",
+            description: "The fields to update on the global assumptions row (e.g. { rebeccaEnabled: true }).",
+          },
+        },
+        required: ["patch"],
+      },
+    },
   ];
 }
 
@@ -662,6 +690,10 @@ export async function dispatchRebeccaTool(
         return await toolGetCompany(args, ctx);
       case "get_tripadvisor_hotels":
         return await toolGetTripadvisorHotels(args);
+      case "compare_scenarios":
+        return await toolCompareScenarios(args, ctx);
+      case "update_global_assumptions":
+        return await toolUpdateGlobalAssumptions(args, ctx);
       default:
         return { result: { error: "Unknown tool" } };
     }
@@ -2119,5 +2151,62 @@ async function toolGetCompany(
       ...row,
       createdAt: row.createdAt?.toISOString() ?? null,
     },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// compare_scenarios (U5) — read-only scenario comparison
+// ---------------------------------------------------------------------------
+
+async function toolCompareScenarios(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const id1Result = requireNumericArg(args, "scenarioId1");
+  if (!id1Result.ok) return id1Result.result;
+  const id2Result = requireNumericArg(args, "scenarioId2");
+  if (!id2Result.ok) return id2Result.result;
+
+  const [s1, s2] = await Promise.all([
+    storage.getScenario(id1Result.value),
+    storage.getScenario(id2Result.value),
+  ]);
+
+  if (!s1 || s1.userId !== ctx.userId) {
+    return { result: { error: `Scenario ${id1Result.value} not found` } };
+  }
+  if (!s2 || s2.userId !== ctx.userId) {
+    return { result: { error: `Scenario ${id2Result.value} not found` } };
+  }
+
+  const comparison = storage.compareScenarios(s1, s2);
+  return { result: comparison };
+}
+
+// ---------------------------------------------------------------------------
+// update_global_assumptions (U5) — admin-only partial patch
+// ---------------------------------------------------------------------------
+
+async function toolUpdateGlobalAssumptions(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const patchResult = requireObjectArg(args, "patch");
+  if (!patchResult.ok) return patchResult.result;
+
+  const ga = await storage.getGlobalAssumptions(ctx.userId);
+  if (!ga) {
+    return { result: { error: "Global assumptions not found" } };
+  }
+
+  const patch: Record<string, unknown> = { ...patchResult.value, updatedAt: new Date() };
+  const updated = await storage.patchGlobalAssumptions(ga.id, patch);
+
+  return {
+    result: { success: true, id: updated.id },
+    dataChanged: { entityType: "global_assumptions", entityId: 0 },
   };
 }

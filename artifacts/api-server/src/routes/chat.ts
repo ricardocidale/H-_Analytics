@@ -5,6 +5,7 @@ import { requireAuth , getAuthUser } from "../auth";
 import { aiRateLimit } from "../middleware/rate-limit";
 import { storage } from "../storage";
 import { buildPropertyContext } from "../ai/buildPropertyContext.js";
+import { buildCompanyDataInjection } from "../ai/company-data-injector";
 import { z } from "zod";
 import { DEFAULT_PROJECTION_YEARS, isAdminRole } from "@shared/constants";
 import { getFactoryNumber } from "@shared/model-constants-registry";
@@ -1131,6 +1132,23 @@ export function register(app: Express) {
         }
       } catch (err: unknown) {
         logger.warn(`Failed to load recent activity (non-blocking): ${err instanceof Error ? err.message : String(err)}`, "chat");
+      }
+
+      // U2 — FRED macro-economic context: inject verified macro rates (CPI,
+      // SOFR, prime rate, 10Y treasury), country defaults, hospitality
+      // benchmarks, and portfolio statistics so Rebecca can calibrate
+      // recommendations against live market conditions.
+      // Gated on the research toggle so admins can disable it if needed.
+      // Failures degrade gracefully — chat continues without the block.
+      if (rebeccaSettings.sources.research.enabled) {
+        try {
+          const macroBlock = await buildCompanyDataInjection(properties);
+          if (macroBlock) {
+            assembledPrompt += macroBlock;
+          }
+        } catch (err: unknown) {
+          logger.warn(`Failed to build macro-economic context (non-blocking): ${err instanceof Error ? err.message : String(err)}`, "chat");
+        }
       }
 
       const fullSystemPrompt = assembledPrompt;

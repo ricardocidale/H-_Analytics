@@ -464,6 +464,8 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
             queryClient.invalidateQueries({ queryKey: ["/api/admin/analyst-tables"] });
           } else if (entry.entityType === "lb_deck_config") {
             queryClient.invalidateQueries({ queryKey: ["lb-slides-config"] });
+          } else if (entry.entityType === "global_assumptions") {
+            queryClient.invalidateQueries({ queryKey: ["/api/global-assumptions"] });
           } else if (entry.entityType === "research_job") {
             queryClient.invalidateQueries({ queryKey: ["properties"] });
           } else if (entry.entityType === "iris_run") {
@@ -609,6 +611,8 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                       queryClient.invalidateQueries({ queryKey: ["/api/admin/analyst-tables"] });
                     } else if (entry.entityType === "lb_deck_config") {
                       queryClient.invalidateQueries({ queryKey: ["lb-slides-config"] });
+                    } else if (entry.entityType === "global_assumptions") {
+                      queryClient.invalidateQueries({ queryKey: ["/api/global-assumptions"] });
                     } else if (entry.entityType === "research_job") {
                       queryClient.invalidateQueries({ queryKey: ["properties"] });
                     } else if (entry.entityType === "iris_run") {
