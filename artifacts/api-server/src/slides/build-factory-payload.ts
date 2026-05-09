@@ -49,6 +49,7 @@ import {
   SLIDE5_TRANSFORMATION_ROW_EXISTING_MAX,
   SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX,
   SLIDE5_TRANSFORMATION_ROWS_COUNT,
+  LUCCA_PIPE_FORMAT_COLUMNS,
   SLIDE6_DISCLAIMER_MAX,
   type AuthoredString,
   type DeckPayloadV2,
@@ -136,7 +137,7 @@ function parseReasons(raw: string): ReasonShape[] | null {
     if (colonIdx === -1) continue;
     result.push({
       label: block.slice(0, colonIdx).trim(),
-      detail: block.slice(colonIdx + 2).trim(),
+      detail: block.slice(colonIdx + ": ".length).trim(),
     });
   }
   return result.length > 0 ? result : null;
@@ -181,7 +182,7 @@ function parseRows(raw: string): TransformationRowShape[] | null {
   const rows: TransformationRowShape[] = [];
   for (const line of lines) {
     const parts = line.split(" | ");
-    if (parts.length < 3) continue;
+    if (parts.length < LUCCA_PIPE_FORMAT_COLUMNS) continue;
     rows.push({
       feature: parts[0].trim(),
       existing: parts[1].trim(),
