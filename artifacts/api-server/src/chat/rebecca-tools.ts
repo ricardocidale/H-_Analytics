@@ -432,6 +432,33 @@ export function getRebeccaTools(): ToolParam[] {
         required: ["slug"],
       },
     },
+    // ── Tripadvisor live research tool ─────────────────────────────────────
+    {
+      name: "get_tripadvisor_hotels",
+      description:
+        "Fetch live competitor hotel data from Tripadvisor for a given market. " +
+        "Returns hotel names, Tripadvisor ratings (1–5 bubbles), review counts, city rankings, price tiers, and Travelers' Choice awards. " +
+        "Use for comp-set analysis, market benchmarking, or answering questions about top-rated hotels in a city or region. " +
+        "Requires TRIPADVISOR_API_KEY to be configured; returns a warning if unavailable.",
+      parameters: {
+        type: "object",
+        properties: {
+          market: {
+            type: "string",
+            description: "City or region to search (e.g. 'Hudson Valley NY', 'Cartagena Colombia', 'Tulum Mexico').",
+          },
+          query: {
+            type: "string",
+            description: "Optional search refinement appended to the market (e.g. 'boutique hotel', 'luxury resort'). Defaults to 'hotel'.",
+          },
+          limit: {
+            type: "number",
+            description: "Number of hotels to return (1–10). Defaults to 5.",
+          },
+        },
+        required: ["market"],
+      },
+    },
   ];
 }
 
@@ -518,6 +545,8 @@ export async function dispatchRebeccaTool(
         return await toolProbeDataSource(args, ctx);
       case "regenerate_data_source":
         return await toolRegenerateDataSource(args, ctx);
+      case "get_tripadvisor_hotels":
+        return await toolGetTripadvisorHotels(args);
       default:
         return { result: { error: "Unknown tool" } };
     }
@@ -1709,5 +1738,32 @@ async function toolRegenerateDataSource(args: Record<string, unknown>, ctx: Tool
   if (!minion) return { result: { error: `No minion registered for slug: ${slug}` } };
 
   const result = await minion();
+  return { result };
+}
+
+// ---------------------------------------------------------------------------
+// Tripadvisor live hotel research
+// ---------------------------------------------------------------------------
+
+async function toolGetTripadvisorHotels(
+  args: Record<string, unknown>,
+): Promise<{ result: unknown }> {
+  const market = typeof args.market === "string" ? args.market.trim() : "";
+  if (!market) return { result: { error: "market is required" } };
+
+  const query =
+    typeof args.query === "string" && args.query.trim()
+      ? args.query.trim()
+      : "hotel";
+
+  const { TRIPADVISOR_DEFAULT_HOTEL_LIMIT, searchTripadvisorHotels } =
+    await import("../data/tripadvisor.js");
+
+  const rawLimit =
+    typeof args.limit === "number" && Number.isFinite(args.limit)
+      ? args.limit
+      : TRIPADVISOR_DEFAULT_HOTEL_LIMIT;
+
+  const result = await searchTripadvisorHotels(market, query, rawLimit);
   return { result };
 }

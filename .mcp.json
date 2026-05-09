@@ -27,10 +27,11 @@
     },
     "daloopa": {
       "type": "http",
-      "url": "https://mcp.daloopa.com/server/mcp",
-      "headers": {
-        "X-API-KEY": "${DALOOPA_API_KEY}"
-      }
+      "url": "https://mcp.daloopa.com/server/mcp"
+    },
+    "daloopa-docs": {
+      "type": "http",
+      "url": "https://docs.daloopa.com/mcp"
     },
     "expedia": {
       "type": "http",
