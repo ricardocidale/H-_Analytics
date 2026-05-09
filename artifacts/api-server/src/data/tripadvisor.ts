@@ -199,8 +199,12 @@ export async function searchTripadvisorHotels(
         rating: d.rating ?? null,
         reviewCount: (() => {
           if (d.num_reviews == null) return null;
-          // Strip commas and other non-digit chars (e.g. "1,234" → 1234)
-          const n = Number(String(d.num_reviews).replace(/[^0-9]/g, ""));
+          // Strip commas and other non-digit chars (e.g. "1,234" → 1234).
+          // If nothing digit-like remains (e.g. "N/A"), surface null rather than
+          // silently coercing to 0 — a false zero pollutes sorting and summaries.
+          const cleaned = String(d.num_reviews).replace(/[^0-9]/g, "");
+          if (cleaned === "") return null;
+          const n = Number(cleaned);
           return Number.isFinite(n) ? n : null;
         })(),
         cityRanking: d.ranking != null ? String(d.ranking) : null,

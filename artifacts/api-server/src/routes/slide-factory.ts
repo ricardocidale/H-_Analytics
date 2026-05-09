@@ -43,6 +43,7 @@ import { runLuccaDraft } from "../slides/lucca-draft";
 import { runMarco } from "../slides/marco";
 import { runFranco } from "../slides/minions/franco";
 import { runMayaForOverriddenSlides } from "../slides/rebuild-maya";
+import { validateIngestUrl } from "../ai/iris/tools";
 import { logger } from "../logger";
 import {
   HTTP_200_OK,
@@ -299,38 +300,15 @@ const slotPatchSchema = z.object({
 });
 
 /** Slots whose value is a fetchable URL — must be validated to block javascript:,
- *  data:, and private-network hosts before the value lands in the deck payload
- *  (mirrors Iris ingest validation). Empty string is allowed (clears the override). */
+ *  data:, and private-network hosts before the value lands in the deck payload.
+ *  Routes through the canonical Iris ingest validator so we don't drift from the
+ *  server's single source of truth for URL safety. Empty string is allowed
+ *  (clears the override). */
 const URL_VALUED_SLOT_KEYS = new Set<string>(["slide3.interiorPhotoUrl"]);
-
-const SLOT_URL_ALLOWED_SCHEMES = new Set(["http:", "https:"]);
-const SLOT_URL_BLOCKED_HOST_PATTERNS: RegExp[] = [
-  /^localhost$/i,
-  /^127\./,
-  /^0\.0\.0\.0$/,
-  /^10\./,
-  /^172\.(1[6-9]|2[0-9]|3[01])\./,
-  /^192\.168\./,
-  /^169\.254\./,
-];
 
 function validateSlotUrlValue(rawUrl: string): string | null {
   if (rawUrl === "") return null; // empty clears the slot override
-  let parsed: URL;
-  try {
-    parsed = new URL(rawUrl);
-  } catch {
-    return "Invalid URL format";
-  }
-  if (!SLOT_URL_ALLOWED_SCHEMES.has(parsed.protocol)) {
-    return `Unsupported URL scheme '${parsed.protocol}' — only http and https are allowed`;
-  }
-  for (const pattern of SLOT_URL_BLOCKED_HOST_PATTERNS) {
-    if (pattern.test(parsed.hostname)) {
-      return `Host '${parsed.hostname}' is a private or internal address and cannot be used`;
-    }
-  }
-  return null;
+  return validateIngestUrl(rawUrl);
 }
 
 router.patch(
@@ -389,14 +367,23 @@ router.patch(
           : ("admin" as const)
         : undefined;
 
+      // An admin override on a complete run is implicit re-approval — the value AND
+      // approved=true must move together so the slot can never persist as
+      // approved:false with a fresh approvedAt stamp.
+      const implicitOverrideApproval =
+        valueChanged && newSource === "admin-override" && parsed.data.approved !== false;
+
       const updatedSlot = {
         ...existing,
         ...(parsed.data.value !== undefined ? { value: parsed.data.value } : {}),
-        ...(parsed.data.approved !== undefined ? { approved: parsed.data.approved } : {}),
+        ...(parsed.data.approved !== undefined
+          ? { approved: parsed.data.approved }
+          : implicitOverrideApproval
+            ? { approved: true }
+            : {}),
         ...(newSource !== undefined ? { source: newSource } : {}),
-        // Stamp approvedAt when explicitly approving OR when an admin overrides
-        // the value on a complete run (the slot is implicitly re-approved at edit time).
-        ...(nowApproving || (valueChanged && newSource === "admin-override") ? { approvedAt: new Date().toISOString() } : {}),
+        // Stamp approvedAt when explicitly approving OR on implicit override approval.
+        ...(nowApproving || implicitOverrideApproval ? { approvedAt: new Date().toISOString() } : {}),
         ...(parsed.data.approved === false ? { approvedAt: null } : {}),
       };
 
