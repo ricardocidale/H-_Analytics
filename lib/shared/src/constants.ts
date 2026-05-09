@@ -266,7 +266,6 @@ export const DEFAULT_FIXED_COST_ESCALATION_RATE = DEFAULT_PROPERTY_INFLATION_RAT
 // ──────────────────────────────────────────────────────────
 
 export const DEFAULT_PROJECTION_YEARS = 10;
-export const PROJECTION_YEARS = DEFAULT_PROJECTION_YEARS;
 export const PROJECTION_MONTHS = DEFAULT_PROJECTION_YEARS * 12; // 120
 export const DEFAULT_BUSINESS_INSURANCE = 12000; // Annual business insurance ($)
 

@@ -29,8 +29,6 @@ import {
 import { runFinancialIdentityChecks, runFundingGateChecks, runScheduleReconcileChecks } from "./adapters";
 import { sweepNaN, checkDebtRollForward } from "@calc/validation/data-integrity";
 
-const PROJECTION_YEARS = DEFAULT_PROJECTION_YEARS;
-
 export function runIndependentVerification(
   properties: CheckerProperty[],
   globalAssumptions: CheckerGlobalAssumptions,
@@ -51,7 +49,7 @@ export function runIndependentVerification(
   let criticalIssues = 0;
   let materialIssues = 0;
 
-  const projectionYears = globalAssumptions.projectionYears ?? PROJECTION_YEARS;
+  const projectionYears = globalAssumptions.projectionYears ?? DEFAULT_PROJECTION_YEARS;
   const projectionMonths = projectionYears * MONTHS_PER_YEAR;
 
   const allEngineCalcs: EngineMonthlyResult[][] = engineResults;

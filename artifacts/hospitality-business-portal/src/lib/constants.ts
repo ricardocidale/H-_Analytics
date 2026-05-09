@@ -85,10 +85,10 @@ export {
 export { DEFAULT_ADR_GROWTH_RATE, DEFAULT_START_OCCUPANCY } from "@shared/constants";
 
 // Company cost defaults — re-exported from shared/constants.ts (canonical source)
-import { DEFAULT_BUSINESS_INSURANCE_COMPANY as _BIC, MONTHS_PER_YEAR as _MPY } from "@shared/constants";
+import { DEFAULT_BUSINESS_INSURANCE_COMPANY as _BIC, MONTHS_PER_YEAR as _MPY, DEFAULT_PROJECTION_YEARS as _PY } from "@shared/constants";
 export const DEFAULT_BUSINESS_INSURANCE = _BIC;
-export const PROJECTION_YEARS = 10;
-export const PROJECTION_MONTHS = PROJECTION_YEARS * _MPY;
+export const PROJECTION_YEARS = _PY;
+export const PROJECTION_MONTHS = _PY * _MPY;
 
 // Default model start date — re-exported from shared/constants so client
 // and server use the same literal. Kept here for backward-compat of the

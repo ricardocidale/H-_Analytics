@@ -41,7 +41,7 @@ import {
   DEFAULT_LTV,
   DEFAULT_INTEREST_RATE,
   DEFAULT_TERM_YEARS,
-  PROJECTION_YEARS,
+  DEFAULT_PROJECTION_YEARS,
   MONTHS_PER_YEAR,
 } from "./constants";
 
@@ -149,7 +149,7 @@ export function runFullVerification(
   
   for (const property of properties) {
     try {
-      const projectionMonths = ((globalAssumptions as Record<string, unknown>).projectionYears as number ?? PROJECTION_YEARS) * MONTHS_PER_YEAR;
+      const projectionMonths = ((globalAssumptions as Record<string, unknown>).projectionYears as number ?? DEFAULT_PROJECTION_YEARS) * MONTHS_PER_YEAR;
       const p = property as PropertyWithExtras;
       const financials = generatePropertyProForma(property as never, globalAssumptions as never, projectionMonths);
       
