@@ -12,7 +12,7 @@ import { aggregateUnifiedByYear } from "@/lib/financial/yearlyAggregator";
 import { consolidateYearlyFinancials, computeWeightedMetrics } from "@/lib/financial/consolidation";
 import { computeIRR } from "@analytics/returns/irr.js";
 import { propertyEquityInvested, acquisitionYearIndex } from "@/lib/financial/equityCalculations";
-import { PROJECTION_YEARS } from "@/lib/financial/loanCalculations";
+import { PROJECTION_YEARS } from "@/lib/constants";
 import { analyzePortfolioForInsights } from "@/lib/rebecca-insights";
 import { useRebeccaInsightStore } from "@/components/rebecca/RebeccaInsightBanner";
 import type { WaterfallOutput } from "@calc/analysis/waterfall";

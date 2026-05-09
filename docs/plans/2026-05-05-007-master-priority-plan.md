@@ -40,6 +40,12 @@ here, and advance to the next.
 | Live specialist comparables: Revenue, Overhead, PropertyDefaults (NAI-33/34/35) | sprint | ✅ Done |
 | analyst-intelligence-display skill + compound doc | session | ✅ Done |
 | U1: MAJOR-2 refinance income-cap sizing | plan-006 | ✅ Done (CC) |
+| L2-U5: Seed refi interest rate correction | seed-defaults T002 | ✅ Done |
+| L2-U6: Seed company overhead calibration | seed-defaults T006 | ✅ Done |
+| L4-U9: Portfolio raise live comparables (SEC EDGAR) | plan-006 U5 | ✅ Done |
+| L4-U10: NAI-23 tryReserveAnalystCooldown CTE refactor | Linear NAI-23 | ✅ Done |
+| L5-U11: Property income tax → getFactoryNumber | plan-006 U6 | ✅ Done |
+| L5-U12: Transfer tax migration → market_rates table | plan-006 U7 | ✅ Done |
 | U2: MAJOR-4 fee subordination gate proof + fix | plan-006 | ✅ Done (CC) |
 | U3: Colombia seed tuning (exit caps + ADR) | plan-006 | ✅ Done (CC) |
 | U4: Waterfall LP/GP panel + API gap fix | plan-006 | ✅ Done (CC) |
@@ -230,7 +236,7 @@ Values must be named `SEED_*` constants — no raw literals. Run `check:magic-nu
 
 ---
 
-### L2-U5 · Seed refinance interest rate correction
+### L2-U5 · Seed refinance interest rate correction ✅ Done
 
 **Priority:** P1  
 **Depends on:** L1-U1, L1-U2  
@@ -248,7 +254,7 @@ is needed unless the same value appears in ≥ 3 files with identical semantics.
 
 ---
 
-### L2-U6 · Seed company overhead calibration
+### L2-U6 · Seed company overhead calibration ✅ Done
 
 **Priority:** P1 (conditional — run T001 audit first to confirm need)  
 **Depends on:** L1-U1, L1-U2, L2-U3..U5 (tune after corrected engine)  
@@ -313,7 +319,7 @@ configured — add LP equity % and tranche structure in property settings."
 
 ## Lane 4 — Research Completeness + Tech Debt
 
-### L4-U9 · Portfolio raise live comparables (SEC EDGAR) 🔄 In progress (CC)
+### L4-U9 · Portfolio raise live comparables (SEC EDGAR) ✅ Done
 
 **Priority:** P2  
 **Depends on:** Nothing (no engine dependency)  
@@ -334,7 +340,7 @@ minimum-row threshold (≥ 3), named constants for all thresholds.
 
 ---
 
-### L4-U10 · Revive NAI-23: tryReserveAnalystCooldown CTE refactor
+### L4-U10 · Revive NAI-23: tryReserveAnalystCooldown CTE refactor ✅ Done
 
 **Priority:** P2 (tech debt — admission safety preserved; only retryAfterMs is approximate)  
 **Depends on:** Nothing  
@@ -358,7 +364,7 @@ rejected request's `retryAfterMs` matches the actual reservation time within ±1
 
 ## Lane 5 — Taxonomy Hygiene
 
-### L5-U11 · Retire DEFAULT_PROPERTY_INCOME_TAX_RATE → getFactoryNumber
+### L5-U11 · Retire DEFAULT_PROPERTY_INCOME_TAX_RATE → getFactoryNumber ✅ Done
 
 **Priority:** P2  
 **Depends on:** Nothing (isolated to engine/route layer)  
@@ -383,7 +389,7 @@ remove it in a follow-up.
 
 ---
 
-### L5-U12 · Transfer tax migration → market_rates table
+### L5-U12 · Transfer tax migration → market_rates table ✅ Done
 
 **Priority:** P2  
 **Depends on:** Nothing (independent DB migration)  
