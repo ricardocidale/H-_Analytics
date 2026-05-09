@@ -45,17 +45,23 @@ A secondary situation surfaced during recovery: local `main` was 7 commits ahead
 
 Run all five before requesting merge. The first three are technical (loud failures). The last two are discipline (silent failures — easy to skip).
 
+**Technical gates (automated):**
+
 ```bash
 pnpm run typecheck
 scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts
 pnpm --filter <scope> test                           # scoped to the unit's package
-# Discipline gates — invoke as Skills, not commands:
-#   Skill("compound-engineering:ce-code-review")  or  use the nai-code-review skill
-#   Update docs/discipline/agent-native-parity-map.md     (CLAUDE.md §7)
-#   Harmonize CLAUDE.md ↔ replit.md                       (CLAUDE.md "Memory-file harmonization")
-# Frontend units only:
-#   /post-coding-design-review                            (CLAUDE.md §11)
 ```
+
+**Discipline gates (manual/skill-based):**
+
+- Run CE multi-persona code review: `Skill("compound-engineering:ce-code-review")` or use the `nai-code-review` skill
+- Update `docs/discipline/agent-native-parity-map.md` (CLAUDE.md §7)
+- Harmonize CLAUDE.md ↔ replit.md (CLAUDE.md "Memory-file harmonization")
+
+**Frontend units only:**
+
+- `/post-coding-design-review` (CLAUDE.md §11)
 
 ### 2. One U-numbered unit per PR
 
