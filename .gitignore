@@ -66,3 +66,6 @@ artifacts/api-server/iris/run-history/
 
 # ESLint cache (per-package)
 .eslintcache
+
+# Check-script input-hash caches (task #1214)
+.cache/check-*.hash
