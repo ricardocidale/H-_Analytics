@@ -1,21 +1,23 @@
 ---
 name: no-magic-numbers
-description: Forbid raw numeric literals that encode business-model assumptions, financial calculations, or info-source thresholds. Every such number is either a named constant, an enumerated math/physics derivation with the formula in a comment, a documented unit conversion, or a structural index/length. Use whenever you write or review code that contains numbers tied to the app's purpose — pricing, calibration, source thresholds, weights, tier cutoffs. Design tokens, CS constants, and industry-spec dimensions (PDF page sizes, HD resolutions, DPI, aspect ratios) are explicitly out of scope. Catches the failure mode where a tier threshold gets duplicated across files and silently drifts, where a calibration weight gets re-tuned in one place but not its sibling, and where the meaning of a literal is lost the day after it was written.
+description: Forbid raw numeric literals that encode business-model assumptions, financial calculations, or info-source thresholds — AND forbid hardcoding LLM model names, API slugs, MCP slugs, or endpoint URLs as TypeScript literals or constants. Every integration identifier must come from admin_resources rows fetched at runtime, not from source code. Use whenever you write or review code that contains numbers or string identifiers tied to the app's purpose. Design tokens, CS constants, and industry-spec dimensions are explicitly out of scope.
 ---
 
-# No Magic Numbers
+# No Hardcoded Values
 
-A discipline for treating every numeric literal **that encodes a business-model assumption, a financial calculation, or a source-of-information threshold** as a question: *what does this number mean, and where else does it live?* Those numbers are the most reliable source of cross-file drift in this app, and they are invisible to TypeScript and most lint rules.
+A discipline for treating every **numeric literal that encodes a business-model assumption** and every **string-typed integration identifier (LLM, API, MCP, URL)** as a question: *what does this value mean, and where is the single source of truth for it?* These are the most reliable sources of cross-file drift in this app, and they are invisible to TypeScript and most lint rules.
 
 ## What this skill is — and isn't — for
 
-The concern is values that **feed the app's main purpose**: business-model assumptions, financial calculations, and source-of-information thresholds. Those are the literals that drift, get re-tuned, vary by jurisdiction, and produce silent divergence across files.
+The concern is values that **feed the app's main purpose**: business-model assumptions, financial calculations, source-of-information thresholds, and integration identifiers (which LLM provider, which API, which endpoint). Those are the values that drift, get re-tuned, vary by jurisdiction or admin decision, and produce silent divergence across files.
 
 This skill is **not** for design tokens (margins, paddings, font sizes), computer-science constants (bit depth, port numbers, buffer sizes), or industry-standard dimensional values (PDF page sizes, HD resolutions, DPI, aspect ratios). Those literals are spec-fixed by external standards, don't vary by jurisdiction or market, and are a separate problem (design-system consistency, CS hygiene). See "Out-of-scope literals" below.
 
-## The rule (one sentence)
+## The rules
 
-**Every numeric literal that encodes a business-model assumption, financial calculation, or source-of-information threshold must be either a named constant, a math/physics derivation accompanied by its formula in a comment, a documented unit conversion factor, or a structural index/length/clamp.** Anything else, in those domains, is a violation.
+**Numeric literal rule (one sentence):** Every numeric literal that encodes a business-model assumption, financial calculation, or source-of-information threshold must be either a named constant, a math/physics derivation accompanied by its formula in a comment, a documented unit conversion factor, or a structural index/length/clamp. Anything else, in those domains, is a violation.
+
+**Integration identifier rule (one sentence):** LLM model names, API slugs, MCP slugs, and endpoint URLs must never appear as TypeScript string literals or string constants anywhere in source code — they live in `admin_resources` rows and are fetched at runtime. Wrapping a hardcoded string in a `const` is the same violation with a disguise. See "External integration identifiers" section below.
 
 ## When to use
 
@@ -318,6 +320,105 @@ Why it's wrong:
 | A genuinely cross-file reused calibration | Named constant in `lib/shared/src/constants*.ts`, import everywhere it's used |
 
 **When `--init` is the right answer**: After a cleanup pass that removes some magic numbers, the baseline improves. After a migration that introduces new seed-only literals that can't yet be traced to a registry, running `--init` locks in the accepted state so the ratchet tracks FUTURE regressions, not acknowledged pre-existing ones.
+
+## External integration identifiers — the string equivalent
+
+The magic-number principle applies equally to **string-typed integration identifiers**: LLM model names, API slugs, MCP server slugs, and endpoint URLs. They are not numeric, but they are just as much "a hardcoded value that will need to change and is invisible to tooling when it does."
+
+### Why they are the same violation
+
+A numeric magic number is dangerous because:
+- It encodes a policy decision that varies with context (country, market, time).
+- Changing it requires a code deploy.
+- Cross-file duplication causes silent drift.
+
+An integration identifier is dangerous for the same reasons:
+- Which LLM provider, which API, which endpoint URL is an **admin-controlled configuration**, not a code fact.
+- Changing the model, swapping the search API, or updating an endpoint URL must be a database change — not a code deploy.
+- Hardcoding `"gemini"` in three files is identical to hardcoding `0.03` in three files: both are silent drift vectors.
+
+### The authority table: `admin_resources`
+
+Every integration this app uses has an `admin_resources` row. The row is the single source of truth for its slug, display name, endpoint URL, and runtime configuration flags. Code reads the row; code never duplicates the row's content as a constant.
+
+| Integration type | `kind` value | How code accesses it |
+|---|---|---|
+| LLM models | `model` | `GET /api/llm-providers` → grouped by vendor |
+| LLM routing slots | `llm_slot` | read from `admin_resources` by slug |
+| External APIs (Exa, Perplexity, Tripadvisor, FRED…) | `api` | query by `config` flag (e.g., `config.rebeccaChatProvider = true`) |
+| MCP servers | `mcp` | query `admin_resources` filtered by `kind='mcp'` |
+| Search / research URLs | `search_url` | query `admin_resources` filtered by `kind='search_url'` |
+| Endpoint URLs for any of the above | `config.endpoint` on the row | read from the row's `config` field |
+
+### Violations
+
+```ts
+// VIOLATION — hardcoded LLM provider string literal
+const provider = "gemini";
+
+// VIOLATION — hardcoded as a TypeScript constant (same thing, just renamed)
+const GEMINI_PROVIDER = "gemini";
+const CLAUDE_MODEL = "claude-3-sonnet-20241022";
+
+// VIOLATION — hardcoded API slug
+const searchApiSlug = "perplexity";
+
+// VIOLATION — hardcoded endpoint URL (even as a constant)
+const EXA_ENDPOINT = "https://api.exa.ai/answer";
+
+// VIOLATION — enum that encodes the full set of LLM providers
+type RebeccaLlmProvider = "openai" | "anthropic" | "gemini" | "exa";
+// ^ This locks in the live set at compile time. Admin adding a new LLM
+//   row requires a code change to extend the enum.
+```
+
+### Correct patterns
+
+```ts
+// CORRECT — LLM provider comes from admin_resources via the providers endpoint
+const { data: llmProviders } = useQuery({ queryFn: () => fetch("/api/llm-providers") });
+// provider is a string read from the fetched list, not a literal
+
+// CORRECT — API slug comes from admin_resources (e.g., flagged row)
+const searchProvider = settings.sources.webSearchProvider; // stored from DB row slug
+// The default "perplexity" lives in the admin_resources row as the seeded slug,
+// not as a TypeScript constant. Settings default references the slug by value
+// loaded from the DB on first access.
+
+// CORRECT — provider type is open string, not a closed enum
+provider: z.string().min(1)   // validates shape, not identity
+```
+
+### The masking anti-pattern for strings
+
+```ts
+// BAD — this does not fix anything; the coupling is just renamed
+const PERPLEXITY_SLUG = "perplexity";
+const GEMINI_PROVIDER_ID = "gemini";
+
+// The value is still hardcoded at the point of definition. If Perplexity
+// changes their slug, or if an admin adds a new search provider and wants
+// to point Rebecca at it, a code deploy is still required.
+```
+
+**The right fix:** Read the slug from the `admin_resources` row. The admin adds or updates the row; the code picks it up on the next request. No deploy. No constant to update.
+
+### The enum anti-pattern
+
+Closed TypeScript enums or union types over integration identifiers are a special case of this violation:
+
+```ts
+// BAD — freezes the live admin_resources set at compile time
+type LlmProvider = "openai" | "anthropic" | "gemini";
+```
+
+When an admin adds a new LLM model row, the runtime accepts it but TypeScript rejects it. The only correct type for a provider string is `string` (with optional length/format validation).
+
+### Coupling with the numeric rule
+
+The checker script (`check-magic-numbers.ts`) only scans numeric literals — it cannot statically detect string identifier violations. **Code review and architecture discipline are the enforcement mechanism for the string rule.** Before merging any code that contains a quoted string naming an LLM, an API, or an endpoint URL, ask: "Does this value have an `admin_resources` row? If yes, it should be read from there, not written here."
+
+---
 
 ## Failure modes this skill prevents
 
