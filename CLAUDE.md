@@ -564,6 +564,7 @@ vendor/
 | `hplus-renovation-benchmarks` | Per-key cost ranges and transformation cost lines used by the budget-realism check above |
 | `hplus-admin-nav-ia` | Placing data sources, APIs, Specialists, LLMs, or AI agents in the Admin / Intelligence sidebar |
 | `lb-slides-canonical-pngs` | Comparing any rendered slide output against the pixel-authoritative canonical PNGs — R2 keys, local paths, per-slide comparison checklist, re-upload workflow |
+| `lb-slides-renderer` | Working on the 6-slide L+B investor deck React renderer — layout constraints, slot wiring, Playwright HTML→PDF contract, and visual-parity requirements |
 | `analyst-research-buttons` | Any button that triggers a research job — canonical label, icon, voice, and guard rules |
 | `analyst-intelligence-display` | Any UI component that **displays** specialist research results — range badges, verdict cards, contextual tips, action dialogs. Complements `analyst-research-buttons` (the input side) with the display side |
 | `agent-memory-files` | Editing `CLAUDE.md` or `replit.md` — keep them harmonized |
