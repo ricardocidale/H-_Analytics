@@ -79,6 +79,7 @@ const KIND_BLURBS: Record<ResourceKind, string> = {
   mcp: "MCP server connections managed by Pietro. Data-fetching rows have a registered minion that pre-populates a DB cache table on a schedule; discovery-only rows (e.g. Context7) are never dispatched.",
   search_url: "Curated research URLs for hospitality market data, REIT filings, and macro indicators. Used by Rebecca and research specialists.",
   research_prompt: "Prompt templates for structured research workflows (cap rate benchmarking, REIT comps, competitive set analysis).",
+  parameter: "Ops-tunable behavioral constants (conviction thresholds, regress limits, pixel-diff gates). Edit values without a code deploy.",
 };
 
 const WORKING_PILL: Record<ResourceHealthStatus, { label: string; cls: string }> = {

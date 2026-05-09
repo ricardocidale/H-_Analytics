@@ -5,6 +5,7 @@ import { requireAuth , getAuthUser } from "../auth";
 import { aiRateLimit } from "../middleware/rate-limit";
 import { storage } from "../storage";
 import { buildPropertyContext } from "../ai/buildPropertyContext.js";
+import { buildCompanyDataInjection } from "../ai/company-data-injector";
 import { z } from "zod";
 import { DEFAULT_PROJECTION_YEARS, isAdminRole } from "@shared/constants";
 import { getFactoryNumber } from "@shared/model-constants-registry";
@@ -86,7 +87,20 @@ const chatMessageSchema = z.object({
   content: z.string().max(MAX_MESSAGE_LENGTH),
 });
 
-const responseModeSchema = z.enum(["concise", "standard", "detailed"]).optional().default("standard");
+const responseModeSchema = z.enum(["concise", "standard", "detailed"]).optional();
+const VALID_RESPONSE_MODES = ["concise", "standard", "detailed"] as const;
+type ResponseMode = typeof VALID_RESPONSE_MODES[number];
+
+export function resolveResponseMode(
+  bodyMode: ResponseMode | undefined,
+  userDbMode: string | null | undefined,
+): ResponseMode {
+  if (bodyMode) return bodyMode;
+  if (userDbMode && (VALID_RESPONSE_MODES as readonly string[]).includes(userDbMode)) {
+    return userDbMode as ResponseMode;
+  }
+  return "standard";
+}
 
 const chatRequestSchema = z.object({
   message: z.string().min(1).max(MAX_MESSAGE_LENGTH),
@@ -594,11 +608,12 @@ export function register(app: Express) {
     let streamActive = false;
     const useStream = !!(parsed.data.stream && !parsed.data.preview);
     try {
-      const { message, history, fieldContext: fieldCtx, conversationId: reqConvId, newConversation, responseMode, currentPage } = parsed.data;
-      const modeConfig = RESPONSE_MODE_CONFIG[responseMode ?? "standard"] ?? RESPONSE_MODE_CONFIG.standard;
+      const { message, history, fieldContext: fieldCtx, conversationId: reqConvId, newConversation, responseMode: bodyResponseMode, currentPage } = parsed.data;
 
       const authUser = getAuthUser(req);
       const userId = authUser.id;
+      const responseMode = resolveResponseMode(bodyResponseMode, authUser.rebeccaResponseMode);
+      const modeConfig = RESPONSE_MODE_CONFIG[responseMode] ?? RESPONSE_MODE_CONFIG.standard;
       const isAdmin = isAdminRole(authUser.role);
       const userName = [authUser.firstName, authUser.lastName].filter(Boolean).join(" ") || authUser.email;
 
@@ -726,6 +741,20 @@ export function register(app: Express) {
         logger.warn(`Scenario context build failed (non-blocking): ${(err instanceof Error ? err.message : String(err))}`, "chat");
       }
 
+      // W0.2 — verification opinion + per-source freshness when a property is in scope.
+      let verificationContextBlock = "";
+      if (fieldCtx?.entityType === "property") {
+        try {
+          const [latestRun] = await storage.getVerificationRuns(1);
+          if (latestRun) {
+            const runDate = new Date(latestRun.createdAt).toLocaleDateString();
+            verificationContextBlock = `\n\nPORTFOLIO VERIFICATION (as of ${runDate}):\nOpinion: ${latestRun.auditOpinion} | Checks: ${latestRun.totalChecks} total, ${latestRun.passed} passed, ${latestRun.failed} failed`;
+          }
+        } catch (err: unknown) {
+          logger.warn(`Verification context load failed (non-blocking): ${(err instanceof Error ? err.message : String(err))}`, "chat");
+        }
+      }
+
       const contextBlock = [
         ...userContextLines,
         "",
@@ -742,6 +771,7 @@ export function register(app: Express) {
         "FUNDING:",
         ...fundingLines,
         scenarioContextBlock,
+        verificationContextBlock,
       ].join("\n");
 
       // Task #539 / #551 — every retrieval branch fills a typed slot on
@@ -1104,6 +1134,23 @@ export function register(app: Express) {
         logger.warn(`Failed to load recent activity (non-blocking): ${err instanceof Error ? err.message : String(err)}`, "chat");
       }
 
+      // U2 — FRED macro-economic context: inject verified macro rates (CPI,
+      // SOFR, prime rate, 10Y treasury), country defaults, hospitality
+      // benchmarks, and portfolio statistics so Rebecca can calibrate
+      // recommendations against live market conditions.
+      // Gated on the research toggle so admins can disable it if needed.
+      // Failures degrade gracefully — chat continues without the block.
+      if (rebeccaSettings.sources.research.enabled) {
+        try {
+          const macroBlock = await buildCompanyDataInjection(properties);
+          if (macroBlock) {
+            assembledPrompt += macroBlock;
+          }
+        } catch (err: unknown) {
+          logger.warn(`Failed to build macro-economic context (non-blocking): ${err instanceof Error ? err.message : String(err)}`, "chat");
+        }
+      }
+
       const fullSystemPrompt = assembledPrompt;
 
       // Task #499 — pluggable LLM dispatch. Choose provider/model from settings,
@@ -1289,7 +1336,7 @@ export function register(app: Express) {
           role: "assistant",
           content: visibleResponseText,
           metadata: {
-            responseMode: responseMode ?? "standard",
+            responseMode,
             model: resolvedModelName,
             engine: resolvedProvider,
             // Task #550 — persist the per-turn retrieved sources so the

@@ -475,6 +475,20 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
             queryClient.invalidateQueries({ queryKey: ["lb-slides-config"] });
           } else if (entry.entityType === "kb_entry") {
             queryClient.invalidateQueries({ queryKey: ["/api/rebecca/kb"] });
+          } else if (entry.entityType === "global_assumptions") {
+            queryClient.invalidateQueries({ queryKey: ["/api/global-assumptions"] });
+          } else if (entry.entityType === "research_job") {
+            queryClient.invalidateQueries({ queryKey: ["properties"] });
+          } else if (entry.entityType === "iris_run") {
+            queryClient.invalidateQueries({ queryKey: ["/api/admin/iris/status"] });
+          } else if (entry.entityType === "iris_gap") {
+            // no specific list query to invalidate in current UI — no-op
+          } else if (entry.entityType === "slide_factory_run") {
+            queryClient.invalidateQueries({ queryKey: ["/api/lb-slides/factory/runs"] });
+          } else if (entry.entityType === "data_source") {
+            queryClient.invalidateQueries({ queryKey: ["/api/admin/data-sources"] });
+          } else if (entry.entityType === "compliance_run") {
+            queryClient.invalidateQueries({ queryKey: ["/api/admin/compliance/violations"] });
           }
         }
       }
@@ -610,6 +624,20 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                       queryClient.invalidateQueries({ queryKey: ["lb-slides-config"] });
                     } else if (entry.entityType === "kb_entry") {
                       queryClient.invalidateQueries({ queryKey: ["/api/rebecca/kb"] });
+                    } else if (entry.entityType === "global_assumptions") {
+                      queryClient.invalidateQueries({ queryKey: ["/api/global-assumptions"] });
+                    } else if (entry.entityType === "research_job") {
+                      queryClient.invalidateQueries({ queryKey: ["properties"] });
+                    } else if (entry.entityType === "iris_run") {
+                      queryClient.invalidateQueries({ queryKey: ["/api/admin/iris/status"] });
+                    } else if (entry.entityType === "iris_gap") {
+                      // no specific list query to invalidate in current UI — no-op
+                    } else if (entry.entityType === "slide_factory_run") {
+                      queryClient.invalidateQueries({ queryKey: ["/api/lb-slides/factory/runs"] });
+                    } else if (entry.entityType === "data_source") {
+                      queryClient.invalidateQueries({ queryKey: ["/api/admin/data-sources"] });
+                    } else if (entry.entityType === "compliance_run") {
+                      queryClient.invalidateQueries({ queryKey: ["/api/admin/compliance/violations"] });
                     }
                   }
                 }

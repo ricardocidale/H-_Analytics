@@ -29,7 +29,8 @@ const RESEARCH_ESTIMATED_MINUTES = 2;
 export type ToolContext = { userId: number };
 
 export type DataChangedEntry = {
-  entityType: "property" | "scenario" | "slide_factory_run" | "analyst_table" | "lb_deck_config" | "kb_entry";
+  entityType: "property" | "scenario" | "slide_factory_run" | "analyst_table" | "lb_deck_config"
+            | "kb_entry" | "global_assumptions" | "research_job" | "iris_run" | "iris_gap" | "data_source" | "compliance_run";
   entityId: number;
 };
 
@@ -246,6 +247,15 @@ export function getRebeccaTools(): ToolParam[] {
       name: "trigger_iris_health_check",
       description: "Run a quick Iris health check across configured data sources. Admin only.",
       parameters: { type: "object", properties: {}, required: [] },
+    },
+    {
+      name: "run_compliance_audit",
+      description: "Triggers the Vito compliance audit agent to scan the codebase for rule violations. Admin only. Returns a run ID.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
     },
     {
       name: "trigger_iris_reindex",
@@ -602,6 +612,34 @@ export function getRebeccaTools(): ToolParam[] {
         required: ["id"],
       },
     },
+    {
+      name: "compare_scenarios",
+      description:
+        "Compare two financial scenarios side-by-side. Returns a comparison of their assumptions, projections, and key financial metrics. Read-only.",
+      parameters: {
+        type: "object",
+        properties: {
+          scenarioId1: { type: "number", description: "ID of the first scenario." },
+          scenarioId2: { type: "number", description: "ID of the second scenario." },
+        },
+        required: ["scenarioId1", "scenarioId2"],
+      },
+    },
+    {
+      name: "update_global_assumptions",
+      description:
+        "Update one or more global assumption fields (admin only). Accepts a partial patch object with the fields to update.",
+      parameters: {
+        type: "object",
+        properties: {
+          patch: {
+            type: "object",
+            description: "The fields to update on the global assumptions row (e.g. { rebeccaEnabled: true }).",
+          },
+        },
+        required: ["patch"],
+      },
+    },
   ];
 }
 
@@ -656,6 +694,8 @@ export async function dispatchRebeccaTool(
         return await toolTriggerIrisHealthCheck(ctx);
       case "trigger_iris_reindex":
         return await toolTriggerIrisReindex(ctx);
+      case "run_compliance_audit":
+        return await toolRunComplianceAudit(ctx);
       case "clear_iris_gaps":
         return await toolClearIrisGaps(ctx);
       case "get_iris_status":
@@ -708,6 +748,10 @@ export async function dispatchRebeccaTool(
         return await toolUpdateKbEntry(args, ctx);
       case "delete_kb_entry":
         return await toolDeleteKbEntry(args, ctx);
+      case "compare_scenarios":
+        return await toolCompareScenarios(args, ctx);
+      case "update_global_assumptions":
+        return await toolUpdateGlobalAssumptions(args, ctx);
       default:
         return { result: { error: "Unknown tool" } };
     }
@@ -1352,6 +1396,38 @@ async function toolTriggerResearch(
 // ---------------------------------------------------------------------------
 
 /**
+ * Trigger a Vito compliance audit run (fire-and-forget).
+ * Admin only. Returns a confirmation immediately; the agent creates its own
+ * vito_runs row so there is no phantom pre-created row.
+ */
+async function toolRunComplianceAudit(
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const { runVitoAgent } = await import("../ai/vito/agent");
+
+  // runVitoAgent creates the vito_runs row itself — do not pre-create one here.
+  let resolvedRunId: number | undefined;
+  void runVitoAgent("manual")
+    .then((result) => {
+      resolvedRunId = result.runId;
+    })
+    .catch((err: unknown) => {
+      console.error("[compliance-audit] agent error:", err);
+    });
+
+  // We can't know the runId synchronously (agent creates it async).
+  // Return a sentinel so the parity invalidation fires even before run completes.
+  const COMPLIANCE_RUN_SENTINEL_ID = 0;
+  return {
+    result: { message: "Compliance audit started" },
+    dataChanged: { entityType: "compliance_run", entityId: COMPLIANCE_RUN_SENTINEL_ID },
+  };
+}
+
+/**
  * Returns an error result if the caller is not an admin, null otherwise.
  * Mirrors the `requireAdmin` middleware used in routes/admin/iris.ts.
  */
@@ -1375,7 +1451,7 @@ async function requireAdminCtx(ctx: ToolContext): Promise<{ result: { error: str
 async function toolTriggerIrisRun(
   trigger: IrisTrigger,
   ctx: ToolContext,
-): Promise<{ result: unknown }> {
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   const authError = await requireAdminCtx(ctx);
   if (authError) return authError;
 
@@ -1415,29 +1491,29 @@ async function toolTriggerIrisRun(
       });
     });
 
-  return { result: { runId, status: "started" } };
+  return { result: { runId, status: "started" }, dataChanged: { entityType: "iris_run", entityId: runId } };
 }
 
 async function toolTriggerIrisHealthCheck(
   ctx: ToolContext,
-): Promise<{ result: unknown }> {
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   return toolTriggerIrisRun("scheduled-health", ctx);
 }
 
 async function toolTriggerIrisReindex(
   ctx: ToolContext,
-): Promise<{ result: unknown }> {
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   return toolTriggerIrisRun("scheduled-reindex", ctx);
 }
 
 async function toolClearIrisGaps(
   ctx: ToolContext,
-): Promise<{ result: unknown }> {
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   const authError = await requireAdminCtx(ctx);
   if (authError) return authError;
 
   await clearIrisGaps();
-  return { result: { success: true } };
+  return { result: { success: true }, dataChanged: { entityType: "iris_gap", entityId: 0 } };
 }
 
 async function toolGetIrisStatus(
@@ -1487,7 +1563,7 @@ async function toolWriteRetrievalGap(
   const query = rawQuery.slice(0, IRIS_GAP_MAX_QUERY_CHARS);
   if (!query) return { result: { recorded: false } };
   await appendIrisGap(query);
-  return { result: { recorded: true } };
+  return { result: { recorded: true }, dataChanged: { entityType: "iris_gap", entityId: 0 } };
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -1931,7 +2007,7 @@ async function toolGetDataSourceStatus(ctx: ToolContext): Promise<{ result: unkn
   };
 }
 
-async function toolProbeDataSource(args: Record<string, unknown>, ctx: ToolContext): Promise<{ result: unknown }> {
+async function toolProbeDataSource(args: Record<string, unknown>, ctx: ToolContext): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   const authError = await requireAdminCtx(ctx);
   if (authError) return authError;
 
@@ -1947,10 +2023,10 @@ async function toolProbeDataSource(args: Record<string, unknown>, ctx: ToolConte
   if (!row) return { result: { error: `Resource not found: id=${id}` } };
 
   const outcome = await runProbe(row);
-  return { result: outcome };
+  return { result: outcome, dataChanged: { entityType: "data_source", entityId: 0 } };
 }
 
-async function toolRegenerateDataSource(args: Record<string, unknown>, ctx: ToolContext): Promise<{ result: unknown }> {
+async function toolRegenerateDataSource(args: Record<string, unknown>, ctx: ToolContext): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   const authError = await requireAdminCtx(ctx);
   if (authError) return authError;
 
@@ -1962,7 +2038,7 @@ async function toolRegenerateDataSource(args: Record<string, unknown>, ctx: Tool
   if (!minion) return { result: { error: `No minion registered for slug: ${slug}` } };
 
   const result = await minion();
-  return { result };
+  return { result, dataChanged: { entityType: "data_source", entityId: 0 } };
 }
 
 // ---------------------------------------------------------------------------
@@ -2238,5 +2314,62 @@ async function toolDeleteKbEntry(
   return {
     result: { success: true },
     dataChanged: { entityType: "kb_entry", entityId: id },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// compare_scenarios (U5) — read-only scenario comparison
+// ---------------------------------------------------------------------------
+
+async function toolCompareScenarios(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const id1Result = requireNumericArg(args, "scenarioId1");
+  if (!id1Result.ok) return id1Result.result;
+  const id2Result = requireNumericArg(args, "scenarioId2");
+  if (!id2Result.ok) return id2Result.result;
+
+  const [s1, s2] = await Promise.all([
+    storage.getScenario(id1Result.value),
+    storage.getScenario(id2Result.value),
+  ]);
+
+  if (!s1 || s1.userId !== ctx.userId) {
+    return { result: { error: `Scenario ${id1Result.value} not found` } };
+  }
+  if (!s2 || s2.userId !== ctx.userId) {
+    return { result: { error: `Scenario ${id2Result.value} not found` } };
+  }
+
+  const comparison = storage.compareScenarios(s1, s2);
+  return { result: comparison };
+}
+
+// ---------------------------------------------------------------------------
+// update_global_assumptions (U5) — admin-only partial patch
+// ---------------------------------------------------------------------------
+
+async function toolUpdateGlobalAssumptions(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const patchResult = requireObjectArg(args, "patch");
+  if (!patchResult.ok) return patchResult.result;
+
+  const ga = await storage.getGlobalAssumptions(ctx.userId);
+  if (!ga) {
+    return { result: { error: "Global assumptions not found" } };
+  }
+
+  const patch: Record<string, unknown> = { ...patchResult.value, updatedAt: new Date() };
+  const updated = await storage.patchGlobalAssumptions(ga.id, patch);
+
+  return {
+    result: { success: true, id: updated.id },
+    dataChanged: { entityType: "global_assumptions", entityId: 0 },
   };
 }

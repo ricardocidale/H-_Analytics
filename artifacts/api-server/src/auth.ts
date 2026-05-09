@@ -57,6 +57,7 @@ declare global {
       canManageScenarios: boolean;
       rebeccaOptOut: boolean;
       rebeccaRailOpen: boolean;
+      rebeccaResponseMode: string | null;
       createdAt: Date;
       updatedAt: Date;
     }

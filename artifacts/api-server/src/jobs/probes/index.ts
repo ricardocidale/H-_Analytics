@@ -165,6 +165,8 @@ const PROBES: Record<ResourceKind, (row: AdminResourceRow) => Promise<ProbeOutco
   search_url: probeApiOrSource,
   // Research prompts are static — no network check needed.
   research_prompt: probeResearchCatalog,
+  // Parameters are DB-only config rows — no external service to probe.
+  parameter: async () => ({ status: "skipped" as const, latencyMs: 0 }),
 };
 
 export async function runProbe(row: AdminResourceRow): Promise<ProbeOutcome> {

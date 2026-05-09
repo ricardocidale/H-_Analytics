@@ -15,13 +15,12 @@ import {
   clearIrisGaps,
 } from "./workspace";
 import type { ToolCall } from "../../chat/tool-types";
+import { resolveLlmFor } from "../llm-config-resolver";
 
 // ---------------------------------------------------------------------------
 // Named constants (Category 2 — DEFAULT VARIABLE, admin-controlled starting values)
 // ---------------------------------------------------------------------------
 
-const IRIS_HAIKU_MODEL = "claude-haiku-4-5-20251001";
-const IRIS_SONNET_MODEL = "claude-sonnet-4-6";
 const IRIS_PROVIDER = "anthropic" as const;
 
 /** Maximum number of tool-call/result round-trips before forcing a final text turn. */
@@ -159,8 +158,10 @@ export async function runIrisAgent(trigger: IrisTrigger): Promise<IrisRunResult>
   const startTime = Date.now();
   const runId = randomUUID();
 
-  // Select model based on trigger
-  const model = trigger === "scheduled-health" ? IRIS_HAIKU_MODEL : IRIS_SONNET_MODEL;
+  // Select model based on trigger (resolved from admin_resources at runtime)
+  const { modelId: model } = await resolveLlmFor(
+    trigger === "scheduled-health" ? "iris-health-check" : "iris-reindex",
+  );
 
   const sampling = {
     temperature: IRIS_TEMPERATURE,

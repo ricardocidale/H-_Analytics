@@ -27,6 +27,7 @@ export const RESOURCE_KIND_TO_SECTION: Record<ResourceKind, IntelligenceSection>
   mcp: "resources",
   search_url: "resources",
   research_prompt: "resources",
+  parameter: "resources",
 };
 
 export function navigateToResources(
