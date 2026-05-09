@@ -73,6 +73,7 @@ import {
 } from "@engine/analyst/contracts/verdict";
 import { createVoiceRenderer } from "@engine/analyst/voice/voice-renderer";
 import { getFieldRegistryEntry } from "@engine/analyst/registry/field-registry";
+import { getParameterValue } from "../parameter-resolver";
 
 // ── Specialist identity ───────────────────────────────────────────────────────
 
@@ -602,6 +603,16 @@ export async function runPropertyRiskIntelligenceSpecialist(
   const marketBenchmarks = await resolveMarketBenchmarks(ctx.inputs.country);
   const persona = asPersonaContext(ctx.persona);
 
+  // ── Behavioral parameters (admin-tunable via admin_resources) ────────────
+  const convergenceMinConviction = await getParameterValue(
+    "specialist-convergence-min-conviction",
+    CONVERGENCE_MIN_QUANT_CONVICTION,
+  );
+  const maxSynthesisRegresses = await getParameterValue(
+    "specialist-max-regress-attempts",
+    MAX_SYNTHESIS_REGRESSES,
+  );
+
   // ── Phase 0: Prompt Engineer pre-stage (IB req #8) ─────────────────────────
   const peAbort = new AbortController();
   const peTimer = setTimeout(
@@ -653,7 +664,7 @@ export async function runPropertyRiskIntelligenceSpecialist(
   // ── Phase 2: convergence check ──────────────────────────────────────────
   const quantDim = quantOutput.dimensions[0];
   const quantConviction = quantDim ? convictionToQualityScore(quantDim.conviction) : 0;
-  if (quantConviction < CONVERGENCE_MIN_QUANT_CONVICTION) {
+  if (quantConviction < convergenceMinConviction) {
     return buildHonestFailVerdict(
       quantOutput,
       comparables,
@@ -709,7 +720,7 @@ export async function runPropertyRiskIntelligenceSpecialist(
       break;
     }
 
-    if (regressCount >= MAX_SYNTHESIS_REGRESSES) {
+    if (regressCount >= maxSynthesisRegresses) {
       return buildHonestFailVerdict(
         currentQuantOutput,
         comparables,

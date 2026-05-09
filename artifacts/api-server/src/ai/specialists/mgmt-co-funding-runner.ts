@@ -44,6 +44,7 @@ import {
   buildFundingUserPrompt,
 } from "./mgmt-co-funding-prompt";
 import type { MarketBenchmarkEntry } from "./market-benchmark-types";
+import { getParameterValue } from "../parameter-resolver";
 import { lookupReferenceRange } from "../../storage/reference-range";
 import {
   FundingSpecialistOutputSchema,
@@ -536,6 +537,16 @@ export async function runFundingSpecialist(
   const marketCalibration = await resolveFundingMarketBenchmarks(ctx.persona.locale);
   const persona = asPersonaContext(ctx.persona);
 
+  // ── Behavioral parameters (admin-tunable via admin_resources) ────────────
+  const convergenceMinConviction = await getParameterValue(
+    "specialist-convergence-min-conviction",
+    CONVERGENCE_MIN_QUANT_CONVICTION,
+  );
+  const maxSynthesisRegresses = await getParameterValue(
+    "specialist-max-regress-attempts",
+    MAX_SYNTHESIS_REGRESSES,
+  );
+
   // ── Phase 0: Prompt Engineer pre-stage (G6-P3a — Intelligence Bar req #8) ──
   const peAbort = new AbortController();
   const peTimer = setTimeout(
@@ -594,7 +605,7 @@ export async function runFundingSpecialist(
   // Convergence-fail is NOT a regress candidate — PE addenda cannot repair a
   // thin LP comp set. Emit honest-fail immediately with regressCount=0.
   const avgQuantConviction = computeAvgQuantConviction(quantOutput);
-  if (avgQuantConviction < CONVERGENCE_MIN_QUANT_CONVICTION) {
+  if (avgQuantConviction < convergenceMinConviction) {
     return buildHonestFailVerdict(
       quantOutput,
       comparables,
@@ -658,7 +669,7 @@ export async function runFundingSpecialist(
       break;
     }
 
-    if (regressCount >= MAX_SYNTHESIS_REGRESSES) {
+    if (regressCount >= maxSynthesisRegresses) {
       return buildHonestFailVerdict(
         currentQuantOutput,
         comparables,

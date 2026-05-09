@@ -108,6 +108,7 @@ import { createVoiceRenderer } from "@engine/analyst/voice/voice-renderer";
 import type { CompensationBenchmarks } from "@shared/constants-compensation-benchmarks";
 import { getFieldRegistryEntry } from "@engine/analyst/registry/field-registry";
 import type { MarketBenchmarkEntry } from "./market-benchmark-types";
+import { getParameterValue } from "../parameter-resolver";
 
 // ── Token budgets ────────────────────────────────────────────────────────────
 
@@ -550,6 +551,16 @@ export async function runCompensationSpecialist(
   const marketCalibration = await resolveCompensationMarketBenchmarks(ctx.persona.locale);
   const persona = asPersonaContext(ctx.persona);
 
+  // ── Behavioral parameters (admin-tunable via admin_resources) ────────────
+  const convergenceMinConviction = await getParameterValue(
+    "specialist-convergence-min-conviction",
+    CONVERGENCE_MIN_QUANT_CONVICTION,
+  );
+  const maxSynthesisRegresses = await getParameterValue(
+    "specialist-max-regress-attempts",
+    MAX_SYNTHESIS_REGRESSES,
+  );
+
   // ── Phase 0: Prompt Engineer pre-stage (IB req #8) ──────────────────────
   const peAbort = new AbortController();
   const peTimer = setTimeout(
@@ -616,7 +627,7 @@ export async function runCompensationSpecialist(
   // Convergence-fail is NOT a regress candidate — PE addenda cannot repair a
   // thin comp comp set. Emit honest-fail immediately with regressCount=0.
   const avgQuantConviction = computeAvgQuantConviction(quantOutput);
-  if (avgQuantConviction < CONVERGENCE_MIN_QUANT_CONVICTION) {
+  if (avgQuantConviction < convergenceMinConviction) {
     return buildHonestFailVerdict(
       quantOutput,
       comparables,
@@ -677,7 +688,7 @@ export async function runCompensationSpecialist(
       break;
     }
 
-    if (regressCount >= MAX_SYNTHESIS_REGRESSES) {
+    if (regressCount >= maxSynthesisRegresses) {
       return buildHonestFailVerdict(
         currentQuantOutput,
         comparables,

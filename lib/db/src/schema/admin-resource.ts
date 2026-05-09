@@ -48,6 +48,7 @@ export const RESOURCE_KINDS = [
   "mcp",
   "search_url",
   "research_prompt",
+  "parameter",
 ] as const;
 export type ResourceKind = typeof RESOURCE_KINDS[number];
 export const ResourceKindSchema = z.enum(RESOURCE_KINDS);
@@ -62,6 +63,7 @@ export const RESOURCE_KIND_LABELS: Record<ResourceKind, string> = {
   mcp: "MCPs",
   search_url: "Research URLs",
   research_prompt: "Research Prompts",
+  parameter: "Parameters",
 };
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -204,6 +206,8 @@ export const PROBE_PROFILES: Record<ResourceKind, { ttlSeconds: number; rateLimi
   // Research catalog entries: URLs are long-lived (1 h), prompts are static (24 h).
   search_url: { ttlSeconds: 3600, rateLimitPerMinute: 6, maxCostUsd: 0 },
   research_prompt: { ttlSeconds: 86400, rateLimitPerMinute: 1, maxCostUsd: 0 },
+  // Parameter rows are pure configuration — no external service to probe.
+  parameter: { ttlSeconds: 86400, rateLimitPerMinute: 1, maxCostUsd: 0 },
 };
 
 export const ProbeStatusSchema = z.enum(["ok", "fail", "skipped"]);

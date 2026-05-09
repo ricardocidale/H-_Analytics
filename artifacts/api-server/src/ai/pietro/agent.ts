@@ -10,13 +10,12 @@ import { callLlm } from "../../routes/chat";
 import { getPietroTools, dispatchPietroTool } from "./tools";
 import { readPietroHealth, appendRunHistory } from "./workspace";
 import type { ToolCall } from "../../chat/tool-types";
+import { resolveLlmFor } from "../llm-config-resolver";
 
 // ---------------------------------------------------------------------------
 // Named constants
 // ---------------------------------------------------------------------------
 
-const PIETRO_HAIKU_MODEL = "claude-haiku-4-5-20251001";
-const PIETRO_SONNET_MODEL = "claude-sonnet-4-6";
 const PIETRO_PROVIDER = "anthropic" as const;
 
 /** Max tool-call rounds before forcing a final text turn. */
@@ -137,7 +136,9 @@ export async function runPietroAgent(trigger: PietroTrigger): Promise<PietroRunR
   const startTime = Date.now();
   const runId = randomUUID();
 
-  const model = trigger === "health-check" ? PIETRO_HAIKU_MODEL : PIETRO_SONNET_MODEL;
+  const { modelId: model } = await resolveLlmFor(
+    trigger === "health-check" ? "pietro-health-check" : "pietro-orchestration",
+  );
   const sampling = { temperature: PIETRO_TEMPERATURE, maxOutputTokens: PIETRO_MAX_OUTPUT_TOKENS };
 
   const priorHealth = await readPietroHealth();
