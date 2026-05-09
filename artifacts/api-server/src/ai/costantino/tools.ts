@@ -23,6 +23,7 @@ import { adminResources, costantinoFindings } from "@workspace/db";
 import { eq, and, isNull, desc, inArray, sql } from "drizzle-orm";
 import { storage } from "../../storage";
 import { writeCostantinoHealth } from "./workspace";
+import { validateIngestUrl } from "../iris/tools";
 import {
   COSTANTINO_DEFAULT_EXPECTED_HTTP_STATUS,
   COSTANTINO_DEGRADED_HTTP_STATUS_MAX_EXCLUSIVE,
@@ -303,7 +304,7 @@ function extractRecipe(config: unknown): HealthProbeRecipe | null {
   return {
     method: typeof r.method === "string" ? r.method : "GET",
     url: r.url,
-    expectStatus: typeof r.expectStatus === "number" ? r.expectStatus : 200,
+    expectStatus: typeof r.expectStatus === "number" ? r.expectStatus : COSTANTINO_DEFAULT_EXPECTED_HTTP_STATUS,
     headers: (r.headers && typeof r.headers === "object") ? (r.headers as Record<string, string>) : undefined,
     secretRef: typeof r.secretRef === "string" ? r.secretRef : undefined,
   };
@@ -347,6 +348,17 @@ async function toolProbeIntegrationEndpoint(args: Record<string, unknown>, metri
   const recipe = extractRecipe(row.config);
   if (!recipe) return { error: `No healthProbe recipe in config for slug: ${slug}` };
 
+  // SSRF guard — recipe.url originates from admin_resources.config (admin-editable in DB),
+  // so it is a user-controlled ingress path. Route it through the canonical
+  // validateIngestUrl() blocklist (non-http(s) schemes + private/internal host ranges)
+  // before any outbound fetch. Per coding guidelines, every tool that accepts a
+  // user-controlled URL must call validateIngestUrl() first.
+  const urlError = validateIngestUrl(recipe.url);
+  if (urlError) {
+    metrics.probesFailed += 1;
+    return { status: "fail" as ProbeStatus, latencyMs: 0, errorCode: "BLOCKED_URL", errorMessage: urlError };
+  }
+
   const fetchImpl: FetchFn = fetchOverride ?? (globalThis.fetch.bind(globalThis));
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -358,10 +370,13 @@ async function toolProbeIntegrationEndpoint(args: Record<string, unknown>, metri
       signal: controller.signal,
     });
     const latencyMs = Date.now() - t0;
-    const expected = recipe.expectStatus ?? 200;
+    const expected = recipe.expectStatus ?? COSTANTINO_DEFAULT_EXPECTED_HTTP_STATUS;
     let status: ProbeStatus;
     if (res.status === expected) status = "ok";
-    else if (res.status >= 200 && res.status < 400) status = "degraded";
+    else if (
+      res.status >= COSTANTINO_DEGRADED_HTTP_STATUS_MIN &&
+      res.status < COSTANTINO_DEGRADED_HTTP_STATUS_MAX_EXCLUSIVE
+    ) status = "degraded";
     else status = "fail";
     if (status === "ok") metrics.probesOk += 1;
     else if (status === "degraded") metrics.probesDegraded += 1;
@@ -444,7 +459,7 @@ async function toolListFindings(args: Record<string, unknown>) {
   if (scope === "open") conditions.push(isNull(costantinoFindings.resolvedAt));
   if (targetId) conditions.push(eq(costantinoFindings.targetId, targetId));
 
-  const limit = scope === "recent" ? 30 : 200;
+  const limit = scope === "recent" ? COSTANTINO_RECENT_FINDINGS_LIMIT : COSTANTINO_FINDINGS_PAGE_LIMIT;
   const rows = await db
     .select()
     .from(costantinoFindings)
