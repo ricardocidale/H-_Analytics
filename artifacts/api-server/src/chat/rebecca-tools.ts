@@ -27,7 +27,8 @@ const RESEARCH_ESTIMATED_MINUTES = 2;
 export type ToolContext = { userId: number };
 
 export type DataChangedEntry = {
-  entityType: "property" | "scenario" | "slide_factory_run" | "analyst_table" | "lb_deck_config";
+  entityType: "property" | "scenario" | "slide_factory_run" | "analyst_table" | "lb_deck_config"
+            | "research_job" | "iris_run" | "iris_gap" | "data_source";
   entityId: number;
 };
 
@@ -1317,7 +1318,7 @@ async function requireAdminCtx(ctx: ToolContext): Promise<{ result: { error: str
 async function toolTriggerIrisRun(
   trigger: IrisTrigger,
   ctx: ToolContext,
-): Promise<{ result: unknown }> {
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   const authError = await requireAdminCtx(ctx);
   if (authError) return authError;
 
@@ -1357,29 +1358,29 @@ async function toolTriggerIrisRun(
       });
     });
 
-  return { result: { runId, status: "started" } };
+  return { result: { runId, status: "started" }, dataChanged: { entityType: "iris_run", entityId: runId } };
 }
 
 async function toolTriggerIrisHealthCheck(
   ctx: ToolContext,
-): Promise<{ result: unknown }> {
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   return toolTriggerIrisRun("scheduled-health", ctx);
 }
 
 async function toolTriggerIrisReindex(
   ctx: ToolContext,
-): Promise<{ result: unknown }> {
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   return toolTriggerIrisRun("scheduled-reindex", ctx);
 }
 
 async function toolClearIrisGaps(
   ctx: ToolContext,
-): Promise<{ result: unknown }> {
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   const authError = await requireAdminCtx(ctx);
   if (authError) return authError;
 
   await clearIrisGaps();
-  return { result: { success: true } };
+  return { result: { success: true }, dataChanged: { entityType: "iris_gap", entityId: 0 } };
 }
 
 async function toolGetIrisStatus(
@@ -1429,7 +1430,7 @@ async function toolWriteRetrievalGap(
   const query = rawQuery.slice(0, IRIS_GAP_MAX_QUERY_CHARS);
   if (!query) return { result: { recorded: false } };
   await appendIrisGap(query);
-  return { result: { recorded: true } };
+  return { result: { recorded: true }, dataChanged: { entityType: "iris_gap", entityId: 0 } };
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -1873,7 +1874,7 @@ async function toolGetDataSourceStatus(ctx: ToolContext): Promise<{ result: unkn
   };
 }
 
-async function toolProbeDataSource(args: Record<string, unknown>, ctx: ToolContext): Promise<{ result: unknown }> {
+async function toolProbeDataSource(args: Record<string, unknown>, ctx: ToolContext): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   const authError = await requireAdminCtx(ctx);
   if (authError) return authError;
 
@@ -1889,10 +1890,10 @@ async function toolProbeDataSource(args: Record<string, unknown>, ctx: ToolConte
   if (!row) return { result: { error: `Resource not found: id=${id}` } };
 
   const outcome = await runProbe(row);
-  return { result: outcome };
+  return { result: outcome, dataChanged: { entityType: "data_source", entityId: 0 } };
 }
 
-async function toolRegenerateDataSource(args: Record<string, unknown>, ctx: ToolContext): Promise<{ result: unknown }> {
+async function toolRegenerateDataSource(args: Record<string, unknown>, ctx: ToolContext): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   const authError = await requireAdminCtx(ctx);
   if (authError) return authError;
 
@@ -1904,7 +1905,7 @@ async function toolRegenerateDataSource(args: Record<string, unknown>, ctx: Tool
   if (!minion) return { result: { error: `No minion registered for slug: ${slug}` } };
 
   const result = await minion();
-  return { result };
+  return { result, dataChanged: { entityType: "data_source", entityId: 0 } };
 }
 
 // ---------------------------------------------------------------------------

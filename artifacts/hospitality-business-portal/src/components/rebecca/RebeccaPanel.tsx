@@ -464,6 +464,16 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
             queryClient.invalidateQueries({ queryKey: ["/api/admin/analyst-tables"] });
           } else if (entry.entityType === "lb_deck_config") {
             queryClient.invalidateQueries({ queryKey: ["lb-slides-config"] });
+          } else if (entry.entityType === "research_job") {
+            queryClient.invalidateQueries({ queryKey: ["properties"] });
+          } else if (entry.entityType === "iris_run") {
+            queryClient.invalidateQueries({ queryKey: ["/api/admin/iris/status"] });
+          } else if (entry.entityType === "iris_gap") {
+            // no specific list query to invalidate in current UI — no-op
+          } else if (entry.entityType === "slide_factory_run") {
+            queryClient.invalidateQueries({ queryKey: ["/api/lb-slides/factory/runs"] });
+          } else if (entry.entityType === "data_source") {
+            queryClient.invalidateQueries({ queryKey: ["/api/admin/data-sources"] });
           }
         }
       }
@@ -597,6 +607,16 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                       queryClient.invalidateQueries({ queryKey: ["/api/admin/analyst-tables"] });
                     } else if (entry.entityType === "lb_deck_config") {
                       queryClient.invalidateQueries({ queryKey: ["lb-slides-config"] });
+                    } else if (entry.entityType === "research_job") {
+                      queryClient.invalidateQueries({ queryKey: ["properties"] });
+                    } else if (entry.entityType === "iris_run") {
+                      queryClient.invalidateQueries({ queryKey: ["/api/admin/iris/status"] });
+                    } else if (entry.entityType === "iris_gap") {
+                      // no specific list query to invalidate in current UI — no-op
+                    } else if (entry.entityType === "slide_factory_run") {
+                      queryClient.invalidateQueries({ queryKey: ["/api/lb-slides/factory/runs"] });
+                    } else if (entry.entityType === "data_source") {
+                      queryClient.invalidateQueries({ queryKey: ["/api/admin/data-sources"] });
                     }
                   }
                 }
