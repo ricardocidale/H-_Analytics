@@ -312,17 +312,14 @@ describe('Slide factory pipeline — rebuild loop', () => {
     expect(res.headers['content-type']).toMatch(/application\/pdf/);
   });
 
-  it('rebuild after admin override runs Maya for overridden slide — mayaVerdict present on slide1', async () => {
-    // Run 1 is at complete with deckR2Key set. slide1.headerSubtitle was patched
-    // to source=admin-override in the prior test, and rebuild was triggered.
-    // The mock runMayaForOverriddenSlides wrote mayaVerdict='ok' for slide1.
+  it('rebuild after admin override calls runMayaForOverriddenSlides for the overridden slide', async () => {
+    // Verify the rebuild route actually invoked the Maya helper — not just that
+    // agentResults contains 'ok' (which the STUB already provides).
+    expect(runMayaForOverriddenSlides).toHaveBeenCalledWith(runId);
+    // The mock implementation also writes a fresh verdict, confirming it ran.
     const get = await agent.get(`/api/lb-slides/factory/runs/${runId}`);
     expect(get.status).toBe(200);
-    expect(get.body.agentResults?.slide1?.mayaVerdict).toBeDefined();
     expect(get.body.agentResults?.slide1?.mayaVerdict).toBe('ok');
-    // Non-overridden slides should not have had their verdicts changed by Maya
-    // (they retain their original STUB_AGENT_RESULTS value, also 'ok' in this stub).
-    expect(get.body.agentResults?.slide2?.mayaVerdict).toBeDefined();
   });
 });
 

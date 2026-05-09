@@ -443,7 +443,7 @@ describe("Enzo — computeSlideContentHash", () => {
     };
     // Keys sorted alphabetically: slide1.headerSubtitle < slide1.tagline
     const hash = computeSlideContentHash(draft as never, "slide1");
-    expect(hash).toBe("Hotel Alpha|Luxury at its finest");
+    expect(hash).toBe("11:Hotel Alpha|20:Luxury at its finest");
   });
 
   it("returns empty string when no keys match the slide prefix", () => {
