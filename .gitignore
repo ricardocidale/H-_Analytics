@@ -63,6 +63,7 @@ artifacts/api-server/logs/api-costs.jsonl
 .compound-engineering/*.local.yaml
 .claude/worktrees/
 artifacts/api-server/iris/run-history/
+artifacts/api-server/iris/health.md
 
 # ESLint cache (per-package)
 .eslintcache
