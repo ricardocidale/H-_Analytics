@@ -1,0 +1,40 @@
+~/workspace$ # from repo root, while keeping wave3 untouched:
+git stash -u                                  # if anything dirty
+git checkout -b fix/ci-pnpm-version-pin origin/main
+git apply .local/ci-pnpm-fix.patch
+git add .github/workflows/ci.yml
+git commit -m "ci: let pnpm/action-setup read version from packageManager
+
+Workflow pinned pnpm to version 9 via action input, but package.json
+declares packageManager: pnpm@10.26.1. action-setup@v4 errors with
+ERR_PNPM_BAD_PM_VERSION when both are specified, breaking Typecheck +
+Gates and Unit Tests on all open PRs (#48, #49, #50, #51).
+
+Remove version: 9 so packageManager becomes single source of truth."
+git push -u origin fix/ci-pnpm-version-pin
+gh pr create --base main --title "ci: fix pnpm version conflict (unblocks all open PRs)" --body "Fixes ERR_PNPM_BAD_PM_VERSION on all open PRs. See commit message."
+No local changes to save
+branch 'fix/ci-pnpm-version-pin' set up to track 'origin/main'.
+Switched to a new branch 'fix/ci-pnpm-version-pin'
+[fix/ci-pnpm-version-pin 747bccf5] ci: let pnpm/action-setup read version from packageManager
+ 1 file changed, 4 deletions(-)
+Enumerating objects: 9, done.
+Counting objects: 100% (9/9), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (4/4), done.
+Writing objects: 100% (5/5), 738 bytes | 738.00 KiB/s, done.
+Total 5 (delta 2), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (2/2), completed with 2 local objects.
+remote: 
+remote: Create a pull request for 'fix/ci-pnpm-version-pin' on GitHub by visiting:
+remote:      https://github.com/Norfolk-Group/H-Analytics/pull/new/fix/ci-pnpm-version-pin
+remote: 
+remote: GitHub found 4 vulnerabilities on Norfolk-Group/H-Analytics's default branch (3 high, 1 moderate). To find out more, visit:
+remote:      https://github.com/Norfolk-Group/H-Analytics/security/dependabot
+remote: 
+To https://github.com/Norfolk-Group/H-Analytics.git
+ * [new branch]        fix/ci-pnpm-version-pin -> fix/ci-pnpm-version-pin
+branch 'fix/ci-pnpm-version-pin' set up to track 'origin/fix/ci-pnpm-version-pin'.
+gh: command not installed, but was located via Nix.
+package: gh  2.72.0  GitHub CLI tool
+Would you like to run gh from Nix and add it to your project? [Yn]:
