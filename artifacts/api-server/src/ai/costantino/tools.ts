@@ -23,6 +23,7 @@ import { adminResources, costantinoFindings } from "@workspace/db";
 import { eq, and, isNull, desc, inArray, sql } from "drizzle-orm";
 import { storage } from "../../storage";
 import { writeCostantinoHealth } from "./workspace";
+import { validateIngestUrl } from "../iris/tools";
 import {
   COSTANTINO_DEFAULT_EXPECTED_HTTP_STATUS,
   COSTANTINO_DEGRADED_HTTP_STATUS_MAX_EXCLUSIVE,
@@ -346,6 +347,17 @@ async function toolProbeIntegrationEndpoint(args: Record<string, unknown>, metri
   if (!row) return { error: `No resource found with slug: ${slug}` };
   const recipe = extractRecipe(row.config);
   if (!recipe) return { error: `No healthProbe recipe in config for slug: ${slug}` };
+
+  // SSRF guard — recipe.url originates from admin_resources.config (admin-editable in DB),
+  // so it is a user-controlled ingress path. Route it through the canonical
+  // validateIngestUrl() blocklist (non-http(s) schemes + private/internal host ranges)
+  // before any outbound fetch. Per coding guidelines, every tool that accepts a
+  // user-controlled URL must call validateIngestUrl() first.
+  const urlError = validateIngestUrl(recipe.url);
+  if (urlError) {
+    metrics.probesFailed += 1;
+    return { status: "fail" as ProbeStatus, latencyMs: 0, errorCode: "BLOCKED_URL", errorMessage: urlError };
+  }
 
   const fetchImpl: FetchFn = fetchOverride ?? (globalThis.fetch.bind(globalThis));
   const controller = new AbortController();
