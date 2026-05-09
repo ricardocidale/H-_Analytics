@@ -24,6 +24,17 @@ export class AdminResourceVersioningStorage {
       .orderBy(desc(adminResourceVersions.version));
   }
 
+  async getAdminResourceVersion(
+    resourceId: number,
+    version: number,
+  ): Promise<AdminResourceVersionRow | undefined> {
+    const [row] = await db
+      .select()
+      .from(adminResourceVersions)
+      .where(and(eq(adminResourceVersions.resourceId, resourceId), eq(adminResourceVersions.version, version)));
+    return row ?? undefined;
+  }
+
   async rollbackAdminResource(
     id: number,
     targetVersion: number,

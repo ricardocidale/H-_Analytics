@@ -36,8 +36,8 @@ import {
 } from "@workspace/db";
 import { backfillCatalogConnections, syncSpecialistCatalog } from "../../jobs/catalog-sync";
 import { logger } from "../../logger";
-import { validateIngestUrl } from "../../ai/iris/tools";
 import { runProbe } from "../../jobs/probes";
+import { validateIngestUrl } from "../../ai/iris/tools";
 import type { ResourceKind } from "@workspace/db";
 import {
   HTTP_201_CREATED,
@@ -181,12 +181,33 @@ export function registerAdminResourceRoutes(app: Express) {
       if (!parsed.success) {
         return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
       }
+
+      const targetVersion = parsed.data.targetVersion;
+
+      // Fetch the target version snapshot first so we can validate any
+      // health-probe URL it carries before committing the rollback.
+      const targetSnapshot = await storage.getAdminResourceVersion(id, targetVersion);
+      if (!targetSnapshot) {
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "Resource or target version not found" });
+      }
+
+      const probeConfig = targetSnapshot.config as Record<string, unknown> | null | undefined;
+      const healthProbe = probeConfig?.healthProbe as Record<string, unknown> | undefined;
+      if (typeof healthProbe?.url === "string") {
+        const urlError = validateIngestUrl(healthProbe.url);
+        if (urlError) {
+          return res.status(HTTP_400_BAD_REQUEST).json({
+            error: `Cannot roll back to v${targetVersion}: the stored health-probe URL is blocked — ${urlError}`,
+          });
+        }
+      }
+
       const actorId = req.user!.id;
-      const row = await storage.rollbackAdminResource(id, parsed.data.targetVersion, actorId);
+      const row = await storage.rollbackAdminResource(id, targetVersion, actorId);
       if (!row) {
         return res.status(HTTP_404_NOT_FOUND).json({ error: "Resource or target version not found" });
       }
-      logActivity(req, "rollback-admin-resource", "admin_resource", id, `to v${parsed.data.targetVersion}`);
+      logActivity(req, "rollback-admin-resource", "admin_resource", id, `to v${targetVersion}`);
       res.json(toResourcePublicView(row));
     } catch (error: unknown) {
       logAndSendError(res, "Failed to rollback admin resource", error);
