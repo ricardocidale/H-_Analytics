@@ -21,9 +21,12 @@
     "check:spinner-contrast": "pnpm --filter @workspace/scripts run check:spinner-contrast",
     "check:production-image": "pnpm --filter @workspace/scripts run check:production-image",
     "check:types-mirror": "pnpm --filter @workspace/scripts run check:types-mirror",
-    "check:lint": "pnpm -r --if-present run lint",
-    "check:lint:libs": "pnpm --filter './lib/**' -r --if-present run lint",
-    "check": "concurrently --kill-others-on-fail -n lint,lint:libs,typecheck,magic-numbers,replit-independence,migration-guards,spinner-contrast,production-image,types-mirror \"pnpm run check:lint\" \"pnpm run check:lint:libs\" \"pnpm run typecheck\" \"pnpm run check:magic-numbers\" \"pnpm run check:replit-independence\" \"pnpm run check:migration-guards\" \"pnpm run check:spinner-contrast\" \"pnpm run check:production-image\" \"pnpm run check:types-mirror\""
+    "check:lint": "pnpm --filter @workspace/scripts run check:lint",
+    "check:lint:libs": "pnpm --filter @workspace/scripts run check:lint:libs",
+    "check:all-cached": "pnpm --filter @workspace/scripts run check:all-cached",
+    "check:all-cached:write": "pnpm --filter @workspace/scripts run check:all-cached:write",
+    "check:core": "concurrently --kill-others-on-fail -n lint,lint:libs,typecheck,magic-numbers,replit-independence,migration-guards,spinner-contrast,production-image,types-mirror,schema-drift \"pnpm run check:lint\" \"pnpm run check:lint:libs\" \"pnpm run typecheck\" \"pnpm run check:magic-numbers\" \"pnpm run check:replit-independence\" \"pnpm run check:migration-guards\" \"pnpm run check:spinner-contrast\" \"pnpm run check:production-image\" \"pnpm run check:types-mirror\" \"pnpm run check:schema-drift\"",
+    "check": "sh -c 'pnpm run check:all-cached || { pnpm run check:core && pnpm run check:all-cached:write; }'"
   },
   "private": true,
   "devDependencies": {
