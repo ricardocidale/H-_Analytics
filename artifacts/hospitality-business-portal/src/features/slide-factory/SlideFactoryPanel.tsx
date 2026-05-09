@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconUpload, IconDownload } from "@/components/icons";
+import { IconUpload, IconDownload, IconWand2 } from "@/components/icons";
 import { IconCheckCircle, IconAlertCircle } from "@/components/icons/status-icons";
 
 import {
@@ -1597,7 +1597,8 @@ interface SlotConfig {
   key: string;
   label: string;
   hint: string;
-  multiline: boolean;
+  multiline?: boolean;
+  type?: "text" | "photo";
 }
 
 const OVERRIDE_SLOT_GROUPS: Array<{ slideLabel: string; slots: SlotConfig[] }> = [
@@ -1633,6 +1634,12 @@ const OVERRIDE_SLOT_GROUPS: Array<{ slideLabel: string; slots: SlotConfig[] }> =
         multiline: true,
       },
       { key: "slide3.closingLine", label: "Closing Line", hint: "", multiline: false },
+      {
+        key: "slide3.interiorPhotoUrl",
+        label: "Interior Photo",
+        hint: "Paste an R2 photo URL to override the auto-selected interior photo",
+        type: "photo" as const,
+      },
     ],
   },
   {
@@ -1683,6 +1690,8 @@ function SlotEditor({
   const config = OVERRIDE_SLOT_GROUPS.flatMap((g) => g.slots).find((s) => s.key === slotKey);
   const [localValue, setLocalValue] = useState(draft?.value ?? "");
   const [saving, setSaving] = useState(false);
+  const [suggestion, setSuggestion] = useState<string | null>(null);
+  const [suggesting, setSuggesting] = useState(false);
   const isDirty = localValue !== (draft?.value ?? "");
 
   // Sync if draft value changes externally (e.g. after another slot save)
@@ -1715,11 +1724,35 @@ function SlotEditor({
     }
   };
 
+  const handleSuggest = async () => {
+    setSuggesting(true);
+    try {
+      const r = await fetch(
+        `/api/lb-slides/factory/runs/${runId}/slots/${encodeURIComponent(slotKey)}/suggest`,
+        {
+          method: "POST",
+          credentials: "include",
+        },
+      );
+      if (!r.ok) {
+        const b = (await r.json().catch(() => ({}))) as { error?: string };
+        throw new Error(b.error ?? "Suggestion unavailable");
+      }
+      const data = (await r.json()) as { suggestion: string };
+      setSuggestion(data.suggestion);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Suggestion failed";
+      toast({ title: "Could not generate suggestion", description: msg, variant: "destructive" });
+    } finally {
+      setSuggesting(false);
+    }
+  };
+
   const isOverride = draft?.source === "admin-override";
 
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-1.5">
         <label className="text-xs font-medium text-foreground">
           {config?.label ?? slotKey}
           {isOverride && (
@@ -1728,23 +1761,87 @@ function SlotEditor({
             </span>
           )}
         </label>
-        {isDirty && (
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-6 text-[11px] px-2"
-            onClick={() => void handleSave()}
-            disabled={saving || disabled}
-            data-testid={`save-slot-${slotKey}`}
-          >
-            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : "Save"}
-          </Button>
-        )}
+        <div className="flex items-center gap-1">
+          {config?.type !== "photo" && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 text-[11px] px-2 text-muted-foreground hover:text-primary"
+              onClick={() => void handleSuggest()}
+              disabled={disabled || suggesting}
+              title="Suggest improved copy"
+              data-testid={`suggest-slot-${slotKey}`}
+            >
+              {suggesting ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <IconWand2 className="w-3 h-3" />
+              )}
+              <span className="ml-1">{suggesting ? "Suggesting…" : "Suggest"}</span>
+            </Button>
+          )}
+          {isDirty && config?.type !== "photo" && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-6 text-[11px] px-2"
+              onClick={() => void handleSave()}
+              disabled={saving || disabled}
+              data-testid={`save-slot-${slotKey}`}
+            >
+              {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : "Save"}
+            </Button>
+          )}
+        </div>
       </div>
       {config?.hint && (
         <p className="text-[10px] text-muted-foreground">{config.hint}</p>
       )}
-      {config?.multiline ? (
+      {config?.type === "photo" ? (
+        <div className="space-y-2">
+          {localValue && (
+            <div className="relative inline-block">
+              <img
+                src={localValue}
+                alt="Interior photo override"
+                className="h-24 w-auto rounded border object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setLocalValue("");
+                  void handleSave();
+                }}
+                disabled={disabled}
+                className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center"
+                title="Clear photo override"
+              >
+                ×
+              </button>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Input
+              value={localValue}
+              onChange={(e) => setLocalValue(e.target.value)}
+              disabled={disabled}
+              placeholder="Paste R2 photo URL…"
+              className="text-xs h-8 flex-1"
+              data-testid={`slot-photo-input-${slotKey}`}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-[11px] px-2 shrink-0"
+              onClick={() => void handleSave()}
+              disabled={saving || disabled || localValue === (draft?.value ?? "")}
+              data-testid={`save-slot-${slotKey}`}
+            >
+              {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : "Set"}
+            </Button>
+          </div>
+        </div>
+      ) : config?.multiline ? (
         <Textarea
           value={localValue}
           onChange={(e) => setLocalValue(e.target.value)}
@@ -1761,6 +1858,34 @@ function SlotEditor({
           className="text-xs h-8"
           data-testid={`slot-input-${slotKey}`}
         />
+      )}
+      {suggestion !== null && (
+        <div className="flex items-start gap-2 rounded-md border border-primary/20 bg-primary/5 px-2.5 py-2 text-xs">
+          <span className="flex-1 text-foreground leading-relaxed">{suggestion}</span>
+          <div className="flex flex-col gap-1 shrink-0">
+            <Button
+              size="sm"
+              variant="default"
+              className="h-5 text-[11px] px-2"
+              onClick={() => {
+                setLocalValue(suggestion);
+                setSuggestion(null);
+              }}
+              data-testid={`accept-suggestion-${slotKey}`}
+            >
+              Accept
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-5 text-[11px] px-2 text-muted-foreground"
+              onClick={() => setSuggestion(null)}
+              data-testid={`dismiss-suggestion-${slotKey}`}
+            >
+              Dismiss
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );

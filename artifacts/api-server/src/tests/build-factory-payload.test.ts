@@ -138,6 +138,7 @@ function makeCompleteRun(
       },
     },
     deckR2Key: null,
+    slotContentHashes: null,
     startedAt: now,
     completedAt: now,
     createdAt: now,
@@ -331,6 +332,28 @@ describe("buildFactoryPayload — slot-omission edge cases", () => {
     });
     const payload = buildFactoryPayload(run);
     expect(payload.slide1?.visionBullets?.[0]?.text.length).toBe(SLIDE1_VISION_BULLET_MAX);
+  });
+});
+
+describe("buildFactoryPayload — slide3.interiorPhotoUrl override", () => {
+  it("passes through photo URL as plain string when non-empty", () => {
+    const url = "https://r2.example.com/photo.jpg";
+    const payload = buildFactoryPayload(makeCompleteRun({
+      luccaDraft: { "slide3.interiorPhotoUrl": makeDraft(url) },
+    }));
+    expect(payload.slide3?.interiorPhotoUrl).toBe(url);
+  });
+
+  it("omits interiorPhotoUrl when value is empty string", () => {
+    const payload = buildFactoryPayload(makeCompleteRun({
+      luccaDraft: { "slide3.interiorPhotoUrl": makeDraft("") },
+    }));
+    expect(payload.slide3?.interiorPhotoUrl).toBeUndefined();
+  });
+
+  it("omits interiorPhotoUrl when key is absent from luccaDraft", () => {
+    const payload = buildFactoryPayload(makeCompleteRun({ luccaDraft: {} }));
+    expect(payload.slide3?.interiorPhotoUrl).toBeUndefined();
   });
 });
 

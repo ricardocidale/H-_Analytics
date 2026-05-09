@@ -42,6 +42,7 @@ import { runLorenzoIngestion } from "../slides/lorenzo-ingestion";
 import { runLuccaDraft } from "../slides/lucca-draft";
 import { runMarco } from "../slides/marco";
 import { runFranco } from "../slides/minions/franco";
+import { runMayaForOverriddenSlides } from "../slides/rebuild-maya";
 import { logger } from "../logger";
 import {
   HTTP_200_OK,
@@ -535,6 +536,16 @@ router.post(
             caller: "rebuild",
             skipDeckKeyWrite: true,
           });
+          // Run Maya for overridden slides BEFORE flipping to complete so a
+          // concurrent override cannot race in while Maya is still evaluating.
+          try {
+            await runMayaForOverriddenSlides(id);
+          } catch (mayaErr) {
+            logger.error(
+              `[rebuild] run ${id}: runMayaForOverriddenSlides failed — ${String(mayaErr)}`,
+              "slide-factory",
+            );
+          }
           await updateSlideFactoryRun(id, {
             status: "complete",
             deckR2Key,

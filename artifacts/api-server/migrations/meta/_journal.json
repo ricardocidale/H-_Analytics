@@ -323,6 +323,13 @@
       "when": 1746921602000,
       "tag": "0046_reference_data_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1778301787303,
+      "tag": "0047_enzo_slot_content_hashes",
+      "breakpoints": true
     }
   ]
 }

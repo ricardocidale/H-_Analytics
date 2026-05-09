@@ -80,6 +80,7 @@ feature ships or a new Rebecca tool is added.
 | Cancel an in-progress build | `POST /api/lb-slides/factory/runs/:id/cancel` | `cancel_slide_factory_build` | ✅ |
 | Produce / re-render deck PDF | Internal Marco tool + Rebecca `produce_slide_factory_deck` | `produce_slide_factory_deck` | ✅ |
 | Override slot(s) and rebuild PDF (Tab 6) | `PATCH .../slots/:key` then `POST .../rebuild` | `update_slide_factory_slot` + `rebuild_slide_factory_deck` | ✅ |
+| Request LLM copy suggestion for a single slot (Tab 6 override panel) | `POST /api/lb-slides/factory/runs/:id/slots/:key/suggest` | — | 🚫 N/A (admin-only inline copy-assist; suggestion is transient and not persisted until admin explicitly accepts and saves) |
 | Upload brief PDF/PPTX file | Browser → R2 (presigned URL) | — | 🚫 N/A (file picker; user-only action) |
 | Download rendered deck PDF (Tab 6) | `GET /api/lb-slides/factory/runs/:id/download` (planned) | — | 🚫 N/A (file download; planned in plan U9) |
 

@@ -74,6 +74,7 @@ export type SlideFactoryRunPatch = Partial<
     | "luccaDraft"
     | "agentResults"
     | "deckR2Key"
+    | "slotContentHashes"
     | "startedAt"
     | "completedAt"
   >

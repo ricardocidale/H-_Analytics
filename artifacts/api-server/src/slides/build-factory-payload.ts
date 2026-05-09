@@ -294,6 +294,12 @@ function buildSlide3(luccaDraft: Record<string, LuccaSlotDraft>): Slide3Payload 
     payload.closingLine = authoredFrom(closingDraft, SLIDE3_CLOSING_LINE_MAX);
   }
 
+  // Admin-override interior photo URL — plain string, not an AuthoredString.
+  const photoDraft = luccaDraft["slide3.interiorPhotoUrl"];
+  if (photoDraft && photoDraft.value.length > 0) {
+    payload.interiorPhotoUrl = photoDraft.value;
+  }
+
   return payload;
 }
 
