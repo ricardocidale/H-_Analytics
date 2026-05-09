@@ -49,6 +49,7 @@ import {
   SLIDE5_TRANSFORMATION_ROW_EXISTING_MAX,
   SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX,
   SLIDE5_TRANSFORMATION_ROWS_COUNT,
+  LUCCA_PIPE_FORMAT_COLUMNS,
   SLIDE6_DISCLAIMER_MAX,
   type AuthoredString,
   type DeckPayloadV2,
@@ -97,10 +98,16 @@ function parseBullets(raw: string): string[] | null {
 }
 
 /**
- * Parse Lucca's reasons serialization — JSON array of `{label, detail}`.
- * Mirrors `runChiaraBuilder.parseReasons` exactly.
+ * Parse Lucca's reasons serialization.
+ *
+ * Accepts two formats:
+ *   1. JSON array of `{label, detail}` — produced by direct JSON.stringify paths
+ *   2. Lucca text format — `"Label: detail\n\nLabel: detail"` produced by
+ *      `lucca-draft.ts#serializeReasons`. The text format is the live path;
+ *      JSON is kept as a forward-compat fallback.
  */
 function parseReasons(raw: string): ReasonShape[] | null {
+  // Try JSON first
   try {
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return null;
@@ -120,15 +127,33 @@ function parseReasons(raw: string): ReasonShape[] | null {
     }
     return result.length > 0 ? result : null;
   } catch {
-    return null;
+    // Fall through to Lucca text format: "Label: detail\n\nLabel: detail"
   }
+  const blocks = raw.split("\n\n").filter((b) => b.trim().length > 0);
+  if (blocks.length === 0) return null;
+  const result: ReasonShape[] = [];
+  for (const block of blocks) {
+    const colonIdx = block.indexOf(": ");
+    if (colonIdx === -1) continue;
+    result.push({
+      label: block.slice(0, colonIdx).trim(),
+      detail: block.slice(colonIdx + ": ".length).trim(),
+    });
+  }
+  return result.length > 0 ? result : null;
 }
 
 /**
- * Parse Lucca's transformation-rows serialization — JSON array of
- * `{feature, existing, proposed}`. Mirrors `runElisaBuilder.parseRows` exactly.
+ * Parse Lucca's transformation-rows serialization.
+ *
+ * Accepts two formats:
+ *   1. JSON array of `{feature, existing, proposed}` — produced by direct JSON.stringify paths
+ *   2. Lucca pipe format — `"feature | existing | proposed\n..."` produced by
+ *      `lucca-draft.ts#serializeRows`. The pipe format is the live path; JSON
+ *      is kept as a forward-compat fallback.
  */
 function parseRows(raw: string): TransformationRowShape[] | null {
+  // Try JSON first
   try {
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed) || parsed.length === 0) return null;
@@ -150,8 +175,22 @@ function parseRows(raw: string): TransformationRowShape[] | null {
     }
     return rows.length > 0 ? rows : null;
   } catch {
-    return null;
+    // Fall through to Lucca pipe format: "feature | existing | proposed\n..."
   }
+  const lines = raw.split("\n").filter((l) => l.trim().length > 0);
+  if (lines.length === 0) return null;
+  const rows: TransformationRowShape[] = [];
+  for (const line of lines) {
+    const parts = line.split(" | ");
+    if (parts.length < LUCCA_PIPE_FORMAT_COLUMNS) continue;
+    rows.push({
+      feature: parts[0].trim(),
+      existing: parts[1].trim(),
+      // Join remaining parts in case "proposed" itself contains " | "
+      proposed: parts.slice(2).join(" | ").trim(),
+    });
+  }
+  return rows.length > 0 ? rows : null;
 }
 
 // ── AuthoredString builder ───────────────────────────────────────────────────

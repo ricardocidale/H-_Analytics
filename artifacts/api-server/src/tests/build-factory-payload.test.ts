@@ -288,6 +288,32 @@ describe("buildFactoryPayload — slot-omission edge cases", () => {
     expect(payload.slide5?.transformationRows).toBeUndefined();
   });
 
+  it("parses reasons in Lucca text format (Label: detail\\n\\n...)", () => {
+    const textFormat = "Location: Heart of San Diego barrio.\n\nHeritage: Period-listed structure with character.\n\nCap rate: Outsized exit multiple in tight comp set.";
+    const run = makeCompleteRun({
+      luccaDraft: { "slide3.reasons": makeDraft(textFormat) },
+    });
+    const payload = buildFactoryPayload(run);
+    expect(payload.slide3?.reasons).toHaveLength(SLIDE3_REASONS_COUNT);
+    expect(payload.slide3?.reasons?.[0]?.label.text).toBe("Location");
+    expect(payload.slide3?.reasons?.[0]?.detail.text).toBe("Heart of San Diego barrio.");
+    expect(payload.slide3?.reasons?.[1]?.label.text).toBe("Heritage");
+    expect(payload.slide3?.reasons?.[2]?.label.text).toBe("Cap rate");
+  });
+
+  it("parses transformationRows in Lucca pipe format (feature | existing | proposed)", () => {
+    const pipeFormat = "Rooms | 12 keys | 16 keys\nF&B | Cafe only | All-day restaurant + bar\nSpa | None | Treatment rooms + sauna\nBrand | Independent | Boutique soft brand";
+    const run = makeCompleteRun({
+      luccaDraft: { "slide5.transformationRows": makeDraft(pipeFormat) },
+    });
+    const payload = buildFactoryPayload(run);
+    expect(payload.slide5?.transformationRows).toHaveLength(SLIDE5_TRANSFORMATION_ROWS_COUNT);
+    expect(payload.slide5?.transformationRows?.[0]?.feature.text).toBe("Rooms");
+    expect(payload.slide5?.transformationRows?.[0]?.existing.text).toBe("12 keys");
+    expect(payload.slide5?.transformationRows?.[0]?.proposed.text).toBe("16 keys");
+    expect(payload.slide5?.transformationRows?.[1]?.feature.text).toBe("F&B");
+  });
+
   it("clamps visionBullets to the count cap", () => {
     const tooMany = Array.from({ length: SLIDE1_VISION_BULLETS_COUNT + 2 }, (_, i) => `• Bullet ${i + 1}`).join("\n");
     const run = makeCompleteRun({

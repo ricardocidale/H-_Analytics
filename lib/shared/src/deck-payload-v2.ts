@@ -153,6 +153,8 @@ export const SLIDE5_TRANSFORMATION_ROW_FEATURE_MAX = 60;
 export const SLIDE5_TRANSFORMATION_ROW_EXISTING_MAX = 80;
 export const SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX = 100;
 export const SLIDE5_TRANSFORMATION_ROWS_COUNT = 4;
+// Pipe-serialized rows must have exactly 3 columns: feature | existing | proposed
+export const LUCCA_PIPE_FORMAT_COLUMNS = 3;
 
 export const slide5PayloadSchema = z.object({
   // LLM-draft + human-approved — intro paragraph above the comparison table.

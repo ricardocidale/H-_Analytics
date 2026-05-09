@@ -345,7 +345,7 @@ describe("update_slide_factory_slot", () => {
     expect(mockUpdateSlideFactoryRun).not.toHaveBeenCalled();
   });
 
-  it("wrong status: returns error without writing", async () => {
+  it("wrong status (building): returns error without writing", async () => {
     mockGetSlideFactoryRun.mockResolvedValue(makeRun({ id: 99, status: "building" }));
     const result = await dispatchRebeccaTool(
       "update_slide_factory_slot",
@@ -354,6 +354,34 @@ describe("update_slide_factory_slot", () => {
     );
     expect((result.result as Record<string, unknown>).error).toMatch(/draft_review/);
     expect(mockUpdateSlideFactoryRun).not.toHaveBeenCalled();
+  });
+
+  it("complete run — slot edit stamps source as 'admin-override'", async () => {
+    mockGetSlideFactoryRun.mockResolvedValue(
+      makeRun({
+        id: 99,
+        status: "complete",
+        luccaDraft: {
+          "slide1.headerSubtitle": {
+            value: "Original text",
+            approved: true,
+            approvedAt: "2026-05-07T00:00:00.000Z",
+            source: "lucca" as const,
+          },
+        },
+      }),
+    );
+    const result = await dispatchRebeccaTool(
+      "update_slide_factory_slot",
+      { id: 99, slotKey: "slide1.headerSubtitle", value: "Overridden text" },
+      CTX,
+    );
+    expect(result.dataChanged).toMatchObject({ entityType: "slide_factory_run", entityId: 99 });
+    const call = mockUpdateSlideFactoryRun.mock.calls[0][1] as {
+      luccaDraft: Record<string, { source: string; value: string }>;
+    };
+    expect(call.luccaDraft["slide1.headerSubtitle"].source).toBe("admin-override");
+    expect(call.luccaDraft["slide1.headerSubtitle"].value).toBe("Overridden text");
   });
 
   it("neither value nor approved provided: returns error", async () => {
@@ -495,6 +523,59 @@ describe("produce_slide_factory_deck", () => {
     expect((result.result as Record<string, unknown>).error).toBeDefined();
     expect(mockGetSlideFactoryRun).not.toHaveBeenCalled();
     expect(runFranco).not.toHaveBeenCalled();
+  });
+});
+
+// ── rebuild_slide_factory_deck ────────────────────────────────────────────────
+
+describe("rebuild_slide_factory_deck", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetSlideFactoryRun.mockResolvedValue(
+      makeRun({ id: 99, status: "complete", deckR2Key: "factory-runs/99/deck.pdf" }),
+    );
+    mockUpdateSlideFactoryRun.mockResolvedValue(makeRun({ id: 99, status: "rebuilding" }));
+  });
+
+  it("happy path: transitions to rebuilding, fires Franco, emits dataChanged", async () => {
+    (runFranco as Mock).mockResolvedValue({ deckR2Key: "factory-runs/99/deck.pdf" });
+    const result = await dispatchRebeccaTool("rebuild_slide_factory_deck", { id: 99 }, CTX);
+    const r = result.result as Record<string, unknown>;
+    expect(r.status).toBe("rebuilding");
+    expect(r.message).toMatch(/rebuild started/i);
+    expect(result.dataChanged).toMatchObject({ entityType: "slide_factory_run", entityId: 99 });
+    expect(mockUpdateSlideFactoryRun).toHaveBeenCalledWith(99, { status: "rebuilding" });
+    // Flush microtasks so the fire-and-forget IIFE executes
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(runFranco).toHaveBeenCalledWith(99, { caller: "rebuild", skipDeckKeyWrite: true });
+  });
+
+  it("wrong status (building): returns error without firing Franco", async () => {
+    mockGetSlideFactoryRun.mockResolvedValue(makeRun({ id: 99, status: "building" }));
+    const result = await dispatchRebeccaTool("rebuild_slide_factory_deck", { id: 99 }, CTX);
+    expect((result.result as Record<string, unknown>).error).toMatch(/complete/);
+    expect(mockUpdateSlideFactoryRun).not.toHaveBeenCalled();
+  });
+
+  it("already rebuilding: returns 409-style error", async () => {
+    mockGetSlideFactoryRun.mockResolvedValue(makeRun({ id: 99, status: "rebuilding" }));
+    const result = await dispatchRebeccaTool("rebuild_slide_factory_deck", { id: 99 }, CTX);
+    expect((result.result as Record<string, unknown>).error).toMatch(/already in progress/);
+    expect(mockUpdateSlideFactoryRun).not.toHaveBeenCalled();
+  });
+
+  it("run not found: returns error without calling update or Franco", async () => {
+    mockGetSlideFactoryRun.mockResolvedValue(null);
+    const result = await dispatchRebeccaTool("rebuild_slide_factory_deck", { id: 9999 }, CTX);
+    expect((result.result as Record<string, unknown>).error).toMatch(/9999/);
+    expect(mockUpdateSlideFactoryRun).not.toHaveBeenCalled();
+  });
+
+  it("invalid id: returns error without calling storage", async () => {
+    const result = await dispatchRebeccaTool("rebuild_slide_factory_deck", { id: "bad" }, CTX);
+    expect((result.result as Record<string, unknown>).error).toBeDefined();
+    expect(mockGetSlideFactoryRun).not.toHaveBeenCalled();
   });
 });
 

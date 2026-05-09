@@ -1,4 +1,5 @@
 import { storage } from "../storage";
+import { logger } from "../logger";
 import { isAdminRole } from "@shared/constants";
 import type { ToolParam } from "./tool-types";
 import type { Property, UpdateProperty, Scenario, UpdateScenario } from "@workspace/db";
@@ -331,7 +332,7 @@ export function getRebeccaTools(): ToolParam[] {
     {
       name: "update_slide_factory_slot",
       description:
-        "Edit a single Lucca narrative slot on a slide factory run (Tab 4). Use to update the slot's value, mark it approved, or both. Requires status 'draft_review' and an existing slot at the given key.",
+        "Edit a single Lucca narrative slot on a slide factory run. Works on 'draft_review' (Tab 4) and 'complete' (Tab 6 override panel). On draft_review runs source stamps as 'admin'; on complete runs it stamps as 'admin-override' for provenance tracking. Use to update the slot's value, mark it approved, or both.",
       parameters: {
         type: "object",
         properties: {
@@ -389,6 +390,18 @@ export function getRebeccaTools(): ToolParam[] {
           runId: { type: "number", description: "Slide factory run ID" },
         },
         required: ["runId"],
+      },
+    },
+    {
+      name: "rebuild_slide_factory_deck",
+      description:
+        "Trigger a lightweight PDF re-render after overriding one or more slots on a completed run (Tab 6 override panel). Transitions the run to 'rebuilding', fires Franco asynchronously, and atomically writes status + deckR2Key + completedAt on success. Returns error if a rebuild is already in progress (single-flight guard) or if the run is not 'complete'. Poll get_slide_factory_run to detect completion (status returns to 'complete').",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "Slide factory run ID" },
+        },
+        required: ["id"],
       },
     },
     // ── Pietro data infrastructure tools ──────────────────────────────────
@@ -539,6 +552,8 @@ export async function dispatchRebeccaTool(
         return await toolCancelSlideFactoryBuild(args, ctx);
       case "produce_slide_factory_deck":
         return await toolProduceSlideFactoryDeck(args, ctx);
+      case "rebuild_slide_factory_deck":
+        return await toolRebuildSlideFactoryDeck(args, ctx);
       case "get_data_source_status":
         return await toolGetDataSourceStatus(ctx);
       case "probe_data_source":
@@ -1508,8 +1523,9 @@ async function toolUpdateSlideFactorySlot(
   );
   const run = await getSlideFactoryRun(id, ctx.userId);
   if (!run) return { result: { error: `Slide factory run ${id} not found` } };
-  if (run.status !== "draft_review") {
-    return { result: { error: `Slot edits require status 'draft_review', current: '${run.status}'` } };
+  const slotEditAllowed = run.status === "draft_review" || run.status === "complete";
+  if (!slotEditAllowed) {
+    return { result: { error: `Slot edits require status 'draft_review' or 'complete', current: '${run.status}'` } };
   }
   if (!run.luccaDraft) return { result: { error: "No Lucca draft present" } };
   const existing = run.luccaDraft[slotKey];
@@ -1517,11 +1533,16 @@ async function toolUpdateSlideFactorySlot(
 
   const valueChanged = value !== undefined && value !== existing.value;
   const nowApproving = approved === true && !existing.approved;
+  const newSource = valueChanged
+    ? run.status === "complete"
+      ? ("admin-override" as const)
+      : ("admin" as const)
+    : undefined;
   const updatedSlot = {
     ...existing,
     ...(value !== undefined ? { value } : {}),
     ...(approved !== undefined ? { approved } : {}),
-    ...(valueChanged ? { source: "admin" as const } : {}),
+    ...(newSource !== undefined ? { source: newSource } : {}),
     ...(nowApproving ? { approvedAt: new Date().toISOString() } : {}),
     ...(approved === false ? { approvedAt: null } : {}),
   };
@@ -1672,6 +1693,57 @@ async function toolProduceSlideFactoryDeck(
       dataChanged: { entityType: "slide_factory_run", entityId: runId },
     };
   }
+}
+
+async function toolRebuildSlideFactoryDeck(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const id = Number(args.id);
+  if (!Number.isFinite(id)) return { result: { error: "Invalid slide factory run id" } };
+
+  const { getSlideFactoryRun, updateSlideFactoryRun } = await import(
+    "../storage/slide-factory-runs"
+  );
+  const run = await getSlideFactoryRun(id, ctx.userId);
+  if (!run) return { result: { error: `Slide factory run ${id} not found` } };
+
+  if (run.status === "rebuilding") {
+    return { result: { error: "A rebuild is already in progress for this run" } };
+  }
+  if (run.status !== "complete") {
+    return {
+      result: { error: `Rebuild requires status 'complete', current: '${run.status}'` },
+    };
+  }
+
+  const rebuilding = await updateSlideFactoryRun(id, { status: "rebuilding" });
+
+  const { runFranco } = await import("../slides/minions/franco");
+  void (async () => {
+    try {
+      const { deckR2Key } = await runFranco(id, {
+        caller: "rebuild",
+        skipDeckKeyWrite: true,
+      });
+      await updateSlideFactoryRun(id, {
+        status: "complete",
+        deckR2Key,
+        completedAt: new Date(),
+      });
+    } catch (err) {
+      logger.error(
+        `[rebuild-tool] run ${id}: Franco failed — reverting to complete: ${String(err)}`,
+        "slide-factory",
+      );
+      await updateSlideFactoryRun(id, { status: "complete" }).catch(() => {});
+    }
+  })();
+
+  return {
+    result: { id, status: rebuilding?.status ?? "rebuilding", message: "Rebuild started — poll get_slide_factory_run for completion" },
+    dataChanged: { entityType: "slide_factory_run", entityId: id },
+  };
 }
 
 // ---------------------------------------------------------------------------

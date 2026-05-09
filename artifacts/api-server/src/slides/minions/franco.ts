@@ -40,11 +40,19 @@ import {
 
 export interface RunFrancoOpts {
   /**
-   * Caller identity for log namespacing only. Behavior is identical regardless.
-   * - "marco":   automatic post-`transition_status: complete` render (U3 hook)
-   * - "rebecca": admin-triggered manual retry via Rebecca chat tool (U3 hook)
+   * Caller identity for log namespacing only.
+   * - "marco":   automatic post-`transition_status: complete` render
+   * - "rebecca": admin-triggered manual retry via Rebecca chat tool
+   * - "rebuild": post-override lightweight rebuild triggered by the rebuild route
    */
-  caller?: "marco" | "rebecca";
+  caller?: "marco" | "rebecca" | "rebuild";
+  /**
+   * When true, skip the `deckR2Key` DB write inside Franco. The caller is
+   * responsible for writing `deckR2Key` (alongside `status` and `completedAt`)
+   * in a single atomic `updateSlideFactoryRun` call. Used by the rebuild route
+   * to guarantee that status, deckR2Key, and completedAt land together.
+   */
+  skipDeckKeyWrite?: boolean;
 }
 
 export interface RunFrancoResult {
@@ -137,12 +145,18 @@ export async function runFranco(
   const sp = await getStorageProviderAsync();
   await sp.uploadBuffer(key, pdf, PDF_CONTENT_TYPE);
 
-  await updateSlideFactoryRun(runId, { deckR2Key: key });
-
-  logger.info(
-    `[franco]${callerTag} run ${runId}: deckR2Key written (${key})`,
-    "slide-factory",
-  );
+  if (!opts?.skipDeckKeyWrite) {
+    await updateSlideFactoryRun(runId, { deckR2Key: key });
+    logger.info(
+      `[franco]${callerTag} run ${runId}: deckR2Key written (${key})`,
+      "slide-factory",
+    );
+  } else {
+    logger.info(
+      `[franco]${callerTag} run ${runId}: PDF uploaded (${key}); skipping DB write per caller`,
+      "slide-factory",
+    );
+  }
 
   return { deckR2Key: key };
 }
