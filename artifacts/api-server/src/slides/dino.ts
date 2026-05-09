@@ -18,6 +18,7 @@ import {
   DINO_PIXEL_DIFF_THRESHOLD_PCT,
   DINO_CHANNEL_DIFF_TOLERANCE,
 } from "./deck-render-constants";
+import { getParameterValue } from "../ai/parameter-resolver";
 import type { SlideNumber } from "./swarms/types";
 
 export interface DinoOutput {
@@ -30,10 +31,16 @@ export async function runDino(
   slideNumber: SlideNumber,
   canonicalPngKey: string,
 ): Promise<DinoOutput> {
+  // Resolve admin-tunable threshold (falls back to compile-time constant on DB miss)
+  const pixelDiffThresholdPct = await getParameterValue(
+    "slide-pixel-diff-threshold-pct",
+    DINO_PIXEL_DIFF_THRESHOLD_PCT,
+  );
+
   const passthrough: DinoOutput = {
     pixelDiffPct: 0,
     exceedsThreshold: false,
-    threshold: DINO_PIXEL_DIFF_THRESHOLD_PCT,
+    threshold: pixelDiffThresholdPct,
   };
 
   // Fetch canonical PNG from R2
@@ -92,7 +99,7 @@ export async function runDino(
     return {
       pixelDiffPct: 100,
       exceedsThreshold: true,
-      threshold: DINO_PIXEL_DIFF_THRESHOLD_PCT,
+      threshold: pixelDiffThresholdPct,
     };
   }
 
@@ -115,7 +122,7 @@ export async function runDino(
   const pixelDiffPct = (differentPixels / totalPixels) * 100;
   return {
     pixelDiffPct,
-    exceedsThreshold: pixelDiffPct > DINO_PIXEL_DIFF_THRESHOLD_PCT,
-    threshold: DINO_PIXEL_DIFF_THRESHOLD_PCT,
+    exceedsThreshold: pixelDiffPct > pixelDiffThresholdPct,
+    threshold: pixelDiffThresholdPct,
   };
 }

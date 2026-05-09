@@ -417,6 +417,13 @@ app.use((req, res, next) => {
         serverLog(`[hero-photo-url-audit] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
       });
 
+      // ── Phase 3k: Weekly Vito compliance audit ────────
+      import("./jobs/vito-compliance-scheduler").then(({ startVitoComplianceScheduler }) => {
+        startVitoComplianceScheduler();
+      }).catch(err => {
+        serverLog(`[vito-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+      });
+
       const intervalHandles: NodeJS.Timeout[] = [];
 
       // ── Graceful shutdown handler ────────

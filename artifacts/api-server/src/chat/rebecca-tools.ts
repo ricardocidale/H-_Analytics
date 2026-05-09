@@ -27,7 +27,8 @@ const RESEARCH_ESTIMATED_MINUTES = 2;
 export type ToolContext = { userId: number };
 
 export type DataChangedEntry = {
-  entityType: "property" | "scenario" | "slide_factory_run" | "analyst_table" | "lb_deck_config";
+  entityType: "property" | "scenario" | "slide_factory_run" | "analyst_table" | "lb_deck_config"
+            | "research_job" | "iris_run" | "iris_gap" | "data_source" | "compliance_run";
   entityId: number;
 };
 
@@ -244,6 +245,15 @@ export function getRebeccaTools(): ToolParam[] {
       name: "trigger_iris_health_check",
       description: "Run a quick Iris health check across configured data sources. Admin only.",
       parameters: { type: "object", properties: {}, required: [] },
+    },
+    {
+      name: "run_compliance_audit",
+      description: "Triggers the Vito compliance audit agent to scan the codebase for rule violations. Admin only. Returns a run ID.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
     },
     {
       name: "trigger_iris_reindex",
@@ -604,6 +614,8 @@ export async function dispatchRebeccaTool(
         return await toolTriggerIrisHealthCheck(ctx);
       case "trigger_iris_reindex":
         return await toolTriggerIrisReindex(ctx);
+      case "run_compliance_audit":
+        return await toolRunComplianceAudit(ctx);
       case "clear_iris_gaps":
         return await toolClearIrisGaps(ctx);
       case "get_iris_status":
@@ -1294,6 +1306,38 @@ async function toolTriggerResearch(
 // ---------------------------------------------------------------------------
 
 /**
+ * Trigger a Vito compliance audit run (fire-and-forget).
+ * Admin only. Returns a confirmation immediately; the agent creates its own
+ * vito_runs row so there is no phantom pre-created row.
+ */
+async function toolRunComplianceAudit(
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const { runVitoAgent } = await import("../ai/vito/agent");
+
+  // runVitoAgent creates the vito_runs row itself — do not pre-create one here.
+  let resolvedRunId: number | undefined;
+  void runVitoAgent("manual")
+    .then((result) => {
+      resolvedRunId = result.runId;
+    })
+    .catch((err: unknown) => {
+      console.error("[compliance-audit] agent error:", err);
+    });
+
+  // We can't know the runId synchronously (agent creates it async).
+  // Return a sentinel so the parity invalidation fires even before run completes.
+  const COMPLIANCE_RUN_SENTINEL_ID = 0;
+  return {
+    result: { message: "Compliance audit started" },
+    dataChanged: { entityType: "compliance_run", entityId: COMPLIANCE_RUN_SENTINEL_ID },
+  };
+}
+
+/**
  * Returns an error result if the caller is not an admin, null otherwise.
  * Mirrors the `requireAdmin` middleware used in routes/admin/iris.ts.
  */
@@ -1317,7 +1361,7 @@ async function requireAdminCtx(ctx: ToolContext): Promise<{ result: { error: str
 async function toolTriggerIrisRun(
   trigger: IrisTrigger,
   ctx: ToolContext,
-): Promise<{ result: unknown }> {
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   const authError = await requireAdminCtx(ctx);
   if (authError) return authError;
 
@@ -1357,29 +1401,29 @@ async function toolTriggerIrisRun(
       });
     });
 
-  return { result: { runId, status: "started" } };
+  return { result: { runId, status: "started" }, dataChanged: { entityType: "iris_run", entityId: runId } };
 }
 
 async function toolTriggerIrisHealthCheck(
   ctx: ToolContext,
-): Promise<{ result: unknown }> {
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   return toolTriggerIrisRun("scheduled-health", ctx);
 }
 
 async function toolTriggerIrisReindex(
   ctx: ToolContext,
-): Promise<{ result: unknown }> {
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   return toolTriggerIrisRun("scheduled-reindex", ctx);
 }
 
 async function toolClearIrisGaps(
   ctx: ToolContext,
-): Promise<{ result: unknown }> {
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   const authError = await requireAdminCtx(ctx);
   if (authError) return authError;
 
   await clearIrisGaps();
-  return { result: { success: true } };
+  return { result: { success: true }, dataChanged: { entityType: "iris_gap", entityId: 0 } };
 }
 
 async function toolGetIrisStatus(
@@ -1429,7 +1473,7 @@ async function toolWriteRetrievalGap(
   const query = rawQuery.slice(0, IRIS_GAP_MAX_QUERY_CHARS);
   if (!query) return { result: { recorded: false } };
   await appendIrisGap(query);
-  return { result: { recorded: true } };
+  return { result: { recorded: true }, dataChanged: { entityType: "iris_gap", entityId: 0 } };
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -1873,7 +1917,7 @@ async function toolGetDataSourceStatus(ctx: ToolContext): Promise<{ result: unkn
   };
 }
 
-async function toolProbeDataSource(args: Record<string, unknown>, ctx: ToolContext): Promise<{ result: unknown }> {
+async function toolProbeDataSource(args: Record<string, unknown>, ctx: ToolContext): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   const authError = await requireAdminCtx(ctx);
   if (authError) return authError;
 
@@ -1889,10 +1933,10 @@ async function toolProbeDataSource(args: Record<string, unknown>, ctx: ToolConte
   if (!row) return { result: { error: `Resource not found: id=${id}` } };
 
   const outcome = await runProbe(row);
-  return { result: outcome };
+  return { result: outcome, dataChanged: { entityType: "data_source", entityId: 0 } };
 }
 
-async function toolRegenerateDataSource(args: Record<string, unknown>, ctx: ToolContext): Promise<{ result: unknown }> {
+async function toolRegenerateDataSource(args: Record<string, unknown>, ctx: ToolContext): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   const authError = await requireAdminCtx(ctx);
   if (authError) return authError;
 
@@ -1904,7 +1948,7 @@ async function toolRegenerateDataSource(args: Record<string, unknown>, ctx: Tool
   if (!minion) return { result: { error: `No minion registered for slug: ${slug}` } };
 
   const result = await minion();
-  return { result };
+  return { result, dataChanged: { entityType: "data_source", entityId: 0 } };
 }
 
 // ---------------------------------------------------------------------------

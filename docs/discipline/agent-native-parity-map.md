@@ -145,3 +145,12 @@ re-renders the panel.
 - When a new UI action is added → add a row and either implement the tool (✅) or document the gap (⚠️)
 - When a new Rebecca tool is added → update the corresponding row to ✅
 - When a gap is resolved → flip ⚠️ to ✅
+
+## Compliance Actions (Vito)
+
+| UI Action | UI Location | Rebecca Tool | Status |
+|---|---|---|---|
+| Trigger compliance audit | Admin → Compliance → Run Audit | `run_compliance_audit` | ✅ |
+| View violations | Admin → Compliance | — | 🚫 N/A (read-only display; no mutation needed via chat) |
+| Resolve violation | Admin → Compliance → Resolve | — | 🚫 N/A (admin-only destructive action) |
+| Accept violation | Admin → Compliance → Accept | — | 🚫 N/A (admin-only destructive action) |

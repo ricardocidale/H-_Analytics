@@ -113,6 +113,12 @@ export const SCHEDULER_REGISTRY = [
     description:
       "Hourly Pietro scheduler tick: checks staleness of source/mcp admin_resource rows and dispatches registered minions (MinionFredExtended, MinionFmpReit, MinionDaloopaReit, MinionBookingRates, MinionExpediaRates) for stale sources.",
   },
+  {
+    key: "vito-compliance-audit",
+    label: "Vito Compliance Audit",
+    cycleIntervalMs: 7 * 24 * 60 * 60 * 1000, // weekly
+    description: "Weekly compliance audit: constants taxonomy sweep, admin_resources parity check, and KB coverage gap detection.",
+  },
 ] as const;
 
 export type SchedulerKey = (typeof SCHEDULER_REGISTRY)[number]["key"];
@@ -230,6 +236,10 @@ export const SCHEDULER_DISPATCH: Record<SchedulerKey, () => Promise<unknown>> = 
   "pietro-data-refresh": async () => {
     const mod = await import("../ai/ambient/pietro-scheduler");
     return mod.runPietroTick();
+  },
+  "vito-compliance-audit": async () => {
+    const mod = await import("./vito-compliance-scheduler");
+    return mod.runVitoComplianceCycle();
   },
 };
 

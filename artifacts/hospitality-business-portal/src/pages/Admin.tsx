@@ -47,6 +47,7 @@ const VectorBenchTrendsTab = lazy(() => import("@/components/admin/intelligence/
 const SpecialistPage = lazy(() => import("@/pages/admin/specialist/SpecialistPage"));
 const RequiredFieldsRollup = lazy(() => import("@/components/admin/required-fields/RequiredFieldsRollup"));
 const ObservabilityTab = lazy(() => import("@/components/admin/ObservabilityTab"));
+const ComplianceTab = lazy(() => import("@/components/admin/ComplianceTab"));
 
 export type { AdminSaveState };
 
@@ -71,6 +72,7 @@ const sectionMeta: Partial<Record<AdminSection, { title: string; subtitle: strin
   verification:          { title: "Verification",             subtitle: "Independent GAAP financial audit and compliance" },
   database:              { title: "Database",                  subtitle: "Entity monitoring, seed data, and canonical sync" },
   observability:         { title: "Observability",             subtitle: "Background scheduler health, last-cycle summaries, and stale-warnings" },
+  compliance:            { title: "Compliance",               subtitle: "Vito compliance audit findings: constants taxonomy, admin_resources parity, and KB coverage gaps" },
   "property-heroes":     { title: "Property Heroes",           subtitle: "View and download hero images for all properties, individually or as a ZIP" },
 
   // AI Research → Specialists (P5). The page header *title* for these
@@ -250,6 +252,7 @@ function SectionContent({ section, onNavigate, onSaveStateChange }: { section: A
     case "database":         return <DatabaseTab />;
     case "property-heroes":  return <PropertyHeroImagesTab />;
     case "observability":    return <ObservabilityTab />;
+    case "compliance":       return <ComplianceTab />;
     default: {
       if (isSpecialistSection(section)) {
         return <SpecialistPage specialistId={SPECIALIST_SECTION_TO_ID[section]} />;
