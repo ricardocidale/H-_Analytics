@@ -32,12 +32,43 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  computeInputsHash,
+  tryCacheHit,
+  walkFilesForCache,
+  WORKSPACE_ROOT,
+  writeCacheHit,
+} from "./lib/check-cache.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const WORKSPACE_ROOT = path.resolve(__dirname, "../..");
 const DB_LIB = path.join(WORKSPACE_ROOT, "lib/db");
 const SCHEMA_ENTRY = path.join(DB_LIB, "src/schema/index.ts");
 const MIGRATIONS_META_SRC = path.join(DB_LIB, "migrations/meta");
+
+// ── Cache key ───────────────────────────────────────────────────────────────
+
+const schemaFiles = [
+  ...walkFilesForCache(path.join(DB_LIB, "src"), {
+    extensions: new Set([".ts"]),
+    skipDirs: new Set(["node_modules"]),
+  }),
+];
+
+const migrationSqlFiles = [
+  ...walkFilesForCache(path.join(DB_LIB, "migrations"), {
+    extensions: new Set([".sql", ".json"]),
+    skipDirs: new Set(["node_modules"]),
+  }),
+];
+
+const inputFiles = [
+  path.join(__dirname, "check-schema-drift.ts"),
+  ...schemaFiles,
+  ...migrationSqlFiles,
+];
+
+const inputHash = computeInputsHash({ files: inputFiles });
+if (tryCacheHit("schema-drift", inputHash)) process.exit(0);
 
 // ── Temp workspace ─────────────────────────────────────────────────────────
 
@@ -146,6 +177,7 @@ const generatedSql = fs
   .filter((f) => f.endsWith(".sql"));
 
 if (generatedSql.length === 0) {
+  writeCacheHit("schema-drift", inputHash);
   console.log(
     `✓  check:schema-drift: schema matches snapshot — no drift detected.`,
   );

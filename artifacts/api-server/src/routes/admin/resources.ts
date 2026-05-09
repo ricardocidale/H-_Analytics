@@ -36,6 +36,7 @@ import {
 } from "@workspace/db";
 import { backfillCatalogConnections, syncSpecialistCatalog } from "../../jobs/catalog-sync";
 import { logger } from "../../logger";
+import { validateIngestUrl } from "../../ai/iris/tools";
 import { runProbe } from "../../jobs/probes";
 import type { ResourceKind } from "@workspace/db";
 import {
@@ -46,6 +47,21 @@ import {
   HTTP_409_CONFLICT,
   HTTP_429_TOO_MANY_REQUESTS,
 } from "../../constants";
+
+/**
+ * Validates `config.healthProbe.url` (if present) against the canonical
+ * SSRF blocklist used by Iris. Returns a human-readable error string when
+ * the URL is unsafe, or null when the config is clean / has no probe URL.
+ */
+function validateHealthProbeUrl(config: Record<string, unknown>): string | null {
+  const probe = config.healthProbe;
+  if (!probe || typeof probe !== "object" || Array.isArray(probe)) return null;
+  const url = (probe as Record<string, unknown>).url;
+  if (typeof url !== "string") return null;
+  const err = validateIngestUrl(url);
+  if (err) return `healthProbe.url is invalid — ${err}`;
+  return null;
+}
 
 const updateResourceSchema = z.object({
   displayName: z.string().min(1).optional(),
@@ -107,6 +123,10 @@ export function registerAdminResourceRoutes(app: Express) {
       if (existing) {
         return res.status(HTTP_409_CONFLICT).json({ error: `Resource ${parsed.data.kind}/${parsed.data.slug} already exists` });
       }
+      const probeUrlError = validateHealthProbeUrl(parsed.data.config ?? {});
+      if (probeUrlError) {
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: probeUrlError });
+      }
       const actorId = req.user!.id;
       const row = await storage.createAdminResource(parsed.data, actorId);
       // Light up the Sources tab for any catalog declarations whose slug
@@ -135,6 +155,12 @@ export function registerAdminResourceRoutes(app: Express) {
       const parsed = updateResourceSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
+      }
+      if (parsed.data.config) {
+        const probeUrlError = validateHealthProbeUrl(parsed.data.config);
+        if (probeUrlError) {
+          return res.status(HTTP_400_BAD_REQUEST).json({ error: probeUrlError });
+        }
       }
       const actorId = req.user!.id;
       const row = await storage.updateAdminResource(id, parsed.data, actorId);
