@@ -38,6 +38,7 @@ import { backfillCatalogConnections, syncSpecialistCatalog } from "../../jobs/ca
 import { logger } from "../../logger";
 import { validateIngestUrl } from "../../ai/iris/tools";
 import { runProbe } from "../../jobs/probes";
+import { validateIngestUrl } from "../../ai/iris/tools";
 import type { ResourceKind } from "@workspace/db";
 import {
   HTTP_201_CREATED,

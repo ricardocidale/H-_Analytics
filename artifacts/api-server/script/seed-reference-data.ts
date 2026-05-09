@@ -40,6 +40,7 @@ const US_STATE_NAME_TO_CODE: Record<string, string> = {
   "Illinois": "IL",
 };
 
+
 export async function seedReferenceData() {
   console.log("Seeding reference data baseline...");
 
