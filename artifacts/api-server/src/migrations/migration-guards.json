@@ -194,6 +194,10 @@
     "0047_enzo_slot_content_hashes": {
       "status": "self-idempotent",
       "reason": "ALTER TABLE slide_factory_runs ADD COLUMN slot_content_hashes jsonb — Enzo verdict cache column. ADD COLUMN on a nullable jsonb column is additive; a second run would fail with 'column already exists' but migrate() never re-runs a journaled entry."
+    },
+    "0048_costantino_findings": {
+      "status": "self-idempotent",
+      "reason": "CREATE TABLE IF NOT EXISTS costantino_findings + indexes + two ON CONFLICT DO NOTHING admin_resources seeds (llm_slot 'costantino-orchestration', parameter 'costantino-health-cycle-interval-ms'). The llm_slot insert is conditional on pietro-orchestration existing, so a re-run on a fresh DB before admin-resources-005 is also a no-op. Cadence numeric literals in the SQL are documented in the file header and exempt from check:magic-numbers (SQL files are not scanned)."
     }
   }
 }

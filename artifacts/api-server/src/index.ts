@@ -424,6 +424,17 @@ app.use((req, res, next) => {
         serverLog(`[vito-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
       });
 
+      // ── Phase 3l: Costantino — Data Custodian (Step 0) ────────
+      // Periodic agentic integration-health audit. Cadence is admin-editable
+      // via admin_resources parameter row 'costantino-health-cycle-interval-ms'
+      // (default 5 days). Self-rescheduling setTimeout chain — see
+      // jobs/costantino-scheduler.ts for the concurrency guard and clamp logic.
+      import("./jobs/costantino-scheduler").then(({ startCostantinoScheduler }) => {
+        startCostantinoScheduler();
+      }).catch(err => {
+        serverLog(`[costantino-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+      });
+
       const intervalHandles: NodeJS.Timeout[] = [];
 
       // ── Graceful shutdown handler ────────

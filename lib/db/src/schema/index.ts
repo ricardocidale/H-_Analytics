@@ -12,6 +12,7 @@ export * from "./scenarios";
 export * from "./scenario-results";
 export * from "./audit";
 export * from "./admin-resource";
+export * from "./costantino";
 export * from "./specialist";
 export * from "./calc-audit";
 export * from "./intelligence";

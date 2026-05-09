@@ -434,3 +434,56 @@ export const RENOV_HISTORIC_PREMIUM = 0.20;   // +20% per-key uplift for histori
 export const RENOV_CONTINGENCY      = 0.18;   // 18% contingency on subtotal
 export const RENOV_MAX_PCT_OF_PRICE = 0.80;   // Guardrail: budget ≤ 80% of purchase price
 export const RENOV_MIN_PER_KEY      = 25_000; // Guardrail: minimum $25k per key
+
+// ──────────────────────────────────────────────────────────
+// COSTANTINO — DATA CUSTODIAN CONSTANTS (Step 0)
+// Cadence values must mirror the SQL seed in
+// artifacts/api-server/migrations/0048_costantino_findings.sql.
+// All cadence values are admin-overridable at runtime via the
+// admin_resources parameter row 'costantino-health-cycle-interval-ms'
+// (see COSTANTINO_CADENCE_PARAM_SLUG below). These constants are the
+// fallback when the row is missing or malformed, and the clamp bounds
+// the scheduler enforces on every read.
+// ──────────────────────────────────────────────────────────
+
+/** LLM slot slug for the Costantino orchestration loop. */
+export const COSTANTINO_LLM_SLOT = "costantino-orchestration";
+
+/** admin_resources parameter row holding the runtime-editable cadence. */
+export const COSTANTINO_CADENCE_PARAM_SLUG = "costantino-health-cycle-interval-ms";
+
+/** Default cycle interval — 5 days. Used when the parameter row is absent or malformed. */
+export const DEFAULT_COSTANTINO_HEALTH_CYCLE_INTERVAL_MS = 5 * 24 * 60 * 60 * 1000;
+
+/** Lower clamp on the cadence — 60 s. Protects against runaway scheduling. */
+export const DEFAULT_COSTANTINO_MIN_CYCLE_INTERVAL_MS = 60 * 1000;
+
+/** Upper clamp on the cadence — 30 days. */
+export const DEFAULT_COSTANTINO_MAX_CYCLE_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** Per-tool-call HTTP timeout for Costantino's probe_integration_endpoint tool — 15 s. */
+export const DEFAULT_COSTANTINO_PROBE_TIMEOUT_MS = 15 * 1000;
+
+/** Max LLM tool-call rounds per cycle — defensive cap against runaway agentic loops. */
+export const DEFAULT_COSTANTINO_MAX_TOOL_ROUNDS = 25;
+
+/** Sampling temperature for Costantino's orchestration LLM. */
+export const DEFAULT_COSTANTINO_TEMPERATURE = 0.2;
+
+/** Max output tokens per LLM call in Costantino's loop. */
+export const DEFAULT_COSTANTINO_MAX_OUTPUT_TOKENS = 4096;
+
+/** Default HTTP status considered a successful probe outcome (= 200 OK). */
+export const COSTANTINO_DEFAULT_EXPECTED_HTTP_STATUS = 200;
+
+/** Lower bound for the "non-error 2xx/3xx but-not-expected" → degraded band. */
+export const COSTANTINO_DEGRADED_HTTP_STATUS_MIN = 200;
+
+/** Upper bound (exclusive) of the degraded band — 4xx/5xx are hard fail. */
+export const COSTANTINO_DEGRADED_HTTP_STATUS_MAX_EXCLUSIVE = 400;
+
+/** Row cap for list_findings scope='recent'. */
+export const COSTANTINO_RECENT_FINDINGS_LIMIT = 30;
+
+/** Row cap for list_findings scope='open' / 'all'. */
+export const COSTANTINO_FINDINGS_PAGE_LIMIT = 200;

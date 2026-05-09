@@ -12,6 +12,7 @@
  */
 import { storage } from "../storage";
 import { logger } from "../logger";
+import { DEFAULT_COSTANTINO_HEALTH_CYCLE_INTERVAL_MS } from "@shared/constants";
 
 /**
  * How many cycle intervals can elapse before a scheduler is considered
@@ -118,6 +119,13 @@ export const SCHEDULER_REGISTRY = [
     label: "Vito Compliance Audit",
     cycleIntervalMs: 7 * 24 * 60 * 60 * 1000, // weekly
     description: "Weekly compliance audit: constants taxonomy sweep, admin_resources parity check, and KB coverage gap detection.",
+  },
+  {
+    key: "costantino-data-custodian",
+    label: "Costantino — Data Custodian",
+    cycleIntervalMs: DEFAULT_COSTANTINO_HEALTH_CYCLE_INTERVAL_MS, // five-day fallback; true cadence is the admin-editable parameter row 'costantino-health-cycle-interval-ms'
+    description:
+      "Periodic agentic integration-health audit. Probes every kind in {api, source, mcp} that has a healthProbe recipe in admin_resources.config, records status+latency on the parent row, and writes findings rows for failures.",
   },
 ] as const;
 
@@ -240,6 +248,10 @@ export const SCHEDULER_DISPATCH: Record<SchedulerKey, () => Promise<unknown>> = 
   "vito-compliance-audit": async () => {
     const mod = await import("./vito-compliance-scheduler");
     return mod.runVitoComplianceCycle();
+  },
+  "costantino-data-custodian": async () => {
+    const mod = await import("./costantino-scheduler");
+    return mod.runCostantinoCycle();
   },
 };
 

@@ -204,6 +204,7 @@ from Brazilian or Italian naming traditions (male or female).
 - Slide factory minions: Aldo, Bruno, Carlo, Dino, Enzo, Franco
 - Data infrastructure orchestrator: Pietro
 - Data infrastructure minions: MinionFredExtended, MinionFmpReit, MinionDaloopaReit, MinionBookingRates, MinionExpediaRates, MinionExa
+- Data custodian (integration-health audit): Costantino
 
 **Never use:** Sergio, Milton
 
@@ -379,6 +380,10 @@ This app has exactly one AI assistant: **Rebecca** — a semantic KB-search chat
 ### Specialists
 
 Specialists are **dev-defined only** — see `.claude/rules/specialists-are-dev-defined-only.md`. Admins are operators, not authors. No admin UI should expose specialist creation or editing.
+
+### Costantino — Data Custodian (Step 0)
+
+Costantino is the periodic agentic loop that audits every external integration registered in `admin_resources` (kinds `api`, `source`, `mcp`). He probes each row that has a `config.healthProbe` recipe, persists the outcome via `storage.recordProbeResult` (atomic write to `resource_health_checks` + parent), and opens/closes rows in `costantino_findings`. Cadence is admin-editable at runtime via the `admin_resources` parameter row `costantino-health-cycle-interval-ms` (default 5 days, clamp 60s–30d). Self-rescheduling `setTimeout` chain (NOT `setInterval`) so the cadence change takes effect on the next tick. **Step 0 boundary:** runs side-by-side with the legacy `resource-health-checker.ts` — Step 1 retires it. Skill: `.agents/skills/costantino-data-custodian/SKILL.md`.
 
 ### Intelligence Display — specialist-sourced UI affordances
 
@@ -662,4 +667,4 @@ Rule: **if you touch `CLAUDE.md`, scan `replit.md` for related content and sync 
 |---|---|
 | 2026-05-09 | **Agent-native Wave 0 (W0.1–W0.4).** `rebeccaResponseMode` from DB now used as default when chat body omits `responseMode` (W0.1). Portfolio verification opinion injected into Rebecca's system prompt when a property is in scope (W0.2). Parity map updated with 4 missing tools (`list_scenarios`, `get_scenario`, `patch_property`, `get_tripadvisor_hotels`) + CI guard test (W0.3). Dino constants already extracted — W0.4 confirmed done (W0.4). |
 | 2026-05-08 | **Schema change workflow documented (Task #1201).** Added "Schema change workflow" runbook to CLAUDE.md § Migration system architecture and to `.local/skills/pnpm-workspace/references/db.md`. Updated Key Commands to include `generate`. Updated CC/Replit lane split to drop the manual-SQL fallback instruction. |
-| 2026-05-08 | **Server-side chat preferences (Task #1185).** `rebecca_response_mode` + `rebecca_show_tool_timing` columns on `users` table (migration 0042). `PATCH /api/profile/chat-preferences` endpoint. `RebeccaPanel` seeds from server on first load; syncs to server on change. `drizzle.__drizzle_migrations` now 53 entries. |
+| 2026-05-09 | **Costantino — Data Custodian (Step 0).** New periodic agentic scheduler that audits every `admin_resources` row of kind {api, source, mcp} that has a `config.healthProbe` recipe. 8-tool loop (`list_admin_resources`, `get_probe_recipe`, `probe_integration_endpoint`, `update_admin_resource_health`, `write_finding`, `list_findings`, `resolve_finding`, `complete_task`). Findings persist in new `costantino_findings` table (migration 0048). Cadence is admin-editable at runtime via parameter row `costantino-health-cycle-interval-ms` (default 5d, clamp 60s–30d). Self-rescheduling `setTimeout` chain. Phase 3l boot hook in `index.ts`. Runs side-by-side with `resource-health-checker.ts` — Step 1 retires it. Skill: `costantino-data-custodian`. Verified via smoke + dry-cycle (stubbed callLlm + fetch). |
