@@ -302,6 +302,13 @@
       "when": 1778259791333,
       "tag": "0044_misty_luke_cage",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1778287699367,
+      "tag": "0045_cool_starfox",
+      "breakpoints": true
     }
   ]
 }

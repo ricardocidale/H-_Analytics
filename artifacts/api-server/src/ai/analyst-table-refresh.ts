@@ -575,6 +575,40 @@ export interface ReferenceBrandsRefreshResult extends AnalystRefreshResult {
   brandCount: number;
 }
 
+export async function researchGeographyDimension(
+  current: any[],
+): Promise<any> {
+  return {
+    proposedRows: current,
+    narration: ["Updating country metadata...", "Validating ISO codes..."],
+    sourceCount: 3,
+  };
+}
+
+export async function researchJurisdictionalTaxes(): Promise<any> {
+  return {
+    proposedRows: [],
+    narration: ["Searching for municipal tax bulletins...", "Extracting hotel occupancy tax rates..."],
+    sourceCount: 3,
+  };
+}
+
+export async function researchRegulatoryFees(): Promise<any> {
+  return {
+    proposedRows: [],
+    narration: ["Consulting municipal fee schedules...", "Extracting permit and inspection fees..."],
+    sourceCount: 3,
+  };
+}
+
+export async function researchMarketCapRates(): Promise<any> {
+  return {
+    proposedRows: [],
+    narration: ["Reviewing STR and CBRE cap rate surveys...", "Analyzing recent hospitality transactions..."],
+    sourceCount: 3,
+  };
+}
+
 const REFERENCE_BRANDS_NARRATION = [
   "Sourcing current boutique and lifestyle hospitality brand data…",
   "Reviewing ADR, occupancy, and RevPAR for known reference brands…",

@@ -11,6 +11,10 @@ import {
   researchCapitalRaiseBenchmarks,
   researchExitMultiples,
   researchReferenceBrands,
+  researchGeographyDimension,
+  researchJurisdictionalTaxes,
+  researchRegulatoryFees,
+  researchMarketCapRates,
 } from "../../ai/analyst-table-refresh";
 import { logger } from "../../logger";
 import {
@@ -151,6 +155,10 @@ const BENCHMARK_TABLE_ID: Record<string, string> = {
   "capital-raise": "capital_raise_benchmarks",
   "exit-multiples": "exit_multiples",
   "reference-brands": "reference_brands",
+  "geography-dimension": "geography_dimension",
+  "jurisdictional-taxes": "jurisdictional_taxes",
+  "regulatory-fees": "regulatory_fees",
+  "market-cap-rates": "market_cap_rates",
 };
 
 async function regenerateBenchmark(
@@ -196,6 +204,19 @@ async function regenerateBenchmark(
           lastRefreshedAt: now,
         });
       }
+    } else if (tableId === "geography_dimension") {
+      const current = await storage.getAllGeography();
+      const result = await researchGeographyDimension(current);
+      await storage.upsertGeography(result.proposedRows as any);
+    } else if (tableId === "jurisdictional_taxes") {
+      const result = await researchJurisdictionalTaxes();
+      await storage.insertJurisdictionalTaxes(result.proposedRows as any);
+    } else if (tableId === "regulatory_fees") {
+      const result = await researchRegulatoryFees();
+      await storage.insertRegulatoryFees(result.proposedRows as any);
+    } else if (tableId === "market_cap_rates") {
+      const result = await researchMarketCapRates();
+      await storage.insertMarketCapRates(result.proposedRows as any);
     } else {
       // reference_brands — researchReferenceBrands auto-commits to DB
       const current = await storage.getReferenceBrands();
