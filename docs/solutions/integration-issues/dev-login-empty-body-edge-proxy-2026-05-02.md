@@ -1,8 +1,26 @@
+---
+title: "/api/auth/dev-login returns empty body — root cause is the Replit deployment edge, not the route"
+date: 2026-05-02
+category: integration-issues
+module: api-server/auth
+problem_type: integration_issue
+component: authentication
+severity: high
+symptoms:
+  - "Toast: Failed to execute 'json' on 'Response': Unexpected end of JSON input"
+  - "POST /api/auth/dev-login returns empty body (0 bytes) in production"
+root_cause: config_error
+resolution_type: documentation_update
+tags: [dev-login, edge-proxy, replit-gfe, empty-body, auth]
+---
+
 # `/api/auth/dev-login` returns empty body in production — root cause is the deployment edge, not the route
 
 **Date:** 2026-05-02
 **Related:** task #943 (client-side `readErrorMessage` toast), task #945 (this investigation)
 **Status:** Route is innocent. Empty body is synthesized by the Replit deployment edge (Google Frontend) when the upstream api-server is unreachable.
+
+> **Note (2026-05-09):** Production has since moved from Replit Publish to Railway. The Replit GFE edge issue described here is now specific to the Replit dev-preview environment, not the production deployment. The production gate is `isPublishedDeployment()` (checks `REPLIT_DEPLOYMENT === "1"`), not `NODE_ENV === "production"` as described in §1 below.
 
 ## Symptom
 
@@ -20,9 +38,9 @@ The `/api/auth/dev-login` route itself sends a JSON body in every code path. The
 
 ### 1. Route returns JSON in every branch
 
-`artifacts/api-server/src/routes/auth.ts:101-126`:
+`artifacts/api-server/src/routes/auth.ts:111-143` (line numbers shifted since original investigation):
 
-- `NODE_ENV === "production"` → `res.status(403).json({ error: "Dev login disabled in production" })`
+- `isPublishedDeployment()` (checks `REPLIT_DEPLOYMENT === "1"`) → `res.status(403).json({ error: "Dev login disabled in production" })`
 - otherwise → `handleCredentialLogin`, which always responds with `res.json(...)` or `res.status(...).json(...)`
 
 ### 2. Local dev mode (`DEV_SKIP_AUTH=true`, `NODE_ENV=development`)

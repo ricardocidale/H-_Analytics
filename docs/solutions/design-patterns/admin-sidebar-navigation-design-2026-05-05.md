@@ -173,6 +173,17 @@ function buildNavGroups(): NavGroup[] {
 }
 ```
 
+## Implementation Status (as of 2026-05-09)
+
+| Recommendation | Status |
+|---|---|
+| Merge Properties + Scenarios → Portfolio group | ✅ Applied — `id: "portfolio"`, label "Portfolio" is live |
+| Change Reference Ranges icon from `IconCalculator` → `IconRuler` | ✅ Applied |
+| All Scenarios sub-item uses `IconGitFork` | ✅ Applied |
+| Default Assignments uses `IconUserCog` | ✅ Applied |
+| Rename "Steady State" → "Model Defaults" | ⏳ Not yet applied — `label: "Steady State"` still in `buildNavGroups()` |
+| Portfolio group icon `IconBuildings` (distinct from sub-items) | ⏳ Not yet applied — current code uses `IconProperties` |
+
 ## Related
 
 - `docs/solutions/architecture-patterns/admin-sidebar-ia-sources-resources-2026-05-02.md` — Companion: placement rules for Sources and Resources sections in the same sidebar

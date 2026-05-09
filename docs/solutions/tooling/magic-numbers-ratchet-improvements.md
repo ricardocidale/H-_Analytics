@@ -56,7 +56,7 @@ function canonicalPath(absFile: string, rel: string): string {
   return contentHashToCanonical.get(hash)!;
 }
 ```
-Two files with identical byte content are the same logical unit. The lexicographically first path becomes the canonical representative. This collapsed the `lib/shared/src ↔ artifacts/api-server/src/shared` mirror from 2 counted files to 1, reducing suspects from 208 → 177.
+Two files with identical byte content are the same logical unit. The lexicographically first path becomes the canonical representative. When the `lib/shared/src ↔ artifacts/api-server/src/shared` mirror was active, this collapsed it from 2 counted files to 1, reducing suspects from 208 → 177. The mirror has since been eliminated (the `@shared/*` tsconfig alias now resolves directly to `lib/shared/src/*`), so this deduplication is a no-op for that pair today — but it still protects against other accidental duplicates.
 
 ### 3. Regulatory citation allowlist
 Added digit sequences that appear in legal/regulatory string literals to `ALLOWED_DUPLICATED_VALUES`:
@@ -155,13 +155,13 @@ The scanner is a cross-file duplicate detector, not an in-file linter. Its value
 
 ## Prevention
 - After every large constant-extraction sprint, re-init the baseline to lock in gains: `--init`.
-- When adding exports to `lib/shared/src/`, keep `artifacts/api-server/src/shared/` in sync (see `mirror-shared-package-sync.md`) — diverged mirrors reintroduce the counting inflation.
+- The `lib/shared/src ↔ artifacts/api-server/src/shared` mirror has been eliminated; `@shared/*` now resolves directly to `lib/shared/src/*`. If a future refactor re-introduces a mirror pair, diverged copies will reintroduce counting inflation — run `--init` to lock in the correct baseline.
 - Numeric literals in regulatory citation strings belong in `ALLOWED_DUPLICATED_VALUES` with a one-line justification noting the authority.
 - Industry-spec dimensional/encoding values belong in `ALLOWED_DUPLICATED_VALUES` with a citation of the standards body (PDF spec, ISO 216, ITU-R BT.709/2020, W3C CSS, NIST). If a value is a brand/design choice (e.g., "we picked 1920×1080 because L+B uses HD"), the *adoption* is a Cat-2 DEFAULT decision, but the literal `1920` itself is still spec-fixed and goes on the allowlist.
 - Reviewing a `const ALL_CAPS = <number>` definition? Verify the file is one of the three canonical constants files. Anywhere else, the named form is the masking anti-pattern — promote to the canonical file or route through `getFactoryNumber(key, country)` for jurisdiction-varying values.
 
 ## Related Issues
 - `.agents/skills/no-magic-numbers/SKILL.md` — the discipline doc, kept in sync with this learning's scope clarification (in-scope vs. out-of-scope literal classes, masking anti-pattern, three canonical constants files)
-- `docs/solutions/tooling/mirror-shared-package-sync.md` — sync invariant that the content-hash deduplication relies on
+- ~~`docs/solutions/tooling/mirror-shared-package-sync.md`~~ — that doc described the manual mirror sync problem, which has since been resolved by collapsing to a direct tsconfig alias. The doc was deleted as part of the 2026-05-09 compound refresh.
 - `CLAUDE.md` §2 — the four-category number taxonomy that the masking-literal rule enforces
 - `docs/solutions/conventions/no-hardcoded-integration-identifiers-convention-2026-05-09.md` — the string-identifier extension of this rule: LLM model names, API slugs, MCP slugs, and endpoint URLs must come from `admin_resources` rows, not TypeScript constants. The `check-magic-numbers.ts` script cannot detect these; code review is the enforcement mechanism.

@@ -121,7 +121,7 @@ const globalInputSchema = z.object({
   companyOpsStartDate: z.string().optional(),
   fiscalYearStartMonth: z.number().optional(),
   inflationRate: z.number(),
-  companyInflationRate: z.number().optional(),
+  companyInflationRate: z.number().nullish(),
   fixedCostEscalationRate: z.number().optional(),
   marketingRate: z.number(),
   debtAssumptions: z.object({

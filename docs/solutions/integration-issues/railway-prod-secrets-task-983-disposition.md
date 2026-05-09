@@ -1,3 +1,19 @@
+---
+title: "Railway H-Analytics production secrets — Task #983 disposition"
+date: 2026-05-05
+category: integration-issues
+module: railway-deployment
+problem_type: integration_issue
+component: authentication
+severity: high
+symptoms:
+  - "Six env vars deleted from Railway production by Task #981"
+  - "App failed to boot in production without DATABASE_URL and SESSION_SECRET"
+root_cause: config_error
+resolution_type: config_change
+tags: [railway, env-vars, secrets, production-boot, postgres-url, session-secret]
+---
+
 # Railway H-Analytics production secrets — Task #983 disposition
 
 ## Context

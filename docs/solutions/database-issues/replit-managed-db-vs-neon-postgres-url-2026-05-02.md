@@ -70,8 +70,7 @@ regression test for the script itself.
 
 - **All runtime modules and scripts** must resolve the connection string
   through `requireDbUrl()` / `getDbUrl()` from
-  `lib/shared/src/db-url.ts` (mirrored at
-  `artifacts/api-server/src/shared/db-url.ts`). Never read
+  `lib/shared/src/db-url.ts` (imported via the `@shared/*` tsconfig alias which resolves directly to `lib/shared/src/*` — no local mirror copy exists). Never read
   `process.env.DATABASE_URL` directly. The helper reads `POSTGRES_URL`
   first and falls back to `DATABASE_URL` so production traffic always
   reaches Neon while local/CI workflows that explicitly clear

@@ -47,7 +47,7 @@ Building this pipeline required resolving several design tensions:
 | Lorenzo-04 | Carlo validation | Zod validates `LorenzoTextBlock[][]` for type correctness and in-range values |
 | Lorenzo-05 | Holistic inspector | Opus 4.7 with all 6 PNGs → `report_inspection_verdict` tool call |
 
-The chain is implemented in `artifacts/api-server/src/slides/lorenzo-ingestion.ts`, called from the `POST /api/slide-factory/runs/:id/ingest` route.
+The chain is implemented in `artifacts/api-server/src/slides/lorenzo-ingestion.ts`, called from the `POST /api/lb-slides/factory/runs/:id/trigger-ingestion` route. Ingestion is typically auto-fired from `accept-brief`; the explicit trigger endpoint is available for re-runs.
 
 ### Pre-LLM word grouping (Lorenzo-03 pre-processing)
 

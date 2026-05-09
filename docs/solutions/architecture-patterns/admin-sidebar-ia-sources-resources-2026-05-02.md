@@ -94,6 +94,12 @@ Intelligence → Resources → Catalog → [APIs tab]   ← this is the old patt
 Intelligence → Knowledge Registry → Sources        ← wrong; Sources belongs in Admin
 ```
 
+## Implementation Status (as of 2026-05-09)
+
+The Sources and Resources sections described in this doc have **not yet been added** to `AdminSidebar.tsx`. The current sidebar has no top-level Sources or Resources groups. Resources-related items (APIs, integrations, source management) currently live under `/intelligence` — the exact placement this doc advises against — as a temporary state. The `.agents/skills/hplus-admin-nav-ia/SKILL.md` is the living authority on nav placement decisions; refer to it when implementing these sections.
+
+The legacy `"sources": "data-sources"` redirect described in this doc is still present in `AdminSidebar.tsx` line 108.
+
 ## Relevant Files
 
 - `artifacts/hospitality-business-portal/src/components/admin/AdminSidebar.tsx` — add new `AdminSection` values and nav groups here

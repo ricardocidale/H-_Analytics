@@ -32,26 +32,38 @@ sidebar entirely.
 
 ### Sidebar structure (Intelligence)
 
+Current structure as of 2026-05-09 (`IntelligenceSidebar.tsx`):
+
 ```
 Intelligence (/intelligence)
-├── AI Agents
+├── The Analyst
+│   ├── Gustavo  (Analyst Orchestrator — informational / read-only)
+│   ├── Specialists   ← single accordion-table page (all Specialists)
+│   └── Assumption Guidance
+├── Agents
 │   ├── Rebecca  (Configuration, Knowledge Base, Conversations)
-│   └── Gustavo  (informational / read-only — see separate doc)
-├── Specialists   ← single accordion-table page
-├── LLMs
-├── Resources Builder → Letícia
-├── Assumption Guidance
-└── System (Health, Scheduled Research, Vector Latency)
+│   └── Iris     (Resource Maintainer)
+├── Runs          ← unified cross-type run log (Analyst / Slide Factory / Iris)
+├── Knowledge & Resources
+│   ├── Knowledge Registry
+│   └── Country Economic Data
+└── System
+    ├── System Health
+    ├── Scheduled Research
+    ├── LLMs
+    └── Vector Search Latency
 ```
 
-The following items are **removed** from the sidebar:
+The following items were **removed** from the sidebar:
 - Management Company (and sub-items: Funding Intelligence, Revenue Intelligence, ICP Intelligence)
 - Property (and sub-items: Risk Intelligence, Executive Summary)
 - Photos (and sub-item: Photo Enhancer & Renders)
 - Portfolio Ops (and sub-item: Portfolio Watchdog)
 - Constants & Authority Sources / Model Constants (removed entirely — data in Admin → Sources)
-- The Analyst / Gustavo as a standalone item (moved into AI Agents group)
-- Rebecca AI Assistant as a standalone item (moved into AI Agents group)
+- The Analyst / Gustavo as a standalone item (moved into "The Analyst" group)
+- Rebecca AI Assistant as a standalone item (moved into "Agents" group)
+
+**Note:** Iris (Resource Maintainer) was added to the Agents group in a subsequent session. LLMs moved from a top-level item to under System.
 
 ### Specialists accordion page
 
