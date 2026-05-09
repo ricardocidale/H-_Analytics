@@ -644,6 +644,10 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                       queryClient.invalidateQueries({ queryKey: ["/api/admin/data-sources"] });
                     } else if (entry.entityType === "compliance_run") {
                       queryClient.invalidateQueries({ queryKey: ["/api/admin/compliance/violations"] });
+                    } else if (entry.entityType === "company") {
+                      queryClient.invalidateQueries({ queryKey: ["/api/admin/companies"] });
+                    } else if (entry.entityType === "market_rate") {
+                      queryClient.invalidateQueries({ queryKey: ["/api/market-rates"] });
                     }
                   }
                 }
