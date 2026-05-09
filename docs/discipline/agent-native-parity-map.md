@@ -17,7 +17,10 @@ feature ships or a new Rebecca tool is added.
 | View property detail | Property page | `get_property` | ✅ |
 | Create property | Properties → New | `create_property` | ✅ |
 | Edit property field | Property → Edit | `update_property` | ✅ |
+| Edit multiple property fields at once | Property → Edit (bulk) | `patch_property` | ✅ |
 | Delete property | Property → Delete | `delete_property` | ✅ |
+| List scenarios | Scenarios sidebar | `list_scenarios` | ✅ |
+| View scenario detail | Scenario page | `get_scenario` | ✅ |
 | Create scenario | Scenarios → New | `create_scenario` | ✅ |
 | Clone scenario | Scenarios → Clone | `create_scenario (cloneFromId)` | ✅ |
 | Edit scenario name / description / tags | Scenario → Edit | `update_scenario` | ✅ |
@@ -123,6 +126,12 @@ re-renders the panel.
 |---|---|---|---|
 | Record retrieval gap | Auto (Rebecca unanswered query) | `write_retrieval_gap` | ✅ |
 
+### Live Market Research
+
+| UI Action | Route / Location | Rebecca Tool | Status |
+|---|---|---|---|
+| Fetch competitor hotel data for a market | Research context / comp-set questions | `get_tripadvisor_hotels` | ✅ |
+
 ### Data Infrastructure (Pietro — Tools Deferred to U10)
 
 | UI Action | UI Location | Rebecca Tool | Status |
@@ -136,3 +145,12 @@ re-renders the panel.
 - When a new UI action is added → add a row and either implement the tool (✅) or document the gap (⚠️)
 - When a new Rebecca tool is added → update the corresponding row to ✅
 - When a gap is resolved → flip ⚠️ to ✅
+
+## Compliance Actions (Vito)
+
+| UI Action | UI Location | Rebecca Tool | Status |
+|---|---|---|---|
+| Trigger compliance audit | Admin → Compliance → Run Audit | `run_compliance_audit` | ✅ |
+| View violations | Admin → Compliance | — | 🚫 N/A (read-only display; no mutation needed via chat) |
+| Resolve violation | Admin → Compliance → Resolve | — | 🚫 N/A (admin-only destructive action) |
+| Accept violation | Admin → Compliance → Accept | — | 🚫 N/A (admin-only destructive action) |

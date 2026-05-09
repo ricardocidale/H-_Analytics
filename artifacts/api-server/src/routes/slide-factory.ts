@@ -43,6 +43,7 @@ import { runLuccaDraft } from "../slides/lucca-draft";
 import { runMarco } from "../slides/marco";
 import { runFranco } from "../slides/minions/franco";
 import { runMayaForOverriddenSlides } from "../slides/rebuild-maya";
+import { validateIngestUrl } from "../ai/iris/tools";
 import { logger } from "../logger";
 import {
   HTTP_200_OK,
@@ -298,6 +299,18 @@ const slotPatchSchema = z.object({
   approved: z.boolean().optional(),
 });
 
+/** Slots whose value is a fetchable URL — must be validated to block javascript:,
+ *  data:, and private-network hosts before the value lands in the deck payload.
+ *  Routes through the canonical Iris ingest validator so we don't drift from the
+ *  server's single source of truth for URL safety. Empty string is allowed
+ *  (clears the override). */
+const URL_VALUED_SLOT_KEYS = new Set<string>(["slide3.interiorPhotoUrl"]);
+
+function validateSlotUrlValue(rawUrl: string): string | null {
+  if (rawUrl === "") return null; // empty clears the slot override
+  return validateIngestUrl(rawUrl);
+}
+
 router.patch(
   "/api/lb-slides/factory/runs/:id/slots/:key",
   requireAdmin,
@@ -316,6 +329,15 @@ router.patch(
       const parsed = slotPatchSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
+      }
+
+      // URL slots get an extra hop of validation — block javascript:, data:,
+      // and private/internal hosts before the value lands in the rendered deck.
+      if (parsed.data.value !== undefined && URL_VALUED_SLOT_KEYS.has(slotKey)) {
+        const urlError = validateSlotUrlValue(parsed.data.value);
+        if (urlError) {
+          return res.status(HTTP_400_BAD_REQUEST).json({ error: urlError });
+        }
       }
 
       const run = await getSlideFactoryRun(id, user.id);
@@ -345,12 +367,23 @@ router.patch(
           : ("admin" as const)
         : undefined;
 
+      // An admin override on a complete run is implicit re-approval — the value AND
+      // approved=true must move together so the slot can never persist as
+      // approved:false with a fresh approvedAt stamp.
+      const implicitOverrideApproval =
+        valueChanged && newSource === "admin-override" && parsed.data.approved !== false;
+
       const updatedSlot = {
         ...existing,
         ...(parsed.data.value !== undefined ? { value: parsed.data.value } : {}),
-        ...(parsed.data.approved !== undefined ? { approved: parsed.data.approved } : {}),
+        ...(parsed.data.approved !== undefined
+          ? { approved: parsed.data.approved }
+          : implicitOverrideApproval
+            ? { approved: true }
+            : {}),
         ...(newSource !== undefined ? { source: newSource } : {}),
-        ...(nowApproving ? { approvedAt: new Date().toISOString() } : {}),
+        // Stamp approvedAt when explicitly approving OR on implicit override approval.
+        ...(nowApproving || implicitOverrideApproval ? { approvedAt: new Date().toISOString() } : {}),
         ...(parsed.data.approved === false ? { approvedAt: null } : {}),
       };
 
@@ -530,6 +563,9 @@ router.post(
 
       // Fire-and-forget Franco render. skipDeckKeyWrite=true so we can write
       // status + deckR2Key + completedAt in a single atomic call on success.
+      // Use req.log inside the IIFE so all rebuild work is correlated with the
+      // originating request in the structured logs (project guideline).
+      const reqLog = req.log;
       void (async () => {
         try {
           const { deckR2Key } = await runFranco(id, {
@@ -541,9 +577,8 @@ router.post(
           try {
             await runMayaForOverriddenSlides(id);
           } catch (mayaErr) {
-            logger.error(
+            reqLog.error(
               `[rebuild] run ${id}: runMayaForOverriddenSlides failed — ${String(mayaErr)}`,
-              "slide-factory",
             );
           }
           await updateSlideFactoryRun(id, {
@@ -551,11 +586,10 @@ router.post(
             deckR2Key,
             completedAt: new Date(),
           });
-          logger.info(`[rebuild] run ${id}: rebuild complete (${deckR2Key})`, "slide-factory");
+          reqLog.info(`[rebuild] run ${id}: rebuild complete (${deckR2Key})`);
         } catch (err) {
-          logger.error(
+          reqLog.error(
             `[rebuild] run ${id}: Franco failed — reverting to complete: ${String(err)}`,
-            "slide-factory",
           );
           // Revert so the admin can trigger another rebuild.
           await updateSlideFactoryRun(id, { status: "complete" }).catch(() => {});

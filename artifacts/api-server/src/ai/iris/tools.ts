@@ -56,8 +56,12 @@ const IRIS_BLOCKED_HOST_PATTERNS: RegExp[] = [
 /**
  * Returns an error message if the URL is disallowed, or null if it is safe.
  * Blocks non-http(s) schemes and private/internal host ranges.
+ *
+ * Exported so other server-side validators (e.g. slide-factory slot PATCH for
+ * URL-valued slots) can route through the same canonical check instead of
+ * maintaining a parallel blocklist.
  */
-function validateIngestUrl(rawUrl: string): string | null {
+export function validateIngestUrl(rawUrl: string): string | null {
   let parsed: URL;
   try {
     parsed = new URL(rawUrl);
