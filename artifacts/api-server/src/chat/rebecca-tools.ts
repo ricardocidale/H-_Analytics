@@ -1523,8 +1523,9 @@ async function toolUpdateSlideFactorySlot(
   );
   const run = await getSlideFactoryRun(id, ctx.userId);
   if (!run) return { result: { error: `Slide factory run ${id} not found` } };
-  if (run.status !== "draft_review") {
-    return { result: { error: `Slot edits require status 'draft_review', current: '${run.status}'` } };
+  const slotEditAllowed = run.status === "draft_review" || run.status === "complete";
+  if (!slotEditAllowed) {
+    return { result: { error: `Slot edits require status 'draft_review' or 'complete', current: '${run.status}'` } };
   }
   if (!run.luccaDraft) return { result: { error: "No Lucca draft present" } };
   const existing = run.luccaDraft[slotKey];
@@ -1532,11 +1533,16 @@ async function toolUpdateSlideFactorySlot(
 
   const valueChanged = value !== undefined && value !== existing.value;
   const nowApproving = approved === true && !existing.approved;
+  const newSource = valueChanged
+    ? run.status === "complete"
+      ? ("admin-override" as const)
+      : ("admin" as const)
+    : undefined;
   const updatedSlot = {
     ...existing,
     ...(value !== undefined ? { value } : {}),
     ...(approved !== undefined ? { approved } : {}),
-    ...(valueChanged ? { source: "admin" as const } : {}),
+    ...(newSource !== undefined ? { source: newSource } : {}),
     ...(nowApproving ? { approvedAt: new Date().toISOString() } : {}),
     ...(approved === false ? { approvedAt: null } : {}),
   };
@@ -1687,6 +1693,57 @@ async function toolProduceSlideFactoryDeck(
       dataChanged: { entityType: "slide_factory_run", entityId: runId },
     };
   }
+}
+
+async function toolRebuildSlideFactoryDeck(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const id = Number(args.id);
+  if (!Number.isFinite(id)) return { result: { error: "Invalid slide factory run id" } };
+
+  const { getSlideFactoryRun, updateSlideFactoryRun } = await import(
+    "../storage/slide-factory-runs"
+  );
+  const run = await getSlideFactoryRun(id, ctx.userId);
+  if (!run) return { result: { error: `Slide factory run ${id} not found` } };
+
+  if (run.status === "rebuilding") {
+    return { result: { error: "A rebuild is already in progress for this run" } };
+  }
+  if (run.status !== "complete") {
+    return {
+      result: { error: `Rebuild requires status 'complete', current: '${run.status}'` },
+    };
+  }
+
+  const rebuilding = await updateSlideFactoryRun(id, { status: "rebuilding" });
+
+  const { runFranco } = await import("../slides/minions/franco");
+  void (async () => {
+    try {
+      const { deckR2Key } = await runFranco(id, {
+        caller: "rebuild",
+        skipDeckKeyWrite: true,
+      });
+      await updateSlideFactoryRun(id, {
+        status: "complete",
+        deckR2Key,
+        completedAt: new Date(),
+      });
+    } catch (err) {
+      logger.error(
+        `[rebuild-tool] run ${id}: Franco failed — reverting to complete: ${String(err)}`,
+        "slide-factory",
+      );
+      await updateSlideFactoryRun(id, { status: "complete" }).catch(() => {});
+    }
+  })();
+
+  return {
+    result: { id, status: rebuilding?.status ?? "rebuilding", message: "Rebuild started — poll get_slide_factory_run for completion" },
+    dataChanged: { entityType: "slide_factory_run", entityId: id },
+  };
 }
 
 // ---------------------------------------------------------------------------
