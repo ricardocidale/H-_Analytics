@@ -26,11 +26,12 @@
 
 /* eslint-disable no-console */
 
-import { runCostantinoCycle, setCostantinoLlmOverride } from "../../artifacts/api-server/src/ai/costantino/agent";
-import { setCostantinoFetchOverride } from "../../artifacts/api-server/src/ai/costantino/tools";
-import { db } from "../../artifacts/api-server/src/db";
+import { runCostantinoCycle, setCostantinoLlmOverride } from "../ai/costantino/agent";
+import { setCostantinoFetchOverride } from "../ai/costantino/tools";
+import { db } from "../db";
 import { adminResources } from "@workspace/db";
 import { inArray } from "drizzle-orm";
+import { COSTANTINO_DEFAULT_EXPECTED_HTTP_STATUS } from "@shared/constants";
 
 interface ToolCall {
   name: string;
@@ -129,7 +130,10 @@ function makeStubLlm() {
 
 function makeStubFetch(): Parameters<typeof setCostantinoFetchOverride>[0] & ((u: string, i?: RequestInit) => Promise<Response>) {
   return (async (_url: string, _init?: RequestInit) => {
-    return new Response("ok", { status: 200, headers: { "content-type": "text/plain" } });
+    return new Response("ok", {
+      status: COSTANTINO_DEFAULT_EXPECTED_HTTP_STATUS,
+      headers: { "content-type": "text/plain" },
+    });
   }) as unknown as Parameters<typeof setCostantinoFetchOverride>[0] & ((u: string, i?: RequestInit) => Promise<Response>);
 }
 

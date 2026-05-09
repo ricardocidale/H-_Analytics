@@ -109,19 +109,24 @@ export async function runCostantinoCycle(): Promise<CostantinoCycleResult> {
   const errors: string[] = [];
 
   let llm: { vendor: string; modelId: string };
-  try {
-    const resolved = await resolveLlmFor(COSTANTINO_LLM_SLOT);
-    llm = { vendor: resolved.vendor, modelId: resolved.modelId };
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    logger.error(`[costantino] LLM resolution failed: ${msg}`);
-    return {
-      metrics,
-      rounds: 0,
-      status: "error",
-      notes: `LLM resolution failed: ${msg}`,
-      durationMs: Date.now() - t0,
-    };
+  if (llmOverride) {
+    // Test seam: dry-cycle / fixture replays bypass admin LLM resolution.
+    llm = { vendor: "stub", modelId: "stub" };
+  } else {
+    try {
+      const resolved = await resolveLlmFor(COSTANTINO_LLM_SLOT);
+      llm = { vendor: resolved.vendor, modelId: resolved.modelId };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error(`[costantino] LLM resolution failed: ${msg}`);
+      return {
+        metrics,
+        rounds: 0,
+        status: "error",
+        notes: `LLM resolution failed: ${msg}`,
+        durationMs: Date.now() - t0,
+      };
+    }
   }
 
   const callImpl: LlmCallSig = llmOverride ?? callLlm;
