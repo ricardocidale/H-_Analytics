@@ -50,6 +50,89 @@ function safeJsonParse(s: string): { ok: true; value: Record<string, unknown> } 
   }
 }
 
+// ---------------------------------------------------------------------------
+// Client-side healthProbe.url validation (mirrors the server-side SSRF guard)
+// ---------------------------------------------------------------------------
+
+// IPv6 hostnames produced by the URL parser are bracket-wrapped (e.g. [fe80::1]).
+const CLIENT_BLOCKED_HOST_PATTERNS: RegExp[] = [
+  // IPv4 loopback / private / link-local
+  /^localhost$/i,
+  /^0\.0\.0\.0$/,
+  /^127\./,
+  /^10\./,
+  /^172\.(1[6-9]|2[0-9]|3[01])\./,
+  /^192\.168\./,
+  /^169\.254\./,
+  // IPv6 loopback (::1)
+  /^::1$/,
+  /^\[::1\]$/,
+  // IPv6 link-local (fe80::/10 — second byte 0x80–0xbf)
+  /^\[fe8[0-9a-f]:/i,
+  /^\[fe9[0-9a-f]:/i,
+  /^\[fea[0-9a-f]:/i,
+  /^\[feb[0-9a-f]:/i,
+  // IPv6 ULA (fc00::/7 — fc and fd prefixes)
+  /^\[f[cd][0-9a-f]/i,
+];
+
+/**
+ * Node.js normalises IPv4-mapped IPv6 addresses to compressed hex notation,
+ * e.g. `[::ffff:169.254.169.254]` becomes `[::ffff:a9fe:a9fe]`.
+ * Decodes the two 4-hex-digit groups back to dotted-decimal so the existing
+ * IPv4 patterns in CLIENT_BLOCKED_HOST_PATTERNS can be reused.
+ */
+function clientExtractIpv4FromMappedIpv6(hostname: string): string | null {
+  const match = hostname.match(/^\[::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})\]$/i);
+  if (!match) return null;
+  const hiStr = match[1].padStart(4, "0");
+  const loStr = match[2].padStart(4, "0");
+  const b0 = Number("0x" + hiStr.slice(0, 2));
+  const b1 = Number("0x" + hiStr.slice(2, 4));
+  const b2 = Number("0x" + loStr.slice(0, 2));
+  const b3 = Number("0x" + loStr.slice(2, 4));
+  return `${b0}.${b1}.${b2}.${b3}`;
+}
+
+/**
+ * Returns a human-readable error string when the URL in config.healthProbe.url
+ * is unsafe (wrong scheme or private/internal host), or null when it is absent
+ * or valid. Mirrors the server's validateIngestUrl() so the admin gets
+ * immediate inline feedback before hitting Save.
+ */
+function checkHealthProbeUrlClient(configJson: string): string | null {
+  const parsed = safeJsonParse(configJson);
+  if (!parsed.ok) return null; // JSON errors are handled separately
+  const probe = parsed.value.healthProbe;
+  if (!probe || typeof probe !== "object" || Array.isArray(probe)) return null;
+  const url = (probe as Record<string, unknown>).url;
+  if (typeof url !== "string" || !url.trim()) return null;
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    return `healthProbe.url: invalid URL format — "${url}"`;
+  }
+  if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+    return `healthProbe.url: unsupported scheme "${parsedUrl.protocol}" — only http and https are allowed`;
+  }
+  const hostname = parsedUrl.hostname;
+  for (const pattern of CLIENT_BLOCKED_HOST_PATTERNS) {
+    if (pattern.test(hostname)) {
+      return `healthProbe.url: "${hostname}" is a private or internal address and cannot be used as a probe target`;
+    }
+  }
+  const mappedIpv4 = clientExtractIpv4FromMappedIpv6(hostname);
+  if (mappedIpv4 !== null) {
+    for (const pattern of CLIENT_BLOCKED_HOST_PATTERNS) {
+      if (pattern.test(mappedIpv4)) {
+        return `healthProbe.url: "${hostname}" is a private or internal address and cannot be used as a probe target`;
+      }
+    }
+  }
+  return null;
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // Create dialog
 // ────────────────────────────────────────────────────────────────────────────
@@ -71,6 +154,8 @@ export function CreateResourceDialog({
     }
   }, [open]);
 
+  const probeUrlWarning = useMemo(() => checkHealthProbeUrlClient(configJson), [configJson]);
+
   const mutation = useMutation({
     mutationFn: async () => {
       const slugCheck = ResourceSlugSchema.safeParse(slug);
@@ -78,6 +163,7 @@ export function CreateResourceDialog({
       if (!displayName.trim()) throw new Error("Display name is required");
       const cfg = safeJsonParse(configJson);
       if (!cfg.ok) throw new Error(`config: ${cfg.error}`);
+      if (probeUrlWarning) throw new Error(probeUrlWarning);
       const trimmedSecret = secretRef.trim();
       const body = {
         kind, slug, displayName, description: description || null,
@@ -130,12 +216,15 @@ export function CreateResourceDialog({
           <div>
             <Label htmlFor="create-config">Config (JSON)</Label>
             <Textarea id="create-config" data-testid="input-config" rows={5} value={configJson} onChange={(e) => setConfigJson(e.target.value)} className="font-mono text-xs" />
+            {probeUrlWarning && (
+              <p className="text-xs text-rose-600 mt-1" data-testid="create-probe-url-warning">{probeUrlWarning}</p>
+            )}
           </div>
           {error && <p className="text-sm text-rose-600" data-testid="create-error">{error}</p>}
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button data-testid="button-confirm-create" onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+          <Button data-testid="button-confirm-create" onClick={() => mutation.mutate()} disabled={mutation.isPending || !!probeUrlWarning}>
             {mutation.isPending ? "Creating…" : "Create"}
           </Button>
         </DialogFooter>
@@ -170,6 +259,8 @@ export function EditResourceDialog({
     }
   }, [resource, open]);
 
+  const probeUrlWarning = useMemo(() => checkHealthProbeUrlClient(configJson), [configJson]);
+
   const { data: impact, isLoading: impactLoading, isError: impactError } = useQuery<ImpactEntry[]>({
     queryKey: [`/api/admin/resources/${resource?.id}/impact`],
     enabled: open && !!resource,
@@ -182,6 +273,7 @@ export function EditResourceDialog({
       if (!changeSummary.trim()) throw new Error("Please describe what changed (for the version history)");
       const cfg = safeJsonParse(configJson);
       if (!cfg.ok) throw new Error(`config: ${cfg.error}`);
+      if (probeUrlWarning) throw new Error(probeUrlWarning);
       const body: Record<string, unknown> = {
         displayName,
         description: description || null,
@@ -243,6 +335,9 @@ export function EditResourceDialog({
             <div>
               <Label htmlFor="edit-config">Config (JSON)</Label>
               <Textarea id="edit-config" data-testid="input-edit-config" rows={6} value={configJson} onChange={(e) => setConfigJson(e.target.value)} className="font-mono text-xs" />
+              {probeUrlWarning && (
+                <p className="text-xs text-rose-600 mt-1" data-testid="edit-probe-url-warning">{probeUrlWarning}</p>
+              )}
             </div>
             <div>
               <Label htmlFor="edit-change-summary">Change summary <span className="text-rose-600">*</span></Label>
@@ -287,7 +382,7 @@ export function EditResourceDialog({
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button data-testid="button-confirm-edit" onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+          <Button data-testid="button-confirm-edit" onClick={() => mutation.mutate()} disabled={mutation.isPending || !!probeUrlWarning}>
             {mutation.isPending ? "Saving…" : `Save as v${resource.version + 1}`}
           </Button>
         </DialogFooter>
