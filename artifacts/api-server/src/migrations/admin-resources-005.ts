@@ -277,6 +277,13 @@ export const LLM_SLOT_SEED_ROWS: SeedRow[] = [
     description: "LLM for the prompt-engineer pre-stage across all Specialist types",
     config: { modelSlug: "gemini-2-5-flash" },
   },
+  {
+    kind: "llm_slot",
+    slug: "vito_compliance_audit",
+    displayName: "Vito Compliance Audit",
+    description: "LLM used by Vito to reason about compliance violations and classify findings",
+    config: { modelSlug: "claude-sonnet-4-6" },
+  },
 ];
 
 // ── Source / API / Benchmark rows ──────────────────────────────────────────
