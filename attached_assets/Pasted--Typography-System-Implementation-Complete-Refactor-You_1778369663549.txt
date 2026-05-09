@@ -1,0 +1,229 @@
+# Typography System Implementation - Complete Refactor
+
+You are tasked with implementing a professional three-font typography system for this H+ Analytics financial application based on Swiss Modernist design principles.
+
+## Context
+
+This application currently has typography inconsistencies. I have comprehensive documentation that defines the complete typography system. Your job is to implement it precisely.
+
+## Documentation Files
+
+Read these files IN ORDER before making any changes:
+
+1. **font_instructions01.md** - Typography Mastery guide (primary reference)
+2. **Figma/fonts/FONT-REVIEW.md** - Current state audit and issues
+3. **Figma/fonts/FONT-CHANGES-SUMMARY.md** - Specific code changes needed
+
+## The Three-Font System
+
+**IBM Plex Sans (font-display)** - ALL headings, titles, card labels, section headers
+**Inter (font-body)** - ALL body text, labels, buttons, form inputs, UI text
+**JetBrains Mono (font-mono)** - ALL numbers, currency, percentages, metrics, dates
+
+## Critical Implementation Requirements
+
+### 1. Font Loading (src/styles/fonts.css)
+
+```css
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@layer utilities {
+  .font-display {
+    font-family: 'IBM Plex Sans', sans-serif;
+  }
+
+  .font-body {
+    font-family: 'Inter', sans-serif;
+  }
+
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+2. Theme Configuration (src/styles/theme.css)
+Add font size variables to :root:
+
+--text-xs: 0.75rem;    /* 12px */
+--text-sm: 0.875rem;   /* 14px */
+--text-base: 1rem;     /* 16px */
+--text-lg: 1.125rem;   /* 18px */
+--text-xl: 1.25rem;    /* 20px */
+--text-2xl: 1.5rem;    /* 24px */
+--text-3xl: 1.875rem;  /* 30px */
+--text-4xl: 2.25rem;   /* 36px */
+Body element MUST use Inter:
+
+body {
+  @apply bg-background text-foreground;
+  font-family: 'Inter', sans-serif;
+}
+ALL headings MUST use IBM Plex Sans:
+
+h1, h2, h3, h4 {
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+3. Root Container (src/app/App.tsx)
+The root div MUST include font-body:
+
+<div className="min-h-screen bg-background font-body transition-colors duration-200 p-4 sm:p-8">
+4. AnimatedCounter Component
+This component MUST default to font-mono. Update src/app/components/AnimatedCounter.tsx:
+
+// Add this logic before the return statement
+const finalClassName = className
+  ? className.includes('font-')
+    ? className
+    : `font-mono ${className}`
+  : 'font-mono';
+
+return (
+  <span className={finalClassName}>
+    {format ? format(displayValue) : Math.round(displayValue).toLocaleString()}
+  </span>
+);
+Systematic Changes Required
+Phase 1: Foundation (DO THIS FIRST)
+Update src/styles/fonts.css with @layer utilities wrapper
+Add font size variables to src/styles/theme.css
+Update body element in theme.css to use font-family: 'Inter', sans-serif;
+Update h1, h2, h3, h4 in theme.css to use font-family: 'IBM Plex Sans', sans-serif;
+Add font-body to root container in src/app/App.tsx
+Phase 2: Component Updates
+Update AnimatedCounter.tsx to default to font-mono
+Audit ALL components for numbers - ensure they have font-mono
+Audit ALL headings/titles - ensure they have font-display
+Remove any hardcoded font-family CSS
+Phase 3: Responsive Improvements
+Update these specific elements for responsive scaling:
+
+Page Title (h1):
+
+className="text-2xl sm:text-3xl lg:text-4xl font-semibold font-display"
+KPI Card Numbers:
+
+className="text-3xl sm:text-4xl font-semibold font-mono"
+Tab Labels (all 5 tabs):
+
+className="text-sm sm:text-base"
+Financial Metric Numbers (4 metrics in Financial Analysis tab):
+
+className="text-2xl sm:text-3xl font-semibold font-mono"
+Specific Files to Check and Update
+src/app/App.tsx
+
+Add font-body to root div
+Update page title with responsive classes
+Update KPI card number sizes
+Update tab label sizes
+src/app/components/AnimatedCounter.tsx
+
+Add finalClassName logic
+Ensure defaults to font-mono
+src/styles/fonts.css
+
+Wrap utilities in @layer utilities
+Verify all 3 fonts loading
+src/styles/theme.css
+
+Add font size variables
+Update body to use Inter directly
+Update headings to use IBM Plex Sans directly
+All table components
+
+Text columns: inherit Inter (no font class needed)
+Number columns: add font-mono to elements
+Font Application Rules
+EVERY number must use font-mono:
+
+Currency: $1,234 → className="font-mono"
+Percentages: 23.5% → className="font-mono"
+Metrics: 847 → className="font-mono"
+Dates: 2024 → className="font-mono"
+Table numbers: ALL numerical elements
+EVERY heading must use font-display:
+
+Page titles: <h1 className="font-display">
+Section headings: <h2 className="font-display">
+Card titles: <h3 className="font-display">
+Subsection headers: <h4 className="font-display">
+Body text inherits Inter:
+
+Paragraphs: just use <p> (inherits from root)
+Labels: <label> (inherits)
+Descriptions: <span> (inherits)
+Buttons: <button> (inherits)
+Testing Checklist
+After implementation, verify:
+
+Visual Check
+ Open app in browser
+ All headings use IBM Plex Sans (distinctive letterforms)
+ All body text uses Inter (clean, neutral)
+ ALL numbers use JetBrains Mono (monospace, tabular)
+ No Arial or Helvetica visible anywhere
+DevTools Check
+Inspect page title → should show font-family: 'IBM Plex Sans', sans-serif
+Inspect any number → should show font-family: 'JetBrains Mono', monospace
+Inspect body text → should show font-family: 'Inter', sans-serif
+Network tab → verify 3 Google Fonts requests loaded
+Responsive Check
+ Mobile (< 640px): Smaller font sizes
+ Tablet (640-1024px): Medium font sizes
+ Desktop (≥ 1024px): Larger font sizes
+ No text overflow or wrapping issues
+Dark Mode Check
+ Toggle dark mode
+ Fonts remain consistent (only colors change)
+ All text readable with sufficient contrast
+Common Mistakes to Avoid
+❌ DO NOT use @apply font-body in theme.css (Tailwind v4 incompatible) ✅ DO use font-family: 'Inter', sans-serif; directly
+
+❌ DO NOT forget font-mono on table number columns ✅ DO add className="font-mono" to every with numbers
+
+❌ DO NOT use font-display on body text ✅ DO use font-display ONLY on headings/titles
+
+❌ DO NOT skip the root container font-body class ✅ DO add font-body to App.tsx root div
+
+Success Criteria
+Implementation is complete when:
+
+✅ All 3 fonts load without errors
+✅ Body element uses Inter by default
+✅ Every heading uses IBM Plex Sans
+✅ Every number uses JetBrains Mono
+✅ Responsive sizing works at all breakpoints
+✅ Dark mode maintains font consistency
+✅ No console errors related to fonts
+✅ Typography looks professional and polished
+Priority Order
+P0 - Critical (Fix first):
+
+Add font-body to App.tsx root
+Update theme.css body to use Inter
+Wrap font utilities in @layer utilities
+P1 - Important (Fix second):
+
+Update AnimatedCounter to default to font-mono
+Add font size variables to theme.css
+Update all headings to use IBM Plex Sans
+P2 - Enhancement (Fix third):
+
+Responsive font sizing improvements
+Table number column font-mono classes
+Audit all components for consistency
+Reference
+For detailed explanations of WHY these fonts were chosen and HOW to implement patterns, reference:
+
+font_instructions01.md - Complete mastery guide
+Figma/fonts/FONT-REVIEW.md - Current issues and fixes
+Figma/fonts/FONT-CHANGES-SUMMARY.md - Exact code changes
+Output
+When complete, provide:
+
+Summary of all files changed
+List of specific changes made
+Confirmation that all testing checkboxes pass
+Screenshots showing before/after of typography (if possible)
+Start with Phase 1 (Foundation) and work systematically through each phase. Do not skip steps.
