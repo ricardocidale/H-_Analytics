@@ -173,12 +173,37 @@ function CompactCountryTable({ rows }: { rows: CountryRow[] }) {
 
 // ── TypeSpecificViewer ────────────────────────────────────────────────────────
 
-// Maps knowledge_registry.assetRef → analyst-tables id
+// Maps knowledge_registry.assetRef → analyst-tables id (3 original benchmark tables only)
 const BENCHMARK_TABLE_ID: Record<string, string> = {
   "capital-raise": "capital_raise_benchmarks",
   "exit-multiples": "exit_multiples",
   "reference-brands": "reference_brands",
 };
+
+// The 4 reference data tables are populated by Analyst LLM refresh only;
+// they are not backed by the analyst-tables API endpoint.
+const REFERENCE_DATA_ASSET_REFS = new Set([
+  "geography-dimension",
+  "jurisdictional-taxes",
+  "regulatory-fees",
+  "market-cap-rates",
+]);
+
+function ReferenceDataViewer({ entry }: { entry: RegistryEntry }) {
+  return (
+    <div className="py-3 text-sm text-muted-foreground space-y-1">
+      <p>
+        {entry.liveCount != null && entry.liveCount > 0
+          ? `${entry.liveCount.toLocaleString()} rows loaded.`
+          : "No data yet — this table starts empty."}
+      </p>
+      <p className="text-xs">
+        Click the Analyst button to run LLM research and populate this table.
+        Rows are appended on each refresh; geography rows are upserted by ISO code.
+      </p>
+    </div>
+  );
+}
 
 function TypeSpecificViewer({ entry }: { entry: RegistryEntry }) {
   if (entry.assetType === "vector_namespace") {
@@ -186,6 +211,9 @@ function TypeSpecificViewer({ entry }: { entry: RegistryEntry }) {
   }
 
   if (entry.assetType === "benchmark_table" || entry.assetType === "benchmark_brands") {
+    if (REFERENCE_DATA_ASSET_REFS.has(entry.assetRef)) {
+      return <ReferenceDataViewer entry={entry} />;
+    }
     const tableId = BENCHMARK_TABLE_ID[entry.assetRef];
     return <BenchmarkViewer tableId={tableId} assetType={entry.assetType} />;
   }

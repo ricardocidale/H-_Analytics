@@ -26,6 +26,7 @@
     "openai":      { "input": 2.50,  "output": 10.00 },
     "gemini":      { "input": 0.15,  "output": 0.60 },
     "perplexity":  { "input": 1.00,  "output": 1.00 },
+    "exa":         { "input": 0.00,  "output": 0.00 },
     "tavily":      { "input": 0.00,  "output": 0.00 }
   }
 }

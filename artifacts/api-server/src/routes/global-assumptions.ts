@@ -93,7 +93,7 @@ export function register(app: Express) {
     rebeccaEnabled: z.boolean().optional(),
     rebeccaDisplayName: z.string().min(1).max(50).optional(),
     rebeccaSystemPrompt: z.string().max(5000).nullable().optional(),
-    rebeccaChatEngine: z.enum(["gemini", "perplexity"]).optional(),
+    rebeccaChatEngine: z.string().optional(),
     // Task #499 — full Rebecca config payload (deep-merged on top of stored row).
     rebeccaConfig: rebeccaSettingsPatchSchema.optional(),
   });

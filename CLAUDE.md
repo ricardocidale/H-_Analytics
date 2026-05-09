@@ -10,7 +10,7 @@ full documentation; this file is the always-loaded enforcement reminder.
 ---
 
 
-## 1. Magic Numbers — MANDATORY GATE
+## 1. No Hardcoded Values — MANDATORY GATE
 
 **Every implementation unit that touches any numeric literal MUST run:**
 
@@ -20,13 +20,26 @@ scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts
 
 This is the hard gate. It must PASS before the unit is considered done.
 
-**The rule (one sentence):** Every numeric literal in source code must be either a named
+**Numeric literal rule (one sentence):** Every numeric literal in source code must be either a named
 constant, a math/physics derivation with its formula in a comment, a documented unit
 conversion factor, or a structural index/length/clamp (`0`, `1`, `-1`). Anything else
 is a violation.
 
+**Integration identifier rule (one sentence):** LLM model names, API slugs, MCP slugs, and endpoint
+URLs must never appear as TypeScript string literals or string constants anywhere in source code —
+they live in `admin_resources` rows and are fetched at runtime. Wrapping a hardcoded string in a
+`const` is the same violation with a disguise.
+
+| Integration type | `admin_resources kind` | Runtime path |
+|---|---|---|
+| LLM models / providers | `model`, `llm_slot` | `GET /api/llm-providers` |
+| External APIs (Exa, Perplexity, Tripadvisor…) | `api` | query by `config` flag |
+| MCP servers | `mcp` | query filtered by `kind='mcp'` |
+| Endpoint URLs | `config.endpoint` on the relevant row | read from the row |
+
 **When to include in a plan's verification section:** Every unit. If the unit adds no
-numeric literals, the gate still runs to catch regressions. There are no exceptions.
+numeric literals or integration identifiers, the gate still runs to catch regressions.
+There are no exceptions.
 
 **Skill for full detail:** `.agents/skills/no-magic-numbers/SKILL.md`
 

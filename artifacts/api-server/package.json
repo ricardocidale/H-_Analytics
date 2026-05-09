@@ -46,6 +46,7 @@
     "docx": "^9.6.1",
     "drizzle-orm": "catalog:",
     "drizzle-zod": "^0.8.3",
+    "exa-js": "^2.12.1",
     "exceljs": "^4.4.0",
     "express": "^5",
     "express-session": "^1.19.0",
@@ -96,8 +97,8 @@
     "pino-pretty": "^13",
     "supertest": "^7.2.2",
     "thread-stream": "3.1.0",
-    "typescript-eslint": "^8.59.1",
     "tsx": "catalog:",
+    "typescript-eslint": "^8.59.1",
     "vitest": "catalog:"
   }
 }

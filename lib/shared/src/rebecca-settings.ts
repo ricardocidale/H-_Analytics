@@ -1,8 +1,5 @@
 import { z } from "zod";
 
-export const REBECCA_LLM_PROVIDERS = ["openai", "anthropic", "gemini", "perplexity"] as const;
-export type RebeccaLlmProvider = typeof REBECCA_LLM_PROVIDERS[number];
-
 export const REBECCA_TONE_PRESETS = ["professional", "conversational", "coaching", "concise", "playful"] as const;
 export type RebeccaTonePreset = typeof REBECCA_TONE_PRESETS[number];
 
@@ -18,37 +15,6 @@ export const REBECCA_SUGGESTED_CHIPS_MAX_COUNT = 8;
 /** Maximum character length per individual chip suggestion string. */
 export const REBECCA_SUGGESTED_CHIP_MAX_LENGTH = 200;
 export type RebeccaSourceKey = typeof REBECCA_SOURCE_KEYS[number];
-
-export const REBECCA_PROVIDER_MODELS: Record<RebeccaLlmProvider, { value: string; label: string }[]> = {
-  openai: [
-    { value: "gpt-4.1",     label: "GPT-4.1" },
-    { value: "gpt-4o",      label: "GPT-4o" },
-    { value: "gpt-4o-mini", label: "GPT-4o Mini" },
-    { value: "o4-mini",     label: "o4 Mini" },
-  ],
-  anthropic: [
-    { value: "claude-opus-4-7",           label: "Claude Opus 4.7" },
-    { value: "claude-sonnet-4-6",         label: "Claude Sonnet 4.6" },
-    { value: "claude-sonnet-4-5",         label: "Claude Sonnet 4.5" },
-    { value: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5" },
-  ],
-  gemini: [
-    { value: "gemini-2.5-pro",   label: "Gemini 2.5 Pro" },
-    { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
-    { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
-  ],
-  perplexity: [
-    { value: "sonar",     label: "Sonar" },
-    { value: "sonar-pro", label: "Sonar Pro" },
-  ],
-};
-
-export const REBECCA_DEFAULT_MODEL: Record<RebeccaLlmProvider, string> = {
-  openai: "gpt-4.1",
-  anthropic: "claude-sonnet-4-6",
-  gemini: "gemini-2.5-flash",
-  perplexity: "sonar",
-};
 
 const sourceSchema = z.object({
   enabled: z.boolean(),
@@ -91,12 +57,12 @@ export const rebeccaSettingsSchema = z.object({
     pushBackOnAssumptions: z.boolean().default(true),
   }),
   llm: z.object({
-    provider: z.enum(REBECCA_LLM_PROVIDERS).default("gemini"),
+    provider: z.string().min(1).max(80).default("gemini"),
     model: z.string().max(80).default("gemini-2.5-flash"),
     temperature: z.number().min(0).max(2).default(0.7),
     maxOutputTokens: z.number().int().min(64).max(16000).default(2048),
     topP: z.number().min(0).max(1).default(0.95),
-    fallbackProvider: z.enum(REBECCA_LLM_PROVIDERS).nullable().default(null),
+    fallbackProvider: z.string().max(80).nullable().default(null),
     fallbackModel: z.string().max(80).nullable().default(null),
   }),
   sources: z.object({
@@ -106,6 +72,7 @@ export const rebeccaSettingsSchema = z.object({
     documents: sourceSchema.default({ enabled: true, weight: 50 }),
     webSearch: sourceSchema.default({ enabled: false, weight: 30 }),
     uploadedFiles: sourceSchema.default({ enabled: true, weight: 50 }),
+    webSearchProvider: z.string().max(80).default("perplexity"),
   }),
 });
 
