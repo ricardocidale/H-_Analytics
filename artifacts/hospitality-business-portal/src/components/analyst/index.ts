@@ -1,5 +1,6 @@
 export { ValidationStatusBadge } from "./ValidationStatusBadge";
 export { AnalystRangeIndicator } from "./AnalystRangeIndicator";
+export { AssumptionGuidancePopover } from "./AssumptionGuidancePopover";
 export { AnalystValidationBanner } from "./AnalystValidationBanner";
 export { AnalystActionButton } from "./AnalystActionButton";
 export type {

@@ -171,6 +171,20 @@ export function usePropertyGuidance(propertyId: number) {
   });
 }
 
+export function useCompanyGuidance(entityId: number) {
+  return useQuery({
+    queryKey: ["guidance", "company", entityId],
+    queryFn: async (): Promise<GuidanceRecord[]> => {
+      const res = await fetch(`/api/guidance/company/${entityId}`, { credentials: "include" });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.records ?? [];
+    },
+    enabled: !!entityId,
+    staleTime: 60_000,
+  });
+}
+
 export function useUpdateFeeCategories() {
   const queryClient = useQueryClient();
 

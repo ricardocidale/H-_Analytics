@@ -27,6 +27,7 @@ feature ships or a new Rebecca tool is added.
 | Edit scenario financial assumptions | Scenario → Edit | `update_scenario_assumptions` | ✅ |
 | Lock scenario | Scenario → Lock | `lock_scenario` | ✅ |
 | Delete scenario | Scenario → Delete | `delete_scenario` | ✅ |
+| Compare two scenarios side-by-side | Scenarios → Compare | `compare_scenarios` | ✅ |
 | Run property research | Property → Research | `trigger_research` | ✅ |
 
 ## Analyst Table Actions
@@ -103,7 +104,7 @@ re-renders the panel.
 | UI Action | Route / Location | Rebecca Tool | Status |
 |---|---|---|---|
 | Upload document | Property → Docs | — | 🚫 N/A (file picker) |
-| Edit global assumptions | Admin → Defaults | — | ⚠️ Deferred (high risk surface) |
+| Edit global assumptions | Admin → Defaults | `update_global_assumptions` | ✅ |
 | Change brand / appearance | Admin → Appearance | — | 🚫 N/A (admin-only) |
 | Manage users | Admin → Team | — | 🚫 N/A (admin-only) |
 | Change Rebecca config | Admin → AI | — | 🚫 N/A (admin-only) |
@@ -125,6 +126,9 @@ re-renders the panel.
 | UI Action | Route / Location | Rebecca Tool | Status |
 |---|---|---|---|
 | Record retrieval gap | Auto (Rebecca unanswered query) | `write_retrieval_gap` | ✅ |
+| Create KB entry | Admin → Knowledge Base | `create_kb_entry` | ✅ |
+| Update KB entry | Admin → Knowledge Base | `update_kb_entry` | ✅ |
+| Delete KB entry | Admin → Knowledge Base | `delete_kb_entry` | ✅ |
 
 ### Live Market Research
 

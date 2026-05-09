@@ -20,6 +20,8 @@ import { appendIrisGap, clearIrisGaps, readIrisGaps } from "../ai/iris/workspace
 import { runIrisAgent, type IrisTrigger } from "../ai/iris/agent";
 import { capErrors, IRIS_HEALTH_SUMMARY_MAX_ERRORS } from "../ai/iris/format";
 import { insertIrisRun, updateIrisRun, getLatestIrisRun } from "../storage/iris-runs";
+import { upsertChunks, deleteVectors } from "../ai/vector-store-service";
+import { insertRebeccaKBSchema } from "@workspace/db";
 
 // Named constant: estimated minutes for background research job (Category 2 — DEFAULT VARIABLE)
 const RESEARCH_ESTIMATED_MINUTES = 2;
@@ -28,7 +30,7 @@ export type ToolContext = { userId: number };
 
 export type DataChangedEntry = {
   entityType: "property" | "scenario" | "slide_factory_run" | "analyst_table" | "lb_deck_config"
-            | "global_assumptions" | "research_job" | "iris_run" | "iris_gap" | "data_source" | "compliance_run";
+            | "kb_entry" | "global_assumptions" | "research_job" | "iris_run" | "iris_gap" | "data_source" | "compliance_run";
   entityId: number;
 };
 
@@ -560,6 +562,56 @@ export function getRebeccaTools(): ToolParam[] {
         required: ["id"],
       },
     },
+    // ── KB management tools (U4) ───────────────────────────────────────────
+    {
+      name: "create_kb_entry",
+      description:
+        "Create a new Knowledge Base entry. The entry is immediately indexed in the vector store for retrieval. Admin-only.",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "Entry title (required)." },
+          content: { type: "string", description: "Entry body / main text (required)." },
+          category: { type: "string", description: "Category tag, e.g. 'custom', 'hospitality', 'operations'. Defaults to 'custom'." },
+          source: { type: "string", description: "Provenance label, e.g. 'manual'. Defaults to 'manual'." },
+          tags: { type: "array", items: { type: "string" }, description: "Optional list of keyword tags." },
+          priority: { type: "number", description: "Display / retrieval priority 0–100. Defaults to 50." },
+          isActive: { type: "boolean", description: "Whether the entry is active and searchable. Defaults to true." },
+        },
+        required: ["title", "content"],
+      },
+    },
+    {
+      name: "update_kb_entry",
+      description:
+        "Update one or more fields on an existing Knowledge Base entry. Only the fields you supply are changed; omitted fields keep their current values. Updates history and re-syncs the vector store. Admin-only.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "KB entry ID." },
+          title: { type: "string", description: "New title." },
+          content: { type: "string", description: "New content body." },
+          category: { type: "string", description: "New category tag." },
+          source: { type: "string", description: "New provenance label." },
+          tags: { type: "array", items: { type: "string" }, description: "New list of keyword tags." },
+          priority: { type: "number", description: "New priority 0–100." },
+          isActive: { type: "boolean", description: "Active/inactive toggle. Set false to exclude the entry from search without deleting it." },
+        },
+        required: ["id"],
+      },
+    },
+    {
+      name: "delete_kb_entry",
+      description:
+        "Permanently delete a Knowledge Base entry and remove it from the vector store. This action is irreversible — prefer setting isActive=false to soft-hide it instead. Admin-only.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "KB entry ID to delete." },
+        },
+        required: ["id"],
+      },
+    },
     {
       name: "compare_scenarios",
       description:
@@ -690,6 +742,12 @@ export async function dispatchRebeccaTool(
         return await toolGetCompany(args, ctx);
       case "get_tripadvisor_hotels":
         return await toolGetTripadvisorHotels(args);
+      case "create_kb_entry":
+        return await toolCreateKbEntry(args, ctx);
+      case "update_kb_entry":
+        return await toolUpdateKbEntry(args, ctx);
+      case "delete_kb_entry":
+        return await toolDeleteKbEntry(args, ctx);
       case "compare_scenarios":
         return await toolCompareScenarios(args, ctx);
       case "update_global_assumptions":
@@ -2151,6 +2209,111 @@ async function toolGetCompany(
       ...row,
       createdAt: row.createdAt?.toISOString() ?? null,
     },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// KB management tools (U4)
+// ---------------------------------------------------------------------------
+
+async function toolCreateKbEntry(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const validation = insertRebeccaKBSchema.safeParse(args);
+  if (!validation.success) {
+    const message = validation.error.issues
+      .map(i => `${i.path.join(".") || "(root)"}: ${i.message}`)
+      .join("; ");
+    return { result: { error: `Invalid KB entry data: ${message}` } };
+  }
+
+  const entry = await storage.createRebeccaKBEntry(validation.data);
+
+  // Mirror the route: sync to vector store asynchronously (fire-and-forget).
+  upsertChunks("knowledge-base", [{
+    id: `admin-kb:${entry.id}`,
+    text: `${entry.title}\n\n${entry.content}`,
+    metadata: { title: entry.title, content: entry.content.slice(0, 3_000), source: "admin-kb", category: entry.category },
+  }]).catch(e =>
+    logger.warn(`Vector store sync failed for KB ${entry.id}: ${e instanceof Error ? e.message : e}`, "rebecca")
+  );
+
+  return {
+    result: { id: entry.id, title: entry.title, category: entry.category },
+    dataChanged: { entityType: "kb_entry", entityId: entry.id },
+  };
+}
+
+async function toolUpdateKbEntry(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const id = typeof args.id === "number" ? args.id : Number(args.id);
+  if (!id || isNaN(id)) return { result: { error: "id must be a positive integer" } };
+
+  const { id: _id, ...rest } = args;
+  void _id; // consumed above
+  const validation = insertRebeccaKBSchema.partial().safeParse(rest);
+  if (!validation.success) {
+    const message = validation.error.issues
+      .map(i => `${i.path.join(".") || "(root)"}: ${i.message}`)
+      .join("; ");
+    return { result: { error: `Invalid update data: ${message}` } };
+  }
+
+  const user = await storage.getUserById(ctx.userId);
+  const updated = await storage.updateRebeccaKBEntry(id, validation.data, user?.email ?? undefined);
+  if (!updated) return { result: { error: "KB entry not found" } };
+
+  // Mirror the route: sync or delete from vector store based on isActive flag.
+  if (updated.isActive) {
+    upsertChunks("knowledge-base", [{
+      id: `admin-kb:${updated.id}`,
+      text: `${updated.title}\n\n${updated.content}`,
+      metadata: { title: updated.title, content: updated.content.slice(0, 3_000), source: "admin-kb", category: updated.category },
+    }]).catch(e =>
+      logger.warn(`Vector store sync failed for KB ${updated.id}: ${e instanceof Error ? e.message : e}`, "rebecca")
+    );
+  } else {
+    deleteVectors("knowledge-base", [`admin-kb:${updated.id}`]).catch(e =>
+      logger.warn(`Vector store delete failed for KB ${updated.id}: ${e instanceof Error ? e.message : e}`, "rebecca")
+    );
+  }
+
+  return {
+    result: { id: updated.id, title: updated.title, category: updated.category, isActive: updated.isActive },
+    dataChanged: { entityType: "kb_entry", entityId: id },
+  };
+}
+
+async function toolDeleteKbEntry(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const id = typeof args.id === "number" ? args.id : Number(args.id);
+  if (!id || isNaN(id)) return { result: { error: "id must be a positive integer" } };
+
+  const deleted = await storage.deleteRebeccaKBEntry(id);
+  if (!deleted) return { result: { error: "KB entry not found" } };
+
+  // Mirror the route: remove from vector store asynchronously (fire-and-forget).
+  deleteVectors("knowledge-base", [`admin-kb:${id}`]).catch(e =>
+    logger.warn(`Vector store delete failed for KB ${id}: ${e instanceof Error ? e.message : e}`, "rebecca")
+  );
+
+  return {
+    result: { success: true },
+    dataChanged: { entityType: "kb_entry", entityId: id },
   };
 }
 

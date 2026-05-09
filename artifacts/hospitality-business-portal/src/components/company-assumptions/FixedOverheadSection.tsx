@@ -31,9 +31,10 @@ import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
 import EditableValue from "./EditableValue";
 import type { FixedOverheadSectionProps } from "./types";
+import { AssumptionGuidancePopover } from "@/components/analyst";
 import { CITATIONS } from "@shared/citations";
 
-export default function FixedOverheadSection({ formData, onChange, global, modelStartYear, researchValues }: FixedOverheadSectionProps) {
+export default function FixedOverheadSection({ formData, onChange, global, modelStartYear, researchValues, guidance }: FixedOverheadSectionProps) {
   const gc = (key: string, label?: string) => ({ entityType: "company" as const, entityId: 0, assumptionKey: key, fieldLabel: label });
 
   return (
@@ -88,13 +89,17 @@ export default function FixedOverheadSection({ formData, onChange, global, model
               />
             </span>
           </div>
-          <Slider
-            value={[formData.officeLeaseStart ?? global.officeLeaseStart]}
-            onValueChange={([v]) => onChange("officeLeaseStart", v)}
-            min={0}
-            max={200000}
-            step={2000}
-          />
+          <div className="flex items-center gap-2">
+            <Slider
+              value={[formData.officeLeaseStart ?? global.officeLeaseStart]}
+              onValueChange={([v]) => onChange("officeLeaseStart", v)}
+              min={0}
+              max={200000}
+              step={2000}
+              className="flex-1"
+            />
+            <AssumptionGuidancePopover fieldKey="officeLease" guidance={guidance} isCurrency />
+          </div>
         </div>
 
         <div className="space-y-3">
@@ -117,13 +122,17 @@ export default function FixedOverheadSection({ formData, onChange, global, model
               />
             </span>
           </div>
-          <Slider
-            value={[formData.professionalServicesStart ?? global.professionalServicesStart]}
-            onValueChange={([v]) => onChange("professionalServicesStart", v)}
-            min={0}
-            max={150000}
-            step={2000}
-          />
+          <div className="flex items-center gap-2">
+            <Slider
+              value={[formData.professionalServicesStart ?? global.professionalServicesStart]}
+              onValueChange={([v]) => onChange("professionalServicesStart", v)}
+              min={0}
+              max={150000}
+              step={2000}
+              className="flex-1"
+            />
+            <AssumptionGuidancePopover fieldKey="professionalServices" guidance={guidance} isCurrency />
+          </div>
         </div>
 
         <div className="space-y-3">
@@ -146,13 +155,17 @@ export default function FixedOverheadSection({ formData, onChange, global, model
               />
             </span>
           </div>
-          <Slider
-            value={[formData.techInfraStart ?? global.techInfraStart]}
-            onValueChange={([v]) => onChange("techInfraStart", v)}
-            min={0}
-            max={100000}
-            step={2000}
-          />
+          <div className="flex items-center gap-2">
+            <Slider
+              value={[formData.techInfraStart ?? global.techInfraStart]}
+              onValueChange={([v]) => onChange("techInfraStart", v)}
+              min={0}
+              max={100000}
+              step={2000}
+              className="flex-1"
+            />
+            <AssumptionGuidancePopover fieldKey="techInfra" guidance={guidance} isCurrency />
+          </div>
         </div>
 
         <div className="space-y-3">
@@ -176,14 +189,18 @@ export default function FixedOverheadSection({ formData, onChange, global, model
               />
             </span>
           </div>
-          <Slider
-            value={[formData.businessInsuranceStart ?? global.businessInsuranceStart]}
-            onValueChange={([v]) => onChange("businessInsuranceStart", v)}
-            min={0}
-            max={100000}
-            step={1000}
-            data-testid="slider-business-insurance"
-          />
+          <div className="flex items-center gap-2">
+            <Slider
+              value={[formData.businessInsuranceStart ?? global.businessInsuranceStart]}
+              onValueChange={([v]) => onChange("businessInsuranceStart", v)}
+              min={0}
+              max={100000}
+              step={1000}
+              data-testid="slider-business-insurance"
+              className="flex-1"
+            />
+            <AssumptionGuidancePopover fieldKey="businessInsurance" guidance={guidance} isCurrency />
+          </div>
         </div>
 
 

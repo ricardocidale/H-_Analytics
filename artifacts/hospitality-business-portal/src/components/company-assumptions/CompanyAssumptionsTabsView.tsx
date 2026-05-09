@@ -104,6 +104,7 @@ interface Props {
    * proactively. Required whenever `icpModelTier` is null.
    */
   onSelectIcpModel?: () => void;
+  guidance?: import("@/lib/api").GuidanceRecord[];
 }
 
 export function CompanyAssumptionsTabsView(props: Props) {
@@ -117,6 +118,7 @@ export function CompanyAssumptionsTabsView(props: Props) {
     companyResearchUpdatedAt, lastAssumptionChangeAt,
     fundingVerdict,
     icpModelTier, onSelectIcpModel,
+    guidance,
   } = props;
 
   const gating = getTabGating(activeTab);
@@ -179,6 +181,7 @@ export function CompanyAssumptionsTabsView(props: Props) {
             formData={formData} onChange={onChange} global={global}
             properties={properties} allFeeCategories={allFeeCategories}
             researchValues={researchValues}
+            guidance={guidance}
           />
         );
       case "compensation":
@@ -187,10 +190,12 @@ export function CompanyAssumptionsTabsView(props: Props) {
             <CompensationSection
               formData={formData} onChange={onChange} global={global}
               researchValues={researchValues}
+              guidance={guidance}
             />
             <PartnerCompSection
               formData={formData} onChange={onChange} global={global}
               modelStartYear={modelStartYear} researchValues={researchValues}
+              guidance={guidance}
             />
           </div>
         );
@@ -200,10 +205,12 @@ export function CompanyAssumptionsTabsView(props: Props) {
             <FixedOverheadSection
               formData={formData} onChange={onChange} global={global}
               modelStartYear={modelStartYear} researchValues={researchValues}
+              guidance={guidance}
             />
             <VariableCostsSection
               formData={formData} onChange={onChange} global={global}
               researchValues={researchValues}
+              guidance={guidance}
             />
           </div>
         );
@@ -217,6 +224,7 @@ export function CompanyAssumptionsTabsView(props: Props) {
             <PropertyExitDefaultsCard
               formData={formData} onChange={onChange} global={global}
               researchValues={researchValues}
+              guidance={guidance}
             />
           </div>
         );

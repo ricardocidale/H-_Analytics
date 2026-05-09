@@ -47,7 +47,7 @@ import {
   DEFAULT_COST_RATE_INSURANCE,
 } from "@/lib/constants";
 import { getFactoryNumber } from "@shared/model-constants-registry";
-import { AnalystRangeIndicator } from "@/components/analyst";
+import { AnalystRangeIndicator, AssumptionGuidancePopover } from "@/components/analyst";
 import type { PropertyEditSectionProps } from "./types";
 
 export default function OperatingCostRatesSection({ draft, onChange, globalAssumptions, researchValues, guidance }: PropertyEditSectionProps) {
@@ -133,6 +133,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         className="flex-1"
                       />
                       <AnalystRangeIndicator fieldKey="costRateRooms" currentValue={draft.costRateRooms ?? DEFAULT_COST_RATE_ROOMS} guidance={guidance} isPercent />
+                      <AssumptionGuidancePopover fieldKey="costRateRooms" guidance={guidance} isPercent />
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -163,6 +164,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         className="flex-1"
                       />
                       <AnalystRangeIndicator fieldKey="costRateFB" currentValue={draft.costRateFB ?? DEFAULT_COST_RATE_FB} guidance={guidance} isPercent />
+                      <AssumptionGuidancePopover fieldKey="costRateFB" guidance={guidance} isPercent />
                     </div>
                   </div>
                 </div>
