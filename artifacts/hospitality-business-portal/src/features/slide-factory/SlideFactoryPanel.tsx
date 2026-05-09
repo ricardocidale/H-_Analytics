@@ -1762,23 +1762,25 @@ function SlotEditor({
           )}
         </label>
         <div className="flex items-center gap-1">
-          {config?.type !== "photo" && <Button
-            size="sm"
-            variant="ghost"
-            className="h-6 text-[11px] px-2 text-muted-foreground hover:text-primary"
-            onClick={() => void handleSuggest()}
-            disabled={disabled || suggesting}
-            title="Suggest improved copy"
-            data-testid={`suggest-slot-${slotKey}`}
-          >
-            {suggesting ? (
-              <Loader2 className="w-3 h-3 animate-spin" />
-            ) : (
-              <IconWand2 className="w-3 h-3" />
-            )}
-            <span className="ml-1">{suggesting ? "Suggesting…" : "Suggest"}</span>
-          </Button>
-          {isDirty && (
+          {config?.type !== "photo" && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 text-[11px] px-2 text-muted-foreground hover:text-primary"
+              onClick={() => void handleSuggest()}
+              disabled={disabled || suggesting}
+              title="Suggest improved copy"
+              data-testid={`suggest-slot-${slotKey}`}
+            >
+              {suggesting ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <IconWand2 className="w-3 h-3" />
+              )}
+              <span className="ml-1">{suggesting ? "Suggesting…" : "Suggest"}</span>
+            </Button>
+          )}
+          {isDirty && config?.type !== "photo" && (
             <Button
               size="sm"
               variant="outline"
