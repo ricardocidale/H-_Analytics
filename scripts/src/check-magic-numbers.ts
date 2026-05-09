@@ -26,6 +26,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { computeInputsHash, tryCacheHit, writeCacheHit } from "./lib/check-cache.js";
+
 // ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
@@ -294,6 +296,33 @@ function buildDuplicationMap(): DuplicationMap {
 const args = process.argv.slice(2);
 const mode = args[0] ?? "check";
 
+// ---------------------------------------------------------------------------
+// Input-hash cache (task #1214) — short-circuits the default ratchet mode
+// when no input file has changed since the last successful run.
+// ---------------------------------------------------------------------------
+
+const CACHE_NAME = "magic-numbers";
+
+function collectInputFiles(): string[] {
+  const files: string[] = [fileURLToPath(import.meta.url), BASELINE_PATH];
+  const collect = (dir: string, excludeDirs?: Set<string>): void => {
+    const absDir = path.join(WORKSPACE_ROOT, dir);
+    for (const f of walkDir(absDir, excludeDirs)) files.push(f);
+  };
+  for (const dir of SCAN_DIRS) collect(dir);
+  collect(SERVER_DIR, SERVER_EXCLUDE_DIRS);
+  return files;
+}
+
+let cacheHash: string | null = null;
+if (mode !== "--show" && mode !== "--init" && mode !== "--strict") {
+  cacheHash = computeInputsHash({
+    files: collectInputFiles(),
+    extra: `threshold=${DUPLICATION_THRESHOLD}`,
+  });
+  if (tryCacheHit(CACHE_NAME, cacheHash)) process.exit(0);
+}
+
 const current = buildDuplicationMap();
 
 if (mode === "--show") {
@@ -371,6 +400,7 @@ if (regressions === 0) {
     ? `PASS — ${improvements} improvement(s) since baseline`
     : "PASS — no regressions";
   console.log(`check:magic-numbers  ${summary}`);
+  if (cacheHash) writeCacheHit(CACHE_NAME, cacheHash);
   process.exit(0);
 } else {
   console.error(`\ncheck:magic-numbers  FAIL — ${regressions} regression(s)`);

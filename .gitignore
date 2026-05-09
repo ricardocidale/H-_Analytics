@@ -63,3 +63,9 @@ artifacts/api-server/logs/api-costs.jsonl
 .compound-engineering/*.local.yaml
 .claude/worktrees/
 artifacts/api-server/iris/run-history/
+
+# ESLint cache (per-package)
+.eslintcache
+
+# Check-script input-hash caches (task #1214)
+.cache/check-*.hash

@@ -152,10 +152,32 @@ export async function callLlm(
 ): Promise<LlmResult> {
   const wrappedUser = `<user_message>\n${userMessage}\n</user_message>`;
   const startTime = Date.now();
-  const timeoutP = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error(`Chat LLM timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`)), AI_GENERATION_TIMEOUT_MS),
-  );
+  // Keep a handle so we can clearTimeout() in finally — otherwise the timer
+  // keeps the event loop alive for AI_GENERATION_TIMEOUT_MS after the LLM
+  // returns. More critically: if any code path below throws SYNCHRONOUSLY
+  // before reaching its Promise.race (e.g. getAnthropicClient() blowing up
+  // on a missing/invalid key), timeoutP is left dangling with no handlers
+  // and the eventual rejection becomes an unhandled rejection that crashes
+  // Node 20 — observed on Railway PR-preview where the Anthropic key was
+  // invalid and the container crash-looped, which Railway reports as a
+  // failed deploy. The no-op .catch() defensively marks the rejection as
+  // handled even if try/finally cleanup is somehow skipped.
+  let timeoutHandle: NodeJS.Timeout | null = null;
+  const timeoutP = new Promise<never>((_, reject) => {
+    timeoutHandle = setTimeout(
+      () => reject(new Error(`Chat LLM timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`)),
+      AI_GENERATION_TIMEOUT_MS,
+    );
+  });
+  timeoutP.catch(() => { /* prevent unhandled rejection if no Promise.race attached */ });
+  const clearLlmTimeout = (): void => {
+    if (timeoutHandle !== null) {
+      clearTimeout(timeoutHandle);
+      timeoutHandle = null;
+    }
+  };
 
+  try {
   if (provider === "exa") {
     // Exa is a web-grounded provider — every response is an AI-synthesised
     // answer over live web results with a "**Sources:**" block appended below.
@@ -326,6 +348,9 @@ export async function callLlm(
   const outTok = response.usageMetadata?.candidatesTokenCount ?? Math.round(text.length / 4);
   try { logApiCost({ timestamp: new Date().toISOString(), service: "gemini", model, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("gemini", model, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
   return { text, stopReason: "end_turn" };
+  } finally {
+    clearLlmTimeout();
+  }
 }
 
 export async function callLlmStream(

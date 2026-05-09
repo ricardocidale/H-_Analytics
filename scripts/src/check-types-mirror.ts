@@ -24,6 +24,9 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { computeInputsHash, tryCacheHit, writeCacheHit } from "./lib/check-cache.js";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..");
 const SOURCE = path.join(REPO_ROOT, "artifacts/api-server/src/slides/types.ts");
@@ -51,7 +54,16 @@ function readOrFail(p: string): string {
   return fs.readFileSync(p, "utf8");
 }
 
+const CACHE_NAME = "types-mirror";
+
 function main(): void {
+  // Input-hash cache (task #1214). Inputs are the script itself plus the two
+  // mirrored files; if neither has changed since the last green run, skip.
+  const cacheHash = computeInputsHash({
+    files: [fileURLToPath(import.meta.url), SOURCE, MIRROR],
+  });
+  if (tryCacheHit(CACHE_NAME, cacheHash)) return;
+
   const srcRaw = readOrFail(SOURCE);
   const mirrorRaw = readOrFail(MIRROR);
 
@@ -62,6 +74,7 @@ function main(): void {
     console.log(
       `[check:types-mirror] OK — ${path.relative(REPO_ROOT, SOURCE)} ≡ ${path.relative(REPO_ROOT, MIRROR)} (header excluded)`,
     );
+    writeCacheHit(CACHE_NAME, cacheHash);
     return;
   }
 

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "codegen": "orval --config ./orval.config.ts && pnpm -w run typecheck:libs",
-    "lint": "eslint ."
+    "lint": "eslint . --cache --cache-location .eslintcache"
   },
   "devDependencies": {
     "eslint": "^10.3.0",

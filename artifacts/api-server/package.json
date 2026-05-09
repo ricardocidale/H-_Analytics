@@ -8,7 +8,7 @@
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps --import ./dist/instrument.mjs ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "eslint src",
+    "lint": "eslint src --cache --cache-location .eslintcache",
     "test": "vitest run",
     "dry:costantino": "tsx ./src/scripts/costantino-dry-cycle.ts"
   },

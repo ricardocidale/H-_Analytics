@@ -42,6 +42,12 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import {
+  computeInputsHash,
+  tryCacheHit,
+  writeCacheHit,
+} from "./lib/check-cache.js";
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WORKSPACE_ROOT = path.resolve(__dirname, "../..");
 
@@ -80,6 +86,94 @@ const APPS: AppSpec[] = [
     stageDir: "mockup-sandbox",
   },
 ];
+
+// ---------------------------------------------------------------------------
+// Input-hash cache — short-circuits when no input has changed.
+// The cache key covers: this script, the Dockerfile, pnpm-lock.yaml, and
+// every source file under each artifact that affects the production build.
+// --skip-build bypasses the cache entirely because it reuses whatever is
+// already on disk, so its inputs are not deterministic from source files.
+// ---------------------------------------------------------------------------
+
+const CACHE_NAME = "production-image";
+
+/** Directories to prune when walking artifact src/ trees. */
+const SRC_SKIP_DIRS = new Set(["node_modules", "dist", ".cache"]);
+
+/**
+ * Walk every file under `dir` recursively, skipping directories in
+ * `SRC_SKIP_DIRS`. No extension filter — all files (source, assets, fonts,
+ * images, etc.) are included so that any change to the artifact's source
+ * tree busts the cache.
+ */
+function* walkAllFiles(dir: string): Generator<string> {
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      if (SRC_SKIP_DIRS.has(entry.name)) continue;
+      yield* walkAllFiles(path.join(dir, entry.name));
+    } else if (entry.isFile()) {
+      yield path.join(dir, entry.name);
+    }
+  }
+}
+
+/** Per-artifact root-level non-config files that affect the build output. */
+const ARTIFACT_ROOT_FILES = ["package.json", "index.html", "vite.config.ts", "vite.config.js"];
+
+function collectInputFiles(): string[] {
+  const files: string[] = [
+    // The script itself.
+    fileURLToPath(import.meta.url),
+    // Workspace-level files that affect every artifact's build.
+    path.join(WORKSPACE_ROOT, "Dockerfile"),
+    path.join(WORKSPACE_ROOT, "pnpm-lock.yaml"),
+  ];
+
+  for (const app of APPS) {
+    // Derive the artifact root from srcDist (strip the trailing dist segment).
+    // e.g. "artifacts/hospitality-business-portal/dist/public" -> "artifacts/hospitality-business-portal"
+    const artifactRootRel = app.srcDist.split("/").slice(0, 2).join("/");
+    const artifactRoot = path.join(WORKSPACE_ROOT, artifactRootRel);
+
+    // Known root-level config files.
+    for (const name of ARTIFACT_ROOT_FILES) {
+      const candidate = path.join(artifactRoot, name);
+      if (fs.existsSync(candidate)) {
+        files.push(candidate);
+      }
+    }
+
+    // Discover all tsconfig*.json files in the artifact root dynamically so
+    // future variants (tsconfig.app.json, tsconfig.node.json, etc.) are
+    // automatically included without manual updates here.
+    try {
+      for (const name of fs.readdirSync(artifactRoot)) {
+        if (/^tsconfig.*\.json$/.test(name)) {
+          files.push(path.join(artifactRoot, name));
+        }
+      }
+    } catch {
+      // Artifact root missing — will be caught later during build/stage.
+    }
+
+    // Every file under src/ with no extension filter — includes TypeScript,
+    // styles, images, fonts, and any other asset that vite may bundle.
+    const srcDir = path.join(artifactRoot, "src");
+    if (fs.existsSync(srcDir)) {
+      for (const f of walkAllFiles(srcDir)) {
+        files.push(f);
+      }
+    }
+  }
+
+  return files;
+}
 
 // ---------------------------------------------------------------------------
 // Logging helpers
@@ -349,6 +443,18 @@ async function checkApp(serverUrl: string, app: AppSpec): Promise<void> {
 // ---------------------------------------------------------------------------
 
 async function main(): Promise<void> {
+  // ---------------------------------------------------------------------------
+  // Cache check — skip the build+probe entirely when inputs are unchanged.
+  // --skip-build is excluded from caching because its inputs are the existing
+  // dist/ outputs on disk, not source files, so the hash would be meaningless.
+  // ---------------------------------------------------------------------------
+  let cacheHash: string | undefined;
+  if (!SKIP_BUILD) {
+    const inputFiles = collectInputFiles();
+    cacheHash = computeInputsHash({ files: inputFiles });
+    if (tryCacheHit(CACHE_NAME, cacheHash)) process.exit(0);
+  }
+
   if (SKIP_BUILD) {
     info("--skip-build set; reusing existing artifacts/<name>/dist outputs");
   } else {
@@ -377,6 +483,12 @@ async function main(): Promise<void> {
     }
 
     info("PASS — all three apps serve correctly");
+
+    // Persist the cache only on a full successful build+probe run (not
+    // --skip-build, whose inputs are outside source control).
+    if (cacheHash !== undefined) {
+      writeCacheHit(CACHE_NAME, cacheHash);
+    }
   } finally {
     server?.close();
     fs.rmSync(stageRoot, { recursive: true, force: true });

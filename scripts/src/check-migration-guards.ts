@@ -28,6 +28,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { computeInputsHash, tryCacheHit, writeCacheHit } from "./lib/check-cache.js";
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WORKSPACE_ROOT = path.resolve(__dirname, "../..");
 
@@ -66,6 +68,29 @@ function fail(violations: string[]): never {
   process.exit(1);
 }
 
+const CACHE_NAME = "migration-guards";
+
+function collectInputFiles(): string[] {
+  const files: string[] = [
+    fileURLToPath(import.meta.url),
+    JOURNAL_PATH,
+    MANIFEST_PATH,
+  ];
+  // Every guard file in src/migrations/ contributes to the verdict — adding
+  // or editing a guard must invalidate the cache.
+  try {
+    for (const entry of fs.readdirSync(GUARDS_DIR, { withFileTypes: true })) {
+      if (!entry.isFile()) continue;
+      if (entry.name.endsWith(".ts") || entry.name.endsWith(".json")) {
+        files.push(path.join(GUARDS_DIR, entry.name));
+      }
+    }
+  } catch {
+    // Directory missing — main() will surface a clearer error.
+  }
+  return files;
+}
+
 function main(): void {
   if (!fs.existsSync(JOURNAL_PATH)) {
     console.error(`✖ journal not found at ${JOURNAL_PATH}`);
@@ -75,6 +100,10 @@ function main(): void {
     console.error(`✖ manifest not found at ${MANIFEST_PATH}`);
     process.exit(1);
   }
+
+  // Input-hash cache (task #1214) — exit early if nothing has changed.
+  const cacheHash = computeInputsHash({ files: collectInputFiles() });
+  if (tryCacheHit(CACHE_NAME, cacheHash)) return;
 
   const journal = JSON.parse(fs.readFileSync(JOURNAL_PATH, "utf-8")) as {
     entries: JournalEntry[];
@@ -146,6 +175,7 @@ function main(): void {
   console.log(
     `✓ check:migration-guards: all ${journal.entries.length} Drizzle journal entries are declared.`,
   );
+  writeCacheHit(CACHE_NAME, cacheHash);
 }
 
 main();
