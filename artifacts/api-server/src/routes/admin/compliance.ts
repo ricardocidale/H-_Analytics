@@ -149,7 +149,7 @@ export function registerComplianceRoutes(app: Express): void {
     "/api/admin/compliance/violations/:id/resolve",
     requireAdmin,
     async (req, res) => {
-      const id = parseInt(req.params.id, 10);
+      const id = parseInt(String(req.params.id), 10);
       if (!Number.isFinite(id)) {
         return sendError(res, HTTP_400_BAD_REQUEST, "Invalid violation id");
       }
@@ -182,7 +182,7 @@ export function registerComplianceRoutes(app: Express): void {
     "/api/admin/compliance/violations/:id/accept",
     requireAdmin,
     async (req, res) => {
-      const id = parseInt(req.params.id, 10);
+      const id = parseInt(String(req.params.id), 10);
       if (!Number.isFinite(id)) {
         return sendError(res, HTTP_400_BAD_REQUEST, "Invalid violation id");
       }

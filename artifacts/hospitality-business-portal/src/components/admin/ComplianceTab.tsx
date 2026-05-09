@@ -137,37 +137,40 @@ export default function ComplianceTab() {
     return params;
   })();
 
-  const { data: violationsData, isLoading: violationsLoading } = useQuery<ViolationsResponse>({
+  const { data: violationsRaw, isLoading: violationsLoading } = useQuery({
     queryKey: violationsQueryKey,
     queryFn: () =>
       apiRequest("GET", `/api/admin/compliance/violations?${new URLSearchParams(queryParams)}`),
   });
+  const violationsData = violationsRaw as ViolationsResponse | undefined;
 
-  const { data: runsData } = useQuery<RunsResponse>({
+  const { data: runsRaw } = useQuery({
     queryKey: ["/api/admin/compliance/runs"],
     queryFn: () => apiRequest("GET", "/api/admin/compliance/runs"),
   });
+  const runsData = runsRaw as RunsResponse | undefined;
 
   // Summary counts across unresolved violations (filter-independent)
-  const { data: summaryData } = useQuery<ViolationsResponse>({
+  const { data: summaryRaw } = useQuery({
     queryKey: ["/api/admin/compliance/violations", "summary"],
     queryFn: () =>
       apiRequest("GET", "/api/admin/compliance/violations?resolved=false&limit=200"),
   });
+  const summaryData = summaryRaw as ViolationsResponse | undefined;
 
   const latestRun = runsData?.runs?.[0] ?? null;
 
   const counts = {
-    block: summaryData?.violations.filter((v) => v.severity === "block").length ?? 0,
-    warning: summaryData?.violations.filter((v) => v.severity === "warning").length ?? 0,
-    advisory: summaryData?.violations.filter((v) => v.severity === "advisory").length ?? 0,
-    info: summaryData?.violations.filter((v) => v.severity === "info").length ?? 0,
+    block: summaryData?.violations.filter((v: ComplianceViolation) => v.severity === "block").length ?? 0,
+    warning: summaryData?.violations.filter((v: ComplianceViolation) => v.severity === "warning").length ?? 0,
+    advisory: summaryData?.violations.filter((v: ComplianceViolation) => v.severity === "advisory").length ?? 0,
+    info: summaryData?.violations.filter((v: ComplianceViolation) => v.severity === "info").length ?? 0,
   };
 
   // ── Run audit mutation ──────────────────────────────────────────────────
-  const runMutation = useMutation({
+  const runMutation = useMutation<{ runId: number; trigger: string }, Error, "manual" | "manual-full">({
     mutationFn: (trigger: "manual" | "manual-full") =>
-      apiRequest("POST", "/api/admin/compliance/run", { trigger }),
+      apiRequest("POST", "/api/admin/compliance/run", { trigger }) as unknown as Promise<{ runId: number; trigger: string }>,
     onSuccess: (data: { runId: number; trigger: string }) => {
       toast({
         title: "Compliance audit started",
@@ -336,7 +339,7 @@ export default function ComplianceTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {violations.map((v) => (
+                {violations.map((v: ComplianceViolation) => (
                   <TableRow
                     key={v.id}
                     className={cn(
