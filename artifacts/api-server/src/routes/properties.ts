@@ -50,6 +50,143 @@ export function buildPropertyDefaultsFromGlobal(ga?: GlobalAssumptions): Record<
   return buildPropertyDefaultsFromRegistry(ga as unknown as Record<string, unknown>);
 }
 
+/**
+ * Shared property creation logic used by both `POST /api/properties` and
+ * Rebecca's `create_property` tool. Centralizing this keeps Rebecca at full
+ * parity with the route — same global defaults, smart defaults, star-rating
+ * suggestion, fee-category seeding, hero-photo creation, cache invalidation,
+ * and notification dispatch. Activity logging stays in the route handler
+ * since it depends on `req`.
+ */
+export async function createPropertyForUser(
+  user: Express.User,
+  data: import("@workspace/db").InsertProperty,
+): Promise<import("@workspace/db").Property> {
+  const globalDefaults = await storage.getGlobalAssumptions();
+  const inheritedDefaults = buildPropertyDefaultsFromGlobal(globalDefaults);
+
+  const mergedData: Record<string, unknown> = {};
+  for (const [key, globalValue] of Object.entries(inheritedDefaults)) {
+    const userValue = (data as Record<string, unknown>)[key];
+    if (userValue === undefined || userValue === null) {
+      mergedData[key] = globalValue;
+    }
+  }
+
+  // Layer 2: Smart defaults from quality tier, business model, country, room count
+  const inputData = data as Record<string, unknown>;
+  const qualityTier = (inputData.qualityTier as string) || "Upscale";
+  const businessModel = (inputData.businessModel as string) || "hotel";
+  const country = (inputData.country as string) || "United States";
+  const roomCount = (inputData.roomCount as number) || 10;
+  const stateProvince = (inputData.stateProvince as string) || undefined;
+
+  try {
+    const smartDefaults = computePropertyDefaults(
+      qualityTier, businessModel, country, roomCount, stateProvince,
+    );
+    const smartFields: Record<string, unknown> = {
+      startAdr: smartDefaults.startAdr,
+      adrGrowthRate: smartDefaults.adrGrowthRate,
+      startOccupancy: smartDefaults.startOccupancy,
+      maxOccupancy: smartDefaults.maxOccupancy,
+      revShareFB: smartDefaults.revShareFB,
+      revShareEvents: smartDefaults.revShareEvents,
+      revShareOther: smartDefaults.revShareOther,
+      costRateRooms: smartDefaults.costRateRooms,
+      costRateFB: smartDefaults.costRateFB,
+      costRateAdmin: smartDefaults.costRateAdmin,
+      costRateMarketing: smartDefaults.costRateMarketing,
+      costRatePropertyOps: smartDefaults.costRatePropertyOps,
+      costRateUtilities: smartDefaults.costRateUtilities,
+      costRateIT: smartDefaults.costRateIT,
+      costRateFFE: smartDefaults.costRateFFE,
+      depreciationYears: smartDefaults.depreciationYears,
+      incomeTaxRate: smartDefaults.incomeTaxRate,
+      propertyTaxRate: smartDefaults.propertyTaxRate,
+    };
+    for (const [key, smartValue] of Object.entries(smartFields)) {
+      const userValue = inputData[key];
+      const gaValue = mergedData[key];
+      if ((userValue === undefined || userValue === null) &&
+          (gaValue === undefined || gaValue === null)) {
+        mergedData[key] = smartValue;
+      }
+    }
+    if (smartDefaults.sources && Object.keys(smartDefaults.sources).length > 0) {
+      const existingRV = (mergedData.researchValues ?? {}) as Record<string, unknown>;
+      mergedData.researchValues = {
+        ...existingRV,
+        _defaultSources: smartDefaults.sources,
+      };
+    }
+    logger.info(
+      `Smart defaults applied: tier=${qualityTier}, model=${businessModel}, country=${country}, rooms=${roomCount}`,
+      "properties",
+    );
+  } catch (err: unknown) {
+    logger.warn(`Smart defaults computation failed (non-blocking): ${err instanceof Error ? err.message : err}`, "properties");
+  }
+
+  const createData = {
+    ...data,
+    ...mergedData,
+    userId: isAdminRole(user.role) ? null : user.id,
+    researchValues: (data as { researchValues?: Record<string, ResearchValueEntry> }).researchValues ?? {},
+  };
+  const suggestion = suggestStarRating(createData as Parameters<typeof suggestStarRating>[0]);
+  (createData as typeof createData & { starRatingSuggested?: number | null }).starRatingSuggested = suggestion.rating;
+
+  const property = await storage.createProperty(createData);
+
+  // Post-creation initialization — best-effort; failure here should NOT
+  // orphan the property (it already exists in DB)
+  try {
+    await storage.seedDefaultFeeCategories(property.id);
+  } catch (feeErr: unknown) {
+    logger.warn(`Failed to seed fee categories for property ${property.id} (non-blocking): ${feeErr instanceof Error ? feeErr.message : feeErr}`, "properties");
+  }
+
+  if (property.imageUrl) {
+    try {
+      await storage.addPropertyPhoto({
+        propertyId: property.id,
+        imageUrl: property.imageUrl,
+        isHero: true,
+      });
+    } catch (photoErr: unknown) {
+      logger.warn(`Failed to create hero photo for property ${property.id} (non-blocking): ${photoErr instanceof Error ? photoErr.message : photoErr}`, "properties");
+    }
+  }
+
+  invalidateComputeCache();
+
+  processNotificationEvent(createEvent("PROPERTY_IMPORTED", {
+    propertyId: property.id,
+    propertyName: property.name,
+    message: `New property added: ${property.name}`,
+    link: `/property/${property.id}`,
+  })).catch((err) => logger.error(`Notification error: ${err?.message || err}`, "properties"));
+
+  return property;
+}
+
+/**
+ * Shared property soft-delete logic. Called by `DELETE /api/properties/:id`
+ * and Rebecca's `delete_property` tool. Caller is responsible for ownership
+ * checks (via `checkPropertyAccess`) and for activity logging.
+ */
+export async function archivePropertyForUser(
+  id: number,
+  archivedByUserId: number,
+): Promise<void> {
+  await storage.deleteProperty(id, archivedByUserId);
+  invalidateComputeCache();
+  cleanupPropertyVectors(id).catch((err: unknown) =>
+    logger.warn(`Vector cleanup failed for property ${id}: ${err instanceof Error ? err.message : String(err)}`, "properties"),
+  );
+}
+
 export function register(app: Express) {
   // ────────────────────────────────────────────────────────────
   // PROPERTIES ROUTES
@@ -125,124 +262,9 @@ export function register(app: Express) {
       if (!validation.success) {
         return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       }
-
-      const globalDefaults = await storage.getGlobalAssumptions();
-      const inheritedDefaults = buildPropertyDefaultsFromGlobal(globalDefaults);
-
-      const mergedData: Record<string, unknown> = {};
-      for (const [key, globalValue] of Object.entries(inheritedDefaults)) {
-        const userValue = (validation.data as Record<string, unknown>)[key];
-        if (userValue === undefined || userValue === null) {
-          mergedData[key] = globalValue;
-        }
-      }
-
-      // Layer 2: Smart defaults from quality tier, business model, country, room count
-      // These override GA defaults when the property has enough classification info
-      const inputData = validation.data as Record<string, unknown>;
-      const qualityTier = (inputData.qualityTier as string) || "Upscale";
-      const businessModel = (inputData.businessModel as string) || "hotel";
-      const country = (inputData.country as string) || "United States";
-      const roomCount = (inputData.roomCount as number) || 10;
-      const stateProvince = (inputData.stateProvince as string) || undefined;
-
-      try {
-        const smartDefaults = computePropertyDefaults(
-          qualityTier, businessModel, country, roomCount, stateProvince,
-        );
-
-        // Smart defaults fill in anything not already set by the user or GA
-        const smartFields: Record<string, unknown> = {
-          startAdr: smartDefaults.startAdr,
-          adrGrowthRate: smartDefaults.adrGrowthRate,
-          startOccupancy: smartDefaults.startOccupancy,
-          maxOccupancy: smartDefaults.maxOccupancy,
-          revShareFB: smartDefaults.revShareFB,
-          revShareEvents: smartDefaults.revShareEvents,
-          revShareOther: smartDefaults.revShareOther,
-          costRateRooms: smartDefaults.costRateRooms,
-          costRateFB: smartDefaults.costRateFB,
-          costRateAdmin: smartDefaults.costRateAdmin,
-          costRateMarketing: smartDefaults.costRateMarketing,
-          costRatePropertyOps: smartDefaults.costRatePropertyOps,
-          costRateUtilities: smartDefaults.costRateUtilities,
-          costRateIT: smartDefaults.costRateIT,
-          costRateFFE: smartDefaults.costRateFFE,
-          depreciationYears: smartDefaults.depreciationYears,
-          incomeTaxRate: smartDefaults.incomeTaxRate,
-          propertyTaxRate: smartDefaults.propertyTaxRate,
-        };
-
-        for (const [key, smartValue] of Object.entries(smartFields)) {
-          const userValue = inputData[key];
-          const gaValue = mergedData[key];
-          // Smart defaults only fill in when user didn't set it AND GA didn't override it
-          if ((userValue === undefined || userValue === null) &&
-              (gaValue === undefined || gaValue === null)) {
-            mergedData[key] = smartValue;
-          }
-        }
-
-        // Store provenance metadata in researchValues so the UI can show where defaults came from
-        // (cannot go on mergedData directly — _defaultSources is not a DB column)
-        if (smartDefaults.sources && Object.keys(smartDefaults.sources).length > 0) {
-          const existingRV = (mergedData.researchValues ?? {}) as Record<string, unknown>;
-          mergedData.researchValues = {
-            ...existingRV,
-            _defaultSources: smartDefaults.sources,
-          };
-        }
-
-        logger.info(
-          `Smart defaults applied: tier=${qualityTier}, model=${businessModel}, country=${country}, rooms=${roomCount}`,
-          "properties",
-        );
-      } catch (err: unknown) {
-        logger.warn(`Smart defaults computation failed (non-blocking): ${err instanceof Error ? err.message : err}`, "properties");
-      }
-
       const user = getAuthUser(req);
-      const createData = {
-        ...validation.data,
-        ...mergedData,
-        userId: isAdminRole(user.role) ? null : user.id,
-        researchValues: (validation.data as { researchValues?: Record<string, ResearchValueEntry> }).researchValues ?? {},
-      };
-      const suggestion = suggestStarRating(createData as Parameters<typeof suggestStarRating>[0]);
-      (createData as typeof createData & { starRatingSuggested?: number | null }).starRatingSuggested = suggestion.rating;
-
-      const property = await storage.createProperty(createData);
-
-      // Post-creation initialization — these are best-effort; a failure here
-      // should NOT orphan the property response (property already exists in DB)
-      try {
-        await storage.seedDefaultFeeCategories(property.id);
-      } catch (feeErr: unknown) {
-        logger.warn(`Failed to seed fee categories for property ${property.id} (non-blocking): ${feeErr instanceof Error ? feeErr.message : feeErr}`, "properties");
-      }
-
-      if (property.imageUrl) {
-        try {
-          await storage.addPropertyPhoto({
-            propertyId: property.id,
-            imageUrl: property.imageUrl,
-            isHero: true,
-          });
-        } catch (photoErr: unknown) {
-          logger.warn(`Failed to create hero photo for property ${property.id} (non-blocking): ${photoErr instanceof Error ? photoErr.message : photoErr}`, "properties");
-        }
-      }
-
-      invalidateComputeCache();
+      const property = await createPropertyForUser(user, validation.data);
       logActivity(req, "create", "property", property.id, property.name);
-
-      processNotificationEvent(createEvent("PROPERTY_IMPORTED", {
-        propertyId: property.id,
-        propertyName: property.name,
-        message: `New property added: ${property.name}`,
-        link: `/property/${property.id}`,
-      })).catch((err) => logger.error(`Notification error: ${err?.message || err}`, "properties"));
-
       res.status(HTTP_201_CREATED).json(property);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to create property", error);
@@ -552,12 +574,8 @@ export function register(app: Express) {
       }
       
       const user = getAuthUser(req);
-      await storage.deleteProperty(id, user.id);
-      invalidateComputeCache();
+      await archivePropertyForUser(id, user.id);
       logActivity(req, "archive", "property", id, property.name);
-      cleanupPropertyVectors(id).catch((err: unknown) =>
-        logger.warn(`Vector cleanup failed for property ${id}: ${err instanceof Error ? err.message : String(err)}`, "properties"),
-      );
 
       res.json({ success: true });
     } catch (error: unknown) {
