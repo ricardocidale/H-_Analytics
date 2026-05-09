@@ -80,7 +80,7 @@ const chatRequestSchema = z.object({
 
 /**
  * Marker error class for admin-policy refusals from inside callLlm
- * (e.g. Perplexity blocked by sources.webSearch.enabled=false). The outer
+ * (e.g. Exa blocked by sources.webSearch.enabled=false). The outer
  * /api/chat handler catches it and surfaces the message to the client at
  * 422 instead of swallowing it as a generic 500.
  */
@@ -312,7 +312,7 @@ export async function callLlmStream(
     return result;
   }
 
-  if (provider === "perplexity") {
+  if (provider === "exa") {
     // No streaming API — batch and emit full text as single token
     const result = await callLlm(provider, model, systemPrompt, history, userMessage, sampling, userId, webSearchEnabled, tools);
     onToken(result.text);
@@ -427,11 +427,11 @@ function sseWrite(res: Response, event: string, data: unknown): void {
  *  - OpenAI:    assistant message with tool_calls array + individual tool messages
  *  - Anthropic: assistant message with content blocks + user message with tool_result blocks
  *  - Gemini:    model message with functionCall parts + user message with functionResponse parts
- *  - Perplexity: tools not supported — returns history unchanged
+ *  - Exa: tools not supported — returns history unchanged
  */
 function appendToolResults(
   history: MessageEntry[],
-  provider: "openai" | "anthropic" | "gemini" | "perplexity",
+  provider: "openai" | "anthropic" | "gemini" | "exa",
   toolCalls: ToolCall[],
   results: Array<{ id: string; name: string; result: unknown }>,
 ): MessageEntry[] {
@@ -471,7 +471,7 @@ function appendToolResults(
       parts: results.map(r => ({ functionResponse: { name: r.name, response: { content: r.result } } })),
     });
   }
-  // Perplexity: tools not supported — return history unchanged
+  // Exa: tools not supported — return history unchanged
 
   return next;
 }
@@ -1054,7 +1054,7 @@ export function register(app: Express) {
         : null;
 
       // Honor the admin's Web Search toggle (Knowledge & Sources tab in
-      // RebeccaConfig). When disabled, callLlm refuses Perplexity and the
+      // RebeccaConfig). When disabled, callLlm refuses Exa and the
       // outer catch retries with the configured fallback.
       const webSearchEnabled = rebeccaSettings.sources.webSearch.enabled;
 
@@ -1086,7 +1086,7 @@ export function register(app: Express) {
       let primaryLoopExecutedTools = false;
 
       async function runAgenticLoop(
-        loopProvider: "openai" | "anthropic" | "gemini" | "perplexity",
+        loopProvider: "openai" | "anthropic" | "gemini" | "exa",
         loopModel: string,
         isPrimary: boolean,
       ): Promise<string> {
@@ -1168,10 +1168,10 @@ export function register(app: Express) {
           throw primaryErr;
         }
       }
-      // Web search only actually fires for the Perplexity provider. Mark
+      // Web search only actually fires for the Exa provider. Mark
       // presence honestly so admins don't see "web search" in the badge
       // list when, e.g., a Gemini fallback served the reply.
-      blockPresence.webSearch = webSearchEnabled && resolvedProvider === "perplexity";
+      blockPresence.webSearch = webSearchEnabled && resolvedProvider === "exa";
       // Suppress unused warnings around the legacy engine variable when no
       // settings have ever been written (still informative for logs).
       void legacyEngine;
@@ -1265,7 +1265,7 @@ export function register(app: Express) {
         return;
       }
       if (error instanceof ChatPolicyError) {
-        // Admin-policy refusal (e.g. webSearch toggle blocking Perplexity
+        // Admin-policy refusal (e.g. webSearch toggle blocking Exa
         // and no viable fallback). Surface the actionable message verbatim
         // so the user sees what to change instead of a generic 500.
         return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: msg });

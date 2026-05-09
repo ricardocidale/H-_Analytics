@@ -26,6 +26,7 @@ export interface CostEntry {
     | "document-ai"
     | "google-maps"
     | "perplexity"
+    | "exa"
     | "tavily";
   model?: string;
   operation: string;

@@ -88,7 +88,7 @@ export interface RunFixtureReplayTurnInput {
 export interface RunFixtureReplayTurnResult {
   response: string;
   /** Provider that produced the response (after any fallback). */
-  provider: "openai" | "anthropic" | "gemini" | "perplexity";
+  provider: "openai" | "anthropic" | "gemini" | "exa";
   model: string;
   /** True if the primary provider failed and we used the fallback. */
   usedFallback: boolean;

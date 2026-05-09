@@ -75,15 +75,15 @@ const SOURCE_SEEDS: SourceSeed[] = [
     description: "Google Gemini models for multi-model research synthesis. Primary research provider with strong grounding capabilities and large context window.",
   },
   {
-    serviceKey: "perplexity",
-    name: "Perplexity Sonar",
+    serviceKey: "exa",
+    name: "Exa Answer",
     sourceType: "llm",
     category: "web_research",
-    endpoint: "https://api.perplexity.ai/chat/completions",
-    apiKeyRef: "PERPLEXITY_API_KEY",
+    endpoint: "https://api.exa.ai/answer",
+    apiKeyRef: "EXA_API_KEY",
     rateLimitPerMin: 20,
     isActive: true,
-    description: "Perplexity Sonar for grounded web research with source citations. Returns real-time web data with provenance — critical for regulatory lookups and market news.",
+    description: "Exa web-grounded answer API. Returns AI-synthesised responses over live web results with source citations — used by Rebecca when Exa is selected as the LLM provider.",
   },
   {
     serviceKey: "tavily",
@@ -94,7 +94,7 @@ const SOURCE_SEEDS: SourceSeed[] = [
     apiKeyRef: "TAVILY_API_KEY",
     rateLimitPerMin: 60,
     isActive: true,
-    description: "Tavily AI-powered web search for real-time market data and regulatory info. Fallback grounded search when Perplexity is unavailable or rate-limited.",
+    description: "Tavily AI-powered web search for real-time market data and regulatory info. Used by the research orchestrator for factual search with advanced depth.",
   },
 
   // ── Vector Search ────────────────────────────────────────────────────────

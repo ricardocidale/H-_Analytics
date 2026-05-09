@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const REBECCA_LLM_PROVIDERS = ["openai", "anthropic", "gemini", "perplexity"] as const;
+export const REBECCA_LLM_PROVIDERS = ["openai", "anthropic", "gemini", "exa"] as const;
 export type RebeccaLlmProvider = typeof REBECCA_LLM_PROVIDERS[number];
 
 export const REBECCA_TONE_PRESETS = ["professional", "conversational", "coaching", "concise", "playful"] as const;
@@ -37,9 +37,8 @@ export const REBECCA_PROVIDER_MODELS: Record<RebeccaLlmProvider, { value: string
     { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
     { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
   ],
-  perplexity: [
-    { value: "sonar",     label: "Sonar" },
-    { value: "sonar-pro", label: "Sonar Pro" },
+  exa: [
+    { value: "exa", label: "Exa Answer" },
   ],
 };
 
@@ -47,7 +46,7 @@ export const REBECCA_DEFAULT_MODEL: Record<RebeccaLlmProvider, string> = {
   openai: "gpt-4.1",
   anthropic: "claude-sonnet-4-6",
   gemini: "gemini-2.5-flash",
-  perplexity: "sonar",
+  exa: "exa",
 };
 
 const sourceSchema = z.object({
