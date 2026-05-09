@@ -114,7 +114,7 @@ The 2026-05-09 CE agent-native audit scored H+ at 63%. The platform's shared-wor
 > *This illustrates the intended approach and is directional guidance for review, not implementation specification.*
 
 **dataChanged signal flow (U1):**
-```
+```text
 rebecca-tools.ts tool function
   → return { result: ..., dataChanged: { entityType: "research_job", entityId: runId } }
 
@@ -126,14 +126,14 @@ RebeccaPanel.tsx SSE handler
 ```
 
 **LLM slot resolution migration (U6):**
-```
-Before:  const model = trigger === "health-check" ? IRIS_HAIKU_MODEL : IRIS_SONNET_MODEL;
-After:   const model = await resolveLlmFor(trigger === "health-check"
+```typescript
+Before:  const model = trigger === "scheduled-health" ? IRIS_HAIKU_MODEL : IRIS_SONNET_MODEL;
+After:   const model = await resolveLlmFor(trigger === "scheduled-health"
            ? "iris_health_check" : "iris_reindex").catch(() => fallback);
 ```
 
 **Parameter resolver (U7):**
-```
+```typescript
 getParameterValue(slug: string, fallback: number): Promise<number>
   → storage.getAdminResourceBySlug("parameter", slug)
   → return row.config.value ?? fallback
@@ -211,7 +211,7 @@ getParameterValue(slug: string, fallback: number): Promise<number>
 **Approach:**
 - Read `company-data-injector.ts` to identify the exported macro context builder function and its signature.
 - In `chat.ts` context assembly (after the recent-activity block, around the existing `assembledPrompt +=` chain), add:
-  ```
+  ```typescript
   if (rebeccaSettings.sources.research.enabled) {
     const macroBlock = await buildMacroContextBlock(...relevant args...);
     assembledPrompt += macroBlock;
@@ -414,7 +414,7 @@ getParameterValue(slug: string, fallback: number): Promise<number>
 **Approach:**
 - Add `"parameter"` to the `RESOURCE_KINDS` `as const` array in `lib/db/src/schema/admin-resource.ts`. Because the column is `text` (not a pgEnum), no migration is needed beyond updating the TypeScript type.
 - Create `parameter-resolver.ts`:
-  ```
+  ```typescript
   getParameterValue(slug: string, fallback: number): Promise<number>
     → storage.getAdminResourceBySlug("parameter", slug)
     → return (row?.config as { value: number })?.value ?? fallback
