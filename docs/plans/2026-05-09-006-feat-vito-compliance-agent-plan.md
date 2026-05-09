@@ -80,12 +80,21 @@ The existing gate (`check-magic-numbers.ts`) catches raw numeric literals but ca
 ## Key Technical Decisions
 
 - **Vito is a cross-app specialist** (single name, not Name-NN) — it runs across the whole codebase surface, not inside one pipeline.
-- **Two output tables**: `vito_runs` (one row per scan, audit trail) and `compliance_violations` (one row per finding, resolvable). This separates "did Vito run?" (scheduler_runs + vito_runs) from "what did it find?" (compliance_violations).
-- **File access via Node `fs`**: Vito tools read repo source files directly (process is the api-server, which has filesystem access to its own bundle path). For production (Railway), Vito reads the source files that were bundled into the Docker image — sufficient for compliance checking at deploy time. Dev environment reads live source.
-- **Three-pass architecture**: Each pass is a separate tool call loop so Vito can be interrupted between passes and resume. Pass 1 (integration identifiers) is highest priority — flag and stop if critical violations found on first run.
-- **Model: Sonnet 4.6** — multi-file analysis with judgment calls, but not financial-engine-level complexity. Sonnet per CLAUDE.md §12.
-- **Severity ladder**: `critical` (§1 violation — model/API string in source), `high` (magic number outside constants file, DEFAULT_* in wrong file), `medium` (admin_resources drift — row unused or shadowed), `low` (KB coverage gap).
-- **`accept_as_known` resolution state**: some violations are intentional (e.g. a fallback constant that has a comment explaining it). Admins can mark them `accepted` with a note so they don't re-surface every week.
+
+- **Source file availability in production (Dockerfile constraint):** The Railway runtime container copies `lib/` in full (`COPY --from=build /app/lib ./lib`) but copies only the compiled bundle for `artifacts/api-server/` (`COPY --from=build /app/artifacts/api-server/dist`). Agent source files (`artifacts/api-server/src/ai/iris/agent.ts`, etc.) are NOT present in production. Vito therefore has two operating modes:
+  - **Runtime mode** (scheduled in production): scans `lib/shared/src/constants*.ts` and `lib/db/src/schema/` for taxonomy violations; queries `admin_resources` DB for parity; queries `vector_chunks` for KB coverage. These passes always work.
+  - **Full mode** (dev / manual trigger only): additionally scans `artifacts/api-server/src/` for integration identifier violations. Only available when the api-server is running against the full source tree (Replit dev, local).
+  The scheduled weekly production job runs in runtime mode. Full mode is triggered manually by an admin who's in a dev environment.
+
+- **Integration identifier sweep is CI-complemented:** The `artifacts/api-server/src/` sweep for model name string literals cannot run in production. This pass complements (but does not replace) a future CI linting step. For now, the existing `check-magic-numbers.ts` gate plus the U6 fix in plan 005 are the enforcement mechanism for known violations.
+
+- **Two output tables with fingerprint dedup**: `vito_runs` (append-only, one row per scan) and `compliance_violations` (keyed by `violation_fingerprint` — a deterministic hash of `violationType + file + description`). On each run, new violations are `INSERT`ed; previously-seen violations get their `lastSeenAt` and `lastRunId` updated via upsert on fingerprint. This prevents the same violation from re-pestering admins every week. Resolution state (`resolved_at`, `accepted_at`) lives on the fingerprinted row and survives across runs.
+
+- **Severity maps to the canonical H+ scheme** — no new levels (CLAUDE.md: "ok=emerald, advisory=sky, warning=amber, block=red — no new levels"). Vito uses: `block` (integration identifier in source — §1 violation), `warning` (magic number, DEFAULT_* in wrong file), `advisory` (admin_resources drift — row unused or shadowed), `info` (KB coverage gap — informational, not a rule violation).
+
+- **Model: Sonnet 4.6** via `resolveLlmFor("vito_compliance_audit")` slot.
+
+- **`accept_as_known` resolution state**: admins can mark violations `accepted` with a note (e.g. "intentional fallback — see PR #48"). Accepted violations are suppressed from default view but preserved in DB.
 
 ---
 
@@ -93,9 +102,10 @@ The existing gate (`check-magic-numbers.ts`) catches raw numeric literals but ca
 
 ### Resolved During Planning
 
-- *Can Vito read source files in production?* Yes — the Docker image bundles source alongside the compiled output, and the api-server runs as a Node process with filesystem access.
-- *Should `compliance_violations` be append-only or upsert?* Append-only per run, with a `runId` FK. Old violations remain visible but a new run creates fresh rows. Resolution state (`resolved_at`, `accepted_at`) is on the violation row, not re-derived.
-- *Two tables or one?* Two — `vito_runs` for "did it run / how healthy is Vito" and `compliance_violations` for actual findings. Matches the existing split between `scheduler_runs` and the per-scheduler output tables.
+- *Can Vito read source files in production?* Partially. `lib/` source is present (`COPY --from=build /app/lib ./lib` in Dockerfile). `artifacts/api-server/src/` is NOT — only the compiled bundle is copied. Runtime mode scans `lib/` only; full mode scans `artifacts/` and requires a dev environment.
+- *Should `compliance_violations` be append-only or upsert?* Upsert on `violation_fingerprint` (hash of violationType + file + description). New violations are inserted; existing ones get `lastSeenAt` + `lastRunId` updated. Prevents weekly re-pestering of resolved violations.
+- *Two tables or one?* Two — `vito_runs` (one row per scan, audit trail) and `compliance_violations` (fingerprinted, resolvable). Matches the pattern of `scheduler_runs` + per-scheduler output tables.
+- *Does `vector_chunks` have queryable metadata?* Yes — confirmed `metadata jsonb` field at schema line 35. KB domain query reads `metadata->>'category'` grouping.
 
 ### Deferred to Implementation
 
@@ -109,40 +119,48 @@ The existing gate (`check-magic-numbers.ts`) catches raw numeric literals but ca
 > *Directional guidance, not implementation specification.*
 
 ```
-[Weekly scheduler tick]
+[Weekly scheduler tick]  trigger="scheduled-audit"  mode="runtime"
         ↓
-runVitoAgent("scheduled-audit")
+runVitoAgent(trigger, mode)
         ↓
-  Pass 1: scan_source_files(patterns: model_slugs, api_slugs, endpoint_urls)
-        → cross_reference_admin_resources()
-        → write_violations(critical | high)
+  Pass 1 (runtime): scan_lib_constants()  ← lib/ always present in container
+        → finds DEFAULT_* in wrong files, taxonomy misclassification
+        → write_violations(warning | advisory)
         ↓
-  Pass 2: list_admin_resources(all)
-        → scan_source_for_resolver_calls()
-        → write_violations(medium: unused rows, shadowed rows)
+  Pass 2 (runtime): list_admin_resources() + list_resolver_call_sites()
+        → cross-reference: slots with no resolver call (orphaned rows)
+        → cross-reference: resolver calls with no admin_resources row (missing rows)
+        → write_violations(advisory: drift)
         ↓
-  Pass 3: list_constants_benchmarks()
-        → list_kb_entries(domain: "financial benchmarks")
-        → write_violations(low: KB gaps)
+  Pass 3 (runtime): list_kb_entry_domains()
+        → compare against known benchmark domains in lib/shared/src/constants-benchmarks.ts
+        → write_violations(info: KB gaps)
+        ↓
+  [Full mode only — skipped in scheduled runtime]
+  Pass 4 (full): scan_agent_source_files(artifacts/api-server/src/)
+        → finds model string literals, API slugs, endpoint URL constants
+        → write_violations(block: integration identifier violations)
         ↓
   recordSchedulerCycle(key: "vito-compliance-audit", ...)
-  upsert vito_runs row
+  finalize vito_runs row
 ```
 
 **Admin panel Compliance tab:**
 ```
 Admin > Compliance
   ┌─ Summary bar ─────────────────────────────────┐
-  │  2 critical  ·  5 high  ·  8 medium  ·  3 low │
-  │  Last scan: 2026-05-09  ·  Next: 2026-05-16   │
+  │  1 block  ·  3 warning  ·  5 advisory  ·  2 info │
+  │  Last scan: 2026-05-09 (runtime mode)          │
+  │  Next: 2026-05-16  [Run Full Audit]            │
   └───────────────────────────────────────────────┘
   ┌─ Violations table ───────────────────────────────────────────────────┐
-  │ Sev    File                           Description           Actions  │
-  │ CRIT   ai/iris/agent.ts:23            Model string literal  Fix · ✓  │
-  │ HIGH   slides/deck-render-constants.ts:99  Magic number     Fix · ✓  │
-  │ MED    admin_resources: iris_reindex  Row unused in code    View · ✓ │
-  │ LOW    constants-benchmarks.ts:14     No KB entry for ...   KB  · ✓  │
+  │ Sev      File                           Description         Actions  │
+  │ BLOCK    ai/iris/agent.ts:23  (full)    Model string        Fix · ✓  │
+  │ WARNING  lib/shared/constants.ts:99     Magic number        Fix · ✓  │
+  │ ADVISORY admin_resources: iris_reindex  Row unused          View · ✓ │
+  │ INFO     constants-benchmarks.ts:14     No KB entry         KB  · ✓  │
   └─────────────────────────────────────────────────────────────────────┘
+  Note: BLOCK violations require Full Audit (dev/manual trigger).
 ```
 
 ---
@@ -163,9 +181,10 @@ Admin > Compliance
 - Generate migration: `lib/db/migrations/<next>_compliance_tables.sql`
 
 **Approach:**
-- `vito_runs`: append-only, one row per scan. Columns: `id`, `trigger` (text: `"scheduled-audit"` | `"manual"`), `passesCompleted` (int: 0–3), `criticalCount`, `highCount`, `mediumCount`, `lowCount`, `status` (ok/warn/error), `notes`, `durationMs`, `createdAt`.
-- `compliance_violations`: one row per finding. Columns: `id`, `runId` (FK → vito_runs), `violationType` (text: `"integration_identifier"` | `"magic_number"` | `"admin_resources_drift"` | `"kb_gap"`), `severity` (`"critical"` | `"high"` | `"medium"` | `"low"`), `file` (text), `lineHint` (int nullable), `description` (text), `suggestedFix` (text nullable), `resolvedAt` (timestamp nullable), `resolvedBy` (int FK → users nullable), `acceptedAt` (timestamp nullable), `acceptedNote` (text nullable), `createdAt`.
-- Index on `(severity, resolvedAt, acceptedAt)` for the admin tab query.
+- `vito_runs`: append-only, one row per scan. Columns: `id`, `trigger` (text: `"scheduled-audit"` | `"manual"` | `"manual-full"`), `mode` (text: `"runtime"` | `"full"`), `passesCompleted` (int 0–4), `blockCount`, `warningCount`, `advisoryCount`, `infoCount`, `status` (ok/warn/error), `notes`, `durationMs`, `createdAt`.
+- `compliance_violations`: one row per unique violation, keyed by `violationFingerprint` (deterministic hash: `sha256(violationType + ":" + file + ":" + description)`). Columns: `id`, `violationFingerprint` (text, unique), `violationType` (text: `"integration_identifier"` | `"magic_number"` | `"admin_resources_drift"` | `"kb_gap"`), `severity` (`"block"` | `"warning"` | `"advisory"` | `"info"` — canonical H+ severity scheme, CLAUDE.md convention), `file` (text), `lineHint` (int nullable), `description` (text), `suggestedFix` (text nullable), `firstSeenAt` (timestamp), `lastSeenAt` (timestamp), `lastRunId` (int FK → vito_runs), `resolvedAt` (timestamp nullable), `resolvedBy` (int FK → users nullable), `acceptedAt` (timestamp nullable), `acceptedNote` (text nullable).
+- Upsert strategy: `INSERT ... ON CONFLICT (violation_fingerprint) DO UPDATE SET last_seen_at = NOW(), last_run_id = excluded.last_run_id`.
+- Index on `(severity, resolved_at, accepted_at)` for the admin tab query.
 
 **Patterns to follow:**
 - `lib/db/src/schema/intelligence.ts` `analystRefreshAuditLog` for append-only violation log structure.
@@ -199,12 +218,13 @@ Admin > Compliance
 
 **Approach:**
 
-*`tools.ts`* — Five tools:
-- `scan_source_files(patterns: string[])`: reads a predefined set of source files (agent files, seed files, constants files, slide factory) and returns lines matching given patterns. Non-LLM file I/O; returns `{ file, lineNumber, lineContent }[]`. Respects the protected surface from CLAUDE.md §9 — reads those files but never writes.
+*`tools.ts`* — Six tools:
+- `scan_lib_constants(patterns?: string[])`: reads `lib/shared/src/constants*.ts` and `lib/db/src/constants*.ts` (always present in production container). Returns lines matching patterns or flags DEFAULT_* defined outside canonical files. Non-LLM file I/O.
+- `scan_agent_source_files(patterns: string[])`: reads `artifacts/api-server/src/ai/` and `artifacts/api-server/src/routes/` for integration identifier patterns. Returns `{ file, lineNumber, lineContent }[]`. Preflight check: if path not readable, returns `{ unavailable: true }` — agent skips Pass 4 and notes "runtime mode, source unavailable."
 - `list_admin_resources(kind?: string)`: queries `admin_resources` table, returns rows grouped by kind. Read-only.
-- `list_resolver_call_sites()`: scans source for calls to `resolveLlmFor()`, `getAdminResourceBySlug()`, `getParameterValue()` — returns `{ file, slot }[]` showing what the code actually requests at runtime.
-- `list_kb_entry_domains()`: queries vector store for distinct `category` and `title` metadata across KB chunks — returns a coverage summary without fetching content.
-- `write_violation(runId, violationType, severity, file, lineHint, description, suggestedFix?)`: inserts one row into `compliance_violations`. Returns inserted ID.
+- `list_resolver_call_sites()`: scans `lib/` files for calls to `resolveLlmFor()`, `getAdminResourceBySlug()`, `getParameterValue()` — returns `{ file, slot }[]`. (Resolver calls in agent files in `artifacts/` cannot be scanned in runtime mode — noted as a known gap.)
+- `list_kb_entry_domains()`: queries `vector_chunks` table for distinct `metadata->>'category'` groupings and counts — returns domain coverage summary without fetching content.
+- `write_violation(runId, violationType, severity, file, lineHint, description, suggestedFix?)`: upserts into `compliance_violations` on `violation_fingerprint`. Severity must be one of `"block" | "warning" | "advisory" | "info"`. Returns upserted row ID and whether it was new or updated.
 
 *`agent.ts`* — `runVitoAgent(trigger)`:
 - Resolves model via `resolveLlmFor("vito_compliance_audit")` (U3 seeds this slot).
@@ -367,10 +387,11 @@ Admin > Compliance
 
 | Risk | Mitigation |
 |---|---|
-| Source file paths differ in Railway container vs dev | Read `process.cwd()` at runtime; add a `scan_source_files` health check that verifies at least one known file is readable before starting passes |
-| Vito run takes >5min (many files, slow LLM) | Weekly cadence means latency is acceptable; cap tool loop depth at 20 and add per-pass timeout of 90s |
-| False positives on legitimate string constants (e.g. UI labels containing model names) | Vito's system prompt instructs it to check against `admin_resources` before flagging — a string present as a DB row is not a violation |
-| `compliance_violations` table grows unbounded | Add 90-day retention cleanup as follow-up; acceptable for v1 |
+| `artifacts/api-server/src/` not present in Railway container (confirmed) | Runtime mode skips Pass 4 gracefully; `scan_agent_source_files` returns `{ unavailable: true }` — agent notes gap in run summary. Full mode (manual trigger in dev) covers Pass 4. |
+| Vito run takes >5min (many lib/ files, slow LLM) | Weekly cadence, cap tool loop at 20, per-pass 90s timeout |
+| False positives on legitimate string constants in lib/ | System prompt instructs: check against `admin_resources` before flagging — a slug present as a DB row is not a violation |
+| `compliance_violations` grows unbounded | Fingerprint udup means violations don't multiply. Add 90-day retention for fully-resolved rows in a follow-up. |
+| Resolver call site scan misses `artifacts/` calls in runtime mode | Known gap, documented. DB parity (Pass 2) still catches missing `admin_resources` rows even without call-site scan. |
 
 ---
 
