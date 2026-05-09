@@ -14,10 +14,11 @@
  * immediately starts Lucca. Both endpoints return 202 Accepted.
  */
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -168,7 +169,7 @@ interface LuccaSlotDraft {
   value: string;
   approved: boolean;
   approvedAt: string | null;
-  source: "lucca" | "admin";
+  source: "lucca" | "admin" | "admin-override";
 }
 
 // Front-end view of LorenzoCanonicalSpec stored in canonicalSpec JSONB.
@@ -195,6 +196,7 @@ const TRANSITIONING_STATUSES: ReadonlySet<FactoryStatus> = new Set([
   "ingesting",
   "drafting",
   "building",
+  "rebuilding",
 ]);
 
 function isTerminal(run: SlideFactoryRun | null): boolean {
@@ -216,6 +218,7 @@ function statusToTab(status: FactoryStatus | undefined): FactoryTab {
     case "building":
       return "f-agents";
     case "complete":
+    case "rebuilding":
       return "f-download";
     default:
       return "f-brief";
@@ -1588,9 +1591,282 @@ function FactoryAgentsTab({ run }: { run: SlideFactoryRun }) {
   );
 }
 
+// ── Tab 6 — Override panel (edit slots after completion) ─────────────────────
+
+interface SlotConfig {
+  key: string;
+  label: string;
+  hint: string;
+  multiline: boolean;
+}
+
+const OVERRIDE_SLOT_GROUPS: Array<{ slideLabel: string; slots: SlotConfig[] }> = [
+  {
+    slideLabel: "Slide 1 — Vision",
+    slots: [
+      { key: "slide1.headerSubtitle", label: "Tagline", hint: "", multiline: false },
+      {
+        key: "slide1.visionBullets",
+        label: "Vision Bullets",
+        hint: "One bullet per line — start each with •",
+        multiline: true,
+      },
+    ],
+  },
+  {
+    slideLabel: "Slide 2 — Operational Model",
+    slots: [
+      { key: "slide2.operationalModelText", label: "Operational Model", hint: "", multiline: true },
+      { key: "slide2.revenueBullet", label: "Revenue Mix", hint: "", multiline: false },
+      { key: "slide2.programmingBullet", label: "Programming", hint: "", multiline: false },
+    ],
+  },
+  {
+    slideLabel: "Slide 3 — Concept",
+    slots: [
+      { key: "slide3.conceptParagraph", label: "Concept Paragraph", hint: "", multiline: true },
+      { key: "slide3.marketRationale", label: "Market Rationale", hint: "", multiline: true },
+      {
+        key: "slide3.reasons",
+        label: "Investment Reasons",
+        hint: "Format: Label: detail — one reason per blank line",
+        multiline: true,
+      },
+      { key: "slide3.closingLine", label: "Closing Line", hint: "", multiline: false },
+    ],
+  },
+  {
+    slideLabel: "Slide 4 — Portfolio",
+    slots: [
+      { key: "slide4.sectionSubtitle", label: "Section Subtitle", hint: "", multiline: false },
+    ],
+  },
+  {
+    slideLabel: "Slide 5 — Transformation",
+    slots: [
+      {
+        key: "slide5.transformationDescription",
+        label: "Transformation Description",
+        hint: "",
+        multiline: true,
+      },
+      {
+        key: "slide5.transformationRows",
+        label: "Transformation Table",
+        hint: "Format: Feature | Existing | Proposed — one row per line",
+        multiline: true,
+      },
+    ],
+  },
+  {
+    slideLabel: "Slide 6 — Disclaimer",
+    slots: [
+      { key: "slide6.disclaimer", label: "Disclaimer", hint: "", multiline: true },
+    ],
+  },
+];
+
+function SlotEditor({
+  slotKey,
+  draft,
+  runId,
+  onRunUpdate,
+  disabled,
+}: {
+  slotKey: string;
+  draft: LuccaSlotDraft | undefined;
+  runId: number;
+  onRunUpdate: (r: SlideFactoryRun) => void;
+  disabled: boolean;
+}) {
+  const { toast } = useToast();
+  const config = OVERRIDE_SLOT_GROUPS.flatMap((g) => g.slots).find((s) => s.key === slotKey);
+  const [localValue, setLocalValue] = useState(draft?.value ?? "");
+  const [saving, setSaving] = useState(false);
+  const isDirty = localValue !== (draft?.value ?? "");
+
+  // Sync if draft value changes externally (e.g. after another slot save)
+  useEffect(() => {
+    setLocalValue(draft?.value ?? "");
+  }, [draft?.value]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const r = await fetch(
+        `/api/lb-slides/factory/runs/${runId}/slots/${encodeURIComponent(slotKey)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ value: localValue }),
+        },
+      );
+      if (!r.ok) {
+        const b = (await r.json().catch(() => ({}))) as { error?: string };
+        throw new Error(b.error ?? "Failed to save slot");
+      }
+      onRunUpdate((await r.json()) as SlideFactoryRun);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Save failed";
+      toast({ title: "Failed to save slot", description: msg, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const isOverride = draft?.source === "admin-override";
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <label className="text-xs font-medium text-foreground">
+          {config?.label ?? slotKey}
+          {isOverride && (
+            <span className="ml-1.5 text-[10px] font-normal text-amber-600 bg-amber-50 border border-amber-200 rounded px-1 py-px">
+              overridden
+            </span>
+          )}
+        </label>
+        {isDirty && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-6 text-[11px] px-2"
+            onClick={() => void handleSave()}
+            disabled={saving || disabled}
+            data-testid={`save-slot-${slotKey}`}
+          >
+            {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : "Save"}
+          </Button>
+        )}
+      </div>
+      {config?.hint && (
+        <p className="text-[10px] text-muted-foreground">{config.hint}</p>
+      )}
+      {config?.multiline ? (
+        <Textarea
+          value={localValue}
+          onChange={(e) => setLocalValue(e.target.value)}
+          disabled={disabled}
+          rows={localValue.split("\n").length + 1}
+          className="text-xs font-mono resize-none min-h-[3rem]"
+          data-testid={`slot-textarea-${slotKey}`}
+        />
+      ) : (
+        <Input
+          value={localValue}
+          onChange={(e) => setLocalValue(e.target.value)}
+          disabled={disabled}
+          className="text-xs h-8"
+          data-testid={`slot-input-${slotKey}`}
+        />
+      )}
+    </div>
+  );
+}
+
+function FactoryOverridePanel({
+  run,
+  onRunUpdate,
+}: {
+  run: SlideFactoryRun;
+  onRunUpdate: (r: SlideFactoryRun) => void;
+}) {
+  const { toast } = useToast();
+  const [rebuilding, setRebuilding] = useState(false);
+
+  const isRebuilding = run.status === "rebuilding";
+  const draft = run.luccaDraft ?? {};
+
+  const handleRebuild = async () => {
+    setRebuilding(true);
+    try {
+      const r = await fetch(`/api/lb-slides/factory/runs/${run.id}/rebuild`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!r.ok) {
+        const b = (await r.json().catch(() => ({}))) as { error?: string };
+        throw new Error(b.error ?? "Rebuild failed");
+      }
+      onRunUpdate((await r.json()) as SlideFactoryRun);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Rebuild failed";
+      toast({ title: "Rebuild failed", description: msg, variant: "destructive" });
+      setRebuilding(false);
+    }
+  };
+
+  const editorDisabled = isRebuilding || rebuilding;
+
+  return (
+    <Card data-testid={`override-panel-${run.id}`}>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between gap-3">
+          <CardTitle className="text-sm font-semibold">Override Slots</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Edit and save individual slots, then rebuild the PDF.
+          </p>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isRebuilding ? (
+          <div className="flex items-center gap-3 py-4 justify-center">
+            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Rebuilding PDF…</p>
+          </div>
+        ) : (
+          <>
+            {OVERRIDE_SLOT_GROUPS.map(({ slideLabel, slots }) => (
+              <Collapsible key={slideLabel} defaultOpen={false}>
+                <CollapsibleTrigger className="flex items-center gap-1.5 w-full text-left group">
+                  <span className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+                    {slideLabel}
+                  </span>
+                  {slots.some((s) => draft[s.key]?.source === "admin-override") && (
+                    <span className="text-[10px] text-amber-600 font-medium">• edited</span>
+                  )}
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2 space-y-3 pl-2 border-l border-border">
+                  {slots.map((s) => (
+                    <SlotEditor
+                      key={s.key}
+                      slotKey={s.key}
+                      draft={draft[s.key]}
+                      runId={run.id}
+                      onRunUpdate={onRunUpdate}
+                      disabled={editorDisabled}
+                    />
+                  ))}
+                </CollapsibleContent>
+              </Collapsible>
+            ))}
+            <div className="pt-2 border-t border-border">
+              <Button
+                onClick={() => void handleRebuild()}
+                disabled={editorDisabled}
+                size="sm"
+                data-testid="rebuild-pdf-button"
+              >
+                {rebuilding ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
+                ) : (
+                  <IconDownload className="w-3.5 h-3.5 mr-1.5" />
+                )}
+                Rebuild PDF
+              </Button>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Tab 6 — Download (complete) ──────────────────────────────────────────────
 
-function FactoryDownloadTab({ run }: { run: SlideFactoryRun }) {
+function FactoryDownloadTab({ run, onRunUpdate }: { run: SlideFactoryRun; onRunUpdate: (r: SlideFactoryRun) => void }) {
   const { toast } = useToast();
   const [downloading, setDownloading] = useState(false);
   const hasDeck = Boolean(run.deckR2Key);
@@ -1642,43 +1918,57 @@ function FactoryDownloadTab({ run }: { run: SlideFactoryRun }) {
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex items-center gap-2">
-          <IconCheckCircle weight="fill" className="w-4 h-4 text-success" />
-          <CardTitle className="text-sm font-semibold">Deck ready</CardTitle>
-        </div>
-        {run.completedAt && (
-          <p className="text-xs text-muted-foreground">
-            Completed {new Date(run.completedAt).toLocaleDateString()} at{" "}
-            {new Date(run.completedAt).toLocaleTimeString()}
-          </p>
-        )}
-      </CardHeader>
-      <CardContent>
-        {hasDeck ? (
-          <Button onClick={() => void handleDownload()} disabled={downloading}>
-            {downloading ? (
-              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+    <div className="space-y-4" data-testid={`download-tab-${run.id}`}>
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            {run.status === "rebuilding" ? (
+              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
             ) : (
-              <IconDownload className="w-4 h-4 mr-2" />
+              <IconCheckCircle weight="fill" className="w-4 h-4 text-success" />
             )}
-            Download PDF
-          </Button>
-        ) : (
-          <div className="flex items-start gap-3 rounded-md border border-border bg-muted/30 p-4">
-            <IconAlertCircle className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium">Deck not yet rendered</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                The build completed but the PDF has not been generated. Please contact your
-                administrator.
-              </p>
-            </div>
+            <CardTitle className="text-sm font-semibold">
+              {run.status === "rebuilding" ? "Rebuilding PDF…" : "Deck ready"}
+            </CardTitle>
           </div>
-        )}
-      </CardContent>
-    </Card>
+          {run.completedAt && run.status !== "rebuilding" && (
+            <p className="text-xs text-muted-foreground">
+              Completed {new Date(run.completedAt).toLocaleDateString()} at{" "}
+              {new Date(run.completedAt).toLocaleTimeString()}
+            </p>
+          )}
+        </CardHeader>
+        <CardContent>
+          {hasDeck && run.status !== "rebuilding" ? (
+            <Button onClick={() => void handleDownload()} disabled={downloading}>
+              {downloading ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <IconDownload className="w-4 h-4 mr-2" />
+              )}
+              Download PDF
+            </Button>
+          ) : run.status === "rebuilding" ? (
+            <p className="text-xs text-muted-foreground">
+              A new version of the PDF is being generated…
+            </p>
+          ) : (
+            <div className="flex items-start gap-3 rounded-md border border-border bg-muted/30 p-4">
+              <IconAlertCircle className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium">Deck not yet rendered</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  The build completed but the PDF has not been generated. Please contact your
+                  administrator.
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <FactoryOverridePanel run={run} onRunUpdate={onRunUpdate} />
+    </div>
   );
 }
 
@@ -1788,8 +2078,8 @@ export function SlideFactoryPanel() {
         </TabsContent>
 
         <TabsContent value="f-download" className="mt-4">
-          {run && (run.status === "complete" || run.status === "error") ? (
-            <FactoryDownloadTab run={run} />
+          {run && (run.status === "complete" || run.status === "rebuilding" || run.status === "error") ? (
+            <FactoryDownloadTab run={run} onRunUpdate={handleRunUpdate} />
           ) : (
             <PlaceholderTab
               title="Complete — Download deck"
