@@ -122,7 +122,7 @@ export async function runMinionFmpReit(): Promise<MinionResult> {
       const msg = result.reason instanceof Error ? result.reason.message : String(result.reason);
       if (msg === "NOT_SUBSCRIBED") {
         logger.info(`${TAG} RapidAPI Yahoo Finance not subscribed — skipping (subscribe at rapidapi.com/apidojo/api/yahoo-finance1)`);
-        return { source: "fmp-reit", rowsUpserted: 0, rowsFailed: 0, errors: [], durationMs: Date.now() - t0 };
+        break;
       }
       errors.push(`${ticker}: ${msg}`);
       continue;
