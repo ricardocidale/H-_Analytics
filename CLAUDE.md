@@ -421,6 +421,19 @@ In all other files, ALL_CAPS const definitions with numeric literals are flagged
 
 **Slide Deck Factory rule:** The LB investor deck pipeline (`artifacts/api-server/src/slides/`) is a pure consumer. It sources every financial assumption from `storage.getGlobalAssumptions()` → `buildGlobalInput()` → the finance engine. It never defines its own projection years, interest rates, or cap rates. After every change to the Slide Deck Factory, verify no local assumption constants were introduced.
 
+### Inflation policy (USD-base calculations) — supersedes prior cascade
+
+All H+ financials are reported in USD. Therefore the inflation rate used in **every calculation** is the **US inflation rate**, for every property in every country. Country-level inflation tables remain populated with true local-currency inflation per country, but they are **display-only** (research panels, country pages, informational tooltips) and **never read by `calc/` or `engine/`**.
+
+- Engine cascade: `company.inflationRate ?? property.inflationRate ?? getFactoryNumber('inflationRate', 'US') ?? marketMacroFallback`. The country argument is **always `'US'`** for engine use.
+- Property-level inflation overrides only become meaningful if reporting currency ≠ USD; today no property is in this state.
+- User/admin **can** still edit the inflation rate in the assumptions pages — that user-override path is preserved.
+- The Management page and every Property page must **disclose the inflation rate being applied to the calculations** (e.g. "Inflation used in calculations: 3.1% (US, source: BLS CPI-U via [specialist])"). Not tooltip-only — keep it visible in-context.
+- Analyst-button table regeneration still applies to every inflation-bearing table (Constants, country tables, Market & Macro defaults). Refresh repopulates the underlying values; what flows into the engine is still gated by the rule above.
+- The Number-taxonomy hint that recommends `?? getFactoryNumber('inflationRate', country)` for inflation specifically must be read as `country = 'US'`. For all other Category-4 values (tax, depreciation), the country-aware lookup remains correct.
+
+Authoritative skill: `.agents/skills/inflation-cascade/SKILL.md`. Older "country cascade into engine" notes are **superseded** by this policy.
+
 ### LB Slides — investor PDF decks (Playwright HTML→PDF)
 
 Generates a 6-slide investor deck per property as a PDF matched to the canonical L+B reference deck. Slide 7 ("The Ask") is always excluded.

@@ -63,6 +63,7 @@ See `CLAUDE.md` §§ 1–12 (no hardcoded values — numeric literals AND integr
 | Research trigger buttons | `analyst-research-buttons` skill |
 | Intelligence display components | `analyst-intelligence-display` skill |
 | Memory file harmonization | `agent-memory-files` skill |
+| Inflation policy (USD-base calc) | `inflation-cascade` skill — **supersedes prior country cascade** |
 
 ---
 
@@ -77,6 +78,6 @@ See `CLAUDE.md` §§ 1–12 (no hardcoded values — numeric literals AND integr
 <!-- keep ≤ 3 entries; remove oldest when adding new ones -->
 | Date | Change |
 |---|---|
+| 2026-05-09 | **Inflation policy: USD-base calculations (supersedes country cascade).** All H+ financials report in USD, therefore the inflation rate used in every engine calculation is the **US rate** — for every property in every country. Country-level inflation tables stay populated and surfaced in research views as **display-only / informational**; they are no longer read by `calc/` or `engine/`. User/admin can still edit inflation in assumptions pages; Analyst-button table regeneration still applies; Management page and every Property page must disclose the inflation rate being applied. Skill `.agents/skills/inflation-cascade/SKILL.md` rewritten to put this policy on top with a "Policy change history" section. CLAUDE.md gets a new "Inflation policy (USD-base calculations)" subsection under Architecture Notes. |
 | 2026-05-09 | **Agent-native Wave 0 (W0.1–W0.4).** `rebeccaResponseMode` from DB now used as default when chat body omits `responseMode` (W0.1). Portfolio verification opinion injected into Rebecca's system prompt when a property is in scope (W0.2). Parity map updated with 4 missing tools (`list_scenarios`, `get_scenario`, `patch_property`, `get_tripadvisor_hotels`) + CI guard test (W0.3). Dino constants already extracted — W0.4 confirmed done (W0.4). |
 | 2026-05-08 | **Tripadvisor live tool wired for Rebecca.** New `get_tripadvisor_hotels` tool in `rebecca-tools.ts` — on-demand hotel search (name, rating, reviews, city rank, price tier, awards) via official Tripadvisor Content API. Provider module at `src/data/tripadvisor.ts`. Constants (`TRIPADVISOR_MAX_HOTEL_RESULTS`, `TRIPADVISOR_DEFAULT_HOTEL_LIMIT`) promoted to `lib/shared/src/constants-research.ts`. Admin-resources-007 migration seeds the source row. Requires `TRIPADVISOR_API_KEY` (register at tripadvisor.com/developers). All checks pass. |
-| 2026-05-08 | **Schema change workflow documented (Task #1201).** Added "Schema change workflow" runbook to CLAUDE.md § Migration system architecture and to `.local/skills/pnpm-workspace/references/db.md`. Updated Key Commands to include `generate`. Updated CC/Replit lane split to drop the manual-SQL fallback instruction. |
