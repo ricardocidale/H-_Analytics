@@ -352,13 +352,9 @@ Specialists page, Gustavo's page, or anywhere else in Intelligence.
 
 ### Rule 13 — LLMs page uses workflow cards (accordion), not an LLM registry
 
-The LLMs page shows **LLM workflows** — each card represents a specific job/use-case
-that uses one or more LLMs. It is NOT a flat list of LLM models or vendors.
-See the full spec: `docs/solutions/architecture-patterns/llms-page-workflow-cards-spec-2026-05-02.md`
+The LLMs page uses a **slot-based accordion** — vendor/model selections are organized by functional area and per-slot overrides, not by workflow card. See the current design: `docs/solutions/architecture-patterns/llms-page-slot-accordion-design-2026-05-09.md`
 
-Key requirements per card:
-- Vendor(s) + model selection dropdown per vendor (Analyst recommendation highlighted IN the dropdown)
-- Save button (saves vendor/model preference) + Analyst button (regenerates lists + tests the workflow)
+Key sections: Vendor Health panel (post-probe status tiles), Function-Area Defaults (Research/Operations/Assistants/Exports), N+1 Orchestrator Defaults, Slot Accordion (per-slot vendor+model overrides, batch Save), Specialists (override status + deep-link to Config tab).
 - Prompt display (literal text or construction description; may be multiple prompts)
 - Specialists involved (⚠ warning flag if none assigned)
 - Status icon + last updated timestamp
@@ -382,5 +378,5 @@ Key requirements per card:
 - `docs/solutions/architecture-patterns/admin-sidebar-ia-sources-resources-2026-05-02.md` — compound knowledge doc
 - `docs/solutions/architecture-patterns/no-duplicate-menu-items-hierarchical-nav-2026-05-02.md` — one-destination rule
 - `docs/solutions/architecture-patterns/sources-ux-status-analyst-button-2026-05-02.md` — Sources UX requirements
-- `docs/solutions/architecture-patterns/llms-page-workflow-cards-spec-2026-05-02.md` — LLMs page full spec (workflow accordion, vendor/model dropdowns, Analyst recommendation, Save, dirty-state guard, prompt display, specialist warning)
+- `docs/solutions/architecture-patterns/llms-page-slot-accordion-design-2026-05-09.md` — LLMs page architecture: slot-based accordion with vendor health, function-area defaults, N+1 orchestrator defaults, and per-slot overrides
 - `docs/solutions/architecture-patterns/intelligence-specialists-page-2026-05-02.md` — Specialists accordion page spec

@@ -29,6 +29,8 @@ tags:
 
 # Financial Engine Audit: Eight Integrity Findings in Cash Flow, Debt, and Rollup Logic
 
+> **Status note (2026-05-09):** A code inspection session found evidence that MAJOR-2 (refinance sizing), MAJOR-3 (PMT silent cap), MAJOR-5 (pre-ops fixed-cost gating), and MINOR-7 (aggregation deduplication) appear to have been resolved in subsequent engine work. MAJOR-1, MAJOR-4, MINOR-6, and INFO-8 status is unchanged. The findings below are preserved as-documented for formal verification — do not remove findings without re-running the proof tests (`artifacts/api-server/src/tests/proof/`) to confirm resolution. This is a protected surface (CLAUDE.md §9); all verification must be done in a shell CC session.
+
 ## Problem
 
 A systematic financial integrity audit of `lib/engine` identified eight material findings spanning
