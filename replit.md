@@ -65,6 +65,7 @@ See `CLAUDE.md` §§ 1–12 (no hardcoded values — numeric literals AND integr
 | Memory file harmonization | `agent-memory-files` skill |
 | Inflation policy (USD-base calc) | `inflation-cascade` skill — **supersedes prior country cascade** |
 | Integration-health audit (Costantino) | `costantino-data-custodian` skill |
+| Agent naming + reserved names | `slide-factory` skill |
 
 ---
 
@@ -79,6 +80,6 @@ See `CLAUDE.md` §§ 1–12 (no hardcoded values — numeric literals AND integr
 <!-- keep ≤ 3 entries; remove oldest when adding new ones -->
 | Date | Change |
 |---|---|
-| 2026-05-09 | **Inflation policy: USD-base calculations (supersedes country cascade).** All H+ financials report in USD, therefore the inflation rate used in every engine calculation is the **US rate** — for every property in every country. Country-level inflation tables stay populated and surfaced in research views as **display-only / informational**; they are no longer read by `calc/` or `engine/`. User/admin can still edit inflation in assumptions pages; Analyst-button table regeneration still applies; Management page and every Property page must disclose the inflation rate being applied. Skill `.agents/skills/inflation-cascade/SKILL.md` rewritten to put this policy on top with a "Policy change history" section. CLAUDE.md gets a new "Inflation policy (USD-base calculations)" subsection under Architecture Notes. |
 | 2026-05-09 | **Agent-native Wave 0 (W0.1–W0.4).** `rebeccaResponseMode` from DB now used as default when chat body omits `responseMode` (W0.1). Portfolio verification opinion injected into Rebecca's system prompt when a property is in scope (W0.2). Parity map updated with 4 missing tools (`list_scenarios`, `get_scenario`, `patch_property`, `get_tripadvisor_hotels`) + CI guard test (W0.3). Dino constants already extracted — W0.4 confirmed done (W0.4). |
 | 2026-05-09 | **Costantino — Data Custodian (Step 0).** New periodic agentic scheduler that audits every `admin_resources` row of kind {api, source, mcp} with a `config.healthProbe` recipe. 8-tool loop, findings persist in new `costantino_findings` table (migration 0048), cadence admin-editable via parameter row `costantino-health-cycle-interval-ms` (default 5d, clamp 60s–30d), self-rescheduling `setTimeout` chain, Phase 3l boot hook. Runs side-by-side with legacy `resource-health-checker.ts` — Step 1 retires it. Skill: `costantino-data-custodian`. |
+| 2026-05-08 | **Schema change workflow.** Always use `pnpm --filter @workspace/db run generate` to produce migrations — never hand-craft SQL (except complex backfills). Full runbook: `.local/skills/pnpm-workspace/references/db.md`. Also: `executeSql()` hits the wrong DB — use admin API endpoints or a one-off Node.js script with `POSTGRES_URL` to query Neon. |
