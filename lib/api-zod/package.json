@@ -7,7 +7,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "lint": "eslint src"
+    "lint": "eslint src --cache --cache-location .eslintcache"
   },
   "dependencies": {
     "zod": "catalog:"

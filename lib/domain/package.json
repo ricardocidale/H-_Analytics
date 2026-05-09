@@ -10,7 +10,7 @@
     "./ledger/*": "./src/ledger/*.ts"
   },
   "scripts": {
-    "lint": "eslint src"
+    "lint": "eslint src --cache --cache-location .eslintcache"
   },
   "devDependencies": {
     "eslint": "^10.3.0",
