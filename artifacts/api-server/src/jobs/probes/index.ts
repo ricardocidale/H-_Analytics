@@ -27,12 +27,16 @@ export interface ProbeOutcome {
 const PROBE_TIMEOUT_MS = 5_000;
 
 async function withTimeout<T>(p: Promise<T>, label: string): Promise<T> {
-  return Promise.race([
-    p,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`${label} timed out after ${PROBE_TIMEOUT_MS}ms`)), PROBE_TIMEOUT_MS),
-    ),
-  ]);
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+  const timeoutP = new Promise<T>((_, reject) => {
+    timeoutHandle = setTimeout(() => reject(new Error(`${label} timed out after ${PROBE_TIMEOUT_MS}ms`)), PROBE_TIMEOUT_MS);
+  });
+  timeoutP.catch(() => {});
+  try {
+    return await Promise.race([p, timeoutP]);
+  } finally {
+    clearTimeout(timeoutHandle);
+  }
 }
 
 /**

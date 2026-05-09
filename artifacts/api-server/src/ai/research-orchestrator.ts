@@ -135,12 +135,21 @@ async function runAnalystPanel(
         : "\n\n[ANALYST ROLE: You are a MARKET STRATEGY analyst. Focus on positioning, competitive dynamics, risk factors, demand drivers.]";
     const analystV2Prompt = v2Prompt ? v2Prompt + roleInstruction : undefined;
 
-    const output = await Promise.race([
-      generateResearchWithTools(analystParams, client, model, undefined, analystV2Prompt),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`Analyst panel timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`)), AI_GENERATION_TIMEOUT_MS),
-      ),
-    ]);
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+    const timeoutP = new Promise<never>((_, reject) => {
+      timeoutHandle = setTimeout(() => reject(new Error(`Analyst panel timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`)), AI_GENERATION_TIMEOUT_MS);
+    });
+    timeoutP.catch(() => {});
+
+    let output: Awaited<ReturnType<typeof generateResearchWithTools>>;
+    try {
+      output = await Promise.race([
+        generateResearchWithTools(analystParams, client, model, undefined, analystV2Prompt),
+        timeoutP,
+      ]);
+    } finally {
+      clearTimeout(timeoutHandle);
+    }
 
     return { model, role, output, durationMs: Date.now() - start };
   } catch (err: unknown) {

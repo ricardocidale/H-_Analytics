@@ -1,7 +1,7 @@
 ---
 title: "feat: Vito — Compliance Audit Agent for Number Taxonomy, admin_resources Parity, and KB Coverage"
 type: feat
-status: active
+status: completed
 date: 2026-05-09
 ---
 
