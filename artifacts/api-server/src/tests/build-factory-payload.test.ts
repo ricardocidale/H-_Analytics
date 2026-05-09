@@ -335,6 +335,28 @@ describe("buildFactoryPayload — slot-omission edge cases", () => {
   });
 });
 
+describe("buildFactoryPayload — slide3.interiorPhotoUrl override", () => {
+  it("passes through photo URL as plain string when non-empty", () => {
+    const url = "https://r2.example.com/photo.jpg";
+    const payload = buildFactoryPayload(makeCompleteRun({
+      luccaDraft: { "slide3.interiorPhotoUrl": makeDraft(url) },
+    }));
+    expect(payload.slide3?.interiorPhotoUrl).toBe(url);
+  });
+
+  it("omits interiorPhotoUrl when value is empty string", () => {
+    const payload = buildFactoryPayload(makeCompleteRun({
+      luccaDraft: { "slide3.interiorPhotoUrl": makeDraft("") },
+    }));
+    expect(payload.slide3?.interiorPhotoUrl).toBeUndefined();
+  });
+
+  it("omits interiorPhotoUrl when key is absent from luccaDraft", () => {
+    const payload = buildFactoryPayload(makeCompleteRun({ luccaDraft: {} }));
+    expect(payload.slide3?.interiorPhotoUrl).toBeUndefined();
+  });
+});
+
 describe("buildFactoryPayload — non-slot-copy fields cannot alter output", () => {
   // DeckPayloadV2 is slot-copy-only. Property assignments and agentResults
   // live on SlideFactoryRun but are not part of the output schema. The U4

@@ -36,7 +36,8 @@ import {
 
 // ── In-flight guard ───────────────────────────────────────────────────────────
 // Key format: "<runId>:<slotKey>"
-const inFlightSuggestions = new Set<string>();
+// Exported for test inspection only — do not mutate from outside this module.
+export const inFlightSuggestions = new Set<string>();
 
 // ── Route registration ────────────────────────────────────────────────────────
 

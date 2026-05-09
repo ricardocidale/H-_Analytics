@@ -1597,7 +1597,8 @@ interface SlotConfig {
   key: string;
   label: string;
   hint: string;
-  multiline: boolean;
+  multiline?: boolean;
+  type?: "text" | "photo";
 }
 
 const OVERRIDE_SLOT_GROUPS: Array<{ slideLabel: string; slots: SlotConfig[] }> = [
@@ -1633,6 +1634,12 @@ const OVERRIDE_SLOT_GROUPS: Array<{ slideLabel: string; slots: SlotConfig[] }> =
         multiline: true,
       },
       { key: "slide3.closingLine", label: "Closing Line", hint: "", multiline: false },
+      {
+        key: "slide3.interiorPhotoUrl",
+        label: "Interior Photo",
+        hint: "Paste an R2 photo URL to override the auto-selected interior photo",
+        type: "photo" as const,
+      },
     ],
   },
   {
@@ -1755,7 +1762,7 @@ function SlotEditor({
           )}
         </label>
         <div className="flex items-center gap-1">
-          <Button
+          {config?.type !== "photo" && <Button
             size="sm"
             variant="ghost"
             className="h-6 text-[11px] px-2 text-muted-foreground hover:text-primary"
@@ -1788,7 +1795,51 @@ function SlotEditor({
       {config?.hint && (
         <p className="text-[10px] text-muted-foreground">{config.hint}</p>
       )}
-      {config?.multiline ? (
+      {config?.type === "photo" ? (
+        <div className="space-y-2">
+          {localValue && (
+            <div className="relative inline-block">
+              <img
+                src={localValue}
+                alt="Interior photo override"
+                className="h-24 w-auto rounded border object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setLocalValue("");
+                  void handleSave();
+                }}
+                disabled={disabled}
+                className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center"
+                title="Clear photo override"
+              >
+                ×
+              </button>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Input
+              value={localValue}
+              onChange={(e) => setLocalValue(e.target.value)}
+              disabled={disabled}
+              placeholder="Paste R2 photo URL…"
+              className="text-xs h-8 flex-1"
+              data-testid={`slot-photo-input-${slotKey}`}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-[11px] px-2 shrink-0"
+              onClick={() => void handleSave()}
+              disabled={saving || disabled || localValue === (draft?.value ?? "")}
+              data-testid={`save-slot-${slotKey}`}
+            >
+              {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : "Set"}
+            </Button>
+          </div>
+        </div>
+      ) : config?.multiline ? (
         <Textarea
           value={localValue}
           onChange={(e) => setLocalValue(e.target.value)}
