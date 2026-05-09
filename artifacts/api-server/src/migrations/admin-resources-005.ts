@@ -307,6 +307,14 @@ export const LLM_SLOT_SEED_ROWS: SeedRow[] = [
     description: "LLM used by Pietro for scheduled-prefetch, manual, and source-added orchestration runs (Sonnet tier)",
     config: { modelSlug: "claude-sonnet-4-6" },
   },
+  // ── Vito compliance agent slot ──────────────────────────────────────────────
+  {
+    kind: "llm_slot",
+    slug: "vito-compliance-audit",
+    displayName: "Vito Compliance Audit",
+    description: "LLM used by Vito to reason about compliance violations and classify findings",
+    config: { modelSlug: "claude-sonnet-4-6" },
+  },
 ];
 
 // ── Source / API / Benchmark rows ──────────────────────────────────────────

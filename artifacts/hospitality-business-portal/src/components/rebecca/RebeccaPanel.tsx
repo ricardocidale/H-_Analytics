@@ -474,6 +474,8 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
             queryClient.invalidateQueries({ queryKey: ["/api/lb-slides/factory/runs"] });
           } else if (entry.entityType === "data_source") {
             queryClient.invalidateQueries({ queryKey: ["/api/admin/data-sources"] });
+          } else if (entry.entityType === "compliance_run") {
+            queryClient.invalidateQueries({ queryKey: ["/api/admin/compliance/violations"] });
           }
         }
       }
@@ -617,6 +619,8 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                       queryClient.invalidateQueries({ queryKey: ["/api/lb-slides/factory/runs"] });
                     } else if (entry.entityType === "data_source") {
                       queryClient.invalidateQueries({ queryKey: ["/api/admin/data-sources"] });
+                    } else if (entry.entityType === "compliance_run") {
+                      queryClient.invalidateQueries({ queryKey: ["/api/admin/compliance/violations"] });
                     }
                   }
                 }

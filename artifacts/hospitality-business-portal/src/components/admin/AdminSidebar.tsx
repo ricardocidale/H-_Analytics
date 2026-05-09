@@ -45,7 +45,7 @@ export type AdminSection =
   | "brand"
   | "ai-agents"
   | "engine-dashboard" | "data-sources" | "pipeline-config" | "qa-sandbox" | "scheduled-research" | "benchmarks" | "analyst-tables" | "reference-ranges" | "vector-bench"
-  | "sidebar-visibility" | "notifications" | "verification" | "database" | "observability"
+  | "sidebar-visibility" | "notifications" | "verification" | "database" | "observability" | "compliance"
   | "property-heroes"
   // Legacy URL aliases preserved for plausibly-bookmarked deep links.
   // Anything beyond this short list was a code-internal rename and was
@@ -237,6 +237,7 @@ function buildNavGroups(): NavGroup[] {
       sections: [
         { value: "verification", label: "Verification", icon: IconFileCheck },
         { value: "qa-sandbox",   label: "QA Sandbox",   icon: IconShieldCheck },
+        { value: "compliance",   label: "Compliance",   icon: IconShield },
       ],
     },
     {
