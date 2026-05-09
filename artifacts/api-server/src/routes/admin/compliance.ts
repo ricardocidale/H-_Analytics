@@ -32,7 +32,6 @@ import {
   HTTP_400_BAD_REQUEST,
   HTTP_404_NOT_FOUND,
 } from "../../constants";
-import { createVitoRun } from "../../ai/vito/workspace";
 import { runVitoAgent, type VitoTrigger } from "../../ai/vito/agent";
 import { logger } from "../../logger";
 
@@ -224,19 +223,28 @@ export function registerComplianceRoutes(app: Express): void {
     }
 
     const trigger = parsed.data.trigger as VitoTrigger;
-    const mode = trigger === "manual-full" ? "full" : "runtime";
 
     try {
-      const runId = await createVitoRun(trigger, mode);
+      // runVitoAgent creates the vito_runs row itself — do not pre-create one here.
+      // We fire the agent async and return immediately; the runId is determined
+      // inside the agent after the row is inserted.
+      let resolvedRunId: number | null = null;
 
-      // Fire and forget — agent updates the row on completion
-      void runVitoAgent(trigger).catch((err: unknown) => {
-        logger.warn(
-          `[compliance-run] Agent error for run ${runId}: ${err instanceof Error ? err.message : String(err)}`,
-        );
-      });
+      void (async () => {
+        try {
+          const result = await runVitoAgent(trigger);
+          resolvedRunId = result.runId;
+        } catch (err: unknown) {
+          logger.warn(
+            `[compliance-run] Agent error: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      })();
 
-      return res.status(HTTP_202_ACCEPTED).json({ runId, trigger, status: "started" });
+      // Return a placeholder immediately — the real runId is only available
+      // after the agent creates its row, but that's async. The client can
+      // poll GET /api/admin/compliance/runs to see the latest run.
+      return res.status(HTTP_202_ACCEPTED).json({ trigger, status: "started" });
     } catch (error) {
       return logAndSendError(res, "Failed to start compliance audit", error);
     }

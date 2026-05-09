@@ -1306,7 +1306,8 @@ async function toolTriggerResearch(
 
 /**
  * Trigger a Vito compliance audit run (fire-and-forget).
- * Admin only. Returns the new run id immediately.
+ * Admin only. Returns a confirmation immediately; the agent creates its own
+ * vito_runs row so there is no phantom pre-created row.
  */
 async function toolRunComplianceAudit(
   ctx: ToolContext,
@@ -1314,19 +1315,24 @@ async function toolRunComplianceAudit(
   const authError = await requireAdminCtx(ctx);
   if (authError) return authError;
 
-  const { createVitoRun } = await import("../ai/vito/workspace");
   const { runVitoAgent } = await import("../ai/vito/agent");
 
-  const runId = await createVitoRun("manual", "runtime");
+  // runVitoAgent creates the vito_runs row itself — do not pre-create one here.
+  let resolvedRunId: number | undefined;
+  void runVitoAgent("manual")
+    .then((result) => {
+      resolvedRunId = result.runId;
+    })
+    .catch((err: unknown) => {
+      console.error("[compliance-audit] agent error:", err);
+    });
 
-  // Fire and forget — agent updates the row on completion
-  void runVitoAgent("manual").catch((err: unknown) => {
-    console.error("[compliance-audit] agent error:", err);
-  });
-
+  // We can't know the runId synchronously (agent creates it async).
+  // Return a sentinel so the parity invalidation fires even before run completes.
+  const COMPLIANCE_RUN_SENTINEL_ID = 0;
   return {
-    result: { message: "Compliance audit started", runId },
-    dataChanged: { entityType: "compliance_run", entityId: runId },
+    result: { message: "Compliance audit started" },
+    dataChanged: { entityType: "compliance_run", entityId: COMPLIANCE_RUN_SENTINEL_ID },
   };
 }
 
