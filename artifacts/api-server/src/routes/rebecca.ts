@@ -283,8 +283,9 @@ export function register(app: Express) {
 
   app.get("/api/rebecca/kb/entry/:id", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
     try {
+      if (!/^\d+$/.test(req.params.id)) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid id" });
       const id = Number(req.params.id);
-      if (!Number.isInteger(id) || id <= 0) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid id" });
+      if (id <= 0) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid id" });
       const entry = await storage.getRebeccaKBEntry(id);
       if (!entry) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
       if (!entry.isActive) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
@@ -325,7 +326,9 @@ export function register(app: Express) {
         return res.status(400).json({ error: "Invalid request: " + parsed.error.issues[0]?.message });
       }
       const entry = await storage.createRebeccaKBEntry(parsed.data);
-      syncKBEntryToVectorStore(entry.id, entry.title, entry.content, entry.category);
+      if (entry.isActive !== false) {
+        syncKBEntryToVectorStore(entry.id, entry.title, entry.content, entry.category);
+      }
       logActivity(req, "create-kb-entry", "rebecca_kb", entry.id, entry.title, { category: entry.category });
       logger.info(`KB entry created: ${entry.title}`, "rebecca");
       return res.json(entry);
