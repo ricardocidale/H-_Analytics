@@ -60,6 +60,20 @@ import { storage } from "../storage";
 import { DEFAULT_SYSTEM_PROMPT } from "../routes/chat-prompts";
 import { logger } from "../logger";
 
+/** Mirrors resolveDefaultModel in chat.ts but without the in-process cache —
+ *  the replay scheduler runs infrequently so caching is unnecessary. */
+async function resolveModelForProvider(provider: string): Promise<string> {
+  const VENDOR_TO_PROVIDER_ID: Record<string, string> = {
+    anthropic: "anthropic",
+    openai: "openai",
+    google: "gemini",
+  };
+  const targetVendor = Object.entries(VENDOR_TO_PROVIDER_ID).find(([, id]) => id === provider)?.[0];
+  const rows = await storage.listAdminResources("model");
+  const match = rows.find(r => (r.config as Record<string, unknown>).vendor === targetVendor);
+  return match ? String((match.config as Record<string, unknown>).modelId ?? provider) : provider;
+}
+
 export interface FixtureReplayHistoryTurn {
   role: "user" | "assistant";
   content: string;
@@ -135,7 +149,7 @@ export async function runFixtureReplayTurn(
   );
 
   const provider = settings.llm.provider;
-  const model = settings.llm.model || provider;
+  const model = settings.llm.model || await resolveModelForProvider(provider);
   const sampling = {
     temperature: settings.llm.temperature,
     maxOutputTokens: settings.llm.maxOutputTokens,
@@ -160,7 +174,7 @@ export async function runFixtureReplayTurn(
     // declare a fallback, try it once.
     const fb = settings.llm.fallbackProvider;
     if (fb) {
-      const fbModel = settings.llm.fallbackModel || fb;
+      const fbModel = settings.llm.fallbackModel || await resolveModelForProvider(fb);
       try {
         const r = await callLlm(
           fb,

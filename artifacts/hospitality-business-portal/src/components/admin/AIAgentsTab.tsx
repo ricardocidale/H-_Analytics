@@ -87,7 +87,8 @@ export default function AIAgentsTab({ onSaveStateChange, initialTab }: AIAgentsT
       setRebeccaEnabled(globalData.rebeccaEnabled ?? false);
       setRebeccaDisplayName(globalData.rebeccaDisplayName ?? "Rebecca");
       setRebeccaSystemPrompt(globalData.rebeccaSystemPrompt ?? "");
-      setRebeccaChatEngine((globalData.rebeccaChatEngine as string) ?? "gemini");
+      const rawEngine = globalData.rebeccaChatEngine as string | undefined;
+      setRebeccaChatEngine(rawEngine === "exa" ? "exa" : rawEngine === "perplexity" ? "exa" : "gemini");
       setRebeccaSettings(mergeRebeccaSettings(globalData.rebeccaConfig));
       setRebeccaInitialized(true);
     }
@@ -156,7 +157,8 @@ export default function AIAgentsTab({ onSaveStateChange, initialTab }: AIAgentsT
     setRebeccaEnabled(globalData.rebeccaEnabled ?? false);
     setRebeccaDisplayName(globalData.rebeccaDisplayName ?? "Rebecca");
     setRebeccaSystemPrompt(globalData.rebeccaSystemPrompt ?? "");
-    setRebeccaChatEngine((globalData.rebeccaChatEngine as string) ?? "gemini");
+    const cancelRawEngine = globalData.rebeccaChatEngine as string | undefined;
+    setRebeccaChatEngine(cancelRawEngine === "exa" ? "exa" : cancelRawEngine === "perplexity" ? "exa" : "gemini");
     setRebeccaSettings(mergeRebeccaSettings(globalData.rebeccaConfig));
     setRebeccaDirty(false);
   }, [globalData]);

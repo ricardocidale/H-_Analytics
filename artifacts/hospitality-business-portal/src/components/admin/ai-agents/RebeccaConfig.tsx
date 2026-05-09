@@ -708,7 +708,7 @@ export function RebeccaConfig({
           <div className="pt-3 border-t border-border/40 space-y-1.5">
             <Label className="label-text font-medium text-xs">Web Search Provider</Label>
             <Select
-              value={settings.sources.webSearchProvider ?? "perplexity"}
+              value={settings.sources.webSearchProvider ?? chatSearchProviders[0]?.slug ?? ""}
               onValueChange={(v) => onSettingsChange({ ...settings, sources: { ...settings.sources, webSearchProvider: v } })}
               data-testid="select-web-search-provider"
             >

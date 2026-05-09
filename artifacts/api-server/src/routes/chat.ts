@@ -51,6 +51,7 @@ const VENDOR_TO_PROVIDER_ID: Record<string, string> = {
 };
 
 // Simple in-process cache: provider-id → first available modelId. TTL 5 min.
+const MODEL_CACHE_TTL_MS = 5 * 60 * 1000;
 const _modelCache = new Map<string, { value: string; expiresAt: number }>();
 
 async function resolveDefaultModel(providerId: string): Promise<string> {
@@ -65,7 +66,7 @@ async function resolveDefaultModel(providerId: string): Promise<string> {
     ? String((match.config as Record<string, unknown>).modelId ?? providerId)
     : providerId;
 
-  _modelCache.set(providerId, { value: modelId, expiresAt: now + 5 * 60 * 1000 });
+  _modelCache.set(providerId, { value: modelId, expiresAt: now + MODEL_CACHE_TTL_MS });
   return modelId;
 }
 
@@ -157,7 +158,7 @@ export async function callLlm(
     // history entry for continuation turns where userMessage is empty.
     const query = userMessage || (history[history.length - 1]?.content as string | undefined) || "";
     const response = await Promise.race([
-      client.answer(query),
+      client.answer(query, { text: true }),
       timeoutP,
     ]);
     let text = (typeof response.answer === "string" ? response.answer : "") || "I'm sorry, I couldn't generate a response. Please try again.";
@@ -740,15 +741,6 @@ export function register(app: Express) {
         webSearch: false,
       };
 
-      // Task #532 — admin-only payload describing exactly which Knowledge &
-      // Sources blocks made it into the system prompt for this turn. The
-      // Test Chat preview renders this as a badge list so admins can spot a
-      // toggle silently dropping a block. Derived from the same `sources`
-      // object passed to `assembleSystemPrompt`.
-      const blocksIncluded = isAdmin
-        ? computeBlocksIncluded(blockPresence, rebeccaSettings.sources)
-        : undefined;
-
       let documentContextBlock = "";
       try {
         if (!rebeccaSettings.sources.documents.enabled) throw new Error("__skip_documents__");
@@ -1198,6 +1190,15 @@ export function register(app: Express) {
       // presence honestly so admins don't see "web search" in the badge
       // list when, e.g., a Gemini fallback served the reply.
       blockPresence.webSearch = webSearchEnabled && resolvedProvider === "exa";
+      // Task #532 — admin-only payload describing exactly which Knowledge &
+      // Sources blocks made it into the system prompt for this turn. The
+      // Test Chat preview renders this as a badge list so admins can spot a
+      // toggle silently dropping a block. Derived from the same `sources`
+      // object passed to `assembleSystemPrompt`. Must be computed AFTER all
+      // blockPresence flags are set (last flag: blockPresence.webSearch above).
+      const blocksIncluded = isAdmin
+        ? computeBlocksIncluded(blockPresence, rebeccaSettings.sources)
+        : undefined;
       // Suppress unused warnings around the legacy engine variable when no
       // settings have ever been written (still informative for logs).
       void legacyEngine;
@@ -1246,13 +1247,6 @@ export function register(app: Express) {
       const suggestedChips = generateFollowUpChips(responseText, totalMessages, fieldCtx?.fieldKey, detectedLanguage);
       logActivity(req, "rebecca-chat", "rebecca_conversation", conversationId, null, { responseMode, detectedLanguage, totalMessages });
 
-      // Task #532 — admin-only payload describing exactly which Knowledge &
-      // Sources blocks made it into the system prompt for this turn. The
-      // Test Chat preview renders this as a badge list so admins can spot a
-      // toggle silently dropping a block. Derived from the same `sources`
-      // object passed to `assembleSystemPrompt`.
-      // (Moved up)
-      
       const responsePayload = {
         response: responseText,
         conversationId,

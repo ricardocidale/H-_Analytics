@@ -1,6 +1,6 @@
 ---
 title: "Reference Data Tables — Geography, Jurisdictional Tax, Regulatory Fees, Cap Rates"
-status: active
+status: completed
 created: 2026-05-09
 depth: standard
 origin: "direct (architect gap analysis, session 2026-05-09)"

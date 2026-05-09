@@ -38,6 +38,7 @@ export class ReferenceDataStorage {
 
   async insertJurisdictionalTaxes(rows: InsertJurisdictionalTax[]): Promise<void> {
     if (rows.length === 0) return;
+    await db.delete(jurisdictionalTaxes);
     await db.insert(jurisdictionalTaxes).values(rows);
   }
 
@@ -48,6 +49,7 @@ export class ReferenceDataStorage {
 
   async insertRegulatoryFees(rows: InsertRegulatoryFee[]): Promise<void> {
     if (rows.length === 0) return;
+    await db.delete(regulatoryFees);
     await db.insert(regulatoryFees).values(rows);
   }
 
