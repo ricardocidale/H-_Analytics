@@ -1,7 +1,44 @@
 import { db } from "../src/db";
 import { geographyDimension, knowledgeRegistry } from "@workspace/db";
-import { COUNTRY_DEFAULTS, US_STATE_DEFAULTS, type CountryDefaults, type UsStateDefaults } from "@workspace/db";
+import { COUNTRY_DEFAULTS, US_STATE_DEFAULTS, type CountryDefaults, type UsStateDefaults } from "@shared/countryDefaults";
 import { sql } from "drizzle-orm";
+
+const COUNTRY_NAME_TO_ISO: Record<string, string> = {
+  "United States": "US",
+  "Canada": "CA",
+  "France": "FR",
+  "Spain": "ES",
+  "Italy": "IT",
+  "Portugal": "PT",
+  "Mexico": "MX",
+  "Colombia": "CO",
+  "Brazil": "BR",
+  "Argentina": "AR",
+  "El Salvador": "SV",
+  "Panama": "PA",
+  "United Kingdom": "GB",
+  "Greece": "GR",
+  "Costa Rica": "CR",
+  "Dominican Republic": "DO",
+  "Uruguay": "UY",
+  "Peru": "PE",
+};
+
+const US_STATE_NAME_TO_CODE: Record<string, string> = {
+  "Florida": "FL",
+  "California": "CA",
+  "New York": "NY",
+  "Texas": "TX",
+  "Nevada": "NV",
+  "Hawaii": "HI",
+  "Colorado": "CO",
+  "Tennessee": "TN",
+  "Georgia": "GA",
+  "Arizona": "AZ",
+  "New Jersey": "NJ",
+  "Massachusetts": "MA",
+  "Illinois": "IL",
+};
 
 export async function seedReferenceData() {
   console.log("Seeding reference data baseline...");
@@ -9,7 +46,7 @@ export async function seedReferenceData() {
   // 1. Seed Geography Dimension from TS constants
   const countries = Object.entries(COUNTRY_DEFAULTS).map(([name, data]: [string, CountryDefaults]) => ({
     level: "country",
-    isoCode: name, 
+    isoCode: COUNTRY_NAME_TO_ISO[name] ?? name,
     name: name,
     currency: data.currency,
     currencySymbol: data.currencySymbol,
@@ -19,7 +56,7 @@ export async function seedReferenceData() {
   const states = Object.entries(US_STATE_DEFAULTS).map(([name, data]: [string, UsStateDefaults]) => ({
     level: "state",
     parentCountryCode: "US",
-    isoCode: name,
+    isoCode: US_STATE_NAME_TO_CODE[name] ?? name,
     name: data.label,
     currency: "USD",
     currencySymbol: "$",
@@ -45,6 +82,8 @@ export async function seedReferenceData() {
   console.log(`Seeded ${geoRows.length} geography rows.`);
 
   // 2. Register new tables in knowledge_registry for Admin Sources UI
+  // NOTE: assetRef values must be hyphenated to match the BENCHMARK_TABLE_ID
+  // dispatch map in knowledge-registry.ts (keyed by assetRef).
   const registryEntries = [
     {
       id: "geography-dimension",
@@ -54,7 +93,7 @@ export async function seedReferenceData() {
       sourceDescription: "ISO-3166, Damodaran NYU Stern, local tax authorities.",
       renewalMechanism: "Manual Analyst refresh.",
       assetType: "benchmark_table",
-      assetRef: "geography_dimension",
+      assetRef: "geography-dimension",
     },
     {
       id: "jurisdictional-taxes",
@@ -64,7 +103,7 @@ export async function seedReferenceData() {
       sourceDescription: "Municipal tax authorities, STR, Avalara.",
       renewalMechanism: "Manual Analyst refresh.",
       assetType: "benchmark_table",
-      assetRef: "jurisdictional_taxes",
+      assetRef: "jurisdictional-taxes",
     },
     {
       id: "regulatory-fees",
@@ -74,7 +113,7 @@ export async function seedReferenceData() {
       sourceDescription: "Local building departments, health inspectors, fire marshals.",
       renewalMechanism: "Manual Analyst refresh.",
       assetType: "benchmark_table",
-      assetRef: "regulatory_fees",
+      assetRef: "regulatory-fees",
     },
     {
       id: "market-cap-rates",
@@ -84,7 +123,7 @@ export async function seedReferenceData() {
       sourceDescription: "STR, CBRE, JLL, CoStar.",
       renewalMechanism: "Manual Analyst refresh.",
       assetType: "benchmark_table",
-      assetRef: "market_cap_rates",
+      assetRef: "market-cap-rates",
     },
   ];
 

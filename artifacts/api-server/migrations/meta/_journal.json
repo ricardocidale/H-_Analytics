@@ -316,6 +316,13 @@
       "when": 1746921601000,
       "tag": "0045_create_reit_benchmarks_and_competitor_rates",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1746921602000,
+      "tag": "0046_reference_data_tables",
+      "breakpoints": true
     }
   ]
 }
