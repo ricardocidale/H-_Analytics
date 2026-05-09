@@ -1140,7 +1140,7 @@ async function toolGetLbDeckRenderStatus(
 async function toolRefreshAnalystTable(
   args: Record<string, unknown>,
   ctx: ToolContext,
-): Promise<{ result: unknown }> {
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   const authError = await requireAdminCtx(ctx);
   if (authError) return authError;
   const VALID_TABLE_IDS = ["capital_raise_benchmarks", "exit_multiples", "reference_brands"] as const;
@@ -1172,6 +1172,7 @@ async function toolRefreshAnalystTable(
         sourceCount: result.sourceCount,
         tokensUsed: result.tokensUsed,
       },
+      dataChanged: { entityType: "analyst_table" as const, entityId: 0 },
     };
   }
 
@@ -1197,6 +1198,7 @@ async function toolRefreshAnalystTable(
         sourceCount: result.sourceCount,
         tokensUsed: result.tokensUsed,
       },
+      dataChanged: { entityType: "analyst_table" as const, entityId: 0 },
     };
   }
 
@@ -1211,6 +1213,7 @@ async function toolRefreshAnalystTable(
         sourceCount: result.sourceCount,
         tokensUsed: result.tokensUsed,
       },
+      dataChanged: { entityType: "analyst_table" as const, entityId: 0 },
     };
   }
 

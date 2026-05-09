@@ -341,6 +341,42 @@ export function generateFollowUpChips(
   return chips.slice(0, 3);
 }
 
+export const HELP_RESPONSE = `Here's what I can do for you:
+
+**Portfolio & Properties**
+- "Show me all properties" / "What's the portfolio cap rate?"
+- "Update the ADR assumption for Belleayre Mountain"
+- "Create a new property called Sunset Inn in Miami"
+- "Delete property #42"
+
+**Scenarios & Projections**
+- "Create a scenario with 8% cap rate and 75% occupancy"
+- "Compare Scenario A vs Scenario B on IRR"
+- "Lock the Base Case scenario"
+
+**Research & Benchmarks**
+- "What are current cap rates for boutique hotels in Nashville?"
+- "Refresh the capital raise benchmarks"
+- "Show me the current exit multiples table"
+- "Get hotels near Nashville with ratings above 4 stars"
+
+**Slide Factory**
+- "Create a new slide factory run"
+- "Accept the brief for run #3"
+- "Approve all slots on run #5 and trigger the build"
+- "Rebuild the deck for run #7 with updated headline copy"
+
+**Data Sources**
+- "Regenerate the REIT data source"
+- "Check the health of all data sources"
+
+**Tips**
+- Switch response modes: try starting a message with "briefly:" or "in detail:"
+- Ask about any specific property, scenario, or data point by name
+- I remember our conversation context — no need to repeat yourself`;
+
+export const FOLLOW_UPS_MARKER = "FOLLOW_UPS:";
+
 export function deriveContextType(fieldCtx?: { entityType: string; fieldKey?: string }): string {
   if (!fieldCtx) return "general";
   if (fieldCtx.fieldKey) return "field";
