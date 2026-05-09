@@ -90,7 +90,7 @@ function quarterlyEntries(facts: EdgarFacts, field: string): EdgarEntry[] {
 function balanceSheetEntries(facts: EdgarFacts, field: string): EdgarEntry[] {
   const entries = facts.facts["us-gaap"]?.[field]?.units?.USD ?? [];
   return entries
-    .filter(e => (e.form === "10-Q" || e.form === "10-K") && e.fp.startsWith("Q"))
+    .filter(e => (e.form === "10-Q" && e.fp.startsWith("Q")) || e.form === "10-K")
     .sort((a, b) => b.end.localeCompare(a.end));
 }
 
