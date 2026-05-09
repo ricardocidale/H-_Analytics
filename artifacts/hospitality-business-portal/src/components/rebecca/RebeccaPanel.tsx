@@ -475,6 +475,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
             queryClient.invalidateQueries({ queryKey: ["lb-slides-config"] });
           } else if (entry.entityType === "kb_entry") {
             queryClient.invalidateQueries({ queryKey: ["/api/rebecca/kb"] });
+            queryClient.invalidateQueries({ queryKey: ["kb-entry", entry.entityId] });
           } else if (entry.entityType === "global_assumptions") {
             queryClient.invalidateQueries({ queryKey: ["/api/global-assumptions"] });
           } else if (entry.entityType === "research_job") {
@@ -624,6 +625,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                       queryClient.invalidateQueries({ queryKey: ["lb-slides-config"] });
                     } else if (entry.entityType === "kb_entry") {
                       queryClient.invalidateQueries({ queryKey: ["/api/rebecca/kb"] });
+                      queryClient.invalidateQueries({ queryKey: ["kb-entry", entry.entityId] });
                     } else if (entry.entityType === "global_assumptions") {
                       queryClient.invalidateQueries({ queryKey: ["/api/global-assumptions"] });
                     } else if (entry.entityType === "research_job") {
@@ -672,8 +674,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
                 ));
                 if (BACKGROUND_TOOL_LABELS[toolName]) {
                   const label = BACKGROUND_TOOL_LABELS[toolName];
-                  const result = data.result as Record<string, unknown> | undefined;
-                  const runId = result?.runId ?? result?.id;
+                  const runId = typeof data.runId === "number" ? data.runId : undefined;
                   toast({
                     title: success ? `${label} started` : `${label} failed`,
                     description: runId ? `Run #${runId}` : undefined,

@@ -123,17 +123,11 @@ function appendVitoToolResults(
 // Main export
 // ---------------------------------------------------------------------------
 
-export async function runVitoAgent(trigger: VitoTrigger): Promise<VitoRunResult> {
+export async function runVitoAgent(trigger: VitoTrigger, preCreatedRunId?: number): Promise<VitoRunResult> {
   const startTime = Date.now();
   const mode = trigger === "manual-full" ? "full" : "runtime";
 
-  // Resolve model at runtime from admin_resources — never hardcode
-  const resolved = await resolveLlmFor("vito_compliance_audit");
-  const { vendor, modelId } = resolved;
-
-  const runId = await createVitoRun(trigger, mode);
-
-  serverLog(`Starting run ${runId} (trigger=${trigger}, mode=${mode}, model=${modelId})`, SOURCE);
+  const runId = preCreatedRunId ?? await createVitoRun(trigger, mode);
 
   const tools = getVitoTools();
   const sampling = { temperature: VITO_TEMPERATURE, maxOutputTokens: VITO_MAX_OUTPUT_TOKENS };
@@ -148,6 +142,12 @@ export async function runVitoAgent(trigger: VitoTrigger): Promise<VitoRunResult>
   const toolsInvoked: string[] = [];
 
   try {
+    // Resolve model inside the try/catch so a missing slot finalizes the run
+    // row (when preCreatedRunId was passed) instead of leaving it stranded.
+    const resolved = await resolveLlmFor("vito-compliance-audit");
+    const { vendor, modelId } = resolved;
+
+    serverLog(`Starting run ${runId} (trigger=${trigger}, mode=${mode}, model=${modelId})`, SOURCE);
     for (let depth = 0; depth < VITO_MAX_TOOL_DEPTH; depth++) {
       const isLastDepth = depth === VITO_MAX_TOOL_DEPTH - 1;
       const activeTools = isLastDepth ? [] : tools;
@@ -201,6 +201,18 @@ export async function runVitoAgent(trigger: VitoTrigger): Promise<VitoRunResult>
     const msg = err instanceof Error ? err.message : "Run failed with unexpected error";
     serverLog(`Run ${runId} failed: ${msg}`, SOURCE, "error");
     if (!finalText) finalText = msg;
+    // If the caller pre-created the run row, finalize it so it doesn't stay
+    // stuck in the initial state (e.g. when resolveLlmFor throws).
+    if (preCreatedRunId !== undefined) {
+      await finalizeVitoRun(preCreatedRunId, {
+        passesCompleted: 0, blockCount: 0, warningCount: 0,
+        advisoryCount: 0, infoCount: 0,
+        status: "error",
+        notes: msg.slice(0, VITO_NOTES_MAX_CHARS),
+        durationMs: Date.now() - startTime,
+      }).catch(() => {});
+      throw err;
+    }
   }
 
   const durationMs = Date.now() - startTime;
@@ -212,10 +224,15 @@ export async function runVitoAgent(trigger: VitoTrigger): Promise<VitoRunResult>
         ? "warn"
         : "ok";
 
-  // Infer passes from distinct tool families invoked (each pass has a distinct
-  // anchor call). list_admin_resources is called in passes 1 and 2; we count
-  // distinct anchor tools to approximate pass completion without bare literals.
-  const passesCompleted = new Set(toolsInvoked).size > 0 ? (mode === "full" ? toolsInvoked.filter((t) => t === "scan_lib_constants").length + toolsInvoked.filter((t) => t === "list_resolver_call_sites").length + toolsInvoked.filter((t) => t === "list_kb_entry_domains").length + toolsInvoked.filter((t) => t === "scan_agent_source_files").length : toolsInvoked.filter((t) => t === "scan_lib_constants").length + toolsInvoked.filter((t) => t === "list_resolver_call_sites").length + toolsInvoked.filter((t) => t === "list_kb_entry_domains").length) : 0;
+  // Infer passes from distinct anchor tool types invoked (each pass has a
+  // distinct anchor call). Using Set membership prevents a revisited anchor
+  // from counting as an extra pass.
+  const invokedSet = new Set(toolsInvoked);
+  const runtimeAnchors = ["scan_lib_constants", "list_resolver_call_sites", "list_kb_entry_domains"];
+  const fullAnchors = [...runtimeAnchors, "scan_agent_source_files"];
+  const passesCompleted = invokedSet.size > 0
+    ? (mode === "full" ? fullAnchors : runtimeAnchors).filter(a => invokedSet.has(a)).length
+    : 0;
 
   await finalizeVitoRun(runId, {
     passesCompleted,

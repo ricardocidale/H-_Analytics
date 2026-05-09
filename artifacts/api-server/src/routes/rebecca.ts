@@ -7,6 +7,7 @@ import { logger } from "../logger";
 import { logActivity, parseRouteId } from "./helpers";
 import { insertRebeccaKBSchema } from "@workspace/db";
 import { upsertChunks, deleteVectors, vectorCount } from "../ai/vector-store-service";
+import { KB_CONTENT_VECTOR_PREVIEW_CHARS } from "../chat/rebecca-tools";
 import { rebeccaSettingsSchema, tryParseRebeccaSettings } from "@shared/rebecca-settings";
 import { HTTP_422_UNPROCESSABLE_ENTITY, HTTP_405_METHOD_NOT_ALLOWED, HTTP_409_CONFLICT, HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR } from "../constants";
 
@@ -282,8 +283,9 @@ export function register(app: Express) {
 
   app.get("/api/rebecca/kb/entry/:id", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
     try {
-      const id = parseInt(req.params.id, 10);
-      if (!Number.isFinite(id)) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid id" });
+      if (!/^\d+$/.test(req.params.id)) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid id" });
+      const id = Number(req.params.id);
+      if (!Number.isSafeInteger(id) || id <= 0) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid id" });
       const entry = await storage.getRebeccaKBEntry(id);
       if (!entry) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
       if (!entry.isActive) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
@@ -324,7 +326,9 @@ export function register(app: Express) {
         return res.status(400).json({ error: "Invalid request: " + parsed.error.issues[0]?.message });
       }
       const entry = await storage.createRebeccaKBEntry(parsed.data);
-      syncKBEntryToVectorStore(entry.id, entry.title, entry.content, entry.category);
+      if (entry.isActive !== false) {
+        syncKBEntryToVectorStore(entry.id, entry.title, entry.content, entry.category);
+      }
       logActivity(req, "create-kb-entry", "rebecca_kb", entry.id, entry.title, { category: entry.category });
       logger.info(`KB entry created: ${entry.title}`, "rebecca");
       return res.json(entry);
@@ -908,7 +912,7 @@ function syncKBEntryToVectorStore(entryId: number, title: string, content: strin
   upsertChunks("knowledge-base", [{
     id: `admin-kb:${entryId}`,
     text: `${title}\n\n${content}`,
-    metadata: { title, content: content.slice(0, 3_000), source: "admin-kb", category },
+    metadata: { title, content: content.slice(0, KB_CONTENT_VECTOR_PREVIEW_CHARS), source: "admin-kb", category },
   }]).catch(e =>
     logger.warn(`Vector store sync failed for KB ${entryId}: ${e instanceof Error ? e.message : e}`, "rebecca")
   );

@@ -37,6 +37,7 @@ export async function runVitoComplianceCycle(): Promise<void> {
   let cycleErrorMessage = "";
   let blockCount = 0;
   let warningCount = 0;
+  let advisoryCount = 0;
   let violationTotal = 0;
 
   try {
@@ -44,6 +45,7 @@ export async function runVitoComplianceCycle(): Promise<void> {
     const result = await runVitoAgent("scheduled-audit");
     blockCount = result.blockCount;
     warningCount = result.warningCount;
+    advisoryCount = result.advisoryCount;
     violationTotal =
       result.blockCount + result.warningCount + result.advisoryCount + result.infoCount;
     serverLog(
@@ -56,7 +58,7 @@ export async function runVitoComplianceCycle(): Promise<void> {
     serverLog(`Cycle failed: ${cycleErrorMessage}`, SOURCE, "error");
   } finally {
     isRunning = false;
-    const status = cycleThrew ? "error" : blockCount > 0 ? "warn" : warningCount > 0 ? "warn" : "ok";
+    const status = cycleThrew ? "error" : blockCount > 0 || warningCount > 0 || advisoryCount > 0 ? "warn" : "ok";
     const notes = cycleThrew
       ? truncateNotes(cycleErrorMessage)
       : violationTotal > 0

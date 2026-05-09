@@ -28,6 +28,9 @@ const RESEARCH_ESTIMATED_MINUTES = 2;
 
 export type ToolContext = { userId: number };
 
+/** Max chars of KB entry content stored in the vector store metadata preview. */
+export const KB_CONTENT_VECTOR_PREVIEW_CHARS = 3_000;
+
 export type DataChangedEntry = {
   entityType: "property" | "scenario" | "slide_factory_run" | "analyst_table" | "lb_deck_config"
             | "kb_entry" | "global_assumptions" | "research_job" | "iris_run" | "iris_gap" | "data_source" | "compliance_run";
@@ -1397,8 +1400,8 @@ async function toolTriggerResearch(
 
 /**
  * Trigger a Vito compliance audit run (fire-and-forget).
- * Admin only. Returns a confirmation immediately; the agent creates its own
- * vito_runs row so there is no phantom pre-created row.
+ * Admin only. Pre-creates the vito_runs row synchronously so the caller gets
+ * a real runId back immediately; then runs the agent async.
  */
 async function toolRunComplianceAudit(
   ctx: ToolContext,
@@ -1407,23 +1410,18 @@ async function toolRunComplianceAudit(
   if (authError) return authError;
 
   const { runVitoAgent } = await import("../ai/vito/agent");
+  const { createVitoRun } = await import("../ai/vito/workspace");
 
-  // runVitoAgent creates the vito_runs row itself — do not pre-create one here.
-  let resolvedRunId: number | undefined;
-  void runVitoAgent("manual")
-    .then((result) => {
-      resolvedRunId = result.runId;
-    })
+  const runId = await createVitoRun("manual", "runtime");
+
+  void runVitoAgent("manual", runId)
     .catch((err: unknown) => {
-      console.error("[compliance-audit] agent error:", err);
+      logger.error(`[compliance-audit] agent error: ${err instanceof Error ? err.message : String(err)}`, "rebecca");
     });
 
-  // We can't know the runId synchronously (agent creates it async).
-  // Return a sentinel so the parity invalidation fires even before run completes.
-  const COMPLIANCE_RUN_SENTINEL_ID = 0;
   return {
-    result: { message: "Compliance audit started" },
-    dataChanged: { entityType: "compliance_run", entityId: COMPLIANCE_RUN_SENTINEL_ID },
+    result: { message: "Compliance audit started", runId },
+    dataChanged: { entityType: "compliance_run", entityId: runId },
   };
 }
 
@@ -2233,14 +2231,16 @@ async function toolCreateKbEntry(
 
   const entry = await storage.createRebeccaKBEntry(validation.data);
 
-  // Mirror the route: sync to vector store asynchronously (fire-and-forget).
-  upsertChunks("knowledge-base", [{
-    id: `admin-kb:${entry.id}`,
-    text: `${entry.title}\n\n${entry.content}`,
-    metadata: { title: entry.title, content: entry.content.slice(0, 3_000), source: "admin-kb", category: entry.category },
-  }]).catch(e =>
-    logger.warn(`Vector store sync failed for KB ${entry.id}: ${e instanceof Error ? e.message : e}`, "rebecca")
-  );
+  // Mirror the route: only index active entries (isActive defaults to true).
+  if (entry.isActive !== false) {
+    upsertChunks("knowledge-base", [{
+      id: `admin-kb:${entry.id}`,
+      text: `${entry.title}\n\n${entry.content}`,
+      metadata: { title: entry.title, content: entry.content.slice(0, KB_CONTENT_VECTOR_PREVIEW_CHARS), source: "admin-kb", category: entry.category },
+    }]).catch(e =>
+      logger.warn(`Vector store sync failed for KB ${entry.id}: ${e instanceof Error ? e.message : e}`, "rebecca")
+    );
+  }
 
   return {
     result: { id: entry.id, title: entry.title, category: entry.category },
@@ -2277,7 +2277,7 @@ async function toolUpdateKbEntry(
     upsertChunks("knowledge-base", [{
       id: `admin-kb:${updated.id}`,
       text: `${updated.title}\n\n${updated.content}`,
-      metadata: { title: updated.title, content: updated.content.slice(0, 3_000), source: "admin-kb", category: updated.category },
+      metadata: { title: updated.title, content: updated.content.slice(0, KB_CONTENT_VECTOR_PREVIEW_CHARS), source: "admin-kb", category: updated.category },
     }]).catch(e =>
       logger.warn(`Vector store sync failed for KB ${updated.id}: ${e instanceof Error ? e.message : e}`, "rebecca")
     );
