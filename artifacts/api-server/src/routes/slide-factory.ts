@@ -570,8 +570,10 @@ router.post(
 );
 
 // ── GET /api/lb-slides/factory/runs/:id/download ─────────────────────────────
-// Tab 6: Stream the completed deck PDF from R2. Returns 422 when deckR2Key is
-// not yet set (build complete but PDF render hasn't written the key).
+// Tab 6: Stream the completed deck PDF from R2. Returns 409 when the run is
+// not in 'complete' state (state-machine conflict — matches every other guard
+// in this file). Returns 422 when status is 'complete' but deckR2Key has not
+// been written yet (precondition pending).
 router.get(
   "/api/lb-slides/factory/runs/:id/download",
   requireAdmin,
@@ -584,7 +586,7 @@ router.get(
       const run = await getSlideFactoryRun(id, user.id);
       if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
       if (run.status !== "complete") {
-        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
+        return res.status(HTTP_409_CONFLICT).json({
           error: `Deck not ready — run status is ${run.status}`,
         });
       }

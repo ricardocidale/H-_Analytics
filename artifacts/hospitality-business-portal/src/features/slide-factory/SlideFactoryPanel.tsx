@@ -104,11 +104,14 @@ const MAYA_VERDICT_LABEL: Record<NonNullable<SlideAgentResultFE["mayaVerdict"]>,
   block: "Block",
 };
 
-const MAYA_VERDICT_CLASS: Record<NonNullable<SlideAgentResultFE["mayaVerdict"]>, string> = {
-  ok: "text-emerald-700 bg-emerald-50",
-  advisory: "text-sky-700 bg-sky-50",
-  warning: "text-amber-700 bg-amber-50",
-  block: "text-red-700 bg-red-50",
+// Palette mirrors the canonical analyst severity chip colors used by
+// AnalystVerdictDisplay / AnalystRangeIndicator (CLAUDE.md Intelligence Display).
+// Exported so test fixtures consume the same source-of-truth as the Panel.
+export const MAYA_VERDICT_CLASS: Record<NonNullable<SlideAgentResultFE["mayaVerdict"]>, string> = {
+  ok: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+  advisory: "bg-sky-500/10 text-sky-700 dark:text-sky-400",
+  warning: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
+  block: "bg-red-500/10 text-red-700 dark:text-red-400",
 };
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -203,6 +206,31 @@ function isTerminal(run: SlideFactoryRun | null): boolean {
   return !run || run.status === "complete" || run.status === "error";
 }
 
+// Derives the per-slide display status from agentResults, coercing non-terminal
+// per-slide states to terminal when the run itself is terminal. A slide left in
+// 'running'/'pending' or missing entirely on a complete run is shown as
+// 'approved' (run completed = all slides passed); on an errored run it becomes
+// 'rejected' (we don't know which slide passed, fail-closed in the UI).
+// Exported so test fixtures consume the same source-of-truth as the Panel.
+export function deriveSlotStatus(
+  resultStatus: SlideAgentResultFE["status"] | undefined,
+  runStatus: "building" | "complete" | "error",
+): SlideAgentResultFE["status"] | null {
+  if (runStatus === "complete") {
+    if (!resultStatus || resultStatus === "running" || resultStatus === "pending") {
+      return "approved";
+    }
+    return resultStatus;
+  }
+  if (runStatus === "error") {
+    if (!resultStatus || resultStatus === "running" || resultStatus === "pending") {
+      return "rejected";
+    }
+    return resultStatus;
+  }
+  return resultStatus ?? "pending";
+}
+
 function statusToTab(status: FactoryStatus | undefined): FactoryTab {
   switch (status) {
     case "new":
@@ -275,7 +303,14 @@ function useActiveFactoryRun() {
 
   const run = listQuery.data ?? null;
   const runId = run?.id ?? null;
-  const isTransitioning = run != null && TRANSITIONING_STATUSES.has(run.status);
+  // Keep polling while the run is in a transitional pipeline state OR when the
+  // run is `complete` but the deck PDF render hasn't written the R2 key yet.
+  // The render finishes asynchronously after status flips to complete, and
+  // without this branch the user would be stranded on Tab 6 forever.
+  const isTransitioning =
+    run != null &&
+    (TRANSITIONING_STATUSES.has(run.status) ||
+      (run.status === "complete" && !run.deckR2Key));
 
   const pollQuery = useQuery<SlideFactoryRun>({
     queryKey: ["factory-run", runId],
@@ -1514,7 +1549,10 @@ function FactoryAgentsTab({ run }: { run: SlideFactoryRun }) {
             const slideNum = i + 1;
             const key = `slide${slideNum}`;
             const result = agentResults[key] ?? null;
-            const slotStatus = result?.status ?? (isBuilding ? "pending" : isError ? "rejected" : null);
+            const slotStatus = deriveSlotStatus(
+              result?.status,
+              isBuilding ? "building" : isComplete ? "complete" : "error",
+            );
 
             return (
               <div key={key} className="flex items-start gap-3 py-3">
@@ -1994,19 +2032,31 @@ function FactoryOverridePanel({
 function FactoryDownloadTab({ run, onRunUpdate }: { run: SlideFactoryRun; onRunUpdate: (r: SlideFactoryRun) => void }) {
   const { toast } = useToast();
   const [downloading, setDownloading] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
   const hasDeck = Boolean(run.deckR2Key);
 
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
+
   const handleDownload = async () => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setDownloading(true);
     try {
       const r = await fetch(`/api/lb-slides/factory/runs/${run.id}/download`, {
         credentials: "include",
+        signal: controller.signal,
       });
       if (!r.ok) {
         const b = (await r.json().catch(() => ({}))) as { error?: string };
         throw new Error(b.error ?? "Download failed");
       }
       const blob = await r.blob();
+      if (controller.signal.aborted) return;
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -2014,12 +2064,15 @@ function FactoryDownloadTab({ run, onRunUpdate }: { run: SlideFactoryRun; onRunU
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 100);
+      // a.click() is synchronous; the browser has already grabbed the URL by
+      // this line, so revoke immediately rather than via setTimeout.
+      URL.revokeObjectURL(url);
     } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
       const msg = err instanceof Error ? err.message : "Download failed";
       toast({ title: "Download failed", description: msg, variant: "destructive" });
     } finally {
-      setDownloading(false);
+      if (!controller.signal.aborted) setDownloading(false);
     }
   };
 
@@ -2032,8 +2085,7 @@ function FactoryDownloadTab({ run, onRunUpdate }: { run: SlideFactoryRun; onRunU
             <div>
               <p className="text-sm font-medium">Build failed</p>
               <p className="text-xs text-muted-foreground mt-1">
-                One or more slides were rejected. Review the Agents tab for details, then
-                re-trigger the build.
+                One or more slides were rejected. Review the Agents tab for details.
               </p>
             </div>
           </div>
