@@ -477,6 +477,7 @@
     "artifacts/api-server/src/report/server-export-data.ts",
     "artifacts/api-server/src/report/svg-charts.ts",
     "artifacts/api-server/src/routes/admin/analyst-tables.ts",
+    "artifacts/api-server/src/routes/admin/compliance.ts",
     "artifacts/api-server/src/routes/admin/hospitality-benchmarks.ts",
     "artifacts/api-server/src/routes/admin/intelligence-sources.ts",
     "artifacts/api-server/src/routes/admin/intelligence.ts",
