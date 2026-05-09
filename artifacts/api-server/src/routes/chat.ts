@@ -1,5 +1,5 @@
 import { type Express, type Request, type Response } from "express";
-import { getGeminiClient, getPerplexityClient, getOpenAIClient, getAnthropicClient, normalizeModelId } from "../ai/clients";
+import { getGeminiClient, getExaClient, getPerplexityClient, getOpenAIClient, getAnthropicClient, normalizeModelId } from "../ai/clients";
 import { mergeRebeccaSettings, buildPersonaOverlay, assembleSystemPrompt, computeBlocksIncluded, rebeccaSettingsPatchSchema, type RebeccaSettings, type SourceBlockPresence, REBECCA_DEFAULT_MODEL } from "@shared/rebecca-settings";
 import { requireAuth , getAuthUser } from "../auth";
 import { aiRateLimit } from "../middleware/rate-limit";
@@ -99,7 +99,7 @@ class ChatPolicyError extends Error {
 // same provider matrix the live preview uses, instead of duplicating the
 // switch statement and silently drifting from the real chat behavior.
 export async function callLlm(
-  provider: "openai" | "anthropic" | "gemini" | "perplexity",
+  provider: "openai" | "anthropic" | "gemini" | "exa",
   model: string,
   systemPrompt: string,
   history: MessageEntry[],
@@ -115,55 +115,33 @@ export async function callLlm(
     setTimeout(() => reject(new Error(`Chat LLM timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`)), AI_GENERATION_TIMEOUT_MS),
   );
 
-  if (provider === "perplexity") {
-    // Perplexity is a web-grounded provider — every response is RAG over live
-    // web results and (when present) a "**Sources:**" block is appended below.
+  if (provider === "exa") {
+    // Exa is a web-grounded provider — every response is an AI-synthesised
+    // answer over live web results with a "**Sources:**" block appended below.
     // The admin-facing toggle in RebeccaConfig under Knowledge & Sources →
-    // Web Search controls exactly this behavior. Honoring it here ensures
-    // that turning the toggle off reliably suppresses live web grounding,
-    // even if the admin has selected a Perplexity model. Throw a typed error
-    // so the outer try/catch falls back to the configured non-grounded
-    // provider; if the fallback is also Perplexity (or absent), the user
-    // gets a clear, actionable error instead of silently grounded output.
+    // Web Search controls this behavior. Throw a typed error so the outer
+    // try/catch falls back to the configured non-grounded provider.
     if (webSearchEnabled === false) {
       throw new ChatPolicyError(
-        "Perplexity (web-grounded) is disabled by Knowledge & Sources → Web Search. Enable the toggle in Rebecca Configuration, or select a non-Perplexity provider.",
+        "Exa (web-grounded) is disabled by Knowledge & Sources → Web Search. Enable the toggle in Rebecca Configuration, or select a non-Exa provider.",
       );
     }
-    const client = getPerplexityClient();
-    const messages = [
-      { role: "system" as const, content: systemPrompt },
-      ...history.map((m) => m as any),
-      // Skip appending a user turn when userMessage is empty — continuation
-      // turns pass "" because history already ends with a tool_result user turn.
-      ...(userMessage ? [{ role: "user" as const, content: wrappedUser }] : []),
-    ];
-    // Perplexity SDK's chat completion shape — `citations` is a runtime field
-    // returned by web-grounded models that is not on the typed Completion type.
-    type PerplexityCompletion = {
-      choices?: Array<{ message?: { content?: string | null } }>;
-      usage?: { prompt_tokens?: number; completion_tokens?: number };
-      citations?: string[];
-    };
-    const completion = (await Promise.race([
-      client.chat.completions.create({
-        model,
-        messages,
-        max_tokens: sampling.maxOutputTokens,
-        temperature: sampling.temperature,
-        ...(sampling.topP !== undefined ? { top_p: sampling.topP } : {}),
-      }),
+    const client = getExaClient();
+    // Use the latest user message as the search query; fall back to the last
+    // history entry for continuation turns where userMessage is empty.
+    const query = userMessage || (history[history.length - 1]?.content as string | undefined) || "";
+    const response = await Promise.race([
+      client.answer(query),
       timeoutP,
-    ])) as unknown as PerplexityCompletion;
-    const content = completion.choices?.[0]?.message?.content;
-    let text = (typeof content === "string" ? content : "") || "I'm sorry, I couldn't generate a response. Please try again.";
-    const citations = completion.citations ?? [];
+    ]);
+    let text = (typeof response.answer === "string" ? response.answer : "") || "I'm sorry, I couldn't generate a response. Please try again.";
+    const citations = response.citations ?? [];
     if (citations.length > 0) {
-      text += "\n\n**Sources:**\n" + citations.map((u: string, i: number) => `[${i + 1}] ${u}`).join("\n");
+      text += "\n\n**Sources:**\n" + citations.map((c, i) => `[${i + 1}] ${c.url}`).join("\n");
     }
-    const inTok = completion.usage?.prompt_tokens ?? Math.round(userMessage.length / 4);
-    const outTok = completion.usage?.completion_tokens ?? Math.round(text.length / 4);
-    try { logApiCost({ timestamp: new Date().toISOString(), service: "perplexity", model, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("perplexity", model, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+    const inTok = Math.round(query.length / 4);
+    const outTok = Math.round(text.length / 4);
+    try { logApiCost({ timestamp: new Date().toISOString(), service: "exa", model, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("exa", model, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
     return { text, stopReason: "end_turn" };
   }
 
@@ -310,7 +288,7 @@ export async function callLlm(
 }
 
 export async function callLlmStream(
-  provider: "openai" | "anthropic" | "gemini" | "perplexity",
+  provider: "openai" | "anthropic" | "gemini" | "exa",
   model: string,
   systemPrompt: string,
   history: MessageEntry[],
