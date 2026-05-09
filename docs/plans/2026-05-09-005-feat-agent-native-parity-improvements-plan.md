@@ -9,7 +9,15 @@ date: 2026-05-09
 
 ## Summary
 
-Eight targeted improvements advancing H+ Analytics toward agent-native parity, derived from the 2026-05-09 audit (overall score: 63%). The units address the top-ROI gaps: wiring `dataChanged` signals onto 10 silent-action tools so Rebecca's mutations immediately refresh the UI; injecting FRED macro-economic context into Rebecca's chat assembly; adding a `/help` slash command for in-chat capability discovery; adding KB management tools; adding `compare_scenarios` and `update_global_assumptions` action-parity tools; migrating Iris/Pietro to DB-driven LLM slot resolution; extending `admin_resources` with a `parameter` kind for ops-tunable behavioral constants; and adding 4 new CRUD tools (scenario sharing, photo management, company update). Priority 4 from the audit (tools-as-primitives refactor) and Priority 10 (document extraction) are deferred to follow-up as standalone architectural changes.
+Eight targeted improvements advancing H+ Analytics toward agent-native parity, derived from the 2026-05-09 audit (overall score: 63%).
+
+**Execution is wave-ordered — Wave 1 ships regardless of Rebecca adoption; Waves 2–3 are conditional:**
+
+- **Wave 1** (ship first — infrastructure, compliance, correctness): U6 (remove hardcoded LLM model strings from Iris/Pietro — active CLAUDE.md §1 violations), U7 (parameter kind for ops-tunable constants), U1 (silent-action dataChanged signals so Rebecca mutations refresh the UI). Companion plan `docs/plans/2026-05-09-006-feat-vito-compliance-agent-plan.md` (**Vito** compliance agent) ships in this wave to enforce rules going forward.
+- **Wave 2** (ship once Wave 1 is stable): U2 (FRED macro context injection), U5 (compare_scenarios, update_global_assumptions tools).
+- **Wave 3** (conditional on Rebecca user adoption metrics): U3 (/help slash command), U4 (KB management tools), U8 (CRUD expansion). Defer unless Rebecca engagement data supports the investment.
+
+Priority 4 from the audit (tools-as-primitives refactor) and Priority 10 (document extraction) remain deferred as standalone architectural changes.
 
 ---
 
