@@ -1,7 +1,7 @@
 ---
 title: "Slide Factory — E2E Pipeline Integration Test"
 type: feat
-status: active
+status: completed
 date: 2026-05-09
 origin: |
   docs/plans/2026-05-07-001-feat-slide-factory-completion-plan.md (U9 deferred follow-up)
