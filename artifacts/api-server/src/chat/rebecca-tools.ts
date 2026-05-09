@@ -479,6 +479,33 @@ export function getRebeccaTools(): ToolParam[] {
         required: ["slug"],
       },
     },
+    // ── Market rate tools (U7) ─────────────────────────────────────────────
+    {
+      name: "get_market_rates",
+      description:
+        "Read current market rates (FRED, Frankfurter, OXR). Omit key to get all rates; supply a key to get a single rate. " +
+        "Returns value, source, and staleness status.",
+      parameters: {
+        type: "object",
+        properties: {
+          key: { type: "string", description: "Rate key, e.g. 'fed_funds_rate'. Omit to list all rates." },
+        },
+      },
+    },
+    {
+      name: "update_market_rate",
+      description:
+        "Override a market rate with a manual admin value. Use to correct stale or incorrect rates. Admin-only.",
+      parameters: {
+        type: "object",
+        properties: {
+          key: { type: "string", description: "Rate key to update, e.g. 'fed_funds_rate'." },
+          value: { type: "number", description: "New rate value." },
+          note: { type: "string", description: "Optional note explaining the override." },
+        },
+        required: ["key", "value"],
+      },
+    },
     // ── Tripadvisor live research tool ─────────────────────────────────────
     {
       name: "get_tripadvisor_hotels",
@@ -824,6 +851,10 @@ export async function dispatchRebeccaTool(
         return await toolProbeDataSource(args, ctx);
       case "regenerate_data_source":
         return await toolRegenerateDataSource(args, ctx);
+      case "get_market_rates":
+        return await toolGetMarketRates(args, ctx);
+      case "update_market_rate":
+        return await toolUpdateMarketRate(args, ctx);
       case "get_analyst_table":
         return await toolGetAnalystTable(args, ctx);
       case "create_property":
