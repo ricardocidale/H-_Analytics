@@ -139,22 +139,24 @@ export function SearchResultCard({
               </span>
             ) : <span />}
             {onShowValue && (
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => onShowValue(property.externalId)}
-                className="px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors flex items-center gap-1"
+                className="px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1 h-auto"
                 data-testid={`btn-value-history-${property.externalId}`}
               >
                 <IconTrendingUp className="w-3 h-3" /> Value
-              </button>
+              </Button>
             )}
             {onShowDetail && (
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => onShowDetail(property)}
-                className="px-2.5 py-1 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
+                className="px-2.5 py-1 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/20 h-auto"
                 data-testid={`btn-details-${property.externalId}`}
               >
                 Details
-              </button>
+              </Button>
             )}
           </div>
           {property.listingUrl && (

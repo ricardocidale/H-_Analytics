@@ -21,21 +21,7 @@ import {
   COMPANY_TAB_ANALYST_FIELDS,
   MARKET_MACRO_TAB_ANALYST_FIELDS,
   PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS,
-  unionAnalystFieldSpecs,
 } from "./model-defaults/analyst-fields";
-
-/**
- * Union of all canonical Analyst-valued field specs across the Model
- * Defaults sub-tabs. The Save button here writes every tab's values in
- * one mutation, so the gate must consider violations from any tab.
- * Deduped by draftKey — `costOfEquity` and `inflationRate` each appear
- * on two tabs, and we don't want the gate to double-count them.
- */
-const ALL_MODEL_DEFAULTS_ANALYST_FIELDS = unionAnalystFieldSpecs(
-  COMPANY_TAB_ANALYST_FIELDS,
-  MARKET_MACRO_TAB_ANALYST_FIELDS,
-  PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS,
-);
 
 interface ModelDefaultsTabProps {
   onSaveStateChange?: (state: AdminSaveState | null) => void;

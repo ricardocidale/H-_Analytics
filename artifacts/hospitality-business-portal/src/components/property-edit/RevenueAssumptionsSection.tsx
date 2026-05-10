@@ -365,10 +365,11 @@ function SeasonalityProfileEditor({ draft, onChange }: { draft: PropertyEditSect
 
   return (
     <div className="border-t border-primary/20 pt-4">
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between hover:bg-muted/50 transition-colors text-left py-2"
+        className="w-full flex items-center justify-between text-left py-2 h-auto px-0"
         data-testid="toggle-seasonality-profile"
       >
         <div className="flex items-center gap-2">
@@ -383,7 +384,7 @@ function SeasonalityProfileEditor({ draft, onChange }: { draft: PropertyEditSect
           )}
           <svg className={cn("w-4 h-4 text-muted-foreground transition-transform", isOpen && "rotate-180")} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
         </div>
-      </button>
+      </Button>
       {isOpen && (
         <div className="pt-2 space-y-3">
           <div className="grid grid-cols-6 gap-2">
@@ -425,10 +426,11 @@ function OccupancyRampCurveEditor({ draft, onChange }: { draft: PropertyEditSect
 
   return (
     <div className="border-t border-primary/20 pt-4">
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between hover:bg-muted/50 transition-colors text-left py-2"
+        className="w-full flex items-center justify-between text-left py-2 h-auto px-0"
         data-testid="toggle-occupancy-ramp-curve"
       >
         <div className="flex items-center gap-2">
@@ -443,7 +445,7 @@ function OccupancyRampCurveEditor({ draft, onChange }: { draft: PropertyEditSect
           )}
           <svg className={cn("w-4 h-4 text-muted-foreground transition-transform", isOpen && "rotate-180")} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
         </div>
-      </button>
+      </Button>
       {isOpen && (
         <div className="pt-2 space-y-3">
           {curve.length === 0 && (

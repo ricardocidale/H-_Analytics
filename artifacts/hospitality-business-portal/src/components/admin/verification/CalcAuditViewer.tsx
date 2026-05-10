@@ -111,14 +111,16 @@ function NoteEditor({ logId, stepIndex, currentNote }: { logId: number; stepInde
 
   if (!editing) {
     return (
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={() => setEditing(true)}
-        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground h-auto p-0"
         data-testid={`btn-edit-note-${stepIndex}`}
       >
         <IconStickyNote className="w-3 h-3" />
         {currentNote ? currentNote : "Add note"}
-      </button>
+      </Button>
     );
   }
 
@@ -460,10 +462,11 @@ export default function CalcAuditViewer() {
           {logs && logs.length > 0 && (
             <div className="space-y-2">
               {logs.map((log) => (
-                <button
+                <Button
                   key={log.id}
+                  variant="ghost"
                   onClick={() => setSelectedLogId(log.id)}
-                  className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors text-left"
+                  className="w-full flex items-center gap-3 p-3 rounded-lg border border-border text-left h-auto justify-start"
                   data-testid={`audit-log-${log.id}`}
                 >
                   <div className="flex-1 min-w-0">
@@ -489,7 +492,7 @@ export default function CalcAuditViewer() {
                     </div>
                   </div>
                   <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                </button>
+                </Button>
               ))}
             </div>
           )}

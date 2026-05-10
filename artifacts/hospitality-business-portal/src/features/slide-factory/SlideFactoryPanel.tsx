@@ -599,17 +599,18 @@ function FactoryBriefTab({
 
         {!showUploaded ? (
           <div className="space-y-3">
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => fileRef.current?.click()}
-              className="flex w-full flex-col items-center gap-2 rounded-lg border-2 border-dashed border-border p-8 cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors"
+              className="flex w-full flex-col items-center gap-2 rounded-lg border-2 border-dashed border-border p-8 h-auto hover:border-primary/50"
             >
               <IconUpload className="w-8 h-8 text-muted-foreground" />
               <span className="text-sm font-medium">
                 {upload.file ? upload.file.name : "Click to select a file"}
               </span>
               <span className="text-xs text-muted-foreground">PDF or PPTX only</span>
-            </button>
+            </Button>
 
             {upload.file && (
               <Button
@@ -1847,8 +1848,10 @@ function SlotEditor({
                 alt="Interior photo override"
                 className="h-24 w-auto rounded border object-cover"
               />
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => {
                   setLocalValue("");
                   // Pass "" explicitly — React state batching means localValue
@@ -1856,11 +1859,12 @@ function SlotEditor({
                   void handleSave("");
                 }}
                 disabled={disabled}
-                className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center"
+                className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center p-0"
                 title="Clear photo override"
+                aria-label="Clear photo override"
               >
                 ×
-              </button>
+              </Button>
             </div>
           )}
           <div className="flex gap-2">

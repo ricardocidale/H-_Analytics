@@ -171,21 +171,22 @@ function QualityCard({ specialistId }: { specialistId: string }) {
                     data-testid="quality-history-range"
                   >
                     {HISTORY_RANGES.map((r) => (
-                      <button
+                      <Button
                         key={r}
                         type="button"
+                        variant="ghost"
                         onClick={() => setHistoryRange(r)}
                         aria-pressed={historyRange === r}
                         className={cn(
-                          "px-2 py-0.5 text-xs font-mono rounded-sm transition-colors",
+                          "px-2 py-0.5 text-xs font-mono rounded-sm h-auto",
                           historyRange === r
                             ? "bg-muted text-foreground"
-                            : "text-muted-foreground hover:text-foreground",
+                            : "text-muted-foreground",
                         )}
                         data-testid={`button-quality-history-range-${r}`}
                       >
                         {r}d
-                      </button>
+                      </Button>
                     ))}
                   </div>
                   <span className="font-mono">green ≥ 80 · amber ≥ 60 · red &lt; 60</span>

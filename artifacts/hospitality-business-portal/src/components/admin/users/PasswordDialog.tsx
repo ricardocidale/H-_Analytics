@@ -42,7 +42,7 @@ export default function PasswordDialog({
             <Label className="flex items-center gap-2"><IconKey className="w-4 h-4 text-muted-foreground" />New Password</Label>
             <div className="relative">
               <Input type={showPassword ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="New password" data-testid="input-new-password" />
-              <Button type="button" variant="ghost" size="icon" onClick={() => setShowPassword(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground" data-testid="button-toggle-change-password">
+              <Button type="button" variant="ghost" size="icon" onClick={() => setShowPassword(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground" data-testid="button-toggle-change-password" aria-label={showPassword ? "Hide password" : "Show password"}>
                 {showPassword ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
               </Button>
             </div>

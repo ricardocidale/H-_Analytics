@@ -277,32 +277,34 @@ export function PhotoAlbumGrid({
           {/* View mode toggle — only shown when there are photos */}
           {photos.length > 0 && (
             <div className="flex items-center rounded-md border border-border overflow-hidden">
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => setViewMode("grid")}
                 data-testid="button-view-grid"
                 aria-label="Grid view"
                 className={cn(
-                  "h-7 px-2 flex items-center justify-center transition-colors",
+                  "h-7 px-2 flex items-center justify-center transition-colors rounded-none",
                   viewMode === "grid"
                     ? "bg-primary text-primary-foreground"
-                    : "bg-background text-muted-foreground hover:bg-muted"
+                    : "bg-background text-muted-foreground"
                 )}
               >
                 <IconLayoutGrid className="w-3.5 h-3.5" />
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="ghost"
                 onClick={() => setViewMode("carousel")}
                 data-testid="button-view-carousel"
                 aria-label="Carousel view"
                 className={cn(
-                  "h-7 px-2 flex items-center justify-center transition-colors border-l border-border",
+                  "h-7 px-2 flex items-center justify-center transition-colors border-l border-border rounded-none",
                   viewMode === "carousel"
                     ? "bg-primary text-primary-foreground"
-                    : "bg-background text-muted-foreground hover:bg-muted"
+                    : "bg-background text-muted-foreground"
                 )}
               >
                 <GalleryHorizontal className="w-3.5 h-3.5" />
-              </button>
+              </Button>
             </div>
           )}
           {isAdmin && (
@@ -324,10 +326,11 @@ export function PhotoAlbumGrid({
       {isAdmin && photos.length > 0 && (
         <div className="flex items-center justify-between gap-2 flex-wrap p-2 rounded-md bg-muted/40 border border-border" data-testid="bulk-toolbar">
           <div className="flex items-center gap-2">
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => (selectedIds.size === photos.length ? clearSelection() : selectAll())}
-              className="flex items-center gap-1.5 text-xs font-medium text-foreground hover:text-primary"
+              className="flex items-center gap-1.5 text-xs font-medium text-foreground h-auto px-1 py-0"
               data-testid="button-select-all"
               aria-label={selectedIds.size === photos.length ? "Clear selection" : "Select all photos"}
             >
@@ -337,7 +340,7 @@ export function PhotoAlbumGrid({
                 <IconSquare className="w-3.5 h-3.5" />
               )}
               {selectedIds.size === photos.length && photos.length > 0 ? "Clear selection" : "Select all"}
-            </button>
+            </Button>
             <span className="text-xs text-muted-foreground" data-testid="text-selected-count">
               {selectedIds.size} of {photos.length} selected
             </span>
@@ -467,12 +470,13 @@ export function PhotoAlbumGrid({
             </span>
             <div className="flex gap-1.5">
               {photos.map((_, i) => (
-                <button
+                <Button
                   key={i}
+                  variant="ghost"
                   onClick={() => carouselApi?.scrollTo(i)}
                   aria-label={`Go to photo ${i + 1}`}
                   className={cn(
-                    "rounded-full transition-all duration-300 bg-primary",
+                    "rounded-full transition-all duration-300 bg-primary p-0 min-w-0 focus-visible:ring-1 focus-visible:ring-offset-0",
                     i === currentSlide ? "w-5 h-1.5" : "w-1.5 h-1.5 opacity-30"
                   )}
                 />
@@ -536,20 +540,21 @@ export function PhotoAlbumGrid({
                   </>
                 ) : (
                   <>
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
                       onClick={() => {
                         setCarouselCaptionDraft(photos[currentSlide].caption || "");
                         setEditingCarouselCaption(true);
                       }}
-                      className="flex-1 text-left text-xs text-muted-foreground hover:text-foreground truncate"
+                      className="flex-1 text-left text-xs text-muted-foreground h-auto px-1 py-0 justify-start truncate"
                       title="Click to edit caption"
                       data-testid="button-carousel-caption-display"
                     >
                       {photos[currentSlide].caption
                         ? photos[currentSlide].caption
                         : <span className="italic opacity-60">Add caption…</span>}
-                    </button>
+                    </Button>
                     <Button
                       size="icon"
                       variant="ghost"
@@ -576,13 +581,14 @@ export function PhotoAlbumGrid({
                 ? `/api/property-photos/${photo.id}/enhanced-image`
                 : photo.imageUrl;
               return (
-                <button
+                <Button
                   key={photo.id}
+                  variant="ghost"
                   onClick={() => carouselApi?.scrollTo(i)}
                   aria-label={`Thumbnail ${i + 1}`}
                   data-testid={`thumbnail-${photo.id}`}
                   className={cn(
-                    "shrink-0 rounded-md overflow-hidden border-2 transition-all snap-start",
+                    "shrink-0 rounded-md overflow-hidden border-2 transition-all snap-start p-0",
                     i === currentSlide
                       ? "border-primary shadow-sm scale-105"
                       : "border-transparent opacity-60 hover:opacity-90"
@@ -590,7 +596,7 @@ export function PhotoAlbumGrid({
                   style={{ width: 64, height: 48 }}
                 >
                   <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
-                </button>
+                </Button>
               );
             })}
           </div>

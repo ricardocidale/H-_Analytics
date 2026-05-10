@@ -46,7 +46,7 @@ export default function CreateUserDialog({
             <Label className="flex items-center gap-2"><IconKey className="w-4 h-4 text-muted-foreground" />Password <span className="text-xs text-muted-foreground font-normal">(optional)</span></Label>
             <div className="relative">
               <Input type={showPassword ? "text" : "password"} value={newUser.password} onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))} placeholder="Leave blank for Google-only sign-in" data-testid="input-new-user-password" />
-              <Button type="button" variant="ghost" size="icon" onClick={() => setShowPassword(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground" data-testid="button-toggle-new-password">
+              <Button type="button" variant="ghost" size="icon" onClick={() => setShowPassword(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground" data-testid="button-toggle-new-password" aria-label={showPassword ? "Hide password" : "Show password"}>
                 {showPassword ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
               </Button>
             </div>

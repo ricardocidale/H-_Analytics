@@ -354,18 +354,19 @@ export default function Profile() {
                     ] as const).map(({ value, label, icon: Icon, preview }) => {
                       const active = resolveColorMode(user?.colorMode as ColorMode | null, appearanceDefaults?.defaultColorMode as ColorMode | null) === value;
                       return (
-                        <button
+                        <Button
                           key={value}
+                          variant="ghost"
                           data-testid={`appearance-color-${value}`}
                           onClick={() => appearanceMutation.mutate({ colorMode: value })}
-                          className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${active ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
+                          className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 h-auto transition-all ${active ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
                         >
                           <div className={`w-full h-12 rounded-lg ${preview}`} />
                           <div className="flex items-center gap-1.5">
                             <Icon className="w-3.5 h-3.5 text-muted-foreground" />
                             <span className="text-xs font-medium">{label}</span>
                           </div>
-                        </button>
+                        </Button>
                       );
                     })}
                   </div>
@@ -382,15 +383,16 @@ export default function Profile() {
                     ] as const).map(({ value, label, family }) => {
                       const active = resolveFontPreference(user?.fontPreference as FontPreference | null, appearanceDefaults?.defaultFontPreference as FontPreference | null) === value;
                       return (
-                        <button
+                        <Button
                           key={value}
+                          variant="ghost"
                           data-testid={`appearance-font-${value}`}
                           onClick={() => appearanceMutation.mutate({ fontPreference: value })}
-                          className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${active ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
+                          className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 h-auto transition-all ${active ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
                         >
                           <span className="text-2xl font-semibold" style={{ fontFamily: family }}>Aa</span>
                           <span className="text-xs font-medium">{label}</span>
-                        </button>
+                        </Button>
                       );
                     })}
                   </div>
@@ -406,17 +408,18 @@ export default function Profile() {
                     ] as const).map(({ value, label, icon: Icon }) => {
                       const active = resolveBgAnimation(user?.bgAnimation as BgAnimation | null, appearanceDefaults?.defaultBgAnimation as BgAnimation | null) === value;
                       return (
-                        <button
+                        <Button
                           key={value}
+                          variant="ghost"
                           data-testid={`appearance-anim-${value}`}
                           onClick={() => appearanceMutation.mutate({ bgAnimation: value })}
-                          className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${active ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
+                          className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 h-auto transition-all ${active ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
                         >
                           <div className="w-full h-10 rounded-lg bg-muted flex items-center justify-center">
                             {Icon ? <Icon className="w-5 h-5 text-muted-foreground" /> : <span className="text-xs text-muted-foreground">Off</span>}
                           </div>
                           <span className="text-xs font-medium">{label}</span>
-                        </button>
+                        </Button>
                       );
                     })}
                   </div>
@@ -563,6 +566,7 @@ export default function Profile() {
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground h-auto w-auto p-0"
                         data-testid="button-toggle-confirm-password"
+                        aria-label={showConfirmPassword ? "Hide password" : "Show password"}
                       >
                         {showConfirmPassword ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
                       </Button>

@@ -94,6 +94,7 @@ function RebeccaHeaderButton({ displayName }: { displayName: string }) {
       className={cn("h-8 w-8 relative", isActive && "bg-primary/10")}
       data-testid="button-rebecca-toggle"
       title={displayName}
+      aria-label={isActive ? `Close ${displayName}` : `Open ${displayName}`}
     >
       <IconMessageCircle className="w-4 h-4" />
     </Button>

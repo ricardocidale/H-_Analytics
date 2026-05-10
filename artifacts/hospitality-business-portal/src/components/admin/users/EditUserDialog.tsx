@@ -81,7 +81,7 @@ export default function EditUserDialog({
             <Label className="flex items-center gap-2"><IconKey className="w-4 h-4 text-muted-foreground" />Password</Label>
             <div className="relative">
               <Input type={showEditPassword ? "text" : "password"} value={editUser.password} onChange={(e) => setEditUser(prev => ({ ...prev, password: e.target.value }))} placeholder="Leave blank to keep current" data-testid="input-edit-password" />
-              <Button type="button" variant="ghost" size="icon" onClick={() => setShowEditPassword(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground" data-testid="button-toggle-edit-password">
+              <Button type="button" variant="ghost" size="icon" onClick={() => setShowEditPassword(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground" data-testid="button-toggle-edit-password" aria-label={showEditPassword ? "Hide password" : "Show password"}>
                 {showEditPassword ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
               </Button>
             </div>

@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePanelManager } from "@/lib/panel-manager";
 import { RelaxationTrailStepper, type RelaxationStep } from "./RelaxationTrailStepper";
@@ -128,15 +129,17 @@ function GuidanceSideSheet() {
                 )}
               </SheetDescription>
             </div>
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={closeAll}
-              className="rounded-sm opacity-70 hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              className="opacity-70 hover:opacity-100 h-7 w-7"
               data-testid="guidance-close-button"
               aria-label="Close guidance panel"
             >
               <XIcon className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
         </SheetHeader>
 
@@ -148,15 +151,16 @@ function GuidanceSideSheet() {
           <div className="flex-1 flex flex-col items-center justify-center text-center px-6 gap-3" data-testid="guidance-empty">
             <FileText className="h-10 w-10 text-muted-foreground/30" />
             <div className="text-sm text-muted-foreground">No research guidance available for this field yet.</div>
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={() => deepDiveMutation.mutate()}
               disabled={deepDiveMutation.isPending}
-              className="text-xs font-medium text-accent-pop hover:underline disabled:opacity-50"
+              className="text-xs font-medium text-accent-pop h-auto px-2 py-1"
               data-testid="guidance-run-research"
             >
               {deepDiveMutation.isPending ? "Running..." : "Run Deep-Dive Research"}
-            </button>
+            </Button>
           </div>
         ) : (
           <>
@@ -202,45 +206,49 @@ function GuidanceSideSheet() {
                   { label: "P50", value: guidanceRecord.valueMid, action: "apply_p50" },
                   { label: "P75", value: guidanceRecord.valueHigh, action: "apply_p75" },
                 ].map((btn) => (
-                  <button
+                  <Button
                     key={btn.action}
                     type="button"
+                    variant="ghost"
                     onClick={() => decisionMutation.mutate({ action: btn.action, newValue: btn.value })}
                     disabled={decisionMutation.isPending || btn.value == null}
-                    className="text-xs font-medium px-2.5 py-1.5 rounded-md bg-accent-pop/10 text-accent-pop hover:bg-accent-pop/20 transition-colors disabled:opacity-40"
+                    className="text-xs font-medium px-2.5 py-1.5 h-auto bg-accent-pop/10 text-accent-pop hover:bg-accent-pop/20"
                     data-testid={`guidance-${btn.action}`}
                   >
                     Apply {btn.label}
-                  </button>
+                  </Button>
                 ))}
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => decisionMutation.mutate({ action: "pin" })}
                   disabled={decisionMutation.isPending}
-                  className="text-xs font-medium px-2.5 py-1.5 rounded-md border border-border/60 hover:bg-accent/40 transition-colors"
+                  className="text-xs font-medium px-2.5 py-1.5 h-auto border border-border/60"
                   data-testid="guidance-pin"
                 >
                   <Lock className="h-3 w-3 inline mr-1" />Pin
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => decisionMutation.mutate({ action: "dismiss" })}
                   disabled={decisionMutation.isPending}
-                  className="text-xs font-medium px-2.5 py-1.5 rounded-md border border-border/60 hover:bg-accent/40 transition-colors"
+                  className="text-xs font-medium px-2.5 py-1.5 h-auto border border-border/60"
                   data-testid="guidance-dismiss"
                 >
                   <Minus className="h-3 w-3 inline mr-1" />Dismiss
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => deepDiveMutation.mutate()}
                   disabled={deepDiveMutation.isPending}
-                  className="text-xs font-medium px-2.5 py-1.5 rounded-md border border-accent-pop/30 text-accent-pop hover:bg-accent-pop/10 transition-colors ml-auto"
+                  className="text-xs font-medium px-2.5 py-1.5 h-auto border border-accent-pop/30 text-accent-pop hover:bg-accent-pop/10 ml-auto"
                   data-testid="guidance-refresh"
                 >
                   <RefreshCw className={cn("h-3 w-3 inline mr-1", deepDiveMutation.isPending && "animate-spin")} />
                   Refresh
-                </button>
+                </Button>
               </div>
             </div>
           </>
