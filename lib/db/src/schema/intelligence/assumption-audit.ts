@@ -3,7 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { users } from "../auth";
 import { scenarios } from "../scenarios";
-import { researchRuns } from "./analyst";
+import { researchRuns } from "./research-engine";
 
 // ── Assumption Change Log ────────────────────────────────────────
 // Field-level audit trail for every property/company assumption change.
