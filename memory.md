@@ -15,7 +15,6 @@
 - Domain boundary: Route files must NEVER import `db` or `drizzle-orm` directly
 - Always update replit.md AND CLAUDE.md AND memory.md after changes (Doc Harmony Rule)
 - useResearchQueue.getState() pattern for fresh Zustand reads
-- **E2E Test Login**: Click the spinning logo on `/login` page to trigger `POST /api/auth/dev-login`. Do NOT pass `authConfig` credentials (triggers blocked OAuth). Do NOT use Google sign-in button.
 
 ## Forward-Discipline Playbook
 See `best-practices.md` (project root) — 22-rule playbook from `rewritetax.md`'s 7 cost vectors. Categories: (A) multi-agent hygiene, (B) avoiding architectural redirection, (C) vendor & library decisions, (D) AI/prompt-tuning, (E) DB & migration hygiene, (F) cosmetic churn, (G) platform tax.
