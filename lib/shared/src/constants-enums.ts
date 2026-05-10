@@ -25,8 +25,6 @@ export type UserRoleValue = (typeof UserRole)[keyof typeof UserRole];
 
 export const USER_ROLE_VALUES = Object.values(UserRole);
 
-export const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-5";
-
 export const APP_BRAND_NAME = "H+ Analytics";
 export const APP_FULL_BRAND = "H+ Analytics by Norfolk AI";
 export const BRAND_ACCENT_PREFIX = "H+";

@@ -24,7 +24,7 @@ import {
 import { Loader2 } from "@/components/icons/themed-icons";
 import { useRoute } from "wouter";
 import type { ResearchConfig, ResearchEventConfig } from "@shared/schema";
-import { PropertyStatus, DEFAULT_ANTHROPIC_MODEL } from "@shared/constants";
+import { PropertyStatus } from "@shared/constants";
 
 export default function PropertyResearchCriteria() {
   const [, params] = useRoute("/property/:id/criteria");
@@ -95,7 +95,7 @@ export default function PropertyResearchCriteria() {
   const enabledTools = eventConfig.enabledTools?.length ? eventConfig.enabledTools : [];
   const customSources = researchConfig.customSources?.length ? researchConfig.customSources : [];
   const timeHorizon = eventConfig.timeHorizon || null;
-  const preferredLlm = researchConfig.preferredLlm || global?.preferredLlm || DEFAULT_ANTHROPIC_MODEL;
+  const preferredLlm = researchConfig.preferredLlm || global?.preferredLlm;
 
   const hasAdminConfig = focusAreas.length > 0 || regions.length > 0 || customInstructions || enabledTools.length > 0 || timeHorizon;
 
@@ -320,7 +320,7 @@ export default function PropertyResearchCriteria() {
               <AccordionContent className="px-4 pb-4">
                 <Card className="bg-muted/30 border-border p-3 inline-block">
                   <p className="label-text text-muted-foreground uppercase tracking-wide text-[11px]">Preferred Model</p>
-                  <p className="text-sm font-medium text-foreground mt-1">{preferredLlm}</p>
+                  <p className="text-sm font-medium text-foreground mt-1">{preferredLlm ?? "System default"}</p>
                 </Card>
               </AccordionContent>
             </AccordionItem>
