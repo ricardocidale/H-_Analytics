@@ -28,7 +28,7 @@ import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 
 import { useProperty, useUpdateProperty, useGlobalAssumptions, useMarketResearch, useFeeCategories, useUpdateFeeCategories, usePropertyGuidance, type FeeCategoryResponse } from "@/lib/api";
 import { useMarketRates } from "@/lib/api/market-rates";
-import { ValidationStatusBadge, AnalystValidationBanner } from "@/components/analyst";
+import { ValidationStatusBadge } from "@/components/analyst";
 import { PropertyResearchHistory } from "@/components/property-edit/PropertyResearchHistory";
 import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { Button } from "@/components/ui/button";
@@ -661,14 +661,6 @@ export default function PropertyEdit() {
           lastAssumptionChangeAt={propertyLastAssumptionChangeAt}
           isGenerating={isGenerating}
           onRunResearch={generateResearch}
-        />
-
-        <AnalystValidationBanner
-          property={property}
-          guidance={guidance}
-          isGenerating={isGenerating}
-          onTriggerResearch={() => { setIntelligenceClicked(true); generateResearch(); }}
-          onAcceptRange={handleAcceptRange}
         />
 
         <PrerequisitesFailedPanel
