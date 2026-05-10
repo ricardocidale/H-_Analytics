@@ -219,7 +219,7 @@ export function CreateResourceDialog({
           {error && <p className="text-sm text-rose-600" data-testid="create-error">{error}</p>}
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button data-testid="button-confirm-create" onClick={() => mutation.mutate()} disabled={mutation.isPending || !!probeUrlError}>
             {mutation.isPending ? "Creating…" : "Create"}
           </Button>
@@ -379,7 +379,7 @@ export function EditResourceDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button data-testid="button-confirm-edit" onClick={() => mutation.mutate()} disabled={mutation.isPending || !!probeUrlError}>
             {mutation.isPending ? "Saving…" : `Save as v${resource.version + 1}`}
           </Button>

@@ -4,12 +4,6 @@
  * from `client/src/pages/CompanyAssumptions.tsx` (task #471).
  */
 import { PageHeader } from "@/components/ui/page-header";
-import { FirstVisitBanner } from "@/components/intelligence/FirstVisitBanner";
-import {
-  IntelligenceStatusBar,
-  computeFreshnessStatus,
-  type BannerState,
-} from "@/components/intelligence/IntelligenceStatusBar";
 import { RangePillsLayer, type RangePillSpec } from "@/components/company-assumptions";
 import type { TabValidationWarning } from "@/components/company-assumptions";
 import type { TabKey } from "@/hooks/useCompanyAssumptionsForm";
@@ -31,7 +25,6 @@ interface Props {
   tabWarnings: Record<TabKey, TabValidationWarning[]>;
   tabKeys: readonly TabKey[];
   acks: AckRow[];
-  isFirstVisit: boolean;
   activeTab: TabKey;
 }
 
@@ -47,25 +40,11 @@ export function CompanyAssumptionsHeaderBar(props: Props) {
     tabWarnings,
     tabKeys,
     acks,
-    isFirstVisit,
     activeTab,
   } = props;
 
   const totalWarnings = (Object.values(tabWarnings) as TabValidationWarning[][])
     .reduce((acc, arr) => acc + arr.length, 0);
-
-  let bannerState: BannerState | undefined;
-  if (isUpdatePending) bannerState = "saving";
-  else if (isGenerating) bannerState = "reviewing";
-  else if (savedTabsCount > 0 && totalWarnings > 0) bannerState = "flagged";
-  else if (savedTabsCount > 0 && totalWarnings === 0 && !!companyResearchUpdatedAt) bannerState = "clean";
-
-  const { status } = computeFreshnessStatus({
-    researchUpdatedAt: companyResearchUpdatedAt,
-    lastAssumptionChangeAt,
-    isGenerating,
-  });
-  const showFirstVisit = isFirstVisit && !isGenerating && status !== "current";
 
   // Build pill specs once. Flagged pills come from current warnings; acked
   // pills surface kept-override ranges. Targets not in DOM render nothing.
@@ -105,19 +84,7 @@ export function CompanyAssumptionsHeaderBar(props: Props) {
         backLink="/company"
       />
 
-      <IntelligenceStatusBar
-        researchUpdatedAt={companyResearchUpdatedAt}
-        lastAssumptionChangeAt={lastAssumptionChangeAt}
-        isGenerating={isGenerating}
-        onRunResearch={generateResearch}
-        bannerState={bannerState}
-        flaggedCount={totalWarnings}
-        hideButton
-      />
-
       <RangePillsLayer pills={pills} reKey={activeTab} />
-
-      {showFirstVisit ? <FirstVisitBanner /> : null}
     </>
   );
 }

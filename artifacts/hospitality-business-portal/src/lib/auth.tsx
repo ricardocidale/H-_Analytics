@@ -43,6 +43,7 @@ interface User {
   rebeccaShowToolTiming: boolean | null;
   rebeccaHistoryOpen: boolean | null;
   rebeccaSuggestedChips: string[] | null;
+  tourStep: number | null;
 }
 
 interface AuthContextType {

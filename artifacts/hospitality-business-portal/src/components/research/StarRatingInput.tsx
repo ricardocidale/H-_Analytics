@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 
 interface StarRatingInputProps {
   value: number | null | undefined;
@@ -24,14 +25,16 @@ export default function StarRatingInput({ value, suggested, onChange, disabled }
         onMouseLeave={() => setHovered(null)}
       >
         {[1, 2, 3, 4, 5].map((star) => (
-          <button
+          <Button
             key={star}
             type="button"
+            variant="ghost"
+            size="icon"
             role="radio"
             aria-checked={value === star}
-            aria-label={STAR_LABELS[star]}
+            aria-label={`Rate ${star} stars`}
             disabled={disabled}
-            className="p-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded transition-transform hover:scale-110 disabled:opacity-50"
+            className="p-0.5 w-auto h-auto transition-transform hover:scale-110"
             data-testid={`star-rating-${star}`}
             onMouseEnter={() => setHovered(star)}
             onClick={() => onChange(value === star ? null : star)}
@@ -56,7 +59,7 @@ export default function StarRatingInput({ value, suggested, onChange, disabled }
             >
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
             </svg>
-          </button>
+          </Button>
         ))}
       </div>
       {suggested && suggested !== value && (

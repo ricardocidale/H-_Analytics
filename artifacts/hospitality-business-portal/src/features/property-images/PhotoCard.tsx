@@ -98,6 +98,7 @@ export function PhotoCard({ photo, onSetHero, onDelete, onUpdateCaption, onEnhan
               : "bg-black/50 backdrop-blur-sm text-white/70 opacity-0 group-hover:opacity-100 hover:bg-accent-pop/80 hover:text-accent-pop"
           )}
           title={photo.isHero ? "Current hero image" : "Set as hero image"}
+          aria-label={photo.isHero ? "Current hero image" : "Set as hero image"}
         >
           <Star className={cn("w-4 h-4", photo.isHero && "fill-current")} />
         </Button>
@@ -119,6 +120,7 @@ export function PhotoCard({ photo, onSetHero, onDelete, onUpdateCaption, onEnhan
           disabled={isEnhancing}
           className="absolute top-10 right-2 z-10 p-1.5 rounded-full h-auto w-auto bg-black/50 backdrop-blur-sm text-white/70 opacity-0 group-hover:opacity-100 hover:bg-primary/80 hover:text-white transition-all"
           title={photo.enhancedImageData ? "Re-enhance photo" : "Enhance with AI"}
+          aria-label={photo.enhancedImageData ? "Re-enhance photo" : "Enhance with AI"}
           data-testid={`button-enhance-${photo.id}`}
         >
           <Sparkles className={cn("w-4 h-4", isEnhancing && "animate-pulse")} />

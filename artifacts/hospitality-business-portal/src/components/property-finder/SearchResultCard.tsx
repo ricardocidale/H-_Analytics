@@ -69,6 +69,7 @@ export function SearchResultCard({
                 size="icon"
                 onClick={() => onToggleImage(property.externalId)}
                 data-testid={`btn-image-${property.externalId}`}
+                aria-label={expandedImage === property.externalId ? "Hide photo" : "Show photo"}
               >
                 <IconImage className="w-4 h-4 text-primary" />
               </Button>
@@ -79,6 +80,7 @@ export function SearchResultCard({
               onClick={onToggleFavorite}
               disabled={isSaving}
               title={isSaved ? "Remove from saved" : "Save property"}
+              aria-label={isSaved ? "Remove from saved" : "Save property"}
               data-testid={`btn-favorite-${property.externalId}`}
             >
               {isSaving ? (
@@ -137,22 +139,24 @@ export function SearchResultCard({
               </span>
             ) : <span />}
             {onShowValue && (
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => onShowValue(property.externalId)}
-                className="px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors flex items-center gap-1"
+                className="px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1 h-auto"
                 data-testid={`btn-value-history-${property.externalId}`}
               >
                 <IconTrendingUp className="w-3 h-3" /> Value
-              </button>
+              </Button>
             )}
             {onShowDetail && (
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => onShowDetail(property)}
-                className="px-2.5 py-1 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors"
+                className="px-2.5 py-1 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/20 h-auto"
                 data-testid={`btn-details-${property.externalId}`}
               >
                 Details
-              </button>
+              </Button>
             )}
           </div>
           {property.listingUrl && (

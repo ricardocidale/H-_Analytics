@@ -3,6 +3,7 @@ import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "@/components/icons/themed-icons";
+import { Button } from "@/components/ui/button";
 
 interface NearbyPOI {
   name: string;
@@ -231,13 +232,15 @@ export default function PropertyMap({ latitude, longitude, propertyName }: Prope
           <div className="absolute bottom-3 left-3 bg-card/95 backdrop-blur-sm rounded-lg p-3 shadow-lg border border-border min-w-[180px]" data-testid="map-legend">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Legend</span>
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => setShowLegend(false)}
-                className="text-muted-foreground hover:text-foreground text-xs"
+                className="text-muted-foreground h-auto p-0 text-xs"
                 data-testid="button-close-legend"
+                aria-label="Close legend"
               >
                 ✕
-              </button>
+              </Button>
             </div>
 
             <div className="flex items-center gap-2 mb-1.5">

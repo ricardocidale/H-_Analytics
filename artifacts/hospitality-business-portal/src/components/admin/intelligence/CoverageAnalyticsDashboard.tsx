@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useScenarios } from "@/lib/api/scenarios";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface CoverageSummary {
   totalMapped: number;
@@ -172,12 +173,13 @@ export default function CoverageAnalyticsDashboard() {
           {entities.map(entity => {
             const isSelected = selectedEntity?.type === entity.entityType && selectedEntity?.id === entity.entityId;
             return (
-              <button
+              <Button
                 key={`${entity.entityType}-${entity.entityId}`}
+                variant="ghost"
                 onClick={() => setSelectedEntity({ type: entity.entityType, id: entity.entityId })}
                 data-testid={`coverage-entity-${entity.entityType}-${entity.entityId}`}
                 className={cn(
-                  "text-left rounded-xl border p-4 transition-all duration-150 cursor-pointer",
+                  "text-left rounded-xl border p-4 transition-all duration-150 h-auto flex-col items-start",
                   isSelected
                     ? "border-primary bg-primary/5 ring-1 ring-primary/30"
                     : cn("hover:border-primary/40", coverageBgColor(entity.coveragePct))
@@ -202,7 +204,7 @@ export default function CoverageAnalyticsDashboard() {
                     Updated {new Date(entity.lastUpdated).toLocaleDateString()}
                   </p>
                 )}
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -217,13 +219,15 @@ export default function CoverageAnalyticsDashboard() {
               </h3>
               <p className="text-xs text-muted-foreground">Assumption-level coverage detail</p>
             </div>
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setSelectedEntity(null)}
-              className="text-xs text-muted-foreground hover:text-foreground"
+              className="text-xs text-muted-foreground h-auto p-0"
               data-testid="button-close-detail"
             >
               Close
-            </button>
+            </Button>
           </div>
 
           {detailLoading ? (

@@ -971,7 +971,7 @@ export default function ReferenceRangesTab() {
           )}
 
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDialogMode(null)} data-testid="button-form-cancel">
+            <Button variant="outline" onClick={() => setDialogMode(null)} data-testid="button-form-cancel">
               Cancel
             </Button>
             <Button onClick={handleSubmit} disabled={submitting} data-testid="button-form-submit">

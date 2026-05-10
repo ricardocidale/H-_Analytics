@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { IconMapPin } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
@@ -160,16 +161,17 @@ export default function AddressAutocomplete({
       {showSuggestions && suggestions.length > 0 && (
         <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden max-h-[220px] overflow-y-auto" data-testid="autocomplete-suggestions">
           {suggestions.map((s) => (
-            <button
+            <Button
               key={s.placeId}
               type="button"
-              className="w-full text-left px-3 py-2 hover:bg-accent transition-colors border-b border-border/50 last:border-0 cursor-pointer"
+              variant="ghost"
+              className="w-full text-left px-3 py-2 border-b border-border/50 last:border-0 h-auto justify-start flex-col items-start rounded-none"
               onClick={() => handleSelect(s)}
               data-testid={`suggestion-${s.placeId}`}
             >
               <div className="text-sm font-medium text-foreground">{s.mainText}</div>
               <div className="text-xs text-muted-foreground">{s.secondaryText}</div>
-            </button>
+            </Button>
           ))}
         </div>
       )}

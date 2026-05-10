@@ -123,7 +123,7 @@ export function MissingRequiredFieldsPrompt({
             </AnimatePresence>
           </div>
 
-          <DialogFooter className="mt-4">
+          <DialogFooter className="gap-2">
             <Button
               variant="default"
               onClick={() => onOpenChange(false)}

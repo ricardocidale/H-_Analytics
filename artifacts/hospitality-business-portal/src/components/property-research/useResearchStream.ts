@@ -215,7 +215,11 @@ export function useResearchStream({ property, propertyId, global, onMissingRequi
       await executeStream(queueId);
       getQueue().markComplete(queueId);
     } catch (error: unknown) {
-      if (!(error instanceof DOMException && error.name === "AbortError")) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        // User cancelled — mark the queue item complete so it doesn't stay
+        // permanently `active` and block future research from being queued.
+        getQueue().markComplete(queueId);
+      } else {
         getQueue().markError(queueId, error instanceof Error ? error.message : "Research failed");
       }
     } finally {
@@ -224,5 +228,13 @@ export function useResearchStream({ property, propertyId, global, onMissingRequi
     }
   }, [property, global, propertyId, queryClient, executeStream]);
 
-  return { isGenerating, streamedContent, phases, orchestratorMeta, generateResearch };
+  const abortResearch = useCallback(() => {
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
+    setIsGenerating(false);
+  }, []);
+
+  return { isGenerating, streamedContent, phases, orchestratorMeta, generateResearch, abortResearch };
 }

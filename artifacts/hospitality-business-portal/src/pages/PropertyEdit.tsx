@@ -28,26 +28,24 @@ import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 
 import { useProperty, useUpdateProperty, useGlobalAssumptions, useMarketResearch, useFeeCategories, useUpdateFeeCategories, usePropertyGuidance, type FeeCategoryResponse } from "@/lib/api";
 import { useMarketRates } from "@/lib/api/market-rates";
-import { ValidationStatusBadge, AnalystValidationBanner } from "@/components/analyst";
+import { ValidationStatusBadge } from "@/components/analyst";
 import { PropertyResearchHistory } from "@/components/property-edit/PropertyResearchHistory";
 import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "@/components/icons/themed-icons";
+import { Loader2, ChevronUp } from "@/components/icons/themed-icons";
 import { IconAlertTriangle, IconWand2, IconEye, IconSparkles } from "@/components/icons";
-import { usePageVisit } from "@/hooks/usePageVisit";
-import { FirstVisitBanner } from "@/components/intelligence/FirstVisitBanner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { SaveButton } from "@/components/ui/save-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Link, useRoute, useLocation } from "wouter";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useResearchStream } from "@/components/property-research/useResearchStream";
 import { MissingRequiredFieldsPrompt } from "@/components/analyst/MissingRequiredFieldsPrompt";
 import { AnalystWorkingView } from "@/components/research/AnalystWorkingView";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
-import { IntelligenceStatusBar, computeFreshnessStatus } from "@/components/intelligence/IntelligenceStatusBar";
+import { computeFreshnessStatus } from "@/components/intelligence/IntelligenceStatusBar";
 import { PrerequisitesFailedPanel, type PrerequisiteFailure } from "@/components/company/SpecialistRequirementsPanel";
 import {
   PROJECTION_YEARS,
@@ -114,6 +112,20 @@ export default function PropertyEdit() {
   const wasGeneratingRef = useRef(false);
   const [researchStartedAt, setResearchStartedAt] = useState<number | null>(null);
   const { data: marketRates } = useMarketRates();
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  const handleScroll = useCallback(() => {
+    setShowBackToTop(window.scrollY > 300);
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [handleScroll]);
+
+  const scrollToTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
 
   const [missingFieldsPrompt, setMissingFieldsPrompt] = useState<{
     open: boolean;
@@ -131,7 +143,7 @@ export default function PropertyEdit() {
     propertyId,
   });
 
-  const { isGenerating, streamedContent, phases, generateResearch } = useResearchStream({
+  const { isGenerating, streamedContent, phases, generateResearch, abortResearch } = useResearchStream({
     property: property ?? null,
     propertyId,
     global: globalAssumptions,
@@ -147,21 +159,14 @@ export default function PropertyEdit() {
   const researchUpdatedAt = research?.updatedAt ?? null;
   const propertyLastAssumptionChangeAt = property?.lastAssumptionChangeAt ?? null;
 
-  const pageVisitKey = propertyId ? `property:${propertyId}:edit` : "";
-  const { isFirstVisit, isAnalystStale: _isAnalystStale, recordSave: _recordPageSave, recordAnalystRun: _recordAnalystRun } = usePageVisit(
-    pageVisitKey, "property", propertyId
-  );
-
   // NOTE (task #738 / #739 / .claude/rules/analyst-trigger-discipline.md):
   // The `useAutoRefreshIntelligence` consumer that lived here was removed
   // (#738), and the first-visit `setTimeout(generateResearch, 1500)` effect
   // that auto-fired The Analyst when a property was opened for the first
   // time was removed (#739). The Analyst evaluates ONLY on an explicit
-  // AnalystButton click, so first-visit guidance is conveyed via
-  // non-triggering UI affordances:
-  //   • <FirstVisitBanner /> — informational badge below the page header
-  //   • <Dialog open={showIntelligencePrompt} /> — prompts the user but
-  //     only runs research when they press the AnalystButton inside it.
+  // AnalystButton click. The IntelligenceStatusBar suppresses itself on a
+  // first visit (missing status) — the freshness dot on the AnalystButton
+  // is the sole signal that research hasn't run yet.
 
   useEffect(() => {
     if (!wasGeneratingRef.current && isGenerating) {
@@ -595,7 +600,47 @@ export default function PropertyEdit() {
           variant="dark"
           backLink={`/property/${propertyId}`}
           actions={
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Secondary actions */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link href={`/property/${propertyId}/criteria`} className="text-inherit no-underline">
+                    <Button variant="outline" size="sm" data-testid="button-criteria">
+                      <IconEye className="w-4 h-4" />
+                      Criteria
+                    </Button>
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-[260px] text-center">
+                  See exactly what data and instructions the AI uses when researching this property's market.
+                </TooltipContent>
+              </Tooltip>
+              {research?.content && !((research.content as { rawResponse?: unknown })?.rawResponse) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowApplyDialog(true)}
+                  data-testid="button-apply-research"
+                >
+                  <IconWand2 className="w-4 h-4" />
+                  Apply
+                </Button>
+              )}
+              {/* Primary action group: Save | Cancel | Analyst */}
+              <SaveButton
+                onClick={handleSave}
+                isPending={updateProperty.isPending}
+                hasChanges={isDirty}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCancel}
+                disabled={updateProperty.isPending}
+                data-testid="button-cancel-property-edit"
+              >
+                Cancel
+              </Button>
               {(() => {
                 const { status } = computeFreshnessStatus({ researchUpdatedAt, lastAssumptionChangeAt: propertyLastAssumptionChangeAt, isGenerating: false });
                 const lastResearched = researchUpdatedAt
@@ -620,68 +665,10 @@ export default function PropertyEdit() {
                   />
                 );
               })()}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link href={`/property/${propertyId}/criteria`} className="text-inherit no-underline">
-                    <Button variant="outline" data-testid="button-criteria">
-                      <IconEye className="w-4 h-4" />
-                      Criteria
-                    </Button>
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="max-w-[260px] text-center">
-                  See exactly what data and instructions the AI uses when researching this property's market.
-                </TooltipContent>
-              </Tooltip>
-              {research?.content && !((research.content as { rawResponse?: unknown })?.rawResponse) && (
-                <Button
-                  variant="default"
-                  onClick={() => setShowApplyDialog(true)}
-                  data-testid="button-apply-research"
-                >
-                  <IconWand2 className="w-4 h-4" />
-                  Apply Research
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCancel}
-                disabled={updateProperty.isPending}
-                data-testid="button-cancel-property-edit"
-              >
-                Cancel
-              </Button>
-              <SaveButton
-                onClick={handleSave}
-                isPending={updateProperty.isPending}
-                hasChanges={isDirty}
-              />
             </div>
           }
         />
 
-        <IntelligenceStatusBar
-          researchUpdatedAt={researchUpdatedAt}
-          lastAssumptionChangeAt={propertyLastAssumptionChangeAt}
-          isGenerating={isGenerating}
-          onRunResearch={generateResearch}
-        />
-
-        {isFirstVisit && !isGenerating && (
-          <FirstVisitBanner
-            onAskAnalyst={() => { setIntelligenceClicked(true); generateResearch(); }}
-            isGenerating={isGenerating}
-          />
-        )}
-
-        <AnalystValidationBanner
-          property={property}
-          guidance={guidance}
-          isGenerating={isGenerating}
-          onTriggerResearch={() => { setIntelligenceClicked(true); generateResearch(); }}
-          onAcceptRange={handleAcceptRange}
-        />
 
         <PrerequisitesFailedPanel
           failures={prerequisiteFailures}
@@ -694,6 +681,7 @@ export default function PropertyEdit() {
             phases={phases}
             streamedContent={streamedContent}
             startedAt={researchStartedAt}
+            onCancel={abortResearch}
           />
         ) : (
           <>
@@ -720,57 +708,43 @@ export default function PropertyEdit() {
 
             <PropertyResearchHistory propertyId={propertyId} />
 
-            {/* Property-scoped Analyst verdict surface (task #779). The
-                "Ask Analyst" button POSTs to `/api/analyst/refresh`
-                (via `useAnalystRefresh`); when a verdict comes back,
-                `AnalystVerdictDisplay` renders below it and its Adjust
-                CTA resolves through `resolveFieldMountPoint()` with
-                `propertyId` in scope — so a verdict on a registry
-                field whose mountPoint is `property-edit/<section>`
-                (e.g. `dispositionCommission`) navigates to a same-page
-                `?focus=<fieldId>#<section>` URL and lands focus on
-                the matching `data-field` marker via
-                `useFocusFieldFromUrl()` above. */}
-            <section
-              className="space-y-3"
-              data-testid="property-analyst-section"
-            >
-              <div className="flex items-center justify-between">
+            {/* Property-scoped Analyst verdict surface (task #779).
+                The trigger has been consolidated into the canonical
+                Save | Cancel | Analyst header group (task #1287).
+                Verdict display is kept — the header Analyst button
+                drives both market research and risk-intelligence via
+                a unified AnalystButton click target. */}
+            {propertyAnalystRefresh.lastVerdict ? (
+              <section
+                className="space-y-3"
+                data-testid="property-analyst-section"
+              >
                 <h3 className="font-display text-lg text-foreground">
                   Analyst verdict
                 </h3>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => propertyAnalystRefresh.triggerRefresh()}
-                  disabled={
-                    propertyAnalystRefresh.running ||
-                    propertyAnalystRefresh.cooldownRemainingMs > 0
-                  }
-                  data-testid="button-ask-analyst-property"
-                >
-                  <IconSparkles className="w-4 h-4" />
-                  {propertyAnalystRefresh.running
-                    ? "Asking…"
-                    : "Ask Analyst"}
-                </Button>
-              </div>
-              {propertyAnalystRefresh.lastVerdict ? (
                 <div data-testid="property-analyst-verdict-section">
                   <AnalystVerdictDisplay
                     verdict={propertyAnalystRefresh.lastVerdict}
                     propertyId={propertyId}
                   />
                 </div>
-              ) : null}
-            </section>
+              </section>
+            ) : null}
 
             <RiskInsightsPanel propertyId={propertyId} />
             <RegulatoryNotesPanel countryCode={draft.country} />
           </>
         )}
 
-        <div className="flex justify-end gap-2 pb-8">
+        {/* Sticky bottom action bar: Save | Cancel | Analyst */}
+        <div className="sticky bottom-0 z-30 flex justify-end gap-2 py-3 px-4 bg-background/95 backdrop-blur border-t border-border flex-wrap">
+          <SaveButton
+            onClick={handleSave}
+            isPending={updateProperty.isPending}
+            hasChanges={isDirty}
+          >
+            Save
+          </SaveButton>
           <Button
             variant="ghost"
             onClick={handleCancel}
@@ -779,14 +753,33 @@ export default function PropertyEdit() {
           >
             Cancel
           </Button>
-          <SaveButton
-            onClick={handleSave}
-            isPending={updateProperty.isPending}
-            hasChanges={isDirty}
-          >
-            Save
-          </SaveButton>
+          {(() => {
+            const { status } = computeFreshnessStatus({ researchUpdatedAt, lastAssumptionChangeAt: propertyLastAssumptionChangeAt, isGenerating: false });
+            return (
+              <AnalystButton
+                onClick={() => { setIntelligenceClicked(true); generateResearch(); }}
+                isRunning={isGenerating}
+                freshnessStatus={status}
+                pulse={false}
+                tooltip="Run AI research to get market-backed ranges for all assumptions."
+                dataTestId="button-regenerate-intelligence-footer"
+              />
+            );
+          })()}
         </div>
+
+        {/* Back-to-top floating button */}
+        {showBackToTop && (
+          <button
+            type="button"
+            onClick={scrollToTop}
+            aria-label="Back to top"
+            className="fixed bottom-6 right-6 z-40 flex items-center justify-center w-10 h-10 rounded-full bg-card border border-border shadow-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            data-testid="button-back-to-top"
+          >
+            <ChevronUp className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       <Dialog open={showIntelligencePrompt} onOpenChange={setShowIntelligencePrompt}>
@@ -805,14 +798,17 @@ export default function PropertyEdit() {
               })()}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="flex gap-2 sm:justify-end">
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:justify-end">
             <Button variant="outline" onClick={handleIntelligenceLater} data-testid="button-intelligence-later">
               Later
             </Button>
-            <AnalystButton
+            <Button
+              variant="default"
               onClick={handleIntelligenceNow}
-              dataTestId="button-intelligence-now"
-            />
+              data-testid="button-intelligence-now"
+            >
+              Refresh now
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

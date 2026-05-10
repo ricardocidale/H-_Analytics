@@ -76,8 +76,10 @@ const COMPANY_DIMENSIONS: readonly CompanyDimensionDescriptor[] = [
     label: "Cost of equity / WACC Re (DCF hurdle rate)",
     unit: "%",
     evidenceCues: [
-      "cost of equity and WACC hurdle benchmarks for boutique-luxury hospitality sector (KPMG WACC monitor, Duff & Phelps industry cost of capital, NYU Damodaran sector beta/Re estimates)",
-      "LP underwriting impact: a low Re inflates the DCF and WACC NAV; institutional LPs re-underwrite with their own hurdle — projected returns will look weaker",
+      "build-up approach: (a) anchor to the current USD 10-year Treasury yield from FRED (series treasury_10y, live market rate); (b) add the Damodaran boutique hospitality sector equity risk premium (erp_boutique_hospitality from market rates, ~12%); (c) add the private-market illiquidity premium of 3–5% for boutique hospitality (Duff & Phelps Cost of Capital Navigator 2024); (d) for non-US USD-denominated properties, add the Damodaran country risk premium from the crp_* market rate rows — this yields the full private Re build-up",
+      "US primary/secondary markets: HIGH conviction achievable when FRED treasury_10y is live; expected Re range 18–28% depending on market tier and operator maturity (LOW = US prime market seasoned operator ~18%; MID = US secondary or LatAm primary ~22%; HIGH = EM/tertiary or early-stage ~28%)",
+      "international USD-denominated deals: MODERATE conviction — cite the applicable crp_* row from market rates and add it on top of the US build-up; flag if Damodaran CRP is unavailable for the target country",
+      "LP underwriting impact: a low Re inflates the DCF and WACC NAV; institutional LPs re-underwrite with their own hurdle — projected returns will look weaker if Re is below market",
       "consistency between declared cost of equity and IRR target in the business plan — a high Re is conservative but must be defensible against the modeled return profile",
     ],
   },

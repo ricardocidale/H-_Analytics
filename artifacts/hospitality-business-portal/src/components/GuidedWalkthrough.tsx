@@ -6,6 +6,35 @@ import { useAuth } from "@/lib/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { create } from "zustand";
 
+const TOUR_STEP_KEY = "hplus_tour_step";
+
+function getSavedTourStep(): number | null {
+  try {
+    const val = localStorage.getItem(TOUR_STEP_KEY);
+    if (val === null) return null;
+    const n = parseInt(val, 10);
+    return isNaN(n) || n < 0 ? null : n;
+  } catch {
+    return null;
+  }
+}
+
+function saveTourStep(step: number): void {
+  try {
+    localStorage.setItem(TOUR_STEP_KEY, String(step));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+export function clearTourStep(): void {
+  try {
+    localStorage.removeItem(TOUR_STEP_KEY);
+  } catch {
+    // ignore storage errors
+  }
+}
+
 interface WalkthroughState {
   shownThisSession: boolean;
   tourActive: boolean;
@@ -37,12 +66,21 @@ async function updateTourPromptPreference(hide: boolean): Promise<void> {
   });
 }
 
+async function patchTourStep(tourStep: number | null): Promise<void> {
+  await fetch("/api/profile/tour-prompt", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tourStep }),
+    credentials: "include",
+  });
+}
+
 function getTourSteps(firstName?: string | null) {
   const greeting = firstName ? `Welcome, ${firstName}!` : "Welcome to Your Dashboard";
   return [
     { target: '[href="/"]', title: greeting, description: "This is your home base. It shows a high-level overview of your entire portfolio — key metrics, charts, and recent activity at a glance." },
     { target: '[href="/portfolio"]', title: "Step 1: Define Your Properties", description: "Start here. Add each property you want to model, then fill in the assumptions for each one — purchase price, room count, ADR, occupancy, expenses, and financing terms. This is the foundation of your entire simulation." },
-    { target: '[href="/company"]', title: "Step 2: Management Company", description: "Next, define the management company assumptions — staffing tiers, partner compensation, base and incentive fee structures, and funding instruments. The management company earns fees from the properties you just set up." },
+    { target: '[href="/company"]', title: "Step 2: Management Co", description: "Next, define the management company assumptions — staffing tiers, partner compensation, base and incentive fee structures, and funding instruments. The management company earns fees from the properties you just set up." },
     { target: '[href="/company"]', title: "Step 3: General Configuration", description: "Review and adjust the company assumptions that apply across all properties — tax rates, inflation, depreciation schedules, and other defaults." },
     { target: '[href="/scenarios"]', title: "Save & Compare Scenarios", description: "Save your current assumptions as a named scenario so you can come back to it later. Create multiple scenarios to compare different strategies — like varying occupancy ramps or financing structures." },
     { target: '[href="/analysis"]', title: "Analysis Tools", description: "Explore what's available in the Analysis section — sensitivity tables, financing comparisons, executive summaries, side-by-side property comparisons, and portfolio timelines. This is where you stress-test your assumptions and see the big picture." },
@@ -54,10 +92,21 @@ function getTourSteps(firstName?: string | null) {
   ];
 }
 
-function TourPromptDialog({ onAccept, onDecline }: { onAccept: () => void; onDecline: (neverAgain: boolean) => void }) {
+function TourPromptDialog({
+  onAccept,
+  onDecline,
+  savedStep,
+  totalSteps,
+}: {
+  onAccept: (fromStep: number) => void;
+  onDecline: (neverAgain: boolean) => void;
+  savedStep: number | null;
+  totalSteps: number;
+}) {
   const [dontOffer, setDontOffer] = useState(false);
   const { user } = useAuth();
   const firstName = user?.firstName;
+  const hasProgress = savedStep !== null && savedStep > 0 && savedStep < totalSteps;
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center" data-testid="tour-prompt-dialog">
@@ -84,27 +133,57 @@ function TourPromptDialog({ onAccept, onDecline }: { onAccept: () => void; onDec
               {firstName ? `Welcome, ${firstName}` : "Welcome"}
             </h2>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-sm">
-              Take a quick guided tour to see how the portal works — navigation, key features, and where to find everything. It only takes a minute.
+              {hasProgress
+                ? `You paused the tour at step ${savedStep! + 1} of ${totalSteps}. Pick up where you left off, or start from the beginning.`
+                : "Take a quick guided tour to see how the portal works — navigation, key features, and where to find everything. It only takes a minute."}
             </p>
           </div>
 
-          <div className="flex items-center gap-3 w-full pt-1">
-            <Button
-              variant="secondary"
-              onClick={() => onDecline(dontOffer)}
-              className="flex-1"
-              data-testid="button-tour-decline"
-            >
-              Skip
-            </Button>
-            <Button
-              onClick={onAccept}
-              className="flex-1"
-              data-testid="button-tour-accept"
-            >
-              Start Tour
-            </Button>
-          </div>
+          {hasProgress ? (
+            <div className="flex flex-col gap-2.5 w-full pt-1">
+              <Button
+                onClick={() => onAccept(savedStep!)}
+                className="w-full"
+                data-testid="button-tour-resume"
+              >
+                Resume from step {savedStep! + 1}
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => onAccept(0)}
+                className="w-full"
+                data-testid="button-tour-accept"
+              >
+                Start from beginning
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => onDecline(dontOffer)}
+                className="w-full text-muted-foreground"
+                data-testid="button-tour-decline"
+              >
+                Skip
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 w-full pt-1">
+              <Button
+                variant="secondary"
+                onClick={() => onDecline(dontOffer)}
+                className="flex-1"
+                data-testid="button-tour-decline"
+              >
+                Skip
+              </Button>
+              <Button
+                onClick={() => onAccept(0)}
+                className="flex-1"
+                data-testid="button-tour-accept"
+              >
+                Start Tour
+              </Button>
+            </div>
+          )}
 
           <label className="flex items-center gap-2 cursor-pointer group" data-testid="label-dont-offer-again">
             <input
@@ -131,7 +210,9 @@ function GuidedWalkthrough() {
   const tourSteps = getTourSteps(user?.firstName);
   const [showPrompt, setShowPromptLocal] = useState(false);
   const [step, setStep] = useState(0);
+  const [savedStep, setSavedStep] = useState<number | null>(null);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
+  const [confirmingDismiss, setConfirmingDismiss] = useState(false);
   const hasAutoStarted = useRef(false);
   const lastTrigger = useRef(0);
 
@@ -140,31 +221,47 @@ function GuidedWalkthrough() {
     setPromptVisible(v);
   }, [setPromptVisible]);
 
+  /**
+   * Resolve the best saved step.
+   * - Authenticated: trust the server value unconditionally (including null = no saved progress).
+   *   localStorage is intentionally ignored for authenticated users so stale local state
+   *   never overrides a server-side clear.
+   * - Unauthenticated / offline (user is null): fall back to localStorage.
+   */
+  const resolveSavedStep = useCallback((): number | null => {
+    if (user) {
+      return typeof user.tourStep === "number" ? user.tourStep : null;
+    }
+    return getSavedTourStep();
+  }, [user]);
+
   useEffect(() => {
     if (triggerCount > lastTrigger.current) {
       lastTrigger.current = triggerCount;
       setTourActive(false);
       setStep(0);
+      setSavedStep(resolveSavedStep());
       setShowPrompt(true);
     }
-  }, [triggerCount, setTourActive, setShowPrompt]);
+  }, [triggerCount, setTourActive, setShowPrompt, resolveSavedStep]);
 
   useEffect(() => {
     if (user && !user.hideTourPrompt && !shownThisSession && !hasAutoStarted.current) {
       hasAutoStarted.current = true;
       const timer = setTimeout(() => {
+        setSavedStep(resolveSavedStep());
         setShowPrompt(true);
         setShownThisSession(true);
       }, 800);
       return () => clearTimeout(timer);
     }
     return undefined;
-  }, [user, shownThisSession, setShownThisSession, setShowPrompt]);
+  }, [user, shownThisSession, setShownThisSession, setShowPrompt, resolveSavedStep]);
 
-  const handleAcceptTour = useCallback(() => {
+  const handleAcceptTour = useCallback((fromStep: number) => {
     setShowPrompt(false);
     setTourActive(true);
-    setStep(0);
+    setStep(fromStep);
   }, [setTourActive, setShowPrompt]);
 
   const handleDeclineTour = useCallback(async (neverAgain: boolean) => {
@@ -206,7 +303,10 @@ function GuidedWalkthrough() {
     if (step < tourSteps.length - 1) {
       setStep(step + 1);
     } else {
+      clearTourStep();
+      setSavedStep(null);
       setTourActive(false);
+      patchTourStep(null).catch(() => {});
     }
   }, [step, setTourActive]);
 
@@ -217,11 +317,40 @@ function GuidedWalkthrough() {
   }, [step]);
 
   const handleSkip = useCallback(() => {
+    saveTourStep(step);
+    setConfirmingDismiss(false);
+    setSavedStep(step);
     setTourActive(false);
-  }, [setTourActive]);
+    patchTourStep(step).catch(() => {});
+  }, [step, setTourActive]);
+
+  const handleRequestDismiss = useCallback(() => {
+    setConfirmingDismiss(true);
+  }, []);
+
+  const handleCancelDismiss = useCallback(() => {
+    setConfirmingDismiss(false);
+  }, []);
+
+  const handleDismissPermanently = useCallback(async () => {
+    clearTourStep();
+    setSavedStep(null);
+    setConfirmingDismiss(false);
+    setTourActive(false);
+    patchTourStep(null).catch(() => {});
+    await updateTourPromptPreference(true);
+    queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+  }, [setTourActive, queryClient]);
 
   if (showPrompt) {
-    return <TourPromptDialog onAccept={handleAcceptTour} onDecline={handleDeclineTour} />;
+    return (
+      <TourPromptDialog
+        onAccept={handleAcceptTour}
+        onDecline={handleDeclineTour}
+        savedStep={savedStep}
+        totalSteps={tourSteps.length}
+      />
+    );
   }
 
   if (!tourActive || !targetRect) return null;
@@ -326,6 +455,43 @@ function GuidedWalkthrough() {
               {!isLast && <ChevronRight className="w-3 h-3" />}
             </Button>
           </div>
+        </div>
+
+        <div className="mt-3 pt-3 border-t border-border/50 flex justify-center">
+          {confirmingDismiss ? (
+            <div
+              className="flex items-center gap-2 text-xs text-muted-foreground"
+              data-testid="tour-dismiss-confirm"
+            >
+              <span>Are you sure? You won't be prompted again.</span>
+              <button
+                type="button"
+                onClick={handleDismissPermanently}
+                className="font-medium text-foreground/80 hover:text-foreground transition-colors cursor-pointer"
+                data-testid="button-tour-dont-show-again-confirm"
+              >
+                Yes
+              </button>
+              <span className="text-muted-foreground/40">·</span>
+              <button
+                type="button"
+                onClick={handleCancelDismiss}
+                className="text-muted-foreground/70 hover:text-muted-foreground transition-colors cursor-pointer"
+                data-testid="button-tour-dont-show-again-cancel"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleRequestDismiss}
+              className="text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-pointer"
+              data-testid="button-tour-dont-show-again"
+            >
+              Don't show again
+            </button>
+          )}
         </div>
       </div>
     </div>

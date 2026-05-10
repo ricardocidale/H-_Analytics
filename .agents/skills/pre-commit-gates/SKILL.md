@@ -88,6 +88,33 @@ Sometimes the gate genuinely lives only in CI — environment-only failures (rea
 
 > **Real example**: a storage-layer file split into submodules took **three CI cycles** to fully fix because each cycle exposed one more static-analysis test that read the now-empty parent file. Each fix was structurally identical. A single `rg -l "readFileSync.*financial.ts" tests/` after the first failure would have found all three at once. See `cross-check-invariants` Pattern 4.
 
+## H+ Analytics project gates
+
+The following named checks run in CI for this project. Each is also registered as a standalone Replit workflow and wired into the "Project" parallel workflow.
+
+Script-based gates (run via `pnpm --filter @workspace/scripts run check:<name>`):
+
+| Name | What it guards |
+|---|---|
+| `check:types-mirror` | SlidePayload type stays verbatim-identical in api-server and portal |
+| `check:taxonomy-mirror` | Agent/Minion/Specialist/Swarm definitions stay verbatim-identical in CLAUDE.md (source) and replit.md (mirror) |
+| `check:magic-numbers` | No raw numeric literals encoding business assumptions |
+| `check:replit-independence` | No hard Replit-specific dependencies (portability gate) |
+| `check:migration-guards` | Drizzle migrations are guarded and journal is consistent |
+| `check:schema-drift` | DB schema has not silently diverged from generated types |
+| `check:spinner-contrast` | Loading spinners meet contrast requirements |
+| `check:direct-run-guards` | Scripts that should only run as entry points are guarded |
+| `check:production-image` | Production Docker image satisfies size/content constraints |
+
+Root-workspace gates (run via `pnpm run <name>`):
+
+| Name | What it guards |
+|---|---|
+| `check:lint` / `check:lint:libs` | ESLint passes on all source and lib packages |
+| `check:typecheck` | Full TypeScript typecheck across the monorepo |
+
+All of these are also wired as tasks on the "Project" parallel workflow so they run together on the run button.
+
 ## Composition with other skills
 
 - **`cross-check-invariants`** — what to look at *before* you run the gates, so they pass on the first try.

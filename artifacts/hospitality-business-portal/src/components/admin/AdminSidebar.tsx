@@ -452,6 +452,7 @@ export default function AdminSidebar({ activeSection, onSectionChange }: AdminSi
         onClick={() => setMobileOpen(!mobileOpen)}
         className="lg:hidden fixed bottom-4 right-4 z-50 w-12 h-12 rounded-xl shadow-lg"
         data-testid="admin-mobile-menu-toggle"
+        aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
       >
         {mobileOpen ? <X className="w-5 h-5" /> : <IconMenu className="w-5 h-5" />}
       </Button>

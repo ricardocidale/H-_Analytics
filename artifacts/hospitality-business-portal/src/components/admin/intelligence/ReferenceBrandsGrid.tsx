@@ -6,6 +6,7 @@
  * for the reference_brands table.
  */
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export type BrandSummary = {
   id: number;
@@ -84,24 +85,28 @@ function BrandCard({ brand }: { brand: BrandSummary }) {
           {expanded ? (
             <>
               <span>{brand.description}</span>{" "}
-              <button
-                className="text-primary underline underline-offset-2 hover:opacity-70"
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-primary underline underline-offset-2 h-auto p-0 text-xs inline"
                 onClick={() => setExpanded(false)}
                 data-testid={`brand-card-collapse-${brand.id}`}
               >
                 less
-              </button>
+              </Button>
             </>
           ) : (
             <>
               <span className="line-clamp-2">{brand.description}</span>
-              <button
-                className="text-primary underline underline-offset-2 hover:opacity-70 mt-0.5 block"
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-primary underline underline-offset-2 h-auto p-0 text-xs mt-0.5 block"
                 onClick={() => setExpanded(true)}
                 data-testid={`brand-card-expand-${brand.id}`}
               >
                 more
-              </button>
+              </Button>
             </>
           )}
         </div>

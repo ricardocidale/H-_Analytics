@@ -39,7 +39,7 @@ export function PropertyValueDrawer({ propertyId, address, onClose }: Props) {
                 <p className="text-xs text-muted-foreground truncate max-w-[280px]">{address}</p>
               </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose} data-testid="btn-close-value-drawer">
+            <Button variant="ghost" size="icon" onClick={onClose} data-testid="btn-close-value-drawer" aria-label="Close">
               <span className="text-lg leading-none">×</span>
             </Button>
           </div>

@@ -210,6 +210,7 @@ export default function Login() {
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors h-auto w-auto p-0"
                       data-testid="button-toggle-password"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
                     >
                       {showPassword ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
                     </Button>

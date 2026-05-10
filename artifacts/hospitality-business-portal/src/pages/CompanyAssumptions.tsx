@@ -87,7 +87,7 @@ import {
 } from "@shared/constants-benchmarks";
 
 const getInitialTab = (): TabKey => {
-  if (typeof window === "undefined") return "funding";
+  if (typeof window === "undefined") return "company";
   const t = new URLSearchParams(window.location.search).get("tab");
   // Backwards-compat: the legacy `setup` and `tax-exit` params remap to
   // `funding`. `company` is now a real tab again so it is no longer remapped.
@@ -96,7 +96,7 @@ const getInitialTab = (): TabKey => {
     "tax-exit": "funding",
   };
   if (t && t in legacyRemap) return legacyRemap[t];
-  return (TAB_KEYS as readonly string[]).includes(t ?? "") ? (t as TabKey) : "funding";
+  return (TAB_KEYS as readonly string[]).includes(t ?? "") ? (t as TabKey) : "company";
 };
 
 export default function CompanyAssumptions() {
@@ -431,7 +431,6 @@ export default function CompanyAssumptions() {
             tabWarnings={formApi.tabWarnings}
             tabKeys={TAB_KEYS}
             acks={formApi.acks}
-            isFirstVisit={analyst.isFirstVisit}
             activeTab={activeTab}
           />
 

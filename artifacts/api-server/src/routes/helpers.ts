@@ -81,6 +81,7 @@ export function userResponse(u: any, extra?: Record<string, any>) {
     rebeccaShowToolTiming: u.rebeccaShowToolTiming ?? null,
     rebeccaHistoryOpen: u.rebeccaHistoryOpen ?? null,
     rebeccaSuggestedChips: Array.isArray(u.rebeccaSuggestedChips) ? u.rebeccaSuggestedChips as string[] : null,
+    tourStep: typeof u.tourStep === "number" ? u.tourStep : null,
     ...extra 
   };
 }

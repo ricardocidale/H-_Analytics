@@ -1758,7 +1758,6 @@
     "artifacts/api-server/src/routes/media.ts",
     "artifacts/api-server/src/routes/notifications.ts",
     "artifacts/api-server/src/routes/objects.ts",
-    "artifacts/api-server/src/routes/page-visits.ts",
     "artifacts/api-server/src/routes/portfolio-risk.ts",
     "artifacts/api-server/src/routes/premium-exports.ts",
     "artifacts/api-server/src/routes/properties-urls.ts",

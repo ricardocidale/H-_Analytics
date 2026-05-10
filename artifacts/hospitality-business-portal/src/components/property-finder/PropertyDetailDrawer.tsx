@@ -71,7 +71,7 @@ export function PropertyDetailDrawer({ property, onClose }: Props) {
                 <p className="text-xs text-muted-foreground truncate max-w-[380px]">{property.address}</p>
               </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose} data-testid="btn-close-detail-drawer">
+            <Button variant="ghost" size="icon" onClick={onClose} data-testid="btn-close-detail-drawer" aria-label="Close">
               <span className="text-lg leading-none">×</span>
             </Button>
           </div>

@@ -14,7 +14,8 @@
  *   E   = market value of equity
  *   D   = market value of debt
  *   V   = E + D (total capital)
- *   Re  = cost of equity (user-provided; typically 15–25% for private hospitality)
+ *   Re  = cost of equity (user-provided; typically 18–28% for private boutique hospitality,
+ *         2024–2026 rate environment; add Damodaran CRP for non-US USD deals)
  *   Rd  = cost of debt (interest rate on borrowings)
  *   T   = corporate tax rate (tax shield on interest)
  *

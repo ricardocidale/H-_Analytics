@@ -94,6 +94,7 @@ function RebeccaHeaderButton({ displayName }: { displayName: string }) {
       className={cn("h-8 w-8 relative", isActive && "bg-primary/10")}
       data-testid="button-rebecca-toggle"
       title={displayName}
+      aria-label={isActive ? `Close ${displayName}` : `Open ${displayName}`}
     >
       <IconMessageCircle className="w-4 h-4" />
     </Button>
@@ -277,7 +278,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
       items: [
         { href: "/", label: "Dashboard", icon: IconDashboard },
         { href: "/portfolio", label: "Properties", icon: IconProperties },
-        { href: "/company", label: "Management Company", icon: IconBriefcase },
+        { href: "/company", label: "Management Co", icon: IconBriefcase },
       ],
     },
     {
@@ -324,8 +325,8 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
   );
 
   const sidebarFooter = (
-    <div className="px-2 pb-3 pt-1 space-y-0.5">
-      {!onAdminRoute && !onIntelligenceRoute && (
+    <div className="mt-auto px-2 pb-3 pt-1 space-y-0.5">
+      {location === "/" && (
         <Button
           variant="ghost"
           onClick={() => {
@@ -449,7 +450,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
       </aside>
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="w-72 p-0 bg-sidebar text-sidebar-foreground">
+        <SheetContent side="left" className="w-72 p-0 bg-sidebar text-sidebar-foreground flex flex-col h-full">
           <SheetHeader className="sr-only">
             <SheetTitle>Navigation</SheetTitle>
           </SheetHeader>
@@ -511,6 +512,17 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
             </Button>
             <ResearchQueueIndicator className="hidden sm:flex" />
             <NotificationCenter />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => useWalkthroughStore.getState().triggerPrompt()}
+              className="h-8 w-8"
+              data-testid="button-tour"
+              title="Take the tour"
+              aria-label="Take the tour"
+            >
+              <IconCompass className="w-4 h-4" />
+            </Button>
             {rebeccaEnabled && (
               <RebeccaHeaderButton displayName={global?.rebeccaDisplayName || "Rebecca"} />
             )}

@@ -369,7 +369,7 @@ export default function KnowledgeBaseEditor() {
                   />
                 </div>
                 <div className="flex justify-end gap-2">
-                  <Button variant="ghost" size="sm" onClick={() => setShowCreateForm(false)} data-testid="button-cancel-create-kb">Cancel</Button>
+                  <Button variant="outline" size="sm" onClick={() => setShowCreateForm(false)} data-testid="button-cancel-create-kb">Cancel</Button>
                   <Button
                     size="sm"
                     onClick={() => createMutation.mutate()}
@@ -508,7 +508,7 @@ export default function KnowledgeBaseEditor() {
                         data-testid={`input-edit-tags-${entry.id}`}
                       />
                       <div className="flex items-center gap-2 justify-end">
-                        <Button variant="ghost" size="sm" onClick={() => setEditingId(null)} data-testid={`button-cancel-edit-${entry.id}`}>Cancel</Button>
+                        <Button variant="outline" size="sm" onClick={() => setEditingId(null)} data-testid={`button-cancel-edit-${entry.id}`}>Cancel</Button>
                         <Button
                           size="sm"
                           onClick={saveEdit}
@@ -587,7 +587,7 @@ export default function KnowledgeBaseEditor() {
                             >
                               {deleteMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin text-white" /> : "Delete"}
                             </Button>
-                            <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => setDeletingId(null)} data-testid={`button-cancel-delete-kb-${entry.id}`}>No</Button>
+                            <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setDeletingId(null)} data-testid={`button-cancel-delete-kb-${entry.id}`}>Cancel</Button>
                           </div>
                         ) : (
                           <Button

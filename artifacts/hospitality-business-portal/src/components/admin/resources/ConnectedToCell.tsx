@@ -142,7 +142,7 @@ export function ConnectedToCell({ resourceId }: { resourceId: number }) {
             })}
           </div>
           <div className="flex justify-end gap-2 pt-1">
-            <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button size="sm" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
             <Button
               size="sm"
               onClick={() => save.mutate(Array.from(selected))}

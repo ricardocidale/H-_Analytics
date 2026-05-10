@@ -381,7 +381,7 @@ export const RESERVE_ROUNDING_INCREMENT = 10_000;
 export const DEFAULT_OCCUPANCY_GROWTH_STEP = 0.05;
 export const DEFAULT_PARTNER_COUNT = 3;
 
-export const DEFAULT_COST_OF_EQUITY = 0.18;
+export const DEFAULT_COST_OF_EQUITY = 0.22;
 
 export const CAP_RATE_SENSITIVITY_STEP = 0.005;
 
@@ -412,37 +412,37 @@ export const BREAKEVEN_PROXIMITY_RATIO = 0.10;
 // ── Specialist Model IDs ─────────────────────────────────────────────────────
 // Default model IDs used by each Specialist. Override via the admin_resources
 // Models registry (ADR-006) when a different model is configured.
-export const DEFAULT_FUNDING_SPECIALIST_MODEL = "claude-opus-4-7";
+export const DEFAULT_FUNDING_SPECIALIST_MODEL = "claude-sonnet-4-5";
 export const DEFAULT_FUNDING_QUANT_PANEL_MODEL = "gemini-2.5-flash";
 export const DEFAULT_FUNDING_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
 export const DEFAULT_FUNDING_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";
 
-export const DEFAULT_REVENUE_SPECIALIST_MODEL = "claude-opus-4-7";
+export const DEFAULT_REVENUE_SPECIALIST_MODEL = "claude-sonnet-4-5";
 export const DEFAULT_REVENUE_QUANT_PANEL_MODEL = "gemini-2.5-flash";
 export const DEFAULT_REVENUE_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
 export const DEFAULT_REVENUE_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";
 
-export const DEFAULT_COMPENSATION_SPECIALIST_MODEL = "claude-opus-4-7";
+export const DEFAULT_COMPENSATION_SPECIALIST_MODEL = "claude-sonnet-4-5";
 export const DEFAULT_COMPENSATION_QUANT_PANEL_MODEL = "gemini-2.5-flash";
 export const DEFAULT_COMPENSATION_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
 export const DEFAULT_COMPENSATION_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";
 
-export const DEFAULT_OVERHEAD_SPECIALIST_MODEL = "claude-opus-4-7";
+export const DEFAULT_OVERHEAD_SPECIALIST_MODEL = "claude-sonnet-4-5";
 export const DEFAULT_OVERHEAD_QUANT_PANEL_MODEL = "gemini-2.5-flash";
 export const DEFAULT_OVERHEAD_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
 export const DEFAULT_OVERHEAD_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";
 
-export const DEFAULT_COMPANY_SPECIALIST_MODEL = "claude-opus-4-7";
+export const DEFAULT_COMPANY_SPECIALIST_MODEL = "claude-sonnet-4-5";
 export const DEFAULT_COMPANY_QUANT_PANEL_MODEL = "gemini-2.5-flash";
 export const DEFAULT_COMPANY_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
 export const DEFAULT_COMPANY_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";
 
-export const DEFAULT_RISK_SPECIALIST_MODEL = "claude-opus-4-7";
+export const DEFAULT_RISK_SPECIALIST_MODEL = "claude-sonnet-4-5";
 export const DEFAULT_RISK_QUANT_PANEL_MODEL = "gemini-2.5-flash";
 export const DEFAULT_RISK_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
 export const DEFAULT_RISK_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";
 
-export const DEFAULT_PROPERTY_DEFAULTS_SPECIALIST_MODEL = "claude-opus-4-7";
+export const DEFAULT_PROPERTY_DEFAULTS_SPECIALIST_MODEL = "claude-sonnet-4-5";
 export const DEFAULT_PROPERTY_DEFAULTS_QUANT_PANEL_MODEL = "gemini-2.5-flash";
 export const DEFAULT_PROPERTY_DEFAULTS_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
 export const DEFAULT_PROPERTY_DEFAULTS_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";

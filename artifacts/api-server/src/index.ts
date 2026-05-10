@@ -889,13 +889,16 @@ async function runSeeds() {
     await ddlTask.run();
   }
 
-  // LLM slot model upgrades must run sequentially (008 → 009 → 010) so that
+  // LLM slot model upgrades must run sequentially (008 → 010) so that
   // each migration sees the DB state left by its predecessor in a single boot.
   // Running them in the parallel fan-out risks 010 executing before 008 has
-  // written claude-opus-4-7, leaving stale slots until the next restart.
+  // finished, leaving stale slots until the next restart.
+  // Note: admin-resources-009 (claude-opus-4-7 → claude-sonnet-4-5 patch in
+  // global_assumptions) is retired — migration 010 corrected the llm_slots in
+  // admin_resources, and nothing in the codebase writes claude-opus-4-7 into
+  // global_assumptions any longer, so 009 was permanently a no-op.
   for (const modelMigrationTask of [
     { name: "admin-resources-008", run: async () => { const { runAdminResources008 } = await import("./migrations/admin-resources-008"); await runAdminResources008(); } },
-    { name: "admin-resources-009", run: async () => { const { runAdminResources009 } = await import("./migrations/admin-resources-009"); await runAdminResources009(); } },
     { name: "admin-resources-010", run: async () => { const { runAdminResources010 } = await import("./migrations/admin-resources-010"); await runAdminResources010(); } },
   ]) {
     await modelMigrationTask.run();

@@ -174,7 +174,7 @@ export function AnalystCheckDialog({
           </ul>
         )}
 
-        <DialogFooter className="gap-2 sm:gap-2 sm:justify-end mt-4">
+        <DialogFooter className="flex-col sm:flex-row gap-2 sm:justify-end">
           {actions.map((action, i) => (
             <Button
               key={`${action.kind}-${i}`}

@@ -224,7 +224,7 @@ export function AIImagePicker({
             className="w-full h-full object-cover"
             onError={() => setImageLoadFailed(true)}
           />
-          <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2" onClick={handleRemove} data-testid={`${testId}-remove`}>
+          <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2" onClick={handleRemove} data-testid={`${testId}-remove`} aria-label="Remove image">
             <X className="w-4 h-4" />
           </Button>
         </div>

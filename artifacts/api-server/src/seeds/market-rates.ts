@@ -12,7 +12,8 @@ import { logger } from "../logger";
 
 // Seed values for research/authority rates (stored as percentage points; read sites divide by 100).
 // Named constants here so the magic-number ratchet doesn't flag single-file seed literals.
-const ERP_BOUTIQUE_HOSPITALITY_SEED_PP = 12;         // 12% above risk-free (Damodaran WACC — Lodging)
+const ERP_BOUTIQUE_HOSPITALITY_SEED_PP = 12;         // 12% sector ERP component only (Damodaran WACC — Lodging public-market estimate); full private Re adds 3–5% illiquidity premium on top (Duff & Phelps Cost of Capital Navigator)
+const COST_OF_EQUITY_HOSPITALITY_SEED_PP = 22;       // 22% private boutique hospitality Re (May 2026): Rf ~4.4% + ERP ~12% + illiquidity premium ~4% + rounding; reflects current 10yr Treasury environment (Damodaran + Duff & Phelps)
 const US_LODGING_CPI_BAND_HALFWIDTH_SEED_PP = 0.8;   // ±0.8 pp (BLS CPI methodology)
 const IMF_EM_CPI_BAND_DELTA_LOW_SEED_PP = 1.2;       // −1.2 pp lower band (IMF WEO methodology)
 const IMF_EM_CPI_BAND_DELTA_HIGH_SEED_PP = 1.5;      // +1.5 pp upper band (IMF WEO methodology)
@@ -530,7 +531,7 @@ const DAMODARAN_SEED_VALUES: Record<string, { value: number; display: string }> 
   crp_dominican_republic: { value: 3.50, display: "3.50%" },
   crp_uruguay: { value: 2.00, display: "2.00%" },
   erp_mature_market: { value: 4.23, display: "4.23%" },
-  cost_of_equity_hospitality: { value: 18, display: "18.0%" },
+  cost_of_equity_hospitality: { value: COST_OF_EQUITY_HOSPITALITY_SEED_PP, display: `${COST_OF_EQUITY_HOSPITALITY_SEED_PP}.0%` },
   // Research/authority rates (stored as percentage points; divide by 100 at read site)
   erp_boutique_hospitality: { value: ERP_BOUTIQUE_HOSPITALITY_SEED_PP, display: `${ERP_BOUTIQUE_HOSPITALITY_SEED_PP}.0%` },
   us_lodging_cpi_band_halfwidth: { value: US_LODGING_CPI_BAND_HALFWIDTH_SEED_PP, display: `${US_LODGING_CPI_BAND_HALFWIDTH_SEED_PP} pp` },

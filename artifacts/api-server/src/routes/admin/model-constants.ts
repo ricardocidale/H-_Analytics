@@ -906,32 +906,27 @@ export function registerModelConstantsRoutes(app: Express) {
    * Banner data: scheduled-refresh failures the admin hasn't seen yet.
    *
    * GET → returns failed scheduled Constants refreshes whose `completedAt`
-   * is newer than the admin's last visit to the `admin-constants-failures`
-   * page-visit key (or the last 30d on first visit). The Constants tab
-   * renders a dismissible banner when `count > 0`.
+   * is newer than the admin's last dismiss time (or the last 30d on first
+   * visit / after server restart). The Constants tab renders a dismissible
+   * banner when `count > 0`.
    *
-   * POST `.../dismiss` → records a fresh visit so subsequent loads see no
-   * failures (until the next failure occurs after the dismissal time).
+   * POST `.../dismiss` → records the current timestamp so subsequent loads
+   * see no failures until new ones arrive after the dismissal time. The
+   * timestamp is held in-process; it resets to the 30-day window on server
+   * restart — acceptable for an admin quality-of-life feature.
    */
-  const FAILURES_PAGE_KEY = "admin-constants-failures";
   const FAILURES_DEFAULT_LOOKBACK_MS = 30 * 24 * 60 * 60 * 1000;
+  // In-process per-admin dismiss timestamps. Lost on server restart — admin
+  // will see the last 30 days again, which is the safe default.
+  const constantsFailuresDismissedAt = new Map<number, Date>();
 
   app.get("/api/admin/model-constants/scheduled-failures", requireAdmin, async (req, res) => {
     try {
       const userId = (req as { user?: { id?: number } }).user?.id;
       if (!userId) return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Unauthorized", code: "AMCO-017" });
 
-      // "Since admin's last visit" semantics: read the previous visit
-      // timestamp, then immediately record a new visit for next time.
-      // This way the banner naturally clears across reloads — failures
-      // only re-surface when fresh ones land after the most recent view.
-      // The explicit dismiss endpoint stays as a UX shortcut for users
-      // who want to acknowledge & clear without leaving the tab.
-      const prior = await storage.getPageVisit(userId, FAILURES_PAGE_KEY);
-      const lastVisitedAt = prior?.lastVisitedAt ?? null;
-      const since = lastVisitedAt
-        ? new Date(lastVisitedAt)
-        : new Date(Date.now() - FAILURES_DEFAULT_LOOKBACK_MS);
+      const dismissedAt = constantsFailuresDismissedAt.get(userId) ?? null;
+      const since = dismissedAt ?? new Date(Date.now() - FAILURES_DEFAULT_LOOKBACK_MS);
 
       const runs = await storage.getFailedScheduledConstantsRefreshes(since, 200);
       const failures = runs.map((run) => {
@@ -950,14 +945,10 @@ export function registerModelConstantsRoutes(app: Express) {
         };
       });
 
-      // Record the visit AFTER computing the failure list so the next
-      // call uses this load's timestamp as the "since" boundary.
-      await storage.recordVisit(userId, FAILURES_PAGE_KEY);
-
       res.json({
         count: failures.length,
         since: since.toISOString(),
-        lastVisitedAt: lastVisitedAt ? new Date(lastVisitedAt).toISOString() : null,
+        lastVisitedAt: dismissedAt ? dismissedAt.toISOString() : null,
         failures,
       });
     } catch (error: unknown) {
@@ -966,14 +957,11 @@ export function registerModelConstantsRoutes(app: Express) {
   });
 
   app.post("/api/admin/model-constants/scheduled-failures/dismiss", requireAdmin, async (req, res) => {
-    try {
-      const userId = (req as { user?: { id?: number } }).user?.id;
-      if (!userId) return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Unauthorized", code: "AMCO-018" });
-      const visit = await storage.recordVisit(userId, FAILURES_PAGE_KEY);
-      res.json({ dismissedAt: visit.lastVisitedAt });
-    } catch (error: unknown) {
-      logAndSendError(res, "Failed to dismiss scheduled-refresh failures", error, "AMCO-009");
-    }
+    const userId = (req as { user?: { id?: number } }).user?.id;
+    if (!userId) return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Unauthorized", code: "AMCO-018" });
+    const now = new Date();
+    constantsFailuresDismissedAt.set(userId, now);
+    res.json({ dismissedAt: now.toISOString() });
   });
 
   app.get("/api/admin/model-constants/:key/research-history", requireAdmin, async (req, res) => {

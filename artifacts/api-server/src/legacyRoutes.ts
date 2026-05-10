@@ -43,7 +43,6 @@ import { riskIntelligenceRoutes } from "./routes/risk-intelligence";
 import * as executiveSummaryRoutes from "./routes/executive-summary";
 import * as icpIntelligenceRoutes from "./routes/icp-intelligence";
 import * as renderSettingsRoutes from "./routes/render-settings";
-import * as pageVisitRoutes from "./routes/page-visits";
 import * as analystAdminRoutes from "./routes/analyst-admin";
 import * as specialistPhotoEnhancerRoutes from "./routes/specialist-photo-enhancer";
 import * as propertyDdRoutes from "./routes/property-dd";
@@ -102,7 +101,6 @@ export async function registerRoutes(
   executiveSummaryRoutes.register(app);
   icpIntelligenceRoutes.register(app);
   renderSettingsRoutes.register(app);
-  pageVisitRoutes.register(app);
   analystAdminRoutes.register(app);
   specialistPhotoEnhancerRoutes.register(app);
   propertyDdRoutes.register(app);

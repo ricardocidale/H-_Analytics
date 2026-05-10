@@ -211,7 +211,6 @@ export function IntelligenceStatusBar({
         <AnalystButton
           onClick={onRunResearch}
           size="sm"
-          variant="outline"
           dataTestId="button-regenerate-research"
         />
       )}

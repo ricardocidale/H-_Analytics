@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconUser, IconEye, IconEyeOff, IconKey, IconClipboardCheck, IconPalette, IconMonitor, IconSparkles } from "@/components/icons";
+import { IconUser, IconEye, IconEyeOff, IconKey, IconClipboardCheck, IconPalette, IconMonitor, IconSparkles, IconCompass } from "@/components/icons";
+import { clearTourStep } from "@/components/GuidedWalkthrough";
 import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 import { SaveButton } from "@/components/ui/save-button";
 import { PageHeader } from "@/components/ui/page-header";
@@ -104,6 +105,21 @@ export default function Profile() {
         applyBgAnimation(resolveBgAnimation(variables.bgAnimation, appearanceDefaults?.defaultBgAnimation as BgAnimation | null));
       }
       toast({ title: "Appearance Updated", description: "Your preference has been saved." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const resetTourMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("PATCH", "/api/profile/tour-prompt", { hide: false });
+      return res.json();
+    },
+    onSuccess: () => {
+      clearTourStep();
+      refetch();
+      toast({ title: "Guided Tour Re-enabled", description: "The welcome prompt will appear on your next page load." });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -354,18 +370,19 @@ export default function Profile() {
                     ] as const).map(({ value, label, icon: Icon, preview }) => {
                       const active = resolveColorMode(user?.colorMode as ColorMode | null, appearanceDefaults?.defaultColorMode as ColorMode | null) === value;
                       return (
-                        <button
+                        <Button
                           key={value}
+                          variant="ghost"
                           data-testid={`appearance-color-${value}`}
                           onClick={() => appearanceMutation.mutate({ colorMode: value })}
-                          className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${active ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
+                          className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 h-auto transition-all ${active ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
                         >
                           <div className={`w-full h-12 rounded-lg ${preview}`} />
                           <div className="flex items-center gap-1.5">
                             <Icon className="w-3.5 h-3.5 text-muted-foreground" />
                             <span className="text-xs font-medium">{label}</span>
                           </div>
-                        </button>
+                        </Button>
                       );
                     })}
                   </div>
@@ -382,15 +399,16 @@ export default function Profile() {
                     ] as const).map(({ value, label, family }) => {
                       const active = resolveFontPreference(user?.fontPreference as FontPreference | null, appearanceDefaults?.defaultFontPreference as FontPreference | null) === value;
                       return (
-                        <button
+                        <Button
                           key={value}
+                          variant="ghost"
                           data-testid={`appearance-font-${value}`}
                           onClick={() => appearanceMutation.mutate({ fontPreference: value })}
-                          className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${active ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
+                          className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 h-auto transition-all ${active ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
                         >
                           <span className="text-2xl font-semibold" style={{ fontFamily: family }}>Aa</span>
                           <span className="text-xs font-medium">{label}</span>
-                        </button>
+                        </Button>
                       );
                     })}
                   </div>
@@ -406,17 +424,18 @@ export default function Profile() {
                     ] as const).map(({ value, label, icon: Icon }) => {
                       const active = resolveBgAnimation(user?.bgAnimation as BgAnimation | null, appearanceDefaults?.defaultBgAnimation as BgAnimation | null) === value;
                       return (
-                        <button
+                        <Button
                           key={value}
+                          variant="ghost"
                           data-testid={`appearance-anim-${value}`}
                           onClick={() => appearanceMutation.mutate({ bgAnimation: value })}
-                          className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${active ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
+                          className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 h-auto transition-all ${active ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
                         >
                           <div className="w-full h-10 rounded-lg bg-muted flex items-center justify-center">
                             {Icon ? <Icon className="w-5 h-5 text-muted-foreground" /> : <span className="text-xs text-muted-foreground">Off</span>}
                           </div>
                           <span className="text-xs font-medium">{label}</span>
-                        </button>
+                        </Button>
                       );
                     })}
                   </div>
@@ -563,6 +582,7 @@ export default function Profile() {
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground h-auto w-auto p-0"
                         data-testid="button-toggle-confirm-password"
+                        aria-label={showConfirmPassword ? "Hide password" : "Show password"}
                       >
                         {showConfirmPassword ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
                       </Button>
@@ -581,6 +601,34 @@ export default function Profile() {
                     </Button>
                   </div>
                 </form>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card border-border shadow-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-foreground">
+                  <IconCompass className="w-5 h-5 text-primary" />
+                  Guided Tour
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Show the welcome tour again</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Re-enables the guided walkthrough. The welcome prompt will reappear on your next page load and any saved progress will be cleared.
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => resetTourMutation.mutate()}
+                    disabled={resetTourMutation.isPending}
+                    data-testid="button-reset-tour"
+                  >
+                    {resetTourMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop" /> : <IconCompass className="w-4 h-4" />}
+                    Reset Tour
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 

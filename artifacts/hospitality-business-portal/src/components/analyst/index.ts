@@ -1,18 +1,11 @@
 export { ValidationStatusBadge } from "./ValidationStatusBadge";
 export { AnalystRangeIndicator } from "./AnalystRangeIndicator";
 export { AssumptionGuidancePopover } from "./AssumptionGuidancePopover";
-export { AnalystValidationBanner } from "./AnalystValidationBanner";
 export { AnalystActionButton } from "./AnalystActionButton";
 export type {
   AnalystActionButtonVariant,
   AnalystActionButtonProps,
 } from "./AnalystActionButton";
-export { SaveWithAnalystGate, useAnalystSaveGate } from "./SaveWithAnalystGate";
-export type {
-  SaveWithAnalystGateProps,
-  UseAnalystSaveGateOptions,
-  UseAnalystSaveGateResult,
-} from "./SaveWithAnalystGate";
 export {
   computeAnalystViolations,
   ANALYST_VIOLATION_THRESHOLD,

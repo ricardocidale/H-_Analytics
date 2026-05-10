@@ -64,6 +64,10 @@ args = "check:schema-drift"
 task = "workflow.run"
 args = "check:direct-run-guards"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "check:taxonomy-mirror"
+
 [[workflows.workflow]]
 name = "check:spinner-contrast"
 author = "agent"
@@ -195,6 +199,17 @@ args = "pnpm --filter @workspace/scripts run check:direct-run-guards"
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "check:taxonomy-mirror"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:taxonomy-mirror"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [agent]
 stack = "PNPM_WORKSPACE"

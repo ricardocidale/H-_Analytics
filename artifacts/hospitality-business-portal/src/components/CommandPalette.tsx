@@ -22,7 +22,7 @@ import { Search } from "@/components/icons/themed-icons";
 import { IconDashboard, IconProperties, IconBriefcase, IconAnalysis, IconProfile, IconScenarios, IconExport, IconVerify, IconRefresh, IconHelp, IconMapPin, IconPropertyFinder } from "@/components/icons";const navigationItems = [
   { label: "Dashboard", href: "/", icon: IconDashboard },
   { label: "Properties", href: "/portfolio", icon: IconProperties },
-  { label: "Management Company", href: "/company", icon: IconBriefcase },
+  { label: "Management Co", href: "/company", icon: IconBriefcase },
   { label: "Simulation", href: "/analysis", icon: IconAnalysis },
   { label: "Property Finder", href: "/property-finder", icon: IconPropertyFinder },
   { label: "Map View", href: "/map", icon: IconMapPin },

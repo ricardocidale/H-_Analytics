@@ -1,0 +1,11 @@
+-- 0048_users_tour_step.sql
+--
+-- Adds the `tour_step` column to `users` so that tour progress persists across
+-- devices. When a user pauses the guided walkthrough the current step index is
+-- written here via PATCH /api/profile/tour-prompt. On next login (any device)
+-- the frontend reads this value and offers to resume. Completing or dismissing
+-- the tour sets it back to NULL.
+--
+-- Nullable integer — no default — NULL means "no saved progress".
+-- Idempotent: IF NOT EXISTS makes this safe to re-apply.
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "tour_step" integer;

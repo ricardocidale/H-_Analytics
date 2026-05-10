@@ -23,10 +23,12 @@
  * All rates use sliders with EditableValue for precise entry. Research Badges
  * show AI benchmarks when available.
  */
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Slider } from "@/components/ui/slider";
 import { EditableValue } from "@/components/ui/editable-value";
@@ -39,7 +41,6 @@ import {
   DEFAULT_CATERING_BOOST_PCT,
 } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-import { AnalystRangeIndicator, AssumptionGuidancePopover } from "@/components/analyst";
 import type { PropertyEditSectionProps } from "./types";
 
 export default function RevenueAssumptionsSection({ draft, onChange, researchValues, guidance }: PropertyEditSectionProps) {
@@ -72,18 +73,14 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                 step={10}
               />
             </div>
-            <div className="flex items-center gap-2">
-              <Slider 
-                value={[draft.startAdr]}
-                onValueChange={(vals: number[]) => onChange("startAdr", vals[0])}
-                min={100}
-                max={1200}
-                step={10}
-                className="[&_[role=slider]]:bg-primary flex-1"
-              />
-              <AnalystRangeIndicator fieldKey="startAdr" currentValue={draft.startAdr} guidance={guidance} isCurrency />
-              <AssumptionGuidancePopover fieldKey="startAdr" guidance={guidance} isCurrency />
-            </div>
+            <Slider 
+              value={[draft.startAdr]}
+              onValueChange={(vals: number[]) => onChange("startAdr", vals[0])}
+              min={100}
+              max={1200}
+              step={10}
+              className="[&_[role=slider]]:bg-primary"
+            />
           </div>
           <div className="space-y-2">
             <div className="flex justify-between items-center">
@@ -350,7 +347,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
 
         <SeasonalityProfileEditor draft={draft} onChange={onChange} />
 
-        <OccupancyRampCurveEditor draft={draft} onChange={onChange} />
+        <OccupancyRampOverrideEditor draft={draft} onChange={onChange} />
       </div>
     </div>
   );
@@ -359,33 +356,164 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
 const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const DEFAULT_PROFILE = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
 
+/** Shape of one seasonal-calendar market as returned by GET /api/research/seasonal-calendars */
+interface SeasonalMarket {
+  market: string;
+  country: string | null;
+  profile: number[];
+}
+
+/**
+ * Keyword overrides for city/location matching within a country.
+ * Country matching (draft.country === market.country) is the primary signal;
+ * these keywords narrow within a country when multiple markets share it.
+ */
+const MARKET_KEYWORDS: Record<string, string[]> = {
+  "Catskills NY":    ["catskill"],
+  "Miami":           ["miami"],
+  "New York City":   ["new york", "nyc", "manhattan", "brooklyn"],
+  "Park City UT":    ["park city", "eden ut", "powder mountain"],
+};
+
+/**
+ * Deterministic market match:
+ * 1. Country code must match (case-insensitive) when the market declares one.
+ * 2. Within matching-country markets, prefer one whose keyword appears in location.
+ * 3. If only one market matches the country, return it.
+ * 4. If no country match, fall back to keyword search across all markets.
+ */
+function detectMarketFromData(
+  markets: SeasonalMarket[],
+  location: string | null | undefined,
+  country: string | null | undefined,
+): SeasonalMarket | null {
+  if (!markets.length) return null;
+  const hay = `${location ?? ""}`.toLowerCase();
+  const countryUpper = (country ?? "").toUpperCase();
+
+  // Step 1: narrow by country code
+  const countryMatches = countryUpper
+    ? markets.filter((m) => (m.country ?? "").toUpperCase() === countryUpper)
+    : markets;
+
+  if (countryMatches.length === 0) {
+    // No country match — try keyword across all
+    return markets.find((m) => MARKET_KEYWORDS[m.market]?.some((kw) => hay.includes(kw))) ?? null;
+  }
+
+  if (countryMatches.length === 1) return countryMatches[0];
+
+  // Step 2: keyword disambiguates within country
+  const kwMatch = countryMatches.find((m) => MARKET_KEYWORDS[m.market]?.some((kw) => hay.includes(kw)));
+  return kwMatch ?? null;  // if no keyword match, don't guess
+}
+
+function profileSummary(profile: number[], markets: SeasonalMarket[]): string {
+  if (profile.every((v) => v === 1)) return "Flat (1.0)";
+  const match = markets.find(
+    (m) => m.profile.length === profile.length && m.profile.every((v, i) => Math.abs(v - profile[i]) < 0.01),
+  );
+  return match ? match.market : "Custom";
+}
+
 function SeasonalityProfileEditor({ draft, onChange }: { draft: PropertyEditSectionProps["draft"]; onChange: PropertyEditSectionProps["onChange"] }) {
   const [isOpen, setIsOpen] = useState(false);
   const profile: number[] = draft.seasonalityProfile || DEFAULT_PROFILE;
 
+  // Fetch seasonal calendar presets from the live DB table
+  const { data: markets = [] } = useQuery<SeasonalMarket[]>({
+    queryKey: ["seasonal-calendars"],
+    queryFn: async () => {
+      const res = await fetch("/api/research/seasonal-calendars");
+      if (!res.ok) throw new Error("Failed to load seasonal calendars");
+      return res.json() as Promise<SeasonalMarket[]>;
+    },
+    staleTime: 1000 * 60 * 60, // 1 hour — static seeded data changes rarely
+  });
+
+  const isFlat = profile.every((v) => v === 1);
+  const suggestedMarket = useMemo(
+    () => detectMarketFromData(markets, draft.location, draft.country),
+    [markets, draft.location, draft.country],
+  );
+
+  // Auto-apply on first mount when profile is still flat and location matches a known market.
+  // Run once only — if the user has already customised the profile we must not clobber it.
+  useEffect(() => {
+    if (isFlat && suggestedMarket) {
+      onChange("seasonalityProfile", [...suggestedMarket.profile]);
+    }
+  }, []);  // intentionally empty — mount only
+
+  const activeMarket = markets.find(
+    (m) => m.profile.length === profile.length && m.profile.every((v, i) => Math.abs(v - profile[i]) < 0.01),
+  );
+  const summary = isFlat ? "Flat (1.0)" : activeMarket ? activeMarket.market : "Custom";
+  const selectValue = isFlat ? "flat" : activeMarket ? activeMarket.market : "custom";
+
+  const handleSelectPreset = (value: string) => {
+    if (value === "flat" || value === "custom") {
+      onChange("seasonalityProfile", [...DEFAULT_PROFILE]);
+      return;
+    }
+    const market = markets.find((m) => m.market === value);
+    if (market) {
+      onChange("seasonalityProfile", [...market.profile]);
+    }
+  };
+
   return (
     <div className="border-t border-primary/20 pt-4">
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between hover:bg-muted/50 transition-colors text-left py-2"
+        className="w-full flex items-center justify-between text-left py-2 h-auto px-0"
         data-testid="toggle-seasonality-profile"
       >
         <div className="flex items-center gap-2">
           <Label className="label-text text-foreground cursor-pointer">Seasonality Profile</Label>
-          <InfoTooltip text="Monthly multipliers applied to occupancy and ADR. 1.0 = normal, 1.5 = 50% above normal (peak season), 0.5 = 50% below (trough). Research engines suggest profiles based on location and property type." />
+          <InfoTooltip text="Monthly multipliers (Jan–Dec) applied to occupancy and ADR to reflect seasonal demand patterns. A value of 1.0 means normal baseline; 1.3 means 30% above the annual average (peak season); 0.7 means 30% below (trough). Selecting a market preset pre-fills all 12 months from STR/CoStar seasonal data for that market. You can then fine-tune individual months." />
         </div>
         <div className="flex items-center gap-2">
           {!isOpen && (
             <span className="text-xs text-muted-foreground font-mono">
-              {profile.every(v => v === 1) ? "Flat (1.0)" : "Custom"}
+              {summary}
             </span>
           )}
           <svg className={cn("w-4 h-4 text-muted-foreground transition-transform", isOpen && "rotate-180")} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
         </div>
-      </button>
+      </Button>
       {isOpen && (
-        <div className="pt-2 space-y-3">
+        <div className="pt-2 space-y-4">
+          {/* Market preset selector — Select dropdown backed by live seasonal_calendars data */}
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground font-medium">Market preset</Label>
+            <Select value={selectValue} onValueChange={handleSelectPreset}>
+              <SelectTrigger className="w-full max-w-xs bg-card border-primary/30" data-testid="select-seasonality-preset">
+                <SelectValue placeholder="Select a market…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="flat">Flat (1.0) — no seasonality</SelectItem>
+                {markets.map((market) => (
+                  <SelectItem key={market.market} value={market.market}>
+                    {market.market}
+                    {suggestedMarket?.market === market.market && isFlat && " ★"}
+                  </SelectItem>
+                ))}
+                {selectValue === "custom" && (
+                  <SelectItem value="custom">Custom</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+            {suggestedMarket && isFlat && (
+              <p className="text-xs text-muted-foreground">
+                ★ Suggested based on this property's location. Select it above to pre-fill.
+              </p>
+            )}
+          </div>
+
+          {/* Month-by-month grid */}
           <div className="grid grid-cols-6 gap-2">
             {MONTH_LABELS.map((label, i) => (
               <div key={i} className="text-center">
@@ -419,35 +547,36 @@ function SeasonalityProfileEditor({ draft, onChange }: { draft: PropertyEditSect
   );
 }
 
-function OccupancyRampCurveEditor({ draft, onChange }: { draft: PropertyEditSectionProps["draft"]; onChange: PropertyEditSectionProps["onChange"] }) {
+function OccupancyRampOverrideEditor({ draft, onChange }: { draft: PropertyEditSectionProps["draft"]; onChange: PropertyEditSectionProps["onChange"] }) {
   const [isOpen, setIsOpen] = useState(false);
   const curve: number[] = draft.occupancyRampCurve || [];
 
   return (
     <div className="border-t border-primary/20 pt-4">
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between hover:bg-muted/50 transition-colors text-left py-2"
+        className="w-full flex items-center justify-between text-left py-2 h-auto px-0"
         data-testid="toggle-occupancy-ramp-curve"
       >
         <div className="flex items-center gap-2">
-          <Label className="label-text text-foreground cursor-pointer">Occupancy Ramp Curve</Label>
-          <InfoTooltip text="Annual percentages of stabilized occupancy. Year 1 = 55% means occupancy is 55% of your max in year 1. Overrides the step-function ramp when set. Leave empty to use the default step function." />
+          <Label className="label-text text-foreground cursor-pointer">Occupancy Ramp Override</Label>
+          <InfoTooltip text="Optional year-by-year override of stabilized occupancy. Leave blank to use the automatic step-function ramp derived from Occupancy Ramp and Growth Step. When set, each entry directly specifies that year's occupancy as a fraction of stabilized max (e.g. 0.55 = 55% of stabilized). Values only appear once you expand this section and add a year." />
         </div>
         <div className="flex items-center gap-2">
           {!isOpen && (
             <span className="text-xs text-muted-foreground font-mono">
-              {curve.length === 0 ? "Default step function" : `${curve.length} years`}
+              {curve.length === 0 ? "Default step function" : `${curve.length} year${curve.length !== 1 ? "s" : ""} overridden`}
             </span>
           )}
           <svg className={cn("w-4 h-4 text-muted-foreground transition-transform", isOpen && "rotate-180")} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
         </div>
-      </button>
+      </Button>
       {isOpen && (
         <div className="pt-2 space-y-3">
           {curve.length === 0 && (
-            <p className="text-xs text-muted-foreground">No custom ramp defined. Using default step function based on occupancy growth step and ramp months.</p>
+            <p className="text-xs text-muted-foreground">No override set. Using the automatic step-function ramp derived from Occupancy Ramp and Growth Step above. Add a year override below to take manual control.</p>
           )}
           <div className="space-y-2">
             {curve.map((val, i) => (
@@ -490,7 +619,7 @@ function OccupancyRampCurveEditor({ draft, onChange }: { draft: PropertyEditSect
             onClick={() => onChange("occupancyRampCurve", [...curve, curve.length === 0 ? 0.55 : 1.0])}
             data-testid="btn-add-ramp-year"
           >
-            + Add Year
+            + Add Year Override
           </Button>
         </div>
       )}

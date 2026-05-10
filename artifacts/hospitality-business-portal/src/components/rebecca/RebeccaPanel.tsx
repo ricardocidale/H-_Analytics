@@ -878,15 +878,16 @@ Type your request naturally — you don't need to use tool names directly.`;
               data-testid="rebecca-panel"
             >
               {/* Desktop collapse tab on the left edge of the open panel */}
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => closeRebecca()}
-                className="hidden md:flex absolute -left-7 top-1/2 -translate-y-1/2 z-10 h-16 w-7 items-center justify-center rounded-l-md bg-primary text-primary-foreground shadow-md hover:bg-primary/90 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="hidden md:flex absolute -left-7 top-1/2 -translate-y-1/2 z-10 h-16 w-7 items-center justify-center rounded-l-md bg-primary text-primary-foreground shadow-md hover:bg-primary/90 transition-colors cursor-pointer px-0"
                 aria-label="Collapse Rebecca panel"
                 data-testid="button-rebecca-collapse-tab"
                 title="Collapse"
               >
                 <ChevronRight className="w-4 h-4" />
-              </button>
+              </Button>
         <div className="px-4 pt-3.5 pb-3 border-b border-border/40 shrink-0 bg-primary/[0.04]">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0">
@@ -1090,8 +1091,8 @@ Type your request naturally — you don't need to use tool names directly.`;
           {pendingMessage && (
             <div className="flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
               <span className="flex-1 min-w-0 truncate">Still responding — finish first or move on?</span>
-              <button type="button" onClick={handleLetFinish} className="shrink-0 font-medium underline underline-offset-2 hover:no-underline">Finish</button>
-              <button type="button" onClick={handleMoveOn} className="shrink-0 font-medium underline underline-offset-2 hover:no-underline">Move on</button>
+              <Button variant="link" size="sm" onClick={handleLetFinish} className="shrink-0 h-auto p-0 font-medium text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200">Finish</Button>
+              <Button variant="link" size="sm" onClick={handleMoveOn} className="shrink-0 h-auto p-0 font-medium text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200">Move on</Button>
             </div>
           )}
           <div className="flex items-end gap-2">

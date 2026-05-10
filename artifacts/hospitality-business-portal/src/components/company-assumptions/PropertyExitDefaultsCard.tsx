@@ -16,6 +16,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Slider } from "@/components/ui/slider";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
@@ -183,14 +184,16 @@ export default function PropertyExitDefaultsCard({ formData, onChange, global, r
                         <span className="font-medium">Analyst suggestion:</span>{" "}
                         <span data-testid="text-suggested-vertical-label">{suggestion.label}</span>
                       </div>
-                      <button
+                      <Button
                         type="button"
-                        className="shrink-0 underline underline-offset-2 hover:text-sky-700 dark:hover:text-sky-100"
+                        variant="ghost"
+                        size="sm"
+                        className="shrink-0 underline underline-offset-2 h-auto p-0 text-xs"
                         onClick={() => onChange("industryVertical", suggestion.dimensionKey)}
                         data-testid="button-apply-vertical-suggestion"
                       >
                         Use suggestion
-                      </button>
+                      </Button>
                     </div>
                     <p className="mt-1 text-[11px] leading-snug opacity-90" data-testid="text-suggested-vertical-rationale">
                       {suggestion.rationale}
@@ -230,14 +233,16 @@ export default function PropertyExitDefaultsCard({ formData, onChange, global, r
                 {band.valueMid != null ? (
                   <>
                     .{" "}
-                    <button
+                    <Button
                       type="button"
-                      className="underline underline-offset-2 hover:text-amber-700 dark:hover:text-amber-100"
+                      variant="ghost"
+                      size="sm"
+                      className="underline underline-offset-2 h-auto p-0 text-xs"
                       onClick={() => onChange("exitRevenueMultiple", band.valueMid!)}
                       data-testid="button-apply-exit-multiple-mid"
                     >
                       Apply recommended midpoint {band.valueMid.toFixed(1)}x
-                    </button>
+                    </Button>
                     .
                   </>
                 ) : "."}

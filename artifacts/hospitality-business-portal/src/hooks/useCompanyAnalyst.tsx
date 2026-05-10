@@ -1,7 +1,7 @@
 /**
  * useCompanyAnalyst — Owns the Analyst research stream, structured guidance
- * fetching, three-tier researchValues cascade, and page-visit tracking for
- * the Company Assumptions page.
+ * fetching, and three-tier researchValues cascade for the Company Assumptions
+ * page.
  *
  * Extracted from `client/src/pages/CompanyAssumptions.tsx` (audit #319 R4
  * deferred precursor — task #471).
@@ -29,7 +29,6 @@ import type { GlobalResponse } from "@/lib/api";
 import { useMarketResearch } from "@/lib/api";
 import type { useToast } from "@/hooks/use-toast";
 import { useCompanyResearchStream } from "@/components/company-research/useCompanyResearchStream";
-import { usePageVisit } from "@/hooks/usePageVisit";
 
 type Toast = ReturnType<typeof useToast>["toast"];
 
@@ -59,7 +58,7 @@ function fmtNum(v: number): string {
   return Number.isInteger(v) ? String(v) : v.toFixed(1);
 }
 
-function guidanceToDisplayValue(rec: GuidanceRecord): {
+export function guidanceToDisplayValue(rec: GuidanceRecord): {
   display: string;
   mid: number;
   sourceName?: string;
@@ -69,7 +68,7 @@ function guidanceToDisplayValue(rec: GuidanceRecord): {
   if (rec.valueMid == null) return null;
   const isDollar = DOLLAR_FIELDS.has(rec.assumptionKey);
   let display: string;
-  if (rec.valueLow != null && rec.valueHigh != null) {
+  if (rec.valueLow != null && rec.valueHigh != null && rec.valueLow !== rec.valueHigh) {
     display = isDollar
       ? `$${formatDollar(rec.valueLow)}–$${formatDollar(rec.valueHigh)}`
       : `${fmtNum(rec.valueLow)}%–${fmtNum(rec.valueHigh)}%`;
@@ -131,7 +130,6 @@ export interface UseCompanyAnalystReturn {
   companyResearchUpdatedAt: string | null;
   researchValues: Record<string, { display: string; mid: number } | null | undefined>;
   companyContextReady: boolean;
-  isFirstVisit: boolean;
 }
 
 export function useCompanyAnalyst(args: UseCompanyAnalystArgs): UseCompanyAnalystReturn {
@@ -165,7 +163,6 @@ export function useCompanyAnalyst(args: UseCompanyAnalystArgs): UseCompanyAnalys
   const { isGenerating, streamedContent, generateResearch, abortResearch } =
     useCompanyResearchStream(handleResearchError);
 
-  const { isFirstVisit } = usePageVisit("company:assumptions");
   const { data: research } = useMarketResearch("company");
   const companyResearchUpdatedAt = research?.updatedAt ?? null;
 
@@ -292,6 +289,5 @@ export function useCompanyAnalyst(args: UseCompanyAnalystArgs): UseCompanyAnalys
     companyResearchUpdatedAt,
     researchValues,
     companyContextReady,
-    isFirstVisit,
   };
 }

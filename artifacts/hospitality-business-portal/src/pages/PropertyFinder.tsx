@@ -270,6 +270,7 @@ export default function PropertyFinder() {
                     disabled={searchData.offset === 0}
                     className="p-1.5 rounded-lg h-auto w-auto"
                     data-testid="btn-prev-page"
+                    aria-label="Previous page"
                   >
                     <ChevronLeft className="w-4 h-4 text-muted-foreground" />
                   </Button>
@@ -283,6 +284,7 @@ export default function PropertyFinder() {
                     disabled={searchData.offset + 20 >= searchData.total}
                     className="p-1.5 rounded-lg h-auto w-auto"
                     data-testid="btn-next-page"
+                    aria-label="Next page"
                   >
                     <ChevronRight className="w-4 h-4 text-muted-foreground" />
                   </Button>

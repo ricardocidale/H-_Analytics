@@ -221,14 +221,15 @@ function GapsBanner({
             <div data-testid="gaps-failing-list">
               <span className="opacity-70 mr-1">Failing:</span>
               {resources.failingList.map((r, i) => (
-                <button
+                <Button
                   key={r.id}
+                  variant="ghost"
                   onClick={() => onJumpToResource(r.id)}
-                  className="underline underline-offset-2 hover:text-rose-700 mr-2"
+                  className="underline underline-offset-2 hover:text-rose-700 mr-2 h-auto p-0 text-xs inline"
                   data-testid={`gaps-jump-failing-${r.id}`}
                 >
                   {r.slug}{i < resources.failingList.length - 1 ? "," : ""}
-                </button>
+                </Button>
               ))}
             </div>
           )}
@@ -236,14 +237,15 @@ function GapsBanner({
             <div data-testid="gaps-orphan-list">
               <span className="opacity-70 mr-1">Unused:</span>
               {resources.orphanList.map((r, i) => (
-                <button
+                <Button
                   key={r.id}
+                  variant="ghost"
                   onClick={() => onJumpToResource(r.id)}
-                  className="underline underline-offset-2 hover:text-amber-700 mr-2"
+                  className="underline underline-offset-2 hover:text-amber-700 mr-2 h-auto p-0 text-xs inline"
                   data-testid={`gaps-jump-orphan-${r.id}`}
                 >
                   {r.slug}{i < resources.orphanList.length - 1 ? "," : ""}
-                </button>
+                </Button>
               ))}
             </div>
           )}
@@ -251,20 +253,21 @@ function GapsBanner({
             <div data-testid="gaps-missing-healthy-list">
               <span className="opacity-70 mr-1">Blind specialists:</span>
               {specialists.missingHealthyList.map((m, i) => (
-                <button
+                <Button
                   key={`${m.specialistId}-${m.resourceId}`}
+                  variant="ghost"
                   onClick={() =>
                     // Unbound required slots have no resource to open, so
                     // jump to the specialist's page where they can pick a
                     // resource. Bound failures still open the resource.
                     m.resourceId > 0 ? onJumpToResource(m.resourceId) : onJumpToSpecialist(m.specialistId)
                   }
-                  className="underline underline-offset-2 hover:text-rose-700 mr-2"
+                  className="underline underline-offset-2 hover:text-rose-700 mr-2 h-auto p-0 text-xs inline"
                   data-testid={`gaps-jump-missing-${m.specialistId}-${m.resourceId}`}
                   title={`${m.specialistName} → ${m.resourceSlug}${m.role ? ` (${m.role})` : ""}`}
                 >
                   {m.specialistName} → {m.resourceSlug}{i < specialists.missingHealthyList.length - 1 ? "," : ""}
-                </button>
+                </Button>
               ))}
             </div>
           )}
@@ -272,15 +275,16 @@ function GapsBanner({
             <div data-testid="gaps-below70-list">
               <span className="opacity-70 mr-1">Low-quality specialists:</span>
               {quality.below70List.map((q, i) => (
-                <button
+                <Button
                   key={q.specialistId}
+                  variant="ghost"
                   onClick={() => onJumpToSpecialist(q.specialistId)}
-                  className="underline underline-offset-2 hover:text-rose-700 mr-2"
+                  className="underline underline-offset-2 hover:text-rose-700 mr-2 h-auto p-0 text-xs inline"
                   data-testid={`gaps-jump-below70-${q.specialistId}`}
                   title={`Open ${q.specialistName}'s page (score ${q.score})`}
                 >
                   {q.specialistName} · {q.score}{i < quality.below70List.length - 1 ? "," : ""}
-                </button>
+                </Button>
               ))}
             </div>
           )}

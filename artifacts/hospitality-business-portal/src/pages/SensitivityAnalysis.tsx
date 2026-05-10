@@ -3,12 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/Layout";
 import { useProperties, useGlobalAssumptions } from "@/lib/api";
 import { generatePropertyProForma } from "@/lib/financialEngine";
-import { PROJECTION_YEARS, DEFAULT_EXIT_CAP_RATE, DEFAULT_COMMISSION_RATE, DEFAULT_COST_RATE_INSURANCE, MONTHS_PER_YEAR } from "@/lib/constants";
+import { PROJECTION_YEARS, DEFAULT_EXIT_CAP_RATE, DEFAULT_COST_RATE_INSURANCE, MONTHS_PER_YEAR } from "@/lib/constants";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 import { computeIRR } from "@analytics/returns/irr.js";
-import { computeEquityMultiple } from "@calc/returns/equity-multiple";
-import { DEFAULT_ROUNDING } from "@calc/shared/utils";
 import { propertyEquityInvested } from "@/lib/financial/equityCalculations";
+import { aggregateUnifiedByYear } from "@/lib/financial/yearlyAggregator";
+import type { LoanParams, GlobalLoanParams } from "@/lib/financial/loanCalculations";
 import type { SensitivityResponse } from "@shared/sensitivity-types";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
@@ -23,10 +23,6 @@ import type { HeatMapCell } from "@/components/charts/SensitivityHeatMap";
 import type { TornadoVariable, TornadoDiagramRef } from "@/components/charts/TornadoDiagram";
 import type { SensitivityHeatMapRef } from "@/components/charts/SensitivityHeatMap";
 
-function calculateIRR(cashFlows: number[]): number {
-  const result = computeIRR(cashFlows, 1);
-  return result.irr_periodic ?? 0;
-}
 
 export default function SensitivityAnalysis({ embedded }: { embedded?: boolean }) {
   const { data: properties, isLoading: propertiesLoading } = useProperties();
@@ -76,11 +72,17 @@ export default function SensitivityAnalysis({ embedded }: { embedded?: boolean }
       let totalRevenue = 0;
       let totalNOI = 0;
       let totalCashFlow = 0;
-      let exitValue = 0;
+      let totalExitValue = 0;
       let totalInitialEquity = 0;
-      const annualCashFlows: number[] = new Array(projectionYears).fill(0);
+      // N-element convention: equity is deducted in the acquisition year,
+      // exit is added in the final year — matches server sensitivity.ts exactly.
+      const netFlowsByYear: number[] = new Array(projectionYears).fill(0);
 
       for (const prop of targetProps) {
+        const baseInterestRate = prop.acquisitionInterestRate ?? global.debtAssumptions?.interestRate ?? 0.065;
+        const baseCapRate = prop.exitCapRate ?? global.exitCapRate ?? DEFAULT_EXIT_CAP_RATE;
+        const adjCapRate = Math.max(0.01, baseCapRate + (overrides.exitCapRate ?? 0) / 100);
+
         const adjProp = {
           ...prop,
           maxOccupancy: Math.min(1, Math.max(0.1, prop.maxOccupancy + (overrides.occupancy ?? 0) / 100)),
@@ -89,8 +91,10 @@ export default function SensitivityAnalysis({ embedded }: { embedded?: boolean }
             prop.startOccupancy
           ),
           adrGrowthRate: Math.max(0, prop.adrGrowthRate + (overrides.adrGrowth ?? 0) / 100),
-          interestRate: Math.max(0.005, ((prop as Record<string, unknown>).interestRate as number ?? 0.065) + (overrides.interestRate ?? 0) / 100),
+          acquisitionInterestRate: Math.max(0.005, baseInterestRate + (overrides.interestRate ?? 0) / 100),
           costRateInsurance: Math.max(0, (prop.costRateInsurance ?? DEFAULT_COST_RATE_INSURANCE) + (overrides.insuranceRate ?? 0) / 100),
+          // Stamp adjusted exit cap rate so aggregateUnifiedByYear picks it up
+          exitCapRate: adjCapRate,
         };
 
         const adjGlobal = {
@@ -104,41 +108,41 @@ export default function SensitivityAnalysis({ embedded }: { embedded?: boolean }
 
         const financials = generatePropertyProForma(adjProp, adjGlobal, projectionMonths);
 
-        for (let i = 0; i < financials.length; i++) {
-          const m = financials[i];
+        for (const m of financials) {
           totalRevenue += m.revenueTotal;
           totalNOI += m.noi;
           totalCashFlow += m.cashFlow;
-          const yearIdx = Math.floor(i / MONTHS_PER_YEAR);
-          if (yearIdx < projectionYears) {
-            annualCashFlows[yearIdx] += m.cashFlow;
-          }
         }
 
-        const lastYearNOI = financials.slice(-12).reduce((sum, m) => sum + m.noi, 0);
-        const capRate = Math.max(0.01, (prop.exitCapRate ?? global.exitCapRate ?? DEFAULT_EXIT_CAP_RATE) + (overrides.exitCapRate ?? 0) / 100);
-        const commissionRate = prop.dispositionCommission ?? DEFAULT_COMMISSION_RATE;
-        const grossExit = lastYearNOI / capRate;
-        const netExit = grossExit * (1 - commissionRate);
-        const debtAtExit = financials[financials.length - 1]?.debtOutstanding ?? 0;
-        exitValue += Math.max(0, netExit - debtAtExit);
+        // Canonical aggregator: handles NOI annualization for exit, equity
+        // placement at acquisition year, and refinancing proceeds — matching
+        // the server sensitivity.ts implementation exactly.
+        const unified = aggregateUnifiedByYear(
+          financials,
+          adjProp as unknown as LoanParams,
+          adjGlobal as unknown as GlobalLoanParams,
+          projectionYears,
+        );
+        for (let y = 0; y < projectionYears; y++) {
+          netFlowsByYear[y] += unified.yearlyCF[y]?.netCashFlowToInvestors ?? 0;
+        }
+        totalExitValue += unified.yearlyCF[projectionYears - 1]?.exitValue ?? 0;
 
         totalInitialEquity += propertyEquityInvested(prop);
       }
 
-      const irrFlows = [-totalInitialEquity, ...annualCashFlows];
-      irrFlows[irrFlows.length - 1] += exitValue;
-      const irr = totalInitialEquity > 0 ? calculateIRR(irrFlows) : 0;
+      const irrResult = totalInitialEquity > 0 ? computeIRR(netFlowsByYear, 1) : null;
+      const irr = irrResult?.irr_periodic ?? 0;
       const avgNOIMargin = totalRevenue > 0 ? (totalNOI / totalRevenue) * 100 : 0;
-      // Audit Task #967 — true equity multiple (MOIC). Mirrors the server
-      // implementation in `artifacts/api-server/src/finance/sensitivity.ts`
-      // so the offline fallback path matches the server response shape.
+      // netFlowsByYear has equity deducted at acquisition; adding it back gives
+      // gross distributions. Matches server sensitivity.ts equity multiple formula.
+      const totalCashReturned = netFlowsByYear.reduce((s, v) => s + v, 0);
       const equityMultipleValue = totalInitialEquity > 0
-        ? computeEquityMultiple({ cash_flows: irrFlows, rounding_policy: DEFAULT_ROUNDING }).equity_multiple
+        ? (totalCashReturned + totalInitialEquity) / totalInitialEquity
         : 0;
-      return { totalRevenue, totalNOI, totalCashFlow, avgNOIMargin, exitValue, irr, equityMultipleValue };
+      return { totalRevenue, totalNOI, totalCashFlow, avgNOIMargin, exitValue: totalExitValue, irr, equityMultipleValue };
     },
-    [properties, global, selectedPropertyId, projectionMonths]
+    [properties, global, selectedPropertyId, projectionMonths, projectionYears]
   );
 
   // ── Interactive (2 client runs — must stay client-side for slider responsiveness) ──

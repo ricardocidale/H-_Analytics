@@ -275,7 +275,6 @@ export default function Company() {
       <AnalystButton
         onClick={() => navigate(isAdmin ? "/company/assumptions?analyst=1" : "/company/guidance")}
         size="sm"
-        variant="outline"
         tooltip={isAdmin
           ? "Open Company Assumptions and consult The Analyst for AI-backed market ranges across every field."
           : "Open AI Guidance to see The Analyst's recommended ranges for your company assumptions."}
