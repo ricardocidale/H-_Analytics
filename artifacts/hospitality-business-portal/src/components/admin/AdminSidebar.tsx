@@ -287,7 +287,6 @@ interface AdminSidebarProps {
 export function AdminSidebarNav({ activeSection, onSectionChange }: AdminSidebarProps) {
   const navGroups = useMemo(() => buildNavGroups(), []);
   const [location] = useLocation();
-  const isIntelligenceActive = location.startsWith("/intelligence");
 
   // Keep the freshness query alive so the API is exercised on admin loads.
   // The badge UI was removed when the AI Research group was retired.
@@ -323,28 +322,14 @@ export function AdminSidebarNav({ activeSection, onSectionChange }: AdminSidebar
             </SidebarMenu>
           </SidebarGroup>
 
-          {/* Intelligence — top-level link to the dedicated Intelligence area. */}
+          {/* AI — top-level link to the AI Intelligence area (specialists, sources, LLMs, benchmarks). */}
           <SidebarGroup className="p-0">
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={isIntelligenceActive} tooltip="Intelligence">
-                  <Link href="/intelligence" data-testid="admin-nav-intelligence">
-                    <IconBrain className="size-4 shrink-0" />
-                    <span className="truncate">Intelligence</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroup>
-
-          {/* AI Intelligence — top-level link to the AI Intelligence area (specialists, sources, LLMs, benchmarks). */}
-          <SidebarGroup className="p-0">
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={location.startsWith("/ai-intelligence")} tooltip="AI Intelligence">
+                <SidebarMenuButton asChild isActive={location.startsWith("/ai-intelligence")} tooltip="AI">
                   <Link href="/ai-intelligence" data-testid="admin-nav-ai-intelligence">
                     <IconBot className="size-4 shrink-0" />
-                    <span className="truncate">AI Intelligence</span>
+                    <span className="truncate">AI</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
