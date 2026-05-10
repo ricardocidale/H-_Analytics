@@ -296,6 +296,14 @@ function GuidedWalkthrough() {
     setTourActive(false);
   }, [step, setTourActive]);
 
+  const handleDismissPermanently = useCallback(async () => {
+    clearTourStep();
+    setSavedStep(null);
+    setTourActive(false);
+    await updateTourPromptPreference(true);
+    queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+  }, [setTourActive, queryClient]);
+
   if (showPrompt) {
     return (
       <TourPromptDialog
@@ -409,6 +417,17 @@ function GuidedWalkthrough() {
               {!isLast && <ChevronRight className="w-3 h-3" />}
             </Button>
           </div>
+        </div>
+
+        <div className="mt-3 pt-3 border-t border-border/50 flex justify-center">
+          <button
+            type="button"
+            onClick={handleDismissPermanently}
+            className="text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-pointer"
+            data-testid="button-tour-dont-show-again"
+          >
+            Don't show again
+          </button>
         </div>
       </div>
     </div>
