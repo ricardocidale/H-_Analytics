@@ -197,6 +197,50 @@ const SCRIPT_CHECKS: CheckSpec[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Timing history
+// ---------------------------------------------------------------------------
+
+const TIMING_FILE = path.join(CACHE_DIR, "check-timing.jsonl");
+
+interface TimingRecord {
+  ts: string;
+  totalMs: number;
+  passed: boolean;
+  checks: Array<{ label: string; durationMs: number; slow: boolean; exitCode: number }>;
+}
+
+function appendTimingRecord({
+  wallMs,
+  results,
+  passed,
+}: {
+  wallMs: number;
+  results: RunResult[];
+  passed: boolean;
+}): void {
+  const record: TimingRecord = {
+    ts: new Date().toISOString(),
+    totalMs: wallMs,
+    passed,
+    checks: results
+      .filter((r) => !r.killed)
+      .map((r) => ({
+        label: r.label,
+        durationMs: r.durationMs,
+        slow: r.durationMs >= SLOW_THRESHOLD_MS,
+        exitCode: r.exitCode,
+      })),
+  };
+
+  try {
+    fs.mkdirSync(CACHE_DIR, { recursive: true });
+    fs.appendFileSync(TIMING_FILE, JSON.stringify(record) + "\n", "utf8");
+  } catch {
+    // Non-fatal: timing history is best-effort.
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Probe: compute fresh hash and compare to stored
 // ---------------------------------------------------------------------------
 
@@ -315,6 +359,7 @@ async function main(): Promise<void> {
   }
 
   if (toRun.length === 0) {
+    appendTimingRecord({ wallMs: Date.now() - wallStart, results: [], passed: true });
     console.log("[done]  all checks cached — nothing to run");
     process.exit(0);
   }
@@ -378,6 +423,13 @@ async function main(): Promise<void> {
   const ranCount = toRun.length;
   const skippedCount = cached.length;
   const totalCount = SCRIPT_CHECKS.length + 1; // +1 for typecheck
+
+  // 6. Persist timing history for trend analysis.
+  appendTimingRecord({
+    wallMs,
+    results,
+    passed: actualFailures.length === 0,
+  });
 
   if (actualFailures.length === 0) {
     const slowNote = slowChecks.length > 0
