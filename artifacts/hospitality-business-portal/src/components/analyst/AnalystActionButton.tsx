@@ -57,9 +57,6 @@ export function AnalystActionButton({
   const resolvedSize: ButtonProps["size"] =
     size ?? (variant === "save-row" ? "default" : "sm");
 
-  const buttonVariant: ButtonProps["variant"] =
-    variant === "modal" ? "default" : "outline";
-
   const testId = testIdSuffix
     ? `button-analyst-${testIdSuffix}`
     : "button-analyst";
@@ -82,24 +79,17 @@ export function AnalystActionButton({
           <span className="inline-flex">
             <Button
               type="button"
-              variant={buttonVariant}
+              variant="default"
               size={resolvedSize}
               onClick={onClick}
               disabled={disabled}
               aria-label={tooltipText}
               data-testid={testId}
-              className={cn(
-                "gap-1.5 font-medium",
-                "border-amber-300/60 text-amber-700 hover:bg-amber-50 hover:text-amber-800",
-                "dark:border-amber-500/40 dark:text-amber-300 dark:hover:bg-amber-950/40",
-                variant === "modal" &&
-                  "border-transparent bg-amber-500 text-white hover:bg-amber-600 dark:bg-amber-500 dark:text-white dark:hover:bg-amber-400",
-                className,
-              )}
+              className={cn("gap-1.5 font-medium", className)}
             >
               <IconSparkles
                 className={cn(
-                  "h-4 w-4",
+                  "h-4 w-4 text-accent-pop",
                   running && "animate-pulse",
                 )}
                 aria-hidden="true"
