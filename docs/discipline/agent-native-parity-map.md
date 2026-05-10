@@ -33,6 +33,7 @@ feature ships or a new Rebecca tool is added.
 | Delete a property photo | Property → Photos → Delete | `delete_property_photo` | ✅ |
 | Set property hero photo | Property → Photos → Set Hero | `set_hero_photo` | ✅ |
 | List property photos | Property → Photos (view) | `list_property_photos` | ✅ |
+| Update photo caption or sort order | Property → Photos → Edit | `update_photo` | ✅ |
 | Add a photo by URL to a property gallery | Property → Photos → Add | `create_photo` | ✅ |
 | View who a scenario is shared with | Scenarios → Shares | `list_scenario_shares` | ✅ |
 | Revoke a scenario share for a specific user | Scenarios → Shares → Revoke | `revoke_share` | ✅ |

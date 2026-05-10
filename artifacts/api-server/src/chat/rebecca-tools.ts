@@ -614,6 +614,21 @@ export function getRebeccaTools(): ToolParam[] {
       },
     },
     {
+      name: "update_photo",
+      description:
+        "Update a property photo's caption or sort order. The photo must belong to the specified property.",
+      parameters: {
+        type: "object",
+        properties: {
+          propertyId: { type: "number", description: "Property ID the photo belongs to." },
+          photoId: { type: "number", description: "ID of the photo to update." },
+          caption: { type: "string", description: "New caption text. Pass null to clear." },
+          sortOrder: { type: "number", description: "New sort position (0-based)." },
+        },
+        required: ["propertyId", "photoId"],
+      },
+    },
+    {
       name: "list_property_photos",
       description:
         "List all photos in a property's gallery, ordered by sort order. Returns id, imageUrl, caption, isHero, and sortOrder for each photo.",
@@ -952,6 +967,8 @@ export async function dispatchRebeccaTool(
         return await toolGetGlobalAssumptions(ctx);
       case "update_global_assumptions":
         return await toolUpdateGlobalAssumptions(args, ctx);
+      case "update_photo":
+        return await toolUpdatePhoto(args, ctx);
       case "list_property_photos":
         return await toolListPropertyPhotos(args, ctx);
       case "create_photo":
@@ -2858,6 +2875,52 @@ async function toolUpdateGlobalAssumptions(
   return {
     result: { success: true, id: updated.id },
     dataChanged: { entityType: "global_assumptions", entityId: 0 },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// update_photo — update caption or sort order for a property photo
+// ---------------------------------------------------------------------------
+
+async function toolUpdatePhoto(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const propertyIdResult = requireNumericArg(args, "propertyId");
+  if (!propertyIdResult.ok) return propertyIdResult.result;
+  const propertyId = propertyIdResult.value;
+
+  const photoIdResult = requireNumericArg(args, "photoId");
+  if (!photoIdResult.ok) return photoIdResult.result;
+  const photoId = photoIdResult.value;
+
+  const user = await storage.getUserById(ctx.userId);
+  if (!user) return { result: { error: "User not found" } };
+
+  const property = await storage.getProperty(propertyId);
+  if (!property || (property.userId !== ctx.userId && !isAdminRole(user.role) && property.userId !== null)) {
+    return { result: { error: "Not found" } };
+  }
+
+  const photo = await storage.getPhotoById(photoId);
+  if (!photo || photo.propertyId !== propertyId) {
+    return { result: { error: "Not found" } };
+  }
+
+  const patch: Record<string, unknown> = {};
+  if ("caption" in args) patch.caption = args.caption === null ? null : String(args.caption ?? "");
+  if (typeof args.sortOrder === "number") patch.sortOrder = args.sortOrder;
+
+  if (Object.keys(patch).length === 0) {
+    return { result: { error: "No updatable fields provided (caption, sortOrder)" } };
+  }
+
+  const updated = await storage.updatePropertyPhoto(photoId, patch as Parameters<typeof storage.updatePropertyPhoto>[1]);
+  if (!updated) return { result: { error: "Update failed" } };
+
+  return {
+    result: { id: updated.id, caption: updated.caption, sortOrder: updated.sortOrder },
+    dataChanged: { entityType: "property", entityId: propertyId },
   };
 }
 
