@@ -512,7 +512,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
       if (!trimmed || loading) return;
 
       // /help and /tools: client-side capability summary — no server round-trip
-      if (trimmed.toLowerCase() === "/help" || trimmed.toLowerCase() === "/tools") {
+      if (trimmed === "/help" || trimmed === "/tools") {
         const helpId = nextMsgId("assistant");
         const helpText = `**Rebecca's capabilities** — ask me anything from this list:
 

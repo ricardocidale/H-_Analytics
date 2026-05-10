@@ -95,7 +95,7 @@ export default function PropertyResearchCriteria() {
   const enabledTools = eventConfig.enabledTools?.length ? eventConfig.enabledTools : [];
   const customSources = researchConfig.customSources?.length ? researchConfig.customSources : [];
   const timeHorizon = eventConfig.timeHorizon || null;
-  const preferredLlm = researchConfig.preferredLlm || global?.preferredLlm;
+  const preferredLlm = researchConfig.preferredLlm?.trim() || global?.preferredLlm?.trim() || undefined;
 
   const hasAdminConfig = focusAreas.length > 0 || regions.length > 0 || customInstructions || enabledTools.length > 0 || timeHorizon;
 
