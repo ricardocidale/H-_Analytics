@@ -23,8 +23,8 @@
  * directly. Removing that field would be a breaking signature change.
  */
 import { db, pool } from "../db";
-import { users, sessions, marketResearch, prospectiveProperties, savedSearches, properties, globalAssumptions, loginLogs, activityLogs, verificationRuns, scenarios, scenarioAccess, notificationPreferences, documentExtractions, conversations, calculationAuditLogs, userPageVisits } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { users, sessions, marketResearch, prospectiveProperties, savedSearches, properties, globalAssumptions, loginLogs, activityLogs, verificationRuns, scenarios, scenarioAccess, notificationPreferences, documentExtractions, conversations, calculationAuditLogs } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import { UserStorage } from "./users";
 import { PropertyStorage } from "./properties";
 import { FinancialStorage } from "./financial";
@@ -41,7 +41,6 @@ import { PropertyUrlStorage } from "./property-urls";
 import { PropertyDdStorage } from "./property-dd";
 import { CalcAuditStorage, type ICalcAuditStorage } from "./calc-audit";
 import { RenderSettingsStorage } from "./render-settings";
-import { PageVisitStorage } from "./page-visits";
 import { ModelConstantsStorage } from "./model-constants";
 import { ModelCanonicalsStorage } from "./model-canonicals";
 import { AdminResourceStorage } from "./admin-resource";
@@ -75,7 +74,6 @@ export interface IStorage extends
   PropertyDdStorage,
   ICalcAuditStorage,
   RenderSettingsStorage,
-  PageVisitStorage,
   ModelConstantsStorage,
   ModelCanonicalsStorage,
   AdminResourceStorage,
@@ -125,7 +123,6 @@ function buildDomainFactories(intelligenceV2: IntelligenceV2Storage) {
     () => new PropertyDdStorage(),
     () => new CalcAuditStorage(),
     () => new RenderSettingsStorage(),
-    () => new PageVisitStorage(),
     () => new ModelConstantsStorage(),
     () => new ModelCanonicalsStorage(),
     () => new AdminResourceStorage(),
@@ -207,7 +204,6 @@ export class DatabaseStorage implements IStorage {
       await tx.delete(activityLogs).where(eq(activityLogs.userId, id));
       await tx.delete(verificationRuns).where(eq(verificationRuns.userId, id));
       await tx.delete(calculationAuditLogs).where(eq(calculationAuditLogs.userId, id));
-      await tx.delete(userPageVisits).where(eq(userPageVisits.userId, id));
       await tx.delete(users).where(eq(users.id, id));
     });
   }

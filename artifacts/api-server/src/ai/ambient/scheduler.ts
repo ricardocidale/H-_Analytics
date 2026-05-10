@@ -160,14 +160,6 @@ async function runRefreshCycle(): Promise<{ upserted: number; errors: string[] }
       );
     }
 
-    // Cleanup old page visit records (rolling 12 months)
-    try {
-      const cleaned = await storage.cleanupOldVisits(12);
-      if (cleaned > 0) log(`Cleaned ${cleaned} old page visit records`, "ambient-scheduler");
-    } catch (cleanErr: unknown) {
-      log(`Page visit cleanup failed (non-blocking): ${cleanErr instanceof Error ? cleanErr.message : String(cleanErr)}`, "ambient-scheduler", "warn");
-    }
-
     return { upserted, errors: result.errors };
   } catch (err: unknown) {
     cycleThrew = true;
