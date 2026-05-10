@@ -36,7 +36,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconAlertTriangle, IconWand2, IconEye, IconSparkles } from "@/components/icons";
-import { usePageVisit } from "@/hooks/usePageVisit";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { SaveButton } from "@/components/ui/save-button";
 import { PageHeader } from "@/components/ui/page-header";
@@ -145,9 +144,6 @@ export default function PropertyEdit() {
 
   const researchUpdatedAt = research?.updatedAt ?? null;
   const propertyLastAssumptionChangeAt = property?.lastAssumptionChangeAt ?? null;
-
-  const pageVisitKey = propertyId ? `property:${propertyId}:edit` : "";
-  usePageVisit(pageVisitKey, "property", propertyId);
 
   // NOTE (task #738 / #739 / .claude/rules/analyst-trigger-discipline.md):
   // The `useAutoRefreshIntelligence` consumer that lived here was removed

@@ -1,7 +1,7 @@
 /**
  * useCompanyAnalyst — Owns the Analyst research stream, structured guidance
- * fetching, three-tier researchValues cascade, and page-visit tracking for
- * the Company Assumptions page.
+ * fetching, and three-tier researchValues cascade for the Company Assumptions
+ * page.
  *
  * Extracted from `client/src/pages/CompanyAssumptions.tsx` (audit #319 R4
  * deferred precursor — task #471).
@@ -29,7 +29,6 @@ import type { GlobalResponse } from "@/lib/api";
 import { useMarketResearch } from "@/lib/api";
 import type { useToast } from "@/hooks/use-toast";
 import { useCompanyResearchStream } from "@/components/company-research/useCompanyResearchStream";
-import { usePageVisit } from "@/hooks/usePageVisit";
 
 type Toast = ReturnType<typeof useToast>["toast"];
 
@@ -164,7 +163,6 @@ export function useCompanyAnalyst(args: UseCompanyAnalystArgs): UseCompanyAnalys
   const { isGenerating, streamedContent, generateResearch, abortResearch } =
     useCompanyResearchStream(handleResearchError);
 
-  usePageVisit("company:assumptions");
   const { data: research } = useMarketResearch("company");
   const companyResearchUpdatedAt = research?.updatedAt ?? null;
 
