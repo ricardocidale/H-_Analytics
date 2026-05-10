@@ -99,7 +99,6 @@ export async function runAgenticLoop(params: AgenticLoopParams): Promise<string>
     // Execute all tool calls in parallel.
     const toolResults = await Promise.all(
       result.toolCalls.map(async (tc) => {
-        onToolExecuted();
         const toolStartMs = Date.now();
         try {
           const { result: r, dataChanged: dc } = await executeTool(
@@ -108,7 +107,12 @@ export async function runAgenticLoop(params: AgenticLoopParams): Promise<string>
             toolCtx,
           );
           const elapsedMs = Date.now() - toolStartMs;
-          if (dc) dataChanged.push(dc);
+          if (dc) {
+            dataChanged.push(dc);
+            // Only notify on mutating tools — read-only lookups must not
+            // disable the fallback model path (CodeRabbit PR-78).
+            onToolExecuted();
+          }
           if (useStream) {
             const runId =
               r && typeof r === "object"

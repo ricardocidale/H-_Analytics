@@ -116,12 +116,12 @@ export function register(app: Express) {
       }
       const { contextBlock, ragContextBlock, documentContextBlock, assetContextBlock, rebeccaFieldBlock, manifest, blockPresence, matchedAssets, autoGreeting, observations, contextType, contextKey, propertyId } = chatCtx;
 
-      const conversationId = await resolveConversationId({ userId, reqConvId, newConversation, contextType, contextKey, propertyId, req });
+      const conversationId = await resolveConversationId({ userId, isPreview, reqConvId, newConversation, contextType, contextKey, propertyId, req });
       const effectiveHistory = await loadChatHistory({ conversationId, isPreview, clientHistory: history });
       const detectedLanguage = detectLanguage(message);
       await saveUserMessage({ conversationId, isPreview, message, detectedLanguage });
 
-      if (!isPreview) {
+      if (!isPreview && conversationId !== null) {
         try { await storage.updateRebeccaConversationModel(conversationId, `${rebeccaSettings.llm.provider}:${rebeccaSettings.llm.model}`); }
         catch (e: unknown) { logger.warn(`Failed to update conversation model: ${e instanceof Error ? e.message : String(e)}`, "chat"); }
       }
@@ -197,7 +197,7 @@ export function register(app: Express) {
         suggestedChips = generateFollowUpChips(responseText, totalMessages, fieldCtx?.fieldKey, detectedLanguage);
       }
 
-      if (!isPreview) {
+      if (!isPreview && conversationId !== null) {
         const assistantMessage = await storage.addRebeccaMessage({
           conversationId,
           role: "assistant",
@@ -225,7 +225,11 @@ export function register(app: Express) {
         }).catch((err) => logger.warn(`Context contract logging failed: ${err instanceof Error ? err.message : String(err)}`, "chat"));
       }
 
-      logActivity(req, "rebecca-chat", "rebecca_conversation", conversationId, null, { responseMode, detectedLanguage, totalMessages });
+      // Preview mode never logs activity — there's no real conversation row
+      // to reference (CodeRabbit PR-78).
+      if (!isPreview && conversationId !== null) {
+        logActivity(req, "rebecca-chat", "rebecca_conversation", conversationId, null, { responseMode, detectedLanguage, totalMessages });
+      }
 
       const responsePayload = {
         response: visibleResponseText,

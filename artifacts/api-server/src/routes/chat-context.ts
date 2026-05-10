@@ -172,10 +172,11 @@ export async function buildChatContext(
   }
 
   // W0.2 — verification opinion + per-source freshness when a property is in scope.
+  // Scoped to userId to prevent cross-tenant leakage (CodeRabbit PR-78).
   let verificationContextBlock = "";
   if (fieldCtx?.entityType === "property") {
     try {
-      const [latestRun] = await storage.getVerificationRuns(1);
+      const [latestRun] = await storage.getVerificationRuns(1, userId);
       if (latestRun) {
         const runDate = new Date(latestRun.createdAt).toLocaleDateString();
         verificationContextBlock = `\n\nPORTFOLIO VERIFICATION (as of ${runDate}):\nOpinion: ${latestRun.auditOpinion} | Checks: ${latestRun.totalChecks} total, ${latestRun.passed} passed, ${latestRun.failed} failed`;
