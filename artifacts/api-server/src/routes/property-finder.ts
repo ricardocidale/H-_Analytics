@@ -196,7 +196,7 @@ export function register(app: Express) {
       const properties = await storage.getProspectiveProperties(getAuthUser(req).id);
       res.json(properties);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch prospective properties", error);
+      logAndSendError(res, "Failed to fetch prospective properties", error, "PFND-001");
     }
   });
 
@@ -215,18 +215,18 @@ export function register(app: Express) {
       logActivity(req, "favorite", "prospective_property", property.id, property.address);
       res.status(HTTP_201_CREATED).json(property);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to add prospective property", error);
+      logAndSendError(res, "Failed to add prospective property", error, "PFND-002");
     }
   });
 
   app.delete("/api/property-finder/prospective/:id", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID", code: "PFND-015" });
       await storage.deleteProspectiveProperty(id, getAuthUser(req).id);
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to delete prospective property", error);
+      logAndSendError(res, "Failed to delete prospective property", error, "PFND-003");
     }
   });
 
@@ -237,16 +237,16 @@ export function register(app: Express) {
         return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
       }
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID", code: "PFND-016" });
       const property = await storage.updateProspectivePropertyNotes(
         id,
         getAuthUser(req).id,
         parsed.data.notes ?? ""
       );
-      if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
+      if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "PFND-017" });
       res.json(property);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update notes", error);
+      logAndSendError(res, "Failed to update notes", error, "PFND-004");
     }
   });
 
@@ -260,16 +260,16 @@ export function register(app: Express) {
   app.get("/api/property-finder/prospective/:id/price-events", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID", code: "PFND-018" });
       const property = await storage.getProspectivePriceHistory(id, getAuthUser(req).id);
-      if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
+      if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "PFND-019" });
       const events: PriceEvent[] = property.priceEvents ?? [];
       res.json({
         events,
         rollups: computePriceHistoryRollups(events),
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch price events", error);
+      logAndSendError(res, "Failed to fetch price events", error, "PFND-005");
     }
   });
 
@@ -277,29 +277,29 @@ export function register(app: Express) {
   app.post("/api/property-finder/prospective/:id/price-events", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID", code: "PFND-020" });
       const parsed = priceEventInputSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
       }
       const property = await storage.addProspectivePriceEvent(id, getAuthUser(req).id, parsed.data);
-      if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
+      if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "PFND-021" });
       logActivity(req, "add_price_event", "prospective_property", property.id, parsed.data.kind);
       res.status(HTTP_201_CREATED).json({
         property,
         rollups: computePriceHistoryRollups(property.priceEvents ?? []),
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to add price event", error);
+      logAndSendError(res, "Failed to add price event", error, "PFND-006");
     }
   });
 
   app.patch("/api/property-finder/prospective/:id/price-events/:eventId", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID", code: "PFND-022" });
       const eventId = String(req.params.eventId ?? "").slice(0, 64);
-      if (!eventId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid event ID" });
+      if (!eventId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid event ID", code: "PFND-023" });
       const parsed = priceEventPatchSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
@@ -310,30 +310,30 @@ export function register(app: Express) {
         eventId,
         parsed.data,
       );
-      if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Event not found" });
+      if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Event not found", code: "PFND-024" });
       res.json({
         property,
         rollups: computePriceHistoryRollups(property.priceEvents ?? []),
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update price event", error);
+      logAndSendError(res, "Failed to update price event", error, "PFND-007");
     }
   });
 
   app.delete("/api/property-finder/prospective/:id/price-events/:eventId", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID", code: "PFND-025" });
       const eventId = String(req.params.eventId ?? "").slice(0, 64);
-      if (!eventId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid event ID" });
+      if (!eventId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid event ID", code: "PFND-026" });
       const property = await storage.deleteProspectivePriceEvent(id, getAuthUser(req).id, eventId);
-      if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Event not found" });
+      if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Event not found", code: "PFND-027" });
       res.json({
         property,
         rollups: computePriceHistoryRollups(property.priceEvents ?? []),
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to delete price event", error);
+      logAndSendError(res, "Failed to delete price event", error, "PFND-008");
     }
   });
 
@@ -349,7 +349,7 @@ export function register(app: Express) {
       const { location, priceMin, priceMax, bedsMin, lotSizeMin, propertyType, offset: pageOffset } = parsed.data;
 
       if (!realtyService.isAvailable()) {
-        return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({ error: "RapidAPI key not configured. Add RAPIDAPI_KEY in Secrets to enable real property listings.", results: [], total: 0, offset: 0 });
+        return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({ error: "RapidAPI key not configured. Add RAPIDAPI_KEY in Secrets to enable real property listings.", results: [], total: 0, offset: 0 , code: "PFND-030" });
       }
 
       const result = await realtyService.searchProperties({
@@ -368,7 +368,7 @@ export function register(app: Express) {
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "Search failed";
       logger.error(`[property-finder] Search error: ${msg}`);
-      logAndSendError(res, "Property search failed", error);
+      logAndSendError(res, "Property search failed", error, "PFND-009");
     }
   });
 
@@ -452,7 +452,7 @@ export function register(app: Express) {
         fetchedAt: new Date().toISOString(),
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Market context failed", error);
+      logAndSendError(res, "Market context failed", error, "PFND-010");
     }
   });
 
@@ -464,13 +464,13 @@ export function register(app: Express) {
       }
 
       if (!usRealEstateService.isAvailable()) {
-        return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({ error: "RapidAPI key not configured" });
+        return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({ error: "RapidAPI key not configured", code: "PFND-028" });
       }
 
       const history = await usRealEstateService.getPropertyValueHistory(parsed.data.property_id);
       res.json({ history });
     } catch (error: unknown) {
-      logAndSendError(res, "Property value lookup failed", error);
+      logAndSendError(res, "Property value lookup failed", error, "PFND-011");
     }
   });
 
@@ -479,7 +479,7 @@ export function register(app: Express) {
       const searches = await storage.getSavedSearches(getAuthUser(req).id);
       res.json(searches);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch saved searches", error);
+      logAndSendError(res, "Failed to fetch saved searches", error, "PFND-012");
     }
   });
 
@@ -498,18 +498,18 @@ export function register(app: Express) {
       logActivity(req, "save-search", "saved_search", search.id, search.name);
       res.status(HTTP_201_CREATED).json(search);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to add saved search", error);
+      logAndSendError(res, "Failed to add saved search", error, "PFND-013");
     }
   });
 
   app.delete("/api/property-finder/saved-searches/:id", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID", code: "PFND-029" });
       await storage.deleteSavedSearch(id, getAuthUser(req).id);
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to delete saved search", error);
+      logAndSendError(res, "Failed to delete saved search", error, "PFND-014");
     }
   });
 }

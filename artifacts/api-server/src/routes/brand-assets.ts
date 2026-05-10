@@ -97,13 +97,13 @@ export function register(app: Express) {
     // Safety: only allow filenames present in the manifest (no path traversal)
     const entry = BRAND_ASSET_MANIFEST.find((e) => e.filename === fn);
     if (!entry) {
-      return res.status(404).json({ error: "Brand asset not found" });
+      return res.status(404).json({ error: "Brand asset not found", code: "BRAS-001" });
     }
 
     const r2 = getR2();
     if (!r2) {
       logger.warn("R2 not configured — brand-assets route unavailable", "brand-assets");
-      return res.status(503).json({ error: "Asset storage not configured" });
+      return res.status(503).json({ error: "Asset storage not configured", code: "BRAS-002" });
     }
 
     try {
@@ -111,7 +111,7 @@ export function register(app: Express) {
         new GetObjectCommand({ Bucket: r2.bucket, Key: entry.key }),
       );
       if (!out.Body) {
-        return res.status(404).json({ error: "Asset not found in storage" });
+        return res.status(404).json({ error: "Asset not found in storage", code: "BRAS-003" });
       }
 
       res.set({
@@ -126,13 +126,13 @@ export function register(app: Express) {
         (err.name === "NoSuchKey" || err.name === "NotFound" ||
           (err as unknown as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode === 404);
       if (isNotFound) {
-        return res.status(404).json({ error: "Asset not yet uploaded to R2" });
+        return res.status(404).json({ error: "Asset not yet uploaded to R2", code: "BRAS-004" });
       }
       logger.error(
         `brand-assets proxy error for ${fn}: ${err instanceof Error ? err.message : String(err)}`,
         "brand-assets",
       );
-      return res.status(500).json({ error: "Failed to serve asset" });
+      return res.status(500).json({ error: "Failed to serve asset", code: "BRAS-005" });
     }
   });
 

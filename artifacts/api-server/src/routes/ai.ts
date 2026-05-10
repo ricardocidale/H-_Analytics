@@ -22,7 +22,7 @@ export function register(app: Express) {
     try {
       const parsed = rewriteSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid request" });
+        return res.status(400).json({ error: "Invalid request", code: "AI-001" });
       }
       const { text, propertyName, location, roomCount } = parsed.data;
 
@@ -52,7 +52,7 @@ Rewritten description:`;
 
       const rewritten = response.text?.trim();
       if (!rewritten) {
-        return res.status(500).json({ error: "No response from AI" });
+        return res.status(500).json({ error: "No response from AI", code: "AI-002" });
       }
 
       const svc = getVendorService(resolved.vendor);
@@ -65,9 +65,9 @@ Rewritten description:`;
       const msg = error instanceof Error ? error.message : String(error);
       logger.error(`AI rewrite error: ${msg}`, "ai");
       if (msg === "Gemini API key not configured") {
-        return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({ error: "AI service is not available" });
+        return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({ error: "AI service is not available", code: "AI-003" });
       }
-      res.status(500).json({ error: "Failed to rewrite description" });
+      res.status(500).json({ error: "Failed to rewrite description", code: "AI-004" });
     }
   });
 
@@ -79,7 +79,7 @@ Rewritten description:`;
     try {
       const parsed = optimizeSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid request" });
+        return res.status(400).json({ error: "Invalid request", code: "AI-005" });
       }
       const { prompt } = parsed.data;
 
@@ -117,7 +117,7 @@ ${prompt}`,
 
       const optimized = response.content[0]?.type === "text" ? response.content[0].text.trim() : "";
       if (!optimized) {
-        return res.status(500).json({ error: "No response from AI" });
+        return res.status(500).json({ error: "No response from AI", code: "AI-006" });
       }
 
       const svc2 = getVendorService(resolved2.vendor);
@@ -128,7 +128,7 @@ ${prompt}`,
       res.json({ optimized });
     } catch (error: unknown) {
       logger.error(`AI optimize-prompt error: ${error instanceof Error ? error.message : String(error)}`, "ai");
-      res.status(500).json({ error: "Failed to optimize prompt" });
+      res.status(500).json({ error: "Failed to optimize prompt", code: "AI-007" });
     }
   });
 }

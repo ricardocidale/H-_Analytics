@@ -59,7 +59,7 @@ export function register(app: Express) {
   app.post("/api/financing/dscr", requireAuth, async (req: Request, res: Response) => {
     const parsed = dscrSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors });
+      res.status(400).json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors , code: "FNCG-005" });
       return;
     }
     try {
@@ -99,14 +99,14 @@ export function register(app: Express) {
       });
     } catch (err: unknown) {
       logger.error(`DSCR calculation failed: ${err instanceof Error ? err.message : err}`, "financing");
-      res.status(500).json({ error: "DSCR calculation failed" });
+      res.status(500).json({ error: "DSCR calculation failed", code: "FNCG-001" });
     }
   });
 
   app.post("/api/financing/sensitivity", requireAuth, async (req: Request, res: Response) => {
     const parsed = sensitivitySchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors });
+      res.status(400).json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors , code: "FNCG-006" });
       return;
     }
     try {
@@ -147,14 +147,14 @@ export function register(app: Express) {
       });
     } catch (err: unknown) {
       logger.error(`Sensitivity analysis failed: ${err instanceof Error ? err.message : err}`, "financing");
-      res.status(500).json({ error: "Sensitivity analysis failed" });
+      res.status(500).json({ error: "Sensitivity analysis failed", code: "FNCG-002" });
     }
   });
 
   app.post("/api/financing/debt-yield", requireAuth, async (req: Request, res: Response) => {
     const parsed = debtYieldSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors });
+      res.status(400).json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors , code: "FNCG-007" });
       return;
     }
     try {
@@ -165,14 +165,14 @@ export function register(app: Express) {
       res.json(result);
     } catch (err: unknown) {
       logger.error(`Debt yield calculation failed: ${err instanceof Error ? err.message : err}`, "financing");
-      res.status(500).json({ error: "Debt yield calculation failed" });
+      res.status(500).json({ error: "Debt yield calculation failed", code: "FNCG-003" });
     }
   });
 
   app.post("/api/financing/prepayment", requireAuth, async (req: Request, res: Response) => {
     const parsed = prepaymentSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors });
+      res.status(400).json({ error: "Invalid input", details: parsed.error.flatten().fieldErrors , code: "FNCG-008" });
       return;
     }
     try {
@@ -183,7 +183,7 @@ export function register(app: Express) {
       res.json(result);
     } catch (err: unknown) {
       logger.error(`Prepayment calculation failed: ${err instanceof Error ? err.message : err}`, "financing");
-      res.status(500).json({ error: "Prepayment calculation failed" });
+      res.status(500).json({ error: "Prepayment calculation failed", code: "FNCG-004" });
     }
   });
 }

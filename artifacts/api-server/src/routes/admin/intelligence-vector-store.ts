@@ -40,23 +40,23 @@ export function registerVectorStoreRoutes(app: Express) {
         },
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to check system intelligence status", error);
+      logAndSendError(res, "Failed to check system intelligence status", error, "AIVS-001");
     }
   });
 
   app.post("/api/admin/intelligence/index-assets", requireAdmin, async (_req, res) => {
     try {
       if (!isVectorStoreAvailable()) {
-        return res.status(400).json({ error: "Vector store not configured" });
+        return res.status(400).json({ error: "Vector store not configured", code: "AIVS-007" });
       }
       if (!isEmbeddingAvailable()) {
-        return res.status(400).json({ error: "Embedding service not available" });
+        return res.status(400).json({ error: "Embedding service not available", code: "AIVS-008" });
       }
       const result = await indexAllAssets();
       logActivity(_req, "index-assets", "vector-store", null, "knowledge-base", { indexed: result });
       res.json({ success: true, indexed: result });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to index assets", error);
+      logAndSendError(res, "Failed to index assets", error, "AIVS-002");
     }
   });
 
@@ -84,7 +84,7 @@ export function registerVectorStoreRoutes(app: Express) {
       const parsed = JSON.parse(raw);
       res.json({ available: true, ...parsed });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to read vector benchmark history", error);
+      logAndSendError(res, "Failed to read vector benchmark history", error, "AIVS-003");
     }
   });
 
@@ -105,7 +105,7 @@ export function registerVectorStoreRoutes(app: Express) {
         allNamespaces: ALL_NAMESPACES,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to get vector store stats", error);
+      logAndSendError(res, "Failed to get vector store stats", error, "AIVS-004");
     }
   });
 
@@ -113,13 +113,13 @@ export function registerVectorStoreRoutes(app: Express) {
     try {
       const ns = req.params.namespace as VectorNamespace;
       if (!ALL_NAMESPACES.includes(ns)) {
-        return res.status(400).json({ error: `Invalid namespace: ${ns}` });
+        return res.status(400).json({ error: `Invalid namespace: ${ns}`, code: "AIVS-009" });
       }
       if (!isVectorStoreAvailable()) {
-        return res.status(400).json({ error: "Vector store not configured" });
+        return res.status(400).json({ error: "Vector store not configured", code: "AIVS-010" });
       }
       if (!isEmbeddingAvailable()) {
-        return res.status(400).json({ error: "Embedding service not available" });
+        return res.status(400).json({ error: "Embedding service not available", code: "AIVS-011" });
       }
 
       let result: Record<string, any> = { namespace: ns };
@@ -216,7 +216,7 @@ export function registerVectorStoreRoutes(app: Express) {
       logger.info(`Admin re-indexed vector-store namespace "${ns}": ${JSON.stringify(result)}`, "vector-store");
       res.json({ success: true, ...result });
     } catch (error: unknown) {
-      logAndSendError(res, `Failed to reindex namespace ${req.params.namespace}`, error);
+      logAndSendError(res, `Failed to reindex namespace ${req.params.namespace}`, error, "AIVS-005");
     }
   });
 
@@ -224,17 +224,17 @@ export function registerVectorStoreRoutes(app: Express) {
     try {
       const ns = req.params.namespace as VectorNamespace;
       if (!ALL_NAMESPACES.includes(ns)) {
-        return res.status(400).json({ error: `Invalid namespace: ${ns}` });
+        return res.status(400).json({ error: `Invalid namespace: ${ns}`, code: "AIVS-012" });
       }
       if (!isVectorStoreAvailable()) {
-        return res.status(400).json({ error: "Vector store not configured" });
+        return res.status(400).json({ error: "Vector store not configured", code: "AIVS-013" });
       }
       await deleteNamespace(ns);
       logActivity(req, "clear-vector-store", "vector-store", null, ns);
       logger.info(`Admin cleared vector-store namespace "${ns}"`, "vector-store");
       res.json({ success: true, namespace: ns, cleared: true });
     } catch (error: unknown) {
-      logAndSendError(res, `Failed to clear namespace ${req.params.namespace}`, error);
+      logAndSendError(res, `Failed to clear namespace ${req.params.namespace}`, error, "AIVS-006");
     }
   });
 

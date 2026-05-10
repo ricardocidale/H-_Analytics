@@ -26,7 +26,7 @@ export function registerResearchWebSearchRoutes(app: Express) {
       if (!propertyId || !researchType) {
         return res
           .status(400)
-          .json({ error: "propertyId and researchType are required" });
+          .json({ error: "propertyId and researchType are required", code: "RWBS-002" });
       }
 
       const validTypes = [
@@ -41,30 +41,30 @@ export function registerResearchWebSearchRoutes(app: Express) {
       if (!validTypes.includes(researchType)) {
         return res.status(400).json({
           error: `Invalid researchType. Must be one of: ${validTypes.join(", ")}`,
-        });
+        code: "RWBS-005" });
       }
 
       if (!(await checkPropertyAccess(getAuthUser(req), Number(propertyId)))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(403).json({ error: "Access denied", code: "RWBS-003" });
       }
 
       // Rate limit: 10 req/min/user
       if (isApiRateLimited(getAuthUser(req).id, "web-search", 10)) {
         return res.status(429).json({
           error: "Rate limit exceeded (10 requests per minute). Please wait.",
-        });
+        code: "RWBS-006" });
       }
 
       if (!isWebResearchAvailable()) {
         return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({
           error:
             "No web research providers configured (set PERPLEXITY_API_KEY or TAVILY_API_KEY)",
-        });
+        code: "RWBS-007" });
       }
 
       const property = await storage.getProperty(Number(propertyId));
       if (!property) {
-        return res.status(404).json({ error: "Property not found" });
+        return res.status(404).json({ error: "Property not found", code: "RWBS-004" });
       }
 
       const webRequest: WebResearchRequest = {
@@ -106,7 +106,7 @@ export function registerResearchWebSearchRoutes(app: Express) {
         })),
       );
     } catch (error: unknown) {
-      logAndSendError(res, "Web research failed", error);
+      logAndSendError(res, "Web research failed", error, "RWBS-001");
     }
   });
 }

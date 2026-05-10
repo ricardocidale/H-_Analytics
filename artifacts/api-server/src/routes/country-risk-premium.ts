@@ -10,7 +10,7 @@ export function register(app: Express) {
   app.get("/api/country-risk-premium/lookup", requireAuth, (req: Request, res: Response) => {
     const location = (req.query.location as string) || "";
     if (!location) {
-      return res.status(400).json({ error: "location query parameter required" });
+      return res.status(400).json({ error: "location query parameter required", code: "CRSK-001" });
     }
     const entry = lookupCountryRiskPremium(location);
     if (!entry) {

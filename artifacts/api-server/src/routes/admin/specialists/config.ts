@@ -29,12 +29,12 @@ export function registerConfigRoutes(app: Express) {
   // Disabled: LlmConfigTab is read-only per specialists-are-dev-defined-only.md §3.3.
   // Prompt templates, model selection, and routing rules are dev-defined.
   app.put("/api/admin/specialists/:id/llm-config", requireAdmin, (_req, res) => {
-    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Specialist LLM config is dev-defined. Edit the catalog and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
+    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Specialist LLM config is dev-defined. Edit the catalog and redeploy. See .claude/rules/specialists-are-dev-defined-only.md", code: "ASCG-003" });
   });
 
   // Disabled: RequiredFieldsTab is read-only per specialists-are-dev-defined-only.md §3.1.
   app.put("/api/admin/specialists/:id/required-fields", requireAdmin, (_req, res) => {
-    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Specialist required fields are dev-defined. Edit the catalog and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
+    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Specialist required fields are dev-defined. Edit the catalog and redeploy. See .claude/rules/specialists-are-dev-defined-only.md", code: "ASCG-004" });
   });
 
   // ── Promote/Ignore observed-missing telemetry ────────────────────
@@ -48,7 +48,7 @@ export function registerConfigRoutes(app: Express) {
     try {
       const { id } = idParamSchema.parse(req.params);
       const def = getSpecialistById(id);
-      if (!def) return res.status(404).json({ error: "Specialist not found" });
+      if (!def) return res.status(404).json({ error: "Specialist not found", code: "ASCG-005" });
       const { recordRecommendationEventSchema } = await import("@workspace/db");
       const parsed = recordRecommendationEventSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -60,7 +60,7 @@ export function registerConfigRoutes(app: Express) {
       if (!candidateKeys.has(parsed.data.fieldKey)) {
         return res.status(400).json({
           error: `Field key "${parsed.data.fieldKey}" is not a declared candidate of ${id}`,
-        });
+        code: "ASCG-009" });
       }
       // reject `promote-hard` events on candidates that are not
       // catalog-locked. The hard tier is owned by the catalog; a recommendation
@@ -72,7 +72,7 @@ export function registerConfigRoutes(app: Express) {
           return res.status(400).json({
             error: `Cannot promote "${parsed.data.fieldKey}" to hard-required: not catalog-locked. The hard tier is owned by the catalog.`,
             lockedHardKeys: Array.from(lockedHard),
-          });
+          code: "ASCG-010" });
         }
       }
       const actorId = req.user!.id;
@@ -91,7 +91,7 @@ export function registerConfigRoutes(app: Express) {
       );
       res.json(event);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to record specialist recommendation event", error);
+      logAndSendError(res, "Failed to record specialist recommendation event", error, "ASCG-001");
     }
   });
 
@@ -101,21 +101,21 @@ export function registerConfigRoutes(app: Express) {
     try {
       const { id } = idParamSchema.parse(req.params);
       const def = getSpecialistById(id);
-      if (!def) return res.status(404).json({ error: "Specialist not found" });
+      if (!def) return res.status(404).json({ error: "Specialist not found", code: "ASCG-006" });
       const stats = await storage.getRecommendationEventStats(id);
       res.json(stats);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to load specialist recommendation stats", error);
+      logAndSendError(res, "Failed to load specialist recommendation stats", error, "ASCG-002");
     }
   });
 
   // Disabled: field-toggles and prerequisite-toggles are dev-defined per
   // specialists-are-dev-defined-only.md §3.1. UI tabs are now read-only.
   app.put("/api/admin/specialists/:id/field-toggles", requireAdmin, (_req, res) => {
-    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Specialist field toggles are dev-defined. Edit the catalog and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
+    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Specialist field toggles are dev-defined. Edit the catalog and redeploy. See .claude/rules/specialists-are-dev-defined-only.md", code: "ASCG-007" });
   });
 
   app.put("/api/admin/specialists/:id/prerequisite-toggles", requireAdmin, (_req, res) => {
-    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Specialist prerequisite toggles are dev-defined. Edit the catalog and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
+    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Specialist prerequisite toggles are dev-defined. Edit the catalog and redeploy. See .claude/rules/specialists-are-dev-defined-only.md", code: "ASCG-008" });
   });
 }

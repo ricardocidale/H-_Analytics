@@ -39,7 +39,7 @@ export function register(app: Express) {
         valueHigh: m.valueHigh,
       })));
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch exit multiples", error);
+      logAndSendError(res, "Failed to fetch exit multiples", error, "GLOB-001");
     }
   });
 
@@ -60,7 +60,7 @@ export function register(app: Express) {
       const suggestion = suggestIndustryVertical(properties, verticals);
       res.json({ suggestion });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to compute industry vertical suggestion", error);
+      logAndSendError(res, "Failed to compute industry vertical suggestion", error, "GLOB-002");
     }
   });
 
@@ -84,7 +84,7 @@ export function register(app: Express) {
         : assumptions;
       res.json({ ...overlaid, companyLogoUrl });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch global assumptions", error);
+      logAndSendError(res, "Failed to fetch global assumptions", error, "GLOB-003");
     }
   });
 
@@ -106,7 +106,7 @@ export function register(app: Express) {
       }
       const current = await storage.getGlobalAssumptions(getAuthUser(req).id);
       if (!current) {
-        return res.status(404).json({ error: "Global assumptions not found" });
+        return res.status(404).json({ error: "Global assumptions not found", code: "GLOB-015" });
       }
       const patch: Record<string, unknown> = { ...validation.data, updatedAt: new Date() };
       if (validation.data.rebeccaConfig) {
@@ -134,7 +134,7 @@ export function register(app: Express) {
       logActivity(req, "update", "global_assumptions", updated.id, "Rebecca Config");
       res.json(updated);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update global assumptions", error);
+      logAndSendError(res, "Failed to update global assumptions", error, "GLOB-004");
     }
   });
 
@@ -212,7 +212,7 @@ export function register(app: Express) {
 
       res.json(assumptions);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update global assumptions", error);
+      logAndSendError(res, "Failed to update global assumptions", error, "GLOB-005");
     }
   });
 
@@ -426,7 +426,7 @@ export function register(app: Express) {
       }
       res.json(responseBody);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to save Company Assumptions tab", error);
+      logAndSendError(res, "Failed to save Company Assumptions tab", error, "GLOB-006");
     }
   });
 
@@ -460,7 +460,7 @@ export function register(app: Express) {
       });
       res.json({ ok: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to log assumption change", error);
+      logAndSendError(res, "Failed to log assumption change", error, "GLOB-007");
     }
   });
 
@@ -485,12 +485,12 @@ export function register(app: Express) {
       const entityType = String(req.query.entityType ?? "");
       const entityId = Number(req.query.entityId ?? 0);
       if (!["company", "property"].includes(entityType)) {
-        return res.status(400).json({ error: "entityType must be 'company' or 'property'" });
+        return res.status(400).json({ error: "entityType must be 'company' or 'property'", code: "GLOB-016" });
       }
       const rows = await storage.listAcknowledgments(entityType, entityId, getAuthUser(req).id);
       res.json(rows);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to list acknowledgments", error);
+      logAndSendError(res, "Failed to list acknowledgments", error, "GLOB-008");
     }
   });
 
@@ -506,7 +506,7 @@ export function register(app: Express) {
       });
       res.json(row);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to upsert acknowledgment", error);
+      logAndSendError(res, "Failed to upsert acknowledgment", error, "GLOB-009");
     }
   });
 
@@ -515,12 +515,12 @@ export function register(app: Express) {
       const entityType = String(req.query.entityType ?? "company");
       const entityId = Number(req.query.entityId ?? 0);
       if (!["company", "property"].includes(entityType)) {
-        return res.status(400).json({ error: "entityType must be 'company' or 'property'" });
+        return res.status(400).json({ error: "entityType must be 'company' or 'property'", code: "GLOB-017" });
       }
       await storage.deleteAcknowledgment(entityType, entityId, String(req.params.fieldName), getAuthUser(req).id);
       res.json({ ok: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to delete acknowledgment", error);
+      logAndSendError(res, "Failed to delete acknowledgment", error, "GLOB-010");
     }
   });
 
@@ -533,7 +533,7 @@ export function register(app: Express) {
         defaultFontPreference: ga?.defaultFontPreference ?? null,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch appearance defaults", error);
+      logAndSendError(res, "Failed to fetch appearance defaults", error, "GLOB-011");
     }
   });
 
@@ -545,7 +545,7 @@ export function register(app: Express) {
       }
       const current = await storage.getGlobalAssumptions(getAuthUser(req).id);
       if (!current) {
-        return res.status(404).json({ error: "Global assumptions not found" });
+        return res.status(404).json({ error: "Global assumptions not found", code: "GLOB-018" });
       }
       const patch: Record<string, unknown> = {};
       if (validation.data.defaultColorMode !== undefined) patch.defaultColorMode = validation.data.defaultColorMode;
@@ -559,7 +559,7 @@ export function register(app: Express) {
         defaultFontPreference: updated.defaultFontPreference ?? null,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update appearance defaults", error);
+      logAndSendError(res, "Failed to update appearance defaults", error, "GLOB-012");
     }
   });
 
@@ -568,7 +568,7 @@ export function register(app: Express) {
       const templates = await storage.getAllServiceTemplates();
       res.json(templates);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch service templates", error);
+      logAndSendError(res, "Failed to fetch service templates", error, "GLOB-013");
     }
   });
 
@@ -583,11 +583,11 @@ export function register(app: Express) {
       }
 
       const template = await storage.updateServiceTemplate(id, validation.data);
-      if (!template) return res.status(404).json({ error: "Service template not found" });
+      if (!template) return res.status(404).json({ error: "Service template not found", code: "GLOB-019" });
       logActivity(req, "update-service-template", "service-template", id, template.name);
       res.json(template);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update service template", error);
+      logAndSendError(res, "Failed to update service template", error, "GLOB-014");
     }
   });
 }

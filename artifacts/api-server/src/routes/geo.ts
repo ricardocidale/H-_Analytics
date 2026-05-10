@@ -16,7 +16,7 @@ export function register(app: Express) {
 
   app.get("/api/geo/states", requireAuth, (req, res) => {
     const country = req.query.country as string;
-    if (!country) return res.status(400).json({ error: "country query param required" });
+    if (!country) return res.status(400).json({ error: "country query param required", code: "GEO-001" });
     const states = State.getStatesOfCountry(country).map((s) => ({
       name: s.name,
       isoCode: s.isoCode,
@@ -27,7 +27,7 @@ export function register(app: Express) {
   app.get("/api/geo/cities", requireAuth, (req, res) => {
     const country = req.query.country as string;
     const state = req.query.state as string;
-    if (!country) return res.status(400).json({ error: "country query param required" });
+    if (!country) return res.status(400).json({ error: "country query param required", code: "GEO-002" });
     const cities = state
       ? City.getCitiesOfState(country, state)
       : City.getCitiesOfCountry(country) || [];
@@ -91,7 +91,7 @@ export function register(app: Express) {
       res.json(locations);
     } catch (err: unknown) {
       logger.error(`Failed to build default locations: ${err instanceof Error ? err.message : err}`, "geo");
-      res.status(500).json({ error: "Failed to build default locations" });
+      res.status(500).json({ error: "Failed to build default locations", code: "GEO-003" });
     }
   });
 }

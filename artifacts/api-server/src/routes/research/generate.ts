@@ -54,13 +54,13 @@ export function registerResearchGenerateRoutes(app: Express) {
         propertyId &&
         !(await checkPropertyAccess(getAuthUser(req), propertyId))
       ) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(403).json({ error: "Access denied", code: "RGEN-001" });
       }
 
       if (isApiRateLimited(getAuthUser(req).id, "market-research", 5)) {
         return res
           .status(429)
-          .json({ error: "Rate limit exceeded. Please wait a minute." });
+          .json({ error: "Rate limit exceeded. Please wait a minute.", code: "RGEN-002" });
       }
 
       const ga = await storage.getGlobalAssumptions(getAuthUser(req).id);
@@ -85,7 +85,7 @@ export function registerResearchGenerateRoutes(app: Express) {
       if (!eventConfig.enabled) {
         return res.status(403).json({
           error: `Research type "${type}" is disabled by admin configuration.`,
-        });
+        code: "RGEN-003" });
       }
 
       res.setHeader("Content-Type", "text/event-stream");

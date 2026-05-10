@@ -95,7 +95,7 @@ export function registerAdminResourceRoutes(app: Express) {
       // Wrap in an arrow so Array.map's `index` arg doesn't bind to `now`.
       res.json(rows.map((r) => toResourcePublicView(r)));
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to list admin resources", error);
+      logAndSendError(res, "Failed to list admin resources", error, "ARSC-001");
     }
   });
 
@@ -104,10 +104,10 @@ export function registerAdminResourceRoutes(app: Express) {
     try {
       const { id } = idParamSchema.parse(req.params);
       const row = await storage.getAdminResourceById(id);
-      if (!row) return res.status(HTTP_404_NOT_FOUND).json({ error: "Resource not found" });
+      if (!row) return res.status(HTTP_404_NOT_FOUND).json({ error: "Resource not found", code: "ARSC-017" });
       res.json(toResourcePublicView(row));
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch admin resource", error);
+      logAndSendError(res, "Failed to fetch admin resource", error, "ARSC-002");
     }
   });
 
@@ -121,7 +121,7 @@ export function registerAdminResourceRoutes(app: Express) {
       // Reject duplicates explicitly (cleaner than catching the unique-index error).
       const existing = await storage.getAdminResourceBySlug(parsed.data.kind, parsed.data.slug);
       if (existing) {
-        return res.status(HTTP_409_CONFLICT).json({ error: `Resource ${parsed.data.kind}/${parsed.data.slug} already exists` });
+        return res.status(HTTP_409_CONFLICT).json({ error: `Resource ${parsed.data.kind}/${parsed.data.slug} already exists`, code: "ARSC-018" });
       }
       const probeUrlError = validateHealthProbeUrl(parsed.data.config ?? {});
       if (probeUrlError) {
@@ -144,7 +144,7 @@ export function registerAdminResourceRoutes(app: Express) {
       logActivity(req, "create-admin-resource", "admin_resource", row.id, `${row.kind}/${row.slug}`);
       res.status(HTTP_201_CREATED).json(toResourcePublicView(row));
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to create admin resource", error);
+      logAndSendError(res, "Failed to create admin resource", error, "ARSC-003");
     }
   });
 
@@ -164,12 +164,12 @@ export function registerAdminResourceRoutes(app: Express) {
       }
       const actorId = req.user!.id;
       const row = await storage.updateAdminResource(id, parsed.data, actorId);
-      if (!row) return res.status(HTTP_404_NOT_FOUND).json({ error: "Resource not found" });
+      if (!row) return res.status(HTTP_404_NOT_FOUND).json({ error: "Resource not found", code: "ARSC-019" });
       const impact = await storage.listResourceImpact(id);
       logActivity(req, "update-admin-resource", "admin_resource", id, `v${row.version}`);
       res.json({ resource: toResourcePublicView(row), impact });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update admin resource", error);
+      logAndSendError(res, "Failed to update admin resource", error, "ARSC-004");
     }
   });
 
@@ -188,7 +188,7 @@ export function registerAdminResourceRoutes(app: Express) {
       // health-probe URL it carries before committing the rollback.
       const targetSnapshot = await storage.getAdminResourceVersion(id, targetVersion);
       if (!targetSnapshot) {
-        return res.status(HTTP_404_NOT_FOUND).json({ error: "Resource or target version not found" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "Resource or target version not found", code: "ARSC-020" });
       }
 
       const probeConfig = targetSnapshot.config as Record<string, unknown> | null | undefined;
@@ -198,19 +198,19 @@ export function registerAdminResourceRoutes(app: Express) {
         if (urlError) {
           return res.status(HTTP_400_BAD_REQUEST).json({
             error: `Cannot roll back to v${targetVersion}: the stored health-probe URL is blocked — ${urlError}`,
-          });
+          code: "ARSC-028" });
         }
       }
 
       const actorId = req.user!.id;
       const row = await storage.rollbackAdminResource(id, targetVersion, actorId);
       if (!row) {
-        return res.status(HTTP_404_NOT_FOUND).json({ error: "Resource or target version not found" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "Resource or target version not found", code: "ARSC-021" });
       }
       logActivity(req, "rollback-admin-resource", "admin_resource", id, `to v${targetVersion}`);
       res.json(toResourcePublicView(row));
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to rollback admin resource", error);
+      logAndSendError(res, "Failed to rollback admin resource", error, "ARSC-005");
     }
   });
 
@@ -219,11 +219,11 @@ export function registerAdminResourceRoutes(app: Express) {
     try {
       const { id } = idParamSchema.parse(req.params);
       const ok = await storage.deleteAdminResource(id);
-      if (!ok) return res.status(HTTP_404_NOT_FOUND).json({ error: "Resource not found" });
+      if (!ok) return res.status(HTTP_404_NOT_FOUND).json({ error: "Resource not found", code: "ARSC-022" });
       logActivity(req, "delete-admin-resource", "admin_resource", id);
       res.status(HTTP_204_NO_CONTENT).end();
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to delete admin resource", error);
+      logAndSendError(res, "Failed to delete admin resource", error, "ARSC-006");
     }
   });
 
@@ -247,7 +247,7 @@ export function registerAdminResourceRoutes(app: Express) {
         })),
       );
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to list resource versions", error);
+      logAndSendError(res, "Failed to list resource versions", error, "ARSC-007");
     }
   });
 
@@ -258,7 +258,7 @@ export function registerAdminResourceRoutes(app: Express) {
       const impact = await storage.listResourceImpact(id);
       res.json(impact);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to load resource impact list", error);
+      logAndSendError(res, "Failed to load resource impact list", error, "ARSC-008");
     }
   });
 
@@ -267,13 +267,13 @@ export function registerAdminResourceRoutes(app: Express) {
     try {
       const { id } = idParamSchema.parse(req.params);
       const view = await storage.getResourceHealthView(id);
-      if (!view) return res.status(HTTP_404_NOT_FOUND).json({ error: "Resource not found" });
+      if (!view) return res.status(HTTP_404_NOT_FOUND).json({ error: "Resource not found", code: "ARSC-023" });
       res.json({
         ...view,
         lastChecked: view.lastChecked ? view.lastChecked.toISOString() : null,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to load resource health", error);
+      logAndSendError(res, "Failed to load resource health", error, "ARSC-009");
     }
   });
 
@@ -298,7 +298,7 @@ export function registerAdminResourceRoutes(app: Express) {
         })),
       );
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to load resource health history", error);
+      logAndSendError(res, "Failed to load resource health history", error, "ARSC-010");
     }
   });
 
@@ -307,7 +307,7 @@ export function registerAdminResourceRoutes(app: Express) {
     try {
       const { id } = idParamSchema.parse(req.params);
       const row = await storage.getAdminResourceById(id);
-      if (!row) return res.status(HTTP_404_NOT_FOUND).json({ error: "Resource not found" });
+      if (!row) return res.status(HTTP_404_NOT_FOUND).json({ error: "Resource not found", code: "ARSC-024" });
 
       const actorId = req.user!.id;
       const kind = row.kind as ResourceKind;
@@ -317,7 +317,7 @@ export function registerAdminResourceRoutes(app: Express) {
         logActivity(req, "test-admin-resource-throttled", "admin_resource", id, `${row.kind}/${row.slug}`);
         return res.status(HTTP_429_TOO_MANY_REQUESTS).json({
           error: "Rate limit exceeded for Test on this resource. Try again in a minute.",
-        });
+        code: "ARSC-029" });
       }
 
       const outcome = await runProbe(row);
@@ -332,7 +332,7 @@ export function registerAdminResourceRoutes(app: Express) {
         checkedAt: persisted.checkedAt.toISOString(),
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to test admin resource", error);
+      logAndSendError(res, "Failed to test admin resource", error, "ARSC-011");
     }
   });
 
@@ -341,21 +341,21 @@ export function registerAdminResourceRoutes(app: Express) {
     try {
       const { id } = idParamSchema.parse(req.params);
       const row = await storage.getAdminResourceById(id);
-      if (!row) return res.status(HTTP_404_NOT_FOUND).json({ error: "Resource not found" });
+      if (!row) return res.status(HTTP_404_NOT_FOUND).json({ error: "Resource not found", code: "ARSC-025" });
 
       const { MINION_REGISTRY } = await import("../../ai/ambient/pietro-scheduler");
       const minion = MINION_REGISTRY[row.slug];
       if (!minion) {
         return res.status(HTTP_400_BAD_REQUEST).json({
           error: `No minion registered for slug '${row.slug}'. Regenerate is only available for data-fetching sources.`,
-        });
+        code: "ARSC-030" });
       }
 
       logActivity(req, "regenerate-admin-resource", "admin_resource", id, `${row.kind}/${row.slug}`);
       const result = await minion();
       res.json(result);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to regenerate admin resource", error);
+      logAndSendError(res, "Failed to regenerate admin resource", error, "ARSC-012");
     }
   });
 
@@ -367,7 +367,7 @@ export function registerAdminResourceRoutes(app: Express) {
         `${result.inserted}+/${result.updated}~/${result.removed}-`);
       res.json(result);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to sync specialist catalog", error);
+      logAndSendError(res, "Failed to sync specialist catalog", error, "ARSC-013");
     }
   });
 
@@ -396,7 +396,7 @@ export function registerAdminResourceRoutes(app: Express) {
       const rows = await storage.listBreakGlassOverrides(parsed.data.specialistId);
       res.json(rows);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to list break-glass overrides", error);
+      logAndSendError(res, "Failed to list break-glass overrides", error, "ARSC-014");
     }
   });
 
@@ -408,7 +408,7 @@ export function registerAdminResourceRoutes(app: Express) {
       }
       const actorId = req.user!.id;
       if (parsed.data.expiresAt.getTime() <= Date.now()) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: "expiresAt must be in the future" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "expiresAt must be in the future", code: "ARSC-026" });
       }
       const row = await storage.createBreakGlassOverride({
         specialistId: parsed.data.specialistId,
@@ -424,7 +424,7 @@ export function registerAdminResourceRoutes(app: Express) {
         `${row.specialistId} ${row.assignmentKind}/${row.assignmentSlug}`);
       res.status(HTTP_201_CREATED).json(row);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to create break-glass override", error);
+      logAndSendError(res, "Failed to create break-glass override", error, "ARSC-015");
     }
   });
 
@@ -433,11 +433,11 @@ export function registerAdminResourceRoutes(app: Express) {
       const { id } = idParamSchema.parse(req.params);
       const actorId = req.user!.id;
       const row = await storage.revokeBreakGlassOverride(id, actorId);
-      if (!row) return res.status(HTTP_404_NOT_FOUND).json({ error: "Override not found" });
+      if (!row) return res.status(HTTP_404_NOT_FOUND).json({ error: "Override not found", code: "ARSC-027" });
       logActivity(req, "revoke-break-glass-override", "break_glass", id);
       res.json(row);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to revoke break-glass override", error);
+      logAndSendError(res, "Failed to revoke break-glass override", error, "ARSC-016");
     }
   });
 }

@@ -18,9 +18,13 @@ export function zodErrorMessage(error: unknown): string {
   return fromZodError(error as z.ZodError).message;
 }
 
-/** Send a JSON error response. */
-export function sendError(res: Response, status: number, message: string) {
-  return res.status(status).json({ error: message });
+/**
+ * Send a JSON error response.
+ * Optionally include an error code (e.g. "PROP-042") so callers can identify
+ * which route handler produced the error from logs or UI toasts.
+ */
+export function sendError(res: Response, status: number, message: string, code?: string) {
+  return res.status(status).json(code ? { error: message, code } : { error: message });
 }
 
 /**
@@ -34,12 +38,19 @@ export function parseRouteId(raw: string | string[] | undefined): number | null 
   return Number.isFinite(n) && n > 0 && Number.isInteger(n) ? n : null;
 }
 
-/** Log an error to console and send a 500 JSON response. */
-export function logAndSendError(res: Response, message: string, error: unknown, domain?: string) {
-  const source = domain || "routes";
+/**
+ * Log an error (with full stack trace) and send a 500 JSON response.
+ *
+ * @param code - Unique error code (e.g. "PROP-042") emitted in both the
+ *   server log and the JSON response so errors are traceable across UI toasts
+ *   and server logs without needing to search by message text.
+ */
+export function logAndSendError(res: Response, message: string, error: unknown, code?: string) {
+  const domain = code ? code.split("-")[0].toLowerCase() : "routes";
   const errMsg = error instanceof Error ? error.message : String(error);
-  logger.error(`${message}: ${errMsg}`, source);
-  return sendError(res, 500, message);
+  const stack = error instanceof Error && error.stack ? `\n${error.stack}` : "";
+  logger.error(`[${code ?? "E"}] ${message}: ${errMsg}${stack}`, domain);
+  return sendError(res, 500, message, code);
 }
 
 /** Combine first + last name into a display-friendly string. Returns null if both are empty. */

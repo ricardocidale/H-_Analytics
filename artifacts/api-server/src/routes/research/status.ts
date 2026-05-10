@@ -83,7 +83,7 @@ export function registerResearchStatusRoutes(app: Express) {
         },
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch research status", error);
+      logAndSendError(res, "Failed to fetch research status", error, "RSTS-001");
     }
   });
 
@@ -100,7 +100,7 @@ export function registerResearchStatusRoutes(app: Express) {
       const report = await detectStaleness(user.id, thresholdDays);
       res.json(report);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to compute staleness report", error);
+      logAndSendError(res, "Failed to compute staleness report", error, "RSTS-002");
     }
   });
 }

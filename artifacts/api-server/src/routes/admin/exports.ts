@@ -71,10 +71,10 @@ export function registerExportConfigRoutes(app: Express) {
   app.get("/api/admin/export-config", requireAdmin, async (_req, res) => {
     try {
       const ga = await storage.getGlobalAssumptions();
-      if (!ga) return res.status(404).json({ error: "No global assumptions found" });
+      if (!ga) return res.status(404).json({ error: "No global assumptions found", code: "AEXP-002" });
       res.json(mergeWithDefaults(ga.exportConfig as StoredConfig | null));
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch export config", error);
+      logAndSendError(res, "Failed to fetch export config", error, "AEXP-001");
     }
   });
 
@@ -83,6 +83,6 @@ export function registerExportConfigRoutes(app: Express) {
   // ExportsTab UI deleted in admin-cleanup-exports-tab-kill packet. 405 so any
   // stale callers surface a clear error rather than silently no-oping.
   app.put("/api/admin/export-config", requireAdmin, (_req, res) => {
-    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Export config is no longer managed via admin UI — it is inert. The export pipeline is configured via compileReport directly." });
+    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Export config is no longer managed via admin UI — it is inert. The export pipeline is configured via compileReport directly.", code: "AEXP-003" });
   });
 }

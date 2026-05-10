@@ -40,24 +40,24 @@ export function register(app: Express) {
 
   async function handleCredentialLogin(email: string, password: string, clientIp: string, res: import("express").Response) {
     if (isRateLimited(clientIp)) {
-      return res.status(HTTP_429_TOO_MANY_REQUESTS).json({ error: "Too many login attempts. Please try again in 15 minutes." });
+      return res.status(HTTP_429_TOO_MANY_REQUESTS).json({ error: "Too many login attempts. Please try again in 15 minutes.", code: "AUTH-011" });
     }
 
     const user = await storage.getUserByEmail(sanitizeEmail(email));
     if (!user) {
       recordLoginAttempt(clientIp, false);
-      return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Invalid credentials" });
+      return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Invalid credentials", code: "AUTH-012" });
     }
 
     if (!user.passwordHash) {
       recordLoginAttempt(clientIp, false);
-      return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Please sign in with Google" });
+      return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Please sign in with Google", code: "AUTH-013" });
     }
 
     const valid = await verifyPassword(password, user.passwordHash);
     if (!valid) {
       recordLoginAttempt(clientIp, false);
-      return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Invalid credentials" });
+      return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Invalid credentials", code: "AUTH-014" });
     }
 
     recordLoginAttempt(clientIp, true);
@@ -74,12 +74,12 @@ export function register(app: Express) {
     try {
       const validation = loginSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid request" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid request", code: "AUTH-015" });
       }
       const clientIp = req.ip || req.socket.remoteAddress || "unknown";
       await handleCredentialLogin(validation.data.email, validation.data.password, clientIp, res);
     } catch (error: unknown) {
-      logAndSendError(res, "Login failed", error);
+      logAndSendError(res, "Login failed", error, "AUTH-001");
     }
   });
 
@@ -87,16 +87,16 @@ export function register(app: Express) {
     try {
       const adminSeed = seedUsersConfig.users.find(u => isAdminRole(u.role));
       if (!adminSeed) {
-        return res.status(HTTP_401_UNAUTHORIZED).json({ error: "No admin user configured" });
+        return res.status(HTTP_401_UNAUTHORIZED).json({ error: "No admin user configured", code: "AUTH-016" });
       }
       const validation = adminLoginSchema.safeParse(req.body);
       if (!validation.success) {
-        return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Password required" });
+        return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Password required", code: "AUTH-017" });
       }
       const clientIp = req.ip || req.socket.remoteAddress || "unknown";
       await handleCredentialLogin(adminSeed.email, validation.data.password, clientIp, res);
     } catch (error: unknown) {
-      logAndSendError(res, "Admin login failed", error);
+      logAndSendError(res, "Admin login failed", error, "AUTH-002");
     }
   });
 
@@ -115,30 +115,30 @@ export function register(app: Express) {
       // NODE_ENV=production. The published deployment is the only place this
       // route must be unreachable.
       if (isPublishedDeployment()) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Dev login disabled in production" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Dev login disabled in production", code: "AUTH-018" });
       }
       // Pin the dev-login target to the first super_admin entry (Ricardo).
       // Using `super_admin` rather than the broader `isAdminRole` keeps this
       // deterministic even if other admin-tier users are added later.
       const adminSeed = seedUsersConfig.users.find(u => u.role === "super_admin");
       if (!adminSeed) {
-        return res.status(HTTP_401_UNAUTHORIZED).json({ error: "No super_admin user configured in seed-users.json" });
+        return res.status(HTTP_401_UNAUTHORIZED).json({ error: "No super_admin user configured in seed-users.json", code: "AUTH-019" });
       }
       const user = await storage.getUserByEmail(adminSeed.email);
       if (!user) {
-        return res.status(HTTP_401_UNAUTHORIZED).json({ error: `Super admin user ${adminSeed.email} not found in DB — run seeds` });
+        return res.status(HTTP_401_UNAUTHORIZED).json({ error: `Super admin user ${adminSeed.email} not found in DB — run seeds`, code: "AUTH-020" });
       }
       if (!user.passwordHash) {
-        return res.status(HTTP_401_UNAUTHORIZED).json({ error: `Super admin ${adminSeed.email} has no password hash — sign in with Google or seed a password` });
+        return res.status(HTTP_401_UNAUTHORIZED).json({ error: `Super admin ${adminSeed.email} has no password hash — sign in with Google or seed a password`, code: "AUTH-021" });
       }
       const adminPassword = process.env[adminSeed.envVar] || process.env.PASSWORD_DEFAULT;
       if (!adminPassword) {
-        return res.status(HTTP_401_UNAUTHORIZED).json({ error: `Admin password env var ${adminSeed.envVar} (or PASSWORD_DEFAULT) is not set` });
+        return res.status(HTTP_401_UNAUTHORIZED).json({ error: `Admin password env var ${adminSeed.envVar} (or PASSWORD_DEFAULT) is not set`, code: "AUTH-022" });
       }
       const clientIp = req.ip || req.socket.remoteAddress || "unknown";
       await handleCredentialLogin(adminSeed.email, adminPassword, clientIp, res);
     } catch (error: unknown) {
-      logAndSendError(res, "Dev login failed", error);
+      logAndSendError(res, "Dev login failed", error, "AUTH-003");
     }
   });
 
@@ -152,7 +152,7 @@ export function register(app: Express) {
       res.setHeader("Cache-Control", "no-store");
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Logout failed", error);
+      logAndSendError(res, "Logout failed", error, "AUTH-004");
     }
   });
 
@@ -197,13 +197,13 @@ export function register(app: Express) {
           .filter(u => isAdminRole(u.role))
           .map(u => u.email.toLowerCase());
         if (protectedEmails.includes(getAuthUser(req).email.toLowerCase())) {
-          return res.status(HTTP_403_FORBIDDEN).json({ error: "System account emails cannot be changed" });
+          return res.status(HTTP_403_FORBIDDEN).json({ error: "System account emails cannot be changed", code: "AUTH-023" });
         }
         const newEmail = sanitizeEmail(validation.data.email);
         if (newEmail !== getAuthUser(req).email) {
           const existingUser = await storage.getUserByEmail(newEmail);
           if (existingUser && existingUser.id !== getAuthUser(req).id) {
-            return res.status(HTTP_400_BAD_REQUEST).json({ error: "Email already in use" });
+            return res.status(HTTP_400_BAD_REQUEST).json({ error: "Email already in use", code: "AUTH-024" });
           }
           updates.email = newEmail;
         }
@@ -214,7 +214,7 @@ export function register(app: Express) {
       const user = await storage.updateUserProfile(getAuthUser(req).id, updates);
       res.json(userResponse(user));
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update profile", error);
+      logAndSendError(res, "Failed to update profile", error, "AUTH-005");
     }
   });
 
@@ -232,16 +232,16 @@ export function register(app: Express) {
 
       const user = await storage.getUserById(getAuthUser(req).id);
       if (!user) {
-        return res.status(HTTP_404_NOT_FOUND).json({ error: "User not found" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "User not found", code: "AUTH-025" });
       }
 
       if (!user.passwordHash) {
-        return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Your account uses Google sign-in and does not have a password set" });
+        return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Your account uses Google sign-in and does not have a password set", code: "AUTH-026" });
       }
 
       const validPassword = await verifyPassword(validation.data.currentPassword, user.passwordHash);
       if (!validPassword) {
-        return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Current password is incorrect" });
+        return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Current password is incorrect", code: "AUTH-027" });
       }
 
       const newPasswordHash = await hashPassword(validation.data.newPassword);
@@ -249,7 +249,7 @@ export function register(app: Express) {
       
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to change password", error);
+      logAndSendError(res, "Failed to change password", error, "AUTH-006");
     }
   });
 
@@ -263,7 +263,7 @@ export function register(app: Express) {
       await storage.updateUserHideTourPrompt(getAuthUser(req).id, validation.data.hide);
       res.json({ hideTourPrompt: validation.data.hide });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update preference", error);
+      logAndSendError(res, "Failed to update preference", error, "AUTH-007");
     }
   });
 
@@ -285,7 +285,7 @@ export function register(app: Express) {
       });
       res.json({ colorMode: user.colorMode, bgAnimation: user.bgAnimation, fontPreference: user.fontPreference });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update appearance preferences", error);
+      logAndSendError(res, "Failed to update appearance preferences", error, "AUTH-008");
     }
   });
 
@@ -309,7 +309,7 @@ export function register(app: Express) {
       });
       res.json({ rebeccaResponseMode: user.rebeccaResponseMode, rebeccaShowToolTiming: user.rebeccaShowToolTiming, rebeccaHistoryOpen: user.rebeccaHistoryOpen, rebeccaSuggestedChips: user.rebeccaSuggestedChips });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update chat preferences", error);
+      logAndSendError(res, "Failed to update chat preferences", error, "AUTH-009");
     }
   });
 
@@ -323,13 +323,13 @@ export function register(app: Express) {
       if (validation.data.themeId !== null) {
         const theme = await storage.getDesignTheme(validation.data.themeId);
         if (!theme) {
-          return res.status(HTTP_404_NOT_FOUND).json({ error: "Theme not found" });
+          return res.status(HTTP_404_NOT_FOUND).json({ error: "Theme not found", code: "AUTH-028" });
         }
       }
       const user = await storage.updateUserSelectedTheme(getAuthUser(req).id, validation.data.themeId);
       res.json({ selectedThemeId: user.selectedThemeId });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update theme preference", error);
+      logAndSendError(res, "Failed to update theme preference", error, "AUTH-010");
     }
   });
 }

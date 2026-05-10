@@ -119,7 +119,7 @@ export function register(app: Express) {
 
       res.json(results);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch scenarios", error);
+      logAndSendError(res, "Failed to fetch scenarios", error, "SCN-001");
     }
   });
 
@@ -183,7 +183,7 @@ export function register(app: Express) {
         }
       }
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to auto-save scenario", error);
+      logAndSendError(res, "Failed to auto-save scenario", error, "SCN-002");
     }
   });
 
@@ -192,7 +192,7 @@ export function register(app: Express) {
       const existing = await storage.getAutoSaveScenario(getAuthUser(req).id);
       res.json({ exists: !!existing, updatedAt: existing?.updatedAt?.toISOString() ?? null });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to check auto-save", error);
+      logAndSendError(res, "Failed to check auto-save", error, "SCN-003");
     }
   });
 
@@ -203,7 +203,7 @@ export function register(app: Express) {
       const suggestion = computeGhostName(count, user);
       res.json({ suggestion });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to suggest scenario name", error);
+      logAndSendError(res, "Failed to suggest scenario name", error, "SCN-004");
     }
   });
 
@@ -217,7 +217,7 @@ export function register(app: Express) {
 
       const manualCount = await storage.countManualScenarios(user.id);
       if (manualCount >= MAX_SCENARIOS_PER_USER) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: `Maximum of ${MAX_SCENARIOS_PER_USER} scenarios allowed` });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: `Maximum of ${MAX_SCENARIOS_PER_USER} scenarios allowed`, code: "SCN-018" });
       }
 
       const { scenarioGA, scenarioProps, propertyFeeCategories, propertyPhotos, serviceTemplates, diffResult } =
@@ -251,20 +251,20 @@ export function register(app: Express) {
         snapshotStatus: computedResults ? "computed" : "failed",
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to create scenario", error);
+      logAndSendError(res, "Failed to create scenario", error, "SCN-005");
     }
   });
 
   app.patch("/api/scenarios/:id", requireAuth, requireScenarioPermission, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID", code: "SCN-019" });
       const existing = await storage.getScenario(id);
-      if (!existing) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
-      if (existing.userId !== getAuthUser(req).id) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+      if (!existing) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found", code: "SCN-020" });
+      if (existing.userId !== getAuthUser(req).id) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "SCN-021" });
 
       if (existing.isLocked) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "This scenario is locked and cannot be edited" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "This scenario is locked and cannot be edited", code: "SCN-022" });
       }
 
       const validation = updateScenarioSchema.safeParse(req.body);
@@ -273,12 +273,12 @@ export function register(app: Express) {
       }
 
       const scenario = await storage.updateScenario(id, validation.data);
-      if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
+      if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found", code: "SCN-023" });
 
       logActivity(req, "update", "scenario", id, scenario.name);
       res.json(scenario);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update scenario", error);
+      logAndSendError(res, "Failed to update scenario", error, "SCN-006");
     }
   });
 
@@ -286,15 +286,15 @@ export function register(app: Express) {
     try {
       const user = getAuthUser(req);
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID", code: "SCN-024" });
       const scenario = await storage.getScenario(id);
-      if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
+      if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found", code: "SCN-025" });
 
       const isOwner = scenario.userId === user.id;
       if (!isOwner) {
         const shared = await storage.getScenariosSharedWithUser(user.id);
         const hasAccess = shared.some(s => s.id === id);
-        if (!hasAccess) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        if (!hasAccess) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "SCN-026" });
       }
 
       const validation = validateLoadSnapshot(scenario);
@@ -336,20 +336,20 @@ export function register(app: Express) {
         ].filter(w => w.length > 0),
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to load scenario", error);
+      logAndSendError(res, "Failed to load scenario", error, "SCN-007");
     }
   });
 
   app.delete("/api/scenarios/:id", requireAuth, requireScenarioPermission, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID", code: "SCN-027" });
       const scenario = await storage.getScenario(id);
-      if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
-      if (scenario.userId !== getAuthUser(req).id) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+      if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found", code: "SCN-028" });
+      if (scenario.userId !== getAuthUser(req).id) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "SCN-029" });
 
       if (scenario.isLocked) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "This scenario is locked and cannot be deleted" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "This scenario is locked and cannot be deleted", code: "SCN-030" });
       }
 
       const user = getAuthUser(req);
@@ -357,39 +357,39 @@ export function register(app: Express) {
       logActivity(req, "delete", "scenario", id, scenario.name);
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to delete scenario", error);
+      logAndSendError(res, "Failed to delete scenario", error, "SCN-008");
     }
   });
 
   app.post("/api/scenarios/:id/clone", requireAuth, requireScenarioPermission, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID", code: "SCN-031" });
       const scenario = await storage.getScenario(id);
-      if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
-      if (scenario.userId !== getAuthUser(req).id) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+      if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found", code: "SCN-032" });
+      if (scenario.userId !== getAuthUser(req).id) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "SCN-033" });
 
       const cloneManualCount = await storage.countManualScenarios(getAuthUser(req).id);
       if (cloneManualCount >= MAX_SCENARIOS_PER_USER) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: `Maximum of ${MAX_SCENARIOS_PER_USER} scenarios allowed` });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: `Maximum of ${MAX_SCENARIOS_PER_USER} scenarios allowed`, code: "SCN-034" });
       }
 
       const cloned = await storage.cloneScenario(id, getAuthUser(req).id);
       logActivity(req, "clone", "scenario", cloned.id, cloned.name);
       res.status(HTTP_201_CREATED).json(cloned);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to clone scenario", error);
+      logAndSendError(res, "Failed to clone scenario", error, "SCN-009");
     }
   });
 
   app.get("/api/scenarios/:id/export", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID", code: "SCN-035" });
       const scenario = await storage.getScenario(id);
-      if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
+      if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found", code: "SCN-036" });
       const hasAccess = await checkScenarioAccess(id, getAuthUser(req).id, scenario);
-      if (!hasAccess) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+      if (!hasAccess) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "SCN-037" });
 
       const exportData = {
         name: scenario.name,
@@ -405,7 +405,7 @@ export function register(app: Express) {
       res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
       res.json(exportData);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to export scenario", error);
+      logAndSendError(res, "Failed to export scenario", error, "SCN-010");
     }
   });
 
@@ -419,7 +419,7 @@ export function register(app: Express) {
       const user = getAuthUser(req);
       const importManualCount = await storage.countManualScenarios(user.id);
       if (importManualCount >= MAX_SCENARIOS_PER_USER) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: `Maximum of ${MAX_SCENARIOS_PER_USER} scenarios allowed` });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: `Maximum of ${MAX_SCENARIOS_PER_USER} scenarios allowed`, code: "SCN-038" });
       }
 
       const data = validation.data;
@@ -435,7 +435,7 @@ export function register(app: Express) {
       logActivity(req, "import", "scenario", scenario.id, scenario.name);
       res.status(HTTP_201_CREATED).json(scenario);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to import scenario", error);
+      logAndSendError(res, "Failed to import scenario", error, "SCN-011");
     }
   });
 
@@ -443,23 +443,23 @@ export function register(app: Express) {
     try {
       const id1 = parseRouteId(req.params.id1);
       const id2 = parseRouteId(req.params.id2);
-      if (!id1 || !id2) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID" });
+      if (!id1 || !id2) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID", code: "SCN-039" });
       const [s1, s2] = await Promise.all([
         storage.getScenario(id1),
         storage.getScenario(id2),
       ]);
-      if (!s1 || !s2) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
+      if (!s1 || !s2) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found", code: "SCN-040" });
       const userId = getAuthUser(req).id;
       const [access1, access2] = await Promise.all([
         checkScenarioAccess(id1, userId, s1),
         checkScenarioAccess(id2, userId, s2),
       ]);
-      if (!access1 || !access2) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+      if (!access1 || !access2) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "SCN-041" });
 
       const result = storage.compareScenarios(s1, s2);
       res.json(result);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to compare scenarios", error);
+      logAndSendError(res, "Failed to compare scenarios", error, "SCN-012");
     }
   });
 
@@ -473,7 +473,7 @@ export function register(app: Express) {
       const { recipientEmail, mode, scenarioId } = validation.data;
 
       if (recipientEmail === getAuthUser(req).email) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: "You cannot share scenarios with yourself" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "You cannot share scenarios with yourself", code: "SCN-042" });
       }
 
       const recipient = await storage.getUserByEmail(recipientEmail);
@@ -490,11 +490,11 @@ export function register(app: Express) {
 
       if (mode === "single") {
         if (!scenarioId) {
-          return res.status(HTTP_400_BAD_REQUEST).json({ error: "scenarioId is required for single share mode" });
+          return res.status(HTTP_400_BAD_REQUEST).json({ error: "scenarioId is required for single share mode", code: "SCN-043" });
         }
         const scenario = await storage.getScenario(scenarioId);
-        if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
-        if (scenario.userId !== sharer.id) return res.status(HTTP_403_FORBIDDEN).json({ error: "You can only share your own scenarios" });
+        if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found", code: "SCN-044" });
+        if (scenario.userId !== sharer.id) return res.status(HTTP_403_FORBIDDEN).json({ error: "You can only share your own scenarios", code: "SCN-045" });
 
         const share = await storage.shareScenarioWithUser(scenarioId, recipient.id, sharer.id);
         logActivity(req, "share", "scenario", scenarioId, scenario.name);
@@ -538,36 +538,36 @@ export function register(app: Express) {
         }
       }
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to share scenario", error);
+      logAndSendError(res, "Failed to share scenario", error, "SCN-013");
     }
   });
 
   app.get("/api/scenarios/:id/preview", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID", code: "SCN-046" });
       const scenario = await storage.getScenario(id);
-      if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
+      if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found", code: "SCN-047" });
 
       const isOwner = scenario.userId === getAuthUser(req).id;
       if (!isOwner) {
         const shared = await storage.getScenariosSharedWithUser(getAuthUser(req).id);
         const hasAccess = shared.some(s => s.id === id);
-        if (!hasAccess) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        if (!hasAccess) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "SCN-048" });
       }
 
       const overrides = await storage.getPropertyOverrides(id);
       const liveProperties = await storage.getAllProperties(scenario.userId);
       res.json(buildPreviewData(overrides, liveProperties as Array<Record<string, unknown>>, scenario));
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to preview scenario", error);
+      logAndSendError(res, "Failed to preview scenario", error, "SCN-014");
     }
   });
 
   app.get("/api/scenarios/cross-query", requireAuth, async (req, res) => {
     try {
       const field = req.query.field as string;
-      if (!field) return res.status(HTTP_400_BAD_REQUEST).json({ error: "field query parameter is required" });
+      if (!field) return res.status(HTTP_400_BAD_REQUEST).json({ error: "field query parameter is required", code: "SCN-049" });
 
       const [results, userScenarios] = await Promise.all([
         storage.getPropertyOverridesForField(getAuthUser(req).id, field),
@@ -580,7 +580,7 @@ export function register(app: Express) {
         overrides: results,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to query across scenarios", error);
+      logAndSendError(res, "Failed to query across scenarios", error, "SCN-015");
     }
   });
 
@@ -591,7 +591,7 @@ export function register(app: Express) {
 
       // Rate limit: 3 requests per minute (compute-heavy)
       if (isApiRateLimited(user.id, "scenarios-compare-batch", 3)) {
-        return res.status(HTTP_429_TOO_MANY_REQUESTS).json({ error: "Rate limit exceeded. Maximum 3 batch comparisons per minute." });
+        return res.status(HTTP_429_TOO_MANY_REQUESTS).json({ error: "Rate limit exceeded. Maximum 3 batch comparisons per minute.", code: "SCN-050" });
       }
 
       const validation = compareBatchSchema.safeParse(req.body);
@@ -610,14 +610,14 @@ export function register(app: Express) {
       for (let i = 0; i < scenarioIds.length; i++) {
         const s = scenariosRaw[i];
         if (!s) {
-          return res.status(HTTP_404_NOT_FOUND).json({ error: `Scenario ${scenarioIds[i]} not found` });
+          return res.status(HTTP_404_NOT_FOUND).json({ error: `Scenario ${scenarioIds[i]} not found`, code: "SCN-051" });
         }
         if (s.userId !== user.id) {
           // Check shared access
           const shared = await storage.getScenariosSharedWithUser(user.id);
           const hasAccess = shared.some(sh => sh.id === s.id);
           if (!hasAccess) {
-            return res.status(HTTP_403_FORBIDDEN).json({ error: `Access denied for scenario ${s.id}` });
+            return res.status(HTTP_403_FORBIDDEN).json({ error: `Access denied for scenario ${s.id}`, code: "SCN-052" });
           }
         }
         scenarioMap.set(s.id, s);
@@ -627,7 +627,7 @@ export function register(app: Express) {
       const baseId = baseScenarioId ?? scenarioIds[0];
       const baseScenario = scenarioMap.get(baseId);
       if (!baseScenario) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: `Base scenario ${baseId} is not in the scenarioIds list` });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: `Base scenario ${baseId} is not in the scenarioIds list`, code: "SCN-053" });
       }
 
       // Compute metrics for all scenarios — overlay admin-governed Model
@@ -637,7 +637,7 @@ export function register(app: Express) {
       for (const [id, scenario] of Array.from(scenarioMap.entries())) {
         const metrics = extractMetricsFromScenario(scenario, modelConstantOverrides);
         if (!metrics) {
-          return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: `Failed to compute metrics for scenario "${scenario.name}" (ID ${id})` });
+          return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: `Failed to compute metrics for scenario "${scenario.name}" (ID ${id})`, code: "SCN-054" });
         }
         metricsMap.set(id, metrics);
       }
@@ -729,7 +729,7 @@ export function register(app: Express) {
         ranking,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to batch compare scenarios", error);
+      logAndSendError(res, "Failed to batch compare scenarios", error, "SCN-016");
     }
   });
 
@@ -737,13 +737,13 @@ export function register(app: Express) {
   app.patch("/api/scenarios/:id/tags", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid scenario ID", code: "SCN-055" });
       const existing = await storage.getScenario(id);
-      if (!existing) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
-      if (existing.userId !== getAuthUser(req).id) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+      if (!existing) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found", code: "SCN-056" });
+      if (existing.userId !== getAuthUser(req).id) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "SCN-057" });
 
       if (existing.isLocked) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "This scenario is locked and cannot be edited" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "This scenario is locked and cannot be edited", code: "SCN-058" });
       }
 
       const validation = updateTagsSchema.safeParse(req.body);
@@ -752,12 +752,12 @@ export function register(app: Express) {
       }
 
       const scenario = await storage.updateScenario(id, { tags: validation.data.tags });
-      if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found" });
+      if (!scenario) return res.status(HTTP_404_NOT_FOUND).json({ error: "Scenario not found", code: "SCN-059" });
 
       logActivity(req, "update_tags", "scenario", id, scenario.name);
       res.json(scenario);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update scenario tags", error);
+      logAndSendError(res, "Failed to update scenario tags", error, "SCN-017");
     }
   });
 

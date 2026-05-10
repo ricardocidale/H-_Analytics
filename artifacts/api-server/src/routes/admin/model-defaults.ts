@@ -61,7 +61,7 @@ export function registerModelDefaultsRoutes(app: Express) {
 
       res.json({ rows: filtered, grouped });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch model defaults", error);
+      logAndSendError(res, "Failed to fetch model defaults", error, "AMDF-001");
     }
   });
 
@@ -69,7 +69,7 @@ export function registerModelDefaultsRoutes(app: Express) {
   app.patch("/api/admin/model-defaults/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(String(req.params.id), 10);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid id", code: "AMDF-005" });
 
       const validation = patchBodySchema.safeParse(req.body);
       if (!validation.success) return res.status(400).json({ error: validation.error.message });
@@ -89,12 +89,12 @@ export function registerModelDefaultsRoutes(app: Express) {
         .where(eq(modelDefaults.id, id))
         .returning();
 
-      if (!updated) return res.status(404).json({ error: "Row not found" });
+      if (!updated) return res.status(404).json({ error: "Row not found", code: "AMDF-006" });
 
       logActivity(req, "update-model-default", "model-default", id, `Manual override: ${reason}`, { value });
       res.json(updated);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update model default", error);
+      logAndSendError(res, "Failed to update model default", error, "AMDF-002");
     }
   });
 
@@ -102,13 +102,13 @@ export function registerModelDefaultsRoutes(app: Express) {
   app.post("/api/admin/model-defaults/:id/accept-proposal", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(String(req.params.id), 10);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid id", code: "AMDF-007" });
 
       const [row] = await db.select().from(modelDefaults).where(eq(modelDefaults.id, id));
-      if (!row) return res.status(404).json({ error: "Row not found" });
+      if (!row) return res.status(404).json({ error: "Row not found", code: "AMDF-008" });
 
       if (row.proposedValue === null || row.proposedValue === undefined) {
-        return res.status(400).json({ error: "No pending proposal to accept" });
+        return res.status(400).json({ error: "No pending proposal to accept", code: "AMDF-009" });
       }
 
       const userId = (req as unknown as { user?: { id: number } }).user?.id ?? null;
@@ -139,7 +139,7 @@ export function registerModelDefaultsRoutes(app: Express) {
       });
       res.json(updated);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to accept model default proposal", error);
+      logAndSendError(res, "Failed to accept model default proposal", error, "AMDF-003");
     }
   });
 
@@ -147,10 +147,10 @@ export function registerModelDefaultsRoutes(app: Express) {
   app.post("/api/admin/model-defaults/:id/reject-proposal", requireAdmin, async (req, res) => {
     try {
       const id = parseInt(String(req.params.id), 10);
-      if (isNaN(id)) return res.status(400).json({ error: "Invalid id" });
+      if (isNaN(id)) return res.status(400).json({ error: "Invalid id", code: "AMDF-010" });
 
       const [row] = await db.select().from(modelDefaults).where(eq(modelDefaults.id, id));
-      if (!row) return res.status(404).json({ error: "Row not found" });
+      if (!row) return res.status(404).json({ error: "Row not found", code: "AMDF-011" });
 
       const [updated] = await db
         .update(modelDefaults)
@@ -170,7 +170,7 @@ export function registerModelDefaultsRoutes(app: Express) {
       logActivity(req, "reject-model-default-proposal", "model-default", id, "Rejected analyst proposal");
       res.json(updated);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to reject model default proposal", error);
+      logAndSendError(res, "Failed to reject model default proposal", error, "AMDF-004");
     }
   });
 }

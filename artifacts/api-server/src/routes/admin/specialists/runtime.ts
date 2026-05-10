@@ -31,7 +31,7 @@ export function registerRuntimeRoutes(app: Express) {
   // CadenceCard (/cadence endpoint below) remains admin-tunable — scheduling cadence
   // is operational config, not Specialist definition.
   app.put("/api/admin/specialists/:id/runtime", requireAdmin, (_req, res) => {
-    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Specialist runtime config is dev-defined. Edit the catalog and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
+    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Specialist runtime config is dev-defined. Edit the catalog and redeploy. See .claude/rules/specialists-are-dev-defined-only.md", code: "ASRT-003" });
   });
 
   // ── Update Refresh Cadence (Constants Specialists only) ─────────
@@ -45,11 +45,11 @@ export function registerRuntimeRoutes(app: Express) {
     try {
       const { id } = idParamSchema.parse(req.params);
       const def = getSpecialistById(id);
-      if (!def) return res.status(404).json({ error: "Specialist not found" });
+      if (!def) return res.status(404).json({ error: "Specialist not found", code: "ASRT-004" });
       if (def.refreshCadenceDays == null) {
         return res.status(400).json({
           error: "Specialist does not declare a scheduled refresh cadence",
-        });
+        code: "ASRT-006" });
       }
       const parsed = updateCadenceSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -66,7 +66,7 @@ export function registerRuntimeRoutes(app: Express) {
       logActivity(req, "update-specialist-cadence", "specialist_config", updated.id, `${id} v${updated.version}`);
       res.json(toConfigView(updated, def, await getSpecialistGlobalLlmDefaults()));
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update specialist cadence", error);
+      logAndSendError(res, "Failed to update specialist cadence", error, "ASRT-001");
     }
   });
 
@@ -75,7 +75,7 @@ export function registerRuntimeRoutes(app: Express) {
     try {
       const { id } = idParamSchema.parse(req.params);
       const def = getSpecialistById(id);
-      if (!def) return res.status(404).json({ error: "Specialist not found" });
+      if (!def) return res.status(404).json({ error: "Specialist not found", code: "ASRT-005" });
 
       const ranAt = new Date();
       const rows = await storage.listSpecialistAssignments(id);
@@ -150,7 +150,7 @@ export function registerRuntimeRoutes(app: Express) {
         steps,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to probe specialist", error);
+      logAndSendError(res, "Failed to probe specialist", error, "ASRT-002");
     }
   });
 }

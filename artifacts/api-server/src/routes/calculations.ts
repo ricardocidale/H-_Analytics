@@ -47,7 +47,7 @@ export function register(app: Express) {
       const rawGlobal = await storage.getGlobalAssumptions(calcUser.id);
 
       if (!rawGlobal) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Global assumptions not found" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Global assumptions not found", code: "CALC-005" });
       }
 
       // Overlay admin-governed Model Constants so verification uses the same
@@ -83,7 +83,7 @@ export function register(app: Express) {
       logActivity(req, "run-verification", "verification", run.id, `Audit ${run.id}: ${run.auditOpinion}`);
       res.json(run);
     } catch (error: unknown) {
-      logAndSendError(res, "Verification failed", error);
+      logAndSendError(res, "Verification failed", error, "CALC-001");
     }
   });
 
@@ -92,19 +92,19 @@ export function register(app: Express) {
       const history = await storage.getVerificationRuns(50);
       res.json(history);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch verification history", error);
+      logAndSendError(res, "Failed to fetch verification history", error, "CALC-002");
     }
   });
 
   app.get("/api/verification/runs/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID", code: "CALC-006" });
       const run = await storage.getVerificationRun(id);
-      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Run not found" });
+      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Run not found", code: "CALC-007" });
       res.json(run);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch verification run", error);
+      logAndSendError(res, "Failed to fetch verification run", error, "CALC-003");
     }
   });
 
@@ -112,11 +112,11 @@ export function register(app: Express) {
     try {
       const history = await storage.getVerificationRuns(1);
       if (!history.length) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: "No verification runs found. Run verification first." });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "No verification runs found. Run verification first.", code: "CALC-008" });
       }
       const latestRun = await storage.getVerificationRun(history[0].id);
       if (!latestRun) {
-        return res.status(HTTP_404_NOT_FOUND).json({ error: "Verification run not found" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "Verification run not found", code: "CALC-009" });
       }
 
       const _globalAssumptions = await storage.getGlobalAssumptions(getAuthUser(req).id);
@@ -195,7 +195,7 @@ export function register(app: Express) {
       res.end();
     } catch (error: unknown) {
       if (!res.headersSent) {
-        logAndSendError(res, "AI review failed", error);
+        logAndSendError(res, "AI review failed", error, "CALC-004");
       } else {
         logger.error(`AI verification review error: ${error instanceof Error ? error.message : String(error)}`, "calculations");
         res.end();
@@ -210,7 +210,7 @@ export function register(app: Express) {
       const result = computeDCF({ ...validation.data, rounding_policy: DEFAULT_ROUNDING });
       res.json(result);
     } catch (_error: unknown) {
-      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "DCF calculation failed" });
+      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "DCF calculation failed", code: "CALC-010" });
     }
   });
 
@@ -221,7 +221,7 @@ export function register(app: Express) {
       const result = buildIRRVector(validation.data);
       res.json(result);
     } catch (_error: unknown) {
-      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "IRR calculation failed" });
+      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "IRR calculation failed", code: "CALC-011" });
     }
   });
 
@@ -232,7 +232,7 @@ export function register(app: Express) {
       const result = computeEquityMultiple({ ...validation.data, rounding_policy: DEFAULT_ROUNDING });
       res.json({ equityMultiple: result });
     } catch (_error: unknown) {
-      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Equity multiple calculation failed" });
+      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Equity multiple calculation failed", code: "CALC-012" });
     }
   });
 
@@ -243,7 +243,7 @@ export function register(app: Express) {
       const result = computeExitValuation({ ...validation.data, rounding_policy: DEFAULT_ROUNDING });
       res.json(result);
     } catch (_error: unknown) {
-      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Exit valuation failed" });
+      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Exit valuation failed", code: "CALC-013" });
     }
   });
 
@@ -254,7 +254,7 @@ export function register(app: Express) {
       const result = validateFinancialIdentities({ ...validation.data, rounding_policy: DEFAULT_ROUNDING });
       res.json(result);
     } catch (_error: unknown) {
-      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Identity validation failed" });
+      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Identity validation failed", code: "CALC-014" });
     }
   });
 
@@ -265,7 +265,7 @@ export function register(app: Express) {
       const result = checkFundingGates(validation.data);
       res.json(result);
     } catch (_error: unknown) {
-      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Funding gate check failed" });
+      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Funding gate check failed", code: "CALC-015" });
     }
   });
 
@@ -276,7 +276,7 @@ export function register(app: Express) {
       const result = reconcileSchedule(validation.data);
       res.json(result);
     } catch (_error: unknown) {
-      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Schedule reconciliation failed" });
+      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Schedule reconciliation failed", code: "CALC-016" });
     }
   });
 
@@ -308,7 +308,7 @@ export function register(app: Express) {
       const result = checkAssumptionConsistency({ ...validation.data, exit_multiples: exitMultiples });
       res.json(result);
     } catch (_error: unknown) {
-      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Consistency check failed" });
+      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Consistency check failed", code: "CALC-017" });
     }
   });
 
@@ -319,7 +319,7 @@ export function register(app: Express) {
       const result = verifyExport(validation.data);
       res.json(result);
     } catch (_error: unknown) {
-      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Export verification failed" });
+      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Export verification failed", code: "CALC-018" });
     }
   });
 
@@ -330,7 +330,7 @@ export function register(app: Express) {
       const result = consolidateStatements({ ...validation.data, rounding_policy: DEFAULT_ROUNDING });
       res.json(result);
     } catch (_error: unknown) {
-      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Consolidation failed" });
+      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Consolidation failed", code: "CALC-019" });
     }
   });
 
@@ -341,7 +341,7 @@ export function register(app: Express) {
       const result = compareScenarios(validation.data);
       res.json(result);
     } catch (_error: unknown) {
-      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Scenario comparison failed" });
+      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Scenario comparison failed", code: "CALC-020" });
     }
   });
 
@@ -352,7 +352,7 @@ export function register(app: Express) {
       const result = computeBreakEven(validation.data);
       res.json(result);
     } catch (_error: unknown) {
-      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Break-even analysis failed" });
+      res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Break-even analysis failed", code: "CALC-021" });
     }
   });
 }

@@ -42,7 +42,7 @@ export function register(app: Express) {
         metadata: { name, size, contentType }
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to generate upload URL", error);
+      logAndSendError(res, "Failed to generate upload URL", error, "UPL-001");
     }
   });
 
@@ -50,19 +50,19 @@ export function register(app: Express) {
     try {
       // Rate limit: max 10 uploads per minute per user
       if (isApiRateLimited(getAuthUser(req).id, "upload", 10)) {
-        return res.status(429).json({ error: "Upload rate limit exceeded. Please wait before uploading again." });
+        return res.status(429).json({ error: "Upload rate limit exceeded. Please wait before uploading again.", code: "UPL-005" });
       }
 
       const contentType = (req.headers["content-type"] || "").split(";")[0].trim();
       if (!ALLOWED_CONTENT_TYPES.includes(contentType)) {
-        return res.status(400).json({ error: "Only image files are supported (PNG, JPEG, GIF, WebP, SVG, BMP, TIFF). Please select an image file and try again." });
+        return res.status(400).json({ error: "Only image files are supported (PNG, JPEG, GIF, WebP, SVG, BMP, TIFF). Please select an image file and try again.", code: "UPL-006" });
       }
 
       const contentLengthHeader = req.headers["content-length"];
       const parsedLength = contentLengthHeader ? parseInt(contentLengthHeader, 10) : 0;
       const contentLength = Number.isFinite(parsedLength) ? parsedLength : 0;
       if (contentLength > MAX_UPLOAD_BYTES) {
-        return res.status(HTTP_413_PAYLOAD_TOO_LARGE).json({ error: `File too large. Maximum size is ${MAX_UPLOAD_BYTES / 1024 / 1024}MB.` });
+        return res.status(HTTP_413_PAYLOAD_TOO_LARGE).json({ error: `File too large. Maximum size is ${MAX_UPLOAD_BYTES / 1024 / 1024}MB.`, code: "UPL-007" });
       }
 
       const chunks: Buffer[] = [];
@@ -71,14 +71,14 @@ export function register(app: Express) {
         const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
         totalSize += buf.length;
         if (totalSize > MAX_UPLOAD_BYTES) {
-          return res.status(HTTP_413_PAYLOAD_TOO_LARGE).json({ error: `File too large. Maximum size is ${MAX_UPLOAD_BYTES / 1024 / 1024}MB.` });
+          return res.status(HTTP_413_PAYLOAD_TOO_LARGE).json({ error: `File too large. Maximum size is ${MAX_UPLOAD_BYTES / 1024 / 1024}MB.`, code: "UPL-008" });
         }
         chunks.push(buf);
       }
       const body = Buffer.concat(chunks);
 
       if (body.length === 0) {
-        return res.status(400).json({ error: "No file data received" });
+        return res.status(400).json({ error: "No file data received", code: "UPL-009" });
       }
 
       const storageProvider = getStorageProvider();
@@ -88,13 +88,13 @@ export function register(app: Express) {
 
       res.json({ objectPath });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to upload file", error);
+      logAndSendError(res, "Failed to upload file", error, "UPL-002");
     }
   });
 
   app.post("/api/uploads/process-image", requireAuth, async (req, res) => {
     if (isApiRateLimited(getAuthUser(req).id, "process-image", 5)) {
-      return res.status(429).json({ error: "Too many image processing requests. Please try again later." });
+      return res.status(429).json({ error: "Too many image processing requests. Please try again later.", code: "UPL-010" });
     }
     try {
       const validation = processImageSchema.safeParse(req.body);
@@ -104,17 +104,17 @@ export function register(app: Express) {
       const { propertyId, photoId, imageUrl, crop } = validation.data;
 
       if (!(await checkPropertyAccess(getAuthUser(req), Number(propertyId)))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(403).json({ error: "Access denied", code: "UPL-011" });
       }
 
       if (!imageUrl.startsWith("/objects/")) {
-        return res.status(400).json({ error: "Only object storage paths are allowed" });
+        return res.status(400).json({ error: "Only object storage paths are allowed", code: "UPL-012" });
       }
 
       const existingPhotos = await storage.getPropertyPhotos(Number(propertyId));
       const targetPhoto = existingPhotos.find(p => p.id === Number(photoId));
       if (!targetPhoto) {
-        return res.status(404).json({ error: "Photo not found for this property" });
+        return res.status(404).json({ error: "Photo not found for this property", code: "UPL-013" });
       }
 
       const storageProvider = getStorageProvider();
@@ -151,7 +151,7 @@ export function register(app: Express) {
 
       res.json({ variants: result.variants });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to process image", error);
+      logAndSendError(res, "Failed to process image", error, "UPL-003");
     }
   });
 
@@ -228,7 +228,7 @@ export function register(app: Express) {
         skipped: photos.length - unprocessed.length,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to bulk process photos", error);
+      logAndSendError(res, "Failed to bulk process photos", error, "UPL-004");
     }
   });
 }

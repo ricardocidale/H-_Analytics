@@ -252,7 +252,7 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
 
       res.json(enriched);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch knowledge registry", error);
+      logAndSendError(res, "Failed to fetch knowledge registry", error, "AKNW-001");
     }
   });
 
@@ -263,7 +263,7 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
       const rows = await storage.getAllCountryEconomicData();
       res.json(rows);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch country economic data", error);
+      logAndSendError(res, "Failed to fetch country economic data", error, "AKNW-002");
     }
   });
 
@@ -279,7 +279,7 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
       });
       res.json({ success: true, rowsUpdated: result.rowsUpdated });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to regenerate country economic data", error);
+      logAndSendError(res, "Failed to regenerate country economic data", error, "AKNW-003");
     }
   });
 
@@ -287,10 +287,10 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
   app.get("/api/admin/knowledge-registry/:id", requireAdmin, async (req, res) => {
     try {
       const entry = await storage.getKnowledgeRegistryEntry(String(req.params.id));
-      if (!entry) return res.status(HTTP_404_NOT_FOUND).json({ error: "Knowledge registry entry not found" });
+      if (!entry) return res.status(HTTP_404_NOT_FOUND).json({ error: "Knowledge registry entry not found", code: "AKNW-007" });
       res.json(entry);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch knowledge registry entry", error);
+      logAndSendError(res, "Failed to fetch knowledge registry entry", error, "AKNW-004");
     }
   });
 
@@ -300,11 +300,11 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
   app.get("/api/admin/knowledge-registry/:id/chunks", requireAdmin, async (req, res) => {
     try {
       const entry = await storage.getKnowledgeRegistryEntry(String(req.params.id));
-      if (!entry) return res.status(HTTP_404_NOT_FOUND).json({ error: "Knowledge registry entry not found" });
+      if (!entry) return res.status(HTTP_404_NOT_FOUND).json({ error: "Knowledge registry entry not found", code: "AKNW-008" });
       if (entry.assetType !== "vector_namespace") {
         return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
           error: `Chunk browsing is only available for vector_namespace assets; this entry is asset_type '${entry.assetType}'`,
-        });
+        code: "AKNW-010" });
       }
 
       const page = Math.max(1, Number(req.query.page ?? "1") || 1);
@@ -328,7 +328,7 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
         total: Number(countResult.rows[0]?.count ?? "0"),
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch chunks for knowledge registry entry", error);
+      logAndSendError(res, "Failed to fetch chunks for knowledge registry entry", error, "AKNW-005");
     }
   });
 
@@ -342,7 +342,7 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
     try {
       const id = String(req.params.id);
       const entry = await storage.getKnowledgeRegistryEntry(id);
-      if (!entry) return res.status(HTTP_404_NOT_FOUND).json({ error: "Knowledge registry entry not found" });
+      if (!entry) return res.status(HTTP_404_NOT_FOUND).json({ error: "Knowledge registry entry not found", code: "AKNW-009" });
 
       if (entry.assetType === "vector_namespace") {
         const assetRef = entry.assetRef;
@@ -350,12 +350,12 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
         if (assetRef === "assumption-guidance") {
           return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
             error: "assumption-guidance has no portfolio-wide regeneration path. It is populated automatically by per-entity analyst runs.",
-          });
+          code: "AKNW-011" });
         }
         if (assetRef === "comparables") {
           return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
             error: "comparables are indexed per-property during research runs. Use the research engine to regenerate comparables for a specific property.",
-          });
+          code: "AKNW-012" });
         }
 
         const dispatch: Record<string, () => Promise<unknown>> = {
@@ -367,7 +367,7 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
         if (!fn) {
           return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
             error: `No regeneration handler for vector namespace '${assetRef}'`,
-          });
+          code: "AKNW-013" });
         }
 
         const result = await fn();
@@ -381,7 +381,7 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
         if (!tableId) {
           return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
             error: `Unknown benchmark asset ref: ${entry.assetRef}`,
-          });
+          code: "AKNW-014" });
         }
         // acquireInFlight is called inside regenerateBenchmark; 409 is thrown as an error with .status
         try {
@@ -409,10 +409,10 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
 
       return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
         error: `Unhandled asset type: ${entry.assetType}`,
-      });
+      code: "AKNW-015" });
     } catch (error: unknown) {
       logger.error(`Knowledge registry regeneration failed for ${req.params.id}: ${String(error)}`, "knowledge-registry");
-      logAndSendError(res, "Failed to regenerate knowledge registry entry", error);
+      logAndSendError(res, "Failed to regenerate knowledge registry entry", error, "AKNW-006");
     }
   });
 }

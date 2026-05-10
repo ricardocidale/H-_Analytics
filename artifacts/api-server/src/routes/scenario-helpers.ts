@@ -19,9 +19,9 @@ import type { ModelConstantOverride } from "@workspace/db";
 import { logger } from "../logger";
 
 export function requireScenarioPermission(req: any, res: any, next: any) {
-  if (!req.user) return res.status(401).json({ error: "Authentication required" });
+  if (!req.user) return res.status(401).json({ error: "Authentication required", code: "SCNH-001" });
   if (!req.user.canManageScenarios) {
-    return res.status(403).json({ error: "Scenario management is disabled for your account" });
+    return res.status(403).json({ error: "Scenario management is disabled for your account", code: "SCNH-002" });
   }
   next();
 }

@@ -9,7 +9,7 @@ export function register(app: Express): void {
     try {
       const scenarioId = parseRouteId(req.params.scenarioId);
       if (!scenarioId) {
-        return res.status(400).json({ error: "Invalid scenario ID" });
+        return res.status(400).json({ error: "Invalid scenario ID", code: "CAUD-001" });
       }
 
       const userId = getAuthUser(req).id;
@@ -31,13 +31,13 @@ export function register(app: Express): void {
     try {
       const id = parseRouteId(req.params.id);
       if (!id) {
-        return res.status(400).json({ error: "Invalid audit log ID" });
+        return res.status(400).json({ error: "Invalid audit log ID", code: "CAUD-002" });
       }
 
       const userId = getAuthUser(req).id;
       const log = await storage.getCalcAuditLog(id, userId);
       if (!log) {
-        return res.status(404).json({ error: "Audit log not found" });
+        return res.status(404).json({ error: "Audit log not found", code: "CAUD-003" });
       }
 
       res.json(log);
@@ -50,7 +50,7 @@ export function register(app: Express): void {
     try {
       const id = parseRouteId(req.params.id);
       if (!id) {
-        return res.status(400).json({ error: "Invalid audit log ID" });
+        return res.status(400).json({ error: "Invalid audit log ID", code: "CAUD-004" });
       }
 
       const userId = getAuthUser(req).id;
@@ -66,7 +66,7 @@ export function register(app: Express): void {
 
       const updated = await storage.updateCalcAuditLogNote(id, userId, parsed.data.stepIndex, parsed.data.note);
       if (!updated) {
-        return res.status(404).json({ error: "Audit log or step not found" });
+        return res.status(404).json({ error: "Audit log or step not found", code: "CAUD-005" });
       }
 
       res.json(updated);

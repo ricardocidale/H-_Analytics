@@ -27,7 +27,7 @@ export function register(app: Express) {
 
       res.json(settings);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch render settings", error);
+      logAndSendError(res, "Failed to fetch render settings", error, "RNDS-001");
     }
   });
 
@@ -41,12 +41,12 @@ export function register(app: Express) {
 
       const updated = await storage.updateRenderSetting(styleKey, parsed.data);
       if (!updated) {
-        return res.status(404).json({ error: "Render setting not found" });
+        return res.status(404).json({ error: "Render setting not found", code: "RNDS-005" });
       }
 
       res.json(updated);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update render setting", error);
+      logAndSendError(res, "Failed to update render setting", error, "RNDS-002");
     }
   });
 
@@ -72,7 +72,7 @@ export function register(app: Express) {
 
       res.json(imageEntries);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch render usage", error);
+      logAndSendError(res, "Failed to fetch render usage", error, "RNDS-003");
     }
   });
 
@@ -85,7 +85,7 @@ export function register(app: Express) {
       const settings = await storage.getAllRenderSettings();
       res.json(settings);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to seed render settings", error);
+      logAndSendError(res, "Failed to seed render settings", error, "RNDS-004");
     }
   });
 }

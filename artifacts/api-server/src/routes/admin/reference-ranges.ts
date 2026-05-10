@@ -98,7 +98,7 @@ export function registerAdminReferenceRangeRoutes(app: Express) {
       const rows = await referenceRangeStorage.list(parsed.data);
       res.json({ rows });
     } catch (err: unknown) {
-      logAndSendError(res, "Failed to list reference ranges", err, "reference-ranges");
+      logAndSendError(res, "Failed to list reference ranges", err, "AREF-001");
     }
   });
 
@@ -108,7 +108,7 @@ export function registerAdminReferenceRangeRoutes(app: Express) {
       const facets = await referenceRangeStorage.facets();
       res.json(facets);
     } catch (err: unknown) {
-      logAndSendError(res, "Failed to load reference range facets", err, "reference-ranges");
+      logAndSendError(res, "Failed to load reference range facets", err, "AREF-002");
     }
   });
 
@@ -117,14 +117,14 @@ export function registerAdminReferenceRangeRoutes(app: Express) {
   app.get("/api/admin/reference-ranges/:id", requireAdmin, async (req, res) => {
     const id = parseRouteId(req.params.id);
     if (id === null) {
-      return res.status(400).json({ error: "id must be a positive integer" });
+      return res.status(400).json({ error: "id must be a positive integer", code: "AREF-008" });
     }
     try {
       const row = await referenceRangeStorage.getById(id);
-      if (!row) return res.status(404).json({ error: "Not found" });
+      if (!row) return res.status(404).json({ error: "Not found", code: "AREF-009" });
       res.json(row);
     } catch (err: unknown) {
-      logAndSendError(res, "Failed to load reference range", err, "reference-ranges");
+      logAndSendError(res, "Failed to load reference range", err, "AREF-003");
     }
   });
 
@@ -143,9 +143,9 @@ export function registerAdminReferenceRangeRoutes(app: Express) {
       if (isUniqueViolation(err)) {
         return res.status(HTTP_409_CONFLICT).json({
           error: "A reference range with the same domain, metric key, jurisdiction, and year already exists.",
-        });
+        code: "AREF-017" });
       }
-      logAndSendError(res, "Failed to create reference range", err, "reference-ranges");
+      logAndSendError(res, "Failed to create reference range", err, "AREF-004");
     }
   });
 
@@ -153,28 +153,28 @@ export function registerAdminReferenceRangeRoutes(app: Express) {
   app.put("/api/admin/reference-ranges/:id", requireAdmin, async (req, res) => {
     const id = parseRouteId(req.params.id);
     if (id === null) {
-      return res.status(400).json({ error: "id must be a positive integer" });
+      return res.status(400).json({ error: "id must be a positive integer", code: "AREF-010" });
     }
     const parsed = updateBodySchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ error: zodErrorMessage(parsed.error) });
     }
     if (Object.keys(parsed.data).length === 0) {
-      return res.status(400).json({ error: "No fields to update" });
+      return res.status(400).json({ error: "No fields to update", code: "AREF-011" });
     }
     const adminId = (req.user as { email?: string; id?: number })?.email ?? String((req.user as { id?: number })?.id ?? "admin");
     const data = { ...parsed.data, verifiedBy: parsed.data.verifiedBy ?? adminId };
     try {
       const row = await referenceRangeStorage.update(id, data);
-      if (!row) return res.status(404).json({ error: "Not found" });
+      if (!row) return res.status(404).json({ error: "Not found", code: "AREF-012" });
       res.json(row);
     } catch (err: unknown) {
       if (isUniqueViolation(err)) {
         return res.status(HTTP_409_CONFLICT).json({
           error: "A reference range with the same domain, metric key, jurisdiction, and year already exists.",
-        });
+        code: "AREF-018" });
       }
-      logAndSendError(res, "Failed to update reference range", err, "reference-ranges");
+      logAndSendError(res, "Failed to update reference range", err, "AREF-005");
     }
   });
 
@@ -183,14 +183,14 @@ export function registerAdminReferenceRangeRoutes(app: Express) {
   app.delete("/api/admin/reference-ranges/:id", requireAdmin, async (req, res) => {
     const id = parseRouteId(req.params.id);
     if (id === null) {
-      return res.status(400).json({ error: "id must be a positive integer" });
+      return res.status(400).json({ error: "id must be a positive integer", code: "AREF-013" });
     }
     try {
       const row = await referenceRangeStorage.archive(id);
-      if (!row) return res.status(404).json({ error: "Not found" });
+      if (!row) return res.status(404).json({ error: "Not found", code: "AREF-014" });
       res.json(row);
     } catch (err: unknown) {
-      logAndSendError(res, "Failed to archive reference range", err, "reference-ranges");
+      logAndSendError(res, "Failed to archive reference range", err, "AREF-006");
     }
   });
 
@@ -198,14 +198,14 @@ export function registerAdminReferenceRangeRoutes(app: Express) {
   app.post("/api/admin/reference-ranges/:id/restore", requireAdmin, async (req, res) => {
     const id = parseRouteId(req.params.id);
     if (id === null) {
-      return res.status(400).json({ error: "id must be a positive integer" });
+      return res.status(400).json({ error: "id must be a positive integer", code: "AREF-015" });
     }
     try {
       const row = await referenceRangeStorage.restore(id);
-      if (!row) return res.status(404).json({ error: "Not found" });
+      if (!row) return res.status(404).json({ error: "Not found", code: "AREF-016" });
       res.json(row);
     } catch (err: unknown) {
-      logAndSendError(res, "Failed to restore reference range", err, "reference-ranges");
+      logAndSendError(res, "Failed to restore reference range", err, "AREF-007");
     }
   });
 }

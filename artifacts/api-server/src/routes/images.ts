@@ -27,13 +27,13 @@ export function registerImageRoutes(app: Express): void {
   app.post("/api/generate-image", requireAuth, async (req: Request, res: Response) => {
     try {
       if (isApiRateLimited(getAuthUser(req).id, "generate-image", 5)) {
-        return res.status(429).json({ error: "Rate limit exceeded. Try again in a minute." });
+        return res.status(429).json({ error: "Rate limit exceeded. Try again in a minute.", code: "IMG-001" });
       }
 
       const { prompt, size = "1024x1024" } = req.body;
 
       if (!prompt) {
-        return res.status(400).json({ error: "Prompt is required" });
+        return res.status(400).json({ error: "Prompt is required", code: "IMG-002" });
       }
 
       const startTime = Date.now();
@@ -54,7 +54,7 @@ export function registerImageRoutes(app: Express): void {
       });
     } catch (error: unknown) {
       logger.error(`Error generating image: ${error instanceof Error ? error.message : error}`, "image-gen");
-      res.status(500).json({ error: "Failed to generate image" });
+      res.status(500).json({ error: "Failed to generate image", code: "IMG-003" });
     }
   });
 
@@ -64,7 +64,7 @@ export function registerImageRoutes(app: Express): void {
       res.json({ styles });
     } catch (error: unknown) {
       logger.error(`Error fetching Replicate styles: ${error instanceof Error ? error.message : error}`, "image-gen");
-      res.status(500).json({ error: "Failed to fetch available styles" });
+      res.status(500).json({ error: "Failed to fetch available styles", code: "IMG-004" });
     }
   });
 
@@ -80,7 +80,7 @@ export function registerImageRoutes(app: Express): void {
     try {
       const rateLimit = await getAdminRateLimit();
       if (isApiRateLimited(userId, "generate-image", rateLimit)) {
-        return res.status(429).json({ error: "Rate limit exceeded. Try again in a minute." });
+        return res.status(429).json({ error: "Rate limit exceeded. Try again in a minute.", code: "IMG-005" });
       }
 
       const parsed = generatePropertyImageSchema.safeParse(req.body);
@@ -128,12 +128,12 @@ export function registerImageRoutes(app: Express): void {
   app.post("/api/enhance-logo-prompt", requireAuth, async (req: Request, res: Response) => {
     try {
       if (isApiRateLimited(getAuthUser(req).id, "enhance-prompt", 10)) {
-        return res.status(429).json({ error: "Rate limit exceeded. Try again in a minute." });
+        return res.status(429).json({ error: "Rate limit exceeded. Try again in a minute.", code: "IMG-006" });
       }
 
       const { prompt, style } = req.body;
       if (!prompt || typeof prompt !== "string") {
-        return res.status(400).json({ error: "Prompt is required" });
+        return res.status(400).json({ error: "Prompt is required", code: "IMG-007" });
       }
 
       const styleHint = style === "modern" ? " Lean towards modern, clean, minimalist aesthetics." :

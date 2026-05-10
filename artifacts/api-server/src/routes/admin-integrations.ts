@@ -153,7 +153,7 @@ export function register(app: Express) {
 
       res.json(results);
     } catch (error: unknown) {
-      logAndSendError(res, "Integration operation failed", error);
+      logAndSendError(res, "Integration operation failed", error, "AITG-001");
     }
   });
 
@@ -162,7 +162,7 @@ export function register(app: Express) {
       const stats = await cache.getStats();
       res.json(stats);
     } catch (error: unknown) {
-      logAndSendError(res, "Integration operation failed", error);
+      logAndSendError(res, "Integration operation failed", error, "AITG-002");
     }
   });
 
@@ -183,7 +183,7 @@ export function register(app: Express) {
         res.json({ cleared: true });
       }
     } catch (error: unknown) {
-      logAndSendError(res, "Integration operation failed", error);
+      logAndSendError(res, "Integration operation failed", error, "AITG-003");
     }
   });
 
@@ -194,7 +194,7 @@ export function register(app: Express) {
       const research = await cache.invalidate(`research:${propertyId}:*`);
       res.json({ deleted: projections + research, propertyId });
     } catch (error: unknown) {
-      logAndSendError(res, "Integration operation failed", error);
+      logAndSendError(res, "Integration operation failed", error, "AITG-004");
     }
   });
 
@@ -204,7 +204,7 @@ export function register(app: Express) {
       const rows = await storage.getExternalIntegrations(kind);
       res.json(rows);
     } catch (error: unknown) {
-      logAndSendError(res, "Integration operation failed", error);
+      logAndSendError(res, "Integration operation failed", error, "AITG-005");
     }
   });
 
@@ -216,52 +216,52 @@ export function register(app: Express) {
       logActivity(req, "create-integration", "integration", row.id, row.name);
       res.status(201).json(row);
     } catch (error: unknown) {
-      logAndSendError(res, "Integration operation failed", error);
+      logAndSendError(res, "Integration operation failed", error, "AITG-006");
     }
   });
 
   app.patch("/api/admin/ext-integrations/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      if (!id) return res.status(400).json({ error: "Invalid ID", code: "AITG-010" });
       const parsed = updateExternalIntegrationSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: zodErrorMessage(parsed.error) });
       const row = await storage.updateExternalIntegration(id, parsed.data);
-      if (!row) return res.status(404).json({ error: "Integration not found" });
+      if (!row) return res.status(404).json({ error: "Integration not found", code: "AITG-011" });
       logActivity(req, "update-integration", "integration", row.id, row.name);
       res.json(row);
     } catch (error: unknown) {
-      logAndSendError(res, "Integration operation failed", error);
+      logAndSendError(res, "Integration operation failed", error, "AITG-007");
     }
   });
 
   app.patch("/api/admin/ext-integrations/:id/toggle", requireAdmin, async (req: Request, res: Response) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      if (!id) return res.status(400).json({ error: "Invalid ID", code: "AITG-012" });
       const toggleParsed = z.object({ isEnabled: z.boolean() }).safeParse(req.body);
-      if (!toggleParsed.success) return res.status(400).json({ error: "isEnabled must be a boolean" });
+      if (!toggleParsed.success) return res.status(400).json({ error: "isEnabled must be a boolean", code: "AITG-013" });
       const { isEnabled } = toggleParsed.data;
       const row = await storage.toggleExternalIntegration(id, isEnabled);
-      if (!row) return res.status(404).json({ error: "Integration not found" });
+      if (!row) return res.status(404).json({ error: "Integration not found", code: "AITG-014" });
       logActivity(req, isEnabled ? "enable-integration" : "disable-integration", "integration", row.id, row.name);
       res.json(row);
     } catch (error: unknown) {
-      logAndSendError(res, "Integration operation failed", error);
+      logAndSendError(res, "Integration operation failed", error, "AITG-008");
     }
   });
 
   app.delete("/api/admin/ext-integrations/:id", requireAdmin, async (req: Request, res: Response) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      if (!id) return res.status(400).json({ error: "Invalid ID", code: "AITG-015" });
       const existing = await storage.getExternalIntegration(id);
-      if (!existing) return res.status(404).json({ error: "Integration not found" });
+      if (!existing) return res.status(404).json({ error: "Integration not found", code: "AITG-016" });
       await storage.deleteExternalIntegration(id);
       logActivity(req, "delete-integration", "integration", id, existing.name);
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Integration operation failed", error);
+      logAndSendError(res, "Integration operation failed", error, "AITG-009");
     }
   });
 }

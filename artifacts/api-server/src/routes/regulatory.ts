@@ -19,7 +19,7 @@ export function register(app: Express) {
     if (!profile) {
       return res.status(404).json({
         error: `No regulatory profile found for: ${key}`,
-      });
+      code: "REGU-001" });
     }
     return res.json(profile);
   });

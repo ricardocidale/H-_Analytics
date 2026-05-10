@@ -55,7 +55,7 @@ export function registerAdminScenarioRoutes(app: Express) {
 
       res.json(result);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch admin scenarios", error);
+      logAndSendError(res, "Failed to fetch admin scenarios", error, "ASCN-001");
     }
   });
 
@@ -67,7 +67,7 @@ export function registerAdminScenarioRoutes(app: Express) {
       }
 
       const user = await storage.getUserById(validation.data.userId);
-      if (!user) return res.status(404).json({ error: "Target user not found" });
+      if (!user) return res.status(404).json({ error: "Target user not found", code: "ASCN-014" });
 
       const scenario = await storage.createScenarioForUser(validation.data.userId, {
         name: validation.data.name,
@@ -78,7 +78,7 @@ export function registerAdminScenarioRoutes(app: Express) {
       logActivity(req, "admin-create-scenario", "scenario", scenario.id, scenario.name, { forUserId: validation.data.userId });
       res.status(201).json(scenario);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to create admin scenario", error);
+      logAndSendError(res, "Failed to create admin scenario", error, "ASCN-002");
     }
   });
 
@@ -88,7 +88,7 @@ export function registerAdminScenarioRoutes(app: Express) {
       if (id === null) return;
 
       const existing = await storage.getScenario(id);
-      if (!existing) return res.status(404).json({ error: "Scenario not found" });
+      if (!existing) return res.status(404).json({ error: "Scenario not found", code: "ASCN-015" });
 
       const validation = updateScenarioSchema.safeParse(req.body);
       if (!validation.success) {
@@ -96,12 +96,12 @@ export function registerAdminScenarioRoutes(app: Express) {
       }
 
       const scenario = await storage.updateScenario(id, validation.data);
-      if (!scenario) return res.status(404).json({ error: "Scenario not found" });
+      if (!scenario) return res.status(404).json({ error: "Scenario not found", code: "ASCN-016" });
 
       logActivity(req, "admin-update-scenario", "scenario", id, scenario.name);
       res.json(scenario);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update admin scenario", error);
+      logAndSendError(res, "Failed to update admin scenario", error, "ASCN-003");
     }
   });
 
@@ -111,13 +111,13 @@ export function registerAdminScenarioRoutes(app: Express) {
       if (id === null) return;
 
       const existing = await storage.getScenario(id);
-      if (!existing) return res.status(404).json({ error: "Scenario not found" });
+      if (!existing) return res.status(404).json({ error: "Scenario not found", code: "ASCN-017" });
 
       await storage.hardDeleteScenario(id);
       logActivity(req, "admin-delete-scenario", "scenario", id, existing.name);
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to delete admin scenario", error);
+      logAndSendError(res, "Failed to delete admin scenario", error, "ASCN-004");
     }
   });
 
@@ -127,7 +127,7 @@ export function registerAdminScenarioRoutes(app: Express) {
       logActivity(req, "admin-purge-expired-scenarios", "scenario", null, null, { purgedCount: count });
       res.json({ success: true, purgedCount: count });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to purge expired scenarios", error);
+      logAndSendError(res, "Failed to purge expired scenarios", error, "ASCN-005");
     }
   });
 
@@ -163,7 +163,7 @@ export function registerAdminScenarioRoutes(app: Express) {
 
       res.json(enriched);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch deleted scenarios", error);
+      logAndSendError(res, "Failed to fetch deleted scenarios", error, "ASCN-006");
     }
   });
 
@@ -173,14 +173,14 @@ export function registerAdminScenarioRoutes(app: Express) {
       if (id === null) return;
 
       const existing = await storage.getScenarioIncludingDeleted(id);
-      if (!existing) return res.status(404).json({ error: "Scenario not found" });
-      if (!existing.deletedAt) return res.status(400).json({ error: "Scenario is not deleted" });
+      if (!existing) return res.status(404).json({ error: "Scenario not found", code: "ASCN-018" });
+      if (!existing.deletedAt) return res.status(400).json({ error: "Scenario is not deleted", code: "ASCN-019" });
 
       const restored = await storage.restoreScenario(id);
       logActivity(req, "admin-restore-scenario", "scenario", id, existing.name);
       res.json(restored);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to restore scenario", error);
+      logAndSendError(res, "Failed to restore scenario", error, "ASCN-007");
     }
   });
 
@@ -190,13 +190,13 @@ export function registerAdminScenarioRoutes(app: Express) {
       if (id === null) return;
 
       const existing = await storage.getScenarioIncludingDeleted(id);
-      if (!existing) return res.status(404).json({ error: "Scenario not found" });
+      if (!existing) return res.status(404).json({ error: "Scenario not found", code: "ASCN-020" });
 
       await storage.hardDeleteScenario(id);
       logActivity(req, "admin-purge-scenario", "scenario", id, existing.name);
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to purge scenario", error);
+      logAndSendError(res, "Failed to purge scenario", error, "ASCN-008");
     }
   });
 
@@ -206,7 +206,7 @@ export function registerAdminScenarioRoutes(app: Express) {
       if (id === null) return;
 
       const existing = await storage.getScenario(id);
-      if (!existing) return res.status(404).json({ error: "Scenario not found" });
+      if (!existing) return res.status(404).json({ error: "Scenario not found", code: "ASCN-021" });
 
       const validation = accessGrantSchema.safeParse(req.body);
       if (!validation.success) {
@@ -217,7 +217,7 @@ export function registerAdminScenarioRoutes(app: Express) {
 
       if (targetType === "user") {
         const targetUser = await storage.getUserById(targetId);
-        if (!targetUser) return res.status(404).json({ error: "Target user not found" });
+        if (!targetUser) return res.status(404).json({ error: "Target user not found", code: "ASCN-022" });
       }
 
       const share = await storage.addScenarioAccess(id, targetType, targetId, getAuthUser(req).id);
@@ -226,9 +226,9 @@ export function registerAdminScenarioRoutes(app: Express) {
       res.status(201).json(share);
     } catch (error: unknown) {
       if (typeof error === "object" && error !== null && "code" in error && (error as { code: string }).code === PG_UNIQUE_VIOLATION_CODE) {
-        return res.status(HTTP_409_CONFLICT).json({ error: "This access grant already exists" });
+        return res.status(HTTP_409_CONFLICT).json({ error: "This access grant already exists", code: "ASCN-023" });
       }
-      logAndSendError(res, "Failed to add scenario access", error);
+      logAndSendError(res, "Failed to add scenario access", error, "ASCN-009");
     }
   });
 
@@ -248,7 +248,7 @@ export function registerAdminScenarioRoutes(app: Express) {
       logActivity(req, "admin-revoke-scenario-access", "scenario", id, null, { targetType, targetId });
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to remove scenario access", error);
+      logAndSendError(res, "Failed to remove scenario access", error, "ASCN-010");
     }
   });
 
@@ -260,7 +260,7 @@ export function registerAdminScenarioRoutes(app: Express) {
       const shares = await storage.getScenarioSharesForScenario(id);
       res.json(shares);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch scenario access", error);
+      logAndSendError(res, "Failed to fetch scenario access", error, "ASCN-011");
     }
   });
 
@@ -270,13 +270,13 @@ export function registerAdminScenarioRoutes(app: Express) {
       if (id === null) return;
 
       const existing = await storage.getScenario(id);
-      if (!existing) return res.status(404).json({ error: "Scenario not found" });
+      if (!existing) return res.status(404).json({ error: "Scenario not found", code: "ASCN-024" });
 
       const result = await storage.removeAllSharesForScenario(id);
       logActivity(req, "admin-unshare-all", "scenario", id, existing.name);
       res.json({ success: true, ...result });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to remove all scenario shares", error);
+      logAndSendError(res, "Failed to remove all scenario shares", error, "ASCN-012");
     }
   });
 
@@ -288,7 +288,7 @@ export function registerAdminScenarioRoutes(app: Express) {
       const count = await storage.getScenarioCountByUser(id);
       res.json({ count });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to get scenario count", error);
+      logAndSendError(res, "Failed to get scenario count", error, "ASCN-013");
     }
   });
 }

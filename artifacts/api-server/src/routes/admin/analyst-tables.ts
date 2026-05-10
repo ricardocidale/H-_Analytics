@@ -259,7 +259,7 @@ export function registerAdminAnalystTableRoutes(app: Express) {
         },
       });
     } catch (err: unknown) {
-      logAndSendError(res, "Failed to list analyst tables", err);
+      logAndSendError(res, "Failed to list analyst tables", err, "AATB-001");
     }
   });
 
@@ -269,7 +269,7 @@ export function registerAdminAnalystTableRoutes(app: Express) {
       const settings = await storage.getAnalystRefreshSettings();
       res.json(settings);
     } catch (err: unknown) {
-      logAndSendError(res, "Failed to load analyst refresh settings", err);
+      logAndSendError(res, "Failed to load analyst refresh settings", err, "AATB-002");
     }
   });
 
@@ -285,7 +285,7 @@ export function registerAdminAnalystTableRoutes(app: Express) {
       logActivity(req, "update-analyst-refresh-settings", "settings", null, "analyst-refresh", parsed.data);
       res.json(settings);
     } catch (err: unknown) {
-      logAndSendError(res, "Failed to update analyst refresh settings", err);
+      logAndSendError(res, "Failed to update analyst refresh settings", err, "AATB-003");
     }
   });
 
@@ -297,7 +297,7 @@ export function registerAdminAnalystTableRoutes(app: Express) {
       const active = last ? (Date.now() - last.getTime()) < 60 * 60 * 1000 : false;
       res.json({ suspiciousActive: active, lastSuspiciousAlertAt: last });
     } catch (err: unknown) {
-      logAndSendError(res, "Failed to load analyst refresh status", err);
+      logAndSendError(res, "Failed to load analyst refresh status", err, "AATB-004");
     }
   });
 
@@ -380,7 +380,7 @@ export function registerAdminAnalystTableRoutes(app: Express) {
         }
         releaseInFlight(tableId);
         logger.error(`Analyst-table refresh failed for ${tableId}: ${String(err)}`, "analyst-refresh");
-        logAndSendError(res, "Refresh failed", err);
+        logAndSendError(res, "Refresh failed", err, "AATB-005");
       }
     },
   );
@@ -403,14 +403,14 @@ export function registerAdminAnalystTableRoutes(app: Express) {
     try {
       const tableId = req.params.id;
       if (!ANALYST_TABLE_ALLOW_LIST.includes(tableId as AnalystTableId)) {
-        return res.status(400).json({ error: `Unknown table id: ${tableId}` });
+        return res.status(400).json({ error: `Unknown table id: ${tableId}`, code: "AATB-010" });
       }
       // reference_brands auto-commits inside the refresh handler; there is no
       // staged diff to commit separately. Reject early to prevent misrouting.
       if (tableId === "reference_brands") {
         return res.status(409).json({
           error: "reference_brands is an auto-committed table; commit/discard endpoints are not supported. Use the /refresh endpoint instead.",
-        });
+        code: "AATB-014" });
       }
       const parsed = commitSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: zodErrorMessage(parsed.error) });
@@ -445,7 +445,7 @@ export function registerAdminAnalystTableRoutes(app: Express) {
       });
       res.json({ ok: true });
     } catch (err: unknown) {
-      logAndSendError(res, "Failed to commit analyst-table refresh", err);
+      logAndSendError(res, "Failed to commit analyst-table refresh", err, "AATB-006");
     }
   });
 
@@ -455,13 +455,13 @@ export function registerAdminAnalystTableRoutes(app: Express) {
     try {
       const tableId = req.params.id;
       if (!ANALYST_TABLE_ALLOW_LIST.includes(tableId as AnalystTableId)) {
-        return res.status(400).json({ error: `Unknown table id: ${tableId}` });
+        return res.status(400).json({ error: `Unknown table id: ${tableId}`, code: "AATB-011" });
       }
       // reference_brands auto-commits; no staged state to discard.
       if (tableId === "reference_brands") {
         return res.status(409).json({
           error: "reference_brands is an auto-committed table; commit/discard endpoints are not supported.",
-        });
+        code: "AATB-015" });
       }
       const parsed = discardSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: zodErrorMessage(parsed.error) });
@@ -472,7 +472,7 @@ export function registerAdminAnalystTableRoutes(app: Express) {
       logActivity(req, "analyst-table-discard", "analyst_table", null, tableId as string);
       res.json({ ok: true });
     } catch (err: unknown) {
-      logAndSendError(res, "Failed to discard analyst-table refresh", err);
+      logAndSendError(res, "Failed to discard analyst-table refresh", err, "AATB-007");
     }
   });
 
@@ -505,10 +505,10 @@ export function registerAdminAnalystTableRoutes(app: Express) {
       if (tableId !== "capital_raise_benchmarks") {
         return res.status(400).json({
           error: `Watchdog trigger is only available for capital_raise_benchmarks (got ${tableId})`,
-        });
+        code: "AATB-016" });
       }
       const adminId = req.user?.id;
-      if (!adminId) return res.status(401).json({ error: "Authentication required" });
+      if (!adminId) return res.status(401).json({ error: "Authentication required", code: "AATB-012" });
 
       // Per-admin rate limit: once per minute. The watchdog itself runs
       // the LLM synthesizer, so even a "successful" forced run can cost
@@ -567,7 +567,7 @@ export function registerAdminAnalystTableRoutes(app: Express) {
           `Forced capital-raise watchdog run failed for adminId=${adminId}: ${String(err)}`,
           "analyst-refresh",
         );
-        logAndSendError(res, "Forced watchdog run failed", err);
+        logAndSendError(res, "Forced watchdog run failed", err, "AATB-008");
       }
     },
   );
@@ -580,7 +580,7 @@ export function registerAdminAnalystTableRoutes(app: Express) {
     try {
       const tableId = req.params.id;
       if (!ANALYST_TABLE_ALLOW_LIST.includes(tableId as AnalystTableId)) {
-        return res.status(400).json({ error: `Unknown table id: ${tableId}` });
+        return res.status(400).json({ error: `Unknown table id: ${tableId}`, code: "AATB-013" });
       }
       // Touch the lastRefreshedAt to indicate a forced reseed.
       const now = new Date();
@@ -609,7 +609,7 @@ export function registerAdminAnalystTableRoutes(app: Express) {
       });
       res.json({ ok: true, rowsReseeded: rows.length });
     } catch (err: unknown) {
-      logAndSendError(res, "Failed to reseed accounts", err);
+      logAndSendError(res, "Failed to reseed accounts", err, "AATB-009");
     }
   });
 }

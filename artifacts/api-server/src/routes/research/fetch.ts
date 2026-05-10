@@ -18,13 +18,13 @@ export function registerResearchFetchRoutes(app: Express) {
         parsedPropId !== undefined &&
         (!Number.isFinite(parsedPropId) || parsedPropId <= 0)
       ) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID", code: "RFET-005" });
       }
       if (
         parsedPropId &&
         !(await checkPropertyAccess(getAuthUser(req), parsedPropId))
       ) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "RFET-006" });
       }
       const research = await storage.getMarketResearch(
         type as string,
@@ -33,7 +33,7 @@ export function registerResearchFetchRoutes(app: Express) {
       );
       res.json(research || null);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch research", error);
+      logAndSendError(res, "Failed to fetch research", error, "RFET-001");
     }
   });
 
@@ -44,7 +44,7 @@ export function registerResearchFetchRoutes(app: Express) {
         propertyId &&
         !(await checkPropertyAccess(getAuthUser(req), Number(propertyId)))
       ) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "RFET-007" });
       }
       const research = await storage.getMarketResearch(
         "property",
@@ -53,7 +53,7 @@ export function registerResearchFetchRoutes(app: Express) {
       );
       res.json(research || null);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch research", error);
+      logAndSendError(res, "Failed to fetch research", error, "RFET-002");
     }
   });
 
@@ -66,14 +66,14 @@ export function registerResearchFetchRoutes(app: Express) {
     try {
       const id = Number(req.params.id);
       if (!Number.isFinite(id) || id <= 0) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid id" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid id", code: "RFET-008" });
       }
       const user = getAuthUser(req);
       const scopedUserId = isAdminRole(user.role) ? undefined : user.id;
       await storage.deleteMarketResearch(id, scopedUserId);
       res.status(HTTP_204_NO_CONTENT).end();
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to delete market research", error);
+      logAndSendError(res, "Failed to delete market research", error, "RFET-003");
     }
   });
 
@@ -86,16 +86,16 @@ export function registerResearchFetchRoutes(app: Express) {
     try {
       const id = Number(req.params.id);
       if (!Number.isFinite(id) || id <= 0) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid id" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid id", code: "RFET-009" });
       }
       const user = getAuthUser(req);
       if (!isAdminRole(user.role)) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Admin access required" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Admin access required", code: "RFET-010" });
       }
       await storage.deleteResearchRun(id);
       res.status(HTTP_204_NO_CONTENT).end();
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to delete research run", error);
+      logAndSendError(res, "Failed to delete research run", error, "RFET-004");
     }
   });
 }

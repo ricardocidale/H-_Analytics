@@ -24,7 +24,7 @@ export function registerSourceHealthRoutes(app: Express) {
         results,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to run health check", error);
+      logAndSendError(res, "Failed to run health check", error, "ASHL-001");
     }
   });
 
@@ -36,7 +36,7 @@ export function registerSourceHealthRoutes(app: Express) {
       logActivity(req, "health-check-source", "source", null, serviceKey, { healthy: result.healthy });
       res.json(result);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to run health check", error);
+      logAndSendError(res, "Failed to run health check", error, "ASHL-002");
     }
   });
 
@@ -46,7 +46,7 @@ export function registerSourceHealthRoutes(app: Express) {
       const sources = await storage.getSourceRegistry();
       res.json(sources);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch source registry", error);
+      logAndSendError(res, "Failed to fetch source registry", error, "ASHL-003");
     }
   });
 
@@ -63,18 +63,18 @@ export function registerSourceHealthRoutes(app: Express) {
       const allSources = await storage.getSourceRegistry();
       const source = allSources.find(s => s.serviceKey === serviceKey);
       if (!source) {
-        return res.status(404).json({ error: `Source not found: ${serviceKey}` });
+        return res.status(404).json({ error: `Source not found: ${serviceKey}`, code: "ASHL-005" });
       }
 
       const updated = await storage.updateSourceRegistryEntry(source.id, parsed.data);
       if (!updated) {
-        return res.status(404).json({ error: "Source not found" });
+        return res.status(404).json({ error: "Source not found", code: "ASHL-006" });
       }
 
       logActivity(req, "update-source", "source", source.id, serviceKey, { fields: Object.keys(parsed.data) });
       res.json(updated);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update source", error);
+      logAndSendError(res, "Failed to update source", error, "ASHL-004");
     }
   });
 }

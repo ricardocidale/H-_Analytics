@@ -234,17 +234,17 @@ export function register(app: Express) {
       });
       res.json(enriched);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch properties", error);
+      logAndSendError(res, "Failed to fetch properties", error, "PROP-001");
     }
   });
 
   app.get("/api/properties/:id", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID", code: "PROP-018" });
       const property = await checkPropertyAccess(getAuthUser(req), id);
       if (!property) {
-        return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "PROP-019" });
       }
       const cats = await storage.getFeeCategoriesByProperty(property.id);
       res.json({
@@ -252,7 +252,7 @@ export function register(app: Express) {
         feeCategories: cats.map(c => ({ name: c.name, rate: c.rate, isActive: c.isActive })),
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch property", error);
+      logAndSendError(res, "Failed to fetch property", error, "PROP-002");
     }
   });
 
@@ -267,31 +267,31 @@ export function register(app: Express) {
       logActivity(req, "create", "property", property.id, property.name);
       res.status(HTTP_201_CREATED).json(property);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to create property", error);
+      logAndSendError(res, "Failed to create property", error, "PROP-003");
     }
   });
 
   app.patch("/api/properties/:id/coords", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
-      if (!propertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+      if (!propertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID", code: "PROP-020" });
       const hasAccess = await checkPropertyAccess(getAuthUser(req), propertyId);
       if (!hasAccess) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "PROP-021" });
       }
       const { latitude, longitude } = req.body;
       if (typeof latitude !== "number" || typeof longitude !== "number" ||
           !Number.isFinite(latitude) || !Number.isFinite(longitude) ||
           latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: "latitude must be -90..90 and longitude must be -180..180" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "latitude must be -90..90 and longitude must be -180..180", code: "PROP-022" });
       }
       const updated = await storage.updateProperty(propertyId, { latitude, longitude });
       if (!updated) {
-        return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "PROP-023" });
       }
       res.json({ latitude: updated.latitude, longitude: updated.longitude });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update coordinates", error);
+      logAndSendError(res, "Failed to update coordinates", error, "PROP-004");
     }
   });
 
@@ -314,17 +314,17 @@ export function register(app: Express) {
 
       res.json(defaults);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to compute defaults preview", error);
+      logAndSendError(res, "Failed to compute defaults preview", error, "PROP-005");
     }
   });
 
   app.patch("/api/properties/:id", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
-      if (!propertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+      if (!propertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID", code: "PROP-024" });
       const existingProp = await checkPropertyEditAccess(getAuthUser(req), propertyId);
       if (!existingProp) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Shared properties can only be edited by admin. Use scenario overrides for your own adjustments." });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Shared properties can only be edited by admin. Use scenario overrides for your own adjustments.", code: "PROP-025" });
       }
 
       const validation = updatePropertySchema.safeParse(req.body);
@@ -374,7 +374,7 @@ export function register(app: Express) {
 
       let property = await storage.updateProperty(propertyId, updateData);
       if (!property) {
-        return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "PROP-026" });
       }
 
       // Apply the hero-photo write through the album (see drift-guard comment
@@ -406,7 +406,7 @@ export function register(app: Express) {
           );
           return res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({
             error: "Property updated but hero photo could not be synced. Please retry.",
-          });
+          code: "PROP-052" });
         }
       }
 
@@ -539,16 +539,16 @@ export function register(app: Express) {
 
       res.json({ ...property, prerequisiteFailures, requiredFieldsMissing });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update property", error);
+      logAndSendError(res, "Failed to update property", error, "PROP-006");
     }
   });
 
   app.get("/api/properties/:id/validation-alerts", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
-      if (!propertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+      if (!propertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID", code: "PROP-027" });
       const property = await checkPropertyAccess(getAuthUser(req), propertyId);
-      if (!property) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+      if (!property) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "PROP-028" });
 
       // computeFieldAlerts imported statically at top of file
       const numericFields: Record<string, unknown> = {};
@@ -560,17 +560,17 @@ export function register(app: Express) {
       const alerts = await computeFieldAlerts(propertyId, numericFields);
       res.json({ alerts });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch validation alerts", error);
+      logAndSendError(res, "Failed to fetch validation alerts", error, "PROP-007");
     }
   });
 
   app.delete("/api/properties/:id", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID", code: "PROP-029" });
       const property = await checkPropertyAccess(getAuthUser(req), id);
       if (!property) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "PROP-030" });
       }
       
       const user = getAuthUser(req);
@@ -579,7 +579,7 @@ export function register(app: Express) {
 
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to delete property", error);
+      logAndSendError(res, "Failed to delete property", error, "PROP-008");
     }
   });
 
@@ -587,30 +587,30 @@ export function register(app: Express) {
   app.post("/api/admin/properties/:id/restore", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID", code: "PROP-031" });
       const property = await storage.getProperty(id);
       if (!property) {
-        return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "PROP-032" });
       }
       if (!property.archivedAt) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Property is not archived" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Property is not archived", code: "PROP-033" });
       }
       await storage.restoreProperty(id);
       invalidateComputeCache();
       logActivity(req, "restore", "property", id, property.name);
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to restore property", error);
+      logAndSendError(res, "Failed to restore property", error, "PROP-009");
     }
   });
 
   app.post("/api/properties/:id/seed-research", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID", code: "PROP-034" });
       const property = await checkPropertyAccess(getAuthUser(req), id);
       if (!property) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "PROP-035" });
       }
 
       const seededValues = generateLocationAwareResearchValues({
@@ -629,7 +629,7 @@ export function register(app: Express) {
       logActivity(req, "seed-research", "property", id, property.name);
       res.json(updated);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to seed research", error);
+      logAndSendError(res, "Failed to seed research", error, "PROP-010");
     }
   });
 
@@ -637,14 +637,14 @@ export function register(app: Express) {
   app.get("/api/properties/:id/fee-categories", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
-      if (!propertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+      if (!propertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID", code: "PROP-036" });
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "PROP-037" });
       }
       const categories = await storage.getFeeCategoriesByProperty(propertyId);
       res.json(categories);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch fee categories", error);
+      logAndSendError(res, "Failed to fetch fee categories", error, "PROP-011");
     }
   });
 
@@ -659,9 +659,9 @@ export function register(app: Express) {
   app.put("/api/properties/:id/fee-categories", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
-      if (!propertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+      if (!propertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID", code: "PROP-038" });
       if (!(await checkPropertyEditAccess(getAuthUser(req), propertyId))) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied — use scenario overrides for shared properties" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied — use scenario overrides for shared properties", code: "PROP-039" });
       }
       const parsed = feeCategoryBatchSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -693,7 +693,7 @@ export function register(app: Express) {
       logActivity(req, "update", "fee-categories", propertyId);
       res.json(results);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to save fee categories", error);
+      logAndSendError(res, "Failed to save fee categories", error, "PROP-012");
     }
   });
 
@@ -702,7 +702,7 @@ export function register(app: Express) {
       const categories = await storage.getAllFeeCategories();
       res.json(categories);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch fee categories", error);
+      logAndSendError(res, "Failed to fetch fee categories", error, "PROP-013");
     }
   });
 
@@ -713,14 +713,14 @@ export function register(app: Express) {
   app.post("/api/properties/:id/rewrite-description", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
-      if (!propertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+      if (!propertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID", code: "PROP-040" });
       const property = await checkPropertyAccess(getAuthUser(req), propertyId);
       if (!property) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "PROP-041" });
       }
       const parsed = rewriteDescriptionSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid request — provide text (1–5000 chars)" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid request — provide text (1–5000 chars)", code: "PROP-042" });
       }
       const { text } = parsed.data;
 
@@ -754,7 +754,7 @@ Rewritten description:`;
 
       const rewritten = response.text?.trim();
       if (!rewritten) {
-        return res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "No response from AI" });
+        return res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "No response from AI", code: "PROP-043" });
       }
 
       const svc = getVendorService(resolved.vendor);
@@ -770,9 +770,9 @@ Rewritten description:`;
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
       if (msg === "Gemini API key not configured" || msg.includes("not configured")) {
-        return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({ error: "AI service is not available" });
+        return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({ error: "AI service is not available", code: "PROP-044" });
       }
-      logAndSendError(res, "Failed to rewrite description", error);
+      logAndSendError(res, "Failed to rewrite description", error, "PROP-014");
     }
   });
 
@@ -782,19 +782,19 @@ Rewritten description:`;
   app.get("/api/properties/:id/walk-score", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
-      if (!propertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+      if (!propertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID", code: "PROP-045" });
       const property = await checkPropertyAccess(getAuthUser(req), propertyId);
       if (!property) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "PROP-046" });
       }
 
       if (!property.latitude || !property.longitude) {
-        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "Property has no coordinates — cannot fetch Walk Score" });
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "Property has no coordinates — cannot fetch Walk Score", code: "PROP-047" });
       }
 
       const svc = new WalkScoreService();
       if (!svc.isAvailable()) {
-        return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({ error: "Walk Score not configured (WALK_SCORE_API_KEY missing)" });
+        return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({ error: "Walk Score not configured (WALK_SCORE_API_KEY missing)", code: "PROP-048" });
       }
 
       const address = [property.streetAddress, property.city, property.stateProvince, property.country]
@@ -807,10 +807,10 @@ Rewritten description:`;
         propertyId,
       });
 
-      if (!scores) return res.status(HTTP_502_BAD_GATEWAY).json({ error: "Walk Score unavailable" });
+      if (!scores) return res.status(HTTP_502_BAD_GATEWAY).json({ error: "Walk Score unavailable", code: "PROP-049" });
       return res.json(scores);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch Walk Score", error);
+      logAndSendError(res, "Failed to fetch Walk Score", error, "PROP-015");
     }
   });
 
@@ -827,9 +827,9 @@ Rewritten description:`;
   app.get("/api/properties/:id/stress-test", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID", code: "PROP-050" });
       const property = await storage.getProperty(id);
-      if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
+      if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "PROP-051" });
 
       const assumptions: StressAssumptions = {
         roomCount: property.roomCount,
@@ -861,7 +861,7 @@ Rewritten description:`;
       const results = computeStressScenarios(assumptions);
       res.json(results);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to compute stress scenarios", error);
+      logAndSendError(res, "Failed to compute stress scenarios", error, "PROP-016");
     }
   });
 
@@ -876,7 +876,7 @@ Rewritten description:`;
       if (!body || typeof body.roomCount !== "number" || typeof body.startAdr !== "number") {
         return res.status(HTTP_400_BAD_REQUEST).json({
           error: "Invalid request body. Required: roomCount, startAdr, startOccupancy, maxOccupancy, purchasePrice, and cost rate fields.",
-        });
+        code: "PROP-053" });
       }
 
       const assumptions: StressAssumptions = {
@@ -903,7 +903,7 @@ Rewritten description:`;
       const results = computeStressScenarios(assumptions);
       res.json(results);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to compute stress scenarios", error);
+      logAndSendError(res, "Failed to compute stress scenarios", error, "PROP-017");
     }
   });
 }

@@ -115,7 +115,7 @@ export function registerStructureComparisonRoutes(router: Router): void {
       try {
         const propertyId = parseRouteId(req.params.id);
         if (!propertyId) {
-          return res.status(400).json({ error: "Invalid property ID" });
+          return res.status(400).json({ error: "Invalid property ID", code: "STRC-001" });
         }
 
         const validation = requestSchema.safeParse(req.body);
@@ -125,7 +125,7 @@ export function registerStructureComparisonRoutes(router: Router): void {
             details: validation.error.issues.map((i) => ({
               path: i.path.join("."),
               message: i.message,
-            })),
+            code: "STRC-003" })),
           });
         }
 
@@ -133,7 +133,7 @@ export function registerStructureComparisonRoutes(router: Router): void {
         // properties only). Returns null for both "not found" and
         // "not authorized" — collapse to 404 so we don't leak existence.
         const property = await checkPropertyAccess(getAuthUser(req), propertyId);
-        if (!property) return res.status(404).json({ error: "Property not found" });
+        if (!property) return res.status(404).json({ error: "Property not found", code: "STRC-002" });
 
         const { globalAssumptions: rawGlobal, structures, overlays, projectionYears } = validation.data;
         const globalAssumptions = await withModelConstants(rawGlobal);

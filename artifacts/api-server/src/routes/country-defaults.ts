@@ -15,7 +15,7 @@ export function register(app: Express) {
     const country = decodeURIComponent(String(req.params.country));
     const defaults = getCountryDefaults(country);
     if (!defaults) {
-      return res.status(404).json({ error: `No defaults found for: ${country}` });
+      return res.status(404).json({ error: `No defaults found for: ${country}`, code: "CTRD-001" });
     }
     return res.json({ country, ...defaults });
   });
@@ -24,7 +24,7 @@ export function register(app: Express) {
     const state = decodeURIComponent(String(req.params.state));
     const defaults = getUsStateDefaults(state);
     if (!defaults) {
-      return res.status(404).json({ error: `No defaults found for US state: ${state}` });
+      return res.status(404).json({ error: `No defaults found for US state: ${state}`, code: "CTRD-002" });
     }
     return res.json({ state, ...defaults });
   });

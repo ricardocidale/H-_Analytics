@@ -13,7 +13,7 @@ export function registerUserDefaultRoutes(app: Express) {
       const propertyIds = await storage.getUserDefaultPropertyIds(userId);
       res.json(propertyIds);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch user default properties", error);
+      logAndSendError(res, "Failed to fetch user default properties", error, "AUDF-001");
     }
   });
 
@@ -32,7 +32,7 @@ export function registerUserDefaultRoutes(app: Express) {
       logActivity(req, "update-user-defaults", "user", userId, `Updated default properties`, { propertyIds });
       res.json({ propertyIds });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update user default properties", error);
+      logAndSendError(res, "Failed to update user default properties", error, "AUDF-002");
     }
   });
 }

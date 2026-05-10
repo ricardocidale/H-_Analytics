@@ -22,12 +22,12 @@ export function register(app: Express) {
       const filenameParam = req.params.filename;
       const filename = Array.isArray(filenameParam) ? filenameParam[0] : filenameParam;
       if (!filename || typeof filename !== "string" || filename.includes("/") || filename.includes("..")) {
-        return res.status(400).json({ error: "Invalid filename" });
+        return res.status(400).json({ error: "Invalid filename", code: "MDIA-001" });
       }
 
       const asset = await storage.getMediaByFilename(filename);
       if (!asset) {
-        return res.status(404).json({ error: "Not found" });
+        return res.status(404).json({ error: "Not found", code: "MDIA-002" });
       }
 
       const etag = `"${asset.sha256}"`;
@@ -46,7 +46,7 @@ export function register(app: Express) {
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
       logger.error(`media route error: ${msg}`, "media");
-      return res.status(500).json({ error: "Failed to serve media" });
+      return res.status(500).json({ error: "Failed to serve media", code: "MDIA-003" });
     }
   });
 }

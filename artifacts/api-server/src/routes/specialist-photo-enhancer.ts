@@ -90,7 +90,7 @@ export function register(app: Express): void {
       // so users can't bypass the cap by switching between the album, the
       // legacy endpoint, and the specialist console.
       if (isApiRateLimited(userId, "generate-image", rateLimit)) {
-        return res.status(429).json({ error: "Rate limit exceeded. Try again in a minute." });
+        return res.status(429).json({ error: "Rate limit exceeded. Try again in a minute.", code: "SPEH-001" });
       }
 
       const parsed = runSchema.safeParse(req.body);
@@ -152,7 +152,7 @@ export function register(app: Express): void {
       if (req.query.propertyId !== undefined) {
         const pidRaw = Number(req.query.propertyId);
         if (!Number.isFinite(pidRaw) || pidRaw <= 0 || !Number.isInteger(pidRaw)) {
-          return res.status(400).json({ error: "propertyId must be a positive integer" });
+          return res.status(400).json({ error: "propertyId must be a positive integer", code: "SPEH-002" });
         }
         propertyIdFilter = pidRaw;
       }
@@ -257,7 +257,7 @@ export function register(app: Express): void {
       fernandaLog.error(
         `Error listing photos-and-renders specialist calls: ${error instanceof Error ? error.message : error}`,
       );
-      res.status(500).json({ error: "Failed to list specialist calls" });
+      res.status(500).json({ error: "Failed to list specialist calls", code: "SPEH-003" });
     }
   });
 
@@ -272,7 +272,7 @@ export function register(app: Express): void {
       try {
         const rateLimit = await getAdminRateLimit();
         if (isApiRateLimited(userId, "generate-image", rateLimit)) {
-          return res.status(429).json({ error: "Rate limit exceeded. Try again in a minute." });
+          return res.status(429).json({ error: "Rate limit exceeded. Try again in a minute.", code: "SPEH-004" });
         }
         const parsed = dispatchSchema.safeParse(req.body);
         if (!parsed.success) {

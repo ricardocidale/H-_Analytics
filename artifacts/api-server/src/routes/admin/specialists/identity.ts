@@ -35,7 +35,7 @@ export function registerIdentityRoutes(app: Express) {
     try {
       const { id } = idParamSchema.parse(req.params);
       const catalog = getIdentityCatalogDefault(id);
-      if (!catalog) return res.status(404).json({ error: "Specialist not found" });
+      if (!catalog) return res.status(404).json({ error: "Specialist not found", code: "ASID-003" });
       const override = await storage.getIdentityOverride(id);
       const resolved = resolveSpecialistIdentity(catalog, override);
       const view: SpecialistIdentityPublicView = {
@@ -53,7 +53,7 @@ export function registerIdentityRoutes(app: Express) {
       };
       res.json(view);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to load specialist identity", error);
+      logAndSendError(res, "Failed to load specialist identity", error, "ASID-001");
     }
   });
 
@@ -61,18 +61,18 @@ export function registerIdentityRoutes(app: Express) {
   // UI no longer calls this endpoint. Kept as 405 so any direct API callers get an
   // explicit signal rather than a silent hang.
   app.put("/api/admin/specialists/:id/identity", requireAdmin, (_req, res) => {
-    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Specialist identity is dev-defined. Edit the catalog and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
+    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Specialist identity is dev-defined. Edit the catalog and redeploy. See .claude/rules/specialists-are-dev-defined-only.md", code: "ASID-004" });
   });
 
   app.delete("/api/admin/specialists/:id/identity", requireAdmin, (_req, res) => {
-    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Specialist identity is dev-defined. Edit the catalog and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
+    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Specialist identity is dev-defined. Edit the catalog and redeploy. See .claude/rules/specialists-are-dev-defined-only.md", code: "ASID-005" });
   });
 
   app.get("/api/admin/specialists/:id/identity/history", requireAdmin, async (req, res) => {
     try {
       const { id } = idParamSchema.parse(req.params);
       const catalog = getIdentityCatalogDefault(id);
-      if (!catalog) return res.status(404).json({ error: "Specialist not found" });
+      if (!catalog) return res.status(404).json({ error: "Specialist not found", code: "ASID-006" });
       const parsedQuery = identityHistoryQuerySchema.safeParse(req.query);
       if (!parsedQuery.success) {
         return res.status(400).json({ error: zodErrorMessage(parsedQuery.error) });
@@ -93,7 +93,7 @@ export function registerIdentityRoutes(app: Express) {
         })),
       );
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to load specialist identity history", error);
+      logAndSendError(res, "Failed to load specialist identity history", error, "ASID-002");
     }
   });
 }

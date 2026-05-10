@@ -19,9 +19,9 @@ export function registerObjectRoutes(app: Express): void {
         error.message.includes("Not Found")
       );
       if (isNotFound) {
-        return res.status(404).json({ error: "Object not found" });
+        return res.status(404).json({ error: "Object not found", code: "OBJ-001" });
       }
-      return res.status(500).json({ error: "Failed to serve object" });
+      return res.status(500).json({ error: "Failed to serve object", code: "OBJ-002" });
     }
   });
 }

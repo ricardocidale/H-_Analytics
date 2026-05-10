@@ -111,30 +111,30 @@ export function registerPropertyUrlRoutes(app: Express) {
       const urls = await storage.getAllPropertyUrls();
       res.json(urls);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch all property URLs", error);
+      logAndSendError(res, "Failed to fetch all property URLs", error, "PURL-001");
     }
   });
 
   app.get("/api/properties/:id/urls", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
-      if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });
+      if (!propertyId) return res.status(400).json({ error: "Invalid property ID", code: "PURL-007" });
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(403).json({ error: "Access denied", code: "PURL-008" });
       }
       const urls = await storage.getPropertyUrls(propertyId);
       res.json(urls);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch property URLs", error);
+      logAndSendError(res, "Failed to fetch property URLs", error, "PURL-002");
     }
   });
 
   app.post("/api/properties/:id/urls", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
-      if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });
+      if (!propertyId) return res.status(400).json({ error: "Invalid property ID", code: "PURL-009" });
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(403).json({ error: "Access denied", code: "PURL-010" });
       }
       const parsed = addPropertyUrlSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -142,7 +142,7 @@ export function registerPropertyUrlRoutes(app: Express) {
       }
       const existing = await storage.getPropertyUrls(propertyId);
       if (existing.some(u => u.url === parsed.data.url)) {
-        return res.status(HTTP_409_CONFLICT).json({ error: "URL already exists for this property" });
+        return res.status(HTTP_409_CONFLICT).json({ error: "URL already exists for this property", code: "PURL-011" });
       }
       const row = await storage.addPropertyUrl({
         propertyId,
@@ -152,7 +152,7 @@ export function registerPropertyUrlRoutes(app: Express) {
       logActivity(req, "add-url", "property", propertyId, parsed.data.url);
       res.status(201).json(row);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to add property URL", error);
+      logAndSendError(res, "Failed to add property URL", error, "PURL-003");
     }
   });
 
@@ -160,13 +160,13 @@ export function registerPropertyUrlRoutes(app: Express) {
     try {
       const propertyId = parseRouteId(req.params.id);
       const urlId = parseRouteId(req.params.urlId);
-      if (!propertyId || !urlId) return res.status(400).json({ error: "Invalid ID" });
+      if (!propertyId || !urlId) return res.status(400).json({ error: "Invalid ID", code: "PURL-012" });
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(403).json({ error: "Access denied", code: "PURL-013" });
       }
       const existing = await storage.getPropertyUrlById(urlId);
       if (!existing || existing.propertyId !== propertyId) {
-        return res.status(404).json({ error: "URL not found" });
+        return res.status(404).json({ error: "URL not found", code: "PURL-014" });
       }
       const parsed = updatePropertyUrlSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -182,7 +182,7 @@ export function registerPropertyUrlRoutes(app: Express) {
       logActivity(req, "update-url", "property", propertyId, parsed.data.url ?? existing.url);
       res.json(updated);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update property URL", error);
+      logAndSendError(res, "Failed to update property URL", error, "PURL-004");
     }
   });
 
@@ -190,13 +190,13 @@ export function registerPropertyUrlRoutes(app: Express) {
     try {
       const propertyId = parseRouteId(req.params.id);
       const urlId = parseRouteId(req.params.urlId);
-      if (!propertyId || !urlId) return res.status(400).json({ error: "Invalid ID" });
+      if (!propertyId || !urlId) return res.status(400).json({ error: "Invalid ID", code: "PURL-015" });
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(403).json({ error: "Access denied", code: "PURL-016" });
       }
       const existing = await storage.getPropertyUrlById(urlId);
       if (!existing || existing.propertyId !== propertyId) {
-        return res.status(404).json({ error: "URL not found" });
+        return res.status(404).json({ error: "URL not found", code: "PURL-017" });
       }
       await storage.deletePropertyUrl(urlId);
       try {
@@ -210,17 +210,17 @@ export function registerPropertyUrlRoutes(app: Express) {
       logActivity(req, "delete-url", "property", propertyId, existing.url);
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to delete property URL", error);
+      logAndSendError(res, "Failed to delete property URL", error, "PURL-005");
     }
   });
 
   app.post("/api/properties/:id/urls/validate-all", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
-      if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });
+      if (!propertyId) return res.status(400).json({ error: "Invalid property ID", code: "PURL-018" });
       const property = await checkPropertyAccess(getAuthUser(req), propertyId);
       if (!property) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(403).json({ error: "Access denied", code: "PURL-019" });
       }
       const urls = await storage.getPropertyUrls(propertyId);
       if (urls.length === 0) {
@@ -331,7 +331,7 @@ export function registerPropertyUrlRoutes(app: Express) {
 
       res.json({ validated: results.length, results });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to validate property URLs", error);
+      logAndSendError(res, "Failed to validate property URLs", error, "PURL-006");
     }
   });
 }

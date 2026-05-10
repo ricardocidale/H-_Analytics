@@ -34,7 +34,7 @@ export function register(app: Express) {
       res.json(analysis);
     } catch (error: unknown) {
       logger.error(`ICP portfolio analysis failed: ${error instanceof Error ? error.message : error}`, "icp");
-      res.status(500).json({ error: "Failed to analyze portfolio" });
+      res.status(500).json({ error: "Failed to analyze portfolio", code: "ICPI-001" });
     }
   });
 
@@ -54,7 +54,7 @@ export function register(app: Express) {
       if (properties.length === 0) {
         return res.status(400).json({
           error: "No properties in portfolio. Add at least one property before generating the ICP.",
-        });
+        code: "ICPI-006" });
       }
 
       const result = await generateIcp(properties, ga ?? null);
@@ -93,7 +93,7 @@ export function register(app: Express) {
       });
     } catch (error: unknown) {
       logger.error(`ICP quick generation failed: ${error instanceof Error ? error.message : error}`, "icp");
-      res.status(500).json({ error: "Failed to generate ICP" });
+      res.status(500).json({ error: "Failed to generate ICP", code: "ICPI-002" });
     }
   });
 
@@ -113,7 +113,7 @@ export function register(app: Express) {
       if (properties.length === 0) {
         return res.status(400).json({
           error: "No properties in portfolio. Add at least one property before generating the ICP.",
-        });
+        code: "ICPI-007" });
       }
 
       // LLM callback using the configured Anthropic client
@@ -175,7 +175,7 @@ export function register(app: Express) {
       });
     } catch (error: unknown) {
       logger.error(`ICP generation failed: ${error instanceof Error ? error.message : error}`, "icp");
-      res.status(500).json({ error: "Failed to generate ICP" });
+      res.status(500).json({ error: "Failed to generate ICP", code: "ICPI-003" });
     }
   });
 
@@ -187,7 +187,7 @@ export function register(app: Express) {
     try {
       const user = getAuthUser(req);
       const ga = await storage.getGlobalAssumptions(user.id);
-      if (!ga) return res.status(404).json({ error: "No global assumptions found" });
+      if (!ga) return res.status(404).json({ error: "No global assumptions found", code: "ICPI-004" });
 
       const icpConfig = ga.icpConfig ?? {};
       const gaRecord3 = ga as Record<string, unknown>;
@@ -198,7 +198,7 @@ export function register(app: Express) {
       res.json({ narrative, generatedAt: icpConfig._generatedAt || null });
     } catch (error: unknown) {
       logger.error(`ICP narrative failed: ${error instanceof Error ? error.message : error}`, "icp");
-      res.status(500).json({ error: "Failed to build ICP narrative" });
+      res.status(500).json({ error: "Failed to build ICP narrative", code: "ICPI-005" });
     }
   });
 }

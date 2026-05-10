@@ -543,16 +543,18 @@ export default function PropertyEdit() {
         if (feeDraft) {
           updateFeeCategories.mutate({ propertyId, categories: feeDraft }, {
             onSuccess: () => { finishSave(); },
-            onError: () => {
-              toast({ title: "Error", description: "Failed to save fee categories.", variant: "destructive" });
+            onError: (err) => {
+              const msg = err instanceof Error ? err.message : "Failed to save fee categories.";
+              toast({ title: "Error", description: msg, variant: "destructive" });
             }
           });
         } else {
           finishSave();
         }
       },
-      onError: () => {
-        toast({ title: "Error", description: "Failed to save property assumptions.", variant: "destructive" });
+      onError: (err) => {
+        const msg = err instanceof Error ? err.message : "Failed to save property assumptions.";
+        toast({ title: "Error", description: msg, variant: "destructive" });
       }
     });
   };
@@ -570,8 +572,9 @@ export default function PropertyEdit() {
       onSuccess: () => {
         generateResearch();
       },
-      onError: () => {
-        toast({ title: "Error", description: "Failed to save URLs before research.", variant: "destructive" });
+      onError: (err) => {
+        const msg = err instanceof Error ? err.message : "Failed to save URLs before research.";
+        toast({ title: "Error", description: msg, variant: "destructive" });
       }
     });
   };

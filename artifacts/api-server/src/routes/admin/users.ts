@@ -21,7 +21,7 @@ const roleSchema = z.enum(VALID_USER_ROLES);
 async function guardSuperAdmin(targetId: number, _req: Request, res: Response): Promise<boolean> {
   const target = await storage.getUserById(targetId);
   if (target && target.role === UserRole.SUPER_ADMIN) {
-    res.status(HTTP_403_FORBIDDEN).json({ error: "Super admin accounts cannot be modified" });
+    res.status(HTTP_403_FORBIDDEN).json({ error: "Super admin accounts cannot be modified", code: "AUSR-009" });
     return true;
   }
   return false;
@@ -38,7 +38,7 @@ export function registerUserRoutes(app: Express) {
       const users = await storage.getAllUsers();
       res.json(users.map((u: any) => ({ ...userResponse(u), createdAt: u.createdAt, canManageScenarios: u.canManageScenarios ?? true })));
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch users", error);
+      logAndSendError(res, "Failed to fetch users", error, "AUSR-001");
     }
   });
 
@@ -51,7 +51,7 @@ export function registerUserRoutes(app: Express) {
 
       const existingUser = await storage.getUserByEmail(validation.data.email);
       if (existingUser) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: "User already exists" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "User already exists", code: "AUSR-010" });
       }
 
       const { email, password, role, firstName, lastName, company, title } = validation.data;
@@ -59,7 +59,7 @@ export function registerUserRoutes(app: Express) {
       if (role === UserRole.SUPER_ADMIN) {
         const caller = req.user as { role?: string };
         if (caller.role !== UserRole.SUPER_ADMIN) {
-          return res.status(HTTP_403_FORBIDDEN).json({ error: "Only super admins can create super admin accounts" });
+          return res.status(HTTP_403_FORBIDDEN).json({ error: "Only super admins can create super admin accounts", code: "AUSR-011" });
         }
       }
 
@@ -78,7 +78,7 @@ export function registerUserRoutes(app: Express) {
       logActivity(req, "create-user", "user", user.id, email, { role });
       res.status(HTTP_201_CREATED).json(userResponse(user));
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to create user", error);
+      logAndSendError(res, "Failed to create user", error, "AUSR-002");
     }
   });
 
@@ -106,13 +106,13 @@ export function registerUserRoutes(app: Express) {
       if (role !== undefined) {
         const roleResult = roleSchema.safeParse(role);
         if (!roleResult.success) {
-          return res.status(HTTP_400_BAD_REQUEST).json({ error: `Invalid role. Must be one of: ${VALID_USER_ROLES.join(", ")}` });
+          return res.status(HTTP_400_BAD_REQUEST).json({ error: `Invalid role. Must be one of: ${VALID_USER_ROLES.join(", ")}`, code: "AUSR-012" });
         }
         if (role === UserRole.SUPER_ADMIN && getAuthUser(req).role !== UserRole.SUPER_ADMIN) {
-          return res.status(HTTP_403_FORBIDDEN).json({ error: "Only a super admin can assign the super admin role" });
+          return res.status(HTTP_403_FORBIDDEN).json({ error: "Only a super admin can assign the super admin role", code: "AUSR-013" });
         }
         if (id === getAuthUser(req).id) {
-          return res.status(HTTP_400_BAD_REQUEST).json({ error: "You cannot change your own role" });
+          return res.status(HTTP_400_BAD_REQUEST).json({ error: "You cannot change your own role", code: "AUSR-014" });
         }
       }
 
@@ -120,7 +120,7 @@ export function registerUserRoutes(app: Express) {
         const cleanEmail = sanitizeEmail(email);
         const existing = await storage.getUserByEmail(cleanEmail);
         if (existing && existing.id !== id) {
-          return res.status(HTTP_400_BAD_REQUEST).json({ error: "Email already in use by another user" });
+          return res.status(HTTP_400_BAD_REQUEST).json({ error: "Email already in use by another user", code: "AUSR-015" });
         }
       }
 
@@ -143,7 +143,7 @@ export function registerUserRoutes(app: Express) {
       logActivity(req, "update-user", "user", id, email, { fields: Object.keys(req.body) });
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update user", error);
+      logAndSendError(res, "Failed to update user", error, "AUSR-003");
     }
   });
 
@@ -152,25 +152,25 @@ export function registerUserRoutes(app: Express) {
       const { role } = req.body;
       const roleResult = roleSchema.safeParse(role);
       if (!roleResult.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: `Invalid role. Must be one of: ${VALID_USER_ROLES.join(", ")}` });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: `Invalid role. Must be one of: ${VALID_USER_ROLES.join(", ")}`, code: "AUSR-016" });
       }
 
       const id = parseParamId(req.params.id, res, "user ID");
       if (id === null) return;
       if (await guardSuperAdmin(id, req, res)) return;
       if (roleResult.data === UserRole.SUPER_ADMIN && getAuthUser(req).role !== UserRole.SUPER_ADMIN) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Only a super admin can assign the super admin role" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Only a super admin can assign the super admin role", code: "AUSR-017" });
       }
 
       if (id === getAuthUser(req).id) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: "You cannot change your own role" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "You cannot change your own role", code: "AUSR-018" });
       }
 
       await storage.updateUserRole(id, roleResult.data);
       logActivity(req, "change-role", "user", id, null, { newRole: roleResult.data });
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update user role", error);
+      logAndSendError(res, "Failed to update user role", error, "AUSR-004");
     }
   });
 
@@ -180,14 +180,14 @@ export function registerUserRoutes(app: Express) {
       if (id === null) return;
       if (await guardSuperAdmin(id, req, res)) return;
       if (id === getAuthUser(req).id) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: "You cannot delete yourself" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "You cannot delete yourself", code: "AUSR-019" });
       }
 
       await storage.deleteUser(id);
       logActivity(req, "delete-user", "user", id);
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to delete user", error);
+      logAndSendError(res, "Failed to delete user", error, "AUSR-005");
     }
   });
 
@@ -210,7 +210,7 @@ export function registerUserRoutes(app: Express) {
       logActivity(req, "reset-password", "user", id);
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update password", error);
+      logAndSendError(res, "Failed to update password", error, "AUSR-006");
     }
   });
 
@@ -226,7 +226,7 @@ export function registerUserRoutes(app: Express) {
       await storage.updateUserSelectedTheme(id, themeId ?? null);
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to assign theme", error);
+      logAndSendError(res, "Failed to assign theme", error, "AUSR-007");
     }
   });
 
@@ -302,7 +302,7 @@ export function registerUserRoutes(app: Express) {
 
       res.json({ results, summary: { created, existing, failed } });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to send invitations", error);
+      logAndSendError(res, "Failed to send invitations", error, "AUSR-008");
     }
   });
 }

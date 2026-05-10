@@ -106,7 +106,7 @@ export function registerMarketDataTableRoutes(app: Express) {
 
       res.json(catalog);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to load market data catalog", error);
+      logAndSendError(res, "Failed to load market data catalog", error, "AMDT-001");
     }
   });
 
@@ -114,7 +114,7 @@ export function registerMarketDataTableRoutes(app: Express) {
   app.get("/api/admin/market-data-tables/:table", requireAdmin, async (req, res) => {
     const table = req.params.table as MarketDataTableName;
     if (!TABLE_NAMES.includes(table)) {
-      return res.status(404).json({ error: `Unknown table: ${table}` });
+      return res.status(404).json({ error: `Unknown table: ${table}`, code: "AMDT-004" });
     }
 
     try {
@@ -138,7 +138,7 @@ export function registerMarketDataTableRoutes(app: Express) {
       }
       res.json({ table, meta: TABLE_META[table], rows });
     } catch (error: unknown) {
-      logAndSendError(res, `Failed to load ${table}`, error);
+      logAndSendError(res, `Failed to load ${table}`, error, "AMDT-002");
     }
   });
 
@@ -146,7 +146,7 @@ export function registerMarketDataTableRoutes(app: Express) {
   app.post("/api/admin/market-data-tables/:table/refresh", requireAdmin, async (req, res) => {
     const table = req.params.table as MarketDataTableName;
     if (!TABLE_NAMES.includes(table)) {
-      return res.status(404).json({ error: `Unknown table: ${table}` });
+      return res.status(404).json({ error: `Unknown table: ${table}`, code: "AMDT-005" });
     }
 
     const parsed = refreshBodySchema.safeParse(req.body);
@@ -161,7 +161,7 @@ export function registerMarketDataTableRoutes(app: Express) {
       const result = await refreshMarketDataTable(table, market, user?.id ?? undefined);
       res.json(result);
     } catch (error: unknown) {
-      logAndSendError(res, `Analyst refresh failed for ${table}`, error);
+      logAndSendError(res, `Analyst refresh failed for ${table}`, error, "AMDT-003");
     }
   });
 }

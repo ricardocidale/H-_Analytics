@@ -110,7 +110,7 @@ export function register(app: Express) {
   app.post("/api/documents/extract", requireAuth, async (req, res) => {
     try {
       if (isApiRateLimited(getAuthUser(req).id, "document-extract", 3)) {
-        return res.status(HTTP_429_TOO_MANY_REQUESTS).json({ error: "Rate limit exceeded. Please wait before extracting another document." });
+        return res.status(HTTP_429_TOO_MANY_REQUESTS).json({ error: "Rate limit exceeded. Please wait before extracting another document.", code: "DOCS-016" });
       }
 
       const contentType = (req.headers["content-type"] || "").split(";")[0].trim();
@@ -118,18 +118,18 @@ export function register(app: Express) {
       const fileName = (req.headers["x-file-name"] as string) || "document";
 
       if (!propertyId || isNaN(propertyId)) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Missing x-property-id header" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Missing x-property-id header", code: "DOCS-017" });
       }
       if (!ALLOWED_DOC_TYPES.includes(contentType)) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: `Unsupported file type: ${contentType}. Supported: PDF, PNG, JPEG, TIFF, WebP` });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: `Unsupported file type: ${contentType}. Supported: PDF, PNG, JPEG, TIFF, WebP`, code: "DOCS-018" });
       }
 
       const property = await checkPropertyAccess(getAuthUser(req), propertyId);
-      if (!property) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+      if (!property) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "DOCS-019" });
 
       const body = await readBodyBuffer(req, MAX_DOC_SIZE);
-      if (body === null) return res.status(HTTP_413_PAYLOAD_TOO_LARGE).json({ error: `File too large. Maximum size is ${MAX_DOC_SIZE / 1024 / 1024}MB.` });
-      if (body.length === 0) return res.status(HTTP_400_BAD_REQUEST).json({ error: "No file data received" });
+      if (body === null) return res.status(HTTP_413_PAYLOAD_TOO_LARGE).json({ error: `File too large. Maximum size is ${MAX_DOC_SIZE / 1024 / 1024}MB.`, code: "DOCS-020" });
+      if (body.length === 0) return res.status(HTTP_400_BAD_REQUEST).json({ error: "No file data received", code: "DOCS-021" });
 
       const storageProvider = getStorageProvider();
       const objectPath = await storageProvider.uploadBuffer(`documents/${randomUUID()}`, body, contentType);
@@ -168,7 +168,7 @@ export function register(app: Express) {
         });
       }
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to process document", error);
+      logAndSendError(res, "Failed to process document", error, "DOCS-001");
     }
   });
 
@@ -180,18 +180,18 @@ export function register(app: Express) {
       const fileName = (req.headers["x-file-name"] as string) || "document";
 
       if (!propertyId || isNaN(propertyId)) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Missing x-property-id header" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Missing x-property-id header", code: "DOCS-022" });
       }
       if (!ALLOWED_DOC_TYPES.includes(contentType)) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: `Unsupported file type: ${contentType}. Supported: PDF, PNG, JPEG, TIFF, WebP` });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: `Unsupported file type: ${contentType}. Supported: PDF, PNG, JPEG, TIFF, WebP`, code: "DOCS-023" });
       }
 
       const property = await checkPropertyAccess(getAuthUser(req), propertyId);
-      if (!property) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+      if (!property) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "DOCS-024" });
 
       const body = await readBodyBuffer(req, MAX_DOC_SIZE);
-      if (body === null) return res.status(HTTP_413_PAYLOAD_TOO_LARGE).json({ error: `File too large. Maximum size is ${MAX_DOC_SIZE / 1024 / 1024}MB.` });
-      if (body.length === 0) return res.status(HTTP_400_BAD_REQUEST).json({ error: "No file data received" });
+      if (body === null) return res.status(HTTP_413_PAYLOAD_TOO_LARGE).json({ error: `File too large. Maximum size is ${MAX_DOC_SIZE / 1024 / 1024}MB.`, code: "DOCS-025" });
+      if (body.length === 0) return res.status(HTTP_400_BAD_REQUEST).json({ error: "No file data received", code: "DOCS-026" });
 
       const storageProvider = getStorageProvider();
       const objectPath = await storageProvider.uploadBuffer(`documents/${randomUUID()}`, body, contentType);
@@ -210,7 +210,7 @@ export function register(app: Express) {
       logActivity(req, "document-upload", "document", extraction.id, fileName, { propertyId, objectPath, fileSize: body.length });
       res.json({ extraction, fileSize: body.length, suggestedType });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to upload document", error);
+      logAndSendError(res, "Failed to upload document", error, "DOCS-002");
     }
   });
 
@@ -218,14 +218,14 @@ export function register(app: Express) {
   app.get("/api/documents/library/:propertyId", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.propertyId);
-      if (!propertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+      if (!propertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID", code: "DOCS-027" });
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "DOCS-028" });
       }
       const rows = await storage.getPropertyExtractionsWithCounts(propertyId);
       res.json(rows);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to get document library", error);
+      logAndSendError(res, "Failed to get document library", error, "DOCS-003");
     }
   });
 
@@ -233,17 +233,17 @@ export function register(app: Express) {
   app.post("/api/documents/extractions/:id/analyze", requireAuth, async (req, res) => {
     try {
       if (isApiRateLimited(getAuthUser(req).id, "document-extract", 3)) {
-        return res.status(HTTP_429_TOO_MANY_REQUESTS).json({ error: "Rate limit exceeded. Please wait before analyzing another document." });
+        return res.status(HTTP_429_TOO_MANY_REQUESTS).json({ error: "Rate limit exceeded. Please wait before analyzing another document.", code: "DOCS-029" });
       }
 
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid extraction ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid extraction ID", code: "DOCS-030" });
 
       const extraction = await storage.getDocumentExtraction(id);
-      if (!extraction) return res.status(HTTP_404_NOT_FOUND).json({ error: "Extraction not found" });
+      if (!extraction) return res.status(HTTP_404_NOT_FOUND).json({ error: "Extraction not found", code: "DOCS-031" });
 
       const property = await checkPropertyAccess(getAuthUser(req), extraction.propertyId);
-      if (!property) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+      if (!property) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "DOCS-032" });
 
       await storage.updateDocumentExtraction(id, { status: "processing" });
 
@@ -267,7 +267,7 @@ export function register(app: Express) {
         throw extractionError;
       }
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to analyze document", error);
+      logAndSendError(res, "Failed to analyze document", error, "DOCS-004");
     }
   });
 
@@ -275,22 +275,22 @@ export function register(app: Express) {
   app.patch("/api/documents/extractions/:id/rename", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid extraction ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid extraction ID", code: "DOCS-033" });
 
       const schema = z.object({ fileName: z.string().min(1).max(VARCHAR_SHORT_MAX) });
       const validation = schema.safeParse(req.body);
       if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
 
       const extraction = await storage.getDocumentExtraction(id);
-      if (!extraction) return res.status(HTTP_404_NOT_FOUND).json({ error: "Extraction not found" });
+      if (!extraction) return res.status(HTTP_404_NOT_FOUND).json({ error: "Extraction not found", code: "DOCS-034" });
       if (!(await checkPropertyAccess(getAuthUser(req), extraction.propertyId))) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "DOCS-035" });
       }
 
       const updated = await storage.updateDocumentExtraction(id, { fileName: validation.data.fileName });
       res.json(updated);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to rename document", error);
+      logAndSendError(res, "Failed to rename document", error, "DOCS-005");
     }
   });
 
@@ -298,23 +298,23 @@ export function register(app: Express) {
   app.patch("/api/documents/extractions/:id/type", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid extraction ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid extraction ID", code: "DOCS-036" });
 
       const schema = z.object({ documentType: z.enum(DOCUMENT_TYPES) });
       const validation = schema.safeParse(req.body);
       if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
 
       const extraction = await storage.getDocumentExtraction(id);
-      if (!extraction) return res.status(HTTP_404_NOT_FOUND).json({ error: "Extraction not found" });
+      if (!extraction) return res.status(HTTP_404_NOT_FOUND).json({ error: "Extraction not found", code: "DOCS-037" });
       if (!(await checkPropertyAccess(getAuthUser(req), extraction.propertyId))) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "DOCS-038" });
       }
 
       const updated = await storage.updateDocumentExtraction(id, { documentType: validation.data.documentType });
       logActivity(req, "document-retagged", "document", id, extraction.fileName, { documentType: validation.data.documentType });
       res.json(updated);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update document type", error);
+      logAndSendError(res, "Failed to update document type", error, "DOCS-006");
     }
   });
 
@@ -322,19 +322,19 @@ export function register(app: Express) {
   app.get("/api/documents/extractions/:id/download", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid extraction ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid extraction ID", code: "DOCS-039" });
 
       const extraction = await storage.getDocumentExtraction(id);
-      if (!extraction) return res.status(HTTP_404_NOT_FOUND).json({ error: "Extraction not found" });
+      if (!extraction) return res.status(HTTP_404_NOT_FOUND).json({ error: "Extraction not found", code: "DOCS-040" });
       if (!(await checkPropertyAccess(getAuthUser(req), extraction.propertyId))) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "DOCS-041" });
       }
 
       res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(extraction.fileName)}"`);
       const storageProvider = getStorageProvider();
       await storageProvider.downloadToResponse(extraction.objectPath, res);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to download document", error);
+      logAndSendError(res, "Failed to download document", error, "DOCS-007");
     }
   });
 
@@ -342,12 +342,12 @@ export function register(app: Express) {
   app.delete("/api/documents/extractions/:id", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid extraction ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid extraction ID", code: "DOCS-042" });
 
       const extraction = await storage.getDocumentExtraction(id);
-      if (!extraction) return res.status(HTTP_404_NOT_FOUND).json({ error: "Extraction not found" });
+      if (!extraction) return res.status(HTTP_404_NOT_FOUND).json({ error: "Extraction not found", code: "DOCS-043" });
       if (!(await checkPropertyAccess(getAuthUser(req), extraction.propertyId))) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "DOCS-044" });
       }
 
       // Best-effort vector cleanup before DB row removal
@@ -369,7 +369,7 @@ export function register(app: Express) {
       logActivity(req, "document-deleted", "document", id, extraction.fileName, { propertyId: extraction.propertyId });
       res.status(204).end();
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to delete document", error);
+      logAndSendError(res, "Failed to delete document", error, "DOCS-008");
     }
   });
 
@@ -377,17 +377,17 @@ export function register(app: Express) {
   app.post("/api/documents/extractions/:id/collision-preview", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid extraction ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid extraction ID", code: "DOCS-045" });
 
       const schema = z.object({ fieldIds: z.array(z.number()).optional() });
       const validation = schema.safeParse(req.body);
       if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
 
       const extraction = await storage.getDocumentExtraction(id);
-      if (!extraction) return res.status(HTTP_404_NOT_FOUND).json({ error: "Extraction not found" });
+      if (!extraction) return res.status(HTTP_404_NOT_FOUND).json({ error: "Extraction not found", code: "DOCS-046" });
 
       const property = await checkPropertyAccess(getAuthUser(req), extraction.propertyId);
-      if (!property) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+      if (!property) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "DOCS-047" });
 
       const allFields = await storage.getExtractionFields(id);
       const candidates = validation.data.fieldIds
@@ -417,7 +417,7 @@ export function register(app: Express) {
 
       res.json({ collisions, safeFieldIds: safe });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to preview collisions", error);
+      logAndSendError(res, "Failed to preview collisions", error, "DOCS-009");
     }
   });
 
@@ -425,7 +425,7 @@ export function register(app: Express) {
   app.post("/api/documents/extractions/:id/apply", requireAuth, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid extraction ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid extraction ID", code: "DOCS-048" });
 
       const schema = z.object({
         resolutions: z.record(z.string(), z.enum(["replace", "keep", "skip"])),
@@ -434,10 +434,10 @@ export function register(app: Express) {
       if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
 
       const extraction = await storage.getDocumentExtraction(id);
-      if (!extraction) return res.status(HTTP_404_NOT_FOUND).json({ error: "Extraction not found" });
+      if (!extraction) return res.status(HTTP_404_NOT_FOUND).json({ error: "Extraction not found", code: "DOCS-049" });
 
       const property = await checkPropertyAccess(getAuthUser(req), extraction.propertyId);
-      if (!property) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+      if (!property) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "DOCS-050" });
 
       const allFields = await storage.getExtractionFields(id);
       const propertyUpdates: Record<string, number> = {};
@@ -475,7 +475,7 @@ export function register(app: Express) {
       const updatedFields = await storage.getExtractionFields(id);
       res.json(updatedFields.map((f) => ({ ...f, confidenceLevel: getConfidenceLevel(f.confidence) })));
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to apply extraction fields", error);
+      logAndSendError(res, "Failed to apply extraction fields", error, "DOCS-010");
     }
   });
 
@@ -484,52 +484,52 @@ export function register(app: Express) {
   app.get("/api/documents/extractions/:propertyId", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.propertyId);
-      if (!propertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+      if (!propertyId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID", code: "DOCS-051" });
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "DOCS-052" });
       }
       const extractions = await storage.getPropertyExtractions(propertyId);
       res.json(extractions);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to get extractions", error);
+      logAndSendError(res, "Failed to get extractions", error, "DOCS-011");
     }
   });
 
   app.get("/api/documents/extractions/:extractionId/fields", requireAuth, async (req, res) => {
     try {
       const extractionId = parseRouteId(req.params.extractionId);
-      if (!extractionId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid extraction ID" });
+      if (!extractionId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid extraction ID", code: "DOCS-053" });
 
       const extraction = await storage.getDocumentExtraction(extractionId);
-      if (!extraction) return res.status(HTTP_404_NOT_FOUND).json({ error: "Extraction not found" });
+      if (!extraction) return res.status(HTTP_404_NOT_FOUND).json({ error: "Extraction not found", code: "DOCS-054" });
       if (!await checkPropertyAccess(getAuthUser(req), extraction.propertyId)) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "DOCS-055" });
       }
 
       const fields = await storage.getExtractionFields(extractionId);
       res.json(fields.map((f) => ({ ...f, confidenceLevel: getConfidenceLevel(f.confidence) })));
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to get extraction fields", error);
+      logAndSendError(res, "Failed to get extraction fields", error, "DOCS-012");
     }
   });
 
   app.patch("/api/documents/fields/:fieldId/status", requireAuth, async (req, res) => {
     try {
       const fieldId = parseRouteId(req.params.fieldId);
-      if (!fieldId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid field ID" });
+      if (!fieldId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid field ID", code: "DOCS-056" });
       const validation = fieldStatusSchema.safeParse(req.body);
       if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       const { status } = validation.data;
 
       const existingField = await storage.getExtractionField(fieldId);
-      if (!existingField) return res.status(HTTP_404_NOT_FOUND).json({ error: "Field not found" });
+      if (!existingField) return res.status(HTTP_404_NOT_FOUND).json({ error: "Field not found", code: "DOCS-057" });
       const ownerExtraction = await storage.getDocumentExtraction(existingField.extractionId);
       if (!ownerExtraction || !(await checkPropertyAccess(getAuthUser(req), ownerExtraction.propertyId))) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "DOCS-058" });
       }
 
       const updated = await storage.updateExtractionFieldStatus(fieldId, status);
-      if (!updated) return res.status(HTTP_404_NOT_FOUND).json({ error: "Field not found" });
+      if (!updated) return res.status(HTTP_404_NOT_FOUND).json({ error: "Field not found", code: "DOCS-059" });
 
       if (status === "approved" && updated.mappedPropertyField) {
         if (WRITABLE_EXTRACTION_FIELDS.has(updated.mappedPropertyField)) {
@@ -550,22 +550,22 @@ export function register(app: Express) {
 
       res.json({ ...updated, confidenceLevel: getConfidenceLevel(updated.confidence) });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update field status", error);
+      logAndSendError(res, "Failed to update field status", error, "DOCS-013");
     }
   });
 
   app.post("/api/documents/fields/:extractionId/bulk-status", requireAuth, async (req, res) => {
     try {
       const extractionId = parseRouteId(req.params.extractionId);
-      if (!extractionId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid extraction ID" });
+      if (!extractionId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid extraction ID", code: "DOCS-060" });
       const validation = fieldStatusSchema.safeParse(req.body);
       if (!validation.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       const { status } = validation.data;
 
       const extraction = await storage.getDocumentExtraction(extractionId);
-      if (!extraction) return res.status(HTTP_404_NOT_FOUND).json({ error: "Extraction not found" });
+      if (!extraction) return res.status(HTTP_404_NOT_FOUND).json({ error: "Extraction not found", code: "DOCS-061" });
       if (!await checkPropertyAccess(getAuthUser(req), extraction.propertyId)) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "DOCS-062" });
       }
 
       if (status === "approved") {
@@ -594,7 +594,7 @@ export function register(app: Express) {
       const updatedFields = await storage.getExtractionFields(extractionId);
       res.json(updatedFields.map((f) => ({ ...f, confidenceLevel: getConfidenceLevel(f.confidence) })));
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to bulk update fields", error);
+      logAndSendError(res, "Failed to bulk update fields", error, "DOCS-014");
     }
   });
 
@@ -613,10 +613,10 @@ export function register(app: Express) {
       const data = schema.parse(req.body);
 
       const property = await checkPropertyAccess(getAuthUser(req), data.propertyId);
-      if (!property) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+      if (!property) return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "DOCS-063" });
 
       const globalAssumptions = await storage.getGlobalAssumptions();
-      if (!globalAssumptions) return res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Global assumptions not found" });
+      if (!globalAssumptions) return res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Global assumptions not found", code: "DOCS-064" });
 
       const senderName = [getAuthUser(req).firstName, getAuthUser(req).lastName].filter(Boolean).join(" ") || getAuthUser(req).email;
       const defaultExitCapRate = (await resolveDefault<number>("mc.tax_exit.exitCapRate")) ?? DEFAULT_EXIT_CAP_RATE;
@@ -632,7 +632,7 @@ export function register(app: Express) {
 
       res.json({ html: rendered.html, subject: rendered.subject });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to preview template", error);
+      logAndSendError(res, "Failed to preview template", error, "DOCS-015");
     }
   });
 }

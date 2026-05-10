@@ -72,7 +72,7 @@ router.get(
     try {
       const propertyId = parseRouteId(req.params.propertyId);
       if (!propertyId) {
-        return res.status(400).json({ error: "Invalid property ID" });
+        return res.status(400).json({ error: "Invalid property ID", code: "EXEC-001" });
       }
 
       const format = req.query.format === "text" ? "text" : "json";
@@ -87,7 +87,7 @@ router.get(
         : res.json(cached);
     } catch (error: unknown) {
       logger.error(`Property executive summary GET failed: ${error}`, "executive-summary");
-      res.status(500).json({ error: "Failed to retrieve executive summary" });
+      res.status(500).json({ error: "Failed to retrieve executive summary", code: "EXEC-002" });
     }
   },
 );
@@ -114,7 +114,7 @@ router.get(
         : res.json(cached);
     } catch (error: unknown) {
       logger.error(`Portfolio executive summary GET failed: ${error}`, "executive-summary");
-      res.status(500).json({ error: "Failed to retrieve portfolio executive summary" });
+      res.status(500).json({ error: "Failed to retrieve portfolio executive summary", code: "EXEC-003" });
     }
   },
 );
@@ -126,18 +126,18 @@ router.post("/api/executive-summary/property/:propertyId/regenerate", requireAut
 
     // Rate limit: 3 req/min
     if (isApiRateLimited(userId, "exec-summary-property", 3)) {
-      return res.status(429).json({ error: "Rate limited — 3 requests per minute" });
+      return res.status(429).json({ error: "Rate limited — 3 requests per minute", code: "EXEC-004" });
     }
 
     try {
       const propertyId = parseRouteId(req.params.propertyId);
       if (!propertyId) {
-        return res.status(400).json({ error: "Invalid property ID" });
+        return res.status(400).json({ error: "Invalid property ID", code: "EXEC-005" });
       }
 
       const property = await storage.getProperty(propertyId);
       if (!property || property.userId !== userId) {
-        return res.status(404).json({ error: "Property not found" });
+        return res.status(404).json({ error: "Property not found", code: "EXEC-006" });
       }
 
       // Invalidate cache
@@ -165,7 +165,7 @@ router.post("/api/executive-summary/property/:propertyId/regenerate", requireAut
       res.json(summary);
     } catch (error: unknown) {
       logger.error(`Property executive summary regeneration failed: ${error}`, "executive-summary");
-      res.status(500).json({ error: "Failed to regenerate executive summary" });
+      res.status(500).json({ error: "Failed to regenerate executive summary", code: "EXEC-007" });
     }
   },
 );

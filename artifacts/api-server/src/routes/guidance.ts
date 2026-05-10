@@ -71,7 +71,7 @@ export function register(app: Express) {
 
       const { entityType, entityId } = params.data;
       if (!(await checkEntityAccess(getAuthUser(req), entityType, entityId))) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "GUID-010" });
       }
 
       const query = guidanceQuerySchema.safeParse(req.query);
@@ -98,7 +98,7 @@ export function register(app: Express) {
         coveragePct: guidance.length > 0 ? Math.round((freshCount / guidance.length) * 100) : 0,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch coverage", error);
+      logAndSendError(res, "Failed to fetch coverage", error, "GUID-001");
     }
   });
 
@@ -112,7 +112,7 @@ export function register(app: Express) {
 
       const { entityId } = params.data;
       if (!(await checkEntityAccess(getAuthUser(req), "company", entityId))) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "GUID-011" });
       }
 
       const guidance = await storage.getAssumptionGuidance(null, "company", entityId);
@@ -123,7 +123,7 @@ export function register(app: Express) {
 
       res.json(enriched);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch enriched company guidance", error);
+      logAndSendError(res, "Failed to fetch enriched company guidance", error, "GUID-002");
     }
   });
 
@@ -134,7 +134,7 @@ export function register(app: Express) {
 
       const { entityType, entityId } = params.data;
       if (!(await checkEntityAccess(getAuthUser(req), entityType, entityId))) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "GUID-012" });
       }
 
       const query = guidanceQuerySchema.safeParse(req.query);
@@ -158,7 +158,7 @@ export function register(app: Express) {
         confidenceSummary,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch guidance", error);
+      logAndSendError(res, "Failed to fetch guidance", error, "GUID-003");
     }
   });
 
@@ -170,7 +170,7 @@ export function register(app: Express) {
 
       const { entityType, entityId } = params.data;
       if (!(await checkEntityAccess(getAuthUser(req), entityType, entityId))) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "GUID-013" });
       }
 
       const query = guidanceQuerySchema.safeParse(req.query);
@@ -182,7 +182,7 @@ export function register(app: Express) {
 
       res.json(confidenceBreakdown);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to compute confidence", error);
+      logAndSendError(res, "Failed to compute confidence", error, "GUID-004");
     }
   });
 
@@ -194,7 +194,7 @@ export function register(app: Express) {
       const { entityType, entityId } = params.data;
       const assumptionKey = String(req.params.assumptionKey);
       if (!(await checkEntityAccess(getAuthUser(req), entityType, entityId))) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "GUID-014" });
       }
 
       const query = guidanceQuerySchema.safeParse(req.query);
@@ -212,7 +212,7 @@ export function register(app: Express) {
         confidenceScore: computePerFieldConfidence(match),
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch guidance for key", error);
+      logAndSendError(res, "Failed to fetch guidance for key", error, "GUID-005");
     }
   });
 
@@ -226,10 +226,10 @@ export function register(app: Express) {
 
       const guidanceRecord = await storage.getAssumptionGuidanceById(assumptionGuidanceId);
       if (!guidanceRecord) {
-        return res.status(HTTP_404_NOT_FOUND).json({ error: "Guidance record not found" });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "Guidance record not found", code: "GUID-015" });
       }
       if (!(await checkEntityAccess(user, guidanceRecord.entityType as EntityType, guidanceRecord.entityId))) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "GUID-016" });
       }
 
       const decision = await storage.createGuidanceDecision({
@@ -262,7 +262,7 @@ export function register(app: Express) {
       logActivity(req, "guidance-decision", "guidance", assumptionGuidanceId, action);
       res.status(HTTP_201_CREATED).json(decision);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to record guidance decision", error);
+      logAndSendError(res, "Failed to record guidance decision", error, "GUID-006");
     }
   });
 
@@ -273,13 +273,13 @@ export function register(app: Express) {
 
       const { entityType, entityId } = query.data;
       if (!(await checkEntityAccess(getAuthUser(req), entityType, entityId))) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "GUID-017" });
       }
 
       const runs = await storage.getResearchRuns(entityType, entityId);
       res.json(runs);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch research runs", error);
+      logAndSendError(res, "Failed to fetch research runs", error, "GUID-007");
     }
   });
 
@@ -300,7 +300,7 @@ export function register(app: Express) {
       const user = getAuthUser(req);
 
       if (!(await checkEntityAccess(user, entityType, entityId))) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: `${entityType} access denied` });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: `${entityType} access denied`, code: "GUID-018" });
       }
 
       const ga = await storage.getGlobalAssumptions(user.id);
@@ -334,7 +334,7 @@ export function register(app: Express) {
 
       if (entityType === "property") {
         const property = await storage.getProperty(entityId);
-        if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
+        if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "GUID-019" });
         const icpConfig = (ga?.icpConfig as IcpConfig) ?? null;
         const contextPack = buildPropertyContextPack(property, ga ?? null, icpConfig, recentContext);
         v2Prompt = assembleResearchPrompt(contextPack, {
@@ -369,7 +369,7 @@ export function register(app: Express) {
       }
 
       if (!v2Prompt) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Could not build context for deep-dive" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Could not build context for deep-dive", code: "GUID-020" });
       }
 
       const { modelId } = await resolveLlmFor("research-synthesis");
@@ -412,7 +412,7 @@ export function register(app: Express) {
           durationMs: Date.now() - startTime,
           error: "AI research did not return valid JSON",
         });
-        return res.status(HTTP_502_BAD_GATEWAY).json({ error: "AI research did not return valid JSON" });
+        return res.status(HTTP_502_BAD_GATEWAY).json({ error: "AI research did not return valid JSON", code: "GUID-021" });
       }
 
       const guidanceResult = extractGuidance(researchResult as Record<string, unknown>, 2, entityType);
@@ -453,7 +453,7 @@ export function register(app: Express) {
         errors: guidanceResult.errors,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Tier 2 deep-dive failed", error);
+      logAndSendError(res, "Tier 2 deep-dive failed", error, "GUID-008");
     }
   });
 
@@ -467,18 +467,18 @@ export function register(app: Express) {
     try {
       const id = Number(req.params.id);
       if (!Number.isFinite(id) || id <= 0) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid id" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid id", code: "GUID-022" });
       }
       const user = getAuthUser(req);
       const record = await storage.getAssumptionGuidanceById(id);
-      if (!record) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
+      if (!record) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found", code: "GUID-023" });
       if (!(await checkEntityAccess(user, record.entityType as EntityType, record.entityId))) {
-        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied" });
+        return res.status(HTTP_403_FORBIDDEN).json({ error: "Access denied", code: "GUID-024" });
       }
       await storage.deleteAssumptionGuidance(id);
       res.status(HTTP_204_NO_CONTENT).end();
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to delete guidance record", error);
+      logAndSendError(res, "Failed to delete guidance record", error, "GUID-009");
     }
   });
 }

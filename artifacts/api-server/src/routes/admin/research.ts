@@ -279,19 +279,19 @@ export function registerResearchConfigRoutes(app: Express) {
   app.get("/api/admin/research-config", requireAdmin, async (_req, res) => {
     try {
       const ga = await storage.getGlobalAssumptions();
-      if (!ga) return res.status(404).json({ error: "No global assumptions found" });
+      if (!ga) return res.status(404).json({ error: "No global assumptions found", code: "ARSH-006" });
       const raw = (ga.researchConfig as ResearchConfig) ?? {};
       const normalized = normalizeServerResearchConfig(raw);
       res.json(normalized);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch research config", error);
+      logAndSendError(res, "Failed to fetch research config", error, "ARSH-001");
     }
   });
 
   app.post("/api/admin/ai-models/refresh", requireAdmin, async (req, res) => {
     try {
       if (isApiRateLimited(getAuthUser(req).id, "ai-models-refresh", 1)) {
-        return res.status(429).json({ error: "Model refresh rate-limited to 1 per minute" });
+        return res.status(429).json({ error: "Model refresh rate-limited to 1 per minute", code: "ARSH-007" });
       }
       const [openai, anthropic, google, xai, deepseek, meta] = await Promise.all([
         fetchOpenAIModels(),
@@ -325,7 +325,7 @@ export function registerResearchConfigRoutes(app: Express) {
         fromCache: models.length === 0,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to refresh AI models", error);
+      logAndSendError(res, "Failed to refresh AI models", error, "ARSH-002");
     }
   });
 
@@ -333,11 +333,11 @@ export function registerResearchConfigRoutes(app: Express) {
     try {
       const parsed = researchConfigSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid research config", details: parsed.error.flatten() });
+        return res.status(400).json({ error: "Invalid research config", details: parsed.error.flatten() , code: "ARSH-010" });
       }
 
       const ga = await storage.getGlobalAssumptions();
-      if (!ga) return res.status(404).json({ error: "No global assumptions found" });
+      if (!ga) return res.status(404).json({ error: "No global assumptions found", code: "ARSH-008" });
 
       const incoming = parsed.data;
       const current: ResearchConfig = (ga.researchConfig as ResearchConfig) ?? {};
@@ -373,7 +373,7 @@ export function registerResearchConfigRoutes(app: Express) {
       logActivity(req, "update-research-config", "research", null, null, { events: Object.keys(incoming).filter(k => k !== "cachedModels" && k !== "cachedModelsAt") });
       res.json(merged);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update research config", error);
+      logAndSendError(res, "Failed to update research config", error, "ARSH-003");
     }
   });
 
@@ -393,14 +393,14 @@ export function registerResearchConfigRoutes(app: Express) {
       }
       res.json({ ...state, status: "ready" });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch LLM registry", error);
+      logAndSendError(res, "Failed to fetch LLM registry", error, "ARSH-004");
     }
   });
 
   app.post("/api/admin/llm-registry/refresh", requireAdmin, async (req, res) => {
     try {
       if (isApiRateLimited(getAuthUser(req).id, "llm-registry-refresh", 1)) {
-        return res.status(429).json({ error: "LLM registry refresh rate-limited to 1 per minute" });
+        return res.status(429).json({ error: "LLM registry refresh rate-limited to 1 per minute", code: "ARSH-009" });
       }
       const state = await refreshLlmRegistry();
       logActivity(req, "refresh-llm-registry", "intelligence", null, null, {
@@ -410,7 +410,7 @@ export function registerResearchConfigRoutes(app: Express) {
       });
       res.json({ ...state, status: "ready" });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to refresh LLM registry", error);
+      logAndSendError(res, "Failed to refresh LLM registry", error, "ARSH-005");
     }
   });
 }

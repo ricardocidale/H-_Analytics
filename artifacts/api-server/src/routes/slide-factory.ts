@@ -65,7 +65,7 @@ router.post("/api/lb-slides/factory/runs", requireAdmin, async (req: Request, re
     logActivity(req, "create", "slide_factory_run", run.id, `run-${run.id}`);
     return res.status(HTTP_201_CREATED).json(run);
   } catch (err: unknown) {
-    logAndSendError(res, "Failed to create slide factory run", err);
+    logAndSendError(res, "Failed to create slide factory run", err, "SLDF-001");
   }
 });
 
@@ -76,7 +76,7 @@ router.get("/api/lb-slides/factory/runs", requireAdmin, async (req: Request, res
     const runs = await listSlideFactoryRuns(user.id);
     return res.status(HTTP_200_OK).json(runs);
   } catch (err: unknown) {
-    logAndSendError(res, "Failed to list slide factory runs", err);
+    logAndSendError(res, "Failed to list slide factory runs", err, "SLDF-002");
   }
 });
 
@@ -85,12 +85,12 @@ router.get("/api/lb-slides/factory/runs/:id", requireAdmin, async (req: Request,
   try {
     const user = getAuthUser(req);
     const id = parseRouteId(req.params.id);
-    if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID" });
+    if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID", code: "SLDF-014" });
     const run = await getSlideFactoryRun(id, user.id);
-    if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
+    if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found", code: "SLDF-015" });
     return res.status(HTTP_200_OK).json(run);
   } catch (err: unknown) {
-    logAndSendError(res, "Failed to get slide factory run", err);
+    logAndSendError(res, "Failed to get slide factory run", err, "SLDF-003");
   }
 });
 
@@ -110,7 +110,7 @@ router.post(
     try {
       const user = getAuthUser(req);
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID", code: "SLDF-016" });
 
       const parsed = briefSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -118,11 +118,11 @@ router.post(
       }
 
       const run = await getSlideFactoryRun(id, user.id);
-      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
+      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found", code: "SLDF-017" });
       if (run.status !== "new") {
         return res.status(HTTP_409_CONFLICT).json({
           error: `Brief can only be uploaded when status is 'new', current: '${run.status}'`,
-        });
+        code: "SLDF-043" });
       }
 
       const updated = await updateSlideFactoryRun(id, {
@@ -132,7 +132,7 @@ router.post(
       logActivity(req, "update", "slide_factory_run", id, `run-${id}`, { action: "brief-uploaded" });
       return res.status(HTTP_200_OK).json(updated);
     } catch (err: unknown) {
-      logAndSendError(res, "Failed to record brief upload", err);
+      logAndSendError(res, "Failed to record brief upload", err, "SLDF-004");
     }
   },
 );
@@ -147,17 +147,17 @@ router.post(
     try {
       const user = getAuthUser(req);
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID", code: "SLDF-018" });
 
       const run = await getSlideFactoryRun(id, user.id);
-      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
+      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found", code: "SLDF-019" });
       if (!run.briefR2Key) {
-        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "No brief uploaded yet" });
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "No brief uploaded yet", code: "SLDF-020" });
       }
       if (run.status !== "new") {
         return res.status(HTTP_409_CONFLICT).json({
           error: `Brief can only be accepted when status is 'new', current: '${run.status}'`,
-        });
+        code: "SLDF-044" });
       }
 
       const ingesting = await updateSlideFactoryRun(id, {
@@ -172,7 +172,7 @@ router.post(
 
       return res.status(HTTP_202_ACCEPTED).json(ingesting);
     } catch (err: unknown) {
-      logAndSendError(res, "Failed to accept brief", err);
+      logAndSendError(res, "Failed to accept brief", err, "SLDF-005");
     }
   },
 );
@@ -189,17 +189,17 @@ router.post(
     try {
       const user = getAuthUser(req);
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID", code: "SLDF-021" });
 
       const run = await getSlideFactoryRun(id, user.id);
-      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
+      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found", code: "SLDF-022" });
       if (!run.briefR2Key) {
-        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "No brief uploaded yet" });
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "No brief uploaded yet", code: "SLDF-023" });
       }
       if (run.status !== "brief_ready") {
         return res.status(HTTP_409_CONFLICT).json({
           error: `Ingestion requires status 'brief_ready', current: '${run.status}'`,
-        });
+        code: "SLDF-045" });
       }
 
       const ingesting = await updateSlideFactoryRun(id, {
@@ -215,7 +215,7 @@ router.post(
 
       return res.status(HTTP_202_ACCEPTED).json(ingesting);
     } catch (err: unknown) {
-      logAndSendError(res, "Failed to trigger ingestion", err);
+      logAndSendError(res, "Failed to trigger ingestion", err, "SLDF-006");
     }
   },
 );
@@ -238,7 +238,7 @@ router.post(
     try {
       const user = getAuthUser(req);
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID", code: "SLDF-024" });
 
       const parsed = propertiesSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -246,11 +246,11 @@ router.post(
       }
 
       const run = await getSlideFactoryRun(id, user.id);
-      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
+      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found", code: "SLDF-025" });
       if (run.status !== "ingested") {
         return res.status(HTTP_409_CONFLICT).json({
           error: `Property assignments require status 'ingested', current: '${run.status}'`,
-        });
+        code: "SLDF-046" });
       }
 
       // Verify ownership of each non-null property ID
@@ -267,7 +267,7 @@ router.post(
         if (!prop || prop.userId !== user.id) {
           return res.status(HTTP_400_BAD_REQUEST).json({
             error: `Property ID ${propId} for ${field} not found or not owned by you`,
-          });
+          code: "SLDF-047" });
         }
       }
 
@@ -285,7 +285,7 @@ router.post(
 
       return res.status(HTTP_202_ACCEPTED).json(drafting);
     } catch (err: unknown) {
-      logAndSendError(res, "Failed to set property assignments", err);
+      logAndSendError(res, "Failed to set property assignments", err, "SLDF-007");
     }
   },
 );
@@ -318,11 +318,11 @@ router.patch(
     try {
       const user = getAuthUser(req);
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID", code: "SLDF-026" });
 
       const rawKey = req.params.key;
       if (!rawKey || Array.isArray(rawKey)) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Missing or invalid slot key" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Missing or invalid slot key", code: "SLDF-027" });
       }
       const slotKey: string = rawKey;
 
@@ -341,20 +341,20 @@ router.patch(
       }
 
       const run = await getSlideFactoryRun(id, user.id);
-      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
+      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found", code: "SLDF-028" });
       const slotEditAllowed = run.status === "draft_review" || run.status === "complete";
       if (!slotEditAllowed) {
         return res.status(HTTP_409_CONFLICT).json({
           error: `Slot edits require status 'draft_review' or 'complete', current: '${run.status}'`,
-        });
+        code: "SLDF-048" });
       }
       if (!run.luccaDraft) {
-        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "No Lucca draft present" });
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "No Lucca draft present", code: "SLDF-029" });
       }
 
       const existing = run.luccaDraft[slotKey];
       if (!existing) {
-        return res.status(HTTP_404_NOT_FOUND).json({ error: `Slot '${slotKey}' not found in draft` });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: `Slot '${slotKey}' not found in draft`, code: "SLDF-030" });
       }
 
       const valueChanged = parsed.data.value !== undefined && parsed.data.value !== existing.value;
@@ -395,7 +395,7 @@ router.patch(
       });
       return res.status(HTTP_200_OK).json(updated);
     } catch (err: unknown) {
-      logAndSendError(res, "Failed to update slot", err);
+      logAndSendError(res, "Failed to update slot", err, "SLDF-008");
     }
   },
 );
@@ -410,17 +410,17 @@ router.post(
     try {
       const user = getAuthUser(req);
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID", code: "SLDF-031" });
 
       const run = await getSlideFactoryRun(id, user.id);
-      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
+      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found", code: "SLDF-032" });
       if (run.status !== "draft_review") {
         return res.status(HTTP_409_CONFLICT).json({
           error: `Approve-all requires status 'draft_review', current: '${run.status}'`,
-        });
+        code: "SLDF-049" });
       }
       if (!run.luccaDraft) {
-        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "No Lucca draft present" });
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "No Lucca draft present", code: "SLDF-033" });
       }
 
       const now = new Date().toISOString();
@@ -437,7 +437,7 @@ router.post(
       logActivity(req, "update", "slide_factory_run", id, `run-${id}`, { action: "all-slots-approved" });
       return res.status(HTTP_200_OK).json(updated);
     } catch (err: unknown) {
-      logAndSendError(res, "Failed to approve all slots", err);
+      logAndSendError(res, "Failed to approve all slots", err, "SLDF-009");
     }
   },
 );
@@ -452,23 +452,23 @@ router.post(
     try {
       const user = getAuthUser(req);
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID", code: "SLDF-034" });
 
       const run = await getSlideFactoryRun(id, user.id);
-      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
+      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found", code: "SLDF-035" });
 
       const allowedStatuses = ["draft_review", "error"] as const;
       if (!(allowedStatuses as readonly string[]).includes(run.status)) {
         return res.status(HTTP_409_CONFLICT).json({
           error: `Trigger-build requires status 'draft_review' or 'error', current: '${run.status}'`,
-        });
+        code: "SLDF-050" });
       }
 
       // For draft_review: require all Lucca slots to be approved.
       // For error re-triggers: skip this check — the draft was already approved previously.
       if (run.status === "draft_review") {
         if (!run.luccaDraft) {
-          return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "No Lucca draft present" });
+          return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "No Lucca draft present", code: "SLDF-036" });
         }
         const unapproved = Object.entries(run.luccaDraft)
           .filter(([, slot]) => !slot.approved)
@@ -476,7 +476,7 @@ router.post(
         if (unapproved.length > 0) {
           return res.status(HTTP_409_CONFLICT).json({
             error: `${unapproved.length} slot(s) not yet approved: ${unapproved.slice(0, 3).join(", ")}${unapproved.length > 3 ? "…" : ""}`,
-          });
+          code: "SLDF-051" });
         }
       }
 
@@ -492,7 +492,7 @@ router.post(
 
       return res.status(HTTP_202_ACCEPTED).json(building);
     } catch (err: unknown) {
-      logAndSendError(res, "Failed to trigger build", err);
+      logAndSendError(res, "Failed to trigger build", err, "SLDF-010");
     }
   },
 );
@@ -507,14 +507,14 @@ router.post(
     try {
       const user = getAuthUser(req);
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID", code: "SLDF-037" });
 
       const run = await getSlideFactoryRun(id, user.id);
-      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
+      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found", code: "SLDF-038" });
       if (run.status !== "building") {
         return res.status(HTTP_409_CONFLICT).json({
           error: `Cancel requires status 'building', current: '${run.status}'`,
-        });
+        code: "SLDF-052" });
       }
 
       const cancelled = await updateSlideFactoryRun(id, {
@@ -524,7 +524,7 @@ router.post(
       logActivity(req, "update", "slide_factory_run", id, `run-${id}`, { action: "build-cancelled" });
       return res.status(HTTP_200_OK).json(cancelled);
     } catch (err: unknown) {
-      logAndSendError(res, "Failed to cancel slide factory run", err);
+      logAndSendError(res, "Failed to cancel slide factory run", err, "SLDF-011");
     }
   },
 );
@@ -542,20 +542,20 @@ router.post(
     try {
       const user = getAuthUser(req);
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID", code: "SLDF-039" });
 
       const run = await getSlideFactoryRun(id, user.id);
-      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
+      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found", code: "SLDF-040" });
 
       if (run.status === "rebuilding") {
         return res.status(HTTP_409_CONFLICT).json({
           error: "A rebuild is already in progress for this run",
-        });
+        code: "SLDF-053" });
       }
       if (run.status !== "complete") {
         return res.status(HTTP_409_CONFLICT).json({
           error: `Rebuild requires status 'complete', current: '${run.status}'`,
-        });
+        code: "SLDF-054" });
       }
 
       const rebuilding = await updateSlideFactoryRun(id, { status: "rebuilding" });
@@ -600,7 +600,7 @@ router.post(
 
       return res.status(HTTP_202_ACCEPTED).json(rebuilding);
     } catch (err: unknown) {
-      logAndSendError(res, "Failed to start rebuild", err);
+      logAndSendError(res, "Failed to start rebuild", err, "SLDF-012");
     }
   },
 );
@@ -617,19 +617,19 @@ router.get(
     try {
       const user = getAuthUser(req);
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID", code: "SLDF-041" });
 
       const run = await getSlideFactoryRun(id, user.id);
-      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
+      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found", code: "SLDF-042" });
       if (!run.deckR2Key) {
         return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
           error: "Deck PDF not yet generated for this run",
-        });
+        code: "SLDF-055" });
       }
       if (run.status !== "complete") {
         return res.status(HTTP_409_CONFLICT).json({
           error: `Deck not ready — run status is ${run.status}`,
-        });
+        code: "SLDF-056" });
       }
 
       const sp = await getStorageProviderAsync();
@@ -643,7 +643,7 @@ router.get(
       res.setHeader("Cache-Control", "no-store");
       return res.send(buffer);
     } catch (err: unknown) {
-      logAndSendError(res, "Failed to download factory deck", err);
+      logAndSendError(res, "Failed to download factory deck", err, "SLDF-013");
     }
   },
 );

@@ -264,12 +264,12 @@ router.get(
   async (req: Request, res: Response) => {
     const propertyId = parseRouteId(req.params.id);
     if (!propertyId) {
-      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID", code: "PPDF-001" });
     }
 
     const property = await storage.getProperty(propertyId);
     if (!property) {
-      return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
+      return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "PPDF-002" });
     }
 
     const filename = `${slugify(property.name)}-deck.pdf`;
@@ -393,12 +393,12 @@ router.post(
   async (req: Request, res: Response) => {
     const propertyId = parseRouteId(req.params.id);
     if (!propertyId) {
-      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID", code: "PPDF-003" });
     }
 
     const property = await storage.getProperty(propertyId);
     if (!property) {
-      return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
+      return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "PPDF-004" });
     }
 
     const user = getAuthUser(req);

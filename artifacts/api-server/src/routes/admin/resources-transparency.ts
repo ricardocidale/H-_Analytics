@@ -272,7 +272,7 @@ export function registerResourceTransparencyRoutes(app: Express) {
 
       res.json(enriched);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to load resources transparency view", error);
+      logAndSendError(res, "Failed to load resources transparency view", error, "ARTR-001");
     }
   });
 
@@ -422,7 +422,7 @@ export function registerResourceTransparencyRoutes(app: Express) {
         },
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to load resource gaps banner", error);
+      logAndSendError(res, "Failed to load resource gaps banner", error, "ARTR-002");
     }
   });
 
@@ -431,7 +431,7 @@ export function registerResourceTransparencyRoutes(app: Express) {
     try {
       const { id } = idParamSchema.parse(req.params);
       const row = await storage.getAdminResourceById(id);
-      if (!row) return res.status(404).json({ error: "Resource not found" });
+      if (!row) return res.status(404).json({ error: "Resource not found", code: "ARTR-009" });
 
       const now = new Date();
       const latest = await storage.getLatestHealthCheck(id);
@@ -495,7 +495,7 @@ export function registerResourceTransparencyRoutes(app: Express) {
         recentCalls: recentCalls.slice(0, 25),
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to load resource transparency detail", error);
+      logAndSendError(res, "Failed to load resource transparency detail", error, "ARTR-003");
     }
   });
 
@@ -507,7 +507,7 @@ export function registerResourceTransparencyRoutes(app: Express) {
     try {
       const specialistId = String(req.params.id);
       const def = getSpecialistById(specialistId);
-      if (!def) return res.status(404).json({ error: "Specialist not found" });
+      if (!def) return res.status(404).json({ error: "Specialist not found", code: "ARTR-010" });
 
       const existing = await storage.getLatestQualitySnapshot(specialistId);
       const stale = !existing || Date.now() - new Date(existing.computedAt).getTime() > QUALITY_TTL_MS;
@@ -515,7 +515,7 @@ export function registerResourceTransparencyRoutes(app: Express) {
         await recomputeAndRecordSpecialistQuality(specialistId);
       }
       const snap = await storage.getLatestQualitySnapshot(specialistId);
-      if (!snap) return res.status(500).json({ error: "Quality snapshot unavailable" });
+      if (!snap) return res.status(500).json({ error: "Quality snapshot unavailable", code: "ARTR-011" });
 
       res.json({
         specialistId,
@@ -525,7 +525,7 @@ export function registerResourceTransparencyRoutes(app: Express) {
         computedAt: new Date(snap.computedAt).toISOString(),
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to load specialist quality", error);
+      logAndSendError(res, "Failed to load specialist quality", error, "ARTR-004");
     }
   });
 
@@ -539,7 +539,7 @@ export function registerResourceTransparencyRoutes(app: Express) {
     try {
       const specialistId = String(req.params.id);
       const def = getSpecialistById(specialistId);
-      if (!def) return res.status(404).json({ error: "Specialist not found" });
+      if (!def) return res.status(404).json({ error: "Specialist not found", code: "ARTR-012" });
 
       const limitParsed = z
         .object({ limit: z.coerce.number().int().min(1).max(100).optional() })
@@ -563,7 +563,7 @@ export function registerResourceTransparencyRoutes(app: Express) {
         }));
       res.json({ specialistId, points });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to load specialist quality history", error);
+      logAndSendError(res, "Failed to load specialist quality history", error, "ARTR-005");
     }
   });
 
@@ -597,7 +597,7 @@ export function registerResourceTransparencyRoutes(app: Express) {
       const limit = limitParsed.data.limit ?? 30;
 
       const row = await storage.getAdminResourceById(id);
-      if (!row) return res.status(404).json({ error: "Resource not found" });
+      if (!row) return res.status(404).json({ error: "Resource not found", code: "ARTR-013" });
 
       const impact = await storage.listResourceImpact(id);
       const specialistIds = Array.from(new Set(impact.map((i) => i.specialistId)));
@@ -627,7 +627,7 @@ export function registerResourceTransparencyRoutes(app: Express) {
 
       res.json({ resourceId: id, histories, aggregate });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to load resource quality history", error);
+      logAndSendError(res, "Failed to load resource quality history", error, "ARTR-006");
     }
   });
 
@@ -636,7 +636,7 @@ export function registerResourceTransparencyRoutes(app: Express) {
     try {
       const specialistId = String(req.params.id);
       const def = getSpecialistById(specialistId);
-      if (!def) return res.status(404).json({ error: "Specialist not found" });
+      if (!def) return res.status(404).json({ error: "Specialist not found", code: "ARTR-014" });
       const result = await recomputeAndRecordSpecialistQuality(specialistId);
       res.json({
         specialistId,
@@ -645,7 +645,7 @@ export function registerResourceTransparencyRoutes(app: Express) {
         signals: result.signals,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to recompute specialist quality", error);
+      logAndSendError(res, "Failed to recompute specialist quality", error, "ARTR-007");
     }
   });
 
@@ -660,7 +660,7 @@ export function registerResourceTransparencyRoutes(app: Express) {
       }
       res.json({ updated: out.length, results: out });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to recompute all specialist quality scores", error);
+      logAndSendError(res, "Failed to recompute all specialist quality scores", error, "ARTR-008");
     }
   });
 }

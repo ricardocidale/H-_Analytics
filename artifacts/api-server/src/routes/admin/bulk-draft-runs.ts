@@ -30,19 +30,19 @@ export function registerBulkDraftRunRoutes(app: Express) {
       const runs = await storage.listBulkDraftRuns();
       res.json(runs);
     } catch (error) {
-      logAndSendError(res, "Failed to list bulk draft runs", error);
+      logAndSendError(res, "Failed to list bulk draft runs", error, "ABDR-001");
     }
   });
 
   app.post("/api/admin/bulk-draft-runs", requireAdmin, async (req, res) => {
     const parsed = createBulkDraftRunBody.safeParse(req.body);
     if (!parsed.success) {
-      return sendError(res, 400, "Invalid request body");
+      return sendError(res, 400, "Invalid request body", "ABDR-006");
     }
 
     const user = req.user;
     if (!user) {
-      return sendError(res, 401, "Unauthorized");
+      return sendError(res, 401, "Unauthorized", "ABDR-007");
     }
 
     const { propertyResults } = parsed.data;
@@ -78,25 +78,25 @@ export function registerBulkDraftRunRoutes(app: Express) {
 
       res.status(201).json(run);
     } catch (error) {
-      logAndSendError(res, "Failed to save bulk draft run", error);
+      logAndSendError(res, "Failed to save bulk draft run", error, "ABDR-002");
     }
   });
 
   app.delete("/api/admin/bulk-draft-runs/:id", requireAdmin, async (req, res) => {
     const id = parseRouteId(req.params.id);
     if (!id) {
-      return sendError(res, 400, "Invalid run id");
+      return sendError(res, 400, "Invalid run id", "ABDR-008");
     }
 
     try {
       const deleted = await storage.deleteBulkDraftRun(id);
       if (!deleted) {
-        return sendError(res, 404, "Run not found");
+        return sendError(res, 404, "Run not found", "ABDR-009");
       }
       logActivity(req, "delete-bulk-draft-run", "bulk_draft_runs", id);
       res.status(204).end();
     } catch (error) {
-      logAndSendError(res, "Failed to delete bulk draft run", error);
+      logAndSendError(res, "Failed to delete bulk draft run", error, "ABDR-003");
     }
   });
 
@@ -109,14 +109,14 @@ export function registerBulkDraftRunRoutes(app: Express) {
         logActivity(req, "delete-bulk-draft-runs-by-ids", "bulk_draft_runs", null, undefined, { deleted: result.deleted, failed: result.failed.length });
         res.json(result);
       } catch (error) {
-        logAndSendError(res, "Failed to bulk-delete draft runs", error);
+        logAndSendError(res, "Failed to bulk-delete draft runs", error, "ABDR-004");
       }
       return;
     }
 
     const queryParsed = deleteBeforeQuery.safeParse(req.query);
     if (!queryParsed.success) {
-      return sendError(res, 400, "Provide either a JSON body { ids: number[] } or query parameter 'before' (ISO 8601 datetime)");
+      return sendError(res, 400, "Provide either a JSON body { ids: number[] } or query parameter 'before' (ISO 8601 datetime)", "ABDR-010");
     }
 
     const before = new Date(queryParsed.data.before);
@@ -126,7 +126,7 @@ export function registerBulkDraftRunRoutes(app: Express) {
       logActivity(req, "delete-bulk-draft-runs-before", "bulk_draft_runs", null, queryParsed.data.before, { count });
       res.json({ deleted: count });
     } catch (error) {
-      logAndSendError(res, "Failed to delete bulk draft runs", error);
+      logAndSendError(res, "Failed to delete bulk draft runs", error, "ABDR-005");
     }
   });
 }

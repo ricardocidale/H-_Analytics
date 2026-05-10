@@ -123,7 +123,7 @@ export function registerIntelligenceRoutes(app: Express) {
         entities,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch coverage analytics", error);
+      logAndSendError(res, "Failed to fetch coverage analytics", error, "AINT-001");
     }
   });
 
@@ -179,7 +179,7 @@ export function registerIntelligenceRoutes(app: Express) {
         } : null,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch entity coverage detail", error);
+      logAndSendError(res, "Failed to fetch entity coverage detail", error, "AINT-002");
     }
   });
 
@@ -188,14 +188,14 @@ export function registerIntelligenceRoutes(app: Express) {
       const policies = await storage.getPipelinePolicies();
       res.json(policies);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch pipeline policies", error);
+      logAndSendError(res, "Failed to fetch pipeline policies", error, "AINT-003");
     }
   });
 
   app.patch("/api/admin/pipeline-policies/:policyKey", requireAdmin, async (req, res) => {
     try {
       const policyKeyParsed = z.string().min(1).max(100).regex(/^[a-z0-9_-]+$/i).safeParse(req.params.policyKey);
-      if (!policyKeyParsed.success) return res.status(400).json({ error: "Invalid policyKey" });
+      if (!policyKeyParsed.success) return res.status(400).json({ error: "Invalid policyKey", code: "AINT-005" });
       const policyKey = policyKeyParsed.data;
 
       const updateSchema = z.object({
@@ -227,7 +227,7 @@ export function registerIntelligenceRoutes(app: Express) {
       logActivity(req, "update-pipeline-policy", "pipeline_policy", null, policyKey, { fields: Object.keys(parsed.data) });
       res.json(updated);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update pipeline policy", error);
+      logAndSendError(res, "Failed to update pipeline policy", error, "AINT-004");
     }
   });
 

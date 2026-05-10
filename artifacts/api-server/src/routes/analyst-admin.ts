@@ -181,7 +181,7 @@ export async function analystRefreshHandler(req: Request, res: Response) {
     return res.status(400).json({
       error: "Invalid request body",
       details: parsed.error.flatten(),
-    });
+    code: "ANLA-010" });
   }
   const { scope, propertyId, fields, specialistId } = parsed.data;
 
@@ -267,7 +267,7 @@ export async function analystRefreshHandler(req: Request, res: Response) {
     return res.status(429).json({
       error: "Analyst is cooling down",
       retryAfterMs: reservation.retryAfterMs,
-    });
+    code: "ANLA-011" });
   }
   // Slot is held. A failure downstream does NOT release it — the doctrine
   // is a strict 60s budget per admin, even against flaky upstreams.
@@ -313,7 +313,7 @@ export async function analystRefreshHandler(req: Request, res: Response) {
           `mgmt-co.funding v1 failed unexpectedly: ${err instanceof Error ? err.message : String(err)}`,
           "analyst-admin",
         );
-        return logAndSendError(res, "Funding Specialist failed", err, "analyst-admin");
+        return logAndSendError(res, "Funding Specialist failed", err, "ANLA-001");
       }
     }
   }
@@ -344,7 +344,7 @@ export async function analystRefreshHandler(req: Request, res: Response) {
           `mgmt-co.revenue v1 failed unexpectedly: ${err instanceof Error ? err.message : String(err)}`,
           "analyst-admin",
         );
-        return logAndSendError(res, "Revenue Specialist failed", err, "analyst-admin");
+        return logAndSendError(res, "Revenue Specialist failed", err, "ANLA-002");
       }
     }
   }
@@ -375,7 +375,7 @@ export async function analystRefreshHandler(req: Request, res: Response) {
           `mgmt-co.compensation G3 failed unexpectedly: ${err instanceof Error ? err.message : String(err)}`,
           "analyst-admin",
         );
-        return logAndSendError(res, "Compensation Specialist failed", err, "analyst-admin");
+        return logAndSendError(res, "Compensation Specialist failed", err, "ANLA-003");
       }
     }
   }
@@ -406,7 +406,7 @@ export async function analystRefreshHandler(req: Request, res: Response) {
           `mgmt-co.overhead Phase 2 failed unexpectedly: ${err instanceof Error ? err.message : String(err)}`,
           "analyst-admin",
         );
-        return logAndSendError(res, "Overhead Specialist failed", err, "analyst-admin");
+        return logAndSendError(res, "Overhead Specialist failed", err, "ANLA-004");
       }
     }
   }
@@ -437,7 +437,7 @@ export async function analystRefreshHandler(req: Request, res: Response) {
           `mgmt-co.company Phase 2 failed unexpectedly: ${err instanceof Error ? err.message : String(err)}`,
           "analyst-admin",
         );
-        return logAndSendError(res, "Company Specialist failed", err, "analyst-admin");
+        return logAndSendError(res, "Company Specialist failed", err, "ANLA-005");
       }
     }
   }
@@ -468,7 +468,7 @@ export async function analystRefreshHandler(req: Request, res: Response) {
           `mgmt-co.property-defaults Phase 2 failed unexpectedly: ${err instanceof Error ? err.message : String(err)}`,
           "analyst-admin",
         );
-        return logAndSendError(res, "Property Defaults Specialist failed", err, "analyst-admin");
+        return logAndSendError(res, "Property Defaults Specialist failed", err, "ANLA-006");
       }
     }
   }
@@ -506,7 +506,7 @@ export async function analystRefreshHandler(req: Request, res: Response) {
         `portfolio.capitalRaise v1 failed unexpectedly: ${err instanceof Error ? err.message : String(err)}`,
         "analyst-admin",
       );
-      return logAndSendError(res, "Portfolio Capital Raise Specialist failed", err, "analyst-admin");
+      return logAndSendError(res, "Portfolio Capital Raise Specialist failed", err, "ANLA-007");
     }
   }
 
@@ -550,7 +550,7 @@ export async function analystRefreshHandler(req: Request, res: Response) {
         `property.risk-intelligence v1 failed unexpectedly: ${err instanceof Error ? err.message : String(err)}`,
         "analyst-admin",
       );
-      return logAndSendError(res, "Property Risk Intelligence Specialist failed", err, "analyst-admin");
+      return logAndSendError(res, "Property Risk Intelligence Specialist failed", err, "ANLA-008");
     }
   }
 
@@ -606,7 +606,7 @@ export async function analystRefreshHandler(req: Request, res: Response) {
       `analyst-refresh failed: ${err instanceof Error ? err.message : String(err)}`,
       "analyst-admin",
     );
-    return logAndSendError(res, "Analyst refresh failed", err, "analyst-admin");
+    return logAndSendError(res, "Analyst refresh failed", err, "ANLA-009");
   }
 }
 

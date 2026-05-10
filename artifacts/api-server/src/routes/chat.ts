@@ -569,7 +569,7 @@ export function register(app: Express) {
       })));
     } catch (error: unknown) {
       logger.error(`Failed to list conversations: ${error instanceof Error ? error.message : String(error)}`, "chat");
-      res.status(500).json({ error: "Failed to list conversations" });
+      res.status(500).json({ error: "Failed to list conversations", code: "CHAT-001" });
     }
   });
 
@@ -577,13 +577,13 @@ export function register(app: Express) {
     try {
       const conversationId = parseRouteId(req.params.id);
       if (!conversationId) {
-        return res.status(400).json({ error: "Invalid conversation ID" });
+        return res.status(400).json({ error: "Invalid conversation ID", code: "CHAT-002" });
       }
 
       const userId = getAuthUser(req).id;
       const conv = await storage.getRebeccaConversation(conversationId);
       if (!conv || conv.userId !== userId) {
-        return res.status(404).json({ error: "Conversation not found" });
+        return res.status(404).json({ error: "Conversation not found", code: "CHAT-003" });
       }
 
       const messages = await storage.getRebeccaMessages(conversationId);
@@ -621,7 +621,7 @@ export function register(app: Express) {
       });
     } catch (error: unknown) {
       logger.error(`Failed to load conversation: ${error instanceof Error ? error.message : String(error)}`, "chat");
-      res.status(500).json({ error: "Failed to load conversation" });
+      res.status(500).json({ error: "Failed to load conversation", code: "CHAT-004" });
     }
   });
 
@@ -644,10 +644,10 @@ export function register(app: Express) {
 
       const ga = await storage.getGlobalAssumptions(userId);
       if (!ga?.rebeccaEnabled) {
-        return res.status(403).json({ error: "Chat assistant is not enabled" });
+        return res.status(403).json({ error: "Chat assistant is not enabled", code: "CHAT-005" });
       }
       if (authUser.rebeccaOptOut) {
-        return res.status(403).json({ error: "Chat assistant is disabled in your profile settings" });
+        return res.status(403).json({ error: "Chat assistant is disabled in your profile settings", code: "CHAT-006" });
       }
 
       // /help intercept — return capability list without invoking the LLM.
@@ -982,11 +982,11 @@ export function register(app: Express) {
           if (fieldCtx.entityType === "property") {
             const entity = properties.find(p => p.id === fieldCtx.entityId);
             if (!entity) {
-              return res.status(403).json({ error: "Entity not found or access denied" });
+              return res.status(403).json({ error: "Entity not found or access denied", code: "CHAT-007" });
             }
           } else if (fieldCtx.entityType === "company") {
             if (!isAdminRole(authUser.role)) {
-              return res.status(403).json({ error: "Entity not found or access denied" });
+              return res.status(403).json({ error: "Entity not found or access denied", code: "CHAT-008" });
             }
           }
           const ctxPayload = await buildRebeccaContext(userId, fieldCtx);
@@ -1441,9 +1441,9 @@ export function register(app: Express) {
         return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: msg });
       }
       if (msg.includes("API key not configured")) {
-        return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({ error: "Chat service is not available" });
+        return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({ error: "Chat service is not available", code: "CHAT-009" });
       }
-      res.status(500).json({ error: "Failed to generate response" });
+      res.status(500).json({ error: "Failed to generate response", code: "CHAT-010" });
     }
   });
 

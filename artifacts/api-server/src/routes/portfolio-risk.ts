@@ -29,7 +29,7 @@ export function register(app: Express): void {
       const active = allProperties.filter((p: any) => p.isActive !== false);
 
       if (active.length === 0) {
-        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "No active properties in portfolio." });
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "No active properties in portfolio.", code: "PRSK-001" });
       }
 
       const report = computePortfolioRiskScore(active);
@@ -51,7 +51,7 @@ export function register(app: Express): void {
     try {
       const scenarioId = parseRouteId(req.params.id);
       if (!scenarioId) {
-        return res.status(400).json({ error: "Invalid scenario ID." });
+        return res.status(400).json({ error: "Invalid scenario ID.", code: "PRSK-002" });
       }
 
       const user = getAuthUser(req);
@@ -59,14 +59,14 @@ export function register(app: Express): void {
       // Fetch scenario to verify it exists and the user has access
       const scenario = await storage.getScenario(scenarioId);
       if (!scenario) {
-        return res.status(404).json({ error: "Scenario not found." });
+        return res.status(404).json({ error: "Scenario not found.", code: "PRSK-003" });
       }
 
       // Check access: admin sees all, otherwise scenario must belong to user or be shared
       if (!isAdminRole(user.role) && scenario.userId !== user.id) {
         const hasAccess = await checkScenarioAccess(scenarioId, user.id, scenario);
         if (!hasAccess) {
-          return res.status(403).json({ error: "Access denied to this scenario." });
+          return res.status(403).json({ error: "Access denied to this scenario.", code: "PRSK-004" });
         }
       }
 
@@ -79,7 +79,7 @@ export function register(app: Express): void {
       const active = allProperties.filter((p: any) => p.isActive !== false);
 
       if (active.length === 0) {
-        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "No active properties found for this scenario." });
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "No active properties found for this scenario.", code: "PRSK-005" });
       }
 
       const report = computePortfolioRiskScore(active);

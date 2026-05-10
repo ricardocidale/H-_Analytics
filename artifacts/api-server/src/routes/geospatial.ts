@@ -16,7 +16,7 @@ export function register(app: Express) {
   app.post("/api/geocode", requireAuth, async (req, res) => {
     try {
       if (isApiRateLimited(getAuthUser(req).id, "geocode", 20)) {
-        return res.status(429).json({ error: "Rate limit exceeded. Please wait before geocoding again." });
+        return res.status(429).json({ error: "Rate limit exceeded. Please wait before geocoding again.", code: "GEOS-007" });
       }
       const validation = geocodeSchema.safeParse(req.body);
       if (!validation.success) {
@@ -25,29 +25,29 @@ export function register(app: Express) {
 
       const coords = await geocodeAddress(validation.data.address);
       if (!coords) {
-        return res.status(404).json({ error: "Could not geocode address" });
+        return res.status(404).json({ error: "Could not geocode address", code: "GEOS-008" });
       }
 
       res.json(coords);
     } catch (error: unknown) {
-      logAndSendError(res, "Geocoding failed", error);
+      logAndSendError(res, "Geocoding failed", error, "GEOS-001");
     }
   });
 
   app.post("/api/geocode/property/:id", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
-      if (!propertyId) return res.status(400).json({ error: "Invalid property ID" });
+      if (!propertyId) return res.status(400).json({ error: "Invalid property ID", code: "GEOS-009" });
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
-        return res.status(403).json({ error: "Access denied" });
+        return res.status(403).json({ error: "Access denied", code: "GEOS-010" });
       }
       const coords = await geocodeAndUpdateProperty(propertyId);
       if (!coords) {
-        return res.status(404).json({ error: "Could not geocode property address" });
+        return res.status(404).json({ error: "Could not geocode property address", code: "GEOS-011" });
       }
       res.json(coords);
     } catch (error: unknown) {
-      logAndSendError(res, "Property geocoding failed", error);
+      logAndSendError(res, "Property geocoding failed", error, "GEOS-002");
     }
   });
 
@@ -63,7 +63,7 @@ export function register(app: Express) {
       const suggestions = await placesAutocomplete(q, countryBias, stateBias);
       res.json(suggestions);
     } catch (error: unknown) {
-      logAndSendError(res, "Autocomplete failed", error);
+      logAndSendError(res, "Autocomplete failed", error, "GEOS-003");
     }
   });
 
@@ -71,11 +71,11 @@ export function register(app: Express) {
     try {
       const details = await placeDetails(String(req.params.placeId));
       if (!details) {
-        return res.status(404).json({ error: "Place not found" });
+        return res.status(404).json({ error: "Place not found", code: "GEOS-012" });
       }
       res.json(details);
     } catch (error: unknown) {
-      logAndSendError(res, "Place details failed", error);
+      logAndSendError(res, "Place details failed", error, "GEOS-004");
     }
   });
 
@@ -85,7 +85,7 @@ export function register(app: Express) {
       const lng = parseFloat(req.query.lng as string);
 
       if (isNaN(lat) || isNaN(lng)) {
-        return res.status(400).json({ error: "Valid lat and lng are required" });
+        return res.status(400).json({ error: "Valid lat and lng are required", code: "GEOS-013" });
       }
 
       const typesParam = req.query.types as string | undefined;
@@ -98,7 +98,7 @@ export function register(app: Express) {
       const pois = await nearbyPOISearch(lat, lng, types, radius);
       res.json(pois);
     } catch (error: unknown) {
-      logAndSendError(res, "Nearby search failed", error);
+      logAndSendError(res, "Nearby search failed", error, "GEOS-005");
     }
   });
 
@@ -111,7 +111,7 @@ export function register(app: Express) {
       const height = Math.min(parseInt(req.query.h as string, 10) || 300, 640);
 
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-        return res.status(400).json({ error: "Valid lat and lng are required" });
+        return res.status(400).json({ error: "Valid lat and lng are required", code: "GEOS-014" });
       }
 
       const apiKey = process.env.GOOGLE_MAPS_API_KEY;
@@ -178,7 +178,7 @@ export function register(app: Express) {
       await Promise.all(tilePromises);
 
       if (composites.length === 0) {
-        return res.status(502).json({ error: "Failed to fetch satellite tiles" });
+        return res.status(502).json({ error: "Failed to fetch satellite tiles", code: "GEOS-015" });
       }
 
       const cropLeft = halfTilesX * tileSize + offsetX - Math.floor(width / 2);
@@ -209,7 +209,7 @@ export function register(app: Express) {
       res.setHeader("Cache-Control", "public, max-age=86400");
       res.send(result);
     } catch (error: unknown) {
-      logAndSendError(res, "Static map failed", error);
+      logAndSendError(res, "Static map failed", error, "GEOS-006");
     }
   });
 

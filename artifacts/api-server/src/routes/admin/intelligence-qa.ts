@@ -57,20 +57,20 @@ export function registerQaRoutes(app: Express) {
       const ga = await storage.getGlobalAssumptions(user.id);
 
       if (entityType === "property") {
-        if (!entityId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "entityId is required for property" });
+        if (!entityId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "entityId is required for property", code: "AIQA-006" });
         const property = await storage.getProperty(entityId);
-        if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
+        if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "AIQA-007" });
         const icpConfig = (ga?.icpConfig as IcpConfig) ?? null;
         const contextPack = buildPropertyContextPack(property, ga ?? null, icpConfig);
         res.json({ entityType, entityId, entityName: property.name, contextPack });
       } else {
-        if (!ga) return res.status(HTTP_404_NOT_FOUND).json({ error: "Global assumptions not found" });
+        if (!ga) return res.status(HTTP_404_NOT_FOUND).json({ error: "Global assumptions not found", code: "AIQA-008" });
         const allProps = await storage.getAllProperties();
         const contextPack = buildCompanyContextPack(ga, allProps, await buildServiceTemplateSummary());
         res.json({ entityType, entityName: ga.companyName ?? "Management Company", contextPack });
       }
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to preview context pack", error);
+      logAndSendError(res, "Failed to preview context pack", error, "AIQA-001");
     }
   });
 
@@ -88,9 +88,9 @@ export function registerQaRoutes(app: Express) {
       let entityName: string;
 
       if (entityType === "property") {
-        if (!entityId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "entityId is required for property" });
+        if (!entityId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "entityId is required for property", code: "AIQA-009" });
         const property = await storage.getProperty(entityId);
-        if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
+        if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "AIQA-010" });
         entityName = property.name;
         const icpConfig = (ga?.icpConfig as IcpConfig) ?? null;
         const contextPack = buildPropertyContextPack(property, ga ?? null, icpConfig);
@@ -101,7 +101,7 @@ export function registerQaRoutes(app: Express) {
           ambientData: ambientDataStr,
         });
       } else {
-        if (!ga) return res.status(HTTP_404_NOT_FOUND).json({ error: "Global assumptions not found" });
+        if (!ga) return res.status(HTTP_404_NOT_FOUND).json({ error: "Global assumptions not found", code: "AIQA-011" });
         entityName = ga.companyName ?? "Management Company";
         const allProps = await storage.getAllProperties();
         const companyPack = buildCompanyContextPack(ga, allProps, await buildServiceTemplateSummary());
@@ -114,7 +114,7 @@ export function registerQaRoutes(app: Express) {
       }
 
       if (!prompt || prompt.length === 0) {
-        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "Prompt assembly returned empty — check entity data and tier configuration" });
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "Prompt assembly returned empty — check entity data and tier configuration", code: "AIQA-012" });
       }
       const tokenEstimate = Math.ceil(prompt.length / 4);
       const costPerMillionTokens = 3.0;
@@ -131,25 +131,25 @@ export function registerQaRoutes(app: Express) {
         promptLengthChars: prompt.length,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to preview prompt", error);
+      logAndSendError(res, "Failed to preview prompt", error, "AIQA-002");
     }
   });
 
   app.get("/api/admin/integrations/:serviceKey/rotations", requireAdmin, async (req, res) => {
     try {
       const parsed = serviceKeySchema.safeParse(req.params.serviceKey);
-      if (!parsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid serviceKey" });
+      if (!parsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid serviceKey", code: "AIQA-013" });
       const rotations = await storage.getKeyRotationsByService(parsed.data);
       res.json(rotations);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch key rotations", error);
+      logAndSendError(res, "Failed to fetch key rotations", error, "AIQA-003");
     }
   });
 
   app.post("/api/admin/integrations/:serviceKey/rotate-key", requireAdmin, async (req, res) => {
     try {
       const parsed = serviceKeySchema.safeParse(req.params.serviceKey);
-      if (!parsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid serviceKey" });
+      if (!parsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid serviceKey", code: "AIQA-014" });
       const bodySchema = z.object({
         notes: z.string().max(500).optional(),
       });
@@ -169,7 +169,7 @@ export function registerQaRoutes(app: Express) {
       logActivity(req, "rotate-api-key", "integration", null, parsed.data, { notes: body.data.notes });
       res.json({ success: true, rotatedAt: rotation.rotatedAt, id: rotation.id });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to rotate key", error);
+      logAndSendError(res, "Failed to rotate key", error, "AIQA-004");
     }
   });
 
@@ -188,9 +188,9 @@ export function registerQaRoutes(app: Express) {
       const domain = entityType === "property" ? "propertyLlm" : "companyLlm";
 
       if (entityType === "property") {
-        if (!entityId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "entityId is required for property" });
+        if (!entityId) return res.status(HTTP_400_BAD_REQUEST).json({ error: "entityId is required for property", code: "AIQA-015" });
         const property = await storage.getProperty(entityId);
-        if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
+        if (!property) return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "AIQA-016" });
         entityName = property.name;
         const icpConfig = (ga?.icpConfig as IcpConfig) ?? null;
         const contextPack = buildPropertyContextPack(property, ga ?? null, icpConfig);
@@ -200,7 +200,7 @@ export function registerQaRoutes(app: Express) {
           ambientData: ambientDataStr,
         });
       } else {
-        if (!ga) return res.status(HTTP_404_NOT_FOUND).json({ error: "Global assumptions not found" });
+        if (!ga) return res.status(HTTP_404_NOT_FOUND).json({ error: "Global assumptions not found", code: "AIQA-017" });
         entityName = ga.companyName ?? "Management Company";
         const allProps = await storage.getAllProperties();
         const companyPack = buildCompanyContextPack(ga, allProps, await buildServiceTemplateSummary());
@@ -212,7 +212,7 @@ export function registerQaRoutes(app: Express) {
       }
 
       if (!prompt || prompt.length === 0) {
-        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "Prompt assembly returned empty" });
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({ error: "Prompt assembly returned empty", code: "AIQA-018" });
       }
 
       const researchConfig = ga?.researchConfig as ResearchConfig | undefined;
@@ -264,7 +264,7 @@ export function registerQaRoutes(app: Express) {
         durationMs,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to run live test", error);
+      logAndSendError(res, "Failed to run live test", error, "AIQA-005");
     }
   });
 }

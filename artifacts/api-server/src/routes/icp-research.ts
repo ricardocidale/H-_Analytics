@@ -24,14 +24,14 @@ export function register(app: Express) {
   app.post("/api/research/icp/generate", requireAuth, async (req, res) => {
     try {
       if (isApiRateLimited(getAuthUser(req).id, "icp-research", 3)) {
-        return res.status(429).json({ error: "Rate limit exceeded. Please wait a minute." });
+        return res.status(429).json({ error: "Rate limit exceeded. Please wait a minute.", code: "ICPR-003" });
       }
 
       const bodyValidation = icpGenerateSchema.safeParse(req.body);
       if (!bodyValidation.success) return res.status(400).json({ error: zodErrorMessage(bodyValidation.error) });
 
       const ga = await storage.getGlobalAssumptions(getAuthUser(req).id);
-      if (!ga) return res.status(404).json({ error: "No global assumptions found" });
+      if (!ga) return res.status(404).json({ error: "No global assumptions found", code: "ICPR-004" });
 
       const icpConfig = ga.icpConfig || {};
       const assetDescription = ga.assetDescription || "";
@@ -112,11 +112,11 @@ export function register(app: Express) {
   app.get("/api/research/icp", requireAuth, async (req, res) => {
     try {
       const ga = await storage.getGlobalAssumptions(getAuthUser(req).id);
-      if (!ga) return res.status(404).json({ error: "No global assumptions found" });
+      if (!ga) return res.status(404).json({ error: "No global assumptions found", code: "ICPR-005" });
       const icpConfig = ga.icpConfig || {};
       res.json(icpConfig._research || null);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch ICP research", error);
+      logAndSendError(res, "Failed to fetch ICP research", error, "ICPR-001");
     }
   });
 
@@ -127,11 +127,11 @@ export function register(app: Express) {
       const { format, orientation } = bodyValidation.data;
 
       const ga = await storage.getGlobalAssumptions(getAuthUser(req).id);
-      if (!ga) return res.status(404).json({ error: "No global assumptions found" });
+      if (!ga) return res.status(404).json({ error: "No global assumptions found", code: "ICPR-006" });
 
       const icpConfig = ga.icpConfig || {};
       const report = icpConfig._research as IcpResearchReport | undefined;
-      if (!report) return res.status(404).json({ error: "No ICP research report found. Generate one first." });
+      if (!report) return res.status(404).json({ error: "No ICP research report found. Generate one first.", code: "ICPR-007" });
 
       const propertyLabel = ga.propertyLabel || "Hotel";
       const isLandscape = orientation === "landscape";
@@ -149,7 +149,7 @@ export function register(app: Express) {
       }
     } catch (error: unknown) {
       logger.error(`ICP research export error: ${error instanceof Error ? error.message : String(error)}`, "icp-research");
-      logAndSendError(res, "Failed to export ICP research", error);
+      logAndSendError(res, "Failed to export ICP research", error, "ICPR-002");
     }
   });
 }

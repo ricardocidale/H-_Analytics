@@ -36,7 +36,7 @@ export function registerIrisRoutes(app: Express) {
   app.post("/api/admin/iris/run", requireAdmin, async (req, res) => {
     const parsed = triggerBodySchema.safeParse(req.body);
     if (!parsed.success) {
-      return sendError(res, HTTP_400_BAD_REQUEST, "Invalid request body");
+      return sendError(res, HTTP_400_BAD_REQUEST, "Invalid request body", "AIRIS-005");
     }
 
     const { trigger } = parsed.data;
@@ -44,7 +44,7 @@ export function registerIrisRoutes(app: Express) {
     // Fast synchronous in-process check — closes the TOCTOU window for
     // concurrent requests on the same server instance.
     if (irisRunInProgress) {
-      return sendError(res, HTTP_409_CONFLICT, "An Iris run is already in progress");
+      return sendError(res, HTTP_409_CONFLICT, "An Iris run is already in progress", "AIRIS-006");
     }
 
     // DB guard: catches the case where the flag was cleared by a restart
@@ -52,10 +52,10 @@ export function registerIrisRoutes(app: Express) {
     try {
       const latest = await getLatestIrisRun();
       if (latest?.status === "running") {
-        return sendError(res, HTTP_409_CONFLICT, "An Iris run is already in progress");
+        return sendError(res, HTTP_409_CONFLICT, "An Iris run is already in progress", "AIRIS-007");
       }
     } catch (error: unknown) {
-      return logAndSendError(res, "Failed to check Iris run status", error);
+      return logAndSendError(res, "Failed to check Iris run status", error, "AIRIS-001");
     }
 
     irisRunInProgress = true;
@@ -65,7 +65,7 @@ export function registerIrisRoutes(app: Express) {
       run = await insertIrisRun({ trigger, status: "running" });
     } catch (error: unknown) {
       irisRunInProgress = false;
-      return logAndSendError(res, "Failed to create Iris run record", error);
+      return logAndSendError(res, "Failed to create Iris run record", error, "AIRIS-002");
     }
 
     const runId = run.id;
@@ -124,7 +124,7 @@ export function registerIrisRoutes(app: Express) {
       ]);
       res.json({ lastRun, gapsCount: gaps.length });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch Iris status", error);
+      logAndSendError(res, "Failed to fetch Iris status", error, "AIRIS-003");
     }
   });
 
@@ -137,7 +137,7 @@ export function registerIrisRoutes(app: Express) {
       await clearIrisGaps();
       res.json({ cleared: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to clear Iris gaps", error);
+      logAndSendError(res, "Failed to clear Iris gaps", error, "AIRIS-004");
     }
   });
 }

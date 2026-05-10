@@ -155,12 +155,12 @@ export function register(app: Express) {
   app.post("/api/exports/premium", requireAuth, async (req: Request, res: Response) => {
     try {
       if (!req.user?.role || !isAdminRole(req.user.role)) {
-        return res.status(403).json({ error: "Premium exports require admin access" });
+        return res.status(403).json({ error: "Premium exports require admin access", code: "PEXP-001" });
       }
 
       const parsed = premiumExportSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid export request", details: parsed.error.flatten() });
+        return res.status(400).json({ error: "Invalid export request", details: parsed.error.flatten() , code: "PEXP-005" });
       }
 
       const data = parsed.data;
@@ -206,7 +206,7 @@ export function register(app: Express) {
       let exportOutputHash: string | undefined;
 
       if (data.computeRef && !req.user?.id) {
-        return res.status(401).json({ error: "Authentication required for server-recomputed exports" });
+        return res.status(401).json({ error: "Authentication required for server-recomputed exports", code: "PEXP-002" });
       }
       if (data.computeRef && req.user?.id) {
         logger.info(`[server-recompute] Computing export data server-side for user ${req.user.id}`, "premium-export");
@@ -237,7 +237,7 @@ export function register(app: Express) {
 
       const contentType = CONTENT_TYPES[data.format];
       if (!contentType) {
-        return res.status(400).json({ error: `Unsupported format: ${data.format}` });
+        return res.status(400).json({ error: `Unsupported format: ${data.format}`, code: "PEXP-003" });
       }
 
       const safeCompany = (data.companyName || data.entityName).replace(/[^a-zA-Z0-9 ]/g, "").substring(0, 40).trim();
@@ -250,7 +250,7 @@ export function register(app: Express) {
       const buffer = await generateViaTemplatePipeline(data);
       if (buffer.length > MAX_EXPORT_BYTES) {
         logger.error(`Export too large: ${buffer.length} bytes exceeds ${MAX_EXPORT_BYTES} limit`, "premium-export");
-        return res.status(HTTP_413_PAYLOAD_TOO_LARGE).json({ error: "Export exceeds maximum size limit. Try reducing the number of properties or projection years." });
+        return res.status(HTTP_413_PAYLOAD_TOO_LARGE).json({ error: "Export exceeds maximum size limit. Try reducing the number of properties or projection years.", code: "PEXP-004" });
       }
       logger.info(`Premium ${data.format} generated (${buffer.length} bytes)`, "premium-export");
 
@@ -273,9 +273,9 @@ export function register(app: Express) {
       logger.error(`Error: ${errorMsg} ${error instanceof Error ? error.stack || "" : ""}`, "premium-export");
       const format = typeof req.body?.format === "string" ? req.body.format : "unknown";
       if (errorMsg.includes("timed out")) {
-        return res.status(HTTP_504_GATEWAY_TIMEOUT).json({ error: `Export timed out generating ${format.toUpperCase()}. Please try again.`, format });
+        return res.status(HTTP_504_GATEWAY_TIMEOUT).json({ error: `Export timed out generating ${format.toUpperCase()}. Please try again.`, format , code: "PEXP-006" });
       }
-      res.status(500).json({ error: "Premium export generation failed. Please try again.", format });
+      res.status(500).json({ error: "Premium export generation failed. Please try again.", format , code: "PEXP-007" });
     }
   });
 

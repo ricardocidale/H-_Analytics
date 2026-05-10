@@ -25,7 +25,7 @@ export function registerInsightRoute(app: Express) {
     try {
       const parsed = insightRequestSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid request body" });
+        return res.status(400).json({ error: "Invalid request body", code: "CHIN-001" });
       }
 
       const { noiMargin, portfolioIRR, year1Revenue, year1NOI, propertyCount, totalRooms, revenueGrowth } = parsed.data;

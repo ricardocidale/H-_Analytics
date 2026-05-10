@@ -130,7 +130,7 @@ export function registerCatalogRoutes(app: Express) {
       };
       res.json([gustavoRow, ...catalogRows]);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to list specialists", error);
+      logAndSendError(res, "Failed to list specialists", error, "ASCA-001");
     }
   });
 
@@ -207,7 +207,7 @@ export function registerCatalogRoutes(app: Express) {
       const { id } = idParamSchema.parse(req.params);
       const isDefined =
         id === ORCHESTRATOR_SPECIALIST_ID || getSpecialistById(id) !== undefined;
-      if (!isDefined) return res.status(404).json({ error: "Specialist not found" });
+      if (!isDefined) return res.status(404).json({ error: "Specialist not found", code: "ASCA-004" });
 
       const runningCount = await storage.countRunningResearchRunsForSpecialist(id);
       const isRunning = runningCount > 0;
@@ -216,7 +216,7 @@ export function registerCatalogRoutes(app: Express) {
 
       res.json({ isRunning, runningCount, phase });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch specialist run status", error);
+      logAndSendError(res, "Failed to fetch specialist run status", error, "ASCA-002");
     }
   });
 
@@ -260,7 +260,7 @@ export function registerCatalogRoutes(app: Express) {
         });
       }
       const def = getSpecialistById(id);
-      if (!def) return res.status(404).json({ error: "Specialist not found" });
+      if (!def) return res.status(404).json({ error: "Specialist not found", code: "ASCA-005" });
       const config = await storage.getOrCreateSpecialistConfig(id);
       const identityOverride = await storage.getIdentityOverride(id);
       const resolvedIdentity = resolveSpecialistIdentity(
@@ -334,7 +334,7 @@ export function registerCatalogRoutes(app: Express) {
         assignments,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch specialist", error);
+      logAndSendError(res, "Failed to fetch specialist", error, "ASCA-003");
     }
   });
 }

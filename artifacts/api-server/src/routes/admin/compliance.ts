@@ -91,7 +91,7 @@ export function registerComplianceRoutes(app: Express): void {
   app.get("/api/admin/compliance/violations", requireAdmin, async (req, res) => {
     const parsed = violationsQuerySchema.safeParse(req.query);
     if (!parsed.success) {
-      return sendError(res, HTTP_400_BAD_REQUEST, "Invalid query parameters");
+      return sendError(res, HTTP_400_BAD_REQUEST, "Invalid query parameters", "ACMP-006");
     }
     const { severity, resolved, page, limit } = parsed.data;
 
@@ -140,7 +140,7 @@ export function registerComplianceRoutes(app: Express): void {
         limit,
       });
     } catch (error) {
-      return logAndSendError(res, "Failed to list compliance violations", error);
+      return logAndSendError(res, "Failed to list compliance violations", error, "ACMP-001");
     }
   });
 
@@ -154,7 +154,7 @@ export function registerComplianceRoutes(app: Express): void {
     async (req, res) => {
       const id = parseInt(String(req.params.id), 10);
       if (!Number.isFinite(id)) {
-        return sendError(res, HTTP_400_BAD_REQUEST, "Invalid violation id");
+        return sendError(res, HTTP_400_BAD_REQUEST, "Invalid violation id", "ACMP-007");
       }
 
       try {
@@ -168,11 +168,11 @@ export function registerComplianceRoutes(app: Express): void {
           .returning({ id: complianceViolations.id });
 
         if (!updated) {
-          return sendError(res, HTTP_404_NOT_FOUND, "Violation not found");
+          return sendError(res, HTTP_404_NOT_FOUND, "Violation not found", "ACMP-008");
         }
         return res.status(HTTP_200_OK).json({ id: updated.id, resolvedAt: new Date() });
       } catch (error) {
-        return logAndSendError(res, "Failed to resolve violation", error);
+        return logAndSendError(res, "Failed to resolve violation", error, "ACMP-002");
       }
     },
   );
@@ -187,12 +187,12 @@ export function registerComplianceRoutes(app: Express): void {
     async (req, res) => {
       const id = parseInt(String(req.params.id), 10);
       if (!Number.isFinite(id)) {
-        return sendError(res, HTTP_400_BAD_REQUEST, "Invalid violation id");
+        return sendError(res, HTTP_400_BAD_REQUEST, "Invalid violation id", "ACMP-009");
       }
 
       const parsed = acceptBodySchema.safeParse(req.body);
       if (!parsed.success) {
-        return sendError(res, HTTP_400_BAD_REQUEST, "note is required");
+        return sendError(res, HTTP_400_BAD_REQUEST, "note is required", "ACMP-010");
       }
 
       try {
@@ -206,11 +206,11 @@ export function registerComplianceRoutes(app: Express): void {
           .returning({ id: complianceViolations.id });
 
         if (!updated) {
-          return sendError(res, HTTP_404_NOT_FOUND, "Violation not found");
+          return sendError(res, HTTP_404_NOT_FOUND, "Violation not found", "ACMP-011");
         }
         return res.status(HTTP_200_OK).json({ id: updated.id, acceptedAt: new Date() });
       } catch (error) {
-        return logAndSendError(res, "Failed to accept violation", error);
+        return logAndSendError(res, "Failed to accept violation", error, "ACMP-003");
       }
     },
   );
@@ -222,7 +222,7 @@ export function registerComplianceRoutes(app: Express): void {
   app.post("/api/admin/compliance/run", requireAdmin, async (req, res) => {
     const parsed = runBodySchema.safeParse(req.body);
     if (!parsed.success) {
-      return sendError(res, HTTP_400_BAD_REQUEST, "Invalid request body");
+      return sendError(res, HTTP_400_BAD_REQUEST, "Invalid request body", "ACMP-012");
     }
 
     const trigger = parsed.data.trigger as VitoTrigger;
@@ -243,7 +243,7 @@ export function registerComplianceRoutes(app: Express): void {
 
       return res.status(HTTP_202_ACCEPTED).json({ trigger, status: "started", runId });
     } catch (error) {
-      return logAndSendError(res, "Failed to start compliance audit", error);
+      return logAndSendError(res, "Failed to start compliance audit", error, "ACMP-004");
     }
   });
 
@@ -254,7 +254,7 @@ export function registerComplianceRoutes(app: Express): void {
   app.get("/api/admin/compliance/runs", requireAdmin, async (req, res) => {
     const parsed = runsQuerySchema.safeParse(req.query);
     if (!parsed.success) {
-      return sendError(res, HTTP_400_BAD_REQUEST, "Invalid query parameters");
+      return sendError(res, HTTP_400_BAD_REQUEST, "Invalid query parameters", "ACMP-013");
     }
 
     try {
@@ -266,7 +266,7 @@ export function registerComplianceRoutes(app: Express): void {
 
       return res.status(HTTP_200_OK).json({ runs: rows });
     } catch (error) {
-      return logAndSendError(res, "Failed to list compliance runs", error);
+      return logAndSendError(res, "Failed to list compliance runs", error, "ACMP-005");
     }
   });
 }

@@ -122,12 +122,12 @@ export function register(app: Express) {
 
       const conv = await storage.getRebeccaConversation(conversationId);
       if (!conv || conv.userId !== userId) {
-        return res.status(404).json({ error: "Conversation not found" });
+        return res.status(404).json({ error: "Conversation not found", code: "REB-001" });
       }
 
       const dbMessages = await storage.getRebeccaMessages(conversationId);
       if (dbMessages.length === 0) {
-        return res.status(400).json({ error: "No messages in conversation" });
+        return res.status(400).json({ error: "No messages in conversation", code: "REB-002" });
       }
 
       const summary = dbMessages
@@ -160,7 +160,7 @@ export function register(app: Express) {
       return res.json({ success: true, emailId: email.id });
     } catch (err: unknown) {
       logger.error(`Failed to send Rebecca email: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
-      return res.status(500).json({ error: "Failed to send email" });
+      return res.status(500).json({ error: "Failed to send email", code: "REB-003" });
     }
   });
 
@@ -176,7 +176,7 @@ export function register(app: Express) {
 
       const conv = await storage.getRebeccaConversation(conversationId);
       if (!conv || conv.userId !== userId) {
-        return res.status(404).json({ error: "Conversation not found" });
+        return res.status(404).json({ error: "Conversation not found", code: "REB-004" });
       }
 
       const feedback = await storage.createRebeccaFeedback({
@@ -192,7 +192,7 @@ export function register(app: Express) {
       return res.json({ success: true, feedbackId: feedback.id });
     } catch (err: unknown) {
       logger.error(`Failed to store Rebecca feedback: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
-      return res.status(500).json({ error: "Failed to submit feedback" });
+      return res.status(500).json({ error: "Failed to submit feedback", code: "REB-005" });
     }
   });
 
@@ -202,7 +202,7 @@ export function register(app: Express) {
       return res.json(conversations);
     } catch (err: unknown) {
       logger.error(`Failed to list Rebecca conversations: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
-      return res.status(500).json({ error: "Failed to list conversations" });
+      return res.status(500).json({ error: "Failed to list conversations", code: "REB-006" });
     }
   });
 
@@ -210,13 +210,13 @@ export function register(app: Express) {
     try {
       const conversationId = parseRouteId(req.params.id);
       if (!conversationId) {
-        return res.status(400).json({ error: "Invalid conversation ID" });
+        return res.status(400).json({ error: "Invalid conversation ID", code: "REB-007" });
       }
       const messages = await storage.getRebeccaMessages(conversationId);
       return res.json(messages);
     } catch (err: unknown) {
       logger.error(`Failed to list Rebecca messages: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
-      return res.status(500).json({ error: "Failed to list messages" });
+      return res.status(500).json({ error: "Failed to list messages", code: "REB-008" });
     }
   });
 
@@ -227,7 +227,7 @@ export function register(app: Express) {
       return res.json(feedback);
     } catch (err: unknown) {
       logger.error(`Failed to list Rebecca feedback: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
-      return res.status(500).json({ error: "Failed to list feedback" });
+      return res.status(500).json({ error: "Failed to list feedback", code: "REB-009" });
     }
   });
 
@@ -235,7 +235,7 @@ export function register(app: Express) {
     try {
       const feedbackId = parseRouteId(req.params.id);
       if (!feedbackId) {
-        return res.status(400).json({ error: "Invalid feedback ID" });
+        return res.status(400).json({ error: "Invalid feedback ID", code: "REB-010" });
       }
       const statusSchema = z.object({
         status: z.enum(["new", "reviewed", "resolved"]),
@@ -246,14 +246,14 @@ export function register(app: Express) {
       }
       const updated = await storage.updateRebeccaFeedbackStatus(feedbackId, parsed.data.status);
       if (!updated) {
-        return res.status(404).json({ error: "Feedback not found" });
+        return res.status(404).json({ error: "Feedback not found", code: "REB-011" });
       }
       logActivity(req, "update-rebecca-feedback", "rebecca_feedback", feedbackId, parsed.data.status);
       logger.info(`Rebecca feedback ${feedbackId} status updated to ${parsed.data.status}`, "rebecca");
       return res.json(updated);
     } catch (err: unknown) {
       logger.error(`Failed to update Rebecca feedback: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
-      return res.status(500).json({ error: "Failed to update feedback" });
+      return res.status(500).json({ error: "Failed to update feedback", code: "REB-012" });
     }
   });
 
@@ -263,36 +263,36 @@ export function register(app: Express) {
       return res.json(guardrails);
     } catch (err: unknown) {
       logger.error(`Failed to list guardrails: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
-      return res.status(500).json({ error: "Failed to list guardrails" });
+      return res.status(500).json({ error: "Failed to list guardrails", code: "REB-013" });
     }
   });
 
   // Disabled: GuardrailEditor is read-only per specialists-are-dev-defined-only.md.
   // Rebecca guardrails are dev-defined. GET (display) stays live; writes return 405.
   app.post("/api/rebecca/guardrails", requireAuth, requireAdmin, (_req: Request, res: Response) => {
-    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Rebecca guardrails are dev-defined. Edit source code and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
+    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Rebecca guardrails are dev-defined. Edit source code and redeploy. See .claude/rules/specialists-are-dev-defined-only.md", code: "REB-014" });
   });
 
   app.patch("/api/rebecca/guardrails/:id", requireAuth, requireAdmin, (_req: Request, res: Response) => {
-    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Rebecca guardrails are dev-defined. Edit source code and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
+    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Rebecca guardrails are dev-defined. Edit source code and redeploy. See .claude/rules/specialists-are-dev-defined-only.md", code: "REB-015" });
   });
 
   app.delete("/api/rebecca/guardrails/:id", requireAuth, requireAdmin, (_req: Request, res: Response) => {
-    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Rebecca guardrails are dev-defined. Edit source code and redeploy. See .claude/rules/specialists-are-dev-defined-only.md" });
+    res.status(HTTP_405_METHOD_NOT_ALLOWED).json({ error: "Rebecca guardrails are dev-defined. Edit source code and redeploy. See .claude/rules/specialists-are-dev-defined-only.md", code: "REB-016" });
   });
 
   app.get("/api/rebecca/kb/entry/:id", requireAuth, async (req: Request<{ id: string }>, res: Response) => {
     try {
-      if (!/^\d+$/.test(req.params.id)) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid id" });
+      if (!/^\d+$/.test(req.params.id)) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid id", code: "REB-017" });
       const id = Number(req.params.id);
-      if (!Number.isSafeInteger(id) || id <= 0) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid id" });
+      if (!Number.isSafeInteger(id) || id <= 0) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid id", code: "REB-018" });
       const entry = await storage.getRebeccaKBEntry(id);
-      if (!entry) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
-      if (!entry.isActive) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
+      if (!entry) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found", code: "REB-019" });
+      if (!entry.isActive) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found", code: "REB-020" });
       return res.json({ id: entry.id, title: entry.title, content: entry.content, category: entry.category, source: entry.source });
     } catch (err: unknown) {
       logger.error(`Failed to get KB entry: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
-      return res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Failed to get KB entry" });
+      return res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "Failed to get KB entry", code: "REB-021" });
     }
   });
 
@@ -303,7 +303,7 @@ export function register(app: Express) {
       return res.json(entries);
     } catch (err: unknown) {
       logger.error(`Failed to list KB entries: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
-      return res.status(500).json({ error: "Failed to list KB entries" });
+      return res.status(500).json({ error: "Failed to list KB entries", code: "REB-022" });
     }
   });
 
@@ -315,7 +315,7 @@ export function register(app: Express) {
       return res.json({ ...stats, vectorCount: vectorCt });
     } catch (err: unknown) {
       logger.error(`Failed to get KB stats: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
-      return res.status(500).json({ error: "Failed to get KB stats" });
+      return res.status(500).json({ error: "Failed to get KB stats", code: "REB-023" });
     }
   });
 
@@ -334,14 +334,14 @@ export function register(app: Express) {
       return res.json(entry);
     } catch (err: unknown) {
       logger.error(`Failed to create KB entry: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
-      return res.status(500).json({ error: "Failed to create KB entry" });
+      return res.status(500).json({ error: "Failed to create KB entry", code: "REB-024" });
     }
   });
 
   app.patch("/api/rebecca/kb/:id", requireAuth, requireAdmin, async (req: Request<{ id: string }>, res: Response) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid KB entry ID" });
+      if (!id) return res.status(400).json({ error: "Invalid KB entry ID", code: "REB-025" });
 
       const updateSchema = insertRebeccaKBSchema.partial();
       const parsed = updateSchema.safeParse(req.body);
@@ -350,7 +350,7 @@ export function register(app: Express) {
       }
       const user = getAuthUser(req);
       const updated = await storage.updateRebeccaKBEntry(id, parsed.data, user.email);
-      if (!updated) return res.status(404).json({ error: "KB entry not found" });
+      if (!updated) return res.status(404).json({ error: "KB entry not found", code: "REB-026" });
 
       if (updated.isActive) {
         syncKBEntryToVectorStore(updated.id, updated.title, updated.content, updated.category);
@@ -364,17 +364,17 @@ export function register(app: Express) {
       return res.json(updated);
     } catch (err: unknown) {
       logger.error(`Failed to update KB entry: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
-      return res.status(500).json({ error: "Failed to update KB entry" });
+      return res.status(500).json({ error: "Failed to update KB entry", code: "REB-027" });
     }
   });
 
   app.delete("/api/rebecca/kb/:id", requireAuth, requireAdmin, async (req: Request<{ id: string }>, res: Response) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid KB entry ID" });
+      if (!id) return res.status(400).json({ error: "Invalid KB entry ID", code: "REB-028" });
 
       const deleted = await storage.deleteRebeccaKBEntry(id);
-      if (!deleted) return res.status(404).json({ error: "KB entry not found" });
+      if (!deleted) return res.status(404).json({ error: "KB entry not found", code: "REB-029" });
 
       deleteVectors("knowledge-base", [`admin-kb:${id}`]).catch(e =>
         logger.warn(`Vector store delete failed for KB ${id}: ${e instanceof Error ? e.message : e}`, "rebecca")
@@ -384,20 +384,20 @@ export function register(app: Express) {
       return res.json({ success: true });
     } catch (err: unknown) {
       logger.error(`Failed to delete KB entry: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
-      return res.status(500).json({ error: "Failed to delete KB entry" });
+      return res.status(500).json({ error: "Failed to delete KB entry", code: "REB-030" });
     }
   });
 
   app.get("/api/rebecca/kb/:id/history", requireAuth, requireAdmin, async (req: Request<{ id: string }>, res: Response) => {
     try {
       const entryId = parseRouteId(req.params.id);
-      if (!entryId) return res.status(400).json({ error: "Invalid KB entry ID" });
+      if (!entryId) return res.status(400).json({ error: "Invalid KB entry ID", code: "REB-031" });
 
       const history = await storage.getRebeccaKBHistory(entryId);
       return res.json(history);
     } catch (err: unknown) {
       logger.error(`Failed to get KB history: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
-      return res.status(500).json({ error: "Failed to get KB history" });
+      return res.status(500).json({ error: "Failed to get KB history", code: "REB-032" });
     }
   });
 
@@ -405,11 +405,11 @@ export function register(app: Express) {
     try {
       const entryId = parseRouteId(req.params.id);
       const historyId = parseRouteId(req.params.historyId);
-      if (!entryId || !historyId) return res.status(400).json({ error: "Invalid IDs" });
+      if (!entryId || !historyId) return res.status(400).json({ error: "Invalid IDs", code: "REB-033" });
 
       const user = getAuthUser(req);
       const restored = await storage.rollbackRebeccaKBEntry(entryId, historyId, user.email);
-      if (!restored) return res.status(404).json({ error: "History entry not found" });
+      if (!restored) return res.status(404).json({ error: "History entry not found", code: "REB-034" });
 
       if (restored.isActive) {
         syncKBEntryToVectorStore(restored.id, restored.title, restored.content, restored.category);
@@ -423,7 +423,7 @@ export function register(app: Express) {
       return res.json(restored);
     } catch (err: unknown) {
       logger.error(`Failed to rollback KB entry: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
-      return res.status(500).json({ error: "Failed to rollback KB entry" });
+      return res.status(500).json({ error: "Failed to rollback KB entry", code: "REB-035" });
     }
   });
 
@@ -439,7 +439,7 @@ export function register(app: Express) {
       return res.json(fixtures);
     } catch (err: unknown) {
       logger.error(`Failed to list Rebecca fixtures: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
-      return res.status(500).json({ error: "Failed to list fixtures" });
+      return res.status(500).json({ error: "Failed to list fixtures", code: "REB-036" });
     }
   });
 
@@ -475,32 +475,32 @@ export function register(app: Express) {
       // Postgres unique-violation surfaces as a duplicate-key error — translate
       // it to a friendly 409 instead of leaking the internal SQLSTATE.
       if (/duplicate key/i.test(msg) || /rebecca_preview_fixtures_name_uq/i.test(msg)) {
-        return res.status(HTTP_409_CONFLICT).json({ error: "A fixture with that name already exists" });
+        return res.status(HTTP_409_CONFLICT).json({ error: "A fixture with that name already exists", code: "REB-037" });
       }
       logger.error(`Failed to create Rebecca fixture: ${msg}`, "rebecca");
-      return res.status(500).json({ error: "Failed to save fixture" });
+      return res.status(500).json({ error: "Failed to save fixture", code: "REB-038" });
     }
   });
 
   app.patch("/api/rebecca/fixtures/:id", requireAuth, requireAdmin, async (req: Request<{ id: string }>, res: Response) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid fixture ID" });
+      if (!id) return res.status(400).json({ error: "Invalid fixture ID", code: "REB-039" });
       const parsed = updateFixtureSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid request: " + parsed.error.issues[0]?.message });
       }
       const updated = await storage.updateRebeccaPreviewFixture(id, parsed.data);
-      if (!updated) return res.status(404).json({ error: "Fixture not found" });
+      if (!updated) return res.status(404).json({ error: "Fixture not found", code: "REB-040" });
       logActivity(req, "update-rebecca-fixture", "rebecca_preview_fixture", id, updated.name);
       return res.json(updated);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       if (/duplicate key/i.test(msg) || /rebecca_preview_fixtures_name_uq/i.test(msg)) {
-        return res.status(HTTP_409_CONFLICT).json({ error: "A fixture with that name already exists" });
+        return res.status(HTTP_409_CONFLICT).json({ error: "A fixture with that name already exists", code: "REB-041" });
       }
       logger.error(`Failed to update Rebecca fixture: ${msg}`, "rebecca");
-      return res.status(500).json({ error: "Failed to update fixture" });
+      return res.status(500).json({ error: "Failed to update fixture", code: "REB-042" });
     }
   });
 
@@ -510,9 +510,9 @@ export function register(app: Express) {
   app.get("/api/rebecca/fixtures/:id/export", requireAuth, requireAdmin, async (req: Request<{ id: string }>, res: Response) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid fixture ID" });
+      if (!id) return res.status(400).json({ error: "Invalid fixture ID", code: "REB-043" });
       const fixture = await storage.getRebeccaPreviewFixture(id);
-      if (!fixture) return res.status(404).json({ error: "Fixture not found" });
+      if (!fixture) return res.status(404).json({ error: "Fixture not found", code: "REB-044" });
 
       const payload = {
         $kind: FIXTURE_EXPORT_KIND,
@@ -538,7 +538,7 @@ export function register(app: Express) {
       return res.send(JSON.stringify(payload, null, 2));
     } catch (err: unknown) {
       logger.error(`Failed to export Rebecca fixture: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
-      return res.status(500).json({ error: "Failed to export fixture" });
+      return res.status(500).json({ error: "Failed to export fixture", code: "REB-045" });
     }
   });
 
@@ -574,7 +574,7 @@ export function register(app: Express) {
         const path = issue?.path?.length ? issue.path.join(".") : "settings";
         return res.status(400).json({
           error: `Imported settings snapshot is incompatible (${path}): ${issue?.message ?? "validation failed"}`,
-        });
+        code: "REB-054" });
       }
 
       const targetName =
@@ -650,7 +650,7 @@ export function register(app: Express) {
       }
     } catch (err: unknown) {
       logger.error(`Failed to import Rebecca fixture: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
-      return res.status(500).json({ error: "Failed to import fixture" });
+      return res.status(500).json({ error: "Failed to import fixture", code: "REB-046" });
     }
   });
 
@@ -661,7 +661,7 @@ export function register(app: Express) {
     try {
       const fixtures = await storage.listRebeccaPreviewFixtures();
       if (fixtures.length === 0) {
-        return res.status(404).json({ error: "No fixtures to export" });
+        return res.status(404).json({ error: "No fixtures to export", code: "REB-047" });
       }
 
       const bundle: FixtureBundleExport = {
@@ -693,7 +693,7 @@ export function register(app: Express) {
       return res.send(JSON.stringify(bundle, null, 2));
     } catch (err: unknown) {
       logger.error(`Failed to bulk-export Rebecca fixtures: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
-      return res.status(500).json({ error: "Failed to export fixtures" });
+      return res.status(500).json({ error: "Failed to export fixtures", code: "REB-048" });
     }
   });
 
@@ -777,21 +777,21 @@ export function register(app: Express) {
       return res.status(allFailed ? HTTP_422_UNPROCESSABLE_ENTITY : 200).json(summary);
     } catch (err: unknown) {
       logger.error(`Failed to bulk-import Rebecca fixtures: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
-      return res.status(500).json({ error: "Failed to import fixtures" });
+      return res.status(500).json({ error: "Failed to import fixtures", code: "REB-049" });
     }
   });
 
   app.delete("/api/rebecca/fixtures/:id", requireAuth, requireAdmin, async (req: Request<{ id: string }>, res: Response) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid fixture ID" });
+      if (!id) return res.status(400).json({ error: "Invalid fixture ID", code: "REB-050" });
       const deleted = await storage.deleteRebeccaPreviewFixture(id);
-      if (!deleted) return res.status(404).json({ error: "Fixture not found" });
+      if (!deleted) return res.status(404).json({ error: "Fixture not found", code: "REB-051" });
       logActivity(req, "delete-rebecca-fixture", "rebecca_preview_fixture", id);
       return res.json({ success: true });
     } catch (err: unknown) {
       logger.error(`Failed to delete Rebecca fixture: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
-      return res.status(500).json({ error: "Failed to delete fixture" });
+      return res.status(500).json({ error: "Failed to delete fixture", code: "REB-052" });
     }
   });
 
@@ -903,7 +903,7 @@ export function register(app: Express) {
       });
     } catch (err: unknown) {
       logger.error(`Failed to compute analytics: ${(err instanceof Error ? err.message : String(err))}`, "rebecca");
-      res.status(500).json({ error: "Failed to compute analytics" });
+      res.status(500).json({ error: "Failed to compute analytics", code: "REB-053" });
     }
   });
 }

@@ -27,9 +27,9 @@ export function register(app: Express) {
   app.get("/api/properties/:id/dd", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
-      if (!propertyId) return sendError(res, 400, "Invalid property id");
+      if (!propertyId) return sendError(res, 400, "Invalid property id", "PDD-008");
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
-        return sendError(res, 403, "Access denied");
+        return sendError(res, 403, "Access denied", "PDD-009");
       }
 
       // Auto-seed on first read so the tab renders the canonical checklist
@@ -38,23 +38,23 @@ export function register(app: Express) {
       const summary = await storage.getPropertyDdSummary(propertyId);
       res.json({ items, summary });
     } catch (err: unknown) {
-      return logAndSendError(res, "Failed to load DD checklist", err, "property-dd");
+      return logAndSendError(res, "Failed to load DD checklist", err, "PDD-001");
     }
   });
 
   app.post("/api/properties/:id/dd/seed", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
-      if (!propertyId) return sendError(res, 400, "Invalid property id");
+      if (!propertyId) return sendError(res, 400, "Invalid property id", "PDD-010");
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
-        return sendError(res, 403, "Access denied");
+        return sendError(res, 403, "Access denied", "PDD-011");
       }
       const items = await storage.seedPropertyDdItems(propertyId);
       const summary = await storage.getPropertyDdSummary(propertyId);
       logActivity(req, "dd:seed", "property", propertyId, null, { count: items.length });
       res.json({ items, summary });
     } catch (err: unknown) {
-      return logAndSendError(res, "Failed to seed DD checklist", err, "property-dd");
+      return logAndSendError(res, "Failed to seed DD checklist", err, "PDD-002");
     }
   });
 
@@ -62,35 +62,35 @@ export function register(app: Express) {
     try {
       const propertyId = parseRouteId(req.params.id);
       const itemId = parseRouteId(req.params.itemId);
-      if (!propertyId || !itemId) return sendError(res, 400, "Invalid id");
+      if (!propertyId || !itemId) return sendError(res, 400, "Invalid id", "PDD-012");
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
-        return sendError(res, 403, "Access denied");
+        return sendError(res, 403, "Access denied", "PDD-013");
       }
 
       const existing = await storage.getPropertyDdItemById(itemId);
-      if (!existing) return sendError(res, 404, "DD item not found");
+      if (!existing) return sendError(res, 404, "DD item not found", "PDD-014");
       if (existing.propertyId !== propertyId) {
-        return sendError(res, 404, "DD item not found");
+        return sendError(res, 404, "DD item not found", "PDD-015");
       }
 
       const parsed = updatePropertyDdItemSchema.safeParse(req.body);
-      if (!parsed.success) return sendError(res, 400, zodErrorMessage(parsed.error));
+      if (!parsed.success) return sendError(res, 400, zodErrorMessage(parsed.error), "PDD-016");
 
       const row = await storage.updatePropertyDdItem(itemId, parsed.data);
       const summary = await storage.getPropertyDdSummary(propertyId);
       logActivity(req, "dd:update", "property", propertyId, null, { itemId, fields: Object.keys(parsed.data) });
       res.json({ item: row, summary });
     } catch (err: unknown) {
-      return logAndSendError(res, "Failed to update DD item", err, "property-dd");
+      return logAndSendError(res, "Failed to update DD item", err, "PDD-003");
     }
   });
 
   app.post("/api/properties/:id/dd/analyst-review", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.id);
-      if (!propertyId) return sendError(res, 400, "Invalid property id");
+      if (!propertyId) return sendError(res, 400, "Invalid property id", "PDD-017");
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
-        return sendError(res, 403, "Access denied");
+        return sendError(res, 403, "Access denied", "PDD-018");
       }
 
       const summary = await storage.getPropertyDdSummary(propertyId);
@@ -119,7 +119,7 @@ export function register(app: Express) {
       );
       res.json(payload);
     } catch (err: unknown) {
-      return logAndSendError(res, "Failed to run DD analyst review", err, "property-dd");
+      return logAndSendError(res, "Failed to run DD analyst review", err, "PDD-004");
     }
   });
 
@@ -132,7 +132,7 @@ export function register(app: Express) {
       const items = await storage.getDdTemplate();
       res.json({ items });
     } catch (err: unknown) {
-      return logAndSendError(res, "Failed to load DD template", err, "property-dd");
+      return logAndSendError(res, "Failed to load DD template", err, "PDD-005");
     }
   });
 
@@ -143,22 +143,22 @@ export function register(app: Express) {
       const items = await storage.getDdTemplate();
       res.json({ items });
     } catch (err: unknown) {
-      return logAndSendError(res, "Failed to load DD template", err, "property-dd");
+      return logAndSendError(res, "Failed to load DD template", err, "PDD-006");
     }
   });
 
   app.patch("/api/admin/dd-template/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return sendError(res, 400, "Invalid id");
+      if (!id) return sendError(res, 400, "Invalid id", "PDD-019");
       const parsed = updateDdTemplateItemSchema.safeParse(req.body);
-      if (!parsed.success) return sendError(res, 400, zodErrorMessage(parsed.error));
+      if (!parsed.success) return sendError(res, 400, zodErrorMessage(parsed.error), "PDD-020");
       const row = await storage.updateDdTemplateItem(id, parsed.data);
-      if (!row) return sendError(res, 404, "Template item not found");
+      if (!row) return sendError(res, 404, "Template item not found", "PDD-021");
       logActivity(req, "dd:template:update", "dd-template", id, null, { fields: Object.keys(parsed.data) });
       res.json({ item: row });
     } catch (err: unknown) {
-      return logAndSendError(res, "Failed to update DD template item", err, "property-dd");
+      return logAndSendError(res, "Failed to update DD template item", err, "PDD-007");
     }
   });
 }

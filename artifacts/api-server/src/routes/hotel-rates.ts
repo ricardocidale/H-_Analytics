@@ -44,7 +44,7 @@ export function register(app: Express) {
       const results = await xotelo.searchHotels(parsed.data.query);
       res.json({ results });
     } catch (error: unknown) {
-      logAndSendError(res, "Hotel search failed", error);
+      logAndSendError(res, "Hotel search failed", error, "HRAT-001");
     }
   });
 
@@ -58,7 +58,7 @@ export function register(app: Express) {
       const rates = await xotelo.getHotelRates(hotel_key, chk_in, chk_out, currency);
       res.json({ rates });
     } catch (error: unknown) {
-      logAndSendError(res, "Hotel rate lookup failed", error);
+      logAndSendError(res, "Hotel rate lookup failed", error, "HRAT-002");
     }
   });
 
@@ -72,7 +72,7 @@ export function register(app: Express) {
       const hotels = await xotelo.getHotelList(location_key, limit, offset, sort);
       res.json({ hotels });
     } catch (error: unknown) {
-      logAndSendError(res, "Hotel list failed", error);
+      logAndSendError(res, "Hotel list failed", error, "HRAT-003");
     }
   });
 
@@ -88,7 +88,7 @@ export function register(app: Express) {
         : await xotelo.getMarketSnapshot(location!);
       res.json({ snapshot });
     } catch (error: unknown) {
-      logAndSendError(res, "Market snapshot failed", error);
+      logAndSendError(res, "Market snapshot failed", error, "HRAT-004");
     }
   });
 
@@ -113,17 +113,17 @@ export function register(app: Express) {
 
       const amadeus = getMarketIntelligenceAggregator().getAmadeusService();
       if (!amadeus.isAvailable()) {
-        return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({ error: "Amadeus API not configured. Set AMADEUS_CLIENT_ID and AMADEUS_CLIENT_SECRET." });
+        return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({ error: "Amadeus API not configured. Set AMADEUS_CLIENT_ID and AMADEUS_CLIENT_SECRET.", code: "HRAT-007" });
       }
 
       // Load property to get lat/lng and quality tier
       const property = await storage.getProperty(parsed.data.propertyId);
-      if (!property) return res.status(404).json({ error: "Property not found" });
+      if (!property) return res.status(404).json({ error: "Property not found", code: "HRAT-008" });
 
       const latitude = property.latitude ? parseFloat(String(property.latitude)) : null;
       const longitude = property.longitude ? parseFloat(String(property.longitude)) : null;
       if (!latitude || !longitude) {
-        return res.status(400).json({ error: "Property is missing latitude/longitude coordinates" });
+        return res.status(400).json({ error: "Property is missing latitude/longitude coordinates", code: "HRAT-009" });
       }
 
       const compSet = await amadeus.searchCompSet({
@@ -136,7 +136,7 @@ export function register(app: Express) {
 
       res.json({ compSet });
     } catch (error: unknown) {
-      logAndSendError(res, "Amadeus comp-set search failed", error);
+      logAndSendError(res, "Amadeus comp-set search failed", error, "HRAT-005");
     }
   });
 
@@ -147,14 +147,14 @@ export function register(app: Express) {
 
       const amadeus = getMarketIntelligenceAggregator().getAmadeusService();
       if (!amadeus.isAvailable()) {
-        return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({ error: "Amadeus API not configured. Set AMADEUS_CLIENT_ID and AMADEUS_CLIENT_SECRET." });
+        return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({ error: "Amadeus API not configured. Set AMADEUS_CLIENT_ID and AMADEUS_CLIENT_SECRET.", code: "HRAT-010" });
       }
 
       const { cityCode, chk_in, chk_out } = parsed.data;
       const marketRates = await amadeus.getMarketRates(cityCode, chk_in, chk_out);
       res.json({ marketRates });
     } catch (error: unknown) {
-      logAndSendError(res, "Amadeus market rates failed", error);
+      logAndSendError(res, "Amadeus market rates failed", error, "HRAT-006");
     }
   });
 }

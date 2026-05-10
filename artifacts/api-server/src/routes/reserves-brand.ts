@@ -28,16 +28,16 @@ export function register(app: Express) {
       try {
         const propertyId = parseRouteId(req.params.id);
         if (!propertyId) {
-          return res.status(400).json({ error: "Invalid property ID" });
+          return res.status(400).json({ error: "Invalid property ID", code: "RSVB-002" });
         }
 
         const user = getAuthUser(req);
         const property = await storage.getProperty(propertyId);
         if (!property) {
-          return res.status(404).json({ error: "Property not found" });
+          return res.status(404).json({ error: "Property not found", code: "RSVB-003" });
         }
         if (property.userId !== user.id && !isAdminRole(user.role)) {
-          return res.status(403).json({ error: "Forbidden" });
+          return res.status(403).json({ error: "Forbidden", code: "RSVB-004" });
         }
 
         // Derive annual revenue from the property's own ADR/occupancy/room
@@ -98,7 +98,7 @@ export function register(app: Express) {
         if (bundleJson === null) {
           return res
             .status(500)
-            .json({ error: "reserves_brand_bundle tool not registered" });
+            .json({ error: "reserves_brand_bundle tool not registered", code: "RSVB-005" });
         }
         const bundle = JSON.parse(bundleJson) as Record<string, unknown>;
         if (typeof bundle.error === "string") {
@@ -117,7 +117,7 @@ export function register(app: Express) {
           `reserves-brand bundle failed: ${error instanceof Error ? error.message : String(error)}`,
           "reserves-brand",
         );
-        return logAndSendError(res, "reserves-brand-bundle failed", error, "reserves-brand");
+        return logAndSendError(res, "reserves-brand-bundle failed", error, "RSVB-001");
       }
     },
   );

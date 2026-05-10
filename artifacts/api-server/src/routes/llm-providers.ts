@@ -77,7 +77,7 @@ export function register(app: Express): void {
 
       res.json({ providers });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch LLM providers", error);
+      logAndSendError(res, "Failed to fetch LLM providers", error, "LLMP-001");
     }
   });
 
@@ -96,7 +96,7 @@ export function register(app: Express): void {
         .map(r => ({ slug: r.slug, label: r.displayName }));
       res.json({ providers: searchProviders });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch chat search providers", error);
+      logAndSendError(res, "Failed to fetch chat search providers", error, "LLMP-002");
     }
   });
 }

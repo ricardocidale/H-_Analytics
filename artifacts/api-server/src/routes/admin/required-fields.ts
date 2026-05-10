@@ -47,7 +47,7 @@ export function registerRequiredFieldsRoutes(app: Express) {
       }
       res.json(out);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch derived required fields", error);
+      logAndSendError(res, "Failed to fetch derived required fields", error, "AQFD-001");
     }
   });
 

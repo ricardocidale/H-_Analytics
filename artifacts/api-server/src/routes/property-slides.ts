@@ -157,7 +157,7 @@ router.get("/api/properties/hero-images/zip", requireAdmin, async (_req: Request
   try {
     const props = await storage.getAllProperties();
     if (!props || props.length === 0) {
-      return res.status(404).json({ error: "No properties found" });
+      return res.status(404).json({ error: "No properties found", code: "PSLI-001" });
     }
 
     res.setHeader("Content-Type", "application/zip");
@@ -168,7 +168,7 @@ router.get("/api/properties/hero-images/zip", requireAdmin, async (_req: Request
 
     archive.on("error", (err) => {
       logger.error(`[hero-zip] archiver error: ${err.message}`, "property-slides");
-      if (!res.headersSent) res.status(500).json({ error: "ZIP generation failed" });
+      if (!res.headersSent) res.status(500).json({ error: "ZIP generation failed", code: "PSLI-002" });
     });
 
     archive.pipe(res);

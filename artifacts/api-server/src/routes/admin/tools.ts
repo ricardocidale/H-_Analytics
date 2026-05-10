@@ -155,17 +155,17 @@ function runCommand(cmd: string, args: string[], timeoutMs = 180_000): Promise<s
 export function registerToolRoutes(app: Express) {
 
   app.get("/api/admin/health-check/last", requireAdmin, (_req, res) => {
-    if (!lastHealthCheck) return res.status(404).json({ error: "No health check results yet" });
+    if (!lastHealthCheck) return res.status(404).json({ error: "No health check results yet", code: "ATOL-015" });
     res.json(lastHealthCheck);
   });
 
   app.post("/api/admin/health-check/run", requireAdmin, async (req, res) => {
     try {
       if (healthCheckRunning) {
-        return res.status(429).json({ error: "Health check already running" });
+        return res.status(429).json({ error: "Health check already running", code: "ATOL-016" });
       }
       if (isApiRateLimited(getAuthUser(req).id, "health-check-run", 1)) {
-        return res.status(429).json({ error: "Health check rate-limited to 1 run per minute" });
+        return res.status(429).json({ error: "Health check rate-limited to 1 run per minute", code: "ATOL-017" });
       }
       healthCheckRunning = true;
       logActivity(req, "run-health-check", "verification");
@@ -211,22 +211,22 @@ export function registerToolRoutes(app: Express) {
       res.json(result);
     } catch (error: unknown) {
       healthCheckRunning = false;
-      logAndSendError(res, "Health check failed", error);
+      logAndSendError(res, "Health check failed", error, "ATOL-001");
     }
   });
 
   app.get("/api/admin/testing-dashboard/last", requireAdmin, (_req, res) => {
-    if (!lastTestingDashboard) return res.status(404).json({ error: "No testing dashboard results yet" });
+    if (!lastTestingDashboard) return res.status(404).json({ error: "No testing dashboard results yet", code: "ATOL-018" });
     res.json(lastTestingDashboard);
   });
 
   app.post("/api/admin/testing-dashboard/run", requireAdmin, async (req, res) => {
     try {
       if (testingDashboardRunning) {
-        return res.status(429).json({ error: "Testing dashboard scan already running" });
+        return res.status(429).json({ error: "Testing dashboard scan already running", code: "ATOL-019" });
       }
       if (isApiRateLimited(getAuthUser(req).id, "testing-dashboard-run", 1)) {
-        return res.status(429).json({ error: "Testing dashboard rate-limited to 1 run per minute" });
+        return res.status(429).json({ error: "Testing dashboard rate-limited to 1 run per minute", code: "ATOL-020" });
       }
       testingDashboardRunning = true;
       logActivity(req, "run-testing-dashboard", "verification");
@@ -309,7 +309,7 @@ export function registerToolRoutes(app: Express) {
       res.json(result);
     } catch (error: unknown) {
       testingDashboardRunning = false;
-      logAndSendError(res, "Testing dashboard scan failed", error);
+      logAndSendError(res, "Testing dashboard scan failed", error, "ATOL-002");
     }
   });
 
@@ -320,7 +320,7 @@ export function registerToolRoutes(app: Express) {
       logActivity(req, "seed-production", "database", null, null, result as unknown as Record<string, unknown>);
       res.json({ success: true, message: "Missing values populated", ...result });
     } catch (error: unknown) {
-      logAndSendError(res, (error instanceof Error ? error.message : undefined) || "Fill failed", error);
+      logAndSendError(res, (error instanceof Error ? error.message : undefined, "ATOL-003") || "Fill failed", error);
     }
   });
 
@@ -330,7 +330,7 @@ export function registerToolRoutes(app: Express) {
       const result = await runSmartSync(storage, { dryRun: true });
       res.json(result);
     } catch (error: unknown) {
-      logAndSendError(res, (error instanceof Error ? error.message : undefined) || "Smart sync preview failed", error);
+      logAndSendError(res, (error instanceof Error ? error.message : undefined, "ATOL-004") || "Smart sync preview failed", error);
     }
   });
 
@@ -340,7 +340,7 @@ export function registerToolRoutes(app: Express) {
       logActivity(req, "smart-sync", "database", null, null, result as unknown as Record<string, unknown>);
       res.json({ success: true, ...result });
     } catch (error: unknown) {
-      logAndSendError(res, (error instanceof Error ? error.message : undefined) || "Smart sync failed", error);
+      logAndSendError(res, (error instanceof Error ? error.message : undefined, "ATOL-005") || "Smart sync failed", error);
     }
   });
 
@@ -349,7 +349,7 @@ export function registerToolRoutes(app: Express) {
       const result = await runFillOnlySync(storage);
       res.json(result);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to backfill research", error);
+      logAndSendError(res, "Failed to backfill research", error, "ATOL-006");
     }
   });
 
@@ -364,7 +364,7 @@ export function registerToolRoutes(app: Express) {
         logoutAt: log.logoutAt,
       })));
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch login logs", error);
+      logAndSendError(res, "Failed to fetch login logs", error, "ATOL-007");
     }
   });
 
@@ -383,7 +383,7 @@ export function registerToolRoutes(app: Express) {
       }));
       res.json(status);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch sync status", error);
+      logAndSendError(res, "Failed to fetch sync status", error, "ATOL-008");
     }
   });
 
@@ -398,7 +398,7 @@ export function registerToolRoutes(app: Express) {
         createdAt: s.createdAt,
       })));
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch active sessions", error);
+      logAndSendError(res, "Failed to fetch active sessions", error, "ATOL-009");
     }
   });
 
@@ -407,7 +407,7 @@ export function registerToolRoutes(app: Express) {
       await storage.forceDeleteSession(String(req.params.id));
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to delete session", error);
+      logAndSendError(res, "Failed to delete session", error, "ATOL-010");
     }
   });
 
@@ -459,14 +459,14 @@ export function registerToolRoutes(app: Express) {
       if (typeof error === "object" && error !== null && "code" in error && (error as { code: string }).code === "ENOENT") {
         return res.json({ timestamp: null, totalFiles: 0, totalTests: 0, passed: 0, failed: 0, duration: 0, scenarios: [] });
       }
-      logAndSendError(res, "Failed to read golden test results", error);
+      logAndSendError(res, "Failed to read golden test results", error, "ATOL-011");
     }
   });
 
   app.post("/api/admin/golden-test-run", requireAdmin, async (req, res) => {
     try {
       if (isApiRateLimited(getAuthUser(req).id, "golden-test-run", 1)) {
-        return res.status(429).json({ error: "Golden tests rate-limited to 1 run per minute" });
+        return res.status(429).json({ error: "Golden tests rate-limited to 1 run per minute", code: "ATOL-021" });
       }
       logActivity(req, "run-golden-tests", "verification");
       const projectRoot = process.cwd();
@@ -496,7 +496,7 @@ export function registerToolRoutes(app: Express) {
 
       res.json(parseGoldenResults(raw));
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to run golden tests", error);
+      logAndSendError(res, "Failed to run golden tests", error, "ATOL-012");
     }
   });
 
@@ -516,7 +516,7 @@ export function registerToolRoutes(app: Express) {
         userName: `${l.user.firstName} ${l.user.lastName}`.trim() || l.user.email,
       })));
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch activity logs", error);
+      logAndSendError(res, "Failed to fetch activity logs", error, "ATOL-013");
     }
   });
 
@@ -542,7 +542,7 @@ export function registerToolRoutes(app: Express) {
         userName: `${l.user.firstName} ${l.user.lastName}`.trim() || l.user.email,
       })));
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch sharing log", error);
+      logAndSendError(res, "Failed to fetch sharing log", error, "ATOL-014");
     }
   });
 }

@@ -15,7 +15,7 @@ export function registerSourceRoutes(app: Express) {
       const sources = await storage.getSourceRegistry();
       res.json(sources);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch source registry", error);
+      logAndSendError(res, "Failed to fetch source registry", error, "AISC-001");
     }
   });
 
@@ -42,14 +42,14 @@ export function registerSourceRoutes(app: Express) {
       logActivity(req, "create-source", "source_registry", created.id, created.name);
       res.status(HTTP_201_CREATED).json(created);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to create source registry entry", error);
+      logAndSendError(res, "Failed to create source registry entry", error, "AISC-002");
     }
   });
 
   app.patch("/api/admin/source-registry/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID", code: "AISC-008" });
 
       const bodySchema = z.object({
         name: z.string().min(1).max(200).optional(),
@@ -69,63 +69,63 @@ export function registerSourceRoutes(app: Express) {
       if (!parsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(parsed.error) });
 
       const updated = await storage.updateSourceRegistryEntry(id, parsed.data);
-      if (!updated) return res.status(HTTP_404_NOT_FOUND).json({ error: "Source not found" });
+      if (!updated) return res.status(HTTP_404_NOT_FOUND).json({ error: "Source not found", code: "AISC-009" });
       logActivity(req, "update-source", "source_registry", id, updated.name, { fields: Object.keys(parsed.data) });
       res.json(updated);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update source registry entry", error);
+      logAndSendError(res, "Failed to update source registry entry", error, "AISC-003");
     }
   });
 
   app.patch("/api/admin/source-registry/:id/toggle", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID", code: "AISC-010" });
       const toggleParsed = z.object({ isActive: z.boolean() }).safeParse(req.body);
-      if (!toggleParsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: "isActive must be a boolean" });
+      if (!toggleParsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: "isActive must be a boolean", code: "AISC-011" });
       const { isActive } = toggleParsed.data;
       const updated = await storage.updateSourceRegistryEntry(id, { isActive });
-      if (!updated) return res.status(HTTP_404_NOT_FOUND).json({ error: "Source not found" });
+      if (!updated) return res.status(HTTP_404_NOT_FOUND).json({ error: "Source not found", code: "AISC-012" });
       logActivity(req, "toggle-source", "source_registry", id, updated.name, { isActive });
       res.json(updated);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to toggle source", error);
+      logAndSendError(res, "Failed to toggle source", error, "AISC-004");
     }
   });
 
   app.delete("/api/admin/source-registry/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID", code: "AISC-013" });
       const existing = await storage.getSourceRegistryEntry(id);
-      if (!existing) return res.status(HTTP_404_NOT_FOUND).json({ error: "Source not found" });
+      if (!existing) return res.status(HTTP_404_NOT_FOUND).json({ error: "Source not found", code: "AISC-014" });
       await storage.deleteSourceRegistryEntry(id);
       logActivity(req, "delete-source", "source_registry", id, existing.name);
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to delete source", error);
+      logAndSendError(res, "Failed to delete source", error, "AISC-005");
     }
   });
 
   app.get("/api/admin/source-registry/:id/logs", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID", code: "AISC-015" });
       const source = await storage.getSourceRegistryEntry(id);
-      if (!source) return res.status(HTTP_404_NOT_FOUND).json({ error: "Source not found" });
+      if (!source) return res.status(HTTP_404_NOT_FOUND).json({ error: "Source not found", code: "AISC-016" });
       const logs = await storage.getSourceCallLogs(id, 50);
       res.json(logs);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch source call logs", error);
+      logAndSendError(res, "Failed to fetch source call logs", error, "AISC-006");
     }
   });
 
   app.post("/api/admin/source-registry/:id/test", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID" });
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid ID", code: "AISC-017" });
       const source = await storage.getSourceRegistryEntry(id);
-      if (!source) return res.status(HTTP_404_NOT_FOUND).json({ error: "Source not found" });
+      if (!source) return res.status(HTTP_404_NOT_FOUND).json({ error: "Source not found", code: "AISC-018" });
 
       const startTime = Date.now();
       let healthy = false;
@@ -136,7 +136,7 @@ export function registerSourceRoutes(app: Express) {
         try {
           const url = new URL(source.endpoint);
           if (!["https:", "http:"].includes(url.protocol)) {
-            return res.status(HTTP_400_BAD_REQUEST).json({ error: "Only HTTP(S) endpoints are supported" });
+            return res.status(HTTP_400_BAD_REQUEST).json({ error: "Only HTTP(S) endpoints are supported", code: "AISC-019" });
           }
           const rawHostname = url.hostname.toLowerCase();
           const hostname = rawHostname.replace(/^\[|\]$/g, "");
@@ -153,7 +153,7 @@ export function registerSourceRoutes(app: Express) {
           };
 
           if (isPrivateAddr(hostname)) {
-            return res.status(HTTP_400_BAD_REQUEST).json({ error: "Internal/private endpoints are not allowed" });
+            return res.status(HTTP_400_BAD_REQUEST).json({ error: "Internal/private endpoints are not allowed", code: "AISC-020" });
           }
 
           const dns = await import("dns");
@@ -161,11 +161,11 @@ export function registerSourceRoutes(app: Express) {
           const ipv6 = await dns.promises.resolve6(hostname).catch(() => [] as string[]);
           const allResolved = [...ipv4, ...ipv6];
           if (allResolved.some(isPrivateAddr)) {
-            return res.status(HTTP_400_BAD_REQUEST).json({ error: "Endpoint resolves to a private IP address" });
+            return res.status(HTTP_400_BAD_REQUEST).json({ error: "Endpoint resolves to a private IP address", code: "AISC-021" });
           }
 
           if (allResolved.length === 0) {
-            return res.status(HTTP_400_BAD_REQUEST).json({ error: "Could not resolve endpoint hostname" });
+            return res.status(HTTP_400_BAD_REQUEST).json({ error: "Could not resolve endpoint hostname", code: "AISC-022" });
           }
 
           const controller = new AbortController();
@@ -203,7 +203,7 @@ export function registerSourceRoutes(app: Express) {
       logActivity(req, "test-source", "source_registry", id, source.name, { healthy, latencyMs });
       res.json({ healthy, latencyMs, error: errorMsg });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to test source connectivity", error);
+      logAndSendError(res, "Failed to test source connectivity", error, "AISC-007");
     }
   });
 }

@@ -12,7 +12,7 @@ export function registerScheduledResearchRoutes(app: Express) {
       const workflows = await storage.getScheduledResearchWorkflows();
       res.json(workflows);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch scheduled research workflows", error);
+      logAndSendError(res, "Failed to fetch scheduled research workflows", error, "AISH-001");
     }
   });
 
@@ -26,17 +26,17 @@ export function registerScheduledResearchRoutes(app: Express) {
       logActivity(req, "create-scheduled-workflow", "scheduled_research", workflow.id, workflow.name);
       res.json(workflow);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to create scheduled research workflow", error);
+      logAndSendError(res, "Failed to create scheduled research workflow", error, "AISH-002");
     }
   });
 
   app.put("/api/admin/scheduled-research/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid workflow ID" });
+      if (!id) return res.status(400).json({ error: "Invalid workflow ID", code: "AISH-008" });
 
       const existing = await storage.getScheduledResearchWorkflowById(id);
-      if (!existing) return res.status(404).json({ error: "Workflow not found" });
+      if (!existing) return res.status(404).json({ error: "Workflow not found", code: "AISH-009" });
 
       const validation = insertScheduledResearchWorkflowSchema.partial().safeParse(req.body);
       if (!validation.success) {
@@ -53,29 +53,29 @@ export function registerScheduledResearchRoutes(app: Express) {
       logActivity(req, "update-scheduled-workflow", "scheduled_research", id, workflow.name);
       res.json(workflow);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update scheduled research workflow", error);
+      logAndSendError(res, "Failed to update scheduled research workflow", error, "AISH-003");
     }
   });
 
   app.delete("/api/admin/scheduled-research/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid workflow ID" });
+      if (!id) return res.status(400).json({ error: "Invalid workflow ID", code: "AISH-010" });
       await storage.deleteScheduledResearchWorkflow(id);
       logActivity(req, "delete-scheduled-workflow", "scheduled_research", id);
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to delete scheduled research workflow", error);
+      logAndSendError(res, "Failed to delete scheduled research workflow", error, "AISH-004");
     }
   });
 
   app.post("/api/admin/scheduled-research/:id/execute", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid workflow ID" });
+      if (!id) return res.status(400).json({ error: "Invalid workflow ID", code: "AISH-011" });
 
       const workflow = await storage.getScheduledResearchWorkflowById(id);
-      if (!workflow) return res.status(404).json({ error: "Workflow not found" });
+      if (!workflow) return res.status(404).json({ error: "Workflow not found", code: "AISH-012" });
 
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
@@ -117,7 +117,7 @@ export function registerScheduledResearchRoutes(app: Express) {
 
       res.end();
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to execute scheduled research workflow", error);
+      logAndSendError(res, "Failed to execute scheduled research workflow", error, "AISH-005");
     }
   });
 
@@ -136,18 +136,18 @@ export function registerScheduledResearchRoutes(app: Express) {
         })),
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to check stale scheduled workflows", error);
+      logAndSendError(res, "Failed to check stale scheduled workflows", error, "AISH-006");
     }
   });
 
   app.post("/api/research/scheduled/:id/execute", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid workflow ID" });
+      if (!id) return res.status(400).json({ error: "Invalid workflow ID", code: "AISH-013" });
 
       const workflow = await storage.getScheduledResearchWorkflowById(id);
-      if (!workflow) return res.status(404).json({ error: "Workflow not found" });
-      if (!workflow.isEnabled) return res.status(400).json({ error: "Workflow is disabled" });
+      if (!workflow) return res.status(404).json({ error: "Workflow not found", code: "AISH-014" });
+      if (!workflow.isEnabled) return res.status(400).json({ error: "Workflow is disabled", code: "AISH-015" });
 
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
@@ -185,7 +185,7 @@ export function registerScheduledResearchRoutes(app: Express) {
 
       res.end();
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to execute scheduled research workflow", error);
+      logAndSendError(res, "Failed to execute scheduled research workflow", error, "AISH-007");
     }
   });
 }

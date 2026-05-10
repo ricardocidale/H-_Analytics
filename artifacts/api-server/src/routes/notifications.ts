@@ -18,7 +18,7 @@ export function register(app: Express) {
       const rules = await storage.getAllAlertRules();
       res.json(rules);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch alert rules", error);
+      logAndSendError(res, "Failed to fetch alert rules", error, "NTFY-001");
     }
   });
 
@@ -31,7 +31,7 @@ export function register(app: Express) {
       const rule = await storage.createAlertRule(validation.data);
       res.status(201).json(rule);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to create alert rule", error);
+      logAndSendError(res, "Failed to create alert rule", error, "NTFY-002");
     }
   });
 
@@ -42,23 +42,23 @@ export function register(app: Express) {
         return res.status(400).json({ error: zodErrorMessage(validation.error) });
       }
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid rule ID" });
+      if (!id) return res.status(400).json({ error: "Invalid rule ID", code: "NTFY-014" });
       const rule = await storage.updateAlertRule(id, validation.data);
-      if (!rule) return res.status(404).json({ error: "Rule not found" });
+      if (!rule) return res.status(404).json({ error: "Rule not found", code: "NTFY-015" });
       res.json(rule);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update alert rule", error);
+      logAndSendError(res, "Failed to update alert rule", error, "NTFY-003");
     }
   });
 
   app.delete("/api/notifications/alert-rules/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid rule ID" });
+      if (!id) return res.status(400).json({ error: "Invalid rule ID", code: "NTFY-016" });
       await storage.deleteAlertRule(id);
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to delete alert rule", error);
+      logAndSendError(res, "Failed to delete alert rule", error, "NTFY-004");
     }
   });
 
@@ -73,7 +73,7 @@ export function register(app: Express) {
       const logs = await storage.getNotificationLogs(limit, eventType);
       res.json(logs);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch notification logs", error);
+      logAndSendError(res, "Failed to fetch notification logs", error, "NTFY-005");
     }
   });
 
@@ -87,7 +87,7 @@ export function register(app: Express) {
       }
       res.json(result);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch notification settings", error);
+      logAndSendError(res, "Failed to fetch notification settings", error, "NTFY-006");
     }
   });
 
@@ -131,14 +131,14 @@ export function register(app: Express) {
       const updates = validation.data;
       const invalidKeys = Object.keys(updates).filter(k => !ALLOWED_SETTING_KEYS.has(k));
       if (invalidKeys.length > 0) {
-        return res.status(400).json({ error: `Unknown setting keys: ${invalidKeys.join(", ")}` });
+        return res.status(400).json({ error: `Unknown setting keys: ${invalidKeys.join(", ")}`, code: "NTFY-017" });
       }
       for (const [key, value] of Object.entries(updates)) {
         await storage.setNotificationSetting(key, value);
       }
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update notification settings", error);
+      logAndSendError(res, "Failed to update notification settings", error, "NTFY-007");
     }
   });
 
@@ -148,7 +148,7 @@ export function register(app: Express) {
       const prefs = await storage.getNotificationPreferences(getAuthUser(req).id);
       res.json(prefs);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch notification preferences", error);
+      logAndSendError(res, "Failed to fetch notification preferences", error, "NTFY-008");
     }
   });
 
@@ -166,7 +166,7 @@ export function register(app: Express) {
       await storage.upsertNotificationPreference(getAuthUser(req).id, eventType, channel, enabled);
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update notification preference", error);
+      logAndSendError(res, "Failed to update notification preference", error, "NTFY-009");
     }
   });
 
@@ -176,7 +176,7 @@ export function register(app: Express) {
       const result = await testResendConnection();
       res.json(result);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to test Resend connection", error);
+      logAndSendError(res, "Failed to test Resend connection", error, "NTFY-010");
     }
   });
 
@@ -185,7 +185,7 @@ export function register(app: Express) {
     try {
       const config = await resolveVectorLatencyConfig();
       if (!config.resendEnabled) {
-        return res.status(400).json({ error: "Resend email delivery is disabled. Enable it on the Channels tab first." });
+        return res.status(400).json({ error: "Resend email delivery is disabled. Enable it on the Channels tab first.", code: "NTFY-018" });
       }
 
       const allUsers = await storage.getAllUsers();
@@ -195,7 +195,7 @@ export function register(app: Express) {
         admins = admins.filter((u) => allowed.has(u.id));
       }
       if (admins.length === 0) {
-        return res.status(400).json({ error: "No admin recipients are configured." });
+        return res.status(400).json({ error: "No admin recipients are configured.", code: "NTFY-019" });
       }
 
       const chartUrl = `${getAppUrl()}${VECTOR_LATENCY_CHART_PATH}`;
@@ -248,7 +248,7 @@ export function register(app: Express) {
       }
       res.json({ success: failed === 0, recipients: admins.length, sent, failed, errors });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to send vector latency test email", error);
+      logAndSendError(res, "Failed to send vector latency test email", error, "NTFY-011");
     }
   });
 
@@ -281,7 +281,7 @@ export function register(app: Express) {
 
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to share report via email", error);
+      logAndSendError(res, "Failed to share report via email", error, "NTFY-012");
     }
   });
 
@@ -300,7 +300,7 @@ export function register(app: Express) {
       await sendScenarioSummaryEmail({ to, scenarios, message });
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to share scenario summary", error);
+      logAndSendError(res, "Failed to share scenario summary", error, "NTFY-013");
     }
   });
 }

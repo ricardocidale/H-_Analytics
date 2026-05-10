@@ -367,7 +367,7 @@ export function registerFinanceRoutes(router: Router): void {
   router.post("/api/finance/compute", requireAuth, async (req: Request, res: Response) => {
     try {
       if (isApiRateLimited(getAuthUser(req).id, "finance-compute", 10)) {
-        return res.status(HTTP_429_TOO_MANY_REQUESTS).json({ error: "Rate limit exceeded. Please wait before computing again." });
+        return res.status(HTTP_429_TOO_MANY_REQUESTS).json({ error: "Rate limit exceeded. Please wait before computing again.", code: "FIN-001" });
       }
       const validation = computeRequestSchema.safeParse(req.body);
       if (!validation.success) {
@@ -376,7 +376,7 @@ export function registerFinanceRoutes(router: Router): void {
           details: validation.error.issues.map(i => ({
             path: i.path.join("."),
             message: i.message,
-          })),
+          code: "FIN-007" })),
         });
       }
 
@@ -483,7 +483,7 @@ export function registerFinanceRoutes(router: Router): void {
     try {
       const routeId = parseRouteId(req.params.id);
       if (!routeId) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID in route" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID in route", code: "FIN-002" });
       }
 
       const validation = singlePropertyComputeSchema.safeParse(req.body);
@@ -493,14 +493,14 @@ export function registerFinanceRoutes(router: Router): void {
           details: validation.error.issues.map(i => ({
             path: i.path.join("."),
             message: i.message,
-          })),
+          code: "FIN-008" })),
         });
       }
 
       const { property, globalAssumptions: rawGlobal, projectionYears } = validation.data;
 
       if (property.id !== undefined && property.id !== routeId) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Property ID in body does not match route" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Property ID in body does not match route", code: "FIN-003" });
       }
 
       // Overlay admin-governed Model Constants before engine call.
@@ -583,20 +583,20 @@ export function registerFinanceRoutes(router: Router): void {
     try {
       const routeId = parseRouteId(req.params.id);
       if (!routeId) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID in route" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID in route", code: "FIN-004" });
       }
 
       const validation = singlePropertyComputeSchema.safeParse(req.body);
       if (!validation.success) {
         return res.status(HTTP_400_BAD_REQUEST).json({
           error: "Invalid input",
-          details: validation.error.issues.map(i => ({ path: i.path.join("."), message: i.message })),
+          details: validation.error.issues.map(i => ({ path: i.path.join("."), message: i.message , code: "FIN-009" })),
         });
       }
 
       const { property, globalAssumptions: rawGlobal, projectionYears } = validation.data;
       if (property.id !== undefined && property.id !== routeId) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Property ID in body does not match route" });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Property ID in body does not match route", code: "FIN-005" });
       }
 
       const globalAssumptions = await withModelConstants(rawGlobal);
@@ -667,7 +667,7 @@ export function registerFinanceRoutes(router: Router): void {
           details: validation.error.issues.map(i => ({
             path: i.path.join("."),
             message: i.message,
-          })),
+          code: "FIN-010" })),
         });
       }
 
@@ -744,12 +744,12 @@ export function registerFinanceRoutes(router: Router): void {
   router.post("/api/finance/sensitivity", requireAuth, async (req: Request, res: Response) => {
     try {
       if (isApiRateLimited(getAuthUser(req).id, "finance-sensitivity", 10)) {
-        return res.status(HTTP_429_TOO_MANY_REQUESTS).json({ error: "Rate limit exceeded. Please wait before running sensitivity analysis again." });
+        return res.status(HTTP_429_TOO_MANY_REQUESTS).json({ error: "Rate limit exceeded. Please wait before running sensitivity analysis again.", code: "FIN-006" });
       }
 
       const parsed = sensitivityRequestSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid input", details: parsed.error.issues });
+        return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid input", details: parsed.error.issues , code: "FIN-011" });
       }
 
       const userId = getAuthUser(req).id;

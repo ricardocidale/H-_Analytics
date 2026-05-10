@@ -32,7 +32,7 @@ router.get(
   async (req: Request, res: Response) => {
     const propertyId = parseRouteId(req.params.id);
     if (!propertyId) {
-      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID", code: "IDCK-001" });
     }
 
     const token = typeof req.query.token === "string" ? req.query.token : "";
@@ -40,7 +40,7 @@ router.get(
     if (!verified.ok) {
       return res
         .status(HTTP_401_UNAUTHORIZED)
-        .json({ error: `Invalid deck token: ${verified.reason}` });
+        .json({ error: `Invalid deck token: ${verified.reason}`, code: "IDCK-002" });
     }
 
     try {

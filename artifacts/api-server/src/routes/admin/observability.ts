@@ -148,7 +148,7 @@ export function registerObservabilityRoutes(app: Express) {
 
       res.json({ runs, labels, trends, totalRecords: all.length, trendWindow: CHECK_TIMING_TREND_WINDOW });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to read check-timing history", error);
+      logAndSendError(res, "Failed to read check-timing history", error, "AOBS-001");
     }
   });
 
@@ -217,7 +217,7 @@ export function registerObservabilityRoutes(app: Express) {
       });
       res.json({ runs, staleMultiplier: SCHEDULER_STALE_MULTIPLIER, recentRunsLimit: SCHEDULER_HISTORY_STRIP });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch scheduler runs", error);
+      logAndSendError(res, "Failed to fetch scheduler runs", error, "AOBS-002");
     }
   });
 
@@ -261,7 +261,7 @@ export function registerObservabilityRoutes(app: Express) {
       }
 
       if (!row && !workflows) {
-        res.status(404).json({ error: "No run data found for scheduler key" });
+        res.status(404).json({ error: "No run data found for scheduler key", code: "AOBS-005" });
         return;
       }
 
@@ -284,7 +284,7 @@ export function registerObservabilityRoutes(app: Express) {
         ...(workflows !== undefined ? { workflows } : {}),
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch scheduler run detail", error);
+      logAndSendError(res, "Failed to fetch scheduler run detail", error, "AOBS-003");
     }
   });
 
@@ -301,7 +301,7 @@ export function registerObservabilityRoutes(app: Express) {
     const dispatcher = SCHEDULER_DISPATCH[key as SchedulerKey];
     const def = SCHEDULER_REGISTRY.find((s) => s.key === key);
     if (!dispatcher || !def) {
-      res.status(404).json({ error: `Unknown scheduler: ${key}` });
+      res.status(404).json({ error: `Unknown scheduler: ${key}`, code: "AOBS-006" });
       return;
     }
     // Fire-and-forget. Errors are recorded by the cycle's own
@@ -353,7 +353,7 @@ export function registerObservabilityRoutes(app: Express) {
         staleAfterMs: STORAGE_DRIFT_SWEEP_STALE_AFTER_MS,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch last storage drift sweep", error);
+      logAndSendError(res, "Failed to fetch last storage drift sweep", error, "AOBS-004");
     }
   });
 }

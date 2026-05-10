@@ -35,7 +35,7 @@ export function registerHospitalityBenchmarkRoutes(app: Express) {
       const benchmarks = await storage.getHospitalityBenchmarks(query.data);
       res.json(benchmarks);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch hospitality benchmarks", error);
+      logAndSendError(res, "Failed to fetch hospitality benchmarks", error, "AHBM-001");
     }
   });
 
@@ -43,13 +43,13 @@ export function registerHospitalityBenchmarkRoutes(app: Express) {
   app.put("/api/admin/hospitality-benchmarks/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      if (!id) return res.status(400).json({ error: "Invalid ID", code: "AHBM-004" });
 
       const parsed = updateBenchmarkSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: zodErrorMessage(parsed.error) });
 
       const existing = await storage.getHospitalityBenchmarkById(id);
-      if (!existing) return res.status(404).json({ error: "Benchmark not found" });
+      if (!existing) return res.status(404).json({ error: "Benchmark not found", code: "AHBM-005" });
 
       const user = getAuthUser(req);
       const updated = await storage.updateHospitalityBenchmark(id, {
@@ -57,11 +57,11 @@ export function registerHospitalityBenchmarkRoutes(app: Express) {
         updatedBy: user?.id ?? undefined,
       });
 
-      if (!updated) return res.status(404).json({ error: "Benchmark not found" });
+      if (!updated) return res.status(404).json({ error: "Benchmark not found", code: "AHBM-006" });
       logActivity(req, "update-benchmark", "benchmark", id, existing.metricLabel ?? `Benchmark ${id}`, { fields: Object.keys(parsed.data) });
       res.json(updated);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update hospitality benchmark", error);
+      logAndSendError(res, "Failed to update hospitality benchmark", error, "AHBM-002");
     }
   });
 
@@ -77,7 +77,7 @@ export function registerHospitalityBenchmarkRoutes(app: Express) {
       });
       res.json(benchmarks);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch hospitality benchmarks", error);
+      logAndSendError(res, "Failed to fetch hospitality benchmarks", error, "AHBM-003");
     }
   });
 }

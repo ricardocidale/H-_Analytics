@@ -87,7 +87,7 @@ export function registerResearchMetaRoutes(app: Express) {
           avgDurationMs,
         });
       } catch (error: unknown) {
-        logAndSendError(res, "Failed to fetch freshness counts", error);
+        logAndSendError(res, "Failed to fetch freshness counts", error, "RMTA-001");
       }
     },
   );
@@ -109,7 +109,7 @@ export function registerResearchMetaRoutes(app: Express) {
         durationCount > 0 ? Math.round(totalDurationMs / durationCount) : null;
       res.json({ avgDurationMs });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch avg duration", error);
+      logAndSendError(res, "Failed to fetch avg duration", error, "RMTA-002");
     }
   });
 
@@ -120,7 +120,7 @@ export function registerResearchMetaRoutes(app: Express) {
       );
       res.json({ lastRefresh: lastRefresh?.toISOString() ?? null });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch last full research refresh", error);
+      logAndSendError(res, "Failed to fetch last full research refresh", error, "RMTA-003");
     }
   });
 
@@ -129,17 +129,17 @@ export function registerResearchMetaRoutes(app: Express) {
       await storage.markFullResearchRefresh(getAuthUser(req).id);
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to mark full research refresh", error);
+      logAndSendError(res, "Failed to mark full research refresh", error, "RMTA-004");
     }
   });
 
   app.get("/api/research/refresh-config", requireAuth, async (req, res) => {
     try {
       const ga = await storage.getGlobalAssumptions(getAuthUser(req).id);
-      if (!ga) return res.status(404).json({ error: "No global assumptions found" });
+      if (!ga) return res.status(404).json({ error: "No global assumptions found", code: "RMTA-010" });
       res.json((ga.researchConfig as ResearchConfig) ?? {});
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch research refresh config", error);
+      logAndSendError(res, "Failed to fetch research refresh config", error, "RMTA-005");
     }
   });
 
@@ -148,7 +148,7 @@ export function registerResearchMetaRoutes(app: Express) {
       const questions = await storage.getAllResearchQuestions();
       res.json(questions);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch research questions", error);
+      logAndSendError(res, "Failed to fetch research questions", error, "RMTA-006");
     }
   });
 
@@ -162,7 +162,7 @@ export function registerResearchMetaRoutes(app: Express) {
       });
       res.status(201).json(q);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to create research question", error);
+      logAndSendError(res, "Failed to create research question", error, "RMTA-007");
     }
   });
 
@@ -172,22 +172,22 @@ export function registerResearchMetaRoutes(app: Express) {
       if (!validation.success)
         return res.status(400).json({ error: zodErrorMessage(validation.error) });
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      if (!id) return res.status(400).json({ error: "Invalid ID", code: "RMTA-011" });
       const q = await storage.updateResearchQuestion(id, validation.data.question);
       res.json(q);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update research question", error);
+      logAndSendError(res, "Failed to update research question", error, "RMTA-008");
     }
   });
 
   app.delete("/api/research-questions/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid ID" });
+      if (!id) return res.status(400).json({ error: "Invalid ID", code: "RMTA-012" });
       await storage.deleteResearchQuestion(id);
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to delete research question", error);
+      logAndSendError(res, "Failed to delete research question", error, "RMTA-009");
     }
   });
 }

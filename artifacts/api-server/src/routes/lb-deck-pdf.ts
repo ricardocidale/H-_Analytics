@@ -163,7 +163,7 @@ router.put(
         if (!prop || prop.userId !== userId) {
           return res.status(HTTP_400_BAD_REQUEST).json({
             error: `Property ID ${id} for ${field} not found or not owned by you`,
-          });
+          code: "LBPD-004" });
         }
       }
       const updated = await storage.upsertLbSlidesConfig({
@@ -197,14 +197,14 @@ router.get(
     /** 1 hour in seconds (unit conversion: 60min × 60s). */
     const CANONICAL_SLIDE_CACHE_MAX_AGE_S = 60 * 60;
     if (!Number.isFinite(n) || n < SLIDE_MIN || n > SLIDE_MAX) {
-      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Slide number must be 1–6" });
+      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Slide number must be 1–6", code: "LBPD-001" });
     }
     const key = `canonical/lb-6-slide/slides/slide-${n}.png`;
     try {
       const sp = await getStorageProviderAsync();
       const result = await sp.downloadBuffer(key);
       if (!result?.buffer) {
-        return res.status(HTTP_404_NOT_FOUND).json({ error: `Canonical slide ${n} not found in storage` });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: `Canonical slide ${n} not found in storage`, code: "LBPD-002" });
       }
       res.setHeader("Content-Type", "image/png");
       res.setHeader("Cache-Control", `public, max-age=${CANONICAL_SLIDE_CACHE_MAX_AGE_S}`);
@@ -260,14 +260,14 @@ router.get(
       return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({
         error: "LB deck PDF is not ready. Trigger a render first.",
         status: currentStatus,
-      });
+      code: "LBPD-005" });
     }
     try {
       const sp = await getStorageProviderAsync();
       const result = await sp.downloadBuffer(LB_PDF_R2_KEY);
       if (!result?.buffer) {
         currentStatus = "idle"; // stale manifest — reset
-        return res.status(HTTP_404_NOT_FOUND).json({ error: "PDF not found in storage. Please re-render." });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: "PDF not found in storage. Please re-render.", code: "LBPD-003" });
       }
       res.setHeader("Content-Type", PDF_CONTENT_TYPE);
       res.setHeader("Content-Disposition", `attachment; filename="lb-slide-deck.pdf"`);

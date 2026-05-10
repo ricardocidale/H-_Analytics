@@ -218,7 +218,7 @@ export function registerSourcesTabRoutes(app: Express) {
       const cards = await resolveSourcesForTarget(target);
       res.json({ target, groups: groupCards(cards) });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to load specialist sources", error);
+      logAndSendError(res, "Failed to load specialist sources", error, "ASTB-001");
     }
   });
 
@@ -232,7 +232,7 @@ export function registerSourcesTabRoutes(app: Express) {
       const results = await runTestAllForTarget(req, target);
       res.json({ target, results });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to run sources test-all", error);
+      logAndSendError(res, "Failed to run sources test-all", error, "ASTB-002");
     }
   });
 
@@ -242,7 +242,7 @@ export function registerSourcesTabRoutes(app: Express) {
       const cards = await resolveSourcesForTarget(ANALYST_CONNECTION_TARGET);
       res.json({ target: ANALYST_CONNECTION_TARGET, groups: groupCards(cards) });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to load analyst sources", error);
+      logAndSendError(res, "Failed to load analyst sources", error, "ASTB-003");
     }
   });
 
@@ -251,7 +251,7 @@ export function registerSourcesTabRoutes(app: Express) {
       const results = await runTestAllForTarget(req, ANALYST_CONNECTION_TARGET);
       res.json({ target: ANALYST_CONNECTION_TARGET, results });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to run analyst sources test-all", error);
+      logAndSendError(res, "Failed to run analyst sources test-all", error, "ASTB-004");
     }
   });
 
@@ -262,7 +262,7 @@ export function registerSourcesTabRoutes(app: Express) {
       const rows = await storage.listConnectionsForResource(id);
       res.json({ resourceId: id, targets: rows.map((r) => r.target) });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to list resource connections", error);
+      logAndSendError(res, "Failed to list resource connections", error, "ASTB-005");
     }
   });
 
@@ -274,7 +274,7 @@ export function registerSourcesTabRoutes(app: Express) {
         return res.status(400).json({ error: zodErrorMessage(parsed.error) });
       }
       const exists = await storage.getAdminResourceById(id);
-      if (!exists) return res.status(404).json({ error: "Resource not found" });
+      if (!exists) return res.status(404).json({ error: "Resource not found", code: "ASTB-008" });
       const rows = await storage.replaceConnectionsForResource(id, parsed.data.targets);
       logActivity(
         req,
@@ -285,7 +285,7 @@ export function registerSourcesTabRoutes(app: Express) {
       );
       res.json({ resourceId: id, targets: rows.map((r) => r.target) });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update resource connections", error);
+      logAndSendError(res, "Failed to update resource connections", error, "ASTB-006");
     }
   });
 
@@ -306,7 +306,7 @@ export function registerSourcesTabRoutes(app: Express) {
       ];
       res.json(targets);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to list connection targets", error);
+      logAndSendError(res, "Failed to list connection targets", error, "ASTB-007");
     }
   });
 }

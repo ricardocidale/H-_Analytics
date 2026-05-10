@@ -17,7 +17,7 @@ export function registerServiceRoutes(app: Express) {
       const templates = await storage.getAllServiceTemplates();
       res.json(templates);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch service templates", error);
+      logAndSendError(res, "Failed to fetch service templates", error, "ASVC-001");
     }
   });
 
@@ -32,7 +32,7 @@ export function registerServiceRoutes(app: Express) {
       logActivity(req, "create-service-template", "service-template", template.id, template.name);
       res.status(201).json(template);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to create service template", error);
+      logAndSendError(res, "Failed to create service template", error, "ASVC-002");
     }
   });
 
@@ -47,12 +47,12 @@ export function registerServiceRoutes(app: Express) {
       }
 
       const template = await storage.updateServiceTemplate(id, validation.data);
-      if (!template) return res.status(404).json({ error: "Service template not found" });
+      if (!template) return res.status(404).json({ error: "Service template not found", code: "ASVC-006" });
       invalidateComputeCache();
       logActivity(req, "update-service-template", "service-template", id, template.name);
       res.json(template);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update service template", error);
+      logAndSendError(res, "Failed to update service template", error, "ASVC-003");
     }
   });
 
@@ -62,14 +62,14 @@ export function registerServiceRoutes(app: Express) {
       if (id === null) return;
 
       const existing = await storage.getServiceTemplate(id);
-      if (!existing) return res.status(404).json({ error: "Service template not found" });
+      if (!existing) return res.status(404).json({ error: "Service template not found", code: "ASVC-007" });
 
       await storage.deleteServiceTemplate(id);
       invalidateComputeCache();
       logActivity(req, "delete-service-template", "service-template", id, existing.name);
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to delete service template", error);
+      logAndSendError(res, "Failed to delete service template", error, "ASVC-004");
     }
   });
 
@@ -82,7 +82,7 @@ export function registerServiceRoutes(app: Express) {
         ...result,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to sync service templates to properties", error);
+      logAndSendError(res, "Failed to sync service templates to properties", error, "ASVC-005");
     }
   });
 }

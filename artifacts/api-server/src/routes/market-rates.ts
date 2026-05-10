@@ -35,7 +35,7 @@ export function register(app: Express) {
 
       res.json(enriched);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch market rates", error);
+      logAndSendError(res, "Failed to fetch market rates", error, "MRTS-001");
     }
   });
 
@@ -44,11 +44,11 @@ export function register(app: Express) {
     try {
       const key = String(req.params.key);
       const ok = await forceRefreshRate(key);
-      if (!ok) return sendError(res, 404, "Rate not found or could not be refreshed");
+      if (!ok) return sendError(res, 404, "Rate not found or could not be refreshed", "MRTS-010");
       const updated = await getMarketRate(key);
       res.json(updated);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to refresh rate", error);
+      logAndSendError(res, "Failed to refresh rate", error, "MRTS-002");
     }
   });
 
@@ -58,7 +58,7 @@ export function register(app: Express) {
       const count = await refreshAllStaleRates();
       res.json({ refreshed: count });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to refresh rates", error);
+      logAndSendError(res, "Failed to refresh rates", error, "MRTS-003");
     }
   });
 
@@ -67,10 +67,10 @@ export function register(app: Express) {
     try {
       const key = String(req.params.key);
       const existing = await getMarketRate(key);
-      if (!existing) return sendError(res, 404, "Rate not found");
+      if (!existing) return sendError(res, 404, "Rate not found", "MRTS-011");
 
       const validation = marketRatePatchSchema.safeParse(req.body);
-      if (!validation.success) return sendError(res, 400, zodErrorMessage(validation.error));
+      if (!validation.success) return sendError(res, 400, zodErrorMessage(validation.error), "MRTS-012");
       const { value, manualNote } = validation.data;
 
       await upsertMarketRate({
@@ -86,7 +86,7 @@ export function register(app: Express) {
       const updated = await getMarketRate(key);
       res.json(updated);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update rate", error);
+      logAndSendError(res, "Failed to update rate", error, "MRTS-004");
     }
   });
 
@@ -94,10 +94,10 @@ export function register(app: Express) {
     try {
       const aggregator = getMarketIntelligenceAggregator();
       const data = await aggregator.fetchRateWithHistory(String(req.params.seriesKey));
-      if (!data) return sendError(res, 404, "Series not found or FRED API unavailable");
+      if (!data) return sendError(res, 404, "Series not found or FRED API unavailable", "MRTS-013");
       res.json(data);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch FRED history", error);
+      logAndSendError(res, "Failed to fetch FRED history", error, "MRTS-005");
     }
   });
 
@@ -107,7 +107,7 @@ export function register(app: Express) {
       const data = await aggregator.fetchRatesOnly();
       res.json(data);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch FRED rates", error);
+      logAndSendError(res, "Failed to fetch FRED rates", error, "MRTS-006");
     }
   });
 
@@ -116,7 +116,7 @@ export function register(app: Express) {
       const aggregator = getMarketIntelligenceAggregator();
       res.json(aggregator.getServiceStatus());
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to get service status", error);
+      logAndSendError(res, "Failed to get service status", error, "MRTS-007");
     }
   });
 
@@ -139,20 +139,20 @@ export function register(app: Express) {
         costar: data.costar || null,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch credit risk data", error);
+      logAndSendError(res, "Failed to fetch credit risk data", error, "MRTS-008");
     }
   });
 
   app.post("/api/market-intelligence/gather", requireAuth, requireAdmin, async (req: Request, res: Response) => {
     try {
       const validation = marketIntelligenceGatherSchema.safeParse(req.body);
-      if (!validation.success) return sendError(res, 400, zodErrorMessage(validation.error));
+      if (!validation.success) return sendError(res, 400, zodErrorMessage(validation.error), "MRTS-014");
       const { location, state, propertyType, propertyClass, chainScale } = validation.data;
       const aggregator = getMarketIntelligenceAggregator();
       const data = await aggregator.gather({ location, state, propertyType, propertyClass, chainScale });
       res.json(data);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to gather market intelligence", error);
+      logAndSendError(res, "Failed to gather market intelligence", error, "MRTS-009");
     }
   });
 }

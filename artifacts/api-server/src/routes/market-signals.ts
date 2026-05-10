@@ -37,9 +37,9 @@ export function register(app: Express) {
   app.get("/api/market-signals/:propertyId/supply-pipeline", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.propertyId);
-      if (propertyId === null) return sendError(res, 400, "Invalid property ID");
+      if (propertyId === null) return sendError(res, 400, "Invalid property ID", "MSIG-007");
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
-        return sendError(res, 403, "Access denied");
+        return sendError(res, 403, "Access denied", "MSIG-008");
       }
       const projects = await storage.listSupplyProjectsForProperty(propertyId);
       const parsed = computeQuerySchema.parse(req.query);
@@ -50,23 +50,23 @@ export function register(app: Express) {
       const drag = baselineRevpar > 0 ? computeRevparDrag(pressure, baselineRevpar) : null;
       res.json({ projects, pressure, drag, existingInventory });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch supply pipeline", error, "market-signals");
+      logAndSendError(res, "Failed to fetch supply pipeline", error, "MSIG-001");
     }
   });
 
   app.post("/api/market-signals/:propertyId/supply-pipeline", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.propertyId);
-      if (propertyId === null) return sendError(res, 400, "Invalid property ID");
+      if (propertyId === null) return sendError(res, 400, "Invalid property ID", "MSIG-009");
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
-        return sendError(res, 403, "Access denied");
+        return sendError(res, 403, "Access denied", "MSIG-010");
       }
       const body = insertSubmarketSupplyProjectSchema.parse({ ...req.body, propertyId });
       const row = await storage.upsertSupplyProject(body);
       res.json(row);
     } catch (error: unknown) {
-      if (error instanceof z.ZodError) return sendError(res, 400, error.issues[0]?.message ?? "Invalid body");
-      logAndSendError(res, "Failed to upsert supply project", error, "market-signals");
+      if (error instanceof z.ZodError) return sendError(res, 400, error.issues[0]?.message ?? "Invalid body", "MSIG-011");
+      logAndSendError(res, "Failed to upsert supply project", error, "MSIG-002");
     }
   });
 
@@ -74,14 +74,14 @@ export function register(app: Express) {
     try {
       const propertyId = parseRouteId(req.params.propertyId);
       const id = parseRouteId(req.params.id);
-      if (propertyId === null || id === null) return sendError(res, 400, "Invalid ID");
+      if (propertyId === null || id === null) return sendError(res, 400, "Invalid ID", "MSIG-012");
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
-        return sendError(res, 403, "Access denied");
+        return sendError(res, 403, "Access denied", "MSIG-013");
       }
       await storage.deleteSupplyProject(id, propertyId);
       res.json({ ok: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to delete supply project", error, "market-signals");
+      logAndSendError(res, "Failed to delete supply project", error, "MSIG-003");
     }
   });
 
@@ -90,9 +90,9 @@ export function register(app: Express) {
   app.get("/api/market-signals/:propertyId/str-events", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.propertyId);
-      if (propertyId === null) return sendError(res, 400, "Invalid property ID");
+      if (propertyId === null) return sendError(res, 400, "Invalid property ID", "MSIG-014");
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
-        return sendError(res, 403, "Access denied");
+        return sendError(res, 403, "Access denied", "MSIG-015");
       }
       const events = await storage.listStrEventsForProperty(propertyId);
       const trend = computeStrTrend(events);
@@ -103,23 +103,23 @@ export function register(app: Express) {
         strExempt: Boolean(property?.strExempt),
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch STR events", error, "market-signals");
+      logAndSendError(res, "Failed to fetch STR events", error, "MSIG-004");
     }
   });
 
   app.post("/api/market-signals/:propertyId/str-events", requireAuth, async (req, res) => {
     try {
       const propertyId = parseRouteId(req.params.propertyId);
-      if (propertyId === null) return sendError(res, 400, "Invalid property ID");
+      if (propertyId === null) return sendError(res, 400, "Invalid property ID", "MSIG-016");
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
-        return sendError(res, 403, "Access denied");
+        return sendError(res, 403, "Access denied", "MSIG-017");
       }
       const body = insertStrOrdinanceEventSchema.parse({ ...req.body, propertyId });
       const row = await storage.upsertStrEvent(body);
       res.json(row);
     } catch (error: unknown) {
-      if (error instanceof z.ZodError) return sendError(res, 400, error.issues[0]?.message ?? "Invalid body");
-      logAndSendError(res, "Failed to upsert STR event", error, "market-signals");
+      if (error instanceof z.ZodError) return sendError(res, 400, error.issues[0]?.message ?? "Invalid body", "MSIG-018");
+      logAndSendError(res, "Failed to upsert STR event", error, "MSIG-005");
     }
   });
 
@@ -127,14 +127,14 @@ export function register(app: Express) {
     try {
       const propertyId = parseRouteId(req.params.propertyId);
       const id = parseRouteId(req.params.id);
-      if (propertyId === null || id === null) return sendError(res, 400, "Invalid ID");
+      if (propertyId === null || id === null) return sendError(res, 400, "Invalid ID", "MSIG-019");
       if (!(await checkPropertyAccess(getAuthUser(req), propertyId))) {
-        return sendError(res, 403, "Access denied");
+        return sendError(res, 403, "Access denied", "MSIG-020");
       }
       await storage.deleteStrEvent(id, propertyId);
       res.json({ ok: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to delete STR event", error, "market-signals");
+      logAndSendError(res, "Failed to delete STR event", error, "MSIG-006");
     }
   });
 }

@@ -101,7 +101,7 @@ export function registerAuditRoutes(app: Express) {
     try {
       const { id } = idParamSchema.parse(req.params);
       const def = getSpecialistById(id);
-      if (!def) return res.status(404).json({ error: "Specialist not found" });
+      if (!def) return res.status(404).json({ error: "Specialist not found", code: "ASAU-002" });
       const limit = Math.min(Number(req.query.limit ?? 50), 200);
       const versions = await storage.listSpecialistConfigVersions(id, limit);
       // (inferred as (SpecialistConfigVersionRow & { changedByUserName: string | null })[])
@@ -147,7 +147,7 @@ export function registerAuditRoutes(app: Express) {
       });
       res.json(annotated);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to load specialist audit history", error);
+      logAndSendError(res, "Failed to load specialist audit history", error, "ASAU-001");
     }
   });
 }

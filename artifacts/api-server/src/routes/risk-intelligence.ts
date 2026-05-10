@@ -18,7 +18,7 @@ riskIntelligenceRoutes.get(
   async (req, res) => {
     const userId = getAuthUser(req).id;
     if (isApiRateLimited(userId, "risk-portfolio", 5)) {
-      return res.status(429).json({ error: "Rate limited — 5 requests per minute" });
+      return res.status(429).json({ error: "Rate limited — 5 requests per minute", code: "RSKI-001" });
     }
 
     try {
@@ -43,7 +43,7 @@ riskIntelligenceRoutes.get(
       res.json(brief);
     } catch (error: unknown) {
       logger.error(`Portfolio risk brief failed: ${error}`, "risk-intelligence");
-      res.status(500).json({ error: "Failed to generate risk brief" });
+      res.status(500).json({ error: "Failed to generate risk brief", code: "RSKI-002" });
     }
   },
 );
@@ -54,19 +54,19 @@ riskIntelligenceRoutes.get(
   async (req, res) => {
     const userId = getAuthUser(req).id;
     if (isApiRateLimited(userId, "risk-property", 10)) {
-      return res.status(429).json({ error: "Rate limited — 10 requests per minute" });
+      return res.status(429).json({ error: "Rate limited — 10 requests per minute", code: "RSKI-003" });
     }
 
     try {
       const propertyId = parseRouteId(req.params.propertyId);
       if (!propertyId) {
-        return res.status(400).json({ error: "Invalid property ID" });
+        return res.status(400).json({ error: "Invalid property ID", code: "RSKI-004" });
       }
 
       const property = await storage.getProperty(propertyId);
 
       if (!property || property.userId !== userId) {
-        return res.status(404).json({ error: "Property not found" });
+        return res.status(404).json({ error: "Property not found", code: "RSKI-005" });
       }
 
       const allUserProperties: Property[] = await storage.getAllProperties(userId);
@@ -81,7 +81,7 @@ riskIntelligenceRoutes.get(
       res.json(brief);
     } catch (error: unknown) {
       logger.error(`Property risk brief failed: ${error}`, "risk-intelligence");
-      res.status(500).json({ error: "Failed to generate risk brief" });
+      res.status(500).json({ error: "Failed to generate risk brief", code: "RSKI-006" });
     }
   },
 );
@@ -119,7 +119,7 @@ riskIntelligenceRoutes.get(
       });
     } catch (error: unknown) {
       logger.error(`Macro context failed: ${error}`, "risk-intelligence");
-      res.status(500).json({ error: "Failed to fetch macro context" });
+      res.status(500).json({ error: "Failed to fetch macro context", code: "RSKI-007" });
     }
   },
 );

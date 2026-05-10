@@ -131,11 +131,11 @@ router.get(
   async (req: Request, res: Response) => {
     const propertyId = parseRouteId(req.params.id);
     if (!propertyId) {
-      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID", code: "PSLD-001" });
     }
     const property = await storage.getProperty(propertyId);
     if (!property) {
-      return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
+      return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "PSLD-002" });
     }
     const { token, expiresAtMs } = signDeckToken(propertyId);
     res.setHeader("Cache-Control", "no-store");
@@ -156,11 +156,11 @@ router.get(
     const propertyId = parseRouteId(req.params.id);
     const slide = parseSlideNumber(req.params.n);
     if (!propertyId || !slide) {
-      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID or slide number" });
+      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID or slide number", code: "PSLD-003" });
     }
     const property = await storage.getProperty(propertyId);
     if (!property) {
-      return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
+      return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "PSLD-004" });
     }
 
     const filename = `${slugify(property.name)}-slide-${slide}.pdf`;
@@ -207,11 +207,11 @@ router.post(
     const propertyId = parseRouteId(req.params.id);
     const slide = parseSlideNumber(req.params.n);
     if (!propertyId || !slide) {
-      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID or slide number" });
+      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID or slide number", code: "PSLD-005" });
     }
     const property = await storage.getProperty(propertyId);
     if (!property) {
-      return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
+      return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "PSLD-006" });
     }
     const user = getAuthUser(req);
     const triggeredBy = user?.email ?? user?.id?.toString() ?? "deck-slide-regenerate";

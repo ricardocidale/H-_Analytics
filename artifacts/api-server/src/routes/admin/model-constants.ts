@@ -327,7 +327,7 @@ export function registerModelConstantsRoutes(app: Express) {
         items,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to list model constants", error);
+      logAndSendError(res, "Failed to list model constants", error, "AMCO-001");
     }
   });
 
@@ -341,7 +341,7 @@ export function registerModelConstantsRoutes(app: Express) {
     try {
       const key = String(req.params.key ?? "");
       const entry = MODEL_CONSTANTS_REGISTRY[key];
-      if (!entry) return res.status(HTTP_404_NOT_FOUND).json({ error: `Unknown constant key: ${key}` });
+      if (!entry) return res.status(HTTP_404_NOT_FOUND).json({ error: `Unknown constant key: ${key}`, code: "AMCO-011" });
 
       // Phase 3 doctrine guard: Constants owned by an Intelligence
       // Specialist (every entry in MODEL_CONSTANTS_REGISTRY today) are
@@ -409,7 +409,7 @@ export function registerModelConstantsRoutes(app: Express) {
         override: result,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to override model constant", error);
+      logAndSendError(res, "Failed to override model constant", error, "AMCO-002");
     }
   });
 
@@ -420,7 +420,7 @@ export function registerModelConstantsRoutes(app: Express) {
     try {
       const key = String(req.params.key ?? "");
       if (!MODEL_CONSTANTS_REGISTRY[key]) {
-        return res.status(HTTP_404_NOT_FOUND).json({ error: `Unknown constant key: ${key}` });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: `Unknown constant key: ${key}`, code: "AMCO-012" });
       }
 
       const parsed = localityQuerySchema.safeParse(req.query);
@@ -445,7 +445,7 @@ export function registerModelConstantsRoutes(app: Express) {
 
       res.json({ ok: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to reset model constant", error);
+      logAndSendError(res, "Failed to reset model constant", error, "AMCO-003");
     }
   });
 
@@ -461,7 +461,7 @@ export function registerModelConstantsRoutes(app: Express) {
     try {
       const key = String(req.params.key ?? "");
       if (!MODEL_CONSTANTS_REGISTRY[key]) {
-        return res.status(HTTP_404_NOT_FOUND).json({ error: `Unknown constant key: ${key}` });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: `Unknown constant key: ${key}`, code: "AMCO-013" });
       }
 
       const parsed = localityQuerySchema.safeParse(req.query);
@@ -486,7 +486,7 @@ export function registerModelConstantsRoutes(app: Express) {
 
       res.json(proposal);
     } catch (error: unknown) {
-      logAndSendError(res, "Analyst regeneration failed", error);
+      logAndSendError(res, "Analyst regeneration failed", error, "AMCO-004");
     }
   });
 
@@ -512,7 +512,7 @@ export function registerModelConstantsRoutes(app: Express) {
     try {
       const key = String(req.params.key ?? "");
       if (!MODEL_CONSTANTS_REGISTRY[key]) {
-        return res.status(HTTP_404_NOT_FOUND).json({ error: `Unknown constant key: ${key}` });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: `Unknown constant key: ${key}`, code: "AMCO-014" });
       }
 
       const userIdForLog = (req as { user?: { id?: number } }).user?.id ?? null;
@@ -730,7 +730,7 @@ export function registerModelConstantsRoutes(app: Express) {
         override: result,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to apply analyst regeneration", error);
+      logAndSendError(res, "Failed to apply analyst regeneration", error, "AMCO-005");
     }
   });
 
@@ -756,7 +756,7 @@ export function registerModelConstantsRoutes(app: Express) {
     try {
       const key = String(req.params.key ?? "");
       if (!MODEL_CONSTANTS_REGISTRY[key]) {
-        return res.status(HTTP_404_NOT_FOUND).json({ error: `Unknown constant key: ${key}` });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: `Unknown constant key: ${key}`, code: "AMCO-015" });
       }
 
       const parsed = localityQuerySchema.safeParse(req.query);
@@ -789,7 +789,7 @@ export function registerModelConstantsRoutes(app: Express) {
 
       res.json({ proposal });
     } catch (error: unknown) {
-      logAndSendError(res, "Refresh research failed", error);
+      logAndSendError(res, "Refresh research failed", error, "AMCO-006");
     }
   });
 
@@ -819,7 +819,7 @@ export function registerModelConstantsRoutes(app: Express) {
     try {
       const key = String(req.params.key ?? "");
       if (!MODEL_CONSTANTS_REGISTRY[key]) {
-        return res.status(HTTP_404_NOT_FOUND).json({ error: `Unknown constant key: ${key}` });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: `Unknown constant key: ${key}`, code: "AMCO-016" });
       }
 
       const parsedBody = applyProposalSchema.safeParse(req.body);
@@ -855,7 +855,7 @@ export function registerModelConstantsRoutes(app: Express) {
       if (!proposal || proposal.value === undefined || !proposal.authority) {
         return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
           error: `research_run ${researchRunId} does not carry a complete Specialist proposal.`,
-        });
+        code: "AMCO-020" });
       }
 
       const userId = (req as { user?: { id?: number } }).user?.id ?? null;
@@ -890,7 +890,7 @@ export function registerModelConstantsRoutes(app: Express) {
         appliedFromResearchRunId: researchRunId,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to apply Specialist proposal", error);
+      logAndSendError(res, "Failed to apply Specialist proposal", error, "AMCO-007");
     }
   });
 
@@ -919,7 +919,7 @@ export function registerModelConstantsRoutes(app: Express) {
   app.get("/api/admin/model-constants/scheduled-failures", requireAdmin, async (req, res) => {
     try {
       const userId = (req as { user?: { id?: number } }).user?.id;
-      if (!userId) return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Unauthorized" });
+      if (!userId) return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Unauthorized", code: "AMCO-017" });
 
       // "Since admin's last visit" semantics: read the previous visit
       // timestamp, then immediately record a new visit for next time.
@@ -961,18 +961,18 @@ export function registerModelConstantsRoutes(app: Express) {
         failures,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to load scheduled-refresh failures", error);
+      logAndSendError(res, "Failed to load scheduled-refresh failures", error, "AMCO-008");
     }
   });
 
   app.post("/api/admin/model-constants/scheduled-failures/dismiss", requireAdmin, async (req, res) => {
     try {
       const userId = (req as { user?: { id?: number } }).user?.id;
-      if (!userId) return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Unauthorized" });
+      if (!userId) return res.status(HTTP_401_UNAUTHORIZED).json({ error: "Unauthorized", code: "AMCO-018" });
       const visit = await storage.recordVisit(userId, FAILURES_PAGE_KEY);
       res.json({ dismissedAt: visit.lastVisitedAt });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to dismiss scheduled-refresh failures", error);
+      logAndSendError(res, "Failed to dismiss scheduled-refresh failures", error, "AMCO-009");
     }
   });
 
@@ -980,7 +980,7 @@ export function registerModelConstantsRoutes(app: Express) {
     try {
       const key = String(req.params.key ?? "");
       if (!MODEL_CONSTANTS_REGISTRY[key]) {
-        return res.status(HTTP_404_NOT_FOUND).json({ error: `Unknown constant key: ${key}` });
+        return res.status(HTTP_404_NOT_FOUND).json({ error: `Unknown constant key: ${key}`, code: "AMCO-019" });
       }
 
       const parsed = localityQuerySchema.safeParse(req.query);
@@ -995,7 +995,7 @@ export function registerModelConstantsRoutes(app: Express) {
       const runs = await storage.getResearchRunsForConstant(key, country, subdivision, 10);
       res.json({ runs });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to load research history", error);
+      logAndSendError(res, "Failed to load research history", error, "AMCO-010");
     }
   });
 

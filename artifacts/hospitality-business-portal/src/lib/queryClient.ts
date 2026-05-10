@@ -113,14 +113,15 @@ async function buildResponseErrorInfo(
   }
 
   if (parsed && typeof parsed === "object") {
-    const obj = parsed as { error?: unknown; message?: unknown };
+    const obj = parsed as { error?: unknown; message?: unknown; code?: unknown };
+    const codeTag = typeof obj.code === "string" ? ` [${obj.code}]` : "";
     const fromError = typeof obj.error === "string" ? obj.error.trim() : "";
     if (fromError) {
-      return { message: fromError, body: parsed, bodyText };
+      return { message: `${fromError}${codeTag}`, body: parsed, bodyText };
     }
     const fromMessage = typeof obj.message === "string" ? obj.message.trim() : "";
     if (fromMessage) {
-      return { message: fromMessage, body: parsed, bodyText };
+      return { message: `${fromMessage}${codeTag}`, body: parsed, bodyText };
     }
   }
 

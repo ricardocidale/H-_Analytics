@@ -67,7 +67,7 @@ export function registerAdminSpecialistToolRoutes(app: Express) {
         tools: view,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to list specialist tools", error);
+      logAndSendError(res, "Failed to list specialist tools", error, "ASTL-001");
     }
   });
 }

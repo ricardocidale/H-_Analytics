@@ -230,7 +230,7 @@ export function registerTestBatteryRoutes(app: Express) {
     if (!lastBatteryRun)
       return res
         .status(404)
-        .json({ error: "No battery results yet — run a battery first" });
+        .json({ error: "No battery results yet — run a battery first", code: "ATST-004" });
     res.json(lastBatteryRun);
   });
 
@@ -239,25 +239,25 @@ export function registerTestBatteryRoutes(app: Express) {
     try {
       const { battery } = req.body as { battery?: string };
       if (!battery) {
-        return res.status(400).json({ error: "Missing 'battery' in request body" });
+        return res.status(400).json({ error: "Missing 'battery' in request body", code: "ATST-005" });
       }
 
       const validKeys = [...Object.keys(BATTERY_DEFINITIONS), "all"];
       if (!validKeys.includes(battery)) {
         return res
           .status(400)
-          .json({ error: `Invalid battery '${battery}'. Valid: ${validKeys.join(", ")}` });
+          .json({ error: `Invalid battery '${battery}'. Valid: ${validKeys.join(", ")}`, code: "ATST-006" });
       }
 
       if (batteryRunning) {
-        return res.status(429).json({ error: "A battery is already running" });
+        return res.status(429).json({ error: "A battery is already running", code: "ATST-007" });
       }
 
       // Rate limit: 1 run per 2 minutes
       if (isApiRateLimited(getAuthUser(req).id, "test-battery-run", 1)) {
         return res
           .status(429)
-          .json({ error: "Test battery rate-limited to 1 run per 2 minutes" });
+          .json({ error: "Test battery rate-limited to 1 run per 2 minutes", code: "ATST-008" });
       }
 
       batteryRunning = true;
@@ -307,7 +307,7 @@ export function registerTestBatteryRoutes(app: Express) {
       res.json(result);
     } catch (error: unknown) {
       batteryRunning = false;
-      logAndSendError(res, "Test battery failed", error);
+      logAndSendError(res, "Test battery failed", error, "ATST-001");
     }
   });
 
@@ -317,7 +317,7 @@ export function registerTestBatteryRoutes(app: Express) {
         if (isApiRateLimited(getAuthUser(req).id, "source-verification", 1)) {
           return res
             .status(429)
-            .json({ error: "Source verification rate-limited to 1 run per minute" });
+            .json({ error: "Source verification rate-limited to 1 run per minute", code: "ATST-009" });
         }
 
         logActivity(req, "run-source-verification", "verification");
@@ -367,7 +367,7 @@ export function registerTestBatteryRoutes(app: Express) {
 
         res.json(result);
       } catch (error: unknown) {
-        logAndSendError(res, "Source verification failed", error);
+        logAndSendError(res, "Source verification failed", error, "ATST-002");
       }
   });
 
@@ -377,7 +377,7 @@ export function registerTestBatteryRoutes(app: Express) {
         if (isApiRateLimited(getAuthUser(req).id, "financial-verify", 1)) {
           return res
             .status(429)
-            .json({ error: "Financial verify rate-limited to 1 run per minute" });
+            .json({ error: "Financial verify rate-limited to 1 run per minute", code: "ATST-010" });
         }
 
         logActivity(req, "run-financial-verify", "verification");
@@ -415,7 +415,7 @@ export function registerTestBatteryRoutes(app: Express) {
           timestamp: new Date().toISOString(),
         });
       } catch (error: unknown) {
-        logAndSendError(res, "Financial verification failed", error);
+        logAndSendError(res, "Financial verification failed", error, "ATST-003");
       }
   });
 }

@@ -484,11 +484,11 @@ router.get(
   async (req: Request, res: Response) => {
     const propertyId = parseRouteId(req.params.id);
     if (!propertyId) {
-      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID", code: "PDCK-001" });
     }
     const property = await storage.getProperty(propertyId);
     if (!property) {
-      return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
+      return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "PDCK-002" });
     }
     const row = await storage.getDeckPayload(propertyId);
     const payload: DeckPayloadV2 = row ? parseDeckPayloadV2(row.payload) : EMPTY_DECK_PAYLOAD_V2;
@@ -508,11 +508,11 @@ router.patch(
   async (req: Request, res: Response) => {
     const propertyId = parseRouteId(req.params.id);
     if (!propertyId) {
-      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID", code: "PDCK-003" });
     }
     const property = await storage.getProperty(propertyId);
     if (!property) {
-      return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
+      return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "PDCK-004" });
     }
 
     const parsed = deckPayloadV2PatchSchema.safeParse(req.body);
@@ -520,7 +520,7 @@ router.patch(
       return res.status(HTTP_400_BAD_REQUEST).json({
         error: "Invalid deck payload patch",
         issues: parsed.error.issues,
-      });
+      code: "PDCK-011" });
     }
 
     // Shallow-merge per slide so a PATCH targeting only one slot does not
@@ -563,18 +563,18 @@ router.post(
   async (req: Request, res: Response) => {
     const propertyId = parseRouteId(req.params.id);
     if (!propertyId) {
-      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID", code: "PDCK-005" });
     }
     const slot = (req.body as Record<string, unknown> | undefined)?.slot;
     if (!isDraftSlot(slot)) {
       return res.status(HTTP_400_BAD_REQUEST).json({
         error: "Invalid or missing 'slot'",
         allowedSlots: DRAFT_SLOTS,
-      });
+      code: "PDCK-012" });
     }
     const property = await storage.getProperty(propertyId);
     if (!property) {
-      return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
+      return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "PDCK-006" });
     }
     try {
       const result = await draftSlot(propertyId, slot);
@@ -586,7 +586,7 @@ router.post(
           error: "LLM output exceeded character budget — retry or adjust the prompt",
           slot: err.slot,
           validationErrors: err.validationErrors,
-        });
+        code: "PDCK-013" });
       }
       const message = err instanceof Error ? err.message : "Draft generation failed";
       logger.error(
@@ -604,11 +604,11 @@ router.get(
   async (req: Request, res: Response) => {
     const propertyId = parseRouteId(req.params.id);
     if (!propertyId) {
-      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID", code: "PDCK-007" });
     }
     const property = await storage.getProperty(propertyId);
     if (!property) {
-      return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
+      return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "PDCK-008" });
     }
 
     const row = await storage.getDeckPayload(propertyId);
@@ -645,11 +645,11 @@ router.post(
   async (req: Request, res: Response) => {
     const propertyId = parseRouteId(req.params.id);
     if (!propertyId) {
-      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID" });
+      return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid property ID", code: "PDCK-009" });
     }
     const property = await storage.getProperty(propertyId);
     if (!property) {
-      return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found" });
+      return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "PDCK-010" });
     }
 
     const row = await storage.getDeckPayload(propertyId);

@@ -63,12 +63,12 @@ router.get(
         if (!run) {
           return res.status(HTTP_404_NOT_FOUND).json({
             error: `Slide factory run ${factoryVerified.runId} not found`,
-          });
+          code: "ILBD-002" });
         }
         if (run.status !== "complete") {
           return res.status(HTTP_409_CONFLICT).json({
             error: `Slide factory run ${run.id} is not complete (status: ${run.status})`,
-          });
+          code: "ILBD-003" });
         }
         const payload = await buildLbPayloadFromFactoryRun(run);
         res.setHeader("Cache-Control", "no-store");
@@ -92,7 +92,7 @@ router.get(
         factoryVerified.reason !== "wrong-kind" ? factoryVerified.reason : verified.reason;
       return res
         .status(HTTP_401_UNAUTHORIZED)
-        .json({ error: `Invalid LB deck token: ${reason}` });
+        .json({ error: `Invalid LB deck token: ${reason}`, code: "ILBD-001" });
     }
 
     try {

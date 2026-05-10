@@ -45,7 +45,7 @@ export function register(app: Express) {
     try {
       const parsed = generateExportSchema.safeParse(req.body);
       if (!parsed.success) {
-        return res.status(400).json({ error: "Invalid export request", details: parsed.error.flatten() });
+        return res.status(400).json({ error: "Invalid export request", details: parsed.error.flatten() , code: "EXGN-006" });
       }
 
       const { entityType, entityId, format, orientation, projectionYears, reportScope } = parsed.data;
@@ -53,7 +53,7 @@ export function register(app: Express) {
       const userId = req.user?.id;
 
       if (!userId) {
-        return res.status(401).json({ error: "Authentication required" });
+        return res.status(401).json({ error: "Authentication required", code: "EXGN-001" });
       }
 
       logger.info(`[server-export] Generating ${format} for ${entityType}${entityId ? ` #${entityId}` : ""} (scope=${reportScope}, version=${version})`, "server-export");
@@ -65,7 +65,7 @@ export function register(app: Express) {
       try {
         if (entityType === "property") {
           if (!entityId) {
-            return res.status(400).json({ error: "entityId required for property exports" });
+            return res.status(400).json({ error: "entityId required for property exports", code: "EXGN-002" });
           }
           exportData = await buildPropertyExportData({ userId, propertyId: entityId, projectionYears, version, reportScope });
           const property = await storage.getProperty(entityId);
@@ -178,14 +178,14 @@ export function register(app: Express) {
             buffer = await generateDocxFromReport(report);
             break;
           default:
-            return res.status(400).json({ error: `Unsupported format: ${format}` });
+            return res.status(400).json({ error: `Unsupported format: ${format}`, code: "EXGN-003" });
         }
       }
 
       const MAX_EXPORT_BYTES = 50 * 1024 * 1024;
       if (buffer.length > MAX_EXPORT_BYTES) {
         logger.error(`Export too large: ${buffer.length} bytes`, "server-export");
-        return res.status(HTTP_413_PAYLOAD_TOO_LARGE).json({ error: "Export exceeds maximum size limit" });
+        return res.status(HTTP_413_PAYLOAD_TOO_LARGE).json({ error: "Export exceeds maximum size limit", code: "EXGN-004" });
       }
 
       const safeEntity = entityName.replace(/[^a-zA-Z0-9 ]/g, "").substring(0, 40).trim();
@@ -213,7 +213,7 @@ export function register(app: Express) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       const errorStack = error instanceof Error ? error.stack : "";
       logger.error(`[server-export] Error: ${errorMsg} ${errorStack}`, "server-export");
-      res.status(500).json({ error: "Export generation failed. Please try again." });
+      res.status(500).json({ error: "Export generation failed. Please try again.", code: "EXGN-005" });
     }
   });
 

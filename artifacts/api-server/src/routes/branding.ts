@@ -59,7 +59,7 @@ export function register(app: Express) {
 
       res.json({ userName, companyName, logoUrl });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch branding", error);
+      logAndSendError(res, "Failed to fetch branding", error, "BRND-001");
     }
   });
 
@@ -115,7 +115,7 @@ export function register(app: Express) {
       const logos = await storage.getAllLogos();
       res.json(logos);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch logos", error);
+      logAndSendError(res, "Failed to fetch logos", error, "BRND-002");
     }
   });
 
@@ -128,36 +128,36 @@ export function register(app: Express) {
       const logo = await storage.createLogo(validation.data);
       res.status(201).json(logo);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to create logo", error);
+      logAndSendError(res, "Failed to create logo", error, "BRND-003");
     }
   });
 
   app.delete("/api/api/media/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid logo ID" });
+      if (!id) return res.status(400).json({ error: "Invalid logo ID", code: "BRND-014" });
       const logo = await storage.getLogo(id);
       if (logo?.isDefault) {
-        return res.status(400).json({ error: "Cannot delete the management company default logo" });
+        return res.status(400).json({ error: "Cannot delete the management company default logo", code: "BRND-015" });
       }
       if (logo?.isAppLogo) {
-        return res.status(400).json({ error: "Cannot delete the app logo — assign a different app logo first" });
+        return res.status(400).json({ error: "Cannot delete the app logo — assign a different app logo first", code: "BRND-016" });
       }
       await storage.deleteLogo(id);
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to delete logo", error);
+      logAndSendError(res, "Failed to delete logo", error, "BRND-004");
     }
   });
 
   app.patch("/api/api/media/:id/default", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid logo ID" });
+      if (!id) return res.status(400).json({ error: "Invalid logo ID", code: "BRND-017" });
       await storage.setDefaultLogo(id);
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to set default logo", error);
+      logAndSendError(res, "Failed to set default logo", error, "BRND-005");
     }
   });
 
@@ -171,7 +171,7 @@ export function register(app: Express) {
         appLogoId: appLogo?.id ?? null,
       });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch app branding", error);
+      logAndSendError(res, "Failed to fetch app branding", error, "BRND-006");
     }
   });
 
@@ -196,7 +196,7 @@ export function register(app: Express) {
       }
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update app branding", error);
+      logAndSendError(res, "Failed to update app branding", error, "BRND-007");
     }
   });
 
@@ -206,7 +206,7 @@ export function register(app: Express) {
       const descriptions = await storage.getAllAssetDescriptions();
       res.json(descriptions);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch asset descriptions", error);
+      logAndSendError(res, "Failed to fetch asset descriptions", error, "BRND-008");
     }
   });
 
@@ -225,7 +225,7 @@ export function register(app: Express) {
       const themes = await storage.getAllDesignThemes();
       res.json(themes.map(t => ({ id: t.id, name: t.name, description: t.description, isDefault: t.isDefault, isSystem: t.isSystem, colors: t.colors })));
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch themes", error);
+      logAndSendError(res, "Failed to fetch themes", error, "BRND-009");
     }
   });
 
@@ -234,7 +234,7 @@ export function register(app: Express) {
       const themes = await storage.getAllDesignThemes();
       res.json(themes);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to fetch themes", error);
+      logAndSendError(res, "Failed to fetch themes", error, "BRND-010");
     }
   });
 
@@ -247,7 +247,7 @@ export function register(app: Express) {
       const theme = await storage.createDesignTheme(validation.data);
       res.status(201).json(theme);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to create theme", error);
+      logAndSendError(res, "Failed to create theme", error, "BRND-011");
     }
   });
 
@@ -266,7 +266,7 @@ export function register(app: Express) {
   app.patch("/api/admin/design-themes/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid theme ID" });
+      if (!id) return res.status(400).json({ error: "Invalid theme ID", code: "BRND-018" });
       const existing = await storage.getDesignTheme(id);
       const parsed = updateDesignThemeSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -274,27 +274,27 @@ export function register(app: Express) {
       }
       const isSettingDefault = parsed.data.isDefault === true;
       if (existing?.isSystem && !isSettingDefault) {
-        return res.status(403).json({ error: "System themes cannot be edited" });
+        return res.status(403).json({ error: "System themes cannot be edited", code: "BRND-019" });
       }
       const theme = await storage.updateDesignTheme(id, parsed.data);
       res.json(theme);
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to update theme", error);
+      logAndSendError(res, "Failed to update theme", error, "BRND-012");
     }
   });
 
   app.delete("/api/admin/design-themes/:id", requireAdmin, async (req, res) => {
     try {
       const id = parseRouteId(req.params.id);
-      if (!id) return res.status(400).json({ error: "Invalid theme ID" });
+      if (!id) return res.status(400).json({ error: "Invalid theme ID", code: "BRND-020" });
       const theme = await storage.getDesignTheme(id);
       if (theme?.isDefault) {
-        return res.status(400).json({ error: "Cannot delete the default theme" });
+        return res.status(400).json({ error: "Cannot delete the default theme", code: "BRND-021" });
       }
       await storage.deleteDesignTheme(id);
       res.json({ success: true });
     } catch (error: unknown) {
-      logAndSendError(res, "Failed to delete theme", error);
+      logAndSendError(res, "Failed to delete theme", error, "BRND-013");
     }
   });
 }

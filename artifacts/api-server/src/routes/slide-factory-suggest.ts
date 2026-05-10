@@ -50,33 +50,33 @@ export function registerSlideFactorySuggestRoutes(app: Express): void {
         const user = getAuthUser(req);
         const id = parseRouteId(req.params.id);
         if (!id) {
-          return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID" });
+          return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID", code: "SLSG-002" });
         }
 
         const rawKey = req.params.key;
         if (!rawKey || Array.isArray(rawKey)) {
-          return res.status(HTTP_400_BAD_REQUEST).json({ error: "Missing or invalid slot key" });
+          return res.status(HTTP_400_BAD_REQUEST).json({ error: "Missing or invalid slot key", code: "SLSG-003" });
         }
         const slotKey: string = rawKey;
 
         // Auth + existence guard
         const run = await getSlideFactoryRun(id, user.id);
         if (!run) {
-          return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
+          return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found", code: "SLSG-004" });
         }
 
         // Status guard: only suggest on completed runs
         if (run.status !== "complete") {
           return res.status(HTTP_409_CONFLICT).json({
             error: `Slot suggest requires status 'complete', current: '${run.status}'`,
-          });
+          code: "SLSG-005" });
         }
 
         // Slot key guard
         if (!run.luccaDraft || !(slotKey in run.luccaDraft)) {
           return res.status(HTTP_404_NOT_FOUND).json({
             error: `Slot '${slotKey}' not found in draft`,
-          });
+          code: "SLSG-006" });
         }
 
         const currentValue = run.luccaDraft[slotKey].value;
@@ -86,7 +86,7 @@ export function registerSlideFactorySuggestRoutes(app: Express): void {
         if (inFlightSuggestions.has(inFlightKey)) {
           return res.status(HTTP_429_TOO_MANY_REQUESTS).json({
             error: "Suggestion already in progress for this slot.",
-          });
+          code: "SLSG-007" });
         }
         inFlightSuggestions.add(inFlightKey);
 
@@ -146,12 +146,12 @@ Keep it concise, professional, and investor-facing. Return ONLY the improved tex
           logger.error(`Slot suggest LLM error (run=${id}, slot=${slotKey}): ${msg}`, "slide-factory-suggest");
           return res.status(HTTP_502_BAD_GATEWAY).json({
             error: "Suggestion unavailable — try again.",
-          });
+          code: "SLSG-008" });
         } finally {
           inFlightSuggestions.delete(inFlightKey);
         }
       } catch (err: unknown) {
-        logAndSendError(res, "Failed to generate slot suggestion", err);
+        logAndSendError(res, "Failed to generate slot suggestion", err, "SLSG-001");
       }
     },
   );

@@ -33,7 +33,7 @@ export function register(app: Express) {
       res.json(visit);
     } catch (error: unknown) {
       logger.error(`Failed to get page visit: ${error instanceof Error ? error.message : error}`, "page-visits");
-      res.status(500).json({ error: "Failed to get page visit" });
+      res.status(500).json({ error: "Failed to get page visit", code: "PGVT-001" });
     }
   });
 
@@ -48,7 +48,7 @@ export function register(app: Express) {
       res.json(visit);
     } catch (error: unknown) {
       logger.error(`Failed to record visit: ${error instanceof Error ? error.message : error}`, "page-visits");
-      res.status(500).json({ error: "Failed to record visit" });
+      res.status(500).json({ error: "Failed to record visit", code: "PGVT-002" });
     }
   });
 
@@ -63,7 +63,7 @@ export function register(app: Express) {
       res.json(visit);
     } catch (error: unknown) {
       logger.error(`Failed to record save: ${error instanceof Error ? error.message : error}`, "page-visits");
-      res.status(500).json({ error: "Failed to record save" });
+      res.status(500).json({ error: "Failed to record save", code: "PGVT-003" });
     }
   });
 
@@ -76,7 +76,7 @@ export function register(app: Express) {
       res.json(visit);
     } catch (error: unknown) {
       logger.error(`Failed to record analyst run: ${error instanceof Error ? error.message : error}`, "page-visits");
-      res.status(500).json({ error: "Failed to record analyst run" });
+      res.status(500).json({ error: "Failed to record analyst run", code: "PGVT-004" });
     }
   });
 }

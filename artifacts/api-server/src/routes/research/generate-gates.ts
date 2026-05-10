@@ -60,7 +60,7 @@ export async function runPreflightGates(
       res.status(400).json({
         error:
           "Company assumptions not configured yet. Set up your company name and basic assumptions before generating intelligence.",
-      });
+      code: "RGTE-002" });
       return { ok: false };
     }
     if (!ga.companyName || !ga.modelStartDate) {
@@ -79,7 +79,7 @@ export async function runPreflightGates(
       res.status(400).json({
         error:
           "Add at least one property to your portfolio before generating company intelligence. The AI needs portfolio data to calibrate management fee benchmarks, staffing models, and overhead assumptions.",
-      });
+      code: "RGTE-003" });
       return { ok: false };
     }
   }
@@ -87,7 +87,7 @@ export async function runPreflightGates(
   if (type === "property" && propertyId) {
     const property = await storage.getProperty(propertyId);
     if (!property) {
-      res.status(404).json({ error: "Property not found" });
+      res.status(404).json({ error: "Property not found", code: "RGTE-001" });
       return { ok: false };
     }
     const [{ getLockedHardCandidateFields }, { findMissingRequiredFields }] =
