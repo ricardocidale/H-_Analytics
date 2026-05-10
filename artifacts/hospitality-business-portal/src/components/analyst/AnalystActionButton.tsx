@@ -1,4 +1,5 @@
 import { IconSparkles } from "@/components/icons";
+import { OrbitalDots } from "@/components/ui/ai-loader";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import {
   Tooltip,
@@ -85,15 +86,13 @@ export function AnalystActionButton({
               disabled={disabled}
               aria-label={tooltipText}
               data-testid={testId}
-              className={cn("gap-1.5 font-medium", className)}
+              className={cn("gap-1.5", className)}
             >
-              <IconSparkles
-                className={cn(
-                  "h-4 w-4 text-accent-pop",
-                  running && "animate-pulse",
-                )}
-                aria-hidden="true"
-              />
+              {running ? (
+                <OrbitalDots size={16} aria-hidden="true" />
+              ) : (
+                <IconSparkles className="h-4 w-4 text-accent-pop" aria-hidden="true" />
+              )}
               <span>{displayLabel}</span>
             </Button>
           </span>

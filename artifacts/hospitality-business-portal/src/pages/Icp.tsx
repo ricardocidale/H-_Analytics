@@ -368,10 +368,10 @@ export function IcpContent({ onSaveStateChange }: IcpContentProps) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setPendingTab(null)}>
-              Cancel
+              Return
             </AlertDialogCancel>
             <Button variant="outline" onClick={handleDialogDiscard} data-testid="button-discard-changes">
-              Discard
+              Cancel
             </Button>
             <Button onClick={handleDialogSave} data-testid="button-save-and-switch">
               Save

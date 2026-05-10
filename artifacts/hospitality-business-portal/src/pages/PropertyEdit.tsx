@@ -784,7 +784,7 @@ export default function PropertyEdit() {
             isPending={updateProperty.isPending}
             hasChanges={isDirty}
           >
-            Save All Changes
+            Save
           </SaveButton>
         </div>
       </div>

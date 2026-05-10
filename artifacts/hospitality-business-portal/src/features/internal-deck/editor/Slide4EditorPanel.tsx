@@ -152,7 +152,7 @@ export function Slide4EditorPanel({ propertyId }: { propertyId: number }) {
               onClick={() => data && setForm(hydrateForm(data.payload))}
               disabled={dirtyCount === 0 || patchMutation.isPending}
             >
-              Discard changes
+              Cancel
             </Button>
             <Button
               type="button"

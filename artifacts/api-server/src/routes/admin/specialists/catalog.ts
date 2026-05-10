@@ -183,6 +183,7 @@ export function registerCatalogRoutes(app: Express) {
           res,
           "Failed to load perennial recommendation offenders",
           error,
+          "ASCA-004",
         );
       }
     },

@@ -495,7 +495,7 @@ export default function LlmWorkflowsPage() {
               isPending={batchSave.isPending}
               data-testid="button-save-llm-workflows"
             >
-              {`Save slots${dirtyCount > 0 ? ` (${dirtyCount})` : ""}`}
+              {`Save${dirtyCount > 0 ? ` (${dirtyCount})` : ""}`}
             </SaveButton>
           </>
         }
@@ -547,7 +547,7 @@ export default function LlmWorkflowsPage() {
       {isDirty && (
         <p className="text-xs text-amber-700 bg-amber-50/50 border border-amber-200 rounded-md px-3 py-2">
           You have {dirtyCount} unsaved slot change{dirtyCount !== 1 ? "s" : ""}.
-          Click <strong>Save slots</strong> above to persist.
+          Click <strong>Save</strong> above to persist.
         </p>
       )}
 

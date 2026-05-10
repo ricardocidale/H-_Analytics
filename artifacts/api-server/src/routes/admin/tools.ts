@@ -320,7 +320,7 @@ export function registerToolRoutes(app: Express) {
       logActivity(req, "seed-production", "database", null, null, result as unknown as Record<string, unknown>);
       res.json({ success: true, message: "Missing values populated", ...result });
     } catch (error: unknown) {
-      logAndSendError(res, (error instanceof Error ? error.message : undefined, "ATOL-003") || "Fill failed", error);
+      logAndSendError(res, "Fill failed", error, "ATOL-003");
     }
   });
 
@@ -330,7 +330,7 @@ export function registerToolRoutes(app: Express) {
       const result = await runSmartSync(storage, { dryRun: true });
       res.json(result);
     } catch (error: unknown) {
-      logAndSendError(res, (error instanceof Error ? error.message : undefined, "ATOL-004") || "Smart sync preview failed", error);
+      logAndSendError(res, "Smart sync preview failed", error, "ATOL-004");
     }
   });
 
@@ -340,7 +340,7 @@ export function registerToolRoutes(app: Express) {
       logActivity(req, "smart-sync", "database", null, null, result as unknown as Record<string, unknown>);
       res.json({ success: true, ...result });
     } catch (error: unknown) {
-      logAndSendError(res, (error instanceof Error ? error.message : undefined, "ATOL-005") || "Smart sync failed", error);
+      logAndSendError(res, "Smart sync failed", error, "ATOL-005");
     }
   });
 

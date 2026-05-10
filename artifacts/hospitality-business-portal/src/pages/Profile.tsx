@@ -620,7 +620,7 @@ export default function Profile() {
             hasChanges={isDirty}
             data-testid="button-save-changes-bottom"
           >
-            Save All Changes
+            Save
           </SaveButton>
         </div>
       </div>

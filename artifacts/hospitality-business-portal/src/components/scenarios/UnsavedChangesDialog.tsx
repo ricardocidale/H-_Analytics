@@ -135,10 +135,10 @@ export function UnsavedChangesDialog({
         </div>
         <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button variant="outline" onClick={handleStay} data-testid="button-stay">
-            Stay
+            Return
           </Button>
           <Button variant="outline" onClick={handleDiscard} className="text-destructive" data-testid="button-discard">
-            Discard Changes
+            Cancel
           </Button>
           <SaveButton
             onClick={handleSaveAndLeave}
@@ -146,7 +146,7 @@ export function UnsavedChangesDialog({
             isPending={createScenario.isPending}
             data-testid="button-save-and-leave"
           >
-            Save & Leave
+            Save
           </SaveButton>
         </DialogFooter>
       </DialogContent>

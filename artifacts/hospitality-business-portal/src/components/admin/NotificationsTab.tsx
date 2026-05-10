@@ -523,7 +523,7 @@ export default function NotificationsTab() {
                   onClick={saveVectorSettings}
                   isPending={saveSettingsMutation.isPending}
                 >
-                  Save settings
+                  Save
                 </SaveButton>
                 <Button
                   variant="outline"

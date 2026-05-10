@@ -612,7 +612,7 @@ export function Slide3EditorPanel({ propertyId }: { propertyId: number }) {
               onClick={() => data && setForm(hydrateForm(data.payload))}
               disabled={!hasDirty || patchMutation.isPending}
             >
-              Discard changes
+              Cancel
             </Button>
             <Button
               type="button"

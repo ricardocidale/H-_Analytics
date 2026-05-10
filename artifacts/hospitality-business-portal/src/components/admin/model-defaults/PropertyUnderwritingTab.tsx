@@ -792,7 +792,7 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
             >
               Cancel
             </Button>
-            <Button size="sm" variant="outline" onClick={savePlatformFee}>Save platform fee</Button>
+            <Button size="sm" variant="outline" onClick={savePlatformFee}>Save</Button>
           </div>
         </div>
       </Section>
