@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { IconUser, IconEye, IconEyeOff, IconKey, IconClipboardCheck, IconPalette, IconMonitor, IconSparkles } from "@/components/icons";
+import { IconUser, IconEye, IconEyeOff, IconKey, IconClipboardCheck, IconPalette, IconMonitor, IconSparkles, IconCompass } from "@/components/icons";
+import { clearTourStep } from "@/components/GuidedWalkthrough";
 import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 import { SaveButton } from "@/components/ui/save-button";
 import { PageHeader } from "@/components/ui/page-header";
@@ -104,6 +105,21 @@ export default function Profile() {
         applyBgAnimation(resolveBgAnimation(variables.bgAnimation, appearanceDefaults?.defaultBgAnimation as BgAnimation | null));
       }
       toast({ title: "Appearance Updated", description: "Your preference has been saved." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const resetTourMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("PATCH", "/api/profile/tour-prompt", { hide: false });
+      return res.json();
+    },
+    onSuccess: () => {
+      clearTourStep();
+      refetch();
+      toast({ title: "Guided Tour Re-enabled", description: "The welcome prompt will appear on your next page load." });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -585,6 +601,34 @@ export default function Profile() {
                     </Button>
                   </div>
                 </form>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card border-border shadow-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-foreground">
+                  <IconCompass className="w-5 h-5 text-primary" />
+                  Guided Tour
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Show the welcome tour again</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Re-enables the guided walkthrough. The welcome prompt will reappear on your next page load and any saved progress will be cleared.
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => resetTourMutation.mutate()}
+                    disabled={resetTourMutation.isPending}
+                    data-testid="button-reset-tour"
+                  >
+                    {resetTourMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin text-accent-pop" /> : <IconCompass className="w-4 h-4" />}
+                    Reset Tour
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 

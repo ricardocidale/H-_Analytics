@@ -27,7 +27,7 @@ function saveTourStep(step: number): void {
   }
 }
 
-function clearTourStep(): void {
+export function clearTourStep(): void {
   try {
     localStorage.removeItem(TOUR_STEP_KEY);
   } catch {
