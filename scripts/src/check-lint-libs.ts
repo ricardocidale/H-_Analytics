@@ -72,6 +72,11 @@ export function collectInputFiles(): string[] {
     if (fs.existsSync(cfg)) files.push(cfg);
   }
 
+  // pnpm-lock.yaml: a dependency upgrade can introduce new lint rules
+  // without touching any source file, producing a false cache hit.
+  const lockfile = path.join(WORKSPACE_ROOT, "pnpm-lock.yaml");
+  if (fs.existsSync(lockfile)) files.push(lockfile);
+
   return files;
 }
 

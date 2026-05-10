@@ -92,6 +92,11 @@ export function collectInputFiles(): string[] {
 
   collectTsconfigs(WORKSPACE_ROOT, files);
 
+  // pnpm-lock.yaml: a dependency upgrade can change tsc's module resolution
+  // without touching any source file, producing a false cache hit.
+  const lockfile = path.join(WORKSPACE_ROOT, "pnpm-lock.yaml");
+  if (fs.existsSync(lockfile)) files.push(lockfile);
+
   return files;
 }
 

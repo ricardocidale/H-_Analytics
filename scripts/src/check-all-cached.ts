@@ -92,6 +92,29 @@ const SOURCE_ROOTS = [
 /** Additional migration/schema file extensions (schema-drift, migration-guards). */
 const MIGRATION_EXTS = new Set([".sql", ".json"]);
 
+/** Recursively collect every package.json under `dir`, skipping `skipDirs`. */
+function collectPackageJsonFiles(
+  dir: string,
+  skipDirs: Set<string>,
+  out: string[],
+): void {
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      if (!skipDirs.has(entry.name)) {
+        collectPackageJsonFiles(path.join(dir, entry.name), skipDirs, out);
+      }
+    } else if (entry.isFile() && entry.name === "package.json") {
+      out.push(path.join(dir, entry.name));
+    }
+  }
+}
+
 function collectInputFiles(): string[] {
   const files: string[] = [];
 
@@ -132,6 +155,13 @@ function collectInputFiles(): string[] {
   for (const cfg of knownEslintConfigs) {
     if (fs.existsSync(cfg)) files.push(cfg);
   }
+
+  // ── Dependency manifests (pnpm-lock.yaml + all workspace package.json) ────
+  // A dependency upgrade can introduce new lint rules or change tsc resolution
+  // without touching any source file, so these must be part of the hash.
+  const lockfile = path.join(WORKSPACE_ROOT, "pnpm-lock.yaml");
+  if (fs.existsSync(lockfile)) files.push(lockfile);
+  collectPackageJsonFiles(WORKSPACE_ROOT, SKIP_DIRS_GENERAL, files);
 
   return files;
 }
