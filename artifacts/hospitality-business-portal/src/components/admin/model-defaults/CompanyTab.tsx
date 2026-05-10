@@ -7,6 +7,9 @@ import {
   DEFAULT_COMPANY_OPS_START_DATE,
   DEFAULT_COST_OF_EQUITY,
   DEFAULT_PROJECTION_YEARS,
+  DEFAULT_FIXED_COST_ESCALATION_RATE,
+  DEFAULT_MISC_OPS_RATE,
+  DEFAULT_MARKETING_RATE,
 } from "@shared/constants";
 import {
   DEFAULT_RUNWAY_BUFFER_MONTHS,
@@ -14,12 +17,21 @@ import {
   DEFAULT_REVENUE_RAMP_DELAY_MONTHS,
   DEFAULT_BURN_FLEX_DOWN_PCT,
 } from "@shared/constants-funding";
+import {
+  DEFAULT_OFFICE_LEASE_BENCHMARK_MID,
+  DEFAULT_PROFESSIONAL_SERVICES_BENCHMARK_MID,
+  DEFAULT_TECH_INFRA_BENCHMARK_MID,
+  DEFAULT_BUSINESS_INSURANCE_BENCHMARK_MID,
+  DEFAULT_TRAVEL_COST_PER_CLIENT_BENCHMARK_MID,
+  DEFAULT_IT_LICENSE_PER_CLIENT_BENCHMARK_MID,
+} from "@shared/constants-overhead-benchmarks";
+import { DEFAULT_STAFF_SALARY_BENCHMARK_MID } from "@shared/constants-compensation-benchmarks";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 
 // Audit #406: registry-backed US baseline for company income tax (federal corporate = 0.21).
 const DEFAULT_COMPANY_TAX_RATE = getFactoryNumber("taxRate", "United States");
 import { Section } from "@/components/ui/field-section";
-import { PctField, NumberField, TabBanner, type Draft } from "./FieldHelpers";
+import { PctField, NumberField, DollarField, TabBanner, type Draft } from "./FieldHelpers";
 import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
 import { useFocusFieldFromUrl } from "@/lib/analyst-focus-field";
 import type { AnalystGuidanceRecord } from "@/components/analyst/useAnalystRefresh";
@@ -355,6 +367,206 @@ export function CompanyTab(props: CompanyTabProps) {
             testId="field-burnFlexDownPct"
             researchRange="10%–30%"
           />
+        </Section>
+
+        <Section title="Overhead Defaults" description="Starting annual costs for the management company's fixed and variable overhead. New companies inherit these as seed values; each can override them individually.">
+          <DollarField
+            label="Office Lease"
+            tooltip="Annual rent for the management company's corporate office — covers rent, utilities, and common area charges. Year 1 value; escalates annually at the fixed-cost escalation rate."
+            value={draft.officeLeaseStart}
+            fallback={DEFAULT_OFFICE_LEASE_BENCHMARK_MID}
+            onChange={(_, v) => onChange("officeLeaseStart", v)}
+            min={0}
+            max={200_000}
+            step={2_000}
+            testId="field-officeLeaseStart"
+            researchRange="$24K–$48K/yr"
+          />
+          <DollarField
+            label="Professional Services"
+            tooltip="Annual budget for external legal counsel, CPA/audit fees, and specialized consulting. Year 1 value; escalates annually."
+            value={draft.professionalServicesStart}
+            fallback={DEFAULT_PROFESSIONAL_SERVICES_BENCHMARK_MID}
+            onChange={(_, v) => onChange("professionalServicesStart", v)}
+            min={0}
+            max={150_000}
+            step={2_000}
+            testId="field-professionalServicesStart"
+            researchRange="$18K–$36K/yr"
+          />
+          <DollarField
+            label="Tech Infrastructure"
+            tooltip="Company-level technology costs — cloud hosting, corporate software, cybersecurity, and IT support. Separate from per-property IT licenses. Year 1 value; escalates annually."
+            value={draft.techInfraStart}
+            fallback={DEFAULT_TECH_INFRA_BENCHMARK_MID}
+            onChange={(_, v) => onChange("techInfraStart", v)}
+            min={0}
+            max={100_000}
+            step={2_000}
+            testId="field-techInfraStart"
+            researchRange="$12K–$24K/yr"
+          />
+          <DollarField
+            label="Business Insurance"
+            tooltip="Annual corporate insurance premium — general liability, E&O, and cyber liability for the management company. Year 1 value; escalates annually."
+            value={draft.businessInsuranceStart}
+            fallback={DEFAULT_BUSINESS_INSURANCE_BENCHMARK_MID}
+            onChange={(_, v) => onChange("businessInsuranceStart", v)}
+            min={0}
+            max={100_000}
+            step={1_000}
+            testId="field-businessInsuranceStart"
+            researchRange="$8K–$15K/yr"
+          />
+          <DollarField
+            label="Travel Cost per Property"
+            tooltip="Annual travel budget allocated per managed property — site visits, owner meetings, and market tours. Scales with portfolio size."
+            value={draft.travelCostPerClient}
+            fallback={DEFAULT_TRAVEL_COST_PER_CLIENT_BENCHMARK_MID}
+            onChange={(_, v) => onChange("travelCostPerClient", v)}
+            min={0}
+            max={50_000}
+            step={1_000}
+            testId="field-travelCostPerClient"
+            researchRange="$8K–$18K/property"
+          />
+          <DollarField
+            label="IT License per Property"
+            tooltip="Annual per-property software license cost — PMS, revenue management, and channel manager subscriptions charged at the property level."
+            value={draft.itLicensePerClient}
+            fallback={DEFAULT_IT_LICENSE_PER_CLIENT_BENCHMARK_MID}
+            onChange={(_, v) => onChange("itLicensePerClient", v)}
+            min={0}
+            max={20_000}
+            step={500}
+            testId="field-itLicensePerClient"
+            researchRange="$2K–$5K/property"
+          />
+          <PctField
+            label="Marketing Rate"
+            tooltip="Company-level marketing spend as a percentage of total managed revenue. Covers brand, digital, and PR activities for the management company (not individual property marketing budgets)."
+            value={draft.marketingRate}
+            fallback={DEFAULT_MARKETING_RATE}
+            onChange={(_, v) => onChange("marketingRate", v)}
+            min={0}
+            max={0.15}
+            step={0.005}
+            testId="field-marketingRate"
+            researchRange="3%–8%"
+          />
+          <PctField
+            label="Misc Operations Rate"
+            tooltip="Catch-all variable overhead expressed as a percent of total managed revenue — office supplies, memberships, recruiting, and other recurring operating costs not captured above."
+            value={draft.miscOpsRate}
+            fallback={DEFAULT_MISC_OPS_RATE}
+            onChange={(_, v) => onChange("miscOpsRate", v)}
+            min={0}
+            max={0.10}
+            step={0.005}
+            testId="field-miscOpsRate"
+            researchRange="1%–5%"
+          />
+          <PctField
+            label="Fixed Cost Escalation Rate"
+            tooltip="Annual inflation factor applied to all fixed overhead costs (office lease, professional services, tech). Compounds each year — a 3% rate means costs grow ~34% over 10 years."
+            value={draft.fixedCostEscalationRate}
+            fallback={DEFAULT_FIXED_COST_ESCALATION_RATE}
+            onChange={(_, v) => onChange("fixedCostEscalationRate", v)}
+            min={0}
+            max={0.10}
+            step={0.005}
+            testId="field-fixedCostEscalationRate"
+            researchRange="2%–5%"
+          />
+        </Section>
+
+        <Section title="Compensation Defaults" description="Staff salary and portfolio-based staffing tiers. These seed new companies and can be overridden on a per-company basis.">
+          <DollarField
+            label="Staff Salary (avg)"
+            tooltip="Average annual salary per full-time staff member. Total staff cost depends on how many FTEs the portfolio size requires (see tiers below). As properties are added, the plan steps up to the next staffing tier."
+            value={draft.staffSalary}
+            fallback={DEFAULT_STAFF_SALARY_BENCHMARK_MID}
+            onChange={(_, v) => onChange("staffSalary", v)}
+            min={40_000}
+            max={200_000}
+            step={5_000}
+            testId="field-staffSalary"
+            researchRange="$50K–$120K"
+          />
+          <div className="pt-3 border-t border-border/60 space-y-2">
+            <Label className="flex items-center gap-1 text-foreground label-text font-medium">
+              Staffing Tiers
+              <InfoTooltip text="Portfolio-based staffing model. As the number of managed properties grows the company steps up to a higher headcount tier. Each tier sets the FTE count for a range of property counts." />
+            </Label>
+            <p className="text-xs text-muted-foreground">FTE headcount by portfolio size bracket</p>
+            <div className="grid grid-cols-1 gap-2 mt-2">
+              <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2 text-sm">
+                <span className="text-muted-foreground w-14 shrink-0">Tier 1:</span>
+                <span className="text-xs text-muted-foreground">Up to</span>
+                <Input
+                  type="number"
+                  value={draft.staffTier1MaxProperties ?? 3}
+                  onChange={(e) => onChange("staffTier1MaxProperties", Math.max(1, parseInt(e.target.value) || 3))}
+                  min={1}
+                  max={20}
+                  className="w-14 h-7 bg-card border-border text-foreground text-center text-xs"
+                  data-testid="input-admin-tier1-max"
+                />
+                <span className="text-xs text-muted-foreground">props →</span>
+                <Input
+                  type="number"
+                  value={draft.staffTier1Fte ?? 2.5}
+                  onChange={(e) => onChange("staffTier1Fte", Math.max(0.5, parseFloat(e.target.value) || 2.5))}
+                  min={0.5}
+                  max={20}
+                  step={0.5}
+                  className="w-16 h-7 bg-card border-border text-foreground text-center text-xs"
+                  data-testid="input-admin-tier1-fte"
+                />
+                <span className="text-xs text-muted-foreground">FTE</span>
+              </div>
+              <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2 text-sm">
+                <span className="text-muted-foreground w-14 shrink-0">Tier 2:</span>
+                <span className="text-xs text-muted-foreground">Up to</span>
+                <Input
+                  type="number"
+                  value={draft.staffTier2MaxProperties ?? 6}
+                  onChange={(e) => onChange("staffTier2MaxProperties", Math.max(1, parseInt(e.target.value) || 6))}
+                  min={1}
+                  max={30}
+                  className="w-14 h-7 bg-card border-border text-foreground text-center text-xs"
+                  data-testid="input-admin-tier2-max"
+                />
+                <span className="text-xs text-muted-foreground">props →</span>
+                <Input
+                  type="number"
+                  value={draft.staffTier2Fte ?? 4.5}
+                  onChange={(e) => onChange("staffTier2Fte", Math.max(0.5, parseFloat(e.target.value) || 4.5))}
+                  min={0.5}
+                  max={30}
+                  step={0.5}
+                  className="w-16 h-7 bg-card border-border text-foreground text-center text-xs"
+                  data-testid="input-admin-tier2-fte"
+                />
+                <span className="text-xs text-muted-foreground">FTE</span>
+              </div>
+              <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2 text-sm">
+                <span className="text-muted-foreground w-14 shrink-0">Tier 3:</span>
+                <span className="text-xs text-muted-foreground">Above Tier 2 →</span>
+                <Input
+                  type="number"
+                  value={draft.staffTier3Fte ?? 7}
+                  onChange={(e) => onChange("staffTier3Fte", Math.max(0.5, parseFloat(e.target.value) || 7))}
+                  min={0.5}
+                  max={50}
+                  step={0.5}
+                  className="w-16 h-7 bg-card border-border text-foreground text-center text-xs"
+                  data-testid="input-admin-tier3-fte"
+                />
+                <span className="text-xs text-muted-foreground">FTE</span>
+              </div>
+            </div>
+          </div>
         </Section>
 
       </div>
