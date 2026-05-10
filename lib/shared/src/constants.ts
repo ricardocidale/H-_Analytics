@@ -503,8 +503,10 @@ export const HTTP_STATUS_CODE_MAX = 599;
 export const HTTP_STATUS_BAD_REQUEST = 400;
 export const HTTP_STATUS_INTERNAL_SERVER_ERROR = 500;
 
+// DB: rebecca-admin-scenario-display-limit — move to model-constants-registry when admin tuning is needed
 /** Maximum number of scenarios shown in Rebecca's admin context block. */
 export const REBECCA_ADMIN_SCENARIO_DISPLAY_LIMIT = 20;
 
+// DB: rebecca-context-top-k — move to model-constants-registry when RAG tuning is needed
 /** Top-K document chunks retrieved per RAG lookup in Rebecca context. */
 export const REBECCA_CONTEXT_TOP_K = 3;
