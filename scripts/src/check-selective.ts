@@ -137,6 +137,9 @@ const SCRIPT_CHECKS: CheckSpec[] = [
     name: "migration-guards",
     label: "migration-guards",
     rootScript: "check:migration-guards",
+    // check-migration-guards.ts also carries its own tryCacheHit/writeCacheHit
+    // wrapper, so a warm run skips the real work even when spawned directly
+    // (i.e. outside the selective driver).
     collectInputs: collectInputFiles_migrationGuards,
   },
   {
