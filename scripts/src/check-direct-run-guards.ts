@@ -62,8 +62,8 @@ const LEARNING_DOC =
  */
 const SCRIPT_DIR_NAME = "script";
 
-/** Top-level artifact directories to search for script/ subdirectories. */
-const ARTIFACT_ROOTS = [path.join(WORKSPACE_ROOT, "artifacts")];
+/** Root of the artifacts tree to deep-walk when discovering script/ dirs. */
+const ARTIFACTS_ROOT = path.join(WORKSPACE_ROOT, "artifacts");
 
 /**
  * Pattern 1 — same-line: the classic broken guard written as a single
@@ -105,33 +105,49 @@ function stripInlineComment(line: string): string {
 // Input file collection (exported for check-selective.ts)
 // ---------------------------------------------------------------------------
 
-/** Enumerate all *.ts files under every script/ directory in artifact roots. */
-export function collectInputFiles(): string[] {
-  const files: string[] = [fileURLToPath(import.meta.url)];
-
-  for (const root of ARTIFACT_ROOTS) {
-    let entries: fs.Dirent[];
-    try {
-      entries = fs.readdirSync(root, { withFileTypes: true });
-    } catch {
-      continue;
-    }
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      const scriptDir = path.join(root, entry.name, SCRIPT_DIR_NAME);
-      try {
-        const scriptEntries = fs.readdirSync(scriptDir, { withFileTypes: true });
-        for (const sf of scriptEntries) {
-          if (sf.isFile() && sf.name.endsWith(".ts")) {
-            files.push(path.join(scriptDir, sf.name));
-          }
-        }
-      } catch {
-        // No script/ directory in this artifact — fine.
-      }
-    }
+/**
+ * Recursively walks `dir`, collecting all *.ts files found inside any
+ * directory whose name equals SCRIPT_DIR_NAME ("script").  Directories named
+ * SCRIPT_DIR_NAME are not descended into further — only their direct *.ts
+ * children are collected (nested script/ dirs are an unusual layout that would
+ * need an explicit decision to support).
+ */
+function collectScriptFilesDeep(dir: string, out: string[]): void {
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return;
   }
 
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const child = path.join(dir, entry.name);
+
+    if (entry.name === SCRIPT_DIR_NAME) {
+      // Found a script/ directory — collect its *.ts files directly.
+      let scriptEntries: fs.Dirent[];
+      try {
+        scriptEntries = fs.readdirSync(child, { withFileTypes: true });
+      } catch {
+        continue;
+      }
+      for (const sf of scriptEntries) {
+        if (sf.isFile() && sf.name.endsWith(".ts")) {
+          out.push(path.join(child, sf.name));
+        }
+      }
+    } else {
+      // Keep descending into non-script directories.
+      collectScriptFilesDeep(child, out);
+    }
+  }
+}
+
+/** Enumerate all *.ts files under every script/ directory beneath artifacts/. */
+export function collectInputFiles(): string[] {
+  const files: string[] = [fileURLToPath(import.meta.url)];
+  collectScriptFilesDeep(ARTIFACTS_ROOT, files);
   return files;
 }
 
