@@ -502,8 +502,10 @@ function main(): void {
   console.log(sumDivider);
 
   // Highlight any checks that have been perennially slow.
+  // Require at least 3 total samples AND slow in 3+ of the last 10 runs to
+  // avoid false-positive callouts when only a handful of runs exist.
   const perenniallySlow = summaries.filter(
-    (s) => s.slowInLast10 >= Math.min(3, all.length),
+    (s) => all.length >= 3 && s.slowInLast10 >= 3,
   );
   if (perenniallySlow.length > 0) {
     console.log("");

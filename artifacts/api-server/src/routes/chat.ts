@@ -408,7 +408,7 @@ export async function callLlmStream(
     if (!text) text = "I'm sorry, I couldn't generate a response. Please try again.";
     const inTok = Math.round(userMessage.length / 4);
     const outTok = Math.round(text.length / 4);
-    try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("openai", model, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch { /* non-fatal */ }
+    try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("openai", model, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
     return { text, stopReason: "end_turn" };
   }
 
@@ -437,7 +437,7 @@ export async function callLlmStream(
     if (!text) text = "I'm sorry, I couldn't generate a response. Please try again.";
     const inTok = Math.round(userMessage.length / 4);
     const outTok = Math.round(text.length / 4);
-    try { logApiCost({ timestamp: new Date().toISOString(), service: "anthropic", model: normalized, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("anthropic", normalized, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch { /* non-fatal */ }
+    try { logApiCost({ timestamp: new Date().toISOString(), service: "anthropic", model: normalized, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("anthropic", normalized, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
     return { text, stopReason: "end_turn" };
   }
 
@@ -476,7 +476,7 @@ export async function callLlmStream(
   if (!text) text = "I'm sorry, I couldn't generate a response. Please try again.";
   const inTok = Math.round(userMessage.length / 4);
   const outTok = Math.round(text.length / 4);
-  try { logApiCost({ timestamp: new Date().toISOString(), service: "gemini", model, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("gemini", model, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch { /* non-fatal */ }
+  try { logApiCost({ timestamp: new Date().toISOString(), service: "gemini", model, operation: "chat", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("gemini", model, inTok, outTok), durationMs: Date.now() - startTime, userId, route: "/api/chat" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
   return { text, stopReason: "end_turn" };
 }
 

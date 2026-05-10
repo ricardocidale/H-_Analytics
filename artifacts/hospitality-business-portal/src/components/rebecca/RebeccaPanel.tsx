@@ -87,7 +87,8 @@ function getStoredMode(): ResponseMode {
 function getStoredShowTiming(): boolean {
   try {
     return localStorage.getItem("rebecca-show-tool-timing") !== "false";
-  } catch {
+  } catch (e: unknown) {
+    console.warn("Failed to read show-timing pref from localStorage", e);
     return true;
   }
 }
@@ -188,7 +189,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
     const serverMode = user.rebeccaResponseMode;
     if (serverMode === "concise" || serverMode === "standard" || serverMode === "detailed") {
       setResponseMode(serverMode);
-      try { localStorage.setItem("rebecca-response-mode", serverMode); } catch { }
+      try { localStorage.setItem("rebecca-response-mode", serverMode); } catch (e: unknown) { console.warn("Failed to persist response-mode to localStorage", e); }
     } else {
       const localMode = getStoredMode();
       if (localMode !== "standard") backfill.rebeccaResponseMode = localMode;
@@ -196,7 +197,7 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
 
     if (user.rebeccaShowToolTiming !== null && user.rebeccaShowToolTiming !== undefined) {
       setShowTiming(user.rebeccaShowToolTiming);
-      try { localStorage.setItem("rebecca-show-tool-timing", String(user.rebeccaShowToolTiming)); } catch { }
+      try { localStorage.setItem("rebecca-show-tool-timing", String(user.rebeccaShowToolTiming)); } catch (e: unknown) { console.warn("Failed to persist show-tool-timing to localStorage", e); }
     } else {
       const localTiming = getStoredShowTiming();
       if (!localTiming) backfill.rebeccaShowToolTiming = localTiming;
@@ -366,8 +367,8 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
         setConversationId(convId);
         return true;
       }
-    } catch {
-      // ignore — will start fresh
+    } catch (e: unknown) {
+      console.warn("Failed to restore conversation — starting fresh", e);
     }
     return false;
   }, []);
