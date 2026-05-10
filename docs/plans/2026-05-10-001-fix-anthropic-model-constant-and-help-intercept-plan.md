@@ -1,7 +1,7 @@
 ---
 title: "fix: Remove DEFAULT_ANTHROPIC_MODEL §1 violation + add /help in-chat intercept"
 type: fix
-status: active
+status: completed
 date: 2026-05-10
 ---
 
