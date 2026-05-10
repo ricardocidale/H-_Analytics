@@ -1,7 +1,7 @@
 ---
 title: "feat: Agent-Native Parity Phase 1+2 — Read tools, CRUD gaps, photo/market tools, dataChanged fix"
 type: feat
-status: active
+status: completed
 date: 2026-05-09
 ---
 
