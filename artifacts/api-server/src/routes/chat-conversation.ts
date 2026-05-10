@@ -6,14 +6,21 @@ import { logActivity } from "./helpers";
 
 export async function resolveConversationId(params: {
   userId: number;
+  isPreview: boolean;
   reqConvId: number | undefined;
   newConversation: boolean | undefined;
   contextType: string;
   contextKey: string | null;
   propertyId: number | null;
   req: Request;
-}): Promise<number> {
-  const { userId, reqConvId, newConversation, contextType, contextKey, propertyId, req } = params;
+}): Promise<number | null> {
+  const { userId, isPreview, reqConvId, newConversation, contextType, contextKey, propertyId, req } = params;
+
+  // Preview mode is a non-persisting path — never create or query a
+  // rebecca_conversation row (CodeRabbit PR-78). Downstream callers
+  // (loadChatHistory, saveUserMessage, addRebeccaMessage, logActivity)
+  // already gate their persistence on isPreview and accept null here.
+  if (isPreview) return null;
 
   if (reqConvId && !newConversation) {
     const existing = await storage.getRebeccaConversation(reqConvId);
@@ -48,12 +55,12 @@ export async function resolveConversationId(params: {
 }
 
 export async function loadChatHistory(params: {
-  conversationId: number;
+  conversationId: number | null;
   isPreview: boolean;
   clientHistory: Array<{ role: string; content: string }>;
 }): Promise<Array<{ role: string; content: string }>> {
   const { conversationId, isPreview, clientHistory } = params;
-  if (isPreview) return clientHistory;
+  if (isPreview || conversationId === null) return clientHistory;
   try {
     const dbMessages = await storage.getRebeccaMessages(conversationId, MAX_HISTORY_LENGTH);
     const dbHistory = dbMessages.map((m) => ({ role: m.role, content: m.content }));
@@ -68,13 +75,13 @@ export async function loadChatHistory(params: {
 }
 
 export async function saveUserMessage(params: {
-  conversationId: number;
+  conversationId: number | null;
   isPreview: boolean;
   message: string;
   detectedLanguage: string;
 }): Promise<void> {
   const { conversationId, isPreview, message, detectedLanguage } = params;
-  if (isPreview) return;
+  if (isPreview || conversationId === null) return;
   await storage.addRebeccaMessage({
     conversationId,
     role: "user",

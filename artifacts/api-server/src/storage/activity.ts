@@ -99,11 +99,20 @@ export class ActivityStorage {
   }
 
   /**
-   * List recent verification runs for the admin panel. Excludes the `results`
-   * field (which can be megabytes of JSON) to keep list queries fast.
+   * List recent verification runs. Excludes the `results` field (which can be
+   * megabytes of JSON) to keep list queries fast. Pass `userId` to scope to a
+   * single tenant's runs (required for non-admin contexts like Rebecca's
+   * portfolio verification block); leave undefined for admin-panel views.
    */
-  async getVerificationRuns(limit = 20): Promise<Omit<VerificationRun, 'results'>[]> {
+  async getVerificationRuns(
+    limit = 20,
+    userId?: number,
+  ): Promise<Omit<VerificationRun, 'results'>[]> {
     const cutoff = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+    const whereClause =
+      userId === undefined
+        ? gte(verificationRuns.createdAt, cutoff)
+        : and(gte(verificationRuns.createdAt, cutoff), eq(verificationRuns.userId, userId));
     const rows = await db
       .select({
         id: verificationRuns.id,
@@ -116,7 +125,7 @@ export class ActivityStorage {
         createdAt: verificationRuns.createdAt,
       })
       .from(verificationRuns)
-      .where(gte(verificationRuns.createdAt, cutoff))
+      .where(whereClause)
       .orderBy(desc(verificationRuns.createdAt))
       .limit(limit);
     return rows;
