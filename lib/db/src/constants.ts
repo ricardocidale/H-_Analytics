@@ -409,43 +409,9 @@ export const BREAKEVEN_TARGET_DSCR_FLOOR = 1.0;
 // switches from green/red to amber "Close to breakeven".
 export const BREAKEVEN_PROXIMITY_RATIO = 0.10;
 
-// ── Specialist Model IDs ─────────────────────────────────────────────────────
-// Default model IDs used by each Specialist. Override via the admin_resources
-// Models registry (ADR-006) when a different model is configured.
-export const DEFAULT_FUNDING_SPECIALIST_MODEL = "claude-sonnet-4-5";
-export const DEFAULT_FUNDING_QUANT_PANEL_MODEL = "gemini-2.5-flash";
-export const DEFAULT_FUNDING_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
-export const DEFAULT_FUNDING_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";
-
-export const DEFAULT_REVENUE_SPECIALIST_MODEL = "claude-sonnet-4-5";
-export const DEFAULT_REVENUE_QUANT_PANEL_MODEL = "gemini-2.5-flash";
-export const DEFAULT_REVENUE_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
-export const DEFAULT_REVENUE_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";
-
-export const DEFAULT_COMPENSATION_SPECIALIST_MODEL = "claude-sonnet-4-5";
-export const DEFAULT_COMPENSATION_QUANT_PANEL_MODEL = "gemini-2.5-flash";
-export const DEFAULT_COMPENSATION_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
-export const DEFAULT_COMPENSATION_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";
-
-export const DEFAULT_OVERHEAD_SPECIALIST_MODEL = "claude-sonnet-4-5";
-export const DEFAULT_OVERHEAD_QUANT_PANEL_MODEL = "gemini-2.5-flash";
-export const DEFAULT_OVERHEAD_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
-export const DEFAULT_OVERHEAD_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";
-
-export const DEFAULT_COMPANY_SPECIALIST_MODEL = "claude-sonnet-4-5";
-export const DEFAULT_COMPANY_QUANT_PANEL_MODEL = "gemini-2.5-flash";
-export const DEFAULT_COMPANY_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
-export const DEFAULT_COMPANY_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";
-
-export const DEFAULT_RISK_SPECIALIST_MODEL = "claude-sonnet-4-5";
-export const DEFAULT_RISK_QUANT_PANEL_MODEL = "gemini-2.5-flash";
-export const DEFAULT_RISK_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
-export const DEFAULT_RISK_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";
-
-export const DEFAULT_PROPERTY_DEFAULTS_SPECIALIST_MODEL = "claude-sonnet-4-5";
-export const DEFAULT_PROPERTY_DEFAULTS_QUANT_PANEL_MODEL = "gemini-2.5-flash";
-export const DEFAULT_PROPERTY_DEFAULTS_MARKET_PANEL_MODEL = "claude-sonnet-4-6";
-export const DEFAULT_PROPERTY_DEFAULTS_PROMPT_ENGINEER_MODEL = "gemini-2.5-flash";
+// Specialist model IDs are NOT defined here. Per CLAUDE.md §1, integration
+// identifiers (LLM model names, API slugs, MCP slugs, endpoint URLs) live in
+// admin_resources rows and are fetched at runtime via GET /api/llm-providers.
 
 // ── Pietro data infrastructure ───────────────────────────────────────────────
 // Default daily API call budget for Pietro-managed sources. null = unlimited.
