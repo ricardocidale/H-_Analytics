@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolveResponseMode } from "../routes/chat";
+import { resolveResponseMode } from "../routes/chat-llm";
 
 describe("resolveResponseMode", () => {
   it("returns body value when provided", () => {
@@ -24,5 +24,19 @@ describe("resolveResponseMode", () => {
 
   it("body value wins over invalid DB value", () => {
     expect(resolveResponseMode("detailed", "garbage")).toBe("detailed");
+  });
+
+  it("accepts all three valid modes from body", () => {
+    expect(resolveResponseMode("concise", undefined)).toBe("concise");
+    expect(resolveResponseMode("standard", undefined)).toBe("standard");
+    expect(resolveResponseMode("detailed", undefined)).toBe("detailed");
+  });
+
+  it("ignores null DB value and returns standard", () => {
+    expect(resolveResponseMode(undefined, null)).toBe("standard");
+  });
+
+  it("ignores whitespace-only DB value and returns standard", () => {
+    expect(resolveResponseMode(undefined, "   ")).toBe("standard");
   });
 });
