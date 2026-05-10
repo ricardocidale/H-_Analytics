@@ -71,6 +71,9 @@ vi.mock("../storage", () => ({
     rollbackAdminResource: vi.fn().mockImplementation(() =>
       Promise.resolve(makeResourceRow({ version: 3 })),
     ),
+    getAdminResourceVersion: vi.fn().mockImplementation(() =>
+      Promise.resolve(makeResourceRow({ config: {} })),
+    ),
     deleteAdminResource: vi.fn().mockResolvedValue(true),
     listAdminResourceVersions: vi.fn().mockResolvedValue([]),
     listResourceImpact: vi.fn().mockResolvedValue([]),
