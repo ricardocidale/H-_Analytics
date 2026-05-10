@@ -3,6 +3,10 @@ import { requireAuth, getAuthUser } from "../auth";
 import { storage } from "../storage";
 import { logger } from "../logger";
 import { parseRouteId } from "./helpers";
+import {
+  HTTP_STATUS_BAD_REQUEST,
+  HTTP_STATUS_INTERNAL_SERVER_ERROR,
+} from "@shared/constants";
 
 export function registerConversationRoutes(app: Express) {
   app.get("/api/chat/conversations", requireAuth, async (req: Request, res: Response) => {
@@ -24,7 +28,7 @@ export function registerConversationRoutes(app: Express) {
         `Failed to list conversations: ${error instanceof Error ? error.message : String(error)}`,
         "chat",
       );
-      res.status(500).json({ error: "Failed to list conversations", code: "CHAT-001" });
+      res.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).json({ error: "Failed to list conversations", code: "CHAT-001" });
     }
   });
 
@@ -35,7 +39,7 @@ export function registerConversationRoutes(app: Express) {
       try {
         const conversationId = parseRouteId(req.params.id);
         if (!conversationId) {
-          return res.status(400).json({ error: "Invalid conversation ID", code: "CHAT-002" });
+          return res.status(HTTP_STATUS_BAD_REQUEST).json({ error: "Invalid conversation ID", code: "CHAT-002" });
         }
 
         const userId = getAuthUser(req).id;
@@ -82,7 +86,7 @@ export function registerConversationRoutes(app: Express) {
           `Failed to load conversation: ${error instanceof Error ? error.message : String(error)}`,
           "chat",
         );
-        res.status(500).json({ error: "Failed to load conversation", code: "CHAT-004" });
+        res.status(HTTP_STATUS_INTERNAL_SERVER_ERROR).json({ error: "Failed to load conversation", code: "CHAT-004" });
       }
     },
   );

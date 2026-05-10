@@ -7,7 +7,12 @@ import type { PageKey } from "@shared/rebecca-pages";
 import { retrieveDocumentContext, multiNamespaceQuery, hybridQuery } from "../ai/vector-store-service";
 import { retrieveRelevantChunks } from "../ai/knowledge-base";
 import { searchAssets, buildAssetContext, type AssetMatch } from "../ai/asset-intelligence";
-import { DEFAULT_PROJECTION_YEARS, isAdminRole } from "@shared/constants";
+import {
+  DEFAULT_PROJECTION_YEARS,
+  isAdminRole,
+  REBECCA_ADMIN_SCENARIO_DISPLAY_LIMIT,
+  REBECCA_CONTEXT_TOP_K,
+} from "@shared/constants";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 import { resolveDefault } from "../defaults";
 import type { SourceBlockPresence, RebeccaSettings } from "@shared/rebecca-settings";
@@ -132,7 +137,7 @@ export async function buildChatContext(
       const allScenarios = await storage.getAllScenarios();
       if (allScenarios.length > 0) {
         const scenarioLines = ["", "ALL SCENARIOS (admin view — you can see who owns each):"];
-        for (const s of allScenarios.slice(0, 20)) {
+        for (const s of allScenarios.slice(0, REBECCA_ADMIN_SCENARIO_DISPLAY_LIMIT)) {
           const ownerName = s.ownerName ?? s.ownerEmail;
           const propCount = Array.isArray(s.properties) ? s.properties.length : 0;
           const updated = s.updatedAt ? new Date(s.updatedAt).toLocaleDateString() : "N/A";
@@ -140,8 +145,8 @@ export async function buildChatContext(
             `- "${s.name}" by ${ownerName} (${s.ownerEmail}) | ${propCount} properties | ${s.kind ?? "manual"} | updated ${updated}${s.isLocked ? " [LOCKED]" : ""}`,
           );
         }
-        if (allScenarios.length > 20) {
-          scenarioLines.push(`  ... and ${allScenarios.length - 20} more scenarios`);
+        if (allScenarios.length > REBECCA_ADMIN_SCENARIO_DISPLAY_LIMIT) {
+          scenarioLines.push(`  ... and ${allScenarios.length - REBECCA_ADMIN_SCENARIO_DISPLAY_LIMIT} more scenarios`);
         }
         scenarioContextBlock = scenarioLines.join("\n");
       }
@@ -225,7 +230,7 @@ export async function buildChatContext(
     const docResults = await retrieveDocumentContext({
       query: message,
       propertyId: docPropertyId,
-      topK: 3,
+      topK: REBECCA_CONTEXT_TOP_K,
     });
     if (docResults.length > 0) {
       const docLines = docResults.map(

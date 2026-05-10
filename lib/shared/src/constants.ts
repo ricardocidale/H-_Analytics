@@ -491,3 +491,13 @@ export const COSTANTINO_FINDINGS_PAGE_LIMIT = 200;
 /** Valid HTTP status code range for expectStatus validation (RFC 9110 §15). */
 export const HTTP_STATUS_CODE_MIN = 100;
 export const HTTP_STATUS_CODE_MAX = 599;
+
+/** Standard HTTP response status codes used in route handlers. */
+export const HTTP_STATUS_BAD_REQUEST = 400;
+export const HTTP_STATUS_INTERNAL_SERVER_ERROR = 500;
+
+/** Maximum number of scenarios shown in Rebecca's admin context block. */
+export const REBECCA_ADMIN_SCENARIO_DISPLAY_LIMIT = 20;
+
+/** Top-K document chunks retrieved per RAG lookup in Rebecca context. */
+export const REBECCA_CONTEXT_TOP_K = 3;
