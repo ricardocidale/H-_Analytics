@@ -27,10 +27,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { IconAlertTriangle, IconBuilding } from "@/components/icons";
 import { useProperties } from "@/lib/api/properties";
 import { useGlobalAssumptions } from "@/lib/api/admin";
-import {
-  useStructureComparison,
-  type StructureOverlaysMap,
-} from "@/lib/api/structure-comparison";
+import { useStructureComparison } from "@/lib/api/structure-comparison";
 import {
   AnalystActionButton,
   useAnalystRefresh,
@@ -41,8 +38,8 @@ import {
   getOperatingStructureOverlay,
   type OperatingStructureId,
   type OperatingStructureDefaults,
-  type StructureOverlayPatch,
 } from "@shared/constants-operating-structures";
+import { useStructureOverlays } from "@/hooks/useStructureOverlays";
 import { StructureRecommendationBanner } from "./StructureRecommendationBanner";
 import { StructureOverlayEditorCard } from "./StructureOverlayEditorCard";
 import { StructureComparisonTable } from "./StructureComparisonTable";
@@ -61,12 +58,20 @@ export default function OperatingStructureComparison() {
   const [currentStructure, setCurrentStructure] = useState<OperatingStructureId>(
     "fee-simple-independent",
   );
+  const [editingStructure, setEditingStructure] = useState<OperatingStructureId | null>(null);
+
   // Pending = the edits the user is typing. Applied = the snapshot sent to the
   // server (and the React Query cache key). Promoted via the "Apply overrides"
   // button so that every keystroke does not trigger a full server recompute.
-  const [pendingOverlays, setPendingOverlays] = useState<StructureOverlaysMap>({});
-  const [appliedOverlays, setAppliedOverlays] = useState<StructureOverlaysMap>({});
-  const [editingStructure, setEditingStructure] = useState<OperatingStructureId | null>(null);
+  const {
+    pendingOverlays,
+    appliedOverlays,
+    overlaysDirty,
+    updateOverlay,
+    updateOverlayScalar,
+    applyOverrides,
+    resetOverrides,
+  } = useStructureOverlays();
 
   const { data: properties = [], isLoading: propsLoading } = useProperties();
   const { data: global, isLoading: globalLoading } = useGlobalAssumptions();
@@ -88,11 +93,6 @@ export default function OperatingStructureComparison() {
     refetch,
   } = useStructureComparison(propertyId, global ?? undefined, enabledArray, appliedOverlays);
 
-  const overlaysDirty = useMemo(
-    () => JSON.stringify(pendingOverlays) !== JSON.stringify(appliedOverlays),
-    [pendingOverlays, appliedOverlays],
-  );
-
   // Resolve the country-baseline overlay for the structure being edited so we
   // can show the user "you're overriding 5.5% → 6.0%" rather than just the new
   // value in isolation. Re-resolves when the property's country changes.
@@ -111,59 +111,6 @@ export default function OperatingStructureComparison() {
   const recommended =
     comparison?.structures.find((s) => s.id === comparison.recommendation) ?? null;
   const current = comparison?.structures.find((s) => s.id === currentStructure) ?? null;
-
-  // Update a single field on a structure's pending overlay. Pruning empty
-  // patches keeps the cache key compact and the request body minimal.
-  function updateOverlay(
-    id: OperatingStructureId,
-    section: "feeOverlay" | "lease",
-    field: string,
-    value: number | undefined,
-  ) {
-    setPendingOverlays((prev) => {
-      const next = { ...prev };
-      const patch: StructureOverlayPatch = { ...(next[id] ?? {}) };
-      const sub = { ...((patch[section] ?? {}) as Record<string, unknown>) };
-      if (value === undefined || Number.isNaN(value)) {
-        delete sub[field];
-      } else {
-        sub[field] = value;
-      }
-      if (Object.keys(sub).length === 0) {
-        delete (patch as Record<string, unknown>)[section];
-      } else {
-        (patch as Record<string, unknown>)[section] = sub;
-      }
-      if (Object.keys(patch).length === 0) {
-        delete next[id];
-      } else {
-        next[id] = patch;
-      }
-      return next;
-    });
-  }
-
-  function updateOverlayScalar(
-    id: OperatingStructureId,
-    field: "capexFactor",
-    value: number | undefined,
-  ) {
-    setPendingOverlays((prev) => {
-      const next = { ...prev };
-      const patch: StructureOverlayPatch = { ...(next[id] ?? {}) };
-      if (value === undefined || Number.isNaN(value)) {
-        delete patch[field];
-      } else {
-        patch[field] = value;
-      }
-      if (Object.keys(patch).length === 0) {
-        delete next[id];
-      } else {
-        next[id] = patch;
-      }
-      return next;
-    });
-  }
 
   function toggleStructure(id: OperatingStructureId) {
     setEnabledStructures((prev) => {
@@ -306,8 +253,8 @@ export default function OperatingStructureComparison() {
               onSelectStructure={setEditingStructure}
               onUpdateOverlay={updateOverlay}
               onUpdateCapex={(id, value) => updateOverlayScalar(id, "capexFactor", value)}
-              onApply={() => setAppliedOverlays(pendingOverlays)}
-              onReset={() => { setPendingOverlays({}); setAppliedOverlays({}); }}
+              onApply={applyOverrides}
+              onReset={resetOverrides}
             />
 
             <StructureComparisonTable
