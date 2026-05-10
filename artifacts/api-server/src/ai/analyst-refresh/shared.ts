@@ -59,3 +59,32 @@ export interface ReferenceDataRefreshResult {
   tokensUsed: number;
   evidence: Array<{ source: string; url?: string; finding: string }>;
 }
+
+// ── LLM payload validators ─────────────────────────────────────────────────
+// Models can return stringified numbers ("0.18") or malformed evidence even
+// inside a parseable JSON envelope. Normalize before trusting (CodeRabbit PR-84).
+
+/** Coerce a JSON value to a finite number, or null. Accepts numeric strings. */
+export function toFiniteNumber(x: unknown): number | null {
+  if (typeof x === "number" && Number.isFinite(x)) return x;
+  if (typeof x === "string" && x.trim() !== "") {
+    const n = Number(x);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
+
+/** Filter an LLM `evidence` array down to well-formed citation rows. */
+export function normalizeEvidence(
+  raw: unknown,
+): Array<{ source: string; url?: string; finding: string }> {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((e): e is Record<string, unknown> => e !== null && typeof e === "object")
+    .map((e) => ({
+      source: typeof e.source === "string" ? e.source.trim() : "",
+      url: typeof e.url === "string" && e.url.trim() !== "" ? e.url : undefined,
+      finding: typeof e.finding === "string" ? e.finding.trim() : "",
+    }))
+    .filter((e) => e.source !== "" && e.finding !== "");
+}
