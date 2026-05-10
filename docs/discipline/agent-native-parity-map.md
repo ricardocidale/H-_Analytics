@@ -173,7 +173,7 @@ re-renders the panel.
 | UI Action | Route / Location | Rebecca Tool | Status |
 |---|---|---|---|
 | View market rates and staleness status | Admin → Sources & Resources | `get_market_rates` | ✅ |
-| Override a market rate (admin) | Admin → Sources & Resources → Override | `update_market_rate` | ✅ |
+| Regenerate market rate row (Analyst button) | Admin → Sources & Resources → Analyst | N/A — row-level regeneration only; individual cell editing not supported (CLAUDE.md §8) | 🚫 N/A |
 
 ### Data Infrastructure (Pietro — Tools Deferred to U10)
 

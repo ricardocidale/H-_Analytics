@@ -331,3 +331,38 @@ export const RETREAT_GUESTS_PER_KEY_MAX = 4;
 /** VRBO tier: whole-property capacity estimate (guests per key). */
 export const VRBO_GUESTS_PER_KEY = 10;
 
+// ── Analyst prompt fallbacks ──────────────────────────────────────────────────
+// Used only when the user has no active properties yet. These give the Revenue
+// Specialist rough mid-market anchors so it can still generate guidance without
+// fabricating assumptions from zero.
+//
+// Category: DEFAULT VARIABLE (admin starting point). These are NOT financial
+// calculations — they are prompt-context placeholders.
+
+/** Fallback average start-occupancy for the portfolio-level revenue prompt context. */
+export const DEFAULT_PORTFOLIO_ANALYST_START_OCCUPANCY = 0.65;
+
+/** Fallback average ADR for the portfolio-level revenue prompt context. */
+export const DEFAULT_PORTFOLIO_ANALYST_ADR = 350;
+
+// ── Cost-of-equity display fallbacks ─────────────────────────────────────────
+// The primary values come from market_rates rows ("treasury_10y" and
+// "erp_boutique_hospitality"). These constants are the DISPLAY FALLBACK shown
+// before the Analyst button has run and populated those rows.
+//
+// Format: percentage points (e.g., 4.35 means 4.35%) — matches rfRate.value
+// and erpRate.value returned by the market-rates API.
+
+/** Display fallback for the US 10-year Treasury yield (percentage points). */
+export const DEFAULT_RF_RATE_PCT_DISPLAY = 4.35;
+
+/** Display fallback for the hospitality sector equity risk premium (percentage points). */
+export const DEFAULT_ERP_HOSPITALITY_PCT_DISPLAY = 12;
+
+// ── Range-indicator chart ─────────────────────────────────────────────────────
+// Visual padding added around the analyst range so the dots don't sit flush
+// against the boundary. 20% of the span on each side.
+
+/** Fractional padding applied to each side of a range band in the indicator chart. */
+export const RANGE_INDICATOR_CHART_PADDING = 0.2;
+

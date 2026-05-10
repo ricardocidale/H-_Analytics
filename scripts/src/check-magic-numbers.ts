@@ -172,9 +172,9 @@ function extractLiterals(filePath: string): Set<string> {
     if (trimmed.startsWith("import ") || trimmed.startsWith("export * from")) continue;
     // Skip named constant definitions: (export )?const ALL_CAPS_NAME = <number>
     // These are authoritative single-source definitions, not magic-number usages.
-    // The architectural rule against assumption-class shadow constants is enforced
-    // by the architecture note in CLAUDE.md and code review — not by the duplication
-    // ratchet, which is scoped to detecting DUPLICATION across files only.
+    // The architectural rule against assumption-class shadow constants (configurable
+    // values must live in model_constants DB via getFactoryNumber, not in TS files)
+    // is enforced by the constants-taxonomy check (findDbCandidateViolations below).
     if (/^(export\s+)?const\s+[A-Z][A-Z0-9_]+\s*=\s*-?\d/.test(trimmed)) continue;
 
     line = stripLineComment(line);
@@ -290,6 +290,98 @@ function buildDuplicationMap(): DuplicationMap {
 }
 
 // ---------------------------------------------------------------------------
+// Constants-taxonomy check: configurable values must live in DB, not TS files
+// ---------------------------------------------------------------------------
+
+/**
+ * Name-suffix patterns that flag a constant defined in lib/shared/src/constants*.ts
+ * as a "DB candidate" — values configurable at runtime by admins that must live in
+ * `model_constants` via `getFactoryNumber` (model-constants-registry) rather than
+ * being hardcoded in TypeScript.
+ *
+ * Exemption A — a `// DB: <key>` comment on any of the 3 lines preceding the
+ * `export const` line explicitly acknowledges the constant is either already
+ * DB-backed (with a TS fallback only) or is a fixed architectural bound.
+ *
+ * Exemption B — an authority citation in the preceding 3 lines: RFC, ISO, USALI,
+ * IRS, NIST, ANSI, W3C, §, Damodaran, IMF, or a time-unit phrase ("per second",
+ * "per minute", etc.). These are universally fixed values, not tunable config.
+ */
+const DB_CANDIDATE_PATTERNS: readonly string[] = [
+  "_LIMIT",              // row / display caps
+  "_TOP_K",              // RAG retrieval depth
+  "_PAGE_SIZE",          // pagination page size
+  "_TIMEOUT_MS",         // network / tool timeouts
+  "_INTERVAL_MS",        // polling / scheduling cadences
+  "_MAX_OUTPUT_TOKENS",  // LLM output token budget
+];
+
+const TAXONOMY_DB_MARKER = "// DB:";
+
+const TAXONOMY_AUTHORITY_MARKERS: readonly string[] = [
+  "RFC", "IRS", "GAAP", "ISO", "USALI", "HVS", "NIST", "ITU", "ANSI", "W3C",
+  "\u00a7", "Damodaran", "IMF",
+  "per second", "per minute", "per hour", "per day", "per month", "per year",
+  "milliseconds per", "seconds per",
+];
+
+export interface TaxonomyViolation {
+  file: string;
+  name: string;
+  line: number;
+}
+
+/**
+ * Scan lib/shared/src/constants*.ts for `export const NAME = …` lines whose
+ * names match DB_CANDIDATE_PATTERNS and are not covered by an exemption comment.
+ * Returns a list of violations; an empty list means the check passes.
+ */
+export function findDbCandidateViolations(): TaxonomyViolation[] {
+  const violations: TaxonomyViolation[] = [];
+  const constantsDir = path.join(WORKSPACE_ROOT, "lib/shared/src");
+
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(constantsDir, { withFileTypes: true });
+  } catch {
+    return violations;
+  }
+
+  for (const entry of entries) {
+    if (
+      !entry.isFile() ||
+      !entry.name.startsWith("constants") ||
+      !entry.name.endsWith(".ts")
+    ) continue;
+
+    const filePath = path.join(constantsDir, entry.name);
+    const rel = path.relative(WORKSPACE_ROOT, filePath).replace(/\\/g, "/");
+    const lines = fs.readFileSync(filePath, "utf8").split("\n");
+
+    for (let i = 0; i < lines.length; i++) {
+      const trimmed = lines[i].trim();
+      // Match: (export )?const ALL_CAPS_NAME = <anything>
+      const m = /^(export\s+)?const\s+([A-Z][A-Z0-9_]+)\s*=/.exec(trimmed);
+      if (!m) continue;
+
+      const name = m[2];
+
+      // Must match at least one DB-candidate suffix
+      if (!DB_CANDIDATE_PATTERNS.some(p => name.endsWith(p))) continue;
+
+      // Exempt if any of the 3 preceding lines carries a DB marker or authority citation
+      const preceding = lines.slice(Math.max(0, i - 3), i).join("\n");
+      if (preceding.includes(TAXONOMY_DB_MARKER)) continue;
+      if (TAXONOMY_AUTHORITY_MARKERS.some(marker => preceding.includes(marker))) continue;
+
+      violations.push({ file: rel, name, line: i + 1 });
+    }
+  }
+
+  return violations;
+}
+
+// ---------------------------------------------------------------------------
 // Modes
 // ---------------------------------------------------------------------------
 
@@ -400,6 +492,19 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     }
   }
 
+  // Constants-taxonomy check (zero-tolerance — no baseline file; violations must be
+  // fixed or explicitly exempted with a `// DB: <key>` comment above the const).
+  const taxonomyViolations = findDbCandidateViolations();
+  for (const v of taxonomyViolations) {
+    console.error(`DB-CANDIDATE  ${v.name}  (${v.file}:${v.line})`);
+    regressions++;
+  }
+  if (taxonomyViolations.length > 0) {
+    console.error(`\nDB-candidate fix: configurable values must live in model_constants DB.`);
+    console.error(`  Register via getFactoryNumber() in lib/shared/src/model-constants-registry.ts,`);
+    console.error(`  or add  // DB: <key>  above the const if it is already DB-backed / a fixed bound.`);
+  }
+
   if (regressions === 0) {
     const summary = improvements > 0
       ? `PASS — ${improvements} improvement(s) since baseline`
@@ -408,9 +513,12 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     if (cacheHash) writeCacheHit(CACHE_NAME, cacheHash);
     process.exit(0);
   } else {
-    console.error(`\ncheck:magic-numbers  FAIL — ${regressions} regression(s)`);
-    console.error("Fix: promote the literal to a named constant in lib/shared/src/constants*.ts");
-    console.error("then re-run tsx scripts/src/check-magic-numbers.ts --init to lock in the gain.");
+    const ratchetCount = regressions - taxonomyViolations.length;
+    console.error(`\ncheck:magic-numbers  FAIL — ${regressions} issue(s) (${taxonomyViolations.length} DB-candidate, ${ratchetCount} ratchet regression(s))`);
+    if (ratchetCount > 0) {
+      console.error("Ratchet fix: promote the literal to a named constant in lib/shared/src/constants*.ts");
+      console.error("then re-run tsx scripts/src/check-magic-numbers.ts --init to lock in the gain.");
+    }
     process.exit(1);
   }
 }

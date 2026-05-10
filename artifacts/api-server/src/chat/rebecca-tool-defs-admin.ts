@@ -55,20 +55,6 @@ export function getAdminTools(): ToolParam[] {
       },
     },
     {
-      name: "update_market_rate",
-      description:
-        "Override a market rate with a manual admin value. Use to correct stale or incorrect rates. Admin-only.",
-      parameters: {
-        type: "object",
-        properties: {
-          key: { type: "string", description: "Rate key to update, e.g. 'fed_funds_rate'." },
-          value: { type: "number", description: "New rate value." },
-          note: { type: "string", description: "Optional note explaining the override." },
-        },
-        required: ["key", "value"],
-      },
-    },
-    {
       name: "get_tripadvisor_hotels",
       description:
         "Fetch live competitor hotel data from Tripadvisor for a given market. " +

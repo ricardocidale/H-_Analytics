@@ -24,7 +24,12 @@ import { computeCompanyProjection } from "../finance/service";
 import { analyzeFundingNeeds } from "@engine/funding/funding-predictor";
 import type { PropertyInput } from "@engine/types";
 import type { CapitalRaiseInputs } from "@engine/watchdog/capitalRaiseEvaluator";
-import { ICP_MODEL_PROFILES, type IcpModelTier } from "@shared/constants-benchmarks";
+import {
+  ICP_MODEL_PROFILES,
+  type IcpModelTier,
+  DEFAULT_PORTFOLIO_ANALYST_START_OCCUPANCY,
+  DEFAULT_PORTFOLIO_ANALYST_ADR,
+} from "@shared/constants-benchmarks";
 import { DEFAULT_PROJECTION_YEARS } from "@shared/constants";
 import { DEFAULT_RUNWAY_NEED_MONTHS_PLACEHOLDER } from "@shared/constants-funding";
 import {
@@ -271,11 +276,11 @@ export async function runRevenueV1Path(userId: number): Promise<Awaited<ReturnTy
   const avgOccupancyRate =
     activeProperties.length > 0
       ? activeProperties.reduce((s, p) => s + p.startOccupancy, 0) / activeProperties.length
-      : 0.65;
+      : DEFAULT_PORTFOLIO_ANALYST_START_OCCUPANCY;
   const avgAdr =
     activeProperties.length > 0
       ? activeProperties.reduce((s, p) => s + p.startAdr, 0) / activeProperties.length
-      : 350;
+      : DEFAULT_PORTFOLIO_ANALYST_ADR;
 
   const portfolio: RevenuePromptInputContext["portfolio"] = {
     propertyCount: properties.length,

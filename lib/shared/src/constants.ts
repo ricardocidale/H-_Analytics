@@ -453,15 +453,19 @@ export const COSTANTINO_LLM_SLOT = "costantino-orchestration";
 export const COSTANTINO_CADENCE_PARAM_SLUG = "costantino-health-cycle-interval-ms";
 
 /** Default cycle interval — 5 days. Used when the parameter row is absent or malformed. */
+// DB: costantino-health-cycle-interval-ms — admin_resources parameter row holds the live value
 export const DEFAULT_COSTANTINO_HEALTH_CYCLE_INTERVAL_MS = 5 * 24 * 60 * 60 * 1000;
 
 /** Lower clamp on the cadence — 60 s. Protects against runaway scheduling. */
+// DB: fixed lower bound — architectural safety clamp, not admin-configurable
 export const DEFAULT_COSTANTINO_MIN_CYCLE_INTERVAL_MS = 60 * 1000;
 
 /** Upper clamp on the cadence — 30 days. */
+// DB: fixed upper bound — architectural safety clamp, not admin-configurable
 export const DEFAULT_COSTANTINO_MAX_CYCLE_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000;
 
 /** Per-tool-call HTTP timeout for Costantino's probe_integration_endpoint tool — 15 s. */
+// DB: costantino-probe-timeout-ms — move to admin_resources when tuning is needed
 export const DEFAULT_COSTANTINO_PROBE_TIMEOUT_MS = 15 * 1000;
 
 /** Max LLM tool-call rounds per cycle — defensive cap against runaway agentic loops. */
@@ -471,6 +475,7 @@ export const DEFAULT_COSTANTINO_MAX_TOOL_ROUNDS = 25;
 export const DEFAULT_COSTANTINO_TEMPERATURE = 0.2;
 
 /** Max output tokens per LLM call in Costantino's loop. */
+// DB: costantino-max-output-tokens — register in model-constants-registry when LLM tuning is needed
 export const DEFAULT_COSTANTINO_MAX_OUTPUT_TOKENS = 4096;
 
 /** Default HTTP status considered a successful probe outcome (= 200 OK). */
@@ -483,9 +488,11 @@ export const COSTANTINO_DEGRADED_HTTP_STATUS_MIN = 200;
 export const COSTANTINO_DEGRADED_HTTP_STATUS_MAX_EXCLUSIVE = 400;
 
 /** Row cap for list_findings scope='recent'. */
+// DB: costantino-recent-findings-limit — move to model-constants-registry when admin tuning is needed
 export const COSTANTINO_RECENT_FINDINGS_LIMIT = 30;
 
 /** Row cap for list_findings scope='open' / 'all'. */
+// DB: costantino-findings-page-limit — move to model-constants-registry when admin tuning is needed
 export const COSTANTINO_FINDINGS_PAGE_LIMIT = 200;
 
 /** Valid HTTP status code range for expectStatus validation (RFC 9110 §15). */

@@ -330,6 +330,13 @@
       "when": 1747094400000,
       "tag": "0048_users_tour_step",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1778427720403,
+      "tag": "0049_users_tour_step_not_null",
+      "breakpoints": true
     }
   ]
 }

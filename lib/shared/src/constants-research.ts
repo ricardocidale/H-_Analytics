@@ -107,10 +107,12 @@ export const RESEARCH_CAP_RATE_VALUATION_MAX_MULTIPLIER = 3.0;
 export const RESEARCH_CAP_RATE_VALUATION_MIN_MULTIPLIER = 0.3;
 
 /** Max recent guidance records injected into the context pack for a deep-dive run. */
+// DB: recent-guidance-context-limit — move to model-constants-registry when admin tuning is needed
 export const RECENT_GUIDANCE_CONTEXT_LIMIT = 10;
 
 /** Upper bound on hotels returned per Tripadvisor Content API location/search request (API hard cap). */
 export const TRIPADVISOR_MAX_HOTEL_RESULTS = 10;
 
 /** Default hotel count returned when the caller omits a limit. */
+// DB: tripadvisor-default-hotel-limit — move to model-constants-registry when admin tuning is needed
 export const TRIPADVISOR_DEFAULT_HOTEL_LIMIT = 5;
