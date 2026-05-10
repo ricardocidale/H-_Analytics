@@ -1091,8 +1091,8 @@ Type your request naturally — you don't need to use tool names directly.`;
           {pendingMessage && (
             <div className="flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
               <span className="flex-1 min-w-0 truncate">Still responding — finish first or move on?</span>
-              <button type="button" onClick={handleLetFinish} className="shrink-0 font-medium underline underline-offset-2 hover:no-underline">Finish</button>
-              <button type="button" onClick={handleMoveOn} className="shrink-0 font-medium underline underline-offset-2 hover:no-underline">Move on</button>
+              <Button variant="link" size="sm" onClick={handleLetFinish} className="shrink-0 h-auto p-0 font-medium text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200">Finish</Button>
+              <Button variant="link" size="sm" onClick={handleMoveOn} className="shrink-0 h-auto p-0 font-medium text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200">Move on</Button>
             </div>
           )}
           <div className="flex items-end gap-2">

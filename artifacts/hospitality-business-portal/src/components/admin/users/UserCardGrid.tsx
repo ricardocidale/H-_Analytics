@@ -183,9 +183,9 @@ export default function UserCardGrid({
                     <span className="text-[11px] text-muted-foreground">Scenarios</span>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <button type="button" className="inline-flex cursor-help" aria-label="Scenario help">
+                        <Button variant="ghost" size="icon" className="h-auto w-auto p-0 cursor-help" aria-label="Scenario help">
                           <IconHelpCircle className="w-3 h-3 text-muted-foreground/50" />
-                        </button>
+                        </Button>
                       </TooltipTrigger>
                       <TooltipContent side="right" className="text-xs max-w-[220px]">
                         When ON, this user can create, edit, duplicate, and delete their own scenarios. When OFF, they can only view scenarios shared with them.
