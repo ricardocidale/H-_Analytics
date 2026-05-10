@@ -32,9 +32,13 @@
  * OUTPUT FORMAT
  *   [skip]  check:<name>  — inputs unchanged, skipping
  *   [run]   check:<name>  — inputs changed, running
- *   [pass]  check:<name>  completed in Xs
- *   [fail]  check:<name>  FAILED (exit N) after Xs
- *   [done]  N/M checks ran fresh, M-N cached — all passed.
+ *   [pass]  check:<name>  completed in X.Xs        (or Xs for ≥10 s; "⚠ slow" if ≥ threshold)
+ *   [fail]  check:<name>  FAILED (exit N) after Xs (same duration format + slow flag)
+ *   [done]  N/M checks ran fresh, M-N cached — all passed in Xs.
+ *
+ * SLOW THRESHOLD
+ *   Checks taking longer than CHECK_SLOW_THRESHOLD_S seconds (default 10) are
+ *   flagged with "⚠ slow" on their [pass]/[fail] line and counted in [done].
  *
  * BYPASS
  *   CHECK_CACHE_DISABLED=1 — treat every check as stale (same as the
@@ -70,6 +74,30 @@ import { collectInputFiles as collectInputFiles_schemaDrift } from "./check-sche
 // ---------------------------------------------------------------------------
 
 const CACHE_DIR = path.join(WORKSPACE_ROOT, ".cache");
+
+/**
+ * Slow-check threshold in ms.  Override with CHECK_SLOW_THRESHOLD_S=<seconds>.
+ * Any check that takes longer than this will be flagged in the summary.
+ */
+const SLOW_THRESHOLD_MS = (() => {
+  const raw = process.env.CHECK_SLOW_THRESHOLD_S;
+  if (raw !== undefined) {
+    const parsed = parseFloat(raw);
+    if (!isNaN(parsed) && parsed > 0) return parsed * 1000;
+  }
+  return 10_000; // default: 10 s
+})();
+
+/**
+ * Return a human-friendly duration string.
+ *  < 10 s  → one decimal place ("3.2s")
+ *  >= 10 s → whole seconds    ("12s")
+ */
+function formatDuration(ms: number): string {
+  const secs = ms / 1000;
+  if (secs < 10) return `${secs.toFixed(1)}s`;
+  return `${Math.round(secs)}s`;
+}
 
 function readStoredHash(name: string): string | null {
   try {
@@ -265,6 +293,8 @@ function runCheck(
 // ---------------------------------------------------------------------------
 
 async function main(): Promise<void> {
+  const wallStart = Date.now();
+
   // 1. Probe all script-based checks.
   const probes = probeAll();
 
@@ -316,36 +346,55 @@ async function main(): Promise<void> {
 
   console.log("");
 
-  // 5. Print summary.
-  const failures = results.filter((r) => r.exitCode !== 0 && !r.killed);
-  const passes   = results.filter((r) => r.exitCode === 0);
+  // 5. Summary.
+  const wallMs = Date.now() - wallStart;
+  const actualFailures = results.filter((r) => r.exitCode !== 0 && !r.killed);
+  const killed = results.filter((r) => r.killed);
+  const passes = results.filter((r) => r.exitCode === 0);
 
   for (const r of passes) {
-    console.log(`[pass]  check:${r.label.padEnd(22)} completed in ${(r.durationMs / 1000).toFixed(1)}s`);
+    const dur = formatDuration(r.durationMs);
+    const slowTag = r.durationMs >= SLOW_THRESHOLD_MS ? "  ⚠ slow" : "";
+    console.log(`[pass]  check:${r.label.padEnd(22)} completed in ${dur}${slowTag}`);
   }
-  for (const r of failures) {
-    console.log(`[fail]  check:${r.label.padEnd(22)} FAILED (exit ${r.exitCode}) after ${(r.durationMs / 1000).toFixed(1)}s`);
+  for (const r of actualFailures) {
+    const dur = formatDuration(r.durationMs);
+    const slowTag = r.durationMs >= SLOW_THRESHOLD_MS ? "  ⚠ slow" : "";
+    console.error(`[fail]  check:${r.label.padEnd(22)} FAILED (exit ${r.exitCode}) after ${dur}${slowTag}`);
+  }
+  for (const r of killed) {
+    console.error(`[kill]  check:${r.label.padEnd(22)} terminated (another check failed)`);
   }
 
-  const ranCount    = results.filter((r) => !r.killed).length;
-  const cachedCount = cached.length;
-  const totalCount  = ranCount + cachedCount;
+  // Count all non-killed checks that exceeded the threshold (passes + failures).
+  const slowChecks = results.filter((r) => !r.killed && r.durationMs >= SLOW_THRESHOLD_MS);
 
   console.log("");
-  if (failures.length === 0) {
+  const ranCount = toRun.length;
+  const skippedCount = cached.length;
+  const totalCount = SCRIPT_CHECKS.length + 1; // +1 for typecheck
+
+  if (actualFailures.length === 0) {
+    const slowNote = slowChecks.length > 0
+      ? `, ${slowChecks.length} slow (≥${formatDuration(SLOW_THRESHOLD_MS)})`
+      : "";
     console.log(
       `[done]  ${ranCount}/${totalCount} checks ran fresh` +
-        (cachedCount > 0 ? `, ${cachedCount} skipped (cached)` : "") +
-        " — all passed.",
+        (skippedCount > 0 ? `, ${skippedCount} skipped (cached)` : "") +
+        `${slowNote} — all passed in ${formatDuration(wallMs)}.`,
     );
     process.exit(0);
   } else {
-    console.log(`[done]  ${failures.length} check(s) FAILED.`);
+    console.error(
+      `[done]  ${actualFailures.length} check(s) failed` +
+        (skippedCount > 0 ? ` (${skippedCount} cached checks were skipped)` : "") +
+        ` — total ${formatDuration(wallMs)}.`,
+    );
     process.exit(1);
   }
 }
 
-main().catch((err: unknown) => {
+main().catch((err) => {
   console.error("[check-selective] unexpected error:", err);
   process.exit(1);
 });
