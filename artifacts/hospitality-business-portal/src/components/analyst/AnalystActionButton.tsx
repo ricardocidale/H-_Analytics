@@ -91,7 +91,7 @@ export function AnalystActionButton({
               {running ? (
                 <OrbitalDots size={16} aria-hidden="true" />
               ) : (
-                <IconSparkles className="h-4 w-4 text-accent-pop" aria-hidden="true" />
+                <IconSparkles className="h-4 w-4 text-white" aria-hidden="true" />
               )}
               <span>{displayLabel}</span>
             </Button>

@@ -324,8 +324,8 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
   );
 
   const sidebarFooter = (
-    <div className="px-2 pb-3 pt-1 space-y-0.5">
-      {!onAdminRoute && !onIntelligenceRoute && (
+    <div className="mt-auto px-2 pb-3 pt-1 space-y-0.5">
+      {location === "/" && (
         <Button
           variant="ghost"
           onClick={() => {
@@ -449,7 +449,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
       </aside>
 
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="w-72 p-0 bg-sidebar text-sidebar-foreground">
+        <SheetContent side="left" className="w-72 p-0 bg-sidebar text-sidebar-foreground flex flex-col h-full">
           <SheetHeader className="sr-only">
             <SheetTitle>Navigation</SheetTitle>
           </SheetHeader>
