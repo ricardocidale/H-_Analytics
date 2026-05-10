@@ -48,7 +48,10 @@ const MIGRATIONS_META_SRC = path.join(DB_LIB, "migrations/meta");
 // ── Cache key ───────────────────────────────────────────────────────────────
 
 export function collectInputFiles(): string[] {
-  const files: string[] = [fileURLToPath(import.meta.url)];
+  const files: string[] = [
+    fileURLToPath(import.meta.url),
+    path.join(WORKSPACE_ROOT, "pnpm-lock.yaml"),
+  ];
   for (const f of walkFilesForCache(path.join(DB_LIB, "src"), {
     extensions: new Set([".ts"]),
     skipDirs: new Set(["node_modules"]),

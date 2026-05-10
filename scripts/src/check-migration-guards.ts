@@ -75,6 +75,7 @@ export function collectInputFiles(): string[] {
     fileURLToPath(import.meta.url),
     JOURNAL_PATH,
     MANIFEST_PATH,
+    path.join(WORKSPACE_ROOT, "pnpm-lock.yaml"),
   ];
   // Every guard file in src/migrations/ contributes to the verdict — adding
   // or editing a guard must invalidate the cache.

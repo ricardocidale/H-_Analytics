@@ -301,7 +301,11 @@ function buildDuplicationMap(): DuplicationMap {
 const CACHE_NAME = "magic-numbers";
 
 export function collectInputFiles(): string[] {
-  const files: string[] = [fileURLToPath(import.meta.url), BASELINE_PATH];
+  const files: string[] = [
+    fileURLToPath(import.meta.url),
+    BASELINE_PATH,
+    path.join(WORKSPACE_ROOT, "pnpm-lock.yaml"),
+  ];
   const collect = (dir: string, excludeDirs?: Set<string>): void => {
     const absDir = path.join(WORKSPACE_ROOT, dir);
     for (const f of walkDir(absDir, excludeDirs)) files.push(f);
