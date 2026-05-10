@@ -863,8 +863,6 @@ async function runSeeds() {
     { name: "admin-resources-004", run: async () => { const { runAdminResources004 } = await import("./migrations/admin-resources-004"); await runAdminResources004(); } },
     { name: "admin-resources-005", run: async () => { const { runAdminResources005 } = await import("./migrations/admin-resources-005"); await runAdminResources005(); } },
     { name: "admin-resources-007", run: async () => { const { runAdminResources007 } = await import("./migrations/admin-resources-007"); await runAdminResources007(); } },
-    { name: "admin-resources-008", run: async () => { const { runAdminResources008 } = await import("./migrations/admin-resources-008"); await runAdminResources008(); } },
-    { name: "admin-resources-009", run: async () => { const { runAdminResources009 } = await import("./migrations/admin-resources-009"); await runAdminResources009(); } },
     { name: "rebecca-rail-open", run: async () => { const { runRebeccaRailOpen001 } = await import("./migrations/rebecca-rail-open-001"); await runRebeccaRailOpen001(); } },
     { name: "rebecca-chat-prefs", run: async () => { const { runRebeccaChatPrefs001 } = await import("./migrations/rebecca-chat-prefs-001"); await runRebeccaChatPrefs001(); } },
     { name: "rebecca-history-chips", run: async () => { const { runRebeccaHistoryChips001 } = await import("./migrations/rebecca-history-chips-001"); await runRebeccaHistoryChips001(); } },
@@ -889,6 +887,18 @@ async function runSeeds() {
     { name: "pietro-research-catalog-001", run: async () => { const { runPietroResearchCatalog001 } = await import("./migrations/pietro-research-catalog-001"); await runPietroResearchCatalog001(); } },
   ]) {
     await ddlTask.run();
+  }
+
+  // LLM slot model upgrades must run sequentially (008 → 009 → 010) so that
+  // each migration sees the DB state left by its predecessor in a single boot.
+  // Running them in the parallel fan-out risks 010 executing before 008 has
+  // written claude-opus-4-7, leaving stale slots until the next restart.
+  for (const modelMigrationTask of [
+    { name: "admin-resources-008", run: async () => { const { runAdminResources008 } = await import("./migrations/admin-resources-008"); await runAdminResources008(); } },
+    { name: "admin-resources-009", run: async () => { const { runAdminResources009 } = await import("./migrations/admin-resources-009"); await runAdminResources009(); } },
+    { name: "admin-resources-010", run: async () => { const { runAdminResources010 } = await import("./migrations/admin-resources-010"); await runAdminResources010(); } },
+  ]) {
+    await modelMigrationTask.run();
   }
 
   const results = await Promise.allSettled(seedTasks.map(t => t.run()));
