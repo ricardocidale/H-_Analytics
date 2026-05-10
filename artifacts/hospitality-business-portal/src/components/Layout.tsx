@@ -512,6 +512,17 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
             </Button>
             <ResearchQueueIndicator className="hidden sm:flex" />
             <NotificationCenter />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => useWalkthroughStore.getState().triggerPrompt()}
+              className="h-8 w-8"
+              data-testid="button-tour"
+              title="Take the tour"
+              aria-label="Take the tour"
+            >
+              <IconCompass className="w-4 h-4" />
+            </Button>
             {rebeccaEnabled && (
               <RebeccaHeaderButton displayName={global?.rebeccaDisplayName || "Rebecca"} />
             )}
