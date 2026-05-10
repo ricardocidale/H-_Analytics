@@ -1530,6 +1530,10 @@ async function toolShareScenario(
   }
 
   const share = await storage.shareScenarioWithUser(scenarioId, recipient.id, ctx.userId);
+  if (!share) {
+    return { result: { shares: [], recipientName: null } };
+  }
+
   const sharerDisplayName = fullName(sharer) || sharer.email;
   const recipientDisplayName = fullName(recipient) || recipient.email;
   const portalUrl = `${getAppUrl()}/scenarios`;
@@ -1561,7 +1565,7 @@ async function toolShareScenario(
   }
 
   return {
-    result: { shares: share ? [share] : [], recipientName: recipientDisplayName },
+    result: { shares: [share], recipientName: recipientDisplayName },
     dataChanged: { entityType: "scenario", entityId: scenarioId },
   };
 }

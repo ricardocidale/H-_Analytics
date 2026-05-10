@@ -508,31 +508,33 @@ export function register(app: Express) {
         res.status(HTTP_201_CREATED).json({ shares, recipientName: shares.length > 0 ? recipientDisplayName : null });
       }
 
-      const portalUrl = `${getAppUrl()}/scenarios`;
+      if (scenarioNames.length > 0) {
+        const portalUrl = `${getAppUrl()}/scenarios`;
 
-      sendScenarioShareNotification({
-        to: recipient.email,
-        recipientName: recipientDisplayName,
-        sharerName: sharerDisplayName,
-        sharerEmail: sharer.email,
-        scenarioNames,
-        mode,
-        portalUrl,
-      }).catch(err => logger.warn(`Failed to send share notification to recipient: ${err instanceof Error ? err.message : String(err)}`, "scenarios"));
+        sendScenarioShareNotification({
+          to: recipient.email,
+          recipientName: recipientDisplayName,
+          sharerName: sharerDisplayName,
+          sharerEmail: sharer.email,
+          scenarioNames,
+          mode,
+          portalUrl,
+        }).catch(err => logger.warn(`Failed to send share notification to recipient: ${err instanceof Error ? err.message : String(err)}`, "scenarios"));
 
-      if (!isAdminRole(sharer.role)) {
-        const allUsers = await storage.getAllUsers();
-        const admins = allUsers.filter(u => isAdminRole(u.role) && u.email !== sharer.email);
-        for (const admin of admins) {
-          sendAdminShareNotification({
-            to: admin.email,
-            sharerName: sharerDisplayName,
-            sharerEmail: sharer.email,
-            recipientName: recipientDisplayName,
-            recipientEmail: recipient.email,
-            scenarioNames,
-            mode,
-          }).catch(err => logger.warn(`Failed to send admin share notification: ${err instanceof Error ? err.message : String(err)}`, "scenarios"));
+        if (!isAdminRole(sharer.role)) {
+          const allUsers = await storage.getAllUsers();
+          const admins = allUsers.filter(u => isAdminRole(u.role) && u.email !== sharer.email);
+          for (const admin of admins) {
+            sendAdminShareNotification({
+              to: admin.email,
+              sharerName: sharerDisplayName,
+              sharerEmail: sharer.email,
+              recipientName: recipientDisplayName,
+              recipientEmail: recipient.email,
+              scenarioNames,
+              mode,
+            }).catch(err => logger.warn(`Failed to send admin share notification: ${err instanceof Error ? err.message : String(err)}`, "scenarios"));
+          }
         }
       }
     } catch (error: unknown) {
