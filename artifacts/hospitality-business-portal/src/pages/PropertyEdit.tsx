@@ -37,7 +37,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconAlertTriangle, IconWand2, IconEye, IconSparkles } from "@/components/icons";
 import { usePageVisit } from "@/hooks/usePageVisit";
-import { FirstVisitBanner } from "@/components/intelligence/FirstVisitBanner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { SaveButton } from "@/components/ui/save-button";
 import { PageHeader } from "@/components/ui/page-header";
@@ -148,20 +147,16 @@ export default function PropertyEdit() {
   const propertyLastAssumptionChangeAt = property?.lastAssumptionChangeAt ?? null;
 
   const pageVisitKey = propertyId ? `property:${propertyId}:edit` : "";
-  const { isFirstVisit, isAnalystStale: _isAnalystStale, recordSave: _recordPageSave, recordAnalystRun: _recordAnalystRun } = usePageVisit(
-    pageVisitKey, "property", propertyId
-  );
+  usePageVisit(pageVisitKey, "property", propertyId);
 
   // NOTE (task #738 / #739 / .claude/rules/analyst-trigger-discipline.md):
   // The `useAutoRefreshIntelligence` consumer that lived here was removed
   // (#738), and the first-visit `setTimeout(generateResearch, 1500)` effect
   // that auto-fired The Analyst when a property was opened for the first
   // time was removed (#739). The Analyst evaluates ONLY on an explicit
-  // AnalystButton click, so first-visit guidance is conveyed via
-  // non-triggering UI affordances:
-  //   • <FirstVisitBanner /> — informational badge below the page header
-  //   • <Dialog open={showIntelligencePrompt} /> — prompts the user but
-  //     only runs research when they press the AnalystButton inside it.
+  // AnalystButton click. The IntelligenceStatusBar suppresses itself on a
+  // first visit (missing status) — the freshness dot on the AnalystButton
+  // is the sole signal that research hasn't run yet.
 
   useEffect(() => {
     if (!wasGeneratingRef.current && isGenerating) {
@@ -667,13 +662,6 @@ export default function PropertyEdit() {
           isGenerating={isGenerating}
           onRunResearch={generateResearch}
         />
-
-        {isFirstVisit && !isGenerating && (
-          <FirstVisitBanner
-            onAskAnalyst={() => { setIntelligenceClicked(true); generateResearch(); }}
-            isGenerating={isGenerating}
-          />
-        )}
 
         <AnalystValidationBanner
           property={property}

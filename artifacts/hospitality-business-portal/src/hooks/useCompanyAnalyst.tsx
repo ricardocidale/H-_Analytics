@@ -69,7 +69,7 @@ function guidanceToDisplayValue(rec: GuidanceRecord): {
   if (rec.valueMid == null) return null;
   const isDollar = DOLLAR_FIELDS.has(rec.assumptionKey);
   let display: string;
-  if (rec.valueLow != null && rec.valueHigh != null) {
+  if (rec.valueLow != null && rec.valueHigh != null && rec.valueLow !== rec.valueHigh) {
     display = isDollar
       ? `$${formatDollar(rec.valueLow)}–$${formatDollar(rec.valueHigh)}`
       : `${fmtNum(rec.valueLow)}%–${fmtNum(rec.valueHigh)}%`;

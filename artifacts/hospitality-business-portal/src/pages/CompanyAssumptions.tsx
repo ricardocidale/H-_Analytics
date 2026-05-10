@@ -431,7 +431,6 @@ export default function CompanyAssumptions() {
             tabWarnings={formApi.tabWarnings}
             tabKeys={TAB_KEYS}
             acks={formApi.acks}
-            isFirstVisit={analyst.isFirstVisit}
             activeTab={activeTab}
           />
 

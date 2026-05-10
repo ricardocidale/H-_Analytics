@@ -24,8 +24,9 @@ function parseRange(display: string): { low: number; high: number } | null {
 type RangeStatus = "within" | "near" | "outside" | "unknown";
 
 function getRangeStatus(value: number, low: number, high: number): RangeStatus {
+  if (low === high) return "unknown";
   if (value >= low && value <= high) return "within";
-  const span = high - low || 1;
+  const span = high - low;
   const margin = span * 0.2;
   if (value >= low - margin && value <= high + margin) return "near";
   return "outside";

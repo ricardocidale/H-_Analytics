@@ -152,6 +152,11 @@ export function IntelligenceStatusBar({
     isGenerating,
   });
 
+  // Never show the bar for a first-time visit (no prior research run) when
+  // there is no explicit bannerState override driving it. The freshness dot
+  // on the AnalystButton is the sole signal for missing research.
+  if (!bannerState && freshness.status === "missing") return null;
+
   // When a banner state is supplied, it takes precedence over freshness.
   // This lets CompanyAssumptions show "Saving…" / "Reviewing…" while a
   // mutation or research run is in flight, without losing the regular
@@ -211,7 +216,6 @@ export function IntelligenceStatusBar({
         <AnalystButton
           onClick={onRunResearch}
           size="sm"
-          variant="outline"
           dataTestId="button-regenerate-research"
         />
       )}
