@@ -100,7 +100,8 @@ export class UserStorage {
   }
 
   async updateUserTourStep(id: number, tourStep: number | null): Promise<void> {
-    await db.update(users).set({ tourStep, updatedAt: new Date() }).where(eq(users.id, id));
+    // tourStep is NOT NULL in the DB; null means "reset to beginning" → store 0
+    await db.update(users).set({ tourStep: tourStep ?? 0, updatedAt: new Date() }).where(eq(users.id, id));
   }
 
   /** Change a user's role (super_admin, admin, user). Admin-only operation. */
