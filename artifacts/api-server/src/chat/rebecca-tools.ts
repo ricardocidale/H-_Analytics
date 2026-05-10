@@ -38,7 +38,7 @@ export const KB_CONTENT_VECTOR_PREVIEW_CHARS = 3_000;
 export type DataChangedEntry = {
   entityType: "property" | "scenario" | "slide_factory_run" | "analyst_table" | "lb_deck_config"
             | "kb_entry" | "global_assumptions" | "research_job" | "iris_run" | "iris_gap" | "data_source" | "compliance_run"
-            | "company" | "market_rate";
+            | "company" | "market_rate" | "property_finder" | "service_template";
   entityId: number;
 };
 
@@ -691,6 +691,149 @@ export function getRebeccaTools(): ToolParam[] {
         required: ["id"],
       },
     },
+    // ── Prospective Properties / Property Finder tools ─────────────────────
+    {
+      name: "list_prospective_properties",
+      description:
+        "List all prospective (saved/favorited) properties for the current user. Returns id, address, city, state, country, notes, savedAt, and priceEvents count.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+    {
+      name: "save_prospective_property",
+      description:
+        "Save a property to the user's Property Finder favorites. Provide at minimum an address. Returns the new prospective property record.",
+      parameters: {
+        type: "object",
+        properties: {
+          address: { type: "string", description: "Full street address of the property." },
+          city: { type: "string", description: "City." },
+          state: { type: "string", description: "State or province." },
+          zipCode: { type: "string", description: "ZIP or postal code." },
+          notes: { type: "string", description: "Optional initial notes." },
+        },
+        required: ["address"],
+      },
+    },
+    {
+      name: "delete_prospective_property",
+      description: "Remove a prospective (favorited) property from the user's list.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "Prospective property ID." },
+        },
+        required: ["id"],
+      },
+    },
+    {
+      name: "update_prospective_property_notes",
+      description: "Update the notes on a saved prospective property.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "Prospective property ID." },
+          notes: { type: "string", description: "New notes text." },
+        },
+        required: ["id", "notes"],
+      },
+    },
+    // ── Price Events tools ─────────────────────────────────────────────────
+    {
+      name: "list_price_events",
+      description: "List the price event history for a prospective property (offers, accepted prices, etc.).",
+      parameters: {
+        type: "object",
+        properties: {
+          prospectivePropertyId: { type: "number", description: "Prospective property ID." },
+        },
+        required: ["prospectivePropertyId"],
+      },
+    },
+    {
+      name: "create_price_event",
+      description: "Add a price event to a prospective property's acquisition history (e.g. list price, offer, accepted price).",
+      parameters: {
+        type: "object",
+        properties: {
+          prospectivePropertyId: { type: "number", description: "Prospective property ID." },
+          kind: { type: "string", description: "Event kind: list, reduction, delist, relist, contract, or prior_sale." },
+          price: { type: "number", description: "New listing price in USD after this event." },
+          date: { type: "string", description: "ISO date string (YYYY-MM-DD). Defaults to today." },
+          notes: { type: "string", description: "Optional note for this event." },
+        },
+        required: ["prospectivePropertyId", "kind", "price"],
+      },
+    },
+    {
+      name: "update_price_event",
+      description: "Update a price event on a prospective property.",
+      parameters: {
+        type: "object",
+        properties: {
+          prospectivePropertyId: { type: "number", description: "Prospective property ID." },
+          eventId: { type: "string", description: "Event ID from list_price_events." },
+          type: { type: "string", description: "Updated event type." },
+          price: { type: "number", description: "Updated price in USD." },
+          date: { type: "string", description: "Updated ISO date." },
+          notes: { type: "string", description: "Updated notes." },
+        },
+        required: ["prospectivePropertyId", "eventId"],
+      },
+    },
+    {
+      name: "delete_price_event",
+      description: "Delete a price event from a prospective property's history.",
+      parameters: {
+        type: "object",
+        properties: {
+          prospectivePropertyId: { type: "number", description: "Prospective property ID." },
+          eventId: { type: "string", description: "Event ID from list_price_events." },
+        },
+        required: ["prospectivePropertyId", "eventId"],
+      },
+    },
+    // ── Photo reorder tool ─────────────────────────────────────────────────
+    {
+      name: "reorder_photos",
+      description:
+        "Reorder a property's photo gallery by providing the full ordered list of photo IDs. The first ID becomes sort_order 0.",
+      parameters: {
+        type: "object",
+        properties: {
+          propertyId: { type: "number", description: "Property ID." },
+          orderedPhotoIds: {
+            type: "array",
+            items: { type: "number" },
+            description: "Photo IDs in the desired display order.",
+          },
+        },
+        required: ["propertyId", "orderedPhotoIds"],
+      },
+    },
+    // ── Service Templates tools ────────────────────────────────────────────
+    {
+      name: "list_service_templates",
+      description:
+        "List all company service templates (Marketing, IT, Accounting, Reservations, etc.) with their default rates and markup percentages. Admin-only.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+    {
+      name: "update_service_template",
+      description:
+        "Update a service template's name, default rate, markup percentage, active status, or sort order. Admin-only.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "Service template ID." },
+          name: { type: "string", description: "Template name." },
+          defaultRate: { type: "number", description: "Default rate value." },
+          markupPercent: { type: "number", description: "Markup percentage (e.g. 15 for 15%)." },
+          isActive: { type: "boolean", description: "Whether the template is active." },
+          sortOrder: { type: "number", description: "Display sort order." },
+        },
+        required: ["id"],
+      },
+    },
     {
       name: "list_companies",
       description:
@@ -726,6 +869,32 @@ export function getRebeccaTools(): ToolParam[] {
           type: { type: "string", description: "Company type: 'management' or 'spv'." },
           description: { type: "string", description: "Company description." },
           isActive: { type: "boolean", description: "Whether the company is active." },
+        },
+        required: ["id"],
+      },
+    },
+    {
+      name: "create_company",
+      description:
+        "Create a new company (management company or SPV). Admin-only. Name must be unique.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Company name (must be unique)." },
+          type: { type: "string", description: "Company type: 'management' or 'spv'." },
+          description: { type: "string", description: "Optional description." },
+        },
+        required: ["name", "type"],
+      },
+    },
+    {
+      name: "delete_company",
+      description:
+        "Deactivate a company by setting isActive to false. Admin-only. This is a soft delete — the record is preserved.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "Company id to deactivate." },
         },
         required: ["id"],
       },
@@ -949,6 +1118,10 @@ export async function dispatchRebeccaTool(
         return await toolGetCompany(args, ctx);
       case "update_company":
         return await toolUpdateCompany(args, ctx);
+      case "create_company":
+        return await toolCreateCompany(args, ctx);
+      case "delete_company":
+        return await toolDeleteCompany(args, ctx);
       case "get_tripadvisor_hotels":
         return await toolGetTripadvisorHotels(args);
       case "create_kb_entry":
@@ -979,6 +1152,32 @@ export async function dispatchRebeccaTool(
         return await toolRevokeShare(args, ctx);
       case "delete_slide_factory_run":
         return await toolDeleteSlideFactoryRun(args, ctx);
+      case "list_prospective_properties":
+        return await toolListProspectiveProperties(ctx);
+      case "save_prospective_property":
+        return await toolSaveProspectiveProperty(args, ctx);
+      case "delete_prospective_property":
+        return await toolDeleteProspectiveProperty(args, ctx);
+      case "update_prospective_property_notes":
+        return await toolUpdateProspectivePropertyNotes(args, ctx);
+      case "list_price_events":
+        return await toolListPriceEvents(args, ctx);
+      case "create_price_event":
+        return await toolCreatePriceEvent(args, ctx);
+      case "update_price_event":
+        return await toolUpdatePriceEvent(args, ctx);
+      case "delete_price_event":
+        return await toolDeletePriceEvent(args, ctx);
+      case "reorder_photos":
+        return await toolReorderPhotos(args, ctx);
+      case "list_service_templates":
+        return await toolListServiceTemplates(ctx);
+      case "update_service_template":
+        return await toolUpdateServiceTemplate(args, ctx);
+      case "create_company":
+        return await toolCreateCompany(args, ctx);
+      case "delete_company":
+        return await toolDeleteCompany(args, ctx);
       default:
         return { result: { error: "Unknown tool" } };
     }
@@ -2316,7 +2515,7 @@ async function toolProbeDataSource(args: Record<string, unknown>, ctx: ToolConte
   if (!row) return { result: { error: `Resource not found: id=${id}` } };
 
   const outcome = await runProbe(row);
-  return { result: outcome, dataChanged: { entityType: "data_source", entityId: 0 } };
+  return { result: outcome };
 }
 
 async function toolRegenerateDataSource(args: Record<string, unknown>, ctx: ToolContext): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
@@ -2619,6 +2818,70 @@ async function toolGetCompany(
       ...row,
       createdAt: row.createdAt?.toISOString() ?? null,
     },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// create_company / delete_company — admin-only company lifecycle
+// ---------------------------------------------------------------------------
+
+async function toolCreateCompany(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const name = typeof args.name === "string" ? args.name.trim() : "";
+  const type = typeof args.type === "string" ? args.type.trim() : "";
+  if (!name) return { result: { error: "name is required" } };
+  if (!type) return { result: { error: "type is required" } };
+  if (type !== "management" && type !== "spv") {
+    return { result: { error: "type must be 'management' or 'spv'" } };
+  }
+
+  const { db } = await import("../db");
+  const { companies } = await import("@workspace/db");
+
+  const [created] = await db
+    .insert(companies)
+    .values({
+      name,
+      type,
+      description: typeof args.description === "string" ? args.description : undefined,
+      isActive: true,
+    } as typeof companies.$inferInsert)
+    .returning({ id: companies.id, name: companies.name, type: companies.type });
+
+  return {
+    result: { success: true, id: created.id, name: created.name, type: created.type },
+    dataChanged: { entityType: "company" as const, entityId: created.id },
+  };
+}
+
+async function toolDeleteCompany(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const idResult = requireNumericArg(args, "id");
+  if (!idResult.ok) return idResult.result;
+  const id = idResult.value;
+
+  const { db } = await import("../db");
+  const { companies } = await import("@workspace/db");
+  const { eq } = await import("drizzle-orm");
+
+  const [existing] = await db.select({ id: companies.id }).from(companies).where(eq(companies.id, id)).limit(1);
+  if (!existing) return { result: { error: `Company not found: id=${id}` } };
+
+  await db.update(companies).set({ isActive: false }).where(eq(companies.id, id));
+
+  return {
+    result: { success: true },
+    dataChanged: { entityType: "company" as const, entityId: id },
   };
 }
 
@@ -3071,6 +3334,242 @@ async function toolDeleteSlideFactoryRun(
   return {
     result: { success: true },
     dataChanged: { entityType: "slide_factory_run", entityId: id },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Prospective Properties tools (U4)
+// ---------------------------------------------------------------------------
+
+async function toolListProspectiveProperties(
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const props = await storage.getProspectiveProperties(ctx.userId);
+  return {
+    result: props.map(p => ({
+      id: p.id,
+      address: p.address,
+      city: p.city,
+      state: p.state,
+      zipCode: p.zipCode,
+      notes: p.notes,
+      savedAt: p.savedAt,
+      priceEventCount: (p.priceEvents ?? []).length,
+    })),
+  };
+}
+
+async function toolSaveProspectiveProperty(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const address = typeof args.address === "string" ? args.address.trim() : "";
+  if (!address) return { result: { error: "address is required" } };
+
+  const prop = await storage.addProspectiveProperty({
+    userId: ctx.userId,
+    address,
+    city: typeof args.city === "string" ? args.city : null,
+    state: typeof args.state === "string" ? args.state : null,
+    zipCode: typeof args.zipCode === "string" ? args.zipCode : null,
+    notes: typeof args.notes === "string" ? args.notes : null,
+    externalId: `rebecca-${Date.now()}`,
+    source: "rebecca",
+  });
+
+  return {
+    result: { id: prop.id, address: prop.address },
+    dataChanged: { entityType: "property_finder" as const, entityId: prop.id },
+  };
+}
+
+async function toolDeleteProspectiveProperty(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const idResult = requireNumericArg(args, "id");
+  if (!idResult.ok) return idResult.result;
+
+  await storage.deleteProspectiveProperty(idResult.value, ctx.userId);
+  return {
+    result: { success: true },
+    dataChanged: { entityType: "property_finder" as const, entityId: idResult.value },
+  };
+}
+
+async function toolUpdateProspectivePropertyNotes(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const idResult = requireNumericArg(args, "id");
+  if (!idResult.ok) return idResult.result;
+  const notes = typeof args.notes === "string" ? args.notes : "";
+
+  const updated = await storage.updateProspectivePropertyNotes(idResult.value, ctx.userId, notes);
+  if (!updated) return { result: { error: "Not found" } };
+  return {
+    result: { success: true, notes: updated.notes },
+    dataChanged: { entityType: "property_finder" as const, entityId: idResult.value },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Price Events tools (U5)
+// ---------------------------------------------------------------------------
+
+async function toolListPriceEvents(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const idResult = requireNumericArg(args, "prospectivePropertyId");
+  if (!idResult.ok) return idResult.result;
+
+  const history = await storage.getProspectivePriceHistory(idResult.value, ctx.userId);
+  if (!history) return { result: { error: "Not found" } };
+  return { result: history.priceEvents ?? [] };
+}
+
+async function toolCreatePriceEvent(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const idResult = requireNumericArg(args, "prospectivePropertyId");
+  if (!idResult.ok) return idResult.result;
+  const kind = typeof args.kind === "string" ? args.kind.trim() : (typeof args.type === "string" ? args.type.trim() : "");
+  const newPrice = typeof args.price === "number" ? args.price : Number(args.price);
+  if (!kind) return { result: { error: "kind (event type) is required: list, reduction, delist, relist, contract, prior_sale" } };
+  if (isNaN(newPrice)) return { result: { error: "price must be a number" } };
+
+  const updated = await storage.addProspectivePriceEvent(idResult.value, ctx.userId, {
+    kind: kind as import("@shared/price-history").PriceEventKind,
+    newPrice,
+    date: typeof args.date === "string" ? args.date : new Date().toISOString().slice(0, 10),
+    note: typeof args.notes === "string" ? args.notes : undefined,
+  });
+  if (!updated) return { result: { error: "Not found" } };
+  const events = updated.priceEvents ?? [];
+  return {
+    result: { success: true, eventCount: events.length },
+    dataChanged: { entityType: "property_finder" as const, entityId: idResult.value },
+  };
+}
+
+async function toolUpdatePriceEvent(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const idResult = requireNumericArg(args, "prospectivePropertyId");
+  if (!idResult.ok) return idResult.result;
+  const eventId = typeof args.eventId === "string" ? args.eventId : "";
+  if (!eventId) return { result: { error: "eventId is required" } };
+
+  const patch: Record<string, unknown> = {};
+  if (typeof args.kind === "string") patch.kind = args.kind;
+  if (typeof args.newPrice === "number") patch.newPrice = args.newPrice;
+  if (typeof args.price === "number") patch.newPrice = args.price;
+  if (typeof args.date === "string") patch.date = args.date;
+  if (typeof args.note === "string") patch.note = args.note;
+  if (typeof args.notes === "string") patch.note = args.notes;
+
+  if (Object.keys(patch).length === 0) return { result: { error: "No fields to update" } };
+
+  const updated = await storage.updateProspectivePriceEvent(idResult.value, ctx.userId, eventId, patch as Parameters<typeof storage.updateProspectivePriceEvent>[3]);
+  if (!updated) return { result: { error: "Not found" } };
+  return {
+    result: { success: true },
+    dataChanged: { entityType: "property_finder" as const, entityId: idResult.value },
+  };
+}
+
+async function toolDeletePriceEvent(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const idResult = requireNumericArg(args, "prospectivePropertyId");
+  if (!idResult.ok) return idResult.result;
+  const eventId = typeof args.eventId === "string" ? args.eventId : "";
+  if (!eventId) return { result: { error: "eventId is required" } };
+
+  const updated = await storage.deleteProspectivePriceEvent(idResult.value, ctx.userId, eventId);
+  if (!updated) return { result: { error: "Not found" } };
+  return {
+    result: { success: true },
+    dataChanged: { entityType: "property_finder" as const, entityId: idResult.value },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// reorder_photos (U6)
+// ---------------------------------------------------------------------------
+
+async function toolReorderPhotos(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const propertyIdResult = requireNumericArg(args, "propertyId");
+  if (!propertyIdResult.ok) return propertyIdResult.result;
+  const propertyId = propertyIdResult.value;
+
+  if (!Array.isArray(args.orderedPhotoIds) || args.orderedPhotoIds.length === 0) {
+    return { result: { error: "orderedPhotoIds must be a non-empty array of photo IDs" } };
+  }
+  const orderedIds = (args.orderedPhotoIds as unknown[]).map(Number);
+  if (orderedIds.some(isNaN)) return { result: { error: "orderedPhotoIds must contain only numbers" } };
+
+  const user = await storage.getUserById(ctx.userId);
+  if (!user) return { result: { error: "User not found" } };
+
+  const property = await storage.getProperty(propertyId);
+  if (!property || (property.userId !== ctx.userId && !isAdminRole(user.role) && property.userId !== null)) {
+    return { result: { error: "Not found" } };
+  }
+
+  await storage.reorderPhotos(propertyId, orderedIds);
+  return {
+    result: { success: true },
+    dataChanged: { entityType: "property", entityId: propertyId },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Service Templates tools (U7)
+// ---------------------------------------------------------------------------
+
+async function toolListServiceTemplates(
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const templates = await storage.getAllServiceTemplates();
+  return { result: templates };
+}
+
+async function toolUpdateServiceTemplate(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const idResult = requireNumericArg(args, "id");
+  if (!idResult.ok) return idResult.result;
+
+  const patch: Record<string, unknown> = {};
+  if (typeof args.name === "string") patch.name = args.name;
+  if (typeof args.defaultRate === "number") patch.defaultRate = args.defaultRate;
+  if (typeof args.markupPercent === "number") patch.markupPercent = args.markupPercent;
+  if (typeof args.isActive === "boolean") patch.isActive = args.isActive;
+  if (typeof args.sortOrder === "number") patch.sortOrder = args.sortOrder;
+
+  if (Object.keys(patch).length === 0) return { result: { error: "No fields to update" } };
+
+  const updated = await storage.updateServiceTemplate(idResult.value, patch as Parameters<typeof storage.updateServiceTemplate>[1]);
+  if (!updated) return { result: { error: "Service template not found" } };
+
+  return {
+    result: { success: true, id: updated.id },
+    dataChanged: { entityType: "service_template" as const, entityId: idResult.value },
   };
 }
 

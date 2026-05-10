@@ -38,6 +38,20 @@ feature ships or a new Rebecca tool is added.
 | View who a scenario is shared with | Scenarios → Shares | `list_scenario_shares` | ✅ |
 | Revoke a scenario share for a specific user | Scenarios → Shares → Revoke | `revoke_share` | ✅ |
 | Delete a slide factory run | Slide Factory → Runs → Delete | `delete_slide_factory_run` | ✅ |
+| Reorder property photos | Property → Photos → Reorder | `reorder_photos` | ✅ |
+
+## Property Finder Actions
+
+| UI Action | UI Location | Rebecca Tool | Status |
+|---|---|---|---|
+| List saved/favorited properties | Property Finder → Saved | `list_prospective_properties` | ✅ |
+| Save a property as a favorite | Property Finder → Save | `save_prospective_property` | ✅ |
+| Delete a favorited property | Property Finder → Delete | `delete_prospective_property` | ✅ |
+| Update notes on a favorited property | Property Finder → Notes | `update_prospective_property_notes` | ✅ |
+| List price events for a property | Property Finder → Price History | `list_price_events` | ✅ |
+| Add a price event | Property Finder → Add Price Event | `create_price_event` | ✅ |
+| Update a price event | Property Finder → Edit Price Event | `update_price_event` | ✅ |
+| Delete a price event | Property Finder → Delete Price Event | `delete_price_event` | ✅ |
 
 ## Analyst Table Actions
 
@@ -55,6 +69,10 @@ feature ships or a new Rebecca tool is added.
 | List active companies (management cos + SPVs) | Admin → Companies | `list_companies` | ✅ |
 | View a single company by id | Admin → Companies → detail | `get_company` | ✅ |
 | Update company name / type / description / active status | Admin → Companies → edit | `update_company` | ✅ |
+| Create a new company (management co or SPV) | Admin → Companies → New | `create_company` | ✅ |
+| Deactivate (soft-delete) a company | Admin → Companies → Deactivate | `delete_company` | ✅ |
+| List service templates | Admin → Service Templates | `list_service_templates` | ✅ |
+| Update a service template | Admin → Service Templates → Edit | `update_service_template` | ✅ |
 
 ## Slides / Deck Actions (Legacy LB Deck — manual configure → render path)
 
