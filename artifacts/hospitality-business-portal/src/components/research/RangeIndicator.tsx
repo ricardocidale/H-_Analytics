@@ -23,7 +23,7 @@ function parseRange(display: string): { low: number; high: number } | null {
 
 type RangeStatus = "within" | "near" | "outside" | "unknown";
 
-function getRangeStatus(value: number, low: number, high: number): RangeStatus {
+export function getRangeStatus(value: number, low: number, high: number): RangeStatus {
   if (low === high) return "unknown";
   if (value >= low && value <= high) return "within";
   const span = high - low;

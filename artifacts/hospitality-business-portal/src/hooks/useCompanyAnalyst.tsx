@@ -58,7 +58,7 @@ function fmtNum(v: number): string {
   return Number.isInteger(v) ? String(v) : v.toFixed(1);
 }
 
-function guidanceToDisplayValue(rec: GuidanceRecord): {
+export function guidanceToDisplayValue(rec: GuidanceRecord): {
   display: string;
   mid: number;
   sourceName?: string;
