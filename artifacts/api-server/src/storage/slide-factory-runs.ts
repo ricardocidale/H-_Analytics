@@ -58,6 +58,14 @@ export async function listSlideFactoryRuns(userId: number): Promise<SlideFactory
     .limit(SLIDE_FACTORY_RUNS_LIST_LIMIT);
 }
 
+export async function deleteSlideFactoryRun(id: number, userId: number): Promise<boolean> {
+  const result = await db
+    .delete(slideFactoryRuns)
+    .where(and(eq(slideFactoryRuns.id, id), eq(slideFactoryRuns.userId, userId)))
+    .returning({ id: slideFactoryRuns.id });
+  return result.length > 0;
+}
+
 export type SlideFactoryRunPatch = Partial<
   Pick<
     SlideFactoryRun,

@@ -614,6 +614,69 @@ export function getRebeccaTools(): ToolParam[] {
       },
     },
     {
+      name: "list_property_photos",
+      description:
+        "List all photos in a property's gallery, ordered by sort order. Returns id, imageUrl, caption, isHero, and sortOrder for each photo.",
+      parameters: {
+        type: "object",
+        properties: {
+          propertyId: { type: "number", description: "Property ID." },
+        },
+        required: ["propertyId"],
+      },
+    },
+    {
+      name: "create_photo",
+      description:
+        "Add a photo to a property's gallery by URL. The first photo added becomes the hero automatically. Optionally set a caption.",
+      parameters: {
+        type: "object",
+        properties: {
+          propertyId: { type: "number", description: "Property ID to add the photo to." },
+          imageUrl: { type: "string", description: "Publicly accessible URL of the image." },
+          caption: { type: "string", description: "Optional caption for the photo." },
+        },
+        required: ["propertyId", "imageUrl"],
+      },
+    },
+    {
+      name: "list_scenario_shares",
+      description:
+        "List all users a scenario has been shared with. Returns granteeId, grantType, and createdAt for each share. The scenario must be owned by the authenticated user or the user must be an admin.",
+      parameters: {
+        type: "object",
+        properties: {
+          scenarioId: { type: "number", description: "Scenario ID." },
+        },
+        required: ["scenarioId"],
+      },
+    },
+    {
+      name: "revoke_share",
+      description:
+        "Revoke a previously-granted scenario share for a specific grantee. The scenario must be owned by the authenticated user. Use granteeId from list_scenario_shares.",
+      parameters: {
+        type: "object",
+        properties: {
+          scenarioId: { type: "number", description: "Scenario ID." },
+          granteeId: { type: "number", description: "User ID of the person to remove access for." },
+        },
+        required: ["scenarioId", "granteeId"],
+      },
+    },
+    {
+      name: "delete_slide_factory_run",
+      description:
+        "Permanently delete a slide factory run record. Only the owner of the run can delete it. This cannot be undone.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "Slide factory run ID." },
+        },
+        required: ["id"],
+      },
+    },
+    {
       name: "list_companies",
       description:
         "List all active companies (legal entities) in the system — both management companies and SPVs (Special Purpose Vehicles). " +
@@ -889,6 +952,16 @@ export async function dispatchRebeccaTool(
         return await toolGetGlobalAssumptions(ctx);
       case "update_global_assumptions":
         return await toolUpdateGlobalAssumptions(args, ctx);
+      case "list_property_photos":
+        return await toolListPropertyPhotos(args, ctx);
+      case "create_photo":
+        return await toolCreatePhoto(args, ctx);
+      case "list_scenario_shares":
+        return await toolListScenarioShares(args, ctx);
+      case "revoke_share":
+        return await toolRevokeShare(args, ctx);
+      case "delete_slide_factory_run":
+        return await toolDeleteSlideFactoryRun(args, ctx);
       default:
         return { result: { error: "Unknown tool" } };
     }
@@ -2785,6 +2858,156 @@ async function toolUpdateGlobalAssumptions(
   return {
     result: { success: true, id: updated.id },
     dataChanged: { entityType: "global_assumptions", entityId: 0 },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// list_property_photos — read photos gallery for a property
+// ---------------------------------------------------------------------------
+
+async function toolListPropertyPhotos(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const propertyIdResult = requireNumericArg(args, "propertyId");
+  if (!propertyIdResult.ok) return propertyIdResult.result;
+  const propertyId = propertyIdResult.value;
+
+  const user = await storage.getUserById(ctx.userId);
+  if (!user) return { result: { error: "User not found" } };
+
+  const property = await storage.getProperty(propertyId);
+  if (!property || (property.userId !== ctx.userId && !isAdminRole(user.role) && property.userId !== null)) {
+    return { result: { error: "Not found" } };
+  }
+
+  const photos = await storage.getPropertyPhotos(propertyId);
+  return {
+    result: photos.map(p => ({
+      id: p.id,
+      imageUrl: p.imageUrl,
+      caption: p.caption,
+      isHero: p.isHero,
+      sortOrder: p.sortOrder,
+    })),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// create_photo — add a photo to a property gallery by URL
+// ---------------------------------------------------------------------------
+
+async function toolCreatePhoto(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const propertyIdResult = requireNumericArg(args, "propertyId");
+  if (!propertyIdResult.ok) return propertyIdResult.result;
+  const propertyId = propertyIdResult.value;
+
+  const imageUrl = typeof args.imageUrl === "string" ? args.imageUrl.trim() : "";
+  if (!imageUrl) return { result: { error: "imageUrl is required" } };
+
+  const caption = typeof args.caption === "string" ? args.caption.trim() : undefined;
+
+  const user = await storage.getUserById(ctx.userId);
+  if (!user) return { result: { error: "User not found" } };
+
+  const property = await storage.getProperty(propertyId);
+  if (!property || (property.userId !== ctx.userId && !isAdminRole(user.role) && property.userId !== null)) {
+    return { result: { error: "Not found" } };
+  }
+
+  const photo = await storage.addPropertyPhoto({
+    propertyId,
+    imageUrl,
+    ...(caption ? { caption } : {}),
+  });
+
+  return {
+    result: { id: photo.id, imageUrl: photo.imageUrl, isHero: photo.isHero },
+    dataChanged: { entityType: "property", entityId: propertyId },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// list_scenario_shares — read who a scenario is shared with
+// ---------------------------------------------------------------------------
+
+async function toolListScenarioShares(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const scenarioIdResult = requireNumericArg(args, "scenarioId");
+  if (!scenarioIdResult.ok) return scenarioIdResult.result;
+  const scenarioId = scenarioIdResult.value;
+
+  const user = await storage.getUserById(ctx.userId);
+  if (!user) return { result: { error: "User not found" } };
+
+  const scenario = await storage.getScenario(scenarioId);
+  if (!scenario || (scenario.userId !== ctx.userId && !isAdminRole(user.role))) {
+    return { result: { error: "Not found" } };
+  }
+
+  const shares = await storage.getScenarioSharesForScenario(scenarioId);
+  return {
+    result: shares.map(s => ({
+      id: s.id,
+      granteeId: s.granteeId,
+      grantType: s.grantType,
+      createdAt: s.createdAt,
+    })),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// revoke_share — revoke scenario access for a specific grantee
+// ---------------------------------------------------------------------------
+
+async function toolRevokeShare(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const scenarioIdResult = requireNumericArg(args, "scenarioId");
+  if (!scenarioIdResult.ok) return scenarioIdResult.result;
+  const scenarioId = scenarioIdResult.value;
+
+  const granteeIdResult = requireNumericArg(args, "granteeId");
+  if (!granteeIdResult.ok) return granteeIdResult.result;
+  const granteeId = granteeIdResult.value;
+
+  const scenario = await storage.getScenario(scenarioId);
+  if (!scenario || scenario.userId !== ctx.userId) {
+    return { result: { error: "Not found" } };
+  }
+
+  await storage.revokeScenarioAccess(ctx.userId, granteeId, scenarioId);
+  return {
+    result: { success: true },
+    dataChanged: { entityType: "scenario", entityId: scenarioId },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// delete_slide_factory_run — permanently delete a run record
+// ---------------------------------------------------------------------------
+
+async function toolDeleteSlideFactoryRun(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const idResult = requireNumericArg(args, "id");
+  if (!idResult.ok) return idResult.result;
+  const id = idResult.value;
+
+  const { deleteSlideFactoryRun } = await import("../storage/slide-factory-runs");
+  const deleted = await deleteSlideFactoryRun(id, ctx.userId);
+  if (!deleted) return { result: { error: "Not found" } };
+
+  return {
+    result: { success: true },
+    dataChanged: { entityType: "slide_factory_run", entityId: id },
   };
 }
 
