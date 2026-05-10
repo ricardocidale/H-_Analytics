@@ -189,31 +189,146 @@ function fail(msg: string): never {
 }
 
 // ---------------------------------------------------------------------------
+// Build-level hash — covers only each app's source files, NOT this script.
+//
+// The full collectInputFiles() hash (used by the outer check cache) includes
+// this script itself, so editing the script busts the outer cache and triggers
+// a re-run of the check.  But the Vite build only needs to be repeated when
+// the *portal source* actually changed — not when the check script changed.
+//
+// A separate per-app build hash lets us skip the expensive Vite invocation
+// when only the check script was edited while the app source stayed the same.
+// The dist/ is still re-staged and re-probed every time the outer cache misses.
+// ---------------------------------------------------------------------------
+
+const BUILD_CACHE_DIR = path.join(WORKSPACE_ROOT, ".cache");
+
+function buildCacheKey(app: AppSpec): string {
+  return `check-production-image-build-${app.filter.replace(/[@/]/g, "_")}`;
+}
+
+function collectBuildInputFiles(app: AppSpec): string[] {
+  const files: string[] = [
+    // Workspace-level files that affect every artifact's build output.
+    path.join(WORKSPACE_ROOT, "pnpm-lock.yaml"),
+  ];
+
+  const artifactRootRel = app.srcDist.split("/").slice(0, 2).join("/");
+  const artifactRoot = path.join(WORKSPACE_ROOT, artifactRootRel);
+
+  for (const name of ARTIFACT_ROOT_FILES) {
+    const candidate = path.join(artifactRoot, name);
+    if (fs.existsSync(candidate)) files.push(candidate);
+  }
+
+  try {
+    for (const name of fs.readdirSync(artifactRoot)) {
+      if (/^tsconfig.*\.json$/.test(name)) {
+        files.push(path.join(artifactRoot, name));
+      }
+    }
+  } catch { /* artifact root missing */ }
+
+  const srcDir = path.join(artifactRoot, "src");
+  if (fs.existsSync(srcDir)) {
+    for (const f of walkAllFiles(srcDir)) files.push(f);
+  }
+
+  return files;
+}
+
+function readBuildHash(app: AppSpec): string | null {
+  try {
+    return fs.readFileSync(
+      path.join(BUILD_CACHE_DIR, `${buildCacheKey(app)}.hash`),
+      "utf8",
+    ).trim() || null;
+  } catch { return null; }
+}
+
+function writeBuildHash(app: AppSpec, hash: string): void {
+  try {
+    fs.mkdirSync(BUILD_CACHE_DIR, { recursive: true });
+    fs.writeFileSync(
+      path.join(BUILD_CACHE_DIR, `${buildCacheKey(app)}.hash`),
+      hash + "\n",
+      "utf8",
+    );
+  } catch { /* best-effort */ }
+}
+
+// ---------------------------------------------------------------------------
 // 1. Build each frontend with the production BASE_PATH
 // ---------------------------------------------------------------------------
 
 function buildApp(app: AppSpec): void {
-  info(`building ${app.filter} (BASE_PATH=${app.basePath})`);
-  const result = spawnSync(
-    "pnpm",
-    ["--filter", app.filter, "run", "build"],
-    {
-      cwd: WORKSPACE_ROOT,
-      stdio: "inherit",
-      env: {
-        ...process.env,
-        BASE_PATH: app.basePath,
-        PORT: "5000",
-        // The portal bundles very large chunks (maplibre-gl ~1 MB, xlsx ~500 KB,
-        // pptxgen ~372 KB) that push the default Node.js heap over the limit
-        // and cause the build process to be OOM-killed (spawnSync status: null).
-        // 4 GB is sufficient; preserve a caller-supplied override if present.
-        NODE_OPTIONS: process.env.NODE_OPTIONS ?? "--max-old-space-size=4096",
+  if (process.env.CHECK_CACHE_DISABLED !== "1") {
+    // Skip the Vite build when only the check script changed but the app
+    // source files are identical to the last successful build.  The outer
+    // check cache already decided the full check needs to re-run (e.g.
+    // because this script was edited), but a fresh Vite build is only
+    // needed when the *portal source* changed.
+    const buildHash = computeInputsHash({ files: collectBuildInputFiles(app) });
+    const distEntry = path.join(WORKSPACE_ROOT, app.srcDist, "index.html");
+    if (readBuildHash(app) === buildHash && fs.existsSync(distEntry)) {
+      info(`${app.filter} source unchanged — reusing existing dist (build skipped)`);
+      return;
+    }
+
+    info(`building ${app.filter} (BASE_PATH=${app.basePath})`);
+    const result = spawnSync(
+      "pnpm",
+      ["--filter", app.filter, "run", "build"],
+      {
+        cwd: WORKSPACE_ROOT,
+        stdio: "inherit",
+        env: {
+          ...process.env,
+          BASE_PATH: app.basePath,
+          PORT: "5000",
+          // The portal bundles very large chunks (maplibre-gl ~1 MB,
+          // xlsx ~500 KB, pptxgen ~372 KB) that can be killed by external
+          // resource limits.  Set a generous heap to minimise that risk;
+          // preserve a caller-supplied override when one is present.
+          NODE_OPTIONS: process.env.NODE_OPTIONS?.includes("max-old-space-size")
+            ? process.env.NODE_OPTIONS
+            : `${process.env.NODE_OPTIONS ?? ""} --max-old-space-size=4096`.trim(),
+        },
       },
-    },
-  );
-  if (result.status !== 0) {
-    fail(`build of ${app.filter} exited with code ${result.status}`);
+    );
+    if (result.status !== 0) {
+      fail(
+        `build of ${app.filter} exited with code ${result.status}` +
+          (result.signal ? ` (signal: ${result.signal})` : ""),
+      );
+    }
+
+    writeBuildHash(app, buildHash);
+  } else {
+    // Cache disabled — always build fresh.
+    info(`building ${app.filter} (BASE_PATH=${app.basePath}) [cache disabled]`);
+    const result = spawnSync(
+      "pnpm",
+      ["--filter", app.filter, "run", "build"],
+      {
+        cwd: WORKSPACE_ROOT,
+        stdio: "inherit",
+        env: {
+          ...process.env,
+          BASE_PATH: app.basePath,
+          PORT: "5000",
+          NODE_OPTIONS: process.env.NODE_OPTIONS?.includes("max-old-space-size")
+            ? process.env.NODE_OPTIONS
+            : `${process.env.NODE_OPTIONS ?? ""} --max-old-space-size=4096`.trim(),
+        },
+      },
+    );
+    if (result.status !== 0) {
+      fail(
+        `build of ${app.filter} exited with code ${result.status}` +
+          (result.signal ? ` (signal: ${result.signal})` : ""),
+      );
+    }
   }
 }
 
