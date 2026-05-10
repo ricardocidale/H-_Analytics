@@ -244,8 +244,12 @@ function GuidedWalkthrough() {
       setStep(0);
       setSavedStep(resolveSavedStep());
       setShowPrompt(true);
+      // Mark shown so the auto-start useEffect's cleanup fires and cancels any
+      // pending 800ms timer — prevents the dialog opening twice when triggerPrompt
+      // is called while the auto-start countdown is still running.
+      setShownThisSession(true);
     }
-  }, [triggerCount, setTourActive, setShowPrompt, resolveSavedStep]);
+  }, [triggerCount, setTourActive, setShowPrompt, setShownThisSession, resolveSavedStep]);
 
   useEffect(() => {
     if (user && !user.hideTourPrompt && !shownThisSession && !hasAutoStarted.current) {
