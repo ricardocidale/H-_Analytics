@@ -92,6 +92,34 @@ export function registerResearchMetaRoutes(app: Express) {
     },
   );
 
+  /**
+   * GET /api/research/seasonal-calendars
+   * Returns seasonal demand profiles grouped by market — used by the
+   * Seasonality Profile editor in PropertyEdit to populate presets from
+   * the live `seasonal_calendars` DB table rather than hardcoded values.
+   * Response: Array<{ market: string; country: string | null; profile: number[12] }>
+   */
+  app.get("/api/research/seasonal-calendars", requireAuth, async (_req, res) => {
+    try {
+      const rows = await storage.getAllSeasonalCalendars();
+      const marketMap = new Map<string, { market: string; country: string | null; profile: number[] }>();
+      for (const row of rows) {
+        const key = `${row.country ?? ""}__${row.market}`;
+        if (!marketMap.has(key)) {
+          marketMap.set(key, { market: row.market, country: row.country ?? null, profile: new Array(12).fill(1) });
+        }
+        const entry = marketMap.get(key)!;
+        const idx = (row.month ?? 1) - 1;
+        if (idx >= 0 && idx < 12) {
+          entry.profile[idx] = row.avgAdrMultiplier ?? 1;
+        }
+      }
+      res.json(Array.from(marketMap.values()));
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to load seasonal calendars", error, "RSCH-SC-001");
+    }
+  });
+
   app.get("/api/research/avg-duration", requireAuth, async (req, res) => {
     try {
       const entityType = (req.query.entityType as string) || "property";

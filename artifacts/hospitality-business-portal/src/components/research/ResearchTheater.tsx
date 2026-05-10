@@ -217,18 +217,32 @@ export function ResearchTheater({
                 </div>
               )}
 
-              {/* Footer: Cost */}
-              {estimatedCost != null && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <IconDollarSign className="h-3.5 w-3.5" />
-                  <span>
-                    Estimated cost:{" "}
-                    <span className="font-medium text-foreground">
-                      ${estimatedCost.toFixed(4)}
+              {/* Footer: Cost + Cancel */}
+              <div className="flex items-center justify-between pt-1 border-t border-border/50">
+                {estimatedCost != null ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <IconDollarSign className="h-3.5 w-3.5" />
+                    <span>
+                      Estimated cost:{" "}
+                      <span className="font-medium text-foreground">
+                        ${estimatedCost.toFixed(4)}
+                      </span>
                     </span>
-                  </span>
-                </div>
-              )}
+                  </div>
+                ) : (
+                  <span />
+                )}
+                {onCancel && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onCancel}
+                    className="text-muted-foreground"
+                  >
+                    Cancel research
+                  </Button>
+                )}
+              </div>
             </div>
           </Card>
         </motion.div>
