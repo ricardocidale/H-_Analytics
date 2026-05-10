@@ -34,7 +34,7 @@
  *   [run]   check:<name>  — inputs changed, running
  *   [pass]  check:<name>  completed in X.Xs        (or Xs for ≥10 s; "⚠ slow" if ≥ threshold; "⚠ regression" if trending up)
  *   [fail]  check:<name>  FAILED (exit N) after Xs (same duration format + slow flag)
- *   [done]  N/M checks ran fresh, M-N cached, slowest: check:<name> (Xs) — all passed in Xs.
+ *   [done]  N/M checks ran fresh, M-N cached — all passed in Xs.
  *
  * SLOW THRESHOLD
  *   Checks taking longer than CHECK_SLOW_THRESHOLD_S seconds (default 10) are
@@ -43,10 +43,26 @@
  * REGRESSION DETECTION
  *   After each run the script compares each check's current duration against
  *   the p75 duration of its last CHECK_TREND_WINDOW runs (default 5).  When
- *   the current duration exceeds that baseline by more than 20 % the check is
- *   flagged with "⚠ regression".  At least CHECK_TREND_WINDOW prior runs must
- *   exist for a check before the flag is emitted (no false positives on sparse
- *   history).
+ *   the current duration exceeds that baseline by more than REGRESSION_THRESHOLD
+ *   the check is flagged with "⚠ regression".  At least CHECK_TREND_WINDOW
+ *   prior runs must exist for a check before the flag is emitted (no false
+ *   positives on sparse history).
+ *
+ * REGRESSION GATE
+ *   Set CHECK_REGRESSION_FAIL=1 to promote regression warnings into a hard
+ *   build failure (exit code 2).  When any check regresses and this flag is
+ *   set, the driver prints a detailed trend summary and exits non-zero so CI
+ *   catches creeping slowness rather than merely warning about it.  The
+ *   regression threshold and window remain configurable via
+ *   CHECK_TREND_WINDOW and the REGRESSION_THRESHOLD constant in check-trend.ts.
+ *
+ * REGRESSION GATE
+ *   Set CHECK_REGRESSION_FAIL=1 to promote regression warnings into a hard
+ *   build failure (exit code 2).  When any check regresses and this flag is
+ *   set, the driver prints a detailed trend summary and exits non-zero so CI
+ *   catches creeping slowness rather than merely warning about it.  The
+ *   regression threshold and window remain configurable via
+ *   CHECK_TREND_WINDOW and the REGRESSION_THRESHOLD constant in check-trend.ts.
  *
  * BYPASS
  *   CHECK_CACHE_DISABLED=1 — treat every check as stale (same as the
@@ -61,7 +77,7 @@ import {
   computeInputsHash,
   WORKSPACE_ROOT,
 } from "./lib/check-cache.js";
-import { classifyTrend } from "./lib/check-trend.js";
+import { classifyTrend, p75, REGRESSION_THRESHOLD } from "./lib/check-trend.js";
 
 // Per-check input-collection functions — imported directly from each check
 // script so drift between this driver and the individual checks is structurally
@@ -109,6 +125,13 @@ const TREND_WINDOW = (() => {
   }
   return 5;
 })();
+
+/**
+ * When true, any detected regression causes a non-zero exit (code 2) so CI
+ * catches creeping slowness as a hard failure rather than an advisory warning.
+ * Enable by setting CHECK_REGRESSION_FAIL=1 in the environment.
+ */
+const REGRESSION_FAIL = process.env.CHECK_REGRESSION_FAIL === "1";
 
 /**
  * Return a human-friendly duration string.
@@ -222,17 +245,25 @@ const SCRIPT_CHECKS: CheckSpec[] = [
 // Trend detection
 // ---------------------------------------------------------------------------
 
+/** Detail about a single regressed check, used in the trend summary. */
+interface RegressionDetail {
+  label: string;
+  currentMs: number;
+  baselineMs: number;
+  pctOver: number; // e.g. 0.35 means 35 % above baseline
+}
+
 /**
  * After the current run's record has been appended to the timing file, read
- * the full history and return the set of check labels whose duration in this
+ * the full history and return the map of check labels whose duration in this
  * run exceeds the p75 of their last TREND_WINDOW prior runs by more than
- * REGRESSION_THRESHOLD.
+ * REGRESSION_THRESHOLD, keyed by label with full detail for the trend summary.
  *
  * A check is only flagged when it has at least TREND_WINDOW prior data points
  * — sparse history never produces false positives.
  */
-function computeRegressions(currentResults: RunResult[]): Set<string> {
-  const regressed = new Set<string>();
+function computeRegressions(currentResults: RunResult[]): Map<string, RegressionDetail> {
+  const regressed = new Map<string, RegressionDetail>();
 
   let allRecords: TimingRecord[] = [];
   try {
@@ -270,7 +301,14 @@ function computeRegressions(currentResults: RunResult[]): Set<string> {
     if (window.length < TREND_WINDOW) continue;
 
     if (classifyTrend(window, result.durationMs) === "up") {
-      regressed.add(result.label);
+      const baselineMs = p75(window);
+      const pctOver = (result.durationMs - baselineMs) / baselineMs;
+      regressed.set(result.label, {
+        label: result.label,
+        currentMs: result.durationMs,
+        baselineMs,
+        pctOver,
+      });
     }
   }
 
@@ -508,13 +546,6 @@ async function main(): Promise<void> {
   // Count all non-killed checks that exceeded the threshold (passes + failures).
   const slowChecks = results.filter((r) => !r.killed && r.durationMs >= SLOW_THRESHOLD_MS);
 
-  // Single slowest non-killed check — named in the [done] line so the
-  // bottleneck is immediately visible without scanning individual [pass] lines.
-  const allRan = results.filter((r) => !r.killed);
-  const slowestCheck = allRan.length > 0
-    ? allRan.reduce((a, b) => (b.durationMs > a.durationMs ? b : a))
-    : null;
-
   const ranCount = toRun.length;
   const skippedCount = cached.length;
   const totalCount = SCRIPT_CHECKS.length + 1; // +1 for typecheck
@@ -547,29 +578,57 @@ async function main(): Promise<void> {
   console.log("");
 
   if (actualFailures.length === 0) {
+    const thresholdPct = Math.round(REGRESSION_THRESHOLD * 100);
     const slowNote = slowChecks.length > 0
       ? `, ${slowChecks.length} slow (≥${formatDuration(SLOW_THRESHOLD_MS)})`
       : "";
     const regressionNote = regressed.size > 0
-      ? `, ${regressed.size} regression${regressed.size > 1 ? "s" : ""} (>20% slower than p75 of last ${TREND_WINDOW} runs)`
-      : "";
-    const slowestNote = slowestCheck !== null
-      ? `, slowest: check:${slowestCheck.label} (${formatDuration(slowestCheck.durationMs)})`
+      ? `, ${regressed.size} regression${regressed.size > 1 ? "s" : ""} (>${thresholdPct}% slower than p75 of last ${TREND_WINDOW} runs)`
       : "";
     console.log(
       `[done]  ${ranCount}/${totalCount} checks ran fresh` +
         (skippedCount > 0 ? `, ${skippedCount} skipped (cached)` : "") +
-        `${slowNote}${regressionNote}${slowestNote} — all passed in ${formatDuration(wallMs)}.`,
+        `${slowNote}${regressionNote} — all passed in ${formatDuration(wallMs)}.`,
     );
+
+    // Regression gate: exit non-zero when CHECK_REGRESSION_FAIL=1 and any
+    // check regressed.  Exit code 2 distinguishes a regression failure from a
+    // normal check failure (exit 1).
+    if (REGRESSION_FAIL && regressed.size > 0) {
+      console.error("");
+      console.error(
+        `[regression-gate]  CHECK_REGRESSION_FAIL=1 — ${regressed.size} regression${regressed.size > 1 ? "s" : ""} detected`,
+      );
+      console.error(
+        `[regression-gate]  Threshold: >${thresholdPct}%  Window: last ${TREND_WINDOW} successful runs`,
+      );
+      console.error("");
+
+      // Print one line per regressed check, sorted worst-first.
+      const sorted = [...regressed.values()].sort((a, b) => b.pctOver - a.pctOver);
+      for (const d of sorted) {
+        const pctStr = `+${Math.round(d.pctOver * 100)}%`;
+        console.error(
+          `[regression-gate]  check:${d.label.padEnd(22)}` +
+            `  current ${formatDuration(d.currentMs).padStart(6)}` +
+            `  p75 baseline ${formatDuration(d.baselineMs).padStart(6)}` +
+            `  ${pctStr}`,
+        );
+      }
+
+      console.error("");
+      console.error(
+        "[regression-gate]  To suppress this gate: unset CHECK_REGRESSION_FAIL or set it to 0.",
+      );
+      process.exit(2);
+    }
+
     process.exit(0);
   } else {
-    const slowestNote = slowestCheck !== null
-      ? `, slowest: check:${slowestCheck.label} (${formatDuration(slowestCheck.durationMs)})`
-      : "";
     console.error(
       `[done]  ${actualFailures.length} check(s) failed` +
         (skippedCount > 0 ? ` (${skippedCount} cached checks were skipped)` : "") +
-        `${slowestNote} — total ${formatDuration(wallMs)}.`,
+        ` — total ${formatDuration(wallMs)}.`,
     );
     process.exit(1);
   }
