@@ -32,13 +32,21 @@
  * OUTPUT FORMAT
  *   [skip]  check:<name>  — inputs unchanged, skipping
  *   [run]   check:<name>  — inputs changed, running
- *   [pass]  check:<name>  completed in X.Xs        (or Xs for ≥10 s; "⚠ slow" if ≥ threshold)
+ *   [pass]  check:<name>  completed in X.Xs        (or Xs for ≥10 s; "⚠ slow" if ≥ threshold; "⚠ regression" if trending up)
  *   [fail]  check:<name>  FAILED (exit N) after Xs (same duration format + slow flag)
  *   [done]  N/M checks ran fresh, M-N cached — all passed in Xs.
  *
  * SLOW THRESHOLD
  *   Checks taking longer than CHECK_SLOW_THRESHOLD_S seconds (default 10) are
  *   flagged with "⚠ slow" on their [pass]/[fail] line and counted in [done].
+ *
+ * REGRESSION DETECTION
+ *   After each run the script compares each check's current duration against
+ *   the p75 duration of its last CHECK_TREND_WINDOW runs (default 5).  When
+ *   the current duration exceeds that baseline by more than 20 % the check is
+ *   flagged with "⚠ regression".  At least CHECK_TREND_WINDOW prior runs must
+ *   exist for a check before the flag is emitted (no false positives on sparse
+ *   history).
  *
  * BYPASS
  *   CHECK_CACHE_DISABLED=1 — treat every check as stale (same as the
@@ -86,6 +94,19 @@ const SLOW_THRESHOLD_MS = (() => {
     if (!isNaN(parsed) && parsed > 0) return parsed * 1000;
   }
   return 10_000; // default: 10 s
+})();
+
+/**
+ * Number of prior runs used as the baseline window for regression detection.
+ * Override with CHECK_TREND_WINDOW=<integer ≥ 2>.
+ */
+const TREND_WINDOW = (() => {
+  const raw = process.env.CHECK_TREND_WINDOW;
+  if (raw !== undefined) {
+    const parsed = parseInt(raw, 10);
+    if (!isNaN(parsed) && parsed >= 2) return parsed;
+  }
+  return 5;
 })();
 
 /**
@@ -195,6 +216,77 @@ const SCRIPT_CHECKS: CheckSpec[] = [
     collectInputs: collectInputFiles_schemaDrift,
   },
 ];
+
+// ---------------------------------------------------------------------------
+// Trend detection
+// ---------------------------------------------------------------------------
+
+/**
+ * Return the 75th-percentile value from a numeric array (nearest-rank).
+ * The array must be non-empty.
+ */
+function p75(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const idx = Math.ceil(sorted.length * 0.75) - 1;
+  return sorted[Math.max(0, idx)];
+}
+
+/**
+ * After the current run's record has been appended to the timing file, read
+ * the full history and return the set of check labels whose duration in this
+ * run exceeds the p75 of their last TREND_WINDOW prior runs by more than 20 %.
+ *
+ * A check is only flagged when it has at least TREND_WINDOW prior data points
+ * — sparse history never produces false positives.
+ */
+function computeRegressions(currentResults: RunResult[]): Set<string> {
+  const regressed = new Set<string>();
+
+  let allRecords: TimingRecord[] = [];
+  try {
+    const lines = fs.readFileSync(TIMING_FILE, "utf8").split("\n").filter(Boolean);
+    for (const line of lines) {
+      try {
+        allRecords.push(JSON.parse(line) as TimingRecord);
+      } catch {
+        // Skip malformed lines.
+      }
+    }
+  } catch {
+    return regressed; // No history file yet — nothing to analyse.
+  }
+
+  // The last record is the one we just appended (current run).
+  // Prior records are everything before it.
+  const priorRecords = allRecords.slice(0, -1);
+
+  for (const result of currentResults) {
+    // Only flag passing, non-killed checks.
+    if (result.exitCode !== 0 || result.killed) continue;
+
+    // Collect durations for this check from prior records, in chronological order.
+    const priorDurations: number[] = [];
+    for (const rec of priorRecords) {
+      const entry = rec.checks.find((c) => c.label === result.label);
+      if (entry && entry.exitCode === 0) priorDurations.push(entry.durationMs);
+    }
+
+    // Take only the most recent TREND_WINDOW prior runs.
+    const window = priorDurations.slice(-TREND_WINDOW);
+
+    // Require a full window before flagging — avoids false positives on new checks.
+    if (window.length < TREND_WINDOW) continue;
+
+    const baseline = p75(window);
+    if (baseline <= 0) continue;
+
+    if (result.durationMs > baseline * 1.2) {
+      regressed.add(result.label);
+    }
+  }
+
+  return regressed;
+}
 
 // ---------------------------------------------------------------------------
 // Timing history
@@ -391,7 +483,7 @@ async function main(): Promise<void> {
 
   console.log("");
 
-  // 5. Summary.
+  // 5. Compute summary metrics.
   const wallMs = Date.now() - wallStart;
   const actualFailures = results.filter((r) => r.exitCode !== 0 && !r.killed);
   const killed = results.filter((r) => r.killed);
@@ -402,10 +494,28 @@ async function main(): Promise<void> {
     .slice()
     .sort((a, b) => (b.durationMs ?? 0) - (a.durationMs ?? 0));
 
+  // Count all non-killed checks that exceeded the threshold (passes + failures).
+  const slowChecks = results.filter((r) => !r.killed && r.durationMs >= SLOW_THRESHOLD_MS);
+
+  const ranCount = toRun.length;
+  const skippedCount = cached.length;
+  const totalCount = SCRIPT_CHECKS.length + 1; // +1 for typecheck
+
+  // 6. Persist timing history, then detect regressions against prior runs.
+  appendTimingRecord({
+    wallMs,
+    results,
+    passed: actualFailures.length === 0,
+  });
+
+  const regressed = computeRegressions(results);
+
+  // 7. Print per-check outcome lines (after regression data is available).
   for (const r of passes) {
     const dur = formatDuration(r.durationMs);
     const slowTag = r.durationMs >= SLOW_THRESHOLD_MS ? "  ⚠ slow" : "";
-    console.log(`[pass]  check:${r.label.padEnd(22)} completed in ${dur}${slowTag}`);
+    const regressionTag = regressed.has(r.label) ? "  ⚠ regression" : "";
+    console.log(`[pass]  check:${r.label.padEnd(22)} completed in ${dur}${slowTag}${regressionTag}`);
   }
   for (const r of actualFailuresSorted) {
     const dur = formatDuration(r.durationMs);
@@ -416,29 +526,19 @@ async function main(): Promise<void> {
     console.error(`[kill]  check:${r.label.padEnd(22)} terminated (another check failed)`);
   }
 
-  // Count all non-killed checks that exceeded the threshold (passes + failures).
-  const slowChecks = results.filter((r) => !r.killed && r.durationMs >= SLOW_THRESHOLD_MS);
-
   console.log("");
-  const ranCount = toRun.length;
-  const skippedCount = cached.length;
-  const totalCount = SCRIPT_CHECKS.length + 1; // +1 for typecheck
-
-  // 6. Persist timing history for trend analysis.
-  appendTimingRecord({
-    wallMs,
-    results,
-    passed: actualFailures.length === 0,
-  });
 
   if (actualFailures.length === 0) {
     const slowNote = slowChecks.length > 0
       ? `, ${slowChecks.length} slow (≥${formatDuration(SLOW_THRESHOLD_MS)})`
       : "";
+    const regressionNote = regressed.size > 0
+      ? `, ${regressed.size} regression${regressed.size > 1 ? "s" : ""} (>20% slower than p75 of last ${TREND_WINDOW} runs)`
+      : "";
     console.log(
       `[done]  ${ranCount}/${totalCount} checks ran fresh` +
         (skippedCount > 0 ? `, ${skippedCount} skipped (cached)` : "") +
-        `${slowNote} — all passed in ${formatDuration(wallMs)}.`,
+        `${slowNote}${regressionNote} — all passed in ${formatDuration(wallMs)}.`,
     );
     process.exit(0);
   } else {
