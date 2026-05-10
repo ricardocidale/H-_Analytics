@@ -2,7 +2,9 @@
   "3": [
     "artifacts/api-server/src/ai/ambient/research-scheduler.ts",
     "artifacts/api-server/src/ai/ambient/scheduler.ts",
-    "artifacts/api-server/src/ai/analyst-table-refresh.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/exit-multiples.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/reference-brands.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/reference-data.ts",
     "artifacts/api-server/src/ai/benchmark-lookups.ts",
     "artifacts/api-server/src/ai/comparables/query-builder.ts",
     "artifacts/api-server/src/ai/comparables/relaxation-engine.ts",
@@ -130,7 +132,8 @@
   "5": [
     "artifacts/api-server/src/ai/ambient/research-scheduler.ts",
     "artifacts/api-server/src/ai/ambient/scheduler.ts",
-    "artifacts/api-server/src/ai/analyst-table-refresh.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/exit-multiples.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/reference-brands.ts",
     "artifacts/api-server/src/ai/analyst-watchdog.ts",
     "artifacts/api-server/src/ai/benchmark-lookups.ts",
     "artifacts/api-server/src/ai/comparables/query-builder.ts",
@@ -245,7 +248,8 @@
     "lib/shared/src/price-history.ts"
   ],
   "6": [
-    "artifacts/api-server/src/ai/analyst-table-refresh.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/exit-multiples.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/reference-brands.ts",
     "artifacts/api-server/src/ai/analyst-watchdog.ts",
     "artifacts/api-server/src/ai/asset-intelligence.ts",
     "artifacts/api-server/src/ai/benchmark-lookups.ts",
@@ -326,7 +330,8 @@
     "lib/shared/src/constants.ts"
   ],
   "8": [
-    "artifacts/api-server/src/ai/analyst-table-refresh.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/exit-multiples.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/reference-brands.ts",
     "artifacts/api-server/src/ai/benchmark-lookups.ts",
     "artifacts/api-server/src/ai/comparables/relaxation-engine.ts",
     "artifacts/api-server/src/ai/confidence-scorer.ts",
@@ -419,7 +424,8 @@
     "artifacts/api-server/src/ai/aiResearch.ts",
     "artifacts/api-server/src/ai/ambient/capital-raise-watchdog.ts",
     "artifacts/api-server/src/ai/ambient/exit-multiples-watchdog.ts",
-    "artifacts/api-server/src/ai/analyst-table-refresh.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/exit-multiples.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/reference-data.ts",
     "artifacts/api-server/src/ai/benchmark-lookups.ts",
     "artifacts/api-server/src/ai/comparables/query-builder.ts",
     "artifacts/api-server/src/ai/comparables/web-enricher.ts",
@@ -559,7 +565,7 @@
     "lib/shared/src/rebecca-settings.ts"
   ],
   "11": [
-    "artifacts/api-server/src/ai/analyst-table-refresh.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/exit-multiples.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-compensation-orchestrator-adapter.ts",
     "artifacts/api-server/src/pdf/table-render.tsx",
     "artifacts/api-server/src/pdf/theme-mappers.tsx",
@@ -599,7 +605,9 @@
     "lib/shared/src/constants-funding.ts"
   ],
   "15": [
-    "artifacts/api-server/src/ai/analyst-table-refresh.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/exit-multiples.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/reference-brands.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/reference-data.ts",
     "artifacts/api-server/src/ai/benchmark-lookups.ts",
     "artifacts/api-server/src/ai/comparables/query-builder.ts",
     "artifacts/api-server/src/ai/comparables/relaxation-engine.ts",
@@ -654,7 +662,7 @@
     "lib/shared/src/errors.ts"
   ],
   "18": [
-    "artifacts/api-server/src/ai/analyst-table-refresh.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/capital-raise.ts",
     "artifacts/api-server/src/ai/icp/config-builder.ts",
     "artifacts/api-server/src/ai/kb-content.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-company-orchestrator-adapter.ts",
@@ -788,7 +796,8 @@
   ],
   "25": [
     "artifacts/api-server/src/ai/ambient/fetchers.ts",
-    "artifacts/api-server/src/ai/analyst-table-refresh.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/capital-raise.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/reference-brands.ts",
     "artifacts/api-server/src/ai/benchmark-lookups.ts",
     "artifacts/api-server/src/ai/comparables/query-builder.ts",
     "artifacts/api-server/src/ai/executive-summary/finance-helpers.ts",
@@ -1878,7 +1887,7 @@
     "artifacts/api-server/src/syncHelpers.ts"
   ],
   "0.25": [
-    "artifacts/api-server/src/ai/analyst-table-refresh.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/capital-raise.ts",
     "artifacts/api-server/src/ai/analyst-watchdog.ts",
     "artifacts/api-server/src/ai/comparables/relaxation-engine.ts",
     "artifacts/api-server/src/ai/guidance/extractor.ts",
@@ -2006,7 +2015,7 @@
     "lib/calc/src/research/validate-research.ts"
   ],
   "0.10": [
-    "artifacts/api-server/src/ai/analyst-table-refresh.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/capital-raise.ts",
     "artifacts/api-server/src/ai/analyst-watchdog.ts",
     "artifacts/api-server/src/ai/comparables/relaxation-engine.ts",
     "artifacts/api-server/src/ai/confidence-scorer.ts",
@@ -2035,7 +2044,7 @@
     "lib/shared/src/field-registry.ts"
   ],
   "0.20": [
-    "artifacts/api-server/src/ai/analyst-table-refresh.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/capital-raise.ts",
     "artifacts/api-server/src/ai/comparables/relaxation-engine.ts",
     "artifacts/api-server/src/ai/confidence-scorer.ts",
     "artifacts/api-server/src/ai/guidance/extractor.ts",
@@ -2055,7 +2064,10 @@
     "lib/shared/src/field-registry.ts"
   ],
   "0.2": [
-    "artifacts/api-server/src/ai/analyst-table-refresh.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/capital-raise.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/exit-multiples.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/reference-brands.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/reference-data.ts",
     "artifacts/api-server/src/ai/comparables/query-builder.ts",
     "artifacts/api-server/src/ai/icp/config-builder.ts",
     "artifacts/api-server/src/ai/research-orchestrator.ts",
@@ -2259,7 +2271,7 @@
     "lib/shared/src/countryDefaults.ts"
   ],
   "0.30": [
-    "artifacts/api-server/src/ai/analyst-table-refresh.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/capital-raise.ts",
     "artifacts/api-server/src/ai/analyst-watchdog.ts",
     "artifacts/api-server/src/ai/comparables/relaxation-engine.ts",
     "artifacts/api-server/src/ai/confidence-scorer.ts",
@@ -2415,7 +2427,7 @@
     "lib/shared/src/constants-operating-structures-data.ts"
   ],
   "0.18": [
-    "artifacts/api-server/src/ai/analyst-table-refresh.ts",
+    "artifacts/api-server/src/ai/analyst-refresh/capital-raise.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-company-orchestrator-adapter.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-company-quant-panel-prompt.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-funding-prompt.ts",
@@ -2548,6 +2560,25 @@
     "artifacts/api-server/src/seeds/reference-ranges/capital.ts",
     "artifacts/api-server/src/seeds/reference-ranges/operating.ts"
   ],
+  "3.5": [
+    "artifacts/api-server/src/ai/analyst-refresh/exit-multiples.ts",
+    "artifacts/api-server/src/ai/data-routing/dispatchers/macro-services.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-compensation-quant-panel-prompt.ts",
+    "artifacts/api-server/src/data/researchSeeds.ts",
+    "artifacts/api-server/src/routes/format-generators/pptx-generator.ts",
+    "artifacts/api-server/src/seeds/reference-ranges/bibliography-2026.ts",
+    "artifacts/api-server/src/seeds/reference-ranges/operating.ts"
+  ],
+  "0.82": [
+    "artifacts/api-server/src/ai/analyst-refresh/reference-brands.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-company-orchestrator-adapter.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-compensation-orchestrator-adapter.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-overhead-orchestrator-adapter.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-orchestrator-adapter.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
+    "artifacts/api-server/src/seeds/property-data.ts",
+    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts"
+  ],
   "0.9": [
     "artifacts/api-server/src/ai/analyst-scoped-runner.ts",
     "artifacts/api-server/src/ai/asset-intelligence.ts",
@@ -2560,25 +2591,6 @@
     "artifacts/api-server/src/routes/research/generate-persist-guidance.ts",
     "artifacts/api-server/src/scripts/backfill-vector-store.ts",
     "artifacts/api-server/src/storage/intelligence/constants/sources.ts"
-  ],
-  "3.5": [
-    "artifacts/api-server/src/ai/analyst-table-refresh.ts",
-    "artifacts/api-server/src/ai/data-routing/dispatchers/macro-services.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-compensation-quant-panel-prompt.ts",
-    "artifacts/api-server/src/data/researchSeeds.ts",
-    "artifacts/api-server/src/routes/format-generators/pptx-generator.ts",
-    "artifacts/api-server/src/seeds/reference-ranges/bibliography-2026.ts",
-    "artifacts/api-server/src/seeds/reference-ranges/operating.ts"
-  ],
-  "0.82": [
-    "artifacts/api-server/src/ai/analyst-table-refresh.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-company-orchestrator-adapter.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-compensation-orchestrator-adapter.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-overhead-orchestrator-adapter.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-orchestrator-adapter.ts",
-    "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts",
-    "artifacts/api-server/src/seeds/property-data.ts",
-    "artifacts/api-server/src/storage/intelligence/constants/watchdog.ts"
   ],
   "0.8": [
     "artifacts/api-server/src/ai/asset-intelligence.ts",
