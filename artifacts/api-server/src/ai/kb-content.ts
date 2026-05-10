@@ -316,7 +316,7 @@ Research can be run from the property detail page or the property edit page. Mul
 
   chunks.push({
     title: "Founder & Company Background",
-    content: `H+ Analytics is built by Norfolk AI. The founder is Ricardo Cidale — a serial entrepreneur, published author, and tech executive based in Austin, Texas. He holds engineering degrees from Texas A&M (civil + structural), an MBA from Syracuse University's Whitman School of Management, and a master's in corporate governance from IBMEC in Brazil. He's a member of Chi Epsilon and Tau Beta Pi honor societies.
+    content: `H+ Analysis is built by Norfolk AI. The founder is Ricardo Cidale — a serial entrepreneur, published author, and tech executive based in Austin, Texas. He holds engineering degrees from Texas A&M (civil + structural), an MBA from Syracuse University's Whitman School of Management, and a master's in corporate governance from IBMEC in Brazil. He's a member of Chi Epsilon and Tau Beta Pi honor societies.
 
 Ricardo has built, merged, and sold multiple tech companies (LabOne Systems, OTT Networks, UUX Systems) and held senior executive roles at Hewlett Packard, Dell, and RealNetworks across Barcelona, São Paulo, Austin, Madrid, Miami, Mexico City, Milan, and Seattle — managing P&Ls over $200M and teams of hundreds. Before Norfolk AI, he was Chief Revenue Officer at First Orion Corporation. Two-time Executive of the Year in Digital Media Software. Published author with McGraw-Hill ("Digital Virus", "The Wizard of DOS"). Venture Partner at Synapse Venture Capital since 2019. Mentor at Capital Factory (Austin) and MassChallenge.
 
@@ -406,7 +406,7 @@ export function extractVerificationManualContent(): KBChunk[] {
 
   chunks.push({
     title: "Verification Manual: Application Overview",
-    content: `H+ Analytics by Norfolk AI is a GAAP-compliant financial analytics portal for boutique hotel investment analysis. It models two entities: a Management Company that earns management fees, and individual Property SPVs (Special Purpose Vehicles) that hold and operate hotel assets.
+    content: `H+ Analysis by Norfolk AI is a GAAP-compliant financial analytics portal for boutique hotel investment analysis. It models two entities: a Management Company that earns management fees, and individual Property SPVs (Special Purpose Vehicles) that hold and operate hotel assets.
 
 The platform provides:
 - Multi-year financial projections (income statement, cash flow, balance sheet)
@@ -687,11 +687,11 @@ How to share a scenario:
 1. Go to the Scenarios page
 2. Open a saved scenario
 3. Click the "Share" button
-4. Enter the email address of the H+ Analytics user you want to share with
+4. Enter the email address of the H+ Analysis user you want to share with
 5. Click Share — the recipient gains read access to that specific scenario
 
 Important sharing rules:
-- Sharing only works with users who already have H+ Analytics accounts (the portal is a closed system — no public access)
+- Sharing only works with users who already have H+ Analysis accounts (the portal is a closed system — no public access)
 - If the email does not belong to an existing user, the share completes silently — no error is shown to prevent email enumeration
 - Admins can control per-user scenario access from Admin → Users — scenario access can be toggled on or off per user
 - Shared scenarios are visible on the recipient's Scenarios page

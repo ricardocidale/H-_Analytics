@@ -105,7 +105,7 @@ export async function runDarioInspector(
     model: LORENZO_VISION_MODEL,
     max_tokens: SWARM_INSPECTOR_MAX_TOKENS,
     system:
-      "You are Dario-02, the Slide 4 Inspector for the H+ Analytics investor deck factory. " +
+      "You are Dario-02, the Slide 4 Inspector for the H+ Analysis investor deck factory. " +
       "Evaluate whether the assembled editorial copy is suitable for a professional investor " +
       "presentation. Slide 4 is the Portfolio Overview — content is mostly deterministic. " +
       "Focus on editorial completeness and tone only — do NOT judge pixel " +

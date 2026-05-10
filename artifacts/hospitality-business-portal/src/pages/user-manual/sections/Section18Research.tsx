@@ -22,7 +22,7 @@ export default function Section18Research({ expanded, onToggle, sectionRef }: Se
         <div>
           <h4 className="font-semibold text-foreground mb-2">How Research Works</h4>
           <p>
-            H+ Analytics uses a tiered AI research system to gather market intelligence for every property
+            H+ Analysis uses a tiered AI research system to gather market intelligence for every property
             and the management company. Research is generated from multiple data sources and synthesized
             into actionable assumption guidance.
           </p>

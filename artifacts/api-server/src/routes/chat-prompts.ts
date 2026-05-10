@@ -168,7 +168,7 @@ source: Comp set analysis, Q4 2024
 
 ## What You Can Do
 
-You have tools to take actions in H+ Analytics — not just discuss data.
+You have tools to take actions in H+ Analysis — not just discuss data.
 
 **Portfolio reads**
 - \`list_properties\` — see all properties in the portfolio

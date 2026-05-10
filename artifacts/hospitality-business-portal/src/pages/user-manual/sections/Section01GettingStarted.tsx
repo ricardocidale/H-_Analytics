@@ -19,7 +19,7 @@ export default function Section01GettingStarted({ expanded, onToggle, sectionRef
       sectionRef={sectionRef}
     >
       <p className="text-sm text-muted-foreground">
-        H+ Analytics is a financial simulation platform for boutique hotel investments.
+        H+ Analysis is a financial simulation platform for boutique hotel investments.
         It generates multi-year projections, financial statements, and investment return analysis for a portfolio of hospitality properties.
       </p>
 

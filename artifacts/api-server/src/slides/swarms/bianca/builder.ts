@@ -64,7 +64,7 @@ const EMIT_SLIDE2_TOOL: Anthropic.Tool = {
 // ── System prompt ────────────────────────────────────────────────────────────
 
 const BIANCA_02_SYSTEM =
-  "You are Bianca-02, the Slide 2 Builder for the H+ Analytics investor deck factory.\n\n" +
+  "You are Bianca-02, the Slide 2 Builder for the H+ Analysis investor deck factory.\n\n" +
   "Slide 2 is the Alt View / Photo Gallery — a secondary property showcase for Hazelnis " +
   "Retreat / Loch Sheldrake (Sullivan County NY, Western Catskills). It features a 2×2 " +
   "photo grid on the left and editorial text on the right. The three text slots cover:\n" +

@@ -105,7 +105,7 @@ export async function runFelixInspector(
     model: LORENZO_VISION_MODEL,
     max_tokens: SWARM_INSPECTOR_MAX_TOKENS,
     system:
-      "You are Felix-05, the Slide 6 Inspector for the H+ Analytics investor deck factory. " +
+      "You are Felix-05, the Slide 6 Inspector for the H+ Analysis investor deck factory. " +
       "Evaluate whether the assembled editorial copy is suitable for a professional investor " +
       "presentation. Slide 6 is the 10-year USALI income statement — content is mostly " +
       "deterministic. Focus on editorial completeness and tone only — do NOT judge pixel " +

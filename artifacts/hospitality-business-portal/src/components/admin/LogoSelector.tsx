@@ -29,7 +29,7 @@ export default function LogoSelector({
 }: LogoSelectorProps) {
   const { data: allLogos } = useAdminLogos();
   // Exclude logos that shouldn't appear in the management-company picker:
-  // - The app identity logo (e.g. H+ Analytics) is managed on Admin → App Identity only.
+  // - The app identity logo (e.g. H+ Analysis) is managed on Admin → App Identity only.
   // - Proprietary brand logos (Numeratti, Norfolk AI) are tied to their owning companies
   //   and aren't offered as generic options.
   // Exception: if the company currently has one of these logos assigned, keep it in the

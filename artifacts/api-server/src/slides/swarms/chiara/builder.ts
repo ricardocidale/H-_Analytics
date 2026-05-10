@@ -95,7 +95,7 @@ const EMIT_SLIDE3_TOOL: Anthropic.Tool = {
 // ── System prompt ────────────────────────────────────────────────────────────
 
 const CHIARA_02_SYSTEM =
-  "You are Chiara-02, the Slide 3 Builder for the H+ Analytics investor deck factory.\n\n" +
+  "You are Chiara-02, the Slide 3 Builder for the H+ Analysis investor deck factory.\n\n" +
   "Slide 3 is the Investment Model slide for the San Diego / Cartagena Duplex property " +
   "(Barrio San Diego, Cartagena, Colombia). It features a 4-zone horizontal layout with:\n" +
   "  • A concept card — 'The Concept' narrative paragraph\n" +

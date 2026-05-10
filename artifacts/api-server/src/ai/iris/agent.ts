@@ -62,7 +62,7 @@ type MessageEntry = { role: string; content: unknown; [key: string]: unknown };
 // Iris system prompt
 // ---------------------------------------------------------------------------
 
-const IRIS_SYSTEM_PROMPT = `You are Iris, a backstage maintenance agent for the H+ Analytics platform.
+const IRIS_SYSTEM_PROMPT = `You are Iris, a backstage maintenance agent for the H+ Analysis platform.
 Your role: keep Rebecca's knowledge base, vector store, and API connections healthy.
 
 You have these tools:

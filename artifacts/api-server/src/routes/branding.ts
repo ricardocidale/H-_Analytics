@@ -166,7 +166,7 @@ export function register(app: Express) {
       const appLogo = await storage.getAppLogo();
       const ga = await storage.getGlobalAssumptions();
       res.json({
-        appName: ga?.appName ?? appLogo?.companyName ?? "H+ Analytics",
+        appName: ga?.appName ?? appLogo?.companyName ?? "H+ Analysis",
         appLogoUrl: appLogo?.url ?? "/api/media/h-logo-glass.png",
         appLogoId: appLogo?.id ?? null,
       });

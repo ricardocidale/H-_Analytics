@@ -12,7 +12,7 @@ import { HTTP_400_BAD_REQUEST, HTTP_409_CONFLICT } from "../../constants";
 // In-process concurrency guard for Iris runs.
 // Eliminates the TOCTOU window that exists between the async DB check and the
 // async insertIrisRun write on single-instance deployments. A DB advisory lock
-// would be needed for multi-instance deployments; H+ Analytics runs as a
+// would be needed for multi-instance deployments; H+ Analysis runs as a
 // single Docker container so this boolean is sufficient for the common case.
 let irisRunInProgress = false;
 

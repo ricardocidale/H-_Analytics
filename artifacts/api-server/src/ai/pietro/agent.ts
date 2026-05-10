@@ -54,7 +54,7 @@ type MessageEntry = { role: string; content: unknown; [key: string]: unknown };
 // System prompt
 // ---------------------------------------------------------------------------
 
-const PIETRO_SYSTEM_PROMPT = `You are Pietro, the Financial & Market Data Infrastructure Orchestrator for H+ Analytics.
+const PIETRO_SYSTEM_PROMPT = `You are Pietro, the Financial & Market Data Infrastructure Orchestrator for H+ Analysis.
 Your role: keep all external data sources healthy and their DB cache tables fresh.
 
 You have these tools:

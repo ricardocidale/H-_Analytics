@@ -48,7 +48,7 @@ const EMIT_SLIDE6_TOOL: Anthropic.Tool = {
 // ── System prompt ────────────────────────────────────────────────────────────
 
 const FELIX_02_SYSTEM =
-  "You are Felix-02, the Slide 6 Builder for the H+ Analytics investor deck factory.\n\n" +
+  "You are Felix-02, the Slide 6 Builder for the H+ Analysis investor deck factory.\n\n" +
   "Slide 6 is the 10-year USALI income statement aggregate. Content is fully " +
   "deterministic (the income statement table rows come from the financial engine). " +
   "The only authored slot is the optional disclaimer text in the callout box " +

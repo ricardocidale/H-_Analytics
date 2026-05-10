@@ -75,7 +75,7 @@ export default function UserManual({ embedded }: UserManualProps) {
         {!embedded && (
           <PageHeader
             title="User Manual"
-            subtitle="H+ Analytics — Portal Guide"
+            subtitle="H+ Analysis — Portal Guide"
             variant="dark"
           />
         )}
@@ -87,7 +87,7 @@ export default function UserManual({ embedded }: UserManualProps) {
                 <IconHelp className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold text-lg mb-2">Welcome to H+ Analytics</h3>
+                <h3 className="font-semibold text-lg mb-2">Welcome to H+ Analysis</h3>
                 <p className="text-sm text-muted-foreground">
                   This manual covers everything you need to know about using the portal — from navigating the interface
                   and managing properties to running financial analyses and exporting reports. Use the table of contents

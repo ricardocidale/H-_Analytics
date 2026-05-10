@@ -20,7 +20,7 @@ class ResendIntegration extends BaseIntegrationService {
   }
 
   private getFromAddress(): string {
-    return "Rebecca at H+ Analytics <noreply@h-analysis.com>";
+    return "Rebecca at H+ Analysis <noreply@h-analysis.com>";
   }
 
   async healthCheck(): Promise<IntegrationHealth> {
@@ -132,7 +132,7 @@ class ResendIntegration extends BaseIntegrationService {
 
     await this.sendEmailInternal({
       to: params.to,
-      subject: `Financial Report: ${params.propertyName} — H+ Analytics`,
+      subject: `Financial Report: ${params.propertyName} — H+ Analysis`,
       html,
       attachments,
     });
@@ -165,7 +165,7 @@ class ResendIntegration extends BaseIntegrationService {
 
     await this.sendEmailInternal({
       to: params.to,
-      subject: "Scenario Comparison — H+ Analytics",
+      subject: "Scenario Comparison — H+ Analysis",
       html,
     });
   }
@@ -198,9 +198,9 @@ class ResendIntegration extends BaseIntegrationService {
   }): Promise<void> {
     const loginLink = params.loginUrl || "#";
     const html = brandedTemplate(
-      "Welcome to H+ Analytics",
+      "Welcome to H+ Analysis",
       `<p>Hi <strong>${esc(params.userName)}</strong>,</p>
-      <p>I'm Rebecca, your analytics assistant at H+ Analytics by Norfolk AI. Your account is all set up and ready to go.</p>
+      <p>I'm Rebecca, your analytics assistant at H+ Analysis by Norfolk AI. Your account is all set up and ready to go.</p>
       <p>Inside the portal you'll find tools for financial modeling, scenario analysis, and portfolio reporting — all designed to help you make better investment decisions.</p>
       <p>I'm here whenever you need help navigating your data or generating insights. Just open the chat in the portal and ask me anything.</p>
       <p style="margin-top:28px;text-align:center;"><a href="${loginLink}" class="btn">Sign In to Your Account</a></p>
@@ -210,7 +210,7 @@ class ResendIntegration extends BaseIntegrationService {
 
     await this.sendEmailInternal({
       to: params.to,
-      subject: "Welcome to H+ Analytics — Your account is ready",
+      subject: "Welcome to H+ Analysis — Your account is ready",
       html,
     });
   }
@@ -228,8 +228,8 @@ class ResendIntegration extends BaseIntegrationService {
       : "";
 
     const html = brandedTemplate(
-      "You're Invited to H+ Analytics",
-      `<p><strong>${esc(params.inviterName)}</strong> has invited you to join H+ Analytics by Norfolk AI — a premium financial analytics platform for boutique hospitality portfolio management.</p>
+      "You're Invited to H+ Analysis",
+      `<p><strong>${esc(params.inviterName)}</strong> has invited you to join H+ Analysis by Norfolk AI — a premium financial analytics platform for boutique hospitality portfolio management.</p>
       ${messageSection}
       <p>Inside the portal you'll have access to:</p>
       <ul style="margin:16px 0;padding-left:20px;color:#374151;">
@@ -249,7 +249,7 @@ class ResendIntegration extends BaseIntegrationService {
 
     await this.sendEmailInternal({
       to: params.to,
-      subject: `${params.inviterName} invited you to H+ Analytics`,
+      subject: `${params.inviterName} invited you to H+ Analysis`,
       html,
     });
   }
@@ -277,7 +277,7 @@ class ResendIntegration extends BaseIntegrationService {
     const html = brandedTemplate(
       heading,
       `<p>Hi <strong>${esc(params.recipientName)}</strong>,</p>
-      <p>I'm writing to let you know that <strong>${esc(params.sharerName)}</strong> has shared ${params.mode === "single" ? "a scenario" : `${count} scenario${count > 1 ? "s" : ""}`} with you on H+ Analytics:</p>
+      <p>I'm writing to let you know that <strong>${esc(params.sharerName)}</strong> has shared ${params.mode === "single" ? "a scenario" : `${count} scenario${count > 1 ? "s" : ""}`} with you on H+ Analysis:</p>
       <div class="scenario-list">
         <div class="scenario-list-header">
           <span class="scenario-icon">&#9670;</span>
@@ -293,7 +293,7 @@ class ResendIntegration extends BaseIntegrationService {
 
     await this.sendEmailInternal({
       to: params.to,
-      subject: `${params.sharerName} shared ${params.mode === "single" ? `"${params.scenarioNames[0]}"` : `${count} scenarios`} with you — H+ Analytics`,
+      subject: `${params.sharerName} shared ${params.mode === "single" ? `"${params.scenarioNames[0]}"` : `${count} scenarios`} with you — H+ Analysis`,
       html,
     });
   }
@@ -333,7 +333,7 @@ class ResendIntegration extends BaseIntegrationService {
 
     await this.sendEmailInternal({
       to: params.to,
-      subject: `Sharing activity: ${params.sharerName} → ${params.recipientName} — H+ Analytics`,
+      subject: `Sharing activity: ${params.sharerName} → ${params.recipientName} — H+ Analysis`,
       html,
     });
   }
@@ -348,7 +348,7 @@ class ResendIntegration extends BaseIntegrationService {
     const html = brandedTemplate(
       "Password Reset Request",
       `<p>Hi <strong>${esc(params.userName)}</strong>,</p>
-      <p>I received a request to reset your H+ Analytics password. Click the button below to create a new one.</p>
+      <p>I received a request to reset your H+ Analysis password. Click the button below to create a new one.</p>
       <p style="margin-top:28px;text-align:center;"><a href="${params.resetUrl}" class="btn">Reset Your Password</a></p>
       <p class="hint" style="margin-top:20px;">This link expires in ${expiry} minutes. If you didn't request a password reset, you can safely ignore this email — your account remains secure.</p>`,
       "rebecca"
@@ -356,7 +356,7 @@ class ResendIntegration extends BaseIntegrationService {
 
     await this.sendEmailInternal({
       to: params.to,
-      subject: "Reset Your Password — H+ Analytics",
+      subject: "Reset Your Password — H+ Analysis",
       html,
     });
   }
@@ -382,14 +382,14 @@ function brandedTemplate(title: string, body: string, voice: "rebecca" | "system
         <div class="rebecca-avatar">R</div>
         <div class="rebecca-meta">
           <span class="rebecca-name">Rebecca</span>
-          <span class="rebecca-role">Analytics Assistant &middot; H+ Analytics</span>
+          <span class="rebecca-role">Analytics Assistant &middot; H+ Analysis</span>
         </div>
       </div>`
     : "";
 
   const footerText = voice === "rebecca"
-    ? `Sent by Rebecca on behalf of <strong>H+ Analytics</strong> by Norfolk AI`
-    : `Sent by <strong>H+ Analytics</strong> by Norfolk AI`;
+    ? `Sent by Rebecca on behalf of <strong>H+ Analysis</strong> by Norfolk AI`
+    : `Sent by <strong>H+ Analysis</strong> by Norfolk AI`;
 
   return `<!DOCTYPE html>
 <html lang="en">

@@ -35,7 +35,7 @@ export async function renderPremiumPdf(input: ReportDefinition | CompileInput): 
       const pageGroups = groupSectionsIntoPages(sections, isLandscape, hints);
 
       return (
-        <Document title={cover.reportTitle} author={cover.companyName} subject="Financial Report" creator="H+ Analytics">
+        <Document title={cover.reportTitle} author={cover.companyName} subject="Financial Report" creator="H+ Analysis">
           {pageGroups.map((group, pageIdx) => (
             <Page key={`page-${pageIdx}`} size={pageSize} style={pageStyle}>
               <PageHeader title={cover.reportTitle} companyName={cover.companyName} entityName={cover.entityName} theme={theme} />
@@ -48,7 +48,7 @@ export async function renderPremiumPdf(input: ReportDefinition | CompileInput): 
     }
 
     return (
-      <Document title={cover.reportTitle} author={cover.companyName} subject="Financial Report" creator="H+ Analytics">
+      <Document title={cover.reportTitle} author={cover.companyName} subject="Financial Report" creator="H+ Analysis">
         {sections.map((section, i) => {
           switch (section.kind) {
             case "kpi":

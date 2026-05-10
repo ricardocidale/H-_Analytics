@@ -106,7 +106,7 @@ export async function runSofiaInspector(
     model: LORENZO_VISION_MODEL,
     max_tokens: SWARM_INSPECTOR_MAX_TOKENS,
     system:
-      "You are Sofia-03, the Slide 1 Inspector for the H+ Analytics investor deck factory. " +
+      "You are Sofia-03, the Slide 1 Inspector for the H+ Analysis investor deck factory. " +
       "Evaluate whether the assembled editorial copy is suitable for a professional investor " +
       "presentation. Focus on editorial completeness and tone only — do NOT judge pixel " +
       "layout or visual design (that is handled separately). Approve if the copy is " +

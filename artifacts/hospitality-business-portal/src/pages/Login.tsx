@@ -88,16 +88,18 @@ export default function Login() {
       await apiRequest("POST", "/api/auth/dev-login", undefined, {
         fallbackMessage: "Admin login failed",
       });
-      await refetch();
-      setLocation("/");
+      // Use window.location (hard navigation) so the app reloads with the fresh
+      // session cookie already in place. Using wouter setLocation() here would
+      // navigate before React has re-rendered the auth state, causing the auth
+      // guard to see user=null and immediately bounce back to /login.
+      window.location.href = "/";
     } catch (error: unknown) {
+      setIsLoading(false);
       toast({
         title: "Login Failed",
         description: error instanceof Error ? error.message : "Invalid credentials",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 

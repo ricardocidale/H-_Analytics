@@ -1,7 +1,7 @@
 /**
  * seeds/brand-assets.ts
  *
- * Idempotent seed that upserts H+ Analytics logo entries into the `logos`
+ * Idempotent seed that upserts H+ Analysis logo entries into the `logos`
  * table pointing at the brand-assets R2 proxy route (/api/brand-assets/…).
  *
  * This seed only runs once (guarded by _applied_migrations). It adds the
@@ -33,12 +33,12 @@ function proxyUrl(r2Key: string): string {
 const BRAND_LOGOS: { name: string; companyName: string; url: string }[] = [
   {
     name: "H+ Enhanced Logo",
-    companyName: "H+ Analytics",
+    companyName: "H+ Analysis",
     url: proxyUrl(R2_BRAND_KEY_H_PLUS_ENHANCED),
   },
   {
     name: "H+ Glass Logo",
-    companyName: "H+ Analytics",
+    companyName: "H+ Analysis",
     url: proxyUrl(R2_BRAND_KEY_H_PLUS_GLASS),
   },
 ];

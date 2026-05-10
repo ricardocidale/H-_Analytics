@@ -72,7 +72,7 @@ const sectionMeta: Record<IntelligenceSection, { title: string; subtitle: string
   "analyst-orchestrator":  { title: "Gustavo · The Analyst",   subtitle: "Orchestrator persona that routes work across the Specialist team." },
   "gustavo":               { title: "Gustavo · Analyst Orchestrator", subtitle: "Routes research tasks to the Specialist team and coordinates all intelligence gathering" },
   "iris":                  { title: "Iris · Resource Maintainer",    subtitle: "Keeps resource registries and reference data current across the platform" },
-  "specialists":           { title: "Specialists",              subtitle: "Research Specialists powering H+ Analytics — verify deployment and run health checks" },
+  "specialists":           { title: "Specialists",              subtitle: "Research Specialists powering H+ Analysis — verify deployment and run health checks" },
   "llm-workflows":         { title: "LLMs",                     subtitle: "Language model configuration for each research workflow — vendor, model, and Analyst recommendations" },
   "assumption-guidance":   { title: "Assumption Guidance",      subtitle: "Analyst-generated calibration insights — suggested ranges and sources for financial assumptions" },
   "knowledge-registry":        { title: "Knowledge Registry",        subtitle: "Registry of knowledge sources and documents powering Intelligence" },
@@ -285,7 +285,7 @@ export default function Intelligence() {
   // Funding Intelligence | …") instead of just the role label.
   useEffect(() => {
     const previous = document.title;
-    document.title = `${meta.title} | H+ Analytics`;
+    document.title = `${meta.title} | H+ Analysis`;
     return () => {
       document.title = previous;
     };

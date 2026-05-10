@@ -774,8 +774,8 @@ export function Slide6({ p }: { p: SlidePayload }) {
   const yearCount = projYears ?? DEFAULT_PROJECTION_YEARS;
 
   const SLIDE6_DEFAULT_DISCLAIMER = isLbMode
-    ? `${yearCount}-year portfolio pro forma aggregated across all portfolio properties. H+ Analytics projection engine. Projections are estimates; actual results may vary.`
-    : `${yearCount}-year pro forma based on H+ Analytics projection engine. Projections are estimates; actual results may vary.`;
+    ? `${yearCount}-year portfolio pro forma aggregated across all portfolio properties. H+ Analysis projection engine. Projections are estimates; actual results may vary.`
+    : `${yearCount}-year pro forma based on H+ Analysis projection engine. Projections are estimates; actual results may vary.`;
 
   const years = financials.yearlyIS.slice(0, yearCount);
   const stable = getStableYear(financials.yearlyIS);

@@ -122,7 +122,7 @@ export default function GustavoInfoPage() {
           <ul className="space-y-2">
             <li className="flex gap-2">
               <span className="text-accent-pop font-semibold shrink-0">→</span>
-              <span>Receives research requests from the H+ Analytics portal and user actions</span>
+              <span>Receives research requests from the H+ Analysis portal and user actions</span>
             </li>
             <li className="flex gap-2">
               <span className="text-accent-pop font-semibold shrink-0">→</span>

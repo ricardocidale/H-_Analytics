@@ -104,7 +104,7 @@ export default function AgentPersonasTab() {
       <div>
         <h3 className="text-lg font-semibold font-display" data-testid="text-personas-title">AI Agents</h3>
         <p className="text-sm text-muted-foreground mt-1">
-          Two AI agents power the H+ Analytics experience. These personas are defined in code and are not user-configurable.
+          Two AI agents power the H+ Analysis experience. These personas are defined in code and are not user-configurable.
         </p>
       </div>
       <div className="grid gap-6 md:grid-cols-2">

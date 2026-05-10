@@ -25,8 +25,8 @@ export type UserRoleValue = (typeof UserRole)[keyof typeof UserRole];
 
 export const USER_ROLE_VALUES = Object.values(UserRole);
 
-export const APP_BRAND_NAME = "H+ Analytics";
-export const APP_FULL_BRAND = "H+ Analytics by Norfolk AI";
+export const APP_BRAND_NAME = "H+ Analysis";
+export const APP_FULL_BRAND = "H+ Analysis by Norfolk AI";
 export const BRAND_ACCENT_PREFIX = "H+";
 export const BRAND_ACCENT_HEX = "#00A9B8";
 

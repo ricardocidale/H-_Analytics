@@ -117,7 +117,7 @@ async function generateViaTemplatePipeline(
           );
           const tc = resolveThemeColors(data.themeColors);
           const html = buildPdfHtml({ sections: financialSections }, {
-            companyName: data.companyName ?? "H+ Analytics",
+            companyName: data.companyName ?? "H+ Analysis",
             entityName: data.entityName ?? "",
             reportTitle: data.statementType ?? "Financial Report",
             orientation: data.orientation ?? "landscape",

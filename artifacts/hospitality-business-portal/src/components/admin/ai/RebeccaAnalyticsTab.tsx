@@ -27,7 +27,7 @@ interface AnalyticsData {
   totalFeedback: number;
 }
 
-// H+ Analytics brand colors — sourced from theme tokens so brand refreshes
+// H+ Analysis brand colors — sourced from theme tokens so brand refreshes
 // (and dark/alt modes) propagate without touching this file.
 const HP_TEAL = "hsl(var(--brand-teal))";
 const HP_NAVY = "hsl(var(--brand-navy))";

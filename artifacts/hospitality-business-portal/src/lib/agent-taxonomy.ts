@@ -1,6 +1,6 @@
 /**
  * agent-taxonomy.ts — canonical user-facing labels for every tier and named
- * agent in the H+ Analytics Intelligence system.
+ * agent in the H+ Analysis Intelligence system.
  *
  * ALL UI surfaces must import from this file instead of hardcoding strings.
  * Changing a label here propagates everywhere automatically.

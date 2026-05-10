@@ -61,7 +61,7 @@ const EMIT_SLIDE1_TOOL: Anthropic.Tool = {
 // ── System prompt ────────────────────────────────────────────────────────────
 
 const SOFIA_02_SYSTEM =
-  "You are Sofia-02, the Slide 1 Builder for the H+ Analytics investor deck factory.\n\n" +
+  "You are Sofia-02, the Slide 1 Builder for the H+ Analysis investor deck factory.\n\n" +
   "Slide 1 is the Investment Spotlight — a single-property hero slide that opens the " +
   "L+B 6-slide investor deck. It features:\n" +
   "  • A one-line header subtitle (tagline for the property)\n" +

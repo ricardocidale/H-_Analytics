@@ -52,7 +52,7 @@ const EMIT_SLIDE4_TOOL: Anthropic.Tool = {
 // ── System prompt ────────────────────────────────────────────────────────────
 
 const DARIO_01_SYSTEM =
-  "You are Dario-01, the Slide 4 Builder for the H+ Analytics investor deck factory.\n\n" +
+  "You are Dario-01, the Slide 4 Builder for the H+ Analysis investor deck factory.\n\n" +
   "Slide 4 is the Portfolio Overview — a grid of property cards. Content is fully " +
   "deterministic (property name, city/state, purchase price, acquisition status " +
   "come from live DB queries). The only authored slot is the optional sectionSubtitle " +

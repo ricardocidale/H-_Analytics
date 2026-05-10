@@ -11,7 +11,7 @@ const HPLUS_DEFAULT_MIGRATION_TAG = "branding_hplus_default_v1";
 /**
  * Run the one-time corrective fix that flips legacy environments where
  * L+B was the default/app logo (or assigned to companies/global assumptions)
- * over to H+ Analytics. Gated by `_applied_migrations` so admin choices
+ * over to H+ Analysis. Gated by `_applied_migrations` so admin choices
  * made afterward are never overwritten on subsequent restarts.
  */
 async function applyHplusDefaultCorrection(hplusId: number, lbId: number): Promise<void> {
@@ -35,7 +35,7 @@ async function applyHplusDefaultCorrection(hplusId: number, lbId: number): Promi
   if (appLogoNeedsFix) {
     await db.update(logos).set({ isAppLogo: false }).where(eq(logos.isAppLogo, true));
     await db.update(logos).set({ isAppLogo: true }).where(eq(logos.id, hplusId));
-    logger.info("Set H+ Analytics as app logo (corrective)", "seed");
+    logger.info("Set H+ Analysis as app logo (corrective)", "seed");
   }
 
   // Default logo: only force-set H+ when there is none, or it currently is L+B.
@@ -45,17 +45,17 @@ async function applyHplusDefaultCorrection(hplusId: number, lbId: number): Promi
   if (defaultNeedsFix) {
     await db.update(logos).set({ isDefault: false }).where(eq(logos.isDefault, true));
     await db.update(logos).set({ isDefault: true }).where(eq(logos.id, hplusId));
-    logger.info("Set H+ Analytics as default logo (corrective)", "seed");
+    logger.info("Set H+ Analysis as default logo (corrective)", "seed");
   }
 
-  // Re-point any company that points at L+B → H+ Analytics
+  // Re-point any company that points at L+B → H+ Analysis
   const companiesPointingAtLb = await db
     .select({ id: companies.id })
     .from(companies)
     .where(eq(companies.logoId, lbId));
   if (companiesPointingAtLb.length > 0) {
     await db.update(companies).set({ logoId: hplusId }).where(eq(companies.logoId, lbId));
-    logger.info(`Re-pointed ${companiesPointingAtLb.length} companies from L+B → H+ Analytics`, "seed");
+    logger.info(`Re-pointed ${companiesPointingAtLb.length} companies from L+B → H+ Analysis`, "seed");
   }
 
   // Re-point global_assumptions.companyLogoId references
@@ -68,10 +68,10 @@ async function applyHplusDefaultCorrection(hplusId: number, lbId: number): Promi
       .update(globalAssumptions)
       .set({ companyLogoId: hplusId })
       .where(eq(globalAssumptions.companyLogoId, lbId));
-    logger.info(`Re-pointed ${gaIdPointingAtLb.length} global_assumptions.companyLogoId from L+B → H+ Analytics`, "seed");
+    logger.info(`Re-pointed ${gaIdPointingAtLb.length} global_assumptions.companyLogoId from L+B → H+ Analysis`, "seed");
   }
 
-  // Legacy URL field: rewrite L+B URL → H+ Analytics URL
+  // Legacy URL field: rewrite L+B URL → H+ Analysis URL
   const gaUrlPointingAtLb = await db
     .select({ id: globalAssumptions.id })
     .from(globalAssumptions)
@@ -81,7 +81,7 @@ async function applyHplusDefaultCorrection(hplusId: number, lbId: number): Promi
       .update(globalAssumptions)
       .set({ companyLogo: HPLUS_URL })
       .where(eq(globalAssumptions.companyLogo, LB_URL));
-    logger.info(`Re-pointed ${gaUrlPointingAtLb.length} global_assumptions.companyLogo URL from L+B → H+ Analytics`, "seed");
+    logger.info(`Re-pointed ${gaUrlPointingAtLb.length} global_assumptions.companyLogo URL from L+B → H+ Analysis`, "seed");
   }
 
   await db.execute(
@@ -95,12 +95,12 @@ export async function seedDefaultLogos() {
   const isFirstSeed = existingLogos.length === 0;
 
   if (isFirstSeed) {
-    // Fresh seed: H+ Analytics is the default AND the app logo. L+B exists
+    // Fresh seed: H+ Analysis is the default AND the app logo. L+B exists
     // but is a regular non-default entry.
     const inserted = await db.insert(logos).values([
       {
-        name: "H+ Analytics",
-        companyName: "H+ Analytics",
+        name: "H+ Analysis",
+        companyName: "H+ Analysis",
         url: HPLUS_URL,
         isDefault: true,
         isAppLogo: true,
@@ -131,7 +131,7 @@ export async function seedDefaultLogos() {
         isDefault: false,
       },
     ]).returning();
-    logger.info(`Seeded ${inserted.length} default logos (H+ Analytics as default + app)`, "seed");
+    logger.info(`Seeded ${inserted.length} default logos (H+ Analysis as default + app)`, "seed");
     // Mark the corrective migration as applied — fresh DBs don't need it.
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS _applied_migrations (
@@ -145,19 +145,19 @@ export async function seedDefaultLogos() {
     return;
   }
 
-  // Idempotent ensure: H+ Analytics and L+B both exist in the library, but
+  // Idempotent ensure: H+ Analysis and L+B both exist in the library, but
   // do NOT touch isDefault/isAppLogo here — the corrective migration handles
   // legacy state, and admin selections must be preserved on subsequent boots.
   let hplus = existingLogos.find(l => l.url === HPLUS_URL);
   if (!hplus) {
     [hplus] = await db.insert(logos).values({
-      name: "H+ Analytics",
-      companyName: "H+ Analytics",
+      name: "H+ Analysis",
+      companyName: "H+ Analysis",
       url: HPLUS_URL,
       isDefault: false,
       isAppLogo: false,
     }).returning();
-    logger.info("Added H+ Analytics logo to library", "seed");
+    logger.info("Added H+ Analysis logo to library", "seed");
   }
 
   let lb = existingLogos.find(l => l.url === LB_URL);

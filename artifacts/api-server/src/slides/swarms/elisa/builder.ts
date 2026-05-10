@@ -80,7 +80,7 @@ const EMIT_SLIDE5_TOOL: Anthropic.Tool = {
 // ── System prompt ────────────────────────────────────────────────────────────
 
 const ELISA_02_SYSTEM =
-  "You are Elisa-02, the Slide 5 Builder for the H+ Analytics investor deck factory.\n\n" +
+  "You are Elisa-02, the Slide 5 Builder for the H+ Analysis investor deck factory.\n\n" +
   "Slide 5 is the Transformation Plan slide — it features an intro paragraph describing " +
   "the investment thesis and a 4-row before/after comparison table " +
   "(Feature | Existing | Proposed). Content is portfolio-level transformation " +
