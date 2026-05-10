@@ -8,6 +8,7 @@
  */
 import { callLlm } from "../../routes/chat";
 import { resolveLlmFor } from "../llm-config-resolver";
+import { getParameterValue } from "../parameter-resolver";
 import { getVitoTools, dispatchVitoTool } from "./tools";
 import { createVitoRun, finalizeVitoRun } from "./workspace";
 import type { ToolCall } from "../../chat/tool-types";
@@ -129,6 +130,7 @@ export async function runVitoAgent(trigger: VitoTrigger, preCreatedRunId?: numbe
 
   const runId = preCreatedRunId ?? await createVitoRun(trigger, mode);
 
+  const maxToolDepth = await getParameterValue("vito-max-tool-depth", VITO_MAX_TOOL_DEPTH);
   const tools = getVitoTools();
   const sampling = { temperature: VITO_TEMPERATURE, maxOutputTokens: VITO_MAX_OUTPUT_TOKENS };
 
@@ -148,8 +150,8 @@ export async function runVitoAgent(trigger: VitoTrigger, preCreatedRunId?: numbe
     const { vendor, modelId } = resolved;
 
     serverLog(`Starting run ${runId} (trigger=${trigger}, mode=${mode}, model=${modelId})`, SOURCE);
-    for (let depth = 0; depth < VITO_MAX_TOOL_DEPTH; depth++) {
-      const isLastDepth = depth === VITO_MAX_TOOL_DEPTH - 1;
+    for (let depth = 0; depth < maxToolDepth; depth++) {
+      const isLastDepth = depth === maxToolDepth - 1;
       const activeTools = isLastDepth ? [] : tools;
 
       const result = await callLlm(
