@@ -386,7 +386,7 @@ export function IndustryResearchTab() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap font-sans leading-relaxed">
+            <div className="prose prose-sm max-w-none text-foreground whitespace-pre-wrap font-body leading-relaxed">
               {streamedContent}
             </div>
           </CardContent>

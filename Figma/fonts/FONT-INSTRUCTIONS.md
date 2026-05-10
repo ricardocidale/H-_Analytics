@@ -161,14 +161,23 @@ h1, h2, h3, h4 {
 
 ## Known Technical Debt
 
-- **6 intentional `font-sans` usages** exist in textareas and inputs
-  (`IndustryResearchTab.tsx`, `kbd.tsx`, `Icp.tsx`, `icp/IcpProfileTab.tsx`,
-  `index.css`). These produce IBM Plex Sans on those elements. They should be
-  migrated to `font-body` in a follow-up audit.
+- **1 remaining `font-sans` usage** — `kbd.tsx` uses `font-sans` (IBM Plex Sans)
+  for the `<kbd>` element. This is **intentional**: IBM Plex Sans gives keyboard
+  shortcut labels a slightly technical, distinct look. Do not migrate.
 
 - **`--font-sans` token** remains mapped to IBM Plex Sans (not Inter) for
   backwards compatibility. Do not add new `font-sans` usages — use `font-body`
   for Inter and `font-display` for IBM Plex Sans.
+
+### Migrated (2026-05-10)
+
+Previously `font-sans` (IBM Plex Sans); now `font-body` (Inter):
+
+| File | Element | Reason |
+|---|---|---|
+| `IndustryResearchTab.tsx` | prose div | Long-form streamed text → Inter for readability |
+| `Icp.tsx` | textarea | Long-form definition input → Inter for readability |
+| `icp/IcpProfileTab.tsx` | textarea | Long-form definition input → Inter for readability |
 
 ---
 
