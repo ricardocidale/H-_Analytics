@@ -266,11 +266,17 @@ export async function seedModelDefaults(opts: { silent?: boolean } = {}): Promis
 // (see tests/proof/defaults-drift.test.ts) and must not trigger the seed
 // — doing so kicks off a DB write inside vitest and surfaces as an
 // unhandled `process.exit(1)` rejection that pollutes the run.
-// Use pathToFileURL so this works regardless of whether process.argv[1] is
-// an absolute path, a relative path, or contains platform-specific separators.
+//
+// IMPORTANT: Do NOT use `import.meta.url === pathToFileURL(resolve(process.argv[1])).href`
+// here. When esbuild bundles all modules into dist/index.mjs, every inlined
+// module shares the same import.meta.url (the bundle entry point). That means
+// the check evaluates to `true` when the server boots via `node dist/index.mjs`,
+// firing seedModelDefaults().then(() => process.exit(0)) and killing the server.
+// Checking process.argv[1] for the script's own filename is bundle-safe because
+// argv[1] always reflects the actual file Node was told to execute.
 const isDirectRun =
   Boolean(process.argv[1]) &&
-  import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
+  /seed-model-defaults\.[jt]s(x?)$/.test(process.argv[1]);
 
 if (isDirectRun) {
   seedModelDefaults()

@@ -196,11 +196,17 @@ export async function seedModelConstants(opts: { silent?: boolean } = {}): Promi
 }
 
 // Only auto-run when invoked directly (`tsx script/seed-model-constants.ts`).
-// pathToFileURL handles absolute/relative path differences and platform-specific
-// separators so the comparison is robust across environments.
+//
+// IMPORTANT: Do NOT use `import.meta.url === pathToFileURL(resolve(process.argv[1])).href`
+// here. When esbuild bundles all modules into dist/index.mjs, every inlined
+// module shares the same import.meta.url (the bundle entry point). That means
+// the check evaluates to `true` when the server boots via `node dist/index.mjs`,
+// firing seedModelConstants().then(() => process.exit(0)) and killing the server.
+// Checking process.argv[1] for the script's own filename is bundle-safe because
+// argv[1] always reflects the actual file Node was told to execute.
 const isDirectRun =
   Boolean(process.argv[1]) &&
-  import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
+  /seed-model-constants\.[jt]s(x?)$/.test(process.argv[1]);
 
 if (isDirectRun) {
   seedModelConstants()

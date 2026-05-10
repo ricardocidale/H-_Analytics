@@ -100,6 +100,7 @@ const DEPRECATED_MODEL_MAP: Record<string, string> = {
   "claude-3-5-sonnet-20241022": "claude-sonnet-4-5",
   "claude-3-5-sonnet": "claude-sonnet-4-5",
   "claude-3-opus-20240229": "claude-sonnet-4-5",
+  "claude-opus-4-7": "claude-sonnet-4-5",
 };
 
 export function normalizeModelId(model: string): string {

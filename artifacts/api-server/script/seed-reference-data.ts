@@ -146,10 +146,16 @@ export async function seedReferenceData() {
   console.log(`Registered ${registryEntries.length} entries in knowledge_registry.`);
 }
 
-// Direct run support
-import { pathToFileURL } from "url";
-import { resolve } from "path";
-const isDirectRun = Boolean(process.argv[1]) && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
+// Only auto-run when invoked directly (`tsx script/seed-reference-data.ts`).
+//
+// IMPORTANT: Do NOT use `import.meta.url === pathToFileURL(resolve(process.argv[1])).href`
+// here. When esbuild bundles all modules into dist/index.mjs, every inlined
+// module shares the same import.meta.url (the bundle entry point), so that
+// check fires true on normal server boot and calls process.exit(0).
+// Checking process.argv[1] against the filename is bundle-safe.
+const isDirectRun =
+  Boolean(process.argv[1]) &&
+  /seed-reference-data\.[jt]s(x?)$/.test(process.argv[1]);
 if (isDirectRun) {
   seedReferenceData().then(() => process.exit(0)).catch(err => { console.error(err); process.exit(1); });
 }
