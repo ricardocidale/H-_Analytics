@@ -200,7 +200,16 @@ function buildApp(app: AppSpec): void {
     {
       cwd: WORKSPACE_ROOT,
       stdio: "inherit",
-      env: { ...process.env, BASE_PATH: app.basePath, PORT: "5000" },
+      env: {
+        ...process.env,
+        BASE_PATH: app.basePath,
+        PORT: "5000",
+        // The portal bundles very large chunks (maplibre-gl ~1 MB, xlsx ~500 KB,
+        // pptxgen ~372 KB) that push the default Node.js heap over the limit
+        // and cause the build process to be OOM-killed (spawnSync status: null).
+        // 4 GB is sufficient; preserve a caller-supplied override if present.
+        NODE_OPTIONS: process.env.NODE_OPTIONS ?? "--max-old-space-size=4096",
+      },
     },
   );
   if (result.status !== 0) {
