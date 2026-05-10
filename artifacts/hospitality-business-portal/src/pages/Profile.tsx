@@ -113,6 +113,10 @@ export default function Profile() {
 
   const resetTourMutation = useMutation({
     mutationFn: async () => {
+      // Clear server-side tourStep so resolveSavedStep returns null on next load,
+      // then re-enable the prompt. Order matters: step first so the re-enabled
+      // prompt always starts from the beginning.
+      await apiRequest("PATCH", "/api/profile/tour-prompt", { tourStep: null });
       const res = await apiRequest("PATCH", "/api/profile/tour-prompt", { hide: false });
       return res.json();
     },

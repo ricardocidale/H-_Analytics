@@ -9,7 +9,7 @@ export function gaToGlobalInput(ga: Record<string, unknown>, projectionYears: nu
   const dbDebt = ga.debtAssumptions as Record<string, unknown> | null;
   return {
     modelStartDate: (ga.modelStartDate as string) ?? String(new Date().getFullYear()),
-    inflationRate: Number(ga.inflationRate ?? getFactoryNumber('inflationRate')),
+    inflationRate: Number(ga.inflationRate ?? getFactoryNumber('inflationRate', 'US')),
     marketingRate: Number(ga.marketingRate ?? DEFAULT_MARKETING_RATE),
     debtAssumptions: {
       interestRate: Number(dbDebt?.interestRate ?? DEFAULT_INTEREST_RATE),
