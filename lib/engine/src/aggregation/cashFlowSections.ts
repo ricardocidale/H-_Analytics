@@ -78,7 +78,12 @@ export function computeCashFlowSections(
     const fcfVal = cfo - (i === acquisitionYear ? loan.equityInvested : 0);
     fcf.push(fcfVal);
 
-    // Free Cash Flow to Equity = FCF - Principal Payments
+    // FCFE (boutique-hotel definition, MINOR-6 in engine audit):
+    //   FCF − principalPayment, where FCF capex = acquisition-year equity only.
+    // Standard FCFE = netIncome + depreciation − capex − ΔWC − principalRepayment.
+    // These differ because this definition uses equity-invested as a one-time
+    // capex proxy rather than ongoing capital expenditures. Do not compare this
+    // figure to standard FCFE from other models without accounting for the delta.
     fcfe.push(fcfVal - cf.principalPayment);
   }
 
