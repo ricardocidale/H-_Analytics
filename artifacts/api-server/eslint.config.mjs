@@ -28,6 +28,7 @@ export default tseslint.config(
         },
       ],
       "@typescript-eslint/no-redeclare": "error",
+      "no-duplicate-case": "error",
       "no-shadow": "off",
       "no-redeclare": "off",
     },

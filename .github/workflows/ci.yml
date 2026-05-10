@@ -27,6 +27,9 @@ jobs:
       - name: Typecheck
         run: pnpm run typecheck
 
+      - name: Lint (catches duplicate switch cases and other ESLint errors)
+        run: pnpm run check:lint
+
       - name: Magic numbers gate
         run: pnpm --filter @workspace/scripts run check:magic-numbers
 
