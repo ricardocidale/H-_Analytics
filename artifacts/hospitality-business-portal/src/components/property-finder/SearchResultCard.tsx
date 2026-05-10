@@ -69,6 +69,7 @@ export function SearchResultCard({
                 size="icon"
                 onClick={() => onToggleImage(property.externalId)}
                 data-testid={`btn-image-${property.externalId}`}
+                aria-label={expandedImage === property.externalId ? "Hide photo" : "Show photo"}
               >
                 <IconImage className="w-4 h-4 text-primary" />
               </Button>
@@ -79,6 +80,7 @@ export function SearchResultCard({
               onClick={onToggleFavorite}
               disabled={isSaving}
               title={isSaved ? "Remove from saved" : "Save property"}
+              aria-label={isSaved ? "Remove from saved" : "Save property"}
               data-testid={`btn-favorite-${property.externalId}`}
             >
               {isSaving ? (

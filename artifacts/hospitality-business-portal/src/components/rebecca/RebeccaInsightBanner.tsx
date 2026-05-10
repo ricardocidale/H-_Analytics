@@ -126,6 +126,7 @@ export function RebeccaInsightBanner({ onAskRebecca, className }: RebeccaInsight
                 className="h-5 w-5 shrink-0 opacity-50 hover:opacity-100"
                 onClick={() => dismissInsight(insight.id)}
                 data-testid="button-insight-dismiss"
+                aria-label="Dismiss"
               >
                 <X className="w-3 h-3" />
               </Button>

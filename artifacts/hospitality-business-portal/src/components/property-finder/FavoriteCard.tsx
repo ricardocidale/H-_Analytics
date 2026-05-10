@@ -138,6 +138,7 @@ export function FavoriteCard({
             onClick={() => onRemove(property.id)}
             disabled={isRemoving}
             title="Remove property"
+            aria-label="Remove property"
             data-testid={`btn-remove-saved-${property.id}`}
           >
             {isRemoving ? (

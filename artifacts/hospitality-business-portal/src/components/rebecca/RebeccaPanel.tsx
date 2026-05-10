@@ -878,15 +878,16 @@ Type your request naturally — you don't need to use tool names directly.`;
               data-testid="rebecca-panel"
             >
               {/* Desktop collapse tab on the left edge of the open panel */}
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => closeRebecca()}
-                className="hidden md:flex absolute -left-7 top-1/2 -translate-y-1/2 z-10 h-16 w-7 items-center justify-center rounded-l-md bg-primary text-primary-foreground shadow-md hover:bg-primary/90 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="hidden md:flex absolute -left-7 top-1/2 -translate-y-1/2 z-10 h-16 w-7 items-center justify-center rounded-l-md bg-primary text-primary-foreground shadow-md hover:bg-primary/90 transition-colors cursor-pointer px-0"
                 aria-label="Collapse Rebecca panel"
                 data-testid="button-rebecca-collapse-tab"
                 title="Collapse"
               >
                 <ChevronRight className="w-4 h-4" />
-              </button>
+              </Button>
         <div className="px-4 pt-3.5 pb-3 border-b border-border/40 shrink-0 bg-primary/[0.04]">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 min-w-0">

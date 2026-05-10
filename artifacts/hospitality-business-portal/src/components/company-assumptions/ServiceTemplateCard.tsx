@@ -207,6 +207,7 @@ export function ServiceTemplateCard({
                     onClick={() => onSaveRate(t.id)}
                     disabled={updatePending}
                     data-testid={`button-save-inline-rate-${t.id}`}
+                    aria-label="Save rate"
                   >
                     <Check className="w-3.5 h-3.5" />
                   </Button>
@@ -216,6 +217,7 @@ export function ServiceTemplateCard({
                     className="h-7 w-7 text-muted-foreground hover:text-foreground"
                     onClick={() => onCancelRate()}
                     data-testid={`button-cancel-inline-rate-${t.id}`}
+                    aria-label="Cancel"
                   >
                     <X className="w-3.5 h-3.5" />
                   </Button>
@@ -274,6 +276,7 @@ export function ServiceTemplateCard({
                       onClick={() => onSaveMarkup(t.id)}
                       disabled={updatePending}
                       data-testid={`button-save-inline-markup-${t.id}`}
+                      aria-label="Save markup"
                     >
                       <Check className="w-3.5 h-3.5" />
                     </Button>
@@ -283,6 +286,7 @@ export function ServiceTemplateCard({
                       className="h-7 w-7 text-muted-foreground hover:text-foreground"
                       onClick={() => onCancelMarkup()}
                       data-testid={`button-cancel-inline-markup-${t.id}`}
+                      aria-label="Cancel"
                     >
                       <X className="w-3.5 h-3.5" />
                     </Button>

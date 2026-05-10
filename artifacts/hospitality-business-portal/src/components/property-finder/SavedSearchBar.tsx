@@ -55,6 +55,7 @@ export function SavedSearchBar({
             disabled={isDeletePending}
             className="p-0.5 h-auto w-auto rounded-full"
             title="Delete search"
+            aria-label={`Delete ${search.name} search`}
             data-testid={`btn-delete-search-${search.id}`}
           >
             {isDeletePending ? (
