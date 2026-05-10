@@ -60,6 +60,10 @@ args = "check:lint:libs"
 task = "workflow.run"
 args = "check:schema-drift"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "check:direct-run-guards"
+
 [[workflows.workflow]]
 name = "check:spinner-contrast"
 author = "agent"
@@ -177,6 +181,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:schema-drift"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "check:direct-run-guards"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:direct-run-guards"
 
 [workflows.workflow.metadata]
 isValidation = true

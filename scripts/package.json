@@ -19,6 +19,7 @@
     "check:typecheck": "tsx ./src/check-typecheck.ts",
     "check:schema-drift": "tsx ./src/check-schema-drift.ts",
     "check:canonical-schema": "tsx ./src/check-canonical-schema.ts",
+    "check:direct-run-guards": "tsx ./src/check-direct-run-guards.ts",
     "check:production-image": "tsx ./src/check-production-image.ts",
     "check:timing-report": "tsx ./src/check-timing-report.ts",
     "sync-db-to-railway": "tsx ./src/sync-db-to-railway.ts",

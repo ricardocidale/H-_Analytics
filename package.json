@@ -18,6 +18,7 @@
     "check:magic-numbers": "pnpm --filter @workspace/scripts run check:magic-numbers",
     "check:migration-guards": "pnpm --filter @workspace/scripts run check:migration-guards",
     "check:schema-drift": "pnpm --filter @workspace/scripts run check:schema-drift",
+    "check:direct-run-guards": "pnpm --filter @workspace/scripts run check:direct-run-guards",
     "check:spinner-contrast": "pnpm --filter @workspace/scripts run check:spinner-contrast",
     "check:production-image": "pnpm --filter @workspace/scripts run check:production-image",
     "check:types-mirror": "pnpm --filter @workspace/scripts run check:types-mirror",
@@ -27,7 +28,7 @@
     "check:all-cached": "pnpm --filter @workspace/scripts run check:all-cached",
     "check:all-cached:write": "pnpm --filter @workspace/scripts run check:all-cached:write",
     "check:selective": "pnpm --filter @workspace/scripts run check:selective",
-    "check:core": "concurrently --kill-others-on-fail -n lint,lint:libs,typecheck,magic-numbers,replit-independence,migration-guards,spinner-contrast,production-image,types-mirror,schema-drift \"pnpm run check:lint\" \"pnpm run check:lint:libs\" \"pnpm run check:typecheck\" \"pnpm run check:magic-numbers\" \"pnpm run check:replit-independence\" \"pnpm run check:migration-guards\" \"pnpm run check:spinner-contrast\" \"pnpm run check:production-image\" \"pnpm run check:types-mirror\" \"pnpm run check:schema-drift\"",
+    "check:core": "concurrently --kill-others-on-fail -n lint,lint:libs,typecheck,magic-numbers,replit-independence,migration-guards,spinner-contrast,production-image,types-mirror,schema-drift,direct-run-guards \"pnpm run check:lint\" \"pnpm run check:lint:libs\" \"pnpm run check:typecheck\" \"pnpm run check:magic-numbers\" \"pnpm run check:replit-independence\" \"pnpm run check:migration-guards\" \"pnpm run check:spinner-contrast\" \"pnpm run check:production-image\" \"pnpm run check:types-mirror\" \"pnpm run check:schema-drift\" \"pnpm run check:direct-run-guards\"",
     "check": "sh -c 'pnpm run check:all-cached || { pnpm run check:selective && pnpm run check:all-cached:write; }'",
     "check:timing-report": "pnpm --filter @workspace/scripts run check:timing-report"
   },

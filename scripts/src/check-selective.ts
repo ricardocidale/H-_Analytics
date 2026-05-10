@@ -98,6 +98,7 @@ import { collectInputFiles as collectInputFiles_spinnerContrast } from "./check-
 import { collectInputFiles as collectInputFiles_productionImage } from "./check-production-image.js";
 import { collectInputFiles as collectInputFiles_typesMirror } from "./check-types-mirror.js";
 import { collectInputFiles as collectInputFiles_schemaDrift } from "./check-schema-drift.js";
+import { collectInputFiles as collectInputFiles_directRunGuards } from "./check-direct-run-guards.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -243,6 +244,12 @@ const SCRIPT_CHECKS: CheckSpec[] = [
     label: "schema-drift",
     rootScript: "check:schema-drift",
     collectInputs: collectInputFiles_schemaDrift,
+  },
+  {
+    name: "direct-run-guards",
+    label: "direct-run-guards",
+    rootScript: "check:direct-run-guards",
+    collectInputs: collectInputFiles_directRunGuards,
   },
 ];
 
