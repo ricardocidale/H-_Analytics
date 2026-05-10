@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { IconAlertTriangle, IconRefreshCw } from "@/components/icons";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -304,6 +305,247 @@ function StorageDriftSweepCard() {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Check Timing Card (Task #1270)
+// ---------------------------------------------------------------------------
+
+type CheckTrendDirection = "up" | "down" | "flat" | "unknown";
+
+interface CheckTimingRun {
+  ts: string;
+  totalMs: number;
+  passed: boolean;
+  checks: Record<string, { durationMs: number; slow: boolean; exitCode: number }>;
+}
+
+interface CheckTrendInfo {
+  direction: CheckTrendDirection;
+  latestMs: number | null;
+  baselineP75: number | null;
+  pctDelta: number | null;
+}
+
+interface CheckTimingResponse {
+  runs: CheckTimingRun[];
+  labels: string[];
+  trends: Record<string, CheckTrendInfo>;
+  totalRecords: number;
+  trendWindow: number;
+}
+
+function trendArrow(dir: CheckTrendDirection): string {
+  switch (dir) {
+    case "up":      return "↑";
+    case "down":    return "↓";
+    case "flat":    return "→";
+    case "unknown": return "?";
+  }
+}
+
+function trendArrowClass(dir: CheckTrendDirection): string {
+  switch (dir) {
+    case "up":      return "text-destructive font-semibold";
+    case "down":    return "text-emerald-600 dark:text-emerald-400 font-semibold";
+    case "flat":    return "text-muted-foreground";
+    case "unknown": return "text-muted-foreground/50";
+  }
+}
+
+function formatMs(ms: number): string {
+  const secs = ms / 1000;
+  if (secs < 10) return `${secs.toFixed(1)}s`;
+  return `${Math.round(secs)}s`;
+}
+
+function formatShortTs(iso: string): string {
+  const d = new Date(iso);
+  const date = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const time = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+  return `${date} ${time}`;
+}
+
+function CheckTimingCard() {
+  const { data, isLoading, error } = useQuery<CheckTimingResponse>({
+    queryKey: ["/api/admin/check-timing"],
+    refetchInterval: 120_000,
+  });
+
+  if (isLoading) {
+    return (
+      <Card data-testid="card-check-timing-loading">
+        <CardHeader>
+          <CardTitle>Check Timing History</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-sm text-muted-foreground">Loading check timing data…</div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive" data-testid="alert-check-timing-error">
+        <IconAlertTriangle className="h-4 w-4" />
+        <AlertTitle>Failed to load check timing history</AlertTitle>
+        <AlertDescription>{error instanceof Error ? error.message : String(error)}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (!data || data.runs.length === 0) {
+    return (
+      <Card data-testid="card-check-timing-empty">
+        <CardHeader>
+          <CardTitle>Check Timing History</CardTitle>
+          <CardDescription>
+            Per-check durations with trend direction (p75 regression logic, same as CLI report)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-sm text-muted-foreground" data-testid="text-check-timing-empty">
+            No timing history found. Run{" "}
+            <code className="text-xs bg-muted px-1 py-0.5 rounded">pnpm run check:selective</code>{" "}
+            at least once to generate data at{" "}
+            <code className="text-xs bg-muted px-1 py-0.5 rounded">.cache/check-timing.jsonl</code>.
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const { runs, labels, trends, totalRecords, trendWindow } = data;
+
+  const regressedLabels = labels.filter((l) => trends[l]?.direction === "up");
+  const improvedLabels  = labels.filter((l) => trends[l]?.direction === "down");
+
+  return (
+    <Card data-testid="card-check-timing">
+      <CardHeader>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <CardTitle>Check Timing History</CardTitle>
+            <CardDescription className="mt-1">
+              Last {runs.length} of {totalRecords} run{totalRecords === 1 ? "" : "s"} ·
+              trend window: {trendWindow} prior runs ·{" "}
+              <span className="text-destructive">↑</span> regression &gt;20% ·{" "}
+              <span className="text-emerald-600 dark:text-emerald-400">↓</span> improved &gt;20% ·{" "}
+              → stable · ? insufficient history
+            </CardDescription>
+          </div>
+          {(regressedLabels.length > 0 || improvedLabels.length > 0) && (
+            <div className="flex flex-wrap gap-1.5 text-xs">
+              {regressedLabels.map((l) => {
+                const t = trends[l];
+                return (
+                  <Badge key={l} variant="destructive" data-testid={`badge-trend-up-${l}`}>
+                    ↑ {l}{t?.pctDelta != null ? ` +${t.pctDelta}%` : ""}
+                  </Badge>
+                );
+              })}
+              {improvedLabels.map((l) => {
+                const t = trends[l];
+                return (
+                  <Badge key={l} variant="secondary" className="border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400" data-testid={`badge-trend-down-${l}`}>
+                    ↓ {l}{t?.pctDelta != null ? ` ${t.pctDelta}%` : ""}
+                  </Badge>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="overflow-x-auto">
+        <Table data-testid="table-check-timing">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="whitespace-nowrap">Timestamp</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right whitespace-nowrap">Total</TableHead>
+              {labels.map((l) => (
+                <TableHead key={l} className="text-right whitespace-nowrap">
+                  {l}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {runs.map((run, idx) => (
+              <TableRow
+                key={`${run.ts}-${idx}`}
+                className={!run.passed ? "bg-destructive/5" : undefined}
+                data-testid={`row-check-run-${idx}`}
+              >
+                <TableCell className="text-xs text-muted-foreground whitespace-nowrap" data-testid={`text-check-run-ts-${idx}`}>
+                  {formatShortTs(run.ts)}
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant={run.passed ? "secondary" : "destructive"}
+                    data-testid={`badge-check-run-status-${idx}`}
+                  >
+                    {run.passed ? "pass" : "FAIL"}
+                  </Badge>
+                </TableCell>
+                <TableCell className="text-right font-mono text-xs" data-testid={`text-check-run-total-${idx}`}>
+                  {formatMs(run.totalMs)}
+                </TableCell>
+                {labels.map((l) => {
+                  const entry = run.checks[l];
+                  if (!entry) {
+                    return (
+                      <TableCell key={l} className="text-right text-muted-foreground text-xs">—</TableCell>
+                    );
+                  }
+                  return (
+                    <TableCell
+                      key={l}
+                      className={`text-right font-mono text-xs${entry.slow ? " text-amber-600 dark:text-amber-400 font-semibold" : ""}`}
+                      data-testid={`text-check-run-${idx}-${l}`}
+                    >
+                      {formatMs(entry.durationMs)}{entry.slow ? " ⚠" : ""}
+                    </TableCell>
+                  );
+                })}
+              </TableRow>
+            ))}
+
+            {/* Trend row */}
+            <TableRow className="border-t-2" data-testid="row-check-trends">
+              <TableCell className="text-xs font-semibold text-muted-foreground">Trend</TableCell>
+              <TableCell />
+              <TableCell />
+              {labels.map((l) => {
+                const t = trends[l];
+                const dir = t?.direction ?? "unknown";
+                const tooltip = dir === "unknown"
+                  ? `${l}: insufficient history (need >${data.trendWindow} passing runs)`
+                  : dir === "flat"
+                  ? `${l}: stable — latest ${t?.latestMs != null ? formatMs(t.latestMs) : "?"}, p75 baseline ${t?.baselineP75 != null ? formatMs(t.baselineP75) : "?"}`
+                  : `${l}: ${dir === "up" ? "↑ regressing" : "↓ improving"} — latest ${t?.latestMs != null ? formatMs(t.latestMs) : "?"}, p75 baseline ${t?.baselineP75 != null ? formatMs(t.baselineP75) : "?"}${t?.pctDelta != null ? `, ${t.pctDelta > 0 ? "+" : ""}${t.pctDelta}%` : ""}`;
+                return (
+                  <TableCell key={l} className="text-right" data-testid={`text-trend-${l}`}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className={`cursor-default text-sm ${trendArrowClass(dir)}`}>
+                          {trendArrow(dir)}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p className="text-xs">{tooltip}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TableCell>
+                );
+              })}
+            </TableRow>
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function ObservabilityTab() {
   const { data, isLoading, error } = useQuery<SchedulerRunsResponse>({
     queryKey: ["/api/admin/scheduler-runs"],
@@ -397,6 +639,8 @@ export default function ObservabilityTab() {
           </AlertDescription>
         </Alert>
       )}
+
+      <CheckTimingCard />
 
       <StorageDriftSweepCard />
 

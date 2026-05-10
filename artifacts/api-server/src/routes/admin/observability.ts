@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import type { Express } from "express";
 import { requireAdmin } from "../../auth";
 import { logAndSendError } from "../helpers";
@@ -12,6 +14,96 @@ import { logger } from "../../logger";
 import { SCHEDULER_HISTORY_STRIP } from "@workspace/db";
 import { HTTP_202_ACCEPTED } from "../../constants";
 
+// ---------------------------------------------------------------------------
+// Check-timing history helpers (mirrors scripts/src/lib/check-trend.ts so
+// the admin UI uses exactly the same p75 / regression logic as the CLI report)
+// ---------------------------------------------------------------------------
+
+const CHECK_TIMING_FILE = path.resolve(process.cwd(), ".cache/check-timing.jsonl");
+
+/** Fraction above the p75 baseline that counts as a regression (20 %). */
+const REGRESSION_THRESHOLD = 0.2;
+
+/** Default number of prior runs used as the p75 baseline window. */
+const TREND_WINDOW = 5;
+
+/** Default number of recent runs to return. */
+const CHECK_TIMING_DEFAULT_N = 20;
+
+type TrendDirection = "up" | "down" | "flat" | "unknown";
+
+function p75(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const idx = Math.ceil(sorted.length * 0.75) - 1;
+  return sorted[Math.max(0, idx)];
+}
+
+function classifyTrend(priorWindow: number[], currentMs: number): TrendDirection {
+  if (priorWindow.length === 0) return "unknown";
+  const baseline = p75(priorWindow);
+  if (baseline <= 0) return "unknown";
+  const ratio = currentMs / baseline;
+  if (ratio > 1 + REGRESSION_THRESHOLD) return "up";
+  if (ratio < 1 - REGRESSION_THRESHOLD) return "down";
+  return "flat";
+}
+
+interface CheckEntry {
+  label: string;
+  durationMs: number;
+  slow: boolean;
+  exitCode: number;
+}
+
+interface TimingRecord {
+  ts: string;
+  totalMs: number;
+  passed: boolean;
+  checks: CheckEntry[];
+}
+
+function loadTimingRecords(): TimingRecord[] {
+  if (!fs.existsSync(CHECK_TIMING_FILE)) return [];
+  const lines = fs.readFileSync(CHECK_TIMING_FILE, "utf8").split("\n").filter(Boolean);
+  const records: TimingRecord[] = [];
+  for (const line of lines) {
+    try {
+      records.push(JSON.parse(line) as TimingRecord);
+    } catch {
+      // skip malformed lines
+    }
+  }
+  return records;
+}
+
+function computeLabelTrends(
+  allRecords: TimingRecord[],
+  labels: string[],
+  trendWindow: number,
+): Map<string, { direction: TrendDirection; latestMs: number | null; baselineP75: number | null; pctDelta: number | null }> {
+  const result = new Map<string, { direction: TrendDirection; latestMs: number | null; baselineP75: number | null; pctDelta: number | null }>();
+
+  for (const label of labels) {
+    const durations: number[] = [];
+    for (const rec of allRecords) {
+      const entry = rec.checks.find((c) => c.label === label && c.exitCode === 0);
+      if (entry) durations.push(entry.durationMs);
+    }
+    if (durations.length <= trendWindow) {
+      result.set(label, { direction: "unknown", latestMs: durations.length > 0 ? durations[durations.length - 1] : null, baselineP75: null, pctDelta: null });
+      continue;
+    }
+    const current = durations[durations.length - 1];
+    const prior = durations.slice(-(trendWindow + 1), -1);
+    const baseline = p75(prior);
+    const direction = classifyTrend(prior, current);
+    const pctDelta = baseline > 0 ? Math.round(((current - baseline) / baseline) * 100) : null;
+    result.set(label, { direction, latestMs: current, baselineP75: baseline, pctDelta });
+  }
+
+  return result;
+}
+
 /**
  * Task #528 — How long after the last sweep we flag the drift panel as stale.
  *
@@ -23,6 +115,55 @@ import { HTTP_202_ACCEPTED } from "../../constants";
 const STORAGE_DRIFT_SWEEP_STALE_AFTER_MS = 36 * 60 * 60 * 1000;
 
 export function registerObservabilityRoutes(app: Express) {
+  // Task #1270 — per-check trend history for the admin Observability tab.
+  // Reads .cache/check-timing.jsonl (same file the CLI timing report uses),
+  // applies identical p75 trend logic, and returns the last N runs with
+  // per-check durations and trend classifications.
+  app.get("/api/admin/check-timing", requireAdmin, (req, res) => {
+    try {
+      const rawN = typeof req.query.n === "string" ? parseInt(req.query.n, 10) : NaN;
+      const n = !isNaN(rawN) && rawN > 0 ? rawN : CHECK_TIMING_DEFAULT_N;
+
+      const all = loadTimingRecords();
+
+      if (all.length === 0) {
+        res.json({ runs: [], labels: [], trends: {}, totalRecords: 0, trendWindow: TREND_WINDOW });
+        return;
+      }
+
+      const displayed = all.slice(-n);
+
+      const labelSet = new Set<string>();
+      for (const rec of displayed) {
+        for (const c of rec.checks) labelSet.add(c.label);
+      }
+      const labels = [...labelSet].sort();
+
+      const trendMap = computeLabelTrends(all, labels, TREND_WINDOW);
+      const trends: Record<string, { direction: TrendDirection; latestMs: number | null; baselineP75: number | null; pctDelta: number | null }> = {};
+      for (const [label, data] of trendMap.entries()) {
+        trends[label] = data;
+      }
+
+      const runs = displayed.map((rec) => {
+        const byLabel: Record<string, { durationMs: number; slow: boolean; exitCode: number }> = {};
+        for (const c of rec.checks) {
+          byLabel[c.label] = { durationMs: c.durationMs, slow: c.slow, exitCode: c.exitCode };
+        }
+        return {
+          ts: rec.ts,
+          totalMs: rec.totalMs,
+          passed: rec.passed,
+          checks: byLabel,
+        };
+      });
+
+      res.json({ runs, labels, trends, totalRecords: all.length, trendWindow: TREND_WINDOW });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to read check-timing history", error);
+    }
+  });
+
   app.get("/api/admin/scheduler-runs", requireAdmin, async (_req, res) => {
     try {
       const [rows, historyRows] = await Promise.all([
