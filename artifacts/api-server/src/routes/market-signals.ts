@@ -3,7 +3,7 @@
  *
  * Mounted under `/api/market-signals/*`. All endpoints are property-scoped,
  * gated by `requireAuth` + `checkPropertyAccess`, and validate request
- * bodies via Zod schemas defined in lib/db/src/schema/intelligence-v2.ts.
+ * bodies via Zod schemas defined in lib/db/src/schema/intelligence/market-data.ts.
  *
  * No scrapers — Daniela (property.risk-intelligence Specialist) is the
  * sole upstream writer of these tables. Routes are read-mostly with thin

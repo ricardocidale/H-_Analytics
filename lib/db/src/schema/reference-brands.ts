@@ -18,7 +18,7 @@
 import { pgTable, text, real, integer, timestamp, jsonb, boolean, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
-import { researchRuns } from "./intelligence-v2";
+import { researchRuns } from "./intelligence/analyst";
 
 export const referenceBrands = pgTable("reference_brands", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),

@@ -25,7 +25,7 @@
 import { pgTable, text, real, integer, timestamp, jsonb, date, index, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
-import { sourceRegistry } from "./intelligence-v2";
+import { sourceRegistry } from "./intelligence/sources";
 
 /** Categorical taxonomy. Drives the admin filter dropdown and the
  *  best-match resolver's domain-scoped search. */

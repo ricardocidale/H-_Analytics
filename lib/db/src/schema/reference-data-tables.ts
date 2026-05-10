@@ -1,6 +1,6 @@
 import { pgTable, text, serial, timestamp, boolean, integer, index, unique, date, real } from "drizzle-orm/pg-core";
 import { vector } from "./vector-chunks";
-import { sourceRegistry } from "./intelligence-v2";
+import { sourceRegistry } from "./intelligence/sources";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
