@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { logActivity, logAndSendError } from "./helpers";
 import { logger } from "../logger";
-import { HTTP_503_SERVICE_UNAVAILABLE } from "../constants";
+import { HTTP_400_BAD_REQUEST, HTTP_503_SERVICE_UNAVAILABLE } from "../constants";
 import {
   Tier1UnavailableError,
 } from "../ai/specialists/mgmt-co-funding-runner";
@@ -68,7 +68,7 @@ export async function dispatchSpecialist(
     try {
       const result = await runFundingV1Path(userId);
       if ("__icpModelRequired" in result) {
-        res.status(400).json({
+        res.status(HTTP_400_BAD_REQUEST).json({
           code: "ICP_MODEL_REQUIRED",
           message: "Select a management company model (A / B / C) so The Analyst can range your funding plan.",
           models: result.models,
@@ -198,7 +198,7 @@ export async function dispatchSpecialist(
     try {
       const verdict = await runPortfolioRaiseV1Path(userId);
       if ("__noProperties" in verdict) {
-        res.status(400).json({
+        res.status(HTTP_400_BAD_REQUEST).json({
           code: "NO_PROPERTIES",
           message: "Add at least one investment property to analyze a portfolio capital raise.",
         });
@@ -228,7 +228,7 @@ export async function dispatchSpecialist(
   // No Tier-0 fallback for property scope; returns 503 on unavailability.
   if (specialistId === "property.risk-intelligence") {
     if (!propertyId) {
-      res.status(400).json({
+      res.status(HTTP_400_BAD_REQUEST).json({
         error: "propertyId is required for property.risk-intelligence",
         code: "MISSING_PROPERTY_ID",
       });
@@ -262,7 +262,7 @@ export async function dispatchSpecialist(
   // legacy runner to fall back to. Return 400 rather than silently running
   // the company-scope legacy path on a property request.
   if (scope === "property") {
-    res.status(400).json({
+    res.status(HTTP_400_BAD_REQUEST).json({
       error: "Unknown specialistId for property scope",
       code: "UNKNOWN_SPECIALIST",
     });
