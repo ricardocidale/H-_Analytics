@@ -317,6 +317,7 @@ const DB_CANDIDATE_PATTERNS: readonly string[] = [
 ];
 
 const TAXONOMY_DB_MARKER = "// DB:";
+const TAXONOMY_EXEMPTION_LOOKBACK_LINES = 3;
 
 const TAXONOMY_AUTHORITY_MARKERS: readonly string[] = [
   "RFC", "IRS", "GAAP", "ISO", "USALI", "HVS", "NIST", "ITU", "ANSI", "W3C",
@@ -360,8 +361,8 @@ export function findDbCandidateViolations(): TaxonomyViolation[] {
 
     for (let i = 0; i < lines.length; i++) {
       const trimmed = lines[i].trim();
-      // Match: (export )?const ALL_CAPS_NAME = <anything>
-      const m = /^(export\s+)?const\s+([A-Z][A-Z0-9_]+)\s*=/.exec(trimmed);
+      // Match: (export )?const ALL_CAPS_NAME[: Type] = <anything>
+      const m = /^(export\s+)?const\s+([A-Z][A-Z0-9_]+)\b(?:\s*:\s*[^=]+)?\s*=/.exec(trimmed);
       if (!m) continue;
 
       const name = m[2];
@@ -369,8 +370,8 @@ export function findDbCandidateViolations(): TaxonomyViolation[] {
       // Must match at least one DB-candidate suffix
       if (!DB_CANDIDATE_PATTERNS.some(p => name.endsWith(p))) continue;
 
-      // Exempt if any of the 3 preceding lines carries a DB marker or authority citation
-      const preceding = lines.slice(Math.max(0, i - 3), i).join("\n");
+      // Exempt if any of the preceding lines carries a DB marker or authority citation
+      const preceding = lines.slice(Math.max(0, i - TAXONOMY_EXEMPTION_LOOKBACK_LINES), i).join("\n");
       if (preceding.includes(TAXONOMY_DB_MARKER)) continue;
       if (TAXONOMY_AUTHORITY_MARKERS.some(marker => preceding.includes(marker))) continue;
 
