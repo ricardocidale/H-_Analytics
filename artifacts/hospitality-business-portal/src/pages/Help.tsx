@@ -18,7 +18,7 @@ type HelpTab = "user-manual" | "guided-tour" | "architecture";
 export default function Help() {
   const { isAdmin } = useAuth();
   const [tab, setTab] = useState<HelpTab>("user-manual");
-  const { setTourActive, setShownThisSession } = useWalkthroughStore();
+  const { triggerPrompt } = useWalkthroughStore();
 
   useEffect(() => {
     const hash = window.location.hash.slice(1);
@@ -36,9 +36,8 @@ export default function Help() {
       credentials: "include",
     });
     queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
-    setShownThisSession(false);
-    setTourActive(true);
-  }, [queryClient, setShownThisSession, setTourActive]);
+    triggerPrompt();
+  }, [queryClient, triggerPrompt]);
 
   const tabs = [
     { value: "user-manual" as const, label: "User Manual", icon: IconFileCheck },
