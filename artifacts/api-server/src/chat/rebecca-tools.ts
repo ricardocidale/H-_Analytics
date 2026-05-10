@@ -1174,10 +1174,6 @@ export async function dispatchRebeccaTool(
         return await toolListServiceTemplates(ctx);
       case "update_service_template":
         return await toolUpdateServiceTemplate(args, ctx);
-      case "create_company":
-        return await toolCreateCompany(args, ctx);
-      case "delete_company":
-        return await toolDeleteCompany(args, ctx);
       default:
         return { result: { error: "Unknown tool" } };
     }
