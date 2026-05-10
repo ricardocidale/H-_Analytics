@@ -303,9 +303,11 @@ async function main(): Promise<void> {
 
   const promises = toRun.map(({ rootScript, label }) =>
     runCheck(rootScript, label, signal).then((result) => {
-      if (result.exitCode !== 0 && !result.killed && firstFailure === null) {
-        firstFailure = result;
-        controller.abort();
+      if (result.exitCode !== 0 && !result.killed) {
+        if (!firstFailure) {
+          firstFailure = result;
+          controller.abort();
+        }
       }
       return result;
     }),
@@ -315,46 +317,32 @@ async function main(): Promise<void> {
 
   console.log("");
 
-  // 5. Summary.
-  const actualFailures = results.filter((r) => r.exitCode !== 0 && !r.killed);
-  const killed = results.filter((r) => r.killed);
-  const passes = results.filter((r) => r.exitCode === 0);
+  // 5. Print summary.
+  const failures = results.filter((r) => r.exitCode !== 0 && !r.killed);
+  const passes   = results.filter((r) => r.exitCode === 0);
 
   for (const r of passes) {
-    const secs = (r.durationMs / 1000).toFixed(1);
-    console.log(`[pass]  check:${r.label.padEnd(22)} completed in ${secs}s`);
+    console.log(`[pass]  check:${r.label.padEnd(22)} completed in ${(r.durationMs / 1000).toFixed(1)}s`);
   }
-  for (const r of actualFailures) {
-    const secs = (r.durationMs / 1000).toFixed(1);
-    console.error(`[fail]  check:${r.label.padEnd(22)} FAILED (exit ${r.exitCode}) after ${secs}s`);
+  for (const r of failures) {
+    console.log(`[fail]  check:${r.label.padEnd(22)} FAILED (exit ${r.exitCode}) after ${(r.durationMs / 1000).toFixed(1)}s`);
   }
-  for (const r of killed) {
-    console.error(`[kill]  check:${r.label.padEnd(22)} terminated (another check failed)`);
-  }
+
+  const ranCount    = results.filter((r) => !r.killed).length;
+  const cachedCount = cached.length;
+  const totalCount  = ranCount + cachedCount;
 
   console.log("");
-  const ranCount = toRun.length;
-  const skippedCount = cached.length;
-  const totalCount = SCRIPT_CHECKS.length + 1; // +1 for typecheck
-
-  if (actualFailures.length === 0) {
-    console.log(
-      `[done]  ${ranCount}/${totalCount} checks ran fresh` +
-        (skippedCount > 0 ? `, ${skippedCount} skipped (cached)` : "") +
-        " — all passed.",
-    );
+  if (failures.length === 0) {
+    console.log(`[done]  ${ranCount}/${totalCount} checks ran fresh, ${cachedCount} cached — all passed.`);
     process.exit(0);
   } else {
-    console.error(
-      `[done]  ${actualFailures.length} check(s) failed` +
-        (skippedCount > 0 ? ` (${skippedCount} cached checks were skipped)` : "") +
-        ".",
-    );
+    console.log(`[done]  ${failures.length} check(s) FAILED.`);
     process.exit(1);
   }
 }
 
-main().catch((err) => {
+main().catch((err: unknown) => {
   console.error("[check-selective] unexpected error:", err);
   process.exit(1);
 });
