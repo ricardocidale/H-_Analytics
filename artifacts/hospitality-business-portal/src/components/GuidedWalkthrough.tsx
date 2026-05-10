@@ -203,6 +203,7 @@ function GuidedWalkthrough() {
   const [step, setStep] = useState(0);
   const [savedStep, setSavedStep] = useState<number | null>(null);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
+  const [confirmingDismiss, setConfirmingDismiss] = useState(false);
   const hasAutoStarted = useRef(false);
   const lastTrigger = useRef(0);
 
@@ -293,12 +294,22 @@ function GuidedWalkthrough() {
 
   const handleSkip = useCallback(() => {
     saveTourStep(step);
+    setConfirmingDismiss(false);
     setTourActive(false);
   }, [step, setTourActive]);
+
+  const handleRequestDismiss = useCallback(() => {
+    setConfirmingDismiss(true);
+  }, []);
+
+  const handleCancelDismiss = useCallback(() => {
+    setConfirmingDismiss(false);
+  }, []);
 
   const handleDismissPermanently = useCallback(async () => {
     clearTourStep();
     setSavedStep(null);
+    setConfirmingDismiss(false);
     setTourActive(false);
     await updateTourPromptPreference(true);
     queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
@@ -420,14 +431,40 @@ function GuidedWalkthrough() {
         </div>
 
         <div className="mt-3 pt-3 border-t border-border/50 flex justify-center">
-          <button
-            type="button"
-            onClick={handleDismissPermanently}
-            className="text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-pointer"
-            data-testid="button-tour-dont-show-again"
-          >
-            Don't show again
-          </button>
+          {confirmingDismiss ? (
+            <div
+              className="flex items-center gap-2 text-xs text-muted-foreground"
+              data-testid="tour-dismiss-confirm"
+            >
+              <span>Are you sure? You won't be prompted again.</span>
+              <button
+                type="button"
+                onClick={handleDismissPermanently}
+                className="font-medium text-foreground/80 hover:text-foreground transition-colors cursor-pointer"
+                data-testid="button-tour-dont-show-again-confirm"
+              >
+                Yes
+              </button>
+              <span className="text-muted-foreground/40">·</span>
+              <button
+                type="button"
+                onClick={handleCancelDismiss}
+                className="text-muted-foreground/70 hover:text-muted-foreground transition-colors cursor-pointer"
+                data-testid="button-tour-dont-show-again-cancel"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleRequestDismiss}
+              className="text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-pointer"
+              data-testid="button-tour-dont-show-again"
+            >
+              Don't show again
+            </button>
+          )}
         </div>
       </div>
     </div>
