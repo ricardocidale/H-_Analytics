@@ -61,6 +61,7 @@ import {
   computeInputsHash,
   WORKSPACE_ROOT,
 } from "./lib/check-cache.js";
+import { classifyTrend } from "./lib/check-trend.js";
 
 // Per-check input-collection functions — imported directly from each check
 // script so drift between this driver and the individual checks is structurally
@@ -222,19 +223,10 @@ const SCRIPT_CHECKS: CheckSpec[] = [
 // ---------------------------------------------------------------------------
 
 /**
- * Return the 75th-percentile value from a numeric array (nearest-rank).
- * The array must be non-empty.
- */
-function p75(values: number[]): number {
-  const sorted = [...values].sort((a, b) => a - b);
-  const idx = Math.ceil(sorted.length * 0.75) - 1;
-  return sorted[Math.max(0, idx)];
-}
-
-/**
  * After the current run's record has been appended to the timing file, read
  * the full history and return the set of check labels whose duration in this
- * run exceeds the p75 of their last TREND_WINDOW prior runs by more than 20 %.
+ * run exceeds the p75 of their last TREND_WINDOW prior runs by more than
+ * REGRESSION_THRESHOLD.
  *
  * A check is only flagged when it has at least TREND_WINDOW prior data points
  * — sparse history never produces false positives.
@@ -277,10 +269,7 @@ function computeRegressions(currentResults: RunResult[]): Set<string> {
     // Require a full window before flagging — avoids false positives on new checks.
     if (window.length < TREND_WINDOW) continue;
 
-    const baseline = p75(window);
-    if (baseline <= 0) continue;
-
-    if (result.durationMs > baseline * 1.2) {
+    if (classifyTrend(window, result.durationMs) === "up") {
       regressed.add(result.label);
     }
   }
