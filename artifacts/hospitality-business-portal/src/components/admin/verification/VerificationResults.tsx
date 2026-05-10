@@ -122,7 +122,7 @@ export function VerificationResults({ results }: VerificationResultsProps) {
         <div key={pIdx} className="space-y-4">
           <div className="flex items-center justify-between border-b pb-2">
             <div>
-              <h3 className="text-lg font-bold text-foreground">{prop.propertyName}</h3>
+              <h3 className="text-lg font-bold font-display text-foreground">{prop.propertyName}</h3>
               <p className="text-xs text-muted-foreground">{prop.propertyType}</p>
             </div>
             <div className="flex items-center gap-4">
@@ -142,7 +142,7 @@ export function VerificationResults({ results }: VerificationResultsProps) {
 
       {/* Company Checks */}
       <div className="space-y-4 pt-4">
-        <h3 className="text-lg font-bold text-foreground border-b pb-2">Management Company Checks</h3>
+        <h3 className="text-lg font-bold font-display text-foreground border-b pb-2">Management Company Checks</h3>
         <div className="grid gap-2">
           {renderGroupedChecks(results.companyChecks, "company")}
         </div>
@@ -150,7 +150,7 @@ export function VerificationResults({ results }: VerificationResultsProps) {
 
       {/* Consolidated Checks */}
       <div className="space-y-4 pt-4">
-        <h3 className="text-lg font-bold text-foreground border-b pb-2">Consolidated Portfolio Checks</h3>
+        <h3 className="text-lg font-bold font-display text-foreground border-b pb-2">Consolidated Portfolio Checks</h3>
         <div className="grid gap-2">
           {renderGroupedChecks(results.consolidatedChecks, "consolidated")}
         </div>
@@ -159,7 +159,7 @@ export function VerificationResults({ results }: VerificationResultsProps) {
       {/* Known Value Tests */}
       {results.clientKnownValueTests && (
         <div className="space-y-4 pt-4">
-          <h3 className="text-lg font-bold text-foreground border-b pb-2">Known-Value Test Cases (Verification Workpaper)</h3>
+          <h3 className="text-lg font-bold font-display text-foreground border-b pb-2">Known-Value Test Cases (Verification Workpaper)</h3>
           <div className="p-4 rounded-xl bg-foreground font-mono text-[11px] leading-relaxed text-primary overflow-auto max-h-[400px]">
             {results.clientKnownValueTests.results.split('\n').map((line, i) => (
               <div key={i}>{line}</div>

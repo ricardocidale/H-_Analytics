@@ -217,7 +217,7 @@ export default function PropertyHeroImagesTab() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-foreground">Property Hero Images</h2>
+          <h2 className="text-xl font-semibold font-display text-foreground">Property Hero Images</h2>
           <p className="text-sm text-muted-foreground mt-1">
             {withImage.length} of {properties.length} properties have a hero image.
             Download individually or grab all as a ZIP.

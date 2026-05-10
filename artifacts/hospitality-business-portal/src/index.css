@@ -1,3 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -7,6 +10,7 @@
   /* Swiss Modernist Typography System */
   --font-sans: 'IBM Plex Sans', sans-serif;
   --font-display: 'IBM Plex Sans', sans-serif;
+  --font-body: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
   /* Border Radius */
@@ -331,7 +335,8 @@
     overflow-x: hidden;
   }
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply antialiased bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
     font-size: 14px;
     line-height: 1.5;
   }
@@ -343,6 +348,7 @@
   /* Base headings inherit font-family to allow overrides */
   h1, h2, h3, h4 {
     font-weight: 600;
+    font-family: 'IBM Plex Sans', sans-serif;
   }
 
   /* Display heading utilities */

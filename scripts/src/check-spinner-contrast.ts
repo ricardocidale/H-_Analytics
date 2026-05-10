@@ -406,92 +406,98 @@ function findEnclosingSaveButton(contextLines: string[]): boolean {
 
 const CACHE_NAME = "spinner-contrast";
 
-const cacheInputFiles: string[] = [fileURLToPath(import.meta.url)];
-for (const scanDir of SCAN_DIRS) {
-  const absDir = path.join(WORKSPACE_ROOT, scanDir);
-  if (!fs.existsSync(absDir)) continue;
-  for (const absPath of walkFiles(absDir)) cacheInputFiles.push(absPath);
+export function collectInputFiles(): string[] {
+  const files: string[] = [fileURLToPath(import.meta.url)];
+  for (const scanDir of SCAN_DIRS) {
+    const absDir = path.join(WORKSPACE_ROOT, scanDir);
+    if (!fs.existsSync(absDir)) continue;
+    for (const absPath of walkFiles(absDir)) files.push(absPath);
+  }
+  return files;
 }
 
-const cacheHash = computeInputsHash({ files: cacheInputFiles });
-if (tryCacheHit(CACHE_NAME, cacheHash)) process.exit(0);
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const cacheInputFiles = collectInputFiles();
+  const cacheHash = computeInputsHash({ files: cacheInputFiles });
+  if (tryCacheHit(CACHE_NAME, cacheHash)) process.exit(0);
 
-let violations = 0;
+  let violations = 0;
 
-for (const scanDir of SCAN_DIRS) {
-  const absDir = path.join(WORKSPACE_ROOT, scanDir);
-  if (!fs.existsSync(absDir)) continue;
+  for (const scanDir of SCAN_DIRS) {
+    const absDir = path.join(WORKSPACE_ROOT, scanDir);
+    if (!fs.existsSync(absDir)) continue;
 
-  for (const absPath of walkFiles(absDir)) {
-    if (isAllowed(absPath)) continue;
+    for (const absPath of walkFiles(absDir)) {
+      if (isAllowed(absPath)) continue;
 
-    const rel = path.relative(WORKSPACE_ROOT, absPath).replace(/\\/g, "/");
-    const lines = fs.readFileSync(absPath, "utf8").split("\n");
+      const rel = path.relative(WORKSPACE_ROOT, absPath).replace(/\\/g, "/");
+      const lines = fs.readFileSync(absPath, "utf8").split("\n");
 
-    for (let i = 0; i < lines.length; i++) {
-      // --- Guard 1: Loader2 with text-accent-pop ---
-      if (LOADER2_ACCENT_POP_RE.test(lines[i])) {
-        const start = Math.max(0, i - CONTEXT_LINES);
-        const spinnerPos = lines[i].search(LOADER2_ACCENT_POP_RE);
-        const spinnerLinePrefix = lines[i].slice(0, spinnerPos);
-        const context = [...lines.slice(start, i), spinnerLinePrefix];
+      for (let i = 0; i < lines.length; i++) {
+        // --- Guard 1: Loader2 with text-accent-pop ---
+        if (LOADER2_ACCENT_POP_RE.test(lines[i])) {
+          const start = Math.max(0, i - CONTEXT_LINES);
+          const spinnerPos = lines[i].search(LOADER2_ACCENT_POP_RE);
+          const spinnerLinePrefix = lines[i].slice(0, spinnerPos);
+          const context = [...lines.slice(start, i), spinnerLinePrefix];
 
-        if (findEnclosingDarkButton(context) !== -1 || findEnclosingSaveButton(context)) {
-          console.error(`VIOLATION  ${rel}:${i + 1}  ${lines[i].trim()}`);
-          violations++;
+          if (findEnclosingDarkButton(context) !== -1 || findEnclosingSaveButton(context)) {
+            console.error(`VIOLATION  ${rel}:${i + 1}  ${lines[i].trim()}`);
+            violations++;
+          }
         }
-      }
 
-      // --- Guard 2: Icon component with non-white colour inside dark Button ---
-      // Two regexes cover the two common shapes:
-      //   • ICON_NONWHITE_RE     — colour literal in a plain className string
-      //   • ICON_CN_NONWHITE_RE  — colour literal inside a cn() helper call
-      // We pick whichever matches first on the line so the prefix slice (used
-      // to anchor the context window) lines up with the actual icon tag.
-      const iconBaseMatch = ICON_NONWHITE_RE.test(lines[i]);
-      const iconCnMatch = !iconBaseMatch && ICON_CN_NONWHITE_RE.test(lines[i]);
-      if (iconBaseMatch || iconCnMatch) {
-        const activeRe = iconBaseMatch ? ICON_NONWHITE_RE : ICON_CN_NONWHITE_RE;
-        const start = Math.max(0, i - CONTEXT_LINES);
-        const iconPos = lines[i].search(activeRe);
-        const iconLinePrefix = lines[i].slice(0, iconPos);
-        const context = [...lines.slice(start, i), iconLinePrefix];
+        // --- Guard 2: Icon component with non-white colour inside dark Button ---
+        // Two regexes cover the two common shapes:
+        //   • ICON_NONWHITE_RE     — colour literal in a plain className string
+        //   • ICON_CN_NONWHITE_RE  — colour literal inside a cn() helper call
+        // We pick whichever matches first on the line so the prefix slice (used
+        // to anchor the context window) lines up with the actual icon tag.
+        const iconBaseMatch = ICON_NONWHITE_RE.test(lines[i]);
+        const iconCnMatch = !iconBaseMatch && ICON_CN_NONWHITE_RE.test(lines[i]);
+        if (iconBaseMatch || iconCnMatch) {
+          const activeRe = iconBaseMatch ? ICON_NONWHITE_RE : ICON_CN_NONWHITE_RE;
+          const start = Math.max(0, i - CONTEXT_LINES);
+          const iconPos = lines[i].search(activeRe);
+          const iconLinePrefix = lines[i].slice(0, iconPos);
+          const context = [...lines.slice(start, i), iconLinePrefix];
 
-        if (findEnclosingDarkButton(context) !== -1 || findEnclosingSaveButton(context)) {
-          console.error(`VIOLATION (icon-contrast)  ${rel}:${i + 1}  ${lines[i].trim()}`);
-          violations++;
+          if (findEnclosingDarkButton(context) !== -1 || findEnclosingSaveButton(context)) {
+            console.error(`VIOLATION (icon-contrast)  ${rel}:${i + 1}  ${lines[i].trim()}`);
+            violations++;
+          }
         }
       }
     }
   }
-}
 
-if (violations === 0) {
-  console.log(
-    "check:spinner-contrast  PASS — no contrast violations in dark-fill buttons"
-  );
-  writeCacheHit(CACHE_NAME, cacheHash);
-  process.exit(0);
-} else {
-  console.error(
-    `\ncheck:spinner-contrast  FAIL — ${violations} violation(s) found`
-  );
-  console.error("");
-  console.error("Guard 1 fix (Loader2): Replace `text-accent-pop` with `text-white` on the Loader2.");
-  console.error("Guard 2 fix (Icons):   Replace the non-white colour class with `text-white`");
-  console.error("                       or remove it so the icon inherits text-primary-foreground.");
-  console.error("");
-  console.error("EXAMPLES:");
-  console.error(
-    "  {/* Spinner sits on bg-primary (sage); text-white keeps WCAG 3:1 contrast. */}"
-  );
-  console.error('  <Loader2 className="w-4 h-4 animate-spin text-white" />');
-  console.error('  <PlusIcon className="w-4 h-4 text-white" />');
-  console.error('  <PlusIcon className="w-4 h-4" />  {/* inherits text-primary-foreground */}');
-  console.error("");
-  console.error(
-    "To allow a specific file permanently, add it to ALLOWED_FILES in"
-  );
-  console.error("scripts/src/check-spinner-contrast.ts with an explanatory comment.");
-  process.exit(1);
+  if (violations === 0) {
+    console.log(
+      "check:spinner-contrast  PASS — no contrast violations in dark-fill buttons"
+    );
+    writeCacheHit(CACHE_NAME, cacheHash);
+    process.exit(0);
+  } else {
+    console.error(
+      `\ncheck:spinner-contrast  FAIL — ${violations} violation(s) found`
+    );
+    console.error("");
+    console.error("Guard 1 fix (Loader2): Replace `text-accent-pop` with `text-white` on the Loader2.");
+    console.error("Guard 2 fix (Icons):   Replace the non-white colour class with `text-white`");
+    console.error("                       or remove it so the icon inherits text-primary-foreground.");
+    console.error("");
+    console.error("EXAMPLES:");
+    console.error(
+      "  {/* Spinner sits on bg-primary (sage); text-white keeps WCAG 3:1 contrast. */}"
+    );
+    console.error('  <Loader2 className="w-4 h-4 animate-spin text-white" />');
+    console.error('  <PlusIcon className="w-4 h-4 text-white" />');
+    console.error('  <PlusIcon className="w-4 h-4" />  {/* inherits text-primary-foreground */}');
+    console.error("");
+    console.error(
+      "To allow a specific file permanently, add it to ALLOWED_FILES in"
+    );
+    console.error("scripts/src/check-spinner-contrast.ts with an explanatory comment.");
+    process.exit(1);
+  }
 }

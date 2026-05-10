@@ -70,7 +70,7 @@ function fail(violations: string[]): never {
 
 const CACHE_NAME = "migration-guards";
 
-function collectInputFiles(): string[] {
+export function collectInputFiles(): string[] {
   const files: string[] = [
     fileURLToPath(import.meta.url),
     JOURNAL_PATH,
@@ -178,4 +178,6 @@ function main(): void {
   writeCacheHit(CACHE_NAME, cacheHash);
 }
 
-main();
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main();
+}

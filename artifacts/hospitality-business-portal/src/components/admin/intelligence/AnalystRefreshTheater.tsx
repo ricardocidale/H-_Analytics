@@ -53,7 +53,7 @@ export default function AnalystRefreshTheater({ tableLabel, narration, onCancel 
             </div>
           </div>
         </div>
-        <h2 className="text-2xl font-semibold mb-2">Gustavo is researching</h2>
+        <h2 className="text-2xl font-semibold font-display mb-2">Gustavo is researching</h2>
         <p className="text-sm text-muted-foreground mb-6">{tableLabel}</p>
         <div className="min-h-[3rem] flex items-center justify-center" aria-live="polite">
           <p className="text-base text-foreground/90 transition-opacity duration-500" data-testid="text-narration">

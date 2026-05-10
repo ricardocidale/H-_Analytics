@@ -330,7 +330,7 @@ export default function VerificationTab() {
       <CardHeader className="relative">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
-            <CardTitle className="text-2xl font-semibold tracking-tight text-foreground">
+            <CardTitle className="text-2xl font-semibold font-display tracking-tight text-foreground">
               GAAP Financial Verification
             </CardTitle>
             <CardDescription className="text-muted-foreground font-medium max-w-2xl">

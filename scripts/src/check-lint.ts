@@ -68,7 +68,7 @@ const ESLINT_CONFIGS = [
   path.join(WORKSPACE_ROOT, "lib/shared/eslint.config.mjs"),
 ];
 
-function collectInputFiles(): string[] {
+export function collectInputFiles(): string[] {
   const files: string[] = [fileURLToPath(import.meta.url)];
 
   for (const dir of SOURCE_DIRS) {
@@ -91,20 +91,22 @@ function collectInputFiles(): string[] {
 // Main
 // ---------------------------------------------------------------------------
 
-const cacheHash = computeInputsHash({ files: collectInputFiles() });
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const cacheHash = computeInputsHash({ files: collectInputFiles() });
 
-if (tryCacheHit(CACHE_NAME, cacheHash)) {
+  if (tryCacheHit(CACHE_NAME, cacheHash)) {
+    process.exit(0);
+  }
+
+  try {
+    execSync("pnpm -r --if-present run lint", {
+      cwd: WORKSPACE_ROOT,
+      stdio: "inherit",
+    });
+  } catch {
+    process.exit(1);
+  }
+
+  writeCacheHit(CACHE_NAME, cacheHash);
   process.exit(0);
 }
-
-try {
-  execSync("pnpm -r --if-present run lint", {
-    cwd: WORKSPACE_ROOT,
-    stdio: "inherit",
-  });
-} catch {
-  process.exit(1);
-}
-
-writeCacheHit(CACHE_NAME, cacheHash);
-process.exit(0);

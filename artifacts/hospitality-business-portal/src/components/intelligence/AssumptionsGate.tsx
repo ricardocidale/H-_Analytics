@@ -31,7 +31,7 @@ export function AssumptionsGate({ missingTabs, pageLabel = "this page" }: Assump
         >
           <div className="flex items-center gap-3 mb-3">
             <IconAlertTriangle className="w-6 h-6 text-amber-500 flex-shrink-0" />
-            <h2 className="text-lg font-semibold" data-testid="text-gate-title">
+            <h2 className="text-lg font-semibold font-display" data-testid="text-gate-title">
               Save your Company Assumptions first
             </h2>
           </div>

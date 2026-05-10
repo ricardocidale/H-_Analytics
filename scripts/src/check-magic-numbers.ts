@@ -293,9 +293,6 @@ function buildDuplicationMap(): DuplicationMap {
 // Modes
 // ---------------------------------------------------------------------------
 
-const args = process.argv.slice(2);
-const mode = args[0] ?? "check";
-
 // ---------------------------------------------------------------------------
 // Input-hash cache (task #1214) — short-circuits the default ratchet mode
 // when no input file has changed since the last successful run.
@@ -303,7 +300,7 @@ const mode = args[0] ?? "check";
 
 const CACHE_NAME = "magic-numbers";
 
-function collectInputFiles(): string[] {
+export function collectInputFiles(): string[] {
   const files: string[] = [fileURLToPath(import.meta.url), BASELINE_PATH];
   const collect = (dir: string, excludeDirs?: Set<string>): void => {
     const absDir = path.join(WORKSPACE_ROOT, dir);
@@ -314,97 +311,102 @@ function collectInputFiles(): string[] {
   return files;
 }
 
-let cacheHash: string | null = null;
-if (mode !== "--show" && mode !== "--init" && mode !== "--strict") {
-  cacheHash = computeInputsHash({
-    files: collectInputFiles(),
-    extra: `threshold=${DUPLICATION_THRESHOLD}`,
-  });
-  if (tryCacheHit(CACHE_NAME, cacheHash)) process.exit(0);
-}
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const args = process.argv.slice(2);
+  const mode = args[0] ?? "check";
 
-const current = buildDuplicationMap();
+  let cacheHash: string | null = null;
+  if (mode !== "--show" && mode !== "--init" && mode !== "--strict") {
+    cacheHash = computeInputsHash({
+      files: collectInputFiles(),
+      extra: `threshold=${DUPLICATION_THRESHOLD}`,
+    });
+    if (tryCacheHit(CACHE_NAME, cacheHash)) process.exit(0);
+  }
 
-if (mode === "--show") {
-  const suspects = Object.entries(current).sort((a, b) => b[1].length - a[1].length);
-  if (suspects.length === 0) {
-    console.log("No cross-file numeric literal duplications above threshold.");
+  const current = buildDuplicationMap();
+
+  if (mode === "--show") {
+    const suspects = Object.entries(current).sort((a, b) => b[1].length - a[1].length);
+    if (suspects.length === 0) {
+      console.log("No cross-file numeric literal duplications above threshold.");
+      process.exit(0);
+    }
+    console.log(`\nMagic-number duplication suspects (${DUPLICATION_THRESHOLD}+ files):\n`);
+    for (const [value, files] of suspects) {
+      console.log(`  ${value}  (${files.length} files)`);
+      for (const f of files) console.log(`    ${f}`);
+    }
+    console.log(`\nTotal suspects: ${suspects.length}`);
     process.exit(0);
   }
-  console.log(`\nMagic-number duplication suspects (${DUPLICATION_THRESHOLD}+ files):\n`);
-  for (const [value, files] of suspects) {
-    console.log(`  ${value}  (${files.length} files)`);
-    for (const f of files) console.log(`    ${f}`);
-  }
-  console.log(`\nTotal suspects: ${suspects.length}`);
-  process.exit(0);
-}
 
-if (mode === "--init") {
-  fs.writeFileSync(BASELINE_PATH, JSON.stringify(current, null, 2) + "\n", "utf8");
-  const count = Object.keys(current).length;
-  console.log(`Baseline written to ${path.relative(WORKSPACE_ROOT, BASELINE_PATH)}`);
-  console.log(`${count} value(s) at or above threshold locked in.`);
-  process.exit(0);
-}
-
-if (mode === "--strict") {
-  const suspects = Object.keys(current);
-  if (suspects.length === 0) {
-    console.log("check:magic-numbers --strict  PASS — no duplications found");
+  if (mode === "--init") {
+    fs.writeFileSync(BASELINE_PATH, JSON.stringify(current, null, 2) + "\n", "utf8");
+    const count = Object.keys(current).length;
+    console.log(`Baseline written to ${path.relative(WORKSPACE_ROOT, BASELINE_PATH)}`);
+    console.log(`${count} value(s) at or above threshold locked in.`);
     process.exit(0);
   }
-  console.error(`check:magic-numbers --strict  FAIL — ${suspects.length} duplication(s) found`);
-  for (const [value, files] of Object.entries(current)) {
-    console.error(`  ${value}: ${files.length} files`);
+
+  if (mode === "--strict") {
+    const suspects = Object.keys(current);
+    if (suspects.length === 0) {
+      console.log("check:magic-numbers --strict  PASS — no duplications found");
+      process.exit(0);
+    }
+    console.error(`check:magic-numbers --strict  FAIL — ${suspects.length} duplication(s) found`);
+    for (const [value, files] of Object.entries(current)) {
+      console.error(`  ${value}: ${files.length} files`);
+    }
+    process.exit(1);
   }
-  process.exit(1);
-}
 
-// Default: ratchet check against baseline
-if (!fs.existsSync(BASELINE_PATH)) {
-  console.error(`Baseline not found: ${BASELINE_PATH}`);
-  console.error("Run: tsx scripts/src/check-magic-numbers.ts --init");
-  process.exit(1);
-}
-
-const baseline: DuplicationMap = JSON.parse(fs.readFileSync(BASELINE_PATH, "utf8"));
-
-let regressions = 0;
-let improvements = 0;
-
-// Check existing baseline values
-for (const [value, baseFiles] of Object.entries(baseline)) {
-  const currFiles = current[value];
-  if (!currFiles) {
-    improvements++;
-    continue;
+  // Default: ratchet check against baseline
+  if (!fs.existsSync(BASELINE_PATH)) {
+    console.error(`Baseline not found: ${BASELINE_PATH}`);
+    console.error("Run: tsx scripts/src/check-magic-numbers.ts --init");
+    process.exit(1);
   }
-  if (currFiles.length > baseFiles.length) {
-    const newFiles = currFiles.filter(f => !baseFiles.includes(f));
-    console.error(`REGRESSION  ${value}: ${baseFiles.length} → ${currFiles.length} files (+${newFiles.join(", ")})`);
-    regressions++;
-  }
-}
 
-// Check for brand-new suspects not in baseline
-for (const [value, currFiles] of Object.entries(current)) {
-  if (!(value in baseline)) {
-    console.error(`NEW SUSPECT  ${value}: ${currFiles.length} files (${currFiles.join(", ")})`);
-    regressions++;
-  }
-}
+  const baseline: DuplicationMap = JSON.parse(fs.readFileSync(BASELINE_PATH, "utf8"));
 
-if (regressions === 0) {
-  const summary = improvements > 0
-    ? `PASS — ${improvements} improvement(s) since baseline`
-    : "PASS — no regressions";
-  console.log(`check:magic-numbers  ${summary}`);
-  if (cacheHash) writeCacheHit(CACHE_NAME, cacheHash);
-  process.exit(0);
-} else {
-  console.error(`\ncheck:magic-numbers  FAIL — ${regressions} regression(s)`);
-  console.error("Fix: promote the literal to a named constant in lib/shared/src/constants*.ts");
-  console.error("then re-run tsx scripts/src/check-magic-numbers.ts --init to lock in the gain.");
-  process.exit(1);
+  let regressions = 0;
+  let improvements = 0;
+
+  // Check existing baseline values
+  for (const [value, baseFiles] of Object.entries(baseline)) {
+    const currFiles = current[value];
+    if (!currFiles) {
+      improvements++;
+      continue;
+    }
+    if (currFiles.length > baseFiles.length) {
+      const newFiles = currFiles.filter(f => !baseFiles.includes(f));
+      console.error(`REGRESSION  ${value}: ${baseFiles.length} → ${currFiles.length} files (+${newFiles.join(", ")})`);
+      regressions++;
+    }
+  }
+
+  // Check for brand-new suspects not in baseline
+  for (const [value, currFiles] of Object.entries(current)) {
+    if (!(value in baseline)) {
+      console.error(`NEW SUSPECT  ${value}: ${currFiles.length} files (${currFiles.join(", ")})`);
+      regressions++;
+    }
+  }
+
+  if (regressions === 0) {
+    const summary = improvements > 0
+      ? `PASS — ${improvements} improvement(s) since baseline`
+      : "PASS — no regressions";
+    console.log(`check:magic-numbers  ${summary}`);
+    if (cacheHash) writeCacheHit(CACHE_NAME, cacheHash);
+    process.exit(0);
+  } else {
+    console.error(`\ncheck:magic-numbers  FAIL — ${regressions} regression(s)`);
+    console.error("Fix: promote the literal to a named constant in lib/shared/src/constants*.ts");
+    console.error("then re-run tsx scripts/src/check-magic-numbers.ts --init to lock in the gain.");
+    process.exit(1);
+  }
 }
