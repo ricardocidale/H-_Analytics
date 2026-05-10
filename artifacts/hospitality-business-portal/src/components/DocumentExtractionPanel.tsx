@@ -936,6 +936,7 @@ export default function DocumentExtractionPanel({ propertyId }: { propertyId: nu
           <DialogFooter>
             <Button variant="outline" onClick={() => setCollisionState(null)}>Cancel</Button>
             <Button onClick={confirmCollisionApply} disabled={applyMutation.isPending} data-testid="button-collision-confirm">
+              {applyMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
               Apply selections
             </Button>
           </DialogFooter>

@@ -119,7 +119,7 @@ export default function RefreshDiffDialog({
           </div>
         )}
 
-        <DialogFooter className="mt-4">
+        <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onDiscard} disabled={isCommitting} data-testid="button-discard">
             Discard
           </Button>

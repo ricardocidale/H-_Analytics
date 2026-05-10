@@ -12,6 +12,7 @@ import {
   IconBookmark, IconPlay, IconTrash, IconHistory, IconRefreshCw,
   IconDownload, IconUpload,
 } from "@/components/icons";
+import { Loader2 } from "@/components/icons/themed-icons";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { RebeccaSettings } from "@shared/rebecca-settings";
@@ -423,7 +424,7 @@ export function RebeccaFixturesPanel({
             data-testid="button-import-fixture"
             title="Import a fixture exported from another environment"
           >
-            <IconUpload className="w-3.5 h-3.5" />
+            {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <IconUpload className="w-3.5 h-3.5" />}
             {importing ? "Importing…" : "Import fixture"}
           </Button>
           <Button
@@ -590,7 +591,7 @@ export function RebeccaFixturesPanel({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setSaveOpen(false)} data-testid="button-cancel-save-fixture">
+            <Button variant="outline" onClick={() => setSaveOpen(false)} data-testid="button-cancel-save-fixture">
               Cancel
             </Button>
             <Button
@@ -598,6 +599,7 @@ export function RebeccaFixturesPanel({
               disabled={saveMutation.isPending || !saveName.trim()}
               data-testid="button-confirm-save-fixture"
             >
+              {saveMutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               {saveMutation.isPending ? "Saving…" : "Save fixture"}
             </Button>
           </DialogFooter>
@@ -641,7 +643,7 @@ export function RebeccaFixturesPanel({
                   history reset.
                 </p>
               </div>
-              <DialogFooter className="gap-2 sm:gap-2">
+              <DialogFooter className="gap-2">
                 <Button
                   variant="ghost"
                   onClick={() => setConflict(null)}
@@ -656,6 +658,7 @@ export function RebeccaFixturesPanel({
                   disabled={importing}
                   data-testid="button-import-overwrite"
                 >
+                  {importing && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                   {importing ? "Working…" : "Overwrite existing"}
                 </Button>
                 <Button
@@ -678,6 +681,7 @@ export function RebeccaFixturesPanel({
                   disabled={importing}
                   data-testid="button-import-rename"
                 >
+                  {importing && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                   {importing ? "Working…" : "Import with new name"}
                 </Button>
               </DialogFooter>

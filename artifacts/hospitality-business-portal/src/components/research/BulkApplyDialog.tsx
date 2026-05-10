@@ -199,7 +199,7 @@ function BulkApplyDialog({
           )}
         </div>
 
-        <DialogFooter className="border-t border-border pt-3">
+        <DialogFooter className="border-t border-border pt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="button-cancel-bulk-apply">
             Cancel
           </Button>

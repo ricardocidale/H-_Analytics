@@ -779,7 +779,7 @@ export default function PropertyEdit() {
               })()}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="flex gap-2 sm:justify-end">
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:justify-end">
             <Button variant="outline" onClick={handleIntelligenceLater} data-testid="button-intelligence-later">
               Later
             </Button>
