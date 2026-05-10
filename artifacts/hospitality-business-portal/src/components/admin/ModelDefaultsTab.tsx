@@ -216,6 +216,17 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
               onAnalystRefresh={analyst.triggerRefresh}
               analystRunning={analyst.running}
               analystCooldownMs={analyst.cooldownRemainingMs}
+              isDirty={isDirty}
+              isPending={saveMutation.isPending}
+              onSave={() => saveRef.current?.()}
+              onReset={() => {
+                if (saved) {
+                  const reset = { ...saved };
+                  setDraft(reset);
+                  draftRef.current = reset;
+                  setIsDirty(false);
+                }
+              }}
             />
           </TabsContent>
         )}
