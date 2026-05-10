@@ -21,8 +21,18 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 import NotificationCenter from "@/components/NotificationCenter";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown } from "@/components/icons/themed-icons";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  SidebarProvider,
+} from "@/components/ui/sidebar";
 
 import GuidedWalkthrough, { useWalkthroughStore } from "@/components/GuidedWalkthrough";
 import { ResearchQueueIndicator } from "@/components/research/ResearchQueueIndicator";
@@ -94,97 +104,72 @@ interface NavGroupDef {
   label: string;
   items: NavLink[];
   dividerAfter?: boolean;
-  collapsible?: boolean;
-  defaultOpen?: boolean;
-}
-
-function NavItems({ items, isActiveLink, onNavigate }: { items: NavLink[]; isActiveLink: (href: string) => boolean; onNavigate?: () => void }) {
-  return (
-    <ul className="space-y-0.5">
-      {items.map((item) => {
-        const active = isActiveLink(item.href);
-        const isAction = item.href.startsWith("#");
-        return (
-          <li key={item.href}>
-            {isAction ? (
-              <Button
-                variant="ghost"
-                onClick={() => { item.onClick?.(); onNavigate?.(); }}
-                className={cn(
-                  "flex items-center gap-2.5 w-full h-8 px-3 rounded-md text-[13px] transition-colors justify-start",
-                  active ? "bg-muted text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                )}
-                data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-              >
-                <item.icon className="w-4 h-4 shrink-0" />
-                <span>{item.label}</span>
-              </Button>
-            ) : (
-              <Link href={item.href} onClick={onNavigate}>
-                <span
-                  className={cn(
-                    "flex items-center gap-2.5 w-full h-8 px-3 rounded-md text-[13px] transition-colors",
-                    active ? "bg-muted text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                  )}
-                  data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-                >
-                  <item.icon className="w-4 h-4 shrink-0" />
-                  <span>{item.label}</span>
-                </span>
-              </Link>
-            )}
-          </li>
-        );
-      })}
-    </ul>
-  );
 }
 
 function SidebarNav({ groups, isActiveLink, onNavigate }: { groups: NavGroupDef[]; isActiveLink: (href: string) => boolean; onNavigate?: () => void }) {
   return (
-    <nav className="flex-1 overflow-y-auto px-2 pt-1 space-y-1">
-      {groups.filter(g => g.items.length > 0).map((group, idx) => {
-        const key = group.label || `misc-${idx}`;
-        if (group.collapsible && group.label) {
-          const groupHasActive = group.items.some(it => isActiveLink(it.href));
-          const open = group.defaultOpen ?? groupHasActive;
-          return (
-            <div key={key}>
-              <Collapsible defaultOpen={open}>
-                <CollapsibleTrigger
-                  className="group/collapsible flex items-center justify-between w-full px-3 pb-1 pt-2 text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors"
-                  data-testid={`nav-group-${group.label.toLowerCase().replace(/\s+/g, '-')}`}
-                >
-                  <span>{group.label}</span>
-                  <ChevronDown className="w-3.5 h-3.5 shrink-0 transition-transform group-data-[state=closed]/collapsible:-rotate-90" />
-                </CollapsibleTrigger>
-                <CollapsibleContent className="overflow-hidden">
-                  <div className="py-1">
-                    <NavItems items={group.items} isActiveLink={isActiveLink} onNavigate={onNavigate} />
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-              {group.dividerAfter && (
-                <div className="mx-3 my-1 border-b border-sidebar-border" />
-              )}
-            </div>
-          );
-        }
-        return (
-          <div key={key}>
-            <div className="py-1">
-              {group.label && (
-                <p className="text-[11px] font-medium text-muted-foreground px-3 pb-1 pt-2">{group.label}</p>
-              )}
-              <NavItems items={group.items} isActiveLink={isActiveLink} onNavigate={onNavigate} />
-            </div>
-            {group.dividerAfter && (
-              <div className="mx-3 my-1 border-b border-sidebar-border" />
-            )}
-          </div>
-        );
-      })}
-    </nav>
+    <SidebarProvider
+      defaultOpen
+      className="min-h-0 w-full bg-transparent"
+      style={{ "--sidebar-width": "100%" } as React.CSSProperties}
+    >
+      <Sidebar collapsible="none" className="w-full bg-transparent text-sidebar-foreground">
+        <SidebarContent className="bg-transparent gap-1 px-2 py-2">
+          {groups.filter(g => g.items.length > 0).map((group, idx) => {
+            const key = group.label || `misc-${idx}`;
+            return (
+              <SidebarGroup key={key} className="p-0">
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    {group.label && (
+                      <SidebarGroupLabel className="mb-0.5 gap-1.5">
+                        <span className="truncate tracking-wide">{group.label}</span>
+                      </SidebarGroupLabel>
+                    )}
+                    <SidebarMenuSub>
+                      {group.items.map((item) => {
+                        const active = isActiveLink(item.href);
+                        const isAction = item.href.startsWith("#");
+                        return (
+                          <SidebarMenuSubItem key={item.href}>
+                            {isAction ? (
+                              <SidebarMenuSubButton
+                                isActive={active}
+                                onClick={() => { item.onClick?.(); onNavigate?.(); }}
+                                className="cursor-pointer"
+                                data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                              >
+                                <item.icon className="size-4 shrink-0" />
+                                <span className="truncate">{item.label}</span>
+                              </SidebarMenuSubButton>
+                            ) : (
+                              <SidebarMenuSubButton
+                                isActive={active}
+                                asChild
+                              >
+                                <Link
+                                  href={item.href}
+                                  onClick={onNavigate}
+                                  data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                                >
+                                  <item.icon className="size-4 shrink-0" />
+                                  <span className="truncate">{item.label}</span>
+                                </Link>
+                              </SidebarMenuSubButton>
+                            )}
+                          </SidebarMenuSubItem>
+                        );
+                      })}
+                    </SidebarMenuSub>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+                {group.dividerAfter && <div className="mx-2 border-t border-border/50 mt-1" />}
+              </SidebarGroup>
+            );
+          })}
+        </SidebarContent>
+      </Sidebar>
+    </SidebarProvider>
   );
 }
 
