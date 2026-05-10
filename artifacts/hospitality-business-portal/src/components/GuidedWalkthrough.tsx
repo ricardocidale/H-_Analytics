@@ -6,6 +6,35 @@ import { useAuth } from "@/lib/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { create } from "zustand";
 
+const TOUR_STEP_KEY = "hplus_tour_step";
+
+function getSavedTourStep(): number | null {
+  try {
+    const val = localStorage.getItem(TOUR_STEP_KEY);
+    if (val === null) return null;
+    const n = parseInt(val, 10);
+    return isNaN(n) || n < 0 ? null : n;
+  } catch {
+    return null;
+  }
+}
+
+function saveTourStep(step: number): void {
+  try {
+    localStorage.setItem(TOUR_STEP_KEY, String(step));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function clearTourStep(): void {
+  try {
+    localStorage.removeItem(TOUR_STEP_KEY);
+  } catch {
+    // ignore storage errors
+  }
+}
+
 interface WalkthroughState {
   shownThisSession: boolean;
   tourActive: boolean;
@@ -54,10 +83,21 @@ function getTourSteps(firstName?: string | null) {
   ];
 }
 
-function TourPromptDialog({ onAccept, onDecline }: { onAccept: () => void; onDecline: (neverAgain: boolean) => void }) {
+function TourPromptDialog({
+  onAccept,
+  onDecline,
+  savedStep,
+  totalSteps,
+}: {
+  onAccept: (fromStep: number) => void;
+  onDecline: (neverAgain: boolean) => void;
+  savedStep: number | null;
+  totalSteps: number;
+}) {
   const [dontOffer, setDontOffer] = useState(false);
   const { user } = useAuth();
   const firstName = user?.firstName;
+  const hasProgress = savedStep !== null && savedStep > 0 && savedStep < totalSteps;
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center" data-testid="tour-prompt-dialog">
@@ -84,27 +124,57 @@ function TourPromptDialog({ onAccept, onDecline }: { onAccept: () => void; onDec
               {firstName ? `Welcome, ${firstName}` : "Welcome"}
             </h2>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-sm">
-              Take a quick guided tour to see how the portal works — navigation, key features, and where to find everything. It only takes a minute.
+              {hasProgress
+                ? `You paused the tour at step ${savedStep! + 1} of ${totalSteps}. Pick up where you left off, or start from the beginning.`
+                : "Take a quick guided tour to see how the portal works — navigation, key features, and where to find everything. It only takes a minute."}
             </p>
           </div>
 
-          <div className="flex items-center gap-3 w-full pt-1">
-            <Button
-              variant="secondary"
-              onClick={() => onDecline(dontOffer)}
-              className="flex-1"
-              data-testid="button-tour-decline"
-            >
-              Skip
-            </Button>
-            <Button
-              onClick={onAccept}
-              className="flex-1"
-              data-testid="button-tour-accept"
-            >
-              Start Tour
-            </Button>
-          </div>
+          {hasProgress ? (
+            <div className="flex flex-col gap-2.5 w-full pt-1">
+              <Button
+                onClick={() => onAccept(savedStep!)}
+                className="w-full"
+                data-testid="button-tour-resume"
+              >
+                Resume from step {savedStep! + 1}
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => onAccept(0)}
+                className="w-full"
+                data-testid="button-tour-accept"
+              >
+                Start from beginning
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => onDecline(dontOffer)}
+                className="w-full text-muted-foreground"
+                data-testid="button-tour-decline"
+              >
+                Skip
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 w-full pt-1">
+              <Button
+                variant="secondary"
+                onClick={() => onDecline(dontOffer)}
+                className="flex-1"
+                data-testid="button-tour-decline"
+              >
+                Skip
+              </Button>
+              <Button
+                onClick={() => onAccept(0)}
+                className="flex-1"
+                data-testid="button-tour-accept"
+              >
+                Start Tour
+              </Button>
+            </div>
+          )}
 
           <label className="flex items-center gap-2 cursor-pointer group" data-testid="label-dont-offer-again">
             <input
@@ -131,6 +201,7 @@ function GuidedWalkthrough() {
   const tourSteps = getTourSteps(user?.firstName);
   const [showPrompt, setShowPromptLocal] = useState(false);
   const [step, setStep] = useState(0);
+  const [savedStep, setSavedStep] = useState<number | null>(null);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const hasAutoStarted = useRef(false);
   const lastTrigger = useRef(0);
@@ -145,6 +216,7 @@ function GuidedWalkthrough() {
       lastTrigger.current = triggerCount;
       setTourActive(false);
       setStep(0);
+      setSavedStep(getSavedTourStep());
       setShowPrompt(true);
     }
   }, [triggerCount, setTourActive, setShowPrompt]);
@@ -153,6 +225,7 @@ function GuidedWalkthrough() {
     if (user && !user.hideTourPrompt && !shownThisSession && !hasAutoStarted.current) {
       hasAutoStarted.current = true;
       const timer = setTimeout(() => {
+        setSavedStep(getSavedTourStep());
         setShowPrompt(true);
         setShownThisSession(true);
       }, 800);
@@ -161,10 +234,10 @@ function GuidedWalkthrough() {
     return undefined;
   }, [user, shownThisSession, setShownThisSession, setShowPrompt]);
 
-  const handleAcceptTour = useCallback(() => {
+  const handleAcceptTour = useCallback((fromStep: number) => {
     setShowPrompt(false);
     setTourActive(true);
-    setStep(0);
+    setStep(fromStep);
   }, [setTourActive, setShowPrompt]);
 
   const handleDeclineTour = useCallback(async (neverAgain: boolean) => {
@@ -206,6 +279,8 @@ function GuidedWalkthrough() {
     if (step < tourSteps.length - 1) {
       setStep(step + 1);
     } else {
+      clearTourStep();
+      setSavedStep(null);
       setTourActive(false);
     }
   }, [step, setTourActive]);
@@ -217,11 +292,19 @@ function GuidedWalkthrough() {
   }, [step]);
 
   const handleSkip = useCallback(() => {
+    saveTourStep(step);
     setTourActive(false);
-  }, [setTourActive]);
+  }, [step, setTourActive]);
 
   if (showPrompt) {
-    return <TourPromptDialog onAccept={handleAcceptTour} onDecline={handleDeclineTour} />;
+    return (
+      <TourPromptDialog
+        onAccept={handleAcceptTour}
+        onDecline={handleDeclineTour}
+        savedStep={savedStep}
+        totalSteps={tourSteps.length}
+      />
+    );
   }
 
   if (!tourActive || !targetRect) return null;
