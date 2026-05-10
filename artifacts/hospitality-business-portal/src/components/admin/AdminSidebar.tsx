@@ -337,6 +337,20 @@ export function AdminSidebarNav({ activeSection, onSectionChange }: AdminSidebar
             </SidebarMenu>
           </SidebarGroup>
 
+          {/* AI Intelligence — top-level link to the AI Intelligence area (specialists, sources, LLMs, benchmarks). */}
+          <SidebarGroup className="p-0">
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={location.startsWith("/ai-intelligence")} tooltip="AI Intelligence">
+                  <Link href="/ai-intelligence" data-testid="admin-nav-ai-intelligence">
+                    <IconBot className="size-4 shrink-0" />
+                    <span className="truncate">AI Intelligence</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
+
           {/* Separator: navigation landmarks above, settings groups below */}
           <div className="mx-2 border-t border-border/50" />
 

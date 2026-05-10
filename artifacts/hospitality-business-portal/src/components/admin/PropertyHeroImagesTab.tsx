@@ -184,7 +184,7 @@ export default function PropertyHeroImagesTab() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24 text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin mr-3" />
+        <Loader2 className="h-6 w-6 animate-spin mr-3 text-accent-pop" />
         Loading properties…
       </div>
     );
@@ -226,7 +226,7 @@ export default function PropertyHeroImagesTab() {
             className="text-xs text-muted-foreground/80 mt-1 flex items-center gap-1.5"
             data-testid="text-hero-grid-freshness"
           >
-            {isFetching && <Loader2 className="h-3 w-3 animate-spin" />}
+            {isFetching && <Loader2 className="h-3 w-3 animate-spin text-accent-pop" />}
             <span>{updatedLabel}</span>
             <span className="opacity-50">·</span>
             <span>Auto-refreshes when you change a hero in the photo album.</span>

@@ -365,7 +365,7 @@ export default function SlideDecksTab() {
   if (propsLoading) {
     return (
       <div className="flex items-center justify-center py-24 text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin mr-3" />
+        <Loader2 className="h-6 w-6 animate-spin mr-3 text-accent-pop" />
         Loading properties…
       </div>
     );
@@ -401,7 +401,7 @@ export default function SlideDecksTab() {
 
       {renderQueueStats && (renderQueueStats.activeCount > 0 || renderQueueStats.pendingCount > 0) && (
         <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          <Loader2 className="h-3 w-3 animate-spin shrink-0" />
+          <Loader2 className="h-3 w-3 animate-spin shrink-0 text-accent-pop" />
           <span>
             {renderQueueStats.activeCount > 0 && (
               <span className="text-blue-600 dark:text-blue-400 font-medium">

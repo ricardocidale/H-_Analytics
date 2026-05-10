@@ -369,7 +369,7 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
   if (isLoading || !form) {
     return (
       <div className="flex items-center gap-3 text-muted-foreground py-12 justify-center">
-        <Loader2 className="h-5 w-5 animate-spin" />
+        <Loader2 className="h-5 w-5 animate-spin text-accent-pop" />
         Loading editor…
       </div>
     );
@@ -545,7 +545,7 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
                 </div>
                 {thisRowDrafting && (
                   <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <Loader2 className="h-3 w-3 animate-spin text-accent-pop" />
                     Drafting row {i + 1}…
                   </p>
                 )}

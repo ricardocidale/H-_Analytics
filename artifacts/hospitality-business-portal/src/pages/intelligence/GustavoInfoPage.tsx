@@ -27,7 +27,7 @@ type ProbeStatus = "idle" | "checking" | "healthy" | "degraded" | "error";
 
 function StatusDot({ status }: { status: ProbeStatus }) {
   if (status === "checking") {
-    return <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" aria-label="Checking status…" />;
+    return <Loader2 className="w-4 h-4 animate-spin text-accent-pop" aria-label="Checking status…" />;
   }
   const colorMap: Record<ProbeStatus, string> = {
     idle:     "bg-muted-foreground/40",

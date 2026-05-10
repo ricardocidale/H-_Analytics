@@ -90,7 +90,7 @@ export function Slide6EditorPanel({ propertyId }: { propertyId: number }) {
   if (isLoading || !form) {
     return (
       <div className="flex items-center gap-3 text-muted-foreground py-12 justify-center">
-        <Loader2 className="h-5 w-5 animate-spin" />
+        <Loader2 className="h-5 w-5 animate-spin text-accent-pop" />
         Loading editor…
       </div>
     );

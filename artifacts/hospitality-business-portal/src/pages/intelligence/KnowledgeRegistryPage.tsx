@@ -12,7 +12,7 @@ export default function KnowledgeRegistryPage() {
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 py-12 text-sm text-muted-foreground justify-center">
-        <Loader2 className="w-5 h-5 animate-spin" />
+        <Loader2 className="w-5 h-5 animate-spin text-accent-pop" />
         Loading knowledge registry…
       </div>
     );

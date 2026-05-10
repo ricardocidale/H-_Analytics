@@ -112,7 +112,7 @@ export default function CountryEconomicDataPage() {
         <Card>
           {isLoading && (
             <div className="flex items-center gap-2 py-8 px-4 text-sm text-muted-foreground">
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin text-accent-pop" />
               Loading…
             </div>
           )}

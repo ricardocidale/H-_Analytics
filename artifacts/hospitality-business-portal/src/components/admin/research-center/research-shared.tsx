@@ -26,26 +26,39 @@ export const DETERMINISTIC_TOOLS = [
 
 export const FALLBACK_MODELS: AiModelEntry[] = [
   // Anthropic
-  { id: "claude-opus-4-7",           label: "Claude Opus 4.7",   provider: "anthropic" },
   { id: "claude-opus-4-6",           label: "Claude Opus 4.6",   provider: "anthropic" },
-  { id: "claude-sonnet-4-6",         label: "Claude Sonnet 4.6", provider: "anthropic" },
+  { id: "claude-opus-4-5",           label: "Claude Opus 4.5",   provider: "anthropic" },
+  { id: "claude-opus-4-1",           label: "Claude Opus 4.1",   provider: "anthropic" },
+  { id: "claude-opus-4",             label: "Claude Opus 4",     provider: "anthropic" },
   { id: "claude-sonnet-4-5",         label: "Claude Sonnet 4.5", provider: "anthropic" },
-  { id: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5",  provider: "anthropic" },
+  { id: "claude-sonnet-4",           label: "Claude Sonnet 4",   provider: "anthropic" },
+  { id: "claude-haiku-4-5",          label: "Claude Haiku 4.5",  provider: "anthropic" },
   // OpenAI
-  { id: "gpt-4.1",     label: "GPT-4.1",       provider: "openai" },
+  { id: "gpt-5.1",      label: "GPT-5.1",      provider: "openai" },
+  { id: "gpt-5-mini",   label: "GPT-5 Mini",   provider: "openai" },
+  { id: "gpt-5-nano",   label: "GPT-5 Nano",   provider: "openai" },
+  { id: "gpt-4.1",      label: "GPT-4.1",      provider: "openai" },
   { id: "gpt-4.1-mini", label: "GPT-4.1 Mini", provider: "openai" },
-  { id: "gpt-4o",      label: "GPT-4o",         provider: "openai" },
-  { id: "gpt-4o-mini", label: "GPT-4o Mini",    provider: "openai" },
-  { id: "o3",          label: "o3",             provider: "openai" },
-  { id: "o3-pro",      label: "o3 Pro",         provider: "openai" },
-  { id: "o4-mini",     label: "o4 Mini",        provider: "openai" },
+  { id: "gpt-4.1-nano", label: "GPT-4.1 Nano", provider: "openai" },
+  { id: "gpt-4o",       label: "GPT-4o",       provider: "openai" },
+  { id: "gpt-4o-mini",  label: "GPT-4o Mini",  provider: "openai" },
+  { id: "o4-mini",      label: "o4 Mini",      provider: "openai" },
+  { id: "o3",           label: "o3",           provider: "openai" },
+  { id: "o3-pro",       label: "o3 Pro",       provider: "openai" },
+  { id: "o3-mini",      label: "o3 Mini",      provider: "openai" },
   // Google
-  { id: "gemini-2.5-pro",   label: "Gemini 2.5 Pro",   provider: "google" },
-  { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash", provider: "google" },
-  { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash", provider: "google" },
+  { id: "gemini-2.5-pro",              label: "Gemini 2.5 Pro",              provider: "google" },
+  { id: "gemini-2.5-flash",            label: "Gemini 2.5 Flash",            provider: "google" },
+  { id: "gemini-2.5-flash-lite",       label: "Gemini 2.5 Flash Lite",       provider: "google" },
+  { id: "gemini-2.0-flash",            label: "Gemini 2.0 Flash",            provider: "google" },
+  { id: "gemini-2.0-flash-lite",       label: "Gemini 2.0 Flash Lite",       provider: "google" },
   // xAI
-  { id: "grok-3",      label: "Grok 3",      provider: "xai" },
-  { id: "grok-3-mini", label: "Grok 3 Mini", provider: "xai" },
+  { id: "grok-4",           label: "Grok 4",           provider: "xai" },
+  { id: "grok-4-fast",      label: "Grok 4 Fast",      provider: "xai" },
+  { id: "grok-4.1-fast",    label: "Grok 4.1 Fast",    provider: "xai" },
+  { id: "grok-3",           label: "Grok 3",           provider: "xai" },
+  { id: "grok-3-mini",      label: "Grok 3 Mini",      provider: "xai" },
+  { id: "grok-code-fast-1", label: "Grok Code Fast 1", provider: "xai" },
 ];
 
 export const TIME_HORIZONS = [
@@ -80,6 +93,7 @@ export const RESEARCH_LLM_VENDORS: { value: LlmVendor; label: string }[] = [
   { value: "anthropic", label: "Anthropic" },
   { value: "openai", label: "OpenAI" },
   { value: "google", label: "Google (Gemini)" },
+  { value: "xai", label: "xAI (Grok)" },
   { value: "meta", label: "Meta (Llama)" },
   { value: "deepseek", label: "DeepSeek" },
 ];

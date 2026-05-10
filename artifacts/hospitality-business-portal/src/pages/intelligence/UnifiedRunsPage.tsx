@@ -361,7 +361,7 @@ function RunRow({ run, isSelected, onClick }: { run: UnifiedRun; isSelected: boo
         ) : run.status === "error" ? (
           <IconAlertCircle weight="fill" className="w-4 h-4 text-destructive" />
         ) : active ? (
-          <Loader2 className="w-4 h-4 animate-spin text-primary" />
+          <Loader2 className="w-4 h-4 animate-spin text-accent-pop" />
         ) : (
           <div className="w-4 h-4 rounded-full border-2 border-border" />
         )}
@@ -506,7 +506,7 @@ function SlideFactoryDetail({ runId }: { runId: number }) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-10">
-        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+        <Loader2 className="w-5 h-5 animate-spin text-accent-pop" />
       </div>
     );
   }
@@ -598,7 +598,7 @@ function SlideFactoryDetail({ runId }: { runId: number }) {
       <div>
         <div className="flex items-center gap-2 mb-2 pb-2 border-b border-border/60">
           {isBuilding ? (
-            <Loader2 className="w-3.5 h-3.5 animate-spin text-primary shrink-0" />
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop shrink-0" />
           ) : isComplete ? (
             <IconCheckCircle weight="fill" className="w-3.5 h-3.5 text-success shrink-0" />
           ) : (
@@ -635,7 +635,7 @@ function SlideFactoryDetail({ runId }: { runId: number }) {
                   ) : slotStatus === "rejected" ? (
                     <IconAlertCircle weight="fill" className="w-3.5 h-3.5 text-destructive" />
                   ) : slotStatus === "running" ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop" />
                   ) : (
                     <div className="w-3.5 h-3.5 rounded-full border-2 border-border" />
                   )}
@@ -905,7 +905,7 @@ function AnalystDetail({ run }: { run: UnifiedRun }) {
         <>
           {lastRunLoading && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Loader2 className="w-3 h-3 animate-spin" />
+              <Loader2 className="w-3 h-3 animate-spin text-accent-pop" />
               Loading probe detail…
             </div>
           )}
@@ -1063,7 +1063,7 @@ function RunDetailPanel({
                   variant={statusVariant(run.status)}
                   className="text-[10px] h-4 px-1.5 ml-1"
                 >
-                  {active && <Loader2 className="w-2.5 h-2.5 animate-spin mr-1" />}
+                  {active && <Loader2 className="w-2.5 h-2.5 animate-spin mr-1 text-accent-pop" />}
                   {statusLabel(run.status)}
                 </Badge>
               </div>
@@ -1361,7 +1361,7 @@ export default function UnifiedRunsPage() {
             <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
               {activeCount > 0 && (
                 <span className="flex items-center gap-1.5">
-                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <Loader2 className="w-3 h-3 animate-spin text-accent-pop" />
                   {activeCount} active
                 </span>
               )}
@@ -1383,7 +1383,7 @@ export default function UnifiedRunsPage() {
         <CardContent className="pt-0">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              <Loader2 className="w-5 h-5 animate-spin text-accent-pop" />
             </div>
           ) : filtered.length === 0 ? (
             <div className="py-8 text-center">

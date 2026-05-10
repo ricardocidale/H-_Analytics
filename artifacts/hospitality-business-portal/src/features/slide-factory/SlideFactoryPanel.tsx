@@ -748,7 +748,7 @@ function LorenzoStepRow({
         {status === "complete" ? (
           <IconCheckCircle weight="fill" className="w-4 h-4 text-success" />
         ) : status === "running" ? (
-          <Loader2 className="w-4 h-4 animate-spin text-primary" />
+          <Loader2 className="w-4 h-4 animate-spin text-accent-pop" />
         ) : (
           <div className="w-4 h-4 rounded-full border-2 border-border" />
         )}
@@ -797,7 +797,7 @@ function LorenzoIngestingView({ startedAt }: { startedAt: string | null }) {
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
-          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+          <Loader2 className="w-4 h-4 animate-spin text-accent-pop" />
           <CardTitle className="text-sm font-semibold">Building canonical spec</CardTitle>
         </div>
         <p className="text-xs text-muted-foreground">
@@ -822,7 +822,7 @@ function LorenzoIngestingView({ startedAt }: { startedAt: string | null }) {
                   {status === "complete" ? (
                     <IconCheckCircle weight="fill" className="w-4 h-4 text-success" />
                   ) : status === "running" ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                    <Loader2 className="w-4 h-4 animate-spin text-accent-pop" />
                   ) : (
                     <div className="w-4 h-4 rounded-full border-2 border-border" />
                   )}
@@ -1406,7 +1406,7 @@ function FactoryLuccaTab({
     return (
       <Card>
         <CardContent className="py-10 flex flex-col items-center gap-3">
-          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          <Loader2 className="w-5 h-5 animate-spin text-accent-pop" />
           <p className="text-sm font-medium">Lucca is drafting slide content…</p>
           <p className="text-xs text-muted-foreground">
             The pipeline advances automatically once all slots are ready.
@@ -1562,7 +1562,7 @@ function FactoryAgentsTab({ run }: { run: SlideFactoryRun }) {
                   ) : slotStatus === "rejected" ? (
                     <IconAlertCircle weight="fill" className="w-4 h-4 text-destructive" />
                   ) : slotStatus === "running" ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                    <Loader2 className="w-4 h-4 animate-spin text-accent-pop" />
                   ) : (
                     <div className="w-4 h-4 rounded-full border-2 border-border" />
                   )}
@@ -1982,7 +1982,7 @@ function FactoryOverridePanel({
       <CardContent className="space-y-4">
         {isRebuilding ? (
           <div className="flex items-center gap-3 py-4 justify-center">
-            <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+            <Loader2 className="w-4 h-4 animate-spin text-accent-pop" />
             <p className="text-sm text-muted-foreground">Rebuilding PDF…</p>
           </div>
         ) : (
@@ -2106,7 +2106,7 @@ function FactoryDownloadTab({ run, onRunUpdate }: { run: SlideFactoryRun; onRunU
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             {run.status === "rebuilding" ? (
-              <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+              <Loader2 className="w-4 h-4 animate-spin text-accent-pop" />
             ) : (
               <IconCheckCircle weight="fill" className="w-4 h-4 text-success" />
             )}
@@ -2181,7 +2181,7 @@ export function SlideFactoryPanel() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+        <Loader2 className="w-5 h-5 animate-spin text-accent-pop" />
       </div>
     );
   }
