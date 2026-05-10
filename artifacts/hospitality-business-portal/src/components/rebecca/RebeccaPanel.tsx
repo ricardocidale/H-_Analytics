@@ -495,6 +495,10 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
             queryClient.invalidateQueries({ queryKey: ["/api/admin/companies"] });
           } else if (entry.entityType === "market_rate") {
             queryClient.invalidateQueries({ queryKey: ["/api/market-rates"] });
+          } else if (entry.entityType === "property_finder") {
+            queryClient.invalidateQueries({ queryKey: ["/api/property-finder/prospective"] });
+          } else if (entry.entityType === "service_template") {
+            queryClient.invalidateQueries({ queryKey: ["/api/company/service-templates"] });
           }
         }
       }
@@ -685,6 +689,10 @@ Type your request naturally — you don't need to use tool names directly.`;
                       queryClient.invalidateQueries({ queryKey: ["/api/admin/companies"] });
                     } else if (entry.entityType === "market_rate") {
                       queryClient.invalidateQueries({ queryKey: ["/api/market-rates"] });
+                    } else if (entry.entityType === "property_finder") {
+                      queryClient.invalidateQueries({ queryKey: ["/api/property-finder/prospective"] });
+                    } else if (entry.entityType === "service_template") {
+                      queryClient.invalidateQueries({ queryKey: ["/api/company/service-templates"] });
                     }
                   }
                 }
