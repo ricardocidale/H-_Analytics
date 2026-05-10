@@ -197,7 +197,7 @@ export async function buildChatContext(
     `Company: ${ga?.companyName ?? "Management Company"}`,
     `Properties in Portfolio: ${properties.length}`,
     `Projection Years: ${ga?.projectionYears ?? (await resolveDefault<number>("mc.setup.projectionYears")) ?? DEFAULT_PROJECTION_YEARS}`,
-    `Inflation Rate: ${((ga?.inflationRate ?? (await resolveDefault<number>("mc.property_defaults.propertyInflationRate")) ?? getFactoryNumber("inflationRate", "United States")) * 100).toFixed(1)}%`,
+    `Inflation Rate: ${((ga?.inflationRate ?? (await resolveDefault<number>("mc.property_defaults.propertyInflationRate")) ?? getFactoryNumber("inflationRate", "US")) * 100).toFixed(1)}%`,
     `Base Management Fee: ${(baseFee * 100).toFixed(1)}%`,
     `Incentive Management Fee: ${(incentiveFee * 100).toFixed(1)}%`,
     "",
