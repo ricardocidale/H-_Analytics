@@ -294,6 +294,19 @@ function computeRegressions(currentResults: RunResult[]): Set<string> {
 
 const TIMING_FILE = path.join(CACHE_DIR, "check-timing.jsonl");
 
+/**
+ * Maximum number of timing records to keep in the history file.
+ * Override with CHECK_TIMING_HISTORY_MAX=<n>.  Default: 500.
+ */
+const TIMING_HISTORY_MAX = (() => {
+  const raw = process.env.CHECK_TIMING_HISTORY_MAX;
+  if (raw !== undefined) {
+    const parsed = parseInt(raw, 10);
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+  }
+  return 500;
+})();
+
 interface TimingRecord {
   ts: string;
   totalMs: number;
@@ -327,6 +340,15 @@ function appendTimingRecord({
   try {
     fs.mkdirSync(CACHE_DIR, { recursive: true });
     fs.appendFileSync(TIMING_FILE, JSON.stringify(record) + "\n", "utf8");
+
+    // Compact: keep only the last TIMING_HISTORY_MAX lines so the file
+    // doesn't grow unboundedly over months of CI runs.
+    const raw = fs.readFileSync(TIMING_FILE, "utf8");
+    const lines = raw.split("\n").filter((l) => l.trim() !== "");
+    if (lines.length > TIMING_HISTORY_MAX) {
+      const trimmed = lines.slice(lines.length - TIMING_HISTORY_MAX).join("\n") + "\n";
+      fs.writeFileSync(TIMING_FILE, trimmed, "utf8");
+    }
   } catch {
     // Non-fatal: timing history is best-effort.
   }
