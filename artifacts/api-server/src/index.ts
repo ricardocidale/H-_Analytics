@@ -243,7 +243,7 @@ app.use((req, res, next) => {
     },
     () => {
       log(`serving on port ${port}`);
-      runBootSequence(httpServer);
+      runBootSequence(httpServer, app);
     },
   );
 })();

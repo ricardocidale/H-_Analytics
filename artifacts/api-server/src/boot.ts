@@ -41,7 +41,7 @@ const log = (message: string) => serverLog(message, "express");
  * httpServer.listen() callback which is itself synchronous. All async work is
  * fire-and-forget via Promise chains and setImmediate.
  */
-export function runBootSequence(httpServer: Server): void {
+export function runBootSequence(httpServer: Server, _app: import("express").Express): void {
   // ── Phase 2a: Schema migrations (fatal if they fail — schema integrity matters) ──
   runSchemaMigrationsWithRetry()
     .then(() => {
