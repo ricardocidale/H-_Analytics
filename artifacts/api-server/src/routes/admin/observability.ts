@@ -12,7 +12,14 @@ import {
 } from "../../jobs/scheduler-run-tracker";
 import { logger } from "../../logger";
 import { SCHEDULER_HISTORY_STRIP } from "@workspace/db";
-import { HTTP_202_ACCEPTED } from "../../constants";
+import {
+  HTTP_202_ACCEPTED,
+  P75_FRACTION,
+  CHECK_TIMING_REGRESSION_THRESHOLD,
+  CHECK_TIMING_TREND_WINDOW,
+  CHECK_TIMING_DEFAULT_N,
+  STORAGE_DRIFT_SWEEP_STALE_AFTER_MS,
+} from "../../constants";
 
 // ---------------------------------------------------------------------------
 // Check-timing history helpers (mirrors scripts/src/lib/check-trend.ts so
@@ -21,20 +28,11 @@ import { HTTP_202_ACCEPTED } from "../../constants";
 
 const CHECK_TIMING_FILE = path.resolve(process.cwd(), ".cache/check-timing.jsonl");
 
-/** Fraction above the p75 baseline that counts as a regression (20 %). */
-const REGRESSION_THRESHOLD = 0.2;
-
-/** Default number of prior runs used as the p75 baseline window. */
-const TREND_WINDOW = 5;
-
-/** Default number of recent runs to return. */
-const CHECK_TIMING_DEFAULT_N = 20;
-
 type TrendDirection = "up" | "down" | "flat" | "unknown";
 
 function p75(values: number[]): number {
   const sorted = [...values].sort((a, b) => a - b);
-  const idx = Math.ceil(sorted.length * 0.75) - 1;
+  const idx = Math.ceil(sorted.length * P75_FRACTION) - 1;
   return sorted[Math.max(0, idx)];
 }
 
@@ -43,8 +41,8 @@ function classifyTrend(priorWindow: number[], currentMs: number): TrendDirection
   const baseline = p75(priorWindow);
   if (baseline <= 0) return "unknown";
   const ratio = currentMs / baseline;
-  if (ratio > 1 + REGRESSION_THRESHOLD) return "up";
-  if (ratio < 1 - REGRESSION_THRESHOLD) return "down";
+  if (ratio > 1 + CHECK_TIMING_REGRESSION_THRESHOLD) return "up";
+  if (ratio < 1 - CHECK_TIMING_REGRESSION_THRESHOLD) return "down";
   return "flat";
 }
 
@@ -104,16 +102,6 @@ function computeLabelTrends(
   return result;
 }
 
-/**
- * Task #528 — How long after the last sweep we flag the drift panel as stale.
- *
- * The sweep workflow runs nightly (cron `0 9 * * *`), so a healthy run lands
- * roughly every 24h. 36h is "you've missed at least one nightly window" — long
- * enough to absorb a single retry/backoff but short enough that a paused
- * scheduler is visibly broken before the next deploy needs it.
- */
-const STORAGE_DRIFT_SWEEP_STALE_AFTER_MS = 36 * 60 * 60 * 1000;
-
 export function registerObservabilityRoutes(app: Express) {
   // Task #1270 — per-check trend history for the admin Observability tab.
   // Reads .cache/check-timing.jsonl (same file the CLI timing report uses),
@@ -127,7 +115,7 @@ export function registerObservabilityRoutes(app: Express) {
       const all = loadTimingRecords();
 
       if (all.length === 0) {
-        res.json({ runs: [], labels: [], trends: {}, totalRecords: 0, trendWindow: TREND_WINDOW });
+        res.json({ runs: [], labels: [], trends: {}, totalRecords: 0, trendWindow: CHECK_TIMING_TREND_WINDOW });
         return;
       }
 
@@ -139,7 +127,7 @@ export function registerObservabilityRoutes(app: Express) {
       }
       const labels = [...labelSet].sort();
 
-      const trendMap = computeLabelTrends(all, labels, TREND_WINDOW);
+      const trendMap = computeLabelTrends(all, labels, CHECK_TIMING_TREND_WINDOW);
       const trends: Record<string, { direction: TrendDirection; latestMs: number | null; baselineP75: number | null; pctDelta: number | null }> = {};
       for (const [label, data] of trendMap.entries()) {
         trends[label] = data;
@@ -158,7 +146,7 @@ export function registerObservabilityRoutes(app: Express) {
         };
       });
 
-      res.json({ runs, labels, trends, totalRecords: all.length, trendWindow: TREND_WINDOW });
+      res.json({ runs, labels, trends, totalRecords: all.length, trendWindow: CHECK_TIMING_TREND_WINDOW });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to read check-timing history", error);
     }
