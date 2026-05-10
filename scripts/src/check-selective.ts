@@ -350,14 +350,19 @@ async function main(): Promise<void> {
   const wallMs = Date.now() - wallStart;
   const actualFailures = results.filter((r) => r.exitCode !== 0 && !r.killed);
   const killed = results.filter((r) => r.killed);
-  const passes = results.filter((r) => r.exitCode === 0);
+  const passes = results
+    .filter((r) => r.exitCode === 0)
+    .sort((a, b) => (b.durationMs ?? 0) - (a.durationMs ?? 0));
+  const actualFailuresSorted = actualFailures
+    .slice()
+    .sort((a, b) => (b.durationMs ?? 0) - (a.durationMs ?? 0));
 
   for (const r of passes) {
     const dur = formatDuration(r.durationMs);
     const slowTag = r.durationMs >= SLOW_THRESHOLD_MS ? "  ⚠ slow" : "";
     console.log(`[pass]  check:${r.label.padEnd(22)} completed in ${dur}${slowTag}`);
   }
-  for (const r of actualFailures) {
+  for (const r of actualFailuresSorted) {
     const dur = formatDuration(r.durationMs);
     const slowTag = r.durationMs >= SLOW_THRESHOLD_MS ? "  ⚠ slow" : "";
     console.error(`[fail]  check:${r.label.padEnd(22)} FAILED (exit ${r.exitCode}) after ${dur}${slowTag}`);
