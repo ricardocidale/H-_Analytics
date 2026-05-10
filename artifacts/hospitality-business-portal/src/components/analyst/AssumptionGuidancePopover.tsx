@@ -34,11 +34,13 @@ function fmt(val: number, isPercent: boolean, isCurrency: boolean): string {
   return val.toFixed(2);
 }
 
-const CONFIDENCE_CONFIG = {
-  high: { label: "High confidence", color: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" },
-  moderate: { label: "Moderate confidence", color: "bg-amber-500/10 text-amber-700 dark:text-amber-400" },
-  low: { label: "Low confidence", color: "bg-gray-500/10 text-gray-500 dark:text-gray-400" },
-} as const;
+// Canonical chip colors mirror AnalystVerdictDisplay severity system (§11).
+// high → ok (emerald), moderate → advisory (sky), low → warning (amber).
+const CONFIDENCE_CHIP: Record<string, { label: string; color: string }> = {
+  high:     { label: "High confidence",     color: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" },
+  moderate: { label: "Moderate confidence", color: "bg-sky-500/10 text-sky-700 dark:text-sky-400" },
+  low:      { label: "Low confidence",      color: "bg-amber-500/10 text-amber-700 dark:text-amber-400" },
+};
 
 export function AssumptionGuidancePopover({
   fieldKey,
@@ -56,8 +58,8 @@ export function AssumptionGuidancePopover({
   if (!hasRange && !record.reasoning) return null;
 
   const belowFloor = record.dataQuality && !meetsConvictionFloor(record.dataQuality);
-  const conf = (record.confidence ?? "low") as keyof typeof CONFIDENCE_CONFIG;
-  const confConfig = CONFIDENCE_CONFIG[conf] ?? CONFIDENCE_CONFIG.low;
+  const conf = record.confidence ?? "low";
+  const confConfig = CONFIDENCE_CHIP[conf] ?? CONFIDENCE_CHIP.low;
 
   return (
     <Popover>
