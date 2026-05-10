@@ -1,7 +1,7 @@
 ---
 title: "refactor: Housekeeping pipeline — push sprint, archive docs, catalogue next wave"
 type: refactor
-status: active
+status: completed
 date: 2026-05-10
 origin: docs/plans/2026-05-10-004-refactor-large-file-splits-plan.md
 ---
