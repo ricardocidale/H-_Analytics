@@ -26,42 +26,35 @@ export function AssumptionsGate({ missingTabs, pageLabel = "this page" }: Assump
     <Layout>
       <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
         <div
-          className="w-full max-w-xl rounded-lg border border-amber-500/30 bg-amber-500/5 p-6 sm:p-8"
+          className="w-full max-w-xl flex flex-col items-center text-center gap-5 py-12"
           data-testid="panel-assumptions-gate"
         >
-          <div className="flex items-center gap-3 mb-3">
-            <IconAlertTriangle className="w-6 h-6 text-amber-500 flex-shrink-0" />
+          <div className="flex flex-col items-center gap-2">
+            <IconAlertTriangle className="w-6 h-6 text-muted-foreground" />
             <h2 className="text-lg font-semibold font-display" data-testid="text-gate-title">
               Save your Company Assumptions first
             </h2>
-          </div>
-          <p className="text-sm text-muted-foreground mb-5">
-            Before {pageLabel} can run, every Company Assumptions tab needs to be
-            saved at least once so the Analyst can review your inputs.
-          </p>
-
-          <div className="mb-5">
-            <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
-              Tabs still to save
+            <p className="text-sm text-muted-foreground max-w-sm">
+              Before {pageLabel} can run, every Company Assumptions tab needs to be saved at least once.
             </p>
-            <div className="flex flex-wrap gap-2" data-testid="list-missing-tabs">
-              {missingTabs.map((tab) => (
-                <Link
-                  key={tab}
-                  to={`/company/assumptions?tab=${tab}`}
-                  data-testid={`chip-missing-tab-${tab}`}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-background px-3 py-1 text-xs font-medium hover:bg-amber-500/10 hover:border-amber-500/60 transition-colors"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                  {TAB_LABELS[tab]}
-                </Link>
-              ))}
-              {missingTabs.length === 0 && (
-                <span className="inline-flex items-center gap-1.5 text-xs text-emerald-600">
-                  <IconCheckCircle className="w-4 h-4" /> All tabs saved
-                </span>
-              )}
-            </div>
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-2" data-testid="list-missing-tabs">
+            {missingTabs.map((tab) => (
+              <Link
+                key={tab}
+                to={`/company/assumptions?tab=${tab}`}
+                data-testid={`chip-missing-tab-${tab}`}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1 text-xs font-medium hover:bg-muted transition-colors"
+              >
+                {TAB_LABELS[tab]}
+              </Link>
+            ))}
+            {missingTabs.length === 0 && (
+              <span className="inline-flex items-center gap-1.5 text-xs text-emerald-600">
+                <IconCheckCircle className="w-4 h-4" /> All tabs saved
+              </span>
+            )}
           </div>
 
           <Link to="/company/assumptions">

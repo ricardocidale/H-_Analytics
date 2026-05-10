@@ -6,12 +6,6 @@ export type {
   AnalystActionButtonVariant,
   AnalystActionButtonProps,
 } from "./AnalystActionButton";
-export { SaveWithAnalystGate, useAnalystSaveGate } from "./SaveWithAnalystGate";
-export type {
-  SaveWithAnalystGateProps,
-  UseAnalystSaveGateOptions,
-  UseAnalystSaveGateResult,
-} from "./SaveWithAnalystGate";
 export {
   computeAnalystViolations,
   ANALYST_VIOLATION_THRESHOLD,

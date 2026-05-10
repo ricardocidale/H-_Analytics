@@ -76,16 +76,16 @@ function useBreadcrumbs(): BreadcrumbEntry[] {
     ],
     "/company": [
       { label: "Dashboard", href: "/" },
-      { label: "Management Company" },
+      { label: "Management Co" },
     ],
     "/company/assumptions": [
       { label: "Dashboard", href: "/" },
-      { label: "Management Company", href: "/company" },
+      { label: "Management Co", href: "/company" },
       { label: "Assumptions" },
     ],
     "/company/research": [
       { label: "Dashboard", href: "/" },
-      { label: "Management Company", href: "/company" },
+      { label: "Management Co", href: "/company" },
       { label: "Research" },
     ],
     "/profile": [

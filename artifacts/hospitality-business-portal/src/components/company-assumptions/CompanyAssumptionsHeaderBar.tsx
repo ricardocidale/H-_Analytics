@@ -4,10 +4,6 @@
  * from `client/src/pages/CompanyAssumptions.tsx` (task #471).
  */
 import { PageHeader } from "@/components/ui/page-header";
-import {
-  IntelligenceStatusBar,
-  type BannerState,
-} from "@/components/intelligence/IntelligenceStatusBar";
 import { RangePillsLayer, type RangePillSpec } from "@/components/company-assumptions";
 import type { TabValidationWarning } from "@/components/company-assumptions";
 import type { TabKey } from "@/hooks/useCompanyAssumptionsForm";
@@ -50,12 +46,6 @@ export function CompanyAssumptionsHeaderBar(props: Props) {
   const totalWarnings = (Object.values(tabWarnings) as TabValidationWarning[][])
     .reduce((acc, arr) => acc + arr.length, 0);
 
-  let bannerState: BannerState | undefined;
-  if (isUpdatePending) bannerState = "saving";
-  else if (isGenerating) bannerState = "reviewing";
-  else if (savedTabsCount > 0 && totalWarnings > 0) bannerState = "flagged";
-  else if (savedTabsCount > 0 && totalWarnings === 0 && !!companyResearchUpdatedAt) bannerState = "clean";
-
   // Build pill specs once. Flagged pills come from current warnings; acked
   // pills surface kept-override ranges. Targets not in DOM render nothing.
   const pills: RangePillSpec[] = [];
@@ -92,16 +82,6 @@ export function CompanyAssumptionsHeaderBar(props: Props) {
         subtitle={`Configure ${companyName ?? "Hospitality Business"} operating parameters`}
         variant="dark"
         backLink="/company"
-      />
-
-      <IntelligenceStatusBar
-        researchUpdatedAt={companyResearchUpdatedAt}
-        lastAssumptionChangeAt={lastAssumptionChangeAt}
-        isGenerating={isGenerating}
-        onRunResearch={generateResearch}
-        bannerState={bannerState}
-        flaggedCount={totalWarnings}
-        hideButton
       />
 
       <RangePillsLayer pills={pills} reKey={activeTab} />

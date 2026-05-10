@@ -277,7 +277,7 @@ export default function Layout({ children, darkMode }: { children: React.ReactNo
       items: [
         { href: "/", label: "Dashboard", icon: IconDashboard },
         { href: "/portfolio", label: "Properties", icon: IconProperties },
-        { href: "/company", label: "Management Company", icon: IconBriefcase },
+        { href: "/company", label: "Management Co", icon: IconBriefcase },
       ],
     },
     {

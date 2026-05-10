@@ -16,7 +16,6 @@ import {
   useAnalystRefresh,
   type AnalystGuidanceRecord,
 } from "@/components/analyst/useAnalystRefresh";
-import { useAnalystSaveGate } from "@/components/analyst/SaveWithAnalystGate";
 import { MissingRequiredFieldsPrompt } from "@/components/analyst/MissingRequiredFieldsPrompt";
 import {
   COMPANY_TAB_ANALYST_FIELDS,
@@ -171,29 +170,11 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
   const saveRef = useRef<(() => void) | undefined>(undefined);
   saveRef.current = () => saveMutation.mutate(draftRef.current);
 
-  // Soft-gate: intercepts Save and compares the draft against Analyst
-  // high-confidence ranges. Interrupts only on "blunt" violations.
-  const {
-    requestSave,
-    dialog: analystGateDialog,
-  } = useAnalystSaveGate({
-    draft,
-    guidance,
-    fields: ALL_MODEL_DEFAULTS_ANALYST_FIELDS,
-    onSave: () => saveRef.current?.(),
-    onAnalystRerun: (fields) => analyst.triggerRefresh(fields),
-    analystRunning: analyst.running,
-    analystCooldownMs: analyst.cooldownRemainingMs,
-  });
-
-  const requestSaveRef = useRef<(() => void) | undefined>(undefined);
-  requestSaveRef.current = requestSave;
-
   useEffect(() => {
     onSaveStateChange?.({
       isDirty,
       isPending: saveMutation.isPending,
-      onSave: () => requestSaveRef.current?.(),
+      onSave: () => saveRef.current?.(),
       // Model Defaults uses Save as the admin's endorsement of the
       // displayed values, so the shared header Save button stays clickable
       // even when nothing is dirty. The save is safe to invoke as a no-op
@@ -297,7 +278,6 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
 
 
       </Tabs>
-      {analystGateDialog}
       <MissingRequiredFieldsPrompt
         open={missingFieldsPrompt.open}
         onOpenChange={(open) => setMissingFieldsPrompt((p) => ({ ...p, open }))}

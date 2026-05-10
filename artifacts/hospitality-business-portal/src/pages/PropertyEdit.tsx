@@ -46,7 +46,7 @@ import { useResearchStream } from "@/components/property-research/useResearchStr
 import { MissingRequiredFieldsPrompt } from "@/components/analyst/MissingRequiredFieldsPrompt";
 import { AnalystWorkingView } from "@/components/research/AnalystWorkingView";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
-import { IntelligenceStatusBar, computeFreshnessStatus } from "@/components/intelligence/IntelligenceStatusBar";
+import { computeFreshnessStatus } from "@/components/intelligence/IntelligenceStatusBar";
 import { PrerequisitesFailedPanel, type PrerequisiteFailure } from "@/components/company/SpecialistRequirementsPanel";
 import {
   PROJECTION_YEARS,
@@ -656,12 +656,6 @@ export default function PropertyEdit() {
           }
         />
 
-        <IntelligenceStatusBar
-          researchUpdatedAt={researchUpdatedAt}
-          lastAssumptionChangeAt={propertyLastAssumptionChangeAt}
-          isGenerating={isGenerating}
-          onRunResearch={generateResearch}
-        />
 
         <PrerequisitesFailedPanel
           failures={prerequisiteFailures}
