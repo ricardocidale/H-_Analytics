@@ -34,7 +34,7 @@
  *   [run]   check:<name>  — inputs changed, running
  *   [pass]  check:<name>  completed in X.Xs        (or Xs for ≥10 s; "⚠ slow" if ≥ threshold; "⚠ regression" if trending up)
  *   [fail]  check:<name>  FAILED (exit N) after Xs (same duration format + slow flag)
- *   [done]  N/M checks ran fresh, M-N cached — all passed in Xs.
+ *   [done]  N/M checks ran fresh, M-N cached, slowest: check:<name> (Xs) — all passed in Xs.
  *
  * SLOW THRESHOLD
  *   Checks taking longer than CHECK_SLOW_THRESHOLD_S seconds (default 10) are
@@ -519,6 +519,13 @@ async function main(): Promise<void> {
   // Count all non-killed checks that exceeded the threshold (passes + failures).
   const slowChecks = results.filter((r) => !r.killed && r.durationMs >= SLOW_THRESHOLD_MS);
 
+  // Single slowest non-killed check — named in the [done] line so the
+  // bottleneck is immediately visible without scanning individual [pass] lines.
+  const allRan = results.filter((r) => !r.killed);
+  const slowestCheck = allRan.length > 0
+    ? allRan.reduce((a, b) => (b.durationMs > a.durationMs ? b : a))
+    : null;
+
   const ranCount = toRun.length;
   const skippedCount = cached.length;
   const totalCount = SCRIPT_CHECKS.length + 1; // +1 for typecheck
@@ -557,17 +564,23 @@ async function main(): Promise<void> {
     const regressionNote = regressed.size > 0
       ? `, ${regressed.size} regression${regressed.size > 1 ? "s" : ""} (>20% slower than p75 of last ${TREND_WINDOW} runs)`
       : "";
+    const slowestNote = slowestCheck !== null
+      ? `, slowest: check:${slowestCheck.label} (${formatDuration(slowestCheck.durationMs)})`
+      : "";
     console.log(
       `[done]  ${ranCount}/${totalCount} checks ran fresh` +
         (skippedCount > 0 ? `, ${skippedCount} skipped (cached)` : "") +
-        `${slowNote}${regressionNote} — all passed in ${formatDuration(wallMs)}.`,
+        `${slowNote}${regressionNote}${slowestNote} — all passed in ${formatDuration(wallMs)}.`,
     );
     process.exit(0);
   } else {
+    const slowestNote = slowestCheck !== null
+      ? `, slowest: check:${slowestCheck.label} (${formatDuration(slowestCheck.durationMs)})`
+      : "";
     console.error(
       `[done]  ${actualFailures.length} check(s) failed` +
         (skippedCount > 0 ? ` (${skippedCount} cached checks were skipped)` : "") +
-        ` — total ${formatDuration(wallMs)}.`,
+        `${slowestNote} — total ${formatDuration(wallMs)}.`,
     );
     process.exit(1);
   }

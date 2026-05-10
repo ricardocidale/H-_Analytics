@@ -510,6 +510,42 @@ export function RebeccaPanel({ displayName = "Rebecca" }: RebeccaPanelProps) {
       const trimmed = (text ?? input).trim();
       if (!trimmed || loading) return;
 
+      // /help and /tools: client-side capability summary — no server round-trip
+      if (trimmed.toLowerCase() === "/help" || trimmed.toLowerCase() === "/tools") {
+        const helpId = nextMsgId("assistant");
+        const helpText = `**Rebecca's capabilities** — ask me anything from this list:
+
+**Portfolio & Scenarios**
+Read, create, update, delete properties and scenarios. Compare two scenarios side-by-side. Share a scenario with another user by email. Lock a scenario to prevent edits.
+
+**Research & Analysis**
+Trigger property research to generate market estimates. Read analyst tables (capital raise benchmarks, exit multiples, reference brands) and request a refresh.
+
+**Photos & Deck**
+Delete a property photo. Set a property's hero image. Configure and render the LB investor deck PDF.
+
+**Knowledge Base** *(admin)*
+List, read, create, update, and delete knowledge base entries.
+
+**Market Rates** *(admin)*
+Read current market rates. Override a rate with an admin value.
+
+**Admin Tools** *(admin)*
+Read and update global assumptions. Update company records. Run a Vito compliance audit. Trigger Iris health check or full reindex.
+
+**Slide Factory** *(admin)*
+Create runs, assign properties, review Lucca drafts, trigger Marco builds, and produce the final deck PDF.
+
+Type your request naturally — you don't need to use tool names directly.`;
+        setMessages((prev) => [
+          ...prev,
+          { id: nextMsgId("user"), role: "user" as const, content: trimmed },
+          { id: helpId, role: "assistant" as const, content: helpText },
+        ]);
+        setInput("");
+        return;
+      }
+
       // If a stream is active, queue this message and show the interrupt banner
       if (isStreaming) {
         pendingMessageRef.current = trimmed;
