@@ -443,7 +443,6 @@ function SeasonalityProfileEditor({ draft, onChange }: { draft: PropertyEditSect
     if (isFlat && suggestedMarket) {
       onChange("seasonalityProfile", [...suggestedMarket.profile]);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);  // intentionally empty — mount only
 
   const activeMarket = markets.find(
