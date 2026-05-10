@@ -1,7 +1,7 @@
 ---
 title: Slide Factory Completion — Marco, Tabs 5/6, per-slide swarms, financial-agents naming
 type: feat
-status: active
+status: completed
 date: 2026-05-07
 ---
 

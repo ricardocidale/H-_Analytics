@@ -1,7 +1,7 @@
 ---
 title: "Agent Memory File Compression — CLAUDE.md + replit.md"
 type: refactor
-status: active
+status: completed
 date: 2026-05-07
 ---
 

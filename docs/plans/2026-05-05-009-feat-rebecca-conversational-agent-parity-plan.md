@@ -1,7 +1,7 @@
 ---
 title: "feat: Rebecca conversational agent — function-calling tools + agent-native parity discipline"
 type: feat
-status: active
+status: completed
 date: 2026-05-05
 origin: |
   Agent-native architecture analysis (ce-agent-native-architecture skill, 2026-05-05).

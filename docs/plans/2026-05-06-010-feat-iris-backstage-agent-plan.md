@@ -1,7 +1,7 @@
 ---
 title: "feat: Iris — Backstage Agent for Rebecca's Resource Maintenance"
 type: feat
-status: active
+status: completed
 date: 2026-05-06
 ---
 
