@@ -128,6 +128,12 @@ interface IntelligenceStatusBarProps {
    */
   bannerState?: BannerState;
   flaggedCount?: number;
+  /**
+   * When true, the inline AnalystButton inside the status bar is hidden.
+   * Use this on pages that already render their own prominent AnalystButton
+   * (e.g. CompanyAssumptions tab bar) to avoid showing two competing CTAs.
+   */
+  hideButton?: boolean;
 }
 
 export function IntelligenceStatusBar({
@@ -138,6 +144,7 @@ export function IntelligenceStatusBar({
   className,
   bannerState,
   flaggedCount = 0,
+  hideButton = false,
 }: IntelligenceStatusBarProps) {
   const freshness = computeFreshnessStatus({
     researchUpdatedAt,
@@ -200,12 +207,11 @@ export function IntelligenceStatusBar({
           {timeLabel && status !== "missing" && ` · Last reviewed ${timeLabel}`}
         </span>
       </div>
-      {(status === "stale" || status === "very_stale" || status === "missing") && (
+      {!hideButton && (status === "stale" || status === "very_stale" || status === "missing") && (
         <AnalystButton
           onClick={onRunResearch}
           size="sm"
-          variant="ghost"
-          className={cn("flex-shrink-0", config.text)}
+          variant="outline"
           dataTestId="button-regenerate-research"
         />
       )}

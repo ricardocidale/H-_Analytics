@@ -112,6 +112,7 @@ export function CompanyAssumptionsHeaderBar(props: Props) {
         onRunResearch={generateResearch}
         bannerState={bannerState}
         flaggedCount={totalWarnings}
+        hideButton
       />
 
       <RangePillsLayer pills={pills} reKey={activeTab} />
