@@ -24,9 +24,14 @@
  * - Company tax rate: IRS corporate rates + AICPA combined federal + state
  *   benchmarks for privately held hospitality operators (21%–30%; low end
  *   = pure federal; high end = California-class combined).
- * - Cost of equity: CBRE Investor Survey + Damodaran hospitality beta + KPMG
- *   WACC benchmarks for lodging/hospitality (15%–22%; founder-seed at low
- *   end, institutional-LP carry at high end).
+ * - Cost of equity: Damodaran hospitality sector beta/Re estimates + KPMG WACC
+ *   benchmarks + Duff & Phelps (Kroll) Cost of Capital Navigator + CBRE 2024
+ *   Hotel Investor Survey. Private boutique hospitality carries a 3–6%
+ *   illiquidity premium above public-market lodging Re; in a 4.3–4.5% 10yr
+ *   Treasury environment the defensible Re range is 18–28% (LOW = US prime
+ *   market, seasoned operator; MID = US secondary or LatAm primary USD-denom;
+ *   HIGH = EM/tertiary or early-stage operator). Add Damodaran CRP for
+ *   non-US USD-denominated deals.
  *
  * ─── Naming convention ───
  *
@@ -56,9 +61,16 @@ export const DEFAULT_COMPANY_TAX_RATE_BENCHMARK_MID  = 0.26;
 export const DEFAULT_COMPANY_TAX_RATE_BENCHMARK_HIGH = 0.30;
 
 // ─── Cost of Equity — WACC Re / DCF discount rate ────────────────────────────
-export const DEFAULT_COST_OF_EQUITY_BENCHMARK_LOW  = 0.15;
-export const DEFAULT_COST_OF_EQUITY_BENCHMARK_MID  = 0.18;
-export const DEFAULT_COST_OF_EQUITY_BENCHMARK_HIGH = 0.22;
+// Recalibrated May 2026: 10yr Treasury ~4.3–4.5%; private boutique hospitality
+// illiquidity premium 3–6% above public-market lodging Re.
+// LOW  = 0.18: US prime market (NYC/LA/SF), seasoned operator, strong comp set.
+// MID  = 0.22: US secondary market or LatAm primary, USD-denominated.
+// HIGH = 0.28: EM/tertiary market or early-stage operator; add Damodaran CRP.
+// Sources: Damodaran (Lodging sector Re) + Duff & Phelps (Kroll) Cost of
+//   Capital Navigator 2024 + KPMG WACC Monitor + CBRE 2024 Hotel Investor Survey.
+export const DEFAULT_COST_OF_EQUITY_BENCHMARK_LOW  = 0.18;
+export const DEFAULT_COST_OF_EQUITY_BENCHMARK_MID  = 0.22;
+export const DEFAULT_COST_OF_EQUITY_BENCHMARK_HIGH = 0.28;
 
 // ─── Band shape ──────────────────────────────────────────────────────────────
 
