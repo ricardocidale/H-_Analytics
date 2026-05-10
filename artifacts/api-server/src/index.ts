@@ -20,19 +20,30 @@
  * The server listens on the PORT environment variable (default 5000). This single
  * port serves both the API and the client SPA — it is the only port not firewalled.
  *
- * The async startup sequence (Phases 1–4) is delegated to boot.ts via
- * runBootSequence(). See that file for routes, migrations, seeds, schedulers,
- * periodic jobs, and the graceful shutdown handler.
+ * After the port opens, Phases 2–4 (migrations, seeds, schedulers, interval jobs,
+ * graceful shutdown) are delegated to boot.ts via runBootSequence(httpServer).
  */
 import express, { type Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import compression from "compression";
+import { registerRoutes } from "./legacyRoutes";
+import { registerImageRoutes } from "./routes/images";
+import { propertySlidesRouter } from "./routes/property-slides";
+import { propertyDeckPdfRouter } from "./routes/property-deck-pdf";
+import { propertyDeckSlideRouter } from "./routes/property-deck-slide";
+import { internalDeckPayloadRouter } from "./routes/internal-deck-payload";
+import { internalLbDeckPayloadRouter } from "./routes/internal-lb-deck-payload";
+import { propertyDeckPayloadRouter } from "./routes/property-deck-payload";
+import { lbDeckPdfRouter } from "./routes/lb-deck-pdf";
+import { slideFactoryRouter } from "./routes/slide-factory";
+import { registerSlideFactorySuggestRoutes } from "./routes/slide-factory-suggest";
 import { buildContentSecurityPolicy } from "./csp";
 import { getAuthProvider } from "./providers/auth";
 import { createServer } from "http";
 import { authMiddleware, requireAuth } from "./auth";
 import { log as serverLog } from "./logger";
-import { sentryRequestHandler } from "./sentry";
+import { hasDbUrl } from "@shared/db-url";
+import { sentryRequestHandler, setupSentryExpressErrorHandler } from "./sentry";
 import { runBootSequence } from "./boot";
 import {
   COMPRESSION_THRESHOLD_BYTES,
@@ -157,5 +168,82 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  await runBootSequence(httpServer, app);
+  // ── Phase 1: Register routes and open port FAST ──────────────────────
+  // The deployment platform requires the port to open within ~60s.
+  // Migrations and seeds run AFTER the port is open (see boot.ts).
+
+  const googleEnvVars = ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "TOKEN_ENCRYPTION_KEY"] as const;
+  for (const envVar of googleEnvVars) {
+    if (process.env[envVar]) {
+      serverLog(`${envVar}: set`, "startup", "info");
+    } else {
+      serverLog(`${envVar}: not set`, "startup", "warn");
+    }
+  }
+
+  const hasVectorStore = hasDbUrl();
+  const hasEmbeddingKey = !!(process.env.OPENAI_EMBEDDING_KEY || process.env.OPENAI_API_KEY);
+  if (hasVectorStore && hasEmbeddingKey) {
+    serverLog("Vector store (pgvector) + embeddings: ready (knowledge learning active)", "startup", "info");
+  } else if (hasVectorStore && !hasEmbeddingKey) {
+    serverLog("Vector store: configured but embeddings unavailable — set OPENAI_EMBEDDING_KEY for vector learning. Replit AI integration proxies do not support embedding endpoints.", "startup", "warn");
+  } else {
+    serverLog("Vector store: POSTGRES_URL/DATABASE_URL not set — vector indexing disabled", "startup", "warn");
+  }
+
+  const { initStorageProvider } = await import("./providers/storage");
+  await initStorageProvider();
+
+  registerImageRoutes(app);
+  app.use(propertySlidesRouter);
+  app.use(propertyDeckPdfRouter);
+  app.use(propertyDeckSlideRouter);
+  app.use(internalDeckPayloadRouter);
+  app.use(internalLbDeckPayloadRouter);
+  app.use(propertyDeckPayloadRouter);
+  app.use(lbDeckPdfRouter);
+  app.use(slideFactoryRouter);
+  registerSlideFactorySuggestRoutes(app);
+  const { registerGoogleAuthRoutes } = await import("./routes/google-auth");
+  registerGoogleAuthRoutes(app);
+  await registerRoutes(httpServer, app);
+
+  setupSentryExpressErrorHandler(app);
+
+  app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = process.env.NODE_ENV === "production" && status >= 500
+      ? "Internal Server Error"
+      : err.message || "Internal Server Error";
+
+    serverLog(`Internal Server Error: ${err instanceof Error ? err.message : err}`, "server", "error");
+
+    if (res.headersSent) {
+      return next(err);
+    }
+
+    return res.status(status).json({ error: message });
+  });
+
+  if (process.env.NODE_ENV === "production") {
+    const { serveStatic } = await import("./static");
+    serveStatic(app);
+  }
+
+  // ALWAYS serve the app on the port specified in the environment variable PORT
+  // Other ports are firewalled. Default to 5000 if not specified.
+  // this serves both the API and the client.
+  // It is the only port that is not firewalled.
+  const port = parseInt(process.env.PORT || "5000", 10);
+  httpServer.listen(
+    {
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    },
+    () => {
+      log(`serving on port ${port}`);
+      runBootSequence(httpServer);
+    },
+  );
 })();
