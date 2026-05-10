@@ -96,7 +96,7 @@ export function BalanceSheetFormulaRow({ label, amount }: BalanceSheetFormulaRow
         data-expandable-row="true"
         onClick={() => setOpen(v => !v)}
       >
-        <TableCell className="pl-12 py-0.5 text-xs text-muted-foreground">
+        <TableCell className="pl-12 py-0.5 text-xs text-foreground">
           <div className="flex items-center gap-1.5">
             {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
             <span className="italic">Formula</span>
@@ -106,10 +106,10 @@ export function BalanceSheetFormulaRow({ label, amount }: BalanceSheetFormulaRow
       </TableRow>
       {open && (
         <TableRow className="bg-primary/[0.03]" data-expandable-row="true">
-          <TableCell className="pl-16 py-0.5 text-xs text-muted-foreground italic">
+          <TableCell className="pl-16 py-0.5 text-xs text-foreground italic">
             {label}
           </TableCell>
-          <TableCell className="text-right py-0.5 font-mono text-xs text-muted-foreground">
+          <TableCell className="text-right py-0.5 font-mono text-xs text-foreground">
             <Money amount={amount} />
           </TableCell>
         </TableRow>

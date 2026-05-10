@@ -530,7 +530,7 @@ export function IncomeStatementTab({ financials, properties, projectionYears, ge
                             data-expandable-row="true"
                           >
                             <TableCell
-                              className="sticky left-0 bg-primary/5 z-10 py-1 text-sm text-muted-foreground"
+                              className="sticky left-0 bg-primary/5 z-10 py-1 text-sm text-foreground"
                               style={{ paddingLeft: `${(row.indent ?? 1) * 1.5 + 1}rem` }}
                             >
                               <div className="flex items-center gap-1.5">
@@ -539,7 +539,7 @@ export function IncomeStatementTab({ financials, properties, projectionYears, ge
                               </div>
                             </TableCell>
                             {row.values.map((val, vIdx) => (
-                              <TableCell key={vIdx} className="text-right font-mono text-sm text-muted-foreground py-1">
+                              <TableCell key={vIdx} className="text-right font-mono text-sm text-foreground py-1">
                                 {row.displayValues?.[vIdx] ?? formatMoney(val)}
                               </TableCell>
                             ))}
@@ -547,13 +547,13 @@ export function IncomeStatementTab({ financials, properties, projectionYears, ge
                           {isOpen && (
                             <TableRow className="bg-primary/[0.03]" data-expandable-row="true">
                               <TableCell
-                                className="sticky left-0 bg-primary/[0.03] z-10 py-1 text-sm text-muted-foreground italic"
+                                className="sticky left-0 bg-primary/[0.03] z-10 py-1 text-sm text-foreground italic"
                                 style={{ paddingLeft: `${(row.indent ?? 1) * 1.5 + 1 + 1.25}rem` }}
                               >
                                 {row.category}
                               </TableCell>
                               {row.values.map((val, vIdx) => (
-                                <TableCell key={vIdx} className="text-right font-mono text-sm text-muted-foreground py-1">
+                                <TableCell key={vIdx} className="text-right font-mono text-sm text-foreground py-1">
                                   {row.displayValues?.[vIdx] ?? formatMoney(val)}
                                 </TableCell>
                               ))}
