@@ -23,9 +23,11 @@
  *   impossible.
  *
  * TYPECHECK
- *   `typecheck` has no check-cache.ts-managed hash — it relies on tsc's own
- *   incremental state (.tsbuildinfo files).  It is always queued as stale so
- *   tsc's own caching provides the skip.
+ *   `typecheck` now has a check-cache.ts-managed hash (via check-typecheck.ts).
+ *   Its inputs are all TS/TSX source files plus every tsconfig*.json in the
+ *   workspace.  When those are unchanged, the typecheck step is skipped without
+ *   spawning tsc at all.  On a miss, `pnpm run check:typecheck` runs — which
+ *   invokes `pnpm run typecheck` and writes the cache on success.
  *
  * OUTPUT FORMAT
  *   [skip]  check:<name>  — inputs unchanged, skipping
@@ -54,6 +56,7 @@ import {
 // flows through here without any manual mirror update.
 import { collectInputFiles as collectInputFiles_lint } from "./check-lint.js";
 import { collectInputFiles as collectInputFiles_lintLibs } from "./check-lint-libs.js";
+import { collectInputFiles as collectInputFiles_typecheck } from "./check-typecheck.js";
 import { collectInputFiles as collectInputFiles_magicNumbers } from "./check-magic-numbers.js";
 import { collectInputFiles as collectInputFiles_replitIndependence } from "./check-replit-independence.js";
 import { collectInputFiles as collectInputFiles_migrationGuards } from "./check-migration-guards.js";
@@ -112,6 +115,12 @@ const SCRIPT_CHECKS: CheckSpec[] = [
     collectInputs: collectInputFiles_lintLibs,
   },
   {
+    name: "typecheck",
+    label: "typecheck",
+    rootScript: "check:typecheck",
+    collectInputs: collectInputFiles_typecheck,
+  },
+  {
     name: "magic-numbers",
     label: "magic-numbers",
     rootScript: "check:magic-numbers",
@@ -155,13 +164,6 @@ const SCRIPT_CHECKS: CheckSpec[] = [
     collectInputs: collectInputFiles_schemaDrift,
   },
 ];
-
-/**
- * typecheck has no check-cache.ts hash — it relies on tsc incremental state.
- * Always queue it; tsc itself decides whether to recheck.
- */
-const TYPECHECK_SCRIPT = "typecheck";
-const TYPECHECK_LABEL = "typecheck";
 
 // ---------------------------------------------------------------------------
 // Probe: compute fresh hash and compare to stored
@@ -279,13 +281,7 @@ async function main(): Promise<void> {
     toRun.push({ rootScript: p.spec.rootScript, label: p.spec.label });
   }
 
-  // typecheck always runs — tsc manages its own incremental cache (.tsbuildinfo)
-  // and exits near-instantly when nothing has changed.
-  console.log(`[run]   check:${TYPECHECK_LABEL.padEnd(22)} always queued (tsc incremental)`);
-  toRun.push({ rootScript: TYPECHECK_SCRIPT, label: TYPECHECK_LABEL });
-
   if (toRun.length === 0) {
-    // Edge case: all script checks cached and typecheck somehow not queued
     console.log("[done]  all checks cached — nothing to run");
     process.exit(0);
   }
@@ -334,7 +330,11 @@ async function main(): Promise<void> {
 
   console.log("");
   if (failures.length === 0) {
-    console.log(`[done]  ${ranCount}/${totalCount} checks ran fresh, ${cachedCount} cached — all passed.`);
+    console.log(
+      `[done]  ${ranCount}/${totalCount} checks ran fresh` +
+        (cachedCount > 0 ? `, ${cachedCount} skipped (cached)` : "") +
+        " — all passed.",
+    );
     process.exit(0);
   } else {
     console.log(`[done]  ${failures.length} check(s) FAILED.`);
