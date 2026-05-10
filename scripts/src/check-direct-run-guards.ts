@@ -146,7 +146,7 @@ interface Violation {
   reason: string;
 }
 
-function scanFile(absPath: string): Violation[] {
+export function scanFile(absPath: string): Violation[] {
   const violations: Violation[] = [];
   const rel = path.relative(WORKSPACE_ROOT, absPath);
 
