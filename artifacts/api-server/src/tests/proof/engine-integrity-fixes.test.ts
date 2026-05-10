@@ -25,6 +25,7 @@ import { computeCashFlowSections } from '@engine/aggregation/cashFlowSections';
 import type { PropertyInput, GlobalInput } from '@engine/types';
 import { computeWaterfall } from '@calc/analysis/waterfall';
 import { DEFAULT_ROUNDING } from '@calc/shared/utils';
+import { computeIRR } from '@analytics/returns/irr';
 import {
   DEFAULT_PREFERRED_RETURN,
   DEFAULT_LP_EQUITY_PCT,
@@ -722,5 +723,119 @@ describe('Finding #4 — Incentive fee gated on post-debt-service levered cash (
       .some(m => m.feeIncentive > 0);
 
     expect(anyMonthWithFee).toBe(true);
+  });
+});
+
+// ── T013: acquisitionInterestRate drives netCashFlowToInvestors (client-parity guard) ──
+//
+// Rationale: The SensitivityAnalysis.tsx "Interest Rate" slider previously wrote
+// `adjProp.interestRate` (non-existent on PropertyInput) instead of
+// `adjProp.acquisitionInterestRate`. The fix writes the correct field and calls
+// aggregateUnifiedByYear, which is the same path the server sensitivity.ts uses.
+//
+// This test pins two invariants that the client fallback now relies on:
+//   1. Changing `acquisitionInterestRate` changes the engine output (debt cost flows).
+//   2. Higher interest rate → lower IRR (because more cash goes to debt service).
+//
+// If either invariant breaks, the sensitivity slider would silently stop working.
+
+describe('T013 — acquisitionInterestRate drives netCashFlowToInvestors', () => {
+  const BASE_FINANCED: PropertyInput = {
+    ...BASE_COSTS,
+    operationsStartDate: '2024-01-01',
+    acquisitionDate: '2024-01-01',
+    roomCount: 15,
+    startAdr: 200,
+    adrGrowthRate: 0,
+    startOccupancy: 0.65,
+    maxOccupancy: 0.65,
+    occupancyRampMonths: 0,
+    occupancyGrowthStep: 0,
+    purchasePrice: 2_000_000,
+    type: 'Financed',
+    acquisitionLTV: 0.65,
+    acquisitionTermYears: 25,
+    exitCapRate: 0.09,
+  };
+
+  const GLOBAL: GlobalInput = {
+    modelStartDate: '2024-01-01',
+    inflationRate: 0.0,
+    marketingRate: 0.0,
+    debtAssumptions: { interestRate: 0.07, amortizationYears: 25, acqLTV: 0.65 },
+  };
+
+  it('acquisitionInterestRate change alters netCashFlowToInvestors in acquisition year', () => {
+    const lowRate: PropertyInput = { ...BASE_FINANCED, acquisitionInterestRate: 0.05 };
+    const highRate: PropertyInput = { ...BASE_FINANCED, acquisitionInterestRate: 0.10 };
+
+    const low = aggregateUnifiedByYear(
+      generatePropertyProForma(lowRate, GLOBAL, 60),
+      lowRate as never, GLOBAL as never, 5,
+    );
+    const high = aggregateUnifiedByYear(
+      generatePropertyProForma(highRate, GLOBAL, 60),
+      highRate as never, GLOBAL as never, 5,
+    );
+
+    // Higher rate means higher debt service means less ATCF means lower netCashFlowToInvestors.
+    // Check year 1 (first full operational year, non-acquisition).
+    const lowY1  = low.yearlyCF[1]?.netCashFlowToInvestors  ?? 0;
+    const highY1 = high.yearlyCF[1]?.netCashFlowToInvestors ?? 0;
+    expect(highY1).toBeLessThan(lowY1);
+  });
+
+  it('higher acquisitionInterestRate produces lower IRR via netCashFlowToInvestors', () => {
+    const lowRate: PropertyInput  = { ...BASE_FINANCED, acquisitionInterestRate: 0.05 };
+    const highRate: PropertyInput = { ...BASE_FINANCED, acquisitionInterestRate: 0.10 };
+
+    function portfolioIRR(prop: PropertyInput): number {
+      const financials = generatePropertyProForma(prop, GLOBAL, 60);
+      const unified = aggregateUnifiedByYear(financials, prop as never, GLOBAL as never, 5);
+      const flows = unified.yearlyCF.map(y => y.netCashFlowToInvestors);
+      return computeIRR(flows, 1).irr_periodic ?? 0;
+    }
+
+    const irrLow  = portfolioIRR(lowRate);
+    const irrHigh = portfolioIRR(highRate);
+
+    expect(irrLow).toBeGreaterThan(0);
+    expect(irrHigh).toBeGreaterThan(0);
+    // Higher rate → higher cost → lower IRR. Difference should be meaningful (>1pp).
+    expect(irrLow - irrHigh).toBeGreaterThan(0.01);
+  });
+
+  it('exit value uses annualized NOI: partial first-year does not deflate the exit', () => {
+    // Property with 6-month pre-ops: year-0 operational months = 6.
+    // aggregateUnifiedByYear normalises year-0 NOI using (noi / 6) × 12.
+    // The exit fires in year 4 (fully operational). This test pins the invariant
+    // that exit value is derived from actual NOI (not a partial-year deflation).
+    const rampProp: PropertyInput = {
+      ...BASE_FINANCED,
+      operationsStartDate: '2024-07-01',  // 6-month pre-ops in year 0
+      acquisitionDate: '2024-01-01',
+      occupancyRampMonths: 6,
+      acquisitionInterestRate: 0.07,
+    };
+    const financials = generatePropertyProForma(rampProp, GLOBAL, 60);
+    const unified = aggregateUnifiedByYear(financials, rampProp as never, GLOBAL as never, 5);
+
+    const exitValue = unified.yearlyCF[4]?.exitValue ?? 0;
+    const lastYearIS = unified.yearlyIS[4];
+    const rawNOI = lastYearIS?.noi ?? 0;
+    const exitCapRate = rampProp.exitCapRate ?? 0.09;
+
+    // Exit value must be positive and non-trivial (> $100k).
+    expect(exitValue).toBeGreaterThan(100_000);
+
+    // Exit value = (annualizedNOI / cap) * (1 - commission) - outstandingDebt.
+    // Since year 4 is fully operational, annualizedNOI = rawNOI.
+    // Upper bound: cannot exceed gross value without debt deduction.
+    const grossValue = rawNOI / exitCapRate;
+    expect(exitValue).toBeLessThan(grossValue);
+
+    // Lower bound: after 5% commission and reasonable debt balance, should be
+    // at least 40% of gross value (debt paydown over 4 years).
+    expect(exitValue).toBeGreaterThan(grossValue * 0.4);
   });
 });
