@@ -22,6 +22,9 @@ import { capErrors, IRIS_HEALTH_SUMMARY_MAX_ERRORS } from "../ai/iris/format";
 import { insertIrisRun, updateIrisRun, getLatestIrisRun } from "../storage/iris-runs";
 import { upsertChunks, deleteVectors } from "../ai/vector-store-service";
 import { insertRebeccaKBSchema } from "@workspace/db";
+import { sendScenarioShareNotification, sendAdminShareNotification } from "../integrations/resend";
+import { getAppUrl } from "../providers/config";
+import { fullName } from "../routes/helpers";
 
 // Named constant: estimated minutes for background research job (Category 2 — DEFAULT VARIABLE)
 const RESEARCH_ESTIMATED_MINUTES = 2;
@@ -33,7 +36,8 @@ export const KB_CONTENT_VECTOR_PREVIEW_CHARS = 3_000;
 
 export type DataChangedEntry = {
   entityType: "property" | "scenario" | "slide_factory_run" | "analyst_table" | "lb_deck_config"
-            | "kb_entry" | "global_assumptions" | "research_job" | "iris_run" | "iris_gap" | "data_source" | "compliance_run";
+            | "kb_entry" | "global_assumptions" | "research_job" | "iris_run" | "iris_gap" | "data_source" | "compliance_run"
+            | "company" | "market_rate";
   entityId: number;
 };
 
@@ -1228,10 +1232,10 @@ async function toolConfigureLbDeck(
 
 async function toolTriggerLbDeckRender(
   ctx: ToolContext,
-): Promise<{ result: unknown }> {
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
   const authError = await requireAdminCtx(ctx);
   if (authError) return authError;
-  return { result: triggerLbDeckRenderService() };
+  return { result: triggerLbDeckRenderService(), dataChanged: { entityType: "lb_deck_config" as const, entityId: 0 } };
 }
 
 async function toolGetLbDeckRenderStatus(

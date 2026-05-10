@@ -41,7 +41,7 @@ import { ORCHESTRATOR_IDENTITY } from "@engine/analyst/identity";
 // the legacy `[orchestrator] …`. Specialist-owned errors should use
 // their own loggerFor(humanName) channel (Phase 4).
 const gustavoLog = loggerFor(ORCHESTRATOR_IDENTITY.logKey);
-import { AI_GENERATION_TIMEOUT_MS } from "../constants";
+import { AI_GENERATION_TIMEOUT_MS, MS_PER_SECOND } from "../constants";
 import { resolveLlmFor } from "./llm-config-resolver";
 
 const SYNTHESIS_TOKENS = 12_000;
@@ -137,7 +137,7 @@ async function runAnalystPanel(
 
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
     const timeoutP = new Promise<never>((_, reject) => {
-      timeoutHandle = setTimeout(() => reject(new Error(`Analyst panel timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`)), AI_GENERATION_TIMEOUT_MS);
+      timeoutHandle = setTimeout(() => reject(new Error(`Analyst panel timed out after ${AI_GENERATION_TIMEOUT_MS / MS_PER_SECOND}s`)), AI_GENERATION_TIMEOUT_MS);
     });
     timeoutP.catch(() => {});
 
@@ -194,7 +194,7 @@ function formatValidationTable(v: ApiValidationResult): string {
 function temporalDecay(completedAt: string | undefined): number {
   if (!completedAt) return 0.5;
   const ageMs = Date.now() - new Date(completedAt).getTime();
-  const ageDays = ageMs / (1000 * 60 * 60 * 24);
+  const ageDays = ageMs / (MS_PER_SECOND * 60 * 60 * 24);
   if (ageDays <= 30) return 1.0;
   if (ageDays <= 90) return 0.85;
   if (ageDays <= 180) return 0.65;
@@ -314,10 +314,10 @@ async function buildSynthesisUserPrompt(
 
 ## SYNTHESIS INPUTS
 
-### Quantitative Panel (${panelA.model}, ${(panelA.durationMs / 1000).toFixed(1)}s)
+### Quantitative Panel (${panelA.model}, ${(panelA.durationMs / MS_PER_SECOND).toFixed(1)}s)
 ${formatPanelForSynthesis(panelA)}
 
-### Market Strategy Panel (${panelB.model}, ${(panelB.durationMs / 1000).toFixed(1)}s)
+### Market Strategy Panel (${panelB.model}, ${(panelB.durationMs / MS_PER_SECOND).toFixed(1)}s)
 ${formatPanelForSynthesis(panelB)}
 
 ### API Validation Results (live market data cross-check)
@@ -442,7 +442,7 @@ export async function* orchestrateResearch(
     yield { type: "phase", data: `Panel ${failed} failed (${panelA.error || panelB.error}) — proceeding with single-panel synthesis from Panel ${surviving}` };
   }
 
-  yield { type: "phase", data: `Panels complete — A: ${panelA.error ? "FAILED" : `${(panelA.durationMs / 1000).toFixed(1)}s`} | B: ${panelB.error ? "FAILED" : `${(panelB.durationMs / 1000).toFixed(1)}s`}` };
+  yield { type: "phase", data: `Panels complete — A: ${panelA.error ? "FAILED" : `${(panelA.durationMs / MS_PER_SECOND).toFixed(1)}s`} | B: ${panelB.error ? "FAILED" : `${(panelB.durationMs / MS_PER_SECOND).toFixed(1)}s`}` };
 
   // ── Phase 2: API validation ──
 
@@ -495,7 +495,7 @@ export async function* orchestrateResearch(
   // stream mid-flight.
   const synthesisAbort = new AbortController();
   const synthesisTimer = setTimeout(
-    () => synthesisAbort.abort(new Error(`Synthesis timed out after ${AI_GENERATION_TIMEOUT_MS / 1000}s`)),
+    () => synthesisAbort.abort(new Error(`Synthesis timed out after ${AI_GENERATION_TIMEOUT_MS / MS_PER_SECOND}s`)),
     AI_GENERATION_TIMEOUT_MS,
   );
   try {
