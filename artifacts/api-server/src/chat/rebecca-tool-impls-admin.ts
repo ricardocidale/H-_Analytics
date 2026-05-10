@@ -318,7 +318,7 @@ export async function toolCreatePriceEvent(
   const kind = typeof args.kind === "string" ? args.kind.trim() : (typeof args.type === "string" ? args.type.trim() : "");
   const newPrice = typeof args.price === "number" ? args.price : Number(args.price);
   if (!kind) return { result: { error: "kind (event type) is required: list, reduction, delist, relist, contract, prior_sale" } };
-  if (isNaN(newPrice)) return { result: { error: "price must be a number" } };
+  if (!Number.isFinite(newPrice)) return { result: { error: "price must be a finite number" } };
 
   const updated = await storage.addProspectivePriceEvent(idResult.value, ctx.userId, {
     kind: kind as import("@shared/price-history").PriceEventKind,

@@ -332,7 +332,8 @@ export async function runCompensationV1Path(userId: number): Promise<Awaited<Ret
 
   const persona = resolveCompanyPersona(properties);
 
-  const icpTier = (ga.icpModelTier as IcpModelTier | null) ?? "B";
+  const rawTier = (ga.icpModelTier as IcpModelTier | null) ?? "B";
+  const icpTier: IcpModelTier = ICP_MODEL_PROFILES[rawTier] ? rawTier : "B";
   const icpProfile = ICP_MODEL_PROFILES[icpTier];
   const portfolio: CompensationPromptInputContext["portfolio"] = {
     propertyCount: properties.length,
@@ -385,7 +386,8 @@ export async function runOverheadV1Path(userId: number): Promise<Awaited<ReturnT
 
   const persona = resolveCompanyPersona(properties);
 
-  const icpTier = (ga.icpModelTier as IcpModelTier | null) ?? "B";
+  const rawTier = (ga.icpModelTier as IcpModelTier | null) ?? "B";
+  const icpTier: IcpModelTier = ICP_MODEL_PROFILES[rawTier] ? rawTier : "B";
   const icpProfile = ICP_MODEL_PROFILES[icpTier];
   const portfolio: OverheadPromptInputContext["portfolio"] = {
     propertyCount: properties.length,
@@ -436,7 +438,8 @@ export async function runCompanyV1Path(userId: number): Promise<Awaited<ReturnTy
 
   const persona = resolveCompanyPersona(properties);
 
-  const icpTier = (ga.icpModelTier as IcpModelTier | null) ?? "B";
+  const rawTier = (ga.icpModelTier as IcpModelTier | null) ?? "B";
+  const icpTier: IcpModelTier = ICP_MODEL_PROFILES[rawTier] ? rawTier : "B";
   const icpProfile = ICP_MODEL_PROFILES[icpTier];
   const portfolio: CompanyPromptInputContext["portfolio"] = {
     propertyCount: properties.length,
@@ -487,7 +490,8 @@ export async function runPropertyDefaultsV1Path(userId: number): Promise<Awaited
 
   const persona = resolveCompanyPersona(properties);
 
-  const icpTier = (ga.icpModelTier as IcpModelTier | null) ?? "B";
+  const rawTier = (ga.icpModelTier as IcpModelTier | null) ?? "B";
+  const icpTier: IcpModelTier = ICP_MODEL_PROFILES[rawTier] ? rawTier : "B";
   const icpProfile = ICP_MODEL_PROFILES[icpTier];
   const portfolio: PropertyDefaultsPromptInputContext["portfolio"] = {
     propertyCount: properties.length,

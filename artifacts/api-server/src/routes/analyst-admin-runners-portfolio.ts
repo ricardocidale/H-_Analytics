@@ -106,9 +106,9 @@ export async function runPortfolioRaiseV1Path(userId: number) {
     ),
     impliedIrr: analysis.impliedIrr,
     rampCarryUnderstated: analysis.rampCarryUnderstated,
-    perPropertyEquity: analysis.perPropertyEquity.map((p, i) => ({
+    perPropertyEquity: analysis.perPropertyEquity.map((p) => ({
       propertyIndex: p.propertyIndex,
-      propertyLabel: (properties[i] as { name?: string | null })?.name ?? `Property ${i + 1}`,
+      propertyLabel: (properties[p.propertyIndex] as { name?: string | null })?.name ?? `Property ${p.propertyIndex + 1}`,
       equityRequired: p.equityRequired,
       deploymentMonth: p.deploymentMonth,
       ltv: p.ltv,
@@ -149,6 +149,14 @@ export async function runPropertyRiskIntelligenceV1Path(
   if (!property) {
     throw new PropertyTier1UnavailableError(
       `Property ${propertyId} not found`,
+      null,
+    );
+  }
+  // Ownership gate: only the property owner or shared properties (userId=null)
+  // are accessible. Admins are scoped to properties they own or that are shared.
+  if (property.userId !== null && property.userId !== userId) {
+    throw new PropertyTier1UnavailableError(
+      `Property ${propertyId} not accessible`,
       null,
     );
   }

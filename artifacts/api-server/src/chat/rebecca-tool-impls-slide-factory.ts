@@ -4,6 +4,13 @@ import { SLIDE_FACTORY_UNAPPROVED_SLOTS_PREVIEW } from "../constants";
 import type { DataChangedEntry, ToolContext } from "./rebecca-tool-types";
 import { requireNumericArg } from "./rebecca-tool-types";
 
+/** Fire-and-forget a detached async operation; logs rejections so they are never silent. */
+function dispatchDetached(promise: Promise<unknown>, context: string): void {
+  void promise.catch((err) => {
+    logger.error(`[slide-factory] ${context} failed: ${String(err)}`, "slide-factory");
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Slide Factory Pipeline tools
 // Every UI action in SlideFactoryPanel maps to one tool here. Mutations emit
@@ -101,7 +108,7 @@ export async function toolAcceptSlideFactoryBrief(
     startedAt: new Date(),
   });
   const { runLorenzoIngestion } = await import("../slides/lorenzo-ingestion");
-  void runLorenzoIngestion(id);
+  dispatchDetached(runLorenzoIngestion(id), `Lorenzo ingestion run ${id}`);
   return {
     result: {
       id,
@@ -156,7 +163,7 @@ export async function toolAssignSlideFactoryProperties(
     status: "drafting",
   });
   const { runLuccaDraft } = await import("../slides/lucca-draft");
-  void runLuccaDraft(id);
+  dispatchDetached(runLuccaDraft(id), `Lucca draft run ${id}`);
   return {
     result: {
       id,
@@ -177,7 +184,13 @@ export async function toolUpdateSlideFactorySlot(
     return { result: { error: "id and slotKey are required" } };
   }
   const value = args.value === undefined ? undefined : String(args.value);
-  const approved = args.approved === undefined ? undefined : Boolean(args.approved);
+  let approved: boolean | undefined;
+  if (args.approved !== undefined) {
+    if (typeof args.approved !== "boolean") {
+      return { result: { error: "approved must be a boolean" } };
+    }
+    approved = args.approved;
+  }
   if (value === undefined && approved === undefined) {
     return { result: { error: "At least one of value or approved must be provided" } };
   }
@@ -284,7 +297,7 @@ export async function toolTriggerSlideFactoryBuild(
   }
   await updateSlideFactoryRun(id, { status: "building" });
   const { runMarco } = await import("../slides/marco");
-  void runMarco(id);
+  dispatchDetached(runMarco(id), `Marco render run ${id}`);
   return {
     result: {
       id,

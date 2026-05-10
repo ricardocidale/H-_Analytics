@@ -58,21 +58,23 @@ export const useWalkthroughStore = create<WalkthroughState>()((set) => ({
 }));
 
 async function updateTourPromptPreference(hide: boolean): Promise<void> {
-  await fetch("/api/profile/tour-prompt", {
+  const res = await fetch("/api/profile/tour-prompt", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ hide }),
     credentials: "include",
   });
+  if (!res.ok) throw new Error(`Tour preference update failed: ${res.status}`);
 }
 
 async function patchTourStep(tourStep: number | null): Promise<void> {
-  await fetch("/api/profile/tour-prompt", {
+  const res = await fetch("/api/profile/tour-prompt", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ tourStep }),
     credentials: "include",
   });
+  if (!res.ok) throw new Error(`Tour step sync failed: ${res.status}`);
 }
 
 function getTourSteps(firstName?: string | null) {
