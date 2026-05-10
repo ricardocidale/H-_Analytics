@@ -142,8 +142,15 @@ REQUIREMENTS:
   const rawBrands = Array.isArray(parsed.brands) ? parsed.brands : [];
   const newBrands: InsertReferenceBrand[] = rawBrands
     .filter((b): b is Record<string, unknown> => b !== null && typeof b === "object")
+    // Reject rows missing the only required field. Without this, a parseable
+    // payload of `[{}]` becomes `[{ brandName: "Unknown", ... }]` and replaces
+    // the entire reference_brands table with placeholder rows on auto-commit
+    // (CodeRabbit PR-84).
+    .filter((b): b is Record<string, unknown> & { brandName: string } => {
+      return typeof b["brandName"] === "string" && b["brandName"].trim() !== "";
+    })
     .map(b => ({
-      brandName: String(b["brandName"] ?? "Unknown"),
+      brandName: b["brandName"].trim(),
       niche: b["niche"] ? String(b["niche"]) : null,
       positioningSummary: b["positioningSummary"] ? String(b["positioningSummary"]) : null,
       guestSegment: b["guestSegment"] ? String(b["guestSegment"]) : null,
@@ -225,12 +232,23 @@ REQUIREMENTS:
 }
 
 function brandRowsToRanges(brands: Array<Pick<ReferenceBrand, "id" | "brandName" | "niche" | "propertyCount" | "keyCountMin" | "keyCountMax">>): ProposedRange[] {
-  return brands.map(b => ({
-    dimensionKey: `brand_${b.id}`,
-    label: b.niche ? `${b.brandName} · ${b.niche}` : b.brandName,
-    unit: "properties",
-    valueLow: b.keyCountMin ?? null,
-    valueMid: b.propertyCount ?? null,
-    valueHigh: b.keyCountMax ?? null,
-  }));
+  // The ProposedRange triple must describe a single metric. The original code
+  // mixed propertyCount (a count) into a keyCount (per-property room count)
+  // range — different units. Fix: render the natural keyCount range with mid
+  // as the midpoint when both bounds are present, falling back to whichever
+  // single bound exists. unit changed from "properties" to "keys" to match
+  // the data (CodeRabbit PR-84).
+  return brands.map(b => {
+    const low = b.keyCountMin ?? null;
+    const high = b.keyCountMax ?? null;
+    const mid = low !== null && high !== null ? (low + high) / 2 : (low ?? high);
+    return {
+      dimensionKey: `brand_${b.id}`,
+      label: b.niche ? `${b.brandName} · ${b.niche}` : b.brandName,
+      unit: "keys",
+      valueLow: low,
+      valueMid: mid,
+      valueHigh: high,
+    };
+  });
 }

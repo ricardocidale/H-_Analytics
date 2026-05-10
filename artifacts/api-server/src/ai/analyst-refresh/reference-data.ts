@@ -101,7 +101,9 @@ REQUIREMENTS:
         .filter((e): e is Record<string, unknown> => e !== null && typeof e === "object")
         .map(e => ({ source: String(e["source"] ?? ""), url: e["url"] ? String(e["url"]) : undefined, finding: String(e["finding"] ?? "") }))
     : [];
-  const sourceCount = typeof parsed.sourceCount === "number" ? parsed.sourceCount : Math.max(evidence.length, MIN_SOURCES);
+  // Honest count — audit log / admin UI decides whether MIN_SOURCES was met
+  // (CodeRabbit PR-84). Math.max() would mask under-sourced responses.
+  const sourceCount = typeof parsed.sourceCount === "number" ? parsed.sourceCount : evidence.length;
 
   refreshLog.info(`researchGeographyDimension: ${proposedRows.length} rows (${tokensUsed} tokens)`);
   return { proposedRows, narration, sourceCount, tokensUsed, evidence };
@@ -196,7 +198,9 @@ REQUIREMENTS:
         .filter((e): e is Record<string, unknown> => e !== null && typeof e === "object")
         .map(e => ({ source: String(e["source"] ?? ""), url: e["url"] ? String(e["url"]) : undefined, finding: String(e["finding"] ?? "") }))
     : [];
-  const sourceCount = typeof parsed.sourceCount === "number" ? parsed.sourceCount : Math.max(evidence.length, MIN_SOURCES);
+  // Honest count — audit log / admin UI decides whether MIN_SOURCES was met
+  // (CodeRabbit PR-84). Math.max() would mask under-sourced responses.
+  const sourceCount = typeof parsed.sourceCount === "number" ? parsed.sourceCount : evidence.length;
 
   refreshLog.info(`researchJurisdictionalTaxes: ${proposedRows.length} rows (${tokensUsed} tokens)`);
   return { proposedRows, narration, sourceCount, tokensUsed, evidence };
@@ -291,7 +295,9 @@ REQUIREMENTS:
         .filter((e): e is Record<string, unknown> => e !== null && typeof e === "object")
         .map(e => ({ source: String(e["source"] ?? ""), url: e["url"] ? String(e["url"]) : undefined, finding: String(e["finding"] ?? "") }))
     : [];
-  const sourceCount = typeof parsed.sourceCount === "number" ? parsed.sourceCount : Math.max(evidence.length, MIN_SOURCES);
+  // Honest count — audit log / admin UI decides whether MIN_SOURCES was met
+  // (CodeRabbit PR-84). Math.max() would mask under-sourced responses.
+  const sourceCount = typeof parsed.sourceCount === "number" ? parsed.sourceCount : evidence.length;
 
   refreshLog.info(`researchRegulatoryFees: ${proposedRows.length} rows (${tokensUsed} tokens)`);
   return { proposedRows, narration, sourceCount, tokensUsed, evidence };
@@ -335,7 +341,7 @@ REQUIREMENTS:
 - Cover at least 15 rows across NY, FL, CA, TX, CO, TN, NV, HI, GA, AZ.
 - Include both boutique and full-service segments for major metros.
 - Cap rates must be in decimal form (percentage / 100).
-- Use the most recent available data (2024 or 2025).
+- Use the most recent available data, preferring the current year (${new Date().getFullYear()}) and falling back at most 2 years if newer surveys aren't yet published.
 - Cite at least 3 independent sources (CBRE, JLL, STR, CoStar, RCA).
 - Return ONLY valid JSON. No markdown, no preamble.`;
 
@@ -385,7 +391,9 @@ REQUIREMENTS:
         .filter((e): e is Record<string, unknown> => e !== null && typeof e === "object")
         .map(e => ({ source: String(e["source"] ?? ""), url: e["url"] ? String(e["url"]) : undefined, finding: String(e["finding"] ?? "") }))
     : [];
-  const sourceCount = typeof parsed.sourceCount === "number" ? parsed.sourceCount : Math.max(evidence.length, MIN_SOURCES);
+  // Honest count — audit log / admin UI decides whether MIN_SOURCES was met
+  // (CodeRabbit PR-84). Math.max() would mask under-sourced responses.
+  const sourceCount = typeof parsed.sourceCount === "number" ? parsed.sourceCount : evidence.length;
 
   refreshLog.info(`researchMarketCapRates: ${proposedRows.length} rows (${tokensUsed} tokens)`);
   return { proposedRows, narration, sourceCount, tokensUsed, evidence };

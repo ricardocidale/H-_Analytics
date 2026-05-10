@@ -6,6 +6,8 @@ import {
   refreshLog,
   MIN_SOURCES,
   FALLBACK_NARRATION,
+  toFiniteNumber,
+  normalizeEvidence,
   type ProposedRange,
   type AnalystRefreshResult,
 } from "./shared";
@@ -63,18 +65,24 @@ Respond ONLY in valid JSON with this exact shape:
     const content = response.choices[0]?.message?.content ?? "{}";
     const parsed = JSON.parse(content);
     const tokensUsed = response.usage?.total_tokens ?? 0;
-    const evidence = Array.isArray(parsed.evidence) ? parsed.evidence : [];
-    const sourceCount = Math.max(evidence.length, MIN_SOURCES);
+    // Honest evidence count — caller / audit log decides whether MIN_SOURCES
+    // threshold was met (CodeRabbit PR-84). Math.max(evidence.length, MIN_SOURCES)
+    // would make under-sourced responses look compliant.
+    const evidence = normalizeEvidence(parsed.evidence);
+    const sourceCount = evidence.length;
 
+    const rawRanges: Array<Record<string, unknown>> = Array.isArray(parsed.ranges) ? parsed.ranges : [];
     const proposedRanges: ProposedRange[] = dims.map(d => {
-      const found = (parsed.ranges || []).find((r: { dimensionKey?: string }) => r.dimensionKey === d.dimensionKey);
+      const found = rawRanges.find((r) => typeof r.dimensionKey === "string" && r.dimensionKey === d.dimensionKey);
+      // Validate each numeric field — model may return stringified numbers or
+      // malformed types even inside a parseable JSON envelope (CodeRabbit PR-84).
       return {
         dimensionKey: d.dimensionKey,
         label: d.label,
         unit: d.unit,
-        valueLow: found?.valueLow ?? d.valueLow ?? null,
-        valueMid: found?.valueMid ?? d.valueMid ?? null,
-        valueHigh: found?.valueHigh ?? d.valueHigh ?? null,
+        valueLow: toFiniteNumber(found?.valueLow) ?? d.valueLow ?? null,
+        valueMid: toFiniteNumber(found?.valueMid) ?? d.valueMid ?? null,
+        valueHigh: toFiniteNumber(found?.valueHigh) ?? d.valueHigh ?? null,
       };
     });
 
