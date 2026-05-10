@@ -126,7 +126,7 @@ function* walkAllFiles(dir: string): Generator<string> {
 /** Per-artifact root-level non-config files that affect the build output. */
 const ARTIFACT_ROOT_FILES = ["package.json", "index.html", "vite.config.ts", "vite.config.js"];
 
-function collectInputFiles(): string[] {
+export function collectInputFiles(): string[] {
   const files: string[] = [
     // The script itself.
     fileURLToPath(import.meta.url),
@@ -495,7 +495,9 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch(err => {
-  console.error(err);
-  process.exit(1);
-});
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main().catch(err => {
+    console.error(err);
+    process.exit(1);
+  });
+}

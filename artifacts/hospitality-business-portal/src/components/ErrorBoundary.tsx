@@ -44,7 +44,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         <div className="min-h-screen flex items-center justify-center bg-background">
           <div className="max-w-md mx-auto p-8 text-center">
             <IconAlertTriangle className="w-12 h-12 text-accent-pop mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-foreground mb-2">Something went wrong</h2>
+            <h2 className="text-xl font-semibold font-display text-foreground mb-2">Something went wrong</h2>
             <p className="text-muted-foreground mb-4 text-sm">
               Something went wrong. Please reload the page.
             </p>
@@ -122,7 +122,7 @@ export class SelfHealingBoundary extends React.Component<SelfHealingBoundaryProp
         return (
           <div className="w-full p-8 text-center">
             <IconAlertTriangle className="w-10 h-10 text-accent-pop mx-auto mb-3" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">Failed to load</h3>
+            <h3 className="text-lg font-semibold font-display text-foreground mb-2">Failed to load</h3>
             <p className="text-muted-foreground text-sm mb-4">
               A component error occurred. Try again or reload the page.
             </p>
@@ -165,7 +165,7 @@ export class FinancialErrorBoundary extends React.Component<ErrorBoundaryProps, 
       return (
         <div className="w-full p-8 text-center">
           <IconAlertTriangle className="w-10 h-10 text-accent-pop mx-auto mb-3" />
-          <h3 className="text-lg font-semibold text-foreground mb-2">Calculation Error</h3>
+          <h3 className="text-lg font-semibold font-display text-foreground mb-2">Calculation Error</h3>
           <p className="text-muted-foreground text-sm mb-4">
             A financial calculation failed. This may be caused by invalid property or assumption data.
           </p>

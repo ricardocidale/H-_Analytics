@@ -165,7 +165,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "pnpm --filter './lib/**' -r --if-present run lint"
+args = "pnpm run check:lint:libs"
 
 [workflows.workflow.metadata]
 isValidation = true

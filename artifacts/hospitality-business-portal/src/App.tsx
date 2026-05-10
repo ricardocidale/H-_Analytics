@@ -374,7 +374,7 @@ function App() {
             <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
               <span className="text-destructive text-xl">!</span>
             </div>
-            <h2 className="text-xl font-semibold text-foreground mb-2">Something went wrong</h2>
+            <h2 className="text-xl font-semibold font-display text-foreground mb-2">Something went wrong</h2>
             <p className="text-muted-foreground mb-6 text-sm">
               An unexpected error occurred. Our team has been notified.
             </p>

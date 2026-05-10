@@ -4,8 +4,8 @@
  * Covers the five observable contract branches:
  *   - 400 when the path id is invalid
  *   - 404 when the run is not owned by the caller (or doesn't exist)
- *   - 409 when the run is not in 'complete' state
- *   - 422 when status is 'complete' but deckR2Key is null
+ *   - 422 when deckR2Key is absent (deck not yet generated, regardless of status)
+ *   - 409 when deckR2Key is present but status is not 'complete' (state-machine conflict)
  *   - 200 with PDF body when status is 'complete' and deckR2Key is set
  *
  * All heavy dependencies are mocked — no real DB, R2, or auth required.
@@ -108,22 +108,44 @@ describe('GET /api/lb-slides/factory/runs/:id/download — ownership / not found
 });
 
 describe('GET /api/lb-slides/factory/runs/:id/download — state machine guards', () => {
-  it('returns 409 when the run is in a non-complete state (state-machine conflict)', async () => {
+  it('returns 422 when deckR2Key is absent regardless of status (deck not yet generated)', async () => {
     mockGetSlideFactoryRun.mockResolvedValue({
       id: 5, userId: FAKE_USER_ID, status: 'building', deckR2Key: null,
     });
     const res = await agent.get('/api/lb-slides/factory/runs/5/download');
-    expect(res.status).toBe(409);
-    expect(res.body.error).toMatch(/run status is building/i);
+    expect(res.status).toBe(422);
+    expect(res.body.error).toMatch(/not yet generated/i);
     expect(mockDownloadBuffer).not.toHaveBeenCalled();
   });
 
-  it('returns 409 for status=draft_review (any non-complete state, not just building)', async () => {
+  it('returns 409 when deckR2Key is present but status is not complete (state-machine conflict)', async () => {
+    // Simulates a rebuild in-flight: a prior deck key exists but the run is not yet complete.
+    mockGetSlideFactoryRun.mockResolvedValue({
+      id: 5, userId: FAKE_USER_ID, status: 'rebuilding', deckR2Key: 'factory-runs/5/deck-v1.pdf',
+    });
+    const res = await agent.get('/api/lb-slides/factory/runs/5/download');
+    expect(res.status).toBe(409);
+    expect(res.body.error).toMatch(/run status is rebuilding/i);
+    expect(mockDownloadBuffer).not.toHaveBeenCalled();
+  });
+
+  it('returns 409 for status=draft_review when deckR2Key is present (any non-complete state)', async () => {
+    mockGetSlideFactoryRun.mockResolvedValue({
+      id: 5, userId: FAKE_USER_ID, status: 'draft_review', deckR2Key: 'factory-runs/5/deck-v1.pdf',
+    });
+    const res = await agent.get('/api/lb-slides/factory/runs/5/download');
+    expect(res.status).toBe(409);
+    expect(mockDownloadBuffer).not.toHaveBeenCalled();
+  });
+
+  it('returns 422 when status is draft_review and deckR2Key is null (precondition not met)', async () => {
     mockGetSlideFactoryRun.mockResolvedValue({
       id: 5, userId: FAKE_USER_ID, status: 'draft_review', deckR2Key: null,
     });
     const res = await agent.get('/api/lb-slides/factory/runs/5/download');
-    expect(res.status).toBe(409);
+    expect(res.status).toBe(422);
+    expect(res.body.error).toMatch(/not yet generated/i);
+    expect(mockDownloadBuffer).not.toHaveBeenCalled();
   });
 
   it('returns 422 when status is complete but deckR2Key is null (precondition pending)', async () => {

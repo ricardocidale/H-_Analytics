@@ -52,7 +52,7 @@ export default function RadarChart({ properties, dimensions, title }: RadarChart
       data-testid="radar-chart"
       className="bg-card rounded-xl border border-border shadow-sm p-6"
     >
-      {title && <h3 className="text-lg font-semibold mb-4">{title}</h3>}
+      {title && <h3 className="text-lg font-semibold font-display mb-4">{title}</h3>}
       <ResponsiveContainer width="100%" height={400}>
         <RechartsRadarChart data={data}>
           <PolarGrid stroke={CHART_COLORS.gridStroke} />

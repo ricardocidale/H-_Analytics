@@ -496,7 +496,7 @@ export default function TestingDashboard() {
     <div className="space-y-6" data-testid="testing-dashboard">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h3 className="text-lg font-semibold text-foreground">Testing & Quality Dashboard</h3>
+          <h3 className="text-lg font-semibold font-display text-foreground">Testing & Quality Dashboard</h3>
           <p className="text-sm text-muted-foreground">
             Codebase metrics, test coverage, and code quality audit results at a glance.
           </p>

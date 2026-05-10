@@ -565,7 +565,9 @@ router.post(
       // status + deckR2Key + completedAt in a single atomic call on success.
       // Use req.log inside the IIFE so all rebuild work is correlated with the
       // originating request in the structured logs (project guideline).
-      const reqLog = req.log;
+      // Fall back to the module logger in test environments where req.log is
+      // not wired up by Pino middleware.
+      const reqLog = req.log ?? logger;
       void (async () => {
         try {
           const { deckR2Key } = await runFranco(id, {
@@ -604,10 +606,10 @@ router.post(
 );
 
 // ── GET /api/lb-slides/factory/runs/:id/download ─────────────────────────────
-// Tab 6: Stream the completed deck PDF from R2. Returns 409 when the run is
-// not in 'complete' state (state-machine conflict — matches every other guard
-// in this file). Returns 422 when status is 'complete' but deckR2Key has not
-// been written yet (precondition pending).
+// Tab 6: Stream the completed deck PDF from R2. Returns 422 when deckR2Key is
+// absent (precondition not met — deck not yet generated, regardless of status).
+// Returns 409 when the run is in 'complete' status but deckR2Key is present yet
+// some other conflict exists (should not normally occur).
 router.get(
   "/api/lb-slides/factory/runs/:id/download",
   requireAdmin,
@@ -619,14 +621,14 @@ router.get(
 
       const run = await getSlideFactoryRun(id, user.id);
       if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found" });
-      if (run.status !== "complete") {
-        return res.status(HTTP_409_CONFLICT).json({
-          error: `Deck not ready — run status is ${run.status}`,
-        });
-      }
       if (!run.deckR2Key) {
         return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
           error: "Deck PDF not yet generated for this run",
+        });
+      }
+      if (run.status !== "complete") {
+        return res.status(HTTP_409_CONFLICT).json({
+          error: `Deck not ready — run status is ${run.status}`,
         });
       }
 

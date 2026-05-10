@@ -304,7 +304,9 @@ function extractRecipe(config: unknown): HealthProbeRecipe | null {
   return {
     method: typeof r.method === "string" ? r.method : "GET",
     url: r.url,
-    expectStatus: typeof r.expectStatus === "number" ? r.expectStatus : COSTANTINO_DEFAULT_EXPECTED_HTTP_STATUS,
+    expectStatus: (Number.isInteger(r.expectStatus) && Number.isFinite(r.expectStatus as number) && (r.expectStatus as number) >= 100 && (r.expectStatus as number) <= 599)
+      ? (r.expectStatus as number)
+      : COSTANTINO_DEFAULT_EXPECTED_HTTP_STATUS,
     headers: (r.headers && typeof r.headers === "object") ? (r.headers as Record<string, string>) : undefined,
     secretRef: typeof r.secretRef === "string" ? r.secretRef : undefined,
   };

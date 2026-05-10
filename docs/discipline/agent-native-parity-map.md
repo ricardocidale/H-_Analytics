@@ -28,7 +28,10 @@ feature ships or a new Rebecca tool is added.
 | Lock scenario | Scenario → Lock | `lock_scenario` | ✅ |
 | Delete scenario | Scenario → Delete | `delete_scenario` | ✅ |
 | Compare two scenarios side-by-side | Scenarios → Compare | `compare_scenarios` | ✅ |
+| Share a scenario with another user by email | Scenarios → Share | `share_scenario` | ✅ |
 | Run property research | Property → Research | `trigger_research` | ✅ |
+| Delete a property photo | Property → Photos → Delete | `delete_property_photo` | ✅ |
+| Set property hero photo | Property → Photos → Set Hero | `set_hero_photo` | ✅ |
 
 ## Analyst Table Actions
 
@@ -45,6 +48,7 @@ feature ships or a new Rebecca tool is added.
 |---|---|---|---|
 | List active companies (management cos + SPVs) | Admin → Companies | `list_companies` | ✅ |
 | View a single company by id | Admin → Companies → detail | `get_company` | ✅ |
+| Update company name / type / description / active status | Admin → Companies → edit | `update_company` | ✅ |
 
 ## Slides / Deck Actions (Legacy LB Deck — manual configure → render path)
 
@@ -104,10 +108,12 @@ re-renders the panel.
 | UI Action | Route / Location | Rebecca Tool | Status |
 |---|---|---|---|
 | Upload document | Property → Docs | — | 🚫 N/A (file picker) |
+| Read global assumptions | Admin → Defaults (view) | `get_global_assumptions` | ✅ |
 | Edit global assumptions | Admin → Defaults | `update_global_assumptions` | ✅ |
 | Change brand / appearance | Admin → Appearance | — | 🚫 N/A (admin-only) |
 | Manage users | Admin → Team | — | 🚫 N/A (admin-only) |
 | Change Rebecca config | Admin → AI | — | 🚫 N/A (admin-only) |
+| Update company record | Admin → Company | `update_company` | ✅ |
 
 ## Intelligence Actions
 
@@ -126,6 +132,8 @@ re-renders the panel.
 | UI Action | Route / Location | Rebecca Tool | Status |
 |---|---|---|---|
 | Record retrieval gap | Auto (Rebecca unanswered query) | `write_retrieval_gap` | ✅ |
+| List KB entries | Admin → Knowledge Base | `list_kb_entries` | ✅ |
+| View single KB entry | Admin → Knowledge Base | `get_kb_entry` | ✅ |
 | Create KB entry | Admin → Knowledge Base | `create_kb_entry` | ✅ |
 | Update KB entry | Admin → Knowledge Base | `update_kb_entry` | ✅ |
 | Delete KB entry | Admin → Knowledge Base | `delete_kb_entry` | ✅ |
@@ -135,6 +143,13 @@ re-renders the panel.
 | UI Action | Route / Location | Rebecca Tool | Status |
 |---|---|---|---|
 | Fetch competitor hotel data for a market | Research context / comp-set questions | `get_tripadvisor_hotels` | ✅ |
+
+### Market Rates
+
+| UI Action | Route / Location | Rebecca Tool | Status |
+|---|---|---|---|
+| View market rates and staleness status | Admin → Sources & Resources | `get_market_rates` | ✅ |
+| Override a market rate (admin) | Admin → Sources & Resources → Override | `update_market_rate` | ✅ |
 
 ### Data Infrastructure (Pietro — Tools Deferred to U10)
 

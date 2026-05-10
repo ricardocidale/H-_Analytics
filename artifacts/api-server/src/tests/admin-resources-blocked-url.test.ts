@@ -15,7 +15,7 @@ import supertest from "supertest";
 
 // ── Hoisted helpers (available inside vi.mock factory functions) ───────────────
 const { makeResourceRow } = vi.hoisted(() => {
-  function makeResourceRow(overrides: Record<string, unknown> = {}) {
+  function buildRow(overrides: Record<string, unknown> = {}) {
     return {
       id: 1,
       kind: "api",
@@ -33,7 +33,7 @@ const { makeResourceRow } = vi.hoisted(() => {
       ...overrides,
     };
   }
-  return { makeResourceRow };
+  return { makeResourceRow: buildRow };
 });
 
 // ── Module mocks (declared before any imports from those modules) ─────────────
@@ -70,6 +70,9 @@ vi.mock("../storage", () => ({
     ),
     rollbackAdminResource: vi.fn().mockImplementation(() =>
       Promise.resolve(makeResourceRow({ version: 3 })),
+    ),
+    getAdminResourceVersion: vi.fn().mockImplementation(() =>
+      Promise.resolve(makeResourceRow({ config: {} })),
     ),
     deleteAdminResource: vi.fn().mockResolvedValue(true),
     listAdminResourceVersions: vi.fn().mockResolvedValue([]),

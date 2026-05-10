@@ -392,7 +392,7 @@ export default function SlideDecksTab() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">Property Slide Decks</h2>
+        <h2 className="text-xl font-semibold font-display text-foreground">Property Slide Decks</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Click <strong>Download PDF</strong> to get the full 6-slide deck in one file, or click{" "}
           <strong>Slides</strong> to open the per-slide view.

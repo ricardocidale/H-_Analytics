@@ -12,7 +12,7 @@ export function AIReviewPanel({ review, loading, onRun }: AIReviewPanelProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between border-b pb-2">
-        <h3 className="text-lg font-bold text-foreground">AI Financial Narrative Review</h3>
+        <h3 className="text-lg font-bold font-display text-foreground">AI Financial Narrative Review</h3>
         <Button
           onClick={onRun}
           disabled={loading}

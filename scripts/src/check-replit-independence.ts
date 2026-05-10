@@ -136,43 +136,49 @@ function isAllowed(absolutePath: string): boolean {
 
 const CACHE_NAME = "replit-independence";
 
-const inputFiles: string[] = [fileURLToPath(import.meta.url)];
-for (const absPath of walkFiles(WORKSPACE_ROOT)) {
-  if (!CHECKED_EXTENSIONS.has(path.extname(absPath))) continue;
-  inputFiles.push(absPath);
+export function collectInputFiles(): string[] {
+  const files: string[] = [fileURLToPath(import.meta.url)];
+  for (const absPath of walkFiles(WORKSPACE_ROOT)) {
+    if (!CHECKED_EXTENSIONS.has(path.extname(absPath))) continue;
+    files.push(absPath);
+  }
+  return files;
 }
 
-const cacheHash = computeInputsHash({ files: inputFiles });
-if (tryCacheHit(CACHE_NAME, cacheHash)) process.exit(0);
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const inputFiles = collectInputFiles();
+  const cacheHash = computeInputsHash({ files: inputFiles });
+  if (tryCacheHit(CACHE_NAME, cacheHash)) process.exit(0);
 
-let violations = 0;
+  let violations = 0;
 
-for (const absPath of inputFiles) {
-  if (absPath === fileURLToPath(import.meta.url)) continue;
-  if (isAllowed(absPath)) continue;
+  for (const absPath of inputFiles) {
+    if (absPath === fileURLToPath(import.meta.url)) continue;
+    if (isAllowed(absPath)) continue;
 
-  const rel = path.relative(WORKSPACE_ROOT, absPath);
-  const lines = fs.readFileSync(absPath, "utf8").split("\n");
+    const rel = path.relative(WORKSPACE_ROOT, absPath);
+    const lines = fs.readFileSync(absPath, "utf8").split("\n");
 
-  lines.forEach((line, idx) => {
-    if (REPLIT_IMPORT_RE.test(line) || REPLIT_ENV_RE.test(line)) {
-      console.error(`VIOLATION  ${rel}:${idx + 1}  ${line.trim()}`);
-      violations++;
-    }
-  });
-}
+    lines.forEach((line, idx) => {
+      if (REPLIT_IMPORT_RE.test(line) || REPLIT_ENV_RE.test(line)) {
+        console.error(`VIOLATION  ${rel}:${idx + 1}  ${line.trim()}`);
+        violations++;
+      }
+    });
+  }
 
-if (violations === 0) {
-  console.log("check:replit-independence  PASS — no violations found");
-  writeCacheHit(CACHE_NAME, cacheHash);
-  process.exit(0);
-} else {
-  console.error(
-    `\ncheck:replit-independence  FAIL — ${violations} violation(s) found`
-  );
-  console.error(
-    "If a new legitimate Replit touchpoint is needed, add it to the allow-list"
-  );
-  console.error("in scripts/src/check-replit-independence.ts.");
-  process.exit(1);
+  if (violations === 0) {
+    console.log("check:replit-independence  PASS — no violations found");
+    writeCacheHit(CACHE_NAME, cacheHash);
+    process.exit(0);
+  } else {
+    console.error(
+      `\ncheck:replit-independence  FAIL — ${violations} violation(s) found`
+    );
+    console.error(
+      "If a new legitimate Replit touchpoint is needed, add it to the allow-list"
+    );
+    console.error("in scripts/src/check-replit-independence.ts.");
+    process.exit(1);
+  }
 }

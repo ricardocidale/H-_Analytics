@@ -28,7 +28,7 @@ export function TableShell({ title, subtitle, columns, headers, stickyLabel, chi
         <div className="flex items-center gap-2">
           {icon}
           <div>
-            <CardTitle className="text-xl font-bold">{title}</CardTitle>
+            <CardTitle className="text-xl font-bold font-display">{title}</CardTitle>
             {subtitle && <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>}
           </div>
         </div>

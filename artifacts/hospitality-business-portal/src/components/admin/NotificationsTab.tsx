@@ -334,7 +334,7 @@ export default function NotificationsTab() {
         <TabsContent value="rules" className="space-y-4 mt-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold">Alert Rules</h3>
+              <h3 className="text-lg font-semibold font-display">Alert Rules</h3>
               <p className="text-sm text-muted-foreground">
                 Define threshold rules that trigger notifications when property metrics breach limits.
               </p>

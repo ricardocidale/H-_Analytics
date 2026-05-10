@@ -244,7 +244,7 @@ export default function HealthCheckDashboard() {
     <div className="space-y-6" data-testid="health-check-dashboard">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h3 className="text-lg font-semibold text-foreground">Pipeline Health</h3>
+          <h3 className="text-lg font-semibold font-display text-foreground">Pipeline Health</h3>
           <p className="text-sm text-muted-foreground">
             15-phase verification pipeline status — TypeScript, lint, tests, and financial proof suites.
           </p>

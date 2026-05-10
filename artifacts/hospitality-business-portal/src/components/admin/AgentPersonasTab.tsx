@@ -18,7 +18,7 @@ function PersonaCard({ persona }: { persona: AgentPersona }) {
               {icon}
             </div>
             <div>
-              <CardTitle className="text-lg" data-testid={`text-persona-name-${persona.id}`}>
+              <CardTitle className="text-lg font-display" data-testid={`text-persona-name-${persona.id}`}>
                 {persona.name}
               </CardTitle>
               <CardDescription className="text-xs mt-0.5">
@@ -102,7 +102,7 @@ export default function AgentPersonasTab() {
   return (
     <div className="space-y-6" data-testid="agent-personas-tab">
       <div>
-        <h3 className="text-lg font-semibold" data-testid="text-personas-title">AI Agents</h3>
+        <h3 className="text-lg font-semibold font-display" data-testid="text-personas-title">AI Agents</h3>
         <p className="text-sm text-muted-foreground mt-1">
           Two AI agents power the H+ Analytics experience. These personas are defined in code and are not user-configurable.
         </p>

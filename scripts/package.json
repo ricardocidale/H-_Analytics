@@ -15,6 +15,8 @@
     "check:lint:libs": "tsx ./src/check-lint-libs.ts",
     "check:all-cached": "tsx ./src/check-all-cached.ts",
     "check:all-cached:write": "tsx ./src/check-all-cached.ts --write",
+    "check:selective": "tsx ./src/check-selective.ts",
+    "check:typecheck": "tsx ./src/check-typecheck.ts",
     "check:schema-drift": "tsx ./src/check-schema-drift.ts",
     "check:canonical-schema": "tsx ./src/check-canonical-schema.ts",
     "check:production-image": "tsx ./src/check-production-image.ts",

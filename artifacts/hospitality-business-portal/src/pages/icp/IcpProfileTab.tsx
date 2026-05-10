@@ -77,7 +77,7 @@ export function IcpProfileTab({
         </CardHeader>
         <CardContent>
           {defEditing ? (
-            <textarea value={defDraft} onChange={(e) => setDefDraft(e.target.value)} className="w-full min-h-[400px] text-sm leading-relaxed font-sans text-foreground/90 bg-muted/40 border border-border rounded p-4 resize-y focus:outline-none focus:ring-1 focus:ring-ring" data-testid="textarea-icp-definition" />
+            <textarea value={defDraft} onChange={(e) => setDefDraft(e.target.value)} className="w-full min-h-[400px] text-sm leading-relaxed font-body text-foreground/90 bg-muted/40 border border-border rounded p-4 resize-y focus:outline-none focus:ring-1 focus:ring-ring" data-testid="textarea-icp-definition" />
           ) : savedDefinition ? (
             <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed text-foreground/90" data-testid="text-icp-definition">
               {savedDefinition.split("\n\n").map((paragraph, i) => (<p key={i} className="mb-3 last:mb-0">{paragraph}</p>))}

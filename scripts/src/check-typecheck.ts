@@ -1,22 +1,24 @@
 /**
- * check-lint.ts
+ * check-typecheck.ts
  *
- * Thin cache wrapper around `pnpm -r --if-present run lint` (all packages).
+ * Thin cache wrapper around `pnpm run typecheck` (the full workspace type-check:
+ * tsc --build for composite libs, then tsc --noEmit for all artifact packages).
  *
- * Computes a SHA-256 over the contents of every TypeScript/JavaScript source
- * file in the workspace plus every ESLint config file.  If the hash matches
- * the value stored in `.cache/check-lint.hash` from the previous successful
- * run, ESLint is skipped entirely.  On a cache miss the real lint command runs,
- * and if it exits 0 the new hash is persisted for future runs.
+ * Computes a SHA-256 over every TypeScript/TSX source file and every
+ * tsconfig*.json file in the workspace.  If the hash matches the value stored
+ * in `.cache/check-typecheck.hash` from the previous successful run, the full
+ * tsc pass is skipped entirely.  On a cache miss the real typecheck command
+ * runs, and if it exits 0 the new hash is persisted so the next invocation can
+ * short-circuit.
  *
- * This makes `check-lint` a first-class participant in the composite
+ * This makes `check-typecheck` a first-class participant in the composite
  * `check-all-cached` gate (see check-all-cached.ts) so a fully-warm workspace
- * can skip the entire `pnpm run check` suite.
+ * can skip the entire `pnpm run check` suite in under a second.
  *
  * Bypass: set CHECK_CACHE_DISABLED=1 to force a full re-run.
  *
  * Run via:
- *   pnpm --filter @workspace/scripts run check:lint
+ *   pnpm --filter @workspace/scripts run check:typecheck
  */
 
 import { execSync } from "node:child_process";
@@ -32,13 +34,11 @@ import {
   writeCacheHit,
 } from "./lib/check-cache.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const CACHE_NAME = "lint";
+const CACHE_NAME = "typecheck";
 
 // ---------------------------------------------------------------------------
-// Source directories to include in the hash (mirrors the packages that
-// `pnpm -r --if-present run lint` will lint).
+// Source directories to include in the hash.
+// Mirrors the packages that `pnpm run typecheck` checks.
 // ---------------------------------------------------------------------------
 
 const SOURCE_DIRS = [
@@ -54,35 +54,43 @@ const SKIP_DIRS = new Set([
   "dist",
   "build",
   "__generated__",
-  "migrations",
-  ".claude",
   "worktrees",
+  ".claude",
 ]);
 
-const SOURCE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".mts"]);
+const SOURCE_EXTS = new Set([".ts", ".tsx"]);
 
-/** Known ESLint config files across the workspace. */
-const ESLINT_CONFIGS = [
-  path.join(WORKSPACE_ROOT, "artifacts/api-server/eslint.config.mjs"),
-  path.join(WORKSPACE_ROOT, "artifacts/hospitality-business-portal/eslint.config.mjs"),
-  path.join(WORKSPACE_ROOT, "lib/shared/eslint.config.mjs"),
-];
+function collectTsconfigs(dir: string, out: string[]): void {
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      if (!SKIP_DIRS.has(entry.name)) {
+        collectTsconfigs(path.join(dir, entry.name), out);
+      }
+    } else if (entry.isFile() && /^tsconfig.*\.json$/.test(entry.name)) {
+      out.push(path.join(dir, entry.name));
+    }
+  }
+}
 
 export function collectInputFiles(): string[] {
   const files: string[] = [fileURLToPath(import.meta.url)];
 
   for (const dir of SOURCE_DIRS) {
     for (const f of walkFilesForCache(dir, {
-      extensions: SOURCE_EXTENSIONS,
+      extensions: SOURCE_EXTS,
       skipDirs: SKIP_DIRS,
     })) {
       files.push(f);
     }
   }
 
-  for (const cfg of ESLINT_CONFIGS) {
-    if (fs.existsSync(cfg)) files.push(cfg);
-  }
+  collectTsconfigs(WORKSPACE_ROOT, files);
 
   return files;
 }
@@ -99,7 +107,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   }
 
   try {
-    execSync("pnpm -r --if-present run lint", {
+    execSync("pnpm run typecheck", {
       cwd: WORKSPACE_ROOT,
       stdio: "inherit",
     });
