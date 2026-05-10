@@ -418,6 +418,30 @@ export const LIVE_CNBC_FETCH_LIMIT                     = 10;
 /** CNBC headline slice — number of headlines to retain from the raw fetch. */
 export const LIVE_CNBC_HEADLINE_SLICE                  = 5;
 
+// ---------------------------------------------------------------------------
+// Observability / check-timing trend analysis
+// ---------------------------------------------------------------------------
+
+/** 75th-percentile rank as a fraction — fixed by definition (75 / 100). */
+export const P75_FRACTION = 0.75;
+
+/** Fraction above the p75 baseline that classifies a check-timing run as a regression (20 %). */
+export const CHECK_TIMING_REGRESSION_THRESHOLD = 0.2;
+
+/** Number of prior runs used as the p75 baseline window for trend classification. */
+export const CHECK_TIMING_TREND_WINDOW = 5;
+
+/** Default number of recent check-timing runs returned by the admin API. */
+export const CHECK_TIMING_DEFAULT_N = 20;
+
+/** How long after the last storage-drift sweep we flag the drift panel as stale (36 h).
+ *  The sweep runs nightly; 36 h absorbs one retry/backoff before the panel turns red. */
+export const STORAGE_DRIFT_SWEEP_STALE_AFTER_MS = 36 * 60 * 60 * 1_000;
+
+// ---------------------------------------------------------------------------
+// Slide factory
+// ---------------------------------------------------------------------------
+
 /** Maximum number of slide factory runs returned in a list query (newest first). */
 export const SLIDE_FACTORY_RUNS_LIST_LIMIT             = 20;
 
