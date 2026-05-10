@@ -25,27 +25,8 @@ export default function CompanyIncomeTab({
 }: CompanyTabProps) {
   const companyName = global?.companyName || "Hospitality Business Co.";
 
-  const y1 = yearlyChartData?.[0];
-  const y1NetMargin = y1 && y1.Revenue > 0 ? ((y1.NetIncome / y1.Revenue) * 100).toFixed(1) : null;
-
   return (
     <div className="space-y-6">
-    {y1 && (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" data-testid="income-kpi-cards">
-        {([
-          { label: "Year 1 Revenue", value: y1.Revenue, sub: "Total management fees" },
-          { label: "Year 1 Expenses", value: y1.Expenses, sub: "Staff, overhead & variable", negative: true },
-          { label: "Year 1 Operating Income", value: y1.OperatingIncome, sub: "Revenue minus expenses" },
-          { label: "Year 1 Net Income", value: y1.NetIncome, sub: y1NetMargin ? `${y1NetMargin}% net margin` : "After tax" },
-        ] as { label: string; value: number; sub: string; negative?: boolean }[]).map(card => (
-          <div key={card.label} className="bg-card rounded-xl p-4 border shadow-sm">
-            <p className="text-xs text-muted-foreground mb-1">{card.label}</p>
-            <p className={`text-xl font-semibold font-mono ${card.value < 0 ? "text-negative" : "text-foreground"}`} data-testid={`kpi-${card.label.toLowerCase().replace(/\s+/g, '-')}`}>{formatMoney(card.value)}</p>
-            <p className="text-xs text-muted-foreground mt-1">{card.sub}</p>
-          </div>
-        ))}
-      </div>
-    )}
     {yearlyChartData && yearlyChartData.length > 0 && (
       <FinancialChart
         data={yearlyChartData}

@@ -39,6 +39,7 @@ import {
 const DAYS_PER_MONTH = getFactoryNumber("daysPerMonth");
 
 export const TAB_KEYS = [
+  "company",
   "funding",
   "revenue",
   "compensation",
@@ -48,6 +49,7 @@ export const TAB_KEYS = [
 export type TabKey = (typeof TAB_KEYS)[number];
 
 export const TAB_LABELS: Record<TabKey, string> = {
+  company: "Company",
   funding: "Funding",
   revenue: "Revenue Model",
   compensation: "Compensation",
@@ -64,6 +66,13 @@ export const TAB_LABELS: Record<TabKey, string> = {
  *   - exitCapRate + salesCommissionRate live in `property-defaults`
  */
 export const TAB_FIELDS: Record<TabKey, readonly (keyof GlobalResponse)[]> = {
+  company: [
+    "companyName",
+    "companyPhone", "companyEmail", "companyWebsite",
+    "companyEin", "companyFoundingYear",
+    "companyStreetAddress", "companyCity", "companyStateProvince",
+    "companyCountry", "companyZipPostalCode",
+  ] as unknown as Array<keyof GlobalResponse>,
   funding: [
     "capitalRaise1Amount", "capitalRaise1Date",
     "capitalRaise2Amount", "capitalRaise2Date",
@@ -186,7 +195,7 @@ export function useCompanyAssumptionsForm(
     useState<GlobalResponse | null>(null);
 
   const [tabWarnings, setTabWarnings] = useState<Record<TabKey, TabValidationWarning[]>>({
-    funding: [], revenue: [], compensation: [],
+    company: [], funding: [], revenue: [], compensation: [],
     overhead: [], "property-defaults": [],
   });
   const [savingTab, setSavingTab] = useState<TabKey | null>(null);
@@ -202,7 +211,7 @@ export function useCompanyAssumptionsForm(
   // #738 we read it but never auto-dispatch on it.
   const [requiredFieldsMissingByTab, setRequiredFieldsMissingByTab] =
     useState<Record<TabKey, string[]>>({
-      funding: [], revenue: [], compensation: [],
+      company: [], funding: [], revenue: [], compensation: [],
       overhead: [], "property-defaults": [],
     });
 

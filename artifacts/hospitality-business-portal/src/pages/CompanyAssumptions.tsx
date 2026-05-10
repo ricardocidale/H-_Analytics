@@ -89,11 +89,9 @@ import {
 const getInitialTab = (): TabKey => {
   if (typeof window === "undefined") return "funding";
   const t = new URLSearchParams(window.location.search).get("tab");
-  // Backwards-compat: the legacy `company`, `setup`, and `tax-exit` params
-  // (from before the Company tab was removed) all remap to `funding`, the
-  // new default landing tab.
+  // Backwards-compat: the legacy `setup` and `tax-exit` params remap to
+  // `funding`. `company` is now a real tab again so it is no longer remapped.
   const legacyRemap: Record<string, TabKey> = {
-    company: "funding",
     setup: "funding",
     "tax-exit": "funding",
   };
@@ -180,6 +178,8 @@ export default function CompanyAssumptions() {
       return typeof v === "number" ? v : Number(v ?? 0);
     };
     switch (tab) {
+      case "company":
+        return { enabled: false, reason: "Company identity fields don't require Analyst research." };
       case "funding":
         if (num("costOfEquity") <= 0) {
           return { enabled: false, reason: "Set a cost of equity > 0 before researching funding." };

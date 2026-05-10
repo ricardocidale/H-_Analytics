@@ -15,7 +15,6 @@ import { Link } from "wouter";
 import { CurrentThemeTab } from "@/components/ui/tabs";
 import { IconSettings, IconIncomeStatement, IconCashFlow, IconBalanceSheet, IconInvestment } from "@/components/icons";import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
-import { FinancialChart } from "@/components/ui/financial-chart";
 import { KPIGrid, InsightPanel, ScrollReveal, formatCompact } from "@/components/graphics";
 import { formatMoney } from "@/lib/financialEngine";
 import type { CompanyHeaderProps } from "./types";
@@ -82,14 +81,6 @@ export default function CompanyHeader({
           rightContent={exportMenuNode}
         />
       </div>
-
-      <FinancialChart
-        data={yearlyChartData as unknown as Record<string, unknown>[]}
-        series={["revenue", "expenses", "operatingIncome", "netIncome"]}
-        title={`Management Company Performance (${projectionYears}-Year Projection)`}
-        chartRef={chartRef}
-        id="company"
-      />
 
       <ScrollReveal>
         <InsightPanel

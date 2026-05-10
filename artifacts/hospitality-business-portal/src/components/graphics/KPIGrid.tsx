@@ -112,7 +112,7 @@ function KPICard({ item }: { item: KPIItem }) {
         )}
       </div>
       <div className="flex items-baseline gap-2 min-w-0">
-        <span className="text-xl sm:text-2xl font-bold text-foreground truncate">
+        <span className="text-xl sm:text-2xl font-bold font-mono text-foreground truncate">
           <AnimatedCounter value={item.value} format={item.format || defaultFormat} />
         </span>
       </div>

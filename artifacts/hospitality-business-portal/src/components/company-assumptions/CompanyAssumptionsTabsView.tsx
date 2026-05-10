@@ -18,6 +18,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { IconBuilding2 } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import {
+  CompanyIdentitySection,
   CapitalRaisesCard,
   ConvertibleTermsCard,
   CapitalStackDisciplineCard,
@@ -130,6 +131,14 @@ export function CompanyAssumptionsTabsView(props: Props) {
 
   const renderBody = (tab: TabKey) => {
     switch (tab) {
+      case "company":
+        return (
+          <CompanyIdentitySection
+            formData={formData}
+            onChange={onChange}
+            global={global}
+          />
+        );
       case "funding":
         // The funding tab balances four cards across two columns at xl
         // (the other tabs use three columns, but Capital Raises is now

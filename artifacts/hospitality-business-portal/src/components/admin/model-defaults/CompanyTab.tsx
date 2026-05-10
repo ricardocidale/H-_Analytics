@@ -119,6 +119,139 @@ export function CompanyTab(props: CompanyTabProps) {
           </div>
         </Section>
 
+        <Section title="Contact & Location" description="Management company contact details and registered address. Displayed on reports and PDF exports.">
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2" data-testid="field-companyPhone">
+                <Label className="flex items-center gap-1 text-foreground label-text">
+                  Phone
+                  <InfoTooltip text="Company phone number for reports and investor documents." />
+                </Label>
+                <Input
+                  value={draft.companyPhone ?? ""}
+                  onChange={(e) => onChange("companyPhone", e.target.value || null)}
+                  className="bg-card border-border"
+                  placeholder="e.g., +1 (212) 555-0100"
+                  data-testid="input-companyPhone"
+                />
+              </div>
+              <div className="space-y-2" data-testid="field-companyEmail">
+                <Label className="flex items-center gap-1 text-foreground label-text">
+                  Email
+                  <InfoTooltip text="Primary contact email for the management company." />
+                </Label>
+                <Input
+                  type="email"
+                  value={draft.companyEmail ?? ""}
+                  onChange={(e) => onChange("companyEmail", e.target.value || null)}
+                  className="bg-card border-border"
+                  placeholder="e.g., info@company.com"
+                  data-testid="input-companyEmail"
+                />
+              </div>
+            </div>
+            <div className="space-y-2" data-testid="field-companyWebsite">
+              <Label className="flex items-center gap-1 text-foreground label-text">
+                Website
+                <InfoTooltip text="Company website URL shown on investor reports." />
+              </Label>
+              <Input
+                value={draft.companyWebsite ?? ""}
+                onChange={(e) => onChange("companyWebsite", e.target.value || null)}
+                className="bg-card border-border"
+                placeholder="e.g., https://yourcompany.com"
+                data-testid="input-companyWebsite"
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2" data-testid="field-companyEin">
+                <Label className="flex items-center gap-1 text-foreground label-text">
+                  EIN / Tax ID
+                  <InfoTooltip text="Employer Identification Number or tax registration number. Displayed on financial reports." />
+                </Label>
+                <Input
+                  value={draft.companyEin ?? ""}
+                  onChange={(e) => onChange("companyEin", e.target.value || null)}
+                  className="bg-card border-border"
+                  placeholder="e.g., 12-3456789"
+                  data-testid="input-companyEin"
+                />
+              </div>
+              <div className="space-y-2" data-testid="field-companyFoundingYear">
+                <Label className="flex items-center gap-1 text-foreground label-text">
+                  Founding Year
+                  <InfoTooltip text="Year the management company was incorporated or founded." />
+                </Label>
+                <Input
+                  type="number"
+                  value={draft.companyFoundingYear ?? ""}
+                  onChange={(e) => onChange("companyFoundingYear", e.target.value ? Number(e.target.value) : null)}
+                  className="bg-card border-border"
+                  placeholder="e.g., 2024"
+                  min={1900}
+                  max={2100}
+                  data-testid="input-companyFoundingYear"
+                />
+              </div>
+            </div>
+            <div className="space-y-2" data-testid="field-companyStreetAddress">
+              <Label className="flex items-center gap-1 text-foreground label-text">
+                Street Address
+                <InfoTooltip text="Registered office street address." />
+              </Label>
+              <Input
+                value={draft.companyStreetAddress ?? ""}
+                onChange={(e) => onChange("companyStreetAddress", e.target.value || null)}
+                className="bg-card border-border"
+                placeholder="e.g., 150 West Main Street, Suite 400"
+                data-testid="input-companyStreetAddress"
+              />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="space-y-2 col-span-2 sm:col-span-1" data-testid="field-companyCity">
+                <Label className="label-text text-foreground">City</Label>
+                <Input
+                  value={draft.companyCity ?? ""}
+                  onChange={(e) => onChange("companyCity", e.target.value || null)}
+                  className="bg-card border-border"
+                  placeholder="City"
+                  data-testid="input-companyCity"
+                />
+              </div>
+              <div className="space-y-2" data-testid="field-companyStateProvince">
+                <Label className="label-text text-foreground">State / Province</Label>
+                <Input
+                  value={draft.companyStateProvince ?? ""}
+                  onChange={(e) => onChange("companyStateProvince", e.target.value || null)}
+                  className="bg-card border-border"
+                  placeholder="State"
+                  data-testid="input-companyStateProvince"
+                />
+              </div>
+              <div className="space-y-2" data-testid="field-companyZipPostalCode">
+                <Label className="label-text text-foreground">Zip / Postal Code</Label>
+                <Input
+                  value={draft.companyZipPostalCode ?? ""}
+                  onChange={(e) => onChange("companyZipPostalCode", e.target.value || null)}
+                  className="bg-card border-border"
+                  placeholder="Zip"
+                  data-testid="input-companyZipPostalCode"
+                />
+              </div>
+            </div>
+            <div className="space-y-2" data-testid="field-companyCountry">
+              <Label className="label-text text-foreground">Country</Label>
+              <Input
+                value={draft.companyCountry ?? ""}
+                onChange={(e) => onChange("companyCountry", e.target.value || null)}
+                className="bg-card border-border"
+                placeholder="e.g., United States"
+                data-testid="input-companyCountry"
+              />
+            </div>
+          </div>
+        </Section>
+
         <Section title="Fee Structure" description="Default management fee rates applied when creating new properties. Each property can override these individually.">
           <PctField
             label="Base Management Fee"
