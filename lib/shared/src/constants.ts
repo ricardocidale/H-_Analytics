@@ -487,3 +487,7 @@ export const COSTANTINO_RECENT_FINDINGS_LIMIT = 30;
 
 /** Row cap for list_findings scope='open' / 'all'. */
 export const COSTANTINO_FINDINGS_PAGE_LIMIT = 200;
+
+/** Valid HTTP status code range for expectStatus validation (RFC 9110 §15). */
+export const HTTP_STATUS_CODE_MIN = 100;
+export const HTTP_STATUS_CODE_MAX = 599;

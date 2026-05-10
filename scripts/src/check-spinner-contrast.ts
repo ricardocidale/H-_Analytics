@@ -407,7 +407,10 @@ function findEnclosingSaveButton(contextLines: string[]): boolean {
 const CACHE_NAME = "spinner-contrast";
 
 export function collectInputFiles(): string[] {
-  const files: string[] = [fileURLToPath(import.meta.url)];
+  const files: string[] = [
+    fileURLToPath(import.meta.url),
+    path.join(WORKSPACE_ROOT, "pnpm-lock.yaml"),
+  ];
   for (const scanDir of SCAN_DIRS) {
     const absDir = path.join(WORKSPACE_ROOT, scanDir);
     if (!fs.existsSync(absDir)) continue;

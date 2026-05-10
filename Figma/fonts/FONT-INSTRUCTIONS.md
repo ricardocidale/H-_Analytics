@@ -183,7 +183,7 @@ Previously `font-sans` (IBM Plex Sans); now `font-body` (Inter):
 
 ## DevTools Quick Verification
 
-```
+```text
 body                → font-family: Inter, sans-serif
 h2, h3              → font-family: IBM Plex Sans, sans-serif
 .font-mono element  → font-family: JetBrains Mono, monospace

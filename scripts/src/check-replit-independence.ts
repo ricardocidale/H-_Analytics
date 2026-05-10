@@ -137,7 +137,10 @@ function isAllowed(absolutePath: string): boolean {
 const CACHE_NAME = "replit-independence";
 
 export function collectInputFiles(): string[] {
-  const files: string[] = [fileURLToPath(import.meta.url)];
+  const files: string[] = [
+    fileURLToPath(import.meta.url),
+    path.join(WORKSPACE_ROOT, "pnpm-lock.yaml"),
+  ];
   for (const absPath of walkFiles(WORKSPACE_ROOT)) {
     if (!CHECKED_EXTENSIONS.has(path.extname(absPath))) continue;
     files.push(absPath);
@@ -154,6 +157,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
 
   for (const absPath of inputFiles) {
     if (absPath === fileURLToPath(import.meta.url)) continue;
+    if (!CHECKED_EXTENSIONS.has(path.extname(absPath))) continue;
     if (isAllowed(absPath)) continue;
 
     const rel = path.relative(WORKSPACE_ROOT, absPath);

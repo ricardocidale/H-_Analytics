@@ -57,7 +57,12 @@ function readOrFail(p: string): string {
 const CACHE_NAME = "types-mirror";
 
 export function collectInputFiles(): string[] {
-  return [fileURLToPath(import.meta.url), SOURCE, MIRROR];
+  return [
+    fileURLToPath(import.meta.url),
+    path.join(REPO_ROOT, "pnpm-lock.yaml"),
+    SOURCE,
+    MIRROR,
+  ];
 }
 
 function main(): void {

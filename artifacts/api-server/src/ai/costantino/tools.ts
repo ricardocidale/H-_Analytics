@@ -31,6 +31,8 @@ import {
   COSTANTINO_FINDINGS_PAGE_LIMIT,
   COSTANTINO_RECENT_FINDINGS_LIMIT,
   DEFAULT_COSTANTINO_PROBE_TIMEOUT_MS,
+  HTTP_STATUS_CODE_MIN,
+  HTTP_STATUS_CODE_MAX,
 } from "@shared/constants";
 import type { ToolParam } from "../../chat/tool-types";
 
@@ -304,7 +306,7 @@ function extractRecipe(config: unknown): HealthProbeRecipe | null {
   return {
     method: typeof r.method === "string" ? r.method : "GET",
     url: r.url,
-    expectStatus: (Number.isInteger(r.expectStatus) && Number.isFinite(r.expectStatus as number) && (r.expectStatus as number) >= 100 && (r.expectStatus as number) <= 599)
+    expectStatus: (Number.isInteger(r.expectStatus) && Number.isFinite(r.expectStatus as number) && (r.expectStatus as number) >= HTTP_STATUS_CODE_MIN && (r.expectStatus as number) <= HTTP_STATUS_CODE_MAX)
       ? (r.expectStatus as number)
       : COSTANTINO_DEFAULT_EXPECTED_HTTP_STATUS,
     headers: (r.headers && typeof r.headers === "object") ? (r.headers as Record<string, string>) : undefined,

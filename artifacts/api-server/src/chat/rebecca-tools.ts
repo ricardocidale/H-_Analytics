@@ -759,83 +759,6 @@ export function getRebeccaTools(): ToolParam[] {
         required: ["patch"],
       },
     },
-    {
-      name: "get_global_assumptions",
-      description: "Read the current global assumptions for this organisation. Use before calling update_global_assumptions to see the current values.",
-      parameters: { type: "object", properties: {} },
-    },
-    {
-      name: "list_kb_entries",
-      description: "List Knowledge Base entries, optionally filtered by category. Admin-only.",
-      parameters: {
-        type: "object",
-        properties: {
-          category: { type: "string", description: "Filter by category tag. Omit to list all entries." },
-        },
-      },
-    },
-    {
-      name: "get_kb_entry",
-      description: "Retrieve a single Knowledge Base entry by ID.",
-      parameters: {
-        type: "object",
-        properties: {
-          id: { type: "number", description: "KB entry ID." },
-        },
-        required: ["id"],
-      },
-    },
-    {
-      name: "share_scenario",
-      description: "Share a scenario with another user by email. Returns empty shares array (not an error) if the email is not a registered user — privacy-preserving.",
-      parameters: {
-        type: "object",
-        properties: {
-          scenarioId: { type: "number", description: "Scenario ID." },
-          recipientEmail: { type: "string", description: "Recipient email." },
-        },
-        required: ["scenarioId", "recipientEmail"],
-      },
-    },
-    {
-      name: "delete_property_photo",
-      description: "Delete a photo from a property's gallery. Cannot delete the last photo unless admin.",
-      parameters: {
-        type: "object",
-        properties: {
-          propertyId: { type: "number" },
-          photoId: { type: "number" },
-        },
-        required: ["propertyId", "photoId"],
-      },
-    },
-    {
-      name: "set_hero_photo",
-      description: "Set a photo as the hero (primary) image for a property.",
-      parameters: {
-        type: "object",
-        properties: {
-          propertyId: { type: "number" },
-          photoId: { type: "number" },
-        },
-        required: ["propertyId", "photoId"],
-      },
-    },
-    {
-      name: "update_company",
-      description: "Update a company's name, type, description, or active status. Admin-only.",
-      parameters: {
-        type: "object",
-        properties: {
-          id: { type: "number", description: "Company id." },
-          name: { type: "string" },
-          type: { type: "string" },
-          description: { type: "string" },
-          isActive: { type: "boolean" },
-        },
-        required: ["id"],
-      },
-    },
   ];
 }
 
@@ -966,20 +889,6 @@ export async function dispatchRebeccaTool(
         return await toolGetGlobalAssumptions(ctx);
       case "update_global_assumptions":
         return await toolUpdateGlobalAssumptions(args, ctx);
-      case "get_global_assumptions":
-        return await toolGetGlobalAssumptions(ctx);
-      case "list_kb_entries":
-        return await toolListKbEntries(args, ctx);
-      case "get_kb_entry":
-        return await toolGetKbEntry(args, ctx);
-      case "share_scenario":
-        return await toolShareScenario(args, ctx);
-      case "delete_property_photo":
-        return await toolDeletePropertyPhoto(args, ctx);
-      case "set_hero_photo":
-        return await toolSetHeroPhoto(args, ctx);
-      case "update_company":
-        return await toolUpdateCompany(args, ctx);
       default:
         return { result: { error: "Unknown tool" } };
     }
@@ -1621,6 +1530,10 @@ async function toolShareScenario(
   }
 
   const share = await storage.shareScenarioWithUser(scenarioId, recipient.id, ctx.userId);
+  if (!share) {
+    return { result: { shares: [], recipientName: null } };
+  }
+
   const sharerDisplayName = fullName(sharer) || sharer.email;
   const recipientDisplayName = fullName(recipient) || recipient.email;
   const portalUrl = `${getAppUrl()}/scenarios`;
@@ -1652,7 +1565,7 @@ async function toolShareScenario(
   }
 
   return {
-    result: { shares: share ? [share] : [], recipientName: recipientDisplayName },
+    result: { shares: [share], recipientName: recipientDisplayName },
     dataChanged: { entityType: "scenario", entityId: scenarioId },
   };
 }
@@ -2387,7 +2300,7 @@ async function toolUpdateMarketRate(
   const value = typeof args.value === "number" ? args.value : Number(args.value);
   const note = typeof args.note === "string" ? args.note : null;
   if (!rateKey) return { result: { error: "key is required" } };
-  if (isNaN(value)) return { result: { error: "value must be a number" } };
+  if (!Number.isFinite(value)) return { result: { error: "value must be a finite number" } };
 
   const existing = await getMarketRate(rateKey);
   if (!existing) return { result: { error: "Rate not found" } };
