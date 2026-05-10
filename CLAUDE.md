@@ -56,7 +56,7 @@ Every number falls into exactly one category. Never invent a fifth.
 | 3 | ASSUMPTION VARIABLES | Per-entity DB values. Read from DB, fallback `?? DEFAULT_*` |
 | 4 | TABLE-SOURCED VALUES | Authority rates (tax, inflation, depreciation). `getMarketRate()` or `getFactoryNumber()` |
 
-Full law, violations, and canonical constants files: § "Number taxonomy — the permanent law" in Architecture Notes. Skill: `.agents/skills/hplus-variable-taxonomy/SKILL.md`
+Full taxonomy + violations: `.agents/skills/hplus-variable-taxonomy/SKILL.md`
 
 ---
 
@@ -394,42 +394,17 @@ Full contract, data flow, conviction floor, voice rule, anti-patterns: `.agents/
 
 ### Number taxonomy — the permanent law (never re-derive)
 
-Every number in H+ falls into exactly one of four categories. The full taxonomy with code patterns lives in `.agents/skills/hplus-variable-taxonomy/SKILL.md`. Summary:
+Full taxonomy, four categories, code patterns, and UX lifecycle: `.agents/skills/hplus-variable-taxonomy/SKILL.md`. Three recurring violations:
 
-**Category 1 — TRUE CONSTANTS.** Values fixed by mathematics or physics identical everywhere in the universe. Extremely rare. Examples: `DAYS_PER_MONTH = 30.5` (365/12), `MONTHS_PER_YEAR = 12`. NOT constants: tax rates, inflation, depreciation lives, interest rates, cap rates, occupancy rates, management fees — anything that could vary by country, market, or time.
+1. Raw literal fallback: `?? 0.03` — use `?? DEFAULT_X` or `?? getFactoryNumber(key, 'US')`
+2. Wrong constant: `DEFAULT_COST_RATE_MARKETING` (1% S&M) vs `DEFAULT_MARKETING_RATE` (5% company)
+3. Masked literal: `const DEFAULT_X = 0.03` outside `lib/shared/src/constants*.ts` or `lib/db/src/constants.ts`
 
-**Category 2 — DEFAULT VARIABLES.** Admin-set starting values (Admin → Steady State). Prefix: `DEFAULT_`. Location: `lib/shared/src/constants*.ts` ONLY. Used as null-coalescing fallbacks: `property.field ?? DEFAULT_FIELD`. Never use the raw literal when the named constant exists. Never define `DEFAULT_*` in route handlers, engine files, or any non-constants file.
-
-**Category 3 — ASSUMPTION VARIABLES.** Per-entity user-confirmed values. Start from defaults when created; confirmed (written to DB) when the user presses Save. Once confirmed, admin default changes do NOT override them. Save button is NEVER disabled. Navigate-away triggers a "Confirm your values" prompt.
-
-**Category 4 — TABLE-SOURCED VALUES.** Country/financial data in DB tables. Accessed via `getFactoryNumber(key, country)`. Admin must be able to regenerate every such table from **Admin → Sources & Resources** without a code deploy.
-
-**The three violations that recur most often:**
-
-1. Raw literal fallback: `?? 0.03` — must be `?? getFactoryNumber('inflationRate', country)` (country-specific) or `?? DEFAULT_X` (flat default)
-2. Wrong constant: `ga.marketingRate ?? DEFAULT_COST_RATE_MARKETING` (1% property S&M) when the intent is company marketing — must be `?? DEFAULT_MARKETING_RATE` (5%)
-3. Masked literal: `const DEFAULT_INFLATION_RATE = 0.03` in a non-constants file — this is the same violation as `0.03` itself; the name just hides it
-
-**Canonical constants files** (where `export const DEFAULT_* = <number>` IS allowed):
-- `lib/shared/src/constants*.ts`
-- `lib/db/src/constants.ts`
-
-In all other files, ALL_CAPS const definitions with numeric literals are flagged by `scripts/src/check-magic-numbers.ts`. The full UX lifecycle (Save button rules, seeding pipeline, confirm-on-navigate-away) is in `.agents/skills/hplus-assumption-lifecycle/SKILL.md`.
-
-**Slide Deck Factory rule:** The LB investor deck pipeline (`artifacts/api-server/src/slides/`) is a pure consumer. It sources every financial assumption from `storage.getGlobalAssumptions()` → `buildGlobalInput()` → the finance engine. It never defines its own projection years, interest rates, or cap rates. After every change to the Slide Deck Factory, verify no local assumption constants were introduced.
+Slide Deck Factory rule: `artifacts/api-server/src/slides/` is a pure consumer — it sources every assumption from `storage.getGlobalAssumptions()` and must never define local assumption constants.
 
 ### Inflation policy (USD-base calculations) — supersedes prior cascade
 
-All H+ financials are reported in USD. Therefore the inflation rate used in **every calculation** is the **US inflation rate**, for every property in every country. Country-level inflation tables remain populated with true local-currency inflation per country, but they are **display-only** (research panels, country pages, informational tooltips) and **never read by `calc/` or `engine/`**.
-
-- Engine cascade: `company.inflationRate ?? property.inflationRate ?? getFactoryNumber('inflationRate', 'US') ?? marketMacroFallback`. The country argument is **always `'US'`** for engine use.
-- Property-level inflation overrides only become meaningful if reporting currency ≠ USD; today no property is in this state.
-- User/admin **can** still edit the inflation rate in the assumptions pages — that user-override path is preserved.
-- The Management page and every Property page must **disclose the inflation rate being applied to the calculations** (e.g. "Inflation used in calculations: 3.1% (US, source: BLS CPI-U via [specialist])"). Not tooltip-only — keep it visible in-context.
-- Analyst-button table regeneration still applies to every inflation-bearing table (Constants, country tables, Market & Macro defaults). Refresh repopulates the underlying values; what flows into the engine is still gated by the rule above.
-- The Number-taxonomy hint that recommends `?? getFactoryNumber('inflationRate', country)` for inflation specifically must be read as `country = 'US'`. For all other Category-4 values (tax, depreciation), the country-aware lookup remains correct.
-
-Authoritative skill: `.agents/skills/inflation-cascade/SKILL.md`. Older "country cascade into engine" notes are **superseded** by this policy.
+All H+ engine calculations use the **US inflation rate** for every property. Country-level inflation tables are display-only. Engine cascade always passes `'US'` as the country argument to `getFactoryNumber`. Full policy and supersession notes: `.agents/skills/inflation-cascade/SKILL.md`.
 
 ### LB Slides — investor PDF decks (Playwright HTML→PDF)
 
@@ -443,7 +418,7 @@ Generates a 6-slide investor deck per property as a PDF matched to the canonical
 
 ### `reference_brands` AI pipeline wiring
 
-`reference_brands` feeds three AI surfaces (research orchestrator, Funding Specialist, Rebecca KB) via the DI pattern — route layer fetches, calc/engine layers are DB-import-free (ADR-007 §1). Full pattern: `docs/solutions/architecture-patterns/reference-brands-ai-pipeline-wiring-2026-05-02.md`.
+DI pattern (route layer fetches, calc/engine DB-import-free): `docs/solutions/architecture-patterns/reference-brands-ai-pipeline-wiring-2026-05-02.md`.
 
 ### Inviolable login / auth rules
 
@@ -460,6 +435,7 @@ Generates a 6-slide investor deck per property as a PDF matched to the canonical
 ### Known issues to address
 
 See `docs/issues/known-issues.md`.
+
 
 ### Migration system architecture
 
@@ -518,76 +494,9 @@ Use the `ui-page-patterns` skill before building or revising any page.
 
 ## Agent & Skill System
 
-Skills are reusable process documents that guide AI agents through complex tasks. They live in `.agents/skills/` and are invoked via the `Skill` tool (Claude Code) or by name in Replit.
+Full directory layout, core workflow (brainstorm → plan → work → review → compound), CC/Replit lane split, and key skill index: see `replit.md` § "Agent & Skill System" and § "Key project-specific skills". Full index: `.agents/skills/README.md`.
 
-### Directory layout
-
-```
-.agents/
-  skills/              Individual skill directories (each has SKILL.md)
-    ce-*/              Compound Engineering core loop skills
-    norfolk-*/         Project-specific skills for this repo
-    embedded-ai-agent/ Reusable: streaming AI chatbot pattern (the "Rebecca" pattern)
-    ui-page-patterns/  Reusable: consistent UI page building for any React+Tailwind app
-    brainstorming/     Reusable: collaborative design before implementation
-    architecture-decision-records/  Reusable: writing ADRs
-    replit-independence/ Reusable: keeping the codebase off-Replit-portable
-    README.md          Full index of all available skills
-  ce-agents/           Compound Engineering persona definitions
-  COMPOUND-ENGINEERING.md  CE plugin documentation
-vendor/
-  compound-engineering-plugin/  CE plugin source (v3.3.2) — registered via `.claude/settings.json` using `extraKnownMarketplaces` + `enabledPlugins`
-```
-
-### Core workflow (Compound Engineering loop)
-
-| Step | Skill | Purpose |
-|---|---|---|
-| 1 | `ce-brainstorm` | Explore requirements, produce a requirements doc |
-| 2 | `ce-plan` | Break the requirements doc into an implementation plan |
-| 3 | `ce-work` | Execute the plan step-by-step |
-| 4 | `ce-code-review` / `nai-code-review` | Review before merging |
-| 5 | `ce-compound` | Capture new knowledge as a skill or ADR |
-
-### CC / Replit lane split
-
-| Work type | Owner | Notes |
-|---|---|---|
-| DB migrations | Claude Code | Run `pnpm --filter @workspace/db run generate` first; fall back to manual SQL only for complex backfills |
-| UI pages / components | Replit Agent | Use `ui-page-patterns` skill |
-| AI/chatbot features | Either | Use `embedded-ai-agent` skill |
-| Architecture decisions | Claude Code | Use `architecture-decision-records` skill |
-
-### Key project-specific skills
-
-> Wording in this table is mirrored in `replit.md` § "Pointers". Keep them identical — drift here is a bug per the `agent-memory-files` skill.
-
-| Skill | When to use |
-|---|---|
-| `ui-page-patterns` | Building or fixing any UI page — enforces canonical archetypes, loading/empty/error states, action-button discipline, tab URL sync |
-| `embedded-ai-agent` | Adding or extending Rebecca (the only AI assistant in this app) |
-| `replit-independence` | Adding any dependency, env var, or deployment-affecting change |
-| `prefer-external-dependencies` | Before any infrastructure-shaped tool call — the project uses Neon Postgres, Cloudflare R2, Google OAuth, direct OpenAI/Anthropic/Gemini SDKs; never provision Replit-managed equivalents |
-| `nai-code-review` | Before opening a PR — wraps `ce-code-review` with hospitality/Drizzle personas |
-| `architecture-decision-records` | Any irreversible technical decision future contributors might re-litigate |
-| `hplus-vision-templates` | Filling in any slide text field — sourcing pipeline (DB → benchmarks → LLM with web research → templates), per-field char-limit enforcement, and budget-realism guardrails for transformation proposals |
-| `hplus-renovation-benchmarks` | Per-key cost ranges and transformation cost lines used by the budget-realism check above |
-| `hplus-admin-nav-ia` | Placing data sources, APIs, Specialists, LLMs, or AI agents in the Admin / Intelligence sidebar |
-| `lb-slides-canonical-pngs` | Comparing any rendered slide output against the pixel-authoritative canonical PNGs — R2 keys, local paths, per-slide comparison checklist, re-upload workflow |
-| `lb-slides-renderer` | Working on the 6-slide L+B investor deck React renderer — layout constraints, slot wiring, Playwright HTML→PDF contract, and visual-parity requirements |
-| `analyst-research-buttons` | Any button that triggers a research job — canonical label, icon, voice, and guard rules |
-| `analyst-intelligence-display` | Any UI component that **displays** specialist research results — range badges, verdict cards, contextual tips, action dialogs. Complements `analyst-research-buttons` (the input side) with the display side |
-| `agent-memory-files` | Editing `CLAUDE.md` or `replit.md` — keep them harmonized |
-| `external-data-source-integration` | Adding any new external data source (API, MCP, scraper) — five-layer FRED template: admin_resources row + minion fetcher + DB cache + Rebecca tool + parity map entry |
-| `hplus-resource-catalog` | Listing all H+ data resources (APIs, MCPs, research URLs, prompt templates) — inventory of the platform's data moat; use before planning features that need market or financial data |
-
-### How to invoke
-
-**Claude Code:** Use the `Skill` tool with the skill name. Example: `Skill("ui-page-patterns")`.
-
-**Replit Agent:** Type the skill name as a command. Example: `use the ui-page-patterns skill`.
-
-**Full index:** See `.agents/skills/README.md`.
+**Invocation:** `Skill("skill-name")` in Claude Code; type the skill name as a command in Replit.
 
 ### CC branch hygiene — Replit agent staging risk
 
@@ -625,6 +534,6 @@ Rule: **if you touch `CLAUDE.md`, scan `replit.md` for related content and sync 
 <!-- keep ≤ 3 entries; remove oldest when adding new ones -->
 | Date | Change |
 |---|---|
-| 2026-05-09 | **Inflation policy: USD-base calculations (supersedes country cascade).** All H+ financials report in USD; the inflation rate used in every engine calculation is the **US rate** for every property. Country-level inflation tables are display-only (research views) and not read by `calc/` or `engine/`. Engine cascade always passes `'US'` as country arg. Skill `.agents/skills/inflation-cascade/SKILL.md` is authoritative. |
+| 2026-05-10 | **File-splitting sprint (tasks 1333–1342) complete.** 10 large source files (3,571–1,036 lines) split into focused domain modules: rebecca-tools.ts → 9 modules, chat.ts → 7 modules, SlideFactoryPanel.tsx → tab components, analyst-admin.ts → route+runner, model-constants.ts → 3 modules, RebeccaPanel.tsx → sub-components, OperatingStructureComparison.tsx → sub-components, intelligence-v2.ts → 5 domain files, index.ts → boot.ts. Also: 71 completed April 2026 memory.md entries archived, 23 completed plan files archived. |
 | 2026-05-09 | **Agent-native Wave 0 (W0.1–W0.4).** `rebeccaResponseMode` from DB now used as default when chat body omits `responseMode` (W0.1). Portfolio verification opinion injected into Rebecca's system prompt when a property is in scope (W0.2). Parity map updated with 4 missing tools (`list_scenarios`, `get_scenario`, `patch_property`, `get_tripadvisor_hotels`) + CI guard test (W0.3). Dino constants already extracted — W0.4 confirmed done (W0.4). |
 | 2026-05-09 | **Costantino — Data Custodian (Step 0).** Periodic agentic health-audit loop for all `admin_resources` rows with a `config.healthProbe` recipe. 8-tool loop, findings in new `costantino_findings` table (migration 0048), cadence admin-editable via parameter row `costantino-health-cycle-interval-ms` (default 5d), self-rescheduling `setTimeout` chain, Phase 3l boot hook. Runs alongside legacy `resource-health-checker.ts` — Step 1 retires it. Skill: `costantino-data-custodian`. |
