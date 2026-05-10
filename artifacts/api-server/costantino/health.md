@@ -1,5 +1,5 @@
 # Costantino Cycle Summary
 
-Generated: 2026-05-09T21:41:45.053Z
+Generated: 2026-05-10T00:07:52.096Z
 
-Dry-cycle: considered 0 resource(s) with recipes; all stubbed to ok.
+Dry-cycle complete. Verified: list_admin_resources, get_probe_recipe, probe_integration_endpoint, update_admin_resource_health, write_finding, list_findings.

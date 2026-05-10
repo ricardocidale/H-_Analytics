@@ -499,13 +499,13 @@ export function register(app: Express) {
         const share = await storage.shareScenarioWithUser(scenarioId, recipient.id, sharer.id);
         logActivity(req, "share", "scenario", scenarioId, scenario.name);
         scenarioNames = [scenario.name];
-        res.status(HTTP_201_CREATED).json({ shares: share ? [share] : [], recipientName: recipientDisplayName });
+        res.status(HTTP_201_CREATED).json({ shares: share ? [share] : [], recipientName: share ? recipientDisplayName : null });
       } else {
         const shares = await storage.shareAllScenariosWithUser(sharer.id, recipient.id);
         logActivity(req, "share_all", "scenario", null, `All scenarios to ${recipient.email}`);
         const userScenarios = await storage.getScenariosByUser(sharer.id);
         scenarioNames = userScenarios.filter(s => s.kind === "manual").map(s => s.name);
-        res.status(HTTP_201_CREATED).json({ shares, recipientName: recipientDisplayName });
+        res.status(HTTP_201_CREATED).json({ shares, recipientName: shares.length > 0 ? recipientDisplayName : null });
       }
 
       const portalUrl = `${getAppUrl()}/scenarios`;
