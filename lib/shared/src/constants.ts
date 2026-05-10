@@ -338,7 +338,7 @@ export const DEFAULT_ACQ_CLOSING_COST_RATE = 0.02;
 export const DEFAULT_REFI_PERIOD_YEARS = 3;
 
 // ── Management Company Cost Rates ───────────────────────────────────────
-export const DEFAULT_STAFF_SALARY = 65000;
+// DEFAULT_STAFF_SALARY re-exported from constants-staffing (75_000)
 export const DEFAULT_OFFICE_LEASE_START = 36000;
 export const DEFAULT_PROFESSIONAL_SERVICES_START = 24000;
 export const DEFAULT_TECH_INFRA_START = 18000;

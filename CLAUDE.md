@@ -579,6 +579,29 @@ vendor/
 
 **Full index:** See `.agents/skills/README.md`.
 
+### CC branch hygiene — Replit agent staging risk
+
+The Replit agent commits to whatever branch is checked out in the shared workspace. When CC creates a branch, pushes it, and leaves it open while waiting for CI, the Replit agent often lands unrelated commits onto it. Those commits then ship under the CC PR title, bypassing review scope.
+
+**Mandatory workflow before merging any CC PR:**
+
+```bash
+git log origin/main..origin/<branch> --oneline
+# Verify every commit is a CC commit (Author: ricardocidale with no Replit-Commit-Author header)
+# OR verify the squash diff only contains the intended files:
+git diff origin/main...origin/<branch> --name-only
+```
+
+If Replit agent commits are present:
+1. Note their SHAs
+2. Create a fresh branch from `origin/main`
+3. Cherry-pick only the CC commits: `git cherry-pick <sha1> <sha2>`
+4. Push the clean branch and create the PR from that
+
+Never merge a PR whose diff contains files outside the stated scope without explicitly acknowledging them in the PR description.
+
+---
+
 ### Memory-file harmonization (mandatory shipping gate)
 
 `CLAUDE.md` and `replit.md` are dual memory files covering identical ground for two different agents. They drift by default. **Every session that modifies either file must harmonize the other before shipping.** This applies equally when `ce-work` ships code that affects `CLAUDE.md` content (architecture rules, skill routing, known issues, recent changes).
