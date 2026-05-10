@@ -15,6 +15,10 @@ import { Slider } from "@/components/ui/slider";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
 import { DEFAULT_COST_OF_EQUITY } from "@shared/constants";
+import {
+  DEFAULT_RF_RATE_PCT_DISPLAY,
+  DEFAULT_ERP_HOSPITALITY_PCT_DISPLAY,
+} from "@shared/constants-benchmarks";
 import EditableValue from "./EditableValue";
 import type { CompanyAssumptionsSectionProps } from "./types";
 import { CITATIONS } from "@shared/citations";
@@ -111,8 +115,8 @@ export default function CostOfEquityCard({ formData, onChange, global, researchV
   const crpDisplay: string | null = crpRate?.displayValue ?? (crpRate?.value != null ? `${crpRate.value.toFixed(2)}%` : null);
   const illiqDisplay = `${ILLIQUIDITY_LOW_PP}%–${ILLIQUIDITY_HIGH_PP}% (mid ${ILLIQUIDITY_MID_PP}%)`;
 
-  const rfVal = rfRate?.value ?? 4.35;
-  const erpVal = erpRate?.value ?? 12;
+  const rfVal = rfRate?.value ?? DEFAULT_RF_RATE_PCT_DISPLAY;
+  const erpVal = erpRate?.value ?? DEFAULT_ERP_HOSPITALITY_PCT_DISPLAY;
   const crpVal = crpRate?.value ?? 0;
   const totalBuiltUp = rfVal + erpVal + ILLIQUIDITY_MID_PP + crpVal;
 

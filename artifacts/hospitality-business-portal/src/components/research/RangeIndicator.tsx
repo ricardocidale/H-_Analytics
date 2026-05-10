@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { RANGE_INDICATOR_CHART_PADDING } from "@shared/constants-benchmarks";
 import {
   Tooltip,
   TooltipContent,
@@ -27,7 +28,7 @@ export function getRangeStatus(value: number, low: number, high: number): RangeS
   if (low === high) return "unknown";
   if (value >= low && value <= high) return "within";
   const span = high - low;
-  const margin = span * 0.2;
+  const margin = span * RANGE_INDICATOR_CHART_PADDING;
   if (value >= low - margin && value <= high + margin) return "near";
   return "outside";
 }

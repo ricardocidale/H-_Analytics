@@ -1,6 +1,6 @@
 {
-  "id": "850bf524-6cfb-40b0-b7b0-22cbc14319e9",
-  "prevId": "38a314e7-2b5a-474f-ac4d-26033475724f",
+  "id": "14c7c68c-3741-4d77-8368-d7e177a4a590",
+  "prevId": "850bf524-6cfb-40b0-b7b0-22cbc14319e9",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -838,7 +838,8 @@
           "name": "tour_step",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": 0
         }
       },
       "indexes": {

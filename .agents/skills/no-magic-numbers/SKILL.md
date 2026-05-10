@@ -428,6 +428,23 @@ The checker script (`check-magic-numbers.ts`) only scans numeric literals — it
 4. **Untestable invariants.** "The high-conviction threshold is 80" is a fact you can grep for once it's a constant. As a literal, it's a fact you can't even find.
 5. **Invisible business rules.** Tax rates, retention rules, and authority-cited values get buried inside function bodies where no admin UI, no audit, and no agent can find them.
 
+## Display fallbacks for DB-sourced (Category 4) values
+
+Market rates, benchmarks, and financial rates are Category 4 — they live in DB tables (`market_rates`, `model_constants`) and are populated by Intelligence Specialists. The UI displays them by reading from the API; the engine reads them via `getFactoryNumber(key, country)`.
+
+When a DB row has not yet been populated (e.g., before the admin has run the Analyst button), a UI component may need a placeholder value. **This placeholder must be a named `DEFAULT_*_DISPLAY` constant in `lib/shared/src/constants-benchmarks.ts` — never a raw literal.**
+
+```ts
+// CORRECT — display fallback uses a named constant
+import { DEFAULT_RF_RATE_PCT_DISPLAY } from "@shared/constants-benchmarks";
+const rfVal = rfRate?.value ?? DEFAULT_RF_RATE_PCT_DISPLAY;
+
+// VIOLATION — raw literal fallback
+const rfVal = rfRate?.value ?? 4.35;
+```
+
+Name the constant with a `_DISPLAY` suffix to signal that it is only a UI placeholder — not a calculation input. Calculations must wait for the authoritative DB value.
+
 ## The one-line summary
 
 If your code contains a number whose meaning is not on the same line, it is a magic number. Name it.

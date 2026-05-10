@@ -117,36 +117,10 @@ export async function toolGetMarketRates(
   return { result: rates };
 }
 
-export async function toolUpdateMarketRate(
-  args: Record<string, unknown>,
-  ctx: ToolContext,
-): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
-  const authError = await requireAdminCtx(ctx);
-  if (authError) return authError;
-
-  const rateKey = typeof args.key === "string" ? args.key : "";
-  const value = typeof args.value === "number" ? args.value : Number(args.value);
-  const note = typeof args.note === "string" ? args.note : null;
-  if (!rateKey) return { result: { error: "key is required" } };
-  if (!Number.isFinite(value)) return { result: { error: "value must be a finite number" } };
-
-  const existing = await getMarketRate(rateKey);
-  if (!existing) return { result: { error: "Rate not found" } };
-
-  await upsertMarketRate({
-    rateKey,
-    value,
-    displayValue: String(value),
-    source: "admin_override",
-    isManual: true,
-    manualNote: note,
-  });
-
-  return {
-    result: { success: true, rateKey, value },
-    dataChanged: { entityType: "market_rate" as const, entityId: 0 },
-  };
-}
+// NOTE: toolUpdateMarketRate was intentionally removed (CLAUDE.md §8).
+// Market rate rows are regenerated in their entirety by the Analyst button
+// (Admin → Sources & Resources). Per-cell manual editing is not supported
+// and must not be exposed through any agent tool.
 
 // ---------------------------------------------------------------------------
 // Research trigger

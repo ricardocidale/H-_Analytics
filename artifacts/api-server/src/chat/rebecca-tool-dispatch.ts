@@ -75,7 +75,6 @@ import {
   toolRegenerateDataSource,
   toolGetTripadvisorHotels,
   toolGetMarketRates,
-  toolUpdateMarketRate,
   toolTriggerResearch,
   toolGetGlobalAssumptions,
   toolUpdateGlobalAssumptions,
@@ -178,8 +177,6 @@ export async function dispatchRebeccaTool(
         return await toolRegenerateDataSource(args, ctx);
       case "get_market_rates":
         return await toolGetMarketRates(args, ctx);
-      case "update_market_rate":
-        return await toolUpdateMarketRate(args, ctx);
       case "get_analyst_table":
         return await toolGetAnalystTable(args, ctx);
       case "create_property":
