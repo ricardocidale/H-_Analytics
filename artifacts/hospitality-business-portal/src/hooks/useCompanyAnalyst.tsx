@@ -131,7 +131,6 @@ export interface UseCompanyAnalystReturn {
   companyResearchUpdatedAt: string | null;
   researchValues: Record<string, { display: string; mid: number } | null | undefined>;
   companyContextReady: boolean;
-  isFirstVisit: boolean;
 }
 
 export function useCompanyAnalyst(args: UseCompanyAnalystArgs): UseCompanyAnalystReturn {
@@ -165,7 +164,7 @@ export function useCompanyAnalyst(args: UseCompanyAnalystArgs): UseCompanyAnalys
   const { isGenerating, streamedContent, generateResearch, abortResearch } =
     useCompanyResearchStream(handleResearchError);
 
-  const { isFirstVisit } = usePageVisit("company:assumptions");
+  usePageVisit("company:assumptions");
   const { data: research } = useMarketResearch("company");
   const companyResearchUpdatedAt = research?.updatedAt ?? null;
 
@@ -292,6 +291,5 @@ export function useCompanyAnalyst(args: UseCompanyAnalystArgs): UseCompanyAnalys
     companyResearchUpdatedAt,
     researchValues,
     companyContextReady,
-    isFirstVisit,
   };
 }
