@@ -66,6 +66,15 @@ async function updateTourPromptPreference(hide: boolean): Promise<void> {
   });
 }
 
+async function patchTourStep(tourStep: number | null): Promise<void> {
+  await fetch("/api/profile/tour-prompt", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tourStep }),
+    credentials: "include",
+  });
+}
+
 function getTourSteps(firstName?: string | null) {
   const greeting = firstName ? `Welcome, ${firstName}!` : "Welcome to Your Dashboard";
   return [
@@ -212,28 +221,42 @@ function GuidedWalkthrough() {
     setPromptVisible(v);
   }, [setPromptVisible]);
 
+  /**
+   * Resolve the best saved step.
+   * - Authenticated: trust the server value unconditionally (including null = no saved progress).
+   *   localStorage is intentionally ignored for authenticated users so stale local state
+   *   never overrides a server-side clear.
+   * - Unauthenticated / offline (user is null): fall back to localStorage.
+   */
+  const resolveSavedStep = useCallback((): number | null => {
+    if (user) {
+      return typeof user.tourStep === "number" ? user.tourStep : null;
+    }
+    return getSavedTourStep();
+  }, [user]);
+
   useEffect(() => {
     if (triggerCount > lastTrigger.current) {
       lastTrigger.current = triggerCount;
       setTourActive(false);
       setStep(0);
-      setSavedStep(getSavedTourStep());
+      setSavedStep(resolveSavedStep());
       setShowPrompt(true);
     }
-  }, [triggerCount, setTourActive, setShowPrompt]);
+  }, [triggerCount, setTourActive, setShowPrompt, resolveSavedStep]);
 
   useEffect(() => {
     if (user && !user.hideTourPrompt && !shownThisSession && !hasAutoStarted.current) {
       hasAutoStarted.current = true;
       const timer = setTimeout(() => {
-        setSavedStep(getSavedTourStep());
+        setSavedStep(resolveSavedStep());
         setShowPrompt(true);
         setShownThisSession(true);
       }, 800);
       return () => clearTimeout(timer);
     }
     return undefined;
-  }, [user, shownThisSession, setShownThisSession, setShowPrompt]);
+  }, [user, shownThisSession, setShownThisSession, setShowPrompt, resolveSavedStep]);
 
   const handleAcceptTour = useCallback((fromStep: number) => {
     setShowPrompt(false);
@@ -283,6 +306,7 @@ function GuidedWalkthrough() {
       clearTourStep();
       setSavedStep(null);
       setTourActive(false);
+      patchTourStep(null).catch(() => {});
     }
   }, [step, setTourActive]);
 
@@ -295,7 +319,9 @@ function GuidedWalkthrough() {
   const handleSkip = useCallback(() => {
     saveTourStep(step);
     setConfirmingDismiss(false);
+    setSavedStep(step);
     setTourActive(false);
+    patchTourStep(step).catch(() => {});
   }, [step, setTourActive]);
 
   const handleRequestDismiss = useCallback(() => {
@@ -311,6 +337,7 @@ function GuidedWalkthrough() {
     setSavedStep(null);
     setConfirmingDismiss(false);
     setTourActive(false);
+    patchTourStep(null).catch(() => {});
     await updateTourPromptPreference(true);
     queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
   }, [setTourActive, queryClient]);

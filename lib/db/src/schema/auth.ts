@@ -36,6 +36,7 @@ export const users = pgTable("users", {
   rebeccaShowToolTiming: boolean("rebecca_show_tool_timing"),
   rebeccaHistoryOpen: boolean("rebecca_history_open"),
   rebeccaSuggestedChips: jsonb("rebecca_suggested_chips"),
+  tourStep: integer("tour_step"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [

@@ -255,13 +255,26 @@ export function register(app: Express) {
 
   app.patch("/api/profile/tour-prompt", requireAuth, async (req, res) => {
     try {
-      const schema = z.object({ hide: z.boolean() });
+      const schema = z.object({
+        hide: z.boolean().optional(),
+        tourStep: z.number().int().min(0).nullable().optional(),
+      });
       const validation = schema.safeParse(req.body);
       if (!validation.success) {
         return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       }
-      await storage.updateUserHideTourPrompt(getAuthUser(req).id, validation.data.hide);
-      res.json({ hideTourPrompt: validation.data.hide });
+      const userId = getAuthUser(req).id;
+      const response: Record<string, unknown> = {};
+      if (validation.data.hide !== undefined) {
+        await storage.updateUserHideTourPrompt(userId, validation.data.hide);
+        response.hideTourPrompt = validation.data.hide;
+      }
+      if ("tourStep" in validation.data) {
+        const step = validation.data.tourStep ?? null;
+        await storage.updateUserTourStep(userId, step);
+        response.tourStep = step;
+      }
+      res.json(response);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to update preference", error, "AUTH-007");
     }

@@ -99,6 +99,10 @@ export class UserStorage {
     await db.update(users).set({ hideTourPrompt: hide, updatedAt: new Date() }).where(eq(users.id, id));
   }
 
+  async updateUserTourStep(id: number, tourStep: number | null): Promise<void> {
+    await db.update(users).set({ tourStep, updatedAt: new Date() }).where(eq(users.id, id));
+  }
+
   /** Change a user's role (super_admin, admin, user). Admin-only operation. */
   async updateUserRole(id: number, role: string): Promise<void> {
     await db.update(users).set({ role, updatedAt: new Date() }).where(eq(users.id, id));
@@ -185,6 +189,7 @@ export class UserStorage {
           rebeccaShowToolTiming: users.rebeccaShowToolTiming,
           rebeccaHistoryOpen: users.rebeccaHistoryOpen,
           rebeccaSuggestedChips: users.rebeccaSuggestedChips,
+          tourStep: users.tourStep,
           createdAt: users.createdAt,
           updatedAt: users.updatedAt,
         },
