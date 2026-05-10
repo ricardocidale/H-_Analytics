@@ -8,10 +8,12 @@
  * slow in the last 10 runs.
  *
  * Usage:
- *   pnpm run check:timing-report           # last 10 runs + full summary
- *   pnpm run check:timing-report -- --n=20 # last 20 runs
- *   pnpm run check:timing-report -- --slow # show only runs with at least one slow check
- *   pnpm run check:timing-report -- --summary-only # skip the run table, just show summary
+ *   pnpm run check:timing-report                        # last 10 runs + full summary
+ *   pnpm run check:timing-report -- --n=20              # last 20 runs
+ *   pnpm run check:timing-report -- --slow              # show only runs with at least one slow check
+ *   pnpm run check:timing-report -- --summary-only      # skip the run table, just show summary
+ *   pnpm run check:timing-report -- --trend-only        # show only regressing checks (↑)
+ *   pnpm run check:timing-report -- --slow --trend-only # combinable
  *
  * Env vars:
  *   CHECK_TREND_WINDOW=<integer ≥ 2>   number of prior runs used as the p75
@@ -45,6 +47,7 @@ const rawN = getArgValue("--n") ?? getArgValue("-n");
 const N = rawN !== undefined ? Math.max(1, parseInt(rawN, 10)) : 10;
 const slowOnly = args.includes("--slow");
 const summaryOnly = args.includes("--summary-only");
+const trendOnly = args.includes("--trend-only") || args.includes("--regressing");
 
 /**
  * Number of prior runs used as the baseline window for p75 regression detection.
@@ -288,17 +291,33 @@ function main(): void {
     records = records.slice(-N);
 
     if (records.length === 0) {
-      console.log(`No runs match the filter (--slow) in ${all.length} total run(s).`);
+      const filterDesc = slowOnly ? "--slow" : "";
+      console.log(`No runs match the filter (${filterDesc}) in ${all.length} total run(s).`);
     } else {
       // Collect all unique labels seen across filtered records.
       const labelSet = new Set<string>();
       for (const rec of records) {
         for (const c of rec.checks) labelSet.add(c.label);
       }
-      const labels = [...labelSet].sort();
+      let labels = [...labelSet].sort();
 
       // Compute trend directions using the full history.
       const trends = computeLabelTrends(all, labels);
+
+      // --trend-only: restrict columns to labels that are actively regressing (↑),
+      // then further restrict rows to those that include at least one such label.
+      if (trendOnly) {
+        labels = labels.filter((l) => trends.get(l) === "up");
+
+        if (labels.length === 0) {
+          console.log("");
+          console.log("No regressing checks found (--trend-only). All checks are stable or improving.");
+          process.exit(0);
+        }
+
+        const regressingSet = new Set(labels);
+        records = records.filter((r) => r.checks.some((c) => regressingSet.has(c.label)));
+      }
 
       const LABEL_W = 22;
       const DUR_W = 7;
@@ -315,9 +334,14 @@ function main(): void {
 
       const divider = headerCols.map((c) => "-".repeat(c.length)).join("-+-");
 
+      const activeFilters: string[] = [];
+      if (slowOnly) activeFilters.push("--slow");
+      if (trendOnly) activeFilters.push("--trend-only: showing regressing checks only (↑)");
+      const filterNote = activeFilters.length > 0 ? `  [${activeFilters.join(", ")}]` : "";
+
       console.log("");
       console.log(
-        `Check timing history — last ${records.length} run(s)${slowOnly ? " with slow checks" : ""}` +
+        `Check timing history — last ${records.length} run(s)${filterNote}` +
           ` (of ${all.length} total)`,
       );
       console.log(`File: ${TIMING_FILE}`);
@@ -420,7 +444,13 @@ function main(): void {
       // Slowest-check callout (across the displayed records)
       // -----------------------------------------------------------------------
 
-      const allEntries: CheckEntry[] = records.flatMap((r) => r.checks);
+      // In --trend-only mode `labels` has already been restricted to regressing
+      // checks; constrain the slowest-check callout to the same set so no
+      // stable/improving labels bleed through.
+      const visibleLabels = new Set(labels);
+      const allEntries: CheckEntry[] = records.flatMap((r) =>
+        r.checks.filter((c) => visibleLabels.has(c.label)),
+      );
       const slowEntries = allEntries.filter((e) => e.slow);
 
       if (slowEntries.length > 0) {
