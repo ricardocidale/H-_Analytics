@@ -77,7 +77,12 @@ import {
   computeInputsHash,
   WORKSPACE_ROOT,
 } from "./lib/check-cache.js";
-import { classifyTrend, p75, REGRESSION_THRESHOLD } from "./lib/check-trend.js";
+import { REGRESSION_THRESHOLD } from "./lib/check-trend.js";
+import {
+  computeRegressions,
+  TIMING_FILE,
+  TimingRecord,
+} from "./lib/check-timing.js";
 
 // Per-check input-collection functions — imported directly from each check
 // script so drift between this driver and the individual checks is structurally
@@ -242,84 +247,8 @@ const SCRIPT_CHECKS: CheckSpec[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Trend detection
-// ---------------------------------------------------------------------------
-
-/** Detail about a single regressed check, used in the trend summary. */
-interface RegressionDetail {
-  label: string;
-  currentMs: number;
-  baselineMs: number;
-  pctOver: number; // e.g. 0.35 means 35 % above baseline
-}
-
-/**
- * After the current run's record has been appended to the timing file, read
- * the full history and return the map of check labels whose duration in this
- * run exceeds the p75 of their last TREND_WINDOW prior runs by more than
- * REGRESSION_THRESHOLD, keyed by label with full detail for the trend summary.
- *
- * A check is only flagged when it has at least TREND_WINDOW prior data points
- * — sparse history never produces false positives.
- */
-function computeRegressions(currentResults: RunResult[]): Map<string, RegressionDetail> {
-  const regressed = new Map<string, RegressionDetail>();
-
-  let allRecords: TimingRecord[] = [];
-  try {
-    const lines = fs.readFileSync(TIMING_FILE, "utf8").split("\n").filter(Boolean);
-    for (const line of lines) {
-      try {
-        allRecords.push(JSON.parse(line) as TimingRecord);
-      } catch {
-        // Skip malformed lines.
-      }
-    }
-  } catch {
-    return regressed; // No history file yet — nothing to analyse.
-  }
-
-  // The last record is the one we just appended (current run).
-  // Prior records are everything before it.
-  const priorRecords = allRecords.slice(0, -1);
-
-  for (const result of currentResults) {
-    // Only flag passing, non-killed checks.
-    if (result.exitCode !== 0 || result.killed) continue;
-
-    // Collect durations for this check from prior records, in chronological order.
-    const priorDurations: number[] = [];
-    for (const rec of priorRecords) {
-      const entry = rec.checks.find((c) => c.label === result.label);
-      if (entry && entry.exitCode === 0) priorDurations.push(entry.durationMs);
-    }
-
-    // Take only the most recent TREND_WINDOW prior runs.
-    const window = priorDurations.slice(-TREND_WINDOW);
-
-    // Require a full window before flagging — avoids false positives on new checks.
-    if (window.length < TREND_WINDOW) continue;
-
-    if (classifyTrend(window, result.durationMs) === "up") {
-      const baselineMs = p75(window);
-      const pctOver = (result.durationMs - baselineMs) / baselineMs;
-      regressed.set(result.label, {
-        label: result.label,
-        currentMs: result.durationMs,
-        baselineMs,
-        pctOver,
-      });
-    }
-  }
-
-  return regressed;
-}
-
-// ---------------------------------------------------------------------------
 // Timing history
 // ---------------------------------------------------------------------------
-
-const TIMING_FILE = path.join(CACHE_DIR, "check-timing.jsonl");
 
 /**
  * Maximum number of timing records to keep in the history file.
@@ -334,12 +263,6 @@ const TIMING_HISTORY_MAX = (() => {
   return 500;
 })();
 
-interface TimingRecord {
-  ts: string;
-  totalMs: number;
-  passed: boolean;
-  checks: Array<{ label: string; durationMs: number; slow: boolean; exitCode: number }>;
-}
 
 function appendTimingRecord({
   wallMs,
@@ -557,7 +480,7 @@ async function main(): Promise<void> {
     passed: actualFailures.length === 0,
   });
 
-  const regressed = computeRegressions(results);
+  const regressed = computeRegressions(results, TREND_WINDOW);
 
   // 7. Print per-check outcome lines (after regression data is available).
   for (const r of passes) {
@@ -604,16 +527,10 @@ async function main(): Promise<void> {
       );
       console.error("");
 
-      // Print one line per regressed check, sorted worst-first.
-      const sorted = [...regressed.values()].sort((a, b) => b.pctOver - a.pctOver);
-      for (const d of sorted) {
-        const pctStr = `+${Math.round(d.pctOver * 100)}%`;
-        console.error(
-          `[regression-gate]  check:${d.label.padEnd(22)}` +
-            `  current ${formatDuration(d.currentMs).padStart(6)}` +
-            `  p75 baseline ${formatDuration(d.baselineMs).padStart(6)}` +
-            `  ${pctStr}`,
-        );
+      // Print one line per regressed check, sorted alphabetically.
+      const sorted = [...regressed].sort();
+      for (const label of sorted) {
+        console.error(`[regression-gate]  check:${label}`);
       }
 
       console.error("");

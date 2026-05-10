@@ -3,7 +3,7 @@
  *
  * Prints the last N runs from `.cache/check-timing.jsonl` in a readable table,
  * with trend indicators (↑ ↓ →) per check column derived from the same p75
- * regression logic used by check-selective.ts, followed by a per-check summary
+* regression logic used by check-selective.ts, followed by a per-check summary
  * with p50/p95 durations, trend direction, and a list of checks that have been
  * slow in the last 10 runs.
  *
@@ -20,11 +20,13 @@
  *                                      baseline (default 5, same as check-selective)
  */
 
-import fs from "node:fs";
-import path from "node:path";
-
-import { WORKSPACE_ROOT } from "./lib/check-cache.js";
 import { classifyTrend, p75, trendArrow, TrendDirection } from "./lib/check-trend.js";
+import {
+  CheckEntry,
+  loadTimingRecords,
+  TIMING_FILE,
+  TimingRecord,
+} from "./lib/check-timing.js";
 
 // ---------------------------------------------------------------------------
 // CLI args
@@ -72,60 +74,9 @@ const SUMMARY_TREND_WINDOW = 20;
 /** Number of recent runs inspected for the "slow in last N" column. */
 const SLOW_LOOKBACK = 10;
 
-/**
- * Number of prior runs used as the baseline window for regression detection.
- * Override with CHECK_TREND_WINDOW=<integer ≥ 2>.  Matches the default in
- * check-selective.ts so both scripts agree on what "regression" means.
- */
-const TREND_WINDOW = (() => {
-  const raw = process.env.CHECK_TREND_WINDOW;
-  if (raw !== undefined) {
-    const parsed = parseInt(raw, 10);
-    if (!isNaN(parsed) && parsed >= 2) return parsed;
-  }
-  return 5;
-})();
-
-// ---------------------------------------------------------------------------
-// Types (mirror of the record written by check-selective.ts)
-// ---------------------------------------------------------------------------
-
-interface CheckEntry {
-  label: string;
-  durationMs: number;
-  slow: boolean;
-  exitCode: number;
-}
-
-interface TimingRecord {
-  ts: string;
-  totalMs: number;
-  passed: boolean;
-  checks: CheckEntry[];
-}
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-const TIMING_FILE = path.join(WORKSPACE_ROOT, ".cache", "check-timing.jsonl");
-
-function loadRecords(): TimingRecord[] {
-  if (!fs.existsSync(TIMING_FILE)) return [];
-
-  const lines = fs.readFileSync(TIMING_FILE, "utf8").split("\n").filter(Boolean);
-  const records: TimingRecord[] = [];
-
-  for (const line of lines) {
-    try {
-      records.push(JSON.parse(line) as TimingRecord);
-    } catch {
-      // Skip malformed lines.
-    }
-  }
-
-  return records;
-}
 
 function formatMs(ms: number): string {
   const secs = ms / 1000;
@@ -284,53 +235,11 @@ function computeLabelTrends(
 }
 
 // ---------------------------------------------------------------------------
-// Trend computation
-// ---------------------------------------------------------------------------
-
-/**
- * For each label, compute the trend of its most recent successful run vs the
- * p75 of its prior TREND_WINDOW successful runs, using ALL records in the file
- * (not just the N displayed).  This gives the same answer as check-selective.ts
- * produces at run time.
- *
- * Returns "unknown" for any label that doesn't have enough history.
- */
-function computeLabelTrends(
-  allRecords: TimingRecord[],
-  labels: string[],
-): Map<string, TrendDirection> {
-  const result = new Map<string, TrendDirection>();
-
-  for (const label of labels) {
-    // Collect all passing durations for this label in chronological order.
-    const durations: number[] = [];
-    for (const rec of allRecords) {
-      const entry = rec.checks.find((c) => c.label === label && c.exitCode === 0);
-      if (entry) durations.push(entry.durationMs);
-    }
-
-    // Need at least TREND_WINDOW prior runs + 1 current run.
-    if (durations.length <= TREND_WINDOW) {
-      result.set(label, "unknown");
-      continue;
-    }
-
-    const current = durations[durations.length - 1];
-    // The prior window is the TREND_WINDOW data points immediately before the last.
-    const prior = durations.slice(-(TREND_WINDOW + 1), -1);
-
-    result.set(label, classifyTrend(prior, current));
-  }
-
-  return result;
-}
-
-// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
 function main(): void {
-  const all = loadRecords();
+  const all = loadTimingRecords();
 
   if (all.length === 0) {
     console.log(`No timing history found at ${TIMING_FILE}.`);
