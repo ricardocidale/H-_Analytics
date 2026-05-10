@@ -2296,7 +2296,7 @@ async function toolUpdateMarketRate(
   const value = typeof args.value === "number" ? args.value : Number(args.value);
   const note = typeof args.note === "string" ? args.note : null;
   if (!rateKey) return { result: { error: "key is required" } };
-  if (isNaN(value)) return { result: { error: "value must be a number" } };
+  if (!Number.isFinite(value)) return { result: { error: "value must be a finite number" } };
 
   const existing = await getMarketRate(rateKey);
   if (!existing) return { result: { error: "Rate not found" } };
