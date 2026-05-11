@@ -349,8 +349,12 @@ async function runSofficeOnce(
       {
         // Inherit env (LANG, fonts) but don't tie soffice to our stdio.
         stdio: ["ignore", "pipe", "pipe"],
-        // Detached so the SIGKILL escalation actually reaps the process
-        // group (soffice spawns helpers — oosplash, soffice.bin).
+        // Not detached — `child.kill()` signals only the direct soffice
+        // process, not the helpers it spawns (oosplash, soffice.bin).
+        // In the Railway container, orphaned helpers exit on their own; the
+        // fresh tmp-dir-per-attempt policy (see `freshTmpDir`) handles
+        // profile-lock cleanup. If strict process-group killing were ever
+        // needed, this would be `detached: true` + `process.kill(-pid, sig)`.
         detached: false,
       },
     );
