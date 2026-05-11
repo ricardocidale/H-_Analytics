@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,16 +37,9 @@ export default function ScenariosTab() {
 
   const createMutation = useMutation({
     mutationFn: async (data: { userId: number; name: string; description?: string }) => {
-      const res = await fetch("/api/admin/scenarios", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data),
+      const res = await apiRequest("POST", "/api/admin/scenarios", data, {
+        fallbackMessage: "Failed to create scenario",
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to create scenario");
-      }
       return res.json();
     },
     onSuccess: () => {
@@ -61,16 +55,9 @@ export default function ScenariosTab() {
 
   const editMutation = useMutation({
     mutationFn: async ({ id, ...data }: { id: number; name?: string; description?: string | null }) => {
-      const res = await fetch(`/api/admin/scenarios/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data),
+      const res = await apiRequest("PATCH", `/api/admin/scenarios/${id}`, data, {
+        fallbackMessage: "Failed to update scenario",
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to update scenario");
-      }
       return res.json();
     },
     onSuccess: () => {
@@ -86,11 +73,9 @@ export default function ScenariosTab() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/admin/scenarios/${id}`, {
-        method: "DELETE",
-        credentials: "include",
+      const res = await apiRequest("DELETE", `/api/admin/scenarios/${id}`, undefined, {
+        fallbackMessage: "Failed to delete scenario",
       });
-      if (!res.ok) throw new Error("Failed to delete scenario");
       return res.json();
     },
     onSuccess: () => {

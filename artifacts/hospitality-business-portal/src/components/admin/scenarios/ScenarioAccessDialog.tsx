@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -42,16 +43,9 @@ export function ScenarioAccessDialog({ open, onOpenChange, scenario, users }: Sc
 
   const addAccessMutation = useMutation({
     mutationFn: async ({ scenarioId, targetId }: { scenarioId: number; targetId: number }) => {
-      const res = await fetch(`/api/admin/scenarios/${scenarioId}/access`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ targetType: "user", targetId }),
+      const res = await apiRequest("POST", `/api/admin/scenarios/${scenarioId}/access`, { targetType: "user", targetId }, {
+        fallbackMessage: "Failed to add access",
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to add access");
-      }
       return res.json();
     },
     onSuccess: () => {
@@ -66,13 +60,9 @@ export function ScenarioAccessDialog({ open, onOpenChange, scenario, users }: Sc
 
   const removeAccessMutation = useMutation({
     mutationFn: async ({ scenarioId, targetId }: { scenarioId: number; targetId: number }) => {
-      const res = await fetch(`/api/admin/scenarios/${scenarioId}/access`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ targetType: "user", targetId }),
+      const res = await apiRequest("DELETE", `/api/admin/scenarios/${scenarioId}/access`, { targetType: "user", targetId }, {
+        fallbackMessage: "Failed to remove access",
       });
-      if (!res.ok) throw new Error("Failed to remove access");
       return res.json();
     },
     onSuccess: () => {
@@ -86,11 +76,9 @@ export function ScenarioAccessDialog({ open, onOpenChange, scenario, users }: Sc
 
   const unshareAllMutation = useMutation({
     mutationFn: async (scenarioId: number) => {
-      const res = await fetch(`/api/admin/scenarios/${scenarioId}/access/all`, {
-        method: "DELETE",
-        credentials: "include",
+      const res = await apiRequest("DELETE", `/api/admin/scenarios/${scenarioId}/access/all`, undefined, {
+        fallbackMessage: "Failed to remove all shares",
       });
-      if (!res.ok) throw new Error("Failed to remove all shares");
       return res.json();
     },
     onSuccess: (data) => {
