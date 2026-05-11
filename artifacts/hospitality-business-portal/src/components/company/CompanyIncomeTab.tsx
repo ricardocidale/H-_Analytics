@@ -36,7 +36,9 @@ export default function CompanyIncomeTab({
         id="company-income-chart"
       />
     )}
-    <CompanyBenchmarkPanel global={global} yearlyChartData={yearlyChartData} financials={financials} />
+    {yearlyChartData && yearlyChartData.length > 0 && (
+      <CompanyBenchmarkPanel global={global} yearlyChartData={yearlyChartData} financials={financials} />
+    )}
     <ScrollReveal>
     <div ref={activeTab === 'income' ? tableRef : undefined} className="bg-card rounded-2xl p-6 shadow-sm border">
       <div>

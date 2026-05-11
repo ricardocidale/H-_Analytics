@@ -66,6 +66,7 @@
     "pino": "^9",
     "pino-http": "^10",
     "playwright": "^1.59.1",
+    "pptx-automizer": "^0.8.1",
     "pptxgenjs": "^4.0.1",
     "react": "catalog:",
     "resend": "^6.12.2",
