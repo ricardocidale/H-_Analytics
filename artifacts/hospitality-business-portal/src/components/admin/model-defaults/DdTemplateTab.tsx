@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,13 +34,9 @@ export function DdTemplateTab() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, patch }: { id: number; patch: Partial<DdTemplateItemRow> }) => {
-      const res = await fetch(`/api/admin/dd-template/${id}`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
+      const res = await apiRequest("PATCH", `/api/admin/dd-template/${id}`, patch, {
+        fallbackMessage: "Failed to update item",
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? "Failed to update item");
       return res.json();
     },
     onSuccess: (_data, vars) => {

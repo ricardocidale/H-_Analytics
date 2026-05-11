@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { DesignTheme, DesignColor } from "./types";
 
@@ -21,13 +22,9 @@ export function useCreateTheme(callbacks?: { onSuccess?: () => void }) {
 
   return useMutation({
     mutationFn: async (data: { name: string; description: string; colors: DesignColor[] }) => {
-      const res = await fetch("/api/admin/design-themes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-        credentials: "include",
+      const res = await apiRequest("POST", "/api/admin/design-themes", data, {
+        fallbackMessage: "Failed to create theme",
       });
-      if (!res.ok) throw new Error("Failed to create theme");
       return res.json();
     },
     onSuccess: () => {
@@ -44,13 +41,9 @@ export function useUpdateTheme(callbacks?: { onSuccess?: () => void }) {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<{ name: string; description: string; colors: DesignColor[]; isDefault: boolean }> }) => {
-      const res = await fetch(`/api/admin/design-themes/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-        credentials: "include",
+      const res = await apiRequest("PATCH", `/api/admin/design-themes/${id}`, data, {
+        fallbackMessage: "Failed to update theme",
       });
-      if (!res.ok) throw new Error("Failed to update theme");
       return res.json();
     },
     onSuccess: () => {
@@ -67,11 +60,9 @@ export function useDeleteTheme() {
 
   return useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/admin/design-themes/${id}`, {
-        method: "DELETE",
-        credentials: "include",
+      const res = await apiRequest("DELETE", `/api/admin/design-themes/${id}`, undefined, {
+        fallbackMessage: "Failed to delete theme",
       });
-      if (!res.ok) throw new Error("Failed to delete theme");
       return res.json();
     },
     onSuccess: () => {

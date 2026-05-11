@@ -30,6 +30,7 @@
 
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useFocusFieldFromUrl } from "@/lib/analyst-focus-field";
 import { Section } from "@/components/ui/field-section";
@@ -80,11 +81,9 @@ function ScheduledRefreshFailuresBanner() {
 
   const dismissMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/admin/model-constants/scheduled-failures/dismiss", {
-        method: "POST",
-        credentials: "include",
+      const res = await apiRequest("POST", "/api/admin/model-constants/scheduled-failures/dismiss", undefined, {
+        fallbackMessage: "Failed to dismiss",
       });
-      if (!res.ok) throw new Error("Failed to dismiss");
       return res.json();
     },
     onSuccess: () => {
@@ -184,11 +183,9 @@ export function ModelConstantsTab() {
       if (row.locality === "country+state" && subdivisionParam) {
         params.set("subdivision", subdivisionParam);
       }
-      const res = await fetch(`/api/admin/model-constants/${row.key}?${params}`, {
-        method: "DELETE",
-        credentials: "include",
+      const res = await apiRequest("DELETE", `/api/admin/model-constants/${row.key}?${params}`, undefined, {
+        fallbackMessage: "Reset failed",
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? "Reset failed");
       return res.json();
     },
     onSuccess: (_d, row) => {

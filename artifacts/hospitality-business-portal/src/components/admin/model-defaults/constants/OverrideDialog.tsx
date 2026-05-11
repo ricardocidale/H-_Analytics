@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -24,21 +25,17 @@ export function OverrideDialog({ row, country }: { row: ConstantRow; country: st
     mutationFn: async () => {
       const numeric = Number(value);
       if (!Number.isFinite(numeric)) throw new Error("Enter a numeric value.");
-      const res = await fetch(`/api/admin/model-constants/${row.key}`, {
-        method: "PUT",
-        credentials: "include",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          value: numeric,
-          source: "manual",
-          country: row.locality === "universal" ? null : country,
-          countrySubdivision: null,
-          overrideNote: note || null,
-          authority: authority || null,
-          referenceUrl: referenceUrl || null,
-        }),
+      const res = await apiRequest("PUT", `/api/admin/model-constants/${row.key}`, {
+        value: numeric,
+        source: "manual",
+        country: row.locality === "universal" ? null : country,
+        countrySubdivision: null,
+        overrideNote: note || null,
+        authority: authority || null,
+        referenceUrl: referenceUrl || null,
+      }, {
+        fallbackMessage: "Override failed",
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? "Override failed");
       return res.json();
     },
     onSuccess: () => {

@@ -9,6 +9,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { ResourcePublicView } from "@shared/schema";
 import type { ModelConfig, SlotConfig } from "./types";
@@ -109,17 +110,12 @@ export function useSlotAssignments(): UseSlotAssignmentsResult {
     mutationFn: async (changes: { id: number; modelSlug: string | null }[]) => {
       await Promise.all(
         changes.map(({ id, modelSlug }) =>
-          fetch(`/api/admin/resources/${id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              config: { modelSlug },
-              changeSummary: "LLM assignment updated",
-            }),
-          }).then((r) => {
-            if (!r.ok) throw new Error(`Failed to update slot ${id}`);
-            return r.json();
-          }),
+          apiRequest("PUT", `/api/admin/resources/${id}`, {
+            config: { modelSlug },
+            changeSummary: "LLM assignment updated",
+          }, {
+            fallbackMessage: `Failed to update slot ${id}`,
+          }).then((r) => r.json()),
         ),
       );
     },

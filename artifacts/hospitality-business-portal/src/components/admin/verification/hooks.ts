@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { runFullVerification, runKnownValueTestsStructured } from "@/lib/runVerification";
 import { generatePropertyProForma } from "@/lib/financialEngine";
@@ -234,9 +235,8 @@ export function useRunSuites(
       // Golden Scenarios suite (server-side — runs vitest)
       if (suiteArray.includes("golden-scenarios")) {
         try {
-          const goldenRes = await fetch("/api/admin/golden-test-run", {
-            method: "POST",
-            credentials: "include",
+          const goldenRes = await apiRequest("POST", "/api/admin/golden-test-run", undefined, {
+            fallbackMessage: "Golden test run failed",
           });
           if (goldenRes.ok) {
             const gd = await goldenRes.json();

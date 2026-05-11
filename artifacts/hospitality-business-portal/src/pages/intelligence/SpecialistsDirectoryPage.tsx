@@ -16,6 +16,7 @@
 
 import { useMemo, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -122,10 +123,9 @@ function SpecialistRow({ id, liveHumanNames: _liveHumanNames }: SpecialistRowPro
 
   const probeMutation = useMutation<ProbeResult>({
     mutationFn: async () => {
-      const res = await fetch(`/api/admin/specialists/${encodeURIComponent(id)}/probe`, {
-        method: "POST",
+      const res = await apiRequest("POST", `/api/admin/specialists/${encodeURIComponent(id)}/probe`, undefined, {
+        fallbackMessage: "Probe failed",
       });
-      if (!res.ok) throw new Error(`Probe returned ${res.status}`);
       return res.json() as Promise<ProbeResult>;
     },
   });

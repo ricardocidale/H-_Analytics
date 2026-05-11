@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -210,18 +211,11 @@ export default function HealthCheckDashboard() {
 
   const runHealthCheck = useMutation({
     mutationFn: async (): Promise<HealthCheckResult> => {
-      const res = await fetch("/api/admin/health-check/run", {
-        method: "POST",
-        credentials: "include",
+      // apiRequest's throwIfResNotOk already handles both JSON and non-JSON
+      // error bodies — manual content-type check is redundant.
+      const res = await apiRequest("POST", "/api/admin/health-check/run", undefined, {
+        fallbackMessage: "Health check failed",
       });
-      if (!res.ok) {
-        const ct = res.headers.get("content-type") || "";
-        if (ct.includes("application/json")) {
-          const body = await res.json();
-          throw new Error(String((body as Record<string, unknown>).error) || "Health check failed");
-        }
-        throw new Error(`Health check failed: ${res.status}`);
-      }
       return res.json();
     },
     onSuccess: () => {

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { ServiceTemplate, InsertServiceTemplate, UpdateServiceTemplate } from "@shared/schema";
 import { invalidateAllFinancialQueries } from "./properties";
+import { apiRequest } from "@/lib/queryClient";
 
 export function useServiceTemplates() {
   return useQuery<ServiceTemplate[]>({
@@ -17,12 +18,9 @@ export function useCreateServiceTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (data: InsertServiceTemplate) => {
-      const res = await fetch("/api/admin/service-templates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+      const res = await apiRequest("POST", "/api/admin/service-templates", data, {
+        fallbackMessage: "Failed to create service template",
       });
-      if (!res.ok) throw new Error("Failed to create service template");
       return res.json();
     },
     onSuccess: () => {
@@ -35,12 +33,9 @@ export function useUpdateServiceTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, data }: { id: number; data: UpdateServiceTemplate }) => {
-      const res = await fetch(`/api/admin/service-templates/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+      const res = await apiRequest("PATCH", `/api/admin/service-templates/${id}`, data, {
+        fallbackMessage: "Failed to update service template",
       });
-      if (!res.ok) throw new Error("Failed to update service template");
       return res.json();
     },
     onSuccess: () => {
@@ -53,10 +48,9 @@ export function useDeleteServiceTemplate() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/admin/service-templates/${id}`, {
-        method: "DELETE",
+      const res = await apiRequest("DELETE", `/api/admin/service-templates/${id}`, undefined, {
+        fallbackMessage: "Failed to delete service template",
       });
-      if (!res.ok) throw new Error("Failed to delete service template");
       return res.json();
     },
     onSuccess: () => {
@@ -69,10 +63,9 @@ export function useSyncServiceTemplates() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/admin/service-templates/sync", {
-        method: "POST",
+      const res = await apiRequest("POST", "/api/admin/service-templates/sync", undefined, {
+        fallbackMessage: "Failed to sync service templates",
       });
-      if (!res.ok) throw new Error("Failed to sync service templates");
       return res.json();
     },
     onSuccess: () => {
