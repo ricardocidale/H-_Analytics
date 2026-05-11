@@ -136,8 +136,37 @@ INNER
       echo "  Arm with:          pnpm coderabbit:on"
     fi
     ;;
+  help|--help|-h)
+    cat <<'HELP'
+CodeRabbit loop — quick reference
+
+Toggle commands:
+  pnpm coderabbit:on        Arm the loop (creates .local/opmode/active)
+  pnpm coderabbit:off       Disarm the loop (removes the marker)
+  pnpm coderabbit:status    Show full state report (trigger, CLI, auth, …)
+  pnpm coderabbit:help      This help
+
+Review commands (only run when the loop is ON):
+  pnpm review:uncommitted        CodeRabbit on the working tree
+  pnpm review:branch             CodeRabbit on this branch vs origin/main
+  pnpm review:scoped <dir>       CodeRabbit on a single directory
+  pnpm validate:scoped <pkg>     typecheck + lint, one workspace package
+
+Natural-language aliases (Replit Agent chat / Claude Code):
+  "turn coderabbit loop on"   → pnpm coderabbit:on
+  "turn coderabbit loop off"  → pnpm coderabbit:off
+  "check coderabbit status"   → pnpm coderabbit:status
+  "review with coderabbit"    → pnpm review:uncommitted (or :branch)
+
+Claude Code slash commands:
+  /coderabbitloop-on  /coderabbitloop-off
+  /coderabbitloop-status  /coderabbitloop-review  /coderabbitloop-help
+
+Runbook:  docs/runbooks/coderabbit-shell-workflow.md
+HELP
+    ;;
   *)
-    echo "usage: $0 {on|off|status}" >&2
+    echo "usage: $0 {on|off|status|help}" >&2
     exit 2
     ;;
 esac

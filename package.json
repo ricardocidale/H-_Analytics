@@ -34,6 +34,7 @@
     "coderabbit:on": "bash scripts/coderabbit-loop.sh on",
     "coderabbit:off": "bash scripts/coderabbit-loop.sh off",
     "coderabbit:status": "bash scripts/coderabbit-loop.sh status",
+    "coderabbit:help": "bash scripts/coderabbit-loop.sh help",
     "review:uncommitted": "bash scripts/coderabbit-review.sh uncommitted",
     "review:branch": "bash scripts/coderabbit-review.sh branch",
     "review:scoped": "bash scripts/coderabbit-review.sh scoped",
