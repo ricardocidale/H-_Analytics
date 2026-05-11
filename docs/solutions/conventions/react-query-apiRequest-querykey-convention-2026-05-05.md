@@ -1,6 +1,7 @@
 ---
 title: "React Query convention: apiRequest() is for mutations only; use default queryFn for data queries"
 date: 2026-05-05
+last_updated: 2026-05-11
 category: docs/solutions/conventions/
 module: knowledge-registry
 problem_type: convention
@@ -18,8 +19,10 @@ tags:
   - typescript
   - paginated-queries
   - default-query-fn
+  - csrf
 related_components:
   - tooling
+  - authentication
 ---
 
 # React Query convention: apiRequest() is for mutations only; use default queryFn for data queries
@@ -51,10 +54,10 @@ const { data } = useQuery<CountryRow[]>({
 });
 ```
 
-When custom fetch logic is genuinely needed, use raw `fetch()` — never `apiRequest()`:
+When custom fetch logic is genuinely needed **for a query (GET read)**, use raw `fetch()` — never `apiRequest()`:
 
 ```typescript
-// Acceptable — custom logic with fetch(), not apiRequest()
+// Acceptable — custom logic with fetch() for a GET read, not apiRequest()
 const { data } = useQuery<CountryRow[]>({
   queryKey: ["/api/admin/knowledge-registry/country-economic-data"],
   queryFn: async () => {
@@ -66,6 +69,8 @@ const { data } = useQuery<CountryRow[]>({
   },
 });
 ```
+
+The raw-`fetch()` carve-out is **for queries only** (GET/HEAD/OPTIONS — methods the CSRF middleware classifies as safe). Since 2026-05-11, **admin writes** (POST/PUT/PATCH/DELETE on `/api/admin/*`) must always go through `apiRequest()` — the global CSRF middleware in `artifacts/api-server/src/middleware/csrf.ts` will reject raw-fetch admin writes with HTTP 403. See `docs/solutions/security-issues/csrf-coverage-rollout-2026-05-11.md` for the full rollout.
 
 **For mutations: `apiRequest()` is correct — always call `.json()` on the result.**
 
@@ -109,4 +114,5 @@ queryKey: [`/api/admin/knowledge-registry/${entryId}/chunks?page=${page}`]
 
 - **`artifacts/hospitality-business-portal/src/lib/queryClient.ts`** — defines `defaultQueryFn`; read this when the URL-construction behaviour needs to be confirmed. The join is at the function body, not `queryKey[0]`.
 - **`artifacts/hospitality-business-portal/src/components/admin/intelligence/AnalystTables.tsx`** — reference implementation demonstrating the correct `useQuery` pattern without an explicit `queryFn`.
+- **`docs/solutions/security-issues/csrf-coverage-rollout-2026-05-11.md`** — the CSRF rollout that promoted `apiRequest()` from a convention preference to a security gate for admin writes. The two docs are complementary: this one motivates `apiRequest()` on type-safety + query-caching grounds; that one enforces it on `/api/admin/*` non-safe methods at the middleware layer.
 - **Cache invalidation after mutations** — `queryClient.invalidateQueries({ queryKey: [...] })` uses the same key-matching logic. If `page` moves into the URL string, invalidation calls must match the new key format.
