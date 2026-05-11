@@ -32,6 +32,7 @@ import {
 import {
   toolGetLbDeckConfig,
   toolConfigureLbDeck,
+  toolResetLbDeckConfig,
   toolTriggerLbDeckRender,
   toolGetLbDeckRenderStatus,
   toolRefreshAnalystTable,
@@ -131,6 +132,8 @@ export async function dispatchRebeccaTool(
         return await toolUpdateScenarioAssumptions(args, ctx);
       case "configure_lb_deck":
         return await toolConfigureLbDeck(args, ctx);
+      case "reset_lb_deck_config":
+        return await toolResetLbDeckConfig(ctx);
       case "get_lb_deck_config":
         return await toolGetLbDeckConfig(ctx);
       case "trigger_lb_deck_render":

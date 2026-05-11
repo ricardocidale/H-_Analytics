@@ -24,6 +24,11 @@ export function getDeckTools(): ToolParam[] {
       },
     },
     {
+      name: "reset_lb_deck_config",
+      description: "Clear the LB investor deck configuration: all four slide property assignments (1/2/3/5) and the slide 4/6 text fields are set back to null. Returns the cleared config. Admin only. Use to start a fresh configuration cycle before reassigning properties via configure_lb_deck.",
+      parameters: { type: "object", properties: {}, required: [] },
+    },
+    {
       name: "trigger_lb_deck_render",
       description: "Trigger a background render of the LB investor deck PDF. Returns immediately — use get_lb_deck_render_status to poll progress. Admin only.",
       parameters: { type: "object", properties: {}, required: [] },
