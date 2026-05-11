@@ -263,7 +263,7 @@ docs/solutions/ Documented solutions, organized by category with YAML frontmatte
 | Frontend build | Vite |
 | Backend build | esbuild (ESM bundle, `dist/index.mjs`) |
 | File storage | Cloudflare R2 |
-| Auth | Two parallel sign-in paths: (1) `AUTH_PROVIDER` adapter in `artifacts/api-server/src/providers/auth/` selects `replit` (Replit OIDC, default) or `local` (email + password); (2) Google OAuth routes at `/api/auth/google` + `/api/auth/google/callback` (`artifacts/api-server/src/routes/google-auth.ts`) run alongside whichever provider is selected. Production users sign in with Google. |
+| Auth | Google OAuth (primary, production) via `routes/google-auth.ts`, plus `AUTH_PROVIDER` adapter (`replit` OIDC default, `local` email+password) in `providers/auth/` |
 | AI providers | OpenAI, Anthropic, Gemini (all called via direct SDKs with first-party API keys — not via a Replit broker) |
 | Observability | Sentry |
 | Project tracking | Linear (integration: `conn_linear_01KN0GFMPXYQYH0QYYEXNKZ0GG`) |
@@ -329,22 +329,9 @@ One Railway service, no separate frontend deployments.
 
 **Required production env vars on Railway** — all variables in §Environment Variables above must be set as Railway service variables (no Replit broker is reachable in production). `PASSWORD_*` fallbacks are optional dev shortcuts and must be **omitted** in production.
 
-**External services this app depends on** (all owned by the user, all reachable from Railway with the secrets above — none are Replit-managed):
+**External services** (all user-owned, all reachable from Railway with secrets above): Neon Postgres (db + pgvector), Cloudflare R2 (objects), Google OAuth (auth, primary) + Replit OIDC (legacy/dev), OpenAI / Anthropic / Gemini (LLMs, direct SDKs), FRED (macro data), Resend (email), Sentry (errors), Linear (issues — connector `conn_linear_01KN0GFMPXYQYH0QYYEXNKZ0GG`, falls back to env vars), GitHub. Per-service secrets: see §"Environment Variables" above.
 
-| Concern | Service | Secrets |
-|---|---|---|
-| Primary database + pgvector | **Neon Postgres** | `POSTGRES_URL` |
-| Object storage (uploads, generated PPTX, photo assets) | **Cloudflare R2** | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL` |
-| User auth | **Google OAuth** (primary), Replit OIDC (legacy / dev) | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
-| LLMs | **OpenAI, Anthropic, Gemini** (direct SDKs) | `OPENAI_API_KEY`, `OPENAI_EMBEDDING_KEY`, `ANTHROPIC_API_KEY`, `AI_INTEGRATIONS_GEMINI_API_KEY` |
-| Macro economic data | **FRED (St. Louis Fed)** | `FRED_API_KEY` |
-| Transactional email | **Resend** | `RESEND_API_KEY` |
-| Error monitoring | **Sentry** | `SENTRY_DSN` |
-| Project / issue tracking | **Linear** | `conn_linear_01KN0GFMPXYQYH0QYYEXNKZ0GG` (Replit connector — broker only, falls back to plain env vars) |
-| Source control / API | **GitHub** | `GITHUB_PAT` |
-| Hosting | **Railway** (Docker) | configured via `railway.toml` |
-
-**Rule of thumb:** every infrastructure dependency this app uses is an **external service the user already pays for**. Do not provision Replit-managed equivalents (Replit Database, Replit Object Storage, Replit Auth) — they would split the source of truth from production and break Railway. Use the `prefer-external-dependencies` skill before reaching for any Replit setup tool.
+**Rule of thumb:** never provision Replit-managed equivalents (Replit Database, Object Storage, Auth) — they split the source of truth from production. Use the `prefer-external-dependencies` skill first.
 
 **Replit's role going forward:** dev workspace and code-review surface only. Do **not** rely on `.replit` `[deployment]`, `artifact.toml [services.production]`, or `suggest_deploy()` for shipping. Those blocks may stay in the repo for the workflow tooling, but production ships through `git push` → Railway build via the `Dockerfile`.
 
@@ -394,13 +381,9 @@ Full contract, data flow, conviction floor, voice rule, anti-patterns: `.agents/
 
 ### Number taxonomy — the permanent law (never re-derive)
 
-Full taxonomy, four categories, code patterns, and UX lifecycle: `.agents/skills/hplus-variable-taxonomy/SKILL.md`. Three recurring violations:
+Full taxonomy + code patterns: `.agents/skills/hplus-variable-taxonomy/SKILL.md`. Three recurring violations: (1) raw literal fallback `?? 0.03` — use `?? DEFAULT_X` or `?? getFactoryNumber(key, 'US')`; (2) wrong constant (e.g., `DEFAULT_COST_RATE_MARKETING` 1% S&M vs `DEFAULT_MARKETING_RATE` 5% company); (3) masked literal `const DEFAULT_X = 0.03` outside `lib/shared/src/constants*.ts` or `lib/db/src/constants.ts`.
 
-1. Raw literal fallback: `?? 0.03` — use `?? DEFAULT_X` or `?? getFactoryNumber(key, 'US')`
-2. Wrong constant: `DEFAULT_COST_RATE_MARKETING` (1% S&M) vs `DEFAULT_MARKETING_RATE` (5% company)
-3. Masked literal: `const DEFAULT_X = 0.03` outside `lib/shared/src/constants*.ts` or `lib/db/src/constants.ts`
-
-Slide Deck Factory rule: `artifacts/api-server/src/slides/` is a pure consumer — it sources every assumption from `storage.getGlobalAssumptions()` and must never define local assumption constants.
+Slide Deck Factory rule: `artifacts/api-server/src/slides/` is a pure consumer — sources every assumption from `storage.getGlobalAssumptions()`, never defines local assumption constants.
 
 ### Inflation policy (USD-base calculations) — supersedes prior cascade
 
@@ -408,13 +391,7 @@ All H+ engine calculations use the **US inflation rate** for every property. Cou
 
 ### LB Slides — investor PDF decks (Playwright HTML→PDF)
 
-Generates a 6-slide investor deck per property as a PDF matched to the canonical L+B reference deck. Slide 7 ("The Ask") is always excluded.
-
-**One pipeline:** React pages at `features/internal-deck/` → api-server opens headless Chromium (Playwright) → prints to PDF → uploads to R2 → serves back. Route: `GET /api/properties/:id/deck.pdf`.
-
-**Do not add Puppeteer.** Playwright is the single renderer. Legacy Python and satori tracks are removed.
-
-**Full implementation reference** (routes, schema, finance calls, slot logic, visual spec paths, Admin UI, Slide Factory V2): `docs/slide-system/lb-slides-implementation-reference.md`
+6-slide property deck (slide 7 "The Ask" always excluded). One pipeline: React pages at `features/internal-deck/` → headless Chromium (Playwright) → PDF → R2 → `GET /api/properties/:id/deck.pdf`. **Playwright is the only renderer — do not add Puppeteer; legacy Python/satori tracks are removed.** Full reference: `docs/slide-system/lb-slides-implementation-reference.md`.
 
 ### `reference_brands` AI pipeline wiring
 
@@ -439,22 +416,9 @@ See `docs/issues/known-issues.md`.
 
 ### Migration system architecture
 
-Two-layer system — know both before touching the DB:
+Two-layer: Drizzle SQL migrations at `lib/db/migrations/*.sql` run once at boot via `migrate()`; runtime TypeScript guards at `artifacts/api-server/src/migrations/*.ts` run every boot as idempotent `IF NOT EXISTS` DDL.
 
-| Layer | Location | When it runs |
-|---|---|---|
-| Drizzle SQL migrations | `lib/db/migrations/*.sql` + journal at `lib/db/migrations/meta/_journal.json` | Once, at server boot via `migrate()` from `drizzle-orm/node-postgres/migrator` |
-| Runtime TypeScript guards | `artifacts/api-server/src/migrations/*.ts` | Every boot — idempotent `IF NOT EXISTS` DDL, belt-and-suspenders |
-
-**Drizzle migration state** is tracked in `drizzle.__drizzle_migrations` on Neon. If it drifts from the journal (e.g. after manually applying DDL), sync it: compute SHA-256 of each unapplied `.sql` file and `INSERT INTO drizzle."__drizzle_migrations" (hash, created_at)`. Synced to 53 entries on 2026-05-08 (after migration 0042 — `rebecca_chat_prefs`).
-
-**Drizzle snapshot baseline:** `lib/db/migrations/meta/0042_snapshot.json` is the canonical up-to-date snapshot (added Task #1199, May 2026), describing all 112 tables as of `0044_users_rebecca_history_open`. The original `0000_snapshot.json` (8 tables) is kept as the historical root and must not be replaced — it anchors the snapshot chain. Run `pnpm --filter @workspace/db run generate` to produce a new migration from the current TypeScript schema; drizzle-kit will automatically write a new numbered snapshot alongside the SQL file.
-
-#### Schema change workflow
-
-Always use `pnpm --filter @workspace/db run generate` to produce migrations; never craft SQL by hand (except complex backfills). Full step-by-step runbook with bash scripts: `.local/skills/pnpm-workspace/references/db.md`.
-
-**Querying the real DB in dev:** The Replit code-execution `executeSql()` callback connects to Replit's built-in PostgreSQL, NOT the app's Neon database. To query the real DB: use admin API endpoints via `curl -b <cookie>` (authenticate with `POST /api/auth/dev-login`), or run a one-off Node.js script with `process.env.POSTGRES_URL` and the `pg` client at `artifacts/api-server/node_modules/pg`.
+Schema changes always use `pnpm --filter @workspace/db run generate` — never hand-craft SQL (except complex backfills). `lib/db/migrations/meta/0042_snapshot.json` is the canonical baseline; `0000_snapshot.json` stays as the historical root. Full runbook + Drizzle `__drizzle_migrations` drift sync + dev-DB query gotcha (Replit `executeSql()` hits the wrong database — use `curl -b <cookie>` against `/api/auth/dev-login` or a Node script with `POSTGRES_URL`): `.local/skills/pnpm-workspace/references/db.md`.
 
 ### Shared proxy routing
 
@@ -464,14 +428,7 @@ All traffic is routed by path through a shared reverse proxy. Services must hand
 
 ## Canonical Page Archetypes
 
-Two archetypes cover ~95% of app pages. Always read the relevant canonical page before building a new one.
-
-| Archetype | Use when | Canonical file |
-|---|---|---|
-| **Report / Presentation** | Tabs + export actions, read-only data display | `artifacts/hospitality-business-portal/src/pages/PropertyDetail.tsx` |
-| **Form / Editor** | Tabs + per-tab Save + AnalystButton, user edits structured data | `artifacts/hospitality-business-portal/src/pages/CompanyAssumptions.tsx` |
-
-Use the `ui-page-patterns` skill before building or revising any page.
+Two archetypes cover ~95% of pages: **Report/Presentation** (read-only, tabs + export — canonical `PropertyDetail.tsx`) and **Form/Editor** (tabs + per-tab Save + AnalystButton — canonical `CompanyAssumptions.tsx`). Read the canonical page before building. Full conventions: `ui-page-patterns` skill.
 
 ---
 
@@ -479,16 +436,13 @@ Use the `ui-page-patterns` skill before building or revising any page.
 
 | Path | Contents |
 |---|---|
-| `references/openapi.md` | OpenAPI spec + codegen setup |
-| `references/server.md` | Route conventions, logging, tips |
-| `.local/skills/pnpm-workspace/references/db.md` | Schema additions + migration runbook (generate workflow, push commands, pitfalls) |
-| `.local/tasks/task-800.md` | Full architecture audit (scenarios, portfolios, sharing, roles) |
-| `.local/db-audit-phase-c-inventory.md` | DB migration inventory (Phase C) |
-| `attached_assets/canonical/pdf/L+B_Property_6-Slide_Cannonical_1777859377769.pdf` | Canonical visual reference for all 6 LB slides — every rebuild must pixel-match this |
-| `attached_assets/canonical/pptx/belleayre-mountain-slides_1777774635693.pptx` | Canonical PPTX source — original design file; canonical photos extracted from here |
-| `attached_assets/canonical/json/slide_analysis_agent_report.precise_1777824741855.json` | Machine-readable layout extract (~650 KB). Per-span bbox/font/color and per-image bbox. Authoritative for text positions, fonts, colors. Not authoritative for card chrome/backgrounds (rasterized) or z-order. |
-| `docs/slide-system/lb-slides-implementation-reference.md` | LB Slides full implementation reference — routes, schema, finance calls, slot logic, visual spec paths, Admin UI |
-| `docs/slide-system/canonical/coding-agent-instructions.md` | Agent generation workflow — §15 = mandatory canonical PNG comparison (PNG wins over JSON spec) |
+| `references/openapi.md`, `references/server.md` | OpenAPI codegen + route conventions |
+| `.local/skills/pnpm-workspace/references/db.md` | Schema + migration runbook |
+| `.local/tasks/task-800.md` | Architecture audit (scenarios, portfolios, sharing, roles) |
+| `attached_assets/canonical/pdf/L+B_Property_6-Slide_Cannonical_1777859377769.pdf` | LB slides canonical visual — every rebuild must pixel-match |
+| `attached_assets/canonical/json/slide_analysis_agent_report.precise_1777824741855.json` | LB slides layout extract — text/fonts/colors authoritative; chrome/z-order not |
+| `docs/slide-system/lb-slides-implementation-reference.md` | LB Slides full reference (routes, schema, finance, slots, Admin UI) |
+| `docs/slide-system/canonical/coding-agent-instructions.md` | Slide agent workflow — §15 mandates canonical PNG comparison (PNG > JSON) |
 
 ---
 
