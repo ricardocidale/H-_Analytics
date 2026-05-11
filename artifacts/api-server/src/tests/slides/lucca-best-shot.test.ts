@@ -6,11 +6,15 @@
  *      the contract for when best-shot mode fires.
  *   2. Best-shot prompt assembly (`buildBestShotUserPrompt`,
  *      `buildBestShotTool`) — the shape Lucca sends to Opus 4.7.
+ *   3. Orchestration integration (`runLuccaDraft`) — best-shot fires on
+ *      Slide-5 transformation when renovation data is missing, producing
+ *      both a narrative slot AND a `wishListLog` entry.
  *
  * Test-first per the U8 plan: detection rules + prompt assembly are written
  * before the orchestration wiring in `lucca-draft.ts`.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { Mock } from "vitest";
 
 import {
   checkSlotDataSufficiency,
@@ -175,11 +179,13 @@ describe("checkSlotDataSufficiency", () => {
       expect(result.missingFields).toEqual(["occupancy"]);
     });
 
-    it("flags slide3.closingLine when name is present but irrRaw is undefined", () => {
-      const brief = fullBrief({ irrRaw: undefined });
+    it("flags slide3.closingLine when name is set but location is entirely empty", () => {
+      // Engine-derived fields like irr/equity multiple are not yet computed
+      // at Lucca-draft time, so the rule depends on draft-time fields only.
+      const brief = fullBrief({ city: "", stateProvince: "", country: "" });
       const result = checkSlotDataSufficiency("slide3.closingLine", brief);
       expect(result.sufficient).toBe(false);
-      expect(result.missingFields).toEqual(["projected_irr"]);
+      expect(result.missingFields).toEqual(["location"]);
     });
 
     it("keeps slide1.headerSubtitle sufficient when location parts vary (any one of city/state/country)", () => {

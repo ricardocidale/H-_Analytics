@@ -76,6 +76,13 @@ export const PROPERTY_BRIEF_FIELD_MAP: Record<string, Array<keyof PropertyBrief>
  * and don't pass through Lucca; we still register them with empty rules so
  * the table is exhaustive).
  *
+ * Rules cover ONLY the property-record fields available at Lucca-draft time
+ * (Tab 4). Engine-derived metrics like `projected_irr` and
+ * `equity_multiple` are not yet computed when Lucca runs — they would
+ * always read as missing, defeating the wish-list signal. Builders that
+ * stamp those values into the deck post-engine consult their own
+ * sufficiency at substitution time (out of scope for U8).
+ *
  * Rule rationale (per slot):
  *   - slide1.headerSubtitle: needs name + location for the tagline.
  *   - slide1.visionBullets: needs the operating-economics triad (ADR,
@@ -86,8 +93,9 @@ export const PROPERTY_BRIEF_FIELD_MAP: Record<string, Array<keyof PropertyBrief>
  *   - slide2.programmingBullet: needs business model + property description.
  *   - slide3.conceptParagraph: needs name + business model + location.
  *   - slide3.marketRationale: needs location.
- *   - slide3.reasons: needs ADR + occupancy + market_insight + room count.
- *   - slide3.closingLine: needs name + projected IRR.
+ *   - slide3.reasons: needs ADR + occupancy + room count.
+ *   - slide3.closingLine: needs name + location (engine metrics absent at
+ *     draft time — see header comment above).
  *   - slide5.transformationDescription: needs transformation_scope (either
  *     a renovation scope description OR a renovation budget).
  *   - slide5.transformationRows: needs transformation_scope.
@@ -119,7 +127,7 @@ export const SLOT_DATA_RULES: Record<DraftSlotKey, SlotDataRule> = {
     requiredFields: ["adr", "occupancy", "room_count"],
   },
   "slide3.closingLine": {
-    requiredFields: ["name", "projected_irr"],
+    requiredFields: ["name", "location"],
   },
   "slide5.transformationDescription": {
     requiredFields: ["transformation_scope"],
