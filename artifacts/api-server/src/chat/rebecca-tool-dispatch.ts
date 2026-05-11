@@ -101,6 +101,7 @@ import {
   toolListSpecialists,
   toolGetSpecialistConfig,
   toolRecordSpecialistRecommendationEvent,
+  toolUpdateAdminResource,
 } from "./rebecca-tool-impls-admin";
 
 export async function dispatchRebeccaTool(
@@ -288,6 +289,8 @@ export async function dispatchRebeccaTool(
         return await toolGetSpecialistConfig(args, ctx);
       case "record_specialist_recommendation_event":
         return await toolRecordSpecialistRecommendationEvent(args, ctx);
+      case "update_admin_resource":
+        return await toolUpdateAdminResource(args, ctx);
       default:
         return { result: { error: "Unknown tool" } };
     }

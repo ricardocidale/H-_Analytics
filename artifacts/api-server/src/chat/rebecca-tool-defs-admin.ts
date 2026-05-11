@@ -299,5 +299,25 @@ export function getAdminTools(): ToolParam[] {
         required: ["specialistId", "fieldKey", "action"],
       },
     },
+    {
+      name: "update_admin_resource",
+      description:
+        "Update an admin_resources row (model/api/mcp/source/factory_number). Admin only. Mirrors PUT /api/admin/resources/:id: each call writes a new version row, applies the SSRF guard to config.healthProbe.url, and returns { resource, impact } where impact is the list of catalog/feature surfaces affected. Use to retune display names, descriptions, config payloads (e.g. swap an LLM model slug, edit a healthProbe URL), or rotate secretRef pointers. Create and delete are NOT exposed — admin_resources rows are added via migrations.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "The admin_resources row id." },
+          displayName: { type: "string", description: "New display name (min 1 char)." },
+          description: { type: ["string", "null"], description: "New description. Pass null to clear." },
+          config: {
+            type: "object",
+            description: "Replacement config payload (object). When config.healthProbe.url is present it is validated against the SSRF blocklist.",
+          },
+          secretRef: { type: ["string", "null"], description: "Secret reference name. Pass null to clear." },
+          changeSummary: { type: "string", description: "Short human summary stamped on the new version row (min 1 char). Defaults to \"updated\" if omitted." },
+        },
+        required: ["id"],
+      },
+    },
   ];
 }
