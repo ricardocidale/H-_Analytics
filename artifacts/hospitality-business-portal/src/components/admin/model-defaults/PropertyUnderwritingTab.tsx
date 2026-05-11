@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -123,12 +124,14 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
 
   const savePlatformFee = async () => {
     if (!strDefaultRow) return;
-    await fetch(`/api/admin/model-defaults/${strDefaultRow.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ value: parseFloat(platformFeeDraft) / 100, reason: "Admin updated STR platform fee default" }),
-    });
+    try {
+      await apiRequest("PATCH", `/api/admin/model-defaults/${strDefaultRow.id}`, {
+        value: parseFloat(platformFeeDraft) / 100,
+        reason: "Admin updated STR platform fee default",
+      });
+    } catch {
+      // Preserve the prior fire-and-forget behavior: ignore HTTP errors.
+    }
     refetchStrDefault();
   };
 

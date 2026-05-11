@@ -11,6 +11,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "@/components/icons/themed-icons";
@@ -105,13 +106,9 @@ export default function IrisPanel() {
 
   const runMutation = useMutation({
     mutationFn: async (trigger: IrisTrigger) => {
-      const res = await fetch("/api/admin/iris/run", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ trigger }),
+      const res = await apiRequest("POST", "/api/admin/iris/run", { trigger }, {
+        fallbackMessage: "Failed to start Iris run",
       });
-      if (!res.ok) throw new Error("Failed to start Iris run");
       return res.json() as Promise<{ runId: number; status: string }>;
     },
     onSuccess: () => {
@@ -121,11 +118,9 @@ export default function IrisPanel() {
 
   const clearGapsMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/admin/iris/gaps", {
-        method: "DELETE",
-        credentials: "include",
+      const res = await apiRequest("DELETE", "/api/admin/iris/gaps", undefined, {
+        fallbackMessage: "Failed to clear gaps",
       });
-      if (!res.ok) throw new Error("Failed to clear gaps");
       return res.json();
     },
     onSuccess: () => {

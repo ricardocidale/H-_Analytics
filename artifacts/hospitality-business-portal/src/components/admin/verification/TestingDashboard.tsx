@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -386,18 +387,9 @@ export default function TestingDashboard() {
 
   const runDashboard = useMutation({
     mutationFn: async (): Promise<TestingDashboardData> => {
-      const res = await fetch("/api/admin/testing-dashboard/run", {
-        method: "POST",
-        credentials: "include",
+      const res = await apiRequest("POST", "/api/admin/testing-dashboard/run", undefined, {
+        fallbackMessage: "Dashboard scan failed",
       });
-      if (!res.ok) {
-        const ct = res.headers.get("content-type") || "";
-        if (ct.includes("application/json")) {
-          const body = await res.json();
-          throw new Error(String((body as Record<string, unknown>).error) || "Dashboard scan failed");
-        }
-        throw new Error(`Dashboard scan failed: ${res.status}`);
-      }
       return res.json();
     },
     onSuccess: () => {
@@ -415,20 +407,9 @@ export default function TestingDashboard() {
 
   const runBattery = useMutation({
     mutationFn: async (battery: string): Promise<BatteryResult> => {
-      const res = await fetch("/api/admin/tests/run-battery", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ battery }),
+      const res = await apiRequest("POST", "/api/admin/tests/run-battery", { battery }, {
+        fallbackMessage: "Test battery failed",
       });
-      if (!res.ok) {
-        const ct = res.headers.get("content-type") || "";
-        if (ct.includes("application/json")) {
-          const body = await res.json();
-          throw new Error(String((body as Record<string, unknown>).error) || "Test battery failed");
-        }
-        throw new Error(`Test battery failed: ${res.status}`);
-      }
       return res.json();
     },
     onSuccess: (data) => {
@@ -442,15 +423,9 @@ export default function TestingDashboard() {
 
   const runSourceVerify = useMutation({
     mutationFn: async (): Promise<SourceVerifyResult> => {
-      const res = await fetch("/api/admin/tests/source-verification", { method: "POST", credentials: "include" });
-      if (!res.ok) {
-        const ct = res.headers.get("content-type") || "";
-        if (ct.includes("application/json")) {
-          const body = await res.json();
-          throw new Error(String((body as Record<string, unknown>).error) || "Source verification failed");
-        }
-        throw new Error(`Source verification failed: ${res.status}`);
-      }
+      const res = await apiRequest("POST", "/api/admin/tests/source-verification", undefined, {
+        fallbackMessage: "Source verification failed",
+      });
       return res.json();
     },
     onSuccess: (data) => {
@@ -464,15 +439,9 @@ export default function TestingDashboard() {
 
   const runFinancialVerify = useMutation({
     mutationFn: async (): Promise<FinancialVerifyResult> => {
-      const res = await fetch("/api/admin/tests/financial-verify", { method: "POST", credentials: "include" });
-      if (!res.ok) {
-        const ct = res.headers.get("content-type") || "";
-        if (ct.includes("application/json")) {
-          const body = await res.json();
-          throw new Error(String((body as Record<string, unknown>).error) || "Financial verify failed");
-        }
-        throw new Error(`Financial verify failed: ${res.status}`);
-      }
+      const res = await apiRequest("POST", "/api/admin/tests/financial-verify", undefined, {
+        fallbackMessage: "Financial verify failed",
+      });
       return res.json();
     },
     onSuccess: (data) => {

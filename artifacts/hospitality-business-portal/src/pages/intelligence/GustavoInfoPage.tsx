@@ -14,6 +14,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -64,8 +65,8 @@ export default function GustavoInfoPage() {
   // without exposing a button.
   useEffect(() => {
     setProbeStatus("checking");
-    fetch(`/api/admin/specialists/${ORCHESTRATOR_SPECIALIST_ID}/probe`, { method: "POST" })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+    apiRequest("POST", `/api/admin/specialists/${ORCHESTRATOR_SPECIALIST_ID}/probe`)
+      .then((r) => r.json())
       .then((data: { healthy?: boolean }) => {
         setProbeStatus(data?.healthy === false ? "degraded" : "healthy");
         setLastChecked(new Date());
