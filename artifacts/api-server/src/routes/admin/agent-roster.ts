@@ -34,6 +34,7 @@ import {
   type ProbeStatus,
   costantinoFindings,
   type CostantinoFinding,
+  MINION_SELF_TEST_HISTORY_STRIP,
 } from "@workspace/db";
 import { db } from "../../db";
 import { isNull } from "drizzle-orm";
@@ -46,6 +47,13 @@ interface RosterHealthEntry {
   source: string;
   checkedAt: string | null;
   message?: string;
+}
+
+interface MinionSelfTestHistoryItem {
+  status: string;
+  durationMs: number;
+  message: string | null;
+  ranAt: string;
 }
 
 interface CostantinoCycleSummary {
@@ -320,10 +328,30 @@ export function registerAgentRosterRoutes(app: Express) {
       const now = new Date();
       const entries: Record<string, RosterHealthEntry> = {};
 
-      const [findings, costantinoCycle] = await Promise.all([
+      const [findings, costantinoCycle, minionHistoryRows] = await Promise.all([
         loadOpenFindings(),
         lastCostantinoCycle(),
+        // Best-effort: a failure here surfaces an empty history map rather
+        // than failing the whole roster endpoint.
+        storage
+          .listMinionSelfTestHistory({ limitPerMinion: MINION_SELF_TEST_HISTORY_STRIP })
+          .catch(() => []),
       ]);
+
+      // Bucket minion self-test rows by minionId for the response payload.
+      // Rows are already sorted (minion_id ASC, ran_at DESC, id DESC) by
+      // listMinionSelfTestHistory's PARTITION query.
+      const minionHistory: Record<string, MinionSelfTestHistoryItem[]> = {};
+      for (const row of minionHistoryRows) {
+        const list = minionHistory[row.minionId] ?? [];
+        list.push({
+          status: row.status,
+          durationMs: row.durationMs,
+          message: row.message,
+          ranAt: row.ranAt instanceof Date ? row.ranAt.toISOString() : String(row.ranAt),
+        });
+        minionHistory[row.minionId] = list;
+      }
 
       await Promise.all(
         SPECIALIST_CATALOG.map(async (def) => {
@@ -343,6 +371,8 @@ export function registerAgentRosterRoutes(app: Express) {
         entries,
         generatedAt: now.toISOString(),
         costantinoCycle,
+        minionHistory,
+        minionHistoryStrip: MINION_SELF_TEST_HISTORY_STRIP,
       });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to read agent roster health", error, "AROSTER-001");

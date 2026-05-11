@@ -36,6 +36,7 @@ import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, ApiError } from "@/lib/queryClient";
 import type {
+  MinionSelfTestHistoryItem,
   RosterEntry,
   RosterHealth,
   RosterHealthResponse,
@@ -53,6 +54,47 @@ interface RowState {
   health: RosterHealth;
   outcome: ProbeOutcome | null;
   running: boolean;
+  /**
+   * Per-minion append-only self-test history (Task #1396). Most-recent first.
+   * Empty for non-minion rows. Seeded from the bulk health response and
+   * appended to in-memory each time the admin clicks the Analyst button so
+   * the strip updates without waiting for the next 30s poll.
+   */
+  history: MinionSelfTestHistoryItem[];
+}
+
+/** Hard cap on dots rendered per row. Matches the server's strip limit. */
+const HISTORY_STRIP_MAX = 10;
+
+const HISTORY_DOT_CLASS: Record<string, string> = {
+  pass: "bg-emerald-500",
+  fail: "bg-destructive",
+  skipped: "bg-muted-foreground/40",
+};
+
+function HistoryStrip({ items }: { items: MinionSelfTestHistoryItem[] }) {
+  if (items.length === 0) return null;
+  // Render oldest → newest left-to-right so the most recent run is on the
+  // right edge (matches the scheduler-runs Observability strip pattern).
+  const ordered = [...items].slice(0, HISTORY_STRIP_MAX).reverse();
+  return (
+    <div
+      className="inline-flex items-center gap-0.5"
+      data-testid="minion-self-test-history-strip"
+      aria-label={`${items.length} recent self-test result${items.length === 1 ? "" : "s"}`}
+    >
+      {ordered.map((item) => {
+        const dotClass = HISTORY_DOT_CLASS[item.status] ?? "bg-muted-foreground/30";
+        return (
+          <span
+            key={item.ranAt + ":" + item.status}
+            className={`inline-block w-1.5 h-3 rounded-sm ${dotClass}`}
+            title={`${item.status} · ${formatTime(Date.parse(item.ranAt))} · ${item.durationMs}ms${item.message ? `\n${item.message}` : ""}`}
+          />
+        );
+      })}
+    </div>
+  );
 }
 
 const STATUS_LABEL: Record<RosterHealth, string> = {
@@ -205,6 +247,17 @@ function RosterRow({ entry, state, onProbe }: RosterRowProps) {
           <span className="hidden sm:block text-xs text-muted-foreground truncate flex-1 text-left">
             {entry.description}
           </span>
+          {entry.class === "minion" && state.history.length > 0 && (
+            <span className="flex items-center gap-2 shrink-0">
+              <HistoryStrip items={state.history} />
+              <span
+                className="text-[10px] font-mono tabular-nums text-muted-foreground"
+                data-testid={`roster-row-last-run-${entry.id}`}
+              >
+                {formatRelative(state.history[0]?.ranAt ?? null)}
+              </span>
+            </span>
+          )}
         </div>
       </AccordionTrigger>
       <AccordionContent className="px-4 pb-4">
@@ -282,7 +335,7 @@ export function AgentRosterAccordion({ title, entries, testId }: AgentRosterAcco
   const [rows, setRows] = useState<Record<string, RowState>>(() => {
     const init: Record<string, RowState> = {};
     for (const e of entries) {
-      init[e.id] = { health: e.initialHealth, outcome: null, running: false };
+      init[e.id] = { health: e.initialHealth, outcome: null, running: false, history: [] };
     }
     return init;
   });
@@ -322,6 +375,34 @@ export function AgentRosterAccordion({ title, entries, testId }: AgentRosterAcco
             checkedAt: signalTs || Date.parse(healthData.generatedAt),
           },
           running: next[entry.id]?.running ?? false,
+          history: next[entry.id]?.history ?? [],
+        };
+      }
+      // Seed (or refresh) per-minion self-test history from the bulk
+      // payload (Task #1396). The server returns at most
+      // `minionHistoryStrip` rows per minion, already most-recent-first.
+      // We MERGE with any in-memory entries the user generated since the
+      // last poll (handleProbe prepends locally) so the strip never
+      // flickers backwards on refetch.
+      const serverHistory = healthData.minionHistory ?? {};
+      for (const entry of entries) {
+        if (entry.class !== "minion") continue;
+        const fromServer = serverHistory[entry.id] ?? [];
+        const local = next[entry.id]?.history ?? [];
+        // Dedup by ranAt — local-prepended items reappear from the server
+        // on the next poll and we don't want to count them twice.
+        const seen = new Set(fromServer.map((h) => h.ranAt));
+        const merged = [...local.filter((h) => !seen.has(h.ranAt)), ...fromServer]
+          .sort((a, b) => Date.parse(b.ranAt) - Date.parse(a.ranAt))
+          .slice(0, HISTORY_STRIP_MAX);
+        next[entry.id] = {
+          ...(next[entry.id] ?? {
+            health: entry.initialHealth,
+            outcome: null,
+            running: false,
+            history: [],
+          }),
+          history: merged,
         };
       }
       return next;
@@ -333,10 +414,32 @@ export function AgentRosterAccordion({ title, entries, testId }: AgentRosterAcco
       setRows((prev) => ({ ...prev, [entry.id]: { ...prev[entry.id], running: true } }));
       try {
         const outcome = await runProbe(entry);
-        setRows((prev) => ({
-          ...prev,
-          [entry.id]: { health: outcome.status, outcome, running: false },
-        }));
+        setRows((prev) => {
+          const prevRow = prev[entry.id];
+          // For minion rows, prepend the fresh verdict to the in-memory
+          // strip so the dot lands immediately — the next poll will
+          // confirm/dedupe it from the server (Task #1396).
+          let history = prevRow?.history ?? [];
+          if (entry.class === "minion") {
+            const verdictStatus =
+              outcome.status === "healthy"
+                ? "pass"
+                : outcome.status === "degraded"
+                ? "skipped"
+                : "fail";
+            const fresh: MinionSelfTestHistoryItem = {
+              status: verdictStatus,
+              durationMs: outcome.latencyMs ?? 0,
+              message: outcome.message ?? null,
+              ranAt: new Date(outcome.checkedAt).toISOString(),
+            };
+            history = [fresh, ...history].slice(0, HISTORY_STRIP_MAX);
+          }
+          return {
+            ...prev,
+            [entry.id]: { health: outcome.status, outcome, running: false, history },
+          };
+        });
         if (outcome.status === "error") {
           toast({
             variant: "destructive",
@@ -358,6 +461,7 @@ export function AgentRosterAccordion({ title, entries, testId }: AgentRosterAcco
               checkedAt: Date.now(),
             },
             running: false,
+            history: prev[entry.id]?.history ?? [],
           },
         }));
         toast({
@@ -401,7 +505,7 @@ export function AgentRosterAccordion({ title, entries, testId }: AgentRosterAcco
             <RosterRow
               key={entry.id}
               entry={entry}
-              state={rows[entry.id] ?? { health: entry.initialHealth, outcome: null, running: false }}
+              state={rows[entry.id] ?? { health: entry.initialHealth, outcome: null, running: false, history: [] }}
               onProbe={handleProbe}
             />
           ))}

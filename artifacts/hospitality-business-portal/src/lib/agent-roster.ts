@@ -156,6 +156,15 @@ export interface RosterCostantinoCycle {
   failed: number;
 }
 
+export interface MinionSelfTestHistoryItem {
+  /** "pass" | "fail" | "skipped" — kept loose so server-side additions don't break the client. */
+  status: string;
+  durationMs: number;
+  message: string | null;
+  /** ISO-8601 timestamp. */
+  ranAt: string;
+}
+
 export interface RosterHealthResponse {
   entries: Record<string, RosterHealthSignal>;
   generatedAt: string;
@@ -166,4 +175,13 @@ export interface RosterHealthResponse {
    * yet (fresh DB / fresh deploy).
    */
   costantinoCycle?: RosterCostantinoCycle;
+  /**
+   * Per-minion append-only self-test history (Task #1396), most-recent
+   * first, capped at `minionHistoryStrip` rows per minion. Each manual
+   * Analyst-button click on a minion row is persisted server-side so the
+   * roster can render a compact pass/fail dot strip — admins spot
+   * intermittent failures over time, not just the most recent click.
+   */
+  minionHistory?: Record<string, MinionSelfTestHistoryItem[]>;
+  minionHistoryStrip?: number;
 }
