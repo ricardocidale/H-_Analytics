@@ -43,7 +43,19 @@ export function getSlideFactoryTools(): ToolParam[] {
     {
       name: "accept_slide_factory_brief",
       description:
-        "Accept the brief on a slide factory run and auto-fire Lorenzo ingestion (Tab 1 → Tab 2). Status advances to 'ingesting' immediately; Lorenzo runs in the background. Poll get_slide_factory_run for status. Requires status 'new' and a recorded brief.",
+        "Accept the brief on a slide factory run (Tab 1 → Tab 2). Status advances to 'ingesting'. This tool is now state-only — to start the background ingestion job, follow up with trigger_lorenzo_ingestion(id). Requires status 'new' and a recorded brief.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "Slide factory run ID" },
+        },
+        required: ["id"],
+      },
+    },
+    {
+      name: "trigger_lorenzo_ingestion",
+      description:
+        "Start the Lorenzo ingestion background job for a slide factory run. Returns immediately; Lorenzo runs in the background — poll get_slide_factory_run for status. Typically called right after accept_slide_factory_brief. Requires status 'ingesting'.",
       parameters: {
         type: "object",
         properties: {
@@ -55,7 +67,7 @@ export function getSlideFactoryTools(): ToolParam[] {
     {
       name: "assign_slide_factory_properties",
       description:
-        "Assign properties to slides 1, 2, 3, and 5 on a slide factory run and auto-fire Lucca drafting (Tab 3 → Tab 4). Slides 4 and 6 are auto-generated from portfolio data. Each property must be owned by the current admin. Requires status 'ingested'.",
+        "Assign properties to slides 1, 2, 3, and 5 on a slide factory run (Tab 3 → Tab 4). Slides 4 and 6 are auto-generated from portfolio data. Each property must be owned by the current admin. Status advances to 'drafting'. This tool is now state-only — to start the Lucca drafting background job, follow up with trigger_lucca_draft(id). Requires status 'ingested'.",
       parameters: {
         type: "object",
         properties: {
@@ -64,6 +76,18 @@ export function getSlideFactoryTools(): ToolParam[] {
           slide2PropertyId: { type: ["number", "null"], description: "Property ID for slide 2" },
           slide3PropertyId: { type: ["number", "null"], description: "Property ID for slide 3" },
           slide5PropertyId: { type: ["number", "null"], description: "Property ID for slide 5" },
+        },
+        required: ["id"],
+      },
+    },
+    {
+      name: "trigger_lucca_draft",
+      description:
+        "Start the Lucca drafting background job for a slide factory run. Returns immediately; Lucca runs in the background — poll get_slide_factory_run for status. Typically called right after assign_slide_factory_properties. Requires status 'drafting'.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "Slide factory run ID" },
         },
         required: ["id"],
       },

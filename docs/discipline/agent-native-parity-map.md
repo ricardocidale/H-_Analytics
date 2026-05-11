@@ -104,9 +104,10 @@ feature ships or a new Rebecca tool is added.
 | List slide factory runs | `GET /api/lb-slides/factory/runs` | `list_slide_factory_runs` | ✅ |
 | Get a specific run (with full status + agent results) | `GET /api/lb-slides/factory/runs/:id` | `get_slide_factory_run` | ✅ |
 | Record uploaded brief R2 key (Tab 1) | `POST /api/lb-slides/factory/runs/:id/brief` | `record_slide_factory_brief` | ✅ |
-| Accept brief and auto-fire Lorenzo (Tab 1 → Tab 2) | `POST /api/lb-slides/factory/runs/:id/accept-brief` | `accept_slide_factory_brief` | ✅ |
-| Manually trigger Lorenzo ingestion (rare) | `POST /api/lb-slides/factory/runs/:id/trigger-ingestion` | — | 🚫 N/A (admin-only edge case; auto-fire is the canonical path) |
-| Assign properties to slides 1/2/3/5 + auto-fire Lucca (Tab 3) | `POST /api/lb-slides/factory/runs/:id/properties` | `assign_slide_factory_properties` | ✅ |
+| Accept brief (Tab 1 → Tab 2 state) | `POST /api/lb-slides/factory/runs/:id/accept-brief` | `accept_slide_factory_brief` | ✅ |
+| Start Lorenzo ingestion background job | (chat-only — REST path auto-fires) | `trigger_lorenzo_ingestion` | ✅ |
+| Assign properties to slides 1/2/3/5 (Tab 3) | `POST /api/lb-slides/factory/runs/:id/properties` | `assign_slide_factory_properties` | ✅ |
+| Start Lucca drafting background job | (chat-only — REST path auto-fires) | `trigger_lucca_draft` | ✅ |
 | Edit a Lucca slot value or approval (Tab 4 or Tab 6 override) | `PATCH /api/lb-slides/factory/runs/:id/slots/:key` (allows `draft_review` and `complete`; stamps `admin-override` on complete runs) | `update_slide_factory_slot` | ✅ |
 | Mark every Lucca slot approved at once (Tab 4) | `POST /api/lb-slides/factory/runs/:id/approve-all-slots` | `approve_all_slide_factory_slots` | ✅ |
 | Trigger Marco build (Tab 4 → Tab 5) or re-trigger after error | `POST /api/lb-slides/factory/runs/:id/trigger-build` (accepts `draft_review` and `error` status; skips slot-approval check on error re-trigger) | `trigger_slide_factory_build` | ✅ |
