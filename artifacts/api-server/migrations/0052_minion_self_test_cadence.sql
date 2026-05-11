@@ -12,7 +12,7 @@ VALUES (
   'parameter',
   'minion-self-test-cycle-interval-ms',
   'Minion Self-Test Cycle Interval (ms)',
-  'How often the minion-self-test scheduler runs every entry in MINION_SELF_TESTS (Aldo, Bruno, Carlo, Dino, Enzo) and opens / resolves costantino_findings rows for any deterministic-helper regression. Admin-editable at runtime; the scheduler re-reads this row at the start of every cycle and clamps to [min_ms, max_ms]. Initial value: 6 hours.',
+  'How often the minion-self-test scheduler runs every entry in MINION_SELF_TESTS (Aldo, Carlo, Dino, Enzo) and opens / resolves costantino_findings rows for any deterministic-helper regression. Admin-editable at runtime; the scheduler re-reads this row at the start of every cycle and clamps to [min_ms, max_ms]. Initial value: 6 hours.',
   '{"value_ms": 21600000, "min_ms": 60000, "max_ms": 604800000, "unit": "ms", "human": "6 hours"}'::jsonb
 )
 ON CONFLICT ("kind", "slug") DO NOTHING;

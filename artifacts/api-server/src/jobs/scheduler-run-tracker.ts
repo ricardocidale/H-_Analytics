@@ -136,7 +136,7 @@ export const SCHEDULER_REGISTRY = [
     label: "Minion Self-Tests",
     cycleIntervalMs: DEFAULT_MINION_SELF_TEST_CYCLE_INTERVAL_MS, // 6h fallback; true cadence is the admin-editable parameter row 'minion-self-test-cycle-interval-ms'
     description:
-      "Runs every registered minion self-test (Aldo PDF extractor, Carlo Zod validator, Dino pixel-diff, Enzo content-hash, Bruno) on a cadence and opens a costantino_findings row for any deterministic-helper regression so admins see them on the existing findings surface (Task #1397).",
+      "Runs every registered minion self-test (Aldo PDF extractor, Carlo Zod validator, Dino pixel-diff, Enzo content-hash) on a cadence and opens a costantino_findings row for any deterministic-helper regression so admins see them on the existing findings surface (Task #1397).",
   },
 ] as const;
 
