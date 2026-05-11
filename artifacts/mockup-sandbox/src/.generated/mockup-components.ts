@@ -5,5 +5,9 @@ export const modules: ModuleMap = {
   "./components/mockups/funding-tab/RefinedDensity.tsx": () => import("../components/mockups/funding-tab/RefinedDensity.tsx"),
   "./components/mockups/funding-tab/UsabilityAccessible.tsx": () => import("../components/mockups/funding-tab/UsabilityAccessible.tsx"),
   "./components/mockups/funding-tab/UsabilityAffordance.tsx": () => import("../components/mockups/funding-tab/UsabilityAffordance.tsx"),
-  "./components/mockups/funding-tab/UsabilityHierarchy.tsx": () => import("../components/mockups/funding-tab/UsabilityHierarchy.tsx")
+  "./components/mockups/funding-tab/UsabilityHierarchy.tsx": () => import("../components/mockups/funding-tab/UsabilityHierarchy.tsx"),
+  "./components/mockups/kpi-hero/Animated.tsx": () => import("../components/mockups/kpi-hero/Animated.tsx"),
+  "./components/mockups/kpi-hero/Bento.tsx": () => import("../components/mockups/kpi-hero/Bento.tsx"),
+  "./components/mockups/kpi-hero/Glass.tsx": () => import("../components/mockups/kpi-hero/Glass.tsx"),
+  "./components/mockups/kpi-hero/Swiss.tsx": () => import("../components/mockups/kpi-hero/Swiss.tsx")
 };
