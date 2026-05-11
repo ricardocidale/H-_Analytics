@@ -94,13 +94,26 @@ function worseStatus(a: RosterHealthStatus, b: RosterHealthStatus): RosterHealth
   return ROSTER_STATUS_SEVERITY.indexOf(b) > ROSTER_STATUS_SEVERITY.indexOf(a) ? b : a;
 }
 
+/**
+ * Maps prefetched once per request so the per-specialist loop is O(assignments)
+ * pure-CPU instead of O(assignments) DB roundtrips. The roster route polls on a
+ * tight cadence; without batching, every poll multiplied the connection-pool
+ * load by `Σ specialistAssignments`.
+ */
+interface RosterDataIndex {
+  assignmentsBySpecialistId: Map<string, Awaited<ReturnType<typeof storage.listSpecialistAssignments>>>;
+  resourcesById: Map<number, Awaited<ReturnType<typeof storage.getAdminResourceById>>>;
+  latestHealthByResourceId: Map<number, Awaited<ReturnType<typeof storage.getLatestHealthCheck>>>;
+}
+
 async function specialistHealth(
   specialistId: string,
   now: Date,
   findingsBySlug: Map<string, CostantinoFinding[]>,
   findingsBySpecialistId: Map<string, CostantinoFinding[]>,
+  index: RosterDataIndex,
 ): Promise<RosterHealthEntry> {
-  const assignments = await storage.listSpecialistAssignments(specialistId);
+  const assignments = index.assignmentsBySpecialistId.get(specialistId) ?? [];
 
   // Open findings the custodian has tagged directly against this specialist
   // (target_kind='specialist'). These apply even when no assignments exist.
@@ -141,14 +154,12 @@ async function specialistHealth(
   let findingDetectedAt: Date | null = null;
 
   for (const row of assignments) {
-    const resource = row.resourceId
-      ? await storage.getAdminResourceById(row.resourceId)
-      : undefined;
+    const resource = row.resourceId ? index.resourcesById.get(row.resourceId) : undefined;
     if (!resource) {
       if (row.required) anyRedRequired = true;
       continue;
     }
-    const latest = await storage.getLatestHealthCheck(resource.id);
+    const latest = index.latestHealthByResourceId.get(resource.id);
     if (latest?.checkedAt && (!latestCheckedAt || latest.checkedAt > latestCheckedAt)) {
       latestCheckedAt = latest.checkedAt;
     }
@@ -269,6 +280,70 @@ async function rebeccaHealth(now: Date): Promise<RosterHealthEntry> {
 }
 
 /**
+ * Pre-fetch every assignment + resource + latest-health-check row touched by
+ * the roster endpoint in three bulk queries instead of N+1 per specialist. The
+ * route handler awaits this once and threads the result through every
+ * `specialistHealth` invocation. Best-effort on each leg: a failure leaves the
+ * relevant map empty so a single broken read can't kill the whole endpoint.
+ */
+async function buildRosterDataIndex(): Promise<RosterDataIndex> {
+  const assignmentsBySpecialistId = new Map<string, Awaited<ReturnType<typeof storage.listSpecialistAssignments>>>();
+  const resourcesById = new Map<number, Awaited<ReturnType<typeof storage.getAdminResourceById>>>();
+  const latestHealthByResourceId = new Map<number, Awaited<ReturnType<typeof storage.getLatestHealthCheck>>>();
+
+  // (1) All specialist assignments, bucketed by specialistId.
+  try {
+    const allAssignments = await storage.listSpecialistAssignments();
+    for (const row of allAssignments) {
+      const list = assignmentsBySpecialistId.get(row.specialistId) ?? [];
+      list.push(row);
+      assignmentsBySpecialistId.set(row.specialistId, list);
+    }
+  } catch {
+    /* best-effort — empty map means every specialist reads as unknown */
+  }
+
+  // (2) All admin_resources keyed by id (covers every resourceId on any
+  // assignment row). One query for the whole table; admin_resources is small
+  // (low hundreds of rows at steady state).
+  try {
+    const allResources = await storage.listAdminResources();
+    for (const r of allResources) {
+      resourcesById.set(r.id, r);
+    }
+  } catch {
+    /* best-effort */
+  }
+
+  // (3) Latest health-check rows. We don't have a bulk method that returns
+  // the latest row per resource, so we still fan-out — but only over the
+  // resource IDs actually referenced by some assignment. That trims the work
+  // from "N specialists × M assignments" to "distinct(resourceIds)".
+  // TODO(perf): replace with a single window-function query
+  // (`ROW_NUMBER() OVER (PARTITION BY resource_id ORDER BY checked_at DESC)`)
+  // when a storage helper exists; current admin_resources cardinality keeps
+  // this acceptable but it's still O(distinct-resources) roundtrips.
+  const referencedResourceIds = new Set<number>();
+  for (const list of assignmentsBySpecialistId.values()) {
+    for (const row of list) {
+      if (row.resourceId) referencedResourceIds.add(row.resourceId);
+    }
+  }
+  await Promise.all(
+    Array.from(referencedResourceIds).map(async (id) => {
+      try {
+        const latest = await storage.getLatestHealthCheck(id);
+        latestHealthByResourceId.set(id, latest);
+      } catch {
+        /* best-effort — leaves entry undefined → derives as unknown */
+      }
+    }),
+  );
+
+  return { assignmentsBySpecialistId, resourcesById, latestHealthByResourceId };
+}
+
+/**
  * Read the last Costantino scheduler run so the UI can show "audited X
  * ago — N ok / N failed". Best-effort: if the table read fails or no row
  * exists yet (the scheduler hasn't fired its first cycle), we return an
@@ -384,10 +459,24 @@ function minionHealth(
     };
   }
   if (lastCycle.lastRunAt) {
+    // Respect the scheduler-cycle status. A cycle row's timestamp alone is
+    // insufficient — a cycle that recorded `warn` or `error` must surface as
+    // degraded/error in the roster, not as a false green. The producer enum
+    // is `"ok" | "warn" | "error"` (see SchedulerRunRow / recordSchedulerCycle).
+    const cycleStatus = lastCycle.status;
+    const rosterStatus: RosterHealthStatus =
+      cycleStatus === "ok"
+        ? "healthy"
+        : cycleStatus === "warn"
+          ? "degraded"
+          : cycleStatus === "error"
+            ? "error"
+            : "unknown";
     return {
-      status: "healthy",
-      source: "minion-self-test scheduler · last cycle pass",
+      status: rosterStatus,
+      source: `minion-self-test scheduler · last cycle ${cycleStatus ?? "unknown"}`,
       checkedAt: lastCycle.lastRunAt,
+      message: lastCycle.notes ?? undefined,
     };
   }
   return {
@@ -403,7 +492,7 @@ export function registerAgentRosterRoutes(app: Express) {
       const now = new Date();
       const entries: Record<string, RosterHealthEntry> = {};
 
-      const [findings, costantinoCycle, minionSelfTestCycle, minionHistoryRows] =
+      const [findings, costantinoCycle, minionSelfTestCycle, minionHistoryRows, rosterIndex] =
         await Promise.all([
           loadOpenFindings(),
           lastCostantinoCycle(),
@@ -413,6 +502,7 @@ export function registerAgentRosterRoutes(app: Express) {
           storage
             .listMinionSelfTestHistory({ limitPerMinion: MINION_SELF_TEST_HISTORY_STRIP })
             .catch(() => []),
+          buildRosterDataIndex(),
         ]);
 
       // Bucket minion self-test rows by minionId for the response payload.
@@ -437,6 +527,7 @@ export function registerAgentRosterRoutes(app: Express) {
             now,
             findings.bySlug,
             findings.bySpecialistId,
+            rosterIndex,
           );
         }),
       );
