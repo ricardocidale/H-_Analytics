@@ -305,6 +305,11 @@ REQUIREMENTS:
 
 // ── Market Cap Rates ──────────────────────────────────────────────────────────
 
+// Prompt contract: how far back the LLM may reach when the current year's
+// survey isn't yet published. Named so the contract is discoverable
+// (CodeRabbit PR-85).
+const CAP_RATE_MAX_LOOKBACK_YEARS = 2;
+
 const CAPRATE_NARRATION = [
   "Consulting STR and CBRE hospitality cap rate surveys…",
   "Reviewing JLL and CoStar transaction-based cap rate data…",
@@ -341,7 +346,7 @@ REQUIREMENTS:
 - Cover at least 15 rows across NY, FL, CA, TX, CO, TN, NV, HI, GA, AZ.
 - Include both boutique and full-service segments for major metros.
 - Cap rates must be in decimal form (percentage / 100).
-- Use the most recent available data, preferring the current year (${new Date().getFullYear()}) and falling back at most 2 years if newer surveys aren't yet published.
+- Use the most recent available data, preferring the current year (${new Date().getFullYear()}) and falling back at most ${CAP_RATE_MAX_LOOKBACK_YEARS} years if newer surveys aren't yet published.
 - Cite at least 3 independent sources (CBRE, JLL, STR, CoStar, RCA).
 - Return ONLY valid JSON. No markdown, no preamble.`;
 
