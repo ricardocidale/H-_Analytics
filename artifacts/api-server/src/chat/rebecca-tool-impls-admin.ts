@@ -126,32 +126,31 @@ export async function toolGetMarketRates(
 // Research trigger
 // ---------------------------------------------------------------------------
 
+// DEPRECATED: remove after Wave 2. True wrapper around the new primitives so
+// auth + validation logic doesn't drift between this path and the seed/apply
+// pair (CodeRabbit PR-96).
 export async function toolTriggerResearch(
   args: Record<string, unknown>,
   ctx: ToolContext,
 ): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
-  const propertyId = args.propertyId as number;
+  const seedsResult = await toolGetPropertyResearchSeeds(args, ctx);
+  const seedsBody = seedsResult.result as { error?: string; seeds?: Record<string, unknown> };
+  if (seedsBody.error || !seedsBody.seeds) return seedsResult;
 
-  const prop = await storage.getProperty(propertyId);
-  if (!prop || prop.userId !== ctx.userId) {
-    return { result: { error: "Not found" } };
-  }
-
-  const seededValues = generateLocationAwareResearchValues({
-    location: prop.location,
-    streetAddress: prop.streetAddress,
-    city: prop.city,
-    stateProvince: prop.stateProvince,
-    zipPostalCode: prop.zipPostalCode,
-    country: prop.country,
-    market: prop.market,
-  });
-
-  await storage.updateProperty(propertyId, { researchValues: seededValues } as UpdateProperty);
+  const applyResult = await toolApplyPropertyResearchValues(
+    { propertyId: args.propertyId, researchValues: seedsBody.seeds },
+    ctx,
+  );
+  const applyBody = applyResult.result as { error?: string; propertyId?: number };
+  if (applyBody.error) return applyResult;
 
   return {
-    result: { queued: true, estimatedMinutes: RESEARCH_ESTIMATED_MINUTES },
-    dataChanged: { entityType: "property", entityId: propertyId },
+    result: {
+      queued: true,
+      estimatedMinutes: RESEARCH_ESTIMATED_MINUTES,
+      propertyId: applyBody.propertyId,
+    },
+    dataChanged: applyResult.dataChanged,
   };
 }
 
