@@ -69,11 +69,11 @@ export const MARCO_MAX_TOKENS = 1024;
 
 /**
  * Upper bound on Marco's agent loop iterations (one iteration = one
- * messages.create round-trip). With U7 Maya + Dino + U3 produce_deck the
- * natural call count is
+ * messages.create round-trip). With U7 Maya + Dino + U3 produce_deck + U8
+ * apply_substitutions the natural call count is
  *   read_run(1) + 6×(dispatch+maya+dino+update)(24) + transition(1)
- *     + produce_deck(1) + complete_task(1) ≈ 28 turns;
- * 50 gives ~78% headroom for retries and non-tool turns.
+ *     + apply_substitutions(1) + produce_deck(1) + complete_task(1) ≈ 29
+ *     turns; 50 gives ~72% headroom for retries and non-tool turns.
  */
 export const MARCO_MAX_TOOL_DEPTH = 50;
 
