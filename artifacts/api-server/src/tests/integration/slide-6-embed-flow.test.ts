@@ -122,6 +122,10 @@ const PROJ_YEARS_FIVE = 5;
 const ZERO = 0;
 const PROPERTY_COUNT = 3;
 const FAKE_PNG_BYTES = "\x89PNG\r\n\x1a\nFAKE";
+/** Sanity floor on substituted PPTX output size. pptx-automizer's serialized
+ *  output is consistently >1 KB even for empty templates; if we see fewer
+ *  bytes, the substitution likely silently no-op'd. */
+const MIN_VALID_PPTX_BYTES = 1000;
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -349,30 +353,33 @@ describe("slide-6 embed flow — substituteSlots round-trip", () => {
       //       fragile). U6's plan instructs us to document such failures
       //       rather than paper over. We capture the throw and treat it
       //       as an expected, document-worthy U4 fragility.
+      // Known U1/U4 fragility signature on the Belleayre fixture:
+      // pptx-automizer's ModifyImageHelper.setRelationTarget reads a
+      // `sourceElement` property on an undefined relation. We match against
+      // either the property-access phrase or the helper name so a future
+      // library version that renames the throw class but keeps the same
+      // bug still satisfies the test, while ANY OTHER error (a real
+      // regression introducing a different failure) fails loudly. CR
+      // finding on PR #120 — "the catch-path is too permissive".
+      const KNOWN_FRAGILITY_SIGNATURE = /sourceElement|setRelationTarget|ModifyImageHelper/i;
       try {
         const result = await substituteSlots(fixtureBuffer!, map);
         // Path (a) — output is a valid PPTX
         expect(Buffer.isBuffer(result.pptx)).toBe(true);
         expect(result.pptx.subarray(0, 2).toString("utf8")).toBe("PK");
-        expect(result.pptx.length).toBeGreaterThan(1000);
+        expect(result.pptx.length).toBeGreaterThan(MIN_VALID_PPTX_BYTES);
         // No hard overflow warnings on an image-only map (image payloads
         // don't go through text-overflow rules).
         expect(result.warnings).toEqual([]);
       } catch (err) {
-        // Path (b) — known U1/U4 fragility. Confirm the failure is the
-        // expected image-swap relation-tracking class, and log it so the
-        // U6 finding makes it into the orchestrator's report. The error
-        // class is anything stemming from pptx-automizer's image helper:
-        // we don't pattern-match strictly because the message text is
-        // library-version-dependent. Surface the error message via the
-        // assertion so the failure is self-documenting if it ever falls
-        // outside the expected class.
-        const message = err instanceof Error ? err.message : String(err);
-        // The U6 plan asks us to "document them as a U6 finding rather
-        // than paper over". The throw IS the finding — assert that it's
-        // a structured Error rather than swallowing silently.
+        // Path (b) — must be the known U1/U4 image-swap fragility, not any
+        // other failure class. Strict pattern match — if the message
+        // doesn't fit the signature, the assertion fails and the
+        // unexpected error surfaces in the test report.
         expect(err).toBeInstanceOf(Error);
-        // Echo the message into the test name so CI logs surface it.
+        const message = err instanceof Error ? err.message : String(err);
+        expect(message).toMatch(KNOWN_FRAGILITY_SIGNATURE);
+        // Echo the message so CI logs surface it as the expected fragility.
         // eslint-disable-next-line no-console
         console.warn(
           `[slide-6-embed-flow] expected image-swap fragility on Belleayre fixture: ${message}`,

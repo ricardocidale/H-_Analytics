@@ -316,7 +316,10 @@ function sumYearlyIS(
       base.gop += row.gop || 0;
       base.soldRooms += row.soldRooms || 0;
       base.availableRooms += row.availableRooms || 0;
-      if (row.cleanAdr) {
+      // Positive-only rule per the source comment — negative ADR is a
+      // bad-data sentinel (loss-leader bookings, refunds) and should not
+      // contribute to the portfolio mean. CR finding on PR #120.
+      if (row.cleanAdr > 0) {
         base.cleanAdr += row.cleanAdr;
         adrCount += 1;
       }
@@ -597,6 +600,20 @@ export interface BuildSlide6EntryArgs {
 }
 
 /**
+ * Coerce + validate a projection-years value. Returns a positive integer
+ * suitable for the report builder, falling back to `DEFAULT_PROJECTION_YEARS`
+ * when the input is `undefined`, `null`, `NaN`, `Infinity`, non-numeric, or
+ * non-positive. CR finding on PR #120 — raw `Number(...)` coercion at the
+ * call site could leak invalid values into report metadata.
+ */
+function validateProjectionYears(raw: unknown): number {
+  if (raw === undefined || raw === null) return DEFAULT_PROJECTION_YEARS;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return DEFAULT_PROJECTION_YEARS;
+  return Math.floor(n);
+}
+
+/**
  * Injected dependencies for the entry helper. Keeping these explicit lets
  * the unit tests stub out the engine + renderer without monkey-patching
  * the storage facade.
@@ -644,8 +661,13 @@ export async function buildSlide6ImageSubstitutionEntry(
 ): Promise<SubstitutionEntry> {
   const { propertyIds } = args;
 
+  // Dedupe before loading. Callers that compose property lists from multiple
+  // sources can pass duplicates by accident; without this each duplicate id
+  // would load, sum, and inflate the portfolio totals. CR finding on PR #120.
+  const uniquePropertyIds = Array.from(new Set(propertyIds));
+
   const properties: Slide6PropertyRow[] = [];
-  for (const id of propertyIds) {
+  for (const id of uniquePropertyIds) {
     try {
       const row = await deps.loadProperty(id);
       if (row) properties.push(row);
@@ -658,9 +680,13 @@ export async function buildSlide6ImageSubstitutionEntry(
   }
 
   const globalAssumptions = await deps.loadGlobalAssumptions();
-  const projectionYears =
-    args.projectionYearsOverride ??
-    Number(globalAssumptions.projectionYears ?? DEFAULT_PROJECTION_YEARS);
+  // Coerce + validate. Raw `Number(...)` can yield NaN, Infinity, or non-
+  // positive values when the source data is malformed; fall back to the
+  // default rather than passing nonsense into the report builder. CR
+  // finding on PR #120.
+  const projectionYears = validateProjectionYears(
+    args.projectionYearsOverride ?? globalAssumptions.projectionYears,
+  );
 
   const buildReport = deps.buildReport ?? buildSlide6ReportDefinition;
   const renderPng = deps.renderPng ?? renderReportToPng;
