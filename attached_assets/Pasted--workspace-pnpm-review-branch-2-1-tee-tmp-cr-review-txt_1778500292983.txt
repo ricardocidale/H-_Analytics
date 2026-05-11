@@ -1,0 +1,51 @@
+~/workspace$ pnpm review:branch 2>&1 | tee /tmp/cr-review.txt~
+
+> workspace@0.0.0 review:branch /home/runner/workspace
+> bash scripts/coderabbit-review.sh branch
+
+→ coderabbit review --base origin/main
+Starting CodeRabbit review in plain text mode...
+
+Review directory: /home/runner/workspace
+
+Connecting to review service
+Setting up
+Summarizing
+Reviewing
+
+============================================================================
+File: scripts/coderabbit-review.sh
+Line: 135 to 141
+Type: potential_issue
+Severity: minor
+
+Comment:
+Consider adding explicit cd validation in the subshell.
+
+The subshell at line 140 attempts two cd operations with error suppression (2>/dev/null). If both fail (e.g., directory deleted between the check at lines 124-127 and execution here), coderabbit will run in the current directory instead of the intended scope, potentially reviewing the wrong files.
+
+While the earlier path check at lines 124-127 protects against this in normal cases, there's a TOCTOU (time-of-check to time-of-use) race condition.
+
+
+
+
+🛡️ Proposed fix to make cd failures explicit
+
+- echo "→ coderabbit review --type uncommitted (CWD=${dir})"
+- ( cd "$repo_root/$dir" 2>/dev/null || cd "$dir"; coderabbit review --type uncommitted )
++ echo "→ coderabbit review --type uncommitted (CWD=${dir})"
++ (
++   cd "$repo_root/$dir" 2>/dev/null || cd "$dir" || {
++     echo "failed to change directory to ${dir}" >&2
++     exit 1
++   }
++   coderabbit review --type uncommitted
++ )
+
+Prompt for AI Agent:
+Verify each finding against current code. Fix only still-valid issues, skip the rest with a brief reason, keep changes minimal, and validate.
+
+In @scripts/coderabbit-review.sh around lines 135 - 141, The subshell fallback "( cd \"$repo_root/$dir\" 2>/dev/null || cd \"$dir\"; coderabbit review --type uncommitted )" can silently leave you in the wrong CWD if both cd attempts fail; change it to explicitly test each cd and abort if neither succeeds: try to cd into "$repo_root/$dir", if that fails try "$dir", and if that also fails print an error referencing $repo_root and $dir and exit non‑zero before invoking "coderabbit review --type uncommitted" so the tool never runs from an unintended directory.
+
+Review completed: 1 finding ✔
+~/workspace$ 

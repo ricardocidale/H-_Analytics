@@ -137,7 +137,13 @@ cmd_scoped() {
   # the CLI still walks up to the repo root, switch to a smaller working set
   # via `git stash --keep-index` of out-of-scope files first.
   echo "→ coderabbit review --type uncommitted (CWD=${dir})"
-  ( cd "$repo_root/$dir" 2>/dev/null || cd "$dir"; coderabbit review --type uncommitted )
+  (
+    cd "$repo_root/$dir" 2>/dev/null || cd "$dir" || {
+      echo "failed to chdir to ${dir} (tried $repo_root/$dir and $dir)" >&2
+      exit 1
+    }
+    coderabbit review --type uncommitted
+  )
 }
 
 cmd_validate_scoped() {
