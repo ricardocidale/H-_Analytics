@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -39,13 +40,9 @@ export default function DefaultPropertiesDialog({ open, onOpenChange, userId, us
 
   const saveMutation = useMutation({
     mutationFn: async (propertyIds: number[]) => {
-      const res = await fetch(`/api/admin/users/${userId}/default-properties`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ propertyIds }),
+      const res = await apiRequest("PUT", `/api/admin/users/${userId}/default-properties`, { propertyIds }, {
+        fallbackMessage: "Failed to save",
       });
-      if (!res.ok) throw new Error("Failed to save");
       return res.json();
     },
     onSuccess: () => {

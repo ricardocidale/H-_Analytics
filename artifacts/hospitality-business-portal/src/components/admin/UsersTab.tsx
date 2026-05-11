@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
@@ -77,16 +78,9 @@ export default function UsersTab() {
 
   const createMutation = useMutation({
     mutationFn: async (data: { email: string; password?: string; firstName?: string; lastName?: string; company?: string; title?: string; role?: string }) => {
-      const res = await fetch("/api/admin/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-        credentials: "include",
+      const res = await apiRequest("POST", "/api/admin/users", data, {
+        fallbackMessage: "Failed to create user",
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to create user");
-      }
       return res.json();
     },
     onSuccess: () => {
@@ -102,11 +96,9 @@ export default function UsersTab() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/admin/users/${id}`, { method: "DELETE", credentials: "include" });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to delete user");
-      }
+      await apiRequest("DELETE", `/api/admin/users/${id}`, undefined, {
+        fallbackMessage: "Failed to delete user",
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
@@ -119,16 +111,9 @@ export default function UsersTab() {
 
   const passwordMutation = useMutation({
     mutationFn: async ({ id, password }: { id: number; password: string }) => {
-      const res = await fetch(`/api/admin/users/${id}/password`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-        credentials: "include",
+      await apiRequest("PATCH", `/api/admin/users/${id}/password`, { password }, {
+        fallbackMessage: "Failed to update password",
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update password");
-      }
       return { id };
     },
     onSuccess: () => {
@@ -144,20 +129,12 @@ export default function UsersTab() {
 
   const editMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: { email?: string; firstName?: string; lastName?: string; company?: string; title?: string; role?: string; canManageScenarios?: boolean } }) => {
-      const res = await fetch(`/api/admin/users/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-        credentials: "include",
+      // apiRequest's throwIfResNotOk already handles non-JSON error bodies
+      // (HTML pages, plain text) by including a body excerpt — no manual
+      // content-type check needed.
+      const res = await apiRequest("PATCH", `/api/admin/users/${id}`, data, {
+        fallbackMessage: "Failed to update user",
       });
-      if (!res.ok) {
-        const ct = res.headers.get("content-type") || "";
-        if (!ct.includes("application/json")) {
-          throw new Error(`Server returned ${res.status} (non-JSON)`);
-        }
-        const err = await res.json();
-        throw new Error(err.error || "Failed to update user");
-      }
       return res.json();
     },
     onSuccess: () => {

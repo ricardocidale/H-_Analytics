@@ -10,6 +10,7 @@ import { Loader2 } from "@/components/icons/themed-icons";
 import { IconClock, IconLogIn, IconLogOut, IconMonitor, IconPeople } from "@/components/icons";
 import { formatDateTime, formatDuration } from "@/lib/formatters";
 import { useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface ActivityLogListProps {
@@ -179,7 +180,9 @@ function ActiveSessions({ activeSessionsList }: { activeSessionsList: ActiveSess
                     className="text-destructive/80 hover:text-destructive/60 hover:bg-destructive/10"
                     onClick={async () => {
                       try {
-                        await fetch(`/api/admin/sessions/${s.id}`, { method: "DELETE", credentials: "include" });
+                        await apiRequest("DELETE", `/api/admin/sessions/${s.id}`, undefined, {
+                          fallbackMessage: "Failed to terminate session",
+                        });
                         queryClient.invalidateQueries({ queryKey: ["admin", "active-sessions"] });
                         toast({ title: "Session terminated", description: `Force logged out ${s.userName || s.userEmail}` });
                       } catch {
