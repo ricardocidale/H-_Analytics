@@ -30,7 +30,7 @@ fi
 
 cat <<'BANNER'
 ------------------------------------------------------------------------
-  OPMODE: Large-repo Shell + CodeRabbit + Compound  (toggle ON)
+  CodeRabbit loop  (ON)
 ------------------------------------------------------------------------
   Inner-loop commands:
     pnpm review:uncommitted           # CodeRabbit on the working tree
@@ -41,7 +41,7 @@ cat <<'BANNER'
   Runbook:   docs/runbooks/coderabbit-shell-workflow.md
   Mode doc:  .agents/operating-modes/large-repo-shell-coderabbit-compound.md
 
-  Turn it off:  rm -f .local/opmode/active
+  Turn it off:  pnpm coderabbit:off
 ------------------------------------------------------------------------
 BANNER
 

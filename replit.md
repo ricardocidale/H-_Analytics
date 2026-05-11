@@ -90,6 +90,18 @@ Canonical source: `CLAUDE.md` § 10. Do not edit this block here — update `CLA
 
 - **File storage:** All project files stay local to this MacBook. Do not use Google Drive or Dropbox for any project files, assets, or outputs.
 
+## Natural-language commands (Replit Agent + Claude Code)
+
+When the user says any of these phrases, run the matching command — no clarifying questions needed:
+
+| Phrase (any casing) | Command |
+|---|---|
+| "turn coderabbit loop on", "coderabbit loop on", "arm coderabbit loop" | `pnpm coderabbit:on` |
+| "turn coderabbit loop off", "coderabbit loop off", "disarm coderabbit loop" | `pnpm coderabbit:off` |
+| "coderabbit loop status", "is coderabbit loop on" | `pnpm coderabbit:status` |
+
+When the loop is ON, follow the discipline in `.agents/operating-modes/large-repo-shell-coderabbit-compound.md` — small scoped sub-tasks, `pnpm validate:scoped <pkg>` after each, `pnpm review:uncommitted` (or `review:scoped`) before moving on, broader gates only at the very end.
+
 ---
 
 ## Recent Significant Changes

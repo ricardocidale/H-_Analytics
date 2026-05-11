@@ -22,7 +22,7 @@ source "$self_dir/opmode-active.sh"
 
 print_off() {
   local cmd="$1"
-  echo "operating mode is OFF — run \`touch .local/opmode/active\` to enable, then re-run \`pnpm ${cmd}\`."
+  echo "CodeRabbit loop is OFF — run \`pnpm coderabbit:on\` to arm it, then re-run \`pnpm ${cmd}\`."
 }
 
 require_cli() {
