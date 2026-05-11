@@ -12,6 +12,198 @@ description: >
 
 # Analyst Intelligence Display
 
+## ⚠️ SUPERSEDING CONTRACT — Range badge structure (May 2026)
+
+The product owner restated this rule after seeing the Cost of Equity badge
+render `0.1%–0.2% · ● Outside suggested range · ● Med` for an 18% input.
+Both the *range* and the *badge* were wrong. The contract below replaces any
+older guidance about how a range badge looks. Do not relitigate.
+
+### Two signals, two visual elements — never combined
+
+A range badge displays **two independent signals**, each with its own visual
+treatment. They are not the same thing and must not be mixed into one chip.
+
+| Signal | What it answers | Visual |
+|---|---|---|
+| **Range data quality** | Is the suggested range itself plausible per DB-stored sanity guardrails? | A small dot (green / yellow / red) placed at the **right edge of the range chip**, immediately after the last number in the displayed value. |
+| **User-value vs range** | Is the user's current value inside the suggested range? | A separate terse chip — single icon + words **"out of range"** — shown only when the value is outside. No severity word. No second dot. No "Med". |
+
+The "confidence Med/Low/High" indicator that previously rendered as a dot in
+the value-vs-range chip is **removed** from the chip. Confidence is exposed
+only inside the tooltip and through the range-quality dot semantics — never
+as a second inline dot.
+
+### Range-quality dot — the colors
+
+The dot beside the range value reflects the quality of the **range itself**,
+computed by a Minion (see below) against DB-stored guardrails:
+
+- 🟢 **Green** — both ends of the range fall inside the *plausible* band
+  for this `fieldKey` and the span is sane.
+- 🟡 **Yellow** — one end of the range straddles the plausible band, or
+  the span is unusually wide / narrow but still inside the outlier bounds.
+- 🔴 **Red** — either end of the range falls **outside the outlier bounds**
+  (e.g. cost-of-equity range `0.1%–0.2%` with outlier bounds `[6%, 25%]`).
+  This means the Specialist's research output is bad data, not that the
+  user's value is wrong.
+- ⚪️ **Grey** — no guardrail row exists for this `fieldKey` yet (gap in
+  the guardrails table, *not* a green pass).
+
+### "Out of range" chip — the only allowed copy
+
+When the user's current value is outside the suggested range:
+
+```tsx
+<span className="...red-themed-chip...">
+  <AlertCircle className="h-3 w-3" />
+  out of range
+</span>
+```
+
+- Single icon (recommend `AlertCircle` from lucide; alternative
+  `OctagonAlert` if a stronger stop signal is wanted).
+- Two words, lowercase: **"out of range"**.
+- No severity adjective (no "warning", no "blocker"), no confidence dot,
+  no "Med/Low/High" tail, no extra punctuation.
+- Tooltip on hover may carry the longer explanation — the chip itself stays
+  terse.
+
+When the user's value is inside the suggested range, **no chip is rendered
+at all** — the range value with its quality dot is sufficient signal.
+
+### Guardrails table (codebase-defined, Neon-stored, admin read-only)
+
+Per the Knowledge & Resources contract (`hplus-admin-nav-ia` superseding
+section), guardrails live in a new Table that:
+
+- Is seeded from the codebase (`lib/engine/.../guardrails-seed.ts`) on boot.
+- Is persisted in Neon as `assumption_guardrails` and surfaced as a Table
+  card under `Admin → AI → Intelligence → Knowledge & Resources → Tables`.
+- Is **read-only for admin** — no add / edit / delete UI.
+- Is vector-indexed for retrieval.
+- Carries a 90-day rolling usage log of when each guardrail row was queried.
+
+Schema (first cut):
+
+```ts
+interface AssumptionGuardrail {
+  fieldKey: string;          // canonical key, e.g. "costOfEquity"
+  unit: "percent" | "decimal" | "multiple" | "currency" | "count";
+  lowOutlier: number;        // hard floor — below this = outlier
+  highOutlier: number;       // hard ceiling — above this = outlier
+  plausibleLow: number;      // inside [plausibleLow, plausibleHigh] = green
+  plausibleHigh: number;
+  notes: string | null;      // human-readable rationale
+  authoritySource: string | null;
+}
+```
+
+First-cut seed (extend, do not shrink):
+
+| fieldKey | unit | outlier | plausible |
+|---|---|---|---|
+| costOfEquity | percent | 6 – 25 | 14 – 22 |
+| capRate | percent | 5 – 12 | 6.5 – 9.5 |
+| debtYield | percent | 7 – 14 | 8.5 – 12 |
+| baseManagementFee | percent | 2 – 5 | 3 – 4 |
+| irrTarget | percent | 12 – 30 | 15 – 22 |
+| exitRevenueMultiple | multiple | 1.5 – 6 | 2.5 – 4.5 |
+| inflationRate | percent | 0 – 12 | 1 – 5 |
+| occupancy | percent | 30 – 95 | 55 – 80 |
+| adr | currency | 50 – 2000 | 150 – 600 |
+| revparGrowth | percent | -10 – 12 | 0 – 5 |
+
+### Minion ownership — `Fabio` (Range-Quality Validator)
+
+A new deterministic Minion owns deciding the range-quality dot color. It
+follows the agent-taxonomy in `replit.md` (deterministic, no LLM, single
+name, alphabetical-Italian-male slot — `F` follows `E` for Enzo):
+
+- **Path:** `lib/engine/src/analyst/minions/fabio.ts`
+- **Inputs:** `{ fieldKey: string, parsedRange: { low: number; high: number } }`
+- **Output:**
+  ```ts
+  type FabioVerdict = {
+    quality: "green" | "yellow" | "red" | "grey";
+    reason: string;          // "range below outlier floor", "range straddles plausible band", etc.
+    guardrailRowId: number | null;
+  };
+  ```
+- **Failure modes:** missing guardrail row → returns `grey` with reason
+  `"no guardrail registered for fieldKey"`. Inverted range
+  (low > high) → returns `red` with reason `"degenerate range"`.
+- **Logging:** every Fabio call is appended to the `assumption_guardrails`
+  90-day rolling usage log (counts only — no PII). This makes Fabio a
+  registered consumer of the Table, visible in the Knowledge & Resources
+  card.
+
+If a Minion already feels like the right home (e.g. extending `Carlo`),
+prefer adding `Fabio` as a new minion rather than overloading Carlo —
+range-quality is a distinct concern from generic Zod validation and
+deserves its own surface in the Knowledge & Resources usage log. Bruno is
+slated for removal (task #1398) and is not appropriate to repurpose.
+
+### How the verdict reaches `RangeIndicator` without prop-drilling
+
+Add a hook at
+`artifacts/hospitality-business-portal/src/lib/analyst/useRangeQuality.ts`:
+
+```ts
+export function useRangeQuality(
+  fieldKey: string,
+  parsedRange: { low: number; high: number } | null,
+): FabioVerdict;
+```
+
+The hook calls `GET /api/admin/guardrails/:fieldKey` (cached via React
+Query) and runs the same pure Fabio function client-side against the
+fetched row, so render is synchronous after the first fetch. This keeps
+existing `RangeIndicator` callsites untouched: only the component itself
+imports the hook.
+
+### `RangeIndicator.tsx` refactor sketch
+
+`artifacts/hospitality-business-portal/src/components/research/RangeIndicator.tsx`
+keeps the same props and the same outer shape, but:
+
+1. The outer chip becomes the **range value chip** (e.g. `0.1%–0.2%`) with
+   the quality dot rendered as the rightmost child.
+2. The "Outside suggested range · Med" composition is deleted. The
+   `STATUS_LABEL.outside` value becomes `"out of range"` (lowercase).
+3. The `STATUS_DOT` map is removed; the only dot is the Fabio quality dot
+   on the value chip. Status is conveyed by the chip's own border + icon.
+4. The confidence dot block (lines 107–113 of the May-2026 file) is removed
+   entirely. Confidence migrates to tooltip text only.
+5. When `status === "outside"`, render a sibling chip
+   `<AlertCircle /> out of range` to the right of the value chip.
+6. When `status === "within"` or `status === "near"`, render only the value
+   chip with its quality dot.
+
+### Cross-app rollout discipline
+
+Every input page that surfaces a research-driven range adopts this contract
+before shipping. Surfaces to migrate (initial inventory — extend during
+rollout):
+
+1. `CompanyAssumptions` page (Funding tab — `CostOfEquityCard` is the
+   demonstration case).
+2. `CompanyAssumptions` other tabs that consume `ResearchContextFieldLabel`.
+3. `PropertyEdit` page — every range badge on Acquisition, Operations,
+   Exit & Disposition, Other Assumptions sections.
+4. Admin `Steady State / Model Defaults` tabs (Property Underwriting,
+   Company, Market Macro) — every `EditableValue` paired with a range
+   chip.
+5. `Constants` pages, `MarketMacroTab`, anywhere `RangeIndicator` is
+   currently rendered.
+
+CI gate: a script in `scripts/src/check-range-chip-contract.ts` greps the
+codebase for `Outside suggested range`, `· Med`, `· Low`, `· High`, hand-rolled
+red/amber range chips, and any `RangeIndicator` callsite that bypasses the
+Fabio hook. CI fails on any match outside the canonical component.
+
+---
+
 ## The rule (one sentence)
 
 **All ranges, tips, suggestions, severity signals, and contextual intelligence
