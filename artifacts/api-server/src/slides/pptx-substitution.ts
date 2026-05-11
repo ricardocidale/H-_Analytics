@@ -38,7 +38,13 @@
  *   - Other literals are structural (`0` index, `1`-based slide numbering)
  *     or unit conversions (percent → fraction is documented inline).
  */
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -84,6 +90,14 @@ const PCT_DIVISOR = 100; // percent → fraction (math identity)
 // ── Internal constants (named per CLAUDE.md §1) ────────────────────────────
 const PPTX_TEMPLATE_FILENAME = "template.pptx"; // arbitrary; tmp-dir local
 const PPTX_OUTPUT_FILENAME = "substituted.pptx";
+/**
+ * Subdirectory (under the per-call `workDir`) where image-substitution writes
+ * staged media files. Using a `workDir` subdir means the outer
+ * `try { … } finally { rmSync(workDir, …) }` block cleans up image media on
+ * both success and error paths — no separate `/tmp/factory-v2-media-*`
+ * directories accumulate per run.
+ */
+const PPTX_MEDIA_SUBDIR = "media";
 
 // ── Options ────────────────────────────────────────────────────────────────
 
@@ -238,11 +252,11 @@ export async function substituteSlots(
   const entries = parsed.data;
 
   // 2. Pre-flight overflow check — runs without loading the template when
-  //    `skipShapeLookup` is set OR when every text/table_cell entry carries
-  //    `payload.originalText`. Otherwise we'll re-check in step 4 with the
-  //    template lookup available. The pre-flight is a strict gate for the
-  //    deterministic case so tests (and Marco's dispatch step) can short-
-  //    circuit before any disk I/O.
+  //    `skipShapeLookup` is set. The pre-flight is a strict, deterministic
+  //    gate so tests (and Marco's dispatch step) can fail hard on overshoot
+  //    before any disk I/O happens. The non-`skipShapeLookup` path defers
+  //    overflow checking to the template-lookup loop below (which runs once
+  //    pptx-automizer has resolved the slide manifest).
   const warnings: SlotOverflowWarning[] = [];
   if (options.skipShapeLookup) {
     // skipShapeLookup → only `payload.originalText` is consulted.
@@ -257,10 +271,11 @@ export async function substituteSlots(
         if (warning) warnings.push(warning);
       }
     }
-    // In skipShapeLookup mode, we don't run pptx-automizer at all — the
-    // function exists as a deterministic overflow-rule validator. Return the
-    // input buffer so callers (tests) still get a SubstitutionResult shape.
-    return { pptx: template, warnings };
+    // The historical early-return here turned `skipShapeLookup: true` into a
+    // no-op (returned the input buffer without applying substitutions),
+    // contradicting the flag's name. The flag should skip the *shape lookup*
+    // (and thus the pre-flight that depends on it) only — substitutions
+    // still apply. Control falls through to the substitution path below.
   }
 
   // Tighten loop with template lookup. Working tmp dir scoped per call —
@@ -333,17 +348,34 @@ export async function substituteSlots(
 
     // Pre-flight overflow check (with template lookup) — runs before any
     // mutation is queued so a hard-overflow on any entry aborts cleanly.
-    for (const entry of entries) {
-      if (entry.op === "text" || entry.op === "table_cell") {
-        const originalLen = resolveOriginalLength(entry, lookupOriginal);
-        const newLen =
-          entry.op === "text"
-            ? (entry.payload as TextPayload).text.length
-            : (entry.payload as TableCellPayload).text.length;
-        const warning = enforceOverflowRules(entry, originalLen, newLen);
-        if (warning) warnings.push(warning);
+    // Skipped when the caller already exercised the deterministic pre-flight
+    // above; running it twice would double-emit soft-overflow warnings.
+    if (!options.skipShapeLookup) {
+      for (const entry of entries) {
+        if (entry.op === "text" || entry.op === "table_cell") {
+          const originalLen = resolveOriginalLength(entry, lookupOriginal);
+          const newLen =
+            entry.op === "text"
+              ? (entry.payload as TextPayload).text.length
+              : (entry.payload as TableCellPayload).text.length;
+          const warning = enforceOverflowRules(entry, originalLen, newLen);
+          if (warning) warnings.push(warning);
+        }
       }
     }
+
+    // Lazily create the media subdir on first image entry. Kept inside
+    // `workDir` so the outer `finally` cleans it up alongside the rest of
+    // the working tmp dir on both success and error paths.
+    const mediaDir = path.join(workDir, PPTX_MEDIA_SUBDIR);
+    let mediaDirCreated = false;
+    const ensureMediaDir = (): string => {
+      if (!mediaDirCreated) {
+        mkdirSync(mediaDir, { recursive: true });
+        mediaDirCreated = true;
+      }
+      return mediaDir;
+    };
 
     // Group entries by slide so each slide is `addSlide`'d at most once.
     const bySlide = new Map<number, SubstitutionEntry[]>();
@@ -362,7 +394,7 @@ export async function substituteSlots(
           } else if (entry.op === "table_cell") {
             applyTableCellSubstitution(slide, shapeName, entry.payload);
           } else if (entry.op === "image") {
-            applyImageSubstitution(slide, shapeName, entry.payload);
+            applyImageSubstitution(slide, shapeName, entry.payload, ensureMediaDir());
           }
         }
       });
@@ -454,14 +486,18 @@ function applyImageSubstitution(
   slide: any,
   shapeName: string,
   payload: ImagePayload,
+  mediaDir: string,
 ): void {
   // pptx-automizer's image-swap surface (`ModifyImageHelper.setRelationTarget`)
   // is fragile on canonical fixtures (see U1 decision doc). We address by
   // setting a relation target keyed on the payload's mime type and letting
   // the library re-emit the relation. The image buffer itself is written
-  // to a tmp file the library can `loadMedia` from.
+  // to a tmp file inside the per-call `mediaDir` (a subdir of the
+  // substitution engine's own `workDir`). Because `mediaDir` lives under
+  // `workDir`, the outer `try/finally` in `substituteSlots` cleans it up on
+  // both success and error paths — no `/tmp/factory-v2-media-*` directories
+  // accumulate across runs.
   const ext = payload.mimeType === "image/jpeg" ? "jpg" : "png";
-  const mediaDir = mkdtempSync(path.join(tmpdir(), "factory-v2-media-"));
   const mediaFile = `slot-${shapeName.replace(/[^a-z0-9]/gi, "_")}.${ext}`;
   const mediaPath = path.join(mediaDir, mediaFile);
   writeFileSync(mediaPath, payload.image);
@@ -473,13 +509,6 @@ function applyImageSubstitution(
   slide.modifyElement(shapeName, [
     modify.setRelationTarget(mediaFile),
   ]);
-  // Note: caller-supplied tmp dir cleanup is intentionally left to the OS
-  // tmp reaper. The substitution engine's own working tmp dir (see
-  // `substituteSlots`) IS cleaned; only the media-stash dir, which the
-  // library reads asynchronously during `pres.write()`, persists slightly
-  // past the function call. A short-lived `/tmp/factory-v2-media-*` dir
-  // is acceptable; production runs are short-lived containers.
-  void mediaDir;
 }
 
 // ── Production wrapper: fetch template from admin_resources + R2 ───────────

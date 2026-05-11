@@ -31,7 +31,8 @@
  * Buffer came from.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { readFileSync, existsSync, rmSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 
 import {
@@ -452,5 +453,140 @@ describe("substituteSlots — image swap", () => {
       // `pptx-substitution.ts#applyImageSubstitution`) but not exercised in
       // CI against the fragile fixture.
     },
+  );
+});
+
+// ── skipShapeLookup contract regression (CR PR #118 finding) ────────────────
+
+const FACTORY_V2_TMP_PREFIX = "factory-v2-substitute-";
+const LEGACY_FACTORY_V2_MEDIA_PREFIX = "factory-v2-media-";
+
+function listFactoryTmpDirs(): { substitute: string[]; legacyMedia: string[] } {
+  const all = readdirSync(tmpdir());
+  return {
+    substitute: all.filter((n) => n.startsWith(FACTORY_V2_TMP_PREFIX)),
+    legacyMedia: all.filter((n) => n.startsWith(LEGACY_FACTORY_V2_MEDIA_PREFIX)),
+  };
+}
+
+describe("substituteSlots — skipShapeLookup contract", () => {
+  it.skipIf(!FIXTURE_AVAILABLE)(
+    "applies substitutions (does not no-op) when skipShapeLookup is true",
+    async () => {
+      const map: SubstitutionMap = [
+        {
+          slideNumber: FIXTURE_SLIDE,
+          shapeId: FIXTURE_SHAPE_NAME_PLACEHOLDER,
+          op: "text",
+          slotKey: "slide2.propertyName",
+          payload: {
+            // The engine resolves `shapeId` via substring match against the
+            // placeholder text body, so "HAZELNIS" lands the substitution on
+            // the correct shape. No `originalText` is supplied so the
+            // pre-flight overflow check classifies the entry as "ok"
+            // (degenerate-budget path) — we're regressing the no-op contract,
+            // not overflow math.
+            text: "Belleayre Mountain — Ulster County Estate",
+          },
+        },
+      ];
+
+      const result = await substituteSlots(fixtureBuffer!, map, {
+        skipShapeLookup: true,
+      });
+
+      // The output PPTX must be the substituted product, not the input
+      // template (the historical bug returned the input verbatim).
+      expect(Buffer.isBuffer(result.pptx)).toBe(true);
+      expect(result.pptx.subarray(0, 2).toString("utf8")).toBe("PK");
+      // Differs from the input fixture — confirms substitution actually ran.
+      expect(result.pptx.equals(fixtureBuffer!)).toBe(false);
+    },
+    60_000,
+  );
+
+  it.skipIf(!FIXTURE_AVAILABLE)(
+    "still throws SlotOverflowError under skipShapeLookup when overshoot exceeds abort threshold",
+    async () => {
+      const map: SubstitutionMap = [
+        {
+          slideNumber: FIXTURE_SLIDE,
+          shapeId: FIXTURE_SHAPE_NAME_PLACEHOLDER,
+          op: "text",
+          slotKey: "slide2.hardOverflow.skip",
+          payload: {
+            text: stringOfLen(HARD_OVERFLOW_LEN),
+            originalText: SYNTHETIC_ORIGINAL,
+          },
+        },
+      ];
+
+      await expect(
+        substituteSlots(fixtureBuffer!, map, { skipShapeLookup: true }),
+      ).rejects.toBeInstanceOf(SlotOverflowError);
+    },
+  );
+});
+
+// ── Tmpdir cleanup regression (CR PR #118 finding — disk leak) ──────────────
+
+describe("substituteSlots — working tmp dir cleanup", () => {
+  it.skipIf(!FIXTURE_AVAILABLE)(
+    "leaves no factory-v2-substitute-* or legacy factory-v2-media-* dirs on success",
+    async () => {
+      const beforeSubstitute = listFactoryTmpDirs().substitute;
+      const beforeLegacyMedia = listFactoryTmpDirs().legacyMedia;
+
+      const map: SubstitutionMap = [
+        {
+          slideNumber: FIXTURE_SLIDE,
+          shapeId: FIXTURE_SHAPE_NAME_PLACEHOLDER,
+          op: "text",
+          payload: { text: "After" },
+        },
+      ];
+      await substituteSlots(fixtureBuffer!, map);
+
+      const afterSubstitute = listFactoryTmpDirs().substitute;
+      const afterLegacyMedia = listFactoryTmpDirs().legacyMedia;
+      // No new factory-v2-substitute-* dir survived the call.
+      expect(afterSubstitute.length).toBe(beforeSubstitute.length);
+      // The legacy `/tmp/factory-v2-media-*` leak path is fully removed —
+      // image media is now staged inside the per-call workDir subdir.
+      expect(afterLegacyMedia.length).toBe(beforeLegacyMedia.length);
+    },
+    60_000,
+  );
+
+  it.skipIf(!FIXTURE_AVAILABLE)(
+    "cleans up the working tmp dir even when substitution throws (hard overflow)",
+    async () => {
+      const before = listFactoryTmpDirs().substitute;
+
+      // A non-skipShapeLookup map that triggers a hard overflow via the
+      // template-lookup path. The engine creates `workDir`, loads the
+      // template, computes overflow against the actual shape text, and
+      // throws — the outer finally must still clean workDir.
+      const map: SubstitutionMap = [
+        {
+          slideNumber: FIXTURE_SLIDE,
+          shapeId: FIXTURE_SHAPE_NAME_PLACEHOLDER,
+          op: "text",
+          slotKey: "slide2.cleanupOnError",
+          payload: {
+            text: stringOfLen(HARD_OVERFLOW_LEN),
+            originalText: SYNTHETIC_ORIGINAL,
+          },
+        },
+      ];
+
+      await expect(substituteSlots(fixtureBuffer!, map)).rejects.toBeInstanceOf(
+        SlotOverflowError,
+      );
+
+      const after = listFactoryTmpDirs().substitute;
+      expect(after.length).toBe(before.length);
+    },
+    60_000,
   );
 });
