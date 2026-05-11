@@ -53,7 +53,11 @@ MSG
     echo "CodeRabbit loop is OFF. Re-arm with: pnpm coderabbit:on"
     ;;
   status)
-    # 1. ON/OFF + which trigger fired
+    # Print incrementally: cheap info first, slow network probe last, so the
+    # user sees something immediately even if `coderabbit auth status` stalls.
+    tmo() { timeout "$@" 2>/dev/null; }
+
+    # ---- 1. State + trigger (instant) ----
     state="OFF"
     trigger=""
     armed_at=""
@@ -66,35 +70,14 @@ MSG
       trigger="env var OPMODE_LARGE_REPO_SHELL=1 (current shell only)"
     fi
 
-    # 2. CodeRabbit CLI presence + version + auth
-    # Both calls are bounded by `timeout` so status stays snappy when offline.
-    tmo() { timeout "$@" 2>/dev/null; }
-    cli_state="not installed"
-    cli_path=""
-    cli_auth="n/a (CLI not installed)"
-    if command -v coderabbit >/dev/null 2>&1; then
-      cli_path="$(command -v coderabbit)"
-      cli_version="$(tmo 2 coderabbit --version 2>/dev/null | head -1)"
-      cli_state="${cli_version:-installed (version probe timed out)}"
-      auth_out="$(tmo 8 coderabbit auth status 2>&1)"
-      auth_rc=$?
-      if [ $auth_rc -eq 124 ]; then
-        cli_auth="probe timed out (network unreachable?)"
-      elif echo "$auth_out" | grep -q "Logged in"; then
-        cli_name="$(echo "$auth_out"  | sed -n 's/.*Name:[[:space:]]*//p'     | head -1)"
-        cli_email="$(echo "$auth_out" | sed -n 's/.*Email:[[:space:]]*//p'    | head -1)"
-        cli_org="$(echo "$auth_out"   | grep -A1 'Organization' | sed -n 's/.*Name:[[:space:]]*//p' | head -1)"
-        cli_auth="authenticated"
-        [ -n "$cli_name" ]  && cli_auth="$cli_auth as $cli_name"
-        [ -n "$cli_email" ] && cli_auth="$cli_auth <$cli_email>"
-        [ -n "$cli_org" ]   && cli_auth="$cli_auth (org: $cli_org)"
-      else
-        cli_auth="NOT authenticated (run: coderabbit auth login)"
-      fi
+    echo "CodeRabbit loop: $state"
+    if [ "$state" = "ON" ]; then
+      echo "  Trigger:           $trigger"
+      [ -n "$armed_at" ] && echo "  Armed at:          $armed_at"
     fi
+    echo "  Repo root:         $repo_root"
 
-    # 3. Banner-wrapped workflows (so the user knows where the reminder appears)
-    banner_artifacts=""
+    # ---- 2. Banner-wrapped artifacts (cheap rg + sed) ----
     if command -v rg >/dev/null 2>&1; then
       banner_artifacts="$(
         rg -l --no-messages 'print-opmode-banner\.sh' \
@@ -102,19 +85,41 @@ MSG
           | sed -E "s|$repo_root/artifacts/||; s|/\\.replit-artifact/artifact\\.toml||" \
           | tr '\n' ',' | sed 's/,$//; s/,/, /g'
       )"
+      [ -n "$banner_artifacts" ] && echo "  Banner artifacts:  $banner_artifacts"
     fi
 
-    # 4. Print
-    echo "CodeRabbit loop: $state"
-    if [ "$state" = "ON" ]; then
-      echo "  Trigger:           $trigger"
-      [ -n "$armed_at" ] && echo "  Armed at:          $armed_at"
+    # ---- 3. CLI version (~instant) ----
+    if command -v coderabbit >/dev/null 2>&1; then
+      cli_path="$(command -v coderabbit)"
+      cli_version="$(tmo 2 coderabbit --version 2>/dev/null | head -1)"
+      echo "  CLI:               ${cli_version:-installed (version probe timed out)}"
+      echo "  CLI path:          $cli_path"
+
+      # ---- 4. CLI auth (slow: 1–8s network probe) ----
+      printf '  CLI auth:          checking… '
+      auth_out="$(tmo 8 coderabbit auth status 2>&1)"
+      auth_rc=$?
+      printf '\r  CLI auth:          '
+      if [ $auth_rc -eq 124 ]; then
+        echo "probe timed out (network unreachable?)        "
+      elif echo "$auth_out" | grep -q "Logged in"; then
+        cli_name="$(echo "$auth_out"  | sed -n 's/.*Name:[[:space:]]*//p'  | head -1)"
+        cli_email="$(echo "$auth_out" | sed -n 's/.*Email:[[:space:]]*//p' | head -1)"
+        cli_org="$(echo "$auth_out"   | grep -A1 'Organization' | sed -n 's/.*Name:[[:space:]]*//p' | head -1)"
+        msg="authenticated"
+        [ -n "$cli_name" ]  && msg="$msg as $cli_name"
+        [ -n "$cli_email" ] && msg="$msg <$cli_email>"
+        [ -n "$cli_org" ]   && msg="$msg (org: $cli_org)"
+        echo "$msg          "
+      else
+        echo "NOT authenticated (run: coderabbit auth login)"
+      fi
+    else
+      echo "  CLI:               not installed"
+      echo "  CLI auth:          n/a (CLI not installed)"
     fi
-    echo "  CLI:               $cli_state"
-    [ -n "$cli_path" ] && echo "  CLI path:          $cli_path"
-    echo "  CLI auth:          $cli_auth"
-    echo "  Repo root:         $repo_root"
-    [ -n "$banner_artifacts" ] && echo "  Banner artifacts:  $banner_artifacts"
+
+    # ---- 5. Footer ----
     echo
     if [ "$state" = "ON" ]; then
       cat <<'INNER'
