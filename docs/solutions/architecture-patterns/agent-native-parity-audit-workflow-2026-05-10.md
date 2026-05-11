@@ -62,9 +62,23 @@ Address quick wins and action parity first, then structural.
 
 ### Step 3: Add each tool (four-part pattern)
 
-Every Rebecca tool requires exactly four coordinated changes in `artifacts/api-server/src/chat/rebecca-tools.ts`. Missing any one breaks typecheck or the CI parity guard.
+Every Rebecca tool requires exactly four coordinated changes. Since the
+2026-05-10 file split, the parts live in **three different files** under
+`artifacts/api-server/src/chat/` (plus a doc edit). Missing any one breaks
+typecheck or the CI parity guard.
 
-**Part A — Tool schema** (in the `getRebeccaTools()` array):
+| Part | File | Symbol |
+|---|---|---|
+| A — Tool schema | `rebecca-tool-defs-<domain>.ts` (re-exported via `rebecca-tool-definitions.ts`) | `getRebeccaTools()` array entry |
+| B — Dispatch case | `rebecca-tool-dispatch.ts` | `dispatchRebeccaTool()` switch |
+| C — Implementation | `rebecca-tool-impls-<domain>.ts` | `tool*()` function |
+| D — Parity row | `docs/discipline/agent-native-parity-map.md` | Markdown table row |
+
+Pick `<domain>` from the existing impl files: `property`, `scenario`, `deck`,
+`slide-factory`, `iris`, `kb`, `admin`. If a tool spans two domains, prefer
+the impl file where most of its data lives and add an import to the dispatch.
+
+**Part A — Tool schema** (in the appropriate `rebecca-tool-defs-<domain>.ts`):
 ```typescript
 {
   name: "get_global_assumptions",
@@ -80,7 +94,9 @@ case "get_global_assumptions":
   return await toolGetGlobalAssumptions(ctx);
 ```
 
-**Part C — Implementation function**:
+**Part C — Implementation function** (in `rebecca-tool-impls-admin.ts` for this
+example; pick the impl file matching the dispatch case's domain). `ToolContext`
+and `DataChangedEntry` are imported from `./rebecca-tool-types`:
 ```typescript
 async function toolGetGlobalAssumptions(
   ctx: ToolContext,
@@ -104,7 +120,7 @@ Verify all four before committing — the CI test (`parity-map-coverage.test.ts`
 
 When a tool emits a `dataChanged` with an `entityType` not already in the union, three additional changes are required:
 
-**In `rebecca-tools.ts` — extend the union** (~line 38):
+**In `rebecca-tool-types.ts` — extend the `DataChangedEntry` union**:
 ```typescript
 export type DataChangedEntry = {
   entityType: "property" | "scenario" | ... | "company" | "market_rate";
@@ -112,7 +128,7 @@ export type DataChangedEntry = {
 };
 ```
 
-**In `RebeccaPanel.tsx` — add handler in BOTH SSE blocks**. There are two blocks (one per streaming mode, ~lines 467 and 637). Both must be updated or one mode leaves the UI stale:
+**In `RebeccaPanel.tsx` — add handler in BOTH SSE blocks**. There are two blocks (one per streaming mode, currently ~lines 468 and 662 — search for `entry.entityType === "property"` to locate them). Both must be updated or one mode leaves the UI stale:
 ```typescript
 } else if (entry.entityType === "company") {
   queryClient.invalidateQueries({ queryKey: ["/api/admin/companies"] });
