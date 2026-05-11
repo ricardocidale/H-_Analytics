@@ -15,15 +15,13 @@ import { Link } from "wouter";
 import { CurrentThemeTab } from "@/components/ui/tabs";
 import { IconSettings, IconIncomeStatement, IconCashFlow, IconBalanceSheet, IconInvestment } from "@/components/icons";import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
-import { KPIGrid, InsightPanel, ScrollReveal, formatCompact } from "@/components/graphics";
-import { formatMoney } from "@/lib/financialEngine";
+import { KPIGrid, formatCompact } from "@/components/graphics";
 import type { CompanyHeaderProps } from "./types";
 
 export default function CompanyHeader({
   global,
   properties,
   yearlyChartData,
-  cashAnalysis,
   projectionYears,
   activeTab,
   setActiveTab,
@@ -81,19 +79,6 @@ export default function CompanyHeader({
           rightContent={exportMenuNode}
         />
       </div>
-
-      <ScrollReveal>
-        <InsightPanel
-          data-testid="insight-company"
-          title="Company Cash Analysis"
-          variant="compact"
-          insights={[
-            { text: "Cash position", metric: cashAnalysis.isAdequate ? "Adequate" : "Needs attention", type: cashAnalysis.isAdequate ? "positive" as const : "warning" as const },
-            ...(cashAnalysis.shortfall > 0 ? [{ text: "Cash shortfall detected", metric: formatMoney(cashAnalysis.shortfall), type: "negative" as const }] : []),
-            { text: "Total company funding", metric: formatMoney(cashAnalysis.totalFunding), type: "neutral" as const },
-          ]}
-        />
-      </ScrollReveal>
     </>
   );
 }

@@ -76,7 +76,6 @@ export interface CompanyHeaderProps {
   global: GlobalResponse;
   properties: PropertyResponse[];
   yearlyChartData: CompanyChartDataPoint[];
-  cashAnalysis: CompanyCashAnalysis;
   projectionYears: number;
   activeTab: string;
   setActiveTab: (tab: string) => void;

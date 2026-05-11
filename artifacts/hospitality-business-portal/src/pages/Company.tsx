@@ -44,7 +44,7 @@ import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { useLocation } from "wouter";
 import { CalcDetailsProvider } from "@/components/financial-table";
 import { Link } from "wouter";
-import { AnimatedPage } from "@/components/graphics";
+import { AnimatedPage, InsightPanel, ScrollReveal } from "@/components/graphics";
 import { analyzeCompanyCashPosition } from "@/lib/financial/analyzeCompanyCashPosition";
 import { CompanyHeader } from "@/components/company";
 
@@ -374,7 +374,6 @@ export default function Company() {
             global={global}
             properties={properties}
             yearlyChartData={yearlyChartData}
-            cashAnalysis={cashAnalysis}
             projectionYears={projectionYears}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
@@ -477,6 +476,20 @@ export default function Company() {
               </p>
             </div>
           )}
+
+          <ScrollReveal>
+            <InsightPanel
+              data-testid="insight-company"
+              title="Company Cash Analysis"
+              variant="compact"
+              className="mt-6"
+              insights={[
+                { text: "Cash position", metric: cashAnalysis.isAdequate ? "Adequate" : "Needs attention", type: cashAnalysis.isAdequate ? "positive" as const : "warning" as const },
+                ...(cashAnalysis.shortfall > 0 ? [{ text: "Cash shortfall detected", metric: formatMoney(cashAnalysis.shortfall), type: "negative" as const }] : []),
+                { text: "Total company funding", metric: formatMoney(cashAnalysis.totalFunding), type: "neutral" as const },
+              ]}
+            />
+          </ScrollReveal>
         </Tabs>
         </CalcDetailsProvider>
       </div>
