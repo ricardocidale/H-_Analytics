@@ -23,6 +23,7 @@
  */
 import { useState, useEffect, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,16 +54,9 @@ export default function DatabaseTab() {
 
   const executeSyncMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/admin/seed-production", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({}),
+      const res = await apiRequest("POST", "/api/admin/seed-production", {}, {
+        fallbackMessage: "Fill failed",
       });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({ error: "Fill failed" }));
-        throw new Error(errData.error || "Fill failed");
-      }
       return res.json();
     },
     onSuccess: (data) => {
@@ -78,15 +72,9 @@ export default function DatabaseTab() {
 
   const canonicalSyncMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/admin/sync-canonical", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
+      const res = await apiRequest("POST", "/api/admin/sync-canonical", undefined, {
+        fallbackMessage: "Sync failed",
       });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({ error: "Sync failed" }));
-        throw new Error(errData.error || "Sync failed");
-      }
       return res.json();
     },
     onSuccess: (data) => {

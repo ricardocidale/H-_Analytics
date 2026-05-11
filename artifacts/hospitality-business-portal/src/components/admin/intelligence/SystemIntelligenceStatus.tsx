@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -90,11 +91,9 @@ export default function SystemIntelligenceStatus() {
   const reindexMutation = useMutation({
     mutationFn: async (namespace: string) => {
       setReindexingNs(namespace);
-      const res = await fetch(`/api/admin/vector-store/reindex/${namespace}`, {
-        method: "POST",
-        credentials: "include",
+      const res = await apiRequest("POST", `/api/admin/vector-store/reindex/${namespace}`, undefined, {
+        fallbackMessage: "Reindex failed",
       });
-      if (!res.ok) throw new Error("Reindex failed");
       return res.json();
     },
     onSettled: () => {
@@ -106,11 +105,9 @@ export default function SystemIntelligenceStatus() {
   const clearMutation = useMutation({
     mutationFn: async (namespace: string) => {
       setClearingNs(namespace);
-      const res = await fetch(`/api/admin/vector-store/clear/${namespace}`, {
-        method: "DELETE",
-        credentials: "include",
+      const res = await apiRequest("DELETE", `/api/admin/vector-store/clear/${namespace}`, undefined, {
+        fallbackMessage: "Clear failed",
       });
-      if (!res.ok) throw new Error("Clear failed");
       return res.json();
     },
     onSettled: () => {

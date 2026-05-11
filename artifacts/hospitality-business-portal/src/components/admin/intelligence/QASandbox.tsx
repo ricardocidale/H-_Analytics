@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -126,15 +127,9 @@ export default function QASandbox() {
     mutationFn: async () => {
       const body: Record<string, unknown> = { entityType };
       if (entityType === "property") body.entityId = entityId;
-      const res = await fetch("/api/admin/qa/preview-context-pack", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+      const res = await apiRequest("POST", "/api/admin/qa/preview-context-pack", body, {
+        fallbackMessage: "Failed to generate context pack",
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to generate context pack");
-      }
       return res.json();
     },
     onSuccess: () => setActiveView("context-pack"),
@@ -144,15 +139,9 @@ export default function QASandbox() {
     mutationFn: async () => {
       const body: Record<string, unknown> = { entityType, tier };
       if (entityType === "property") body.entityId = entityId;
-      const res = await fetch("/api/admin/qa/preview-prompt", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+      const res = await apiRequest("POST", "/api/admin/qa/preview-prompt", body, {
+        fallbackMessage: "Failed to generate prompt preview",
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to generate prompt preview");
-      }
       return res.json();
     },
     onSuccess: () => setActiveView("prompt"),
@@ -162,15 +151,9 @@ export default function QASandbox() {
     mutationFn: async () => {
       const body: Record<string, unknown> = { entityType, tier };
       if (entityType === "property") body.entityId = entityId;
-      const res = await fetch("/api/admin/qa/run-live-test", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+      const res = await apiRequest("POST", "/api/admin/qa/run-live-test", body, {
+        fallbackMessage: "Failed to run live test",
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to run live test");
-      }
       return res.json();
     },
     onSuccess: () => {
