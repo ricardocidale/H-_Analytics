@@ -35,7 +35,7 @@ import {
   MINION_FINDING_TARGET_KIND,
   MINION_SELF_TEST_CADENCE_PARAM_SLUG,
   MINION_SELF_TEST_SCHEDULER_KEY,
-} from "@shared/constants";
+} from "./minion-self-test-constants";
 
 let isRunning = false;
 let nextTickHandle: NodeJS.Timeout | null = null;

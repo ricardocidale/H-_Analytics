@@ -12,11 +12,11 @@
  */
 import { storage } from "../storage";
 import { logger } from "../logger";
+import { DEFAULT_COSTANTINO_HEALTH_CYCLE_INTERVAL_MS } from "@shared/constants";
 import {
-  DEFAULT_COSTANTINO_HEALTH_CYCLE_INTERVAL_MS,
   DEFAULT_MINION_SELF_TEST_CYCLE_INTERVAL_MS,
   MINION_SELF_TEST_SCHEDULER_KEY,
-} from "@shared/constants";
+} from "./minion-self-test-constants";
 
 /**
  * How many cycle intervals can elapse before a scheduler is considered

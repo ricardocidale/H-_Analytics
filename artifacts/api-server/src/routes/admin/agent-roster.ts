@@ -42,7 +42,7 @@ import { getLatestIrisRun } from "../../storage/iris-runs";
 import {
   MINION_FINDING_TARGET_KIND,
   MINION_SELF_TEST_SCHEDULER_KEY,
-} from "@shared/constants";
+} from "../../jobs/minion-self-test-constants";
 import { MINION_SELF_TESTS } from "../../slides/minions/self-tests";
 
 type RosterHealthStatus = "healthy" | "degraded" | "error" | "unknown";
