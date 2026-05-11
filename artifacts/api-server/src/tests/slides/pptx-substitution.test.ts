@@ -74,7 +74,11 @@ const SYNTHETIC_ORIGINAL_LEN = SYNTHETIC_ORIGINAL.length;
 // Compute three replacement strings landing in each overflow band relative to
 // SYNTHETIC_ORIGINAL_LEN. Each length is named — no naked numbers.
 const PCT_DIVISOR = 100; // structural: percent → fraction
-const SHORTER_REPLACEMENT_LEN = SYNTHETIC_ORIGINAL_LEN - 5;
+// Arbitrary offset to land the "shorter" replacement comfortably under the
+// original length without going negative or hitting the overflow bands. 5
+// chars is a structural offset, not a contractual margin.
+const SHORTER_REPLACEMENT_OFFSET_CHARS = 5;
+const SHORTER_REPLACEMENT_LEN = SYNTHETIC_ORIGINAL_LEN - SHORTER_REPLACEMENT_OFFSET_CHARS;
 // Just inside the tighten band — overshoot strictly > tighten threshold,
 // strictly ≤ abort threshold. Use 12% as the test point.
 const SOFT_OVERFLOW_PCT = 12;
@@ -90,6 +94,32 @@ const HARD_OVERFLOW_LEN = Math.ceil(
 function stringOfLen(len: number, fill = "X"): string {
   return fill.repeat(len);
 }
+
+// ── Test constants (per CLAUDE.md §1 — named, no naked numerics) ───────────
+
+/**
+ * An arbitrary mid-deck slide number used in schema-acceptance fixtures.
+ * Nothing about the test depends on this being slide 5 specifically — any
+ * slide >1 distinguishes "two-slide map" coverage from the slide-2-only
+ * fixtures elsewhere in this file.
+ */
+const FIXTURE_SECONDARY_SLIDE = 5;
+
+/**
+ * Minimum byte count an output PPTX is expected to exceed. PPTX templates
+ * produced by pptx-automizer are >1 KB even for an empty deck; this is a
+ * structural sanity check (output is a real ZIP archive, not a stub buffer),
+ * not a substantive contract on size.
+ */
+const MIN_SUBSTITUTED_PPTX_BYTES = 1000;
+
+/**
+ * Per-test timeout (ms) for any substituteSlots case that round-trips
+ * pptx-automizer. The library's load + write on the 25 MB Belleayre fixture
+ * takes ~5-10 s on a cold start; 60 s is the U2 LibreOffice / pptx-automizer
+ * budget for headroom across CI variance.
+ */
+const SUBSTITUTION_TEST_TIMEOUT_MS = 60_000;
 
 // ── Setup / teardown ────────────────────────────────────────────────────────
 
@@ -282,7 +312,7 @@ describe("SubstitutionMapSchema (Carlo's validation contract)", () => {
         payload: { text: "Hello" },
       },
       {
-        slideNumber: 5,
+        slideNumber: FIXTURE_SECONDARY_SLIDE,
         shapeId: "Table 12",
         op: "table_cell",
         payload: { rowIndex: 0, columnIndex: 1, text: "x" },
@@ -426,10 +456,9 @@ describe("substituteSlots — happy path", () => {
       expect(Buffer.isBuffer(result.pptx)).toBe(true);
       // PPTX = ZIP archive — starts with "PK"
       expect(result.pptx.subarray(0, 2).toString("utf8")).toBe("PK");
-      expect(result.pptx.length).toBeGreaterThan(1000);
+      expect(result.pptx.length).toBeGreaterThan(MIN_SUBSTITUTED_PPTX_BYTES);
     },
-    // pptx-automizer's load + write round-trip on a 25 MB PPTX takes 5-10 s
-    60_000,
+    SUBSTITUTION_TEST_TIMEOUT_MS,
   );
 });
 
@@ -502,7 +531,7 @@ describe("substituteSlots — skipShapeLookup contract", () => {
       // Differs from the input fixture — confirms substitution actually ran.
       expect(result.pptx.equals(fixtureBuffer!)).toBe(false);
     },
-    60_000,
+    SUBSTITUTION_TEST_TIMEOUT_MS,
   );
 
   it.skipIf(!FIXTURE_AVAILABLE)(
@@ -555,7 +584,7 @@ describe("substituteSlots — working tmp dir cleanup", () => {
       // image media is now staged inside the per-call workDir subdir.
       expect(afterLegacyMedia.length).toBe(beforeLegacyMedia.length);
     },
-    60_000,
+    SUBSTITUTION_TEST_TIMEOUT_MS,
   );
 
   it.skipIf(!FIXTURE_AVAILABLE)(
@@ -587,6 +616,6 @@ describe("substituteSlots — working tmp dir cleanup", () => {
       const after = listFactoryTmpDirs().substitute;
       expect(after.length).toBe(before.length);
     },
-    60_000,
+    SUBSTITUTION_TEST_TIMEOUT_MS,
   );
 });
