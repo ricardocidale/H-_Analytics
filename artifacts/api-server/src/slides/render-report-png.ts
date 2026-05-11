@@ -43,6 +43,7 @@ import type {
   KpiSection,
   TableRow,
 } from "../report/types";
+import { logger } from "../logger";
 import { getBrowser } from "./playwright-browser";
 
 // ── Render constants (named per CLAUDE.md §1) ────────────────────────────────
@@ -63,11 +64,12 @@ const CSS_FW_MEDIUM = 600;
 const CSS_FW_BOLD = 700;
 
 /**
- * Maximum length of the rejected `dataUrl` echoed in the SSRF-rejection log
- * line. Caps the log line at a reasonable width so an adversarial payload
- * can't fill log/Sentry quotas with a multi-MB string in a single warning.
+ * Maximum scheme length we'll consider valid for logging. A URL "scheme"
+ * (`https`, `data`, `file`, …) is a short identifier per RFC 3986. Anything
+ * longer than 16 chars before the first colon is probably not a real scheme
+ * — log as `(no-scheme)` to avoid echoing attacker-controlled content.
  */
-const SSRF_REJECTED_SRC_LOG_TRUNCATE_LEN = 64;
+const MAX_SCHEME_LENGTH_FOR_LOG = 16;
 
 /** CSS table layout dimensions. */
 const CSS_TABLE_WIDTH_PCT = "100%";
@@ -138,15 +140,25 @@ function sanitizeImageSrc(src: string): string | null {
   // placeholder rather than throwing — `ReportDefinition` is engine-
   // generated, so an unexpected scheme is a bug to surface, not a runtime
   // failure that aborts the slide-factory run.
-  // eslint-disable-next-line no-console
-  console.warn(
-    `[render-report-png] rejected non-data-image src in ImageSection: ${
-      typeof src === "string"
-        ? src.slice(0, SSRF_REJECTED_SRC_LOG_TRUNCATE_LEN)
-        : typeof src
-    }`,
+  //
+  // Log derived metadata only (scheme + length), NOT the raw URL. The URL is
+  // (in principle) attacker-controlled if a malicious ReportDefinition ever
+  // reaches the renderer, and even truncated URL fragments can leak
+  // attacker-supplied content into centralized logs. CR finding on PR #119.
+  const scheme = typeof src === "string" ? extractScheme(src) : typeof src;
+  const length = typeof src === "string" ? src.length : 0;
+  logger.warn(
+    `rejected non-data-image src in ImageSection (scheme=${scheme}, length=${length})`,
+    "render-report-png",
   );
   return null;
+}
+
+/** Extract the URL scheme (everything before the first `:`) for safe logging. */
+function extractScheme(src: string): string {
+  const colonIdx = src.indexOf(":");
+  if (colonIdx === -1 || colonIdx > MAX_SCHEME_LENGTH_FOR_LOG) return "(no-scheme)";
+  return src.slice(0, colonIdx);
 }
 
 function rowClass(row: TableRow): string {

@@ -377,6 +377,13 @@ export async function substituteSlots(
       return mediaDir;
     };
 
+    // Monotonic counter so each image substitution gets a unique filename
+    // inside `mediaDir`. Without this, two image entries that share a shape
+    // name (e.g. "Picture 1" on different slides) would write to the same
+    // path and the later entry would silently overwrite the earlier image's
+    // bytes. CR finding on PR #119.
+    let imageEntryIndex = 0;
+
     // Group entries by slide so each slide is `addSlide`'d at most once.
     const bySlide = new Map<number, SubstitutionEntry[]>();
     for (const entry of entries) {
@@ -394,7 +401,13 @@ export async function substituteSlots(
           } else if (entry.op === "table_cell") {
             applyTableCellSubstitution(slide, shapeName, entry.payload);
           } else if (entry.op === "image") {
-            applyImageSubstitution(slide, shapeName, entry.payload, ensureMediaDir());
+            applyImageSubstitution(
+              slide,
+              shapeName,
+              entry.payload,
+              ensureMediaDir(),
+              imageEntryIndex++,
+            );
           }
         }
       });
@@ -487,6 +500,7 @@ function applyImageSubstitution(
   shapeName: string,
   payload: ImagePayload,
   mediaDir: string,
+  entryIndex: number,
 ): void {
   // pptx-automizer's image-swap surface (`ModifyImageHelper.setRelationTarget`)
   // is fragile on canonical fixtures (see U1 decision doc). We address by
@@ -497,8 +511,15 @@ function applyImageSubstitution(
   // `workDir`, the outer `try/finally` in `substituteSlots` cleans it up on
   // both success and error paths — no `/tmp/factory-v2-media-*` directories
   // accumulate across runs.
+  //
+  // `entryIndex` is a monotonic counter from the caller; it makes the
+  // filename unique across image entries even when multiple entries share
+  // a shape name. Without it, two slides using the same shape name (common
+  // in PPTX templates that re-use placeholder labels like "Picture 1")
+  // would write to the same path and the later write would silently
+  // overwrite the earlier image's bytes.
   const ext = payload.mimeType === "image/jpeg" ? "jpg" : "png";
-  const mediaFile = `slot-${shapeName.replace(/[^a-z0-9]/gi, "_")}.${ext}`;
+  const mediaFile = `slot-${entryIndex}-${shapeName.replace(/[^a-z0-9]/gi, "_")}.${ext}`;
   const mediaPath = path.join(mediaDir, mediaFile);
   writeFileSync(mediaPath, payload.image);
   // Mark the fitMode for downstream telemetry; the library doesn't expose a
