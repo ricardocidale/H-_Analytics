@@ -12,6 +12,21 @@
  *
  * The route handler at routes/slide-factory.ts calls runMarco(runId) as
  * fire-and-forget after transitioning status to 'building'.
+ *
+ * ── Factory v2 U6 hook (slide-6 income-statement embed) ──────────────────
+ *
+ * The slide-6 income-statement is produced via U6's
+ * `buildSlide6ImageSubstitutionEntry` (see `./slide-6-report-builder.ts`).
+ * The helper takes the run's property ids + global assumptions, runs the
+ * engine, renders the PNG via U5's `renderReportToPng`, and returns a U4
+ * `SubstitutionEntry { slideNumber: 6, op: 'image', ... }`.
+ *
+ * U6 leaves Marco's primitive-tool loop intact (per the agent-native
+ * pipeline pattern — Marco's tools are atomic, not bundled workflows).
+ * U8 will wire the entry into Marco's substitution-map assembly via a new
+ * `dispatch_slide_team` output shape and a follow-on substitution tool.
+ * The U6 builder is the standalone seam U8 plugs into; this comment marks
+ * the integration point without restructuring Marco today.
  */
 import Anthropic from "@anthropic-ai/sdk";
 import { logger } from "../logger";
