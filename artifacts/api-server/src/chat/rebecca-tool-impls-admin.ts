@@ -126,18 +126,53 @@ export async function toolGetMarketRates(
 // Research trigger
 // ---------------------------------------------------------------------------
 
+// DEPRECATED: remove after Wave 2. True wrapper around the new primitives so
+// auth + validation logic doesn't drift between this path and the seed/apply
+// pair (CodeRabbit PR-96).
 export async function toolTriggerResearch(
   args: Record<string, unknown>,
   ctx: ToolContext,
 ): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
-  const propertyId = args.propertyId as number;
+  const seedsResult = await toolGetPropertyResearchSeeds(args, ctx);
+  const seedsBody = seedsResult.result as { error?: string; seeds?: Record<string, unknown> };
+  if (seedsBody.error || !seedsBody.seeds) return seedsResult;
+
+  const applyResult = await toolApplyPropertyResearchValues(
+    { propertyId: args.propertyId, researchValues: seedsBody.seeds },
+    ctx,
+  );
+  const applyBody = applyResult.result as { error?: string; propertyId?: number };
+  if (applyBody.error) return applyResult;
+
+  return {
+    result: {
+      queued: true,
+      estimatedMinutes: RESEARCH_ESTIMATED_MINUTES,
+      propertyId: applyBody.propertyId,
+    },
+    dataChanged: applyResult.dataChanged,
+  };
+}
+
+// W1.4 — primitives that decompose trigger_research into a read-only seed
+// step (no DB write) and a write step. Letting the agent inspect or adjust
+// proposed seeds before persisting is the point — the old trigger_research
+// tool remains as a deprecated single-shot wrapper.
+
+export async function toolGetPropertyResearchSeeds(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const idResult = requireNumericArg(args, "propertyId");
+  if (!idResult.ok) return idResult.result;
+  const propertyId = idResult.value;
 
   const prop = await storage.getProperty(propertyId);
   if (!prop || prop.userId !== ctx.userId) {
     return { result: { error: "Not found" } };
   }
 
-  const seededValues = generateLocationAwareResearchValues({
+  const seeds = generateLocationAwareResearchValues({
     location: prop.location,
     streetAddress: prop.streetAddress,
     city: prop.city,
@@ -147,10 +182,36 @@ export async function toolTriggerResearch(
     market: prop.market,
   });
 
-  await storage.updateProperty(propertyId, { researchValues: seededValues } as UpdateProperty);
+  return {
+    result: {
+      propertyId,
+      propertyName: prop.name,
+      seeds,
+    },
+  };
+}
+
+export async function toolApplyPropertyResearchValues(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const idResult = requireNumericArg(args, "propertyId");
+  if (!idResult.ok) return idResult.result;
+  const propertyId = idResult.value;
+
+  const researchValuesResult = requireObjectArg(args, "researchValues");
+  if (!researchValuesResult.ok) return researchValuesResult.result;
+  const researchValues = researchValuesResult.value;
+
+  const prop = await storage.getProperty(propertyId);
+  if (!prop || prop.userId !== ctx.userId) {
+    return { result: { error: "Not found" } };
+  }
+
+  await storage.updateProperty(propertyId, { researchValues } as UpdateProperty);
 
   return {
-    result: { queued: true, estimatedMinutes: RESEARCH_ESTIMATED_MINUTES },
+    result: { ok: true, propertyId, fieldCount: Object.keys(researchValues).length },
     dataChanged: { entityType: "property", entityId: propertyId },
   };
 }

@@ -30,7 +30,7 @@ feature ships or a new Rebecca tool is added.
 | Delete scenario | Scenario → Delete | `delete_scenario` | ✅ |
 | Compare two scenarios side-by-side | Scenarios → Compare | `compare_scenarios` | ✅ |
 | Share a scenario with another user by email | Scenarios → Share | `share_scenario` | ✅ |
-| Run property research | Property → Research | `trigger_research` | ✅ |
+| Run property research | Property → Research | `trigger_research` (deprecated — use seed + apply), `get_property_research_seeds` + `apply_property_research_values` | ✅ |
 | Delete a property photo | Property → Photos → Delete | `delete_property_photo` | ✅ |
 | Set property hero photo | Property → Photos → Set Hero | `set_hero_photo` | ✅ |
 | List property photos | Property → Photos (view) | `list_property_photos` | ✅ |
