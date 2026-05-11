@@ -53,6 +53,9 @@ The Property Edit page's "Property Information" zone today is a single flat 455-
 - R14. Each new As-Improved typed column gets a corresponding entry in the existing drizzle-zod update schema and OpenAPI spec, generated through the existing codegen pipeline (`pnpm --filter @workspace/api-spec run codegen`).
 - R15. The PATCH endpoint for properties accepts the new As-Improved fields and persists them; no separate endpoint is created.
 
+**Agent-native parity (CLAUDE.md §7)**
+- R16. Every new user-editable action introduced for the As-Purchased and As-Improved subsections (R5–R9, AE2/AE4) must be achievable through Rebecca in the same PR. The `docs/discipline/agent-native-parity-map.md` map is updated to reference the new tools / patched tools, with ✅ status for each.
+
 ---
 
 ## Acceptance Examples
@@ -69,6 +72,18 @@ The Property Edit page's "Property Information" zone today is a single flat 455-
 - A user analyzing a property transition (e.g., SFR → boutique hotel) can express both states without overloading single fields, and a reader of the page can tell at a glance which numbers are "today" vs "the plan."
 - The breadcrumb rename and the visual restructure ship in a single PR with no behavioral change to any downstream consumer of the property record.
 - A downstream agent (ce-plan, an implementer, or a reviewer) can pick up this doc and produce a small additive Drizzle migration + UI restructure without needing to re-derive the descriptor-catalog vision or the JSONB question — both are explicitly deferred and pointer-linked.
+
+---
+
+## Verification (required for implementation PRs)
+
+Per CLAUDE.md §5, every implementation unit shipped under this milestone must run and pass:
+
+- `pnpm run typecheck` — clean.
+- `scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts` — PASS.
+- The relevant unit/integration test suite — PASS.
+- Because R11 ships a Drizzle schema migration, `pnpm --filter @workspace/scripts run check:migration-guards` — PASS.
+- Rebecca parity (R16): the corresponding tool exercises in `tests/rebecca-tools/` cover the new field set and pass.
 
 ---
 

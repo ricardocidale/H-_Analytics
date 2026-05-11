@@ -30,21 +30,13 @@ import {
   IconList,
 } from "@/components/icons";
 import { Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
 import { SPECIALIST_SECTION_TO_ID } from "@/components/admin/AdminSidebar";
 import type { SpecialistSection } from "@/components/admin/AdminSidebar";
-import { ORCHESTRATOR_SPECIALIST_ID } from "@engine/analyst/identity";
 import {
   ANALYST_BRAND,
   NAV_GROUP_LABELS,
   AGENTS,
 } from "@/lib/agent-taxonomy";
-
-interface SpecialistListItem {
-  id: string;
-  humanName?: string | null;
-  hasLlmOverrides?: boolean;
-}
 
 /**
  * Canonical section union for the Intelligence sidebar.
@@ -129,7 +121,7 @@ interface NavGroup {
  *     Vector Search Latency
  *     LLMs
  */
-function buildNavGroups(_gustavoHumanName: string): NavGroup[] {
+function buildNavGroups(): NavGroup[] {
   return [
     {
       id: "agent-roster",
@@ -267,23 +259,11 @@ interface IntelligenceSidebarProps {
 }
 
 export function IntelligenceSidebarNav({ activeSection, onSectionChange }: IntelligenceSidebarProps) {
-  // Pull the live Specialist list so Gustavo's sidebar label reflects any
-  // Identity-tab rename without a page reload. Falls back to "Gustavo"
-  // (the canonical human name — NOT "gaspar" which is the internal system
-  // ID only). See hplus-admin-nav-ia Rule 7.
-  const { data: specialists } = useQuery<SpecialistListItem[]>({
-    queryKey: ["/api/admin/specialists"],
-  });
-
-  const gustavoHumanName = useMemo(() => {
-    const row = specialists?.find((s) => s.id === ORCHESTRATOR_SPECIALIST_ID);
-    return row?.humanName?.trim() || "Gustavo";
-  }, [specialists]);
-
-  const navGroups = useMemo(
-    () => buildNavGroups(gustavoHumanName),
-    [gustavoHumanName],
-  );
+  // The Intelligence sidebar nav labels are static; no per-Specialist
+  // override (e.g. for Gustavo's human-name) is rendered here anymore — the
+  // roster detail pages own that. See git history for the previous
+  // gustavoHumanName plumbing if a label override is ever re-introduced.
+  const navGroups = useMemo(() => buildNavGroups(), []);
   const activeGroup = getGroupForSection(activeSection, navGroups);
 
   return (
