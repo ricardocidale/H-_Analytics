@@ -105,6 +105,15 @@ export async function saveCompanyAssumptionTab(
       partialValidation.error.issues.map((i) => i.message).join("; "),
     );
   }
+  // Partial validation is the binding gate: every field that IS present must
+  // satisfy its type. Full validation is best-effort — it may legitimately
+  // fail on first-save flows where a tab the user hasn't visited yet hasn't
+  // populated a jsonb-required column (standardAcqPackage, debtAssumptions),
+  // and we still want the current tab's save to succeed. The DB's notNull
+  // constraints catch a truly invalid INSERT downstream. This is deliberately
+  // looser than PUT /api/global-assumptions (which is a holistic save and
+  // does enforce full validation) — save-tab is the incremental-save path.
+  // See PR-94 thread for the rationale (CodeRabbit flagged the inconsistency).
   const fullValidation = insertGlobalAssumptionsSchema.safeParse(merged);
   const dataToWrite = fullValidation.success
     ? fullValidation.data
