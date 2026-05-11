@@ -16,10 +16,7 @@
  * responsible for the full save semantics.
  */
 import { storage } from "../storage";
-import {
-  insertGlobalAssumptionsSchema,
-  type InsertGlobalAssumptions,
-} from "@workspace/db";
+import { insertGlobalAssumptionsSchema } from "@workspace/db";
 import { invalidateComputeCache } from "../finance/cache";
 import { logger } from "../logger";
 import { stripCanonicalDenylistedFields } from "./global-assumptions-denylist";
@@ -99,25 +96,25 @@ export async function saveCompanyAssumptionTab(
     : Array.from(new Set([...existingSaved, tabKey]));
   (merged as Record<string, unknown>).savedTabs = nextSaved;
 
+  // Full schema validation: every required field (including jsonb columns
+  // like standardAcqPackage / debtAssumptions) must be present. This matches
+  // PUT /api/global-assumptions and prevents partially-invalid rows from
+  // being persisted (CodeRabbit PR-94). The previous fallback wrote `merged`
+  // as-is when full validation failed — that was a behavior carry-over from
+  // the workspace-port commit, not an intentional incremental-save path.
   const partialValidation = insertGlobalAssumptionsSchema.partial().safeParse(merged);
   if (!partialValidation.success) {
     throw new SaveCompanyAssumptionTabValidationError(
       partialValidation.error.issues.map((i) => i.message).join("; "),
     );
   }
-  // Partial validation is the binding gate: every field that IS present must
-  // satisfy its type. Full validation is best-effort — it may legitimately
-  // fail on first-save flows where a tab the user hasn't visited yet hasn't
-  // populated a jsonb-required column (standardAcqPackage, debtAssumptions),
-  // and we still want the current tab's save to succeed. The DB's notNull
-  // constraints catch a truly invalid INSERT downstream. This is deliberately
-  // looser than PUT /api/global-assumptions (which is a holistic save and
-  // does enforce full validation) — save-tab is the incremental-save path.
-  // See PR-94 thread for the rationale (CodeRabbit flagged the inconsistency).
   const fullValidation = insertGlobalAssumptionsSchema.safeParse(merged);
-  const dataToWrite = fullValidation.success
-    ? fullValidation.data
-    : (merged as InsertGlobalAssumptions);
+  if (!fullValidation.success) {
+    throw new SaveCompanyAssumptionTabValidationError(
+      fullValidation.error.issues.map((i) => i.message).join("; "),
+    );
+  }
+  const dataToWrite = fullValidation.data;
 
   const saved = await storage.upsertGlobalAssumptions(dataToWrite, userId);
   invalidateComputeCache();
