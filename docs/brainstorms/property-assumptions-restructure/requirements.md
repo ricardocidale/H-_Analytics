@@ -1,7 +1,7 @@
 ---
 date: 2026-05-11
 topic: property-assumptions-restructure
-scope: Milestone A only — UI restructure of the Property Edit page (no storage change)
+scope: Milestone A only — UI restructure of the Property Edit page + a small additive Drizzle migration for the As-Improved typed columns (see R11). No descriptor-catalog table, no JSONB columns, no accessor layer — those remain in Milestone B.
 companion_docs:
   - deferred-milestone-b.md (descriptor schema + JSONB migration — DEFERRED)
   - open-questions/icp-strategic-doubt.md (open strategic doubt about ICP)
@@ -43,7 +43,7 @@ The Property Edit page's "Property Information" zone today is a single flat 455-
 - R8. The As Improved subsection includes a freeform description field (`description_improved`) for the user to narrate the renovated vision.
 - R9. When an As-Improved field has not been set, the UI displays the As-Purchased value as a faded placeholder so the user can see the starting point they're editing away from. The placeholder does NOT auto-populate the field on submit — it is purely visual.
 
-**Storage — no schema migration**
+**Storage — small additive migration only**
 - R10. The new As-Purchased fields map directly to the existing typed columns on `properties` (no changes to those columns).
 - R11. The new As-Improved fields are added as additive typed columns on `properties` using the existing Drizzle migration pattern. Naming follows the existing column convention (e.g., `fbVenuesImproved`, `fbSeatsImproved`, `eventSpaceSqftImproved`, `totalBuildingSqftImproved`, `plannedReopeningYear`, `descriptionImproved`).
 - R12. The freeform `description_purchased` field reuses the existing description column on `properties` if present, or is added as `descriptionPurchased` matching the As-Improved naming convention. Whichever exists, the chosen column is the single source of truth for the As-Purchased narrative.
