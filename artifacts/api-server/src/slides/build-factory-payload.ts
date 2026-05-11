@@ -413,15 +413,24 @@ export function buildFactoryPayload(run: SlideFactoryRun): DeckPayloadV2 {
 // per-slide swarm outputs are appended.
 
 /**
- * Collect the run's assigned property ids (slides 2, 3, 5 — the
- * single-property slides under the v2 schema) into a deduped, ordered list.
- * Excludes nullish ids. Used to seed the slide-6 portfolio aggregation.
+ * Collect the run's directly-assigned property ids (slides 2, 3, 4, 5 —
+ * the single-property slides under the v2 schema) into a deduped, ordered
+ * list. Excludes nullish ids.
  *
- * The v2 plan also adds slide 4 (Hazelnis spotlight) as a single-property
- * assignment; that column lands in U3's schema migration. Until U3 ships
- * we coerce `slide4PropertyId` defensively (it may be undefined on a run
- * row predating the migration) — this keeps U6 unblocked and is a no-op
- * once U3 lands.
+ * Semantic note: this helper returns the **assigned-only** subset. The
+ * legacy `buildSlide6Payload` path in `build-lb-payload.ts` aggregates over
+ * **all** portfolio properties via `storage.getAllProperties(undefined)` —
+ * different semantics, different call site. U6's
+ * `buildSlide6ImageSubstitutionEntry` accepts a `propertyIds: number[]`
+ * argument so the caller chooses semantics; this helper is one option,
+ * not a mandate. U8 will decide which semantics the v2 slide-6 path
+ * adopts (likely all-portfolio to match the legacy pro forma, but that's
+ * an explicit U8 decision).
+ *
+ * The v2 plan adds slide 4 (Hazelnis spotlight) as a single-property
+ * assignment; that column lands in U3's schema migration. The defensive
+ * `slide4PropertyId` coercion handles run rows that predate the migration
+ * — a no-op once U3 has shipped.
  */
 export function collectFactoryPropertyIds(run: SlideFactoryRun): number[] {
   const candidates: Array<number | null | undefined> = [
