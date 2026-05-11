@@ -97,11 +97,10 @@ app.use(express.urlencoded({ extended: false }));
 app.use(authMiddleware);
 
 // CSRF coverage for admin write routes (POST/PUT/PATCH/DELETE on /api/admin/*).
-// Mode is "report" during rollout: missing/invalid tokens are logged but
-// requests pass through so that raw-fetch callsites in the frontend can be
-// surfaced and migrated to `apiRequest` without breaking admin tabs. Flip to
-// "enforce" in a follow-up PR once the report logs are clean.
-const CSRF_MODE: CsrfMode = "report";
+// All raw-fetch admin write callsites have been migrated to `apiRequest`
+// (PRs #100, #104, #105, #106, #107, #108 — 52 callsites total), so the
+// guard now hard-rejects unauthenticated state-changing requests with 403.
+const CSRF_MODE: CsrfMode = "enforce";
 app.use(csrfGuardForAdminWrites({ mode: CSRF_MODE }));
 
 // Wire the auth provider abstraction (Replit OIDC or local password-based,
