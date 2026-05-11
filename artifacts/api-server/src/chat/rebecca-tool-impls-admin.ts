@@ -633,17 +633,33 @@ export async function toolUpdateAdminResource(
   const idResult = requireNumericArg(args, "id");
   if (!idResult.ok) return idResult.result;
 
-  const patch: Record<string, unknown> = {};
-  if (typeof args.displayName === "string") patch.displayName = args.displayName;
-  if (typeof args.description === "string" || args.description === null) patch.description = args.description;
-  if (typeof args.secretRef === "string" || args.secretRef === null) patch.secretRef = args.secretRef;
-  if (typeof args.changeSummary === "string") patch.changeSummary = args.changeSummary;
+  // Build the mutable-fields patch (displayName/description/config/secretRef)
+  // SEPARATELY from changeSummary, which is metadata-only. Otherwise a caller
+  // passing `{ id, changeSummary }` would create an empty new version row
+  // (CodeRabbit PR-102).
+  const mutablePatch: Record<string, unknown> = {};
+  if (typeof args.displayName === "string") {
+    if (args.displayName.length === 0) {
+      return { result: { error: "displayName must be a non-empty string" } };
+    }
+    mutablePatch.displayName = args.displayName;
+  }
+  if (typeof args.description === "string" || args.description === null) mutablePatch.description = args.description;
+  if (typeof args.secretRef === "string" || args.secretRef === null) mutablePatch.secretRef = args.secretRef;
   if (args.config && typeof args.config === "object" && !Array.isArray(args.config)) {
-    patch.config = args.config as Record<string, unknown>;
+    mutablePatch.config = args.config as Record<string, unknown>;
   }
 
-  if (Object.keys(patch).length === 0) {
+  if (Object.keys(mutablePatch).length === 0) {
     return { result: { error: "No fields to update — provide at least one of displayName, description, config, secretRef" } };
+  }
+
+  const patch: Record<string, unknown> = { ...mutablePatch };
+  if (typeof args.changeSummary === "string") {
+    if (args.changeSummary.length === 0) {
+      return { result: { error: "changeSummary must be a non-empty string" } };
+    }
+    patch.changeSummary = args.changeSummary;
   }
 
   if (patch.config) {

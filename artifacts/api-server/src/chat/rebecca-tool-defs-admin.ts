@@ -302,7 +302,7 @@ export function getAdminTools(): ToolParam[] {
     {
       name: "update_admin_resource",
       description:
-        "Update an admin_resources row (model/api/mcp/source/factory_number). Admin only. Mirrors PUT /api/admin/resources/:id: each call writes a new version row, applies the SSRF guard to config.healthProbe.url, and returns { resource, impact } where impact is the list of catalog/feature surfaces affected. Use to retune display names, descriptions, config payloads (e.g. swap an LLM model slug, edit a healthProbe URL), or rotate secretRef pointers. Create and delete are NOT exposed — admin_resources rows are added via migrations.",
+        "Update an admin_resources row (model/api/mcp/source/factory_number). Admin only. Mirrors the admin resource update endpoint: each call writes a new version row, applies the SSRF guard to config.healthProbe.url, and returns { resource, impact } where impact is the list of catalog/feature surfaces affected. Use to retune display names, descriptions, config payloads (e.g. swap an LLM model slug, edit a healthProbe URL), or rotate secretRef pointers. Caller must change at least one of displayName, description, config, or secretRef — changeSummary alone is metadata and does not satisfy the change requirement. Create and delete are NOT exposed — admin_resources rows are added via migrations.",
       parameters: {
         type: "object",
         properties: {
