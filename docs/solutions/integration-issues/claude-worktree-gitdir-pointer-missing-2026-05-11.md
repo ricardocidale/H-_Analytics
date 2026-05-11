@@ -53,7 +53,7 @@ If `cat .git` fails ("No such file or directory") OR `git branch --show-current`
 
 Subagent dispatch prompts can include this check as a first action:
 
-```
+```text
 Verify worktree state before editing:
   pwd
   ls -la .git || echo "gitdir-pointer missing — reconstruct with:

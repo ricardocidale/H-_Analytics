@@ -22,7 +22,7 @@ tags: [replit, claude-code, branch-hygiene, attribution, dev-environment]
 
 The Replit IDE running in the shared workspace periodically auto-commits all dirty files in the working tree, attributing the commit to the Replit Agent identity (`52429710-ricardocidale@users.noreply.replit.com`) with metadata headers like:
 
-```
+```text
 Replit-Commit-Author: Agent
 Replit-Commit-Session-Id: <uuid>
 Replit-Commit-Checkpoint-Type: full_checkpoint
