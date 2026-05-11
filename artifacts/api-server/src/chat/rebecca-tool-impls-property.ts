@@ -409,3 +409,47 @@ export async function toolReorderPhotos(
     dataChanged: { entityType: "property", entityId: propertyId },
   };
 }
+
+// Latitude/longitude bounds for WGS-84 — mirrors the route validation in
+// PATCH /api/properties/:id/coords (artifacts/api-server/src/routes/properties.ts).
+const LATITUDE_MIN = -90;
+const LATITUDE_MAX = 90;
+const LONGITUDE_MIN = -180;
+const LONGITUDE_MAX = 180;
+
+export async function toolUpdatePropertyCoordinates(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const idResult = requireNumericArg(args, "id");
+  if (!idResult.ok) return idResult.result;
+  const id = idResult.value;
+
+  const lat = args.latitude;
+  const lng = args.longitude;
+  if (
+    typeof lat !== "number" || typeof lng !== "number" ||
+    !Number.isFinite(lat) || !Number.isFinite(lng) ||
+    lat < LATITUDE_MIN || lat > LATITUDE_MAX ||
+    lng < LONGITUDE_MIN || lng > LONGITUDE_MAX
+  ) {
+    return {
+      result: {
+        error: `latitude must be ${LATITUDE_MIN}..${LATITUDE_MAX} and longitude must be ${LONGITUDE_MIN}..${LONGITUDE_MAX}`,
+      },
+    };
+  }
+
+  const prop = await storage.getProperty(id);
+  if (!prop || prop.userId !== ctx.userId) {
+    return { result: { error: "Not found" } };
+  }
+
+  const updated = await storage.updateProperty(id, { latitude: lat, longitude: lng });
+  if (!updated) return { result: { error: "Not found" } };
+
+  return {
+    result: { success: true, latitude: updated.latitude, longitude: updated.longitude },
+    dataChanged: { entityType: "property", entityId: id },
+  };
+}

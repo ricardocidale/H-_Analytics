@@ -223,5 +223,40 @@ export function getAdminTools(): ToolParam[] {
         required: ["patch"],
       },
     },
+    {
+      name: "save_company_assumption_tab",
+      description:
+        "Save one Company Assumptions tab on the management-company singleton. Mirrors the per-tab Save button on the Company Assumptions page: marks the tab as saved (joining it into savedTabs), persists the patched fields, invalidates the compute cache, and reports any hard-required fields the user still hasn't filled in (for funding/revenue tabs). Does NOT dispatch The Analyst — that only fires on explicit Analyst-button press.",
+      parameters: {
+        type: "object",
+        properties: {
+          tabKey: {
+            type: "string",
+            enum: ["company", "funding", "revenue", "compensation", "overhead", "property-defaults"],
+            description: "Which Company Assumptions tab to save.",
+          },
+          patch: {
+            type: "object",
+            description: "Field-level patch for this tab (e.g. { baseManagementFee: 0.04, incentiveManagementFee: 0.15 } for the company tab). Optional — pass when there are dirty fields.",
+          },
+          fundingInputs: {
+            type: "object",
+            description: "Funding-tab dispatch payload (runwayBufferMonths, sizingOvershootPct, trancheGapMonths, revenueRampDelayMonths, burnFlexDownPct). Pass only when saving the funding tab — drives the hard-required-field gate.",
+            properties: {
+              runwayBufferMonths: { type: ["number", "null"] },
+              sizingOvershootPct: { type: ["number", "null"] },
+              trancheGapMonths: { type: ["number", "null"] },
+              revenueRampDelayMonths: { type: ["number", "null"] },
+              burnFlexDownPct: { type: ["number", "null"] },
+            },
+          },
+          unsave: {
+            type: "boolean",
+            description: "When true, removes tabKey from savedTabs instead of adding it. Used to roll back a tab save (e.g. an Analyst 'Adjust' flow).",
+          },
+        },
+        required: ["tabKey"],
+      },
+    },
   ];
 }
