@@ -3,7 +3,9 @@ import {
   researchCapitalRaiseBenchmarks,
   researchExitMultiples,
   researchReferenceBrands,
+  commitReferenceBrands,
 } from "../ai/analyst-table-refresh";
+import type { InsertReferenceBrand } from "@workspace/db";
 import {
   triggerLbDeckRenderService,
   getLbDeckRenderStatusService,
@@ -186,6 +188,244 @@ export async function toolRefreshAnalystTable(
   }
 
   return { result: { error: `Unknown tableId: ${tableId}. Use capital_raise_benchmarks, exit_multiples, or reference_brands.` } };
+}
+
+// W1.3 — primitives that decompose refresh_analyst_table into a research step
+// (no DB write) and a commit step. Letting the agent inspect proposed rows
+// before persisting is the point — the old refresh_analyst_table tool remains
+// as a deprecated single-shot wrapper.
+
+const ANALYST_TABLE_IDS = ["capital_raise_benchmarks", "exit_multiples", "reference_brands"] as const;
+type AnalystTableId = (typeof ANALYST_TABLE_IDS)[number];
+
+function validateAnalystTableId(args: Record<string, unknown>):
+  | { ok: true; tableId: AnalystTableId }
+  | { ok: false; result: { result: { error: string } } } {
+  const tableId = args.tableId;
+  if (typeof tableId !== "string" || !(ANALYST_TABLE_IDS as readonly string[]).includes(tableId)) {
+    return {
+      ok: false,
+      result: { result: { error: `tableId must be one of: ${ANALYST_TABLE_IDS.join(", ")}` } },
+    };
+  }
+  return { ok: true, tableId: tableId as AnalystTableId };
+}
+
+export async function toolResearchAnalystTable(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+  const validation = validateAnalystTableId(args);
+  if (!validation.ok) return validation.result;
+
+  if (validation.tableId === "capital_raise_benchmarks") {
+    const current = await storage.getCapitalRaiseBenchmarks();
+    const result = await researchCapitalRaiseBenchmarks(current);
+    return {
+      result: {
+        tableId: validation.tableId,
+        ranges: result.proposedRanges,
+        sourceCount: result.sourceCount,
+        tokensUsed: result.tokensUsed,
+        narration: result.narration,
+        evidence: result.evidence,
+      },
+    };
+  }
+  if (validation.tableId === "exit_multiples") {
+    const current = await storage.getExitMultiples();
+    const result = await researchExitMultiples(current);
+    return {
+      result: {
+        tableId: validation.tableId,
+        ranges: result.proposedRanges,
+        sourceCount: result.sourceCount,
+        tokensUsed: result.tokensUsed,
+        narration: result.narration,
+        evidence: result.evidence,
+      },
+    };
+  }
+  // reference_brands — dry-run preserves the coverage guard's verdict so the
+  // agent can decide whether to commit.
+  const current = await storage.getReferenceBrands();
+  const result = await researchReferenceBrands(current, undefined, { dryRun: true });
+  return {
+    result: {
+      tableId: validation.tableId,
+      proposedBrands: result.proposedBrands,
+      coverage: {
+        wouldCommit: result.coverage.hasRequiredCoverage,
+        uniqueBrandCount: result.coverage.uniqueBrandCount,
+        rawBrandCount: result.coverage.rawBrandCount,
+        missingFoundingBrands: result.coverage.missingFoundingBrands,
+      },
+      sourceCount: result.sourceCount,
+      tokensUsed: result.tokensUsed,
+      narration: result.narration,
+      evidence: result.evidence,
+    },
+  };
+}
+
+function coerceProposedRanges(input: unknown): Array<{
+  dimensionKey: string;
+  label: string;
+  unit?: string;
+  valueLow: number | null;
+  valueMid: number | null;
+  valueHigh: number | null;
+}> | null {
+  if (!Array.isArray(input)) return null;
+  const out: Array<{
+    dimensionKey: string;
+    label: string;
+    unit?: string;
+    valueLow: number | null;
+    valueMid: number | null;
+    valueHigh: number | null;
+  }> = [];
+  for (const raw of input) {
+    if (raw === null || typeof raw !== "object") return null;
+    const r = raw as Record<string, unknown>;
+    if (typeof r.dimensionKey !== "string" || r.dimensionKey.trim() === "") return null;
+    if (typeof r.label !== "string") return null;
+    const num = (x: unknown): number | null =>
+      typeof x === "number" && Number.isFinite(x) ? x : x === null ? null : null;
+    out.push({
+      dimensionKey: r.dimensionKey,
+      label: r.label,
+      unit: typeof r.unit === "string" ? r.unit : undefined,
+      valueLow: num(r.valueLow),
+      valueMid: num(r.valueMid),
+      valueHigh: num(r.valueHigh),
+    });
+  }
+  return out;
+}
+
+function coerceReferenceBrandsInput(input: unknown): InsertReferenceBrand[] | null {
+  if (!Array.isArray(input)) return null;
+  const out: InsertReferenceBrand[] = [];
+  for (const raw of input) {
+    if (raw === null || typeof raw !== "object") return null;
+    const r = raw as Record<string, unknown>;
+    if (typeof r.brandName !== "string" || r.brandName.trim() === "") return null;
+    out.push({
+      brandName: r.brandName.trim(),
+      niche: typeof r.niche === "string" ? r.niche : null,
+      positioningSummary: typeof r.positioningSummary === "string" ? r.positioningSummary : null,
+      guestSegment: typeof r.guestSegment === "string" ? r.guestSegment : null,
+      propertyCount: typeof r.propertyCount === "number" ? r.propertyCount : null,
+      keyCountMin: typeof r.keyCountMin === "number" ? r.keyCountMin : null,
+      keyCountMax: typeof r.keyCountMax === "number" ? r.keyCountMax : null,
+      geographicFocus: typeof r.geographicFocus === "string" ? r.geographicFocus : null,
+      adrUsd: typeof r.adrUsd === "number" ? r.adrUsd : null,
+      occupancyPct: typeof r.occupancyPct === "number" ? r.occupancyPct : null,
+      revparUsd: typeof r.revparUsd === "number" ? r.revparUsd : null,
+      revenueRangeLowUsd: typeof r.revenueRangeLowUsd === "number" ? r.revenueRangeLowUsd : null,
+      revenueRangeHighUsd: typeof r.revenueRangeHighUsd === "number" ? r.revenueRangeHighUsd : null,
+      ownershipModel: typeof r.ownershipModel === "string" ? r.ownershipModel : null,
+      acquisitionContext: typeof r.acquisitionContext === "string" ? r.acquisitionContext : null,
+      description: typeof r.description === "string" ? r.description : null,
+      referenceDisclaimer: true,
+      dataYear: typeof r.dataYear === "number" ? r.dataYear : new Date().getFullYear(),
+      sourceUrls: Array.isArray(r.sourceUrls) ? (r.sourceUrls as string[]) : null,
+      lastRefreshedAt: new Date(),
+      refreshedByRunId: null,
+    });
+  }
+  return out;
+}
+
+export async function toolCommitAnalystTableResearch(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+  const validation = validateAnalystTableId(args);
+  if (!validation.ok) return validation.result;
+
+  const now = new Date();
+  const sourceCount = typeof args.sourceCount === "number" ? args.sourceCount : 0;
+
+  if (validation.tableId === "capital_raise_benchmarks") {
+    const ranges = coerceProposedRanges(args.ranges);
+    if (ranges === null) {
+      return { result: { error: "ranges must be an array of { dimensionKey, label, unit?, valueLow, valueMid, valueHigh }" } };
+    }
+    for (const r of ranges) {
+      await storage.upsertCapitalRaiseBenchmark({
+        dimensionKey: r.dimensionKey,
+        label: r.label,
+        unit: r.unit ?? "usd",
+        valueLow: r.valueLow,
+        valueMid: r.valueMid,
+        valueHigh: r.valueHigh,
+        sourceCount,
+        lastRefreshedAt: now,
+      });
+    }
+    return {
+      result: { tableId: validation.tableId, rangesCommitted: ranges.length, sourceCount },
+      dataChanged: { entityType: "analyst_table" as const, entityId: 0 },
+    };
+  }
+
+  if (validation.tableId === "exit_multiples") {
+    const ranges = coerceProposedRanges(args.ranges);
+    if (ranges === null) {
+      return { result: { error: "ranges must be an array of { dimensionKey, label, unit?, valueLow, valueMid, valueHigh }" } };
+    }
+    for (const r of ranges) {
+      await storage.upsertExitMultiple({
+        dimensionKey: r.dimensionKey,
+        label: r.label,
+        unit: r.unit ?? "x_revenue",
+        valueLow: r.valueLow,
+        valueMid: r.valueMid,
+        valueHigh: r.valueHigh,
+        sourceCount,
+        lastRefreshedAt: now,
+      });
+    }
+    return {
+      result: { tableId: validation.tableId, rangesCommitted: ranges.length, sourceCount },
+      dataChanged: { entityType: "analyst_table" as const, entityId: 0 },
+    };
+  }
+
+  // reference_brands — coverage guard re-runs server-side so an admin chat
+  // user can't bypass min-count + founding-brand coverage with crafted rows.
+  const brands = coerceReferenceBrandsInput(args.brands);
+  if (brands === null) {
+    return { result: { error: "brands must be an array of brand objects with a non-empty brandName on each" } };
+  }
+  const commitResult = await commitReferenceBrands(brands);
+  if (!commitResult.ok) {
+    return {
+      result: {
+        error: "Coverage guard rejected the payload — refusing to overwrite reference_brands.",
+        tableId: validation.tableId,
+        coverage: {
+          uniqueBrandCount: commitResult.coverage.uniqueBrandCount,
+          rawBrandCount: commitResult.coverage.rawBrandCount,
+          missingFoundingBrands: commitResult.coverage.missingFoundingBrands,
+        },
+      },
+    };
+  }
+  return {
+    result: {
+      tableId: validation.tableId,
+      brandCount: commitResult.brandCount,
+      sourceCount,
+    },
+    dataChanged: { entityType: "analyst_table" as const, entityId: 0 },
+  };
 }
 
 export async function toolGetAnalystTable(

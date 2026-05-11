@@ -269,7 +269,10 @@ describe('researchReferenceBrands()', () => {
     expect(result.proposedRanges).toHaveLength(1);
     const range = result.proposedRanges[0];
     expect(range.dimensionKey).toBe(`brand_${returnedBrand.id}`);
-    expect(range.unit).toBe('properties');
+    // PR-85 changed brandRowsToRanges to use the keyCount range (room counts
+    // per property) instead of mixing in propertyCount. Test was stale until
+    // W1.3.
+    expect(range.unit).toBe('keys');
     expect(typeof range.label).toBe('string');
   });
 });

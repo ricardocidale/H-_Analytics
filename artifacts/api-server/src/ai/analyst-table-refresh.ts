@@ -57,5 +57,14 @@ export {
   researchMarketCapRates,
 } from "./analyst-refresh/reference-data";
 
-export { researchReferenceBrands } from "./analyst-refresh/reference-brands";
-export type { ReferenceBrandsRefreshResult } from "./analyst-refresh/reference-brands";
+export {
+  researchReferenceBrands,
+  commitReferenceBrands,
+  evaluateReferenceBrandsCoverage,
+  REFERENCE_BRANDS_MIN_COUNT,
+} from "./analyst-refresh/reference-brands";
+export type {
+  ReferenceBrandsRefreshResult,
+  ReferenceBrandsDryRunResult,
+  ReferenceBrandsCoverageVerdict,
+} from "./analyst-refresh/reference-brands";
