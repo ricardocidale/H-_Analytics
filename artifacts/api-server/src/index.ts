@@ -41,6 +41,7 @@ import { buildContentSecurityPolicy } from "./csp";
 import { getAuthProvider } from "./providers/auth";
 import { createServer } from "http";
 import { authMiddleware, requireAuth } from "./auth";
+import { csrfGuardForAdminWrites, type CsrfMode } from "./middleware/csrf";
 import { log as serverLog } from "./logger";
 import { hasDbUrl } from "@shared/db-url";
 import { sentryRequestHandler, setupSentryExpressErrorHandler } from "./sentry";
@@ -94,6 +95,14 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 app.use(authMiddleware);
+
+// CSRF coverage for admin write routes (POST/PUT/PATCH/DELETE on /api/admin/*).
+// Mode is "report" during rollout: missing/invalid tokens are logged but
+// requests pass through so that raw-fetch callsites in the frontend can be
+// surfaced and migrated to `apiRequest` without breaking admin tabs. Flip to
+// "enforce" in a follow-up PR once the report logs are clean.
+const CSRF_MODE: CsrfMode = "report";
+app.use(csrfGuardForAdminWrites({ mode: CSRF_MODE }));
 
 // Wire the auth provider abstraction (Replit OIDC or local password-based,
 // selected by AUTH_PROVIDER env var, defaults to 'replit').
