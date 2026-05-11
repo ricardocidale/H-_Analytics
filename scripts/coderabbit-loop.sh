@@ -82,7 +82,7 @@ MSG
       banner_artifacts="$(
         rg -l --no-messages 'print-opmode-banner\.sh' \
           "$repo_root"/artifacts/*/.replit-artifact/artifact.toml 2>/dev/null \
-          | sed -E "s|$repo_root/artifacts/||; s|/\\.replit-artifact/artifact\\.toml||" \
+          | sed -E "s#$repo_root/artifacts/##; s#/\\.replit-artifact/artifact\\.toml##" \
           | tr '\n' ',' | sed 's/,$//; s/,/, /g'
       )"
       [ -n "$banner_artifacts" ] && echo "  Banner artifacts:  $banner_artifacts"
