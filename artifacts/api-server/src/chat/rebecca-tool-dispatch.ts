@@ -33,6 +33,8 @@ import {
   toolTriggerLbDeckRender,
   toolGetLbDeckRenderStatus,
   toolRefreshAnalystTable,
+  toolResearchAnalystTable,
+  toolCommitAnalystTableResearch,
   toolGetAnalystTable,
 } from "./rebecca-tool-impls-deck";
 import {
@@ -127,6 +129,10 @@ export async function dispatchRebeccaTool(
         return await toolGetLbDeckRenderStatus(ctx);
       case "refresh_analyst_table":
         return await toolRefreshAnalystTable(args, ctx);
+      case "research_analyst_table":
+        return await toolResearchAnalystTable(args, ctx);
+      case "commit_analyst_table_research":
+        return await toolCommitAnalystTableResearch(args, ctx);
       case "lock_scenario":
         return await toolLockScenario(args, ctx);
       case "delete_scenario":

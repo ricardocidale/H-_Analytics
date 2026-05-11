@@ -41,6 +41,70 @@ const REQUIRED_FOUNDING_BRANDS = [
 ] as const;
 const MIN_REFERENCE_BRANDS = 15; // lower bound of the "15–25 brands" prompt contract
 
+/**
+ * Coverage-guard verdict for a proposed reference_brands payload. Used by both
+ * the auto-commit path (`researchReferenceBrands` with dryRun=false) and the
+ * explicit two-step research → commit path (W1.3 — the new
+ * `commit_analyst_table_research` Rebecca tool re-runs this guard so an admin
+ * chat user can't bypass it by passing crafted rows back).
+ */
+export interface ReferenceBrandsCoverageVerdict {
+  hasRequiredCoverage: boolean;
+  dedupedBrands: InsertReferenceBrand[];
+  uniqueBrandCount: number;
+  rawBrandCount: number;
+  missingFoundingBrands: string[];
+}
+
+/**
+ * Dedupe brand rows by normalized (trim + lowercase) name, then verify the
+ * minimum row count and presence of every required founding brand. Returns
+ * the verdict — caller decides whether to commit. First-occurrence wins on
+ * dedup.
+ */
+export function evaluateReferenceBrandsCoverage(
+  newBrands: InsertReferenceBrand[],
+): ReferenceBrandsCoverageVerdict {
+  const dedupedBrands = Array.from(
+    new Map(newBrands.map(b => [b.brandName.trim().toLowerCase(), b] as const)).values(),
+  );
+  const newBrandNames = new Set(dedupedBrands.map(b => b.brandName.trim().toLowerCase()));
+  const missingFoundingBrands = REQUIRED_FOUNDING_BRANDS.filter(
+    name => !newBrandNames.has(name.toLowerCase()),
+  );
+  return {
+    hasRequiredCoverage:
+      dedupedBrands.length >= MIN_REFERENCE_BRANDS && missingFoundingBrands.length === 0,
+    dedupedBrands,
+    uniqueBrandCount: dedupedBrands.length,
+    rawBrandCount: newBrands.length,
+    missingFoundingBrands: [...missingFoundingBrands],
+  };
+}
+
+export const REFERENCE_BRANDS_MIN_COUNT = MIN_REFERENCE_BRANDS;
+export { REQUIRED_FOUNDING_BRANDS };
+
+/**
+ * W1.3 — dry-run variant of researchReferenceBrands. Returns the proposed
+ * brand rows + coverage verdict WITHOUT writing to the DB. Used by the new
+ * `research_analyst_table` Rebecca tool so the agent can inspect what would
+ * be committed before calling `commit_analyst_table_research`.
+ *
+ * Default for `researchReferenceBrands` remains auto-commit (preserves the
+ * watchdog, admin Analyst-button, knowledge-registry, and existing test
+ * callers — see PR thread for the caller audit).
+ */
+export interface ReferenceBrandsDryRunResult {
+  autoCommitted: false;
+  proposedBrands: InsertReferenceBrand[];
+  coverage: ReferenceBrandsCoverageVerdict;
+  narration: string[];
+  sourceCount: number;
+  tokensUsed: number;
+  evidence: Array<{ source: string; url?: string; finding: string }>;
+}
+
 // Implementation note: uses direct openai.chat.completions.create — the same
 // approach as researchCapitalRaiseBenchmarks and researchExitMultiples above.
 // The handleToolCall / aiResearch.ts pipeline is for the interactive specialist
@@ -49,7 +113,18 @@ const MIN_REFERENCE_BRANDS = 15; // lower bound of the "15–25 brands" prompt c
 export async function researchReferenceBrands(
   current: ReferenceBrand[],
   auditId?: number,
-): Promise<ReferenceBrandsRefreshResult> {
+): Promise<ReferenceBrandsRefreshResult>;
+export async function researchReferenceBrands(
+  current: ReferenceBrand[],
+  auditId: number | undefined,
+  options: { dryRun: true },
+): Promise<ReferenceBrandsDryRunResult>;
+export async function researchReferenceBrands(
+  current: ReferenceBrand[],
+  auditId?: number,
+  options?: { dryRun?: boolean },
+): Promise<ReferenceBrandsRefreshResult | ReferenceBrandsDryRunResult> {
+  const dryRun = options?.dryRun === true;
   const currentBrandList = current.length > 0
     ? current.map(b => `- ${b.brandName} (${b.niche ?? "n/a"}, ${b.propertyCount ?? "?"} properties)`).join("\n")
     : "(table is currently empty)";
@@ -122,15 +197,17 @@ REQUIREMENTS:
     tokensUsed = completion.usage?.total_tokens ?? 0;
   } catch (err: unknown) {
     refreshLog.warn(`researchReferenceBrands: LLM call failed, keeping existing rows: ${String(err)}`);
-    return {
-      autoCommitted: true,
-      brandCount: current.length,
-      proposedRanges: brandRowsToRanges(current),
-      narration: REFERENCE_BRANDS_NARRATION,
-      sourceCount: 0,
-      tokensUsed: 0,
-      evidence: [],
-    };
+    return dryRun
+      ? llmFailureDryRunResult(tokensUsed)
+      : {
+          autoCommitted: true,
+          brandCount: current.length,
+          proposedRanges: brandRowsToRanges(current),
+          narration: REFERENCE_BRANDS_NARRATION,
+          sourceCount: 0,
+          tokensUsed: 0,
+          evidence: [],
+        };
   }
 
   let parsed: {
@@ -143,15 +220,17 @@ REQUIREMENTS:
     parsed = JSON.parse(rawJson);
   } catch {
     refreshLog.warn("researchReferenceBrands: failed to parse LLM JSON; keeping existing rows");
-    return {
-      autoCommitted: true,
-      brandCount: current.length,
-      proposedRanges: brandRowsToRanges(current),
-      narration: REFERENCE_BRANDS_NARRATION,
-      sourceCount: 0,
-      tokensUsed,
-      evidence: [],
-    };
+    return dryRun
+      ? llmFailureDryRunResult(tokensUsed)
+      : {
+          autoCommitted: true,
+          brandCount: current.length,
+          proposedRanges: brandRowsToRanges(current),
+          narration: REFERENCE_BRANDS_NARRATION,
+          sourceCount: 0,
+          tokensUsed,
+          evidence: [],
+        };
   }
 
   const rawBrands = Array.isArray(parsed.brands) ? parsed.brands : [];
@@ -188,39 +267,59 @@ REQUIREMENTS:
       refreshedByRunId: auditId ?? null,
     }));
 
-  // Auto-commit gate (CodeRabbit PR-85): a payload of (e.g.) 2 brands would
-  // pass the empty-string filter and overwrite the entire table on the full
-  // replace below. Require both a minimum row count AND every founding brand
-  // before allowing the replace; otherwise re-insert the existing rows.
-  //
-  // Dedupe by normalized name (trim + lowercase) before counting (CodeRabbit
-  // PR-93): a payload of 15× the same brand would otherwise satisfy the count
-  // check, and a case-shifted "axel hotels" would fail the founding-brand
-  // check despite being the same brand. First-occurrence wins on dedup.
-  const dedupedBrands = Array.from(
-    new Map(newBrands.map(b => [b.brandName.trim().toLowerCase(), b] as const)).values(),
-  );
-  const newBrandNames = new Set(dedupedBrands.map(b => b.brandName.trim().toLowerCase()));
-  const missingFoundingBrands = REQUIRED_FOUNDING_BRANDS.filter(
-    name => !newBrandNames.has(name.toLowerCase()),
-  );
-  const hasRequiredCoverage =
-    dedupedBrands.length >= MIN_REFERENCE_BRANDS && missingFoundingBrands.length === 0;
+  // Auto-commit gate (CodeRabbit PR-85, dedupe PR-93): a payload of (e.g.) 2
+  // brands would pass the empty-string filter and overwrite the entire table
+  // on the full replace below. Require both a minimum row count AND every
+  // founding brand before allowing the replace; otherwise re-insert the
+  // existing rows. Coverage helper extracted in W1.3 so the new
+  // commit_analyst_table_research Rebecca tool re-runs it (preventing an
+  // admin chat user from defeating the guard with crafted rows).
+  const coverage = evaluateReferenceBrandsCoverage(newBrands);
 
-  if (!hasRequiredCoverage) {
+  if (!coverage.hasRequiredCoverage) {
     refreshLog.warn(
       `researchReferenceBrands: payload incomplete ` +
-      `(${dedupedBrands.length} unique brands of ${newBrands.length} returned, ` +
-      `need ≥${MIN_REFERENCE_BRANDS}; ` +
-      `missing founding brands: ${missingFoundingBrands.length > 0 ? missingFoundingBrands.join(", ") : "none"}) ` +
+      `(${coverage.uniqueBrandCount} unique brands of ${coverage.rawBrandCount} returned, ` +
+      `need ≥${REFERENCE_BRANDS_MIN_COUNT}; ` +
+      `missing founding brands: ${coverage.missingFoundingBrands.length > 0 ? coverage.missingFoundingBrands.join(", ") : "none"}) ` +
       `— keeping existing rows`,
     );
+  }
+
+  // Evidence + narration are computed once and shared between dry-run and
+  // auto-commit return paths below.
+  const narration = Array.isArray(parsed.narration) && parsed.narration.length > 0
+    ? parsed.narration.map(String)
+    : REFERENCE_BRANDS_NARRATION;
+  const evidence = Array.isArray(parsed.evidence)
+    ? parsed.evidence
+        .filter((e): e is Record<string, unknown> => e !== null && typeof e === "object")
+        .map(e => ({
+          source: String(e["source"] ?? ""),
+          url: e["url"] ? String(e["url"]) : undefined,
+          finding: String(e["finding"] ?? ""),
+        }))
+    : [];
+  const sourceCount = typeof parsed.sourceCount === "number"
+    ? parsed.sourceCount
+    : evidence.length;
+
+  if (dryRun) {
+    return {
+      autoCommitted: false,
+      proposedBrands: coverage.dedupedBrands,
+      coverage,
+      narration,
+      sourceCount,
+      tokensUsed,
+      evidence,
+    };
   }
 
   // When falling back, re-insert the existing rows. Strip DB-managed fields
   // (id, createdAt, updatedAt) so the INSERT does not conflict with the
   // GENERATED ALWAYS IDENTITY column.
-  const brandsToWrite: InsertReferenceBrand[] = hasRequiredCoverage ? dedupedBrands : current.map(b => ({
+  const brandsToWrite: InsertReferenceBrand[] = coverage.hasRequiredCoverage ? coverage.dedupedBrands : current.map(b => ({
     brandName: b.brandName,
     niche: b.niche,
     positioningSummary: b.positioningSummary,
@@ -246,22 +345,6 @@ REQUIREMENTS:
 
   const written = await storage.replaceAllReferenceBrands(brandsToWrite);
 
-  const narration = Array.isArray(parsed.narration) && parsed.narration.length > 0
-    ? parsed.narration.map(String)
-    : REFERENCE_BRANDS_NARRATION;
-  const evidence = Array.isArray(parsed.evidence)
-    ? parsed.evidence
-        .filter((e): e is Record<string, unknown> => e !== null && typeof e === "object")
-        .map(e => ({
-          source: String(e["source"] ?? ""),
-          url: e["url"] ? String(e["url"]) : undefined,
-          finding: String(e["finding"] ?? ""),
-        }))
-    : [];
-  const sourceCount = typeof parsed.sourceCount === "number"
-    ? parsed.sourceCount
-    : evidence.length;
-
   refreshLog.info(`researchReferenceBrands: auto-committed ${written.length} brands (${tokensUsed} tokens)`);
 
   return {
@@ -273,6 +356,58 @@ REQUIREMENTS:
     tokensUsed,
     evidence,
   };
+}
+
+function llmFailureDryRunResult(tokensUsed: number): ReferenceBrandsDryRunResult {
+  return {
+    autoCommitted: false,
+    proposedBrands: [],
+    coverage: {
+      hasRequiredCoverage: false,
+      dedupedBrands: [],
+      uniqueBrandCount: 0,
+      rawBrandCount: 0,
+      missingFoundingBrands: [...REQUIRED_FOUNDING_BRANDS],
+    },
+    narration: REFERENCE_BRANDS_NARRATION,
+    sourceCount: 0,
+    tokensUsed,
+    evidence: [],
+  };
+}
+
+/**
+ * Commit a prepared set of reference_brands rows after re-running the
+ * coverage guard. Used by the new `commit_analyst_table_research` Rebecca
+ * tool so the agent can inspect the dry-run output before persisting.
+ * Re-running the guard here is critical — without it, an admin chat user
+ * could defeat the dedupe + min-count + founding-brands gate by passing
+ * crafted rows back to the commit primitive.
+ */
+export async function commitReferenceBrands(
+  newBrands: InsertReferenceBrand[],
+): Promise<{
+  ok: true;
+  brandCount: number;
+  coverage: ReferenceBrandsCoverageVerdict;
+} | {
+  ok: false;
+  reason: "coverage_check_failed";
+  coverage: ReferenceBrandsCoverageVerdict;
+}> {
+  const coverage = evaluateReferenceBrandsCoverage(newBrands);
+  if (!coverage.hasRequiredCoverage) {
+    refreshLog.warn(
+      `commitReferenceBrands: coverage check failed ` +
+      `(${coverage.uniqueBrandCount} unique brands of ${coverage.rawBrandCount} passed in, ` +
+      `need ≥${REFERENCE_BRANDS_MIN_COUNT}; ` +
+      `missing founding brands: ${coverage.missingFoundingBrands.length > 0 ? coverage.missingFoundingBrands.join(", ") : "none"})`,
+    );
+    return { ok: false, reason: "coverage_check_failed", coverage };
+  }
+  const written = await storage.replaceAllReferenceBrands(coverage.dedupedBrands);
+  refreshLog.info(`commitReferenceBrands: wrote ${written.length} brands`);
+  return { ok: true, brandCount: written.length, coverage };
 }
 
 function brandRowsToRanges(brands: Array<Pick<ReferenceBrand, "id" | "brandName" | "niche" | "propertyCount" | "keyCountMin" | "keyCountMax">>): ProposedRange[] {

@@ -58,9 +58,9 @@ feature ships or a new Rebecca tool is added.
 
 | UI Action | UI Location | Rebecca Tool | Status |
 |---|---|---|---|
-| Refresh Capital Raise benchmarks | Admin → Analyst tables | `refresh_analyst_table` | ✅ |
-| Refresh Exit Multiples benchmarks | Admin → Analyst tables | `refresh_analyst_table` | ✅ |
-| Refresh Reference Brands | Admin → Analyst tables | `refresh_analyst_table` | ✅ |
+| Refresh Capital Raise benchmarks | Admin → Analyst tables | `refresh_analyst_table` (deprecated — use research + commit), `research_analyst_table` + `commit_analyst_table_research` | ✅ |
+| Refresh Exit Multiples benchmarks | Admin → Analyst tables | `refresh_analyst_table` (deprecated — use research + commit), `research_analyst_table` + `commit_analyst_table_research` | ✅ |
+| Refresh Reference Brands | Admin → Analyst tables | `refresh_analyst_table` (deprecated — use research + commit), `research_analyst_table` + `commit_analyst_table_research` | ✅ |
 | Read current rows of an analyst table | Admin → Analyst tables | `get_analyst_table` | ✅ |
 
 ## Company Actions

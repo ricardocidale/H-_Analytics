@@ -35,7 +35,7 @@ export function getDeckTools(): ToolParam[] {
     },
     {
       name: "refresh_analyst_table",
-      description: "Trigger an LLM-driven refresh of an analyst benchmark table and commit the results. Admin only. tableId must be one of: capital_raise_benchmarks, exit_multiples, reference_brands.",
+      description: "DEPRECATED — use research_analyst_table + commit_analyst_table_research instead. Trigger an LLM-driven refresh of an analyst benchmark table and commit the results in one step (no inspect-before-commit). Admin only. tableId must be one of: capital_raise_benchmarks, exit_multiples, reference_brands.",
       parameters: {
         type: "object",
         properties: {
@@ -43,6 +43,50 @@ export function getDeckTools(): ToolParam[] {
             type: "string",
             enum: ["capital_raise_benchmarks", "exit_multiples", "reference_brands"],
             description: "Table to refresh",
+          },
+        },
+        required: ["tableId"],
+      },
+    },
+    {
+      name: "research_analyst_table",
+      description: "Run the LLM research step for an analyst benchmark table and return the proposed rows WITHOUT writing to the DB. For reference_brands the response also includes a coverage verdict (min-count + founding-brand check + dedupe). Pair with commit_analyst_table_research to persist. Admin only.",
+      parameters: {
+        type: "object",
+        properties: {
+          tableId: {
+            type: "string",
+            enum: ["capital_raise_benchmarks", "exit_multiples", "reference_brands"],
+            description: "Which analyst table to research.",
+          },
+        },
+        required: ["tableId"],
+      },
+    },
+    {
+      name: "commit_analyst_table_research",
+      description: "Persist a research payload produced by research_analyst_table. For capital_raise_benchmarks and exit_multiples, pass `ranges`. For reference_brands, pass `brands` and the coverage guard is re-run on the server (a payload that doesn't meet min-count + founding-brand coverage is rejected). Admin only.",
+      parameters: {
+        type: "object",
+        properties: {
+          tableId: {
+            type: "string",
+            enum: ["capital_raise_benchmarks", "exit_multiples", "reference_brands"],
+            description: "Which analyst table to commit to.",
+          },
+          ranges: {
+            type: "array",
+            description: "For capital_raise_benchmarks / exit_multiples: array of { dimensionKey, label, unit, valueLow, valueMid, valueHigh } as returned by research_analyst_table.",
+            items: { type: "object" },
+          },
+          brands: {
+            type: "array",
+            description: "For reference_brands: array of brand objects as returned by research_analyst_table (proposedBrands).",
+            items: { type: "object" },
+          },
+          sourceCount: {
+            type: "number",
+            description: "Sources cited by the research step (carried over from research_analyst_table).",
           },
         },
         required: ["tableId"],
