@@ -172,9 +172,13 @@ async function toolAppendToMaintenanceLog(args: Record<string, unknown>) {
 // DEPRECATED — use append_to_maintenance_log. Preserves the previous wrapper
 // behavior (auto-prepends header + timestamp) for any legacy caller.
 async function toolWriteHealthReport(args: Record<string, unknown>) {
-  const summary = args.summary as string;
+  // Schema marks summary required, but the dispatcher passes through whatever
+  // the LLM produced — validate at the boundary (CodeRabbit PR-99 re-review).
+  if (typeof args.summary !== "string") {
+    return { written: false, error: "summary must be a string" };
+  }
   const timestamp = new Date().toISOString();
-  const content = `# Pietro Health Report\n\nGenerated: ${timestamp}\n\n${summary}`;
+  const content = `# Pietro Health Report\n\nGenerated: ${timestamp}\n\n${args.summary}`;
   return toolAppendToMaintenanceLog({ content });
 }
 
