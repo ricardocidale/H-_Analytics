@@ -23,7 +23,8 @@ import { logger } from "../logger";
 import { storage } from "../storage";
 import { buildSlidePayload, buildGlobalInput } from "./build-payload";
 import { buildFactoryPayload } from "./build-factory-payload";
-import { getBrowser } from "./playwright-browser";
+import { renderReportToPng } from "./render-report-png";
+import type { ReportDefinition, TableRow, FormattedValue } from "../report/types";
 import { recomputeSinglePropertyAndStamp } from "../finance/recompute";
 import { withModelConstants } from "../finance/apply-model-constants";
 import { EMPTY_DECK_PAYLOAD_V2 } from "@shared/deck-payload-v2";
@@ -41,99 +42,120 @@ export interface LbSlidePayload {
   };
 }
 
-// ── USALI PNG renderer ────────────────────────────────────────────────────
+// ── USALI ReportDefinition adapter ────────────────────────────────────────
+//
+// Factory v2 U5 lifted the actual PNG rendering into `render-report-png.ts`
+// (a generic `ReportDefinition` → PNG module). This adapter shapes the
+// portfolio yearly IS/CF arrays into the same `ReportDefinition` shape the
+// `format-generators/*` exporters consume, so the renderer stays purely
+// generic and the call site stays purely about data.
 
-const USALI_TABLE_VIEWPORT_WIDTH = 1180;
-const USALI_TABLE_VIEWPORT_HEIGHT = 600;
-const USALI_DEVICE_SCALE_FACTOR = 2;
-const USALI_CSS_FW_NORMAL = 500;
-const USALI_CSS_FW_MEDIUM = 600;
-const USALI_CSS_FW_BOLD = 700;
-const USALI_CSS_TABLE_WIDTH = "100%";
-const USALI_CSS_LABEL_COL_WIDTH = 160;
+const USALI_REPORT_TOKENS_PLACEHOLDER = {
+  // The renderer module uses a fixed palette (see render-report-png.ts) so
+  // these tokens are only required to satisfy the ReportDefinition shape.
+  primary: "#1c2b1e",
+  secondary: "#1c2b1e",
+  accent: "#1c2b1e",
+  foreground: "#222222",
+  border: "#e8e8e5",
+  muted: "#f7f7f4",
+  surface: "#ffffff",
+  background: "#ffffff",
+  white: "#ffffff",
+  negativeRed: "#b00020",
+  chart: [] as string[],
+  line: [] as string[],
+};
 
-function buildUsaliTableHtml(yearlyIS: YearlyIS[], yearlyCF: YearlyCF[], projYears: number): string {
-  const yrs = Math.min(yearlyIS.length, yearlyCF.length);
-  const fmt = (n: number): string => {
-    const abs = Math.abs(n);
-    const sign = n < 0 ? "(" : "";
-    const end = n < 0 ? ")" : "";
-    return `${sign}$${Math.round(abs).toLocaleString("en-US")}${end}`;
-  };
-  const pct = (n: number): string => `${(n * 100).toFixed(1)}%`;
-
-  const headers = ["", ...Array.from({ length: yrs }, (_, i) => `Yr ${i + 1}`)];
-
-  type Row = { label: string; vals: number[]; cls?: string };
-  const rows: Row[] = [
-    { label: "Revenue", vals: yearlyIS.map(y => y.revenueTotal) },
-    { label: "Operating Expenses", vals: yearlyIS.map(y => y.totalExpenses) },
-    { label: "Gross Operating Profit", vals: yearlyIS.map(y => y.gop), cls: "subtotal" },
-    { label: "NOI", vals: yearlyIS.map(y => y.noi), cls: "noi" },
-    { label: "Debt Service", vals: yearlyCF.map(y => y.debtService), cls: "section-break" },
-    { label: "Net Cash Flow", vals: yearlyCF.map(y => y.netCashFlowToInvestors) },
-    { label: "Cumulative Cash Flow", vals: yearlyCF.map(y => y.cumulativeCashFlow), cls: "cumul" },
-  ];
-
-  // ADR row uses averages already stored on yearlyIS
-  const occupancyRow: Row = {
-    label: "Occupancy",
-    vals: yearlyIS.map(y => y.availableRooms > 0 ? y.soldRooms / y.availableRooms : 0),
-  };
-  const adrRow: Row = { label: "ADR", vals: yearlyIS.map(y => y.cleanAdr) };
-
-  const renderRow = (r: Row, isOcc = false): string => {
-    const cells = r.vals.slice(0, yrs).map(v => {
-      const display = isOcc ? pct(v) : fmt(v);
-      return `<td>${display}</td>`;
-    }).join("");
-    return `<tr class="${r.cls ?? ""}"><td>${r.label}</td>${cells}</tr>`;
-  };
-
-  return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:#fff;font-family:system-ui,-apple-system,sans-serif;padding:18px 20px 22px 20px}
-  h4{font-size:10px;font-weight:${USALI_CSS_FW_BOLD};color:#1c2b1e;margin-bottom:12px;letter-spacing:.12em;text-transform:uppercase}
-  table{border-collapse:collapse;width:${USALI_CSS_TABLE_WIDTH};font-size:11px}
-  th{background:#1c2b1e;color:#f5f0e8;text-align:right;padding:7px 9px;font-weight:${USALI_CSS_FW_MEDIUM};font-size:10px;letter-spacing:.04em;white-space:nowrap}
-  th:first-child{text-align:left;min-width:${USALI_CSS_LABEL_COL_WIDTH}px}
-  td{padding:6px 9px;border-bottom:1px solid #e8e8e5;text-align:right;color:#222;white-space:nowrap;font-variant-numeric:tabular-nums}
-  td:first-child{text-align:left;color:#333;font-weight:${USALI_CSS_FW_NORMAL}}
-  tr:nth-child(even) td{background:#f7f7f4}
-  .subtotal td{font-weight:${USALI_CSS_FW_MEDIUM};border-top:1px solid #ccc}
-  .noi td{font-weight:${USALI_CSS_FW_BOLD};color:#1a6b38;border-top:1px solid #1c2b1e;border-bottom:2px solid #1c2b1e}
-  .section-break td{border-top:2px solid #d0d0d0}
-  .cumul td{color:#555;font-style:italic}
-  .dim td{color:#888;font-size:10px}
-</style></head><body>
-<h4>${projYears}-Year Portfolio Pro Forma — Income Statement (USD)</h4>
-<table>
-  <thead><tr>${headers.map(h => `<th>${h}</th>`).join("")}</tr></thead>
-  <tbody>
-    ${rows.map(r => renderRow(r)).join("\n    ")}
-    ${renderRow(occupancyRow, true)}
-    ${renderRow(adrRow)}
-  </tbody>
-</table>
-</body></html>`;
+function formatUsd(n: number): string {
+  const abs = Math.abs(n);
+  const sign = n < 0 ? "(" : "";
+  const end = n < 0 ? ")" : "";
+  return `${sign}$${Math.round(abs).toLocaleString("en-US")}${end}`;
 }
 
-async function renderUsaliTablePng(yearlyIS: YearlyIS[], yearlyCF: YearlyCF[], projYears: number): Promise<string> {
-  const html = buildUsaliTableHtml(yearlyIS, yearlyCF, projYears);
-  const browser = await getBrowser();
-  const context = await browser.newContext({
-    viewport: { width: USALI_TABLE_VIEWPORT_WIDTH, height: USALI_TABLE_VIEWPORT_HEIGHT },
-    deviceScaleFactor: USALI_DEVICE_SCALE_FACTOR,
-  });
-  try {
-    const page = await context.newPage();
-    await page.setContent(html, { waitUntil: "networkidle" });
-    const screenshot = await page.screenshot({ fullPage: true });
-    return screenshot.toString("base64");
-  } finally {
-    await context.close().catch(() => {});
-  }
+const PCT_DECIMALS = 1; // 1 decimal place (e.g. "67.5%"); structural display choice.
+
+function formatPct(n: number): string {
+  // Multiply by 100 (percent-of-1 → percent display). The "100" is a
+  // documented unit-conversion factor per CLAUDE.md §2 (true constant).
+  const PERCENT_SCALE = 100;
+  return `${(n * PERCENT_SCALE).toFixed(PCT_DECIMALS)}%`;
+}
+
+function fv(raw: number, text: string): FormattedValue {
+  return { raw, text, negative: raw < 0 };
+}
+
+function makeRow(
+  label: string,
+  vals: number[],
+  formatter: (n: number) => string,
+  type: TableRow["type"],
+  format?: string,
+): TableRow {
+  return {
+    category: label,
+    values: vals.map((v) => fv(v, formatter(v))),
+    rawValues: vals,
+    type,
+    indent: 0,
+    ...(format ? { format } : {}),
+  };
+}
+
+/**
+ * Adapt the portfolio yearly IS/CF aggregates into a `ReportDefinition`
+ * suitable for the generic `renderReportToPng` module. Preserves the prior
+ * inline implementation's row order, labels, and formatting so the rendered
+ * PNG remains visually consistent with the pre-U5 slide 6 output.
+ */
+export function buildUsaliReportDefinition(
+  yearlyIS: YearlyIS[],
+  yearlyCF: YearlyCF[],
+  projYears: number,
+): ReportDefinition {
+  const yrs = Math.min(yearlyIS.length, yearlyCF.length);
+  const years = Array.from({ length: yrs }, (_, i) => `Yr ${i + 1}`);
+  const sliceIS = yearlyIS.slice(0, yrs);
+  const sliceCF = yearlyCF.slice(0, yrs);
+
+  const occupancyVals = sliceIS.map((y) =>
+    y.availableRooms > 0 ? y.soldRooms / y.availableRooms : 0,
+  );
+
+  const rows: TableRow[] = [
+    makeRow("Revenue", sliceIS.map((y) => y.revenueTotal), formatUsd, "data"),
+    makeRow("Operating Expenses", sliceIS.map((y) => y.totalExpenses), formatUsd, "data"),
+    makeRow("Gross Operating Profit", sliceIS.map((y) => y.gop), formatUsd, "subtotal"),
+    makeRow("NOI", sliceIS.map((y) => y.noi), formatUsd, "total"),
+    makeRow("Debt Service", sliceCF.map((y) => y.debtService), formatUsd, "data", "section-break"),
+    makeRow("Net Cash Flow", sliceCF.map((y) => y.netCashFlowToInvestors), formatUsd, "data"),
+    makeRow("Cumulative Cash Flow", sliceCF.map((y) => y.cumulativeCashFlow), formatUsd, "data", "cumul"),
+    makeRow("Occupancy", occupancyVals, formatPct, "data"),
+    makeRow("ADR", sliceIS.map((y) => y.cleanAdr), formatUsd, "data"),
+  ];
+
+  return {
+    cover: {
+      companyName: "H+ Analytics",
+      entityName: "Portfolio",
+      reportTitle: `${projYears}-Year Portfolio Pro Forma — Income Statement (USD)`,
+      // Date is not surfaced in the rendered PNG output (the renderer reads
+      // only `sections[]`); empty string satisfies the type shape.
+      date: "",
+    },
+    tokens: USALI_REPORT_TOKENS_PLACEHOLDER,
+    orientation: "landscape",
+    sections: [
+      {
+        kind: "table",
+        title: `${projYears}-Year Portfolio Pro Forma — Income Statement (USD)`,
+        years,
+        rows,
+      },
+    ],
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -322,7 +344,9 @@ async function buildSlide6Payload(allPropertyIds: number[]): Promise<SlidePayloa
 
   let usaliPngBase64: string | undefined;
   try {
-    usaliPngBase64 = await renderUsaliTablePng(summedYearlyIS, summedYearlyCF, projYears);
+    const usaliReport = buildUsaliReportDefinition(summedYearlyIS, summedYearlyCF, projYears);
+    const pngBuffer = await renderReportToPng(usaliReport);
+    usaliPngBase64 = pngBuffer.toString("base64");
   } catch (err) {
     logger.warn(`[build-lb-payload] Failed to render USALI table PNG: ${err}`, "build-lb-payload");
   }
