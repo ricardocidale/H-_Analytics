@@ -15,6 +15,7 @@ applies_when:
   - Local main (not a PR branch) has accumulated mixed CC + Replit Agent commits before push
   - A valuable Replit Agent commit needs to ship but cannot be mixed into a CC PR
   - Multiple PRs need to wait for CI gates and manual polling would otherwise be required
+  - CC is actively authoring a file across multiple bash calls and the Replit Agent may touch the same path
 tags:
   - git-hygiene
   - branch-management
@@ -24,6 +25,8 @@ tags:
   - agent-coordination
   - auto-merge
   - gh-pr-checks
+  - wip-file-collision
+  - dirty-branch-rename
 ---
 
 # CC branch hygiene: Replit Agent stages unreviewed commits on CC PR branches
@@ -218,6 +221,84 @@ git reset --hard origin/main
 
 Safe because (a) the CC commit is on its PR branch, (b) the valuable Replit commits are on their PR branches, (c) worthless Replit commits are by definition disposable. After each PR merges, `git pull --ff-only origin main` brings local `main` forward with the squashed merge commits.
 
+## Sub-pattern: Replit Agent edits CC's in-flight WIP file mid-session
+
+The PR-branch and local-main patterns above cover the case where the Replit Agent stages **new, unrelated** commits onto a CC branch. A sharper variant: while CC is **actively authoring a file** across multiple bash calls (typical for a spike, a scratch script, or any multi-step edit), the Replit Agent commits its own version of the same file onto the same branch — overwriting CC's WIP state in the working tree at the next `git checkout`.
+
+### When it surfaces
+
+- CC creates a feature branch and starts work that involves several rounds of edit → run → debug → edit (e.g., the U1 pptx substitution spike on 2026-05-11)
+- The Replit Agent independently decides to edit a file CC has open and commits its take
+- `git status` on the CC side starts showing `deleted:` or `modified:` for files CC was authoring — the Replit commit overwrote them
+- `git log origin/main..HEAD` shows two Replit-authored commits between CC's commits, one of which has a subject like "Update script to customize…" matching the file CC was editing
+
+### Why cherry-picking-only is insufficient
+
+The standard cherry-pick workflow (§ Step 2 above) assumes CC's work is already **committed**. When CC's work is partially committed and partially WIP, naive cherry-picking will:
+
+- Reset the WIP files to the Replit-edited version (silently discarding CC's in-progress changes)
+- Or skip the WIP files entirely, leaving CC to manually reconstruct them from memory
+
+The recovery has to preserve CC's WIP outside Git first.
+
+### Recovery procedure (`*-DIRTY-with-replit` branch rename)
+
+```bash
+# 1. Back up CC's uncommitted/WIP files OUTSIDE the repo before any branch ops
+mkdir -p /tmp/<unit>-backup
+cp <cc-wip-file-1> <cc-wip-file-2> ... /tmp/<unit>-backup/
+
+# 2. Save any remaining uncommitted state as a safety net
+git stash --include-untracked
+
+# 3. Rename the dirty branch to preserve Replit's commits for a separate PR
+git branch -m <cc-branch> <cc-branch>-DIRTY-with-replit
+
+# 4. Create a fresh clean branch from origin/main
+git checkout -b <cc-branch> origin/main
+
+# 5. Cherry-pick any pre-existing fixes you authored elsewhere
+git cherry-pick <fix-sha>
+
+# 6. Re-run any installs / codegen / migrations that were part of CC's work
+pnpm --filter <pkg> add <dep>
+
+# 7. Restore the backed-up WIP files to their canonical paths
+cp /tmp/<unit>-backup/<file> <restore-path>
+
+# 8. Stage and commit as a single CC-authored commit
+git add <cc-files>
+git commit -m "<unit-scoped message>"
+
+# 9. Push the clean branch and open the PR
+git push -u origin <cc-branch>
+gh pr create --title "..." --body "..."
+```
+
+The `*-DIRTY-with-replit` branch acts as a safety net — until both PRs ship (the clean CC PR plus a separate PR cherry-picking Replit's valuable commits), no work is lost. Once both have merged, `git branch -D <cc-branch>-DIRTY-with-replit` cleans up.
+
+### Why this works
+
+- **Filesystem backup is the durable checkpoint.** Git stash is fragile across branch ops when working-tree state is messy; `cp` to `/tmp` guarantees the WIP survives any branch operation
+- **Renaming preserves both bodies of work.** Replit's commits live on the renamed branch and can be cherry-picked into their own PR with the correct title and scope. CC's clean branch ships CC-only history
+- **Cherry-pick + re-install is faster and safer than history rewriting.** No risk of corrupting refs that may already have been pushed; no fragile rebase conflicts; each commit on the new branch has a single clear author
+
+### Anti-patterns (would destroy work)
+
+- `git reset --hard origin/main` in place — destroys both Replit's valuable commits AND CC's uncommitted WIP
+- `git filter-branch` / interactive rebase to drop Replit commits — destructive history rewriting; loses Replit's work entirely
+- Merging Replit's commits into the CC PR — ships unreviewed-in-context work under a CC PR title; violates the same scope rule § "Cherry-pick workflow" enforces
+
+### Proactive check
+
+When starting CC work that will span more than ~10 minutes of bash calls on a single file, snapshot first:
+
+```bash
+cp scripts/src/<wip-file>.ts /tmp/<unit>-backup/  # immediate snapshot
+```
+
+Cheap insurance: even one snapshot at the start gives a recovery point if Replit commits over the file later.
+
 ### Worked example — 2026-05-11 session
 
 Starting state of local `main`:
@@ -235,8 +316,49 @@ Cherry-picked Replit Agent commit → PR #91 with explicit authorship acknowledg
 
 Both merged successfully: PR #90 as `5e245b24` (CodeRabbit "Review completed" PASS); PR #91 as `9be96277` (CodeRabbit "Review skipped" on docs-only diff, all other gates green). No Replit Agent commits in either PR's diff scope; both authors preserved in commit history. The empty `8fbe53c3` dropped via `git reset --hard origin/main`.
 
+### Worked example — 2026-05-11 U1 spike session (WIP-file collision variant)
+
+CC was executing U1 of the Factory v2 plan (PPTX substitution library spike). CC's flow: create `feat/u1-pptx-substitution-spike` from `origin/main`, `pnpm add pptx-automizer`, write `scripts/src/pptx-substitution-spike.ts` over ~6 rounds of edit/run/debug (discovered `cleanup: true` triggers a content-tracker bug, `modify.replaceText` is unstable on the canonical PPTX, pivoted to `modify.setText`), then start the decision doc.
+
+While CC was mid-debug, the Replit Agent committed twice onto the same branch:
+
+```
+51d34750 [Replit Agent] Update script to customize presentation text and save output
+27e10979 [Replit Agent] feat(company): graduate Swiss-Minimal KPI hero into KPIGrid + per-card accents
+```
+
+`27e10979` was independent and valuable (graduating a sandbox mockup into production `KPIGrid` with `variant="swiss"` + Y1 baselines + per-card accents). `51d34750` was Replit's own version of the spike file — overwriting CC's WIP. The diff stat showed `scripts/src/pptx-substitution-spike.ts | 56 ++++++++++++++++------------------` confirming Replit had rewritten CC's in-flight file.
+
+Recovery applied the `*-DIRTY-with-replit` procedure above:
+
+```bash
+mkdir -p /tmp/u1-backup
+cp scripts/src/pptx-substitution-spike.ts \
+   docs/solutions/architecture-patterns/pptx-substitution-library-decision-2026-05-11.md \
+   /tmp/u1-backup/
+
+git stash --include-untracked
+git branch -m feat/u1-pptx-substitution-spike feat/u1-spike-DIRTY-with-replit
+git checkout -b feat/u1-pptx-substitution-spike origin/main
+git cherry-pick fc436579   # pre-existing typecheck fix
+pnpm --filter @workspace/api-server --filter @workspace/scripts add pptx-automizer
+cp /tmp/u1-backup/pptx-substitution-spike.ts scripts/src/
+cp /tmp/u1-backup/pptx-substitution-library-decision-2026-05-11.md \
+   docs/solutions/architecture-patterns/
+
+git add scripts/src/pptx-substitution-spike.ts \
+        docs/solutions/architecture-patterns/pptx-substitution-library-decision-2026-05-11.md \
+        artifacts/api-server/package.json scripts/package.json pnpm-lock.yaml
+git commit -m "feat(factory-v2): U1 — choose pptx-automizer..."
+git push -u origin feat/u1-pptx-substitution-spike
+gh pr create --title "feat(factory-v2): U1 — pptx-automizer chosen, spike + decision doc"
+```
+
+Result: PR #112 shipped from the clean CC branch with CC-only history (verified via `git log --format='%h %an %ae'` showing zero `Replit-Commit-Author` trailers). The Swiss-Minimal KPI work on `feat/u1-spike-DIRTY-with-replit` remains locally available for a follow-up PR cherry-picking only `27e10979`.
+
 ## Related
 
 - `CLAUDE.md` § "CC branch hygiene — Replit agent staging risk" — the live enforcement rule (added PR #67, 2026-05-10)
 - `docs/solutions/workflow-issues/coderabbit-iterative-review-loop-on-replit-agent-2026-05-09.md` — covers the Replit auto-checkpoint mechanism that enables this staging pattern
 - `docs/solutions/workflow-issues/slide-factory-pre-merge-shipping-gates-2026-05-08.md` — the existing pre-merge gate sequence that the new scope-check gate extends
+- `docs/solutions/workflow-issues/squash-merge-with-failing-required-check-2026-05-11.md` — the complementary failure mode where a PR ships with a red required check and downstream branches inherit a regression
