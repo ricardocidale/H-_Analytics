@@ -220,12 +220,23 @@ export async function saveCompanyAssumptionTab(
     const missing = findMissingRequiredFields(gateSource, gateFields);
     if (missing.length > 0) requiredFieldsMissing = missing;
 
-    const observedMissing = findObservedMissingCandidateFields(
-      gateSource,
-      activeDef?.candidateFields ?? [],
-      fieldRequirements,
-    );
-    await storage.recordObservedMissingFields(activeSpecialistId, observedMissing);
+    // Observed-missing telemetry is best-effort — a failure here must not
+    // mask the successful save or the user-facing `requiredFieldsMissing`
+    // gate computed above (CodeRabbit PR-94, matching the company-tab
+    // try/catch pattern but scoped to just the telemetry write).
+    try {
+      const observedMissing = findObservedMissingCandidateFields(
+        gateSource,
+        activeDef?.candidateFields ?? [],
+        fieldRequirements,
+      );
+      await storage.recordObservedMissingFields(activeSpecialistId, observedMissing);
+    } catch (telemetryErr: unknown) {
+      logger.warn(
+        `${tabKey} observed-missing emission failed: ${telemetryErr instanceof Error ? telemetryErr.message : String(telemetryErr)}`,
+        "global-assumptions",
+      );
+    }
   }
 
   return {
