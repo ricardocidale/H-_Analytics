@@ -13,10 +13,13 @@
  *   drafting         Tab 4  Lucca running
  *   draft_review     Tab 4  Lucca complete, awaiting admin approval
  *   building         Tab 5  Marco dispatching, slide teams running
+ *   substituting     Tab 5  Factory v2: PPTX template substitution in progress
+ *   converting_pdf   Tab 5  Factory v2: soffice headless export PPTX → PDF
  *   complete         Tab 6  All slides approved, deck rendered
+ *   rebuilding       Tab 6  Admin override triggered lightweight PDF re-render
  *   error            Any    Fatal failure
  *
- * Property assignments are snapshotted as four FK columns (not JSONB) so that
+ * Property assignments are snapshotted as five FK columns (not JSONB) so that
  * ON DELETE SET NULL fires automatically if a property is deleted while a run
  * is paused. The run-resume path checks for nulled columns and surfaces a
  * recoverable error.
@@ -36,18 +39,30 @@ import { users } from "./auth";
 import { properties } from "./properties";
 
 export const SLIDE_FACTORY_RUN_STATUSES = [
-  "new",           // Tab 1 not yet submitted
-  "brief_ready",   // Brief accepted, Lorenzo not yet started
-  "ingesting",     // Tab 2: Lorenzo team running
-  "ingested",      // Tab 2 complete; property assignments ready
-  "drafting",      // Tab 4: Lucca running
-  "draft_review",  // Tab 4: awaiting admin slot approval
-  "building",      // Tab 5: Marco dispatching slide teams
-  "complete",      // Tab 6: deck rendered and downloadable
-  "rebuilding",    // Tab 6: admin override triggered lightweight PDF re-render
-  "error",         // Any stage failed fatally
+  "new",            // Tab 1 not yet submitted
+  "brief_ready",    // Brief accepted, Lorenzo not yet started
+  "ingesting",      // Tab 2: Lorenzo team running
+  "ingested",       // Tab 2 complete; property assignments ready
+  "drafting",       // Tab 4: Lucca running
+  "draft_review",   // Tab 4: awaiting admin slot approval
+  "building",       // Tab 5: Marco dispatching slide teams
+  "substituting",   // Factory v2: PPTX template substitution in progress
+  "converting_pdf", // Factory v2: soffice headless export PPTX → PDF
+  "complete",       // Tab 6: deck rendered and downloadable
+  "rebuilding",     // Tab 6: admin override triggered lightweight PDF re-render
+  "error",          // Any stage failed fatally
 ] as const;
 export type SlideFactoryRunStatus = (typeof SLIDE_FACTORY_RUN_STATUSES)[number];
+
+// JSONB shape for one wish-list log entry. Lucca emits these whenever a slot's
+// LLM "best-shot" filled in narrative data the app does not natively track.
+// The wish-list slide builder reads this array post-completion (R8).
+export interface WishListLogEntry {
+  field: string;          // missing-data field name (e.g. "transformation_budget")
+  slot: string;           // canonical slot key the gap surfaced in (e.g. "slide3_transformation")
+  slideNumber: number;    // 1..6 — slide that needed the data
+  whyItHelps: string;     // 1-sentence rationale shown on the wish-list slide
+}
 
 // JSONB shape for one narrative slot in Lucca's draft (Tab 4)
 export interface LuccaSlotDraft {
@@ -94,8 +109,22 @@ export const slideFactoryRuns = pgTable(
     canonicalPngKeys: jsonb("canonical_png_keys").$type<string[]>(),
 
     // Tab 3 — Property assignments (snapshotted FKs; ON DELETE SET NULL)
-    // Slide 4 (portfolio grid) and Slide 6 (income statement) are auto-generated
+    // Factory v2 (R11): slide 1 is a multi-property overview (no single-property
+    // assignment); slide 4 gains a single-property assignment (Hazelnis in the
+    // current canonical set). slide 6 (income statement) is auto-generated
     // from the portfolio — no property assignment needed.
+    //
+    // TODO U4/U8/U11: drop `slide1_property_id` column in a follow-up PR once
+    // every call site has been converted to read `slide4PropertyId` per
+    // Factory v2 R11. Read sites span multiple units:
+    //   U4 — build-lb-payload.ts (substitution-map source)
+    //   U8 — marco-tools.ts, lucca-draft.ts (builder rewiring)
+    //   U11 — frontend SlideFactoryPanel.tsx, slide-factory route Zod schema,
+    //         smoke-producer.ts (admin UI + tooling)
+    // Per the drizzle-migration-state-drift-missing-tables-2026-05-07 learning,
+    // we execute this as a two-phase drop: U3 (this PR) adds the new columns
+    // while the deprecated one stays addressable; the follow-up PR drops it
+    // once no code path references it.
     slide1PropertyId: integer("slide1_property_id").references(
       () => properties.id,
       { onDelete: "set null" },
@@ -105,6 +134,10 @@ export const slideFactoryRuns = pgTable(
       { onDelete: "set null" },
     ),
     slide3PropertyId: integer("slide3_property_id").references(
+      () => properties.id,
+      { onDelete: "set null" },
+    ),
+    slide4PropertyId: integer("slide4_property_id").references(
       () => properties.id,
       { onDelete: "set null" },
     ),
@@ -123,6 +156,18 @@ export const slideFactoryRuns = pgTable(
 
     // Tab 6 — Final rendered deck
     deckR2Key: text("deck_r2_key"),
+
+    // Factory v2 (R10) — PPTX delivered alongside the PDF. R2 key for the
+    // substituted PPTX; soffice headless converts it to deckR2Key (PDF).
+    pptxR2Key: text("pptx_r2_key"),
+
+    // Factory v2 (R8) — wish-list log. Each entry records narrative data
+    // Lucca had to best-shot via LLM because the app does not natively track it.
+    // The wish-list slide builder reads this post-completion to render slide 7.
+    wishListLog: jsonb("wish_list_log")
+      .$type<WishListLogEntry[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
 
     // Enzo verdict cache — keyed by "slide1".."slide6"; value is the
     // SHA-256-like content hash of all slot draft values for that slide at the

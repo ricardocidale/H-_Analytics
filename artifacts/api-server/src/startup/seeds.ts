@@ -185,6 +185,7 @@ async function runSeeds() {
     { name: "rebecca-rail-open", run: async () => { const { runRebeccaRailOpen001 } = await import("../migrations/rebecca-rail-open-001"); await runRebeccaRailOpen001(); } },
     { name: "rebecca-chat-prefs", run: async () => { const { runRebeccaChatPrefs001 } = await import("../migrations/rebecca-chat-prefs-001"); await runRebeccaChatPrefs001(); } },
     { name: "rebecca-history-chips", run: async () => { const { runRebeccaHistoryChips001 } = await import("../migrations/rebecca-history-chips-001"); await runRebeccaHistoryChips001(); } },
+    { name: "slide-factory-runs-v2-columns", run: async () => { const { runSlideFactoryRunsV2Columns } = await import("../migrations/slide-factory-runs-v2-columns"); await runSlideFactoryRunsV2Columns(); } },
     { name: "knowledge-registry", run: async () => { const { seedKnowledgeRegistry } = await import("../seeds/knowledge-registry"); await seedKnowledgeRegistry(); } },
     { name: "country-economic-data", run: async () => { const { seedCountryEconomicDataIfEmpty } = await import("../seeds/knowledge-registry"); await seedCountryEconomicDataIfEmpty(); } },
   ];

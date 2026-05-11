@@ -337,6 +337,13 @@
       "when": 1778427720403,
       "tag": "0049_users_tour_step_not_null",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1778561187303,
+      "tag": "0050_factory_v2_runs_columns",
+      "breakpoints": true
     }
   ]
 }

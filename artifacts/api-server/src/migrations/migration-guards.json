@@ -198,6 +198,11 @@
     "0048_costantino_findings": {
       "status": "self-idempotent",
       "reason": "CREATE TABLE IF NOT EXISTS costantino_findings + indexes + two ON CONFLICT DO NOTHING admin_resources seeds (llm_slot 'costantino-orchestration', parameter 'costantino-health-cycle-interval-ms'). The llm_slot insert is conditional on pietro-orchestration existing, so a re-run on a fresh DB before admin-resources-005 is also a no-op. Cadence numeric literals in the SQL are documented in the file header and exempt from check:magic-numbers (SQL files are not scanned)."
+    },
+    "0050_factory_v2_runs_columns": {
+      "status": "guarded",
+      "guard": "slide-factory-runs-v2-columns.ts",
+      "reason": "Factory v2 schema extension for slide_factory_runs (plan U3) — adds slide4_property_id (FK properties, SET NULL), wish_list_log (jsonb NOT NULL DEFAULT '[]'::jsonb), pptx_r2_key (text), and widens the status CHECK to include 'substituting', 'converting_pdf', and 'rebuilding' (latent TS-vs-DB drift heal). Guarded by slide-factory-runs-v2-columns.ts because the slide_factory_runs table was the canonical example of the journal-state drift incident documented in drizzle-migration-state-drift-missing-tables-2026-05-07."
     }
   }
 }

@@ -54,6 +54,7 @@ function makeCompleteRun(
     slide1PropertyId: 11,
     slide2PropertyId: 12,
     slide3PropertyId: 13,
+    slide4PropertyId: null,
     slide5PropertyId: 15,
     luccaDraft: {
       "slide1.headerSubtitle": makeDraft("A Catskills Hideaway"),
@@ -138,6 +139,8 @@ function makeCompleteRun(
       },
     },
     deckR2Key: null,
+    pptxR2Key: null,
+    wishListLog: [],
     slotContentHashes: null,
     startedAt: now,
     completedAt: now,
