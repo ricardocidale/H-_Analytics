@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,16 +47,9 @@ export default function InviteUsersDialog({
 
   const sendInvitations = useMutation({
     mutationFn: async (data: { emails: string[]; role: string; message?: string }) => {
-      const res = await fetch("/api/admin/invitations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(data),
+      const res = await apiRequest("POST", "/api/admin/invitations", data, {
+        fallbackMessage: "Failed to send invitations",
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to send invitations");
-      }
       return res.json() as Promise<{ results: InviteResult[]; summary: InviteSummary }>;
     },
     onSuccess: (data) => {
