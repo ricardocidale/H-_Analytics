@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Loader2 } from "@/components/icons/themed-icons";
@@ -275,16 +276,9 @@ export function DefaultScenariosSection({ scenarios, users }: { scenarios: Admin
 
   const createDefaultMutation = useMutation({
     mutationFn: async (userId: number) => {
-      const res = await fetch("/api/admin/scenarios", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ userId, name: "Default Scenario", kind: "default" }),
+      const res = await apiRequest("POST", "/api/admin/scenarios", { userId, name: "Default Scenario", kind: "default" }, {
+        fallbackMessage: "Failed to create default scenario",
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || "Failed to create default scenario");
-      }
       return res.json();
     },
     onSuccess: () => {
