@@ -169,7 +169,20 @@ export async function toolCreateProperty(
 
   const seedResult = await toolSeedPropertyFees({ propertyId: recordBody.id }, ctx);
   const seedBody = seedResult.result as { error?: string };
-  if (seedBody.error) return seedResult;
+  if (seedBody.error) {
+    // The property row was already inserted by toolCreatePropertyRecord.
+    // Surface partialSuccess + the new id so a caller's retry-on-error path
+    // doesn't insert a duplicate property (CodeRabbit PR-98).
+    return {
+      result: {
+        error: `Property created but fee seeding failed: ${seedBody.error}`,
+        id: recordBody.id,
+        name: recordBody.name,
+        partialSuccess: true,
+      },
+      dataChanged: { entityType: "property", entityId: recordBody.id },
+    };
+  }
 
   return {
     result: { id: recordBody.id, name: recordBody.name },
