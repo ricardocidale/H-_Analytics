@@ -21,12 +21,50 @@
  *
  * Numeric literals in this file are limited to:
  *   - structural minima (`min(1)` for "non-empty") which CLAUDE.md §1 classifies
- *     as structural clamps, and
+ *     as structural clamps,
  *   - the named-constant overflow thresholds re-exported from
  *     `pptx-substitution.ts` (5% tighten / 20% abort) which the type
- *     definitions reference only by name.
+ *     definitions reference only by name, and
+ *   - the named table-index bounds `MAX_TABLE_ROW_INDEX` /
+ *     `MAX_TABLE_COLUMN_INDEX` defined below as pragmatic guards against
+ *     adversarial or malformed substitution maps triggering oversized
+ *     nested-array allocations in the per-cell `setTableData` path.
  */
 import { z } from "zod";
+
+// ── Image codec enum ────────────────────────────────────────────────────────
+
+/**
+ * MIME types the substitution engine accepts on image payloads.
+ *
+ * The engine's image path only branches JPEG vs non-JPEG (see
+ * `applyImageSubstitution` in `pptx-substitution.ts`). Restricting the enum to
+ * the codecs we actively support means Carlo rejects unsupported MIME strings
+ * at parse time instead of routing them to the JPEG-vs-other fallback. Grow
+ * the enum when a real caller needs a new codec, not speculatively.
+ */
+export const SUPPORTED_IMAGE_MIME_TYPES = [
+  "image/png",
+  "image/jpeg",
+] as const;
+export type SupportedImageMimeType = (typeof SUPPORTED_IMAGE_MIME_TYPES)[number];
+
+// ── Table-index bounds (R2 — pragmatic allocation guard) ────────────────────
+
+/**
+ * Pragmatic maximum for `TableCellPayloadSchema.rowIndex`. Generous enough
+ * that no realistic slide-3 / slide-5 table approaches it; tight enough that
+ * an adversarial substitution map cannot drive
+ * `applyTableCellSubstitution`'s nested-array allocation into pathological
+ * sizes.
+ */
+export const MAX_TABLE_ROW_INDEX = 200;
+
+/**
+ * Pragmatic maximum for `TableCellPayloadSchema.columnIndex`. See
+ * `MAX_TABLE_ROW_INDEX` for the rationale.
+ */
+export const MAX_TABLE_COLUMN_INDEX = 50;
 
 // ── Per-op payload schemas ──────────────────────────────────────────────────
 
@@ -63,7 +101,9 @@ export type TextPayload = z.infer<typeof TextPayloadSchema>;
  */
 export const ImagePayloadSchema = z.object({
   image: z.instanceof(Buffer, { message: "image payload must be a Buffer" }),
-  mimeType: z.string().min(1),
+  mimeType: z.enum(SUPPORTED_IMAGE_MIME_TYPES, {
+    message: `image payload mimeType must be one of: ${SUPPORTED_IMAGE_MIME_TYPES.join(", ")}`,
+  }),
   fitMode: z.enum(["letterbox", "crop"]).default("letterbox"),
 });
 export type ImagePayload = z.infer<typeof ImagePayloadSchema>;
@@ -78,8 +118,22 @@ export type ImagePayload = z.infer<typeof ImagePayloadSchema>;
  * without rebuilding the full row.
  */
 export const TableCellPayloadSchema = z.object({
-  rowIndex: z.number().int().min(0),
-  columnIndex: z.number().int().min(0),
+  rowIndex: z
+    .number()
+    .int()
+    .min(0)
+    .max(
+      MAX_TABLE_ROW_INDEX,
+      `rowIndex exceeds MAX_TABLE_ROW_INDEX (${MAX_TABLE_ROW_INDEX})`,
+    ),
+  columnIndex: z
+    .number()
+    .int()
+    .min(0)
+    .max(
+      MAX_TABLE_COLUMN_INDEX,
+      `columnIndex exceeds MAX_TABLE_COLUMN_INDEX (${MAX_TABLE_COLUMN_INDEX})`,
+    ),
   text: z.string().min(1, "table_cell text must be a non-empty string"),
   originalText: z.string().optional(),
 });

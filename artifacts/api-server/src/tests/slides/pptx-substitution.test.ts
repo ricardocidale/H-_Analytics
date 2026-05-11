@@ -42,6 +42,8 @@ import {
 import {
   SubstitutionMapSchema,
   SlotOverflowError,
+  MAX_TABLE_ROW_INDEX,
+  MAX_TABLE_COLUMN_INDEX,
   type SubstitutionMap,
 } from "../../slides/pptx-substitution-types";
 
@@ -153,6 +155,108 @@ describe("SubstitutionMapSchema (Carlo's validation contract)", () => {
     ];
     const result = SubstitutionMapSchema.safeParse(bad);
     expect(result.success).toBe(false);
+  });
+
+  it("accepts image payloads with supported mimeTypes (png, jpeg)", () => {
+    const png: unknown = [
+      {
+        slideNumber: FIXTURE_SLIDE,
+        shapeId: "Picture 35",
+        op: "image",
+        payload: {
+          image: Buffer.from([0]),
+          mimeType: "image/png",
+        },
+      },
+    ];
+    const jpeg: unknown = [
+      {
+        slideNumber: FIXTURE_SLIDE,
+        shapeId: "Picture 35",
+        op: "image",
+        payload: {
+          image: Buffer.from([0]),
+          mimeType: "image/jpeg",
+        },
+      },
+    ];
+    expect(SubstitutionMapSchema.safeParse(png).success).toBe(true);
+    expect(SubstitutionMapSchema.safeParse(jpeg).success).toBe(true);
+  });
+
+  it("rejects an image entry with an unsupported mimeType (e.g. image/webp)", () => {
+    const bad: unknown = [
+      {
+        slideNumber: FIXTURE_SLIDE,
+        shapeId: "Picture 35",
+        op: "image",
+        payload: {
+          image: Buffer.from([0]),
+          mimeType: "image/webp",
+        },
+      },
+    ];
+    const result = SubstitutionMapSchema.safeParse(bad);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const flat = JSON.stringify(result.error.issues);
+      expect(flat).toMatch(/mimeType|image\/png|image\/jpeg/i);
+    }
+  });
+
+  it("rejects table_cell entries whose indices exceed MAX bounds", () => {
+    const overRow: unknown = [
+      {
+        slideNumber: FIXTURE_SLIDE,
+        shapeId: "Table 12",
+        op: "table_cell",
+        payload: {
+          rowIndex: MAX_TABLE_ROW_INDEX + 1,
+          columnIndex: 0,
+          text: "x",
+        },
+      },
+    ];
+    const overCol: unknown = [
+      {
+        slideNumber: FIXTURE_SLIDE,
+        shapeId: "Table 12",
+        op: "table_cell",
+        payload: {
+          rowIndex: 0,
+          columnIndex: MAX_TABLE_COLUMN_INDEX + 1,
+          text: "x",
+        },
+      },
+    ];
+    const rowResult = SubstitutionMapSchema.safeParse(overRow);
+    expect(rowResult.success).toBe(false);
+    if (!rowResult.success) {
+      const flat = JSON.stringify(rowResult.error.issues);
+      expect(flat).toContain("MAX_TABLE_ROW_INDEX");
+    }
+    const colResult = SubstitutionMapSchema.safeParse(overCol);
+    expect(colResult.success).toBe(false);
+    if (!colResult.success) {
+      const flat = JSON.stringify(colResult.error.issues);
+      expect(flat).toContain("MAX_TABLE_COLUMN_INDEX");
+    }
+  });
+
+  it("accepts table_cell entries at the MAX boundary (inclusive)", () => {
+    const atBoundary: unknown = [
+      {
+        slideNumber: FIXTURE_SLIDE,
+        shapeId: "Table 12",
+        op: "table_cell",
+        payload: {
+          rowIndex: MAX_TABLE_ROW_INDEX,
+          columnIndex: MAX_TABLE_COLUMN_INDEX,
+          text: "x",
+        },
+      },
+    ];
+    expect(SubstitutionMapSchema.safeParse(atBoundary).success).toBe(true);
   });
 
   it("rejects an unknown op value", () => {
