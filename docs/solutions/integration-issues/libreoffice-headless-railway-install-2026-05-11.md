@@ -40,7 +40,7 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 ```
 
-It precedes the existing Playwright install line so the apt caches are reused before Playwright's own apt step removes them. `--no-install-recommends` keeps the image lean (drops sample templates, Java doc-import helpers, broad fontconfig recommendations).
+It precedes the existing Playwright install line. The trailing `rm -rf /var/lib/apt/lists/*` inside this `RUN` cleans the apt cache for the LibreOffice layer itself — there is no cache reuse across to the Playwright step (which runs its own `apt-get update`). `--no-install-recommends` keeps the image lean (drops sample templates, Java doc-import helpers, broad fontconfig recommendations).
 
 ### Why `libreoffice-impress` and not `libreoffice` or `libreoffice-core`
 
@@ -78,7 +78,7 @@ Exit-code mapping:
 - `1` — Generic failure (malformed input, font init failure, profile lock). Logged and retried once with a fresh profile dir.
 - `77` — Permission-denied on profile dir. Indicates concurrent invocation on the same user profile; U7 uses per-run profile dirs to avoid this.
 
-Per-invocation profile dir: `--user-profile=file:///tmp/factory-runs/<runId>/lo-profile/` (set up in U7) to avoid the well-known "Stale lockfile" wart of running multiple `soffice` instances concurrently in a single container.
+Per-invocation profile dir: `-env:UserInstallation=file:///tmp/factory-runs/<runId>/lo-profile/` (set up in U7) to avoid the well-known "Stale lockfile" wart of running multiple `soffice` instances concurrently in a single container. The `-env:UserInstallation` form is the canonical LibreOffice CLI flag and matches the smoke test's invocation in `artifacts/api-server/src/tests/slides/soffice-smoke.test.ts` — copy/paste from this doc into U7 without translation.
 
 ## Image-size delta
 
@@ -129,5 +129,5 @@ The admin's downstream hand-edit step in PowerPoint is the safety net for any ce
 | Date | Environment | Check | Result |
 |---|---|---|---|
 | 2026-05-11 | Railway production runtime | `soffice --version` | Pending first deploy post-PR-merge |
-| 2026-05-11 | Local docker build (`docker build --target runtime`) | Build succeeds, layer measured | Captured in PR description |
+| 2026-05-11 | Local docker build (`docker build --target runtime`) | Build succeeds, layer measured | **Pending** — local Docker daemon unreachable in the CC workspace; verification deferred to Railway CI deploy preview on PR open |
 | 2026-05-11 | Vitest `soffice-smoke.test.ts` | Skips locally, runs on Railway | Test landed skip-guarded |
