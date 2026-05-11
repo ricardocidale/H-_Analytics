@@ -63,16 +63,30 @@ has_uncommitted() {
   [ -n "$(git -C "$repo_root" status --porcelain 2>/dev/null)" ]
 }
 
+has_uncommitted_in_dir() {
+  local dir="$1"
+  [ -n "$(git -C "$repo_root" status --porcelain -- "$dir" 2>/dev/null)" ]
+}
+
+has_branch_diff() {
+  local base="$1"
+  if ! git -C "$repo_root" show-ref --quiet "refs/remotes/origin/${base}"; then
+    echo "origin/${base} not found locally — run \`git fetch origin ${base}\` first." >&2
+    return 1
+  fi
+  [ -n "$(git -C "$repo_root" diff --name-only "origin/${base}...HEAD" 2>/dev/null)" ]
+}
+
 cmd_uncommitted() {
   if ! opmode_active; then
     print_off "review:uncommitted"
     return 0
   fi
-  if ! require_cli; then
-    return 0
-  fi
   if ! has_uncommitted; then
     echo "no uncommitted changes — nothing to review."
+    return 0
+  fi
+  if ! require_cli; then
     return 0
   fi
   echo "→ coderabbit review --type uncommitted"
@@ -84,11 +98,15 @@ cmd_branch() {
     print_off "review:branch"
     return 0
   fi
+  local base
+  base="$(detect_default_branch)"
+  if ! has_branch_diff "$base"; then
+    echo "no commits on this branch ahead of origin/${base} — nothing to review."
+    return 0
+  fi
   if ! require_cli; then
     return 0
   fi
-  local base
-  base="$(detect_default_branch)"
   echo "→ coderabbit review --base origin/${base}"
   coderabbit review --base "origin/${base}"
 }
@@ -103,14 +121,22 @@ cmd_scoped() {
     print_off "review:scoped ${dir}"
     return 0
   fi
-  if ! require_cli; then
-    return 0
-  fi
   if [ ! -d "$repo_root/$dir" ] && [ ! -d "$dir" ]; then
     echo "scoped path not found: ${dir}" >&2
     return 1
   fi
-  echo "→ coderabbit review --type uncommitted (scoped to ${dir})"
+  if ! has_uncommitted_in_dir "$dir"; then
+    echo "no uncommitted changes within ${dir} — nothing to review."
+    return 0
+  fi
+  if ! require_cli; then
+    return 0
+  fi
+  # CodeRabbit's CLI has no documented --dir flag; we constrain by chdir'ing
+  # into the subtree before invoking. The runbook documents this caveat: if
+  # the CLI still walks up to the repo root, switch to a smaller working set
+  # via `git stash --keep-index` of out-of-scope files first.
+  echo "→ coderabbit review --type uncommitted (CWD=${dir})"
   ( cd "$repo_root/$dir" 2>/dev/null || cd "$dir"; coderabbit review --type uncommitted )
 }
 
