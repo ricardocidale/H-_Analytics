@@ -51,6 +51,8 @@ import {
   toolProduceSlideFactoryDeck,
   toolRebuildSlideFactoryDeck,
   toolDeleteSlideFactoryRun,
+  toolTriggerLorenzoIngestion,
+  toolTriggerLuccaDraft,
 } from "./rebecca-tool-impls-slide-factory";
 import {
   toolTriggerIrisHealthCheck,
@@ -169,8 +171,12 @@ export async function dispatchRebeccaTool(
         return await toolRecordSlideFactoryBrief(args, ctx);
       case "accept_slide_factory_brief":
         return await toolAcceptSlideFactoryBrief(args, ctx);
+      case "trigger_lorenzo_ingestion":
+        return await toolTriggerLorenzoIngestion(args, ctx);
       case "assign_slide_factory_properties":
         return await toolAssignSlideFactoryProperties(args, ctx);
+      case "trigger_lucca_draft":
+        return await toolTriggerLuccaDraft(args, ctx);
       case "update_slide_factory_slot":
         return await toolUpdateSlideFactorySlot(args, ctx);
       case "approve_all_slide_factory_slots":

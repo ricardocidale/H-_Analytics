@@ -107,13 +107,13 @@ export async function toolAcceptSlideFactoryBrief(
     status: "ingesting",
     startedAt: new Date(),
   });
-  const { runLorenzoIngestion } = await import("../slides/lorenzo-ingestion");
-  dispatchDetached(runLorenzoIngestion(id), `Lorenzo ingestion run ${id}`);
+  // W1.5: side-effect-fire moved out of this tool. Caller must follow up with
+  // trigger_lorenzo_ingestion to start the background work.
   return {
     result: {
       id,
       status: updated?.status,
-      message: "Brief accepted; Lorenzo ingestion dispatched. Poll get_slide_factory_run for status.",
+      message: "Brief accepted; status is 'ingesting'. Call trigger_lorenzo_ingestion next to start the background job.",
     },
     dataChanged: { entityType: "slide_factory_run", entityId: id },
   };
@@ -162,13 +162,13 @@ export async function toolAssignSlideFactoryProperties(
     slide5PropertyId,
     status: "drafting",
   });
-  const { runLuccaDraft } = await import("../slides/lucca-draft");
-  dispatchDetached(runLuccaDraft(id), `Lucca draft run ${id}`);
+  // W1.5: side-effect-fire moved out of this tool. Caller must follow up with
+  // trigger_lucca_draft to start the background work.
   return {
     result: {
       id,
       status: updated?.status,
-      message: "Properties assigned; Lucca drafting dispatched. Poll get_slide_factory_run for status.",
+      message: "Properties assigned; status is 'drafting'. Call trigger_lucca_draft next to start the background job.",
     },
     dataChanged: { entityType: "slide_factory_run", entityId: id },
   };
@@ -430,6 +430,68 @@ export async function toolDeleteSlideFactoryRun(
 
   return {
     result: { success: true },
+    dataChanged: { entityType: "slide_factory_run", entityId: id },
+  };
+}
+
+// W1.5 — explicit background-job triggers. Separated from accept_slide_factory_brief
+// and assign_slide_factory_properties so the agent decides when to fire the
+// background work (the old tools auto-fired without surfacing a separate handle).
+
+export async function toolTriggerLorenzoIngestion(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const idResult = requireNumericArg(args, "id");
+  if (!idResult.ok) return idResult.result;
+  const id = idResult.value;
+
+  const { getSlideFactoryRun } = await import("../storage/slide-factory-runs");
+  const run = await getSlideFactoryRun(id, ctx.userId);
+  if (!run) return { result: { error: `Slide factory run ${id} not found` } };
+  if (run.status !== "ingesting") {
+    return {
+      result: { error: `Lorenzo ingestion requires status 'ingesting', current: '${run.status}'` },
+    };
+  }
+
+  const { runLorenzoIngestion } = await import("../slides/lorenzo-ingestion");
+  dispatchDetached(runLorenzoIngestion(id), `Lorenzo ingestion run ${id}`);
+  return {
+    result: {
+      id,
+      status: run.status,
+      message: "Lorenzo ingestion dispatched. Poll get_slide_factory_run for status.",
+    },
+    dataChanged: { entityType: "slide_factory_run", entityId: id },
+  };
+}
+
+export async function toolTriggerLuccaDraft(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const idResult = requireNumericArg(args, "id");
+  if (!idResult.ok) return idResult.result;
+  const id = idResult.value;
+
+  const { getSlideFactoryRun } = await import("../storage/slide-factory-runs");
+  const run = await getSlideFactoryRun(id, ctx.userId);
+  if (!run) return { result: { error: `Slide factory run ${id} not found` } };
+  if (run.status !== "drafting") {
+    return {
+      result: { error: `Lucca drafting requires status 'drafting', current: '${run.status}'` },
+    };
+  }
+
+  const { runLuccaDraft } = await import("../slides/lucca-draft");
+  dispatchDetached(runLuccaDraft(id), `Lucca draft run ${id}`);
+  return {
+    result: {
+      id,
+      status: run.status,
+      message: "Lucca drafting dispatched. Poll get_slide_factory_run for status.",
+    },
     dataChanged: { entityType: "slide_factory_run", entityId: id },
   };
 }
