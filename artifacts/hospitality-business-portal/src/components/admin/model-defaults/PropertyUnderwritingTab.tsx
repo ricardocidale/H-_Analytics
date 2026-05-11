@@ -979,7 +979,16 @@ function ExitRevenueMultipleSection({
           {selectedMultiple == null ? (
             <button
               type="button"
-              onClick={() => onChange("exitRevenueMultiple", EXIT_MULTIPLE_DEFAULT_ON_EDIT)}
+              // First-edit seed value: prefer the selected vertical's band
+              // midpoint so the first persisted value is data-driven; fall
+              // back to EXIT_MULTIPLE_DEFAULT_ON_EDIT only when no band is
+              // available (no vertical selected yet, or the band has no mid).
+              onClick={() =>
+                onChange(
+                  "exitRevenueMultiple",
+                  band?.valueMid ?? EXIT_MULTIPLE_DEFAULT_ON_EDIT,
+                )
+              }
               className="text-sm text-muted-foreground italic underline-offset-2 hover:underline"
               data-testid="button-set-exit-multiple"
             >
