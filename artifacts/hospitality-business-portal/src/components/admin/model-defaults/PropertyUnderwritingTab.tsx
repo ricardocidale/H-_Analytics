@@ -4,10 +4,14 @@ import { apiRequest } from "@/lib/queryClient";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { IconShieldCheck } from "@/components/icons";
 import { useAuth } from "@/lib/auth";
 import { Section } from "@/components/ui/field-section";
+import EditableValue from "@/components/company-assumptions/EditableValue";
 import { PctField, DollarField, NumberField, TabBanner, type Draft } from "./FieldHelpers";
 import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
 import { AnalystButton } from "@/components/intelligence/AnalystButton";
@@ -724,6 +728,8 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
         />
       </Section>
 
+      <ExitRevenueMultipleSection draft={draft} onChange={onChange} />
+
       <Section grid title="Default Acquisition Package" description="Standard purchase assumptions pre-filled when adding a new property to the portfolio.">
         <DollarField
           label="Purchase Price"
@@ -807,5 +813,186 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
         </div>
       </Section>
     </div>
+  );
+}
+
+interface ExitMultipleBand {
+  dimensionKey: string;
+  label: string;
+  unit: string;
+  valueLow: number | null;
+  valueMid: number | null;
+  valueHigh: number | null;
+}
+
+interface IndustryVerticalSuggestion {
+  dimensionKey: string;
+  label: string;
+  rationale: string;
+}
+
+/**
+ * Industry-vertical band check for the property exit revenue multiple.
+ * Ported from the former front-of-app `PropertyExitDefaultsCard` so the
+ * full set of property defaults lives in one Admin tab. Writes to the same
+ * `globalAssumptions.industryVertical` / `exitRevenueMultiple` fields the
+ * watchdog reads — behavior-neutral move.
+ */
+function ExitRevenueMultipleSection({
+  draft,
+  onChange,
+}: {
+  draft: Draft;
+  onChange: (field: string, value: unknown) => void;
+}) {
+  const { data: exitMultiples = [] } = useQuery<ExitMultipleBand[]>({
+    queryKey: ["/api/exit-multiples"],
+    queryFn: async () => {
+      const res = await fetch("/api/exit-multiples", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const selectedVertical = (draft.industryVertical as string | null | undefined) ?? "";
+
+  const { data: suggestionResp } = useQuery<{ suggestion: IndustryVerticalSuggestion | null }>({
+    queryKey: ["/api/exit-multiples/suggestion"],
+    queryFn: async () => {
+      const res = await fetch("/api/exit-multiples/suggestion", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load vertical suggestion");
+      return res.json();
+    },
+    enabled: !selectedVertical,
+    staleTime: 5 * 60 * 1000,
+  });
+  const suggestion = !selectedVertical ? suggestionResp?.suggestion ?? null : null;
+  const suggestionStillValid = !!(
+    suggestion && exitMultiples.some((m) => m.dimensionKey === suggestion.dimensionKey)
+  );
+
+  const selectedMultipleRaw = draft.exitRevenueMultiple;
+  const selectedMultiple = typeof selectedMultipleRaw === "number" ? selectedMultipleRaw : null;
+  const band = exitMultiples.find((m) => m.dimensionKey === selectedVertical) ?? null;
+  const hasBand = !!(band && band.valueLow != null && band.valueHigh != null);
+  const outsideBand = !!(
+    hasBand &&
+    selectedMultiple != null &&
+    band &&
+    band.valueLow != null &&
+    band.valueHigh != null &&
+    (selectedMultiple < band.valueLow || selectedMultiple > band.valueHigh)
+  );
+
+  return (
+    <Section
+      title="Exit Revenue Multiple"
+      description="Cross-check property terminal value against admin-managed bands per industry vertical. The watchdog flags multiples outside the band and recommends the midpoint."
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="industryVertical" className="text-xs text-muted-foreground">
+            Industry Vertical
+          </Label>
+          <Select
+            value={selectedVertical || "__none__"}
+            onValueChange={(v) => onChange("industryVertical", v === "__none__" ? null : v)}
+          >
+            <SelectTrigger id="industryVertical" data-testid="select-industry-vertical">
+              <SelectValue placeholder="Select a vertical…" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">— None —</SelectItem>
+              {exitMultiples.map((m) => (
+                <SelectItem
+                  key={m.dimensionKey}
+                  value={m.dimensionKey}
+                  data-testid={`option-vertical-${m.dimensionKey}`}
+                >
+                  {m.label}
+                  {m.valueLow != null && m.valueHigh != null
+                    ? ` (${m.valueLow.toFixed(1)}x – ${m.valueHigh.toFixed(1)}x)`
+                    : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {suggestion && suggestionStillValid && (
+            <div
+              className="rounded-md border border-sky-300/70 bg-sky-50 dark:bg-sky-950/40 dark:border-sky-700/50 p-2 text-xs text-sky-900 dark:text-sky-200"
+              data-testid="suggestion-industry-vertical"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <span className="font-medium">Analyst suggestion:</span>{" "}
+                  <span data-testid="text-suggested-vertical-label">{suggestion.label}</span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="shrink-0 underline underline-offset-2 h-auto p-0 text-xs"
+                  onClick={() => onChange("industryVertical", suggestion.dimensionKey)}
+                  data-testid="button-apply-vertical-suggestion"
+                >
+                  Use suggestion
+                </Button>
+              </div>
+              <p className="mt-1 text-[11px] leading-snug opacity-90" data-testid="text-suggested-vertical-rationale">
+                {suggestion.rationale}
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="exitRevenueMultiple" className="text-xs text-muted-foreground">
+            Exit Revenue Multiple (×)
+          </Label>
+          <EditableValue
+            value={selectedMultiple ?? 0}
+            onChange={(v) => onChange("exitRevenueMultiple", v > 0 ? v : null)}
+            format="number"
+            min={0}
+            max={20}
+            step={0.1}
+          />
+          {hasBand && band && (
+            <p className="text-xs text-muted-foreground" data-testid="text-exit-multiple-band">
+              {band.label} band: {band.valueLow!.toFixed(1)}x – {band.valueHigh!.toFixed(1)}x
+              {band.valueMid != null ? ` (mid ${band.valueMid.toFixed(1)}x)` : ""}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {outsideBand && band && (
+        <div
+          className="col-span-full rounded-md border border-amber-300/70 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-700/50 p-3 text-xs text-amber-900 dark:text-amber-200"
+          data-testid="warning-exit-multiple-out-of-band"
+        >
+          <span className="font-medium">Outside Analyst band.</span>{" "}
+          {selectedMultiple!.toFixed(1)}x is outside the {band.label} range
+          {" "}{band.valueLow!.toFixed(1)}x – {band.valueHigh!.toFixed(1)}x
+          {band.valueMid != null ? (
+            <>
+              .{" "}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="underline underline-offset-2 h-auto p-0 text-xs"
+                onClick={() => onChange("exitRevenueMultiple", band.valueMid!)}
+                data-testid="button-apply-exit-multiple-mid"
+              >
+                Apply recommended midpoint {band.valueMid.toFixed(1)}x
+              </Button>
+              .
+            </>
+          ) : "."}
+        </div>
+      )}
+    </Section>
   );
 }

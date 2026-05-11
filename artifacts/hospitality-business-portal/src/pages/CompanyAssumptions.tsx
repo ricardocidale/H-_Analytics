@@ -204,11 +204,6 @@ export default function CompanyAssumptions() {
         }
         return { enabled: true };
       }
-      case "property-defaults":
-        if (num("exitCapRate") <= 0) {
-          return { enabled: false, reason: "Set an exit cap rate before researching property defaults." };
-        }
-        return { enabled: true };
       default:
         return { enabled: true };
     }
@@ -383,7 +378,6 @@ export default function CompanyAssumptions() {
       case "revenue":      return "Revenue Model";
       case "compensation": return "Compensation";
       case "overhead":     return "Overhead";
-      case "property-defaults": return "Property Defaults";
       default:             return undefined;
     }
   }, [activeTab]);

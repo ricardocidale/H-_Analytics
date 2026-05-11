@@ -44,7 +44,6 @@ export const TAB_KEYS = [
   "revenue",
   "compensation",
   "overhead",
-  "property-defaults",
 ] as const;
 export type TabKey = (typeof TAB_KEYS)[number];
 
@@ -54,7 +53,6 @@ export const TAB_LABELS: Record<TabKey, string> = {
   revenue: "Revenue Model",
   compensation: "Compensation",
   overhead: "Overhead",
-  "property-defaults": "Property Defaults",
 };
 
 /**
@@ -63,7 +61,12 @@ export const TAB_LABELS: Record<TabKey, string> = {
  *   - companyTaxRate / inflation / company identity now live in
  *     Admin → Model Defaults (the legacy `company` tab here was removed).
  *   - costOfEquity lives in `funding` (DCF discount rate / WACC Re)
- *   - exitCapRate + salesCommissionRate live in `property-defaults`
+ *   - exitCapRate / salesCommissionRate / industryVertical /
+ *     exitRevenueMultiple / property USALI ratios are admin-edited on
+ *     Admin → Steady State → Property Underwriting (the legacy
+ *     `property-defaults` tab here was removed). All five surfaces still
+ *     write to the same `globalAssumptions` row the engine reads, so the
+ *     move is behavior-neutral.
  */
 export const TAB_FIELDS: Record<TabKey, readonly (keyof GlobalResponse)[]> = {
   company: [
@@ -107,11 +110,6 @@ export const TAB_FIELDS: Record<TabKey, readonly (keyof GlobalResponse)[]> = {
     "officeLease", "professionalServices", "techInfra",
     "businessInsurance", "travelCost", "itLicense",
     "eventExpense", "marketingRate", "miscOps",
-  ] as unknown as Array<keyof GlobalResponse>,
-  "property-defaults": [
-    "eventExpenseRate", "otherExpenseRate", "utilitiesVariableSplit",
-    "exitCapRate", "salesCommissionRate",
-    "industryVertical", "exitRevenueMultiple",
   ] as unknown as Array<keyof GlobalResponse>,
 };
 
@@ -196,7 +194,7 @@ export function useCompanyAssumptionsForm(
 
   const [tabWarnings, setTabWarnings] = useState<Record<TabKey, TabValidationWarning[]>>({
     company: [], funding: [], revenue: [], compensation: [],
-    overhead: [], "property-defaults": [],
+    overhead: [],
   });
   const [savingTab, setSavingTab] = useState<TabKey | null>(null);
 
@@ -212,7 +210,7 @@ export function useCompanyAssumptionsForm(
   const [requiredFieldsMissingByTab, setRequiredFieldsMissingByTab] =
     useState<Record<TabKey, string[]>>({
       company: [], funding: [], revenue: [], compensation: [],
-      overhead: [], "property-defaults": [],
+      overhead: [],
     });
 
   // "Keep my value" acknowledgments — keyed by fieldName. Suppress warning
