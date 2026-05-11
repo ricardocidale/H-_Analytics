@@ -124,9 +124,16 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
 
   const savePlatformFee = async () => {
     if (!strDefaultRow) return;
+    // Reject empty / non-numeric / out-of-range input before hitting the wire
+    // — `parseFloat("") === NaN` and the try/catch below would otherwise
+    // silently swallow the resulting validation failure (CodeRabbit PR-108).
+    const parsed = parseFloat(platformFeeDraft);
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
+      return;
+    }
     try {
       await apiRequest("PATCH", `/api/admin/model-defaults/${strDefaultRow.id}`, {
-        value: parseFloat(platformFeeDraft) / 100,
+        value: parsed / 100,
         reason: "Admin updated STR platform fee default",
       });
     } catch {
