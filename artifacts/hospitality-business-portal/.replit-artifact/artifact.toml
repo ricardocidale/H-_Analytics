@@ -15,7 +15,7 @@ paths = [ "/" ]
 localPort = 23312
 
 [services.development]
-run = "pnpm --filter @workspace/hospitality-business-portal run dev"
+run = "bash ../../scripts/print-opmode-banner.sh; pnpm --filter @workspace/hospitality-business-portal run dev"
 
 [services.production]
 build = [ "pnpm", "--filter", "@workspace/hospitality-business-portal", "run", "build" ]

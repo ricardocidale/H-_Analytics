@@ -15,7 +15,7 @@ paths = [ "/__mockup/" ]
 localPort = 23636
 
 [services.development]
-run = "npm run dev"
+run = "bash ../../scripts/print-opmode-banner.sh; npm run dev"
 
 [services.env]
 PORT = "23636"

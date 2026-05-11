@@ -81,6 +81,7 @@ Canonical source: `CLAUDE.md` § 10. Do not edit this block here — update `CLA
 | Memory file harmonization | `agent-memory-files` skill |
 | Inflation policy (USD-base calc) | `inflation-cascade` skill — **supersedes prior country cascade** |
 | Integration-health audit (Costantino) | `costantino-data-custodian` skill |
+| Operating mode: Shell + CodeRabbit + Compound | `.agents/operating-modes/large-repo-shell-coderabbit-compound.md` + runbook `docs/runbooks/coderabbit-shell-workflow.md` |
 | Agent naming + reserved names | `slide-factory` skill |
 
 ---

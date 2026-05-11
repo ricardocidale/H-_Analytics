@@ -70,3 +70,6 @@ artifacts/api-server/iris/health.md
 
 # Check-script input-hash caches (task #1214)
 .cache/check-*.hash
+
+# Operating-mode toggle marker (task #1385 / #1386)
+.local/opmode/
