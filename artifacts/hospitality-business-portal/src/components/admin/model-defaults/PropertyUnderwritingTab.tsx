@@ -16,6 +16,7 @@ import { PctField, DollarField, NumberField, TabBanner, type Draft } from "./Fie
 import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
 import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { AnalystVerdictDisplay } from "@/components/analyst/AnalystVerdictDisplay";
+import { AnalystRangeIndicator } from "@/components/analyst/AnalystRangeIndicator";
 import { useFocusFieldFromUrl } from "@/lib/analyst-focus-field";
 import type { AnalystGuidanceRecord } from "@/components/analyst/useAnalystRefresh";
 import { PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS, toGuidanceKeys } from "./analyst-fields";
@@ -65,6 +66,22 @@ import { getFactoryNumber } from "@shared/model-constants-registry";
 // `defaultCostRateTaxes` in this tab — the override is country-agnostic and
 // applies to every newly created property regardless of locality.
 const DEFAULT_COST_RATE_TAXES = getFactoryNumber("costRateTaxes", "United States");
+
+// Cache lifetime for the exit-multiples bands + vertical-suggestion queries.
+// These read admin-managed reference rows that rarely change inside an admin
+// session, so a 5-minute staleTime keeps both polls cheap. 1000 ms × 60 × 5.
+const EXIT_MULTIPLE_QUERY_STALE_MS = 5 * 60 * 1000;
+
+// EditableValue clamp bounds for exit-revenue-multiple. A 0× exit is
+// economically meaningless, so the minimum is a small positive number rather
+// than 0 — that way the unset (`null`) state stays distinct from a typed-in 0.
+// The 20× ceiling matches the upper end of admin-supplied band cards.
+const EXIT_MULTIPLE_MIN = 0.1;
+const EXIT_MULTIPLE_MAX = 20;
+const EXIT_MULTIPLE_STEP = 0.1;
+// First-edit default when an admin clicks "Not set — click to enter".
+// Picked as a generic-hospitality midpoint; the admin can refine immediately.
+const EXIT_MULTIPLE_DEFAULT_ON_EDIT = 1.0;
 
 interface PropertyUnderwritingTabProps {
   draft: Draft;
@@ -845,27 +862,22 @@ function ExitRevenueMultipleSection({
   draft: Draft;
   onChange: (field: string, value: unknown) => void;
 }) {
+  // Both queries rely on the queryClient's default queryFn (in
+  // artifacts/hospitality-business-portal/src/lib/queryClient.ts), which joins
+  // `queryKey` into a URL and runs the fetch with `credentials: "include"` +
+  // CSRF handling. Inline `fetch("/api/...")` calls were flagged by CodeRabbit
+  // for bypassing the shared frontend request contract.
   const { data: exitMultiples = [] } = useQuery<ExitMultipleBand[]>({
     queryKey: ["/api/exit-multiples"],
-    queryFn: async () => {
-      const res = await fetch("/api/exit-multiples", { credentials: "include" });
-      if (!res.ok) return [];
-      return res.json();
-    },
-    staleTime: 5 * 60 * 1000,
+    staleTime: EXIT_MULTIPLE_QUERY_STALE_MS,
   });
 
   const selectedVertical = (draft.industryVertical as string | null | undefined) ?? "";
 
   const { data: suggestionResp } = useQuery<{ suggestion: IndustryVerticalSuggestion | null }>({
     queryKey: ["/api/exit-multiples/suggestion"],
-    queryFn: async () => {
-      const res = await fetch("/api/exit-multiples/suggestion", { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to load vertical suggestion");
-      return res.json();
-    },
     enabled: !selectedVertical,
-    staleTime: 5 * 60 * 1000,
+    staleTime: EXIT_MULTIPLE_QUERY_STALE_MS,
   });
   const suggestion = !selectedVertical ? suggestionResp?.suggestion ?? null : null;
   const suggestionStillValid = !!(
@@ -876,14 +888,28 @@ function ExitRevenueMultipleSection({
   const selectedMultiple = typeof selectedMultipleRaw === "number" ? selectedMultipleRaw : null;
   const band = exitMultiples.find((m) => m.dimensionKey === selectedVertical) ?? null;
   const hasBand = !!(band && band.valueLow != null && band.valueHigh != null);
-  const outsideBand = !!(
-    hasBand &&
-    selectedMultiple != null &&
-    band &&
-    band.valueLow != null &&
-    band.valueHigh != null &&
-    (selectedMultiple < band.valueLow || selectedMultiple > band.valueHigh)
-  );
+
+  // TODO(specialist-plumbing): no Exit-Multiple Specialist currently emits a
+  // verdict for this field — bands come directly from the admin-managed
+  // `exit_multiples` table via /api/exit-multiples. Per the Intelligence
+  // Display contract (CLAUDE.md §"Intelligence Display"), range badges must be
+  // sourced from a specialist. Until a specialist exists, we adapt the table
+  // band into the canonical `GuidanceRecord` shape so the badge renders via
+  // `AnalystRangeIndicator` instead of bespoke local JSX. Followup: surface a
+  // real Specialist (e.g. "exitMultipleSpecialist") that consumes the same
+  // table + property locality and emits guidance with conviction + sourceName.
+  const exitMultipleGuidance = hasBand && band && band.valueLow != null && band.valueHigh != null
+    ? [{
+        assumptionKey: "exitRevenueMultiple",
+        valueLow: band.valueLow,
+        valueMid: band.valueMid,
+        valueHigh: band.valueHigh,
+        confidence: "moderate" as const,
+        reasoning: `Admin-managed band for vertical "${band.label}".`,
+        sourceName: "exit_multiples (admin-managed)",
+        dataQuality: null,
+      }]
+    : undefined;
 
   return (
     <Section
@@ -950,49 +976,68 @@ function ExitRevenueMultipleSection({
           <Label htmlFor="exitRevenueMultiple" className="text-xs text-muted-foreground">
             Exit Revenue Multiple (×)
           </Label>
-          <EditableValue
-            value={selectedMultiple ?? 0}
-            onChange={(v) => onChange("exitRevenueMultiple", v > 0 ? v : null)}
-            format="number"
-            min={0}
-            max={20}
-            step={0.1}
-          />
+          {selectedMultiple == null ? (
+            <button
+              type="button"
+              onClick={() => onChange("exitRevenueMultiple", EXIT_MULTIPLE_DEFAULT_ON_EDIT)}
+              className="text-sm text-muted-foreground italic underline-offset-2 hover:underline"
+              data-testid="button-set-exit-multiple"
+            >
+              Not set — click to enter
+            </button>
+          ) : (
+            <EditableValue
+              value={selectedMultiple}
+              // Distinct unset state: enforce a positive minimum so a typed-in 0
+              // cannot be persisted. Use the band midpoint (if available) as the
+              // clear-to-unset escape via the dedicated button above instead.
+              onChange={(v) => onChange("exitRevenueMultiple", v)}
+              format="number"
+              min={EXIT_MULTIPLE_MIN}
+              max={EXIT_MULTIPLE_MAX}
+              step={EXIT_MULTIPLE_STEP}
+            />
+          )}
           {hasBand && band && (
-            <p className="text-xs text-muted-foreground" data-testid="text-exit-multiple-band">
-              {band.label} band: {band.valueLow!.toFixed(1)}x – {band.valueHigh!.toFixed(1)}x
-              {band.valueMid != null ? ` (mid ${band.valueMid.toFixed(1)}x)` : ""}
-            </p>
+            <div className="flex items-center gap-2">
+              {/* Range signal — sourced from admin-managed `exit_multiples`
+                  wrapped in the canonical AnalystRangeIndicator. Severity,
+                  copy, and within/above/below verdict all come from the
+                  component, not from local JSX. See TODO(specialist-plumbing)
+                  above re: replacing the wrapper with a real Specialist. */}
+              <AnalystRangeIndicator
+                fieldKey="exitRevenueMultiple"
+                currentValue={selectedMultiple}
+                guidance={exitMultipleGuidance}
+              />
+              <p className="text-xs text-muted-foreground" data-testid="text-exit-multiple-band">
+                {band.label} band: {band.valueLow!.toFixed(1)}x – {band.valueHigh!.toFixed(1)}x
+                {band.valueMid != null ? ` (mid ${band.valueMid.toFixed(1)}x)` : ""}
+              </p>
+            </div>
+          )}
+          {/* "Apply midpoint" remains as a data-driven action — `valueMid`
+              is sourced from the admin-managed `exit_multiples` row, not
+              authored locally — so it's not the bespoke severity copy CR
+              flagged. The amber outside-band severity rendering has been
+              removed; AnalystRangeIndicator above now owns that signal. */}
+          {hasBand && band && band.valueMid != null && selectedMultiple != null && (
+            selectedMultiple < (band.valueLow ?? Number.NEGATIVE_INFINITY) ||
+            selectedMultiple > (band.valueHigh ?? Number.POSITIVE_INFINITY)
+          ) && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="self-start underline underline-offset-2 h-auto p-0 text-xs"
+              onClick={() => onChange("exitRevenueMultiple", band.valueMid!)}
+              data-testid="button-apply-exit-multiple-mid"
+            >
+              Apply recommended midpoint {band.valueMid.toFixed(1)}x
+            </Button>
           )}
         </div>
       </div>
-
-      {outsideBand && band && (
-        <div
-          className="col-span-full rounded-md border border-amber-300/70 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-700/50 p-3 text-xs text-amber-900 dark:text-amber-200"
-          data-testid="warning-exit-multiple-out-of-band"
-        >
-          <span className="font-medium">Outside Analyst band.</span>{" "}
-          {selectedMultiple!.toFixed(1)}x is outside the {band.label} range
-          {" "}{band.valueLow!.toFixed(1)}x – {band.valueHigh!.toFixed(1)}x
-          {band.valueMid != null ? (
-            <>
-              .{" "}
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="underline underline-offset-2 h-auto p-0 text-xs"
-                onClick={() => onChange("exitRevenueMultiple", band.valueMid!)}
-                data-testid="button-apply-exit-multiple-mid"
-              >
-                Apply recommended midpoint {band.valueMid.toFixed(1)}x
-              </Button>
-              .
-            </>
-          ) : "."}
-        </div>
-      )}
     </Section>
   );
 }
