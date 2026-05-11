@@ -66,9 +66,7 @@ export function getPropertyTools(): ToolParam[] {
     {
       name: "create_property",
       description:
-        "Create a new property (hotel) in the portfolio. Mirrors the UI's 'New Property' action: applies global assumption defaults, " +
-        "smart defaults from quality tier / business model / country / room count, suggests a star rating, seeds default fee categories, " +
-        "and creates a hero photo if an imageUrl is provided. Returns the new property id and name.",
+        "DEPRECATED — use create_property_record + seed_property_fees instead. Single-shot create that applies global defaults AND smart defaults AND seeds fee categories. Mirrors the UI's 'New Property' action.",
       parameters: {
         type: "object",
         properties: {
@@ -84,6 +82,39 @@ export function getPropertyTools(): ToolParam[] {
           imageUrl: { type: "string", description: "Optional hero image URL." },
         },
         required: ["name"],
+      },
+    },
+    {
+      name: "create_property_record",
+      description:
+        "Create a new property (hotel) row in the portfolio with global-assumption defaults only. Does NOT apply smart defaults from quality tier / business model / country / room count, and does NOT seed fee categories — those moved to seed_property_fees so the agent can decide whether to enrich after creation. Creates a hero photo if imageUrl is provided. Returns the new property id.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Property name (required)." },
+          country: { type: "string", description: "Country, e.g. 'United States'." },
+          stateProvince: { type: "string", description: "State or province." },
+          city: { type: "string", description: "City." },
+          location: { type: "string", description: "Free-form location string." },
+          propertyType: { type: "string", description: "Property type, e.g. 'hotel', 'resort', 'inn'." },
+          businessModel: { type: "string", description: "Business model classification, e.g. 'hotel', 'resort'." },
+          qualityTier: { type: "string", description: "Quality tier, e.g. 'Luxury', 'Upscale', 'Midscale'." },
+          roomCount: { type: "number", description: "Total number of guest rooms." },
+          imageUrl: { type: "string", description: "Optional hero image URL." },
+        },
+        required: ["name"],
+      },
+    },
+    {
+      name: "seed_property_fees",
+      description:
+        "Apply Layer-2 smart defaults (starting ADR, occupancy, cost rates, etc.) and seed default fee categories on an existing property. Smart defaults fill only fields that are still null on the persisted row, so user-set and global-default values win. Typically called right after create_property_record.",
+      parameters: {
+        type: "object",
+        properties: {
+          propertyId: { type: "number", description: "Property ID to enrich." },
+        },
+        required: ["propertyId"],
       },
     },
     {

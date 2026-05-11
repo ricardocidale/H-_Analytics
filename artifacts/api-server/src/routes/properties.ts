@@ -51,14 +51,16 @@ export function buildPropertyDefaultsFromGlobal(ga?: GlobalAssumptions): Record<
 }
 
 /**
- * Shared property creation logic used by both `POST /api/properties` and
- * Rebecca's `create_property` tool. Centralizing this keeps Rebecca at full
- * parity with the route — same global defaults, smart defaults, star-rating
- * suggestion, fee-category seeding, hero-photo creation, cache invalidation,
- * and notification dispatch. Activity logging stays in the route handler
- * since it depends on `req`.
+ * Lean property creation: applies only global-assumption inheritance, creates
+ * the row, attaches a hero photo if imageUrl was provided, invalidates the
+ * compute cache, and fires the PROPERTY_IMPORTED notification. Does NOT apply
+ * smart defaults or seed fee categories — those moved into seedPropertyFees
+ * (W1.6) so the agent can decide whether to enrich after creation.
+ *
+ * Used by Rebecca's `create_property_record` tool and by `createPropertyForUser`
+ * (the legacy compound function), which composes this with seedPropertyFees.
  */
-export async function createPropertyForUser(
+export async function createPropertyRecord(
   user: Express.User,
   data: import("@workspace/db").InsertProperty,
 ): Promise<import("@workspace/db").Property> {
@@ -73,14 +75,70 @@ export async function createPropertyForUser(
     }
   }
 
-  // Layer 2: Smart defaults from quality tier, business model, country, room count
-  const inputData = data as Record<string, unknown>;
-  const qualityTier = (inputData.qualityTier as string) || "Upscale";
-  const businessModel = (inputData.businessModel as string) || "hotel";
-  const country = (inputData.country as string) || "United States";
-  const roomCount = (inputData.roomCount as number) || 10;
-  const stateProvince = (inputData.stateProvince as string) || undefined;
+  const createData = {
+    ...data,
+    ...mergedData,
+    userId: isAdminRole(user.role) ? null : user.id,
+    researchValues: (data as { researchValues?: Record<string, ResearchValueEntry> }).researchValues ?? {},
+  };
+  const suggestion = suggestStarRating(createData as Parameters<typeof suggestStarRating>[0]);
+  (createData as typeof createData & { starRatingSuggested?: number | null }).starRatingSuggested = suggestion.rating;
 
+  const property = await storage.createProperty(createData);
+
+  if (property.imageUrl) {
+    try {
+      await storage.addPropertyPhoto({
+        propertyId: property.id,
+        imageUrl: property.imageUrl,
+        isHero: true,
+      });
+    } catch (photoErr: unknown) {
+      logger.warn(`Failed to create hero photo for property ${property.id} (non-blocking): ${photoErr instanceof Error ? photoErr.message : photoErr}`, "properties");
+    }
+  }
+
+  invalidateComputeCache();
+
+  processNotificationEvent(createEvent("PROPERTY_IMPORTED", {
+    propertyId: property.id,
+    propertyName: property.name,
+    message: `New property added: ${property.name}`,
+    link: `/property/${property.id}`,
+  })).catch((err) => logger.error(`Notification error: ${err?.message || err}`, "properties"));
+
+  return property;
+}
+
+/**
+ * Apply Layer 2 smart defaults (qualityTier/businessModel/country/roomCount
+ * → starting ADR, occupancy, cost rates, etc.) to an existing property, then
+ * seed default fee categories. Only fills fields that are still null on the
+ * persisted row, so global-defaults and user-set values win.
+ *
+ * Used by Rebecca's `seed_property_fees` tool and by `createPropertyForUser`.
+ */
+export async function seedPropertyFees(
+  propertyId: number,
+): Promise<{
+  smartDefaultsApplied: boolean;
+  fieldsPatched: string[];
+  feeCategoriesSeeded: boolean;
+}> {
+  const property = await storage.getProperty(propertyId);
+  if (!property) {
+    throw new Error(`Property ${propertyId} not found`);
+  }
+
+  const row = property as unknown as Record<string, unknown>;
+  const qualityTier = (row.qualityTier as string) || "Upscale";
+  const businessModel = (row.businessModel as string) || "hotel";
+  const country = (row.country as string) || "United States";
+  const roomCount = (row.roomCount as number) || 10;
+  const stateProvince = (row.stateProvince as string) || undefined;
+
+  const patch: Record<string, unknown> = {};
+  let smartDefaultsApplied = false;
   try {
     const smartDefaults = computePropertyDefaults(
       qualityTier, businessModel, country, roomCount, stateProvince,
@@ -106,68 +164,62 @@ export async function createPropertyForUser(
       propertyTaxRate: smartDefaults.propertyTaxRate,
     };
     for (const [key, smartValue] of Object.entries(smartFields)) {
-      const userValue = inputData[key];
-      const gaValue = mergedData[key];
-      if ((userValue === undefined || userValue === null) &&
-          (gaValue === undefined || gaValue === null)) {
-        mergedData[key] = smartValue;
+      const persistedValue = row[key];
+      if (persistedValue === undefined || persistedValue === null) {
+        patch[key] = smartValue;
       }
     }
     if (smartDefaults.sources && Object.keys(smartDefaults.sources).length > 0) {
-      const existingRV = (mergedData.researchValues ?? {}) as Record<string, unknown>;
-      mergedData.researchValues = {
+      const existingRV = (row.researchValues ?? {}) as Record<string, unknown>;
+      patch.researchValues = {
         ...existingRV,
         _defaultSources: smartDefaults.sources,
       };
     }
+    smartDefaultsApplied = true;
     logger.info(
-      `Smart defaults applied: tier=${qualityTier}, model=${businessModel}, country=${country}, rooms=${roomCount}`,
+      `Smart defaults applied (seed): id=${propertyId}, tier=${qualityTier}, model=${businessModel}, country=${country}, rooms=${roomCount}`,
       "properties",
     );
   } catch (err: unknown) {
-    logger.warn(`Smart defaults computation failed (non-blocking): ${err instanceof Error ? err.message : err}`, "properties");
+    logger.warn(`Smart defaults computation failed for property ${propertyId} (non-blocking): ${err instanceof Error ? err.message : err}`, "properties");
   }
 
-  const createData = {
-    ...data,
-    ...mergedData,
-    userId: isAdminRole(user.role) ? null : user.id,
-    researchValues: (data as { researchValues?: Record<string, ResearchValueEntry> }).researchValues ?? {},
-  };
-  const suggestion = suggestStarRating(createData as Parameters<typeof suggestStarRating>[0]);
-  (createData as typeof createData & { starRatingSuggested?: number | null }).starRatingSuggested = suggestion.rating;
+  if (Object.keys(patch).length > 0) {
+    await storage.updateProperty(propertyId, patch as Parameters<typeof storage.updateProperty>[1]);
+    invalidateComputeCache();
+  }
 
-  const property = await storage.createProperty(createData);
-
-  // Post-creation initialization — best-effort; failure here should NOT
-  // orphan the property (it already exists in DB)
+  let feeCategoriesSeeded = false;
   try {
-    await storage.seedDefaultFeeCategories(property.id);
+    await storage.seedDefaultFeeCategories(propertyId);
+    feeCategoriesSeeded = true;
   } catch (feeErr: unknown) {
-    logger.warn(`Failed to seed fee categories for property ${property.id} (non-blocking): ${feeErr instanceof Error ? feeErr.message : feeErr}`, "properties");
+    logger.warn(`Failed to seed fee categories for property ${propertyId} (non-blocking): ${feeErr instanceof Error ? feeErr.message : feeErr}`, "properties");
   }
 
-  if (property.imageUrl) {
-    try {
-      await storage.addPropertyPhoto({
-        propertyId: property.id,
-        imageUrl: property.imageUrl,
-        isHero: true,
-      });
-    } catch (photoErr: unknown) {
-      logger.warn(`Failed to create hero photo for property ${property.id} (non-blocking): ${photoErr instanceof Error ? photoErr.message : photoErr}`, "properties");
-    }
-  }
+  return {
+    smartDefaultsApplied,
+    fieldsPatched: Object.keys(patch),
+    feeCategoriesSeeded,
+  };
+}
 
-  invalidateComputeCache();
-
-  processNotificationEvent(createEvent("PROPERTY_IMPORTED", {
-    propertyId: property.id,
-    propertyName: property.name,
-    message: `New property added: ${property.name}`,
-    link: `/property/${property.id}`,
-  })).catch((err) => logger.error(`Notification error: ${err?.message || err}`, "properties"));
-
+/**
+ * Shared property creation logic used by `POST /api/properties` and Rebecca's
+ * legacy `create_property` tool. Composes createPropertyRecord +
+ * seedPropertyFees so the route's behavior matches the new pair.
+ *
+ * @deprecated Internal callers should compose createPropertyRecord +
+ * seedPropertyFees directly. Kept for the REST route + the deprecated
+ * `create_property` Rebecca tool.
+ */
+export async function createPropertyForUser(
+  user: Express.User,
+  data: import("@workspace/db").InsertProperty,
+): Promise<import("@workspace/db").Property> {
+  const property = await createPropertyRecord(user, data);
+  await seedPropertyFees(property.id);
   return property;
 }
 
