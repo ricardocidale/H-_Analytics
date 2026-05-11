@@ -57,7 +57,7 @@ The deterministic-substitution requirement is the load-bearing one. The plan's R
 
 ## Spike findings
 
-The U1 spike at [`scripts/src/pptx-substitution-spike.ts`](../../scripts/src/pptx-substitution-spike.ts) (throwaway, deletes in U4) exercises three things end-to-end against the L+B canonical PPTX:
+The U1 spike at `scripts/src/pptx-substitution-spike.ts` (throwaway; **deleted in U4** as planned — the production module `artifacts/api-server/src/slides/pptx-substitution.ts` supersedes it) exercised three things end-to-end against the L+B canonical PPTX:
 
 1. **Load + enumerate.** `Automizer.loadRoot(...).load(...)` plus `getTemplate('src').setCreationIds()` discover all 6 slides and all shapes on each. Slide 2 has 59 shapes — names like `Text 3`, `Image 7`, `Picture 35`.
 2. **Text-shape overwrite.** `slide.modifyElement('Text 3', [modify.setText(newContent)])` overwrites a slot text. Works cleanly. Output PPTX has 189 archive entries (vs. ~190 input entries — the cleanup-step diff).
@@ -142,6 +142,6 @@ export async function substituteSlots(
 ## References
 
 - Plan: `docs/plans/2026-05-11-001-feat-factory-v2-pptx-substitution-plan.md` (U1)
-- Spike: `scripts/src/pptx-substitution-spike.ts` (throwaway)
+- Spike: `scripts/src/pptx-substitution-spike.ts` (throwaway; deleted in U4 — production module is `artifacts/api-server/src/slides/pptx-substitution.ts`)
 - Library: https://github.com/singerla/pptx-automizer (MIT, v0.8.1)
 - Existing factory-runs schema decision: [`slide-factory-runs-schema-design-2026-05-07.md`](./slide-factory-runs-schema-design-2026-05-07.md)
