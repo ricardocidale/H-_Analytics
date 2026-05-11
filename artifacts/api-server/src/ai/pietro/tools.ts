@@ -158,8 +158,15 @@ async function toolAppendToMaintenanceLog(args: Record<string, unknown>) {
   if (typeof args.content !== "string") {
     return { written: false, error: "content must be a string" };
   }
-  await writePietroHealth(args.content);
-  return { written: true };
+  // Wrap the write to match the Iris pattern — a thrown fs error would
+  // otherwise escape as an unstructured tool failure (CodeRabbit PR-99
+  // re-review).
+  try {
+    await writePietroHealth(args.content);
+    return { written: true };
+  } catch (err: unknown) {
+    return { written: false, error: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 // DEPRECATED — use append_to_maintenance_log. Preserves the previous wrapper
