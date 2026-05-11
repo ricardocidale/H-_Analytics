@@ -176,6 +176,13 @@ export interface RosterHealthResponse {
    */
   costantinoCycle?: RosterCostantinoCycle;
   /**
+   * Most recent minion-self-test scheduler cycle outcome — drives the
+   * "Tests last ran X ago — N pass / N fail" indicator at the top of the
+   * Minions roster (Task #1397). `lastRunAt: null` means the scheduler
+   * has not fired its first cycle yet.
+   */
+  minionSelfTestCycle?: RosterCostantinoCycle;
+  /**
    * Per-minion append-only self-test history (Task #1396), most-recent
    * first, capped at `minionHistoryStrip` rows per minion. Each manual
    * Analyst-button click on a minion row is persisted server-side so the

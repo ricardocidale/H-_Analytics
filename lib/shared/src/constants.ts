@@ -457,6 +457,36 @@ export const COSTANTINO_DEGRADED_HTTP_STATUS_MAX_EXCLUSIVE = 400;
 // DB: costantino-recent-findings-limit — move to model-constants-registry when admin tuning is needed
 export const COSTANTINO_RECENT_FINDINGS_LIMIT = 30;
 
+// ──────────────────────────────────────────────────────────
+// Minion self-test scheduler (Task #1397).
+// Periodic background loop that runs every entry in
+// MINION_SELF_TESTS, opens a costantino_findings row when one
+// fails, and resolves the open finding when it passes again.
+// Cadence is admin-tunable via the parameter row below; these
+// constants are the fallback + clamp bounds.
+// ──────────────────────────────────────────────────────────
+
+/** Scheduler key registered in SCHEDULER_REGISTRY. */
+export const MINION_SELF_TEST_SCHEDULER_KEY = "minion-self-tests";
+
+/** admin_resources parameter row holding the runtime-editable cadence. */
+export const MINION_SELF_TEST_CADENCE_PARAM_SLUG = "minion-self-test-cycle-interval-ms";
+
+/** Default cycle interval — 6 hours. Used when the parameter row is absent or malformed. */
+// DB: minion-self-test-cycle-interval-ms — admin_resources parameter row holds the live value
+export const DEFAULT_MINION_SELF_TEST_CYCLE_INTERVAL_MS = 6 * 60 * 60 * 1000;
+
+/** Lower clamp on the cadence — 60 s. Protects against runaway scheduling. */
+// DB: fixed lower bound — architectural safety clamp, not admin-configurable
+export const DEFAULT_MINION_SELF_TEST_MIN_CYCLE_INTERVAL_MS = 60 * 1000;
+
+/** Upper clamp on the cadence — 7 days. */
+// DB: fixed upper bound — architectural safety clamp, not admin-configurable
+export const DEFAULT_MINION_SELF_TEST_MAX_CYCLE_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** target_kind value used on costantino_findings rows opened by the minion self-test scheduler. */
+export const MINION_FINDING_TARGET_KIND = "minion";
+
 /** Row cap for list_findings scope='open' / 'all'. */
 // DB: costantino-findings-page-limit — move to model-constants-registry when admin tuning is needed
 export const COSTANTINO_FINDINGS_PAGE_LIMIT = 200;

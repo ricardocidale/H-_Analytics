@@ -328,9 +328,17 @@ interface AgentRosterAccordionProps {
   title: string;
   entries: RosterEntry[];
   testId: string;
+  /**
+   * Which background scheduler's last-run summary to show in the card
+   * header. Defaults to `"costantino"`. The Minions roster passes
+   * `"minion-self-tests"` so admins can see when the periodic minion
+   * self-test loop last fired alongside the on-demand badge they get
+   * from the Analyst button (Task #1397).
+   */
+  schedulerKey?: "costantino" | "minion-self-tests";
 }
 
-export function AgentRosterAccordion({ title, entries, testId }: AgentRosterAccordionProps) {
+export function AgentRosterAccordion({ title, entries, testId, schedulerKey = "costantino" }: AgentRosterAccordionProps) {
   const { toast } = useToast();
   const [rows, setRows] = useState<Record<string, RowState>>(() => {
     const init: Record<string, RowState> = {};
@@ -474,12 +482,25 @@ export function AgentRosterAccordion({ title, entries, testId }: AgentRosterAcco
     [toast],
   );
 
-  const cycle = healthData?.costantinoCycle;
+  const cycle = schedulerKey === "minion-self-tests"
+    ? healthData?.minionSelfTestCycle
+    : healthData?.costantinoCycle;
   const cycleStatusColor = cycle?.status === "error"
     ? "text-destructive"
     : cycle?.status === "warn"
     ? "text-amber-600"
     : "text-muted-foreground";
+  const cycleLabel = schedulerKey === "minion-self-tests" ? "Self-tests last ran" : "Costantino audited";
+  const cycleSummary = schedulerKey === "minion-self-tests"
+    ? (cycle && cycle.lastRunAt !== null
+        ? ` · ${cycle.succeeded} pass / ${cycle.failed} fail`
+        : "")
+    : (cycle && cycle.lastRunAt !== null
+        ? ` · ${cycle.succeeded} ok / ${cycle.failed} failed`
+        : "");
+  const cycleTestId = schedulerKey === "minion-self-tests"
+    ? "roster-minion-self-test-cycle"
+    : "roster-costantino-cycle";
 
   return (
     <Card>
@@ -489,12 +510,11 @@ export function AgentRosterAccordion({ title, entries, testId }: AgentRosterAcco
           {cycle && (
             <p
               className={`text-[11px] font-mono tabular-nums ${cycleStatusColor}`}
-              data-testid="roster-costantino-cycle"
+              data-testid={cycleTestId}
               title={cycle.notes ?? undefined}
             >
-              Costantino audited {formatRelative(cycle.lastRunAt)}
-              {cycle.lastRunAt !== null &&
-                ` · ${cycle.succeeded} ok / ${cycle.failed} failed`}
+              {cycleLabel} {formatRelative(cycle.lastRunAt)}
+              {cycleSummary}
             </p>
           )}
         </div>

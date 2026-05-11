@@ -226,6 +226,18 @@ export function runBootSequence(httpServer: Server, _app: import("express").Expr
     serverLog(`[costantino-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
   });
 
+  // ── Phase 3m: Minion self-test scheduler (Task #1397) ────────
+  // Periodic background loop that runs every minion self-test
+  // (slides/minions/self-tests.ts) on an admin-tunable cadence
+  // (default 6h) and opens a costantino_findings row when one
+  // fails so deterministic-helper regressions don't sit
+  // undetected for weeks.
+  import("./jobs/minion-self-test-scheduler").then(({ startMinionSelfTestScheduler }) => {
+    startMinionSelfTestScheduler();
+  }).catch(err => {
+    serverLog(`[minion-self-test-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+  });
+
   const intervalHandles: NodeJS.Timeout[] = [];
 
   // ── Graceful shutdown handler ────────
@@ -270,6 +282,12 @@ export function runBootSequence(httpServer: Server, _app: import("express").Expr
     try {
       const { stopHeroPhotoUrlAuditScheduler } = await import("./jobs/hero-photo-url-audit");
       stopHeroPhotoUrlAuditScheduler();
+    } catch {
+      /* best-effort — module may not have loaded yet */
+    }
+    try {
+      const { stopMinionSelfTestScheduler } = await import("./jobs/minion-self-test-scheduler");
+      stopMinionSelfTestScheduler();
     } catch {
       /* best-effort — module may not have loaded yet */
     }

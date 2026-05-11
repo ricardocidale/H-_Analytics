@@ -6,7 +6,12 @@ export default function MinionsRosterPage() {
   const entries = useMemo(() => getMinionsRoster(), []);
   return (
     <div data-testid="page-minions-roster">
-      <AgentRosterAccordion title="Minions" entries={entries} testId="roster-minions" />
+      <AgentRosterAccordion
+        title="Minions"
+        entries={entries}
+        testId="roster-minions"
+        schedulerKey="minion-self-tests"
+      />
     </div>
   );
 }

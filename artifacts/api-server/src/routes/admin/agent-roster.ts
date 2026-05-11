@@ -39,6 +39,11 @@ import {
 import { db } from "../../db";
 import { isNull } from "drizzle-orm";
 import { getLatestIrisRun } from "../../storage/iris-runs";
+import {
+  MINION_FINDING_TARGET_KIND,
+  MINION_SELF_TEST_SCHEDULER_KEY,
+} from "@shared/constants";
+import { MINION_SELF_TESTS } from "../../slides/minions/self-tests";
 
 type RosterHealthStatus = "healthy" | "degraded" | "error" | "unknown";
 
@@ -297,9 +302,11 @@ async function lastCostantinoCycle(): Promise<CostantinoCycleSummary> {
 async function loadOpenFindings(): Promise<{
   bySlug: Map<string, CostantinoFinding[]>;
   bySpecialistId: Map<string, CostantinoFinding[]>;
+  byMinionId: Map<string, CostantinoFinding[]>;
 }> {
   const bySlug = new Map<string, CostantinoFinding[]>();
   const bySpecialistId = new Map<string, CostantinoFinding[]>();
+  const byMinionId = new Map<string, CostantinoFinding[]>();
   try {
     const rows = await db
       .select()
@@ -314,12 +321,80 @@ async function loadOpenFindings(): Promise<{
         const list = bySpecialistId.get(row.targetId) ?? [];
         list.push(row);
         bySpecialistId.set(row.targetId, list);
+      } else if (row.targetKind === MINION_FINDING_TARGET_KIND) {
+        const list = byMinionId.get(row.targetId) ?? [];
+        list.push(row);
+        byMinionId.set(row.targetId, list);
       }
     }
   } catch {
     /* best-effort — empty maps mean "no finding signal", same as no findings */
   }
-  return { bySlug, bySpecialistId };
+  return { bySlug, bySpecialistId, byMinionId };
+}
+
+/**
+ * Read the last minion-self-test scheduler run so the Minions roster can
+ * display "tests last ran X ago — N pass / N fail" alongside the
+ * on-demand badge admins get from the Analyst button (Task #1397).
+ */
+async function lastMinionSelfTestCycle(): Promise<CostantinoCycleSummary> {
+  try {
+    const rows = await storage.listSchedulerRuns();
+    const row = rows.find((r) => r.schedulerKey === MINION_SELF_TEST_SCHEDULER_KEY);
+    if (!row) {
+      return { lastRunAt: null, status: null, notes: null, considered: 0, succeeded: 0, failed: 0 };
+    }
+    const ranAt = row.lastRunAt instanceof Date ? row.lastRunAt : new Date(row.lastRunAt);
+    return {
+      lastRunAt: ranAt.toISOString(),
+      status: (row.status as CostantinoCycleSummary["status"]) ?? null,
+      notes: row.notes ?? null,
+      considered: row.considered ?? 0,
+      succeeded: row.succeeded ?? 0,
+      failed: row.failed ?? 0,
+    };
+  } catch {
+    return { lastRunAt: null, status: null, notes: null, considered: 0, succeeded: 0, failed: 0 };
+  }
+}
+
+/**
+ * Derive a per-minion roster health entry from the most recent
+ * self-test scheduler cycle and any open `costantino_findings` row
+ * targeting that minion. If the scheduler has not yet fired its first
+ * cycle and no open finding exists, status stays `unknown` so the UI
+ * does not display a fake green dot.
+ */
+function minionHealth(
+  minionId: string,
+  lastCycle: CostantinoCycleSummary,
+  openFindings: CostantinoFinding[],
+): RosterHealthEntry {
+  if (openFindings.length > 0) {
+    const worst = openFindings.reduce<CostantinoFinding>(
+      (acc, f) => (severityToStatus(f.severity) === "error" ? f : acc),
+      openFindings[0],
+    );
+    return {
+      status: severityToStatus(worst.severity),
+      source: "minion-self-test scheduler · finding open",
+      checkedAt: worst.detectedAt.toISOString(),
+      message: worst.description,
+    };
+  }
+  if (lastCycle.lastRunAt) {
+    return {
+      status: "healthy",
+      source: "minion-self-test scheduler · last cycle pass",
+      checkedAt: lastCycle.lastRunAt,
+    };
+  }
+  return {
+    status: "unknown",
+    source: "minion-self-test scheduler (no cycle yet)",
+    checkedAt: null,
+  };
 }
 
 export function registerAgentRosterRoutes(app: Express) {
@@ -328,15 +403,17 @@ export function registerAgentRosterRoutes(app: Express) {
       const now = new Date();
       const entries: Record<string, RosterHealthEntry> = {};
 
-      const [findings, costantinoCycle, minionHistoryRows] = await Promise.all([
-        loadOpenFindings(),
-        lastCostantinoCycle(),
-        // Best-effort: a failure here surfaces an empty history map rather
-        // than failing the whole roster endpoint.
-        storage
-          .listMinionSelfTestHistory({ limitPerMinion: MINION_SELF_TEST_HISTORY_STRIP })
-          .catch(() => []),
-      ]);
+      const [findings, costantinoCycle, minionSelfTestCycle, minionHistoryRows] =
+        await Promise.all([
+          loadOpenFindings(),
+          lastCostantinoCycle(),
+          lastMinionSelfTestCycle(),
+          // Best-effort: a failure here surfaces an empty history map rather
+          // than failing the whole roster endpoint.
+          storage
+            .listMinionSelfTestHistory({ limitPerMinion: MINION_SELF_TEST_HISTORY_STRIP })
+            .catch(() => []),
+        ]);
 
       // Bucket minion self-test rows by minionId for the response payload.
       // Rows are already sorted (minion_id ASC, ran_at DESC, id DESC) by
@@ -367,10 +444,21 @@ export function registerAgentRosterRoutes(app: Express) {
       entries["iris"] = await irisHealth(now);
       entries["rebecca"] = await rebeccaHealth(now);
 
+      // Minions — derived from the scheduler cycle row + any open
+      // findings the scheduler wrote during a previous fail. Task #1397.
+      for (const minionId of Object.keys(MINION_SELF_TESTS)) {
+        entries[minionId] = minionHealth(
+          minionId,
+          minionSelfTestCycle,
+          findings.byMinionId.get(minionId) ?? [],
+        );
+      }
+
       res.json({
         entries,
         generatedAt: now.toISOString(),
         costantinoCycle,
+        minionSelfTestCycle,
         minionHistory,
         minionHistoryStrip: MINION_SELF_TEST_HISTORY_STRIP,
       });
