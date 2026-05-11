@@ -20,7 +20,12 @@ import type { Request, Response, NextFunction } from "express";
 import { isAdminRole } from "@shared/constants";
 import { storage } from "../storage";
 import { logger } from "../logger";
-import { csrfTokenFor } from "../auth";
+import { csrfTokenGuard } from "./csrf";
+
+// Re-exported so existing per-route imports (`analyst-tables.ts`) and test
+// mocks (`reference-brands-route.test.ts`) keep working. The canonical
+// definition now lives in `./csrf.ts`.
+export { csrfTokenGuard };
 
 export const ANALYST_TABLE_ALLOW_LIST = ["capital_raise_benchmarks", "exit_multiples", "reference_brands"] as const;
 export type AnalystTableId = typeof ANALYST_TABLE_ALLOW_LIST[number];
@@ -63,54 +68,7 @@ export function requireAdminGuard(req: Request, res: Response, next: NextFunctio
 }
 
 // ── Guard 2: CSRF token ─────────────────────────────────────────
-// Double-submit cookie pattern with HMAC-derived tokens. The auth
-// middleware writes a non-httpOnly `csrf_token` cookie containing
-// `csrfTokenFor(sessionId)` (HMAC-SHA256 of the session id under a
-// server-side secret). Browser JS reads the cookie and echoes it as
-// the `x-csrf-token` header; this guard accepts the request only when
-// the header matches the expected HMAC for the current session.
-//
-// The HMAC matters because `csrf_token` is JS-readable: an XSS that
-// exfiltrates the cookie obtains only a derived token, not the
-// session id itself, so it cannot forge a session cookie elsewhere.
-//
-// We still accept the legacy "header equals cookie" path (no
-// `session_id` cookie present) so the unit tests can exercise the
-// guard in isolation without needing the full auth middleware chain.
-const SESSION_COOKIE = "session_id";
-const CSRF_COOKIE = "csrf_token";
-export function csrfTokenGuard(req: Request, res: Response, next: NextFunction) {
-  const headerToken = (req.headers["x-csrf-token"] || req.headers["x-xsrf-token"]) as string | undefined;
-  const cookies = (req.headers.cookie || "")
-    .split(";")
-    .map(s => s.trim())
-    .reduce<Record<string, string>>((acc, s) => {
-      const [k, ...v] = s.split("=");
-      if (k) acc[k] = decodeURIComponent(v.join("="));
-      return acc;
-    }, {});
-  const sessionId = cookies[SESSION_COOKIE];
-  const cookieToken = cookies[CSRF_COOKIE];
-  if (!headerToken) {
-    return res.status(403).json({ error: "CSRF token missing or invalid" });
-  }
-  // Production path: session cookie is present, validate header against
-  // the HMAC derived from it. Cookie-mirror is also checked as a defense-
-  // in-depth tripwire (catches a stale or tampered csrf_token cookie).
-  if (sessionId) {
-    const expected = csrfTokenFor(sessionId);
-    if (headerToken !== expected || (cookieToken && cookieToken !== expected)) {
-      return res.status(403).json({ error: "CSRF token missing or invalid" });
-    }
-    return next();
-  }
-  // Legacy/test path: no session cookie — fall back to plain double-submit
-  // (header must equal cookie) so isolated unit tests of this guard pass.
-  if (!cookieToken || headerToken !== cookieToken) {
-    return res.status(403).json({ error: "CSRF token missing or invalid" });
-  }
-  next();
-}
+// Now lives in `./csrf.ts` and is re-exported at the top of this file.
 
 // ── Guard 3: per-admin rate limit ───────────────────────────────
 export async function perAdminRateLimitGuard(req: Request, res: Response, next: NextFunction) {

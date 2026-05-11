@@ -467,6 +467,7 @@ export const HTTP_STATUS_CODE_MAX = 599;
 
 /** Standard HTTP response status codes used in route handlers. */
 export const HTTP_STATUS_BAD_REQUEST = 400;
+export const HTTP_STATUS_FORBIDDEN = 403;
 export const HTTP_STATUS_INTERNAL_SERVER_ERROR = 500;
 
 // DB: rebecca-admin-scenario-display-limit — move to model-constants-registry when admin tuning is needed
