@@ -518,3 +518,97 @@ export async function toolUpdateServiceTemplate(
     dataChanged: { entityType: "service_template" as const, entityId: idResult.value },
   };
 }
+
+// ---------------------------------------------------------------------------
+// W2.1: Specialist read tools + recommendation telemetry
+//
+// Specialist prompt/model/required-fields/toggles are dev-defined per
+// `.claude/rules/specialists-are-dev-defined-only.md` (admin routes return
+// 405). The only admin-mutable surface is the append-only recommendation
+// event below, which mirrors the Required Fields tab's Promote/Ignore.
+// ---------------------------------------------------------------------------
+
+const RECOMMENDATION_ACTIONS = ["promote-recommended", "promote-hard", "ignore"] as const;
+type RecommendationAction = (typeof RECOMMENDATION_ACTIONS)[number];
+
+export async function toolListSpecialists(ctx: ToolContext): Promise<{ result: unknown }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const { SPECIALIST_CATALOG } = await import("@engine/analyst/registry/specialist-catalog");
+  const overrideIds = await storage.listSpecialistsWithLlmOverrides();
+
+  return {
+    result: SPECIALIST_CATALOG.map((def) => ({
+      id: def.id,
+      letter: def.letter,
+      humanName: def.humanName,
+      subject: def.subject,
+      description: def.description ?? null,
+      candidateFieldKeys: (def.candidateFields ?? []).map((c) => c.key),
+      hasLlmOverrides: overrideIds.has(def.id),
+    })),
+  };
+}
+
+export async function toolGetSpecialistConfig(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const specialistId = typeof args.specialistId === "string" ? args.specialistId : "";
+  if (!specialistId) return { result: { error: "specialistId must be a non-empty string" } };
+
+  const { getSpecialistById } = await import("@engine/analyst/registry/specialist-catalog");
+  const definition = getSpecialistById(specialistId);
+  if (!definition) return { result: { error: `Specialist not found: ${specialistId}` } };
+
+  const config = await storage.getSpecialistConfig(specialistId);
+  return { result: { definition, config: config ?? null } };
+}
+
+export async function toolRecordSpecialistRecommendationEvent(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const specialistId = typeof args.specialistId === "string" ? args.specialistId : "";
+  if (!specialistId) return { result: { error: "specialistId must be a non-empty string" } };
+
+  const fieldKey = typeof args.fieldKey === "string" ? args.fieldKey : "";
+  if (!fieldKey) return { result: { error: "fieldKey must be a non-empty string" } };
+
+  const action = args.action;
+  if (typeof action !== "string" || !RECOMMENDATION_ACTIONS.includes(action as RecommendationAction)) {
+    return { result: { error: `action must be one of: ${RECOMMENDATION_ACTIONS.join(", ")}` } };
+  }
+  const typedAction = action as RecommendationAction;
+
+  const { getSpecialistById, getLockedHardCandidateKeys } = await import("@engine/analyst/registry/specialist-catalog");
+  const definition = getSpecialistById(specialistId);
+  if (!definition) return { result: { error: `Specialist not found: ${specialistId}` } };
+
+  const candidateKeys = new Set((definition.candidateFields ?? []).map((c) => c.key));
+  if (!candidateKeys.has(fieldKey)) {
+    return { result: { error: `Field key "${fieldKey}" is not a declared candidate of ${specialistId}` } };
+  }
+
+  if (typedAction === "promote-hard") {
+    const lockedHard = new Set(getLockedHardCandidateKeys(specialistId));
+    if (!lockedHard.has(fieldKey)) {
+      return {
+        result: {
+          error: `Cannot promote "${fieldKey}" to hard-required: not catalog-locked. The hard tier is owned by the catalog.`,
+          lockedHardKeys: Array.from(lockedHard),
+        },
+      };
+    }
+  }
+
+  const event = await storage.recordRecommendationEvent(specialistId, fieldKey, typedAction, ctx.userId);
+  return { result: { success: true, eventId: event.id, specialistId, fieldKey, action: typedAction } };
+}

@@ -258,5 +258,46 @@ export function getAdminTools(): ToolParam[] {
         required: ["tabKey"],
       },
     },
+    // ───────── W2.1: Specialist read tools + recommendation telemetry ─────────
+    // Note on scope: prompt/model/required-fields/toggles on specialist_configs
+    // are dev-defined per `.claude/rules/specialists-are-dev-defined-only.md`
+    // (all corresponding admin routes return 405). The only admin-mutable
+    // specialist surface is the recommendation-event telemetry below.
+    {
+      name: "list_specialists",
+      description:
+        "List every Specialist in the catalog (id, letter, role, subject, model tier) plus a flag indicating which Specialists currently have an LLM-override config row. Read-only. Use to enumerate available Specialists before fetching a specific config.",
+      parameters: { type: "object", properties: {} },
+    },
+    {
+      name: "get_specialist_config",
+      description:
+        "Read the config row + catalog definition for a single Specialist. Returns the merged shape { definition, config } where `definition` is the static catalog entry (role, subject, candidateFields, prerequisites) and `config` is the per-Specialist override row (modelResourceId, promptTemplate, multiModel settings) or null if no overrides exist. Read-only — config writes are dev-defined, see specialists-are-dev-defined-only.md.",
+      parameters: {
+        type: "object",
+        properties: {
+          specialistId: { type: "string", description: "The catalog id of the Specialist (e.g. 'maya', 'lucca')." },
+        },
+        required: ["specialistId"],
+      },
+    },
+    {
+      name: "record_specialist_recommendation_event",
+      description:
+        "Record an append-only telemetry event for an observed-missing candidate field on a Specialist: 'promote-recommended' marks the field as recommended-required, 'promote-hard' marks it as hard-required (only allowed on catalog-locked candidates), 'ignore' marks it as noise. Admin only. Mirrors the Required Fields tab's Promote/Ignore actions. fieldKey must be a declared candidate of the Specialist; promote-hard on a non-locked candidate is rejected.",
+      parameters: {
+        type: "object",
+        properties: {
+          specialistId: { type: "string", description: "The catalog id of the Specialist." },
+          fieldKey: { type: "string", description: "The candidate field key (must appear in def.candidateFields)." },
+          action: {
+            type: "string",
+            enum: ["promote-recommended", "promote-hard", "ignore"],
+            description: "Which telemetry action to record.",
+          },
+        },
+        required: ["specialistId", "fieldKey", "action"],
+      },
+    },
   ];
 }
