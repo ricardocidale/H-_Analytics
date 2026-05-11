@@ -1,6 +1,7 @@
 ---
 title: "CC branch hygiene: Replit Agent stages unreviewed commits on CC PR branches"
 date: 2026-05-10
+last_updated: 2026-05-11
 category: docs/solutions/workflow-issues
 module: cc-replit-branch-hygiene
 problem_type: workflow_issue
@@ -11,6 +12,9 @@ applies_when:
   - The Replit Agent is running concurrently in the same workspace
   - A CC PR branch remains on remote while waiting for CI or CodeRabbit review
   - A PR is being prepared for merge and its commit scope needs verification
+  - Local main (not a PR branch) has accumulated mixed CC + Replit Agent commits before push
+  - A valuable Replit Agent commit needs to ship but cannot be mixed into a CC PR
+  - Multiple PRs need to wait for CI gates and manual polling would otherwise be required
 tags:
   - git-hygiene
   - branch-management
@@ -18,6 +22,8 @@ tags:
   - pr-scope
   - cherry-pick
   - agent-coordination
+  - auto-merge
+  - gh-pr-checks
 ---
 
 # CC branch hygiene: Replit Agent stages unreviewed commits on CC PR branches
@@ -81,7 +87,7 @@ The practical risk is not malicious — the Replit Agent's additions have been b
 
 - Before merging any CC PR where the branch has been live on remote for more than a few minutes
 - Whenever CI takes more than ~2 minutes — this is the primary window where the Replit Agent stages commits
-- Before using `gh pr merge --squash` or `gh pr merge --auto` — auto-merge gives no natural pause to run the scope check
+- Before using `gh pr merge --auto` on a mixed-author branch — auto-merge gives no natural pause to run the scope check. After splitting into per-author PRs (see § "Per-commit triage and conditional auto-merge watchers"), each PR is single-author by construction and the conditional watcher is safe
 - When the PR file count in the CodeRabbit summary is higher than expected
 - When `git log origin/main..origin/<branch> --oneline` shows more commits than the CC session authored
 
@@ -129,6 +135,105 @@ This PR also includes 3 script files staged by the Replit Agent
 (check-timing-report.ts, check-selective.ts sort order, package.json entry).
 Reviewed and safe to ship alongside the CodeRabbit fixes.
 ```
+
+## Per-commit triage and conditional auto-merge watchers
+
+The PR-branch pattern above handles the case where the Replit Agent stages commits onto a CC branch already on remote. The generalization: when **local `main`** (not a PR branch) accumulates mixed CC + Replit Agent commits before push, split it into per-author PRs, and use a backgrounded `until` loop to wait for CI gates without manual polling.
+
+### Step 1 — Inspect each Replit Agent commit on its merits
+
+For each commit, `git show --stat <sha>` and read the diff. Decide:
+
+- **Worthless** — empty commit (zero file changes), workflow-ops log entry, or content that duplicates/conflicts with CC work. Mark for drop.
+- **Valuable** — real content (e.g., a `docs/solutions/` learning doc syncing to a refactor; a test fixture). Mark for cherry-pick.
+
+Empty commits are virtually always worthless — they're Replit Agent restart/workflow log artifacts masquerading as commits.
+
+### Step 2 — Cherry-pick each valuable commit to its own fresh branch off `origin/main`
+
+One branch per logical change. Cherry-picking preserves the original committer authorship — important for the audit trail:
+
+```bash
+git fetch origin main
+
+# CC commit
+git checkout -b chore/<cc-branch-name> origin/main
+git cherry-pick <cc-sha>
+git push -u origin chore/<cc-branch-name>
+
+# Valuable Replit Agent commit — separate branch, never mix
+git checkout -b docs/<replit-branch-name> origin/main
+git cherry-pick <replit-sha>
+git push -u origin docs/<replit-branch-name>
+```
+
+### Step 3 — PR body explicitly acknowledges Replit Agent authorship
+
+For a CC PR, business as usual. For any cherry-picked Replit Agent commit, the PR body must state where the commit came from and why the content is being shipped. The cherry-pick **is** the in-scope acknowledgement; the PR body makes it visible:
+
+> Cherry-picked from a Replit Agent commit (`<sha>`) and shipped via a clean branch off `origin/main` per CC branch hygiene discipline. No CC review skipped — this PR is the review.
+>
+> **Why ship this Replit Agent commit:** [one-paragraph explanation of the content value]
+
+### Step 4 — Background a conditional auto-merge watcher per PR
+
+After the per-commit split each PR is single-author by construction, so auto-merge is safe. Use a backgrounded `until` loop to wait for CI gates and merge without manual polling. Two variants:
+
+**Variant A — wait for all checks to pass, then merge:**
+
+```bash
+timeout 1800 bash -c '
+until ! gh pr checks <PR> 2>&1 | grep -q pending; do sleep 30; done
+FINAL=$(gh pr checks <PR> 2>&1)
+if echo "$FINAL" | grep -qE "^[^\t]+\tfail"; then
+  echo "FAILURES — NOT MERGING"
+  exit 1
+fi
+gh pr merge <PR> --squash --delete-branch
+'
+```
+
+**Variant B — gate on one specific check, ignore optional/noisy checks (e.g., Railway preview):**
+
+```bash
+timeout 1800 bash -c '
+until ! gh pr checks <PR> 2>&1 | grep "^CodeRabbit" | grep -q pending; do sleep 30; done
+FINAL=$(gh pr checks <PR> 2>&1)
+FAILS=$(echo "$FINAL" | grep -E "\tfail\t" | grep -v "H+ Analysis - H-Analytics")
+if [ -n "$FAILS" ]; then exit 1; fi
+gh pr merge <PR> --squash --delete-branch
+'
+```
+
+Run via `Bash(..., run_in_background=true)`. The 30-minute `timeout` keeps a stuck watcher from running forever. `gh pr merge --squash --delete-branch` deletes both local and remote branches — no separate cleanup needed.
+
+### Step 5 — Drop the worthless commits via hard reset
+
+Once every valuable commit is preserved on a pushed PR branch:
+
+```bash
+git checkout main
+git reset --hard origin/main
+```
+
+Safe because (a) the CC commit is on its PR branch, (b) the valuable Replit commits are on their PR branches, (c) worthless Replit commits are by definition disposable. After each PR merges, `git pull --ff-only origin main` brings local `main` forward with the squashed merge commits.
+
+### Worked example — 2026-05-11 session
+
+Starting state of local `main`:
+
+```
+8fbe53c3 [Replit Agent] chore: restart stopped workflows for logo login        ← empty, worthless
+9088c7a9 [Replit Agent] Update documentation to reflect recent code refactoring ← valuable
+94f54990 [CC]           chore(docs): trim CLAUDE.md (539→493) closes U5 gap    ← CC work
+```
+
+Inspection: `8fbe53c3` has zero files changed (drop). `9088c7a9` updates two `docs/solutions/architecture-patterns/` learnings to match the post-split file layout — `DataChangedEntry` union grown 12 → 16 types, `chat.ts` references updated to the new `chat-loop.ts` / `chat-llm.ts` / `chat-sse.ts` split (valuable, cherry-pick).
+
+Cherry-picked CC commit → PR #90 (Variant B watcher: gate on CodeRabbit, ignore Railway preview).  
+Cherry-picked Replit Agent commit → PR #91 with explicit authorship acknowledgement in the body (Variant A watcher: all checks must pass).
+
+Both merged successfully: PR #90 as `5e245b24` (CodeRabbit "Review completed" PASS); PR #91 as `9be96277` (CodeRabbit "Review skipped" on docs-only diff, all other gates green). No Replit Agent commits in either PR's diff scope; both authors preserved in commit history. The empty `8fbe53c3` dropped via `git reset --hard origin/main`.
 
 ## Related
 
