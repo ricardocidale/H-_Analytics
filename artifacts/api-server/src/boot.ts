@@ -113,6 +113,20 @@ export function runBootSequence(httpServer: Server, _app: import("express").Expr
           serverLog(`[iris-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
         });
       });
+
+      // ── Phase 3m: Minion self-test scheduler (Task #1397) ────────
+      // Gated on migration success — `resolveCadenceMs()` reads the
+      // admin_resources row 'minion-self-test-cycle-interval-ms' on
+      // every cycle, and the scheduler also writes to
+      // `minion_self_test_runs` (migration 0051) and `costantino_findings`.
+      // On a cold boot, both must exist before the first tick.
+      setImmediate(() => {
+        import("./jobs/minion-self-test-scheduler").then(({ startMinionSelfTestScheduler }) => {
+          startMinionSelfTestScheduler();
+        }).catch(err => {
+          serverLog(`[minion-self-test-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
+        });
+      });
     })
     .catch(err => {
       serverLog(
@@ -226,17 +240,9 @@ export function runBootSequence(httpServer: Server, _app: import("express").Expr
     serverLog(`[costantino-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
   });
 
-  // ── Phase 3m: Minion self-test scheduler (Task #1397) ────────
-  // Periodic background loop that runs every minion self-test
-  // (slides/minions/self-tests.ts) on an admin-tunable cadence
-  // (default 6h) and opens a costantino_findings row when one
-  // fails so deterministic-helper regressions don't sit
-  // undetected for weeks.
-  import("./jobs/minion-self-test-scheduler").then(({ startMinionSelfTestScheduler }) => {
-    startMinionSelfTestScheduler();
-  }).catch(err => {
-    serverLog(`[minion-self-test-scheduler] Failed to start: ${err instanceof Error ? err.message : err}`, "startup", "error");
-  });
+  // Phase 3m (minion-self-test scheduler) is started inside the migration
+  // `.then()` block above — it must wait for migrations 0051/0052 and the
+  // `admin_resources` cadence row before its first tick.
 
   const intervalHandles: NodeJS.Timeout[] = [];
 
