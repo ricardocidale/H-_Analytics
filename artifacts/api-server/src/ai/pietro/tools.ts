@@ -153,8 +153,12 @@ async function toolDispatchMinion(args: Record<string, unknown>) {
 }
 
 async function toolAppendToMaintenanceLog(args: Record<string, unknown>) {
-  const content = args.content as string;
-  await writePietroHealth(content);
+  // Schema marks content required, but the tool dispatcher passes through
+  // whatever the LLM produced — validate at the boundary (CodeRabbit PR-99).
+  if (typeof args.content !== "string") {
+    return { written: false, error: "content must be a string" };
+  }
+  await writePietroHealth(args.content);
   return { written: true };
 }
 

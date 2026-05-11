@@ -334,7 +334,9 @@ export async function getSourceEndpoint(
 ): Promise<GetSourceEndpointResult> {
   const { sourceId } = args;
   const id = Number(sourceId);
-  if (!Number.isFinite(id) || Number.isNaN(id)) {
+  // Number.isFinite alone accepts non-integers like "1.5"; tighten to match
+  // the source_registry.id column's integer semantics (CodeRabbit PR-99).
+  if (!Number.isInteger(id)) {
     return { sourceId: NaN, error: `Invalid sourceId: "${sourceId}" is not a valid integer` };
   }
 
@@ -374,7 +376,10 @@ export async function syncDataSource(
 ): Promise<SyncDataSourceResult> {
   const lookup = await getSourceEndpoint(args);
   if (lookup.error || !lookup.endpoint || !lookup.category) {
-    return { synced: false, error: lookup.error };
+    return {
+      synced: false,
+      error: lookup.error ?? "Source lookup returned no endpoint or category",
+    };
   }
   const result = await ingestDocument({ url: lookup.endpoint, category: lookup.category });
   return {
@@ -404,6 +409,11 @@ export interface AppendToMaintenanceLogResult {
 export async function appendToMaintenanceLog(
   args: AppendToMaintenanceLogArgs,
 ): Promise<AppendToMaintenanceLogResult> {
+  // Schema marks content required, but the tool dispatcher passes through
+  // whatever the LLM produced — validate at the boundary (CodeRabbit PR-99).
+  if (typeof args.content !== "string") {
+    return { written: false };
+  }
   try {
     await writeIrisHealth(args.content);
     return { written: true };
