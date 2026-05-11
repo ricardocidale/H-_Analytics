@@ -83,7 +83,10 @@ export function normalizeEvidence(
     .filter((e): e is Record<string, unknown> => e !== null && typeof e === "object")
     .map((e) => ({
       source: typeof e.source === "string" ? e.source.trim() : "",
-      url: typeof e.url === "string" && e.url.trim() !== "" ? e.url : undefined,
+      url:
+        typeof e.url === "string" && e.url.trim() !== ""
+          ? e.url.trim()
+          : undefined,
       finding: typeof e.finding === "string" ? e.finding.trim() : "",
     }))
     .filter((e) => e.source !== "" && e.finding !== "");

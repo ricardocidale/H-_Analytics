@@ -26,6 +26,21 @@ const REFERENCE_BRANDS_NARRATION = [
   "Auto-committing reference brands (no diff review required)…",
 ];
 
+// Auto-commit coverage gate: the prompt demands 15–25 brands including these
+// six founding names. A partial response would otherwise pass the empty-string
+// filter and silently drop omitted brands on the full-table replace. Listed
+// verbatim from the prompt so a prompt-side change forces a code-side update
+// (CodeRabbit PR-85).
+const REQUIRED_FOUNDING_BRANDS = [
+  "Axel Hotels",
+  "Mama Shelter",
+  "Desire Resorts",
+  "Selina",
+  "Eleven Experience",
+  "Yotel",
+] as const;
+const MIN_REFERENCE_BRANDS = 15; // lower bound of the "15–25 brands" prompt contract
+
 // Implementation note: uses direct openai.chat.completions.create — the same
 // approach as researchCapitalRaiseBenchmarks and researchExitMultiples above.
 // The handleToolCall / aiResearch.ts pipeline is for the interactive specialist
@@ -173,10 +188,28 @@ REQUIREMENTS:
       refreshedByRunId: auditId ?? null,
     }));
 
-  // When the model returns no brands, fall back to re-inserting the existing
-  // rows. Strip DB-managed fields (id, createdAt, updatedAt) so the INSERT
-  // does not conflict with the GENERATED ALWAYS IDENTITY column.
-  const brandsToWrite: InsertReferenceBrand[] = newBrands.length > 0 ? newBrands : current.map(b => ({
+  // Auto-commit gate (CodeRabbit PR-85): a payload of (e.g.) 2 brands would
+  // pass the empty-string filter and overwrite the entire table on the full
+  // replace below. Require both a minimum row count AND every founding brand
+  // before allowing the replace; otherwise re-insert the existing rows.
+  const newBrandNames = new Set(newBrands.map(b => b.brandName));
+  const missingFoundingBrands = REQUIRED_FOUNDING_BRANDS.filter(name => !newBrandNames.has(name));
+  const hasRequiredCoverage =
+    newBrands.length >= MIN_REFERENCE_BRANDS && missingFoundingBrands.length === 0;
+
+  if (!hasRequiredCoverage) {
+    refreshLog.warn(
+      `researchReferenceBrands: payload incomplete ` +
+      `(${newBrands.length} brands, need ≥${MIN_REFERENCE_BRANDS}; ` +
+      `missing founding brands: ${missingFoundingBrands.length > 0 ? missingFoundingBrands.join(", ") : "none"}) ` +
+      `— keeping existing rows`,
+    );
+  }
+
+  // When falling back, re-insert the existing rows. Strip DB-managed fields
+  // (id, createdAt, updatedAt) so the INSERT does not conflict with the
+  // GENERATED ALWAYS IDENTITY column.
+  const brandsToWrite: InsertReferenceBrand[] = hasRequiredCoverage ? newBrands : current.map(b => ({
     brandName: b.brandName,
     niche: b.niche,
     positioningSummary: b.positioningSummary,
