@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ScenarioResponse } from "./types";
 import { invalidateAllFinancialQueries } from "./properties";
+import { apiRequest } from "@/lib/queryClient";
 
 async function fetchScenarios(): Promise<ScenarioResponse[]> {
   const res = await fetch("/api/scenarios");
@@ -281,11 +282,9 @@ export function useDeletedScenarios(enabled = false) {
 }
 
 async function restoreScenario(id: number): Promise<ScenarioResponse> {
-  const res = await fetch(`/api/admin/scenarios/${id}/restore`, {
-    method: "POST",
-    credentials: "include",
+  const res = await apiRequest("POST", `/api/admin/scenarios/${id}/restore`, undefined, {
+    fallbackMessage: "Failed to restore scenario",
   });
-  if (!res.ok) throw new Error("Failed to restore scenario");
   return res.json();
 }
 
@@ -303,11 +302,9 @@ export function useRestoreScenario() {
 }
 
 async function purgeScenario(id: number): Promise<void> {
-  const res = await fetch(`/api/admin/scenarios/${id}/purge`, {
-    method: "DELETE",
-    credentials: "include",
+  await apiRequest("DELETE", `/api/admin/scenarios/${id}/purge`, undefined, {
+    fallbackMessage: "Failed to purge scenario",
   });
-  if (!res.ok) throw new Error("Failed to purge scenario");
 }
 
 export function usePurgeScenario() {
@@ -323,11 +320,9 @@ export function usePurgeScenario() {
 }
 
 async function purgeExpiredScenarios(): Promise<{ purgedCount: number }> {
-  const res = await fetch("/api/admin/scenarios/purge-expired", {
-    method: "POST",
-    credentials: "include",
+  const res = await apiRequest("POST", "/api/admin/scenarios/purge-expired", undefined, {
+    fallbackMessage: "Failed to purge expired scenarios",
   });
-  if (!res.ok) throw new Error("Failed to purge expired scenarios");
   return res.json();
 }
 

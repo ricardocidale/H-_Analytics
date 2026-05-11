@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { GlobalResponse, ResearchQuestion } from "./types";
 import type { ResearchConfig, AiModelEntry, ResourcePublicView } from "@shared/schema";
 import { invalidateAllFinancialQueries } from "./properties";
+import { apiRequest } from "@/lib/queryClient";
 
 async function fetchGlobalAssumptions(): Promise<GlobalResponse> {
   const res = await fetch("/api/global-assumptions");
@@ -126,12 +127,9 @@ export function useSaveResearchConfig() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (config: ResearchConfig) => {
-      const res = await fetch("/api/admin/research-config", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(config),
+      const res = await apiRequest("PUT", "/api/admin/research-config", config, {
+        fallbackMessage: "Failed to save research config",
       });
-      if (!res.ok) throw new Error("Failed to save research config");
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-research-config"] }),
@@ -142,8 +140,9 @@ export function useRefreshAiModels() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (): Promise<{ models: AiModelEntry[]; fetchedAt: string; liveCount?: number; fromCache?: boolean }> => {
-      const res = await fetch("/api/admin/ai-models/refresh", { method: "POST" });
-      if (!res.ok) throw new Error("Failed to refresh AI models");
+      const res = await apiRequest("POST", "/api/admin/ai-models/refresh", undefined, {
+        fallbackMessage: "Failed to refresh AI models",
+      });
       return res.json();
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-research-config"] }),
@@ -205,8 +204,9 @@ export function useRefreshLlmRegistry() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (): Promise<LlmRegistryState> => {
-      const res = await fetch("/api/admin/llm-registry/refresh", { method: "POST" });
-      if (!res.ok) throw new Error("Failed to refresh LLM registry");
+      const res = await apiRequest("POST", "/api/admin/llm-registry/refresh", undefined, {
+        fallbackMessage: "Failed to refresh LLM registry",
+      });
       return res.json();
     },
     onSuccess: () => {
@@ -230,12 +230,9 @@ export function useUpdateAdminResource() {
       secretRef?: string;
       changeSummary?: string;
     }): Promise<ResourcePublicView> => {
-      const res = await fetch(`/api/admin/resources/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+      const res = await apiRequest("PUT", `/api/admin/resources/${id}`, body, {
+        fallbackMessage: `Failed to update resource ${id}`,
       });
-      if (!res.ok) throw new Error(`Failed to update resource ${id}`);
       return res.json();
     },
     onSuccess: () => {
