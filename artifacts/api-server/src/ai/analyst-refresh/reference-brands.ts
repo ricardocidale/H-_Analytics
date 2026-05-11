@@ -192,15 +192,26 @@ REQUIREMENTS:
   // pass the empty-string filter and overwrite the entire table on the full
   // replace below. Require both a minimum row count AND every founding brand
   // before allowing the replace; otherwise re-insert the existing rows.
-  const newBrandNames = new Set(newBrands.map(b => b.brandName));
-  const missingFoundingBrands = REQUIRED_FOUNDING_BRANDS.filter(name => !newBrandNames.has(name));
+  //
+  // Dedupe by normalized name (trim + lowercase) before counting (CodeRabbit
+  // PR-93): a payload of 15× the same brand would otherwise satisfy the count
+  // check, and a case-shifted "axel hotels" would fail the founding-brand
+  // check despite being the same brand. First-occurrence wins on dedup.
+  const dedupedBrands = Array.from(
+    new Map(newBrands.map(b => [b.brandName.trim().toLowerCase(), b] as const)).values(),
+  );
+  const newBrandNames = new Set(dedupedBrands.map(b => b.brandName.trim().toLowerCase()));
+  const missingFoundingBrands = REQUIRED_FOUNDING_BRANDS.filter(
+    name => !newBrandNames.has(name.toLowerCase()),
+  );
   const hasRequiredCoverage =
-    newBrands.length >= MIN_REFERENCE_BRANDS && missingFoundingBrands.length === 0;
+    dedupedBrands.length >= MIN_REFERENCE_BRANDS && missingFoundingBrands.length === 0;
 
   if (!hasRequiredCoverage) {
     refreshLog.warn(
       `researchReferenceBrands: payload incomplete ` +
-      `(${newBrands.length} brands, need ≥${MIN_REFERENCE_BRANDS}; ` +
+      `(${dedupedBrands.length} unique brands of ${newBrands.length} returned, ` +
+      `need ≥${MIN_REFERENCE_BRANDS}; ` +
       `missing founding brands: ${missingFoundingBrands.length > 0 ? missingFoundingBrands.join(", ") : "none"}) ` +
       `— keeping existing rows`,
     );
@@ -209,7 +220,7 @@ REQUIREMENTS:
   // When falling back, re-insert the existing rows. Strip DB-managed fields
   // (id, createdAt, updatedAt) so the INSERT does not conflict with the
   // GENERATED ALWAYS IDENTITY column.
-  const brandsToWrite: InsertReferenceBrand[] = hasRequiredCoverage ? newBrands : current.map(b => ({
+  const brandsToWrite: InsertReferenceBrand[] = hasRequiredCoverage ? dedupedBrands : current.map(b => ({
     brandName: b.brandName,
     niche: b.niche,
     positioningSummary: b.positioningSummary,
