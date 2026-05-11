@@ -270,21 +270,6 @@ function enzoSelfTest(): MinionSelfTestResult {
   }
 }
 
-// ── Bruno ──────────────────────────────────────────────────────────────────
-// Bruno is registered in the catalog as a "Pipeline utility" placeholder with
-// no executable code yet (see comment in `agent-taxonomy.ts`). The self-test
-// reports `skipped` honestly rather than faking a green check.
-
-function brunoSelfTest(): MinionSelfTestResult {
-  const start = performance.now();
-  return {
-    minionId: "bruno",
-    status: "skipped",
-    durationMs: Math.round(performance.now() - start),
-    message: "Bruno is a registered placeholder with no executable code yet — nothing to probe.",
-  };
-}
-
 // ── Registry ───────────────────────────────────────────────────────────────
 
 type SelfTestFn = () => Promise<MinionSelfTestResult> | MinionSelfTestResult;
@@ -294,7 +279,6 @@ export const MINION_SELF_TESTS: Record<string, SelfTestFn> = {
   carlo: carloSelfTest,
   dino: dinoSelfTest,
   enzo: enzoSelfTest,
-  bruno: brunoSelfTest,
 };
 
 export async function runMinionSelfTest(minionId: string): Promise<MinionSelfTestResult> {

@@ -16,7 +16,7 @@ import { MINION_SELF_TESTS, runMinionSelfTest } from "../slides/minions/self-tes
 describe("minion self-tests", () => {
   it("has a self-test registered for every catalog minion", () => {
     expect(Object.keys(MINION_SELF_TESTS).sort()).toEqual(
-      ["aldo", "bruno", "carlo", "dino", "enzo"].sort(),
+      ["aldo", "carlo", "dino", "enzo"].sort(),
     );
   });
 
@@ -39,11 +39,6 @@ describe("minion self-tests", () => {
   it("dino passes against in-memory PNG fixtures", async () => {
     const result = await runMinionSelfTest("dino");
     expect(result.status).toBe("pass");
-  });
-
-  it("bruno reports skipped (placeholder, no executable code)", async () => {
-    const result = await runMinionSelfTest("bruno");
-    expect(result.status).toBe("skipped");
   });
 
   it("aldo passes against an in-memory jsPDF fixture", async () => {

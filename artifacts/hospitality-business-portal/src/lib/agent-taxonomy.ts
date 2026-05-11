@@ -114,12 +114,6 @@ export const MINIONS = {
     role: "Schema Validator",
     description: "Zod schema validation — font metrics and types",
   },
-  bruno: {
-    id: "bruno",
-    label: "Bruno",
-    role: "Utility",
-    description: "Pipeline utility",
-  },
   dino: {
     id: "dino",
     label: "Dino",
