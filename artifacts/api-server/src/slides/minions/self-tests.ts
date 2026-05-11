@@ -161,14 +161,33 @@ function carloSelfTest(): MinionSelfTestResult {
 //   white vs solid red 4×4 → diff = 100
 // Uses real `sharp` decode so the codec dependency is verified too.
 
+// 8-bit RGB channel range. MAX = fully on (255), MIN = fully off (0). Names
+// match the sRGB byte model so the red/white fixtures below read as
+// "max-red + off-green + off-blue" rather than as opaque numeric literals.
+const RGB_CHANNEL_MAX = 255;
+const RGB_CHANNEL_MIN = 0;
+const RGB_CHANNEL_OPAQUE_ALPHA = RGB_CHANNEL_MAX;
+// "Fully different" diff in percent — every pixel above the per-channel
+// tolerance counts, so a white-vs-red fixture deterministically reports 100%.
+const DINO_FULLY_DIFFERENT_PCT = 100;
+
 async function dinoSelfTest(): Promise<MinionSelfTestResult> {
   const start = performance.now();
   try {
     const fixtureSize = 4;
     const channelCount = 4;
-    const opaque = 255;
-    const red = { r: 255, g: 0, b: 0, alpha: opaque };
-    const white = { r: 255, g: 255, b: 255, alpha: opaque };
+    const red = {
+      r: RGB_CHANNEL_MAX,
+      g: RGB_CHANNEL_MIN,
+      b: RGB_CHANNEL_MIN,
+      alpha: RGB_CHANNEL_OPAQUE_ALPHA,
+    };
+    const white = {
+      r: RGB_CHANNEL_MAX,
+      g: RGB_CHANNEL_MAX,
+      b: RGB_CHANNEL_MAX,
+      alpha: RGB_CHANNEL_OPAQUE_ALPHA,
+    };
 
     const [whitePng, redPng] = await Promise.all([
       sharp({ create: { width: fixtureSize, height: fixtureSize, channels: channelCount, background: white } })
@@ -183,18 +202,17 @@ async function dinoSelfTest(): Promise<MinionSelfTestResult> {
     }
 
     const differentDiff = await diffPct(whitePng, redPng, channelCount);
-    const fullyDifferentPct = 100;
-    if (differentDiff !== fullyDifferentPct) {
+    if (differentDiff !== DINO_FULLY_DIFFERENT_PCT) {
       return fail(
         "dino",
         start,
-        `White-vs-red fixtures reported ${differentDiff}% diff (expected ${fullyDifferentPct}%).`,
+        `White-vs-red fixtures reported ${differentDiff}% diff (expected ${DINO_FULLY_DIFFERENT_PCT}%).`,
       );
     }
     return pass(
       "dino",
       start,
-      `Identical fixtures = 0% diff; opposing fixtures = ${fullyDifferentPct}% diff.`,
+      `Identical fixtures = 0% diff; opposing fixtures = ${DINO_FULLY_DIFFERENT_PCT}% diff.`,
     );
   } catch (err) {
     return fail("dino", start, err instanceof Error ? err.message : String(err));

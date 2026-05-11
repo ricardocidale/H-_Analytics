@@ -80,7 +80,15 @@ export class MinionSelfTestRunsStorageImpl implements MinionSelfTestRunsStorage 
   async listMinionSelfTestHistory(
     options: ListMinionSelfTestHistoryOptions = {},
   ): Promise<MinionSelfTestRunRow[]> {
-    const limit = Math.max(1, options.limitPerMinion ?? MINION_SELF_TEST_HISTORY_KEEP);
+    // Validate `limitPerMinion` before clamping. `Math.max(1, NaN) === NaN`, which
+    // would crash the SQL query — coerce non-finite or non-integer inputs back to
+    // the catalog default before applying the floor of 1.
+    const rawLimit = options.limitPerMinion;
+    const validatedLimit =
+      typeof rawLimit === "number" && Number.isFinite(rawLimit)
+        ? Math.floor(rawLimit)
+        : MINION_SELF_TEST_HISTORY_KEEP;
+    const limit = Math.max(1, validatedLimit);
     const ids = options.minionIds;
 
     const filterSql = ids && ids.length > 0

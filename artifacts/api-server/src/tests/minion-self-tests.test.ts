@@ -13,6 +13,12 @@
 import { describe, it, expect } from "vitest";
 import { MINION_SELF_TESTS, runMinionSelfTest } from "../slides/minions/self-tests";
 
+// Vitest per-case timeout for the Aldo PDF self-test. Generous bound: Aldo
+// shells out to `pdftotext` against an in-memory jsPDF fixture, and Poppler
+// cold-start on a CI container can take a couple of seconds. Local "expected"
+// duration is asserted separately with `generousBoundMs` below.
+const ALDO_SELF_TEST_TIMEOUT_MS = 15_000;
+
 describe("minion self-tests", () => {
   it("has a self-test registered for every catalog minion", () => {
     expect(Object.keys(MINION_SELF_TESTS).sort()).toEqual(
@@ -46,5 +52,5 @@ describe("minion self-tests", () => {
     expect(result.status).toBe("pass");
     const generousBoundMs = 10_000;
     expect(result.durationMs).toBeLessThan(generousBoundMs);
-  }, 15_000);
+  }, ALDO_SELF_TEST_TIMEOUT_MS);
 });
