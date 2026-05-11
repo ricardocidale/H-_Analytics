@@ -78,7 +78,15 @@ export type IntelligenceSection =
   | "resources-tables"
   | "knowledge-registry"
   | "knowledge-registry-country-data"
-  | "runs";
+  | "runs"
+  // Agent Roster (Task #1389) — three new top-level browsing sections
+  // for every Agent, Specialist, and Minion in the system. The legacy
+  // "gustavo", "specialists", "iris" values stay in the union (and are
+  // still routed by Intelligence.tsx) so any existing deep links keep
+  // resolving while the roster pages take over the sidebar entry points.
+  | "roster-agents"
+  | "roster-specialists"
+  | "roster-minions";
 
 interface SectionItem {
   value: IntelligenceSection;
@@ -121,37 +129,36 @@ interface NavGroup {
  *     Vector Search Latency
  *     LLMs
  */
-function buildNavGroups(gustavoHumanName: string): NavGroup[] {
+function buildNavGroups(_gustavoHumanName: string): NavGroup[] {
   return [
     {
-      id: "analyst",
-      label: ANALYST_BRAND,
+      id: "agent-roster",
+      label: "Agent Roster",
       icon: IconBrain,
       sections: [
         {
-          value: "gustavo",
-          label: gustavoHumanName,
-          secondary: "Orchestrator",
-          icon: IconBrain,
-          tooltip: `${gustavoHumanName} — ${ANALYST_BRAND} Orchestrator. Routes research tasks across the Specialist team.`,
+          value: "roster-agents",
+          label: "Agents",
+          icon: IconBot,
+          tooltip: "Every Agent in the system — Rebecca, Iris, Gustavo, and any other agent-class entities. See status at a glance and run a live responsiveness probe.",
         },
         {
-          value: "specialists",
+          value: "roster-specialists",
           label: "Specialists",
           icon: IconPeople,
-          tooltip: "All research Specialists — verify deployment, review configuration, run health checks",
+          tooltip: "Every research Specialist — review status and run a live responsiveness probe.",
         },
         {
-          value: "assumption-guidance",
-          label: "Assumption Guidance",
+          value: "roster-minions",
+          label: "Minions",
           icon: IconActivity,
-          tooltip: "Analyst-generated calibration insights — suggested ranges with sources for financial assumptions",
+          tooltip: "Deterministic helper minions used across pipelines. No LLM probe applies; shown for visibility.",
         },
       ],
     },
     {
       id: "agents",
-      label: NAV_GROUP_LABELS.agents,
+      label: "Conversational",
       icon: IconBot,
       sections: [
         { value: "ai-agents",      label: "Rebecca",        secondary: AGENTS.rebecca.role, icon: IconBot          },
@@ -211,6 +218,12 @@ function buildNavGroups(gustavoHumanName: string): NavGroup[] {
       label: NAV_GROUP_LABELS.system,
       icon: IconSettingsGear,
       sections: [
+        {
+          value: "assumption-guidance",
+          label: "Assumption Guidance",
+          icon: IconActivity,
+          tooltip: "Analyst-generated calibration insights — suggested ranges with sources for financial assumptions",
+        },
         { value: "engine-health",      label: "System Health",         icon: IconGauge  },
         { value: "scheduled-research", label: "Scheduled Research",    icon: IconTimer  },
         { value: "vector-bench",       label: "Vector Search Latency", icon: IconBrain  },
@@ -229,12 +242,22 @@ function getGroupForSection(section: IntelligenceSection, groups: NavGroup[]): s
   for (const group of groups) {
     if (group.sections.some((s) => s.value === section)) return group.id;
   }
-  // Legacy specialist deep links → highlight Analyst group so the sidebar
-  // still responds visually even though individual specialist rows are gone.
-  if (section in SPECIALIST_SECTION_TO_ID || section === "analyst-orchestrator") {
-    return "analyst";
+  // Legacy/deep-link sections that no longer have a row in the sidebar:
+  //   - per-Specialist deep links + the Analyst Orchestrator detail page
+  //     are conceptually part of the Specialists roster
+  //   - the legacy `gustavo` / `specialists` / `iris` detail sections live
+  //     inside the Agent Roster group as well (they're the same entities,
+  //     just routed via the older URLs)
+  if (
+    section in SPECIALIST_SECTION_TO_ID ||
+    section === "analyst-orchestrator" ||
+    section === "gustavo" ||
+    section === "specialists" ||
+    section === "iris"
+  ) {
+    return "agent-roster";
   }
-  // Rebecca sub-sections that aren't in the nav map to agents group
+  // Rebecca sub-sections that aren't in the nav map to the conversational group
   return "agents";
 }
 
