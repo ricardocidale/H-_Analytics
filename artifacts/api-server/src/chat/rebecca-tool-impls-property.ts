@@ -220,11 +220,12 @@ export async function toolSeedPropertyFees(
 
   const prop = await storage.getProperty(propertyId);
   if (!prop) return { result: { error: "Property not found" } };
-  const canAccess =
-    isAdminRole(user.role) ||
-    prop.userId === ctx.userId ||
-    prop.userId === null;
-  if (!canAccess) return { result: { error: "Access denied" } };
+  // Tighter than the read/delete pattern (CodeRabbit PR-98): this tool writes
+  // both property defaults and fee categories, so admin-owned (`userId=null`)
+  // rows must not be mutable by arbitrary authenticated users. Matches the
+  // edit rule used by the property PATCH and fee-category routes.
+  const canEdit = isAdminRole(user.role) || prop.userId === ctx.userId;
+  if (!canEdit) return { result: { error: "Access denied" } };
 
   try {
     const outcome = await seedPropertyFees(propertyId);

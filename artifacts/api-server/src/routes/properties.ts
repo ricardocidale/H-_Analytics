@@ -111,6 +111,14 @@ export async function createPropertyRecord(
 }
 
 /**
+ * Fallback room count used when seeding smart defaults on a property with no
+ * roomCount set yet. 10 is the lower bound of the boutique-hotel size band
+ * (see globalAssumptions.assetDefinition.minRooms default) — small enough to
+ * compute reasonable per-key cost rates but not so small the result is noisy.
+ */
+const SEED_FALLBACK_ROOM_COUNT = 10;
+
+/**
  * Apply Layer 2 smart defaults (qualityTier/businessModel/country/roomCount
  * → starting ADR, occupancy, cost rates, etc.) to an existing property, then
  * seed default fee categories. Only fills fields that are still null on the
@@ -134,7 +142,7 @@ export async function seedPropertyFees(
   const qualityTier = (row.qualityTier as string) || "Upscale";
   const businessModel = (row.businessModel as string) || "hotel";
   const country = (row.country as string) || "United States";
-  const roomCount = (row.roomCount as number) || 10;
+  const roomCount = (row.roomCount as number) || SEED_FALLBACK_ROOM_COUNT;
   const stateProvince = (row.stateProvince as string) || undefined;
 
   const patch: Record<string, unknown> = {};
@@ -185,9 +193,9 @@ export async function seedPropertyFees(
     logger.warn(`Smart defaults computation failed for property ${propertyId} (non-blocking): ${err instanceof Error ? err.message : err}`, "properties");
   }
 
-  if (Object.keys(patch).length > 0) {
+  const didPatchFields = Object.keys(patch).length > 0;
+  if (didPatchFields) {
     await storage.updateProperty(propertyId, patch as Parameters<typeof storage.updateProperty>[1]);
-    invalidateComputeCache();
   }
 
   let feeCategoriesSeeded = false;
@@ -196,6 +204,13 @@ export async function seedPropertyFees(
     feeCategoriesSeeded = true;
   } catch (feeErr: unknown) {
     logger.warn(`Failed to seed fee categories for property ${propertyId} (non-blocking): ${feeErr instanceof Error ? feeErr.message : feeErr}`, "properties");
+  }
+
+  // Bust the compute cache if either the patch OR the fee seeding wrote — fee
+  // categories feed into operating-expense calculations, so a stale cache
+  // would surface old numbers until some later mutation (CodeRabbit PR-98).
+  if (didPatchFields || feeCategoriesSeeded) {
+    invalidateComputeCache();
   }
 
   return {
@@ -220,7 +235,14 @@ export async function createPropertyForUser(
 ): Promise<import("@workspace/db").Property> {
   const property = await createPropertyRecord(user, data);
   await seedPropertyFees(property.id);
-  return property;
+  // Re-read after the seed step so the route's response carries the
+  // smart-defaulted values it just computed (CodeRabbit PR-98). Without this
+  // the client would see stale/null fields until a refetch.
+  const refreshed = await storage.getProperty(property.id);
+  if (!refreshed) {
+    throw new Error(`Property ${property.id} not found after creation`);
+  }
+  return refreshed;
 }
 
 /**
