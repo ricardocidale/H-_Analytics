@@ -309,7 +309,54 @@ export async function evaluateRetrievalQuality(
 }
 
 // ---------------------------------------------------------------------------
-// Tool: sync_data_source
+// Tool: get_source_endpoint  (W1.7 primitive)
+// ---------------------------------------------------------------------------
+
+export interface GetSourceEndpointArgs {
+  sourceId: string;
+}
+
+export interface GetSourceEndpointResult {
+  sourceId: number;
+  endpoint?: string;
+  category?: string;
+  error?: string;
+}
+
+/**
+ * Look up a source_registry entry by ID and return its endpoint + category.
+ * NO ingestion. The agent calls this, then passes the endpoint to
+ * ingest_document — letting it inspect/override the endpoint before the
+ * heavy work happens (W1.7).
+ */
+export async function getSourceEndpoint(
+  args: GetSourceEndpointArgs,
+): Promise<GetSourceEndpointResult> {
+  const { sourceId } = args;
+  const id = Number(sourceId);
+  if (!Number.isFinite(id) || Number.isNaN(id)) {
+    return { sourceId: NaN, error: `Invalid sourceId: "${sourceId}" is not a valid integer` };
+  }
+
+  let entry: Awaited<ReturnType<typeof storage.getSourceRegistryEntry>>;
+  try {
+    entry = await storage.getSourceRegistryEntry(id);
+  } catch (err: unknown) {
+    return { sourceId: id, error: err instanceof Error ? err.message : String(err) };
+  }
+
+  if (!entry) return { sourceId: id, error: `Source ${id} not found in source_registry` };
+  if (!entry.endpoint) return { sourceId: id, error: `Source ${id} has no endpoint configured` };
+
+  return {
+    sourceId: id,
+    endpoint: entry.endpoint,
+    category: entry.category ?? "reference",
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Tool: sync_data_source  (DEPRECATED — use get_source_endpoint + ingest_document)
 // ---------------------------------------------------------------------------
 
 export interface SyncDataSourceArgs {
@@ -325,34 +372,11 @@ export interface SyncDataSourceResult {
 export async function syncDataSource(
   args: SyncDataSourceArgs,
 ): Promise<SyncDataSourceResult> {
-  const { sourceId } = args;
-
-  const id = Number(sourceId);
-  if (!Number.isFinite(id) || Number.isNaN(id)) {
-    return { synced: false, error: `Invalid sourceId: "${sourceId}" is not a valid integer` };
+  const lookup = await getSourceEndpoint(args);
+  if (lookup.error || !lookup.endpoint || !lookup.category) {
+    return { synced: false, error: lookup.error };
   }
-
-  let entry: Awaited<ReturnType<typeof storage.getSourceRegistryEntry>>;
-  try {
-    entry = await storage.getSourceRegistryEntry(id);
-  } catch (err: unknown) {
-    return {
-      synced: false,
-      error: err instanceof Error ? err.message : String(err),
-    };
-  }
-
-  if (!entry) {
-    return { synced: false, error: `Source ${id} not found in source_registry` };
-  }
-
-  const endpoint = entry.endpoint;
-  if (!endpoint) {
-    return { synced: false, error: `Source ${id} has no endpoint configured` };
-  }
-
-  const category = entry.category ?? "reference";
-  const result = await ingestDocument({ url: endpoint, category });
+  const result = await ingestDocument({ url: lookup.endpoint, category: lookup.category });
   return {
     synced: result.success,
     chunksIndexed: result.chunksIndexed,
@@ -361,7 +385,35 @@ export async function syncDataSource(
 }
 
 // ---------------------------------------------------------------------------
-// Tool: write_health_report
+// Tool: append_to_maintenance_log  (W1.7 primitive)
+// ---------------------------------------------------------------------------
+
+export interface AppendToMaintenanceLogArgs {
+  content: string;
+}
+
+export interface AppendToMaintenanceLogResult {
+  written: boolean;
+}
+
+/**
+ * Persist raw markdown content to the Iris health workspace
+ * (`iris/health.md`). The agent formats the report itself per its system
+ * prompt — this primitive does no formatting (W1.7).
+ */
+export async function appendToMaintenanceLog(
+  args: AppendToMaintenanceLogArgs,
+): Promise<AppendToMaintenanceLogResult> {
+  try {
+    await writeIrisHealth(args.content);
+    return { written: true };
+  } catch {
+    return { written: false };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Tool: write_health_report  (DEPRECATED — use append_to_maintenance_log)
 // ---------------------------------------------------------------------------
 
 export interface WriteHealthReportArgs {
@@ -400,14 +452,7 @@ export async function writeHealthReport(
   const passCount = results.filter((r) => r.success).length;
   lines.push(`---`, ``, `**${passCount}/${results.length} tools passed.**`, ``);
 
-  const markdown = lines.join("\n");
-
-  try {
-    await writeIrisHealth(markdown);
-    return { written: true };
-  } catch {
-    return { written: false };
-  }
+  return appendToMaintenanceLog({ content: lines.join("\n") });
 }
 
 // ---------------------------------------------------------------------------
@@ -475,9 +520,9 @@ export function getIrisTools(): ToolParam[] {
       },
     },
     {
-      name: "sync_data_source",
+      name: "get_source_endpoint",
       description:
-        "Look up a source registry entry by ID, fetch its endpoint, and ingest the content into the knowledge-base.",
+        "Look up a source_registry entry by ID and return its endpoint + category. No ingestion. Pair with ingest_document (you choose when/whether to ingest).",
       parameters: {
         type: "object",
         properties: {
@@ -487,9 +532,33 @@ export function getIrisTools(): ToolParam[] {
       },
     },
     {
+      name: "sync_data_source",
+      description:
+        "DEPRECATED — use get_source_endpoint + ingest_document instead. Single-shot lookup + ingest in one call.",
+      parameters: {
+        type: "object",
+        properties: {
+          sourceId: { type: "string", description: "Source registry entry ID (as a string)" },
+        },
+        required: ["sourceId"],
+      },
+    },
+    {
+      name: "append_to_maintenance_log",
+      description:
+        "Persist raw markdown content to the Iris health workspace (iris/health.md). You format the report yourself per the rubric in your system prompt — this primitive does no formatting. ALWAYS call this last with your full report.",
+      parameters: {
+        type: "object",
+        properties: {
+          content: { type: "string", description: "Raw markdown to write to health.md (overwrites file contents)." },
+        },
+        required: ["content"],
+      },
+    },
+    {
       name: "write_health_report",
       description:
-        "Format a markdown health report from tool results and write it to the Iris health workspace file.",
+        "DEPRECATED — use append_to_maintenance_log instead (format the markdown yourself). Format a markdown health report from tool results and write it to the Iris health workspace file.",
       parameters: {
         type: "object",
         properties: {
@@ -530,8 +599,12 @@ export async function dispatchIrisTool(
       return testApiConnection(args as unknown as TestApiConnectionArgs);
     case "evaluate_retrieval_quality":
       return evaluateRetrievalQuality(args as unknown as EvaluateRetrievalQualityArgs);
+    case "get_source_endpoint":
+      return getSourceEndpoint(args as unknown as GetSourceEndpointArgs);
     case "sync_data_source":
       return syncDataSource(args as unknown as SyncDataSourceArgs);
+    case "append_to_maintenance_log":
+      return appendToMaintenanceLog(args as unknown as AppendToMaintenanceLogArgs);
     case "write_health_report":
       return writeHealthReport(args as unknown as WriteHealthReportArgs);
     default:

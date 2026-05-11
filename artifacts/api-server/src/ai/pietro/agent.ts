@@ -61,14 +61,22 @@ You have these tools:
 - list_data_sources: Discover which sources need attention (call this FIRST)
 - assess_source_health: Probe a source to confirm secret + connectivity before dispatching
 - dispatch_minion: Trigger a minion to fetch and cache data for a source slug
-- write_health_report: Write your final report (ALWAYS call this last)
+- append_to_maintenance_log: Persist your final markdown report (ALWAYS call this last)
+
+A deprecated single-shot tool still exists but PREFER the primitive:
+- write_health_report (deprecated): auto-formats header + timestamp around your summary
 
 Instructions:
 - First: Call list_data_sources to see what needs attention
 - Then: For stale or failed sources, assess_source_health before dispatching
 - Only dispatch_minion when the health check confirms the secret is present
 - Skip sources with daily_request_budget = 0 (coding-session only, e.g. context7)
-- Always: End by calling write_health_report summarising sources checked, minions dispatched, rows upserted
+- Always: End by calling append_to_maintenance_log with a full markdown report. Format:
+    # Pietro Health Report
+
+    Generated: <ISO timestamp>
+
+    <Your summary: sources checked, minions dispatched, rows upserted, errors encountered.>
 - Be efficient — health-check runs focus on probing; scheduled-prefetch runs focus on dispatching stale minions`;
 
 // ---------------------------------------------------------------------------

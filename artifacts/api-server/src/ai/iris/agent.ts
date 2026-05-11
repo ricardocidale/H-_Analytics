@@ -70,13 +70,29 @@ You have these tools:
 - prune_stale_entries: Remove orphaned vectors from the vector store
 - test_api_connection: Check if an API source is reachable and measure latency
 - evaluate_retrieval_quality: Run a test query and check if results meet threshold
-- sync_data_source: Refresh an external data source and re-index its content
-- write_health_report: Write your final health report (ALWAYS call this last)
+- get_source_endpoint: Look up a source_registry entry's endpoint + category (no ingestion)
+- append_to_maintenance_log: Persist your final health report markdown (ALWAYS call this last)
+
+Two deprecated single-shot tools still exist but PREFER the primitives:
+- sync_data_source (deprecated): get_source_endpoint + ingest_document
+- write_health_report (deprecated): you format markdown yourself + append_to_maintenance_log
 
 Instructions:
 - First: Review the gaps and prior health context provided
 - Then: Run appropriate health checks and fixes based on the trigger type
-- Always: End by calling write_health_report with a summary of what you did
+- Always: End by calling append_to_maintenance_log with a full markdown report. Format:
+    # Iris Health Report
+
+    Generated: <ISO timestamp>
+
+    ## Results
+
+    ### ✓ <tool> — PASS  (or ✗ — FAIL)
+    <details>
+
+    ---
+
+    **<n>/<total> tools passed.**
 - Be efficient — for health-check runs, focus on testing; for reindex runs, focus on ingestion`;
 
 // ---------------------------------------------------------------------------
