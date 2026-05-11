@@ -22,6 +22,16 @@ import { mkdtempSync, readFileSync, rmSync, existsSync, statSync } from "node:fs
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+// Named constants for the smoke deck's synthetic content + conversion budget.
+// Tests are not exempt from CLAUDE.md §1 (numeric literal rule).
+const TITLE_BOX_WIDTH_IN = 8;        // pptxgenjs uses inches for slide geometry
+const TITLE_BOX_HEIGHT_IN = 1;
+const TITLE_BOX_X_IN = 1;
+const TITLE_BOX_Y_IN = 1;
+const TITLE_FONT_SIZE_PT = 24;
+const SOFFICE_TIMEOUT_MS = 60_000;   // 60 s — generous; matches U7's default budget
+const PDF_MAGIC_PREFIX_LEN = 5;      // length of the literal "%PDF-" header
+
 function hasSoffice(): boolean {
   const result = spawnSync("soffice", ["--version"], { encoding: "utf8" });
   return result.status === 0;
@@ -47,11 +57,11 @@ describe.skipIf(!SOFFICE_AVAILABLE)("soffice PPTX → PDF smoke conversion", () 
     const pres = new PptxGenJS();
     const slide = pres.addSlide();
     slide.addText("Factory v2 soffice smoke", {
-      x: 1,
-      y: 1,
-      w: 8,
-      h: 1,
-      fontSize: 24,
+      x: TITLE_BOX_X_IN,
+      y: TITLE_BOX_Y_IN,
+      w: TITLE_BOX_WIDTH_IN,
+      h: TITLE_BOX_HEIGHT_IN,
+      fontSize: TITLE_FONT_SIZE_PT,
       bold: true,
     });
     // pres.write returns a Buffer/ArrayBuffer/string depending on outputType.
@@ -79,7 +89,7 @@ describe.skipIf(!SOFFICE_AVAILABLE)("soffice PPTX → PDF smoke conversion", () 
         workDir,
         pptxPath,
       ],
-      { encoding: "utf8", timeout: 60_000 },
+      { encoding: "utf8", timeout: SOFFICE_TIMEOUT_MS },
     );
 
     // Exit code 0 = clean conversion. See integration-issues doc for the
@@ -94,7 +104,7 @@ describe.skipIf(!SOFFICE_AVAILABLE)("soffice PPTX → PDF smoke conversion", () 
 
     // Verify PDF magic bytes — soffice has been known to write a 0-byte file
     // and exit 0 in pathological font-init scenarios; this guard catches that.
-    const head = readFileSync(pdfPath).subarray(0, 5).toString("utf8");
+    const head = readFileSync(pdfPath).subarray(0, PDF_MAGIC_PREFIX_LEN).toString("utf8");
     expect(head).toBe("%PDF-");
   });
 });
