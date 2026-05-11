@@ -383,10 +383,6 @@ export default function Company() {
           />
           
           <Suspense fallback={<div className="flex justify-center p-12"><Loader2 className="w-6 h-6 animate-spin text-accent-pop" /></div>}>
-          <div className="mt-4 mb-2">
-            <CompanyBenchmarkPanel global={global} yearlyChartData={yearlyChartData} financials={financials} />
-          </div>
-
           <TabsContent value="income" className="mt-6">
             <CompanyIncomeTab
               financials={financials}

@@ -57,9 +57,9 @@ export default function CompanyHeader({
         className="mt-4"
         data-testid="kpi-company-hero"
         items={[
-          { label: "Total Revenue", value: yearlyChartData[0]?.Revenue ?? 0, format: formatCompact, sublabel: "Year 1" },
-          { label: "Net Income", value: yearlyChartData[0]?.NetIncome ?? 0, format: formatCompact, trend: (yearlyChartData[0]?.NetIncome ?? 0) > 0 ? "up" as const : "down" as const },
-          { label: "Total Expenses", value: yearlyChartData[0]?.Expenses ?? 0, format: formatCompact },
+          { label: "Total Revenue", value: yearlyChartData[4]?.Revenue ?? 0, format: formatCompact, sublabel: "Year 5" },
+          { label: "Net Income", value: yearlyChartData[4]?.NetIncome ?? 0, format: formatCompact, sublabel: "Year 5", trend: (yearlyChartData[4]?.NetIncome ?? 0) > 0 ? "up" as const : "down" as const },
+          { label: "Total Expenses", value: yearlyChartData[4]?.Expenses ?? 0, format: formatCompact, sublabel: "Year 5" },
           { label: "Properties Managed", value: properties?.length ?? 0, sublabel: "Active portfolio" },
         ]}
         columns={4}

@@ -8,6 +8,7 @@ import { FinancialChart } from "@/components/ui/financial-chart";
 import { FormulaRow } from "./income-helpers";
 import IncomeRevenueRows from "./IncomeRevenueRows";
 import IncomeExpenseRows from "./IncomeExpenseRows";
+import CompanyBenchmarkPanel from "./CompanyBenchmarkPanel";
 import type { CompanyTabProps } from "./types";
 
 export default function CompanyIncomeTab({
@@ -35,6 +36,7 @@ export default function CompanyIncomeTab({
         id="company-income-chart"
       />
     )}
+    <CompanyBenchmarkPanel global={global} yearlyChartData={yearlyChartData} financials={financials} />
     <ScrollReveal>
     <div ref={activeTab === 'income' ? tableRef : undefined} className="bg-card rounded-2xl p-6 shadow-sm border">
       <div>
