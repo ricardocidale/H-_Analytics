@@ -204,6 +204,73 @@ describe("buildReportHtml", () => {
     expect(html).toMatch(/class="placeholder"/);
   });
 
+  it("renders ImageSection with a data:image src as an <img> tag", () => {
+    const png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+    const report: ReportDefinition = {
+      cover: { companyName: "X", entityName: "Y", reportTitle: "Image", date: "" },
+      tokens: PLACEHOLDER_TOKENS,
+      orientation: "landscape",
+      sections: [{ kind: "image", title: "Hero", dataUrl: png }],
+    };
+    const html = buildReportHtml(report);
+    expect(html).toContain('<img src="data:image/png;base64,');
+    expect(html).not.toContain('class="placeholder">[image]');
+  });
+
+  it("renders ImageSection with an http(s) URL as a placeholder (SSRF mitigation)", () => {
+    const report: ReportDefinition = {
+      cover: { companyName: "X", entityName: "Y", reportTitle: "Image", date: "" },
+      tokens: PLACEHOLDER_TOKENS,
+      orientation: "landscape",
+      sections: [
+        {
+          kind: "image",
+          title: "Attacker",
+          dataUrl: "https://attacker.example/x.png",
+        },
+      ],
+    };
+    const html = buildReportHtml(report);
+    // No <img> tag emitted at all
+    expect(html).not.toContain("<img");
+    // No attacker hostname in the rendered HTML
+    expect(html).not.toContain("attacker.example");
+    // Placeholder is rendered instead
+    expect(html).toContain('class="placeholder">[image]');
+  });
+
+  it("renders ImageSection with a javascript: URL as a placeholder", () => {
+    const report: ReportDefinition = {
+      cover: { companyName: "X", entityName: "Y", reportTitle: "Image", date: "" },
+      tokens: PLACEHOLDER_TOKENS,
+      orientation: "landscape",
+      sections: [
+        {
+          kind: "image",
+          title: "Script",
+          // eslint-disable-next-line no-script-url
+          dataUrl: "javascript:alert(1)",
+        },
+      ],
+    };
+    const html = buildReportHtml(report);
+    expect(html).not.toContain("<img");
+    expect(html).not.toContain("javascript:");
+    expect(html).toContain('class="placeholder">[image]');
+  });
+
+  it("renders ImageSection with an empty dataUrl as a placeholder", () => {
+    const report: ReportDefinition = {
+      cover: { companyName: "X", entityName: "Y", reportTitle: "Image", date: "" },
+      tokens: PLACEHOLDER_TOKENS,
+      orientation: "landscape",
+      sections: [{ kind: "image", title: "Empty", dataUrl: "" }],
+    };
+    const html = buildReportHtml(report);
+    expect(html).not.toContain("<img");
+    expect(html).toContain('class="placeholder">[image]');
+  });
+
   it("escapes user-provided strings to prevent HTML injection", () => {
     const report: ReportDefinition = {
       cover: {
@@ -305,6 +372,37 @@ describe("renderReportToPng", () => {
     await renderReportToPng(makeReport(PROJ_YEARS_FIVE));
 
     expect(ctx.close).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes the Playwright context when screenshot throws (failure-path cleanup)", async () => {
+    // Regression coverage for the CR PR #117 nitpick — the renderer must
+    // release the Playwright context even when the underlying render call
+    // rejects, so the singleton browser remains usable for subsequent
+    // requests and no context leaks accumulate per failed run.
+    const page = makeFakePage();
+    page.screenshot = vi
+      .fn()
+      .mockRejectedValue(new Error("synthetic screenshot failure"));
+    const ctx = makeFakeContext(page);
+    const browser = makeFakeBrowser(ctx);
+    wireBrowser(browser);
+
+    await expect(renderReportToPng(makeReport(PROJ_YEARS_FIVE))).rejects.toThrow(
+      /synthetic screenshot failure/,
+    );
+
+    expect(ctx.close).toHaveBeenCalledTimes(1);
+
+    // The singleton browser survives — a subsequent render uses the same
+    // mocked surface. No re-wire required; the existing happy-path render
+    // succeeds and the browser's `newContext` was invoked again.
+    const page2 = makeFakePage();
+    const ctx2 = makeFakeContext(page2);
+    browser.newContext = vi.fn().mockResolvedValue(ctx2);
+    const result = await renderReportToPng(makeReport(PROJ_YEARS_FIVE));
+    expect(Buffer.isBuffer(result)).toBe(true);
+    expect(browser.newContext).toHaveBeenCalledTimes(1);
+    expect(ctx2.close).toHaveBeenCalledTimes(1);
   });
 
   it("renders an empty report (zero sections) without throwing", async () => {

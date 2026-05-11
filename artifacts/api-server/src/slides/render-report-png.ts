@@ -62,6 +62,13 @@ const CSS_FW_NORMAL = 500;
 const CSS_FW_MEDIUM = 600;
 const CSS_FW_BOLD = 700;
 
+/**
+ * Maximum length of the rejected `dataUrl` echoed in the SSRF-rejection log
+ * line. Caps the log line at a reasonable width so an adversarial payload
+ * can't fill log/Sentry quotas with a multi-MB string in a single warning.
+ */
+const SSRF_REJECTED_SRC_LOG_TRUNCATE_LEN = 64;
+
 /** CSS table layout dimensions. */
 const CSS_TABLE_WIDTH_PCT = "100%";
 const CSS_LABEL_COL_MIN_WIDTH_PX = 160;
@@ -103,6 +110,43 @@ function escapeHtml(s: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+/**
+ * SSRF mitigation for `<img src>` values in the rendered HTML.
+ *
+ * Threat model: `ReportDefinition` flows through the engine in production
+ * but the renderer is hermetic by contract — only `data:image/...` URLs are
+ * a valid input here. A `https://`, `http://`, `javascript:`, `file://`, or
+ * any other-scheme URL on `ImageSection.dataUrl` would coerce the headless
+ * Chromium context into an outbound fetch (or worse) — a server-side
+ * request-forgery surface keyed on an attacker-influenceable field.
+ *
+ * Returns the source unchanged if it starts with `data:image/`; otherwise
+ * `null`. The caller (`renderSection` `case "image"`) substitutes a
+ * placeholder `<div>` when this returns `null`, so the renderer never emits
+ * an `<img src>` that the browser can fetch.
+ *
+ * CodeRabbit PR #117 — `render-report-png.ts:~188` (img src SSRF).
+ */
+function sanitizeImageSrc(src: string): string | null {
+  if (typeof src === "string" && src.startsWith("data:image/")) {
+    return src;
+  }
+  // Surface the rejection in Sentry / log aggregation so operators see
+  // unexpected schemes from the engine. The renderer continues with a
+  // placeholder rather than throwing — `ReportDefinition` is engine-
+  // generated, so an unexpected scheme is a bug to surface, not a runtime
+  // failure that aborts the slide-factory run.
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[render-report-png] rejected non-data-image src in ImageSection: ${
+      typeof src === "string"
+        ? src.slice(0, SSRF_REJECTED_SRC_LOG_TRUNCATE_LEN)
+        : typeof src
+    }`,
+  );
+  return null;
 }
 
 function rowClass(row: TableRow): string {
@@ -184,8 +228,16 @@ function renderSection(section: ReportSection): string {
       // Charts are out of scope for U5 — embed a placeholder so the section
       // index stays stable in the rendered output. Slide 6 only uses tables.
       return `<section class="report-chart"><h4>${escapeHtml(section.title)}</h4><div class="placeholder">[chart]</div></section>`;
-    case "image":
-      return `<section class="report-image"><h4>${escapeHtml(section.title)}</h4><img src="${escapeHtml(section.dataUrl)}" alt="${escapeHtml(section.title)}"/></section>`;
+    case "image": {
+      // SSRF mitigation: only `data:image/` schemes are emitted as `<img>`.
+      // Anything else renders a placeholder so the browser never fetches.
+      // See `sanitizeImageSrc` for the threat model.
+      const safeSrc = sanitizeImageSrc(section.dataUrl);
+      if (safeSrc === null) {
+        return `<section class="report-image"><h4>${escapeHtml(section.title)}</h4><div class="placeholder">[image]</div></section>`;
+      }
+      return `<section class="report-image"><h4>${escapeHtml(section.title)}</h4><img src="${escapeHtml(safeSrc)}" alt="${escapeHtml(section.title)}"/></section>`;
+    }
     default:
       return "";
   }
