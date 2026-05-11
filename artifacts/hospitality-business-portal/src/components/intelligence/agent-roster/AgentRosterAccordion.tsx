@@ -18,7 +18,8 @@
  *   agent · iris              → GET  /api/admin/iris/status (200 = healthy)
  *   agent · rebecca           → GET  /api/rebecca/kb/stats (200 = healthy)
  *   specialist · :id          → POST /api/admin/specialists/:id/probe
- *   minion · :id              → not-applicable (no probe)
+ *   minion · :id              → POST /api/admin/minions/:id/self-test
+ *                               (Task #1392 — deterministic fixture-based check)
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -88,7 +89,12 @@ async function runProbe(entry: RosterEntry): Promise<ProbeOutcome> {
   // structured error outcome instead of letting it bubble.
   try {
     let res: Response;
-    if (entry.class === "specialist" || (entry.class === "agent" && entry.id !== "rebecca" && entry.id !== "iris")) {
+    if (entry.class === "minion") {
+      // Minions run a deterministic in-process self-test against a known
+      // fixture (Task #1392). The body carries the verdict; HTTP status
+      // is reserved for transport errors only.
+      res = await apiRequest("POST", `/api/admin/minions/${encodeURIComponent(entry.id)}/self-test`);
+    } else if (entry.class === "specialist" || (entry.class === "agent" && entry.id !== "rebecca" && entry.id !== "iris")) {
       // Specialists and Gustavo share the same admin probe endpoint.
       res = await apiRequest("POST", `/api/admin/specialists/${encodeURIComponent(entry.id)}/probe`);
     } else if (entry.id === "iris") {
@@ -100,6 +106,26 @@ async function runProbe(entry: RosterEntry): Promise<ProbeOutcome> {
     }
 
     const latencyMs = Math.round(performance.now() - startedAt);
+
+    if (entry.class === "minion") {
+      const body = (await res.json()) as {
+        status?: "pass" | "fail" | "skipped";
+        message?: string;
+        durationMs?: number;
+      };
+      const verdictStatus: ProbeOutcome["status"] =
+        body.status === "pass" ? "healthy"
+        : body.status === "skipped" ? "degraded"
+        : "error";
+      return {
+        status: verdictStatus,
+        latencyMs: typeof body.durationMs === "number" ? body.durationMs : latencyMs,
+        message: body.message,
+        source: "self-test",
+        checkedAt: Date.now(),
+      };
+    }
+
     // For the specialist probe endpoint we get a `steps[]` payload — any
     // failed step degrades the overall result so admins see something more
     // honest than a blanket green.
@@ -227,7 +253,11 @@ function RosterRow({ entry, state, onProbe }: RosterRowProps) {
                 onClick={() => onProbe(entry)}
                 running={state.running}
                 testIdSuffix={`roster-${entry.id.replace(/\./g, "-")}`}
-                tooltipText={`Run a live responsiveness check against ${entry.humanName}.`}
+                tooltipText={
+                  entry.class === "minion"
+                    ? `Run the ${entry.humanName} self-test against a known fixture.`
+                    : `Run a live responsiveness check against ${entry.humanName}.`
+                }
               />
             ) : (
               <span className="text-xs text-muted-foreground italic">

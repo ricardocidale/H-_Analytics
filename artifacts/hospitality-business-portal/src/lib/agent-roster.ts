@@ -11,8 +11,10 @@
  * `/api/admin/agent-roster/health` on mount to surface the most recent
  * already-tracked health signal per entity (specialist resource health,
  * Iris last-run, Rebecca KB stats). Initial state is `unknown` so we
- * never display a fake green before that signal arrives. Minions get
- * `not-applicable` because they're deterministic helpers with no probe.
+ * never display a fake green before that signal arrives. Minions also
+ * start `unknown` and admins can run an on-demand self-test per minion
+ * via the Analyst button — see `runMinionSelfTest` on the server side
+ * (Task #1392).
  */
 
 import { AGENTS, MINIONS } from "@/lib/agent-taxonomy";
@@ -128,10 +130,11 @@ export function getMinionsRoster(): RosterEntry[] {
     role: m.role,
     description: m.description,
     whereUsed: ["Slide Factory pipeline"],
-    // Minions are deterministic helpers — no LLM probe applies. The
-    // roster shows them so admins can see they exist; status stays
-    // "not-applicable" rather than a fake healthy badge.
-    initialHealth: "not-applicable" as const,
+    // Minions are deterministic helpers — no LLM probe applies, but each
+    // one ships a tiny self-test (Task #1392) that admins can re-run from
+    // the Analyst button. Status starts `unknown` until the self-test runs
+    // so we never display a fake green badge.
+    initialHealth: "unknown" as const,
   }));
 }
 
