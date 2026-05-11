@@ -98,6 +98,9 @@ import {
   toolDeletePriceEvent,
   toolListServiceTemplates,
   toolUpdateServiceTemplate,
+  toolListSpecialists,
+  toolGetSpecialistConfig,
+  toolRecordSpecialistRecommendationEvent,
 } from "./rebecca-tool-impls-admin";
 
 export async function dispatchRebeccaTool(
@@ -279,6 +282,12 @@ export async function dispatchRebeccaTool(
         return await toolListServiceTemplates(ctx);
       case "update_service_template":
         return await toolUpdateServiceTemplate(args, ctx);
+      case "list_specialists":
+        return await toolListSpecialists(ctx);
+      case "get_specialist_config":
+        return await toolGetSpecialistConfig(args, ctx);
+      case "record_specialist_recommendation_event":
+        return await toolRecordSpecialistRecommendationEvent(args, ctx);
       default:
         return { result: { error: "Unknown tool" } };
     }

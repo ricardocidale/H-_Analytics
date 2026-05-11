@@ -142,6 +142,20 @@ re-renders the panel.
 | Change Rebecca config | Admin → AI | — | 🚫 N/A (admin-only) |
 | Update company record | Admin → Company | `update_company` | ✅ |
 
+## Specialist Actions
+
+Specialist prompts, models, required-fields, field-toggles, and prerequisite-toggles are **dev-defined only** per `.claude/rules/specialists-are-dev-defined-only.md`. The corresponding admin routes return 405. The only admin-mutable surface is the append-only Required Fields telemetry below.
+
+| UI Action | UI Location | Rebecca Tool | Status |
+|---|---|---|---|
+| List Specialists in catalog | Specialists Directory | `list_specialists` | ✅ |
+| View one Specialist's config + definition | Specialist Page | `get_specialist_config` | ✅ |
+| Promote / Ignore a Required-Fields candidate | Specialist → Required Fields tab | `record_specialist_recommendation_event` | ✅ |
+| Edit Specialist prompt template | — | — | 🚫 N/A (dev-defined) |
+| Edit Specialist model slug | — | — | 🚫 N/A (dev-defined) |
+| Edit Specialist required-fields | — | — | 🚫 N/A (dev-defined) |
+| Edit Specialist field-toggles / prerequisite-toggles | — | — | 🚫 N/A (dev-defined) |
+
 ## Intelligence Actions
 
 ### Iris Agent Controls
