@@ -84,6 +84,30 @@ export async function toolConfigureLbDeck(
   };
 }
 
+// W2.4 — Clear the LB deck config back to all-nulls. Reuses upsertLbSlidesConfig
+// (the same storage call PUT /api/lb-slides/config uses); no dedicated HTTP
+// reset endpoint exists. SSE invalidates the lb_deck_config query key so the
+// admin UI re-fetches and shows the cleared state.
+export async function toolResetLbDeckConfig(
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const updated = await storage.upsertLbSlidesConfig({
+    slide1PropertyId: null,
+    slide2PropertyId: null,
+    slide3PropertyId: null,
+    slide5PropertyId: null,
+    slide4SectionSubtitle: null,
+    slide6Disclaimer: null,
+  });
+  return {
+    result: { success: true, config: updated },
+    dataChanged: { entityType: "lb_deck_config" as const, entityId: 0 },
+  };
+}
+
 export async function toolTriggerLbDeckRender(
   ctx: ToolContext,
 ): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {

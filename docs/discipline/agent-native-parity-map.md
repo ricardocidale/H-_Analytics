@@ -86,6 +86,7 @@ feature ships or a new Rebecca tool is added.
 |---|---|---|---|
 | Read LB deck configuration | Admin → Slides | `get_lb_deck_config` | ✅ |
 | Configure deck (assign properties to slides 1/2/3/5) | Admin → Slides | `configure_lb_deck` | ✅ |
+| Reset deck configuration to all-null defaults | Admin → Slides → Reset | `reset_lb_deck_config` | ✅ |
 | Trigger deck render | Admin → Slides | `trigger_lb_deck_render` | ✅ |
 | Check render status | Admin → Slides | `get_lb_deck_render_status` | ✅ |
 | Download combined PDF | Admin → Slides | — | 🚫 N/A (file download) |
