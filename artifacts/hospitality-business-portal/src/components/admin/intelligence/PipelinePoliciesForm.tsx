@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -189,12 +190,9 @@ export default function PipelinePoliciesForm() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ policyKey, updates }: { policyKey: string; updates: Partial<PipelinePolicy> }) => {
-      const res = await fetch(`/api/admin/pipeline-policies/${encodeURIComponent(policyKey)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates),
+      const res = await apiRequest("PATCH", `/api/admin/pipeline-policies/${encodeURIComponent(policyKey)}`, updates, {
+        fallbackMessage: "Failed to update policy",
       });
-      if (!res.ok) throw new Error("Failed to update policy");
       return res.json();
     },
     onSuccess: () => {

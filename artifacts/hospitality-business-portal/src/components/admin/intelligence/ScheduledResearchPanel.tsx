@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { IconCalendar, IconPlay } from "@/components/icons";
 import { CheckCircle2, XCircle, Clock, Hourglass } from "@/components/icons/themed-icons";
-import { apiRequest } from "@/lib/queryClient";
 
 interface ScheduledWorkflow {
   id: number;
@@ -74,10 +74,9 @@ export default function ScheduledResearchPanel() {
   const runNow = async (workflow: ScheduledWorkflow) => {
     setRunningId(workflow.id);
     try {
-      const response = await fetch(`/api/admin/scheduled-research/${workflow.id}/execute`, {
-        method: "POST",
-        credentials: "include",
-      });
+      // apiRequest preserves the response body for streaming when res.ok;
+      // it only consumes the body for error messages on non-OK responses.
+      const response = await apiRequest("POST", `/api/admin/scheduled-research/${workflow.id}/execute`);
       const reader = response.body?.getReader();
       if (reader) {
         const decoder = new TextDecoder();
@@ -87,6 +86,10 @@ export default function ScheduledResearchPanel() {
           decoder.decode(value);
         }
       }
+    } catch {
+      // Preserve the prior fire-and-forget behavior: silently swallow request
+      // errors (the cleanup in `finally` still invalidates the query so the
+      // panel re-fetches workflow status).
     } finally {
       setRunningId(null);
       queryClient.invalidateQueries({ queryKey: ["/api/admin/scheduled-research"] });
