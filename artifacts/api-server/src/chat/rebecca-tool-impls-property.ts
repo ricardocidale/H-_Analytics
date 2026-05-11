@@ -2,7 +2,11 @@ import { storage } from "../storage";
 import { isAdminRole } from "@shared/constants";
 import type { Property, UpdateProperty } from "@workspace/db";
 import { updatePropertySchema, insertPropertySchema, type InsertProperty } from "@workspace/db";
-import { createPropertyForUser, archivePropertyForUser } from "../routes/properties";
+import {
+  createPropertyRecord,
+  seedPropertyFees,
+  archivePropertyForUser,
+} from "../routes/properties";
 import type { DataChangedEntry, ToolContext } from "./rebecca-tool-types";
 import { requireNumericArg, requireObjectArg } from "./rebecca-tool-types";
 
@@ -152,7 +156,41 @@ export async function toolPatchProperty(
 // create_property / delete_property
 // ---------------------------------------------------------------------------
 
+// DEPRECATED: remove after Wave 2. True wrapper around the two new primitives
+// (create_property_record + seed_property_fees) so smart-defaults and
+// fee-seeding logic stays in one place (W1.6 / CodeRabbit PR-96 pattern).
 export async function toolCreateProperty(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const recordResult = await toolCreatePropertyRecord(args, ctx);
+  const recordBody = recordResult.result as { error?: string; id?: number; name?: string };
+  if (recordBody.error || !recordBody.id) return recordResult;
+
+  const seedResult = await toolSeedPropertyFees({ propertyId: recordBody.id }, ctx);
+  const seedBody = seedResult.result as { error?: string };
+  if (seedBody.error) {
+    // The property row was already inserted by toolCreatePropertyRecord.
+    // Surface partialSuccess + the new id so a caller's retry-on-error path
+    // doesn't insert a duplicate property (CodeRabbit PR-98).
+    return {
+      result: {
+        error: `Property created but fee seeding failed: ${seedBody.error}`,
+        id: recordBody.id,
+        name: recordBody.name,
+        partialSuccess: true,
+      },
+      dataChanged: { entityType: "property", entityId: recordBody.id },
+    };
+  }
+
+  return {
+    result: { id: recordBody.id, name: recordBody.name },
+    dataChanged: { entityType: "property", entityId: recordBody.id },
+  };
+}
+
+export async function toolCreatePropertyRecord(
   args: Record<string, unknown>,
   ctx: ToolContext,
 ): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
@@ -168,7 +206,7 @@ export async function toolCreateProperty(
   }
 
   try {
-    const property = await createPropertyForUser(
+    const property = await createPropertyRecord(
       user as unknown as Express.User,
       validation.data as InsertProperty,
     );
@@ -179,6 +217,38 @@ export async function toolCreateProperty(
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     return { result: { error: `Failed to create property: ${message}` } };
+  }
+}
+
+export async function toolSeedPropertyFees(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const idResult = requireNumericArg(args, "propertyId");
+  if (!idResult.ok) return idResult.result;
+  const propertyId = idResult.value;
+
+  const user = await storage.getUserById(ctx.userId);
+  if (!user) return { result: { error: "User not found" } };
+
+  const prop = await storage.getProperty(propertyId);
+  if (!prop) return { result: { error: "Property not found" } };
+  // Tighter than the read/delete pattern (CodeRabbit PR-98): this tool writes
+  // both property defaults and fee categories, so admin-owned (`userId=null`)
+  // rows must not be mutable by arbitrary authenticated users. Matches the
+  // edit rule used by the property PATCH and fee-category routes.
+  const canEdit = isAdminRole(user.role) || prop.userId === ctx.userId;
+  if (!canEdit) return { result: { error: "Access denied" } };
+
+  try {
+    const outcome = await seedPropertyFees(propertyId);
+    return {
+      result: { propertyId, ...outcome },
+      dataChanged: { entityType: "property", entityId: propertyId },
+    };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    return { result: { error: `Failed to seed property fees: ${message}` } };
   }
 }
 

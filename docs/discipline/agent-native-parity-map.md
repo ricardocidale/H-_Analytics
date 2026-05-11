@@ -15,7 +15,7 @@ feature ships or a new Rebecca tool is added.
 |---|---|---|---|
 | View property list | Properties sidebar | `list_properties` | ✅ |
 | View property detail | Property page | `get_property` | ✅ |
-| Create property | Properties → New | `create_property` | ✅ |
+| Create property | Properties → New | `create_property` (deprecated — use create_property_record + seed_property_fees), `create_property_record` + `seed_property_fees` | ✅ |
 | Edit property field | Property → Edit | `update_property` | ✅ |
 | Edit multiple property fields at once | Property → Edit (bulk) | `patch_property` | ✅ |
 | Update property coordinates after geocode | Property → Edit (basic info, auto on address resolve) | `update_property_coordinates` | ✅ |

@@ -5,6 +5,8 @@ import {
   toolUpdateProperty,
   toolPatchProperty,
   toolCreateProperty,
+  toolCreatePropertyRecord,
+  toolSeedPropertyFees,
   toolDeleteProperty,
   toolDeletePropertyPhoto,
   toolSetHeroPhoto,
@@ -201,6 +203,10 @@ export async function dispatchRebeccaTool(
         return await toolGetAnalystTable(args, ctx);
       case "create_property":
         return await toolCreateProperty(args, ctx);
+      case "create_property_record":
+        return await toolCreatePropertyRecord(args, ctx);
+      case "seed_property_fees":
+        return await toolSeedPropertyFees(args, ctx);
       case "delete_property":
         return await toolDeleteProperty(args, ctx);
       case "delete_property_photo":
