@@ -11,6 +11,41 @@ function dispatchDetached(promise: Promise<unknown>, context: string): void {
   });
 }
 
+/**
+ * Single-flight guard for slide-factory background jobs (W1.5 / CodeRabbit
+ * PR-97). The triggers (`trigger_lorenzo_ingestion`, `trigger_lucca_draft`)
+ * check run status before dispatching, but the worker can take minutes to
+ * advance status — so a duplicate call within that window would pass the
+ * gate twice and re-fire the worker.
+ *
+ * Tracks in-flight jobs keyed by `<jobKind>:<runId>` in process memory.
+ * Limitation: this is per-process, not cluster-safe. On Railway with the
+ * current single-container deployment that's sufficient; a horizontally-
+ * scaled deployment would need DB-level locking (e.g. CAS on a
+ * `lorenzoDispatchedAt` column).
+ */
+const inFlightSlideFactoryJobs = new Set<string>();
+
+function dispatchSingleFlight(
+  jobKey: string,
+  promiseFactory: () => Promise<unknown>,
+  context: string,
+): { ok: true } | { ok: false } {
+  if (inFlightSlideFactoryJobs.has(jobKey)) {
+    return { ok: false };
+  }
+  inFlightSlideFactoryJobs.add(jobKey);
+  const p = promiseFactory()
+    .catch((err) => {
+      logger.error(`[slide-factory] ${context} failed: ${String(err)}`, "slide-factory");
+    })
+    .finally(() => {
+      inFlightSlideFactoryJobs.delete(jobKey);
+    });
+  void p;
+  return { ok: true };
+}
+
 // ---------------------------------------------------------------------------
 // Slide Factory Pipeline tools
 // Every UI action in SlideFactoryPanel maps to one tool here. Mutations emit
@@ -456,7 +491,18 @@ export async function toolTriggerLorenzoIngestion(
   }
 
   const { runLorenzoIngestion } = await import("../slides/lorenzo-ingestion");
-  dispatchDetached(runLorenzoIngestion(id), `Lorenzo ingestion run ${id}`);
+  const dispatch = dispatchSingleFlight(
+    `lorenzo:${id}`,
+    () => runLorenzoIngestion(id),
+    `Lorenzo ingestion run ${id}`,
+  );
+  if (!dispatch.ok) {
+    return {
+      result: {
+        error: `Lorenzo ingestion is already running for run ${id}. Wait for completion (poll get_slide_factory_run) before retriggering.`,
+      },
+    };
+  }
   return {
     result: {
       id,
@@ -485,7 +531,18 @@ export async function toolTriggerLuccaDraft(
   }
 
   const { runLuccaDraft } = await import("../slides/lucca-draft");
-  dispatchDetached(runLuccaDraft(id), `Lucca draft run ${id}`);
+  const dispatch = dispatchSingleFlight(
+    `lucca:${id}`,
+    () => runLuccaDraft(id),
+    `Lucca draft run ${id}`,
+  );
+  if (!dispatch.ok) {
+    return {
+      result: {
+        error: `Lucca drafting is already running for run ${id}. Wait for completion (poll get_slide_factory_run) before retriggering.`,
+      },
+    };
+  }
   return {
     result: {
       id,
