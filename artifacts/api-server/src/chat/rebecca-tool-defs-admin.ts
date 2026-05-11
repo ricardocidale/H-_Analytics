@@ -299,5 +299,25 @@ export function getAdminTools(): ToolParam[] {
         required: ["specialistId", "fieldKey", "action"],
       },
     },
+    {
+      name: "update_admin_resource",
+      description:
+        "Update an admin_resources row (any kind). Admin only. Mirrors the admin resource update endpoint: each call writes a new version row, applies the SSRF guard to config.healthProbe.url, and returns { resource, impact } where impact is the list of catalog/feature surfaces affected. Use to retune display names, descriptions, config payloads (e.g. swap a model reference, edit a healthProbe URL), or rotate secretRef pointers. Caller must change at least one of displayName, description, config, or secretRef — changeSummary alone is metadata and does not satisfy the change requirement. Create and delete are NOT exposed — admin_resources rows are added via migrations.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "The admin_resources row id." },
+          displayName: { type: "string", minLength: 1, description: "New display name." },
+          description: { type: ["string", "null"], description: "New description. Pass null to clear." },
+          config: {
+            type: "object",
+            description: "Replacement config payload (object). When config.healthProbe.url is present it is validated against the SSRF blocklist.",
+          },
+          secretRef: { type: ["string", "null"], description: "Secret reference name. Pass null to clear." },
+          changeSummary: { type: "string", minLength: 1, description: "Short human summary stamped on the new version row. Defaults to \"updated\" if omitted." },
+        },
+        required: ["id"],
+      },
+    },
   ];
 }

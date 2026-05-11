@@ -200,6 +200,18 @@ Specialist prompts, models, required-fields, field-toggles, and prerequisite-tog
 | Regenerate a data source (triggers minion) | Admin → Sources | `regenerate_data_source` | ✅ |
 | View all data source statuses | Admin → Sources | `get_data_source_status` | ✅ |
 
+### Admin Resources (model/api/mcp/source/factory_number registry)
+
+> `admin_resources` rows are added and removed via migrations only. The
+> Rebecca tool exposes the same versioned update path the Resources tab uses.
+
+| UI Action | UI Location | Rebecca Tool | Status |
+|---|---|---|---|
+| Update an admin_resources row (versioned) | Admin → Resources → Edit | `update_admin_resource` | ✅ |
+| Create an admin_resources row | — | — | 🚫 N/A (migrations only) |
+| Delete an admin_resources row | — | — | 🚫 N/A (migrations only) |
+| Roll back to a prior version | Admin → Resources → History | — | ⚠️ Deferred (HTTP-only for now) |
+
 ## When to Update This Map
 
 - When a new UI action is added → add a row and either implement the tool (✅) or document the gap (⚠️)

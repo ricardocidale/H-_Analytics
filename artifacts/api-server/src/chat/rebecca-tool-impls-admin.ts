@@ -612,3 +612,79 @@ export async function toolRecordSpecialistRecommendationEvent(
   const event = await storage.recordRecommendationEvent(specialistId, fieldKey, typedAction, ctx.userId);
   return { result: { success: true, eventId: event.id, specialistId, fieldKey, action: typedAction } };
 }
+
+// ---------------------------------------------------------------------------
+// W2.3: update_admin_resource
+//
+// Mirrors `PUT /api/admin/resources/:id` (routes/admin/resources.ts:152).
+// Versioned write — `storage.updateAdminResource` writes a new version row.
+// SSRF guard on `config.healthProbe.url` is reapplied here (defense in depth)
+// since this path bypasses the HTTP route. Returns { resource, impact } to
+// match the route's response shape.
+// ---------------------------------------------------------------------------
+
+export async function toolUpdateAdminResource(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const authError = await requireAdminCtx(ctx);
+  if (authError) return authError;
+
+  const idResult = requireNumericArg(args, "id");
+  if (!idResult.ok) return idResult.result;
+
+  // Build the mutable-fields patch (displayName/description/config/secretRef)
+  // SEPARATELY from changeSummary, which is metadata-only. Otherwise a caller
+  // passing `{ id, changeSummary }` would create an empty new version row
+  // (CodeRabbit PR-102).
+  const mutablePatch: Record<string, unknown> = {};
+  if (typeof args.displayName === "string") {
+    if (args.displayName.length === 0) {
+      return { result: { error: "displayName must be a non-empty string" } };
+    }
+    mutablePatch.displayName = args.displayName;
+  }
+  if (typeof args.description === "string" || args.description === null) mutablePatch.description = args.description;
+  if (typeof args.secretRef === "string" || args.secretRef === null) mutablePatch.secretRef = args.secretRef;
+  if (args.config && typeof args.config === "object" && !Array.isArray(args.config)) {
+    mutablePatch.config = args.config as Record<string, unknown>;
+  }
+
+  if (Object.keys(mutablePatch).length === 0) {
+    return { result: { error: "No fields to update — provide at least one of displayName, description, config, secretRef" } };
+  }
+
+  const patch: Record<string, unknown> = { ...mutablePatch };
+  if (typeof args.changeSummary === "string") {
+    if (args.changeSummary.length === 0) {
+      return { result: { error: "changeSummary must be a non-empty string" } };
+    }
+    patch.changeSummary = args.changeSummary;
+  }
+
+  if (patch.config) {
+    const { validateIngestUrl } = await import("../ai/iris/tools");
+    const config = patch.config as Record<string, unknown>;
+    const probe = config.healthProbe;
+    if (probe && typeof probe === "object" && !Array.isArray(probe)) {
+      const url = (probe as Record<string, unknown>).url;
+      if (typeof url === "string") {
+        const urlError = validateIngestUrl(url);
+        if (urlError) {
+          return { result: { error: `config.healthProbe.url is invalid — ${urlError}` } };
+        }
+      }
+    }
+  }
+
+  const row = await storage.updateAdminResource(
+    idResult.value,
+    patch as Parameters<typeof storage.updateAdminResource>[1],
+    ctx.userId,
+  );
+  if (!row) return { result: { error: "Resource not found" } };
+
+  const { toResourcePublicView } = await import("@workspace/db");
+  const impact = await storage.listResourceImpact(idResult.value);
+  return { result: { resource: toResourcePublicView(row), impact } };
+}
