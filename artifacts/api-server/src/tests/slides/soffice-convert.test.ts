@@ -61,7 +61,7 @@ import {
   FACTORY_V2_SOFFICE_TIMEOUT_MIN_MS,
   FACTORY_V2_SOFFICE_TIMEOUT_PARAM_SLUG,
   PPTX_CONTENT_TYPE,
-} from "@shared/constants";
+} from "../../slides/factory-v2-constants";
 import { PDF_CONTENT_TYPE } from "../../slides/deck-render-constants";
 
 // ── soffice availability detection (mirrors soffice-smoke.test.ts) ──────────

@@ -24,14 +24,14 @@
  *   factory-v2/runs/<runId>/deck.pdf
  *
  * The key prefix `factory-v2/runs` is exported from
- * `lib/shared/src/constants.ts` (`FACTORY_V2_DECK_R2_KEY_PREFIX`) so the
+ * `./factory-v2-constants.ts` (`FACTORY_V2_DECK_R2_KEY_PREFIX`) so the
  * download route and Rebecca tool can reference the same source of truth.
  *
  * Storage-provider injection: by default, the function resolves the live
  * provider via `getStorageProviderAsync()`. Tests pass a mock provider via
  * the optional `deps.storageProvider` argument (DI per ADR-007).
  */
-import { FACTORY_V2_DECK_R2_KEY_PREFIX, PPTX_CONTENT_TYPE } from "@shared/constants";
+import { FACTORY_V2_DECK_R2_KEY_PREFIX, PPTX_CONTENT_TYPE } from "./factory-v2-constants";
 
 import { getStorageProviderAsync } from "../providers/storage";
 import type { StorageProvider } from "../providers/storage/types";

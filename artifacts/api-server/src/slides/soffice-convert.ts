@@ -62,10 +62,10 @@ import {
   FACTORY_V2_SOFFICE_TIMEOUT_MAX_MS,
   FACTORY_V2_SOFFICE_TIMEOUT_MIN_MS,
   FACTORY_V2_SOFFICE_TIMEOUT_PARAM_SLUG,
-} from "@shared/constants";
+} from "./factory-v2-constants";
 
 // ── Constants local to this module ──────────────────────────────────────────
-// Strings / labels only — every numeric value lives in @shared/constants.
+// Strings / labels only — every numeric value lives in ./factory-v2-constants.
 
 /** Subprocess binary. soffice ships on PATH in the Railway image (U2). */
 const SOFFICE_BIN = "soffice";
