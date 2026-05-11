@@ -7,6 +7,11 @@ import { z } from "zod";
 import { invalidateComputeCache } from "../finance/cache";
 import { logger } from "../logger";
 import { stripCanonicalDenylistedFields } from "./global-assumptions-denylist";
+import {
+  COMPANY_ASSUMPTION_TAB_KEYS,
+  saveCompanyAssumptionTab,
+  SaveCompanyAssumptionTabValidationError,
+} from "./global-assumptions-save-tab";
 import { rebeccaSettingsPatchSchema, mergeRebeccaSettings } from "@shared/rebecca-settings";
 import { withFundingDefaults } from "../finance/apply-funding-defaults";
 
@@ -228,12 +233,13 @@ export function register(app: Express) {
   // findObservedMissingCandidateFields telemetry below is observability
   // (records which optional fields users typically omit so admins can
   // promote them via Required Fields tab); it does not run an evaluator.
+  //
+  // Save semantics extracted to `./global-assumptions-save-tab.ts` so the
+  // Rebecca `save_company_assumption_tab` tool can call the same service
+  // without behavioral divergence (task W1.2).
   // ────────────────────────────────────────────────────────────
-  const TAB_KEYS = [
-    "company", "funding", "revenue", "compensation", "overhead", "property-defaults",
-  ] as const;
   const saveTabSchema = z.object({
-    tabKey: z.enum(TAB_KEYS),
+    tabKey: z.enum(COMPANY_ASSUMPTION_TAB_KEYS),
     patch: z.record(z.unknown()).optional(),
     /** When true, removes tabKey from savedTabs instead of adding it.
      *  Used by the AnalystCheckDialog "Adjust" action to roll back a save
@@ -256,176 +262,23 @@ export function register(app: Express) {
       if (!parsed.success) {
         return res.status(400).json({ error: zodErrorMessage(parsed.error) });
       }
-      const { tabKey, patch, fundingInputs, unsave } = parsed.data;
       const userId = getAuthUser(req).id;
+      const result = await saveCompanyAssumptionTab({ ...parsed.data, userId });
+      logActivity(req, "update", "global_assumptions", result.savedId, `Save tab: ${parsed.data.tabKey}`);
 
-      const current = await storage.getGlobalAssumptions(userId);
-      const baseRow = (current ?? {}) as Record<string, unknown>;
-      // Task #379: sanitize patch to drop canonically-owned fields (e.g.
-      // `depreciationYears`) before merge. The save-tab path must enforce
-      // the same denylist as PUT /api/global-assumptions; otherwise a
-      // non-admin management user could bypass the Constants-tab admin
-      // gate by submitting a crafted `patch` payload.
-      const sanitizedPatch = stripCanonicalDenylistedFields(
-        (patch ?? {}) as Record<string, unknown>,
-      );
-      const merged = { ...baseRow, ...sanitizedPatch };
-      delete merged.id; delete merged.createdAt; delete merged.updatedAt;
-      delete (merged as Record<string, unknown>).companyLogoUrl;
-
-      const existingSaved: string[] = Array.isArray(baseRow.savedTabs)
-        ? (baseRow.savedTabs as string[]).filter((k) => TAB_KEYS.includes(k as typeof TAB_KEYS[number]))
-        : [];
-      const nextSaved = unsave
-        ? existingSaved.filter((k) => k !== tabKey)
-        : Array.from(new Set([...existingSaved, tabKey]));
-      (merged as Record<string, unknown>).savedTabs = nextSaved;
-
-      const validation = insertGlobalAssumptionsSchema.partial().safeParse(merged);
-      if (!validation.success) {
-        return res.status(400).json({ error: zodErrorMessage(validation.error) });
-      }
-      const fullValidation = insertGlobalAssumptionsSchema.safeParse(merged);
-      const dataToWrite = fullValidation.success ? fullValidation.data : (merged as Record<string, unknown>);
-
-      const saved = await storage.upsertGlobalAssumptions(
-        dataToWrite as Parameters<typeof storage.upsertGlobalAssumptions>[0],
-        userId,
-      );
-      invalidateComputeCache();
-      logActivity(req, "update", "global_assumptions", saved.id, `Save tab: ${tabKey}`);
-
-      // Phase 5C-task-3: supersede stale company guidance when material inputs change
-      const GA_STALENESS_TRIGGER_KEYS_SAVE_TAB = [
-        "baseManagementFee", "incentiveManagementFee",
-        "inflationRate", "companyTaxRate", "commissionRate", "staffSalary",
-      ];
-      const patchKeys = Object.keys(sanitizedPatch);
-      const hasGaKeyChange = patchKeys.some((k) => GA_STALENESS_TRIGGER_KEYS_SAVE_TAB.includes(k) &&
-        (sanitizedPatch as Record<string, unknown>)[k] !== (baseRow as Record<string, unknown>)[k]);
-      if (hasGaKeyChange) {
-        storage.markAssumptionGuidanceSuperseded("company", userId, null).catch(err =>
-          logger.warn(`Failed to supersede company guidance (save-tab): ${err instanceof Error ? err.message : err}`, "global-assumptions")
-        );
-      }
-
-      // G1.5b-pre-a: Save is data-only. The Analyst dispatches ONLY on
-      // explicit <AnalystButton /> press (rule:
-      // .claude/rules/analyst-trigger-discipline.md). We still report
-      // hard-required field gaps so the form can highlight them, and we
-      // emit observed-missing telemetry so admins can promote
-      // candidate fields via the Required Fields tab.
-      let requiredFieldsMissing: string[] | null = null;
-      // Phase 4: emit observed-missing telemetry for Specialist C
-      // (`mgmt-co.icp-intelligence`) when the Company Assumptions tab is
-      // saved. C is a stub specialist (no dispatch yet), but its
-      // candidateFields live on this surface (companyTaxRate,
-      // baseManagementFee, incentiveManagementFee), so admins can already
-      // begin promoting them via the Required Fields tab.
-      if (tabKey === "company") {
-        try {
-          const [
-            { findObservedMissingCandidateFields },
-            { getSpecialistById },
-          ] = await Promise.all([
-            import("@engine/analyst/surface/mgmt-co"),
-            import("@engine/analyst/registry/specialist-catalog"),
-          ]);
-          const ICP_ID = "mgmt-co.icp-intelligence";
-          const def = getSpecialistById(ICP_ID);
-          if (def) {
-            const cfg = await storage.getOrCreateSpecialistConfig(ICP_ID);
-            const observed = findObservedMissingCandidateFields(
-              saved as Record<string, unknown>,
-              def.candidateFields ?? [],
-              (cfg as { fieldRequirements?: Record<string, "hard" | "recommended" | "off"> }).fieldRequirements,
-            );
-            await storage.recordObservedMissingFields(ICP_ID, observed);
-          }
-        } catch (icpErr: unknown) {
-          logger.warn(
-            `ICP observed-missing emission failed: ${icpErr instanceof Error ? icpErr.message : String(icpErr)}`,
-            "global-assumptions",
-          );
-        }
-      }
-
-      if (tabKey === "funding" || tabKey === "revenue") {
-        // Save-time work for the funding/revenue tabs is purely:
-        //   1. report any HARD-required field gaps so the form can flag
-        //      them, and
-        //   2. emit observed-missing telemetry so admins can promote
-        //      candidate fields via the Required Fields tab.
-        // No Specialist dispatch happens here — that is the sole
-        // responsibility of <AnalystButton /> (see analyst-trigger-discipline.md).
-        const [
-          {
-            MGMT_CO_FUNDING_ID,
-            MGMT_CO_REVENUE_ID,
-            findMissingRequiredFields,
-            findObservedMissingCandidateFields,
-          },
-          { deriveHardRequiredFieldKeys },
-          { getSpecialistById, getLockedHardCandidateKeys },
-        ] = await Promise.all([
-          import("@engine/analyst/surface/mgmt-co"),
-          import("./admin/specialists"),
-          import("@engine/analyst/registry/specialist-catalog"),
-        ]);
-
-        const activeSpecialistId =
-          tabKey === "funding" ? MGMT_CO_FUNDING_ID : MGMT_CO_REVENUE_ID;
-        const activeCfg = await storage.getOrCreateSpecialistConfig(activeSpecialistId);
-        const activeDef = getSpecialistById(activeSpecialistId);
-
-        // Funding gate-source is the dispatch-payload namespace
-        // (CapitalRaiseInputs — runwayBufferMonths, etc.) the user fills
-        // in on the funding tab. Revenue gate-source is the freshly-saved
-        // row (defaultCostRateMarketing, defaultRevShareFb, …) — the
-        // transform that lives in the AnalystButton handler applies
-        // `?? DEFAULT_*` fallbacks that would mask missing values, so
-        // gating against the saved row is the truthful surface here too.
-        const gateSource: Record<string, unknown> =
-          tabKey === "funding"
-            ? ((fundingInputs ?? {}) as Record<string, unknown>)
-            : (saved as Record<string, unknown>);
-
-        const fieldRequirements = (activeCfg as {
-          fieldRequirements?: Record<string, "hard" | "recommended" | "off">;
-        }).fieldRequirements;
-
-        const gateFields = deriveHardRequiredFieldKeys(
-          fieldRequirements,
-          activeCfg.requiredFields,
-          getLockedHardCandidateKeys(activeSpecialistId),
-        );
-        const missing = findMissingRequiredFields(gateSource, gateFields);
-        if (missing.length > 0) requiredFieldsMissing = missing;
-
-        // Telemetry: record candidate-field keys this save observed as
-        // missing-but-useful (toggle="off"). The Required Fields tab
-        // surfaces these as "promote to Recommended / Hard-required"
-        // recommendations (see SpecialistPage.tsx).
-        const observedMissing = findObservedMissingCandidateFields(
-          gateSource,
-          activeDef?.candidateFields ?? [],
-          fieldRequirements,
-        );
-        await storage.recordObservedMissingFields(activeSpecialistId, observedMissing);
-      }
-
-      // G1.5b-pre-a: response shape no longer carries `verdict` or
-      // `prerequisiteFailures` — those are AnalystButton-press concerns.
       const responseBody: {
         ok: true;
         savedTabs: string[];
         requiredFieldsMissing?: string[];
-      } = { ok: true, savedTabs: nextSaved };
-      if (requiredFieldsMissing && requiredFieldsMissing.length > 0) {
-        responseBody.requiredFieldsMissing = requiredFieldsMissing;
+      } = { ok: true, savedTabs: result.savedTabs };
+      if (result.requiredFieldsMissing && result.requiredFieldsMissing.length > 0) {
+        responseBody.requiredFieldsMissing = result.requiredFieldsMissing;
       }
       res.json(responseBody);
     } catch (error: unknown) {
+      if (error instanceof SaveCompanyAssumptionTabValidationError) {
+        return res.status(400).json({ error: error.message });
+      }
       logAndSendError(res, "Failed to save Company Assumptions tab", error, "GLOB-006");
     }
   });

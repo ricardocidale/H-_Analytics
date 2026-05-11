@@ -12,6 +12,7 @@ import {
   toolListPropertyPhotos,
   toolCreatePhoto,
   toolReorderPhotos,
+  toolUpdatePropertyCoordinates,
 } from "./rebecca-tool-impls-property";
 import {
   toolListScenarios,
@@ -78,6 +79,7 @@ import {
   toolTriggerResearch,
   toolGetGlobalAssumptions,
   toolUpdateGlobalAssumptions,
+  toolSaveCompanyAssumptionTab,
   toolListProspectiveProperties,
   toolSaveProspectiveProperty,
   toolDeleteProspectiveProperty,
@@ -215,6 +217,10 @@ export async function dispatchRebeccaTool(
         return await toolGetGlobalAssumptions(ctx);
       case "update_global_assumptions":
         return await toolUpdateGlobalAssumptions(args, ctx);
+      case "save_company_assumption_tab":
+        return await toolSaveCompanyAssumptionTab(args, ctx);
+      case "update_property_coordinates":
+        return await toolUpdatePropertyCoordinates(args, ctx);
       case "update_photo":
         return await toolUpdatePhoto(args, ctx);
       case "list_property_photos":

@@ -51,6 +51,19 @@ export function getPropertyTools(): ToolParam[] {
       },
     },
     {
+      name: "update_property_coordinates",
+      description: "Update a property's latitude and longitude. Mirrors the geocode-driven coordinate write triggered when an address is auto-resolved on the Property → Edit basic-info section. Caller must have access to the property.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "Property ID" },
+          latitude: { type: "number", description: "Latitude in degrees (-90 to 90)." },
+          longitude: { type: "number", description: "Longitude in degrees (-180 to 180)." },
+        },
+        required: ["id", "latitude", "longitude"],
+      },
+    },
+    {
       name: "create_property",
       description:
         "Create a new property (hotel) in the portfolio. Mirrors the UI's 'New Property' action: applies global assumption defaults, " +

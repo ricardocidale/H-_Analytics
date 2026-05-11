@@ -191,6 +191,70 @@ export async function toolUpdateGlobalAssumptions(
   };
 }
 
+export async function toolSaveCompanyAssumptionTab(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const {
+    COMPANY_ASSUMPTION_TAB_KEYS,
+    saveCompanyAssumptionTab,
+    SaveCompanyAssumptionTabValidationError,
+  } = await import("../routes/global-assumptions-save-tab");
+
+  const tabKey = args.tabKey;
+  if (
+    typeof tabKey !== "string" ||
+    !(COMPANY_ASSUMPTION_TAB_KEYS as readonly string[]).includes(tabKey)
+  ) {
+    return {
+      result: {
+        error: `tabKey must be one of: ${COMPANY_ASSUMPTION_TAB_KEYS.join(", ")}`,
+      },
+    };
+  }
+
+  const patch = args.patch;
+  if (patch !== undefined && (patch === null || typeof patch !== "object" || Array.isArray(patch))) {
+    return { result: { error: "patch must be an object when provided" } };
+  }
+
+  const fundingInputs = args.fundingInputs;
+  if (
+    fundingInputs !== undefined &&
+    (fundingInputs === null || typeof fundingInputs !== "object" || Array.isArray(fundingInputs))
+  ) {
+    return { result: { error: "fundingInputs must be an object when provided" } };
+  }
+
+  const unsave = args.unsave;
+  if (unsave !== undefined && typeof unsave !== "boolean") {
+    return { result: { error: "unsave must be a boolean when provided" } };
+  }
+
+  try {
+    const result = await saveCompanyAssumptionTab({
+      tabKey: tabKey as Parameters<typeof saveCompanyAssumptionTab>[0]["tabKey"],
+      patch: patch as Record<string, unknown> | undefined,
+      fundingInputs: fundingInputs as Parameters<typeof saveCompanyAssumptionTab>[0]["fundingInputs"],
+      unsave,
+      userId: ctx.userId,
+    });
+    return {
+      result: {
+        success: true,
+        savedTabs: result.savedTabs,
+        ...(result.requiredFieldsMissing ? { requiredFieldsMissing: result.requiredFieldsMissing } : {}),
+      },
+      dataChanged: { entityType: "global_assumptions", entityId: 0 },
+    };
+  } catch (err: unknown) {
+    if (err instanceof SaveCompanyAssumptionTabValidationError) {
+      return { result: { error: err.message } };
+    }
+    throw err;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Prospective Properties tools (U4)
 // ---------------------------------------------------------------------------

@@ -18,6 +18,7 @@ feature ships or a new Rebecca tool is added.
 | Create property | Properties → New | `create_property` | ✅ |
 | Edit property field | Property → Edit | `update_property` | ✅ |
 | Edit multiple property fields at once | Property → Edit (bulk) | `patch_property` | ✅ |
+| Update property coordinates after geocode | Property → Edit (basic info, auto on address resolve) | `update_property_coordinates` | ✅ |
 | Delete property | Property → Delete | `delete_property` | ✅ |
 | List scenarios | Scenarios sidebar | `list_scenarios` | ✅ |
 | View scenario detail | Scenario page | `get_scenario` | ✅ |
@@ -134,6 +135,7 @@ re-renders the panel.
 | Upload document | Property → Docs | — | 🚫 N/A (file picker) |
 | Read global assumptions | Admin → Defaults (view) | `get_global_assumptions` | ✅ |
 | Edit global assumptions | Admin → Defaults | `update_global_assumptions` | ✅ |
+| Save a Company Assumptions tab | Company → Assumptions → (per-tab Save) | `save_company_assumption_tab` | ✅ |
 | Change brand / appearance | Admin → Appearance | — | 🚫 N/A (admin-only) |
 | Manage users | Admin → Team | — | 🚫 N/A (admin-only) |
 | Change Rebecca config | Admin → AI | — | 🚫 N/A (admin-only) |
