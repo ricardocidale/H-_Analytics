@@ -124,6 +124,24 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 # Drizzle migrations - bootstrapDrizzleMigrationState() reads ./migrations relative to cwd
 COPY --from=build /app/artifacts/api-server/migrations ./migrations
 
+# LibreOffice headless + Liberation/Noto fonts for Factory v2 PPTX → PDF conversion.
+# `libreoffice-impress` is the minimal slice that handles .pptx; `--no-install-recommends`
+# keeps the image lean (drops Java doc-import helpers, sample templates, etc.).
+# Fonts: liberation (Times/Helvetica/Courier metric equivalents), noto-core (broad
+# Latin/Greek/Cyrillic coverage), noto-cjk (CJK fallback so Asian text doesn't render
+# as tofu). Georgia and Poppins are intentionally NOT installed — see
+# docs/solutions/integration-issues/libreoffice-headless-railway-install-2026-05-11.md
+# for the fidelity-vs-licensing tradeoff (Georgia ships via the EULA-prompt
+# ttf-mscorefonts-installer; Poppins is not in Debian repos). Liberation Serif is
+# the documented substitute for Georgia in the canonical deck.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+       libreoffice-impress \
+       fonts-liberation \
+       fonts-noto-core \
+       fonts-noto-cjk \
+  && rm -rf /var/lib/apt/lists/*
+
 RUN pnpm --filter @workspace/api-server exec playwright install --with-deps chromium \
   && rm -rf /var/lib/apt/lists/*
 
