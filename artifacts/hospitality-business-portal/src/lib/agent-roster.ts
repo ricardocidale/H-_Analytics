@@ -144,7 +144,23 @@ export interface RosterHealthSignal {
   message?: string;
 }
 
+export interface RosterCostantinoCycle {
+  lastRunAt: string | null;
+  status: "ok" | "warn" | "error" | null;
+  notes: string | null;
+  considered: number;
+  succeeded: number;
+  failed: number;
+}
+
 export interface RosterHealthResponse {
   entries: Record<string, RosterHealthSignal>;
   generatedAt: string;
+  /**
+   * Most recent Costantino (Data Custodian) cycle outcome — drives the
+   * "Last audited X ago" indicator at the top of the roster (Task #1391).
+   * `lastRunAt: null` means the scheduler has not fired its first cycle
+   * yet (fresh DB / fresh deploy).
+   */
+  costantinoCycle?: RosterCostantinoCycle;
 }

@@ -136,6 +136,20 @@ function formatTime(ts: number): string {
   return new Intl.DateTimeFormat("en", { timeStyle: "short", dateStyle: "short" }).format(new Date(ts));
 }
 
+function formatRelative(iso: string | null): string {
+  if (!iso) return "never";
+  const ms = Date.now() - Date.parse(iso);
+  if (!Number.isFinite(ms) || ms < 0) return "just now";
+  const sec = Math.floor(ms / 1000);
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const d = Math.floor(hr / 24);
+  return `${d}d ago`;
+}
+
 interface RosterRowProps {
   entry: RosterEntry;
   state: RowState;
@@ -244,10 +258,14 @@ export function AgentRosterAccordion({ title, entries, testId }: AgentRosterAcco
   });
 
   // Read the most recent already-tracked health signal for each entity
-  // (specialist assignments × resource health, Iris last-run, Rebecca KB).
-  // Manual `Analyst` button presses still run live probes per class.
+  // (specialist assignments × resource health, Iris last-run, Rebecca KB,
+  // open Costantino findings). Polled every 30s so the page reads as a
+  // live status board (Task #1391) — manual `Analyst` button presses
+  // still run live probes per class.
   const { data: healthData } = useQuery<RosterHealthResponse>({
     queryKey: ["/api/admin/agent-roster/health"],
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
   });
 
   useEffect(() => {
@@ -322,10 +340,30 @@ export function AgentRosterAccordion({ title, entries, testId }: AgentRosterAcco
     [toast],
   );
 
+  const cycle = healthData?.costantinoCycle;
+  const cycleStatusColor = cycle?.status === "error"
+    ? "text-destructive"
+    : cycle?.status === "warn"
+    ? "text-amber-600"
+    : "text-muted-foreground";
+
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="font-display text-base">{title}</CardTitle>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <CardTitle className="font-display text-base">{title}</CardTitle>
+          {cycle && (
+            <p
+              className={`text-[11px] font-mono tabular-nums ${cycleStatusColor}`}
+              data-testid="roster-costantino-cycle"
+              title={cycle.notes ?? undefined}
+            >
+              Costantino audited {formatRelative(cycle.lastRunAt)}
+              {cycle.lastRunAt !== null &&
+                ` · ${cycle.succeeded} ok / ${cycle.failed} failed`}
+            </p>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="px-0">
         <Accordion type="multiple" className="w-full" data-testid={testId}>
