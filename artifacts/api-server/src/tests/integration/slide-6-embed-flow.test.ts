@@ -305,6 +305,17 @@ describe("slide-6 embed flow — engine produces NaN cell", () => {
 });
 
 // ── Layer 4: PPTX substitution round-trip (gated by fixture + fragility) ───
+//
+// FIXME(u4-image-swap-hardening): this test currently passes through EITHER
+// path (a) [happy substitution] OR path (b) [caught fragility error] without
+// distinguishing which actually ran. Once U4's image-swap relation tracking
+// is hardened (see pptx-substitution.ts:439-484), the catch block will stop
+// firing and any future regression that re-introduces the throw will pass
+// the test vacuously. Rewrite at that point to a strict
+// `await expect(substituteSlots(...)).resolves.toMatchObject({ pptx: ... })`
+// (or `.rejects.toThrow()` if the fragility is deliberately retained). The
+// current shape is a silent regression-magnet — search for this FIXME tag
+// before promoting U4's image-swap path out of "schema-tested only" status.
 
 describe("slide-6 embed flow — substituteSlots round-trip", () => {
   it.skipIf(!FIXTURE_AVAILABLE)(
