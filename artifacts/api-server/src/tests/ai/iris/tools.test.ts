@@ -72,15 +72,17 @@ function mockIsAvailable(value: boolean) {
 // ---------------------------------------------------------------------------
 
 describe("getIrisTools", () => {
-  it("returns an array of 6 tool definitions", () => {
+  it("returns an array of 8 tool definitions", () => {
     const tools = getIrisTools();
-    expect(tools).toHaveLength(6);
+    expect(tools).toHaveLength(8);
     const names = tools.map((t) => t.name);
     expect(names).toContain("ingest_document");
     expect(names).toContain("prune_stale_entries");
     expect(names).toContain("test_api_connection");
     expect(names).toContain("evaluate_retrieval_quality");
+    expect(names).toContain("get_source_endpoint");
     expect(names).toContain("sync_data_source");
+    expect(names).toContain("append_to_maintenance_log");
     expect(names).toContain("write_health_report");
   });
 

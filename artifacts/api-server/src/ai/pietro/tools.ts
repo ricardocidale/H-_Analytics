@@ -75,10 +75,24 @@ export function getPietroTools(): ToolParam[] {
       },
     },
     {
+      name: "append_to_maintenance_log",
+      description:
+        "Persist Pietro's raw markdown report to the workspace (pietro/health.md). You format the report yourself per the rubric in your system prompt — this primitive does no formatting. ALWAYS call this as the last tool.",
+      parameters: {
+        type: "object",
+        properties: {
+          content: {
+            type: "string",
+            description: "Raw markdown to write to health.md (overwrites file contents).",
+          },
+        },
+        required: ["content"],
+      },
+    },
+    {
       name: "write_health_report",
       description:
-        "Write Pietro's health summary to the workspace. ALWAYS call this as the last tool. " +
-        "Include: sources checked, minions dispatched, rows upserted, errors encountered.",
+        "DEPRECATED — use append_to_maintenance_log instead (format the markdown yourself, including the timestamp header). Wraps summary text with `# Pietro Health Report\\nGenerated: <iso>` and writes to the workspace.",
       parameters: {
         type: "object",
         properties: {
@@ -138,12 +152,34 @@ async function toolDispatchMinion(args: Record<string, unknown>) {
   return await minion();
 }
 
+async function toolAppendToMaintenanceLog(args: Record<string, unknown>) {
+  // Schema marks content required, but the tool dispatcher passes through
+  // whatever the LLM produced — validate at the boundary (CodeRabbit PR-99).
+  if (typeof args.content !== "string") {
+    return { written: false, error: "content must be a string" };
+  }
+  // Wrap the write to match the Iris pattern — a thrown fs error would
+  // otherwise escape as an unstructured tool failure (CodeRabbit PR-99
+  // re-review).
+  try {
+    await writePietroHealth(args.content);
+    return { written: true };
+  } catch (err: unknown) {
+    return { written: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+// DEPRECATED — use append_to_maintenance_log. Preserves the previous wrapper
+// behavior (auto-prepends header + timestamp) for any legacy caller.
 async function toolWriteHealthReport(args: Record<string, unknown>) {
-  const summary = args.summary as string;
+  // Schema marks summary required, but the dispatcher passes through whatever
+  // the LLM produced — validate at the boundary (CodeRabbit PR-99 re-review).
+  if (typeof args.summary !== "string") {
+    return { written: false, error: "summary must be a string" };
+  }
   const timestamp = new Date().toISOString();
-  const content = `# Pietro Health Report\n\nGenerated: ${timestamp}\n\n${summary}`;
-  await writePietroHealth(content);
-  return { written: true };
+  const content = `# Pietro Health Report\n\nGenerated: ${timestamp}\n\n${args.summary}`;
+  return toolAppendToMaintenanceLog({ content });
 }
 
 // ---------------------------------------------------------------------------
@@ -158,6 +194,7 @@ export async function dispatchPietroTool(
     case "list_data_sources":   return toolListDataSources(args);
     case "assess_source_health": return toolAssessSourceHealth(args);
     case "dispatch_minion":      return toolDispatchMinion(args);
+    case "append_to_maintenance_log": return toolAppendToMaintenanceLog(args);
     case "write_health_report":  return toolWriteHealthReport(args);
     default:
       return { error: `Unknown Pietro tool: ${name}` };
