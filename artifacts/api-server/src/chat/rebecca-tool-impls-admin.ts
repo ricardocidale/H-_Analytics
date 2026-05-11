@@ -155,6 +155,68 @@ export async function toolTriggerResearch(
   };
 }
 
+// W1.4 — primitives that decompose trigger_research into a read-only seed
+// step (no DB write) and a write step. Letting the agent inspect or adjust
+// proposed seeds before persisting is the point — the old trigger_research
+// tool remains as a deprecated single-shot wrapper.
+
+export async function toolGetPropertyResearchSeeds(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const idResult = requireNumericArg(args, "propertyId");
+  if (!idResult.ok) return idResult.result;
+  const propertyId = idResult.value;
+
+  const prop = await storage.getProperty(propertyId);
+  if (!prop || prop.userId !== ctx.userId) {
+    return { result: { error: "Not found" } };
+  }
+
+  const seeds = generateLocationAwareResearchValues({
+    location: prop.location,
+    streetAddress: prop.streetAddress,
+    city: prop.city,
+    stateProvince: prop.stateProvince,
+    zipPostalCode: prop.zipPostalCode,
+    country: prop.country,
+    market: prop.market,
+  });
+
+  return {
+    result: {
+      propertyId,
+      propertyName: prop.name,
+      seeds,
+    },
+  };
+}
+
+export async function toolApplyPropertyResearchValues(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const idResult = requireNumericArg(args, "propertyId");
+  if (!idResult.ok) return idResult.result;
+  const propertyId = idResult.value;
+
+  const researchValuesResult = requireObjectArg(args, "researchValues");
+  if (!researchValuesResult.ok) return researchValuesResult.result;
+  const researchValues = researchValuesResult.value;
+
+  const prop = await storage.getProperty(propertyId);
+  if (!prop || prop.userId !== ctx.userId) {
+    return { result: { error: "Not found" } };
+  }
+
+  await storage.updateProperty(propertyId, { researchValues } as UpdateProperty);
+
+  return {
+    result: { ok: true, propertyId, fieldCount: Object.keys(researchValues).length },
+    dataChanged: { entityType: "property", entityId: propertyId },
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Global assumptions tools (U2/U5)
 // ---------------------------------------------------------------------------

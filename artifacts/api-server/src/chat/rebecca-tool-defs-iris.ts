@@ -4,13 +4,39 @@ export function getIrisTools(): ToolParam[] {
   return [
     {
       name: "trigger_research",
-      description: "Trigger research value generation for a property using location-aware seed data.",
+      description: "DEPRECATED — use get_property_research_seeds + apply_property_research_values instead. Generates location-aware seed values for a property AND writes them in one step (no inspect-before-commit). Owner-only.",
       parameters: {
         type: "object",
         properties: {
           propertyId: { type: "number", description: "Property ID" },
         },
         required: ["propertyId"],
+      },
+    },
+    {
+      name: "get_property_research_seeds",
+      description: "Compute location-aware research seed values for a property WITHOUT writing them. Returns the seed map so the agent can inspect, adjust, or skip fields before persisting via apply_property_research_values. Owner-only.",
+      parameters: {
+        type: "object",
+        properties: {
+          propertyId: { type: "number", description: "Property ID" },
+        },
+        required: ["propertyId"],
+      },
+    },
+    {
+      name: "apply_property_research_values",
+      description: "Persist a research-values map onto a property's researchValues column. Typically called with the output of get_property_research_seeds (optionally edited by the agent). Owner-only.",
+      parameters: {
+        type: "object",
+        properties: {
+          propertyId: { type: "number", description: "Property ID" },
+          researchValues: {
+            type: "object",
+            description: "Research values map (a record keyed by research-field id). Usually the seeds object returned by get_property_research_seeds, optionally with fields edited or removed.",
+          },
+        },
+        required: ["propertyId", "researchValues"],
       },
     },
     {

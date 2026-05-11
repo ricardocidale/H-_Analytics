@@ -79,6 +79,8 @@ import {
   toolGetTripadvisorHotels,
   toolGetMarketRates,
   toolTriggerResearch,
+  toolGetPropertyResearchSeeds,
+  toolApplyPropertyResearchValues,
   toolGetGlobalAssumptions,
   toolUpdateGlobalAssumptions,
   toolSaveCompanyAssumptionTab,
@@ -141,6 +143,10 @@ export async function dispatchRebeccaTool(
         return await toolShareScenario(args, ctx);
       case "trigger_research":
         return await toolTriggerResearch(args, ctx);
+      case "get_property_research_seeds":
+        return await toolGetPropertyResearchSeeds(args, ctx);
+      case "apply_property_research_values":
+        return await toolApplyPropertyResearchValues(args, ctx);
       case "write_retrieval_gap":
         return await toolWriteRetrievalGap(args, ctx);
       case "trigger_iris_health_check":
