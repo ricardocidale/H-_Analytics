@@ -89,7 +89,12 @@ const NO_BATCH_REFRESH = new Set(["assumption-guidance", "comparables"]);
 
 function hasRefreshButton(entry: RegistryEntry): boolean {
   if (entry.assetType === "vector_namespace") return !NO_BATCH_REFRESH.has(entry.assetRef);
-  return entry.assetType === "benchmark_table" || entry.assetType === "benchmark_brands" || entry.assetType === "country_data";
+  return (
+    entry.assetType === "benchmark_table" ||
+    entry.assetType === "benchmark_brands" ||
+    entry.assetType === "country_data" ||
+    entry.assetType === "catalog_table"
+  );
 }
 
 function regenerateUrl(entry: RegistryEntry): string {
@@ -171,6 +176,90 @@ function CompactCountryTable({ rows }: { rows: CountryRow[] }) {
   );
 }
 
+// ── IcpBracketCatalogViewer ───────────────────────────────────────────────────
+
+interface IcpBracket {
+  id: number;
+  slug: string;
+  name: string;
+  archetype_label: string;
+  customer_type: string;
+  service_consumption_profile: string;
+  target_adr_band_low: number | null;
+  target_adr_band_high: number | null;
+  comp_set_names: string[] | null;
+  description: string | null;
+  source_note: string | null;
+  sort_order: number;
+}
+
+function IcpBracketCatalogViewer() {
+  const { data, isLoading, isError } = useQuery<{ brackets: IcpBracket[] }>({
+    queryKey: ["/api/admin/knowledge-registry/icp-bracket-catalog/data"],
+    queryFn: adminFetch<{ brackets: IcpBracket[] }>(
+      "/api/admin/knowledge-registry/icp-bracket-catalog/data",
+      "Failed to load ICP bracket catalog",
+    ),
+  });
+
+  if (isLoading) return <p className="text-xs text-muted-foreground py-2">Loading…</p>;
+  if (isError) return <p className="text-xs text-destructive py-2">Failed to load ICP bracket catalog.</p>;
+
+  const brackets = data?.brackets ?? [];
+  if (brackets.length === 0) {
+    return <p className="text-sm text-muted-foreground">No brackets in catalog.</p>;
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-xs border-collapse">
+        <thead>
+          <tr className="border-b text-muted-foreground">
+            <th className="text-left py-1.5 pr-3 font-medium">Name</th>
+            <th className="text-left py-1.5 px-2 font-medium">Type</th>
+            <th className="text-left py-1.5 px-2 font-medium hidden sm:table-cell">Service Profile</th>
+            <th className="text-right py-1.5 px-2 font-medium hidden md:table-cell">ADR Band (USD)</th>
+            <th className="text-left py-1.5 pl-2 font-medium hidden lg:table-cell">Sources</th>
+          </tr>
+        </thead>
+        <tbody>
+          {brackets.map((b) => (
+            <tr key={b.slug} className="border-b border-border/50 align-top">
+              <td className="py-2 pr-3">
+                <div className="font-medium text-foreground/90">{b.name}</div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">{b.archetype_label}</div>
+              </td>
+              <td className="py-2 px-2">
+                <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                  b.customer_type === "hotel"
+                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                    : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                }`}>
+                  {b.customer_type === "hotel" ? "Hotel" : "STR"}
+                </span>
+              </td>
+              <td className="py-2 px-2 text-muted-foreground hidden sm:table-cell">
+                {b.service_consumption_profile === "full" ? "Full" : "STR-only"}
+              </td>
+              <td className="py-2 px-2 tabular-nums text-right hidden md:table-cell">
+                {b.target_adr_band_low != null && b.target_adr_band_high != null
+                  ? `$${b.target_adr_band_low}–$${b.target_adr_band_high}`
+                  : "—"}
+              </td>
+              <td className="py-2 pl-2 text-muted-foreground hidden lg:table-cell">
+                {b.source_note ?? "—"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="text-[10px] text-muted-foreground mt-2">
+        Consumers: Cecília (ICP agent), Marco (orchestrator). Read-only — codebase + Neon define the canonical set.
+      </p>
+    </div>
+  );
+}
+
 // ── TypeSpecificViewer ────────────────────────────────────────────────────────
 
 // Maps knowledge_registry.assetRef → analyst-tables id (3 original benchmark tables only)
@@ -220,6 +309,10 @@ function TypeSpecificViewer({ entry }: { entry: RegistryEntry }) {
 
   if (entry.assetType === "country_data") {
     return <CountryDataViewer />;
+  }
+
+  if (entry.assetType === "catalog_table" && entry.assetRef === "icp-bracket-catalog") {
+    return <IcpBracketCatalogViewer />;
   }
 
   return null;

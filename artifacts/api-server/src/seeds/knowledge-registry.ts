@@ -109,6 +109,16 @@ const KNOWLEDGE_REGISTRY_SEEDS: typeof knowledgeRegistry.$inferInsert[] = [
     assetType: "benchmark_table",
     assetRef: "mgmt-co-markup-factors",
   },
+  {
+    id: "icp-bracket-catalog",
+    displayName: "ICP Bracket Catalog",
+    description: "Shared catalog of 3–5 reusable customer-property archetypes (brackets) that drive Management Company revenue and expense calculations. Hotels consume all service lines; STR clusters consume marketing/branding only plus incentive fee.",
+    howBuilt: "Seeded from the codebase at startup (icp-brackets-001 migration). Each bracket defines an archetype label, customer type, service consumption profile, ADR band, comp set, and source note. The catalog is canonical — brackets are defined in code and owned by Neon.",
+    sourceDescription: "HVS Fee Survey 2024 · STR Boutique Benchmarking Report 2024 · AirDNA Market Report 2024 · Glamping Hub Outlook 2024",
+    renewalMechanism: "Re-seeded idempotently on each server boot. The Analyst button re-runs the seed to restore any missing starter brackets without overwriting existing rows.",
+    assetType: "catalog_table",
+    assetRef: "icp-bracket-catalog",
+  },
 ];
 
 // Last-known seed values for country_economic_data. Inserted once on first

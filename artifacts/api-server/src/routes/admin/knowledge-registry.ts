@@ -7,6 +7,7 @@ import { vectorStorePool } from "../../storage/vector-store";
 import { acquireInFlight, releaseInFlight } from "../../middleware/analyst-refresh-guards";
 import { indexKnowledgeBase } from "../../ai/knowledge-base";
 import { indexAllMarketResearch } from "../../ai/vector-indexing";
+import { runIcpBrackets001 } from "../../migrations/icp-brackets-001";
 import {
   researchCapitalRaiseBenchmarks,
   researchExitMultiples,
@@ -24,6 +25,8 @@ import {
   HTTP_422_UNPROCESSABLE_ENTITY,
 } from "../../constants";
 import type { InsertCountryEconomicData } from "@workspace/db";
+import { db } from "../../db";
+import { sql } from "drizzle-orm";
 
 const CHUNKS_PAGE_SIZE = 20;
 
@@ -234,20 +237,28 @@ async function regenerateBenchmark(
 
 export function registerKnowledgeRegistryRoutes(app: Express) {
   // GET /api/admin/knowledge-registry
-  // Lists all 8 registry entries with live chunk counts merged in for
-  // vector_namespace assets.
+  // Lists all registry entries with live chunk counts merged in for
+  // vector_namespace assets, and live row counts for catalog_table assets.
   app.get("/api/admin/knowledge-registry", requireAdmin, async (_req, res) => {
     try {
-      const [entries, stats] = await Promise.all([
+      const [entries, stats, bracketCount] = await Promise.all([
         storage.getAllKnowledgeRegistry(),
         getNamespaceStats().catch(() => ({} as Record<string, number>)),
+        db.execute(sql`SELECT COUNT(*)::int AS count FROM icp_brackets WHERE is_active = true`)
+          .catch(() => ({ rows: [{ count: 0 }] })),
       ]);
+
+      const catalogRowCount = Number(
+        (bracketCount.rows[0] as { count: number } | undefined)?.count ?? 0,
+      );
 
       const enriched = entries.map((entry) => ({
         ...entry,
         liveCount:
           entry.assetType === "vector_namespace"
             ? (stats[entry.assetRef as VectorNamespace] ?? 0)
+            : entry.assetType === "catalog_table"
+            ? catalogRowCount
             : null,
       }));
 
@@ -265,6 +276,27 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
       res.json(rows);
     } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch country economic data", error, "AKNW-002");
+    }
+  });
+
+  // GET /api/admin/knowledge-registry/icp-bracket-catalog/data
+  // Returns all active ICP brackets for the AssetPanel viewer.
+  // Must be registered BEFORE /:id to prevent path shadowing.
+  app.get("/api/admin/knowledge-registry/icp-bracket-catalog/data", requireAdmin, async (_req, res) => {
+    try {
+      const result = await db.execute(sql`
+        SELECT id, slug, name, archetype_label, customer_type,
+               service_consumption_profile,
+               target_adr_band_low, target_adr_band_high,
+               comp_set_names, description, source_note,
+               is_active, sort_order
+        FROM icp_brackets
+        WHERE is_active = true
+        ORDER BY sort_order ASC
+      `);
+      res.json({ brackets: result.rows });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to fetch ICP bracket catalog", error, "AKNW-016");
     }
   });
 
@@ -430,6 +462,26 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
           rowsUpdated: result.rowsUpdated,
         });
         return res.json({ success: true, assetRef: entry.assetRef, rowsUpdated: result.rowsUpdated });
+      }
+
+      // catalog_table — re-runs the idempotent seed (ON CONFLICT DO NOTHING)
+      // so any missing starter brackets are restored without overwriting live data.
+      if (entry.assetType === "catalog_table" && entry.assetRef === "icp-bracket-catalog") {
+        if (!acquireInFlight("icp-bracket-catalog")) {
+          return res.status(HTTP_409_CONFLICT).json({
+            error: "Refresh already in flight for icp-bracket-catalog",
+          });
+        }
+        try {
+          await runIcpBrackets001();
+          await storage.updateKnowledgeRegistryRefreshed(id, new Date());
+          logActivity(req, "knowledge-registry-regenerate", "knowledge_registry", null, id, {
+            assetRef: entry.assetRef,
+          });
+          return res.json({ success: true, assetRef: entry.assetRef });
+        } finally {
+          releaseInFlight("icp-bracket-catalog");
+        }
       }
 
       return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
