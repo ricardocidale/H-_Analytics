@@ -418,7 +418,7 @@ See `docs/issues/known-issues.md`.
 
 Three folders. `lib/db/migrations/` is the Drizzle-generate output target; `artifacts/api-server/migrations/` is what the api-server's `migrate()` actually reads at boot (slots past 0052 have drifted from `lib/db/migrations/` — new migrations must be mirrored with non-colliding slot numbers); `artifacts/api-server/src/migrations/*.ts` are runtime guards that re-apply idempotent `IF NOT EXISTS` DDL on every boot. Full topology + workflow: `docs/runbooks/schema-migrations.md`.
 
-Schema changes always use `pnpm --filter @workspace/db run generate` — never hand-craft SQL (except complex backfills). `lib/db/migrations/meta/0042_snapshot.json` is the canonical baseline; `0000_snapshot.json` stays as the historical root. Full runbook + Drizzle `__drizzle_migrations` drift sync + dev-DB query gotcha (Replit `executeSql()` hits the wrong database — use `curl -b <cookie>` against `/api/auth/dev-login` or a Node script with `POSTGRES_URL`): `.local/skills/pnpm-workspace/references/db.md`.
+Schema changes always use `pnpm --filter @workspace/db run generate` — never hand-craft SQL (except complex backfills). `lib/db/migrations/meta/0042_snapshot.json` is the canonical baseline; `0000_snapshot.json` stays as the historical root. The new `Three folders` paragraph above is the authoritative pointer to the full runbook.
 
 ### Shared proxy routing
 
