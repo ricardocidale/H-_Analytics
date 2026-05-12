@@ -172,7 +172,7 @@ repair; it now needs its own plan. A `TODO(LLM-model-fetch-relocation)` comment 
 - **Where does the resolver live?** → New `factory-v2-llm-resolver.ts` in `slides/`.
 - **What kind for the new row?** → `llm_slot` (consistent with all other LLM model resolution).
 
-### Resolved During Planning
+### Resolved During Implementation
 
 - **Which model slug to seed in the new llm_slot row?** → `"claude-opus-4-7"`.
   Rationale: (a) this is a pure refactor — the Scope Boundaries commit to not changing the model;

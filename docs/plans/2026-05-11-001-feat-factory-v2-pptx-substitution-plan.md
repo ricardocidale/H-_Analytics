@@ -167,7 +167,7 @@ flowchart TD
   H --> J[U9: appendWishListSlide<br/>read wishListLog → dedupe<br/>→ append slide 7 to PPTX buffer<br/>empty log = no-op]
   I --> K[U10: Dino pivot<br/>soffice renders PPTX → PNG per slide<br/>Dino pixel-diff vs canonical PNGs ±2px<br/>Maya text-judge unchanged]
   J --> K
-  K -->|pass| L[U8b: soffice headless PPTX → PDF<br/>status=converting_pdf]
+  K -->|pass| L[soffice headless: PPTX → PDF<br/>status=converting_pdf]
   K -->|fail| F
   L --> M[Upload PPTX and PDF to R2<br/>pptxR2Key, deckR2Key set<br/>status=complete]
   M --> N[Admin polls status<br/>downloads PPTX and PDF]
@@ -496,12 +496,13 @@ Key state transitions: `new → ingesting → ingested → brief_ready → draft
 **Approach:**
 - `handleProduceDeck` is the only change site. Sequence inside the handler:
   1. `const map = getAssembledSubstitutionMap(runId)` — reads from in-memory cache set by `apply_substitutions`
-  2. `const pptxBuf = await substituteSlots(templatePptx, map)` — 6-slide PPTX buffer
+  2. `const pptxBuf = await substituteSlots(templatePptx, map)` — 6-slide PPTX buffer — set `status: 'substituting'` before this step
   3. `const pptxWith7 = await appendWishListSlide(pptxBuf, run.wishListLog)` — U9 contributes this function; U8b calls it. If `wishListLog` is empty, returns the original buffer unchanged.
-  4. `const pdfBuf = await runSofficeConvert(pptxWith7, runId)` — soffice headless
-  5. `const keys = await uploadFactory2Deck(runId, pptxWith7, pdfBuf)` — both R2 keys
-  6. `await updateSlideFactoryRun(runId, { status: 'complete', pptxR2Key: keys.pptx, deckR2Key: keys.pdf })`
-- Add `await updateSlideFactoryRun(runId, { status: 'substituting' })` before step 2 and `{ status: 'converting_pdf' }` before step 4.
+  4. **Dino pixel-diff inspection** — `await runDinoInspection(pptxWith7, runId)`: renders PPTX to PNGs via soffice (U10 contributes `pptxToPngs.ts`), diffs against canonical PNGs. If inspection fails → set `status: 'error'`, surface diff key; abort. If pass → continue.
+  5. `const pdfBuf = await runSofficeConvert(pptxWith7, runId)` — soffice headless PDF — set `status: 'converting_pdf'` before this step
+  6. `const keys = await uploadFactory2Deck(runId, pptxWith7, pdfBuf)` — both R2 keys
+  7. `await updateSlideFactoryRun(runId, { status: 'complete', pptxR2Key: keys.pptx, deckR2Key: keys.pdf })`
+- Status transitions: `substituting` (before step 2) → Dino gate (step 4) → `converting_pdf` (before step 5) → `complete` (step 7).
 - Mark `runFranco` call site with a `// legacy — rollback path; remove in a follow-up PR` comment; do not delete.
 - Soffice timeout and retry counts come from `admin_parameters` rows — no numeric literals inline (CLAUDE.md §1). Pull values at handler entry.
 

@@ -177,6 +177,7 @@ async function enrichSlide(
   pngBuffer: Buffer,
   words: AldoElement[],
   anthropic: Anthropic,
+  modelId: string,
 ): Promise<LorenzoTextBlock[]> {
   const lines = groupWordsIntoLines(words);
 
@@ -216,7 +217,6 @@ async function enrichSlide(
     ],
   };
 
-  const modelId = await resolveLorenzoVisionModelId();
   const response = await anthropic.messages.create({
     model: modelId,
     max_tokens: LORENZO_03_MAX_TOKENS,
@@ -265,6 +265,7 @@ async function enrichSlide(
 export async function runLorenzoVision(aldoResult: AldoResult): Promise<LorenzoTextBlock[][]> {
   const anthropic = getAnthropicClient();
   const storageProvider = await getStorageProviderAsync();
+  const modelId = await resolveLorenzoVisionModelId();
 
   const blocksBySlide: LorenzoTextBlock[][] = [];
 
@@ -281,7 +282,7 @@ export async function runLorenzoVision(aldoResult: AldoResult): Promise<LorenzoT
       CANONICAL_ASSETS.slide(slideNumber, "png"),
     );
 
-    const blocks = await enrichSlide(slideNumber, i, pngBuffer, slideWords, anthropic);
+    const blocks = await enrichSlide(slideNumber, i, pngBuffer, slideWords, anthropic, modelId);
     blocksBySlide.push(blocks);
 
     logger.info(
