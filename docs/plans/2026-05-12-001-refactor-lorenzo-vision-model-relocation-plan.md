@@ -1,7 +1,7 @@
 ---
 title: "refactor: Relocate LORENZO_VISION_MODEL from TS literal to admin_resources runtime fetch"
 type: refactor
-status: active
+status: completed
 date: 2026-05-12
 ---
 
