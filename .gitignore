@@ -50,6 +50,8 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+# Operating-mode toggle marker (per-clone, never committed; covered by .local/ above)
+.local/opmode/
 artifacts/api-server/logs/api-costs.jsonl
 
 # Keep the repo root clean — screenshots and debug dumps belong in attached_assets/ or screenshots/
