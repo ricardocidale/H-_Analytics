@@ -268,6 +268,9 @@ export const MAX_AI_PROMPT_INPUT_CHARS = 50000;
 /** Max tokens for regenerate-constants LLM calls */
 export const AI_REGEN_CONSTANTS_MAX_TOKENS = 1024;
 
+/** Max tokens for regenerate-market-data LLM calls */
+export const AI_MARKET_DATA_MAX_TOKENS = 4096;
+
 /** Max tokens per executive-summary section */
 export const AI_EXEC_SUMMARY_SECTION_MAX_TOKENS = 1200;
 

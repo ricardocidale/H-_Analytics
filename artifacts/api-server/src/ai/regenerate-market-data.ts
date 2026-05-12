@@ -15,8 +15,9 @@
  * Routes call this; routes own auth and HTTP shape.
  */
 
-import { getAnthropicClient, getOpenAIClient, getGeminiClient } from "./clients";
 import { resolveLlmFor } from "./llm-config-resolver";
+import { generateText } from "./dispatch";
+import { AI_MARKET_DATA_MAX_TOKENS } from "../constants";
 import { GroundedResearchService } from "../services/GroundedResearchService";
 import { storage } from "../storage";
 import { logger } from "../logger";
@@ -231,44 +232,14 @@ async function searchForTableData(queries: string[]): Promise<{ text: string; so
 
 async function callLlm(systemPrompt: string, userPrompt: string): Promise<string> {
   const { vendor, modelId } = await resolveLlmFor("regen-constants");
-  if (vendor === "anthropic") {
-    const client = getAnthropicClient();
-    const response = await client.messages.create({
-      model: modelId,
-      max_tokens: 4096,
-      system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
-      messages: [{ role: "user", content: userPrompt }],
-    });
-    const block = response.content.find((b) => b.type === "text");
-    if (!block || block.type !== "text") throw new Error("No text response from LLM");
-    return block.text.trim();
-  } else if (vendor === "openai") {
-    const client = getOpenAIClient();
-    const response = await client.chat.completions.create({
-      model: modelId,
-      max_tokens: 4096,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-    });
-    const text = response.choices[0]?.message?.content;
-    if (!text) throw new Error("No text response from LLM");
-    return text.trim();
-  } else {
-    const client = getGeminiClient();
-    const response = await client.models.generateContent({
-      model: modelId,
-      contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-      config: {
-        systemInstruction: systemPrompt,
-        maxOutputTokens: 4096,
-      },
-    });
-    const text = response.text;
-    if (!text) throw new Error("No text response from LLM");
-    return text.trim();
-  }
+  const { text } = await generateText({
+    llm: { vendor, model: modelId },
+    prompt: userPrompt,
+    system: systemPrompt,
+    maxTokens: AI_MARKET_DATA_MAX_TOKENS,
+  });
+  if (!text) throw new Error("No text response from LLM");
+  return text.trim();
 }
 
 function parseJsonArray(raw: string): unknown[] {

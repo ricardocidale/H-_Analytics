@@ -68,11 +68,12 @@ export function registerSelfTestLogsRoutes(app: Express) {
       const resourceIds = Array.from(
         new Set(rows.map((r) => r.adminResourceId).filter((id): id is number => id != null)),
       );
-      const intervalById = new Map<number, number | null>();
-      for (const id of resourceIds) {
-        const resource = await storage.getAdminResourceById(id);
-        intervalById.set(id, resource?.selfTestIntervalDays ?? null);
-      }
+      const resources = await Promise.all(
+        resourceIds.map((id) => storage.getAdminResourceById(id)),
+      );
+      const intervalById = new Map<number, number | null>(
+        resourceIds.map((id, i) => [id, resources[i]?.selfTestIntervalDays ?? null]),
+      );
 
       const logs = rows.map((r) => ({
         id: String(r.id),

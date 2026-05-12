@@ -1,0 +1,237 @@
+/workspace$ coderabbit review --plain --base-commit HEAD~10 --type committed --dir artifacts/api-server
+Starting CodeRabbit review in plain text mode...
+
+Review directory: /home/runner/workspace/artifacts/api-server
+
+Connecting to review service
+Setting up
+Summarizing
+Reviewing
+
+============================================================================
+File: artifacts/api-server/src/ai/regenerate-market-data.ts
+Line: 232 to 272
+Type: refactor_suggestion
+Severity: major
+
+Comment:
+Local callLlm bypasses the shared dispatch abstraction.
+
+This file defines its own callLlm function with vendor-specific branching that duplicates the logic in dispatch.ts. Per coding guidelines, all LLM provider calls in the AI layer should go through the shared callLlm()/callLlmStream() abstraction.
+
+Additionally, the magic number 4096 (max_tokens) appears three times and should be extracted to a named constant.
+
+
+
+
+♻️ Proposed refactor to use shared dispatch
+
+Add a constant to constants.ts:
+export const AI_MARKET_DATA_MAX_TOKENS = 4096;
+
+
+Then refactor the function:
+-async function callLlm(systemPrompt: string, userPrompt: string): Promise {
+-  const { vendor, modelId } = await resolveLlmFor("regen-constants");
+-  if (vendor === "anthropic") {
+-    const client = getAnthropicClient();
+-    const response = await client.messages.create({
+-      model: modelId,
+-      max_tokens: 4096,
+-      system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
+-      messages: [{ role: "user", content: userPrompt }],
+-    });
+-    const block = response.content.find((b) => b.type === "text");
+-    if (!block || block.type !== "text") throw new Error("No text response from LLM");
+-    return block.text.trim();
+-  } else if (vendor === "openai") {
+-    ...
+-  } else {
+-    ...
+-  }
+-}
++import { generateText } from "./dispatch";
++import { AI_MARKET_DATA_MAX_TOKENS } from "../constants";
++
++async function callLlm(systemPrompt: string, userPrompt: string): Promise {
++  const { vendor, modelId } = await resolveLlmFor("regen-constants");
++  const { text } = await generateText({
++    llm: { vendor, model: modelId },
++    prompt: userPrompt,
++    system: systemPrompt,
++    maxTokens: AI_MARKET_DATA_MAX_TOKENS,
++  });
++  if (!text) throw new Error("No text response from LLM");
++  return text.trim();
++}
+
+
+
+
+As per coding guidelines: "Flag any LLM provider call that bypasses callLlm() / callLlmStream() — all provider handling should go through the shared abstraction."
+
+Prompt for AI Agent:
+Verify each finding against current code. Fix only still-valid issues, skip the rest with a brief reason, keep changes minimal, and validate.
+
+In @artifacts/api-server/src/ai/regenerate-market-data.ts around lines 232 - 272, The local callLlm function duplicates vendor-specific logic and hardcodes 4096; remove this function and instead call the shared callLlm (or callLlmStream if streaming) from the dispatch abstraction, passing the resolved model info from resolveLlmFor("regen-constants") and using a named constant AI_MARKET_DATA_MAX_TOKENS (add export const AI_MARKET_DATA_MAX_TOKENS = 4096 to constants.ts) for the max tokens parameter; ensure you pass systemPrompt and userPrompt into the shared callLlm and rely on its vendor handling, and delete the vendor branching and triple-duplicated magic number in regenerate-market-data.ts.
+
+============================================================================
+File: artifacts/api-server/src/routes/admin/self-test-logs.ts
+Line: 68 to 75
+Type: potential_issue
+Severity: major
+
+Comment:
+N+1 query pattern — use bulk fetch.
+
+The current implementation loads admin resources one by one in a loop, creating an N+1 query problem. When the logs reference many distinct resources, this will create performance issues.
+
+
+
+
+⚡ Proposed fix using bulk fetch
+
+-      const intervalById = new Map();
+-      for (const id of resourceIds) {
+-        const resource = await storage.getAdminResourceById(id);
+-        intervalById.set(id, resource?.selfTestIntervalDays ?? null);
+-      }
++      // Bulk fetch all referenced resources in one query
++      const resources = await storage.listAdminResources();
++      const intervalById = new Map(
++        resources
++          .filter((r) => resourceIds.includes(r.id))
++          .map((r) => [r.id, r.selfTestIntervalDays ?? null])
++      );
+
+
+Alternative: Add a bulk-fetch method to storage (preferred if listAdminResources returns too many rows):
+
+Add to storage interface:
+getAdminResourcesByIds(ids: number[]): Promise
+
+
+Then use:
+-      const intervalById = new Map();
+-      for (const id of resourceIds) {
+-        const resource = await storage.getAdminResourceById(id);
+-        intervalById.set(id, resource?.selfTestIntervalDays ?? null);
+-      }
++      const resources = await storage.getAdminResourcesByIds(resourceIds);
++      const intervalById = new Map(
++        resources.map((r) => [r.id, r.selfTestIntervalDays ?? null])
++      );
+
+Prompt for AI Agent:
+Verify each finding against current code. Fix only still-valid issues, skip the rest with a brief reason, keep changes minimal, and validate.
+
+In @artifacts/api-server/src/routes/admin/self-test-logs.ts around lines 68 - 75, The loop that calls storage.getAdminResourceById for each id creates an N+1 query; replace it with a bulk fetch (e.g. implement and call storage.getAdminResourcesByIds(resourceIds)) and build intervalById from that single result set instead of per-id awaits. Specifically, keep the extraction of resourceIds from rows, call the new bulk method to get all AdminResourceRow objects, then populate intervalById (mapping id -> selfTestIntervalDays or null) from the returned array and remove the per-id await loop that references storage.getAdminResourceById.
+
+============================================================================
+File: artifacts/api-server/src/routes/admin/knowledge-registry.ts
+Line: 406 to 499
+Type: potential_issue
+Severity: critical
+
+Comment:
+Critical TOCTOU race condition in PATCH endpoint.
+
+The PATCH handler performs multiple async DB reads followed by an async DB write without any concurrency guard:
+
+1. Lines 434-436: Check if bracket exists
+2. Lines 448-450: Check for duplicate slug (if slug is being changed)
+3. Lines 478-482: Execute UPDATE
+
+Between these operations, concurrent PATCH requests could:
+- Delete the bracket (causing the UPDATE to silently fail or succeed on wrong row)
+- Create a bracket with the target slug (duplicate not detected)
+- Modify fields that this request assumes are unchanged
+
+This is a time-of-check to time-of-use (TOCTOU) vulnerability.
+
+Recommended fix: Wrap the endpoint with acquireInFlight / releaseInFlight using a per-bracket lock key (e.g., icp-bracket-${id}), or use a single atomic UPDATE with a WHERE clause that validates all preconditions and returns affected row count.
+
+
+
+
+🔒 Proposed concurrency guard
+
+ app.patch(
+   "/api/admin/knowledge-registry/icp-bracket-catalog/data/:id",
+   requireAdmin,
+   csrfTokenGuard,
+   async (req, res) => {
+     const id = Number(req.params.id);
+     if (!Number.isInteger(id) || id 
+
+As per coding guidelines: Flag any route handler that uses async DB reads followed by async DB writes without an in-process or DB-level concurrency guard (TOCTOU risk).
+
+Prompt for AI Agent:
+Verify each finding against current code. Fix only still-valid issues, skip the rest with a brief reason, keep changes minimal, and validate.
+
+In @artifacts/api-server/src/routes/admin/knowledge-registry.ts around lines 406 - 499, The handler suffers a TOCTOU race because it does multiple async DB reads (db.execute SELECT existing and duplicate slug checks) then an UPDATE without a concurrency guard; wrap the critical DB section (from fetching existing through performing the UPDATE and logging) with the in-process lock helpers acquireInFlight/releaseInFlight using a per-bracket key like icp-bracket-${id} so concurrent PATCHes serialize; ensure you acquire the lock after validating id and parsing (IcpBracketPatchSchema) and always release the lock in a finally block to avoid deadlocks; alternatively replace the multi-step logic with a single atomic UPDATE that includes the necessary WHERE checks and returns the row count, but if using acquireInFlight update the code paths that call db.execute and logActivity/logAndSendError so they execute inside the lock.
+
+============================================================================
+File: artifacts/api-server/src/routes/admin/knowledge-registry.ts
+Line: 344 to 404
+Type: potential_issue
+Severity: major
+
+Comment:
+TOCTOU pattern in POST endpoint (partially mitigated).
+
+The POST handler checks for duplicate slugs (lines 359-361) then inserts (lines 370-390). Between the check and insert, a concurrent POST could create a bracket with the same slug.
+
+This is partially mitigated by:
+1. Database unique constraint (caught at line 395 with error code 23505)
+2. The duplicate check being repeated in the error handler
+
+However, this creates an anti-pattern where the happy path assumes no race, then falls back to error handling for the race case. Consider using a concurrency guard similar to other admin mutations in this file, or document that the DB constraint is the primary defense.
+
+
+
+
+🔒 Optional concurrency guard (if preferred over DB-constraint-only approach)
+
+ app.post(
+   "/api/admin/knowledge-registry/icp-bracket-catalog/data",
+   requireAdmin,
+   csrfTokenGuard,
+   async (req, res) => {
+     const parsed = IcpBracketCreateSchema.safeParse(req.body);
+     if (!parsed.success) {
+       return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
+         error: "Invalid bracket payload",
+         code: "AKNW-017",
+         details: parsed.error.flatten(),
+       });
+     }
+     const b = parsed.data;
++    
++    const lockKey = icp-bracket-create-${b.slug};
++    if (!acquireInFlight(lockKey)) {
++      return res.status(HTTP_409_CONFLICT).json({
++        error: "Another bracket with this slug is being created",
++        code: "AKNW-027",
++      });
++    }
++    
++    try {
+       // ... existing logic ...
++    } finally {
++      releaseInFlight(lockKey);
++    }
+   },
+ );
+
+
+
+As per coding guidelines: Flag any route handler that uses async DB reads followed by async DB writes without an in-process or DB-level concurrency guard (TOCTOU risk).
+
+Prompt for AI Agent:
+Verify each finding against current code. Fix only still-valid issues, skip the rest with a brief reason, keep changes minimal, and validate.
+
+In @artifacts/api-server/src/routes/admin/knowledge-registry.ts around lines 344 - 404, The handler currently does a separate SELECT then INSERT which creates a TOCTOU race; replace the SELECT+INSERT pattern in the POST "/api/admin/knowledge-registry/icp-bracket-catalog/data" handler with a single atomic INSERT using ON CONFLICT so the DB enforces uniqueness and the code handles the conflict without relying on a race-prone pre-check: remove the dup SELECT (the db.execute that queries icp_brackets by slug) and perform an INSERT ... ON CONFLICT (slug) DO NOTHING RETURNING id, slug via db.execute (keep building compSetJson the same), then if result.rows is empty return the 409 response (same message/code "AKNW-018"), otherwise logActivity with the returned row and return 201; you can then remove or simplify the 23505 error branch in the catch since the ON CONFLICT path handles the race deterministically.
+
+Review completed: 4 findings ✔
+~/workspace$ 

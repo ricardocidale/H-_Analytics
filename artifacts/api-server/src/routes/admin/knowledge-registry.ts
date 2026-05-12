@@ -430,6 +430,13 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
           code: "AKNW-022",
         });
       }
+      const lockKey = `icp-bracket-${id}`;
+      if (!acquireInFlight(lockKey)) {
+        return res.status(HTTP_409_CONFLICT).json({
+          error: "A concurrent update is already in progress for this bracket",
+          code: "AKNW-026",
+        });
+      }
       try {
         const existing = await db.execute(sql`
           SELECT id, slug FROM icp_brackets WHERE id = ${id} LIMIT 1
@@ -494,6 +501,8 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
           });
         }
         return logAndSendError(res, "Failed to update ICP bracket", error, "AKNW-025");
+      } finally {
+        releaseInFlight(lockKey);
       }
     },
   );
