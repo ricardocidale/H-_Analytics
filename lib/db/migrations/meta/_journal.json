@@ -351,6 +351,13 @@
       "when": 1778733600000,
       "tag": "0051_minion_self_test_runs",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1778586871526,
+      "tag": "0052_property_assumptions_improved_columns",
+      "breakpoints": true
     }
   ]
 }

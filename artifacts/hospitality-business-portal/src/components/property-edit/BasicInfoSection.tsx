@@ -1,28 +1,42 @@
 /**
- * BasicInfoSection.tsx — Property identity and physical characteristics.
+ * BasicInfoSection.tsx — Property identity, acquisition facts, and improvement hypothesis.
  *
- * First section on the Edit Property page. Captures the property's name,
- * street address / market, hero image URL, room count, property type
- * (e.g. "Boutique Hotel", "B&B"), and optional company assignment.
+ * Three visually distinct subsections within one card:
+ *   Basic        — immutable identity and classification (name, address, type, etc.)
+ *   As Purchased — operational facts at acquisition (F&B capacity, building size, description)
+ *   As Improved  — post-renovation hypothesis for each As-Purchased field
  *
- * Room count is the single most important driver in the financial model:
- * it multiplies with ADR (Average Daily Rate) and occupancy to produce
- * total room revenue.  Property type influences which USALI expense
- * ratios the engine applies by default.
+ * Task #1404 — Milestone A: UI-only restructure. Description is now inline here;
+ * the standalone DescriptionSection component is deprecated.
  */
 import { useState, useCallback, useRef, useEffect } from "react";
 import { PROPERTY_STATUS_VALUES, DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE, PLATFORM_FEE_RATES } from "@shared/constants";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CityCombobox } from "@/components/ui/city-combobox";
 import AddressAutocomplete, { type PlaceDetails } from "@/components/AddressAutocomplete";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { useGeoSelect, GEO_CLEAR_VALUE } from "@/hooks/use-geo";
 import StarRatingInput from "@/components/research/StarRatingInput";
 import PropertyTypeSelector, { BusinessModelSelector } from "@/components/research/PropertyTypeSelector";
+import { Loader2, X } from "@/components/icons/themed-icons";
+import { IconWand2, IconCheck, IconPencil } from "@/components/icons";
+import { useToast } from "@/hooks/use-toast";
 import type { PropertyEditSectionProps } from "./types";
 import { cn } from "@/lib/utils";
+
+// ── Small helpers ────────────────────────────────────────────────────────────
 
 function AutoFillBadge() {
   return (
@@ -32,6 +46,188 @@ function AutoFillBadge() {
     </span>
   );
 }
+
+/** Subsection header — title + muted subtitle, with a left-accent rule. */
+function SubsectionHeader({ title, subtitle, className }: { title: string; subtitle: string; className?: string }) {
+  return (
+    <div className={cn("flex items-start gap-3 mb-5", className)}>
+      <div className="w-0.5 h-8 rounded-full bg-primary/40 shrink-0 mt-0.5" />
+      <div>
+        <p className="text-sm font-semibold text-foreground label-text">{title}</p>
+        <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
+      </div>
+    </div>
+  );
+}
+
+// ── As-Purchased description field (inline, replaces DescriptionSection) ─────
+
+interface DescriptionFieldProps {
+  draft: PropertyEditSectionProps["draft"];
+  onChange: PropertyEditSectionProps["onChange"];
+}
+
+function AsPurchasedDescriptionField({ draft, onChange }: DescriptionFieldProps) {
+  const [isRewriting, setIsRewriting] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(!draft.description);
+  const { toast } = useToast();
+
+  const hasSavedDescription = !!(draft.description || "").trim();
+
+  const handleAIRewrite = async () => {
+    const text = (draft.description || "").trim();
+    if (!text) {
+      toast({ title: "Nothing to improve", description: "Please write a description first.", variant: "destructive" });
+      return;
+    }
+    setIsRewriting(true);
+    try {
+      const res = await fetch(`/api/properties/${draft.id}/rewrite-description`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) throw new Error("Rewrite failed");
+      const data = await res.json();
+      if (data.rewritten) setPreview(data.rewritten);
+    } catch {
+      toast({ title: "Error", description: "Failed to rewrite description. Please try again.", variant: "destructive" });
+    } finally {
+      setIsRewriting(false);
+    }
+  };
+
+  const acceptRewrite = () => {
+    if (preview) {
+      onChange("description", preview);
+      toast({ title: "Description improved", description: "AI rewrite has been applied." });
+    }
+    setPreview(null);
+  };
+
+  return (
+    <>
+      <div className="sm:col-span-2 space-y-2">
+        <Label className="label-text text-foreground flex items-center gap-1.5">
+          Description
+          <InfoTooltip text="A narrative description of the property as acquired. Used in reports, exports, and as context for AI research. Describe the property's unique features, target market, and investment appeal." />
+        </Label>
+
+        {hasSavedDescription && !isEditing ? (
+          <div className="space-y-2">
+            <div className="rounded-md border border-border bg-muted/30 p-3" data-testid="card-saved-description">
+              <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap" data-testid="text-saved-description">
+                {draft.description}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditing(true)}
+              data-testid="button-edit-description"
+            >
+              <IconPencil className="w-3.5 h-3.5 mr-1.5" />
+              Edit
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Textarea
+              value={draft.description || ""}
+              onChange={(e) => onChange("description", e.target.value || null)}
+              placeholder="Describe this property — its setting, unique features, target guests, and what makes it an attractive investment..."
+              className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground min-h-[100px] resize-y"
+              data-testid="input-property-description"
+            />
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAIRewrite}
+                disabled={isRewriting || !(draft.description || "").trim()}
+                data-testid="button-ai-rewrite-description"
+              >
+                {isRewriting ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-pop mr-1.5" />
+                ) : (
+                  <IconWand2 className="w-3.5 h-3.5 mr-1.5" />
+                )}
+                {isRewriting ? "Rewriting..." : "Improve with AI"}
+              </Button>
+              {(draft.description || "").trim() && (
+                <>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onChange("description", null)}
+                    className="text-muted-foreground"
+                    data-testid="button-clear-description"
+                  >
+                    <X className="w-3.5 h-3.5 mr-1" />
+                    Clear
+                  </Button>
+                  {isEditing && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsEditing(false)}
+                      className="text-muted-foreground"
+                      data-testid="button-done-editing-description"
+                    >
+                      Done
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <Dialog open={!!preview} onOpenChange={(open) => { if (!open) setPreview(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>AI Rewrite Preview</DialogTitle>
+            <DialogDescription>
+              Review the improved description below. Accept to apply it, or dismiss to keep your original.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 my-2">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1.5 label-text">Original</p>
+              <div className="text-sm text-foreground/70 bg-muted/50 rounded-md p-3 max-h-[120px] overflow-y-auto whitespace-pre-wrap" data-testid="text-original-description">
+                {(draft.description || "").trim()}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-primary mb-1.5 label-text">Improved</p>
+              <div className="text-sm text-foreground bg-primary/5 border border-primary/15 rounded-md p-3 max-h-[200px] overflow-y-auto whitespace-pre-wrap" data-testid="text-rewritten-description">
+                {preview}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setPreview(null)} data-testid="button-dismiss-rewrite">
+              Dismiss
+            </Button>
+            <Button size="sm" onClick={acceptRewrite} data-testid="button-accept-rewrite">
+              <IconCheck className="w-3.5 h-3.5 mr-1.5" />
+              Accept Rewrite
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+// ── Main component ───────────────────────────────────────────────────────────
 
 export default function BasicInfoSection({ draft, onChange, onNumberChange }: PropertyEditSectionProps) {
   const [autoFilledFields, setAutoFilledFields] = useState<Set<string>>(new Set());
@@ -99,23 +295,20 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
       }
     }
 
-    if (filled.length > 0) {
-      markAutoFilled(filled);
-    }
+    if (filled.length > 0) markAutoFilled(filled);
   }, [onChange, markAutoFilled, draft]);
 
   const isAutoFilled = (field: string) => autoFilledFields.has(field);
-
   const countryIso = geo.countryCode || undefined;
   const stateForBias = draft.stateProvince || undefined;
 
   return (
     <div className="relative overflow-hidden rounded-lg border border-border bg-card shadow-sm">
       <div className="relative p-6">
-        <div className="mb-6">
-          <h3 className="text-xl font-display text-foreground">Basic Information</h3>
-          <p className="text-muted-foreground text-sm label-text">Property identification and location details</p>
-        </div>
+
+        {/* ── BASIC ──────────────────────────────────────────────────────── */}
+        <SubsectionHeader title="Basic" subtitle="Property identification, classification, and location" />
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label className="label-text text-foreground flex items-center gap-1.5">Property Name<InfoTooltip text="Internal name used to identify this property across the portfolio. Appears in dashboards, reports, and financial statements." /></Label>
@@ -154,9 +347,7 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
                 />
               </div>
               <div className="space-y-2 sm:col-span-2">
-                <Label className="label-text text-muted-foreground text-sm">
-                  Address Line 2
-                </Label>
+                <Label className="label-text text-muted-foreground text-sm">Address Line 2</Label>
                 <Input
                   value={draft.streetAddress2 || ""}
                   onChange={(e) => onChange("streetAddress2", e.target.value || null)}
@@ -232,6 +423,7 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
               </div>
             </div>
           </div>
+
           <div className="space-y-2">
             <Label className="label-text text-foreground flex items-center gap-1.5">Status<InfoTooltip text="Current stage: Pipeline (being scoped), In Negotiation (advanced talks), Acquired (purchased), Improvements (under renovation), or Operating (generating revenue)." /></Label>
             <Select value={draft.status} onValueChange={(v) => onChange("status", v)}>
@@ -321,135 +513,216 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
               </div>
             </div>
           )}
-        </div>
 
-        <PropertyDescriptorsSection draft={draft} onChange={onChange} onNumberChange={onNumberChange} />
-      </div>
-    </div>
-  );
-}
-
-function PropertyDescriptorsSection({ draft, onChange, onNumberChange }: { draft: PropertyEditSectionProps["draft"]; onChange: PropertyEditSectionProps["onChange"]; onNumberChange: PropertyEditSectionProps["onNumberChange"] }) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <div className="mt-6 border border-primary/20 rounded-xl overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors text-left"
-        data-testid="toggle-property-descriptors"
-        // Auto-expand contract (task #787): the focus hook will click
-        // this disclosure toggle if an Adjust deep-link names any of the
-        // listed fields and they aren't yet in the DOM. `aria-expanded`
-        // tells the hook whether to skip — once the user has already
-        // opened the section, clicking again would close it. See
-        // `EXPAND_TRIGGER_ATTR` in `analyst-focus-field.ts`.
-        aria-expanded={isOpen}
-        data-expand-trigger="qualityTier serviceLevel roomCount fbCapacity"
-      >
-        <div>
-          <p className="text-sm font-medium text-foreground label-text">Property Details</p>
-          <p className="text-xs text-muted-foreground">Classification, physical attributes, and F&B capacity</p>
-        </div>
-        <svg className={cn("w-4 h-4 text-muted-foreground transition-transform", isOpen && "rotate-180")} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-      </button>
-      {isOpen && (
-        <div className="p-4 pt-0 space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="label-text text-foreground flex items-center gap-1.5">Quality Tier<InfoTooltip text="STR chain scale classification. Drives comp set matching and benchmark selection for research engines." /></Label>
-              <Select value={draft.qualityTier || ""} onValueChange={(v) => onChange("qualityTier", v)}>
-                <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-quality-tier"><SelectValue placeholder="Select tier" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="luxury">Luxury</SelectItem>
-                  <SelectItem value="upper_upscale">Upper Upscale</SelectItem>
-                  <SelectItem value="upscale">Upscale</SelectItem>
-                  <SelectItem value="upper_midscale">Upper Midscale</SelectItem>
-                  <SelectItem value="midscale">Midscale</SelectItem>
-                  <SelectItem value="economy">Economy</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="label-text text-foreground flex items-center gap-1.5">Service Level<InfoTooltip text="Determines staffing model and expense structure. Full Service includes concierge, room service, and F&B. Limited Service operates with minimal on-site staff." /></Label>
-              <Select value={draft.serviceLevel || ""} onValueChange={(v) => onChange("serviceLevel", v)}>
-                <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-service-level"><SelectValue placeholder="Select level" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="full_service">Full Service</SelectItem>
-                  <SelectItem value="select_service">Select Service</SelectItem>
-                  <SelectItem value="limited_service">Limited Service</SelectItem>
-                  <SelectItem value="all_inclusive">All Inclusive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="label-text text-foreground flex items-center gap-1.5">Location Type<InfoTooltip text="Geographic classification affecting seasonality patterns, ADR benchmarks, and expense ratios." /></Label>
-              <Select value={draft.locationType || ""} onValueChange={(v) => onChange("locationType", v)}>
-                <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-location-type"><SelectValue placeholder="Select type" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="urban">Urban</SelectItem>
-                  <SelectItem value="suburban">Suburban</SelectItem>
-                  <SelectItem value="resort">Resort</SelectItem>
-                  <SelectItem value="rural">Rural</SelectItem>
-                  <SelectItem value="airport">Airport</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="label-text text-foreground flex items-center gap-1.5">Market Tier<InfoTooltip text="MSA classification. Primary = Top 25 metro areas with highest hotel demand. Secondary and tertiary markets have different risk/return profiles." /></Label>
-              <Select value={draft.marketTier || ""} onValueChange={(v) => onChange("marketTier", v)}>
-                <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-market-tier"><SelectValue placeholder="Select tier" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="primary">Primary (Top 25 MSA)</SelectItem>
-                  <SelectItem value="secondary">Secondary</SelectItem>
-                  <SelectItem value="tertiary">Tertiary</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="border-t border-primary/10 pt-4">
-            <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">F&B & Events Capacity</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label className="label-text text-foreground text-sm">F&B Venues</Label>
-                <Input type="number" value={draft.fbVenues ?? ""} onChange={(e) => onNumberChange("fbVenues", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-fb-venues" />
-              </div>
-              <div className="space-y-2">
-                <Label className="label-text text-foreground text-sm">F&B Seats (total)</Label>
-                <Input type="number" value={draft.fbSeats ?? ""} onChange={(e) => onNumberChange("fbSeats", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-fb-seats" />
-              </div>
-              <div className="space-y-2">
-                <Label className="label-text text-foreground text-sm">Event Space (sq ft)</Label>
-                <Input type="number" value={draft.eventSpaceSqft ?? ""} onChange={(e) => onNumberChange("eventSpaceSqft", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-event-space" />
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-primary/10 pt-4">
-            <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">Physical Attributes</p>
+          {/* Classification grid — Quality, Service, Location, Market Tier */}
+          <div className="sm:col-span-2 border-t border-border/50 pt-5">
+            <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">Classification</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="label-text text-foreground text-sm">Total Acreage</Label>
-                <Input type="number" step="0.1" value={draft.totalPropertyAcreage ?? ""} onChange={(e) => onNumberChange("totalPropertyAcreage", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-total-acreage" />
+                <Label className="label-text text-foreground flex items-center gap-1.5">Quality Tier<InfoTooltip text="STR chain scale classification. Drives comp set matching and benchmark selection for research engines." /></Label>
+                <Select value={draft.qualityTier || ""} onValueChange={(v) => onChange("qualityTier", v)}>
+                  <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-quality-tier"><SelectValue placeholder="Select tier" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="luxury">Luxury</SelectItem>
+                    <SelectItem value="upper_upscale">Upper Upscale</SelectItem>
+                    <SelectItem value="upscale">Upscale</SelectItem>
+                    <SelectItem value="upper_midscale">Upper Midscale</SelectItem>
+                    <SelectItem value="midscale">Midscale</SelectItem>
+                    <SelectItem value="economy">Economy</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label className="label-text text-foreground text-sm">Building (sq ft)</Label>
-                <Input type="number" value={draft.totalBuildingSqft ?? ""} onChange={(e) => onNumberChange("totalBuildingSqft", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-building-sqft" />
+                <Label className="label-text text-foreground flex items-center gap-1.5">Service Level<InfoTooltip text="Determines staffing model and expense structure. Full Service includes concierge, room service, and F&B. Limited Service operates with minimal on-site staff." /></Label>
+                <Select value={draft.serviceLevel || ""} onValueChange={(v) => onChange("serviceLevel", v)}>
+                  <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-service-level"><SelectValue placeholder="Select level" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="full_service">Full Service</SelectItem>
+                    <SelectItem value="select_service">Select Service</SelectItem>
+                    <SelectItem value="limited_service">Limited Service</SelectItem>
+                    <SelectItem value="all_inclusive">All Inclusive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="label-text text-foreground flex items-center gap-1.5">Location Type<InfoTooltip text="Geographic classification affecting seasonality patterns, ADR benchmarks, and expense ratios." /></Label>
+                <Select value={draft.locationType || ""} onValueChange={(v) => onChange("locationType", v)}>
+                  <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-location-type"><SelectValue placeholder="Select type" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="urban">Urban</SelectItem>
+                    <SelectItem value="suburban">Suburban</SelectItem>
+                    <SelectItem value="resort">Resort</SelectItem>
+                    <SelectItem value="rural">Rural</SelectItem>
+                    <SelectItem value="airport">Airport</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="label-text text-foreground flex items-center gap-1.5">Market Tier<InfoTooltip text="MSA classification. Primary = Top 25 metro areas with highest hotel demand. Secondary and tertiary markets have different risk/return profiles." /></Label>
+                <Select value={draft.marketTier || ""} onValueChange={(v) => onChange("marketTier", v)}>
+                  <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-market-tier"><SelectValue placeholder="Select tier" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="primary">Primary (Top 25 MSA)</SelectItem>
+                    <SelectItem value="secondary">Secondary</SelectItem>
+                    <SelectItem value="tertiary">Tertiary</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label className="label-text text-foreground text-sm">Year Built</Label>
                 <Input type="number" value={draft.yearBuilt ?? ""} onChange={(e) => onNumberChange("yearBuilt", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-year-built" />
               </div>
               <div className="space-y-2">
-                <Label className="label-text text-foreground text-sm">Last Renovated</Label>
-                <Input type="number" value={draft.lastRenovationYear ?? ""} onChange={(e) => onNumberChange("lastRenovationYear", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-last-renovated" />
+                <Label className="label-text text-foreground text-sm">Total Acreage</Label>
+                <Input type="number" step="0.1" value={draft.totalPropertyAcreage ?? ""} onChange={(e) => onNumberChange("totalPropertyAcreage", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-total-acreage" />
               </div>
             </div>
           </div>
         </div>
-      )}
+
+        {/* ── AS PURCHASED ───────────────────────────────────────────────── */}
+        <div className="mt-8 border-t border-border/50 pt-6">
+          <SubsectionHeader
+            title="As Purchased"
+            subtitle="Operational facts at acquisition — F&B capacity, physical size, and property description"
+          />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="sm:col-span-2">
+              <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">F&B & Events Capacity</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="label-text text-foreground text-sm">F&B Venues</Label>
+                  <Input type="number" value={draft.fbVenues ?? ""} onChange={(e) => onNumberChange("fbVenues", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-fb-venues" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="label-text text-foreground text-sm">F&B Seats (total)</Label>
+                  <Input type="number" value={draft.fbSeats ?? ""} onChange={(e) => onNumberChange("fbSeats", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-fb-seats" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="label-text text-foreground text-sm">Event Space (sq ft)</Label>
+                  <Input type="number" value={draft.eventSpaceSqft ?? ""} onChange={(e) => onNumberChange("eventSpaceSqft", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-event-space" />
+                </div>
+              </div>
+            </div>
+
+            <div className="sm:col-span-2">
+              <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">Physical Attributes</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="label-text text-foreground text-sm">Building (sq ft)</Label>
+                  <Input type="number" value={draft.totalBuildingSqft ?? ""} onChange={(e) => onNumberChange("totalBuildingSqft", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-building-sqft" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="label-text text-foreground text-sm">Last Renovated</Label>
+                  <Input type="number" value={draft.lastRenovationYear ?? ""} onChange={(e) => onNumberChange("lastRenovationYear", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-last-renovated" />
+                </div>
+              </div>
+            </div>
+
+            <AsPurchasedDescriptionField draft={draft} onChange={onChange} />
+          </div>
+        </div>
+
+        {/* ── AS IMPROVED ────────────────────────────────────────────────── */}
+        <div className="mt-8 border-t border-border/50 pt-6">
+          <SubsectionHeader
+            title="As Improved"
+            subtitle="Post-renovation hypothesis — leave blank to carry forward As-Purchased values"
+            className="mb-4"
+          />
+          <p className="text-xs text-muted-foreground mb-5 -mt-2 ml-5 pl-0.5">
+            Inputs show the As-Purchased value as a placeholder when no improved value has been set.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="sm:col-span-2">
+              <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">F&B & Events Capacity (Improved)</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="label-text text-foreground text-sm">F&B Venues</Label>
+                  <Input
+                    type="number"
+                    value={draft.fbVenuesImproved ?? ""}
+                    placeholder={draft.fbVenues != null ? String(draft.fbVenues) : ""}
+                    onChange={(e) => onNumberChange("fbVenuesImproved", e.target.value)}
+                    className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground/50"
+                    data-testid="input-fb-venues-improved"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="label-text text-foreground text-sm">F&B Seats (total)</Label>
+                  <Input
+                    type="number"
+                    value={draft.fbSeatsImproved ?? ""}
+                    placeholder={draft.fbSeats != null ? String(draft.fbSeats) : ""}
+                    onChange={(e) => onNumberChange("fbSeatsImproved", e.target.value)}
+                    className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground/50"
+                    data-testid="input-fb-seats-improved"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="label-text text-foreground text-sm">Event Space (sq ft)</Label>
+                  <Input
+                    type="number"
+                    value={draft.eventSpaceSqftImproved ?? ""}
+                    placeholder={draft.eventSpaceSqft != null ? String(draft.eventSpaceSqft) : ""}
+                    onChange={(e) => onNumberChange("eventSpaceSqftImproved", e.target.value)}
+                    className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground/50"
+                    data-testid="input-event-space-improved"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="sm:col-span-2">
+              <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">Physical Attributes (Improved)</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="label-text text-foreground text-sm">Building (sq ft)</Label>
+                  <Input
+                    type="number"
+                    value={draft.totalBuildingSqftImproved ?? ""}
+                    placeholder={draft.totalBuildingSqft != null ? String(draft.totalBuildingSqft) : ""}
+                    onChange={(e) => onNumberChange("totalBuildingSqftImproved", e.target.value)}
+                    className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground/50"
+                    data-testid="input-building-sqft-improved"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="label-text text-foreground flex items-center gap-1.5 text-sm">
+                    Planned Reopening Year
+                    <InfoTooltip text="The target year the property reopens to guests after the improvement phase." />
+                  </Label>
+                  <Input
+                    type="number"
+                    value={draft.plannedReopeningYear ?? ""}
+                    placeholder=""
+                    onChange={(e) => onNumberChange("plannedReopeningYear", e.target.value)}
+                    className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground/50"
+                    data-testid="input-planned-reopening-year"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="sm:col-span-2 space-y-2">
+              <Label className="label-text text-foreground flex items-center gap-1.5">
+                Description (Improved)
+                <InfoTooltip text="A narrative description of the property after planned improvements. Describe the transformation, new amenities, and revised target guest profile." />
+              </Label>
+              <Textarea
+                value={draft.descriptionImproved ?? ""}
+                onChange={(e) => onChange("descriptionImproved", e.target.value || null)}
+                placeholder={draft.description ? draft.description.slice(0, 120) + (draft.description.length > 120 ? "…" : "") : "Describe the property after improvements..."}
+                className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground/50 min-h-[100px] resize-y"
+                data-testid="input-description-improved"
+              />
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }

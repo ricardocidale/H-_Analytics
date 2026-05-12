@@ -38,7 +38,7 @@ See `CLAUDE.md` §§ 1–12 (no hardcoded values — numeric literals AND integr
 
 ---
 
-## Agent Taxonomy (mirror of `CLAUDE.md` § 10 — update CLAUDE.md first, then mirror here)
+## Agent Taxonomy (verbatim from `CLAUDE.md` § 10)
 
 All agents, minions, and orchestrators in H+ Analytics use human first names from Brazilian or Italian naming traditions (male or female).
 

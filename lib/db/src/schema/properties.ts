@@ -249,6 +249,17 @@ export const properties = pgTable("properties", {
   totalBuildingSqft: integer("total_building_sqft"),
   yearBuilt: integer("year_built"),
   lastRenovationYear: integer("last_renovation_year"),
+
+  // As-Improved counterparts — renovation hypothesis (Milestone A, task #1404).
+  // Each mirrors its As-Purchased twin but represents the projected post-renovation state.
+  // Null means "not yet set"; the UI renders the As-Purchased value as a faded placeholder.
+  fbVenuesImproved: integer("fb_venues_improved"),
+  fbSeatsImproved: integer("fb_seats_improved"),
+  eventSpaceSqftImproved: integer("event_space_sqft_improved"),
+  totalBuildingSqftImproved: integer("total_building_sqft_improved"),
+  plannedReopeningYear: integer("planned_reopening_year"),
+  descriptionImproved: text("description_improved"),
+
   managementType: text("management_type"),
   onMunicipalSewer: boolean("on_municipal_sewer").default(false),
 
@@ -472,6 +483,12 @@ export const insertPropertySchema = createInsertSchema(properties).pick({
   totalBuildingSqft: true,
   yearBuilt: true,
   lastRenovationYear: true,
+  fbVenuesImproved: true,
+  fbSeatsImproved: true,
+  eventSpaceSqftImproved: true,
+  totalBuildingSqftImproved: true,
+  plannedReopeningYear: true,
+  descriptionImproved: true,
   managementType: true,
   onMunicipalSewer: true,
   strExempt: true,
