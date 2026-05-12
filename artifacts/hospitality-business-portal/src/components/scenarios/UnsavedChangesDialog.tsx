@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { CancelButton } from "@/components/ui/cancel-button";
 import { SaveButton } from "@/components/ui/save-button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -137,9 +138,7 @@ export function UnsavedChangesDialog({
           <Button variant="outline" onClick={handleStay} data-testid="button-stay">
             Return
           </Button>
-          <Button variant="outline" onClick={handleDiscard} className="text-destructive" data-testid="button-discard">
-            Cancel
-          </Button>
+          <CancelButton onClick={handleDiscard} className="text-destructive" data-testid="button-discard" />
           <SaveButton
             onClick={handleSaveAndLeave}
             disabled={!name.trim()}

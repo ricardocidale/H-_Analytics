@@ -32,6 +32,7 @@ import { ValidationStatusBadge } from "@/components/analyst";
 import { PropertyResearchHistory } from "@/components/property-edit/PropertyResearchHistory";
 import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { Button } from "@/components/ui/button";
+import { CancelButton } from "@/components/ui/cancel-button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ChevronUp } from "@/components/icons/themed-icons";
@@ -631,15 +632,12 @@ export default function PropertyEdit() {
                 isPending={updateProperty.isPending}
                 hasChanges={isDirty}
               />
-              <Button
-                variant="ghost"
+              <CancelButton
                 size="sm"
                 onClick={handleCancel}
                 disabled={updateProperty.isPending}
                 data-testid="button-cancel-property-edit"
-              >
-                Cancel
-              </Button>
+              />
               {(() => {
                 const { status } = computeFreshnessStatus({ researchUpdatedAt, lastAssumptionChangeAt: propertyLastAssumptionChangeAt, isGenerating: false });
                 const lastResearched = researchUpdatedAt
@@ -743,14 +741,11 @@ export default function PropertyEdit() {
           >
             Save
           </SaveButton>
-          <Button
-            variant="ghost"
+          <CancelButton
             onClick={handleCancel}
             disabled={updateProperty.isPending}
             data-testid="button-cancel-property-edit-footer"
-          >
-            Cancel
-          </Button>
+          />
           {(() => {
             const { status } = computeFreshnessStatus({ researchUpdatedAt, lastAssumptionChangeAt: propertyLastAssumptionChangeAt, isGenerating: false });
             return (

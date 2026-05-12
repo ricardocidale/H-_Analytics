@@ -7,6 +7,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { CancelButton } from "@/components/ui/cancel-button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowRight } from "@/components/icons/themed-icons";
 import { IconWand2 } from "@/components/icons";
@@ -212,9 +213,7 @@ export function ApplyResearchDialog({ open, onOpenChange, draft, researchValues,
         )}
 
         <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
+          <CancelButton onClick={() => onOpenChange(false)} />
           <Button
             onClick={handleApply}
             disabled={selected.size === 0}

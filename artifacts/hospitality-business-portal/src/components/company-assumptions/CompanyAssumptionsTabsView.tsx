@@ -11,6 +11,7 @@ import type { AnalystVerdict } from "@engine/analyst/contracts/verdict";
 import { Tabs, TabsContent, CurrentThemeTab } from "@/components/ui/tabs";
 import { SaveButton } from "@/components/ui/save-button";
 import { Button } from "@/components/ui/button";
+import { CancelButton } from "@/components/ui/cancel-button";
 import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { AnalystVerdictDisplay } from "@/components/analyst/AnalystVerdictDisplay";
 import { computeFreshnessStatus } from "@/components/intelligence/IntelligenceStatusBar";
@@ -287,15 +288,12 @@ export function CompanyAssumptionsTabsView(props: Props) {
                   />
                 )}
                 {onCancelTab && (activeDirty || activeNeverSaved) && (
-                  <Button
-                    variant="ghost"
+                  <CancelButton
                     size="sm"
                     onClick={onCancelTab}
                     disabled={savingTab === activeTab && isUpdatePending}
                     data-testid={`button-cancel-tab-${activeTab}`}
-                  >
-                    Cancel
-                  </Button>
+                  />
                 )}
                 <SaveButton
                   onClick={() => onSaveTab(activeTab, { force: activeNeverSaved && !activeDirty })}

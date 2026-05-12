@@ -91,7 +91,12 @@ export function AnalystButton({
       variant={variant}
       onClick={onClick}
       disabled={disabled || isRunning}
-      className={cn(cfg.btn, pulse && !isRunning && "animate-intelligence-pulse", className)}
+      className={cn(
+        cfg.btn,
+        pulse && !isRunning && "animate-intelligence-pulse",
+        isRunning && "hover:scale-100 active:scale-100",
+        className,
+      )}
       data-testid={dataTestId}
     >
       <span className="relative inline-flex items-center">

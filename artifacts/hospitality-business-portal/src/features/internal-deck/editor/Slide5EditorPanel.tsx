@@ -18,6 +18,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { CancelButton } from "@/components/ui/cancel-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -659,14 +660,11 @@ export function Slide5EditorPanel({ propertyId }: { propertyId: number }) {
             {hasDirty ? "Unsaved changes." : "No unsaved changes."}
           </div>
           <div className="flex items-center gap-2">
-            <Button
+            <CancelButton
               type="button"
-              variant="outline"
               onClick={() => data && setForm(hydrateForm(data.payload))}
               disabled={!hasDirty || patchMutation.isPending}
-            >
-              Cancel
-            </Button>
+            />
             <Button
               type="button"
               onClick={() => { if (patchBody) patchMutation.mutate(patchBody); }}

@@ -7,6 +7,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { CancelButton } from "@/components/ui/cancel-button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -200,9 +201,7 @@ function BulkApplyDialog({
         </div>
 
         <DialogFooter className="border-t border-border pt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)} data-testid="button-cancel-bulk-apply">
-            Cancel
-          </Button>
+          <CancelButton onClick={() => onOpenChange(false)} data-testid="button-cancel-bulk-apply" />
           <Button onClick={handleApply} disabled={selected.size === 0} data-testid="button-apply-bulk">
             <Check className="h-4 w-4 mr-1.5" />
             Apply {selected.size} Value{selected.size !== 1 ? "s" : ""}

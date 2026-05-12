@@ -32,6 +32,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { CancelButton } from "@/components/ui/cancel-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "@/components/icons/themed-icons";
@@ -533,14 +534,11 @@ export function Slide1EditorPanel({ propertyId }: { propertyId: number }) {
               : `${dirtyCount} unsaved field${dirtyCount === 1 ? "" : "s"}.`}
           </div>
           <div className="flex items-center gap-2">
-            <Button
+            <CancelButton
               type="button"
-              variant="outline"
               onClick={() => data && setForm(hydrateForm(data.payload))}
               disabled={dirtyCount === 0 || patchMutation.isPending}
-            >
-              Cancel
-            </Button>
+            />
             <Button
               type="button"
               onClick={() => {

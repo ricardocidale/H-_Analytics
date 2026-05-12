@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { CancelButton } from "@/components/ui/cancel-button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader2 } from "@/components/icons/themed-icons";
@@ -51,9 +52,7 @@ export function EditScenarioDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
+          <CancelButton onClick={onClose} />
           <Button
             variant="outline"
             onClick={onSave}
