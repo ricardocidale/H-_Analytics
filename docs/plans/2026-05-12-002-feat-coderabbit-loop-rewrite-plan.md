@@ -121,6 +121,8 @@ Carry forward verbatim into per-iteration discipline (see U2/U3 Approach):
 
 - **Premise unexamined: do-nothing baseline not weighed against the manual workflow that already works.** Flagged by product-lens. The Problem Frame admits the manual curl-trigger-and-poll workflow works today, but the plan stakes a substantial maintenance surface (six commands + watcher + runbook) on unstated pain. Before U1 begins, populate a "Why automate now" paragraph in Problem Frame with: PRs per week running the manual loop, average iterations per PR, wall-time per iteration that a human currently babysits, and one success metric (e.g., "reduce time-to-clean-PR from N to M minutes" or "enable N concurrent loops per developer"). If the team cannot cite these numbers, escalate the keep-manual vs invest-in-tooling decision before U1.
 
+- **Six-command surface raises cognitive load; toggle ceremony not re-justified.** Flagged by product-lens. Of six commands, only `-review` and `-autofix` do work; on/off/status/help are inherited from task-1386's toggle. Before U1, name the concrete scenario where the toggle is load-bearing once `-review` / `-autofix` exist (e.g., suppressing an automatic in-IDE hook, gating an artifact-workflow banner). If no scenario requires it, collapse the surface to two action commands plus an optional `--status` flag.
+
 ---
 
 ## High-Level Technical Design
