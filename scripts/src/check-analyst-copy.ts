@@ -153,9 +153,49 @@ const SKIP_PATH_PATTERNS: RegExp[] = [
 ];
 
 /**
- * Per-line skip predicates. These run AFTER comment stripping but BEFORE the
- * banned-phrase regex. A line is excluded from scanning if any predicate
- * returns true.
+ * Path-substring patterns that mark CONTENT files (.md, .mdx, .mjml, .html,
+ * .json) as internal-only — developer documentation, runbooks, migration
+ * notes, tooling config — that are never rendered to end users.
+ *
+ * Matched against the POSIX-style relative path. Files matching any pattern
+ * are excluded from the content scan entirely.
+ */
+const SKIP_PATH_PATTERNS_CONTENT: RegExp[] = [
+  // Internal developer docs
+  /\/docs\//,                           // any docs/ subtree
+  /(^|\/)README(\.[a-z]+)?$/i,          // README, README.md, README.mdx …
+  /(^|\/)CHANGELOG(\.[a-z]+)?$/i,       // changelogs
+  /(^|\/)CONTRIBUTING(\.[a-z]+)?$/i,
+  // Agent / skill definitions — describe what the Analyst IS, not status copy
+  /\/\.agents\//,
+  /\/skills?\//,
+  // Internal run-history and health logs (not user-rendered)
+  /\/iris\//,
+  /\/costantino\//,
+  // Migration artefacts
+  /\/migrations?\//,
+  // LLM prompt and seed content (same exemption as code files)
+  /\/prompts?\//,
+  /\/seeds?\//,
+  /\/knowledge-base/,
+  /\/agent-personas/,
+  // Tooling / config JSON that is never user-visible content
+  /\/tsconfig[^/]*\.json$/,
+  /\/package\.json$/,
+  /\/pnpm-lock\.yaml$/,
+  /\/components\.json$/,
+  /\/_journal\.json$/,
+  /\/\d+_snapshot\.json$/,
+  /\/migration-guards\.json$/,
+  /\/llm-pricing\.json$/,
+  /\/seed-users\.json$/,
+  /\/\.replit-artifact\//,
+];
+
+/**
+ * Per-line skip predicates for CODE files. These run AFTER comment stripping
+ * but BEFORE the banned-phrase regex. A line is excluded from scanning if any
+ * predicate returns true.
  *
  * The intent is to avoid flooding with false positives from backend-only
  * logging / tracing — `req.log.info("The Analyst is starting refresh")` is an

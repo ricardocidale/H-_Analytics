@@ -485,7 +485,6 @@ export function registerFinanceRoutes(router: Router): void {
             "finance",
           );
         }
-      }
 
       // Engine recompute + DB freshness stamp travel together — see
       // server/finance/recompute.ts. Adding a new compute entrypoint

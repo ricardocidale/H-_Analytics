@@ -86,6 +86,7 @@ function consumeGuard(target: IntelligenceSection): boolean {
   return leaveGuard(target);
 }
 
+
 // Internal-only setter used by the URL-driven deep-link effect in
 // Intelligence.tsx. It updates the in-memory store without pushing a new
 // `?section=…` history entry, so wouter's useSearch reacting to a
