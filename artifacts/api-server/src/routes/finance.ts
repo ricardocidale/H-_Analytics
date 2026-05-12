@@ -807,10 +807,14 @@ export function registerFinanceRoutes(router: Router): void {
         }
       }
 
+      // Task #1484: apply cost anchors for company-wide recompute.
+      const propertiesWithCostAnchors = await withPropertyCostAnchors(properties);
+
+
       // Engine recompute + DB freshness stamp travel together — see
       // server/finance/recompute.ts.
       const result = await recomputeCompanyAndStamp({
-        properties: properties as unknown as PropertyInput[],
+        properties: propertiesWithCostAnchors as unknown as PropertyInput[],
         globalAssumptions: globalAssumptions as GlobalInput,
         projectionYears,
         serviceTemplates,

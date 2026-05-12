@@ -39,7 +39,7 @@
  *
  * COMMENT EXCLUSION (code files only)
  * -----------------
- * Comments (// line and /* block *\/) are stripped before the regex runs, so
+ * Comments (// line and /* block */) are stripped before the regex runs, so
  * historical/explanatory mentions like "// The Analyst is doing research"
  * inside JSDoc or inline comments are NOT flagged. Only actual code and
  * string content is checked.
@@ -413,6 +413,58 @@ function scanContentFile(absolutePath: string): Violation[] {
 }
 
 // ---------------------------------------------------------------------------
+// Per-file scanners
+// ---------------------------------------------------------------------------
+
+interface Violation {
+  rel: string;
+  lineNum: number;
+  shown: string;
+}
+
+function scanCodeFile(absolutePath: string): Violation[] {
+  const rel = path.relative(WORKSPACE_ROOT, absolutePath).replace(/\\/g, "/");
+  const source = fs.readFileSync(absolutePath, "utf8");
+  const stripped = stripComments(source);
+  const lines = stripped.split("\n");
+  const originalLines = source.split("\n");
+  const violations: Violation[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (isLineSkipped(line)) continue;
+    if (BANNED_RE.test(line)) {
+      violations.push({
+        rel,
+        lineNum: i + 1,
+        shown: (originalLines[i] ?? line).trim(),
+      });
+    }
+  }
+  return violations;
+}
+
+function scanContentFile(absolutePath: string): Violation[] {
+  const rel = path.relative(WORKSPACE_ROOT, absolutePath).replace(/\\/g, "/");
+  const source = fs.readFileSync(absolutePath, "utf8");
+  const lines = source.split("\n");
+  const violations: Violation[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    // No line-skipping or comment-stripping for content files.
+    if (BANNED_RE.test(line)) {
+      violations.push({
+        rel,
+        lineNum: i + 1,
+        shown: line.trim(),
+      });
+    }
+  }
+  return violations;
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
@@ -441,7 +493,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const cacheHash = computeInputsHash({ files: cacheInputFiles });
   if (tryCacheHit(CACHE_NAME, cacheHash)) process.exit(0);
 
-  let violations = 0;
+  let violationsCount = 0;
 
   for (const scanDir of SCAN_DIRS) {
     const absDir = path.join(WORKSPACE_ROOT, scanDir);
@@ -454,7 +506,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
 
       for (const v of scanCodeFile(absPath)) {
         console.error(`VIOLATION  ${v.rel}:${v.lineNum}  ${v.shown}`);
-        violations++;
+        violationsCount++;
       }
     }
 
@@ -465,12 +517,12 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
 
       for (const v of scanContentFile(absPath)) {
         console.error(`VIOLATION  ${v.rel}:${v.lineNum}  ${v.shown}`);
-        violations++;
+        violationsCount++;
       }
     }
   }
 
-  if (violations === 0) {
+  if (violationsCount === 0) {
     console.log(
       "check:analyst-copy  PASS — no banned 'The Analyst is [verb]' copy",
     );
@@ -478,7 +530,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     process.exit(0);
   } else {
     console.error(
-      `\ncheck:analyst-copy  FAIL — ${violations} violation(s) found`,
+      `\ncheck:analyst-copy  FAIL — ${violationsCount} violation(s) found`,
     );
     console.error("");
     console.error(

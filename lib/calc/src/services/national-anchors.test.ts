@@ -159,6 +159,7 @@ describe("overlayNationalMarkupsOnTemplates", () => {
     });
   });
 });
+
 // ── Task #1484: property cost rate anchor tests ────────────────────────────
 
 describe("derivePropertyCostAnchors — fallback path (DB empty)", () => {

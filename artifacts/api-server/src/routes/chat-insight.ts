@@ -82,6 +82,7 @@ Return ONLY the insight text, no quotes or labels.`;
         maxTokens: 128,
       });
       const insightText = raw.trim().slice(0, 250);
+
       try { logApiCost({ timestamp: new Date().toISOString(), service: svc, model: resolved.model, operation: "insight", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost(svc, resolved.model, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/rebecca/insight" }); } catch (e: unknown) { logger.warn(`Failed to log insight cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
 
       if (!insightText) {
