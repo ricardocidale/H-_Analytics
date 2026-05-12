@@ -31,6 +31,9 @@ export interface BracketMixResponse {
 export type PropertyResponse = Property & {
   id: number;
   feeCategories?: { name: string; rate: number; isActive: boolean }[];
+  vendorId?: number | null;
+  vendorHealth?: "healthy" | "unstable" | "degraded" | "unknown" | null;
+  availableVendors?: { id: number; name: string }[] | null;
 };
 
 export interface GlobalResponse {

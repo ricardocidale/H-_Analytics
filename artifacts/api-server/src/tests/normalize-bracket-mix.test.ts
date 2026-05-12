@@ -56,7 +56,7 @@ describe("normalizePersistedBracketMix", () => {
     });
 
     it("returns null for the old flat-array shape if it contains malformed entries", () => {
-      // Flat arrays were the old catalog-API format. 
+      // Flat arrays were the old catalog-API format.
       expect(
         normalizePersistedBracketMix([
           { bracketSlug: 123, weight: HOTEL_WEIGHT },

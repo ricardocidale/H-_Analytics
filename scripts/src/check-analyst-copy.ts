@@ -76,6 +76,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WORKSPACE_ROOT = path.resolve(__dirname, "../..");
 const CACHE_NAME = "analyst-copy";
 
+/** Cache identifier — must be unique across all check-*.ts scripts. */
+const CACHE_NAME = "analyst-copy";
+
 /**
  * Source trees to walk (relative to WORKSPACE_ROOT).
  *
