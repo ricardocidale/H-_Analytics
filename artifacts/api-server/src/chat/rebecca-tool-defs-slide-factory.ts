@@ -168,6 +168,23 @@ export function getSlideFactoryTools(): ToolParam[] {
       },
     },
     {
+      name: "download_factory_v2_deck",
+      description:
+        "Return download URLs for the completed factory v2 deck. Supports format='pptx' (editable PowerPoint), 'pdf' (print-ready PDF), or 'both' (returns both). Only valid when the run status is 'complete'. Returns signed R2 URLs the admin can open directly — use 'both' when the admin wants to download and hand-edit the PPTX.",
+      parameters: {
+        type: "object",
+        properties: {
+          runId: { type: "number", description: "Slide factory run ID" },
+          format: {
+            type: "string",
+            enum: ["pptx", "pdf", "both"],
+            description: "Which format(s) to return. 'both' returns PPTX and PDF URLs.",
+          },
+        },
+        required: ["runId", "format"],
+      },
+    },
+    {
       name: "delete_slide_factory_run",
       description:
         "Permanently delete a slide factory run record. Only the owner of the run can delete it. This cannot be undone.",

@@ -117,7 +117,9 @@ feature ships or a new Rebecca tool is added.
 | Override slot(s) and rebuild PDF (Tab 6) | `PATCH .../slots/:key` then `POST .../rebuild` | `update_slide_factory_slot` + `rebuild_slide_factory_deck` | ✅ |
 | Request LLM copy suggestion for a single slot (Tab 6 override panel) | `POST /api/lb-slides/factory/runs/:id/slots/:key/suggest` | — | 🚫 N/A (admin-only inline copy-assist; suggestion is transient and not persisted until admin explicitly accepts and saves) |
 | Upload brief PDF/PPTX file | Browser → R2 (presigned URL) | — | 🚫 N/A (file picker; user-only action) |
-| Download rendered deck PDF (Tab 6) | `GET /api/lb-slides/factory/runs/:id/download` (planned) | — | 🚫 N/A (file download; planned in plan U9) |
+| Download rendered deck PDF (Tab 6) | `GET /api/lb-slides/factory/runs/:id/download` | `download_factory_v2_deck` (format='pdf') | ✅ |
+| Download rendered deck PPTX (Tab 6) | `GET /api/lb-slides/factory/runs/:id/download/pptx` | `download_factory_v2_deck` (format='pptx') | ✅ |
+| Download both PDF and PPTX (Tab 6) | See above | `download_factory_v2_deck` (format='both') | ✅ |
 
 **Auto-fire pattern note:** `accept-brief` and `assign-properties` are
 fire-and-forget transitions — they immediately advance status and return

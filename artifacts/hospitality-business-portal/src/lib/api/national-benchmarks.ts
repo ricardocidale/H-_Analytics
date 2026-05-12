@@ -54,6 +54,23 @@ export function useNationalBenchmarks() {
 }
 
 /**
+ * Map a USALI property-edit field key (e.g. "costRateRooms") to the
+ * canonical service_line slug used in vendor_passthrough_costs. Returns null
+ * for keys that have no corresponding national benchmark feed row.
+ */
+export function usaliFieldKeyToServiceLine(fieldKey: string): string | null {
+  const map: Record<string, string> = {
+    costRateRooms: "housekeeping",
+    costRateFB: "food_beverage",
+    costRateAdmin: "accounting",
+    costRatePropertyOps: "maintenance",
+    costRateMarketing: "marketing",
+    costRateIT: "it",
+  };
+  return map[fieldKey] ?? null;
+}
+
+/**
  * Map a ServiceTemplate display name to the canonical service_line slug
  * used in vendor_passthrough_costs / mgmt_co_markup_factors. Returns null
  * for unknown service names so the chip renders nothing rather than a
