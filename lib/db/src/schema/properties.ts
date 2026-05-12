@@ -250,6 +250,11 @@ export const properties = pgTable("properties", {
   yearBuilt: integer("year_built"),
   lastRenovationYear: integer("last_renovation_year"),
 
+  // As-Purchased description — explicit purchased-state narrative (Milestone A, task #1404).
+  // Seeded from the legacy `description` column at migration time. `description` is kept for
+  // backward compatibility with all existing consumers; the UI writes to this field going forward.
+  descriptionPurchased: text("description_purchased"),
+
   // As-Improved counterparts — renovation hypothesis (Milestone A, task #1404).
   // Each mirrors its As-Purchased twin but represents the projected post-renovation state.
   // Null means "not yet set"; the UI renders the As-Purchased value as a faded placeholder.
@@ -483,6 +488,7 @@ export const insertPropertySchema = createInsertSchema(properties).pick({
   totalBuildingSqft: true,
   yearBuilt: true,
   lastRenovationYear: true,
+  descriptionPurchased: true,
   fbVenuesImproved: true,
   fbSeatsImproved: true,
   eventSpaceSqftImproved: true,

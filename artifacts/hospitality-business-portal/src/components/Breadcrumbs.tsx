@@ -50,7 +50,7 @@ function useBreadcrumbs(): BreadcrumbEntry[] {
       items.push({ label: propName });
     } else {
       items.push({ label: propName, href: `/property/${propId}` });
-      if (sub === "edit") items.push({ label: "Edit" });
+      if (sub === "edit") items.push({ label: "Property Assumptions" });
       else if (sub === "research") items.push({ label: "Research" });
       else items.push({ label: sub });
     }

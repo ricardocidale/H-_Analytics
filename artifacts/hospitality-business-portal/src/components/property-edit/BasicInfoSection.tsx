@@ -2,9 +2,9 @@
  * BasicInfoSection.tsx — Property identity, acquisition facts, and improvement hypothesis.
  *
  * Three visually distinct subsections within one card:
- *   Basic        — immutable identity and classification (name, address, type, etc.)
- *   As Purchased — operational facts at acquisition (F&B capacity, building size, description)
- *   As Improved  — post-renovation hypothesis for each As-Purchased field
+ *   Basic        — immutable identity fields only (name, address, market, market tier, year built, acreage)
+ *   As Purchased — operational facts at acquisition (status, room count, type, model, capacity, description)
+ *   As Improved  — post-renovation hypothesis for each As-Purchased operational field
  *
  * Task #1404 — Milestone A: UI-only restructure. Description is now inline here;
  * the standalone DescriptionSection component is deprecated.
@@ -70,13 +70,15 @@ interface DescriptionFieldProps {
 function AsPurchasedDescriptionField({ draft, onChange }: DescriptionFieldProps) {
   const [isRewriting, setIsRewriting] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(!draft.description);
+  // Use descriptionPurchased as the primary field; fall back to legacy description for seeding
+  const currentValue = draft.descriptionPurchased ?? draft.description ?? "";
+  const [isEditing, setIsEditing] = useState(!currentValue);
   const { toast } = useToast();
 
-  const hasSavedDescription = !!(draft.description || "").trim();
+  const hasSavedDescription = !!currentValue.trim();
 
   const handleAIRewrite = async () => {
-    const text = (draft.description || "").trim();
+    const text = currentValue.trim();
     if (!text) {
       toast({ title: "Nothing to improve", description: "Please write a description first.", variant: "destructive" });
       return;
@@ -101,7 +103,7 @@ function AsPurchasedDescriptionField({ draft, onChange }: DescriptionFieldProps)
 
   const acceptRewrite = () => {
     if (preview) {
-      onChange("description", preview);
+      onChange("descriptionPurchased", preview);
       toast({ title: "Description improved", description: "AI rewrite has been applied." });
     }
     setPreview(null);
@@ -119,7 +121,7 @@ function AsPurchasedDescriptionField({ draft, onChange }: DescriptionFieldProps)
           <div className="space-y-2">
             <div className="rounded-md border border-border bg-muted/30 p-3" data-testid="card-saved-description">
               <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap" data-testid="text-saved-description">
-                {draft.description}
+                {currentValue}
               </p>
             </div>
             <Button
@@ -136,8 +138,8 @@ function AsPurchasedDescriptionField({ draft, onChange }: DescriptionFieldProps)
         ) : (
           <div className="space-y-2">
             <Textarea
-              value={draft.description || ""}
-              onChange={(e) => onChange("description", e.target.value || null)}
+              value={currentValue}
+              onChange={(e) => onChange("descriptionPurchased", e.target.value || null)}
               placeholder="Describe this property — its setting, unique features, target guests, and what makes it an attractive investment..."
               className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground min-h-[100px] resize-y"
               data-testid="input-property-description"
@@ -148,7 +150,7 @@ function AsPurchasedDescriptionField({ draft, onChange }: DescriptionFieldProps)
                 variant="outline"
                 size="sm"
                 onClick={handleAIRewrite}
-                disabled={isRewriting || !(draft.description || "").trim()}
+                disabled={isRewriting || !currentValue.trim()}
                 data-testid="button-ai-rewrite-description"
               >
                 {isRewriting ? (
@@ -158,13 +160,13 @@ function AsPurchasedDescriptionField({ draft, onChange }: DescriptionFieldProps)
                 )}
                 {isRewriting ? "Rewriting..." : "Improve with AI"}
               </Button>
-              {(draft.description || "").trim() && (
+              {currentValue.trim() && (
                 <>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => onChange("description", null)}
+                    onClick={() => onChange("descriptionPurchased", null)}
                     className="text-muted-foreground"
                     data-testid="button-clear-description"
                   >
@@ -202,7 +204,7 @@ function AsPurchasedDescriptionField({ draft, onChange }: DescriptionFieldProps)
             <div>
               <p className="text-xs font-medium text-muted-foreground mb-1.5 label-text">Original</p>
               <div className="text-sm text-foreground/70 bg-muted/50 rounded-md p-3 max-h-[120px] overflow-y-auto whitespace-pre-wrap" data-testid="text-original-description">
-                {(draft.description || "").trim()}
+                {currentValue.trim()}
               </div>
             </div>
             <div>
@@ -302,12 +304,18 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
   const countryIso = geo.countryCode || undefined;
   const stateForBias = draft.stateProvince || undefined;
 
+  // Effective As-Purchased description for placeholder in As-Improved
+  const purchasedDescriptionForPlaceholder = (draft.descriptionPurchased ?? draft.description ?? "").slice(0, 120);
+
   return (
     <div className="relative overflow-hidden rounded-lg border border-border bg-card shadow-sm">
       <div className="relative p-6">
 
-        {/* ── BASIC ──────────────────────────────────────────────────────── */}
-        <SubsectionHeader title="Basic" subtitle="Property identification, classification, and location" />
+        {/* ── BASIC ──────────────────────────────────────────────────────────
+            Immutable identity fields only: name, location, market, address,
+            market tier, year built, total acreage.
+        ──────────────────────────────────────────────────────────────────── */}
+        <SubsectionHeader title="Basic" subtitle="Property identification and location" />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div className="space-y-2">
@@ -424,170 +432,184 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
             </div>
           </div>
 
+          {/* Identity classifiers that belong in Basic: market tier, year built, acreage */}
           <div className="space-y-2">
-            <Label className="label-text text-foreground flex items-center gap-1.5">Status<InfoTooltip text="Current stage: Pipeline (being scoped), In Negotiation (advanced talks), Acquired (purchased), Improvements (under renovation), or Operating (generating revenue)." /></Label>
-            <Select value={draft.status} onValueChange={(v) => onChange("status", v)}>
-              <SelectTrigger className="bg-card border-primary/30 text-foreground"><SelectValue /></SelectTrigger>
+            <Label className="label-text text-foreground flex items-center gap-1.5">Market Tier<InfoTooltip text="MSA classification. Primary = Top 25 metro areas with highest hotel demand. Secondary and tertiary markets have different risk/return profiles." /></Label>
+            <Select value={draft.marketTier || ""} onValueChange={(v) => onChange("marketTier", v)}>
+              <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-market-tier"><SelectValue placeholder="Select tier" /></SelectTrigger>
               <SelectContent>
-                {PROPERTY_STATUS_VALUES.map(s => (
-                  <SelectItem key={s} value={s}>{s}</SelectItem>
-                ))}
+                <SelectItem value="primary">Primary (Top 25 MSA)</SelectItem>
+                <SelectItem value="secondary">Secondary</SelectItem>
+                <SelectItem value="tertiary">Tertiary</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="label-text text-foreground flex items-center gap-1.5">Room Count<InfoTooltip text="Total number of rentable guest rooms. This is the primary revenue driver — all room revenue is calculated as Rooms × ADR × Occupancy × 30.5 days/month." /></Label>
-            <Input type="number" value={draft.roomCount} onChange={(e) => onNumberChange("roomCount", e.target.value)} className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground" />
+            <Label className="label-text text-foreground text-sm">Year Built</Label>
+            <Input type="number" value={draft.yearBuilt ?? ""} onChange={(e) => onNumberChange("yearBuilt", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-year-built" />
           </div>
           <div className="space-y-2">
-            <Label className="label-text text-foreground flex items-center gap-1.5">Star Rating<InfoTooltip text="Property star classification (1-5★). Drives research comparable matching — luxury (5★) properties are only compared to other luxury properties. Click to set, click same star to clear." /></Label>
-            <StarRatingInput
-              value={draft.starRating}
-              suggested={draft.starRatingSuggested}
-              onChange={(v) => onChange("starRating", v)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label className="label-text text-foreground flex items-center gap-1.5">Property Type<InfoTooltip text="Hospitality category that determines which expense benchmarks and revenue assumptions apply. Extended Stay properties use different occupancy and ADR patterns than traditional hotels." /></Label>
-            <PropertyTypeSelector
-              value={draft.hospitalityType || "hotel"}
-              onChange={(v) => onChange("hospitalityType", v)}
-            />
-          </div>
-          <div className="space-y-2 sm:col-start-2">
-            <Label className="label-text text-foreground flex items-center gap-1.5">Business Model<InfoTooltip text="Determines the financial framework: Hotel uses USALI with departmental expenses (F&B, Events), management fees (2-5% base + incentive). Lodge is a large whole-property rental with premium amenities and guest meals but no events department, management fees (15-25%). VRBO/STR uses platform fees (Airbnb 15.5%, VRBO 8%), per-turnover cleaning, and all-in management fees (20-35%)." /></Label>
-            <BusinessModelSelector
-              value={draft.businessModel || "hotel"}
-              onChange={(v) => onChange("businessModel", v)}
-            />
-          </div>
-
-          {(draft.businessModel === "vrbo" || draft.businessModel === "vrbo_owner_managed") && (
-            <div className="sm:col-span-2 border border-primary/20 rounded-xl p-4 space-y-4">
-              <p className="text-sm font-medium text-foreground label-text">Pricing Model</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="label-text text-foreground flex items-center gap-1.5">Pricing Model<InfoTooltip text="Per Room uses hotel-style ADR × room count. Per Property charges a single nightly rate for the entire property (luxury rental model)." /></Label>
-                  <Select value={draft.pricingModel || "per_room"} onValueChange={(v) => onChange("pricingModel", v)}>
-                    <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-pricing-model"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="per_room">Per Room (hotel-style ADR × rooms)</SelectItem>
-                      <SelectItem value="per_property">Per Property (whole-property nightly rate)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {draft.pricingModel === "per_property" && (
-                  <>
-                    <div className="space-y-2">
-                      <Label className="label-text text-foreground flex items-center gap-1.5">Nightly Property Rate ($)<InfoTooltip text="The per-night rate for renting the entire property. Revenue = rate × days × occupancy. Room count is tracked for capacity only." /></Label>
-                      <Input type="number" value={draft.nightlyPropertyRate || ""} onChange={(e) => onNumberChange("nightlyPropertyRate", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-nightly-property-rate" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="label-text text-foreground flex items-center gap-1.5">Max Guests<InfoTooltip text="Maximum guest capacity for the whole property. Used by research engines to calibrate comparable properties." /></Label>
-                      <Input type="number" step="1" value={draft.maxGuests || ""} onChange={(e) => { const v = parseInt(e.target.value, 10); onChange("maxGuests", isNaN(v) ? null : v); }} className="bg-card border-primary/30 text-foreground" data-testid="input-max-guests" />
-                    </div>
-                  </>
-                )}
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <div className="space-y-2">
-                  <Label className="label-text text-foreground flex items-center gap-1.5">
-                    Platform Fee Rate (%)
-                    <InfoTooltip text={`Blended Airbnb / VRBO / Booking.com commission as % of room revenue. Default ${DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE * 100}% = Airbnb ${PLATFORM_FEE_RATES.airbnb * 100}% / VRBO ${PLATFORM_FEE_RATES.vrbo * 100}% / Booking ${PLATFORM_FEE_RATES.booking * 100}% blended. Set to 0 for direct-booking only.`} />
-                  </Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="100"
-                    value={draft.platformFeeRate != null ? +(draft.platformFeeRate * 100).toFixed(2) : ""}
-                    placeholder={String(DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE * 100)}
-                    onChange={(e) => {
-                      const raw = parseFloat(e.target.value);
-                      onChange("platformFeeRate", isNaN(raw) ? null : raw / 100);
-                    }}
-                    className="bg-card border-primary/30 text-foreground"
-                    data-testid="input-platform-fee-rate"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Classification grid — Quality, Service, Location, Market Tier */}
-          <div className="sm:col-span-2 border-t border-border/50 pt-5">
-            <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">Classification</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="label-text text-foreground flex items-center gap-1.5">Quality Tier<InfoTooltip text="STR chain scale classification. Drives comp set matching and benchmark selection for research engines." /></Label>
-                <Select value={draft.qualityTier || ""} onValueChange={(v) => onChange("qualityTier", v)}>
-                  <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-quality-tier"><SelectValue placeholder="Select tier" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="luxury">Luxury</SelectItem>
-                    <SelectItem value="upper_upscale">Upper Upscale</SelectItem>
-                    <SelectItem value="upscale">Upscale</SelectItem>
-                    <SelectItem value="upper_midscale">Upper Midscale</SelectItem>
-                    <SelectItem value="midscale">Midscale</SelectItem>
-                    <SelectItem value="economy">Economy</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="label-text text-foreground flex items-center gap-1.5">Service Level<InfoTooltip text="Determines staffing model and expense structure. Full Service includes concierge, room service, and F&B. Limited Service operates with minimal on-site staff." /></Label>
-                <Select value={draft.serviceLevel || ""} onValueChange={(v) => onChange("serviceLevel", v)}>
-                  <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-service-level"><SelectValue placeholder="Select level" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="full_service">Full Service</SelectItem>
-                    <SelectItem value="select_service">Select Service</SelectItem>
-                    <SelectItem value="limited_service">Limited Service</SelectItem>
-                    <SelectItem value="all_inclusive">All Inclusive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="label-text text-foreground flex items-center gap-1.5">Location Type<InfoTooltip text="Geographic classification affecting seasonality patterns, ADR benchmarks, and expense ratios." /></Label>
-                <Select value={draft.locationType || ""} onValueChange={(v) => onChange("locationType", v)}>
-                  <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-location-type"><SelectValue placeholder="Select type" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="urban">Urban</SelectItem>
-                    <SelectItem value="suburban">Suburban</SelectItem>
-                    <SelectItem value="resort">Resort</SelectItem>
-                    <SelectItem value="rural">Rural</SelectItem>
-                    <SelectItem value="airport">Airport</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="label-text text-foreground flex items-center gap-1.5">Market Tier<InfoTooltip text="MSA classification. Primary = Top 25 metro areas with highest hotel demand. Secondary and tertiary markets have different risk/return profiles." /></Label>
-                <Select value={draft.marketTier || ""} onValueChange={(v) => onChange("marketTier", v)}>
-                  <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-market-tier"><SelectValue placeholder="Select tier" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="primary">Primary (Top 25 MSA)</SelectItem>
-                    <SelectItem value="secondary">Secondary</SelectItem>
-                    <SelectItem value="tertiary">Tertiary</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="label-text text-foreground text-sm">Year Built</Label>
-                <Input type="number" value={draft.yearBuilt ?? ""} onChange={(e) => onNumberChange("yearBuilt", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-year-built" />
-              </div>
-              <div className="space-y-2">
-                <Label className="label-text text-foreground text-sm">Total Acreage</Label>
-                <Input type="number" step="0.1" value={draft.totalPropertyAcreage ?? ""} onChange={(e) => onNumberChange("totalPropertyAcreage", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-total-acreage" />
-              </div>
-            </div>
+            <Label className="label-text text-foreground text-sm">Total Acreage</Label>
+            <Input type="number" step="0.1" value={draft.totalPropertyAcreage ?? ""} onChange={(e) => onNumberChange("totalPropertyAcreage", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-total-acreage" />
           </div>
         </div>
 
-        {/* ── AS PURCHASED ───────────────────────────────────────────────── */}
+        {/* ── AS PURCHASED ───────────────────────────────────────────────────
+            Operational facts at acquisition: status, room count, star rating,
+            type, model, VRBO pricing, classification tiers, F&B capacity,
+            physical size, and property description.
+        ──────────────────────────────────────────────────────────────────── */}
         <div className="mt-8 border-t border-border/50 pt-6">
           <SubsectionHeader
             title="As Purchased"
-            subtitle="Operational facts at acquisition — F&B capacity, physical size, and property description"
+            subtitle="Operational facts at acquisition — type, capacity, classification, and description"
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+
+            {/* Status + Room Count */}
+            <div className="space-y-2">
+              <Label className="label-text text-foreground flex items-center gap-1.5">Status<InfoTooltip text="Current stage: Pipeline (being scoped), In Negotiation (advanced talks), Acquired (purchased), Improvements (under renovation), or Operating (generating revenue)." /></Label>
+              <Select value={draft.status} onValueChange={(v) => onChange("status", v)}>
+                <SelectTrigger className="bg-card border-primary/30 text-foreground"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {PROPERTY_STATUS_VALUES.map(s => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="label-text text-foreground flex items-center gap-1.5">Room Count<InfoTooltip text="Total number of rentable guest rooms. This is the primary revenue driver — all room revenue is calculated as Rooms × ADR × Occupancy × 30.5 days/month." /></Label>
+              <Input type="number" value={draft.roomCount} onChange={(e) => onNumberChange("roomCount", e.target.value)} className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground" />
+            </div>
+
+            {/* Star Rating */}
+            <div className="space-y-2">
+              <Label className="label-text text-foreground flex items-center gap-1.5">Star Rating<InfoTooltip text="Property star classification (1-5★). Drives research comparable matching — luxury (5★) properties are only compared to other luxury properties. Click to set, click same star to clear." /></Label>
+              <StarRatingInput
+                value={draft.starRating}
+                suggested={draft.starRatingSuggested}
+                onChange={(v) => onChange("starRating", v)}
+              />
+            </div>
+
+            {/* Property Type + Business Model */}
+            <div className="space-y-2">
+              <Label className="label-text text-foreground flex items-center gap-1.5">Property Type<InfoTooltip text="Hospitality category that determines which expense benchmarks and revenue assumptions apply. Extended Stay properties use different occupancy and ADR patterns than traditional hotels." /></Label>
+              <PropertyTypeSelector
+                value={draft.hospitalityType || "hotel"}
+                onChange={(v) => onChange("hospitalityType", v)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="label-text text-foreground flex items-center gap-1.5">Business Model<InfoTooltip text="Determines the financial framework: Hotel uses USALI with departmental expenses (F&B, Events), management fees (2-5% base + incentive). Lodge is a large whole-property rental with premium amenities and guest meals but no events department, management fees (15-25%). VRBO/STR uses platform fees (Airbnb 15.5%, VRBO 8%), per-turnover cleaning, and all-in management fees (20-35%)." /></Label>
+              <BusinessModelSelector
+                value={draft.businessModel || "hotel"}
+                onChange={(v) => onChange("businessModel", v)}
+              />
+            </div>
+
+            {/* VRBO pricing panel — conditional on business model */}
+            {(draft.businessModel === "vrbo" || draft.businessModel === "vrbo_owner_managed") && (
+              <div className="sm:col-span-2 border border-primary/20 rounded-xl p-4 space-y-4">
+                <p className="text-sm font-medium text-foreground label-text">Pricing Model</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="label-text text-foreground flex items-center gap-1.5">Pricing Model<InfoTooltip text="Per Room uses hotel-style ADR × room count. Per Property charges a single nightly rate for the entire property (luxury rental model)." /></Label>
+                    <Select value={draft.pricingModel || "per_room"} onValueChange={(v) => onChange("pricingModel", v)}>
+                      <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-pricing-model"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="per_room">Per Room (hotel-style ADR × rooms)</SelectItem>
+                        <SelectItem value="per_property">Per Property (whole-property nightly rate)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {draft.pricingModel === "per_property" && (
+                    <>
+                      <div className="space-y-2">
+                        <Label className="label-text text-foreground flex items-center gap-1.5">Nightly Property Rate ($)<InfoTooltip text="The per-night rate for renting the entire property. Revenue = rate × days × occupancy. Room count is tracked for capacity only." /></Label>
+                        <Input type="number" value={draft.nightlyPropertyRate || ""} onChange={(e) => onNumberChange("nightlyPropertyRate", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-nightly-property-rate" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="label-text text-foreground flex items-center gap-1.5">Max Guests<InfoTooltip text="Maximum guest capacity for the whole property. Used by research engines to calibrate comparable properties." /></Label>
+                        <Input type="number" step="1" value={draft.maxGuests || ""} onChange={(e) => { const v = parseInt(e.target.value, 10); onChange("maxGuests", isNaN(v) ? null : v); }} className="bg-card border-primary/30 text-foreground" data-testid="input-max-guests" />
+                      </div>
+                    </>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  <div className="space-y-2">
+                    <Label className="label-text text-foreground flex items-center gap-1.5">
+                      Platform Fee Rate (%)
+                      <InfoTooltip text={`Blended Airbnb / VRBO / Booking.com commission as % of room revenue. Default ${DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE * 100}% = Airbnb ${PLATFORM_FEE_RATES.airbnb * 100}% / VRBO ${PLATFORM_FEE_RATES.vrbo * 100}% / Booking ${PLATFORM_FEE_RATES.booking * 100}% blended. Set to 0 for direct-booking only.`} />
+                    </Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="100"
+                      value={draft.platformFeeRate != null ? +(draft.platformFeeRate * 100).toFixed(2) : ""}
+                      placeholder={String(DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE * 100)}
+                      onChange={(e) => {
+                        const raw = parseFloat(e.target.value);
+                        onChange("platformFeeRate", isNaN(raw) ? null : raw / 100);
+                      }}
+                      className="bg-card border-primary/30 text-foreground"
+                      data-testid="input-platform-fee-rate"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Classification tiers — quality, service level, location type */}
+            <div className="sm:col-span-2 border-t border-border/50 pt-5">
+              <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">Classification</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label className="label-text text-foreground flex items-center gap-1.5">Quality Tier<InfoTooltip text="STR chain scale classification. Drives comp set matching and benchmark selection for research engines." /></Label>
+                  <Select value={draft.qualityTier || ""} onValueChange={(v) => onChange("qualityTier", v)}>
+                    <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-quality-tier"><SelectValue placeholder="Select tier" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="luxury">Luxury</SelectItem>
+                      <SelectItem value="upper_upscale">Upper Upscale</SelectItem>
+                      <SelectItem value="upscale">Upscale</SelectItem>
+                      <SelectItem value="upper_midscale">Upper Midscale</SelectItem>
+                      <SelectItem value="midscale">Midscale</SelectItem>
+                      <SelectItem value="economy">Economy</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="label-text text-foreground flex items-center gap-1.5">Service Level<InfoTooltip text="Determines staffing model and expense structure. Full Service includes concierge, room service, and F&B. Limited Service operates with minimal on-site staff." /></Label>
+                  <Select value={draft.serviceLevel || ""} onValueChange={(v) => onChange("serviceLevel", v)}>
+                    <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-service-level"><SelectValue placeholder="Select level" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="full_service">Full Service</SelectItem>
+                      <SelectItem value="select_service">Select Service</SelectItem>
+                      <SelectItem value="limited_service">Limited Service</SelectItem>
+                      <SelectItem value="all_inclusive">All Inclusive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="label-text text-foreground flex items-center gap-1.5">Location Type<InfoTooltip text="Geographic classification affecting seasonality patterns, ADR benchmarks, and expense ratios." /></Label>
+                  <Select value={draft.locationType || ""} onValueChange={(v) => onChange("locationType", v)}>
+                    <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-location-type"><SelectValue placeholder="Select type" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="urban">Urban</SelectItem>
+                      <SelectItem value="suburban">Suburban</SelectItem>
+                      <SelectItem value="resort">Resort</SelectItem>
+                      <SelectItem value="rural">Rural</SelectItem>
+                      <SelectItem value="airport">Airport</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            {/* F&B & Events Capacity */}
             <div className="sm:col-span-2">
               <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">F&B & Events Capacity</p>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -606,6 +628,7 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
               </div>
             </div>
 
+            {/* Physical Attributes */}
             <div className="sm:col-span-2">
               <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">Physical Attributes</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -620,11 +643,16 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
               </div>
             </div>
 
+            {/* As-Purchased Description */}
             <AsPurchasedDescriptionField draft={draft} onChange={onChange} />
           </div>
         </div>
 
-        {/* ── AS IMPROVED ────────────────────────────────────────────────── */}
+        {/* ── AS IMPROVED ────────────────────────────────────────────────────
+            Post-renovation hypothesis — leave blank to carry forward
+            As-Purchased values. Inputs show As-Purchased value as a faded
+            placeholder when no improved value has been set.
+        ──────────────────────────────────────────────────────────────────── */}
         <div className="mt-8 border-t border-border/50 pt-6">
           <SubsectionHeader
             title="As Improved"
@@ -714,7 +742,7 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
               <Textarea
                 value={draft.descriptionImproved ?? ""}
                 onChange={(e) => onChange("descriptionImproved", e.target.value || null)}
-                placeholder={draft.description ? draft.description.slice(0, 120) + (draft.description.length > 120 ? "…" : "") : "Describe the property after improvements..."}
+                placeholder={purchasedDescriptionForPlaceholder ? purchasedDescriptionForPlaceholder + (purchasedDescriptionForPlaceholder.length >= 120 ? "…" : "") : "Describe the property after improvements..."}
                 className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground/50 min-h-[100px] resize-y"
                 data-testid="input-description-improved"
               />

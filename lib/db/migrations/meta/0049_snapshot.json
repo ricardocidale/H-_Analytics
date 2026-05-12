@@ -3596,6 +3596,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "description_purchased": {
+          "name": "description_purchased",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "description_improved": {
           "name": "description_improved",
           "type": "text",
