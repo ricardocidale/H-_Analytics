@@ -840,7 +840,8 @@ export function register(app: Express) {
       }
       const { text } = parsed.data;
 
-      const { resolveLlm } = await import("../ai/resolve-llm");
+      const { getGeminiClient, getAnthropicClient, getOpenAIClient } = await import("../ai/clients");
+      const { resolveLlm, getVendorService } = await import("../ai/resolve-llm");
       const { generateText } = await import("../ai/dispatch");
       const { logApiCost, estimateCost } = await import("../middleware/cost-logger");
 
@@ -868,7 +869,6 @@ Rewritten description:`;
         maxTokens: 1024,
       });
       const rewritten = raw.trim();
-
       if (!rewritten) {
         return res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "No response from AI", code: "PROP-043" });
       }

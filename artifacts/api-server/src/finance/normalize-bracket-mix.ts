@@ -25,6 +25,28 @@
  *   - `raw.entries` array → minion shape; profiles are SYNTHESIZED from each
  *     entry's `serviceConsumption` field. No DB lookup needed.
  *
+ * Two writers used to persist different shapes to `global_assumptions.bracket_mix`:
+ *
+ *   1. ICP catalog API (`PUT /api/icp/brackets/mix`) — used to write a flat
+ *      `BracketMixEntry[]` of `{ bracketSlug, weight }`. Slugs reference
+ *      rows in the `icp_brackets` table.
+ *
+ *   2. Bracket-assignment minion (`POST /api/company/bracket-mix/assign`) —
+ *      writes a `BracketMixData = { entries: BracketEntry[], ... }` where each
+ *      entry carries `id`, `serviceConsumption: "hotel" | "str" | "mixed"`,
+ *      `weight`, etc. The catalog ids are not guaranteed to match
+ *      `icp_brackets.slug`.
+ *
+ * The engine consumes a single normalized pair: `(BracketMixEntry[],
+ * IcpBracketProfile[])`. This module accepts either persisted shape and
+ * returns that pair, plus a flag telling the caller whether engine-side
+ * profile data still needs to be loaded from the `icp_brackets` table.
+ *
+ * Shape detection rules:
+ *   - `Array.isArray(raw)` → catalog-API shape; profiles come from the DB.
+ *   - `raw.entries` array → minion shape; profiles are SYNTHESIZED from each
+ *     entry's `serviceConsumption` field. No DB lookup needed.
+ *
  * "mixed" handling: per `bracket-catalog.ts` doctrine, mixed brackets show
  * "blended service-consumption profile reflecting both hotel-style
  * accommodation and STR-style short-stay units". We split a mixed entry's
@@ -54,9 +76,9 @@ const MIXED_SPLIT_FRACTION = 0.5;
 export interface NormalizedBracketMix {
   bracketMix: BracketMixEntry[];
   /**
-   * Synthesized profiles when we know the consumption type up-front (minion
-   * shape). When `null`, the caller should fall back to DB lookup via
-   * `enrichWithBrackets()` in `recompute.ts`.
+   * Synthesized profiles derived from each entry's serviceConsumption field.
+   * Always populated for the unified shape — callers only need a DB fallback
+   * lookup if using the legacy flat catalog-API shape (where this is null).
    */
   brackets: IcpBracketProfile[] | null;
 }
@@ -106,15 +128,24 @@ function isCatalogEntry(value: unknown): value is BracketMixEntry {
  * into the pair the engine consumes. Returns `null` when the value is
  * missing, the wrong shape, or empty — callers should treat that as
  * "no bracket scaling".
+ * Only the canonical BracketMixData shape is handled. The old flat-array
+ * format ([ { bracketSlug, weight } ]) is no longer written; any legacy rows
+ * were converted by the icp-brackets-002 migration.
  */
 export function normalizePersistedBracketMix(
   raw: unknown,
 ): NormalizedBracketMix | null {
   // Catalog-API shape: flat array of { bracketSlug, weight }.
+  // Legacy shape, only handled for backwards compatibility.
   if (Array.isArray(raw)) {
     const entries = raw.filter(isCatalogEntry);
     if (entries.length === 0) return null;
     return { bracketMix: entries, brackets: null };
+  }
+
+  // BracketMixData shape: { entries: BracketEntry[], assignedAt?, evidence? }.
+  if (isPersistedBracketMixData(raw)) {
+    return synthesizeFromEntries(raw.entries);
   }
 
   // Minion shape: { entries: BracketEntry[], assignedAt?, evidence? }.

@@ -343,9 +343,62 @@ function isPathSkipped(absolutePath: string): boolean {
   const rel = path.relative(WORKSPACE_ROOT, absolutePath).replace(/\\/g, "/");
   return SKIP_PATH_PATTERNS.some((re) => re.test(rel));
 }
+}
 
 function isLineSkipped(line: string): boolean {
   return SKIP_LINE_PATTERNS.some((re) => re.test(line));
+}
+
+// Per-file scanners
+// ---------------------------------------------------------------------------
+
+interface Violation {
+  rel: string;
+  lineNum: number;
+  shown: string;
+}
+
+function scanCodeFile(absolutePath: string): Violation[] {
+  const rel = path.relative(WORKSPACE_ROOT, absolutePath).replace(/\\/g, "/");
+  const source = fs.readFileSync(absolutePath, "utf8");
+  const stripped = stripComments(source);
+  const strippedLines = stripped.split("\n");
+  const originalLines = source.split("\n");
+  const violations: Violation[] = [];
+
+  for (let i = 0; i < strippedLines.length; i++) {
+    if (isLineSkipped(strippedLines[i])) continue;
+    if (BANNED_RE.test(strippedLines[i])) {
+      violations.push({
+        rel,
+        lineNum: i + 1,
+        shown: (originalLines[i] ?? strippedLines[i]).trim(),
+      });
+    }
+  }
+
+  return violations;
+}
+
+/**
+ * Scan a content file (.md, .mdx, .mjml, .html, .json) line-by-line for the
+ * banned phrase. No comment stripping is applied — any occurrence is treated
+ * as potentially user-visible. SKIP_LINE_PATTERNS are NOT applied (those are
+ * code-only logging exemptions).
+ */
+function scanContentFile(absolutePath: string): Violation[] {
+  const rel = path.relative(WORKSPACE_ROOT, absolutePath).replace(/\\/g, "/");
+  const source = fs.readFileSync(absolutePath, "utf8");
+  const lines = source.split("\n");
+  const violations: Violation[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    if (BANNED_RE.test(lines[i])) {
+      violations.push({ rel, lineNum: i + 1, shown: lines[i].trim() });
+    }
+  }
+
+  return violations;
 }
 
 // ---------------------------------------------------------------------------
