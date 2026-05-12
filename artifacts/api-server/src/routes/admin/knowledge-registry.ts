@@ -356,16 +356,6 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
       }
       const b = parsed.data;
       try {
-        const dup = await db.execute(sql`
-          SELECT 1 FROM icp_brackets WHERE slug = ${b.slug} LIMIT 1
-        `);
-        if (dup.rows.length > 0) {
-          return res.status(HTTP_409_CONFLICT).json({
-            error: `Bracket with slug '${b.slug}' already exists`,
-            code: "AKNW-018",
-          });
-        }
-
         const compSetJson = b.compSetNames ? JSON.stringify(b.compSetNames) : null;
         const result = await db.execute(sql`
           INSERT INTO icp_brackets (
@@ -392,6 +382,12 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
         logActivity(req, "icp-bracket-create", "icp_brackets", row.id, row.slug, { slug: row.slug });
         return res.status(HTTP_201_CREATED).json({ bracket: row });
       } catch (error: unknown) {
+        if ((error as { code?: string })?.code === "23505") {
+          return res.status(HTTP_409_CONFLICT).json({
+            error: `Bracket with slug '${b.slug}' already exists`,
+            code: "AKNW-018",
+          });
+        }
         return logAndSendError(res, "Failed to create ICP bracket", error, "AKNW-019");
       }
     },
@@ -438,17 +434,6 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
         // Build SET clauses dynamically while keeping each value parameterized.
         const sets: ReturnType<typeof sql>[] = [];
         if (p.slug !== undefined) {
-          if (p.slug !== (existing.rows[0] as { slug: string }).slug) {
-            const dup = await db.execute(sql`
-              SELECT 1 FROM icp_brackets WHERE slug = ${p.slug} AND id <> ${id} LIMIT 1
-            `);
-            if (dup.rows.length > 0) {
-              return res.status(HTTP_409_CONFLICT).json({
-                error: `Bracket with slug '${p.slug}' already exists`,
-                code: "AKNW-024",
-              });
-            }
-          }
           sets.push(sql`slug = ${p.slug}`);
         }
         if (p.name !== undefined) sets.push(sql`name = ${p.name}`);
@@ -481,6 +466,12 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
         logActivity(req, action, "icp_brackets", row.id, row.slug, { fields: Object.keys(p) });
         return res.json({ bracket: row });
       } catch (error: unknown) {
+        if ((error as { code?: string })?.code === "23505") {
+          return res.status(HTTP_409_CONFLICT).json({
+            error: `Bracket with slug '${p.slug}' already exists`,
+            code: "AKNW-024",
+          });
+        }
         return logAndSendError(res, "Failed to update ICP bracket", error, "AKNW-025");
       }
     },
