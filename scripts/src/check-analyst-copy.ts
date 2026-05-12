@@ -76,9 +76,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WORKSPACE_ROOT = path.resolve(__dirname, "../..");
 const CACHE_NAME = "analyst-copy";
 
-/** Cache identifier — must be unique across all check-*.ts scripts. */
-const CACHE_NAME = "analyst-copy";
-
 /**
  * Source trees to walk (relative to WORKSPACE_ROOT).
  *
@@ -116,8 +113,6 @@ const CODE_SCAN_EXTS = new Set([".ts", ".tsx", ".js", ".jsx"]);
  * .json        — i18n bundles and other content JSON
  */
 const CONTENT_SCAN_EXTS = new Set([".md", ".mdx", ".mjml", ".html", ".json"]);
-
-const CACHE_NAME = "analyst-copy";
 
 /** Directories to skip during tree walk (applied to both code and content). */
 const SKIP_DIRS = new Set([
