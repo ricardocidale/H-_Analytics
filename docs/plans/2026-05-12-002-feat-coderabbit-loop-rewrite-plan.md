@@ -9,7 +9,7 @@ date: 2026-05-12
 
 ## Summary
 
-Rewrite the H+ Analytics `coderabbit-loop` command surface as an iterative review-and-fix loop — up to 4 iterations, exiting early on zero actionable findings, with Claude Code applying fixes between iterations. Six slash commands: four toggle/info commands renamed with the `-loop-` infix, plus two new session-launching commands (`-review` for the working-tree loop and `-autofix` for the open-PR loop with CodeRabbit autofix on iteration 1). Built on a fresh branch off `main`, cherry-picking only support infra from the unmerged `feat/csrf-mig-3-scenarios`.
+Rewrite the H+ Analytics `coderabbit-loop` command surface as an iterative review-and-fix loop — up to 4 iterations, exiting early on zero actionable findings, with Claude Code applying fixes between iterations. Six slash commands: four toggle/info commands renamed with the `-loop-` infix, plus two new session-launching commands (`-review` for the working-tree loop and `-autofix` for the open-PR loop with CodeRabbit autofix on iteration 1). Built on a fresh branch off `main`, cherry-picking only support infra from the unmerged `feat/csrf-mig-3-scenarios`. Command `.md` files are installed globally to `~/.claude/commands/` so all six commands are available in any repo on this machine.
 
 ---
 
