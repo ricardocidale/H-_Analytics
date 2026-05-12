@@ -443,6 +443,7 @@ Two archetypes cover ~95% of pages: **Report/Presentation** (read-only, tabs + e
 | `attached_assets/canonical/json/slide_analysis_agent_report.precise_1777824741855.json` | LB slides layout extract — text/fonts/colors authoritative; chrome/z-order not |
 | `docs/slide-system/lb-slides-implementation-reference.md` | LB Slides full reference (routes, schema, finance, slots, Admin UI) |
 | `docs/slide-system/canonical/coding-agent-instructions.md` | Slide agent workflow — §15 mandates canonical PNG comparison (PNG > JSON) |
+| `.agents/operating-modes/large-repo-shell-coderabbit-compound.md` | Large-repo Shell + CodeRabbit + Compound operating mode (off by default; toggle: `.local/opmode/active`) |
 
 ---
 

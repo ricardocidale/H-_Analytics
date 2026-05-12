@@ -33,6 +33,7 @@ import * as financingRoutes from "./routes/financing";
 import * as hotelRateRoutes from "./routes/hotel-rates";
 import { registerFinanceRoutes } from "./routes/finance";
 import { registerStructureComparisonRoutes } from "./routes/structure-comparison";
+import { registerPublicAssumptionGuardrailRoutes } from "./routes/admin/assumption-guardrails";
 import healthRouter from "./routes/health";
 import * as guidanceRoutes from "./routes/guidance";
 import * as rebeccaRoutes from "./routes/rebecca";
@@ -109,6 +110,7 @@ export async function registerRoutes(
   specialistPhotoEnhancerRoutes.register(app);
   propertyDdRoutes.register(app);
   marketSignalsRoutes.register(app);
+  registerPublicAssumptionGuardrailRoutes(app);
 
   return httpServer;
 }

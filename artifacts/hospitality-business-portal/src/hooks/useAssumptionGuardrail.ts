@@ -10,10 +10,9 @@
  *   - the endpoint returns a non-2xx status (e.g. 403 for non-admins), or
  *   - no row exists in the table for that key.
  *
- * Non-admin users will receive a 403 from the admin-gated endpoint. The
- * hook converts that into an empty list so `RangeIndicator` gracefully
- * falls back to legacy (Med/Low/High) mode for those sessions — no
- * runtime error, no broken UI.
+ * All authenticated users can now access guardrail data via the public
+ * `/api/assumption-guardrails` endpoint (requireAuth). Fabio dots appear
+ * on property-edit and company-assumptions pages for non-admin users too.
  *
  * Usage:
  *   const guardrail = useAssumptionGuardrail("wacc.cost_of_equity");
@@ -41,9 +40,9 @@ export function useAssumptionGuardrail(
   assumptionKey: string | null | undefined,
 ): AssumptionGuardrail | null {
   const { data } = useQuery<GuardrailsApiResponse>({
-    queryKey: ["/api/admin/assumption-guardrails"],
+    queryKey: ["/api/assumption-guardrails"],
     queryFn: async () => {
-      const res = await fetch("/api/admin/assumption-guardrails", {
+      const res = await fetch("/api/assumption-guardrails", {
         credentials: "include",
       });
       if (!res.ok) return { rows: [] };

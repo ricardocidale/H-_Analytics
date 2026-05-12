@@ -82,6 +82,7 @@ All agents, minions, and orchestrators in H+ Analytics use human first names fro
 | Known issues | `docs/issues/known-issues.md` |
 | Agent & skill system | `CLAUDE.md` § "Agent & Skill System", `.agents/skills/README.md` |
 | CE Replit adaptation | `.agents/ce-agents/REPLIT-ADAPTATION.md` |
+| Large-repo Shell + CodeRabbit + Compound operating mode (off by default; toggle: `.local/opmode/active`) | `.agents/operating-modes/large-repo-shell-coderabbit-compound.md` |
 | pnpm workspace | `pnpm-workspace` skill |
 | UI pages | `ui-page-patterns` skill |
 | Rebecca (AI assistant) | `embedded-ai-agent` skill |
