@@ -58,7 +58,6 @@ import { DEFAULT_PROJECTION_YEARS } from "@shared/constants";
 
 import { withModelConstants } from "../finance/apply-model-constants";
 import { recomputeSinglePropertyAndStamp } from "../finance/recompute";
-import { logger } from "../logger";
 import type {
   FormattedValue,
   ReportDefinition,
@@ -128,6 +127,35 @@ const SLIDE_6_TOKENS_PLACEHOLDER = {
   chart: [] as string[],
   line: [] as string[],
 };
+
+// ── Fail-closed error class ─────────────────────────────────────────────────
+
+/**
+ * Thrown when a property requested by the slide-6 builder can't be loaded
+ * or computed. Slide 6 is a financial aggregate — partial sums that silently
+ * understate totals are exactly the failure mode CR rev2 flagged on PR #120.
+ * The builder fails closed: if any single property fails, the whole helper
+ * rejects so the caller (Marco) surfaces the failure in the run record
+ * instead of rendering a deceptively-complete image.
+ *
+ * The `propertyId` field is preserved on the error instance (not just the
+ * message) so callers can route the failing id to admin UI / Maya / wish-list
+ * surfaces without re-parsing the message string.
+ */
+export class Slide6PropertyLoadError extends Error {
+  readonly propertyId: number;
+  constructor(propertyId: number, reason: string, cause?: unknown) {
+    super(`slide-6 builder failed for property ${propertyId}: ${reason}`);
+    this.name = "Slide6PropertyLoadError";
+    this.propertyId = propertyId;
+    if (cause !== undefined) {
+      // Preserve the original cause for stack-trace inspection. `Error.cause`
+      // is standard on the Error constructor options bag but TS's lib doesn't
+      // surface it on subclass `super(...)` calls — assign explicitly.
+      (this as { cause?: unknown }).cause = cause;
+    }
+  }
+}
 
 // ── Inputs ──────────────────────────────────────────────────────────────────
 
@@ -316,7 +344,10 @@ function sumYearlyIS(
       base.gop += row.gop || 0;
       base.soldRooms += row.soldRooms || 0;
       base.availableRooms += row.availableRooms || 0;
-      if (row.cleanAdr) {
+      // Positive-only rule per the source comment — negative ADR is a
+      // bad-data sentinel (loss-leader bookings, refunds) and should not
+      // contribute to the portfolio mean. CR finding on PR #120.
+      if (row.cleanAdr > 0) {
         base.cleanAdr += row.cleanAdr;
         adrCount += 1;
       }
@@ -369,10 +400,14 @@ function sumYearlyCF(
  * black-box engine contract — Factory v2 does not modify the engine
  * (CLAUDE.md §9 / R15).
  *
- * Errors on a single property are logged and the property is skipped, so a
- * single bad property doesn't tank the whole portfolio report. The
- * `projectionsContainNonFinite` check downstream catches the "engine
- * silently produces NaN" case.
+ * Fail-closed (CR rev2 on PR #120, slide-6-report-builder.ts:415):
+ *   A failure on any single property throws `Slide6PropertyLoadError`
+ *   naming the offending id. Silent skipping previously caused the
+ *   portfolio image to render a normal-looking aggregate from the
+ *   surviving subset — exactly the "looks valid but understates totals"
+ *   failure mode CR flagged. The `projectionsContainNonFinite` check
+ *   remains for the case where the engine returns successfully but
+ *   produces NaN cells (a separate, surfaced-as-sentinel concern).
  */
 async function runEngineForProperties(
   properties: Slide6PropertyRow[],
@@ -381,9 +416,10 @@ async function runEngineForProperties(
 ): Promise<PerPropertyEngineResult[]> {
   const results: PerPropertyEngineResult[] = [];
   for (const property of properties) {
+    let compute: Awaited<ReturnType<typeof recomputeSinglePropertyAndStamp>>;
     try {
       const stamped = { ...property, id: property.id } as unknown as PropertyInput;
-      const compute = await recomputeSinglePropertyAndStamp({
+      compute = await recomputeSinglePropertyAndStamp({
         property: stamped,
         globalAssumptions: globalInput,
         projectionYears,
@@ -397,14 +433,22 @@ async function runEngineForProperties(
         globalInput,
         compute.projectionYears,
       );
+      if (!unified || !unified.yearlyIS || !unified.yearlyCF) {
+        throw new Slide6PropertyLoadError(
+          property.id,
+          "engine returned undefined/null aggregation output",
+        );
+      }
       results.push({
         yearlyIS: unified.yearlyIS as unknown as YearlyIS[],
         yearlyCF: unified.yearlyCF as unknown as YearlyCF[],
       });
     } catch (err) {
-      logger.warn(
-        `[slide-6-report-builder] engine failed for property ${property.id}: ${String(err)}`,
-        "slide-factory",
+      if (err instanceof Slide6PropertyLoadError) throw err;
+      throw new Slide6PropertyLoadError(
+        property.id,
+        `engine failed: ${err instanceof Error ? err.message : String(err)}`,
+        err,
       );
     }
   }
@@ -523,7 +567,15 @@ export function adaptYearlyArraysToReportDefinition(
 export async function buildSlide6ReportDefinition(
   inputs: Slide6ReportInputs,
 ): Promise<ReportDefinition> {
-  const { properties, globalAssumptions, projectionYears } = inputs;
+  const { properties, globalAssumptions } = inputs;
+  // Normalize `projectionYears` for this public entry point too. The
+  // `buildSlide6ImageSubstitutionEntry` helper already calls
+  // `validateProjectionYears` on its input; direct callers of
+  // `buildSlide6ReportDefinition` were previously unguarded, so
+  // `NaN` / `Infinity` / non-positive values could leak into
+  // `buildGlobalInput`, `Math.max`, and the report title. CR rev2 on
+  // PR #120 (slide-6-report-builder.ts:540).
+  const projectionYears = validateProjectionYears(inputs.projectionYears);
 
   if (properties.length === 0) {
     return buildIncompleteDataReport(
@@ -536,18 +588,15 @@ export async function buildSlide6ReportDefinition(
     buildGlobalInput(globalAssumptions, projectionYears) as unknown as GlobalInput,
   )) as GlobalInput;
 
+  // Fail-closed: `runEngineForProperties` now throws `Slide6PropertyLoadError`
+  // on any per-property failure rather than soft-skipping (CR rev2 on PR
+  // #120, slide-6-report-builder.ts:415). A successful return means the
+  // engine produced output for every requested property.
   const perProperty = await runEngineForProperties(
     properties,
     globalInput,
     projectionYears,
   );
-
-  if (perProperty.length === 0) {
-    return buildIncompleteDataReport(
-      projectionYears,
-      "engine failed for every property",
-    );
-  }
 
   // Scan pre-summation for NaN / Infinity. The downstream summation uses
   // `|| 0` fall-throughs which silently coerce non-finite values; this
@@ -594,6 +643,20 @@ export interface BuildSlide6EntryArgs {
    *  `globalAssumptions.projectionYears` is, falling back to
    *  `DEFAULT_PROJECTION_YEARS`. */
   projectionYearsOverride?: number;
+}
+
+/**
+ * Coerce + validate a projection-years value. Returns a positive integer
+ * suitable for the report builder, falling back to `DEFAULT_PROJECTION_YEARS`
+ * when the input is `undefined`, `null`, `NaN`, `Infinity`, non-numeric, or
+ * non-positive. CR finding on PR #120 — raw `Number(...)` coercion at the
+ * call site could leak invalid values into report metadata.
+ */
+function validateProjectionYears(raw: unknown): number {
+  if (raw === undefined || raw === null) return DEFAULT_PROJECTION_YEARS;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return DEFAULT_PROJECTION_YEARS;
+  return Math.floor(n);
 }
 
 /**
@@ -644,23 +707,47 @@ export async function buildSlide6ImageSubstitutionEntry(
 ): Promise<SubstitutionEntry> {
   const { propertyIds } = args;
 
+  // Dedupe before loading. Callers that compose property lists from multiple
+  // sources can pass duplicates by accident; without this each duplicate id
+  // would load, sum, and inflate the portfolio totals. CR finding on PR #120.
+  const uniquePropertyIds = Array.from(new Set(propertyIds));
+
+  // Fail-closed load (CR rev2 on PR #120, slide-6-report-builder.ts:415):
+  //   Slide 6 is a financial aggregate. Silently dropping a property whose
+  //   row failed to load (whether by exception or by returning `null`)
+  //   would produce a portfolio image that looks complete but understates
+  //   totals. The builder rejects with `Slide6PropertyLoadError` naming
+  //   the offending id so Marco surfaces the failure in the run record
+  //   instead of rendering deceptive output.
   const properties: Slide6PropertyRow[] = [];
-  for (const id of propertyIds) {
+  for (const id of uniquePropertyIds) {
+    let row: Slide6PropertyRow | null;
     try {
-      const row = await deps.loadProperty(id);
-      if (row) properties.push(row);
+      row = await deps.loadProperty(id);
     } catch (err) {
-      logger.warn(
-        `[slide-6-report-builder] loadProperty(${id}) failed: ${String(err)}`,
-        "slide-factory",
+      throw new Slide6PropertyLoadError(
+        id,
+        `loadProperty failed: ${err instanceof Error ? err.message : String(err)}`,
+        err,
       );
     }
+    if (!row) {
+      throw new Slide6PropertyLoadError(
+        id,
+        "loadProperty returned null/undefined",
+      );
+    }
+    properties.push(row);
   }
 
   const globalAssumptions = await deps.loadGlobalAssumptions();
-  const projectionYears =
-    args.projectionYearsOverride ??
-    Number(globalAssumptions.projectionYears ?? DEFAULT_PROJECTION_YEARS);
+  // Coerce + validate. Raw `Number(...)` can yield NaN, Infinity, or non-
+  // positive values when the source data is malformed; fall back to the
+  // default rather than passing nonsense into the report builder. CR
+  // finding on PR #120.
+  const projectionYears = validateProjectionYears(
+    args.projectionYearsOverride ?? globalAssumptions.projectionYears,
+  );
 
   const buildReport = deps.buildReport ?? buildSlide6ReportDefinition;
   const renderPng = deps.renderPng ?? renderReportToPng;
