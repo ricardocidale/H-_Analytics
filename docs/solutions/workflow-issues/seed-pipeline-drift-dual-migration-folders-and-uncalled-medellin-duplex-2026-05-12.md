@@ -170,7 +170,9 @@ Expected: 6 Norfolk properties created (Jano Grande Ranch, Loch Sheldrake, Belle
 
 ### Step 4 — Add the 7th property (Medellin Duplex)
 
-The `seed()` function does not call `seedMedellinDuplex()` despite importing it. Run it explicitly:
+**Once PR #130 (`fix/seed-medellin-duplex`) lands, this step is redundant** — the `seed()` function will invoke `seedMedellinDuplex()` and `seedMedellinDuplexPhotos()` automatically and Step 3 produces all 7 properties. Skip ahead to Step 5 to verify.
+
+Before #130 lands, or on any branch that doesn't include the fix, the `seed()` function imports the helpers but doesn't call them, so the duplex never seeds via `--force`. Run the helpers explicitly to add the 7th property:
 
 ```bash
 pnpm --filter @workspace/api-server exec tsx -e "
@@ -180,6 +182,8 @@ await seedMedellinDuplexPhotos();
 console.log('Medellin Duplex seeded.');
 "
 ```
+
+Both helpers are idempotent (early-return when the row/photos already exist), so running them after the fix has landed is a harmless no-op.
 
 ### Step 5 — Verify portfolio shape
 
