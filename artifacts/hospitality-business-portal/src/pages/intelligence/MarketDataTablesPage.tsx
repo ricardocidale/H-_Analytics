@@ -436,7 +436,7 @@ function TableSection({ entry, isExpanded, onRefresh, isRefreshing, refreshDisab
             data-testid={`text-pending-${entry.name}`}
           >
             <Loader2 className="size-3.5 animate-spin text-accent-pop" />
-            The Analyst is studying current market data…
+            Analyst taking a look at current market data…
           </div>
         )}
 

@@ -100,7 +100,7 @@ export function AnalystWorkingView({
 
         <div className="flex-1 min-w-0">
           <h3 className="text-base sm:text-lg font-semibold text-zinc-100" data-testid="text-analyst-studying">
-            The Analyst is studying <span className="text-amber-400">{propertyName}</span>
+            Analyst taking a look at <span className="text-amber-400">{propertyName}</span>
           </h3>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-400 mt-1.5">
             <Progress value={progressPercent} className="w-32 h-1.5 bg-zinc-800 [&>div]:bg-amber-500" />

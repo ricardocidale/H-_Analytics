@@ -36,7 +36,7 @@ export function computeFreshnessStatus(opts: {
   isGenerating: boolean;
 }): { status: FreshnessStatus; reason: string; daysAgo: number | null } {
   if (opts.isGenerating) {
-    return { status: "running", reason: "The Analyst is studying your assumptions", daysAgo: null };
+    return { status: "running", reason: "Analyst taking a look at your assumptions", daysAgo: null };
   }
 
   const updatedAt = safeTimestamp(opts.researchUpdatedAt);
