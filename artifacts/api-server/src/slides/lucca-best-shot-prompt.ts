@@ -14,9 +14,9 @@
  * slide (R8, owned by U9).
  *
  * Numeric literals (CLAUDE.md §1): no numeric literals in this module —
- * character limits and counts come from `@shared/deck-payload-v2`; the model
- * + token budget come from `deck-render-constants.ts` (LORENZO_VISION_MODEL =
- * Opus 4.7 per the plan's "generous budget" rule for best-shot work).
+ * character limits and counts come from `@shared/deck-payload-v2`; the
+ * token budget comes from `deck-render-constants.ts`; the model is resolved
+ * at runtime via resolveLorenzoVisionModelId() in factory-v2-llm-resolver.ts.
  */
 import type Anthropic from "@anthropic-ai/sdk";
 import {
