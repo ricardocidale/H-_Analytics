@@ -45,6 +45,10 @@ vi.mock("../../logger", () => ({
   },
 }));
 
+vi.mock("../../slides/factory-v2-llm-resolver", () => ({
+  resolveLorenzoVisionModelId: vi.fn().mockResolvedValue("test-model-id"),
+}));
+
 import { getAnthropicClient } from "../../ai/clients";
 import { storage } from "../../storage";
 import {
