@@ -10,6 +10,8 @@
  *      is NOT flagged.
  *   5. Sentences without the "The" prefix (e.g. aria-label="Analyst is running")
  *      are NOT flagged.
+ *   6. (Task #1505) Violations in Markdown/MDX and JSON i18n content files
+ *      are detected, while internal-only docs are NOT flagged.
  */
 
 import { describe, it, expect } from "vitest";
@@ -379,16 +381,20 @@ describe("check-analyst-copy", { timeout: TEST_TIMEOUT_MS }, () => {
   });
 
   // -------------------------------------------------------------------------
-  // Task #1528 — content-file extension coverage (.md/.json/.mjml/.html)
+  // Task #1505 — content file coverage (.md, .mdx, .json, .html, .mjml)
   // -------------------------------------------------------------------------
 
-  it("catches the banned phrase in a Markdown (.md) file", () => {
+  it("catches the banned phrase in a Markdown (.md) help file", () => {
+    // Simulates an in-app help article or MDX doc rendered to users.
     withFixture(
       "_analyst-copy-test-md-fixture.md",
       [
-        "# Status",
+        "<!-- AUTO-GENERATED TEST FIXTURE — deleted after test -->",
+        "## Property Analysis",
         "",
-        "The Analyst is studying your property",
+        "The Analyst is reviewing your property data to generate insights.",
+        "",
+        "Please wait while the analysis completes.",
       ].join("\n"),
       () => {
         const { stderr, status } = runCheck();
@@ -399,10 +405,38 @@ describe("check-analyst-copy", { timeout: TEST_TIMEOUT_MS }, () => {
     );
   });
 
-  it("catches the banned phrase in a JSON file", () => {
+  it("catches the banned phrase in an MDX (.mdx) help file", () => {
+    withFixture(
+      "_analyst-copy-test-mdx-fixture.mdx",
+      [
+        "{/* AUTO-GENERATED TEST FIXTURE — deleted after test */}",
+        "import { Alert } from '@/components/ui/alert'",
+        "",
+        "## Rates",
+        "",
+        "<Alert>The Analyst is computing market rates for your area.</Alert>",
+      ].join("\n"),
+      () => {
+        const { stderr, status } = runCheck();
+        expect(status).toBe(1);
+        expect(stderr).toContain("VIOLATION");
+        expect(stderr).toContain("_analyst-copy-test-mdx-fixture.mdx");
+      },
+    );
+  });
+
+  it("catches the banned phrase in a JSON i18n bundle", () => {
+    // Simulates an i18n translation file or content JSON surface to users.
     withFixture(
       "_analyst-copy-test-json-fixture.json",
-      JSON.stringify({ status: "The Analyst is computing rates" }, null, 2),
+      JSON.stringify(
+        {
+          "analyst.status.loading": "The Analyst is loading your report",
+          "analyst.status.ready": "Your report is ready",
+        },
+        null,
+        2,
+      ),
       () => {
         const { stderr, status } = runCheck();
         expect(status).toBe(1);
@@ -459,5 +493,57 @@ describe("check-analyst-copy", { timeout: TEST_TIMEOUT_MS }, () => {
         expect(stdout).toContain("PASS");
       },
     );
+  });
+
+  it("does NOT flag internal README files (never user-rendered)", () => {
+    // README.md files are internal developer docs — they must be skipped even
+    // if they contain the banned phrase for historical/explanatory purposes.
+    const readmePath = path.join(WORKSPACE_ROOT, "artifacts/api-server/README.md");
+    const originalContent = fs.existsSync(readmePath)
+      ? fs.readFileSync(readmePath, "utf8")
+      : null;
+
+    const injected =
+      (originalContent ?? "") +
+      "\n\n<!-- TEST INJECTION — removed after test -->\n" +
+      "The Analyst is processing your request\n";
+
+    try {
+      fs.writeFileSync(readmePath, injected, "utf8");
+      const { stdout, status } = runCheck();
+      expect(status).toBe(0);
+      expect(stdout).toContain("PASS");
+    } finally {
+      if (originalContent !== null) {
+        fs.writeFileSync(readmePath, originalContent, "utf8");
+      } else {
+        try {
+          fs.unlinkSync(readmePath);
+        } catch {
+          // best-effort
+        }
+      }
+    }
+  });
+
+  it("does NOT flag files inside a docs/ subtree (internal runbooks)", () => {
+    // docs/ directories are internal runbooks, never rendered to end users.
+    // The skip pattern /\/docs\// matches any path segment named "docs".
+    const docsDir = path.join(WORKSPACE_ROOT, "artifacts/api-server/src/docs");
+    const tmpFile = path.join(docsDir, "_analyst-copy-test-runbook.md");
+    fs.mkdirSync(docsDir, { recursive: true });
+    try {
+      fs.writeFileSync(
+        tmpFile,
+        "The Analyst is refreshing data (old phrasing documented here for history).",
+        "utf8",
+      );
+      const { stdout, status } = runCheck();
+      expect(status).toBe(0);
+      expect(stdout).toContain("PASS");
+    } finally {
+      try { fs.unlinkSync(tmpFile); } catch { /* best-effort */ }
+      try { fs.rmdirSync(docsDir); } catch { /* best-effort */ }
+    }
   });
 });

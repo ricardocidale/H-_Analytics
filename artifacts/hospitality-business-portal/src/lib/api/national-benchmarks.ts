@@ -60,15 +60,15 @@ export function useNationalBenchmarks() {
  * has no corresponding national-benchmark feed entry so the chip renders
  * nothing rather than a misleading comparison.
  */
-const USALI_FIELD_TO_SERVICE_LINE: Record<string, string> = {
-  costRateRooms: "housekeeping",
-  costRateFB: "food_beverage",
-  costRatePropertyOps: "maintenance",
-  costRateMarketing: "marketing",
-  costRateIT: "it",
-};
-
 export function usaliFieldKeyToServiceLine(fieldKey: string): string | null {
+  const USALI_FIELD_TO_SERVICE_LINE: Record<string, string> = {
+    costRateRooms: "housekeeping",
+    costRateFB: "food_beverage",
+    costRateAdmin: "accounting",
+    costRatePropertyOps: "maintenance",
+    costRateMarketing: "marketing",
+    costRateIT: "it",
+  };
   return USALI_FIELD_TO_SERVICE_LINE[fieldKey] ?? null;
 }
 

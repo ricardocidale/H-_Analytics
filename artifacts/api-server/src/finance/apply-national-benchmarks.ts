@@ -1,6 +1,6 @@
 /**
  * apply-national-benchmarks — overlay national hospitality benchmark feeds
- * onto engine inputs before each calc.
+ * onto the engine's `serviceTemplates` input before each calc.
  *
  * Counterpart to `apply-model-constants.ts`. Both files implement the same
  * pattern at the boundary between admin-governed data and the engine:
@@ -18,6 +18,20 @@
  *   withNationalBenchmarks(templates)      — task #1415: serviceMarkup overlay
  *   withPropertyCostAnchors(properties)   — task #1484: property costRate* overlay
  *
+ * Behavior:
+ *   - When the DB tables hold rows (minions have run), the overlaid
+ *     `serviceMarkup` per template is derived from the latest national
+ *     averages.
+ *   - When a service line has no row, the hardcoded national anchor in
+ *     `@calc/services/national-anchors` is used as the fallback. The
+ *     anchors mirror the values seeded by the minions so engine output
+ *     is stable across "minion has run" / "minion has not run".
+ *   - Templates without a benchmark mapping (e.g. "General Management",
+ *     "Procurement") and `direct`-model templates are returned unchanged.
+ *   - Errors loading benchmarks from the DB never block compute: the
+ *     reader returns empty arrays on failure and the overlay falls back
+ *     to anchors.
+ *
  * Shared behavior for both:
  *   - When the DB tables hold rows (minions have run), the overlaid values are
  *     derived from the latest national averages.
@@ -25,6 +39,8 @@
  *     `@calc/services/national-anchors` is used as the fallback.
  *   - Errors loading benchmarks from the DB never block compute: the reader
  *     returns empty arrays on failure and the hardcoded anchors win.
+ *
+ * Task #1415 contract.
  */
 
 import type { ServiceTemplate } from "@calc/services/types";
@@ -74,3 +90,4 @@ export async function withPropertyCostAnchors<
   const anchors = derivePropertyCostAnchors(vendorCosts);
   return properties.map(p => overlayNationalCostAnchorsOnProperty(p, anchors));
 }
+

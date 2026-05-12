@@ -1,5 +1,5 @@
 import type { Express, Request, Response } from "express";
-import { getOpenAIClient, getGeminiClient } from "../ai/clients";
+import { getOpenAIClient, getGeminiClient, getAnthropicClient } from "../ai/clients";
 import { resolveLlmFor } from "../ai/llm-config-resolver";
 import { requireAuth, isApiRateLimited, getAuthUser } from "../auth";
 import { getAvailableStylesFromDb, getAdminRateLimit } from "../integrations/replicate";

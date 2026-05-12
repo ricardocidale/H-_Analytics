@@ -120,7 +120,21 @@ export function SlotCard({
               className="h-8 text-xs"
               data-testid={`select-vendor-${slot.slug}`}
             >
-              <SelectValue placeholder="Select vendor" />
+              <span className="flex items-center gap-1.5 min-w-0">
+                {selection.vendorFilter && (
+                  <span
+                    className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${
+                      vendorStatus?.available
+                        ? "bg-green-500"
+                        : vendorStatus
+                          ? "bg-red-500"
+                          : "bg-gray-400"
+                    }`}
+                    data-testid={`select-vendor-trigger-dot-${slot.slug}`}
+                  />
+                )}
+                <SelectValue placeholder="Select vendor" />
+              </span>
             </SelectTrigger>
             <SelectContent>
               {LLM_VENDORS.map((v) => {

@@ -14,6 +14,7 @@ import {
 } from "@/lib/api";
 import { PROJECTION_YEARS } from "@/lib/constants";
 import type { CompanyMonthlyFinancials } from "@engine/types";
+import { normalizeBracketMix } from "@engine/helpers";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -581,8 +582,9 @@ function BracketMixTab() {
       bracketSlug: slug,
       weight: Math.round((parseFloat(weights[slug] ?? "0") / 100) * 10000) / 10000,
     }));
+    const normalized = normalizeBracketMix(mix);
     try {
-      await saveMutation.mutateAsync(mix);
+      await saveMutation.mutateAsync(normalized);
       toast({ title: "Bracket mix saved", description: "Your bracket mix has been updated." });
     } catch (err) {
       toast({
@@ -736,6 +738,7 @@ function BracketMixTab() {
         proposedMix={proposedMix}
         proposedReady={selectedCount > 0 && weightSumOk}
       />
+
       <Card className="border border-border rounded-lg p-5 space-y-3" data-testid="service-consumption-rules">
         <SectionHeading icon={IconUsers} title="Service-Consumption Rules (built into the model)" />
         <p className="text-xs text-muted-foreground">

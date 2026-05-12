@@ -162,7 +162,6 @@ async function handleSaveMix(
     // pre-mix numbers until the 60s LRU TTL expires.
     invalidateComputeCache();
 
-
     logger.info(`${LOG_TAG} bracket mix updated for user ${user.id}: ${JSON.stringify(mix)}`);
     // Return the flat format for frontend backward compat.
     res.json({ bracketMix: mix });

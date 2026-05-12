@@ -412,6 +412,18 @@ export function register(app: Express) {
       if (!validation.success) {
         return res.status(HTTP_400_BAD_REQUEST).json({ error: zodErrorMessage(validation.error) });
       }
+
+      // Task #1535 — resolve vendor-health dot color for the SelectTrigger.
+      // If vendorId changed, look up its current health status in the registry.
+      let vendorHealth: "healthy" | "unstable" | "degraded" | "unknown" = "unknown";
+      if (validation.data.vendorId) {
+        const vendor = await storage.getAdminResourceById(validation.data.vendorId);
+        if (vendor) {
+          const health = await storage.getResourceHealthView(vendor.id);
+          vendorHealth = (health?.status as any) || "unknown";
+        }
+      }
+
       const merged = { ...existingProp, ...validation.data };
       const suggestion = suggestStarRating(merged as Parameters<typeof suggestStarRating>[0]);
       const updateData: Record<string, unknown> = { ...validation.data, starRatingSuggested: suggestion.rating };
@@ -869,6 +881,7 @@ Rewritten description:`;
         maxTokens: 1024,
       });
       const rewritten = raw.trim();
+
       if (!rewritten) {
         return res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "No response from AI", code: "PROP-043" });
       }
