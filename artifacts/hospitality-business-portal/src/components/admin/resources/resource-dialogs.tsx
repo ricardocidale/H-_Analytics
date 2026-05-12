@@ -241,10 +241,22 @@ export function EditResourceDialog({
   const [description, setDescription] = useState("");
   const [secretRef, setSecretRef] = useState("");
   const [configJson, setConfigJson] = useState("{}");
+  // Self-test interval override (Task #1459). Empty string = use the
+  // 30-day system default; otherwise an integer between 1 and 365.
+  const [selfTestIntervalDays, setSelfTestIntervalDays] = useState<string>("");
   const [changeSummary, setChangeSummary] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const probeUrlError = useMemo(() => extractProbeUrlError(configJson), [configJson]);
+
+  const intervalError = useMemo<string | null>(() => {
+    const raw = selfTestIntervalDays.trim();
+    if (raw === "") return null;
+    if (!/^\d+$/.test(raw)) return "Self-test interval must be a whole number of days";
+    const n = Number(raw);
+    if (n < 1 || n > 365) return "Self-test interval must be between 1 and 365 days";
+    return null;
+  }, [selfTestIntervalDays]);
 
   useEffect(() => {
     if (resource && open) {
@@ -252,6 +264,9 @@ export function EditResourceDialog({
       setDescription(resource.description ?? "");
       setSecretRef(""); // blank = leave unchanged
       setConfigJson(JSON.stringify(resource.config ?? {}, null, 2));
+      setSelfTestIntervalDays(
+        resource.selfTestIntervalDays != null ? String(resource.selfTestIntervalDays) : "",
+      );
       setChangeSummary("");
       setError(null);
     }
@@ -276,6 +291,11 @@ export function EditResourceDialog({
         changeSummary,
       };
       if (secretRef.trim()) body.secretRef = secretRef.trim();
+      if (intervalError) throw new Error(intervalError);
+      const intervalRaw = selfTestIntervalDays.trim();
+      const intervalNext = intervalRaw === "" ? null : Number(intervalRaw);
+      const intervalPrev = resource.selfTestIntervalDays ?? null;
+      if (intervalNext !== intervalPrev) body.selfTestIntervalDays = intervalNext;
       const res = await apiRequest("PUT", `/api/admin/resources/${resource.id}`, body);
       return res.json();
     },
@@ -338,6 +358,29 @@ export function EditResourceDialog({
               )}
             </div>
             <div>
+              <Label htmlFor="edit-self-test-interval">Self-test interval (days)</Label>
+              <Input
+                id="edit-self-test-interval"
+                data-testid="input-self-test-interval-days"
+                type="number"
+                min={1}
+                max={365}
+                step={1}
+                inputMode="numeric"
+                value={selfTestIntervalDays}
+                onChange={(e) => setSelfTestIntervalDays(e.target.value)}
+                placeholder="30 days (system default)"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {selfTestIntervalDays.trim() === ""
+                  ? "30 days (system default). Enter 1–365 to override."
+                  : `This entity will self-test every ${selfTestIntervalDays.trim()} day${selfTestIntervalDays.trim() === "1" ? "" : "s"}. Clear to fall back to 30 days (system default).`}
+              </p>
+              {intervalError && (
+                <p className="text-xs text-rose-600 mt-1" data-testid="self-test-interval-error">{intervalError}</p>
+              )}
+            </div>
+            <div>
               <Label htmlFor="edit-change-summary">Change summary <span className="text-rose-600">*</span></Label>
               <Input
                 id="edit-change-summary"
@@ -380,7 +423,7 @@ export function EditResourceDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button data-testid="button-confirm-edit" onClick={() => mutation.mutate()} disabled={mutation.isPending || !!probeUrlError}>
+          <Button data-testid="button-confirm-edit" onClick={() => mutation.mutate()} disabled={mutation.isPending || !!probeUrlError || !!intervalError}>
             {mutation.isPending ? "Saving…" : `Save as v${resource.version + 1}`}
           </Button>
         </DialogFooter>

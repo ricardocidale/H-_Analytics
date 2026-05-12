@@ -18,6 +18,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { CancelButton } from "@/components/ui/cancel-button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -1260,9 +1261,7 @@ function SlotRow({ slotKey, draft, onApprove, onSaveValue, disabled }: SlotRowPr
                   {saving && <Loader2 className="w-3 h-3 animate-spin mr-1" />}
                   Save
                 </Button>
-                <Button size="sm" variant="ghost" onClick={handleCancel} disabled={saving}>
-                  Cancel
-                </Button>
+                <CancelButton size="sm" onClick={handleCancel} disabled={saving} />
               </div>
             </div>
           ) : (

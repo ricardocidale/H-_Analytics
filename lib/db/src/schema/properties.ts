@@ -265,6 +265,20 @@ export const properties = pgTable("properties", {
   plannedReopeningYear: integer("planned_reopening_year"),
   descriptionImproved: text("description_improved"),
 
+  // Descriptor JSONB blobs — Milestone B (task #1407). Mirror the catalogued
+  // typed columns above. Read through `getEffectivePropertyView` (in
+  // `@workspace/db/property-descriptor-accessor`); written via the dual-write
+  // helper `buildDescriptorDualWritePatch`. JSONB-only writes are forbidden
+  // until every reader has been migrated to the accessor.
+  descriptorsPurchased: jsonb("descriptors_purchased")
+    .$type<Record<string, unknown>>()
+    .notNull()
+    .default(sql`'{}'::jsonb`),
+  descriptorsImproved: jsonb("descriptors_improved")
+    .$type<Record<string, unknown>>()
+    .notNull()
+    .default(sql`'{}'::jsonb`),
+
   managementType: text("management_type"),
   onMunicipalSewer: boolean("on_municipal_sewer").default(false),
 
@@ -495,6 +509,11 @@ export const insertPropertySchema = createInsertSchema(properties).pick({
   totalBuildingSqftImproved: true,
   plannedReopeningYear: true,
   descriptionImproved: true,
+  // descriptorsPurchased / descriptorsImproved are intentionally NOT pickable
+  // from the API. Task #1407 (Milestone B) — these JSONB blobs are only
+  // written server-side via `buildDescriptorDualWritePatch` so the typed
+  // columns and the JSONB mirrors stay in lock-step during the migration
+  // window. Direct client writes would silently create drift.
   managementType: true,
   onMunicipalSewer: true,
   strExempt: true,

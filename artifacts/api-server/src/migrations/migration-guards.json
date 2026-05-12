@@ -185,15 +185,15 @@
     "0045_create_reit_benchmarks_and_competitor_rates": {
       "status": "guarded",
       "guard": "pietro-tables-001.ts",
-      "reason": "CREATE TABLE IF NOT EXISTS reit_benchmarks + competitor_rates — Pietro data cache tables for REIT fundamentals and competitor hotel rates. Guarded by pietro-tables-001.ts to ensure tables exist on pre-existing DBs regardless of Drizzle journal state."
+      "reason": "CREATE TABLE IF NOT EXISTS reit_benchmarks + competitor_rates \u2014 Pietro data cache tables for REIT fundamentals and competitor hotel rates. Guarded by pietro-tables-001.ts to ensure tables exist on pre-existing DBs regardless of Drizzle journal state."
     },
     "0046_reference_data_tables": {
       "status": "self-idempotent",
-      "reason": "CREATE TABLE IF NOT EXISTS geography_dimension, jurisdictional_taxes, market_cap_rates, regulatory_fees — reference data tables for geo/tax/fees/cap-rate Analyst research. All CREATE TABLE statements use IF NOT EXISTS; indexes use CREATE INDEX IF NOT EXISTS; FK constraints and competitor_rates unique-constraint change use DO block guards. Re-running via migrate() is a no-op."
+      "reason": "CREATE TABLE IF NOT EXISTS geography_dimension, jurisdictional_taxes, market_cap_rates, regulatory_fees \u2014 reference data tables for geo/tax/fees/cap-rate Analyst research. All CREATE TABLE statements use IF NOT EXISTS; indexes use CREATE INDEX IF NOT EXISTS; FK constraints and competitor_rates unique-constraint change use DO block guards. Re-running via migrate() is a no-op."
     },
     "0047_enzo_slot_content_hashes": {
       "status": "self-idempotent",
-      "reason": "ALTER TABLE slide_factory_runs ADD COLUMN slot_content_hashes jsonb — Enzo verdict cache column. ADD COLUMN on a nullable jsonb column is additive; a second run would fail with 'column already exists' but migrate() never re-runs a journaled entry."
+      "reason": "ALTER TABLE slide_factory_runs ADD COLUMN slot_content_hashes jsonb \u2014 Enzo verdict cache column. ADD COLUMN on a nullable jsonb column is additive; a second run would fail with 'column already exists' but migrate() never re-runs a journaled entry."
     },
     "0048_costantino_findings": {
       "status": "self-idempotent",
@@ -202,32 +202,40 @@
     "0050_factory_v2_runs_columns": {
       "status": "guarded",
       "guard": "slide-factory-runs-v2-columns.ts",
-      "reason": "Factory v2 schema extension for slide_factory_runs (plan U3) — adds slide4_property_id (FK properties, SET NULL), wish_list_log (jsonb NOT NULL DEFAULT '[]'::jsonb), pptx_r2_key (text), and widens the status CHECK to include 'substituting', 'converting_pdf', and 'rebuilding' (latent TS-vs-DB drift heal). Guarded by slide-factory-runs-v2-columns.ts because the slide_factory_runs table was the canonical example of the journal-state drift incident documented in drizzle-migration-state-drift-missing-tables-2026-05-07."
+      "reason": "Factory v2 schema extension for slide_factory_runs (plan U3) \u2014 adds slide4_property_id (FK properties, SET NULL), wish_list_log (jsonb NOT NULL DEFAULT '[]'::jsonb), pptx_r2_key (text), and widens the status CHECK to include 'substituting', 'converting_pdf', and 'rebuilding' (latent TS-vs-DB drift heal). Guarded by slide-factory-runs-v2-columns.ts because the slide_factory_runs table was the canonical example of the journal-state drift incident documented in drizzle-migration-state-drift-missing-tables-2026-05-07."
     },
     "0051_minion_self_test_runs": {
       "status": "self-idempotent",
-      "reason": "CREATE TABLE IF NOT EXISTS minion_self_test_runs + matching index — append-only short history of POST /api/admin/minions/:id/self-test invocations (Task #1396). All statements use IF NOT EXISTS; re-running via migrate() is a no-op. Trim-to-N is enforced by the storage layer (MINION_SELF_TEST_HISTORY_KEEP) on every insert, not by the migration."
+      "reason": "CREATE TABLE IF NOT EXISTS minion_self_test_runs + matching index \u2014 append-only short history of POST /api/admin/minions/:id/self-test invocations (Task #1396). All statements use IF NOT EXISTS; re-running via migrate() is a no-op. Trim-to-N is enforced by the storage layer (MINION_SELF_TEST_HISTORY_KEEP) on every insert, not by the migration."
     },
     "0052_minion_self_test_cadence": {
       "status": "self-idempotent",
-      "reason": "Single INSERT INTO admin_resources ... ON CONFLICT (kind, slug) DO NOTHING — seeds the minion-self-test cycle-interval parameter row. Re-running is a safe no-op; the ON CONFLICT guard ensures no duplicate is created (Task #1397)."
+      "reason": "Single INSERT INTO admin_resources ... ON CONFLICT (kind, slug) DO NOTHING \u2014 seeds the minion-self-test cycle-interval parameter row. Re-running is a safe no-op; the ON CONFLICT guard ensures no duplicate is created (Task #1397)."
     },
     "0053_property_assumptions_improved_columns": {
       "status": "self-idempotent",
-      "reason": "Task #1404 Milestone A — adds six nullable As-Improved integer/text columns to properties (fb_venues_improved, fb_seats_improved, event_space_sqft_improved, total_building_sqft_improved, planned_reopening_year, description_improved). Every statement uses ALTER TABLE … ADD COLUMN IF NOT EXISTS; re-running on an already-migrated DB is a no-op."
+      "reason": "Task #1404 Milestone A \u2014 adds six nullable As-Improved integer/text columns to properties (fb_venues_improved, fb_seats_improved, event_space_sqft_improved, total_building_sqft_improved, planned_reopening_year, description_improved). Every statement uses ALTER TABLE \u2026 ADD COLUMN IF NOT EXISTS; re-running on an already-migrated DB is a no-op."
     },
     "0054_property_description_purchased": {
       "status": "self-idempotent",
-      "reason": "Task #1404 Milestone A — adds nullable description_purchased text column to properties via ALTER TABLE … ADD COLUMN IF NOT EXISTS, then backfills from legacy description with WHERE … IS NULL guard. Both statements are idempotent; the UPDATE is a no-op when description_purchased is already populated."
+      "reason": "Task #1404 Milestone A \u2014 adds nullable description_purchased text column to properties via ALTER TABLE \u2026 ADD COLUMN IF NOT EXISTS, then backfills from legacy description with WHERE \u2026 IS NULL guard. Both statements are idempotent; the UPDATE is a no-op when description_purchased is already populated."
     },
     "0055_vendor_passthrough_and_markup_factors": {
       "status": "self-idempotent",
-      "reason": "Task #1410 — CREATE TABLE IF NOT EXISTS vendor_passthrough_costs + mgmt_co_markup_factors plus matching unique/regular indexes (all IF NOT EXISTS). Two national research cache tables for ICP bracket model R11–R14. Populated by MinionVendorPassthroughCosts (Gaetano) and MinionMgmtCoMarkupFactors (Renato). Re-running via migrate() is a no-op."
+      "reason": "Task #1410 \u2014 CREATE TABLE IF NOT EXISTS vendor_passthrough_costs + mgmt_co_markup_factors plus matching unique/regular indexes (all IF NOT EXISTS). Two national research cache tables for ICP bracket model R11\u2013R14. Populated by MinionVendorPassthroughCosts (Gaetano) and MinionMgmtCoMarkupFactors (Renato). Re-running via migrate() is a no-op."
     },
     "0056_icp_bracket_catalog": {
       "status": "guarded",
       "guard": "icp-brackets-001.ts",
-      "reason": "Task #1409 — creates icp_brackets table (CREATE TABLE IF NOT EXISTS) and adds bracket_mix JSONB column to global_assumptions (ADD COLUMN IF NOT EXISTS in DO block). Guarded by icp-brackets-001.ts which also seeds 4 starter brackets (ON CONFLICT DO NOTHING) and registers the admin_resources entry (ON CONFLICT DO NOTHING)."
+      "reason": "Task #1409 \u2014 creates icp_brackets table (CREATE TABLE IF NOT EXISTS) and adds bracket_mix JSONB column to global_assumptions (ADD COLUMN IF NOT EXISTS in DO block). Guarded by icp-brackets-001.ts which also seeds 4 starter brackets (ON CONFLICT DO NOTHING) and registers the admin_resources entry (ON CONFLICT DO NOTHING)."
+    },
+    "0058_self_test_logs": {
+      "status": "self-idempotent",
+      "reason": "Task #1403 \u2014 Unified self-test cadence (30d default) + Logs rename. (1) ALTER TABLE admin_resources ADD COLUMN IF NOT EXISTS self_test_interval_days (nullable int). (2) CREATE TABLE IF NOT EXISTS self_test_logs with 5 indexes (all IF NOT EXISTS). (3) UPDATE admin_resources seed row for minion-self-test-cycle-interval-ms from 6h to 30d (UPDATE is idempotent \u2014 re-running sets the same value). Re-running via migrate() is a no-op on all three statements."
+    },
+    "0059_research_runs_constant_latest_idx": {
+      "status": "self-idempotent",
+      "reason": "Task #1437 \u2014 single CREATE INDEX IF NOT EXISTS statement adding research_runs_constant_latest_idx, a partial btree on (metadata->'constant'->>'key', metadata->'constant'->>'country', metadata->'constant'->>'subdivision', completed_at DESC) WHERE entity_type = 'model-constant' AND status = 'completed'. Backs ResearchRunsStorage.getLatestSuccessfulRunsForAllConstants() so the DISTINCT ON batch query stays O(log n) as research_runs grows. Re-running via migrate() is a no-op."
     }
   }
 }

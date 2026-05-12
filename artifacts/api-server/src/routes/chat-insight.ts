@@ -1,11 +1,11 @@
 import { type Express, type Request, type Response } from "express";
-import { getGeminiClient } from "../ai/clients";
 import { requireAuth } from "../auth";
 import { aiRateLimit } from "../middleware/rate-limit";
 import { storage } from "../storage";
 import { z } from "zod";
 import { logApiCost, estimateCost } from "../middleware/cost-logger";
-import { resolveLlm, getVendorService } from "../ai/resolve-llm";
+import { resolveLlm } from "../ai/resolve-llm";
+import { generateText } from "../ai/dispatch";
 import { logger } from "../logger";
 import type { ResearchConfig } from "@workspace/db";
 import { multiNamespaceQuery, type MultiNamespaceMatch } from "../ai/vector-store-service";
@@ -74,20 +74,15 @@ Return ONLY the insight text, no quotes or labels.`;
 
       const rc = ((await storage.getGlobalAssumptions())?.researchConfig as ResearchConfig) ?? {};
       const resolved = resolveLlm(rc, "chatbotLlm");
-      const gemini = getGeminiClient();
 
       const startTime = Date.now();
-      const response = await gemini.models.generateContent({
-        model: resolved.model,
-        contents: [{ role: "user", parts: [{ text: insightPrompt }] }],
-        config: { maxOutputTokens: 128 },
+      const { text: raw, inputTokens: inTok, outputTokens: outTok, service: svc } = await generateText({
+        llm: resolved,
+        prompt: insightPrompt,
+        maxTokens: 128,
       });
+      const insightText = raw.trim().slice(0, 250);
 
-      const insightText = (response.text ?? "").trim().slice(0, 250);
-
-      const svc = getVendorService(resolved.vendor);
-      const inTok = response.usageMetadata?.promptTokenCount ?? 200;
-      const outTok = response.usageMetadata?.candidatesTokenCount ?? 40;
       try { logApiCost({ timestamp: new Date().toISOString(), service: svc, model: resolved.model, operation: "insight", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost(svc, resolved.model, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/rebecca/insight" }); } catch (e: unknown) { logger.warn(`Failed to log insight cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
 
       if (!insightText) {

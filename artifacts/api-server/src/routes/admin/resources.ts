@@ -68,6 +68,9 @@ const updateResourceSchema = z.object({
   description: z.string().nullable().optional(),
   config: z.record(z.string(), z.unknown()).optional(),
   secretRef: z.string().min(1).nullable().optional(),
+  // Per-entity self-test cadence override in days (Task #1459). 1–365.
+  // null clears the override and falls back to the 30-day system default.
+  selfTestIntervalDays: z.number().int().min(1).max(365).nullable().optional(),
   changeSummary: z.string().min(1).optional(),
 });
 

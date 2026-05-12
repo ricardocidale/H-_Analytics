@@ -26,8 +26,8 @@ import {
 } from "../constants";
 
 import { DEFAULT_ROUNDING } from "@calc/shared/utils";
-import { getOpenAIClient } from "../ai/clients";
 import { resolveLlmFor } from "../ai/llm-config-resolver";
+import { streamText, dispatchService } from "../ai/dispatch";
 import { logApiCost, estimateCost } from "../middleware/cost-logger";
 
 export function register(app: Express) {
@@ -120,9 +120,7 @@ export function register(app: Express) {
       }
 
       const _globalAssumptions = await storage.getGlobalAssumptions(getAuthUser(req).id);
-      const { modelId: llmModel } = await resolveLlmFor("regen-constants");
-
-      const openai = getOpenAIClient();
+      const { vendor: llmVendor, modelId: llmModel } = await resolveLlmFor("regen-constants");
 
       interface VerificationCheck { passed?: boolean; metric?: string; gaapRef?: string; variancePct?: number; severity?: string }
       interface PropertyResult { propertyName?: string; checks?: VerificationCheck[] }
@@ -162,34 +160,25 @@ export function register(app: Express) {
       });
 
       const startTime = Date.now();
-      const stream = await openai.chat.completions.create({
-        model: llmModel,
-        stream: true,
-        max_tokens: 2048,
-        messages: [
-          {
-            role: "system",
-            content: "You are Rebecca, a GAAP financial auditor for Hospitality Business Group. Write a concise narrative review of the verification results below. Use professional audit language. Highlight any failures, their severity, and recommend next steps. If the opinion is UNQUALIFIED, confirm the financials are fairly stated. Keep the review under 500 words.",
-          },
-          {
-            role: "user",
-            content: `Here are the latest verification results:\n\n${summaryText}`,
-          },
-        ],
-      });
+      const systemContent = "You are Rebecca, a GAAP financial auditor for Hospitality Business Group. Write a concise narrative review of the verification results below. Use professional audit language. Highlight any failures, their severity, and recommend next steps. If the opinion is UNQUALIFIED, confirm the financials are fairly stated. Keep the review under 500 words.";
+      const userContent = `Here are the latest verification results:\n\n${summaryText}`;
 
       let fullReviewContent = "";
-      for await (const chunk of stream) {
-        const content = chunk.choices?.[0]?.delta?.content;
-        if (content) {
-          fullReviewContent += content;
-          res.write(`data: ${JSON.stringify({ content })}\n\n`);
-        }
+
+      for await (const delta of streamText({
+        llm: { vendor: llmVendor, model: llmModel },
+        prompt: userContent,
+        system: systemContent,
+        maxTokens: 2048,
+      })) {
+        fullReviewContent += delta;
+        res.write(`data: ${JSON.stringify({ content: delta })}\n\n`);
       }
 
+      const svc = dispatchService(llmVendor);
       const inTok = Math.round(summaryText.length / 4);
       const outTok = Math.round(fullReviewContent.length / 4);
-      try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: llmModel, operation: "ai-verification-review", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("openai", llmModel, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/verification/ai-review" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+      try { logApiCost({ timestamp: new Date().toISOString(), service: svc, model: llmModel, operation: "ai-verification-review", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost(svc, llmModel, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/verification/ai-review" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
 
       res.write("data: [DONE]\n\n");
       res.end();

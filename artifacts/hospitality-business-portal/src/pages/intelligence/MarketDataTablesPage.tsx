@@ -29,7 +29,8 @@ type MarketDataTableSlug =
   | "market-adr-index"
   | "labor-rates"
   | "fb-benchmarks"
-  | "seasonal-calendars";
+  | "seasonal-calendars"
+  | "assumption-guardrails";
 
 interface CatalogEntry {
   name: MarketDataTableSlug;
@@ -108,6 +109,18 @@ interface SeasonalCalendarRow {
   seasonType: string;
   demandMultiplier: number;
   notes: string | null;
+}
+interface AssumptionGuardrailRow {
+  id: number;
+  assumptionKey: string;
+  low: number;
+  high: number;
+  targetLow: number | null;
+  targetHigh: number | null;
+  unit: string;
+  rationale: string | null;
+  source: string | null;
+  updatedAt: string | null;
 }
 
 const stagger = {
@@ -341,6 +354,51 @@ function SeasonalCalendarsTable({ rows }: { rows: SeasonalCalendarRow[] }) {
   );
 }
 
+function AssumptionGuardrailsTable({ rows }: { rows: AssumptionGuardrailRow[] }) {
+  function formatBound(value: number, unit: string): string {
+    if (unit === "fraction_of_revenue" || unit === "fraction") {
+      return `${(value * 100).toFixed(2)}%`;
+    }
+    return formatNumber(value, 4);
+  }
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Assumption Key</TableHead>
+          <TableHead className="text-right">Low</TableHead>
+          <TableHead className="text-right">High</TableHead>
+          <TableHead className="text-right">Target Low</TableHead>
+          <TableHead className="text-right">Target High</TableHead>
+          <TableHead>Unit</TableHead>
+          <TableHead>Rationale</TableHead>
+          <TableHead>Source</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((r) => (
+          <TableRow key={r.id} data-testid={`row-assumption-guardrails-${r.id}`}>
+            <TableCell className="font-mono text-xs">{r.assumptionKey}</TableCell>
+            <TableCell className="text-right font-medium">{formatBound(r.low, r.unit)}</TableCell>
+            <TableCell className="text-right font-medium">{formatBound(r.high, r.unit)}</TableCell>
+            <TableCell className="text-right text-muted-foreground">
+              {r.targetLow !== null ? formatBound(r.targetLow, r.unit) : "—"}
+            </TableCell>
+            <TableCell className="text-right text-muted-foreground">
+              {r.targetHigh !== null ? formatBound(r.targetHigh, r.unit) : "—"}
+            </TableCell>
+            <TableCell className="text-xs text-muted-foreground">{r.unit}</TableCell>
+            <TableCell className="text-xs text-muted-foreground max-w-[24rem]">
+              {r.rationale ?? "—"}
+            </TableCell>
+            <TableCell className="text-xs text-muted-foreground">{r.source ?? "—"}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+
 function renderRows(slug: MarketDataTableSlug, rows: unknown[]) {
   switch (slug) {
     case "hospitality-benchmarks":
@@ -353,6 +411,8 @@ function renderRows(slug: MarketDataTableSlug, rows: unknown[]) {
       return <FbBenchmarksTable rows={rows as FbBenchmarkRow[]} />;
     case "seasonal-calendars":
       return <SeasonalCalendarsTable rows={rows as SeasonalCalendarRow[]} />;
+    case "assumption-guardrails":
+      return <AssumptionGuardrailsTable rows={rows as AssumptionGuardrailRow[]} />;
   }
 }
 
@@ -365,8 +425,13 @@ interface TableSectionProps {
 }
 
 function TableSection({ entry, isExpanded, onRefresh, isRefreshing, refreshDisabled }: TableSectionProps) {
+  // Guardrails are read-only and code-seeded — no per-row refresh path.
+  const isReadOnly = entry.name === "assumption-guardrails";
+  const queryKey = isReadOnly
+    ? `/api/admin/assumption-guardrails`
+    : `/api/admin/market-data-tables/${entry.name}`;
   const { data, isLoading, error } = useQuery<TableRowsResponse<unknown>>({
-    queryKey: [`/api/admin/market-data-tables/${entry.name}`],
+    queryKey: [queryKey],
     enabled: isExpanded,
   });
 
@@ -411,22 +476,32 @@ function TableSection({ entry, isExpanded, onRefresh, isRefreshing, refreshDisab
           </div>
         </AccordionTrigger>
         <div className="flex items-center pl-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={onRefresh}
-            disabled={refreshDisabled}
-            data-testid={`button-refresh-${entry.name}`}
-            className="gap-1.5"
-          >
-            {isRefreshing ? (
-              <Loader2 className="size-3.5 animate-spin text-accent-pop" />
-            ) : (
-              <IconSparkles className="size-3.5" />
-            )}
-            Analyst
-          </Button>
+          {isReadOnly ? (
+            <Badge
+              variant="outline"
+              className="text-[10px] uppercase tracking-wider"
+              data-testid={`badge-read-only-${entry.name}`}
+            >
+              Read-only · code-seeded
+            </Badge>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={onRefresh}
+              disabled={refreshDisabled}
+              data-testid={`button-refresh-${entry.name}`}
+              className="gap-1.5"
+            >
+              {isRefreshing ? (
+                <Loader2 className="size-3.5 animate-spin text-accent-pop" />
+              ) : (
+                <IconSparkles className="size-3.5" />
+              )}
+              Analyst
+            </Button>
+          )}
         </div>
       </div>
       <AccordionContent className="px-5 pb-5 pt-0">

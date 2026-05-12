@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, lazy, Suspense } from "react";
 import { useSearch } from "wouter";
+import { navigate } from "wouter/use-browser-location";
 import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/Layout";
 import { PageHeader } from "@/components/ui/page-header";
@@ -9,7 +10,12 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { IconAlertTriangle } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "@/components/icons/themed-icons";
-import { setIntelligenceSection, useIntelligenceSection } from "@/lib/intelligence-nav";
+import {
+  DEFAULT_INTELLIGENCE_SECTION,
+  applyIntelligenceSectionFromUrl,
+  setIntelligenceSection,
+  useIntelligenceSection,
+} from "@/lib/intelligence-nav";
 import {
   type IntelligenceSection,
   SPECIALIST_SECTION_TO_ID,
@@ -48,7 +54,7 @@ const LlmWorkflowsPage = lazy(() => import("@/pages/intelligence/LlmWorkflowsPag
 const AssumptionGuidancePage = lazy(() => import("@/pages/intelligence/AssumptionGuidancePage"));
 const KnowledgeRegistryPage = lazy(() => import("@/pages/intelligence/KnowledgeRegistryPage"));
 const CountryEconomicDataPage = lazy(() => import("@/pages/intelligence/CountryEconomicDataPage"));
-const UnifiedRunsPage = lazy(() => import("@/pages/intelligence/UnifiedRunsPage"));
+const UnifiedLogsPage = lazy(() => import("@/pages/intelligence/UnifiedLogsPage"));
 const AgentsRosterPage = lazy(() => import("@/pages/intelligence/AgentsRosterPage"));
 const SpecialistsRosterPage = lazy(() => import("@/pages/intelligence/SpecialistsRosterPage"));
 const MinionsRosterPage = lazy(() => import("@/pages/intelligence/MinionsRosterPage"));
@@ -84,7 +90,8 @@ const sectionMeta: Record<IntelligenceSection, { title: string; subtitle: string
   "assumption-guidance":   { title: "Assumption Guidance",      subtitle: "Analyst-generated calibration insights — suggested ranges and sources for financial assumptions" },
   "knowledge-registry":        { title: "Knowledge Registry",        subtitle: "Registry of knowledge sources and documents powering Intelligence" },
   "knowledge-registry-country-data": { title: "Country Economic Data", subtitle: "Inflation, FX rates, GDP growth, and interest rate data per country" },
-  "runs":                      { title: "Run Log",                    subtitle: "Unified log of all agent runs — Analyst research, Slide Factory, and Iris" },
+  "logs":                      { title: "Logs",                        subtitle: "Unified log of all agent runs and self-tests — Analyst research, Slide Factory, Iris, and entity self-test history" },
+  "runs":                      { title: "Logs",                        subtitle: "Unified log of all agent runs and self-tests — Analyst research, Slide Factory, Iris, and entity self-test history" },
   "roster-agents":             { title: "Agents",                     subtitle: "Every Agent in the system — status at a glance, with a live responsiveness probe per row." },
   "roster-specialists":        { title: "Specialists",                subtitle: "Every research Specialist — status at a glance, with a live responsiveness probe per row." },
   "roster-minions":            { title: "Minions",                    subtitle: "Deterministic helper minions used across pipelines. No LLM probe applies; shown for visibility." },
@@ -208,7 +215,8 @@ function SectionContent({ section }: { section: IntelligenceSection }) {
     case "assumption-guidance": return <AssumptionGuidancePage />;
     case "knowledge-registry":             return <KnowledgeRegistryPage />;
     case "knowledge-registry-country-data": return <CountryEconomicDataPage />;
-    case "runs":                           return <UnifiedRunsPage />;
+    case "logs":                           return <UnifiedLogsPage />;
+    case "runs":                           return <UnifiedLogsPage />;
     case "roster-agents":                  return <AgentsRosterPage />;
     case "roster-specialists":             return <SpecialistsRosterPage />;
     case "roster-minions":                 return <MinionsRosterPage />;
@@ -248,6 +256,7 @@ const VALID_SECTIONS = new Set<IntelligenceSection>([
   "resources-tables",
   "knowledge-registry",
   "knowledge-registry-country-data",
+  "logs",
   "runs",
   "roster-agents",
   "roster-specialists",
@@ -277,21 +286,35 @@ export default function Intelligence() {
   }, [specialists]);
 
   // Honor `?section=…` deep links (e.g. from the band-drop notification
-  // emails for Specialists). Applied once per mount so the sidebar
-  // selection from in-app navigation isn't clobbered on every render.
+  // emails for Specialists, bookmarked LLMs sub-section URLs, or the
+  // browser's back/forward buttons). Re-applied on every URL change so
+  // history navigation actually moves the sidebar selection — uses the
+  // internal `applyIntelligenceSectionFromUrl` setter to avoid pushing
+  // a duplicate history entry back into the URL.
   const urlSearch = useSearch();
-  const didApplyDeepLinkRef = useRef(false);
   useEffect(() => {
-    if (didApplyDeepLinkRef.current) return;
-    didApplyDeepLinkRef.current = true;
     const params = new URLSearchParams(urlSearch);
     const requested = params.get("section");
-    if (requested) {
-      // Normalize the legacy `llm-workflows` deep link to `llms-agents` so the
-      // sidebar highlights the correct sub-item and the URL stays useful.
-      const normalized = requested === "llm-workflows" ? "llms-agents" : requested;
-      if (VALID_SECTIONS.has(normalized as IntelligenceSection)) {
-        setIntelligenceSection(normalized as IntelligenceSection);
+    // No `?section=` in the URL → fall back to the default section so that
+    // pressing Back from a deep-linked sub-section (e.g. llms-research)
+    // onto the bare `/intelligence` URL actually moves the sidebar
+    // selection back to the default instead of leaving the UI stuck on
+    // the previous section. Without this, URL and active section drift
+    // out of sync on history navigation.
+    if (!requested) {
+      applyIntelligenceSectionFromUrl(DEFAULT_INTELLIGENCE_SECTION);
+      return;
+    }
+    // Normalize the legacy `llm-workflows` deep link to `llms-agents` so the
+    // sidebar highlights the correct sub-item, and rewrite the URL in place
+    // so shared / bookmarked links converge on the canonical form.
+    const normalized = requested === "llm-workflows" ? "llms-agents" : requested;
+    if (VALID_SECTIONS.has(normalized as IntelligenceSection)) {
+      applyIntelligenceSectionFromUrl(normalized as IntelligenceSection);
+      if (normalized !== requested) {
+        const next = new URLSearchParams(urlSearch);
+        next.set("section", normalized);
+        navigate(`${window.location.pathname}?${next.toString()}`, { replace: true });
       }
     }
   }, [urlSearch]);

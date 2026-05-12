@@ -5,6 +5,7 @@ export * from "./research";
 export * from "./scenarios";
 export * from "./services";
 export * from "./property-photos";
+export * from "./icp-brackets";
 
 /**
  * Shared fetch helper for future use or to consolidate boilerplate.

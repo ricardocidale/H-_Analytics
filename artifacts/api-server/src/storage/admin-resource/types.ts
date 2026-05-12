@@ -25,6 +25,9 @@ export interface UpdateAdminResourcePatch {
   description?: string | null;
   config?: Record<string, unknown>;
   secretRef?: string | null;
+  // Per-entity self-test cadence override (Task #1459). null clears the
+  // override and falls back to the 30-day system default.
+  selfTestIntervalDays?: number | null;
   changeSummary?: string;
 }
 

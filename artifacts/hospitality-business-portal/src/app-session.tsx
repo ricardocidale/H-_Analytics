@@ -1,12 +1,25 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useLocation } from "wouter";
+import { navigate } from "wouter/use-browser-location";
 import { useAuth } from "@/lib/auth";
 import { useScenarioDirtyState } from "@/lib/scenario-dirty-state";
 import { UnsavedChangesDialog } from "@/components/scenarios";
+import {
+  getLlmWorkflowsDirtyState,
+  setLlmWorkflowsDirtyState,
+  useLlmWorkflowsDirtyState,
+} from "@/lib/llm-workflows-dirty";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { useAutoSave, useAutoSaveCheck, useLoadScenario } from "@/lib/api/scenarios";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { formatDateTime } from "@/lib/formatters";
 import { lazy } from "react";
@@ -80,6 +93,106 @@ export function NavigationGuard() {
       onStay={handleStay}
       context="navigate"
     />
+  );
+}
+
+/**
+ * App-level guard for unsaved LLM workflow slot changes.
+ *
+ * The Intelligence-section guard in `intelligence-nav.ts` covers
+ * sidebar clicks that swap `?section=…`, but a user clicking an
+ * out-of-Intelligence link (e.g. the app sidebar's Properties or
+ * Admin link, or hitting browser-back to /admin) changes wouter's
+ * `location` directly and would unmount LlmWorkflowsPage before any
+ * page-level effect could intervene. This guard lives in App.tsx,
+ * outlives the page, and reverts those route transitions until the
+ * admin chooses Discard or Stay.
+ *
+ * Test bypass: in test mode LlmWorkflowsPage never publishes a dirty
+ * value into the global store, so `isDirty` here stays false and
+ * every route change passes through.
+ */
+export function LlmWorkflowsRouteGuard() {
+  const [location, setLocation] = useLocation();
+  const { isDirty, dirtyCount } = useLlmWorkflowsDirtyState();
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
+  const prevLocationRef = useRef(location);
+  const suppressRef = useRef(false);
+
+  useEffect(() => {
+    if (suppressRef.current) {
+      suppressRef.current = false;
+      prevLocationRef.current = location;
+      return;
+    }
+    if (location === prevLocationRef.current) return;
+    if (!isDirty) {
+      prevLocationRef.current = location;
+      return;
+    }
+    // Same /intelligence path with only ?section= changes is handled
+    // by intelligence-nav's leave guard — don't double-intercept.
+    const prev = prevLocationRef.current;
+    const samePath =
+      prev.split("?")[0] === location.split("?")[0] &&
+      location.startsWith("/intelligence");
+    if (samePath) {
+      prevLocationRef.current = location;
+      return;
+    }
+    const pending = location;
+    setLocation(prev, { replace: true });
+    setPendingPath(pending);
+  }, [location, isDirty, setLocation]);
+
+  const handleDiscard = () => {
+    if (!pendingPath) return;
+    suppressRef.current = true;
+    const target = pendingPath;
+    setPendingPath(null);
+    setLlmWorkflowsDirtyState({ isDirty: false, dirtyCount: 0 });
+    // Use the browser-history navigate so absolute paths work even
+    // when the path leaves /intelligence.
+    navigate(target);
+  };
+
+  const handleStay = () => {
+    setPendingPath(null);
+  };
+
+  const count = dirtyCount || getLlmWorkflowsDirtyState().dirtyCount;
+  const wordChange = count === 1 ? "change" : "changes";
+
+  return (
+    <Dialog
+      open={!!pendingPath}
+      onOpenChange={(v) => { if (!v) handleStay(); }}
+    >
+      <DialogContent data-testid="dialog-llm-route-unsaved-changes">
+        <DialogHeader>
+          <DialogTitle className="font-display">Unsaved LLM changes</DialogTitle>
+          <DialogDescription className="label-text">
+            {`You have ${count} unsaved slot ${wordChange}. Discard or go back to save?`}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          <Button
+            variant="outline"
+            onClick={handleStay}
+            data-testid="button-llm-route-unsaved-go-back"
+          >
+            Go back
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={handleDiscard}
+            data-testid="button-llm-route-unsaved-discard"
+          >
+            Discard
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

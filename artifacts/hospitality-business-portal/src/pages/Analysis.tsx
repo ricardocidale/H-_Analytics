@@ -9,11 +9,11 @@ import type { ComponentType } from "react";
 import type { IconProps } from "@/components/icons";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AnimatePresence, motion } from "framer-motion";
-import SensitivityAnalysis from "./SensitivityAnalysis";
-import FinancingAnalysis from "./FinancingAnalysis";
-import ComparisonView from "./ComparisonView";
-import TimelineView from "./TimelineView";
-import FundingPredictor from "./FundingPredictor";
+import SensitivityAnalysis from "./analysis/SensitivityAnalysis";
+import FinancingAnalysis from "./analysis/FinancingAnalysis";
+import ComparisonView from "./analysis/ComparisonView";
+import TimelineView from "./analysis/TimelineView";
+import FundingPredictor from "./analysis/FundingPredictor";
 
 type AnalysisTab = "sensitivity" | "compare" | "structures" | "timeline" | "financing" | "capital-raise";
 

@@ -22,7 +22,7 @@ const ALDO_SELF_TEST_TIMEOUT_MS = 15_000;
 describe("minion self-tests", () => {
   it("has a self-test registered for every catalog minion", () => {
     expect(Object.keys(MINION_SELF_TESTS).sort()).toEqual(
-      ["aldo", "carlo", "dino", "enzo"].sort(),
+      ["aldo", "carlo", "dino", "enzo", "fabio"].sort(),
     );
   });
 
@@ -39,6 +39,11 @@ describe("minion self-tests", () => {
 
   it("enzo passes against its known fixture", async () => {
     const result = await runMinionSelfTest("enzo");
+    expect(result.status).toBe("pass");
+  });
+
+  it("fabio passes against its green/yellow/red fixtures", async () => {
+    const result = await runMinionSelfTest("fabio");
     expect(result.status).toBe("pass");
   });
 

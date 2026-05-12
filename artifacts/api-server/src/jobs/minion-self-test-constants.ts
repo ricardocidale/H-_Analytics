@@ -32,9 +32,9 @@ export const MINION_SELF_TEST_SCHEDULER_KEY = "minion-self-tests";
 /** admin_resources parameter row holding the runtime-editable cadence. */
 export const MINION_SELF_TEST_CADENCE_PARAM_SLUG = "minion-self-test-cycle-interval-ms";
 
-/** Default cycle interval — 6 hours. Used when the parameter row is absent or malformed. */
+/** Default cycle interval — 30 days (Task #1403 unified cadence). Used when the parameter row is absent or malformed. */
 // DB: minion-self-test-cycle-interval-ms — admin_resources parameter row holds the live value
-export const DEFAULT_MINION_SELF_TEST_CYCLE_INTERVAL_MS = 6 * 60 * 60 * 1000;
+export const DEFAULT_MINION_SELF_TEST_CYCLE_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000;
 
 /** Lower clamp on the cadence — 60 s. Protects against runaway scheduling. */
 // DB: fixed lower bound — architectural safety clamp, not admin-configurable

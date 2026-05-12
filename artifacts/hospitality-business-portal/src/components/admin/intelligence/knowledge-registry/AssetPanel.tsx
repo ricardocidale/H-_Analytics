@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { adminFetch } from "@/components/admin/hooks";
+import { useAuth } from "@/lib/auth";
 import { Card } from "@/components/ui/card";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
@@ -11,6 +12,25 @@ import ReferenceBrandsGrid, { type BrandSummary } from "../ReferenceBrandsGrid";
 import { FreshnessBadge } from "./FreshnessBadge";
 import { VectorChunkViewer } from "./VectorChunkViewer";
 import { ChevronDown, ChevronRight } from "@/components/icons/themed-icons";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -190,10 +210,336 @@ interface IcpBracket {
   comp_set_names: string[] | null;
   description: string | null;
   source_note: string | null;
+  is_active: boolean;
   sort_order: number;
 }
 
+interface BracketFormState {
+  slug: string;
+  name: string;
+  archetypeLabel: string;
+  customerType: "hotel" | "str";
+  serviceConsumptionProfile: "full" | "str_only";
+  targetAdrBandLow: string;
+  targetAdrBandHigh: string;
+  compSetNames: string;
+  description: string;
+  sourceNote: string;
+  sortOrder: string;
+}
+
+const EMPTY_BRACKET_FORM: BracketFormState = {
+  slug: "",
+  name: "",
+  archetypeLabel: "",
+  customerType: "hotel",
+  serviceConsumptionProfile: "full",
+  targetAdrBandLow: "",
+  targetAdrBandHigh: "",
+  compSetNames: "",
+  description: "",
+  sourceNote: "",
+  sortOrder: "",
+};
+
+function bracketToForm(b: IcpBracket): BracketFormState {
+  return {
+    slug: b.slug,
+    name: b.name,
+    archetypeLabel: b.archetype_label,
+    customerType: b.customer_type === "str" ? "str" : "hotel",
+    serviceConsumptionProfile: b.service_consumption_profile === "str_only" ? "str_only" : "full",
+    targetAdrBandLow: b.target_adr_band_low != null ? String(b.target_adr_band_low) : "",
+    targetAdrBandHigh: b.target_adr_band_high != null ? String(b.target_adr_band_high) : "",
+    compSetNames: (b.comp_set_names ?? []).join(", "),
+    description: b.description ?? "",
+    sourceNote: b.source_note ?? "",
+    sortOrder: String(b.sort_order),
+  };
+}
+
+interface BracketPayload {
+  slug: string;
+  name: string;
+  archetypeLabel: string;
+  customerType: "hotel" | "str";
+  serviceConsumptionProfile: "full" | "str_only";
+  targetAdrBandLow: number | null;
+  targetAdrBandHigh: number | null;
+  compSetNames: string[] | null;
+  description: string | null;
+  sourceNote: string | null;
+  sortOrder?: number;
+}
+
+function formToPayload(f: BracketFormState): { ok: true; value: BracketPayload } | { ok: false; error: string } {
+  if (!f.slug.trim()) return { ok: false, error: "Slug is required" };
+  if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(f.slug.trim())) {
+    return { ok: false, error: "Slug must be kebab-case (lowercase letters, digits, hyphens)" };
+  }
+  if (!f.name.trim()) return { ok: false, error: "Name is required" };
+  if (!f.archetypeLabel.trim()) return { ok: false, error: "Archetype label is required" };
+
+  const parseNum = (s: string): number | null => {
+    const trimmed = s.trim();
+    if (!trimmed) return null;
+    const n = Number(trimmed);
+    return Number.isFinite(n) ? n : NaN;
+  };
+  const low = parseNum(f.targetAdrBandLow);
+  const high = parseNum(f.targetAdrBandHigh);
+  if (Number.isNaN(low)) return { ok: false, error: "ADR band low must be a number" };
+  if (Number.isNaN(high)) return { ok: false, error: "ADR band high must be a number" };
+
+  const sortOrderRaw = f.sortOrder.trim();
+  let sortOrder: number | undefined;
+  if (sortOrderRaw) {
+    const n = Number(sortOrderRaw);
+    if (!Number.isInteger(n) || n < 0) return { ok: false, error: "Sort order must be a non-negative integer" };
+    sortOrder = n;
+  }
+
+  const compSetNames = f.compSetNames
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  return {
+    ok: true,
+    value: {
+      slug: f.slug.trim(),
+      name: f.name.trim(),
+      archetypeLabel: f.archetypeLabel.trim(),
+      customerType: f.customerType,
+      serviceConsumptionProfile: f.serviceConsumptionProfile,
+      targetAdrBandLow: low,
+      targetAdrBandHigh: high,
+      compSetNames: compSetNames.length > 0 ? compSetNames : null,
+      description: f.description.trim() || null,
+      sourceNote: f.sourceNote.trim() || null,
+      sortOrder,
+    },
+  };
+}
+
+function BracketEditorDialog({
+  open,
+  onOpenChange,
+  editing,
+  onSaved,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  editing: IcpBracket | null;
+  onSaved: () => void;
+}) {
+  const { toast } = useToast();
+  const [form, setForm] = useState<BracketFormState>(() =>
+    editing ? bracketToForm(editing) : EMPTY_BRACKET_FORM,
+  );
+  const [error, setError] = useState<string | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: async (payload: BracketPayload) => {
+      const url = editing
+        ? `/api/admin/knowledge-registry/icp-bracket-catalog/data/${editing.id}`
+        : `/api/admin/knowledge-registry/icp-bracket-catalog/data`;
+      const method = editing ? "PATCH" : "POST";
+      const res = await apiRequest(method, url, payload);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: editing ? "Bracket updated" : "Bracket created" });
+      onSaved();
+      onOpenChange(false);
+    },
+    onError: (err: Error) => {
+      setError(err.message);
+    },
+  });
+
+  function handleSubmit() {
+    setError(null);
+    const result = formToPayload(form);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    mutation.mutate(result.value);
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (v) {
+          setForm(editing ? bracketToForm(editing) : EMPTY_BRACKET_FORM);
+          setError(null);
+        }
+        onOpenChange(v);
+      }}
+    >
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{editing ? `Edit bracket — ${editing.name}` : "Add bracket"}</DialogTitle>
+          <DialogDescription>
+            Brackets are shared across all Management Companies. Soft-delete a bracket via the “Retire”
+            action on the catalog row instead of removing it here.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-2">
+          <div className="space-y-1">
+            <Label htmlFor="icp-bracket-slug">Slug</Label>
+            <Input
+              id="icp-bracket-slug"
+              value={form.slug}
+              onChange={(e) => setForm({ ...form, slug: e.target.value })}
+              placeholder="boutique-upscale-hotel"
+              disabled={!!editing}
+              data-testid="input-icp-bracket-slug"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="icp-bracket-name">Name</Label>
+            <Input
+              id="icp-bracket-name"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              data-testid="input-icp-bracket-name"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="icp-bracket-archetype">Archetype label</Label>
+            <Input
+              id="icp-bracket-archetype"
+              value={form.archetypeLabel}
+              onChange={(e) => setForm({ ...form, archetypeLabel: e.target.value })}
+              placeholder="Hotel · Upscale"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="icp-bracket-customer">Customer type</Label>
+            <Select
+              value={form.customerType}
+              onValueChange={(v) => setForm({ ...form, customerType: v as "hotel" | "str" })}
+            >
+              <SelectTrigger id="icp-bracket-customer">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="hotel">Hotel</SelectItem>
+                <SelectItem value="str">STR</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="icp-bracket-profile">Service consumption profile</Label>
+            <Select
+              value={form.serviceConsumptionProfile}
+              onValueChange={(v) =>
+                setForm({ ...form, serviceConsumptionProfile: v as "full" | "str_only" })
+              }
+            >
+              <SelectTrigger id="icp-bracket-profile">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="full">Full (all service lines)</SelectItem>
+                <SelectItem value="str_only">STR-only (marketing + bonus)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="icp-bracket-sort">Sort order</Label>
+            <Input
+              id="icp-bracket-sort"
+              type="number"
+              min={0}
+              value={form.sortOrder}
+              onChange={(e) => setForm({ ...form, sortOrder: e.target.value })}
+              placeholder="0"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="icp-bracket-adr-low">Target ADR band low (USD)</Label>
+            <Input
+              id="icp-bracket-adr-low"
+              type="number"
+              min={0}
+              value={form.targetAdrBandLow}
+              onChange={(e) => setForm({ ...form, targetAdrBandLow: e.target.value })}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="icp-bracket-adr-high">Target ADR band high (USD)</Label>
+            <Input
+              id="icp-bracket-adr-high"
+              type="number"
+              min={0}
+              value={form.targetAdrBandHigh}
+              onChange={(e) => setForm({ ...form, targetAdrBandHigh: e.target.value })}
+            />
+          </div>
+          <div className="space-y-1 sm:col-span-2">
+            <Label htmlFor="icp-bracket-compset">Comp set (comma-separated brand names)</Label>
+            <Input
+              id="icp-bracket-compset"
+              value={form.compSetNames}
+              onChange={(e) => setForm({ ...form, compSetNames: e.target.value })}
+              placeholder="Auberge Resorts, Kimpton, Autograph Collection"
+            />
+          </div>
+          <div className="space-y-1 sm:col-span-2">
+            <Label htmlFor="icp-bracket-description">Description</Label>
+            <Textarea
+              id="icp-bracket-description"
+              rows={3}
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+            />
+          </div>
+          <div className="space-y-1 sm:col-span-2">
+            <Label htmlFor="icp-bracket-source">Source note</Label>
+            <Input
+              id="icp-bracket-source"
+              value={form.sourceNote}
+              onChange={(e) => setForm({ ...form, sourceNote: e.target.value })}
+              placeholder="HVS Fee Survey 2024 · STR Boutique Benchmarking Report 2024"
+            />
+          </div>
+        </div>
+
+        {error && (
+          <p className="text-sm text-destructive" data-testid="text-icp-bracket-error">
+            {error}
+          </p>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={mutation.isPending}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={mutation.isPending}
+            data-testid="button-icp-bracket-save"
+          >
+            {mutation.isPending ? "Saving…" : editing ? "Save changes" : "Create bracket"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function IcpBracketCatalogViewer() {
+  const { isAdmin } = useAuth();
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editing, setEditing] = useState<IcpBracket | null>(null);
+
   const { data, isLoading, isError } = useQuery<{ brackets: IcpBracket[] }>({
     queryKey: ["/api/admin/knowledge-registry/icp-bracket-catalog/data"],
     queryFn: adminFetch<{ brackets: IcpBracket[] }>(
@@ -202,60 +548,153 @@ function IcpBracketCatalogViewer() {
     ),
   });
 
+  const toggleActiveMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
+      const res = await apiRequest(
+        "PATCH",
+        `/api/admin/knowledge-registry/icp-bracket-catalog/data/${id}`,
+        { isActive },
+      );
+      return res.json();
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["/api/admin/knowledge-registry/icp-bracket-catalog/data"] });
+      qc.invalidateQueries({ queryKey: ["/api/admin/knowledge-registry"] });
+      toast({ title: vars.isActive ? "Bracket restored" : "Bracket retired" });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Update failed", description: err.message, variant: "destructive" });
+    },
+  });
+
+  function handleAdd() {
+    setEditing(null);
+    setEditorOpen(true);
+  }
+  function handleEdit(b: IcpBracket) {
+    setEditing(b);
+    setEditorOpen(true);
+  }
+  function handleSaved() {
+    qc.invalidateQueries({ queryKey: ["/api/admin/knowledge-registry/icp-bracket-catalog/data"] });
+    qc.invalidateQueries({ queryKey: ["/api/admin/knowledge-registry"] });
+  }
+
   if (isLoading) return <p className="text-xs text-muted-foreground py-2">Loading…</p>;
   if (isError) return <p className="text-xs text-destructive py-2">Failed to load ICP bracket catalog.</p>;
 
   const brackets = data?.brackets ?? [];
-  if (brackets.length === 0) {
-    return <p className="text-sm text-muted-foreground">No brackets in catalog.</p>;
-  }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-xs border-collapse">
-        <thead>
-          <tr className="border-b text-muted-foreground">
-            <th className="text-left py-1.5 pr-3 font-medium">Name</th>
-            <th className="text-left py-1.5 px-2 font-medium">Type</th>
-            <th className="text-left py-1.5 px-2 font-medium hidden sm:table-cell">Service Profile</th>
-            <th className="text-right py-1.5 px-2 font-medium hidden md:table-cell">ADR Band (USD)</th>
-            <th className="text-left py-1.5 pl-2 font-medium hidden lg:table-cell">Sources</th>
-          </tr>
-        </thead>
-        <tbody>
-          {brackets.map((b) => (
-            <tr key={b.slug} className="border-b border-border/50 align-top">
-              <td className="py-2 pr-3">
-                <div className="font-medium text-foreground/90">{b.name}</div>
-                <div className="text-[10px] text-muted-foreground mt-0.5">{b.archetype_label}</div>
-              </td>
-              <td className="py-2 px-2">
-                <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded font-medium ${
-                  b.customer_type === "hotel"
-                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
-                    : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
-                }`}>
-                  {b.customer_type === "hotel" ? "Hotel" : "STR"}
-                </span>
-              </td>
-              <td className="py-2 px-2 text-muted-foreground hidden sm:table-cell">
-                {b.service_consumption_profile === "full" ? "Full" : "STR-only"}
-              </td>
-              <td className="py-2 px-2 tabular-nums text-right hidden md:table-cell">
-                {b.target_adr_band_low != null && b.target_adr_band_high != null
-                  ? `$${b.target_adr_band_low}–$${b.target_adr_band_high}`
-                  : "—"}
-              </td>
-              <td className="py-2 pl-2 text-muted-foreground hidden lg:table-cell">
-                {b.source_note ?? "—"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <p className="text-[10px] text-muted-foreground mt-2">
-        Consumers: Cecília (ICP agent), Marco (orchestrator). Read-only — codebase + Neon define the canonical set.
+    <div className="space-y-3">
+      {isAdmin && (
+        <div className="flex items-center justify-end">
+          <Button size="sm" onClick={handleAdd} data-testid="button-icp-bracket-add">
+            Add bracket
+          </Button>
+        </div>
+      )}
+
+      {brackets.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No brackets in catalog.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs border-collapse">
+            <thead>
+              <tr className="border-b text-muted-foreground">
+                <th className="text-left py-1.5 pr-3 font-medium">Name</th>
+                <th className="text-left py-1.5 px-2 font-medium">Type</th>
+                <th className="text-left py-1.5 px-2 font-medium hidden sm:table-cell">Service Profile</th>
+                <th className="text-right py-1.5 px-2 font-medium hidden md:table-cell">ADR Band (USD)</th>
+                <th className="text-left py-1.5 px-2 font-medium hidden lg:table-cell">Sources</th>
+                {isAdmin && <th className="text-right py-1.5 pl-2 font-medium">Actions</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {brackets.map((b) => (
+                <tr
+                  key={b.slug}
+                  className={`border-b border-border/50 align-top ${b.is_active ? "" : "opacity-50"}`}
+                  data-testid={`row-icp-bracket-${b.slug}`}
+                >
+                  <td className="py-2 pr-3">
+                    <div className="font-medium text-foreground/90 flex items-center gap-1.5">
+                      {b.name}
+                      {!b.is_active && (
+                        <span className="text-[9px] uppercase tracking-wide text-muted-foreground border border-border rounded px-1 py-0.5">
+                          Retired
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">{b.archetype_label}</div>
+                  </td>
+                  <td className="py-2 px-2">
+                    <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                      b.customer_type === "hotel"
+                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                        : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                    }`}>
+                      {b.customer_type === "hotel" ? "Hotel" : "STR"}
+                    </span>
+                  </td>
+                  <td className="py-2 px-2 text-muted-foreground hidden sm:table-cell">
+                    {b.service_consumption_profile === "full" ? "Full" : "STR-only"}
+                  </td>
+                  <td className="py-2 px-2 tabular-nums text-right hidden md:table-cell">
+                    {b.target_adr_band_low != null && b.target_adr_band_high != null
+                      ? `$${b.target_adr_band_low}–$${b.target_adr_band_high}`
+                      : "—"}
+                  </td>
+                  <td className="py-2 px-2 text-muted-foreground hidden lg:table-cell">
+                    {b.source_note ?? "—"}
+                  </td>
+                  {isAdmin && (
+                    <td className="py-2 pl-2 text-right whitespace-nowrap">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => handleEdit(b)}
+                        data-testid={`button-icp-bracket-edit-${b.slug}`}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        disabled={toggleActiveMutation.isPending}
+                        onClick={() =>
+                          toggleActiveMutation.mutate({ id: b.id, isActive: !b.is_active })
+                        }
+                        data-testid={`button-icp-bracket-toggle-${b.slug}`}
+                      >
+                        {b.is_active ? "Retire" : "Restore"}
+                      </Button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <p className="text-[10px] text-muted-foreground">
+        Consumers: Cecília (ICP agent), Marco (orchestrator). Starter brackets are seeded by code; admins can add new
+        archetypes or retire (soft-delete) outdated ones without a code deploy. Retired brackets stay in the database
+        so historical company bracket-mix references remain valid.
       </p>
+
+      {isAdmin && editorOpen && (
+        <BracketEditorDialog
+          key={editing?.id ?? "new"}
+          open={editorOpen}
+          onOpenChange={setEditorOpen}
+          editing={editing}
+          onSaved={handleSaved}
+        />
+      )}
     </div>
   );
 }

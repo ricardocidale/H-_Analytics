@@ -333,7 +333,9 @@ export default function ResourcesTab({ kind }: ResourcesTabProps) {
     const section = (Object.entries(SPECIALIST_SECTION_TO_ID) as Array<[string, string]>).find(([, id]) => id === specialistId)?.[0];
     if (section) {
       setIntelligenceSection(section as Parameters<typeof setIntelligenceSection>[0]);
-      setLocation("/intelligence");
+      // Encode the target section into the URL so a refresh / share / back
+      // lands on the same Specialist instead of falling back to the default.
+      setLocation(`/intelligence?section=${encodeURIComponent(section)}`);
     }
   }
 

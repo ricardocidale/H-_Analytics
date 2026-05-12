@@ -3,6 +3,10 @@ import { isAdminRole } from "@shared/constants";
 import type { Property, UpdateProperty } from "@workspace/db";
 import { updatePropertySchema, insertPropertySchema, type InsertProperty } from "@workspace/db";
 import {
+  resolveAsImprovedFacts,
+  resolveAsPurchasedFacts,
+} from "@engine/property/renovation-facts";
+import {
   createPropertyRecord,
   seedPropertyFees,
   archivePropertyForUser,
@@ -39,6 +43,18 @@ export async function toolGetProperty(
   if (!prop || prop.userId !== ctx.userId) {
     return { result: { error: "Not found" } };
   }
+  // Surface both the As-Purchased and the As-Improved (post-renovation
+  // hypothesis) descriptors so Rebecca can reason about the renovation
+  // explicitly. Both snapshots come from the engine-layer resolver so the
+  // fallback rules (improved → purchased → legacy `description`) match
+  // every other consumer (task #1406).
+  const factsInput = prop as unknown as Parameters<typeof resolveAsPurchasedFacts>[0];
+  const asPurchased = resolveAsPurchasedFacts(factsInput);
+  const asImproved = resolveAsImprovedFacts(factsInput);
+  const plannedReopeningYearRaw = (prop as unknown as Record<string, unknown>).plannedReopeningYear;
+  const plannedReopeningYear = plannedReopeningYearRaw == null
+    ? null
+    : Number(plannedReopeningYearRaw);
   return {
     result: {
       property: {
@@ -60,6 +76,21 @@ export async function toolGetProperty(
         taxRate: prop.taxRate,
         status: prop.status,
         market: prop.market,
+        asPurchased: {
+          description: asPurchased.description,
+          fbVenues: asPurchased.fbVenues,
+          fbSeats: asPurchased.fbSeats,
+          eventSpaceSqft: asPurchased.eventSpaceSqft,
+          totalBuildingSqft: asPurchased.totalBuildingSqft,
+        },
+        asImproved: {
+          plannedReopeningYear: Number.isFinite(plannedReopeningYear) ? plannedReopeningYear : null,
+          description: asImproved.description,
+          fbVenues: asImproved.fbVenues,
+          fbSeats: asImproved.fbSeats,
+          eventSpaceSqft: asImproved.eventSpaceSqft,
+          totalBuildingSqft: asImproved.totalBuildingSqft,
+        },
       },
     },
   };

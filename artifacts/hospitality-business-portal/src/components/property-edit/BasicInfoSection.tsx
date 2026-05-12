@@ -466,19 +466,19 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
 
           {/* Status + Room Count */}
           <div className="space-y-2">
-            <Label className="label-text text-foreground flex items-center gap-1.5">Status<InfoTooltip text="Current stage: Pipeline (being scoped), In Negotiation (advanced talks), Acquired (purchased), Improvements (under renovation), or Operating (generating revenue)." /></Label>
-            <Select value={draft.status} onValueChange={(v) => onChange("status", v)}>
-              <SelectTrigger className="bg-card border-primary/30 text-foreground"><SelectValue /></SelectTrigger>
+            <Label className="label-text text-foreground flex items-center gap-1.5">Market Tier<InfoTooltip text="MSA classification. Primary = Top 25 metro areas with highest hotel demand. Secondary and tertiary markets have different risk/return profiles." /></Label>
+            <Select value={draft.marketTier || ""} onValueChange={(v) => onChange("marketTier", v)}>
+              <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-market-tier"><SelectValue placeholder="Select tier" /></SelectTrigger>
               <SelectContent>
-                {PROPERTY_STATUS_VALUES.map(s => (
-                  <SelectItem key={s} value={s}>{s}</SelectItem>
-                ))}
+                <SelectItem value="primary">Primary (Top 25 MSA)</SelectItem>
+                <SelectItem value="secondary">Secondary</SelectItem>
+                <SelectItem value="tertiary">Tertiary</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="label-text text-foreground flex items-center gap-1.5">Room Count<InfoTooltip text="Total number of rentable guest rooms. This is the primary revenue driver — all room revenue is calculated as Rooms × ADR × Occupancy × 30.5 days/month." /></Label>
-            <Input type="number" value={draft.roomCount} onChange={(e) => onNumberChange("roomCount", e.target.value)} className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground" />
+            <Label className="label-text text-foreground text-sm">Year Built</Label>
+            <Input type="number" value={draft.yearBuilt ?? ""} onChange={(e) => onNumberChange("yearBuilt", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-year-built" />
           </div>
 
           {/* Star Rating */}
@@ -559,7 +559,6 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
               </div>
             </div>
           )}
-
           {/* Classification tiers — quality, service level, location type */}
           <div className="sm:col-span-2 border-t border-border/50 pt-5">
             <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">Classification</p>
@@ -761,7 +760,6 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );

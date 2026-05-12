@@ -394,6 +394,13 @@ export function generatePropertyProForma(
       cashShortfall: endingCash < 0,
       deferredFees,
       cumulativeDeferredFees: ctx.cumulativeDeferredFees,
+      // Renovation hypothesis cutover (task #1406). The state flips to
+      // `as_improved` from the planned reopening month onward. When no
+      // reopening year was captured the property stays in its
+      // As-Purchased configuration for the entire horizon.
+      propertyState: ctx.reopeningMonthIdx != null && i >= ctx.reopeningMonthIdx
+        ? 'as_improved'
+        : 'as_purchased',
     });
   }
 

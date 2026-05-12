@@ -35,7 +35,9 @@ export function navigateToResources(
   section: IntelligenceSection,
 ) {
   setIntelligenceSection(section);
-  setLocation("/intelligence");
+  // Carry the section in the URL so refresh / share / back-forward keep the
+  // admin on this Resources sub-page instead of resetting to the default.
+  setLocation(`/intelligence?section=${encodeURIComponent(section)}`);
 }
 
 /**

@@ -7,6 +7,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@shared": r("../shared/src"),
+      "@norfolk/shared": r("../shared/src"),
+      "@calc": r("../calc/src"),
+      "@domain": r("../domain/src"),
     },
   },
   test: {

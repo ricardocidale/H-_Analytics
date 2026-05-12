@@ -3,6 +3,11 @@ import { IconBookOpen } from "@/components/icons";
 import { computeServiceFee } from "@calc/research/service-fee";
 import { computeMarkupWaterfall } from "@calc/research/markup-waterfall";
 import type { ServiceTemplate } from "@shared/schema";
+import {
+  useNationalBenchmarks,
+  serviceTemplateNameToServiceLine,
+} from "@/lib/api/national-benchmarks";
+import { NationalBenchmarkChip } from "@/components/research/NationalBenchmarkChip";
 
 export function ServiceResearchPanel({ template }: { template: ServiceTemplate }) {
   const sampleRevenue = 1_500_000;
@@ -14,13 +19,55 @@ export function ServiceResearchPanel({ template }: { template: ServiceTemplate }
     ? computeMarkupWaterfall({ vendorCost: currentFee / (1 + markup), markupPct: markup, serviceType: template.name })
     : null;
 
+  // National benchmarks from the Pietro research feeds (Gaetano + Renato).
+  // Returns empty arrays when no rows exist — chips render nothing in that
+  // case so the panel keeps its existing empty-state behavior.
+  const { data: nationalBenchmarks } = useNationalBenchmarks();
+  const serviceLine = serviceTemplateNameToServiceLine(template.name);
+  const nationalVendorCost = serviceLine
+    ? nationalBenchmarks?.vendorCosts.find((r) => r.serviceLine === serviceLine) ?? null
+    : null;
+  const nationalMarkup = serviceLine
+    ? nationalBenchmarks?.markupFactors.find((r) => r.serviceLine === serviceLine) ?? null
+    : null;
+
   return (
     <div className="mt-3 pt-3 border-t border-border/60 space-y-3">
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-2 mb-2 flex-wrap">
         <IconBookOpen className="w-3.5 h-3.5 text-muted-foreground" />
         <span className="text-xs font-medium text-foreground uppercase tracking-wider">Industry Benchmarks</span>
         <span className="text-[10px] text-muted-foreground ml-auto">at $1.5M sample revenue</span>
       </div>
+
+      {(nationalVendorCost || nationalMarkup) && (
+        <div className="flex items-center gap-2 flex-wrap" data-testid="national-benchmarks-row">
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">From research feed:</span>
+          {nationalVendorCost && (
+            <NationalBenchmarkChip
+              kind="vendor-cost"
+              currentValue={template.serviceModel === "centralized" ? currentRate / (1 + markup) : currentRate}
+              benchmarkValue={nationalVendorCost.value}
+              dot={nationalVendorCost.dot}
+              guardrail={nationalVendorCost.guardrail}
+              source={nationalVendorCost.source}
+              period={nationalVendorCost.period}
+              fetchedAt={nationalVendorCost.fetchedAt}
+            />
+          )}
+          {nationalMarkup && template.serviceModel === "centralized" && (
+            <NationalBenchmarkChip
+              kind="markup"
+              currentValue={markup}
+              benchmarkValue={nationalMarkup.value}
+              dot={nationalMarkup.dot}
+              guardrail={nationalMarkup.guardrail}
+              source={nationalMarkup.source}
+              period={nationalMarkup.period}
+              fetchedAt={nationalMarkup.fetchedAt}
+            />
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <div className="bg-primary/5 border border-primary/20 rounded-lg p-2.5">

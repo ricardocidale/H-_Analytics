@@ -17,6 +17,10 @@ import { logger } from "../logger";
 import type { DdSummary } from "@shared/dd-template";
 import { DD_STATUS_LABELS, DD_WORKSTREAM_LABELS } from "@shared/dd-template";
 import { buildPropertyAssumptionsSection, buildCompanyAssumptionsSection } from "./assumption-sections";
+import {
+  resolveAsImprovedFacts,
+  resolveAsPurchasedFacts,
+} from "@engine/property/renovation-facts";
 import { getMarketRate } from "../data/marketRates";
 
 const TRANSFER_TAX_KEYS = [
@@ -609,9 +613,38 @@ export async function buildPropertyExportData(
     ...(p.locationType ? [row("Location Type", [String(p.locationType)], { indent: 1 })] : []),
     ...(p.marketTier ? [row("Market Tier", [String(p.marketTier)], { indent: 1 })] : []),
     row("Rooms", [String(property.roomCount)], { indent: 1 }),
-    ...(p.fbVenues ? [row("F&B Venues", [String(p.fbVenues)], { indent: 1 })] : []),
-    ...(p.eventSpaceSqft ? [row("Event Space", [`${Number(p.eventSpaceSqft).toLocaleString()} sq ft`], { indent: 1 })] : []),
+    // Renovation hypothesis (task #1406). Both snapshots come from the
+    // shared resolver so As-Improved rows fall back to their As-Purchased
+    // twin when an improved value has not been entered, and the legacy
+    // `description` column survives transparently.
+    ...(() => {
+      const factsInput = p as unknown as Parameters<typeof resolveAsPurchasedFacts>[0];
+      const purchased = resolveAsPurchasedFacts(factsInput);
+      const out: ExportRow[] = [];
+      if (purchased.fbVenues != null) out.push(row("F&B Venues (As-Purchased)", [String(purchased.fbVenues)], { indent: 1 }));
+      if (purchased.fbSeats != null) out.push(row("F&B Seats (As-Purchased)", [String(purchased.fbSeats)], { indent: 1 }));
+      if (purchased.eventSpaceSqft != null) out.push(row("Event Space (As-Purchased)", [`${purchased.eventSpaceSqft.toLocaleString()} sq ft`], { indent: 1 }));
+      if (purchased.totalBuildingSqft != null) out.push(row("Building (As-Purchased)", [`${purchased.totalBuildingSqft.toLocaleString()} sq ft`], { indent: 1 }));
+      return out;
+    })(),
     ...(p.totalPropertyAcreage ? [row("Acreage", [String(p.totalPropertyAcreage)], { indent: 1 })] : []),
+    ...(() => {
+      const reopen = p.plannedReopeningYear != null ? Number(p.plannedReopeningYear) : null;
+      const sfx = reopen != null ? ` (As-Improved, from ${reopen})` : " (As-Improved)";
+      const hasImprovedHypothesis =
+        p.fbVenuesImproved != null || p.fbSeatsImproved != null ||
+        p.eventSpaceSqftImproved != null || p.totalBuildingSqftImproved != null ||
+        reopen != null;
+      if (!hasImprovedHypothesis) return [] as ExportRow[];
+      const improved = resolveAsImprovedFacts(p as unknown as Parameters<typeof resolveAsImprovedFacts>[0]);
+      const out: ExportRow[] = [];
+      if (improved.fbVenues != null) out.push(row(`F&B Venues${sfx}`, [String(improved.fbVenues)], { indent: 1 }));
+      if (improved.fbSeats != null) out.push(row(`F&B Seats${sfx}`, [String(improved.fbSeats)], { indent: 1 }));
+      if (improved.eventSpaceSqft != null) out.push(row(`Event Space${sfx}`, [`${improved.eventSpaceSqft.toLocaleString()} sq ft`], { indent: 1 }));
+      if (improved.totalBuildingSqft != null) out.push(row(`Building${sfx}`, [`${improved.totalBuildingSqft.toLocaleString()} sq ft`], { indent: 1 }));
+      if (reopen != null) out.push(row("Planned Reopening Year", [String(reopen)], { indent: 1 }));
+      return out;
+    })(),
     ...(p.ownerPriorityReturn && Number(p.ownerPriorityReturn) > 0 ? [
       row("Owner Priority Return", [`${(Number(p.ownerPriorityReturn) * 100).toFixed(0)}%`], { indent: 1 }),
     ] : []),

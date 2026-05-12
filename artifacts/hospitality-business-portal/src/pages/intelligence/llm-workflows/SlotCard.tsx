@@ -43,6 +43,30 @@ export function SlotCard({
     (vs) => vs.vendor === selection.vendorFilter,
   );
 
+  // Tri-state vendor health dot — only shown when a model is assigned.
+  // Mirrors the same logic used in ActiveModelsSummary.
+  let dotClass: string | null = null;
+  let dotTitle = "";
+  if (selection.modelSlug && selection.vendorFilter) {
+    const vendorLabel =
+      LLM_VENDORS.find((v) => v.value === selection.vendorFilter)?.label ??
+      selection.vendorFilter;
+    if (vendorStatus?.available) {
+      dotClass = "bg-green-500";
+      dotTitle = `${vendorLabel} reachable${
+        vendorStatus.avgLatencyMs ? ` · ${vendorStatus.avgLatencyMs}ms` : ""
+      }`;
+    } else if (vendorStatus) {
+      dotClass = "bg-red-500";
+      dotTitle = `${vendorLabel} unavailable${
+        vendorStatus.error ? ` · ${vendorStatus.error}` : ""
+      }`;
+    } else {
+      dotClass = "bg-gray-400";
+      dotTitle = `${vendorLabel} not probed yet — run Analyst to refresh`;
+    }
+  }
+
   return (
     <div
       className={`rounded-lg border p-3.5 space-y-3 ${
@@ -72,10 +96,12 @@ export function SlotCard({
               unsaved
             </Badge>
           )}
-          {selection.modelSlug && vendorStatus?.available && (
+          {dotClass && (
             <span
-              className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 shrink-0"
-              title="Vendor available"
+              className={`inline-block w-2 h-2 rounded-full shrink-0 ${dotClass}`}
+              title={dotTitle}
+              aria-label={dotTitle}
+              data-testid={`slot-card-vendor-dot-${slot.slug}`}
             />
           )}
         </div>

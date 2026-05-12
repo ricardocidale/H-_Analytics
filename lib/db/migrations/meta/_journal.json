@@ -365,6 +365,20 @@
       "when": 1747094400000,
       "tag": "0053_property_description_purchased",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1747180800000,
+      "tag": "0054_property_descriptor_catalog",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1778880000000,
+      "tag": "0055_assumption_guardrails",
+      "breakpoints": true
     }
   ]
 }

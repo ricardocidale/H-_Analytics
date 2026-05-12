@@ -29,12 +29,23 @@
 import { type LlmCategory } from "./llm-workflows/constants";
 import { useLlmRegistry, useRefreshLlmRegistry } from "@/lib/api/admin";
 import { Loader2 } from "@/components/icons/themed-icons";
+import { ActiveModelsSummary } from "./llm-workflows/sections/ActiveModelsSummary";
 import { HeaderBar } from "./llm-workflows/sections/HeaderBar";
 import { FunctionAreaDefaults } from "./llm-workflows/sections/FunctionAreaDefaults";
 import { OrchestratorDefaults } from "./llm-workflows/sections/OrchestratorDefaults";
 import { SlotAccordion } from "./llm-workflows/sections/SlotAccordion";
 import { SpecialistsSection } from "./llm-workflows/sections/SpecialistsSection";
 import { useSlotAssignments } from "./llm-workflows/useSlotAssignments";
+import { useUnsavedChangesGuard } from "./llm-workflows/useUnsavedChangesGuard";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 export interface LlmWorkflowsPageProps {
   category?: LlmCategory;
@@ -58,9 +69,18 @@ export default function LlmWorkflowsPage({ category }: LlmWorkflowsPageProps) {
     originalSlugs,
     isDirty,
     dirtyCount,
+    visibleDirtyCount,
+    otherDirtyCount,
     batchSavePending,
     handleSlotSave,
-  } = useSlotAssignments();
+  } = useSlotAssignments(category);
+
+  // Close the navigation gap: if the admin clicks another Intelligence
+  // sidebar item, navigates to a different route, or closes the tab while
+  // slot edits are staged, prompt before discarding. Switching between
+  // LLM sub-categories (llms-agents ↔ llms-research ↔ …) keeps this
+  // component mounted and is intentionally NOT intercepted.
+  const guard = useUnsavedChangesGuard(isDirty);
 
   // Derived visibility flags per category.
   // OrchestratorDefaults is Research-only (it configures the N+1 pipeline).
@@ -84,11 +104,20 @@ export default function LlmWorkflowsPage({ category }: LlmWorkflowsPageProps) {
 
   return (
     <div className="space-y-5" data-testid="page-llm-workflows">
+      <ActiveModelsSummary
+        slotResources={slotResources}
+        modelResources={modelResources}
+        category={category}
+        vendorStatuses={registry?.vendorStatuses}
+      />
+
       <HeaderBar
         registry={registry}
         refreshRegistry={refreshRegistry}
         isDirty={isDirty}
         dirtyCount={dirtyCount}
+        visibleDirtyCount={visibleDirtyCount}
+        otherDirtyCount={otherDirtyCount}
         batchSavePending={batchSavePending}
         onSlotSave={handleSlotSave}
       />
@@ -114,6 +143,40 @@ export default function LlmWorkflowsPage({ category }: LlmWorkflowsPageProps) {
       )}
 
       {showSpecialists && <SpecialistsSection />}
+
+      <Dialog
+        open={guard.promptOpen}
+        onOpenChange={(v) => {
+          if (!v) guard.stay();
+        }}
+      >
+        <DialogContent data-testid="dialog-llm-unsaved-changes">
+          <DialogHeader>
+            <DialogTitle className="font-display">Unsaved LLM changes</DialogTitle>
+            <DialogDescription className="label-text">
+              {`You have ${dirtyCount} unsaved slot ${
+                dirtyCount === 1 ? "change" : "changes"
+              }. Discard or go back to save?`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={guard.stay}
+              data-testid="button-llm-unsaved-go-back"
+            >
+              Go back to save
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={guard.confirmDiscard}
+              data-testid="button-llm-unsaved-discard"
+            >
+              Discard changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -103,6 +103,19 @@ export const researchRuns = pgTable("research_runs", {
   // restricting the index to non-null rows keeps it ~the size of the actual
   // verdict-cache lookup set instead of the whole table.
   index("research_runs_cache_key_idx").on(table.cacheKey).where(sql`${table.cacheKey} IS NOT NULL`),
+  // Task #1437 — partial btree index that matches the DISTINCT ON sort prefix
+  // of getLatestSuccessfulRunsForAllConstants() in
+  // artifacts/api-server/src/storage/intelligence/research-runs.ts:
+  //   (metadata->'constant'->>'key',
+  //    metadata->'constant'->>'country',
+  //    metadata->'constant'->>'subdivision',
+  //    completed_at DESC)
+  //   WHERE entity_type = 'model-constant' AND status = 'completed'
+  // Created in raw SQL by migration
+  // artifacts/api-server/migrations/0059_research_runs_constant_latest_idx.sql
+  // because Drizzle's index DSL cannot express composite JSON-path expressions
+  // cleanly in a snapshot-stable way. Keep this comment in sync with that
+  // migration.
 ]);
 
 /**

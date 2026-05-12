@@ -14,6 +14,7 @@ import * as uploadRoutes from "./routes/uploads";
 import * as marketRateRoutes from "./routes/market-rates";
 import * as countryRiskPremiumRoutes from "./routes/country-risk-premium";
 import * as countryDefaultsRoutes from "./routes/country-defaults";
+import * as nationalBenchmarksRoutes from "./routes/national-benchmarks";
 import * as tileRoutes from "./routes/tiles";
 import * as photoRoutes from "./routes/property-photos";
 import * as mediaRoutes from "./routes/media";
@@ -74,6 +75,7 @@ export async function registerRoutes(
   marketRateRoutes.register(app);
   countryRiskPremiumRoutes.register(app);
   countryDefaultsRoutes.register(app);
+  nationalBenchmarksRoutes.register(app);
   tileRoutes.register(app);
   photoRoutes.register(app);
   mediaRoutes.register(app);

@@ -18,7 +18,7 @@
  * after the in-flight one finishes.
  */
 import { db } from "../db";
-import { costantinoFindings } from "@workspace/db";
+import { costantinoFindings, type SelfTestOutcome } from "@workspace/db";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { storage } from "../storage";
 import { logger } from "../logger";
@@ -42,6 +42,39 @@ let nextTickHandle: NodeJS.Timeout | null = null;
 let stopped = false;
 
 const FINDING_KIND = "minion_self_test_failed";
+
+/** Map a minion's self-test status to the canonical SelfTestOutcome enum. */
+function statusToOutcome(status: "pass" | "fail" | "skipped"): SelfTestOutcome {
+  if (status === "pass") return "pass";
+  if (status === "skipped") return "warn";
+  return "fail";
+}
+
+/** Capitalize a minion id ("aldo" → "Aldo") for the denormalized entityName. */
+function minionDisplayName(minionId: string): string {
+  if (minionId.length === 0) return minionId;
+  return minionId[0].toUpperCase() + minionId.slice(1);
+}
+
+/**
+ * Best-effort write of a self-test verdict to `self_test_logs`. Failures
+ * are logged and swallowed so a logging hiccup never breaks the cycle.
+ */
+async function recordSelfTestLog(result: MinionSelfTestResult): Promise<void> {
+  try {
+    await storage.recordSelfTestLog({
+      entityKind: "minion",
+      entityId: result.minionId,
+      entityName: minionDisplayName(result.minionId),
+      outcome: statusToOutcome(result.status),
+      durationMs: result.durationMs,
+      summary: result.message ?? null,
+    });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.warn(`[minion-self-test-scheduler] Failed to record self_test_log for "${result.minionId}": ${msg}`);
+  }
+}
 
 /**
  * Read the runtime-editable cadence row, clamp to [min, max], and fall
@@ -183,6 +216,10 @@ export async function runMinionSelfTestsCycle(): Promise<CycleSummary> {
       result = { minionId: id, status: "fail", durationMs: 0, message: `runner threw: ${msg}` };
     }
     summary.results.push(result);
+
+    // Persist every probe verdict to `self_test_logs` so the Logs page
+    // Self-tests tab shows real history (Task #1458). Best-effort.
+    await recordSelfTestLog(result);
 
     if (result.status === "pass") {
       summary.passed += 1;

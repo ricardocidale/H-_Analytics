@@ -26,6 +26,7 @@ import { db } from "../db";
 import { sql } from "drizzle-orm";
 import { logger } from "../logger";
 import { BracketMixSchema } from "@workspace/db";
+import { invalidateComputeCache } from "../finance/cache";
 import {
   HTTP_STATUS_BAD_REQUEST,
   HTTP_STATUS_NOT_FOUND,
@@ -40,8 +41,14 @@ const LOG_TAG = "icp-brackets";
  * Shared handler for PUT /api/icp/brackets/mix and PATCH /api/icp/brackets/mix.
  * Both verbs have identical semantics: full-replace of the user's bracket mix.
  *
+ * Task #1486: converts the incoming flat BracketMixEntry[] into the canonical
+ * BracketMixData shape before persisting, so both writers emit the same format.
+ *
  * Security: always upserts into the user's OWN row. Never patches the shared
  * platform-default row (userId IS NULL) even when the user has no row yet.
+ *
+ * Response: returns the flat BracketMixEntry[] for backward compat with the
+ * frontend (which sends and receives [{ bracketSlug, weight }]).
  */
 async function handleSaveMix(
   req: Parameters<Parameters<Express["put"]>[1]>[0],
@@ -83,13 +90,17 @@ async function handleSaveMix(
     }
 
     const slugs = mix.map((e: { bracketSlug: string; weight: number }) => e.bracketSlug);
-    const existingRows = await db.execute(sql`
-      SELECT slug FROM icp_brackets WHERE slug = ANY(${slugs}::text[])
+    const catalogRows = await db.execute(sql`
+      SELECT slug, name, archetype_label, customer_type
+      FROM icp_brackets WHERE slug = ANY(${slugs}::text[])
     `);
-    const existingSlugs = new Set(
-      existingRows.rows.map((r) => (r as { slug: string }).slug),
+    const bracketBySlug = new Map(
+      catalogRows.rows.map((r) => {
+        const row = r as { slug: string; name: string; archetype_label: string; customer_type: string };
+        return [row.slug, row];
+      }),
     );
-    const unknownSlugs = slugs.filter((s) => !existingSlugs.has(s));
+    const unknownSlugs = slugs.filter((s) => !bracketBySlug.has(s));
     if (unknownSlugs.length > 0) {
       res.status(HTTP_STATUS_BAD_REQUEST).json({
         error: `Unknown bracket slugs: ${unknownSlugs.join(", ")}`,
@@ -97,6 +108,23 @@ async function handleSaveMix(
       });
       return;
     }
+
+    // Convert flat BracketMixEntry[] to the canonical BracketMixData shape.
+    // This ensures both writers (catalog API and bracket-assignment minion)
+    // persist the same structure (task #1486).
+    const bracketMixData = {
+      entries: mix.map((e: { bracketSlug: string; weight: number }) => {
+        const bracket = bracketBySlug.get(e.bracketSlug);
+        return {
+          id: e.bracketSlug,
+          name: bracket?.name ?? e.bracketSlug,
+          archetypeLabel: bracket?.archetype_label ?? e.bracketSlug,
+          serviceConsumption: bracket?.customer_type ?? "hotel",
+          weight: e.weight,
+        };
+      }),
+      assignedAt: new Date().toISOString(),
+    };
 
     // Security: always write into the user's OWN row, never the shared platform
     // default row (userId IS NULL). getGlobalAssumptions(userId) falls back to
@@ -115,7 +143,7 @@ async function handleSaveMix(
     }
 
     if (base.userId === user.id) {
-      await storage.patchGlobalAssumptions(base.id, { bracketMix: mix });
+      await storage.patchGlobalAssumptions(base.id, { bracketMix: bracketMixData });
     } else {
       // User has no own row; base is the shared platform default.
       // upsertGlobalAssumptions filters strictly by userId and will INSERT a
@@ -123,12 +151,19 @@ async function handleSaveMix(
       // cast: stripAutoFields inside upsert removes id/createdAt/updatedAt so
       // the spread is safe at runtime even with the optional-vs-required delta.
       await storage.upsertGlobalAssumptions(
-        { ...base, bracketMix: mix } as unknown as import("@workspace/db").InsertGlobalAssumptions,
+        { ...base, bracketMix: bracketMixData } as unknown as import("@workspace/db").InsertGlobalAssumptions,
         user.id,
       );
     }
 
+    // Bracket mix is a server-authoritative input to every finance compute
+    // (see /api/finance/compute portfolioBracketMix loader). Without this
+    // invalidation, cached portfolio/company projections would keep returning
+    // pre-mix numbers until the 60s LRU TTL expires.
+    invalidateComputeCache();
+
     logger.info(`${LOG_TAG} bracket mix updated for user ${user.id}: ${JSON.stringify(mix)}`);
+    // Return the flat format for frontend backward compat.
     res.json({ bracketMix: mix });
   } catch (error: unknown) {
     logger.error(
@@ -178,6 +213,10 @@ export function register(app: Express) {
    * Returns the current company bracket mix from global_assumptions.
    * Returns null when no mix has been assigned yet.
    *
+   * The DB now stores BracketMixData ({ entries, assignedAt, evidence }).
+   * This endpoint normalises to flat BracketMixEntry[] for frontend compat
+   * (the frontend hook sends and expects [{ bracketSlug, weight }]).
+   *
    * NOTE: registered BEFORE /:slug.
    */
   app.get("/api/icp/brackets/mix", requireAuth, async (req, res) => {
@@ -189,7 +228,19 @@ export function register(app: Express) {
           .status(HTTP_STATUS_NOT_FOUND)
           .json({ error: "Global assumptions not found", code: "ICPB-004" });
       }
-      res.json({ bracketMix: (global as Record<string, unknown>).bracketMix ?? null });
+      const raw = (global as Record<string, unknown>).bracketMix ?? null;
+      // Normalise canonical BracketMixData → flat BracketMixEntry[] for frontend.
+      let flatMix = null;
+      if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+        const mixData = raw as { entries?: Array<{ id: string; weight: number }> };
+        if (Array.isArray(mixData.entries) && mixData.entries.length > 0) {
+          flatMix = mixData.entries.map((e) => ({ bracketSlug: e.id, weight: e.weight }));
+        }
+      } else if (Array.isArray(raw) && raw.length > 0) {
+        // Legacy flat-array shape (should not occur after icp-brackets-002 migration).
+        flatMix = raw;
+      }
+      res.json({ bracketMix: flatMix });
     } catch (error: unknown) {
       logger.error(
         `Failed to fetch bracket mix: ${error instanceof Error ? error.message : error}`,

@@ -15,6 +15,8 @@
 
 import type { Express } from "express";
 import { storage } from "../../storage";
+import { db } from "../../db";
+import { assumptionGuardrails } from "@workspace/db";
 import { requireAdmin } from "../../auth";
 import { getAuthUser } from "../../auth";
 import { logAndSendError, zodErrorMessage } from "../helpers";
@@ -90,7 +92,14 @@ export function registerMarketDataTableRoutes(app: Express) {
         "seasonal-calendars": seasonalRows,
       };
 
-      const catalog = TABLE_NAMES.map((name) => {
+      const catalog: Array<{
+        name: string;
+        label: string;
+        description: string;
+        sourceNote: string;
+        rowCount: number;
+        lastUpdatedAt: string | null;
+      }> = TABLE_NAMES.map((name) => {
         const rows = rowsByTable[name] as Array<{ updatedAt?: Date }>;
         const lastUpdated = rows.reduce<Date | null>((max, r) => {
           if (!r.updatedAt) return max;
@@ -103,6 +112,31 @@ export function registerMarketDataTableRoutes(app: Express) {
           lastUpdatedAt: lastUpdated?.toISOString() ?? null,
         };
       });
+
+      // Append the read-only assumption_guardrails entry so K&R → Tables
+      // surfaces it next to the market-data tables. Rows themselves come
+      // from the dedicated /api/admin/assumption-guardrails endpoint.
+      try {
+        const guardrailRows = await db
+          .select({ updatedAt: assumptionGuardrails.updatedAt })
+          .from(assumptionGuardrails);
+        const lastGuardrail = guardrailRows.reduce<Date | null>((max, r) => {
+          if (!r.updatedAt) return max;
+          return !max || r.updatedAt > max ? r.updatedAt : max;
+        }, null);
+        catalog.push({
+          name: "assumption-guardrails",
+          label: "Assumption Guardrails",
+          description:
+            "Plausibility low/high bounds Fabio reads to color the range-quality dot and decide the 'out of range' chip on every range badge across the app.",
+          sourceNote: "Code-seeded from server/seeds/assumption-guardrails.ts (migration 0055)",
+          rowCount: guardrailRows.length,
+          lastUpdatedAt: lastGuardrail?.toISOString() ?? null,
+        });
+      } catch {
+        // Table may not yet exist in some local DBs — skip rather than fail
+        // the whole catalog response.
+      }
 
       res.json(catalog);
     } catch (error: unknown) {

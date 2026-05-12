@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { CancelButton } from "@/components/ui/cancel-button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -102,7 +103,7 @@ export function IcpResearchSection({ enabled, onToggle }: IcpResearchSectionProp
                       />
                       <div className="flex gap-1.5">
                         <Button size="sm" variant="default" onClick={h.handleSaveEditQuestion} className="text-xs h-7" data-testid="button-save-edit-question">Save</Button>
-                        <Button size="sm" variant="ghost" onClick={() => h.setEditingQuestionId(null)} className="text-xs h-7">Cancel</Button>
+                        <CancelButton size="sm" onClick={() => h.setEditingQuestionId(null)} className="text-xs h-7" />
                       </div>
                     </div>
                   ) : (
@@ -207,9 +208,7 @@ export function IcpResearchSection({ enabled, onToggle }: IcpResearchSectionProp
                 <Button size="sm" variant="default" onClick={h.handleSaveEdit} disabled={h.updateMutation.isPending} className="text-xs h-8 gap-1.5" data-testid="button-save-edit">
                   Save Edit
                 </Button>
-                <Button size="sm" variant="ghost" onClick={h.handleCancelEdit} className="text-xs h-8" data-testid="button-cancel-edit">
-                  Cancel
-                </Button>
+                <CancelButton size="sm" onClick={h.handleCancelEdit} className="text-xs h-8" data-testid="button-cancel-edit" />
               </div>
             )}
             <Button size="sm" variant="outline" onClick={h.handleOptimize} disabled={h.isOptimizing || (!h.prompt && !h.editablePrompt)} className="text-xs h-8 gap-1.5" data-testid="button-optimize-prompt">

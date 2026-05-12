@@ -35,6 +35,7 @@ import type { WishListLogEntry } from "@workspace/db";
 import { storage } from "../storage";
 import { getAnthropicClient } from "../ai/clients";
 import { buildPropertyBrief, briefToPromptLines } from "./property-brief";
+import { resolveAsImprovedFacts } from "@engine/property/renovation-facts";
 import type { PropertyBrief } from "./property-brief";
 import { getGroupBriefFields } from "./slot-context-map";
 import type { DraftSlotKey, SlotBatchGroup } from "./slot-context-map";
@@ -337,7 +338,13 @@ function toSlideProperty(p: Record<string, unknown>): SlideProperty {
     businessModel: (p.businessModel as string) ?? "hotel",
     hospitalityType: (p.hospitalityType as string) ?? "",
     qualityTier: (p.qualityTier as string) ?? "",
-    description: (p.description as string) ?? "",
+    // Slide factory consumes the post-renovation hypothesis when present
+    // (Milestone B, task #1406) — the L+B deck pitches the As-Improved
+    // configuration. The resolver applies the central fallback rule
+    // (improved → purchased → legacy `description`).
+    description: resolveAsImprovedFacts(
+      p as unknown as Parameters<typeof resolveAsImprovedFacts>[0],
+    ).description ?? "",
     acquisitionStatus: (p.acquisitionStatus as string) ?? "pipeline",
     isHistoric: p.isHistoric as boolean | string | undefined,
     renovationScope: (p.renovationScope as string) ?? "",

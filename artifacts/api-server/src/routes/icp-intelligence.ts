@@ -15,8 +15,8 @@ import {
   buildFullIcpNarrative,
 } from "../ai/icp-intelligence";
 import { logger } from "../logger";
-import { getAnthropicClient } from "../ai/clients";
 import { resolveLlmFor } from "../ai/llm-config-resolver";
+import { generateText } from "../ai/dispatch";
 
 export function register(app: Express) {
 
@@ -116,18 +116,16 @@ export function register(app: Express) {
         code: "ICPI-007" });
       }
 
-      // LLM callback using the configured Anthropic client
-      const { modelId: icpModelId } = await resolveLlmFor("icp-intelligence");
+      // LLM callback dispatches to whichever vendor the icp-intelligence
+      // slot resolves to in admin_resources (anthropic / openai / google).
+      const { vendor: icpVendor, modelId: icpModelId } = await resolveLlmFor("icp-intelligence");
       const llmCallback = async (prompt: string): Promise<string> => {
-        const anthropic = getAnthropicClient();
-        if (!anthropic) throw new Error("Anthropic client not available");
-        const response = await anthropic.messages.create({
-          model: icpModelId,
-          max_tokens: 4096,
-          messages: [{ role: "user", content: prompt }],
+        const { text } = await generateText({
+          llm: { vendor: icpVendor, model: icpModelId },
+          prompt,
+          maxTokens: 4096,
         });
-        const textBlock = response.content.find((b) => b.type === "text");
-        return textBlock && "text" in textBlock ? textBlock.text : "";
+        return text;
       };
 
       const result = await generateIcp(properties, ga ?? null, { llmCallback });

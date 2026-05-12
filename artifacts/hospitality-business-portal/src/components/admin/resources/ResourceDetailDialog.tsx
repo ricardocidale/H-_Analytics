@@ -364,7 +364,9 @@ export function ResourceDetailDialog({ resourceId, onOpenChange }: Props) {
       return;
     }
     setIntelligenceSection(section);
-    setLocation("/intelligence");
+    // Encode the target section so refresh / share / back-forward stays on
+    // this Specialist instead of falling back to the default section.
+    setLocation(`/intelligence?section=${encodeURIComponent(section)}`);
     onOpenChange(false);
   }
 
