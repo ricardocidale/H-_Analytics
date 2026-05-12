@@ -31,7 +31,8 @@
  * Buffer came from.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { readFileSync, existsSync, rmSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 
 import {
@@ -42,6 +43,8 @@ import {
 import {
   SubstitutionMapSchema,
   SlotOverflowError,
+  MAX_TABLE_ROW_INDEX,
+  MAX_TABLE_COLUMN_INDEX,
   type SubstitutionMap,
 } from "../../slides/pptx-substitution-types";
 
@@ -71,7 +74,11 @@ const SYNTHETIC_ORIGINAL_LEN = SYNTHETIC_ORIGINAL.length;
 // Compute three replacement strings landing in each overflow band relative to
 // SYNTHETIC_ORIGINAL_LEN. Each length is named — no naked numbers.
 const PCT_DIVISOR = 100; // structural: percent → fraction
-const SHORTER_REPLACEMENT_LEN = SYNTHETIC_ORIGINAL_LEN - 5;
+// Arbitrary offset to land the "shorter" replacement comfortably under the
+// original length without going negative or hitting the overflow bands. 5
+// chars is a structural offset, not a contractual margin.
+const SHORTER_REPLACEMENT_OFFSET_CHARS = 5;
+const SHORTER_REPLACEMENT_LEN = SYNTHETIC_ORIGINAL_LEN - SHORTER_REPLACEMENT_OFFSET_CHARS;
 // Just inside the tighten band — overshoot strictly > tighten threshold,
 // strictly ≤ abort threshold. Use 12% as the test point.
 const SOFT_OVERFLOW_PCT = 12;
@@ -87,6 +94,32 @@ const HARD_OVERFLOW_LEN = Math.ceil(
 function stringOfLen(len: number, fill = "X"): string {
   return fill.repeat(len);
 }
+
+// ── Test constants (per CLAUDE.md §1 — named, no naked numerics) ───────────
+
+/**
+ * An arbitrary mid-deck slide number used in schema-acceptance fixtures.
+ * Nothing about the test depends on this being slide 5 specifically — any
+ * slide >1 distinguishes "two-slide map" coverage from the slide-2-only
+ * fixtures elsewhere in this file.
+ */
+const FIXTURE_SECONDARY_SLIDE = 5;
+
+/**
+ * Minimum byte count an output PPTX is expected to exceed. PPTX templates
+ * produced by pptx-automizer are >1 KB even for an empty deck; this is a
+ * structural sanity check (output is a real ZIP archive, not a stub buffer),
+ * not a substantive contract on size.
+ */
+const MIN_SUBSTITUTED_PPTX_BYTES = 1000;
+
+/**
+ * Per-test timeout (ms) for any substituteSlots case that round-trips
+ * pptx-automizer. The library's load + write on the 25 MB Belleayre fixture
+ * takes ~5-10 s on a cold start; 60 s is the U2 LibreOffice / pptx-automizer
+ * budget for headroom across CI variance.
+ */
+const SUBSTITUTION_TEST_TIMEOUT_MS = 60_000;
 
 // ── Setup / teardown ────────────────────────────────────────────────────────
 
@@ -155,6 +188,108 @@ describe("SubstitutionMapSchema (Carlo's validation contract)", () => {
     expect(result.success).toBe(false);
   });
 
+  it("accepts image payloads with supported mimeTypes (png, jpeg)", () => {
+    const png: unknown = [
+      {
+        slideNumber: FIXTURE_SLIDE,
+        shapeId: "Picture 35",
+        op: "image",
+        payload: {
+          image: Buffer.from([0]),
+          mimeType: "image/png",
+        },
+      },
+    ];
+    const jpeg: unknown = [
+      {
+        slideNumber: FIXTURE_SLIDE,
+        shapeId: "Picture 35",
+        op: "image",
+        payload: {
+          image: Buffer.from([0]),
+          mimeType: "image/jpeg",
+        },
+      },
+    ];
+    expect(SubstitutionMapSchema.safeParse(png).success).toBe(true);
+    expect(SubstitutionMapSchema.safeParse(jpeg).success).toBe(true);
+  });
+
+  it("rejects an image entry with an unsupported mimeType (e.g. image/webp)", () => {
+    const bad: unknown = [
+      {
+        slideNumber: FIXTURE_SLIDE,
+        shapeId: "Picture 35",
+        op: "image",
+        payload: {
+          image: Buffer.from([0]),
+          mimeType: "image/webp",
+        },
+      },
+    ];
+    const result = SubstitutionMapSchema.safeParse(bad);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const flat = JSON.stringify(result.error.issues);
+      expect(flat).toMatch(/mimeType|image\/png|image\/jpeg/i);
+    }
+  });
+
+  it("rejects table_cell entries whose indices exceed MAX bounds", () => {
+    const overRow: unknown = [
+      {
+        slideNumber: FIXTURE_SLIDE,
+        shapeId: "Table 12",
+        op: "table_cell",
+        payload: {
+          rowIndex: MAX_TABLE_ROW_INDEX + 1,
+          columnIndex: 0,
+          text: "x",
+        },
+      },
+    ];
+    const overCol: unknown = [
+      {
+        slideNumber: FIXTURE_SLIDE,
+        shapeId: "Table 12",
+        op: "table_cell",
+        payload: {
+          rowIndex: 0,
+          columnIndex: MAX_TABLE_COLUMN_INDEX + 1,
+          text: "x",
+        },
+      },
+    ];
+    const rowResult = SubstitutionMapSchema.safeParse(overRow);
+    expect(rowResult.success).toBe(false);
+    if (!rowResult.success) {
+      const flat = JSON.stringify(rowResult.error.issues);
+      expect(flat).toContain("MAX_TABLE_ROW_INDEX");
+    }
+    const colResult = SubstitutionMapSchema.safeParse(overCol);
+    expect(colResult.success).toBe(false);
+    if (!colResult.success) {
+      const flat = JSON.stringify(colResult.error.issues);
+      expect(flat).toContain("MAX_TABLE_COLUMN_INDEX");
+    }
+  });
+
+  it("accepts table_cell entries at the MAX boundary (inclusive)", () => {
+    const atBoundary: unknown = [
+      {
+        slideNumber: FIXTURE_SLIDE,
+        shapeId: "Table 12",
+        op: "table_cell",
+        payload: {
+          rowIndex: MAX_TABLE_ROW_INDEX,
+          columnIndex: MAX_TABLE_COLUMN_INDEX,
+          text: "x",
+        },
+      },
+    ];
+    expect(SubstitutionMapSchema.safeParse(atBoundary).success).toBe(true);
+  });
+
   it("rejects an unknown op value", () => {
     const bad: unknown = [
       {
@@ -177,7 +312,7 @@ describe("SubstitutionMapSchema (Carlo's validation contract)", () => {
         payload: { text: "Hello" },
       },
       {
-        slideNumber: 5,
+        slideNumber: FIXTURE_SECONDARY_SLIDE,
         shapeId: "Table 12",
         op: "table_cell",
         payload: { rowIndex: 0, columnIndex: 1, text: "x" },
@@ -321,10 +456,9 @@ describe("substituteSlots — happy path", () => {
       expect(Buffer.isBuffer(result.pptx)).toBe(true);
       // PPTX = ZIP archive — starts with "PK"
       expect(result.pptx.subarray(0, 2).toString("utf8")).toBe("PK");
-      expect(result.pptx.length).toBeGreaterThan(1000);
+      expect(result.pptx.length).toBeGreaterThan(MIN_SUBSTITUTED_PPTX_BYTES);
     },
-    // pptx-automizer's load + write round-trip on a 25 MB PPTX takes 5-10 s
-    60_000,
+    SUBSTITUTION_TEST_TIMEOUT_MS,
   );
 });
 
@@ -348,5 +482,140 @@ describe("substituteSlots — image swap", () => {
       // `pptx-substitution.ts#applyImageSubstitution`) but not exercised in
       // CI against the fragile fixture.
     },
+  );
+});
+
+// ── skipShapeLookup contract regression (CR PR #118 finding) ────────────────
+
+const FACTORY_V2_TMP_PREFIX = "factory-v2-substitute-";
+const LEGACY_FACTORY_V2_MEDIA_PREFIX = "factory-v2-media-";
+
+function listFactoryTmpDirs(): { substitute: string[]; legacyMedia: string[] } {
+  const all = readdirSync(tmpdir());
+  return {
+    substitute: all.filter((n) => n.startsWith(FACTORY_V2_TMP_PREFIX)),
+    legacyMedia: all.filter((n) => n.startsWith(LEGACY_FACTORY_V2_MEDIA_PREFIX)),
+  };
+}
+
+describe("substituteSlots — skipShapeLookup contract", () => {
+  it.skipIf(!FIXTURE_AVAILABLE)(
+    "applies substitutions (does not no-op) when skipShapeLookup is true",
+    async () => {
+      const map: SubstitutionMap = [
+        {
+          slideNumber: FIXTURE_SLIDE,
+          shapeId: FIXTURE_SHAPE_NAME_PLACEHOLDER,
+          op: "text",
+          slotKey: "slide2.propertyName",
+          payload: {
+            // The engine resolves `shapeId` via substring match against the
+            // placeholder text body, so "HAZELNIS" lands the substitution on
+            // the correct shape. No `originalText` is supplied so the
+            // pre-flight overflow check classifies the entry as "ok"
+            // (degenerate-budget path) — we're regressing the no-op contract,
+            // not overflow math.
+            text: "Belleayre Mountain — Ulster County Estate",
+          },
+        },
+      ];
+
+      const result = await substituteSlots(fixtureBuffer!, map, {
+        skipShapeLookup: true,
+      });
+
+      // The output PPTX must be the substituted product, not the input
+      // template (the historical bug returned the input verbatim).
+      expect(Buffer.isBuffer(result.pptx)).toBe(true);
+      expect(result.pptx.subarray(0, 2).toString("utf8")).toBe("PK");
+      // Differs from the input fixture — confirms substitution actually ran.
+      expect(result.pptx.equals(fixtureBuffer!)).toBe(false);
+    },
+    SUBSTITUTION_TEST_TIMEOUT_MS,
+  );
+
+  it.skipIf(!FIXTURE_AVAILABLE)(
+    "still throws SlotOverflowError under skipShapeLookup when overshoot exceeds abort threshold",
+    async () => {
+      const map: SubstitutionMap = [
+        {
+          slideNumber: FIXTURE_SLIDE,
+          shapeId: FIXTURE_SHAPE_NAME_PLACEHOLDER,
+          op: "text",
+          slotKey: "slide2.hardOverflow.skip",
+          payload: {
+            text: stringOfLen(HARD_OVERFLOW_LEN),
+            originalText: SYNTHETIC_ORIGINAL,
+          },
+        },
+      ];
+
+      await expect(
+        substituteSlots(fixtureBuffer!, map, { skipShapeLookup: true }),
+      ).rejects.toBeInstanceOf(SlotOverflowError);
+    },
+  );
+});
+
+// ── Tmpdir cleanup regression (CR PR #118 finding — disk leak) ──────────────
+
+describe("substituteSlots — working tmp dir cleanup", () => {
+  it.skipIf(!FIXTURE_AVAILABLE)(
+    "leaves no factory-v2-substitute-* or legacy factory-v2-media-* dirs on success",
+    async () => {
+      const beforeSubstitute = listFactoryTmpDirs().substitute;
+      const beforeLegacyMedia = listFactoryTmpDirs().legacyMedia;
+
+      const map: SubstitutionMap = [
+        {
+          slideNumber: FIXTURE_SLIDE,
+          shapeId: FIXTURE_SHAPE_NAME_PLACEHOLDER,
+          op: "text",
+          payload: { text: "After" },
+        },
+      ];
+      await substituteSlots(fixtureBuffer!, map);
+
+      const afterSubstitute = listFactoryTmpDirs().substitute;
+      const afterLegacyMedia = listFactoryTmpDirs().legacyMedia;
+      // No new factory-v2-substitute-* dir survived the call.
+      expect(afterSubstitute.length).toBe(beforeSubstitute.length);
+      // The legacy `/tmp/factory-v2-media-*` leak path is fully removed —
+      // image media is now staged inside the per-call workDir subdir.
+      expect(afterLegacyMedia.length).toBe(beforeLegacyMedia.length);
+    },
+    SUBSTITUTION_TEST_TIMEOUT_MS,
+  );
+
+  it.skipIf(!FIXTURE_AVAILABLE)(
+    "cleans up the working tmp dir even when substitution throws (hard overflow)",
+    async () => {
+      const before = listFactoryTmpDirs().substitute;
+
+      // A non-skipShapeLookup map that triggers a hard overflow via the
+      // template-lookup path. The engine creates `workDir`, loads the
+      // template, computes overflow against the actual shape text, and
+      // throws — the outer finally must still clean workDir.
+      const map: SubstitutionMap = [
+        {
+          slideNumber: FIXTURE_SLIDE,
+          shapeId: FIXTURE_SHAPE_NAME_PLACEHOLDER,
+          op: "text",
+          slotKey: "slide2.cleanupOnError",
+          payload: {
+            text: stringOfLen(HARD_OVERFLOW_LEN),
+            originalText: SYNTHETIC_ORIGINAL,
+          },
+        },
+      ];
+
+      await expect(substituteSlots(fixtureBuffer!, map)).rejects.toBeInstanceOf(
+        SlotOverflowError,
+      );
+
+      const after = listFactoryTmpDirs().substitute;
+      expect(after.length).toBe(before.length);
+    },
+    SUBSTITUTION_TEST_TIMEOUT_MS,
   );
 });

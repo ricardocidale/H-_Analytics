@@ -344,6 +344,20 @@
       "when": 1778561187303,
       "tag": "0050_factory_v2_runs_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1778733600000,
+      "tag": "0051_minion_self_test_runs",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1778820000000,
+      "tag": "0052_minion_self_test_cadence",
+      "breakpoints": true
     }
   ]
 }

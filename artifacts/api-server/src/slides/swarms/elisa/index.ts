@@ -16,6 +16,7 @@ import type { SlideTeamInput, SlideTeamOutput } from "../types";
 import { runElisaReader } from "./reader";
 import { runElisaBuilder } from "./builder";
 import { runElisaInspector } from "./inspector";
+import { buildSlide5SubstitutionEntries } from "../../builder-substitution-entries";
 
 export async function runElisaTeam(input: SlideTeamInput): Promise<SlideTeamOutput> {
   logger.info(`[elisa] run ${input.runId} — starting slide 5 triad`, "slide-factory");
@@ -34,6 +35,7 @@ export async function runElisaTeam(input: SlideTeamInput): Promise<SlideTeamOutp
       slideNumber: input.slideNumber,
       status: "fail",
       payloadV2: null,
+      substitutionEntries: [],
       notes: `Builder error: ${msg}`,
     };
   }
@@ -49,6 +51,7 @@ export async function runElisaTeam(input: SlideTeamInput): Promise<SlideTeamOutp
       slideNumber: input.slideNumber,
       status: "fail",
       payloadV2: payload,
+      substitutionEntries: buildSlide5SubstitutionEntries(payload),
       notes: `Inspector error: ${msg}`,
     };
   }
@@ -62,6 +65,7 @@ export async function runElisaTeam(input: SlideTeamInput): Promise<SlideTeamOutp
     slideNumber: input.slideNumber,
     status: verdict.status,
     payloadV2: payload,
+    substitutionEntries: buildSlide5SubstitutionEntries(payload),
     notes: verdict.notes,
   };
 }

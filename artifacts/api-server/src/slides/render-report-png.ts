@@ -43,6 +43,7 @@ import type {
   KpiSection,
   TableRow,
 } from "../report/types";
+import { logger } from "../logger";
 import { getBrowser } from "./playwright-browser";
 
 // ── Render constants (named per CLAUDE.md §1) ────────────────────────────────
@@ -61,6 +62,14 @@ export const DEFAULT_REPORT_DPR = 2;
 const CSS_FW_NORMAL = 500;
 const CSS_FW_MEDIUM = 600;
 const CSS_FW_BOLD = 700;
+
+/**
+ * Maximum scheme length we'll consider valid for logging. A URL "scheme"
+ * (`https`, `data`, `file`, …) is a short identifier per RFC 3986. Anything
+ * longer than 16 chars before the first colon is probably not a real scheme
+ * — log as `(no-scheme)` to avoid echoing attacker-controlled content.
+ */
+const MAX_SCHEME_LENGTH_FOR_LOG = 16;
 
 /** CSS table layout dimensions. */
 const CSS_TABLE_WIDTH_PCT = "100%";
@@ -103,6 +112,53 @@ function escapeHtml(s: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+/**
+ * SSRF mitigation for `<img src>` values in the rendered HTML.
+ *
+ * Threat model: `ReportDefinition` flows through the engine in production
+ * but the renderer is hermetic by contract — only `data:image/...` URLs are
+ * a valid input here. A `https://`, `http://`, `javascript:`, `file://`, or
+ * any other-scheme URL on `ImageSection.dataUrl` would coerce the headless
+ * Chromium context into an outbound fetch (or worse) — a server-side
+ * request-forgery surface keyed on an attacker-influenceable field.
+ *
+ * Returns the source unchanged if it starts with `data:image/`; otherwise
+ * `null`. The caller (`renderSection` `case "image"`) substitutes a
+ * placeholder `<div>` when this returns `null`, so the renderer never emits
+ * an `<img src>` that the browser can fetch.
+ *
+ * CodeRabbit PR #117 — `render-report-png.ts:~188` (img src SSRF).
+ */
+function sanitizeImageSrc(src: string): string | null {
+  if (typeof src === "string" && src.startsWith("data:image/")) {
+    return src;
+  }
+  // Surface the rejection in Sentry / log aggregation so operators see
+  // unexpected schemes from the engine. The renderer continues with a
+  // placeholder rather than throwing — `ReportDefinition` is engine-
+  // generated, so an unexpected scheme is a bug to surface, not a runtime
+  // failure that aborts the slide-factory run.
+  //
+  // Log derived metadata only (scheme + length), NOT the raw URL. The URL is
+  // (in principle) attacker-controlled if a malicious ReportDefinition ever
+  // reaches the renderer, and even truncated URL fragments can leak
+  // attacker-supplied content into centralized logs. CR finding on PR #119.
+  const scheme = typeof src === "string" ? extractScheme(src) : typeof src;
+  const length = typeof src === "string" ? src.length : 0;
+  logger.warn(
+    `rejected non-data-image src in ImageSection (scheme=${scheme}, length=${length})`,
+    "render-report-png",
+  );
+  return null;
+}
+
+/** Extract the URL scheme (everything before the first `:`) for safe logging. */
+function extractScheme(src: string): string {
+  const colonIdx = src.indexOf(":");
+  if (colonIdx === -1 || colonIdx > MAX_SCHEME_LENGTH_FOR_LOG) return "(no-scheme)";
+  return src.slice(0, colonIdx);
 }
 
 function rowClass(row: TableRow): string {
@@ -184,8 +240,16 @@ function renderSection(section: ReportSection): string {
       // Charts are out of scope for U5 — embed a placeholder so the section
       // index stays stable in the rendered output. Slide 6 only uses tables.
       return `<section class="report-chart"><h4>${escapeHtml(section.title)}</h4><div class="placeholder">[chart]</div></section>`;
-    case "image":
-      return `<section class="report-image"><h4>${escapeHtml(section.title)}</h4><img src="${escapeHtml(section.dataUrl)}" alt="${escapeHtml(section.title)}"/></section>`;
+    case "image": {
+      // SSRF mitigation: only `data:image/` schemes are emitted as `<img>`.
+      // Anything else renders a placeholder so the browser never fetches.
+      // See `sanitizeImageSrc` for the threat model.
+      const safeSrc = sanitizeImageSrc(section.dataUrl);
+      if (safeSrc === null) {
+        return `<section class="report-image"><h4>${escapeHtml(section.title)}</h4><div class="placeholder">[image]</div></section>`;
+      }
+      return `<section class="report-image"><h4>${escapeHtml(section.title)}</h4><img src="${escapeHtml(safeSrc)}" alt="${escapeHtml(section.title)}"/></section>`;
+    }
     default:
       return "";
   }

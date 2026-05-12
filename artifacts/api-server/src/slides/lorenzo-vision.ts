@@ -19,13 +19,13 @@ import type { AldoResult, AldoElement } from "./minions/aldo";
 import type { LorenzoTextBlock } from "./canonical-spec-types";
 import { CANONICAL_ASSETS } from "./canonical-assets";
 import {
-  LORENZO_VISION_MODEL,
   LORENZO_03_MAX_TOKENS,
   ALDO_LINE_GROUP_Y_THRESHOLD_PX,
   ALDO_CANVAS_WIDTH,
   ALDO_CANVAS_HEIGHT,
   TOTAL_SLIDES,
 } from "./deck-render-constants";
+import { resolveLorenzoVisionModelId } from "./factory-v2-llm-resolver";
 import { getStorageProviderAsync } from "../providers/storage";
 
 // ── Type for the tool's input_schema ────────────────────────────────────────
@@ -177,6 +177,7 @@ async function enrichSlide(
   pngBuffer: Buffer,
   words: AldoElement[],
   anthropic: Anthropic,
+  modelId: string,
 ): Promise<LorenzoTextBlock[]> {
   const lines = groupWordsIntoLines(words);
 
@@ -217,7 +218,7 @@ async function enrichSlide(
   };
 
   const response = await anthropic.messages.create({
-    model: LORENZO_VISION_MODEL,
+    model: modelId,
     max_tokens: LORENZO_03_MAX_TOKENS,
     system: "You are Lorenzo-03, a visual spec reconciler. Analyse slide images and produce structured canonical specs for an investor deck pipeline. Be precise with font metrics and bounding boxes.",
     messages: [userMessage],
@@ -264,6 +265,7 @@ async function enrichSlide(
 export async function runLorenzoVision(aldoResult: AldoResult): Promise<LorenzoTextBlock[][]> {
   const anthropic = getAnthropicClient();
   const storageProvider = await getStorageProviderAsync();
+  const modelId = await resolveLorenzoVisionModelId();
 
   const blocksBySlide: LorenzoTextBlock[][] = [];
 
@@ -280,7 +282,7 @@ export async function runLorenzoVision(aldoResult: AldoResult): Promise<LorenzoT
       CANONICAL_ASSETS.slide(slideNumber, "png"),
     );
 
-    const blocks = await enrichSlide(slideNumber, i, pngBuffer, slideWords, anthropic);
+    const blocks = await enrichSlide(slideNumber, i, pngBuffer, slideWords, anthropic, modelId);
     blocksBySlide.push(blocks);
 
     logger.info(

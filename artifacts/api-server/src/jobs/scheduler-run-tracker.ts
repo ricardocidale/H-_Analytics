@@ -13,6 +13,10 @@
 import { storage } from "../storage";
 import { logger } from "../logger";
 import { DEFAULT_COSTANTINO_HEALTH_CYCLE_INTERVAL_MS } from "@shared/constants";
+import {
+  DEFAULT_MINION_SELF_TEST_CYCLE_INTERVAL_MS,
+  MINION_SELF_TEST_SCHEDULER_KEY,
+} from "./minion-self-test-constants";
 
 /**
  * How many cycle intervals can elapse before a scheduler is considered
@@ -126,6 +130,13 @@ export const SCHEDULER_REGISTRY = [
     cycleIntervalMs: DEFAULT_COSTANTINO_HEALTH_CYCLE_INTERVAL_MS, // five-day fallback; true cadence is the admin-editable parameter row 'costantino-health-cycle-interval-ms'
     description:
       "Periodic agentic integration-health audit. Probes every kind in {api, source, mcp} that has a healthProbe recipe in admin_resources.config, records status+latency on the parent row, and writes findings rows for failures.",
+  },
+  {
+    key: MINION_SELF_TEST_SCHEDULER_KEY,
+    label: "Minion Self-Tests",
+    cycleIntervalMs: DEFAULT_MINION_SELF_TEST_CYCLE_INTERVAL_MS, // 6h fallback; true cadence is the admin-editable parameter row 'minion-self-test-cycle-interval-ms'
+    description:
+      "Runs every registered minion self-test (Aldo PDF extractor, Carlo Zod validator, Dino pixel-diff, Enzo content-hash) on a cadence and opens a costantino_findings row for any deterministic-helper regression so admins see them on the existing findings surface (Task #1397).",
   },
 ] as const;
 
@@ -252,6 +263,10 @@ export const SCHEDULER_DISPATCH: Record<SchedulerKey, () => Promise<unknown>> = 
   "costantino-data-custodian": async () => {
     const mod = await import("./costantino-scheduler");
     return mod.runCostantinoCycle();
+  },
+  [MINION_SELF_TEST_SCHEDULER_KEY]: async () => {
+    const mod = await import("./minion-self-test-scheduler");
+    return mod.runMinionSelfTestsCycle();
   },
 };
 

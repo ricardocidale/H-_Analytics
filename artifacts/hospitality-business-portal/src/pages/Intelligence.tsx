@@ -49,6 +49,9 @@ const AssumptionGuidancePage = lazy(() => import("@/pages/intelligence/Assumptio
 const KnowledgeRegistryPage = lazy(() => import("@/pages/intelligence/KnowledgeRegistryPage"));
 const CountryEconomicDataPage = lazy(() => import("@/pages/intelligence/CountryEconomicDataPage"));
 const UnifiedRunsPage = lazy(() => import("@/pages/intelligence/UnifiedRunsPage"));
+const AgentsRosterPage = lazy(() => import("@/pages/intelligence/AgentsRosterPage"));
+const SpecialistsRosterPage = lazy(() => import("@/pages/intelligence/SpecialistsRosterPage"));
+const MinionsRosterPage = lazy(() => import("@/pages/intelligence/MinionsRosterPage"));
 
 const REBECCA_SUB_TAB: Partial<Record<IntelligenceSection, string>> = {
   "ai-agents":      "configuration",
@@ -78,6 +81,9 @@ const sectionMeta: Record<IntelligenceSection, { title: string; subtitle: string
   "knowledge-registry":        { title: "Knowledge Registry",        subtitle: "Registry of knowledge sources and documents powering Intelligence" },
   "knowledge-registry-country-data": { title: "Country Economic Data", subtitle: "Inflation, FX rates, GDP growth, and interest rate data per country" },
   "runs":                      { title: "Run Log",                    subtitle: "Unified log of all agent runs — Analyst research, Slide Factory, and Iris" },
+  "roster-agents":             { title: "Agents",                     subtitle: "Every Agent in the system — status at a glance, with a live responsiveness probe per row." },
+  "roster-specialists":        { title: "Specialists",                subtitle: "Every research Specialist — status at a glance, with a live responsiveness probe per row." },
+  "roster-minions":            { title: "Minions",                    subtitle: "Deterministic helper minions used across pipelines. No LLM probe applies; shown for visibility." },
   "specialist-mgmt-co-funding":            { title: "Funding Intelligence",         subtitle: "" },
   "specialist-mgmt-co-revenue":            { title: "Revenue Intelligence",         subtitle: "" },
   "specialist-mgmt-co-compensation":       { title: "Compensation Intelligence",    subtitle: "" },
@@ -194,6 +200,9 @@ function SectionContent({ section }: { section: IntelligenceSection }) {
     case "knowledge-registry":             return <KnowledgeRegistryPage />;
     case "knowledge-registry-country-data": return <CountryEconomicDataPage />;
     case "runs":                           return <UnifiedRunsPage />;
+    case "roster-agents":                  return <AgentsRosterPage />;
+    case "roster-specialists":             return <SpecialistsRosterPage />;
+    case "roster-minions":                 return <MinionsRosterPage />;
     default: {
       if (isSpecialistSection(section)) {
         return <SpecialistPage specialistId={SPECIALIST_SECTION_TO_ID[section]} />;
@@ -227,6 +236,9 @@ const VALID_SECTIONS = new Set<IntelligenceSection>([
   "knowledge-registry",
   "knowledge-registry-country-data",
   "runs",
+  "roster-agents",
+  "roster-specialists",
+  "roster-minions",
 ]);
 
 export default function Intelligence() {

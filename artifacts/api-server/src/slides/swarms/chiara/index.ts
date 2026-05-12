@@ -14,6 +14,7 @@ import type { SlideTeamInput, SlideTeamOutput } from "../types";
 import { runChiaraReader } from "./reader";
 import { runChiaraBuilder } from "./builder";
 import { runChiaraInspector } from "./inspector";
+import { buildSlide3SubstitutionEntries } from "../../builder-substitution-entries";
 
 export async function runChiaraTeam(input: SlideTeamInput): Promise<SlideTeamOutput> {
   logger.info(`[chiara] run ${input.runId} — starting slide 3 triad`, "slide-factory");
@@ -32,6 +33,7 @@ export async function runChiaraTeam(input: SlideTeamInput): Promise<SlideTeamOut
       slideNumber: input.slideNumber,
       status: "fail",
       payloadV2: null,
+      substitutionEntries: [],
       notes: `Builder error: ${msg}`,
     };
   }
@@ -47,6 +49,7 @@ export async function runChiaraTeam(input: SlideTeamInput): Promise<SlideTeamOut
       slideNumber: input.slideNumber,
       status: "fail",
       payloadV2: payload,
+      substitutionEntries: buildSlide3SubstitutionEntries(payload),
       notes: `Inspector error: ${msg}`,
     };
   }
@@ -60,6 +63,7 @@ export async function runChiaraTeam(input: SlideTeamInput): Promise<SlideTeamOut
     slideNumber: input.slideNumber,
     status: verdict.status,
     payloadV2: payload,
+    substitutionEntries: buildSlide3SubstitutionEntries(payload),
     notes: verdict.notes,
   };
 }

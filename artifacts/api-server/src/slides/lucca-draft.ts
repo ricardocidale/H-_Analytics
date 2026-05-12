@@ -1,5 +1,5 @@
 /**
- * Lucca draft pipeline — Unit 4b real implementation.
+ * Lucca draft pipeline — Unit 4b real implementation + U8 best-shot extension.
  *
  * Status flow: drafting → draft_review (or error).
  *
@@ -12,20 +12,51 @@
  *   bullets   → "• text\n• text\n• text"
  *   reasons   → "Label: detail\n\nLabel: detail"
  *   rows      → "feature | existing | proposed\n..."
+ *
+ * ── U8 Best-shot mode ───────────────────────────────────────────────────────
+ *
+ * After each group's normal draft call, every slot's data-sufficiency is
+ * re-evaluated against the PropertyBrief. Slots that are missing required
+ * data (per `data-sufficiency-rules.ts`) trigger a best-shot LLM fallback
+ * which:
+ *   - Uses Opus 4.7 with a dedicated best-shot prompt (per slot intent)
+ *   - Emits the slot text PLUS a `wishListLog` array `[{ field, whyItHelps }]`
+ *   - Is retried once on transient LLM failures; surfaces "draft generation
+ *     failed" to the run as an empty draft otherwise.
+ *
+ * All wish-list entries collected across slots are persisted to
+ * `slide_factory_runs.wishListLog` for U9 (the wish-list slide builder).
  */
 import Anthropic from "@anthropic-ai/sdk";
 import { logger } from "../logger";
 import { getSlideFactoryRunById, updateSlideFactoryRun } from "../storage/slide-factory-runs";
 import type { LuccaSlotDraft } from "../storage/slide-factory-runs";
+import type { WishListLogEntry } from "@workspace/db";
 import { storage } from "../storage";
 import { getAnthropicClient } from "../ai/clients";
 import { buildPropertyBrief, briefToPromptLines } from "./property-brief";
+import type { PropertyBrief } from "./property-brief";
 import { getGroupBriefFields } from "./slot-context-map";
-import type { SlotBatchGroup } from "./slot-context-map";
+import type { DraftSlotKey, SlotBatchGroup } from "./slot-context-map";
 import { validateSlotOutput } from "./slot-output-validator";
 import type { SlideProperty } from "./types";
 import { DEFAULT_FALLBACK_OCCUPANCY } from "@shared/constants-benchmarks";
-import { LUCCA_DRAFT_MODEL, LUCCA_MAX_TOKENS } from "./deck-render-constants";
+import { LUCCA_MAX_TOKENS } from "./deck-render-constants";
+import { resolveLorenzoVisionModelId } from "./factory-v2-llm-resolver";
+import {
+  checkSlotDataSufficiency,
+} from "./data-sufficiency-rules";
+import {
+  buildBestShotTool,
+  buildBestShotUserPrompt,
+  LUCCA_BEST_SHOT_MAX_TOKENS,
+  LUCCA_BEST_SHOT_SYSTEM_PROMPT,
+  type BestShotBulletsOutput,
+  type BestShotReasonsOutput,
+  type BestShotRowsOutput,
+  type BestShotTextOutput,
+  type BestShotWishListLogEntry,
+} from "./lucca-best-shot-prompt";
 import {
   SLIDE1_HEADER_SUBTITLE_MAX,
   SLIDE1_VISION_BULLET_MAX,
@@ -45,6 +76,16 @@ import {
   SLIDE5_TRANSFORMATION_ROW_PROPOSED_MAX,
   SLIDE5_TRANSFORMATION_ROWS_COUNT,
 } from "@shared/deck-payload-v2";
+
+// ── Best-shot retry contract ─────────────────────────────────────────────────
+
+/**
+ * Number of attempts (initial call + one retry) for the best-shot LLM call
+ * per the U8 error-path contract. One retry on a transient LLM hiccup; on a
+ * second failure we surface "draft generation failed" to Marco as an empty
+ * draft.
+ */
+const LUCCA_DRAFT_MAX_RETRIES = 2;
 
 // ── Tool schemas ─────────────────────────────────────────────────────────────
 
@@ -313,6 +354,122 @@ function makeDraft(value: string): LuccaSlotDraft {
   return { value, approved: false, approvedAt: null, source: "lucca" };
 }
 
+// ── Best-shot caller (U8) ────────────────────────────────────────────────────
+
+/**
+ * Slot → 1-based slide number. Used to attach the slide number to each
+ * `WishListLogEntry` so the wish-list slide builder (U9) can render gaps in
+ * slide order. Sourced from the slot key prefix (`slide{N}.`) so we don't
+ * duplicate the assignment.
+ */
+function slideNumberFromSlotKey(slotKey: DraftSlotKey): number {
+  const match = slotKey.match(/^slide(\d+)\./);
+  if (!match) {
+    throw new Error(`slideNumberFromSlotKey: unparseable slot key ${slotKey}`);
+  }
+  return Number(match[1]);
+}
+
+/**
+ * Run the best-shot LLM call for a single slot. Returns the structured draft
+ * output (slot-shape-dependent) + a list of `WishListLogEntry` items the
+ * LLM identified as material gaps.
+ *
+ * Retries once on transient failures (network, tool-use missing). On a
+ * second failure the helper returns `null` and the caller surfaces an
+ * "empty draft + no wish entries" outcome for that slot.
+ */
+async function callBestShotLLM<
+  T extends
+    | BestShotTextOutput
+    | BestShotBulletsOutput
+    | BestShotReasonsOutput
+    | BestShotRowsOutput,
+>(
+  anthropic: Anthropic,
+  slotKey: DraftSlotKey,
+  brief: PropertyBrief,
+  missingFields: string[],
+): Promise<{ draft: T; wishListLog: WishListLogEntry[] } | null> {
+  const fields = getGroupBriefFields(
+    // Reuse the slot's batch group for the prompt context lines.
+    requireGroupForSlot(slotKey),
+  );
+  const context = briefToPromptLines(brief, fields);
+  const userPrompt = buildBestShotUserPrompt(slotKey, context, missingFields);
+  const tool = buildBestShotTool(slotKey);
+  const slideNumber = slideNumberFromSlotKey(slotKey);
+
+  const modelId = await resolveLorenzoVisionModelId();
+  const maxAttempts = LUCCA_DRAFT_MAX_RETRIES;
+  let lastErrorMessage: string | null = null;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      const response = await anthropic.messages.create({
+        model: modelId,
+        max_tokens: LUCCA_BEST_SHOT_MAX_TOKENS,
+        system: LUCCA_BEST_SHOT_SYSTEM_PROMPT,
+        messages: [{ role: "user", content: userPrompt }],
+        tools: [tool],
+        tool_choice: { type: "any" },
+      });
+
+      const toolBlock = response.content.find(
+        (b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
+      );
+      if (!toolBlock) {
+        lastErrorMessage = "no tool_use block in LLM response";
+        logger.warn(
+          `[lucca-best-shot] ${slotKey}: ${lastErrorMessage} (attempt ${attempt + 1}/${maxAttempts})`,
+          "slide-factory",
+        );
+        continue;
+      }
+
+      const input = toolBlock.input as {
+        draft: T;
+        wishListLog: BestShotWishListLogEntry[];
+      };
+
+      const wishListLog: WishListLogEntry[] = (input.wishListLog ?? []).map(
+        (entry) => ({
+          field: entry.field,
+          slot: slotKey,
+          slideNumber,
+          whyItHelps: entry.whyItHelps,
+        }),
+      );
+
+      return { draft: input.draft, wishListLog };
+    } catch (err: unknown) {
+      lastErrorMessage = err instanceof Error ? err.message : String(err);
+      logger.warn(
+        `[lucca-best-shot] ${slotKey}: LLM call threw ${lastErrorMessage} (attempt ${attempt + 1}/${maxAttempts})`,
+        "slide-factory",
+      );
+    }
+  }
+
+  logger.error(
+    `[lucca-best-shot] ${slotKey}: draft generation failed after ${maxAttempts} attempts — ${lastErrorMessage ?? "(no error message)"}`,
+    "slide-factory",
+  );
+  return null;
+}
+
+/**
+ * Map a DraftSlotKey to its batch group. Mirrors the SLOT_CONTEXT_MAP
+ * lookup but throws on unknown keys (DraftSlotKey is a closed union so
+ * this should be unreachable at runtime).
+ */
+function requireGroupForSlot(slotKey: DraftSlotKey): SlotBatchGroup {
+  if (slotKey.startsWith("slide1.")) return "vision";
+  if (slotKey.startsWith("slide2.")) return "operational";
+  if (slotKey.startsWith("slide3.")) return "investment";
+  if (slotKey.startsWith("slide5.")) return "transformation";
+  throw new Error(`requireGroupForSlot: unknown slot key ${slotKey}`);
+}
+
 // ── Group drafters ────────────────────────────────────────────────────────────
 
 async function draftVision(
@@ -332,8 +489,9 @@ async function draftVision(
   const fields = getGroupBriefFields("vision");
   const context = briefToPromptLines(brief, fields);
 
+  const modelId = await resolveLorenzoVisionModelId();
   const response = await anthropic.messages.create({
-    model: LUCCA_DRAFT_MODEL,
+    model: modelId,
     max_tokens: LUCCA_MAX_TOKENS,
     system: LUCCA_SYSTEM_PROMPT,
     messages: [{ role: "user", content: buildVisionPrompt(context) }],
@@ -391,8 +549,9 @@ async function draftOperational(
   const fields = getGroupBriefFields("operational");
   const context = briefToPromptLines(brief, fields);
 
+  const modelId = await resolveLorenzoVisionModelId();
   const response = await anthropic.messages.create({
-    model: LUCCA_DRAFT_MODEL,
+    model: modelId,
     max_tokens: LUCCA_MAX_TOKENS,
     system: LUCCA_SYSTEM_PROMPT,
     messages: [{ role: "user", content: buildOperationalPrompt(context) }],
@@ -454,8 +613,9 @@ async function draftInvestment(
   const fields = getGroupBriefFields("investment");
   const context = briefToPromptLines(brief, fields);
 
+  const modelId = await resolveLorenzoVisionModelId();
   const response = await anthropic.messages.create({
-    model: LUCCA_DRAFT_MODEL,
+    model: modelId,
     max_tokens: LUCCA_MAX_TOKENS,
     system: LUCCA_SYSTEM_PROMPT,
     messages: [{ role: "user", content: buildInvestmentPrompt(context) }],
@@ -521,8 +681,9 @@ async function draftTransformation(
   const fields = getGroupBriefFields("transformation");
   const context = briefToPromptLines(brief, fields);
 
+  const modelId = await resolveLorenzoVisionModelId();
   const response = await anthropic.messages.create({
-    model: LUCCA_DRAFT_MODEL,
+    model: modelId,
     max_tokens: LUCCA_MAX_TOKENS,
     system: LUCCA_SYSTEM_PROMPT,
     messages: [{ role: "user", content: buildTransformationPrompt(context) }],
@@ -667,6 +828,7 @@ export async function runLuccaDraft(runId: number): Promise<void> {
       propertyId: number | null;
       drafter: (anthropic: Anthropic, propId: number) => Promise<Record<string, LuccaSlotDraft>>;
       emptyFn: () => Record<string, LuccaSlotDraft>;
+      slotKeys: DraftSlotKey[];
     }> = [
       {
         group: "vision",
@@ -676,6 +838,7 @@ export async function runLuccaDraft(runId: number): Promise<void> {
           "slide1.headerSubtitle": emptyDraft(),
           "slide1.visionBullets": emptyDraft(),
         }),
+        slotKeys: ["slide1.headerSubtitle", "slide1.visionBullets"],
       },
       {
         group: "operational",
@@ -686,6 +849,11 @@ export async function runLuccaDraft(runId: number): Promise<void> {
           "slide2.revenueBullet": emptyDraft(),
           "slide2.programmingBullet": emptyDraft(),
         }),
+        slotKeys: [
+          "slide2.operationalModelText",
+          "slide2.revenueBullet",
+          "slide2.programmingBullet",
+        ],
       },
       {
         group: "investment",
@@ -697,18 +865,33 @@ export async function runLuccaDraft(runId: number): Promise<void> {
           "slide3.reasons": emptyDraft(),
           "slide3.closingLine": emptyDraft(),
         }),
+        slotKeys: [
+          "slide3.conceptParagraph",
+          "slide3.marketRationale",
+          "slide3.reasons",
+          "slide3.closingLine",
+        ],
       },
       {
         group: "transformation",
         propertyId: run.slide5PropertyId,
         drafter: draftTransformation,
         emptyFn: buildEmptyTransformationDrafts,
+        slotKeys: [
+          "slide5.transformationDescription",
+          "slide5.transformationRows",
+          "slide5.transformationRows[0]",
+          "slide5.transformationRows[1]",
+          "slide5.transformationRows[2]",
+          "slide5.transformationRows[3]",
+        ],
       },
     ];
 
     const draft: Record<string, LuccaSlotDraft> = {};
+    const wishListLog: WishListLogEntry[] = [];
 
-    for (const { group, propertyId, drafter, emptyFn } of GROUP_PROPERTY_MAP) {
+    for (const { group, propertyId, drafter, emptyFn, slotKeys } of GROUP_PROPERTY_MAP) {
       if (propertyId == null) {
         logger.info(`[lucca] ${group}: no property assigned — empty stubs`, "slide-factory");
         Object.assign(draft, emptyFn());
@@ -719,14 +902,50 @@ export async function runLuccaDraft(runId: number): Promise<void> {
       const groupDraft = await drafter(anthropic, propertyId);
       Object.assign(draft, groupDraft);
       logger.info(`[lucca] ${group} group done`, "slide-factory");
+
+      // U8 best-shot pass — for each slot whose required data is missing,
+      // overwrite the normal draft (often empty/sparse) with a best-shot
+      // LLM call and collect wish-list entries.
+      const prop = await storage.getProperty(propertyId);
+      if (!prop) continue;
+      const brief = buildPropertyBrief(toSlideProperty(prop as Record<string, unknown>));
+
+      for (const slotKey of slotKeys) {
+        const sufficiency = checkSlotDataSufficiency(slotKey, brief);
+        if (sufficiency.sufficient) continue;
+
+        logger.info(
+          `[lucca-best-shot] ${slotKey}: data insufficient, missing=[${sufficiency.missingFields.join(", ")}]`,
+          "slide-factory",
+        );
+
+        const replacement = await runBestShotForSlot(
+          anthropic,
+          slotKey,
+          brief,
+          sufficiency.missingFields,
+        );
+        if (replacement) {
+          draft[slotKey] = replacement.draft;
+          // Repopulate aggregate / row keys when a structured slot is best-shot.
+          for (const [extraKey, extraDraft] of Object.entries(replacement.extraDrafts)) {
+            draft[extraKey] = extraDraft;
+          }
+          wishListLog.push(...replacement.wishListLog);
+        }
+      }
     }
 
     await updateSlideFactoryRun(runId, {
       luccaDraft: draft,
+      wishListLog,
       status: "draft_review",
     });
 
-    logger.info(`[lucca] run ${runId} draft complete — ${Object.keys(draft).length} slots`, "slide-factory");
+    logger.info(
+      `[lucca] run ${runId} draft complete — ${Object.keys(draft).length} slots, ${wishListLog.length} wish-list entries`,
+      "slide-factory",
+    );
   } catch (err: unknown) {
     logger.error(`[lucca] run ${runId} draft failed: ${String(err)}`, "slide-factory");
     try {
@@ -735,4 +954,150 @@ export async function runLuccaDraft(runId: number): Promise<void> {
       // best-effort
     }
   }
+}
+
+/**
+ * Run a best-shot LLM call for a single slot, validate the structured
+ * output with Carlo (validateSlotOutput), and return the serialized draft +
+ * any wish-list entries the LLM identified. Returns null when the LLM call
+ * fails after the configured retries.
+ *
+ * For aggregate slots (visionBullets, reasons, transformationRows), this
+ * helper also returns the per-row drafts (e.g.,
+ * `slide5.transformationRows[0..3]`) so the row-keyed draft set stays
+ * synchronized with the aggregate.
+ */
+async function runBestShotForSlot(
+  anthropic: Anthropic,
+  slotKey: DraftSlotKey,
+  brief: PropertyBrief,
+  missingFields: string[],
+): Promise<
+  | {
+      draft: LuccaSlotDraft;
+      extraDrafts: Record<string, LuccaSlotDraft>;
+      wishListLog: WishListLogEntry[];
+    }
+  | null
+> {
+  // Aggregate keys — best-shot fills the parent key only; per-row keys are
+  // re-emitted from the parent value below.
+  const isTransformationRowChild = /^slide5\.transformationRows\[\d+\]$/.test(slotKey);
+  if (isTransformationRowChild) {
+    // Skip — the parent `slide5.transformationRows` best-shot already wrote
+    // all four row children; processing them again would re-bill the LLM.
+    return null;
+  }
+
+  // Branch by slot output shape. Each shape consumes the BestShot* generic.
+  if (
+    slotKey === "slide1.visionBullets"
+  ) {
+    const result = await callBestShotLLM<BestShotBulletsOutput>(
+      anthropic,
+      slotKey,
+      brief,
+      missingFields,
+    );
+    if (!result) return null;
+    const validated = validateSlotOutput(slotKey, result.draft);
+    if (!validated.ok) {
+      logger.warn(
+        `[lucca-best-shot] ${slotKey} validation: ${validated.errors.join("; ")}`,
+        "slide-factory",
+      );
+      return null;
+    }
+    const serialized = serializeBullets(validated.value);
+    return {
+      draft: makeDraft(serialized),
+      extraDrafts: {},
+      wishListLog: result.wishListLog,
+    };
+  }
+
+  if (slotKey === "slide3.reasons") {
+    const result = await callBestShotLLM<BestShotReasonsOutput>(
+      anthropic,
+      slotKey,
+      brief,
+      missingFields,
+    );
+    if (!result) return null;
+    const validated = validateSlotOutput(slotKey, result.draft);
+    if (!validated.ok) {
+      logger.warn(
+        `[lucca-best-shot] ${slotKey} validation: ${validated.errors.join("; ")}`,
+        "slide-factory",
+      );
+      return null;
+    }
+    const serialized = serializeReasons(validated.value);
+    return {
+      draft: makeDraft(serialized),
+      extraDrafts: {},
+      wishListLog: result.wishListLog,
+    };
+  }
+
+  if (slotKey === "slide5.transformationRows") {
+    const result = await callBestShotLLM<BestShotRowsOutput>(
+      anthropic,
+      slotKey,
+      brief,
+      missingFields,
+    );
+    if (!result) return null;
+    const validated = validateSlotOutput(slotKey, result.draft);
+    if (!validated.ok) {
+      logger.warn(
+        `[lucca-best-shot] ${slotKey} validation: ${validated.errors.join("; ")}`,
+        "slide-factory",
+      );
+      return null;
+    }
+    const rowsValue = validated.value as {
+      rows: Array<{ feature: string; existing: string; proposed: string }>;
+    };
+    const aggregate = serializeRows(rowsValue);
+    const extraDrafts: Record<string, LuccaSlotDraft> = {};
+    const rowKeys = [
+      "slide5.transformationRows[0]",
+      "slide5.transformationRows[1]",
+      "slide5.transformationRows[2]",
+      "slide5.transformationRows[3]",
+    ] as const;
+    for (let i = 0; i < rowKeys.length; i++) {
+      const row = rowsValue.rows[i];
+      extraDrafts[rowKeys[i]] = row ? makeDraft(serializeRow(row)) : emptyDraft();
+    }
+    return {
+      draft: makeDraft(aggregate),
+      extraDrafts,
+      wishListLog: result.wishListLog,
+    };
+  }
+
+  // All other slot keys produce a single text field.
+  const result = await callBestShotLLM<BestShotTextOutput>(
+    anthropic,
+    slotKey,
+    brief,
+    missingFields,
+  );
+  if (!result) return null;
+  const validated = validateSlotOutput(slotKey, result.draft);
+  if (!validated.ok) {
+    logger.warn(
+      `[lucca-best-shot] ${slotKey} validation: ${validated.errors.join("; ")}`,
+      "slide-factory",
+    );
+    return null;
+  }
+  const text = (validated.value as { text: string }).text;
+  return {
+    draft: makeDraft(text),
+    extraDrafts: {},
+    wishListLog: result.wishListLog,
+  };
 }

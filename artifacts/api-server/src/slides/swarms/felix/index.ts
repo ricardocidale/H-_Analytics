@@ -25,6 +25,7 @@ import { runFelixValidate } from "./validate";
 import { runFelixFormat } from "./format";
 import { runFelixBuilder } from "./builder";
 import { runFelixInspector } from "./inspector";
+import { buildSlide6SubstitutionEntries } from "../../builder-substitution-entries";
 
 export async function runFelixTeam(input: SlideTeamInput): Promise<SlideTeamOutput> {
   logger.info(`[felix] run ${input.runId} — starting slide 6 (expanded to 5)`, "slide-factory");
@@ -40,6 +41,7 @@ export async function runFelixTeam(input: SlideTeamInput): Promise<SlideTeamOutp
       slideNumber: input.slideNumber,
       status: "block",
       payloadV2: null,
+      substitutionEntries: [],
       notes: validResult.error,
     };
   }
@@ -58,6 +60,7 @@ export async function runFelixTeam(input: SlideTeamInput): Promise<SlideTeamOutp
       slideNumber: input.slideNumber,
       status: "fail",
       payloadV2: null,
+      substitutionEntries: [],
       notes: `Builder error: ${msg}`,
     };
   }
@@ -73,6 +76,7 @@ export async function runFelixTeam(input: SlideTeamInput): Promise<SlideTeamOutp
       slideNumber: input.slideNumber,
       status: "fail",
       payloadV2: payload,
+      substitutionEntries: buildSlide6SubstitutionEntries(payload),
       notes: `Inspector error: ${msg}`,
     };
   }
@@ -86,6 +90,7 @@ export async function runFelixTeam(input: SlideTeamInput): Promise<SlideTeamOutp
     slideNumber: input.slideNumber,
     status: verdict.status,
     payloadV2: payload,
+    substitutionEntries: buildSlide6SubstitutionEntries(payload),
     notes: verdict.notes,
   };
 }

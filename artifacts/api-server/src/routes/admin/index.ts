@@ -26,6 +26,8 @@ import { registerBulkDraftRunRoutes } from "./bulk-draft-runs";
 import { registerKnowledgeRegistryRoutes } from "./knowledge-registry";
 import { registerIrisRoutes } from "./iris";
 import { registerComplianceRoutes } from "./compliance";
+import { registerAgentRosterRoutes } from "./agent-roster";
+import { registerMinionSelfTestRoutes } from "./minion-self-tests";
 
 export function register(app: Express) {
   registerUserRoutes(app);
@@ -58,4 +60,6 @@ export function register(app: Express) {
   registerKnowledgeRegistryRoutes(app);
   registerIrisRoutes(app);
   registerComplianceRoutes(app);
+  registerAgentRosterRoutes(app);
+  registerMinionSelfTestRoutes(app);
 }

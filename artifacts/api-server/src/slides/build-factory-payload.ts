@@ -397,3 +397,56 @@ export function buildFactoryPayload(run: SlideFactoryRun): DeckPayloadV2 {
     slide6: buildSlide6(luccaDraft),
   };
 }
+
+// ── Factory v2 U6 — substitution-map assembly ─────────────────────────────
+//
+// U4's substitution engine takes a `SubstitutionMap` (array of
+// `SubstitutionEntry`). U6 wires in the slide-6 income-statement embed via
+// `buildSlide6ImageSubstitutionEntry`. Later units (U8) will rewire the
+// per-slide swarm Builders to emit text/table_cell entries; the assembler
+// here is the seam they will plug into.
+//
+// `assembleFactorySubstitutionMap` is the v2 analogue of the legacy
+// `LbSlidePayload` composite. It returns the substitution-map array
+// instead of `DeckPayloadV2` because U4's engine consumes the map directly.
+// Today it produces a single-entry map (slide 6 only); as U8 lands, the
+// per-slide swarm outputs are appended.
+
+/**
+ * Collect the run's directly-assigned property ids (slides 2, 3, 4, 5 —
+ * the single-property slides under the v2 schema) into a deduped, ordered
+ * list. Excludes nullish ids.
+ *
+ * Semantic note: this helper returns the **assigned-only** subset. The
+ * legacy `buildSlide6Payload` path in `build-lb-payload.ts` aggregates over
+ * **all** portfolio properties via `storage.getAllProperties(undefined)` —
+ * different semantics, different call site. U6's
+ * `buildSlide6ImageSubstitutionEntry` accepts a `propertyIds: number[]`
+ * argument so the caller chooses semantics; this helper is one option,
+ * not a mandate. U8 will decide which semantics the v2 slide-6 path
+ * adopts (likely all-portfolio to match the legacy pro forma, but that's
+ * an explicit U8 decision).
+ *
+ * The v2 plan adds slide 4 (Hazelnis spotlight) as a single-property
+ * assignment; that column lands in U3's schema migration. The defensive
+ * `slide4PropertyId` coercion handles run rows that predate the migration
+ * — a no-op once U3 has shipped.
+ */
+export function collectFactoryPropertyIds(run: SlideFactoryRun): number[] {
+  const candidates: Array<number | null | undefined> = [
+    run.slide2PropertyId,
+    run.slide3PropertyId,
+    // U3 column — may be undefined on pre-migration rows.
+    (run as unknown as { slide4PropertyId?: number | null }).slide4PropertyId,
+    run.slide5PropertyId,
+  ];
+  const ids: number[] = [];
+  const seen = new Set<number>();
+  for (const id of candidates) {
+    if (typeof id === "number" && id > 0 && !seen.has(id)) {
+      ids.push(id);
+      seen.add(id);
+    }
+  }
+  return ids;
+}

@@ -17,6 +17,7 @@ import { logger } from "../../../logger";
 import type { SlideTeamInput, SlideTeamOutput } from "../types";
 import { runDarioBuilder } from "./builder";
 import { runDarioInspector } from "./inspector";
+import { buildSlide4SubstitutionEntries } from "../../builder-substitution-entries";
 
 export async function runDarioTeam(input: SlideTeamInput): Promise<SlideTeamOutput> {
   logger.info(`[dario] run ${input.runId} — starting slide 4 (collapsed to 2)`, "slide-factory");
@@ -32,6 +33,7 @@ export async function runDarioTeam(input: SlideTeamInput): Promise<SlideTeamOutp
       slideNumber: input.slideNumber,
       status: "fail",
       payloadV2: null,
+      substitutionEntries: [],
       notes: `Builder error: ${msg}`,
     };
   }
@@ -47,6 +49,7 @@ export async function runDarioTeam(input: SlideTeamInput): Promise<SlideTeamOutp
       slideNumber: input.slideNumber,
       status: "fail",
       payloadV2: payload,
+      substitutionEntries: buildSlide4SubstitutionEntries(payload),
       notes: `Inspector error: ${msg}`,
     };
   }
@@ -60,6 +63,7 @@ export async function runDarioTeam(input: SlideTeamInput): Promise<SlideTeamOutp
     slideNumber: input.slideNumber,
     status: verdict.status,
     payloadV2: payload,
+    substitutionEntries: buildSlide4SubstitutionEntries(payload),
     notes: verdict.notes,
   };
 }

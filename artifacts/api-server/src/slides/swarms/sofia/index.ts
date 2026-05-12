@@ -14,6 +14,7 @@ import type { SlideTeamInput, SlideTeamOutput } from "../types";
 import { runSofiaReader } from "./reader";
 import { runSofiaBuilder } from "./builder";
 import { runSofiaInspector } from "./inspector";
+import { buildSlide1SubstitutionEntries } from "../../builder-substitution-entries";
 
 export async function runSofiaTeam(input: SlideTeamInput): Promise<SlideTeamOutput> {
   logger.info(`[sofia] run ${input.runId} — starting slide 1 triad`, "slide-factory");
@@ -32,6 +33,7 @@ export async function runSofiaTeam(input: SlideTeamInput): Promise<SlideTeamOutp
       slideNumber: input.slideNumber,
       status: "fail",
       payloadV2: null,
+      substitutionEntries: [],
       notes: `Builder error: ${msg}`,
     };
   }
@@ -47,6 +49,7 @@ export async function runSofiaTeam(input: SlideTeamInput): Promise<SlideTeamOutp
       slideNumber: input.slideNumber,
       status: "fail",
       payloadV2: payload,
+      substitutionEntries: buildSlide1SubstitutionEntries(payload),
       notes: `Inspector error: ${msg}`,
     };
   }
@@ -60,6 +63,7 @@ export async function runSofiaTeam(input: SlideTeamInput): Promise<SlideTeamOutp
     slideNumber: input.slideNumber,
     status: verdict.status,
     payloadV2: payload,
+    substitutionEntries: buildSlide1SubstitutionEntries(payload),
     notes: verdict.notes,
   };
 }

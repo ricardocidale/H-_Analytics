@@ -192,7 +192,7 @@ function buildNavGroups(): NavGroup[] {
       icon: IconSliders,
       description: "Default values and constants applied to new entities and financial model",
       sections: [
-        { value: "defaults-management-company", label: "Management Company", icon: IconBriefcase },
+        { value: "defaults-management-company", label: "Management Co.",    icon: IconBriefcase },
         { value: "defaults-property",           label: "Property",           icon: IconProperties },
         { value: "constants",                   label: "Constants",          icon: IconCalculator },
         { value: "analyst-tables",              label: "Analyst Tables",     icon: IconBrain },

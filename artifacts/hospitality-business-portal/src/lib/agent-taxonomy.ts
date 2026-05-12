@@ -114,12 +114,6 @@ export const MINIONS = {
     role: "Schema Validator",
     description: "Zod schema validation — font metrics and types",
   },
-  bruno: {
-    id: "bruno",
-    label: "Bruno",
-    role: "Utility",
-    description: "Pipeline utility",
-  },
   dino: {
     id: "dino",
     label: "Dino",
@@ -129,8 +123,8 @@ export const MINIONS = {
   enzo: {
     id: "enzo",
     label: "Enzo",
-    role: "Utility",
-    description: "Pipeline utility",
+    role: "Verdict Cache Checker",
+    description: "Slot content-hash check — reuses prior Maya verdict when slide content is unchanged",
   },
 } as const;
 

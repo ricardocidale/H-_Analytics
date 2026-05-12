@@ -14,6 +14,7 @@ import type { SlideTeamInput, SlideTeamOutput } from "../types";
 import { runBiancaReader } from "./reader";
 import { runBiancaBuilder } from "./builder";
 import { runBiancaInspector } from "./inspector";
+import { buildSlide2SubstitutionEntries } from "../../builder-substitution-entries";
 
 export async function runBiancaTeam(input: SlideTeamInput): Promise<SlideTeamOutput> {
   logger.info(`[bianca] run ${input.runId} — starting slide 2 triad`, "slide-factory");
@@ -32,6 +33,7 @@ export async function runBiancaTeam(input: SlideTeamInput): Promise<SlideTeamOut
       slideNumber: input.slideNumber,
       status: "fail",
       payloadV2: null,
+      substitutionEntries: [],
       notes: `Builder error: ${msg}`,
     };
   }
@@ -47,6 +49,7 @@ export async function runBiancaTeam(input: SlideTeamInput): Promise<SlideTeamOut
       slideNumber: input.slideNumber,
       status: "fail",
       payloadV2: payload,
+      substitutionEntries: buildSlide2SubstitutionEntries(payload),
       notes: `Inspector error: ${msg}`,
     };
   }
@@ -60,6 +63,7 @@ export async function runBiancaTeam(input: SlideTeamInput): Promise<SlideTeamOut
     slideNumber: input.slideNumber,
     status: verdict.status,
     payloadV2: payload,
+    substitutionEntries: buildSlide2SubstitutionEntries(payload),
     notes: verdict.notes,
   };
 }

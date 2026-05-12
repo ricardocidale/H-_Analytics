@@ -18,9 +18,9 @@ import { logger } from "../../../logger";
 import { slide5PayloadSchema } from "@shared/deck-payload-v2";
 import type { Slide5Payload } from "@shared/deck-payload-v2";
 import {
-  LORENZO_VISION_MODEL,
   SWARM_INSPECTOR_MAX_TOKENS,
 } from "../../deck-render-constants";
+import { resolveLorenzoVisionModelId } from "../../factory-v2-llm-resolver";
 import { getStorageProviderAsync } from "../../../providers/storage";
 
 // ── Inspector verdict ────────────────────────────────────────────────────────
@@ -106,9 +106,10 @@ export async function runElisaInspector(
       .join("\n") ?? "  (none)");
 
   const anthropic = getAnthropicClient();
+  const modelId = await resolveLorenzoVisionModelId();
 
   const response = await anthropic.messages.create({
-    model: LORENZO_VISION_MODEL,
+    model: modelId,
     max_tokens: SWARM_INSPECTOR_MAX_TOKENS,
     system:
       "You are Elisa-03, the Slide 5 Inspector for the H+ Analysis investor deck factory. " +

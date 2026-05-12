@@ -18,9 +18,9 @@ import { logger } from "../../../logger";
 import { slide4PayloadSchema } from "@shared/deck-payload-v2";
 import type { Slide4Payload } from "@shared/deck-payload-v2";
 import {
-  LORENZO_VISION_MODEL,
   SWARM_INSPECTOR_MAX_TOKENS,
 } from "../../deck-render-constants";
+import { resolveLorenzoVisionModelId } from "../../factory-v2-llm-resolver";
 import { getStorageProviderAsync } from "../../../providers/storage";
 
 // ── Inspector verdict ────────────────────────────────────────────────────────
@@ -100,9 +100,10 @@ export async function runDarioInspector(
   }`;
 
   const anthropic = getAnthropicClient();
+  const modelId = await resolveLorenzoVisionModelId();
 
   const response = await anthropic.messages.create({
-    model: LORENZO_VISION_MODEL,
+    model: modelId,
     max_tokens: SWARM_INSPECTOR_MAX_TOKENS,
     system:
       "You are Dario-02, the Slide 4 Inspector for the H+ Analysis investor deck factory. " +
