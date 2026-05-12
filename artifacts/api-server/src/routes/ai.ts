@@ -10,6 +10,8 @@ import { logger } from "../logger";
 import type { ResearchConfig } from "@workspace/db";
 import { HTTP_503_SERVICE_UNAVAILABLE, MAX_AI_PROMPT_INPUT_CHARS } from "../constants";
 
+const MAX_OPTIMIZE_TOKENS = 8192;
+
 const rewriteSchema = z.object({
   text: z.string().min(1).max(5000),
   propertyName: z.string().optional(),
