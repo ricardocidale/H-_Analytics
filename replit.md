@@ -110,6 +110,24 @@ All agents, minions, and orchestrators in H+ Analytics use human first names fro
 
 ---
 
+## Natural-language commands — CodeRabbit loop
+
+Six slash commands for iterative CR review loops. Install globally once from H+ Analytics:
+`pnpm coderabbit-loop:install`  — copies commands → `~/.claude/commands/`, helpers → `~/.local/share/coderabbit-loop/`
+
+Full operator detail: `docs/runbooks/coderabbit-loop-workflow.md`
+
+| Natural-language phrase | Slash command | pnpm equivalent |
+|---|---|---|
+| "turn coderabbit loop on", "arm the loop", "enable coderabbit" | `/coderabbit-loop-on` | `pnpm coderabbit-loop:on` |
+| "turn coderabbit loop off", "disarm the loop", "disable coderabbit" | `/coderabbit-loop-off` | `pnpm coderabbit-loop:off` |
+| "coderabbit loop status", "is the loop on", "loop state" | `/coderabbit-loop-status` | `pnpm coderabbit-loop:status` |
+| "coderabbit loop help", "what are the loop commands" | `/coderabbit-loop-help` | `pnpm coderabbit-loop:help` |
+| "run coderabbit review loop", "review my working tree", "start review loop" | `/coderabbit-loop-review` | `pnpm coderabbit-loop:review` |
+| "run coderabbit autofix", "loop with autofix", "autofix my PR" | `/coderabbit-loop-autofix` | `pnpm coderabbit-loop:autofix` |
+
+---
+
 ## Recent Significant Changes
 
 <!-- keep ≤ 3 entries; remove oldest when adding new ones -->

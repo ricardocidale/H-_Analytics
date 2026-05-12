@@ -11,6 +11,13 @@
   },
   "scripts": {
     "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
+    "coderabbit-loop:on": "bash scripts/coderabbit-loop.sh on",
+    "coderabbit-loop:off": "bash scripts/coderabbit-loop.sh off",
+    "coderabbit-loop:status": "bash scripts/coderabbit-loop.sh status",
+    "coderabbit-loop:help": "bash scripts/coderabbit-loop.sh help",
+    "coderabbit-loop:review": "bash scripts/coderabbit-loop-review.sh",
+    "coderabbit-loop:autofix": "bash scripts/coderabbit-loop-autofix.sh",
+    "coderabbit-loop:install": "bash scripts/install-coderabbit-loop.sh",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
