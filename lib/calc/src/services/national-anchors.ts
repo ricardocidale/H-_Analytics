@@ -95,6 +95,85 @@ export const TEMPLATE_TO_SERVICE_LINES: Readonly<Record<string, readonly Nationa
   "Revenue Management":        ["revenue_management"],
 };
 
+/**
+ * Map property-engine cost-rate field names → the single national service line
+ * that anchors them.
+ *
+ * Only three property cost rates have a direct national benchmark counterpart:
+ *   housekeeping  → costRateRooms      (rooms dept: housekeeping + front desk)
+ *   maintenance   → costRatePropertyOps (property ops & maintenance)
+ *   food_beverage → costRateFB         (F&B operating cost)
+ *
+ * Other cost rates (admin, utilities, taxes, IT, FFE, insurance, other) are
+ * either fixed-overhead categories with no vendor-feed equivalent, or are
+ * country-specific (taxes) and therefore excluded from this overlay.
+ */
+export const PROPERTY_COST_RATE_TO_SERVICE_LINE: Readonly<{
+  costRateRooms: NationalServiceLine;
+  costRatePropertyOps: NationalServiceLine;
+  costRateFB: NationalServiceLine;
+}> = {
+  costRateRooms:       "housekeeping",
+  costRatePropertyOps: "maintenance",
+  costRateFB:          "food_beverage",
+};
+
+/**
+ * The three property-level cost rates that can be sourced from national feeds.
+ * A value of `null` signals "not yet resolved / use model default" —
+ * the overlay fills these from DB benchmarks, falling back to hardcoded anchors.
+ */
+export interface PropertyCostRateAnchors {
+  costRateRooms: number;
+  costRatePropertyOps: number;
+  costRateFB: number;
+}
+
+/**
+ * Derive property-level cost rate anchors from national vendor cost rows.
+ *
+ * Reads the `housekeeping`, `maintenance`, and `food_beverage` service lines
+ * from the resolved cost map and returns them as property engine cost rate
+ * values. DB rows take precedence over hardcoded anchors (via `resolveCostMap`).
+ *
+ * Returns a `PropertyCostRateAnchors` object — no markup math required here,
+ * because the property engine consumes cost rates directly (not cost-plus
+ * multipliers like the service templates do).
+ */
+export function derivePropertyCostAnchors(
+  vendorRows: readonly NationalVendorCostInput[],
+): PropertyCostRateAnchors {
+  const costMap = resolveCostMap(vendorRows);
+  return {
+    costRateRooms:       costMap[PROPERTY_COST_RATE_TO_SERVICE_LINE.costRateRooms],
+    costRatePropertyOps: costMap[PROPERTY_COST_RATE_TO_SERVICE_LINE.costRatePropertyOps],
+    costRateFB:          costMap[PROPERTY_COST_RATE_TO_SERVICE_LINE.costRateFB],
+  };
+}
+
+/**
+ * Overlay national cost-rate anchors onto a single property's optional cost
+ * rates. Only null / undefined slots are filled — explicit numeric values from
+ * the property record are preserved unchanged, honoring the operator's override.
+ *
+ * Designed to be called before the engine so that national benchmarks act as
+ * the intelligent default when the operator has not explicitly configured a rate.
+ */
+export function overlayNationalCostAnchorsOnProperty<
+  T extends {
+    costRateRooms?: number | null;
+    costRateFB?: number | null;
+    costRatePropertyOps?: number | null;
+  },
+>(property: T, anchors: PropertyCostRateAnchors): T {
+  return {
+    ...property,
+    costRateRooms:       property.costRateRooms       ?? anchors.costRateRooms,
+    costRateFB:          property.costRateFB          ?? anchors.costRateFB,
+    costRatePropertyOps: property.costRatePropertyOps ?? anchors.costRatePropertyOps,
+  };
+}
+
 /** Minimal shape of a benchmark row consumed by the overlay. */
 export interface NationalVendorCostInput {
   serviceLine: string;

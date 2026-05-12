@@ -10,8 +10,11 @@ import { describe, expect, it } from "vitest";
 import {
   NATIONAL_MARKUP_FACTOR_ANCHORS,
   NATIONAL_VENDOR_COST_ANCHORS,
+  PROPERTY_COST_RATE_TO_SERVICE_LINE,
   TEMPLATE_TO_SERVICE_LINES,
+  derivePropertyCostAnchors,
   deriveTemplateMarkupsFromNationalBenchmarks,
+  overlayNationalCostAnchorsOnProperty,
   overlayNationalMarkupsOnTemplates,
 } from "./national-anchors.js";
 import type { ServiceTemplate } from "./types.js";
@@ -154,5 +157,135 @@ describe("overlayNationalMarkupsOnTemplates", () => {
       expect(t.name).toBe(TEMPLATES[i].name);
       expect(t.serviceModel).toBe(TEMPLATES[i].serviceModel);
     });
+  });
+});
+
+// ── Task #1484: property cost rate anchor tests ────────────────────────────
+
+describe("derivePropertyCostAnchors — fallback path (DB empty)", () => {
+  it("returns the hardcoded anchor for each of the three mapped rates", () => {
+    const anchors = derivePropertyCostAnchors([]);
+    expect(anchors.costRateRooms).toBeCloseTo(
+      NATIONAL_VENDOR_COST_ANCHORS[PROPERTY_COST_RATE_TO_SERVICE_LINE.costRateRooms],
+      12,
+    );
+    expect(anchors.costRatePropertyOps).toBeCloseTo(
+      NATIONAL_VENDOR_COST_ANCHORS[PROPERTY_COST_RATE_TO_SERVICE_LINE.costRatePropertyOps],
+      12,
+    );
+    expect(anchors.costRateFB).toBeCloseTo(
+      NATIONAL_VENDOR_COST_ANCHORS[PROPERTY_COST_RATE_TO_SERVICE_LINE.costRateFB],
+      12,
+    );
+  });
+
+  it("hardcoded anchor values match expected USALI/STR benchmarks", () => {
+    const anchors = derivePropertyCostAnchors([]);
+    // housekeeping=9%, maintenance=4%, food_beverage=6% (STR HOST 2024)
+    expect(anchors.costRateRooms).toBeCloseTo(0.09, 12);
+    expect(anchors.costRatePropertyOps).toBeCloseTo(0.04, 12);
+    expect(anchors.costRateFB).toBeCloseTo(0.06, 12);
+  });
+});
+
+describe("derivePropertyCostAnchors — DB-populated path", () => {
+  it("uses DB rows in preference to hardcoded anchors", () => {
+    const vendorRows = [
+      { serviceLine: "housekeeping",  costPctRevenue: 0.11 },
+      { serviceLine: "maintenance",   costPctRevenue: 0.05 },
+      { serviceLine: "food_beverage", costPctRevenue: 0.08 },
+    ];
+    const anchors = derivePropertyCostAnchors(vendorRows);
+    expect(anchors.costRateRooms).toBeCloseTo(0.11, 12);
+    expect(anchors.costRatePropertyOps).toBeCloseTo(0.05, 12);
+    expect(anchors.costRateFB).toBeCloseTo(0.08, 12);
+  });
+
+  it("falls back to hardcoded anchor for service lines missing from DB", () => {
+    const vendorRows = [{ serviceLine: "housekeeping", costPctRevenue: 0.11 }];
+    const anchors = derivePropertyCostAnchors(vendorRows);
+    expect(anchors.costRateRooms).toBeCloseTo(0.11, 12);
+    expect(anchors.costRatePropertyOps).toBeCloseTo(NATIONAL_VENDOR_COST_ANCHORS.maintenance, 12);
+    expect(anchors.costRateFB).toBeCloseTo(NATIONAL_VENDOR_COST_ANCHORS.food_beverage, 12);
+  });
+
+  it("uses newest row when multiple periods exist for the same service line", () => {
+    const vendorRows = [
+      { serviceLine: "housekeeping", costPctRevenue: 0.12 }, // newest
+      { serviceLine: "housekeeping", costPctRevenue: 0.99 }, // older — ignored
+    ];
+    const anchors = derivePropertyCostAnchors(vendorRows);
+    expect(anchors.costRateRooms).toBeCloseTo(0.12, 12);
+  });
+
+  it("ignores invalid (non-finite or negative) DB rows and falls back to anchor", () => {
+    const vendorRows = [
+      { serviceLine: "housekeeping", costPctRevenue: Number.NaN },
+      { serviceLine: "maintenance",  costPctRevenue: -0.01 },
+    ];
+    const anchors = derivePropertyCostAnchors(vendorRows);
+    expect(anchors.costRateRooms).toBeCloseTo(NATIONAL_VENDOR_COST_ANCHORS.housekeeping, 12);
+    expect(anchors.costRatePropertyOps).toBeCloseTo(NATIONAL_VENDOR_COST_ANCHORS.maintenance, 12);
+  });
+});
+
+describe("overlayNationalCostAnchorsOnProperty", () => {
+  const ANCHORS = { costRateRooms: 0.09, costRatePropertyOps: 0.04, costRateFB: 0.06 };
+
+  it("fills null cost rates with national anchors", () => {
+    const property = { costRateRooms: null, costRateFB: null, costRatePropertyOps: null };
+    const result = overlayNationalCostAnchorsOnProperty(property, ANCHORS);
+    expect(result.costRateRooms).toBe(0.09);
+    expect(result.costRateFB).toBe(0.06);
+    expect(result.costRatePropertyOps).toBe(0.04);
+  });
+
+  it("fills undefined cost rates with national anchors", () => {
+    const property: {
+      costRateRooms?: number | null;
+      costRateFB?: number | null;
+      costRatePropertyOps?: number | null;
+    } = {};
+    const result = overlayNationalCostAnchorsOnProperty(property, ANCHORS);
+    expect(result.costRateRooms).toBe(0.09);
+    expect(result.costRateFB).toBe(0.06);
+    expect(result.costRatePropertyOps).toBe(0.04);
+  });
+
+  it("preserves explicit numeric overrides (DB-populated path)", () => {
+    const property = { costRateRooms: 0.25, costRateFB: 0.15, costRatePropertyOps: 0.07 };
+    const result = overlayNationalCostAnchorsOnProperty(property, ANCHORS);
+    expect(result.costRateRooms).toBe(0.25);
+    expect(result.costRateFB).toBe(0.15);
+    expect(result.costRatePropertyOps).toBe(0.07);
+  });
+
+  it("mixes anchors (for null rates) and user overrides (for numeric rates)", () => {
+    const property = { costRateRooms: 0.25, costRateFB: null, costRatePropertyOps: null };
+    const result = overlayNationalCostAnchorsOnProperty(property, ANCHORS);
+    expect(result.costRateRooms).toBe(0.25);   // user override preserved
+    expect(result.costRateFB).toBe(0.06);       // anchor filled
+    expect(result.costRatePropertyOps).toBe(0.04); // anchor filled
+  });
+
+  it("treats zero as an explicit override (0 !== null)", () => {
+    const property = { costRateRooms: 0, costRateFB: 0, costRatePropertyOps: 0 };
+    const result = overlayNationalCostAnchorsOnProperty(property, ANCHORS);
+    expect(result.costRateRooms).toBe(0);
+    expect(result.costRateFB).toBe(0);
+    expect(result.costRatePropertyOps).toBe(0);
+  });
+
+  it("does not mutate the original property object", () => {
+    const property = {
+      costRateRooms: null as number | null,
+      costRateFB: null as number | null,
+      costRatePropertyOps: null as number | null,
+      name: "Test Hotel",
+    };
+    const result = overlayNationalCostAnchorsOnProperty(property, ANCHORS);
+    expect(property.costRateRooms).toBeNull(); // original untouched
+    expect(result.name).toBe("Test Hotel");    // extra fields preserved
+    expect(result.costRateRooms).toBe(0.09);   // overlay applied to copy
   });
 });

@@ -12,7 +12,7 @@ import { getAcquisitionYear, calculateLoanParams } from "@engine/debt/loanCalcul
 import type { LoanParams, GlobalLoanParams } from "@engine/debt/loanCalculations";
 import { computeSensitivityAnalysis } from "../finance/sensitivity";
 import { withModelConstants } from "../finance/apply-model-constants";
-import { withNationalBenchmarks } from "../finance/apply-national-benchmarks";
+import { withNationalBenchmarks, withPropertyCostAnchors } from "../finance/apply-national-benchmarks";
 import { getCacheStatus, invalidateComputeCache, resetCacheStats, computeCacheKey } from "../finance/cache";
 import { requireAuth, requireAdmin, isApiRateLimited, getAuthUser } from "../auth";
 import { logger } from "../logger";
@@ -88,11 +88,14 @@ const propertyInputSchema = z.object({
   dispositionCommission: z.number().nullable().optional(),
   operatingReserve: z.number().nullable().optional(),
   refinanceYearsAfterAcquisition: z.number().nullable().optional(),
-  costRateRooms: z.number(),
-  costRateFB: z.number(),
+  // Task #1484: nullable so national-benchmark overlay can distinguish "not
+  // explicitly set" (null → anchor from Gaetano feed) from "user override"
+  // (number → preserved). Other cost rates stay required (no feed mapping).
+  costRateRooms: z.number().nullable().optional(),
+  costRateFB: z.number().nullable().optional(),
   costRateAdmin: z.number(),
   costRateMarketing: z.number(),
-  costRatePropertyOps: z.number(),
+  costRatePropertyOps: z.number().nullable().optional(),
   costRateUtilities: z.number(),
   costRateTaxes: z.number(),
   costRateIT: z.number(),
@@ -460,6 +463,14 @@ export function registerFinanceRoutes(router: Router): void {
       // Falls back to hardcoded national anchors when the DB tables are empty.
       const serviceTemplates = await withNationalBenchmarks(rawServiceTemplates);
 
+      // Task #1484: overlay national vendor cost percentages onto the three
+      // property cost rates that have a direct service-line counterpart
+      // (housekeeping→costRateRooms, maintenance→costRatePropertyOps,
+      //  food_beverage→costRateFB). Only null/undefined slots are filled —
+      // explicit numeric values from the client are preserved as-is.
+      // Falls back to hardcoded national anchors when the DB table is empty.
+      const propertiesWithCostAnchors = await withPropertyCostAnchors(properties);
+
       // Resolve the bracket mix: explicit request-body override (used by the
       // ICP page to preview the impact of a proposed mix on partner take-home
       // and portfolio IRR) wins over the persisted mix in global_assumptions.
@@ -491,7 +502,7 @@ export function registerFinanceRoutes(router: Router): void {
       // means using the wrapper, never the raw engine function.
       const { result, auditTrails } = await recomputePortfolioWithAuditAndStamp(
         {
-          properties: properties as unknown as PropertyInput[],
+          properties: propertiesWithCostAnchors as unknown as PropertyInput[],
           globalAssumptions: globalAssumptions as GlobalInput,
           projectionYears,
           serviceTemplates,
@@ -535,7 +546,7 @@ export function registerFinanceRoutes(router: Router): void {
       // canonical aggregateUnifiedByYear path. The client reads these values
       // directly and does not re-run the IRR solver.
       const returnsSummary = computeReturnsSummary(
-        properties as unknown as PropertyInput[],
+        propertiesWithCostAnchors as unknown as PropertyInput[],
         globalAssumptions as GlobalInput,
         result.perPropertyMonthly,
         result.projectionYears,
@@ -576,9 +587,15 @@ export function registerFinanceRoutes(router: Router): void {
       // Overlay admin-governed Model Constants before engine call.
       const globalAssumptions = await withModelConstants(rawGlobal);
 
+      // Task #1484: overlay national cost-rate anchors onto the three nullable
+      // property cost rates before the engine runs.
+      const [propertyWithCostAnchors] = await withPropertyCostAnchors([
+        applyDescriptorView({ ...property, id: routeId } as Record<string, unknown>),
+      ]);
+
       // Engine recompute + DB freshness stamp travel together — see
       // server/finance/recompute.ts.
-      const stampedProperty = applyDescriptorView({ ...property, id: routeId } as Record<string, unknown>) as unknown as PropertyInput;
+      const stampedProperty = propertyWithCostAnchors as unknown as PropertyInput;
       const result = await recomputeSinglePropertyAndStamp({
         property: stampedProperty,
         globalAssumptions: globalAssumptions as GlobalInput,

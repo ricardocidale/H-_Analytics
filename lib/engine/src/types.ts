@@ -70,11 +70,18 @@ export interface PropertyInput {
   // Refinance timing
   refinanceYearsAfterAcquisition?: number | null;
   // Operating Cost Rates
-  costRateRooms: number;
-  costRateFB: number;
+  // costRateRooms, costRateFB, costRatePropertyOps are nullable so that the
+  // server-side national-benchmark overlay can distinguish "not explicitly set
+  // by the user" (null → national anchor wins) from "explicitly configured"
+  // (number → user's value is preserved). The engine's resolve-assumptions.ts
+  // falls back to modelDefaults when null, which is always pre-empted by the
+  // overlay in the finance route. All other cost rates remain required because
+  // they have no corresponding national benchmark service line.
+  costRateRooms?: number | null;
+  costRateFB?: number | null;
   costRateAdmin: number;
   costRateMarketing: number;
-  costRatePropertyOps: number;
+  costRatePropertyOps?: number | null;
   costRateUtilities: number;
   costRateTaxes: number;
   costRateIT: number;
