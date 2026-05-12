@@ -39,7 +39,7 @@ Today the only working CodeRabbit workflow on `main` is the manual curl-trigger-
 - Editing `.coderabbit.yaml` (GitHub-bot config) — existing `path_filters` / `path_instructions` already work.
 - Editing any existing CE skill SKILL.md — this plan composes a wrapper around the existing `ce-resolve-pr-feedback` pattern; it does not edit it.
 - Updating `docs/discipline/agent-native-parity-map.md` — these are dev-only commands, not product UI; parity discipline does not apply.
-- A seventh `loop-abort` / `loop-resume` slash command — resume falls out of the watcher's state files; no separate UI in this plan.
+- A seventh `loop-abort` / `loop-resume` slash command — with the synchronous architecture re-invocation starts fresh; true mid-loop resume (reading state files to continue from a prior iteration) is deferred.
 - Re-deriving the operating-mode doc / toggle contract from task-1385.
 - Adding GitHub Actions or CI changes — local shell only.
 - Re-architecting `ce-resolve-pr-feedback`.
