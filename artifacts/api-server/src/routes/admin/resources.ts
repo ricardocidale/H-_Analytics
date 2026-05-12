@@ -63,6 +63,9 @@ function validateHealthProbeUrl(config: Record<string, unknown>): string | null 
   return null;
 }
 
+const SELF_TEST_INTERVAL_MIN_DAYS = 1;
+const SELF_TEST_INTERVAL_MAX_DAYS = 365;
+
 const updateResourceSchema = z.object({
   displayName: z.string().min(1).optional(),
   description: z.string().nullable().optional(),
@@ -70,7 +73,7 @@ const updateResourceSchema = z.object({
   secretRef: z.string().min(1).nullable().optional(),
   // Per-entity self-test cadence override in days (Task #1459). 1–365.
   // null clears the override and falls back to the 30-day system default.
-  selfTestIntervalDays: z.number().int().min(1).max(365).nullable().optional(),
+  selfTestIntervalDays: z.number().int().min(SELF_TEST_INTERVAL_MIN_DAYS).max(SELF_TEST_INTERVAL_MAX_DAYS).nullable().optional(),
   changeSummary: z.string().min(1).optional(),
 });
 

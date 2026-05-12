@@ -40,9 +40,9 @@ export const DEFAULT_MINION_SELF_TEST_CYCLE_INTERVAL_MS = 30 * 24 * 60 * 60 * 10
 // DB: fixed lower bound — architectural safety clamp, not admin-configurable
 export const DEFAULT_MINION_SELF_TEST_MIN_CYCLE_INTERVAL_MS = 60 * 1000;
 
-/** Upper clamp on the cadence — 7 days. */
+/** Upper clamp on the cadence — matches the default 30-day cycle so the default is reachable. */
 // DB: fixed upper bound — architectural safety clamp, not admin-configurable
-export const DEFAULT_MINION_SELF_TEST_MAX_CYCLE_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
+export const DEFAULT_MINION_SELF_TEST_MAX_CYCLE_INTERVAL_MS = DEFAULT_MINION_SELF_TEST_CYCLE_INTERVAL_MS;
 
 /** target_kind value used on costantino_findings rows opened by the minion self-test scheduler. */
 export const MINION_FINDING_TARGET_KIND = "minion";
