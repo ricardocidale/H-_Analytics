@@ -1,7 +1,7 @@
 ---
 title: "fix: CodeRabbit follow-ups from PR-117 (U5) and PR-118 (U4)"
 type: fix
-status: active
+status: completed
 date: 2026-05-11
 ---
 
