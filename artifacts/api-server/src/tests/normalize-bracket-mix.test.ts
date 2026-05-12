@@ -2,7 +2,9 @@
  * Direct unit tests for `normalizePersistedBracketMix`.
  *
  * Task #1428 follow-up — code review asked for explicit coverage of the
- * normalizer at the persisted-shape boundary.
+ * normalizer at the persisted-shape boundary (catalog API shape vs.
+ * bracket-assignment minion shape, plus mixed splitting and invalid
+ * inputs.
  *
  * Task #1486 — Both writers now emit BracketMixData. The old flat-array
  * (catalog-API) branch has been removed from the normalizer. Tests updated
@@ -32,8 +34,12 @@ describe("normalizePersistedBracketMix", () => {
       expect(normalizePersistedBracketMix(undefined)).toBeNull();
     });
 
-    it("returns null for an empty object", () => {
-      expect(normalizePersistedBracketMix({})).toBeNull();
+    it("returns null for an empty array", () => {
+      expect(normalizePersistedBracketMix([])).toBeNull();
+    });
+
+    it("returns null for an empty array", () => {
+      expect(normalizePersistedBracketMix([])).toBeNull();
     });
 
     it("returns null for an object without an `entries` array", () => {
@@ -44,14 +50,9 @@ describe("normalizePersistedBracketMix", () => {
       expect(normalizePersistedBracketMix({ entries: [] })).toBeNull();
     });
 
-    it("returns null for the old flat-array shape (no longer written)", () => {
-      // Flat arrays were the old catalog-API format. After icp-brackets-002
-      // migration they no longer appear in production, and the normalizer
-      // only handles BracketMixData now.
+    it("returns null for an array of unrecognized objects", () => {
       expect(
-        normalizePersistedBracketMix([
-          { bracketSlug: "boutique-luxury", weight: HOTEL_WEIGHT },
-        ]),
+        normalizePersistedBracketMix([{ foo: 1 }, { bar: "baz" }]),
       ).toBeNull();
     });
 
@@ -65,8 +66,158 @@ describe("normalizePersistedBracketMix", () => {
     });
   });
 
-  describe("canonical BracketMixData shape", () => {
-    it("passes a hotel entry through and synthesizes a `full` profile", () => {
+  describe("catalog-API shape", () => {
+    it("passes valid catalog entries through and returns null brackets", () => {
+      const result = normalizePersistedBracketMix([
+        { bracketSlug: "boutique-luxury", weight: HOTEL_WEIGHT },
+        { bracketSlug: "str-portfolio", weight: STR_WEIGHT },
+      ]);
+
+      expect(result).not.toBeNull();
+      expect(result?.brackets).toBeNull();
+      expect(result?.bracketMix).toEqual([
+        { bracketSlug: "boutique-luxury", weight: HOTEL_WEIGHT },
+        { bracketSlug: "str-portfolio", weight: STR_WEIGHT },
+      ]);
+    });
+
+    it("filters out malformed catalog entries", () => {
+      const result = normalizePersistedBracketMix([
+        { bracketSlug: "ok", weight: HOTEL_WEIGHT },
+        { bracketSlug: 123, weight: HOTEL_WEIGHT },
+        { weight: HOTEL_WEIGHT },
+        "garbage",
+      ]);
+
+      expect(result?.bracketMix).toEqual([
+        { bracketSlug: "ok", weight: HOTEL_WEIGHT },
+      ]);
+      expect(result?.brackets).toBeNull();
+    });
+  });
+
+  describe("minion shape", () => {
+    it("synthesizes a `full` profile for a hotel entry", () => {
+      const result = normalizePersistedBracketMix({
+        entries: [
+          {
+            id: "hotel-bracket-1",
+            name: "Luxury Boutique",
+            serviceConsumption: "hotel",
+            weight: HOTEL_WEIGHT,
+          },
+        ],
+      });
+
+      expect(result?.bracketMix).toEqual([
+        { bracketSlug: "hotel-bracket-1", weight: HOTEL_WEIGHT },
+      ]);
+      expect(result?.brackets).toEqual([
+        {
+          slug: "hotel-bracket-1",
+          name: "Luxury Boutique",
+          customerType: "hotel",
+          serviceConsumptionProfile: "full",
+        },
+      ]);
+    });
+
+    it("synthesizes a `str_only` profile for an STR entry", () => {
+      const result = normalizePersistedBracketMix({
+        entries: [
+          {
+            id: "str-bracket-1",
+            name: "STR Portfolio",
+            serviceConsumption: "str",
+            weight: STR_WEIGHT,
+          },
+        ],
+      });
+
+      expect(result?.bracketMix).toEqual([
+        { bracketSlug: "str-bracket-1", weight: STR_WEIGHT },
+      ]);
+      expect(result?.brackets).toEqual([
+        {
+          slug: "str-bracket-1",
+          name: "STR Portfolio",
+          customerType: "str",
+          serviceConsumptionProfile: "str_only",
+        },
+      ]);
+    });
+
+    it("splits a `mixed` entry 50/50 across synthetic full + str_only profiles", () => {
+      const result = normalizePersistedBracketMix({
+        entries: [
+          {
+            id: "mixed-bracket-1",
+            name: "Mixed Use",
+            serviceConsumption: "mixed",
+            weight: MIXED_WEIGHT,
+          },
+        ],
+      });
+
+      expect(result?.bracketMix).toEqual([
+        {
+          bracketSlug: "mixed-bracket-1__mixed-hotel",
+          weight: MIXED_WEIGHT * HALF,
+        },
+        {
+          bracketSlug: "mixed-bracket-1__mixed-str",
+          weight: MIXED_WEIGHT * HALF,
+        },
+      ]);
+      expect(result?.brackets).toEqual([
+        {
+          slug: "mixed-bracket-1__mixed-hotel",
+          name: "Mixed Use",
+          customerType: "hotel",
+          serviceConsumptionProfile: "full",
+        },
+        {
+          slug: "mixed-bracket-1__mixed-str",
+          name: "Mixed Use",
+          customerType: "str",
+          serviceConsumptionProfile: "str_only",
+        },
+      ]);
+    });
+  });
+
+  describe("catalog-API shape", () => {
+    it("passes valid catalog entries through and returns null brackets", () => {
+      const result = normalizePersistedBracketMix([
+        { bracketSlug: "boutique-luxury", weight: HOTEL_WEIGHT },
+        { bracketSlug: "str-portfolio", weight: STR_WEIGHT },
+      ]);
+
+      expect(result).not.toBeNull();
+      expect(result?.brackets).toBeNull();
+      expect(result?.bracketMix).toEqual([
+        { bracketSlug: "boutique-luxury", weight: HOTEL_WEIGHT },
+        { bracketSlug: "str-portfolio", weight: STR_WEIGHT },
+      ]);
+    });
+
+    it("filters out malformed catalog entries", () => {
+      const result = normalizePersistedBracketMix([
+        { bracketSlug: "ok", weight: HOTEL_WEIGHT },
+        { bracketSlug: 123, weight: HOTEL_WEIGHT },
+        { weight: HOTEL_WEIGHT },
+        "garbage",
+      ]);
+
+      expect(result?.bracketMix).toEqual([
+        { bracketSlug: "ok", weight: HOTEL_WEIGHT },
+      ]);
+      expect(result?.brackets).toBeNull();
+    });
+  });
+
+  describe("minion shape", () => {
+    it("synthesizes a `full` profile for a hotel entry", () => {
       const result = normalizePersistedBracketMix({
         entries: [
           {
@@ -181,7 +332,6 @@ describe("normalizePersistedBracketMix", () => {
         { bracketSlug: "hotel-bracket-1", weight: 1 },
       ]);
     });
-
     it("falls back to entry id as name when name is absent", () => {
       const result = normalizePersistedBracketMix({
         entries: [
@@ -212,7 +362,17 @@ describe("normalizePersistedBracketMix", () => {
       expect(result?.brackets?.map((b) => b.slug)).toEqual(["keep"]);
     });
 
-    it("returns null when every entry is filtered out", () => {
+    it("returns null when every minion entry is filtered out", () => {
+      const result = normalizePersistedBracketMix({
+        entries: [
+          { id: "zero", serviceConsumption: "hotel", weight: 0 },
+        ],
+      });
+
+      expect(result).toBeNull();
+    });
+
+    it("returns null when every minion entry is filtered out", () => {
       const result = normalizePersistedBracketMix({
         entries: [
           { id: "zero", serviceConsumption: "hotel", weight: 0 },
@@ -223,6 +383,8 @@ describe("normalizePersistedBracketMix", () => {
     });
 
     it("rejects an entries object containing malformed entries", () => {
+      // Entire object fails the type guard if any entry is malformed —
+      // matching the conservative behavior of `isMinionData`.
       const result = normalizePersistedBracketMix({
         entries: [
           { id: "ok", serviceConsumption: "hotel", weight: HOTEL_WEIGHT },

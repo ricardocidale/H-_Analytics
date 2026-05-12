@@ -36,6 +36,7 @@ import { getEffectivePropertyView } from "@workspace/db";
 function applyDescriptorView<T extends Record<string, unknown>>(p: T): T {
   return getEffectivePropertyView(p) as T;
 }
+
 import type { AuditTrailPerProperty } from "../finance/service";
 import { computeIRR } from "@analytics/returns/irr";
 import { propertyEquityInvested } from "@engine/debt/equityCalculations";

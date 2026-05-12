@@ -76,6 +76,7 @@ async function fetchGuardrailRows(): Promise<GuardrailsPayload> {
   return payload;
 }
 
+
 /**
  * Admin-gated route — full metadata for Knowledge & Resources → Tables view.
  */

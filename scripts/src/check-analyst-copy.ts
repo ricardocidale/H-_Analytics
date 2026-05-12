@@ -365,7 +365,6 @@ function isLineSkipped(line: string): boolean {
   return SKIP_LINE_PATTERNS.some((re) => re.test(line));
 }
 
-// ---------------------------------------------------------------------------
 // Per-file scanners
 // ---------------------------------------------------------------------------
 

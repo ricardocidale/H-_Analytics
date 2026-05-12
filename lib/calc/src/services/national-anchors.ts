@@ -173,6 +173,7 @@ export function overlayNationalCostAnchorsOnProperty<
     costRatePropertyOps: property.costRatePropertyOps ?? anchors.costRatePropertyOps,
   };
 }
+
 /** Minimal shape of a benchmark row consumed by the overlay. */
 export interface NationalVendorCostInput {
   serviceLine: string;
