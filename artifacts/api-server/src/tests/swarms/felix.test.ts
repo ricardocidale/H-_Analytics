@@ -42,6 +42,10 @@ vi.mock("../../logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
+vi.mock("../../slides/factory-v2-llm-resolver", () => ({
+  resolveLorenzoVisionModelId: vi.fn().mockResolvedValue("test-model-id"),
+}));
+
 import { getAnthropicClient } from "../../ai/clients";
 import { getStorageProviderAsync } from "../../providers/storage";
 import { runFelixAggregate } from "../../slides/swarms/felix/aggregate";

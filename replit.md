@@ -34,12 +34,20 @@ See `CLAUDE.md` §§ 1–12 (no hardcoded values — numeric literals AND integr
 - **Shared proxy only.** Never call service ports directly. Always route through `localhost:80/<path>` in curl and application code.
 - **`executeSql` tool hits the wrong database.** The code-execution `executeSql()` callback connects to Replit's built-in PostgreSQL, NOT the app's Neon database. To query the real DB: use admin API endpoints via `curl -b <auth-cookie>` (authenticate with `POST /api/auth/dev-login`), or run a one-off Node.js script using `process.env.POSTGRES_URL` with the `pg` client from `artifacts/api-server/node_modules/pg`.
 - **Drizzle migration state can lag the journal.** After manually applying DDL, sync `drizzle.__drizzle_migrations`: compute SHA-256 of each unapplied `.sql` file and `INSERT INTO drizzle."__drizzle_migrations" (hash, created_at)`. Synced to 53 entries on 2026-05-08 (after migration 0042 — `rebecca_chat_prefs`).
+- **Replit Agent commits land on whatever branch is currently checked out.** When CC leaves a PR branch open (waiting for CI / CodeRabbit), Replit Agent commits will accumulate there under the CC PR title. Before merging any CC PR, run `git log origin/main..origin/<branch> --oneline` and verify every commit belongs to the intended scope. If Replit Agent commits are mixed in, cherry-pick the CC-only commits onto a fresh branch. Full workflow + orphan-commit recovery (reflog): `CLAUDE.md` § "CC branch hygiene" and `docs/solutions/workflow-issues/cc-replit-branch-hygiene-2026-05-10.md`.
 
 ---
 
-## Agent Taxonomy (verbatim from `CLAUDE.md` § 10)
+## Agent Taxonomy (mirror of `CLAUDE.md` § 10 — update CLAUDE.md first, then mirror here)
 
-Four core concepts — keep definitions consistent across all docs:
+All agents, minions, and orchestrators in H+ Analytics use human first names from Brazilian or Italian naming traditions (male or female).
+
+**Three roles — never conflate:**
+- **Orchestrators** — route work across agents; never produce content directly
+- **Agents** — do the substantive work (LLM or deterministic)
+- **Minions** — deterministic helpers called by agents; no LLM, no judgment
+
+### Canonical definitions
 
 **Agent** — A named pipeline member that does substantive work using an LLM. Agents receive structured inputs, apply reasoning or generation, and produce structured outputs. Every agent declares a `role`, `short_description`, and `long_description`. Agents may be job-specific (Swarm format) or cross-app (Specialist format).
 
@@ -49,7 +57,17 @@ Four core concepts — keep definitions consistent across all docs:
 
 **Swarm** — A coordinated team of job-specific Agents that collaborate on one pipeline stage. Swarm members use the `Name-NN` zero-padded format (e.g., Sofia-01, Lorenzo-03). When a swarm finishes, its combined output is a single artifact handed to the next pipeline stage. Swarm members are never reused outside their pipeline.
 
-Canonical source: `CLAUDE.md` § 10. Do not edit this block here — update `CLAUDE.md` first, then mirror verbatim.
+**Name formats:**
+- **Swarm agents** (job-specific, only used in one pipeline): `Name-NN` zero-padded (e.g., Sofia-01, Lorenzo-03)
+- **Cross-app specialists** (used in multiple surfaces): single name (e.g., Maya, Lucca)
+- **Orchestrators and minions**: single name
+
+**Every member has three fields:**
+- `role` — one-line title (e.g., "Slide 1 Builder")
+- `short_description` — 1-2 sentences for card/list views
+- `long_description` — full capabilities, inputs, outputs, model tier
+
+**Reserved names and full inventory:** `.agents/skills/slide-factory/SKILL.md`. Never use: Sergio, Milton.
 
 ---
 

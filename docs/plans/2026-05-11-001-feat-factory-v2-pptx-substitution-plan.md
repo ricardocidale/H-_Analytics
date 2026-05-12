@@ -164,8 +164,8 @@ flowchart TD
   F --> G[New: PPTX template fetched from R2<br/>v7 reconstruction package PPTX]
   G --> H[New: pptx-automizer applies<br/>per-slot substitution map<br/>status=substituting]
   H --> I[Slide 6 path:<br/>format-generators produce report<br/>→ render to PNG via soffice<br/>→ embed as image in slide 6]
-  H --> J[Wish-list slide:<br/>read wishListLog<br/>→ generate slot text<br/>→ append slide 7]
-  I --> K[Maya inspects PPTX-rendered PNG<br/>vs canonical PNG via Dino pixel-diff]
+  H --> J[U9: appendWishListSlide<br/>read wishListLog → dedupe<br/>→ append slide 7 to PPTX buffer<br/>empty log = no-op]
+  I --> K[U10: Dino pivot<br/>soffice renders PPTX → PNG per slide<br/>Dino pixel-diff vs canonical PNGs ±2px<br/>Maya text-judge unchanged]
   J --> K
   K -->|pass| L[soffice headless: PPTX → PDF<br/>status=converting_pdf]
   K -->|fail| F
@@ -478,72 +478,125 @@ Key state transitions: `new → ingesting → ingested → brief_ready → draft
 
 ---
 
-- U9. **Wish-list slide generation + final assembly**
+- U8b. **Pipeline wire-up: `produce_deck` → substituteSlots + soffice + R2**
 
-**Goal:** After all 6 slides substituted, a final step reads `wishListLog` from the run record, generates wish-list slot text (deduped, prioritized), appends a 7th slide to the PPTX (template-style: title + bulleted list of gaps + brief "why it helps" annotation per bullet).
+**Goal:** Wire the existing U4/U7 modules into the production Marco pipeline. Replace `produce_deck`'s Franco call with `getAssembledSubstitutionMap` → `substituteSlots` → `appendWishListSlide` (U9 hook) → `runSofficeConvert` → `uploadFactory2Deck`. Mark Franco as legacy. This is a call-site change only — do not re-implement any module from U4/U7.
+
+**Context:** U8 shipped `apply_substitutions` (Marco tool that assembles and caches the substitution map via `getAssembledSubstitutionMap`). The existing modules `substituteSlots` (`pptx-substitution.ts`), `runSofficeConvert` (`soffice-convert.ts`), and `uploadFactory2Deck` (`factory-v2-upload.ts`) all exist but have zero production callers — `produce_deck` still calls `runFranco`. U8b is the missing bridge. The tests for U8 covered map *assembly* (`apply_substitutions` + `assembledSubstitutionMaps` cache), not map *consumption*, which is why the wiring gap was not caught by the existing test suite.
+
+**Requirements:** R2, R3, R10.
+
+**Dependencies:** U4, U7, U8.
+
+**Files:**
+- Modify: `artifacts/api-server/src/slides/marco-tools.ts` (`handleProduceDeck`: replace `runFranco` call with substituteSlots → appendWishListSlide → runSofficeConvert → uploadFactory2Deck; update status transitions: `substituting` then `converting_pdf` then `complete`)
+- Modify: `artifacts/api-server/src/slides/marco.ts` (remove any system-prompt language referencing Franco or React render; verify the `apply_substitutions → produce_deck` sequence is already correct — no new tool added)
+- Test: `artifacts/api-server/src/tests/slides/produce-deck-wire-up.test.ts` (integration: from `apply_substitutions` cache hit → both R2 keys returned)
+
+**Approach:**
+- `handleProduceDeck` is the only change site. Sequence inside the handler:
+  1. `const map = getAssembledSubstitutionMap(runId)` — reads from in-memory cache set by `apply_substitutions`
+  2. `const pptxBuf = await substituteSlots(templatePptx, map)` — 6-slide PPTX buffer — set `status: 'substituting'` before this step
+  3. `const pptxWith7 = await appendWishListSlide(pptxBuf, run.wishListLog)` — U9 contributes this function; U8b calls it. If `wishListLog` is empty, returns the original buffer unchanged.
+  4. **Dino pixel-diff inspection** — `await runDinoInspection(pptxWith7, runId)`: renders PPTX to PNGs via soffice (U10 contributes `pptxToPngs.ts`), diffs against canonical PNGs. If inspection fails → set `status: 'error'`, surface diff key; abort. If pass → continue.
+  5. `const pdfBuf = await runSofficeConvert(pptxWith7, runId)` — soffice headless PDF — set `status: 'converting_pdf'` before this step
+  6. `const keys = await uploadFactory2Deck(runId, pptxWith7, pdfBuf)` — both R2 keys
+  7. `await updateSlideFactoryRun(runId, { status: 'complete', pptxR2Key: keys.pptx, deckR2Key: keys.pdf })`
+- Status transitions: `substituting` (before step 2) → Dino gate (step 4) → `converting_pdf` (before step 5) → `complete` (step 7).
+- Mark `runFranco` call site with a `// legacy — rollback path; remove in a follow-up PR` comment; do not delete.
+- Soffice timeout and retry counts come from `admin_parameters` rows — no numeric literals inline (CLAUDE.md §1). Pull values at handler entry.
+
+**Patterns to follow:**
+- `artifacts/api-server/src/slides/marco-tools.ts` `handleApplySubstitutions` for the in-memory cache + status-update pattern.
+- `artifacts/api-server/src/slides/soffice-convert.ts` and `factory-v2-upload.ts` for their public API signatures.
+
+**Test scenarios:**
+- Happy path: `apply_substitutions` cache primed → `produce_deck` call → both R2 keys returned, status transitions through `substituting → converting_pdf → complete`.
+- Error path: `substituteSlots` throws SLOT_OVERFLOW — run status set to `error`, cache cleared via `clearRunPayloads(runId)`, error message surfaced.
+- Error path: `runSofficeConvert` fails both retries — run status set to `error`; partial files cleaned from tmp dir.
+- Edge case: `wishListLog` empty → `appendWishListSlide` no-ops; output PPTX is 6 slides; pipeline continues normally.
+- Edge case: cache miss (run restarted after server restart) — handler returns a clear "substitution map not found" error rather than silently producing a corrupt deck.
+
+**Verification:**
+- `pnpm run typecheck` — clean.
+- `scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts` — PASS (no timeout/retry literals inline).
+- Integration test: primed cache → `produce_deck` → both R2 keys returned, status = `complete`.
+- `runFranco` is unreachable in the new path (verified by reading the handler) but still exists in code.
+
+---
+
+- U9. **Wish-list slide: `appendWishListSlide` function**
+
+**Goal:** Implement `appendWishListSlide(pptxBuffer: Buffer, wishListLog: WishListLogEntry[]): Promise<Buffer>` — appends a 7th slide to the PPTX carrying deduped, prioritized gap entries. Called by U8b inside `produce_deck`. Empty log = buffer returned unchanged (no slide appended).
 
 **Requirements:** R8, R10.
 
-**Dependencies:** U4, U8.
+**Dependencies:** U4, U8, U8b.
 
 **Files:**
-- Create: `artifacts/api-server/src/slides/wish-list-slide-builder.ts`
+- Create: `artifacts/api-server/src/slides/wish-list-slide-builder.ts` (exports `appendWishListSlide`)
 - Test: `artifacts/api-server/src/tests/slides/wish-list-slide-builder.test.ts`
-- Modify: `artifacts/api-server/src/slides/marco.ts` (call wish-list builder after slide 6, before soffice convert)
-- The PPTX template for the wish-list slide: either appended at U4 substitution time as a hidden 7th slide in the v7 template (preferred — single source of truth), or constructed via `pptxgenjs` in this unit (fallback if pptx-automizer's append-slide API is limited). Decision deferred to implementation.
+- The PPTX template for the wish-list slide: either a hidden 7th slide pre-baked in the v7 template (preferred — single source of truth and avoids cross-PPTX API complexity), or constructed via `pptxgenjs` (fallback if pptx-automizer's append-slide API is limited). Decision deferred to implementation.
 
 **Approach:**
-- `wishListLog` is a JSONB array `[{ field, slot, slideNumber, whyItHelps }]`. Builder deduplicates by `field`, sorts by frequency (most-frequently-missed first), and renders as bullets on the wish-list slide.
-- Empty log = no wish-list slide appended (factory ran with full data — celebrated outcome).
+- `wishListLog` entries shape: `[{ field, slot, slideNumber, whyItHelps }]`. Deduplicate by `field`, sort by frequency (most-frequently-missed first), render as bullets on the wish-list slide.
+- Empty log → return original buffer unchanged (no 7th slide).
 - Wish-list slide carries the canonical typography (R7).
+- This function has no side-effects on run state — status transitions and R2 upload are U8b's responsibility.
 
 **Patterns to follow:**
 - `pptxgenjs` already used in `format-generators/pptx-generator.ts` — same library available if needed for slide construction.
 
 **Test scenarios:**
-- Happy path: 3 best-shot entries across 2 slots → wish-list slide with 3 deduped bullets, each with a "why this helps" line.
-- Edge case: 0 entries → no wish-list slide appended (slide count stays at 6).
+- Happy path: 3 best-shot entries across 2 slots → appended 7th slide with 3 deduped bullets, each with a "why this helps" line.
+- Edge case: 0 entries → function returns original buffer unchanged; no 7th slide added.
 - Edge case: 1 entry → minimal wish-list slide; title + 1 bullet; layout still valid.
 - Edge case: 20+ entries (pathological) → slide content paginated or truncated with "… +N more" footer; verify slide bbox isn't violated.
-- Integration: final PPTX contains 6 (no gaps) or 7 (with gaps) slides; PDF export matches.
+- Integration: output PPTX containing the returned buffer has 6 slides (no gaps) or 7 slides (with gaps); PDF export via soffice still succeeds.
 
 **Verification:**
-- A run with synthetic gaps produces an output PPTX with a wish-list slide containing the expected bullets.
-- A run with no gaps produces a 6-slide PPTX.
+- `pnpm run typecheck` — clean.
+- `scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts` — PASS.
+- Vitest: unit tests for append function pass; empty-log path confirmed.
+- A synthetic integration through U8b → U9 → soffice produces a 7-slide PPTX and PDF.
 
 ---
 
-- U10. **Maya inspector pivot — PPTX-rendered PNG diff**
+- U10. **Dino pivot — PPTX-rendered PNG diff baseline**
 
-**Goal:** Refactor Maya's visual inspection to render the substituted PPTX to PNGs via `soffice --convert-to png` (or pptx-rendered Playwright path), diff against the v7 canonical PNGs from `powerpoint_pngs/`, using Dino's existing pixel-diff with ±2px tolerance. Fail the run if drift exceeds tolerance on any slide; surface diff PNGs to the run record for triage.
+**Goal:** Pivot Dino's visual-diff input source from React+Playwright-rendered PNGs to PPTX→soffice-rendered PNGs. The per-slide PNG pairs (substituted PPTX render vs. v7 canonical `powerpoint_pngs/`) are diffed with Dino's existing `pixelmatch ±2px` logic. Maya is unchanged — it remains a text-only content judge (`payloadV2` + `slotDrafts` → `{ verdict, headline, notes }`). This unit is purely a Dino input-source swap; Maya's content logic is untouched.
 
 **Requirements:** R7.
 
-**Dependencies:** U2 (soffice), U4 (substituted PPTX).
+**Dependencies:** U2 (soffice), U4 (substituted PPTX), U8b (PPTX buffer available after pipeline runs).
 
 **Files:**
-- Modify: `artifacts/api-server/src/slides/maya.ts`
-- Modify: `artifacts/api-server/src/slides/dino-render.ts` (or `dino.ts` — pixel-diff helper)
-- Create: `artifacts/api-server/src/slides/pptx-to-pngs.ts` (helper)
-- Test: `artifacts/api-server/src/tests/slides/maya-pptx-diff.test.ts`
+- Create: `artifacts/api-server/src/slides/pptx-to-pngs.ts` (spawns `soffice --headless --convert-to png --outdir <tmp> <input.pptx>`; returns array of PNG buffers, one per slide)
+- Modify: `artifacts/api-server/src/slides/dino-render.ts` (swap PNG source: call `pptx-to-pngs.ts` instead of the Playwright-HTML render path; canonical PNGs still fetched from R2 `canonical/lb-6-slide/slides/slide-N.png`)
+- Test: `artifacts/api-server/src/tests/slides/dino-pptx-diff.test.ts`
 
 **Approach:**
-- New `pptx-to-pngs.ts`: spawns `soffice --headless --convert-to png` with all-slides flag, returns array of PNG buffers per slide.
-- Maya consumes those PNGs + canonical PNGs (from R2 `canonical/lb-6-slide/slides/slide-N.png`), passes pairs to Dino, aggregates results.
-- Tolerance: `±2px` baseline; configurable per slide via `admin_parameters` row (some slides have intentional variance like financial numbers).
+- `pptx-to-pngs.ts` spawns soffice with `--convert-to png` and the `--impress` headless flag; waits for exit; returns `Buffer[]` in slide order.
+- `dino-render.ts` change: replace `renderSlidePng(url)` call with `pptxToSlicePng(pptxBuffer, slideIndex)` derived from the new module. Pixel-diff comparison logic and ±2px tolerance are untouched.
+- Tolerance: `±2px` baseline; configurable per slide via `admin_parameters` row (slide 6 has intentional content variance from financial-engine output).
+- Maya is NOT modified in this unit — its `payloadV2 + slotDrafts → verdict` pipeline is orthogonal to Dino's image comparison.
 
 **Patterns to follow:**
-- Current Maya/Dino pipeline in `maya.ts`, `dino.ts`, `dino-render.ts`.
+- Current Dino pipeline in `dino-render.ts` and `dino.ts` for the pixel-diff contract.
+- `soffice-convert.ts` subprocess scaffolding (from U7) for the spawn pattern.
 
 **Test scenarios:**
-- Happy path: identity-baseline run (no data change) — every slide passes pixel-diff within ±2px.
-- Edge case: slide 6 with engine output that differs from canonical's snapshot — Maya flags but accepts (intentional content variance vs. layout drift); document the per-slide tolerance carve-out.
-- Error path: substantial layout drift on slide 3 (e.g., overflow not caught upstream) — Maya marks the run `error`, persists diff PNGs to R2 for triage.
-- Integration: full Maya pass on the substituted output of a known-good run completes without flagging false positives.
+- Happy path: identity-baseline run (substituted PPTX == v7 source) — every slide passes pixel-diff within ±2px.
+- Edge case: slide 6 with engine output differing from canonical snapshot — Dino flags; tolerance carve-out for slide 6 accepts within configurable threshold; document the per-slide carve-out in the admin_parameters row.
+- Error path: substantial layout drift on slide 3 (e.g., overflow not caught upstream) — Dino marks run `error`, persists diff PNGs to R2 for triage.
+- Integration: full Dino pass on substituted output of a known-good run completes without false positives.
 
 **Verification:**
-- Identity baseline passes Maya cleanly.
-- Synthetic layout-drift produces a `error`-status run with diff PNGs in R2.
+- `pnpm run typecheck` — clean.
+- `scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts` — PASS.
+- Identity baseline passes Dino cleanly.
+- Synthetic layout-drift produces an `error`-status run with diff PNGs in R2.
+- `maya.ts` is unmodified (confirmed by diff).
 
 ---
 
@@ -555,7 +608,7 @@ Key state transitions: `new → ingesting → ingested → brief_ready → draft
 
 **Requirements:** R10, R13, R14.
 
-**Dependencies:** U7 (R2 keys + status enum), U12 (Rebecca tools — parallel-safe but parity validation needs both).
+**Dependencies:** U8b (R2 keys + full status transitions wired), U12 (Rebecca tools — parallel-safe but parity validation needs both).
 
 **Files:**
 - Modify: `artifacts/hospitality-business-portal/src/features/slide-factory/SlideFactoryPanel.tsx`
@@ -695,8 +748,8 @@ Key state transitions: `new → ingesting → ingested → brief_ready → draft
 
 **Phase A (U1–U3)** — Foundation. Library decision, Docker, schema. Parallel-safe; each unit independent.
 **Phase B (U4–U7)** — Render pipeline core. U4 + U5 parallel; U6 depends on both; U7 depends on U2 + U4.
-**Phase C (U8–U10)** — Agent rewiring. U8 depends on U4; U9 depends on U4 + U8; U10 depends on U2 + U4.
-**Phase D (U11–U12)** — Admin UI + parity. U11 depends on U7; U12 depends on U7 + U11.
+**Phase C (U8, U8b, U9, U10)** — Agent rewiring + pipeline wire-up. U8 depends on U4. U8b depends on U4 + U7 + U8 — wires the production Marco path (substituteSlots → appendWishListSlide → soffice → R2). U9 depends on U4 + U8 + U8b — contributes `appendWishListSlide`, called by U8b. U10 depends on U2 + U4 + U8b — Dino PNG-source pivot after the PPTX buffer exists. U9 and U10 are parallel-safe once U8b is complete.
+**Phase D (U11–U12)** — Admin UI + parity. U11 depends on U8b (R2 keys available); U12 depends on U8b + U11.
 **Phase E (U13)** — Documentation + roster. Depends on all prior units complete.
 
 Each phase lands as 1–4 PRs; Phases A and E are smaller; B and C are the bulk of the work. Identity-baseline smoke (R1) runs end-to-end after Phase B and again after Phase C — earliest signal that the pipeline is shippable.

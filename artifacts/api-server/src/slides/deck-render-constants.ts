@@ -25,8 +25,6 @@ export const SLIDE_TEMP_UUID_PREFIX_LENGTH = 8;
 
 // ── Lorenzo vision constants (Units 3c–3f) ──────────────────────────────────
 
-/** Anthropic model used by Lorenzo-03 (vision reconciler) and Lorenzo-05 (inspector) */
-export const LORENZO_VISION_MODEL = "claude-opus-4-7";
 /** max_tokens for Lorenzo-03 per-slide enrichment call */
 export const LORENZO_03_MAX_TOKENS = 4096;
 /** max_tokens for Lorenzo-05 holistic inspector call */
@@ -41,8 +39,6 @@ export const ALDO_LINE_GROUP_Y_THRESHOLD_PX = 3;
 
 // ── Lucca draft constants (Unit 4b) ─────────────────────────────────────────
 
-/** Anthropic model used by Lucca-01 batch-draft calls */
-export const LUCCA_DRAFT_MODEL = LORENZO_VISION_MODEL;
 /** max_tokens for each Lucca-01 per-group draft call */
 export const LUCCA_MAX_TOKENS = 2048;
 
@@ -120,7 +116,8 @@ export const SWARM_BUILDER_MAX_TOKENS = 2048;
 
 /**
  * max_tokens per swarm Inspector Pass 2 (LLM-vision) call. Shared across all
- * six Inspector roles; Inspector Pass 2 uses LORENZO_VISION_MODEL (Opus 4.7).
+ * six Inspector roles; Inspector Pass 2 uses the factory-v2-lorenzo-vision
+ * llm_slot (resolved at runtime via resolveLorenzoVisionModelId()).
  */
 export const SWARM_INSPECTOR_MAX_TOKENS = 1024;
 

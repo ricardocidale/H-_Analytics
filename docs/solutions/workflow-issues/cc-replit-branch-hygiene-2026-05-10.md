@@ -1,7 +1,7 @@
 ---
 title: "CC branch hygiene: Replit Agent stages unreviewed commits on CC PR branches"
 date: 2026-05-10
-last_updated: 2026-05-11
+last_updated: 2026-05-12
 category: docs/solutions/workflow-issues
 module: cc-replit-branch-hygiene
 problem_type: workflow_issue
@@ -16,6 +16,7 @@ applies_when:
   - A valuable Replit Agent commit needs to ship but cannot be mixed into a CC PR
   - Multiple PRs need to wait for CI gates and manual polling would otherwise be required
   - CC is actively authoring a file across multiple bash calls and the Replit Agent may touch the same path
+  - "An agent's edits appear to have vanished after a branch switch — check reflog and `git log --all` before redoing the work"
 tags:
   - git-hygiene
   - branch-management
@@ -23,10 +24,8 @@ tags:
   - pr-scope
   - cherry-pick
   - agent-coordination
-  - auto-merge
-  - gh-pr-checks
-  - wip-file-collision
-  - dirty-branch-rename
+  - reflog-recovery
+  - orphan-commit
 ---
 
 # CC branch hygiene: Replit Agent stages unreviewed commits on CC PR branches
@@ -355,6 +354,93 @@ gh pr create --title "feat(factory-v2): U1 — pptx-automizer chosen, spike + de
 ```
 
 Result: PR #112 shipped from the clean CC branch with CC-only history (verified via `git log --format='%h %an %ae'` showing zero `Replit-Commit-Author` trailers). The Swiss-Minimal KPI work on `feat/u1-spike-DIRTY-with-replit` remains locally available for a follow-up PR cherry-picking only `27e10979`.
+
+## Sub-pattern: orphan auto-checkpoint commit on a wrong-branch lineage (reflog recovery)
+
+The two patterns above assume your work is either uncommitted (WIP-collision recovery) or committed on the branch you expect (cherry-pick scope check). A third variant: the Replit Agent's auto-checkpoint **already committed your edits** — but onto a branch lineage you didn't intend (often because CC had moved HEAD between your edit and the checkpoint, or because the user paused you mid-task and CC switched branches before you resumed). When you come back, `grep` for your changes in the working tree returns nothing and the work appears lost. It isn't — the commit is reachable via reflog and `git log --all`.
+
+### When it surfaces
+
+- You edit one or more files, are paused mid-task, and the user warns "CC is working on the same code"
+- When you resume, the current branch is different from what you expected (often a CC PR-rebase branch or a CC refactor topic branch — visible via `git --no-optional-locks branch --show-current`)
+- `grep`/`rg` for your additions in the working tree returns zero matches
+- `git --no-optional-locks status` shows a clean working tree — no stash, no untracked WIP
+- The auto-checkpoint message in the system feed referenced a commit SHA that doesn't appear in `git log -5` on the current branch
+
+### Why the work isn't actually lost
+
+The Replit Agent auto-checkpoint runs against whatever HEAD was checked out at the moment your edits were dirty. If CC had not yet switched branches when the checkpoint fired, your edits landed as a Replit-Agent-authored commit on **that** branch's tip. CC's subsequent branch switch moves HEAD away — leaving your commit on a branch that may now look orphaned relative to the current checkout, but is still fully reachable via SHA, reflog, and `git log --all`.
+
+The auto-checkpoint commit message is descriptive (the Replit Agent infers a one-line summary from the diff content), which makes the commit findable by content keywords even when you don't know the SHA.
+
+### Recovery procedure
+
+```bash
+# 1. Survey ALL recent commits across every ref, not just current branch
+git --no-optional-locks log --all --oneline --since="3 days ago" | head -40
+
+# 2. Search by content keyword from your edit (column name, function name, etc.)
+git --no-optional-locks log --all --oneline --grep="<keyword-from-your-edit>" -i \
+    --since="3 days ago"
+
+# 3. Walk the reflog — your edits may also be reachable via a recent HEAD position
+git --no-optional-locks reflog | head -20
+
+# 4. Check stashes — lint-staged and other hooks auto-stash on commit
+git --no-optional-locks stash list
+
+# 5. Once the commit SHA is identified, verify its diff matches your work
+git --no-optional-locks show <sha> --stat
+git --no-optional-locks show <sha> -- <file-you-edited>
+
+# 6. If the commit is on a branch lineage you do NOT want to ship from
+#    (e.g., a CC PR-rebase branch unrelated to your task), cherry-pick it
+#    onto a fresh branch off origin/main — DO NOT mix it into the unrelated branch
+git fetch origin main
+git checkout -b <task-scoped-branch-name> origin/main
+git cherry-pick <sha>
+```
+
+Step 1 is the highest-leverage move. The Replit Agent's friendly commit titles (`"Add fields to track property improvements and their descriptions"`, `"Update documentation for property edit page restructure"`, etc.) make `git log --all --oneline --since=<window>` a fast scan. **Always do this before re-typing edits** — the cost of a one-line `git log` is trivial vs. re-deriving committed work and producing a duplicate orphan.
+
+### When to suspect this pattern over WIP-collision
+
+| Signal | This pattern (orphan commit) | WIP-collision pattern |
+|---|---|---|
+| `git status` after resume | Clean | Modified/deleted files |
+| Working tree has your edits | No | Partially yes |
+| Recent commits in `git log --all` matching your work | Yes (Replit-Agent author) | Yes (Replit-Agent author) on current branch |
+| Branch HEAD vs. expected | Different (CC moved it) | Same |
+| Recovery primitive | `git cherry-pick` onto fresh branch | Filesystem backup + branch rename |
+
+Both patterns share the same prevention rules below — the difference is purely diagnostic.
+
+### Worked example — 2026-05-12 Task #1404 (Property Assumptions Restructure — Milestone A)
+
+The Replit Agent edited `lib/db/src/schema/properties.ts` to add 6 nullable columns (`fbVenuesImproved`, `fbSeatsImproved`, `eventSpaceSqftImproved`, `totalBuildingSqftImproved`, `plannedReopeningYear`, `descriptionImproved`) plus the matching `insertPropertySchema.pick({...})` entries. The user paused with "CC is working on same code" before the migration could be generated. On resume, the branch was `update/pr124-rebase` (later moved to `refactor/lorenzo-vision-model-relocation`), and `rg "Improved" lib/db/src/schema/properties.ts` returned zero matches. `git status` was clean.
+
+Initial reaction was to re-apply the schema edits. Instead, the recovery scan above found the work intact:
+
+```bash
+$ git --no-optional-locks log --all --oneline --since="3 days ago" | head -10
+9e332d2c refactor(slides): add resolveLorenzoVisionModelId() resolver (U2)
+ae5439dc refactor(slides): seed factory-v2-lorenzo-vision llm_slot row (U1)
+6cacfd09 Update documentation for code improvements and model relocation
+e363dc0a feat(factory-v2): U8 — Lucca best-shot + Builder substitution map + Marco assembly
+a10aeacd chore(merge): resolve conflict in slide-6-embed-flow.test.ts
+...
+fd67f146 Add fields to track property improvements and their descriptions       ← !
+f22bbe44 Add fields to track property improvements and their descriptions       ← !
+```
+
+`git show f22bbe44 --stat` confirmed the exact 24-line diff to `lib/db/src/schema/properties.ts` (6 columns + 6 picks). Both `f22bbe44` and `fd67f146` were duplicate auto-checkpoints. They descended from `e075cb2d` on the `fix/coderabbit-pr117-pr118-followups` lineage — not from `main`, and not from any milestone-A branch. Recovery plan: cherry-pick `f22bbe44` onto a fresh `feat/property-assumptions-milestone-a` off `origin/main` instead of re-typing the schema. Time saved: ~10 minutes of re-derivation plus the risk of producing a third duplicate auto-checkpoint.
+
+### Prevention
+
+- **First diagnostic on every "where did my work go?" moment is `git log --all --oneline --since=<window>`.** Run it before any keystroke that recreates work. The Replit Agent commit message is descriptive enough that scanning 30 lines is faster than re-typing one column.
+- **When the user pauses you with a CC-collision warning, note the exact files you had edited.** A one-line scratch note ("edited properties.ts schema + insertPropertySchema picks") makes the post-resume content search trivial.
+- **Do not re-apply edits onto whatever branch is currently checked out post-resume.** The current HEAD is whatever CC left it on — almost never the right target for your task. Always verify intended branch (`git branch --show-current`) and create or check out a task-scoped branch before redoing.
+- **Treat orphan auto-checkpoint commits as recoverable assets, not garbage.** Cherry-pick them into the right branch instead of ignoring them — the commit message preserves the agent's edit summary.
 
 ## Related
 

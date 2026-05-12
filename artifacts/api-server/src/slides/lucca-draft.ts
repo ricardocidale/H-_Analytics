@@ -41,7 +41,8 @@ import type { DraftSlotKey, SlotBatchGroup } from "./slot-context-map";
 import { validateSlotOutput } from "./slot-output-validator";
 import type { SlideProperty } from "./types";
 import { DEFAULT_FALLBACK_OCCUPANCY } from "@shared/constants-benchmarks";
-import { LUCCA_DRAFT_MODEL, LUCCA_MAX_TOKENS } from "./deck-render-constants";
+import { LUCCA_MAX_TOKENS } from "./deck-render-constants";
+import { resolveLorenzoVisionModelId } from "./factory-v2-llm-resolver";
 import {
   checkSlotDataSufficiency,
 } from "./data-sufficiency-rules";
@@ -49,7 +50,6 @@ import {
   buildBestShotTool,
   buildBestShotUserPrompt,
   LUCCA_BEST_SHOT_MAX_TOKENS,
-  LUCCA_BEST_SHOT_MODEL,
   LUCCA_BEST_SHOT_SYSTEM_PROMPT,
   type BestShotBulletsOutput,
   type BestShotReasonsOutput,
@@ -400,12 +400,13 @@ async function callBestShotLLM<
   const tool = buildBestShotTool(slotKey);
   const slideNumber = slideNumberFromSlotKey(slotKey);
 
+  const modelId = await resolveLorenzoVisionModelId();
   const maxAttempts = LUCCA_DRAFT_MAX_RETRIES;
   let lastErrorMessage: string | null = null;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
       const response = await anthropic.messages.create({
-        model: LUCCA_BEST_SHOT_MODEL,
+        model: modelId,
         max_tokens: LUCCA_BEST_SHOT_MAX_TOKENS,
         system: LUCCA_BEST_SHOT_SYSTEM_PROMPT,
         messages: [{ role: "user", content: userPrompt }],
@@ -488,8 +489,9 @@ async function draftVision(
   const fields = getGroupBriefFields("vision");
   const context = briefToPromptLines(brief, fields);
 
+  const modelId = await resolveLorenzoVisionModelId();
   const response = await anthropic.messages.create({
-    model: LUCCA_DRAFT_MODEL,
+    model: modelId,
     max_tokens: LUCCA_MAX_TOKENS,
     system: LUCCA_SYSTEM_PROMPT,
     messages: [{ role: "user", content: buildVisionPrompt(context) }],
@@ -547,8 +549,9 @@ async function draftOperational(
   const fields = getGroupBriefFields("operational");
   const context = briefToPromptLines(brief, fields);
 
+  const modelId = await resolveLorenzoVisionModelId();
   const response = await anthropic.messages.create({
-    model: LUCCA_DRAFT_MODEL,
+    model: modelId,
     max_tokens: LUCCA_MAX_TOKENS,
     system: LUCCA_SYSTEM_PROMPT,
     messages: [{ role: "user", content: buildOperationalPrompt(context) }],
@@ -610,8 +613,9 @@ async function draftInvestment(
   const fields = getGroupBriefFields("investment");
   const context = briefToPromptLines(brief, fields);
 
+  const modelId = await resolveLorenzoVisionModelId();
   const response = await anthropic.messages.create({
-    model: LUCCA_DRAFT_MODEL,
+    model: modelId,
     max_tokens: LUCCA_MAX_TOKENS,
     system: LUCCA_SYSTEM_PROMPT,
     messages: [{ role: "user", content: buildInvestmentPrompt(context) }],
@@ -677,8 +681,9 @@ async function draftTransformation(
   const fields = getGroupBriefFields("transformation");
   const context = briefToPromptLines(brief, fields);
 
+  const modelId = await resolveLorenzoVisionModelId();
   const response = await anthropic.messages.create({
-    model: LUCCA_DRAFT_MODEL,
+    model: modelId,
     max_tokens: LUCCA_MAX_TOKENS,
     system: LUCCA_SYSTEM_PROMPT,
     messages: [{ role: "user", content: buildTransformationPrompt(context) }],
