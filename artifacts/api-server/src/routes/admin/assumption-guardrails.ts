@@ -20,7 +20,14 @@ import { requireAdmin, requireAuth } from "../../auth";
 import { logAndSendError } from "../helpers";
 import { desc } from "drizzle-orm";
 
-async function fetchGuardrailRows() {
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+type GuardrailsPayload = Awaited<ReturnType<typeof fetchGuardrailRowsFromDb>>;
+
+let cachedPayload: GuardrailsPayload | null = null;
+let cacheExpiresAt = 0;
+
+async function fetchGuardrailRowsFromDb() {
   const rows = await db
     .select()
     .from(assumptionGuardrails)
@@ -56,6 +63,17 @@ async function fetchGuardrailRows() {
       updatedAt: r.updatedAt?.toISOString() ?? null,
     })),
   };
+}
+
+async function fetchGuardrailRows(): Promise<GuardrailsPayload> {
+  const now = Date.now();
+  if (cachedPayload !== null && now < cacheExpiresAt) {
+    return cachedPayload;
+  }
+  const payload = await fetchGuardrailRowsFromDb();
+  cachedPayload = payload;
+  cacheExpiresAt = now + CACHE_TTL_MS;
+  return payload;
 }
 
 /**
