@@ -1,7 +1,7 @@
 ---
 title: "fix: CR rev2 on PR #120 + initial findings on PR #124 (U8)"
 type: fix
-status: active
+status: completed
 date: 2026-05-11
 ---
 

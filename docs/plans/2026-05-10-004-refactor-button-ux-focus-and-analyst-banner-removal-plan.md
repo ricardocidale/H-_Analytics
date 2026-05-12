@@ -1,7 +1,7 @@
 ---
 title: "refactor: Button/UX Focus — Full Button Sweep + Analyst Banner Removal"
 type: refactor
-status: active
+status: completed
 date: 2026-05-10
 depth: standard
 ---
