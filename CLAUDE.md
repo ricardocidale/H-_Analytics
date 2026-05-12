@@ -416,7 +416,7 @@ See `docs/issues/known-issues.md`.
 
 ### Migration system architecture
 
-Two-layer: Drizzle SQL migrations at `lib/db/migrations/*.sql` run once at boot via `migrate()`; runtime TypeScript guards at `artifacts/api-server/src/migrations/*.ts` run every boot as idempotent `IF NOT EXISTS` DDL.
+Three folders. `lib/db/migrations/` is the Drizzle-generate output target; `artifacts/api-server/migrations/` is what the api-server's `migrate()` actually reads at boot (slots past 0052 have drifted from `lib/db/migrations/` — new migrations must be mirrored with non-colliding slot numbers); `artifacts/api-server/src/migrations/*.ts` are runtime guards that re-apply idempotent `IF NOT EXISTS` DDL on every boot. Full topology + workflow: `docs/runbooks/schema-migrations.md`.
 
 Schema changes always use `pnpm --filter @workspace/db run generate` — never hand-craft SQL (except complex backfills). `lib/db/migrations/meta/0042_snapshot.json` is the canonical baseline; `0000_snapshot.json` stays as the historical root. Full runbook + Drizzle `__drizzle_migrations` drift sync + dev-DB query gotcha (Replit `executeSql()` hits the wrong database — use `curl -b <cookie>` against `/api/auth/dev-login` or a Node script with `POSTGRES_URL`): `.local/skills/pnpm-workspace/references/db.md`.
 
@@ -437,7 +437,7 @@ Two archetypes cover ~95% of pages: **Report/Presentation** (read-only, tabs + e
 | Path | Contents |
 |---|---|
 | `references/openapi.md`, `references/server.md` | OpenAPI codegen + route conventions |
-| `.local/skills/pnpm-workspace/references/db.md` | Schema + migration runbook |
+| `docs/runbooks/schema-migrations.md` | Schema + migration + seed runbook (three-folder topology, runtime guards, drift recovery) |
 | `.local/tasks/task-800.md` | Architecture audit (scenarios, portfolios, sharing, roles) |
 | `attached_assets/canonical/pdf/L+B_Property_6-Slide_Cannonical_1777859377769.pdf` | LB slides canonical visual — every rebuild must pixel-match |
 | `attached_assets/canonical/json/slide_analysis_agent_report.precise_1777824741855.json` | LB slides layout extract — text/fonts/colors authoritative; chrome/z-order not |
