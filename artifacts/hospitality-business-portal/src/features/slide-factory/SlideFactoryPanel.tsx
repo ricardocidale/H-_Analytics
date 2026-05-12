@@ -164,6 +164,7 @@ interface SlideFactoryRun {
   luccaDraft: Record<string, LuccaSlotDraft> | null;
   agentResults: Record<string, SlideAgentResultFE> | null;
   deckR2Key: string | null;
+  pptxR2Key: string | null;
   startedAt: string | null;
   completedAt: string | null;
   createdAt: string;
@@ -1688,17 +1689,10 @@ function SlotEditor({
   const handleSuggest = async () => {
     setSuggesting(true);
     try {
-      const r = await fetch(
+      const r = await apiRequest(
+        "POST",
         `/api/lb-slides/factory/runs/${runId}/slots/${encodeURIComponent(slotKey)}/suggest`,
-        {
-          method: "POST",
-          credentials: "include",
-        },
       );
-      if (!r.ok) {
-        const b = (await r.json().catch(() => ({}))) as { error?: string };
-        throw new Error(b.error ?? "Suggestion unavailable");
-      }
       const data = (await r.json()) as { suggestion: string };
       setSuggestion(data.suggestion);
     } catch (err: unknown) {
@@ -1873,14 +1867,7 @@ function FactoryOverridePanel({
   const handleRebuild = async () => {
     setRebuilding(true);
     try {
-      const r = await fetch(`/api/lb-slides/factory/runs/${run.id}/rebuild`, {
-        method: "POST",
-        credentials: "include",
-      });
-      if (!r.ok) {
-        const b = (await r.json().catch(() => ({}))) as { error?: string };
-        throw new Error(b.error ?? "Rebuild failed");
-      }
+      const r = await apiRequest("POST", `/api/lb-slides/factory/runs/${run.id}/rebuild`);
       onRunUpdate((await r.json()) as SlideFactoryRun);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Rebuild failed";

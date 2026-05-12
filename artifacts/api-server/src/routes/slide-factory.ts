@@ -21,6 +21,7 @@
  *   POST   /api/lb-slides/factory/runs/:id/approve-all-slots   Mark all Lucca slots approved
  *   POST   /api/lb-slides/factory/runs/:id/trigger-build       Advance draft_review → building (Tab 4)
  *   GET    /api/lb-slides/factory/runs/:id/download            Stream completed deck PDF from R2 (Tab 6)
+ *   GET    /api/lb-slides/factory/runs/:id/download/pptx      Stream completed deck PPTX from R2 (Tab 6)
  *
  * Auto-fire pattern: accept-brief immediately starts Lorenzo; saving properties
  * immediately starts Lucca. Both return 202 Accepted.
@@ -644,6 +645,52 @@ router.get(
       return res.send(buffer);
     } catch (err: unknown) {
       logAndSendError(res, "Failed to download factory deck", err, "SLDF-013");
+    }
+  },
+);
+
+// ── GET /api/lb-slides/factory/runs/:id/download/pptx ────────────────────────
+// Tab 6: Stream the completed deck PPTX from R2. Returns 422 when pptxR2Key is
+// absent (deck not yet generated or run predates factory v2).
+router.get(
+  "/api/lb-slides/factory/runs/:id/download/pptx",
+  requireAdmin,
+  async (req: Request, res: Response) => {
+    try {
+      const user = getAuthUser(req);
+      const id = parseRouteId(req.params.id);
+      if (!id) return res.status(HTTP_400_BAD_REQUEST).json({ error: "Invalid run ID", code: "SLDF-061" });
+
+      const run = await getSlideFactoryRun(id, user.id);
+      if (!run) return res.status(HTTP_404_NOT_FOUND).json({ error: "Not found", code: "SLDF-062" });
+      if (!run.pptxR2Key) {
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
+          error: "Deck PPTX not available for this run",
+          code: "SLDF-063",
+        });
+      }
+      if (run.status !== "complete") {
+        return res.status(HTTP_409_CONFLICT).json({
+          error: `Deck not ready — run status is ${run.status}`,
+          code: "SLDF-064",
+        });
+      }
+
+      const sp = await getStorageProviderAsync();
+      const { buffer } = await sp.downloadBuffer(run.pptxR2Key);
+
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="slide-deck-run-${run.id}.pptx"`,
+      );
+      res.setHeader("Cache-Control", "no-store");
+      return res.send(buffer);
+    } catch (err: unknown) {
+      logAndSendError(res, "Failed to download factory PPTX", err, "SLDF-060");
     }
   },
 );
