@@ -507,14 +507,7 @@ function FactoryBriefTab({
     if (!run) return;
     setIsAccepting(true);
     try {
-      const r = await fetch(
-        `/api/lb-slides/factory/runs/${run.id}/accept-brief`,
-        { method: "POST", credentials: "include" },
-      );
-      if (!r.ok) {
-        const b = (await r.json().catch(() => ({}))) as { error?: string };
-        throw new Error(b.error ?? "Failed to accept brief");
-      }
+      const r = await apiRequest("POST", `/api/lb-slides/factory/runs/${run.id}/accept-brief`);
       const updated = (await r.json()) as SlideFactoryRun;
       onRunUpdate(updated);
       toast({ title: "Brief accepted" });
@@ -1047,19 +1040,7 @@ function FactoryPropertiesTab({
       if (s3 != null) body.slide3PropertyId = s3;
       if (s5 != null) body.slide5PropertyId = s5;
 
-      const r = await fetch(
-        `/api/lb-slides/factory/runs/${run.id}/properties`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(body),
-        },
-      );
-      if (!r.ok) {
-        const b = (await r.json().catch(() => ({}))) as { error?: string };
-        throw new Error(b.error ?? "Failed to save properties");
-      }
+      const r = await apiRequest("POST", `/api/lb-slides/factory/runs/${run.id}/properties`, body);
       return r.json() as Promise<SlideFactoryRun>;
     },
     onSuccess: (updated) => {
@@ -1289,19 +1270,11 @@ function FactoryLuccaTab({
   const handleApproveSlot = useCallback(
     async (key: string, approved: boolean) => {
       try {
-        const r = await fetch(
+        const r = await apiRequest(
+          "PATCH",
           `/api/lb-slides/factory/runs/${run.id}/slots/${encodeURIComponent(key)}`,
-          {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ approved }),
-          },
+          { approved },
         );
-        if (!r.ok) {
-          const b = (await r.json().catch(() => ({}))) as { error?: string };
-          throw new Error(b.error ?? "Failed to update slot");
-        }
         onRunUpdate((await r.json()) as SlideFactoryRun);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : "Update failed";
@@ -1314,19 +1287,11 @@ function FactoryLuccaTab({
   const handleSaveValue = useCallback(
     async (key: string, value: string) => {
       try {
-        const r = await fetch(
+        const r = await apiRequest(
+          "PATCH",
           `/api/lb-slides/factory/runs/${run.id}/slots/${encodeURIComponent(key)}`,
-          {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ value }),
-          },
+          { value },
         );
-        if (!r.ok) {
-          const b = (await r.json().catch(() => ({}))) as { error?: string };
-          throw new Error(b.error ?? "Failed to save slot value");
-        }
         onRunUpdate((await r.json()) as SlideFactoryRun);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : "Save failed";
@@ -1339,14 +1304,7 @@ function FactoryLuccaTab({
   const handleApproveAll = async () => {
     setApprovingAll(true);
     try {
-      const r = await fetch(
-        `/api/lb-slides/factory/runs/${run.id}/approve-all-slots`,
-        { method: "POST", credentials: "include" },
-      );
-      if (!r.ok) {
-        const b = (await r.json().catch(() => ({}))) as { error?: string };
-        throw new Error(b.error ?? "Failed to approve all slots");
-      }
+      const r = await apiRequest("POST", `/api/lb-slides/factory/runs/${run.id}/approve-all-slots`);
       onRunUpdate((await r.json()) as SlideFactoryRun);
       toast({ title: "All slots approved" });
     } catch (err: unknown) {
@@ -1360,14 +1318,7 @@ function FactoryLuccaTab({
   const handleTriggerBuild = async () => {
     setTriggeringBuild(true);
     try {
-      const r = await fetch(
-        `/api/lb-slides/factory/runs/${run.id}/trigger-build`,
-        { method: "POST", credentials: "include" },
-      );
-      if (!r.ok) {
-        const b = (await r.json().catch(() => ({}))) as { error?: string };
-        throw new Error(b.error ?? "Failed to trigger build");
-      }
+      const r = await apiRequest("POST", `/api/lb-slides/factory/runs/${run.id}/trigger-build`);
       onRunUpdate((await r.json()) as SlideFactoryRun);
       toast({ title: "Build triggered", description: "Slide agents are building the deck." });
     } catch (err: unknown) {
@@ -1720,19 +1671,11 @@ function SlotEditor({
     const valueToSave = valueOverride !== undefined ? valueOverride : localValue;
     setSaving(true);
     try {
-      const r = await fetch(
+      const r = await apiRequest(
+        "PATCH",
         `/api/lb-slides/factory/runs/${runId}/slots/${encodeURIComponent(slotKey)}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ value: valueToSave }),
-        },
+        { value: valueToSave },
       );
-      if (!r.ok) {
-        const b = (await r.json().catch(() => ({}))) as { error?: string };
-        throw new Error(b.error ?? "Failed to save slot");
-      }
       onRunUpdate((await r.json()) as SlideFactoryRun);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Save failed";
