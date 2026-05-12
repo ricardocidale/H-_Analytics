@@ -223,6 +223,11 @@
     "0055_vendor_passthrough_and_markup_factors": {
       "status": "self-idempotent",
       "reason": "Task #1410 — CREATE TABLE IF NOT EXISTS vendor_passthrough_costs + mgmt_co_markup_factors plus matching unique/regular indexes (all IF NOT EXISTS). Two national research cache tables for ICP bracket model R11–R14. Populated by MinionVendorPassthroughCosts (Gaetano) and MinionMgmtCoMarkupFactors (Renato). Re-running via migrate() is a no-op."
+    },
+    "0056_icp_bracket_catalog": {
+      "status": "guarded",
+      "guard": "icp-brackets-001.ts",
+      "reason": "Task #1409 — creates icp_brackets table (CREATE TABLE IF NOT EXISTS) and adds bracket_mix JSONB column to global_assumptions (ADD COLUMN IF NOT EXISTS in DO block). Guarded by icp-brackets-001.ts which also seeds 4 starter brackets (ON CONFLICT DO NOTHING) and registers the admin_resources entry (ON CONFLICT DO NOTHING)."
     }
   }
 }

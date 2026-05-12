@@ -220,6 +220,11 @@ export const globalAssumptions = pgTable("global_assumptions", {
   // ICP Configuration — structured numeric/toggle parameters for Ideal Customer Profile
   icpConfig: jsonb("icp_config").$type<IcpConfig>(),
 
+  // ICP Bracket Mix — weighted distribution across the shared bracket catalog (Task #1409).
+  // Array of { bracketSlug: string, weight: number } entries that sum to 1.0.
+  // NULL means no mix has been assigned yet (agent derives on first open).
+  bracketMix: jsonb("bracket_mix").$type<Array<{ bracketSlug: string; weight: number }>>(),
+
   exportConfig: jsonb("export_config").$type<ExportConfig>(),
 
   // Asset Definition

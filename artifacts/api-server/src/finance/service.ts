@@ -19,6 +19,7 @@ import type { PropertyInput, GlobalInput, MonthlyFinancials, CompanyMonthlyFinan
 import type { ServiceTemplate } from "@calc/services/types";
 import type { YearlyPropertyFinancials } from "@engine/aggregation/yearlyAggregator";
 import type { PortfolioComputeResult, SinglePropertyComputeResult } from "./core/types";
+import type { BracketMixEntry, IcpBracketProfile } from "@engine/company/icp-bracket-types";
 import { MONTHS_PER_YEAR } from "@shared/constants";
 import { generateCompanyProForma } from "@engine/company/company-engine";
 import { aggregateCompanyByYear } from "@engine/company/company-yearly-aggregator";
@@ -39,6 +40,8 @@ export interface ComputePortfolioInput {
   globalAssumptions: GlobalInput;
   projectionYears?: number;
   serviceTemplates?: ServiceTemplate[];
+  bracketMix?: BracketMixEntry[];
+  brackets?: IcpBracketProfile[];
 }
 
 export interface ComputeSinglePropertyInput {
@@ -52,6 +55,8 @@ export interface ComputeCompanyInput {
   globalAssumptions: GlobalInput;
   projectionYears?: number;
   serviceTemplates?: ServiceTemplate[];
+  bracketMix?: BracketMixEntry[];
+  brackets?: IcpBracketProfile[];
 }
 
 export interface CompanyComputeResult {
@@ -194,7 +199,14 @@ export function computePortfolioProjectionWithAudit(
 
   const validationSummary = runValidation(allPropertyYearlyArrays);
 
-  const companyMonthly = generateCompanyProForma(input.properties, input.globalAssumptions, months, input.serviceTemplates);
+  const companyMonthly = generateCompanyProForma(
+    input.properties,
+    input.globalAssumptions,
+    months,
+    input.serviceTemplates,
+    input.bracketMix,
+    input.brackets,
+  );
   const companyYearly = aggregateCompanyByYear(companyMonthly, projectionYears);
 
   const outputPayload = { perPropertyYearly, perPropertyMonthly, consolidatedYearly, companyMonthly, companyYearly };
@@ -299,6 +311,8 @@ export function computeCompanyProjection(
     input.globalAssumptions,
     months,
     input.serviceTemplates,
+    input.bracketMix,
+    input.brackets,
   );
   const companyYearly = aggregateCompanyByYear(companyMonthly, projectionYears);
 

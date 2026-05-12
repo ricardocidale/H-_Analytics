@@ -20,7 +20,10 @@ import {
 } from "./service";
 import type { PortfolioComputeResult, SinglePropertyComputeResult } from "./core/types";
 import type { CompanyComputeResult } from "./service";
+import type { BracketMixEntry, IcpBracketProfile } from "@engine/company/icp-bracket-types";
 import { storage } from "../storage";
+import { db } from "../db";
+import { sql } from "drizzle-orm";
 
 /**
  * Task #442. The Analyst's `all-properties-financials-computed`
@@ -58,6 +61,13 @@ import { storage } from "../storage";
  * stamping would be a lie). The verification path also lives outside
  * this module because it goes through `runVerificationWithEngine`, not
  * the cached compute service.
+ *
+ * Task #1409: bracket mix enrichment.
+ * When a caller provides `bracketMix` in the input (loaded from
+ * `global_assumptions.bracketMix`), these wrappers fetch the matching
+ * IcpBracketProfile rows from `icp_brackets` and inject them as `brackets`
+ * before delegating to the pure service. This keeps the pure compute layer
+ * zero-IO while giving it the data it needs to apply per-category scalars.
  */
 
 function extractPropertyIds(props: ReadonlyArray<unknown>): number[] {
@@ -71,12 +81,53 @@ function extractPropertyIds(props: ReadonlyArray<unknown>): number[] {
   return ids;
 }
 
+/**
+ * Fetches IcpBracketProfile rows for the slugs present in the given mix.
+ * Returns an empty array when the mix is empty or the table has no rows yet
+ * (so callers never have to null-guard).
+ *
+ * Non-fatal: if the query fails the engine will run without bracket scaling
+ * rather than blocking the entire projection.
+ */
+async function loadBracketProfilesForMix(
+  bracketMix: BracketMixEntry[],
+): Promise<IcpBracketProfile[]> {
+  if (bracketMix.length === 0) return [];
+  try {
+    const slugs = bracketMix.map((e) => e.bracketSlug);
+    const rows = await db.execute(sql`
+      SELECT slug, name, archetype_label, customer_type,
+             service_consumption_profile,
+             target_adr_band_low, target_adr_band_high,
+             comp_set_names, is_active
+      FROM icp_brackets
+      WHERE slug = ANY(${slugs}::text[]) AND is_active = true
+    `);
+    return rows.rows as unknown as IcpBracketProfile[];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Enriches a compute input with bracket profiles when a bracketMix is set
+ * and the caller has not already supplied bracket profile data.
+ */
+async function enrichWithBrackets<T extends { bracketMix?: BracketMixEntry[]; brackets?: IcpBracketProfile[] }>(
+  input: T,
+): Promise<T> {
+  if (!input.bracketMix || input.bracketMix.length === 0 || input.brackets) return input;
+  const brackets = await loadBracketProfilesForMix(input.bracketMix);
+  return { ...input, brackets };
+}
+
 /** Wrapper for `computePortfolioProjectionWithAudit` (used by the audit-aware HTTP route). */
 export async function recomputePortfolioWithAuditAndStamp(
   input: ComputePortfolioInput,
   collectAudit: boolean,
 ): Promise<ComputeResultWithAudit> {
-  const out = computePortfolioProjectionWithAudit(input, collectAudit);
+  const enriched = await enrichWithBrackets(input);
+  const out = computePortfolioProjectionWithAudit(enriched, collectAudit);
   await storage.markPropertiesFinancialsComputed(extractPropertyIds(input.properties));
   return out;
 }
@@ -85,7 +136,8 @@ export async function recomputePortfolioWithAuditAndStamp(
 export async function recomputePortfolioAndStamp(
   input: ComputePortfolioInput,
 ): Promise<PortfolioComputeResult> {
-  const result = computePortfolioProjection(input);
+  const enriched = await enrichWithBrackets(input);
+  const result = computePortfolioProjection(enriched);
   await storage.markPropertiesFinancialsComputed(extractPropertyIds(input.properties));
   return result;
 }
@@ -103,7 +155,8 @@ export async function recomputeSinglePropertyAndStamp(
 export async function recomputeCompanyAndStamp(
   input: ComputeCompanyInput,
 ): Promise<CompanyComputeResult> {
-  const result = computeCompanyProjection(input);
+  const enriched = await enrichWithBrackets(input);
+  const result = computeCompanyProjection(enriched);
   await storage.markPropertiesFinancialsComputed(extractPropertyIds(input.properties));
   return result;
 }

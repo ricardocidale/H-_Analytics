@@ -49,3 +49,4 @@ export * from "./reference-data-tables";
 export * from "./compliance";
 export * from "./icp-data";
 export * from "./types/jsonb-shapes";
+export * from "./icp-brackets";

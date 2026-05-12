@@ -42,6 +42,7 @@ import * as portfolioRiskRoutes from "./routes/portfolio-risk";
 import { riskIntelligenceRoutes } from "./routes/risk-intelligence";
 import * as executiveSummaryRoutes from "./routes/executive-summary";
 import * as icpIntelligenceRoutes from "./routes/icp-intelligence";
+import * as icpBracketsRoutes from "./routes/icp-brackets";
 import * as renderSettingsRoutes from "./routes/render-settings";
 import * as analystAdminRoutes from "./routes/analyst-admin";
 import * as specialistPhotoEnhancerRoutes from "./routes/specialist-photo-enhancer";
@@ -100,6 +101,7 @@ export async function registerRoutes(
   app.use(riskIntelligenceRoutes);
   executiveSummaryRoutes.register(app);
   icpIntelligenceRoutes.register(app);
+  icpBracketsRoutes.register(app);
   renderSettingsRoutes.register(app);
   analystAdminRoutes.register(app);
   specialistPhotoEnhancerRoutes.register(app);

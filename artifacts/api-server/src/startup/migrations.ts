@@ -174,6 +174,17 @@ export async function runSchemaMigrations() {
       await markMigrationApplied("fk_indexes_003");
     }
   }
+
+  // Task #1409 — ICP Bracket Catalog seed + admin_resources registration.
+  // Belt-and-suspenders companion to 0056_icp_bracket_catalog.sql.
+  // Idempotent: creates icp_brackets (IF NOT EXISTS), seeds 4 starter
+  // brackets (ON CONFLICT DO NOTHING), registers admin_resources entry
+  // (ON CONFLICT DO NOTHING).
+  if (!(await isMigrationApplied("icp_brackets_001"))) {
+    const { runIcpBrackets001 } = await import("../migrations/icp-brackets-001");
+    await runIcpBrackets001();
+    await markMigrationApplied("icp_brackets_001");
+  }
 }
 
 // ── Boot orchestration: schema migrations (fatal) ─────────────────────

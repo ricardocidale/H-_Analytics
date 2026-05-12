@@ -467,6 +467,7 @@ export const HTTP_STATUS_CODE_MAX = 599;
 
 /** Standard HTTP response status codes used in route handlers. */
 export const HTTP_STATUS_BAD_REQUEST = 400;
+export const HTTP_STATUS_NOT_FOUND = 404;
 export const HTTP_STATUS_FORBIDDEN = 403;
 export const HTTP_STATUS_INTERNAL_SERVER_ERROR = 500;
 
@@ -477,3 +478,43 @@ export const REBECCA_ADMIN_SCENARIO_DISPLAY_LIMIT = 20;
 // DB: rebecca-context-top-k — move to model-constants-registry when RAG tuning is needed
 /** Top-K document chunks retrieved per RAG lookup in Rebecca context. */
 export const REBECCA_CONTEXT_TOP_K = 3;
+
+// ── ICP Bracket service-consumption constants (Task #1409) ──────────────────
+//
+// R8/R9/R10 — Service-consumption rules for the bracket catalog.
+//
+// 'hotel' customer-type → service_consumption_profile = 'full':
+//   All ManCo service-template categories are consumed (scalar = 1.0).
+//
+// 'str' customer-type → service_consumption_profile = 'str_only':
+//   Only ICP_STR_ELIGIBLE_SERVICE_CATEGORIES are consumed (scalar = 1.0 for
+//   those categories, 0.0 for the rest). The performance bonus (incentive
+//   management fee) is computed separately in the engine and applies to ALL
+//   bracket types regardless — it is NOT a service-template category.
+//
+// These names MUST match the `name` column in service_templates rows (seeded
+// from DEFAULT_SERVICE_TEMPLATES in lib/db/src/constants.ts).
+
+/**
+ * Service-template category names that STR-profile brackets consume from the
+ * Management Company's centralized service offering.
+ *
+ * Source: requirements.md R9 + HVS Fee Survey 2024 STR addendum.
+ * Never inline these strings — always reference this constant.
+ */
+export const ICP_STR_ELIGIBLE_SERVICE_CATEGORIES: readonly string[] = [
+  "Marketing & Brand",
+] as const;
+
+/**
+ * Tolerance for bracket-mix weight validation.
+ * Weights must sum to within this delta of 1.0.
+ * Also used in the engine to skip scaling when no STR component is present.
+ */
+export const ICP_BRACKET_MIX_WEIGHT_TOLERANCE = 0.01;
+
+/**
+ * Maximum number of bracket entries allowed in a single bracket-mix.
+ * Matches the catalog size — currently 4 starter brackets, room for one more.
+ */
+export const ICP_BRACKET_MIX_MAX_ENTRIES = 5;

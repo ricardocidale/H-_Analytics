@@ -55,6 +55,8 @@ import { getFactoryNumber } from '@norfolk/shared/model-constants-registry';
 import { computeCostOfServices } from '@calc/services/cost-of-services';
 import type { ServiceTemplate, AggregatedServiceCosts } from '@calc/services/types';
 import { PropertyInput, GlobalInput, CompanyMonthlyFinancials, ServiceFeeBreakdown } from '../types';
+import type { IcpBracketProfile, BracketMixEntry } from './icp-bracket-types';
+import { computeServiceConsumptionScalars, bracketMixHasStrComponent } from './bracket-service-consumption';
 import { generatePropertyProForma } from '../property/property-engine';
 import { parseLocalDate } from '@norfolk/shared/dates';
 import { assertFinite, dPow } from '@calc/shared/decimal.js';
@@ -73,6 +75,11 @@ function parseDateComponents(dateStr: string) {
  * @param months          Projection horizon in months (default: PROJECTION_MONTHS = 120).
  * @param serviceTemplates Optional centralized-services templates. When present, vendor
  *                         cost-of-services is deducted from fee revenue → grossProfit.
+ * @param bracketMix      Optional bracket-mix (Task #1409). When provided with brackets,
+ *                         per-category service-fee scalars are applied before cost-of-services
+ *                         to reflect the hotel/STR customer-type split.
+ * @param brackets        Optional bracket catalog profiles (rows from icp_brackets). Required
+ *                         when bracketMix is provided; ignored otherwise.
  * @returns               Array of CompanyMonthlyFinancials, one entry per month from model start.
  *
  * Funding gate: hasStartedOps = currentDate >= companyOpsStartDate AND >= capitalRaise1Date.
@@ -83,6 +90,8 @@ export function generateCompanyProForma(
   global: GlobalInput,
   months: number = PROJECTION_MONTHS,
   serviceTemplates?: ServiceTemplate[],
+  bracketMix?: BracketMixEntry[],
+  brackets?: IcpBracketProfile[],
 ): CompanyMonthlyFinancials[] {
   const results: CompanyMonthlyFinancials[] = [];
   let cumulativeCompanyCash = 0;
@@ -153,6 +162,23 @@ export function generateCompanyProForma(
   const fundingInterestRate = global.fundingInterestRate ?? 0;
   const fundingInterestPaymentFrequency = global.fundingInterestPaymentFrequency ?? 'accrues_only';
   const hasServiceTemplates = serviceTemplates && serviceTemplates.length > 0;
+
+  // ── Bracket-mix service-consumption scalars (Task #1409) ──────────────────
+  // Pre-compute once outside the monthly loop (brackets never change mid-run).
+  // Only applied when both bracketMix AND brackets are provided AND the mix
+  // contains at least one STR component (scalars are all 1.0 for pure-hotel mixes,
+  // so we skip the per-category scaling to avoid unnecessary computation).
+  const hasBracketMix =
+    bracketMix && bracketMix.length > 0 && brackets && brackets.length > 0;
+  const hasStrComponent =
+    hasBracketMix && bracketMixHasStrComponent(bracketMix!, brackets!);
+  // categoryNames from service templates — only evaluate categories that exist
+  const bracketScalars: Record<string, number> | null =
+    hasBracketMix && hasStrComponent && hasServiceTemplates
+      ? computeServiceConsumptionScalars(bracketMix!, brackets!, Object.keys(
+          (serviceTemplates ?? []).reduce<Record<string, true>>((acc, t) => { acc[t.name] = true; return acc; }, {}),
+        ))
+      : null;
 
   // ── Pre-computed escalation factor arrays (Task 6) ──
   const maxMonthsSinceOps = opsStartMonthIdx < 0 ? months - 1 + Math.abs(opsStartMonthIdx) : months - 1;
@@ -241,6 +267,36 @@ export function generateCompanyProForma(
         }
       }
     }
+    // ── Apply bracket-mix consumption scalars to serviceFeeBreakdown ─────────
+    // When the company serves a mix of hotel + STR customers, STR brackets
+    // do not consume certain service-template categories (e.g. Technology,
+    // Accounting). Scale down those category revenue figures before feeding
+    // them into computeCostOfServices so vendor cost-of-services reflects
+    // only the revenue the company actually bills for in each line.
+    //
+    // byCategoryByPropertyId is NOT scaled — it preserves the gross per-property
+    // amounts for drill-down/audit views. Only byCategory (the input to COS) is scaled.
+    //
+    // IMPORTANT: totalRevenue must be computed AFTER this block so it reflects
+    // the bracket-adjusted baseFeeRevenue in all downstream uses (grossProfit,
+    // marketing, miscOps, ebitda).
+    if (bracketScalars) {
+      for (const [catName, scalar] of Object.entries(bracketScalars)) {
+        if (catName in serviceFeeBreakdown.byCategory && scalar < 1.0) {
+          const original = serviceFeeBreakdown.byCategory[catName];
+          serviceFeeBreakdown.byCategory[catName] = assertFinite(
+            original * scalar,
+            `bracketScaled[${catName}]`,
+          );
+        }
+      }
+      // Re-derive baseFeeRevenue from scaled byCategory values so totalRevenue
+      // (computed next) reflects the bracket-adjusted figure.
+      baseFeeRevenue = Object.values(serviceFeeBreakdown.byCategory).reduce((s, v) => s + v, 0);
+    }
+
+    // totalRevenue is intentionally computed AFTER bracket scaling so that
+    // grossProfit, marketing, miscOps, and ebitda all use the adjusted figure.
     const totalRevenue = baseFeeRevenue + incentiveFeeRevenue;
 
     let costOfCentralizedServices: AggregatedServiceCosts | null = null;
