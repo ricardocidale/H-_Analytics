@@ -54,24 +54,6 @@ export function useNationalBenchmarks() {
 }
 
 /**
- * Map a property cost-rate field key (e.g. "costRateRooms") to the canonical
- * service_line slug used in vendor_passthrough_costs rows. Returns null for
- * field keys that have no matching national benchmark so the chip renders
- * nothing rather than a misleading value.
- */
-export function usaliFieldKeyToServiceLine(fieldKey: string): string | null {
-  switch (fieldKey) {
-    case "costRateRooms":       return "housekeeping";
-    case "costRateFB":          return "food_beverage";
-    case "costRateAdmin":       return "accounting";
-    case "costRatePropertyOps": return "maintenance";
-    case "costRateMarketing":   return "marketing";
-    case "costRateIT":          return "it";
-    default:                    return null;
-  }
-}
-
-/**
  * Map a ServiceTemplate display name to the canonical service_line slug
  * used in vendor_passthrough_costs / mgmt_co_markup_factors. Returns null
  * for unknown service names so the chip renders nothing rather than a

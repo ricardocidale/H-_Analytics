@@ -459,6 +459,26 @@ export function registerFinanceRoutes(router: Router): void {
       // Falls back to hardcoded national anchors when the DB tables are empty.
       const serviceTemplates = await withNationalBenchmarks(rawServiceTemplates);
 
+      // Fetch the user's bracket mix from global_assumptions (server-authoritative).
+      // enrichWithBrackets in recompute.ts will load the matching icp_brackets rows.
+      // Non-fatal: if the fetch fails, the engine runs without bracket scaling.
+      let portfolioBracketMix: BracketMixEntry[] | undefined;
+      let portfolioBrackets: IcpBracketProfile[] | undefined;
+      try {
+        const ga = await storage.getGlobalAssumptions(getAuthUser(req).id);
+        const rawMix = (ga as Record<string, unknown>)?.bracketMix;
+        const normalized = normalizePersistedBracketMix(rawMix);
+        if (normalized) {
+          portfolioBracketMix = normalized.bracketMix;
+          if (normalized.brackets) portfolioBrackets = normalized.brackets;
+        }
+      } catch (mixErr: unknown) {
+        logger.warn(
+          `Failed to load bracketMix for portfolio compute: ${mixErr instanceof Error ? mixErr.message : String(mixErr)}`,
+          "finance",
+        );
+      }
+
       // Resolve the bracket mix: explicit request-body override (used by the
       // ICP page to preview the impact of a proposed mix on partner take-home
       // and portfolio IRR) wins over the persisted mix in global_assumptions.
@@ -764,6 +784,30 @@ export function registerFinanceRoutes(router: Router): void {
       // (Pietro/Gaetano/Renato feeds) onto the per-template `serviceMarkup`.
       // Falls back to hardcoded national anchors when the DB tables are empty.
       const serviceTemplates = await withNationalBenchmarks(rawServiceTemplates);
+
+      // Resolve bracket mix: explicit request-body override (used by the ICP
+      // page to preview the impact of an unsaved mix) wins over the
+      // persisted mix in global_assumptions. Non-fatal if the DB fetch fails.
+      let companyBracketMix: BracketMixEntry[] | undefined;
+      let companyBrackets: IcpBracketProfile[] | undefined;
+      if (bracketMixOverride && bracketMixOverride.length > 0) {
+        companyBracketMix = bracketMixOverride as BracketMixEntry[];
+      } else {
+        try {
+          const ga = await storage.getGlobalAssumptions(getAuthUser(req).id);
+          const rawMix = (ga as Record<string, unknown>)?.bracketMix;
+          const normalized = normalizePersistedBracketMix(rawMix);
+          if (normalized) {
+            companyBracketMix = normalized.bracketMix;
+            if (normalized.brackets) companyBrackets = normalized.brackets;
+          }
+        } catch (mixErr: unknown) {
+          logger.warn(
+            `Failed to load bracketMix for company compute: ${mixErr instanceof Error ? mixErr.message : String(mixErr)}`,
+            "finance",
+          );
+        }
+      }
 
       // Resolve bracket mix: explicit request-body override (used by the ICP
       // page to preview the impact of an unsaved mix) wins over the

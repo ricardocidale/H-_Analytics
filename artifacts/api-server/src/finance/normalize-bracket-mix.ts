@@ -2,21 +2,28 @@
  * normalize-bracket-mix.ts — Coerce persisted bracket-mix shapes into engine inputs.
  *
  * Task #1428 — wire bracket weights into Mgmt Co revenue calculations.
- * Task #1486 — unify persisted shape; this translator is now a thin pass-through.
  *
- * The canonical persisted shape for `global_assumptions.bracket_mix` is now
- * BracketMixData = { entries: BracketEntry[], assignedAt?, evidence? } where
- * each BracketEntry carries `id`, `name`, `archetypeLabel`, `serviceConsumption`,
- * and `weight`.
+ * Two writers persist to `global_assumptions.bracket_mix`:
  *
- * Both writers (the ICP catalog API and the bracket-assignment minion) now
- * emit this same shape. The old flat-array shape ([ { bracketSlug, weight } ])
- * is no longer written; any legacy rows were converted by icp-brackets-002.
+ *   1. ICP catalog API (`PUT /api/icp/brackets/mix`) — writes a flat
+ *      `BracketMixEntry[]` of `{ bracketSlug, weight }`. Slugs reference
+ *      rows in the `icp_brackets` table.
  *
- * The engine consumes a single normalized pair: (BracketMixEntry[],
- * IcpBracketProfile[]). This module accepts BracketMixData and returns that
- * pair. The `brackets` field is SYNTHESIZED from each entry's
- * `serviceConsumption` field — no DB lookup needed.
+ *   2. Bracket-assignment minion (`POST /api/company/bracket-mix/assign`) —
+ *      writes a `BracketMixData = { entries: BracketEntry[], ... }` where each
+ *      entry carries `id`, `serviceConsumption: "hotel" | "str" | "mixed"`,
+ *      `weight`, etc. The catalog ids are not guaranteed to match
+ *      `icp_brackets.slug`.
+ *
+ * The engine consumes a single normalized pair: `(BracketMixEntry[],
+ * IcpBracketProfile[])`. This module accepts either persisted shape and
+ * returns that pair, plus a flag telling the caller whether engine-side
+ * profile data still needs to be loaded from the `icp_brackets` table.
+ *
+ * Shape detection rules:
+ *   - `Array.isArray(raw)` → catalog-API shape; profiles come from the DB.
+ *   - `raw.entries` array → minion shape; profiles are SYNTHESIZED from each
+ *     entry's `serviceConsumption` field. No DB lookup needed.
  *
  * "mixed" handling: per `bracket-catalog.ts` doctrine, mixed brackets show
  * "blended service-consumption profile reflecting both hotel-style
@@ -47,15 +54,16 @@ const MIXED_SPLIT_FRACTION = 0.5;
 export interface NormalizedBracketMix {
   bracketMix: BracketMixEntry[];
   /**
-   * Synthesized profiles derived from each entry's serviceConsumption field.
-   * Always populated — callers no longer need a DB fallback lookup.
+   * Synthesized profiles when we know the consumption type up-front (minion
+   * shape). When `null`, the caller should fall back to DB lookup via
+   * `enrichWithBrackets()` in `recompute.ts`.
    */
-  brackets: IcpBracketProfile[];
+  brackets: IcpBracketProfile[] | null;
 }
 
 // ── Persisted-shape guards ─────────────────────────────────────────────────
 
-interface PersistedEntry {
+interface PersistedMinionEntry {
   id: string;
   name?: string;
   archetypeLabel?: string;
@@ -63,11 +71,11 @@ interface PersistedEntry {
   weight: number;
 }
 
-interface PersistedBracketMixData {
-  entries: PersistedEntry[];
+interface PersistedMinionData {
+  entries: PersistedMinionEntry[];
 }
 
-function isPersistedEntry(value: unknown): value is PersistedEntry {
+function isMinionEntry(value: unknown): value is PersistedMinionEntry {
   if (!value || typeof value !== "object") return false;
   const r = value as Record<string, unknown>;
   return (
@@ -79,12 +87,16 @@ function isPersistedEntry(value: unknown): value is PersistedEntry {
   );
 }
 
-function isPersistedBracketMixData(
-  value: unknown,
-): value is PersistedBracketMixData {
+function isMinionData(value: unknown): value is PersistedMinionData {
   if (!value || typeof value !== "object") return false;
   const r = value as Record<string, unknown>;
-  return Array.isArray(r.entries) && r.entries.every(isPersistedEntry);
+  return Array.isArray(r.entries) && r.entries.every(isMinionEntry);
+}
+
+function isCatalogEntry(value: unknown): value is BracketMixEntry {
+  if (!value || typeof value !== "object") return false;
+  const r = value as Record<string, unknown>;
+  return typeof r.bracketSlug === "string" && typeof r.weight === "number";
 }
 
 // ── Public API ─────────────────────────────────────────────────────────────
@@ -94,33 +106,39 @@ function isPersistedBracketMixData(
  * into the pair the engine consumes. Returns `null` when the value is
  * missing, the wrong shape, or empty — callers should treat that as
  * "no bracket scaling".
- *
- * Only the canonical BracketMixData shape is handled. The old flat-array
- * format ([ { bracketSlug, weight } ]) is no longer written; any legacy rows
- * were converted by the icp-brackets-002 migration.
  */
 export function normalizePersistedBracketMix(
   raw: unknown,
 ): NormalizedBracketMix | null {
-  if (isPersistedBracketMixData(raw)) {
-    return synthesizeFromEntries(raw.entries);
+  // Catalog-API shape: flat array of { bracketSlug, weight }.
+  if (Array.isArray(raw)) {
+    const entries = raw.filter(isCatalogEntry);
+    if (entries.length === 0) return null;
+    return { bracketMix: entries, brackets: null };
   }
+
+  // Minion shape: { entries: BracketEntry[], assignedAt?, evidence? }.
+  if (isMinionData(raw)) {
+    return synthesizeFromMinionEntries(raw.entries);
+  }
+
   return null;
 }
 
 /**
- * Build engine inputs directly from persisted BracketMixData entries. Each
- * entry's `serviceConsumption` field decides the synthetic profile:
+ * Build engine inputs directly from minion entries. Each entry's
+ * `serviceConsumption` field decides the synthetic profile:
  *
  *   "hotel" → one `full` profile, full weight
  *   "str"   → one `str_only` profile, full weight
  *   "mixed" → two synthetic profiles (full + str_only), each at half weight
  *
- * Slugs for "mixed" entries are namespaced with the entry id so they cannot
- * collide with real `icp_brackets` rows. Empty input returns `null`.
+ * Slugs are namespaced with the entry id so they cannot collide with real
+ * `icp_brackets` rows even when the same column also stores catalog-shape
+ * data on a different row. Empty input returns `null`.
  */
-function synthesizeFromEntries(
-  entries: PersistedEntry[],
+function synthesizeFromMinionEntries(
+  entries: PersistedMinionEntry[],
 ): NormalizedBracketMix | null {
   if (entries.length === 0) return null;
 

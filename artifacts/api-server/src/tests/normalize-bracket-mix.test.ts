@@ -2,13 +2,9 @@
  * Direct unit tests for `normalizePersistedBracketMix`.
  *
  * Task #1428 follow-up — code review asked for explicit coverage of the
- * normalizer at the persisted-shape boundary.
- *
- * Task #1486 — Both writers now emit BracketMixData. The old flat-array
- * (catalog-API) branch has been removed from the normalizer. Tests updated
- * accordingly: only the canonical BracketMixData shape is accepted.
- *
- * The engine-side test in
+ * normalizer at the persisted-shape boundary (catalog API shape vs.
+ * bracket-assignment minion shape, plus mixed splitting and invalid
+ * inputs). The engine-side test in
  * `lib/engine/src/company/__tests__/company-engine.bracket-mix.test.ts`
  * covers downstream behavior; these tests pin the contract here.
  */
@@ -32,8 +28,8 @@ describe("normalizePersistedBracketMix", () => {
       expect(normalizePersistedBracketMix(undefined)).toBeNull();
     });
 
-    it("returns null for an empty object", () => {
-      expect(normalizePersistedBracketMix({})).toBeNull();
+    it("returns null for an empty array", () => {
+      expect(normalizePersistedBracketMix([])).toBeNull();
     });
 
     it("returns null for an object without an `entries` array", () => {
@@ -44,20 +40,45 @@ describe("normalizePersistedBracketMix", () => {
       expect(normalizePersistedBracketMix({ entries: [] })).toBeNull();
     });
 
-    it("returns null for the old flat-array shape (no longer written)", () => {
-      // Flat arrays were the old catalog-API format. After icp-brackets-002
-      // migration they no longer appear in production, and the normalizer
-      // only handles BracketMixData now.
+    it("returns null for an array of unrecognized objects", () => {
       expect(
-        normalizePersistedBracketMix([
-          { bracketSlug: "boutique-luxury", weight: HOTEL_WEIGHT },
-        ]),
+        normalizePersistedBracketMix([{ foo: 1 }, { bar: "baz" }]),
       ).toBeNull();
     });
   });
 
-  describe("canonical BracketMixData shape", () => {
-    it("passes a hotel entry through and synthesizes a `full` profile", () => {
+  describe("catalog-API shape", () => {
+    it("passes valid catalog entries through and returns null brackets", () => {
+      const result = normalizePersistedBracketMix([
+        { bracketSlug: "boutique-luxury", weight: HOTEL_WEIGHT },
+        { bracketSlug: "str-portfolio", weight: STR_WEIGHT },
+      ]);
+
+      expect(result).not.toBeNull();
+      expect(result?.brackets).toBeNull();
+      expect(result?.bracketMix).toEqual([
+        { bracketSlug: "boutique-luxury", weight: HOTEL_WEIGHT },
+        { bracketSlug: "str-portfolio", weight: STR_WEIGHT },
+      ]);
+    });
+
+    it("filters out malformed catalog entries", () => {
+      const result = normalizePersistedBracketMix([
+        { bracketSlug: "ok", weight: HOTEL_WEIGHT },
+        { bracketSlug: 123, weight: HOTEL_WEIGHT },
+        { weight: HOTEL_WEIGHT },
+        "garbage",
+      ]);
+
+      expect(result?.bracketMix).toEqual([
+        { bracketSlug: "ok", weight: HOTEL_WEIGHT },
+      ]);
+      expect(result?.brackets).toBeNull();
+    });
+  });
+
+  describe("minion shape", () => {
+    it("synthesizes a `full` profile for a hotel entry", () => {
       const result = normalizePersistedBracketMix({
         entries: [
           {
@@ -145,34 +166,6 @@ describe("normalizePersistedBracketMix", () => {
       ]);
     });
 
-    it("always returns a populated `brackets` array (never null)", () => {
-      const result = normalizePersistedBracketMix({
-        entries: [
-          { id: "hotel-bracket-1", serviceConsumption: "hotel", weight: HOTEL_WEIGHT },
-          { id: "str-bracket-1", serviceConsumption: "str", weight: STR_WEIGHT },
-        ],
-      });
-
-      expect(result).not.toBeNull();
-      expect(Array.isArray(result?.brackets)).toBe(true);
-      expect((result?.brackets ?? []).length).toBeGreaterThan(0);
-    });
-
-    it("ignores optional fields (assignedAt, evidence) and works correctly", () => {
-      const result = normalizePersistedBracketMix({
-        entries: [
-          { id: "hotel-bracket-1", serviceConsumption: "hotel", weight: 1 },
-        ],
-        assignedAt: "2024-01-01T00:00:00.000Z",
-        evidence: "Portfolio analysed.",
-      });
-
-      expect(result).not.toBeNull();
-      expect(result?.bracketMix).toEqual([
-        { bracketSlug: "hotel-bracket-1", weight: 1 },
-      ]);
-    });
-
     it("falls back to entry id as name when name is absent", () => {
       const result = normalizePersistedBracketMix({
         entries: [
@@ -203,7 +196,7 @@ describe("normalizePersistedBracketMix", () => {
       expect(result?.brackets?.map((b) => b.slug)).toEqual(["keep"]);
     });
 
-    it("returns null when every entry is filtered out", () => {
+    it("returns null when every minion entry is filtered out", () => {
       const result = normalizePersistedBracketMix({
         entries: [
           { id: "zero", serviceConsumption: "hotel", weight: 0 },
@@ -214,6 +207,8 @@ describe("normalizePersistedBracketMix", () => {
     });
 
     it("rejects an entries object containing malformed entries", () => {
+      // Entire object fails the type guard if any entry is malformed —
+      // matching the conservative behavior of `isMinionData`.
       const result = normalizePersistedBracketMix({
         entries: [
           { id: "ok", serviceConsumption: "hotel", weight: HOTEL_WEIGHT },

@@ -15,9 +15,7 @@
  *
  * This script is that guard. It walks the H+ portal source tree and fails
  * the build if it finds the banned pattern in source-level code (string
- * literals or JSX text) outside of comments, AND in content files (Markdown,
- * MDX, MJML email templates, HTML, and JSON i18n bundles) that surface to
- * end users.
+ * literals or JSX text) outside of comments.
  *
  * PATTERN
  * -------
@@ -28,8 +26,6 @@
  *   <p>The Analyst is computing rates…</p>
  *   `The Analyst is researching ${target}`
  *   toast({ title: "The Analyst is cooling down" })
- *   # The Analyst is reviewing data       (Markdown heading)
- *   { "status": "The Analyst is loading" } (JSON value)
  *
  * Examples that PASS (the casual register the audits established):
  *   "Looking at your property…"
@@ -37,7 +33,7 @@
  *   "Cooling down" (without the "The Analyst is" preamble)
  *   aria-label="Analyst is running"   // no "The" → not a status sentence
  *
- * COMMENT EXCLUSION (code files only)
+ * COMMENT EXCLUSION
  * -----------------
  * Comments (// line and /* block *\/) are stripped before the regex runs, so
  * historical/explanatory mentions like "// The Analyst is doing research"
@@ -50,10 +46,6 @@
  * literal) could in principle truncate a line early, but the worst case is
  * a missed detection (false negative), never a false positive against an
  * actual non-comment occurrence.
- *
- * Content files (.md, .mdx, .mjml, .html, .json) are scanned directly with
- * no comment stripping — HTML comments (<!-- -->) and JSON's lack of comments
- * mean any occurrence of the banned phrase is considered user-visible content.
  *
  * FALSE-POSITIVE ESCAPE HATCH
  * ---------------------------
@@ -82,8 +74,6 @@ const WORKSPACE_ROOT = path.resolve(__dirname, "../..");
  * coverage to backend code that emits user-visible strings: the API server
  * (toasts, transactional emails, websocket status messages, OpenAPI error
  * descriptions) and shared `lib/*` packages used by both client and server.
- * Task #1505 extends coverage further to content files (.md, .mdx, .mjml,
- * .html, .json) within the same source trees.
  */
 const SCAN_DIRS = [
   "artifacts/hospitality-business-portal/src",
@@ -99,21 +89,10 @@ const SCAN_DIRS = [
   "lib/api-spec/src",
 ];
 
-/** File extensions scanned as code (comment-stripping + line skip predicates apply). */
-const CODE_SCAN_EXTS = new Set([".ts", ".tsx", ".js", ".jsx"]);
+/** File extensions to scan. */
+const SCAN_EXTS = new Set([".ts", ".tsx", ".js", ".jsx"]);
 
-/**
- * File extensions scanned as content (no comment stripping, no
- * SKIP_LINE_PATTERNS — any occurrence is user-visible).
- *
- * .md / .mdx  — in-app help text and MDX docs rendered to users
- * .mjml        — transactional email templates compiled to HTML
- * .html        — raw HTML email or in-app templates
- * .json        — i18n bundles and other content JSON
- */
-const CONTENT_SCAN_EXTS = new Set([".md", ".mdx", ".mjml", ".html", ".json"]);
-
-/** Directories to skip during tree walk (applied to both code and content). */
+/** Directories to skip during tree walk. */
 const SKIP_DIRS = new Set([
   "node_modules",
   ".git",
@@ -131,18 +110,17 @@ const SKIP_DIRS = new Set([
 ]);
 
 /**
- * Path-substring patterns that mark CODE files as containing internal-only
- * content — LLM system prompts, RAG knowledge-base seeds, agent persona
- * definitions — which legitimately reference "The Analyst is …" in
- * declarative/descriptive (not status) prose. Matched against the POSIX-style
- * relative path.
+ * Path-substring patterns that mark files as containing internal-only content
+ * — LLM system prompts, RAG knowledge-base seeds, agent persona definitions —
+ * which legitimately reference "The Analyst is …" in declarative/descriptive
+ * (not status) prose. Matched against the POSIX-style relative path.
  *
  * Anything matched here is excluded from the scan entirely. The intent of the
  * casual-register rule is user-visible STATUS copy ("Looking at your
  * property…"), not LLM prompt scaffolding or knowledge-base content that
  * defines what the Analyst IS.
  */
-const SKIP_PATH_PATTERNS_CODE: RegExp[] = [
+const SKIP_PATH_PATTERNS: RegExp[] = [
   /\/prompts?\//, // any prompts/ directory
   /-prompt(s|-[a-z-]+)?\.ts$/, // *-prompt.ts, *-prompts.ts, *-prompt-engineer.ts
   /\/seeds?\//, // seed data trees
@@ -155,56 +133,13 @@ const SKIP_PATH_PATTERNS_CODE: RegExp[] = [
 ];
 
 /**
- * Path-substring patterns that mark CONTENT files (.md, .mdx, .mjml, .html,
- * .json) as internal-only — developer documentation, runbooks, migration
- * notes, tooling config — that are never rendered to end users.
- *
- * Matched against the POSIX-style relative path. Files matching any pattern
- * are excluded from the content scan entirely.
- */
-const SKIP_PATH_PATTERNS_CONTENT: RegExp[] = [
-  // Internal developer docs
-  /\/docs\//,                           // any docs/ subtree
-  /(^|\/)README(\.[a-z]+)?$/i,          // README, README.md, README.mdx …
-  /(^|\/)CHANGELOG(\.[a-z]+)?$/i,       // changelogs
-  /(^|\/)CONTRIBUTING(\.[a-z]+)?$/i,
-  // Agent / skill definitions — describe what the Analyst IS, not status copy
-  /\/\.agents\//,
-  /\/skills?\//,
-  // Internal run-history and health logs (not user-rendered)
-  /\/iris\//,
-  /\/costantino\//,
-  // Migration artefacts
-  /\/migrations?\//,
-  // LLM prompt and seed content (same exemption as code files)
-  /\/prompts?\//,
-  /\/seeds?\//,
-  /\/knowledge-base/,
-  /\/agent-personas/,
-  // Tooling / config JSON that is never user-visible content
-  /\/tsconfig[^/]*\.json$/,
-  /\/package\.json$/,
-  /\/pnpm-lock\.yaml$/,
-  /\/components\.json$/,
-  /\/_journal\.json$/,
-  /\/\d+_snapshot\.json$/,
-  /\/migration-guards\.json$/,
-  /\/llm-pricing\.json$/,
-  /\/seed-users\.json$/,
-  /\/\.replit-artifact\//,
-];
-
-/**
- * Per-line skip predicates for CODE files. These run AFTER comment stripping
- * but BEFORE the banned-phrase regex. A line is excluded from scanning if any
- * predicate returns true.
+ * Per-line skip predicates. These run AFTER comment stripping but BEFORE the
+ * banned-phrase regex. A line is excluded from scanning if any predicate
+ * returns true.
  *
  * The intent is to avoid flooding with false positives from backend-only
  * logging / tracing — `req.log.info("The Analyst is starting refresh")` is an
  * internal observability signal, not user-visible copy.
- *
- * NOT applied to content files — every line in a content file is assumed to
- * be potentially user-visible.
  */
 const SKIP_LINE_PATTERNS: RegExp[] = [
   /\breq\.log\.(trace|debug|info|warn|error|fatal)\b/,
@@ -235,7 +170,7 @@ const ALLOWED_FILES: string[] = [
 const BANNED_RE = /\bThe Analyst is [a-z][\w-]*/i;
 
 // ---------------------------------------------------------------------------
-// Comment stripper (code files only)
+// Comment stripper
 // ---------------------------------------------------------------------------
 
 /**
@@ -303,7 +238,7 @@ function stripComments(source: string): string {
 // Tree walker
 // ---------------------------------------------------------------------------
 
-function* walkFiles(dir: string, exts: Set<string>): Generator<string> {
+function* walkFiles(dir: string): Generator<string> {
   let entries: fs.Dirent[];
   try {
     entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -313,9 +248,9 @@ function* walkFiles(dir: string, exts: Set<string>): Generator<string> {
   for (const entry of entries) {
     if (entry.isDirectory()) {
       if (!SKIP_DIRS.has(entry.name)) {
-        yield* walkFiles(path.join(dir, entry.name), exts);
+        yield* walkFiles(path.join(dir, entry.name));
       }
-    } else if (entry.isFile() && exts.has(path.extname(entry.name))) {
+    } else if (entry.isFile() && SCAN_EXTS.has(path.extname(entry.name))) {
       yield path.join(dir, entry.name);
     }
   }
@@ -326,71 +261,13 @@ function isAllowed(absolutePath: string): boolean {
   return ALLOWED_FILES.includes(rel);
 }
 
-function isCodePathSkipped(absolutePath: string): boolean {
+function isPathSkipped(absolutePath: string): boolean {
   const rel = path.relative(WORKSPACE_ROOT, absolutePath).replace(/\\/g, "/");
-  return SKIP_PATH_PATTERNS_CODE.some((re) => re.test(rel));
-}
-
-function isContentPathSkipped(absolutePath: string): boolean {
-  const rel = path.relative(WORKSPACE_ROOT, absolutePath).replace(/\\/g, "/");
-  return SKIP_PATH_PATTERNS_CONTENT.some((re) => re.test(rel));
+  return SKIP_PATH_PATTERNS.some((re) => re.test(rel));
 }
 
 function isLineSkipped(line: string): boolean {
   return SKIP_LINE_PATTERNS.some((re) => re.test(line));
-}
-
-// ---------------------------------------------------------------------------
-// Per-file scanners
-// ---------------------------------------------------------------------------
-
-interface Violation {
-  rel: string;
-  lineNum: number;
-  shown: string;
-}
-
-function scanCodeFile(absolutePath: string): Violation[] {
-  const rel = path.relative(WORKSPACE_ROOT, absolutePath).replace(/\\/g, "/");
-  const source = fs.readFileSync(absolutePath, "utf8");
-  const stripped = stripComments(source);
-  const strippedLines = stripped.split("\n");
-  const originalLines = source.split("\n");
-  const violations: Violation[] = [];
-
-  for (let i = 0; i < strippedLines.length; i++) {
-    if (isLineSkipped(strippedLines[i])) continue;
-    if (BANNED_RE.test(strippedLines[i])) {
-      violations.push({
-        rel,
-        lineNum: i + 1,
-        shown: (originalLines[i] ?? strippedLines[i]).trim(),
-      });
-    }
-  }
-
-  return violations;
-}
-
-/**
- * Scan a content file (.md, .mdx, .mjml, .html, .json) line-by-line for the
- * banned phrase. No comment stripping is applied — any occurrence is treated
- * as potentially user-visible. SKIP_LINE_PATTERNS are NOT applied (those are
- * code-only logging exemptions).
- */
-function scanContentFile(absolutePath: string): Violation[] {
-  const rel = path.relative(WORKSPACE_ROOT, absolutePath).replace(/\\/g, "/");
-  const source = fs.readFileSync(absolutePath, "utf8");
-  const lines = source.split("\n");
-  const violations: Violation[] = [];
-
-  for (let i = 0; i < lines.length; i++) {
-    if (BANNED_RE.test(lines[i])) {
-      violations.push({ rel, lineNum: i + 1, shown: lines[i].trim() });
-    }
-  }
-
-  return violations;
 }
 
 // ---------------------------------------------------------------------------
@@ -407,12 +284,8 @@ export function collectInputFiles(): string[] {
   for (const scanDir of SCAN_DIRS) {
     const absDir = path.join(WORKSPACE_ROOT, scanDir);
     if (!fs.existsSync(absDir)) continue;
-    for (const absPath of walkFiles(absDir, CODE_SCAN_EXTS)) {
-      if (isCodePathSkipped(absPath)) continue;
-      files.push(absPath);
-    }
-    for (const absPath of walkFiles(absDir, CONTENT_SCAN_EXTS)) {
-      if (isContentPathSkipped(absPath)) continue;
+    for (const absPath of walkFiles(absDir)) {
+      if (isPathSkipped(absPath)) continue;
       files.push(absPath);
     }
   }
@@ -430,25 +303,23 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const absDir = path.join(WORKSPACE_ROOT, scanDir);
     if (!fs.existsSync(absDir)) continue;
 
-    // --- Code files (.ts/.tsx/.js/.jsx) ---
-    for (const absPath of walkFiles(absDir, CODE_SCAN_EXTS)) {
+    for (const absPath of walkFiles(absDir)) {
       if (isAllowed(absPath)) continue;
-      if (isCodePathSkipped(absPath)) continue;
+      if (isPathSkipped(absPath)) continue;
 
-      for (const v of scanCodeFile(absPath)) {
-        console.error(`VIOLATION  ${v.rel}:${v.lineNum}  ${v.shown}`);
-        violations++;
-      }
-    }
+      const rel = path.relative(WORKSPACE_ROOT, absPath).replace(/\\/g, "/");
+      const source = fs.readFileSync(absPath, "utf8");
+      const stripped = stripComments(source);
+      const strippedLines = stripped.split("\n");
+      const originalLines = source.split("\n");
 
-    // --- Content files (.md/.mdx/.mjml/.html/.json) ---
-    for (const absPath of walkFiles(absDir, CONTENT_SCAN_EXTS)) {
-      if (isAllowed(absPath)) continue;
-      if (isContentPathSkipped(absPath)) continue;
-
-      for (const v of scanContentFile(absPath)) {
-        console.error(`VIOLATION  ${v.rel}:${v.lineNum}  ${v.shown}`);
-        violations++;
+      for (let i = 0; i < strippedLines.length; i++) {
+        if (isLineSkipped(strippedLines[i])) continue;
+        if (BANNED_RE.test(strippedLines[i])) {
+          const shown = (originalLines[i] ?? strippedLines[i]).trim();
+          console.error(`VIOLATION  ${rel}:${i + 1}  ${shown}`);
+          violations++;
+        }
       }
     }
   }
@@ -477,20 +348,12 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     console.error('  After:  "Crunching the numbers…"');
     console.error("");
     console.error(
-      "This rule applies to ALL user-facing content: TypeScript/TSX code,",
+      "Comments (// and /* */) are excluded — only code and string content is",
     );
     console.error(
-      "Markdown/MDX help text, JSON i18n bundles, and email templates.",
+      "checked. To allow a specific file permanently, add it to ALLOWED_FILES",
     );
-    console.error("");
-    console.error(
-      "Comments (// and /* */) in code files are excluded — only actual code",
-    );
-    console.error(
-      "and string content is checked. To allow a specific file permanently,",
-    );
-    console.error("add it to ALLOWED_FILES in scripts/src/check-analyst-copy.ts");
-    console.error("with an explanatory comment.");
+    console.error("in scripts/src/check-analyst-copy.ts with an explanatory comment.");
     process.exit(1);
   }
 }
