@@ -62,11 +62,6 @@ export function resolveLlm(
   return { vendor, model, secondaryVendor, secondaryModel, isDual };
 }
 
-export function getVendorService(vendor: LlmVendor): "gemini" | "anthropic" | "openai" {
-  if (vendor === "google") return "gemini";
-  if (vendor === "anthropic") return "anthropic";
-  return "openai";
-}
 
 export interface LlmVendorStatus {
   vendor: string;
