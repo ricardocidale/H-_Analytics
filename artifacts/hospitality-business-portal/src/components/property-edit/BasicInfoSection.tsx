@@ -75,6 +75,13 @@ function AsPurchasedDescriptionField({ draft, onChange }: DescriptionFieldProps)
   const [isEditing, setIsEditing] = useState(!currentValue);
   const { toast } = useToast();
 
+  // Dual-write: keeps legacy `description` in sync so all existing consumers
+  // (ICP analysis, Rebecca, slide factory, report export) continue to read current text.
+  const onDescChange = useCallback((value: string | null) => {
+    onChange("descriptionPurchased", value);
+    onChange("description", value);
+  }, [onChange]);
+
   const hasSavedDescription = !!currentValue.trim();
 
   const handleAIRewrite = async () => {
@@ -103,7 +110,7 @@ function AsPurchasedDescriptionField({ draft, onChange }: DescriptionFieldProps)
 
   const acceptRewrite = () => {
     if (preview) {
-      onChange("descriptionPurchased", preview);
+      onDescChange(preview);
       toast({ title: "Description improved", description: "AI rewrite has been applied." });
     }
     setPreview(null);
@@ -139,7 +146,7 @@ function AsPurchasedDescriptionField({ draft, onChange }: DescriptionFieldProps)
           <div className="space-y-2">
             <Textarea
               value={currentValue}
-              onChange={(e) => onChange("descriptionPurchased", e.target.value || null)}
+              onChange={(e) => onDescChange(e.target.value || null)}
               placeholder="Describe this property — its setting, unique features, target guests, and what makes it an attractive investment..."
               className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground min-h-[100px] resize-y"
               data-testid="input-property-description"
@@ -166,7 +173,7 @@ function AsPurchasedDescriptionField({ draft, onChange }: DescriptionFieldProps)
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => onChange("descriptionPurchased", null)}
+                    onClick={() => onDescChange(null)}
                     className="text-muted-foreground"
                     data-testid="button-clear-description"
                   >
