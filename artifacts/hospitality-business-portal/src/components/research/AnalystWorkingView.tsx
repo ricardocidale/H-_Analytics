@@ -10,7 +10,7 @@
  *   2. Discovery feed — scrolling, FadeInUp on each new line; animated
  *      AnalystStudyingIndicator shown when no discoveries have arrived yet
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,8 @@ import { FadeInUp, AnimatedCounter } from "@/components/ui/animated";
 import { cn } from "@/lib/utils";
 import { AnalystStudyingIndicator } from "@/components/analyst/AnalystStudyingIndicator";
 import { phaseToDiscovery, deriveSourcesFromPhases, type AnalystSource } from "./phaseToDiscovery";
+
+const COLLAPSED_MAX_HEIGHT_PX = 160;
 
 interface AnalystWorkingViewProps {
   propertyName: string;
@@ -77,13 +79,35 @@ export function AnalystWorkingView({
     return () => clearInterval(id);
   }, [startedAt, estimatedSeconds]);
 
-  // Auto-scroll the discovery feed to the latest line
-  const feedRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (feedRef.current) {
-      feedRef.current.scrollTop = feedRef.current.scrollHeight;
+  // Expand / collapse state — resets when a new research run starts
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [hasOverflow, setHasOverflow] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Detect whether the inner content is taller than the collapsed cap
+  useLayoutEffect(() => {
+    if (contentRef.current) {
+      setHasOverflow(contentRef.current.scrollHeight > COLLAPSED_MAX_HEIGHT_PX);
     }
   }, [discoveries.length]);
+
+  // Reset expand state when discoveries clear (new run started)
+  const prevLengthRef = useRef(0);
+  useEffect(() => {
+    if (discoveries.length === 0 && prevLengthRef.current > 0) {
+      setIsExpanded(false);
+      setHasOverflow(false);
+    }
+    prevLengthRef.current = discoveries.length;
+  }, [discoveries.length]);
+
+  // Auto-scroll the discovery feed to the latest line (only when collapsed)
+  const feedRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!isExpanded && feedRef.current) {
+      feedRef.current.scrollTop = feedRef.current.scrollHeight;
+    }
+  }, [discoveries.length, isExpanded]);
 
   const isActivelyWorking = sources.some(s => s.status === "active");
 
@@ -169,47 +193,72 @@ export function AnalystWorkingView({
       </div>
 
       {/* Zone 2: Discovery Feed */}
-      <div
-        ref={feedRef}
-        className="px-4 py-3 max-h-[160px] overflow-y-auto scroll-smooth"
-        data-testid="discovery-feed"
-      >
-        {discoveries.length === 0 ? (
-          /* Animated warm-up state — never shows as frozen */
-          <div className="py-1" data-testid="warmup-indicator">
-            <AnalystStudyingIndicator
-              topic="hospitality-benchmarks"
-              size="sm"
-              variant="block"
-            />
-          </div>
-        ) : (
-          <div className="space-y-2.5">
-            <AnimatePresence initial={false}>
-              {discoveries.map((text, i) => (
-                <FadeInUp key={`${i}-${text.slice(0, 24)}`} delay={0} duration={0.45}>
-                  <div className="flex gap-2.5">
-                    <span className="mt-2 w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0 shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
-                    <p className="text-xs text-zinc-300 leading-relaxed italic">
-                      &ldquo;{text}&rdquo;
-                    </p>
-                  </div>
-                </FadeInUp>
-              ))}
-            </AnimatePresence>
+      <div className="relative">
+        <div
+          ref={feedRef}
+          style={{ maxHeight: isExpanded ? 400 : COLLAPSED_MAX_HEIGHT_PX }}
+          className="px-4 py-3 overflow-y-auto scroll-smooth transition-[max-height] duration-300 ease-in-out"
+          data-testid="discovery-feed"
+        >
+          {/* Inner content ref — used to measure scrollHeight vs collapsed cap */}
+          <div ref={contentRef}>
+            {discoveries.length === 0 ? (
+              /* Animated warm-up state — never shows as frozen */
+              <div className="py-1" data-testid="warmup-indicator">
+                <AnalystStudyingIndicator
+                  topic="hospitality-benchmarks"
+                  size="sm"
+                  variant="block"
+                />
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                <AnimatePresence initial={false}>
+                  {discoveries.map((text, i) => (
+                    <FadeInUp key={`${i}-${text.slice(0, 24)}`} delay={0} duration={0.45}>
+                      <div className="flex gap-2.5">
+                        <span className="mt-2 w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0 shadow-[0_0_8px_rgba(245,158,11,0.6)]" />
+                        <p className="text-xs text-zinc-300 leading-relaxed italic">
+                          &ldquo;{text}&rdquo;
+                        </p>
+                      </div>
+                    </FadeInUp>
+                  ))}
+                </AnimatePresence>
 
-            {/* Bouncing dots only shown after first discoveries arrive and work is still active */}
-            {isActivelyWorking && (
-              <div className="flex gap-1.5 ml-4 pt-0.5" data-testid="typing-indicator">
-                {[0, 150, 300].map(d => (
-                  <span
-                    key={d}
-                    className="w-1.5 h-1.5 rounded-full bg-amber-500/70 animate-bounce"
-                    style={{ animationDelay: `${d}ms`, animationDuration: "1.2s" }}
-                  />
-                ))}
+                {/* Bouncing dots only shown after first discoveries arrive and work is still active */}
+                {isActivelyWorking && (
+                  <div className="flex gap-1.5 ml-4 pt-0.5" data-testid="typing-indicator">
+                    {[0, 150, 300].map(d => (
+                      <span
+                        key={d}
+                        className="w-1.5 h-1.5 rounded-full bg-amber-500/70 animate-bounce"
+                        style={{ animationDelay: `${d}ms`, animationDuration: "1.2s" }}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Show all / Collapse toggle — only when content overflows the collapsed height */}
+        {hasOverflow && (
+          <div
+            className={cn(
+              "flex justify-center px-4 pb-2",
+              !isExpanded && "pt-1 bg-gradient-to-t from-zinc-900/90 to-transparent -mt-6",
+            )}
+          >
+            <button
+              type="button"
+              data-testid="toggle-discovery-feed"
+              onClick={() => setIsExpanded(prev => !prev)}
+              className="text-[11px] font-medium text-amber-400/80 hover:text-amber-300 transition-colors"
+            >
+              {isExpanded ? "Collapse" : `Show all (${discoveries.length})`}
+            </button>
           </div>
         )}
       </div>
