@@ -89,7 +89,7 @@ export const ALLOWLIST: ReadonlyMap<string, string> = new Map([
   ],
   [
     "artifacts/api-server/src/routes/images.ts",
-    "Calls openai.images.generate for the image-generation slot; OpenAI DALL-E/gpt-image-1 has no Anthropic or Gemini equivalent at this API shape.",
+    "Dispatches to Gemini (google) or OpenAI (openai) based on the resolved vendor; Anthropic has no image-generation API so a third vendor client cannot be added.",
   ],
   // ── analyst-table-refresh: OpenAI JSON mode ────────────────────────────────
   // These four files call openai.chat.completions.create with

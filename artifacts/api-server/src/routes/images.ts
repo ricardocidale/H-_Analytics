@@ -1,5 +1,5 @@
 import type { Express, Request, Response } from "express";
-import { getOpenAIClient } from "../image/client";
+import { getOpenAIClient, getGeminiClient } from "../ai/clients";
 import { resolveLlmFor } from "../ai/llm-config-resolver";
 import { requireAuth, isApiRateLimited, getAuthUser } from "../auth";
 import { getAvailableStylesFromDb, getAdminRateLimit } from "../integrations/replicate";
@@ -7,7 +7,7 @@ import { z } from "zod";
 import { logApiCost, estimateCost, unitCost } from "../middleware/cost-logger";
 import { storage } from "../storage";
 import { resolveLlm } from "../ai/resolve-llm";
-import { generateText } from "../ai/dispatch";
+import { generateText, dispatchService } from "../ai/dispatch";
 import type { ResearchConfig } from "@workspace/db";
 import { logger } from "../logger";
 import {
@@ -38,20 +38,45 @@ export function registerImageRoutes(app: Express): void {
       }
 
       const startTime = Date.now();
-      const { modelId: imageGenModelId } = await resolveLlmFor("image-generation");
-      const response = await getOpenAIClient().images.generate({
-        model: imageGenModelId,
-        prompt,
-        n: 1,
-        size: size as "1024x1024" | "512x512" | "256x256",
-      });
+      const { vendor, modelId: imageGenModelId } = await resolveLlmFor("image-generation");
+      const svc = dispatchService(vendor);
 
-      try { logApiCost({ timestamp: new Date().toISOString(), service: "openai", model: imageGenModelId, operation: "image-gen", estimatedCostUsd: unitCost(imageGenModelId), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/generate-image" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+      let imageUrl: string | undefined;
+      let imageB64: string | undefined;
 
-      const imageData = response.data?.[0];
+      if (svc === "gemini") {
+        const gemini = getGeminiClient();
+        const geminiResponse = await gemini.models.generateContent({
+          model: imageGenModelId,
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          config: { responseModalities: ["image", "text"] },
+        });
+        const imagePart = geminiResponse.candidates?.[0]?.content?.parts?.find(
+          (p: { inlineData?: { data?: string } }) => p.inlineData?.data,
+        );
+        if (!imagePart?.inlineData?.data) {
+          throw new Error("No image data returned from Gemini image generation");
+        }
+        imageB64 = imagePart.inlineData.data;
+      } else if (svc === "openai") {
+        const openaiResponse = await getOpenAIClient().images.generate({
+          model: imageGenModelId,
+          prompt,
+          n: 1,
+          size: size as "1024x1024" | "512x512" | "256x256",
+        });
+        const imageData = openaiResponse.data?.[0];
+        imageUrl = imageData?.url;
+        imageB64 = imageData?.b64_json;
+      } else {
+        throw new Error(`Vendor "${vendor}" does not support image generation`);
+      }
+
+      try { logApiCost({ timestamp: new Date().toISOString(), service: svc, model: imageGenModelId, operation: "image-gen", estimatedCostUsd: unitCost(imageGenModelId), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/generate-image" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+
       res.json({
-        url: imageData?.url,
-        b64_json: imageData?.b64_json,
+        url: imageUrl,
+        b64_json: imageB64,
       });
     } catch (error: unknown) {
       logger.error(`Error generating image: ${error instanceof Error ? error.message : error}`, "image-gen");
