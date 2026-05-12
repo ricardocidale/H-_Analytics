@@ -39,7 +39,7 @@
  *
  * COMMENT EXCLUSION (code files only)
  * -----------------
- * Comments (// line and /* block */) are stripped before the regex runs, so
+ * Comments (// line and /* block *\/) are stripped before the regex runs, so
  * historical/explanatory mentions like "// The Analyst is doing research"
  * inside JSDoc or inline comments are NOT flagged. Only actual code and
  * string content is checked.
