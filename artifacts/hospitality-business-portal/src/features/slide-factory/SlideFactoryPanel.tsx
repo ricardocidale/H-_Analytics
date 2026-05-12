@@ -16,6 +16,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CancelButton } from "@/components/ui/cancel-button";
@@ -437,14 +438,7 @@ function FactoryBriefTab({
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const r = await fetch("/api/lb-slides/factory/runs", {
-        method: "POST",
-        credentials: "include",
-      });
-      if (!r.ok) {
-        const body = (await r.json().catch(() => ({}))) as { error?: string };
-        throw new Error(body.error ?? "Failed to create run");
-      }
+      const r = await apiRequest("POST", "/api/lb-slides/factory/runs");
       return r.json() as Promise<SlideFactoryRun>;
     },
     onSuccess: (newRun) => {
@@ -475,21 +469,12 @@ function FactoryBriefTab({
     if (!upload.file || !run) return;
     setUpload((prev) => ({ ...prev, stage: "uploading", error: null }));
     try {
-      const urlRes = await fetch("/api/uploads/request-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          name: upload.file.name,
-          size: upload.file.size,
-          contentType: upload.file.type || "application/octet-stream",
-          entityType: "slide_factory_brief",
-        }),
+      const urlRes = await apiRequest("POST", "/api/uploads/request-url", {
+        name: upload.file.name,
+        size: upload.file.size,
+        contentType: upload.file.type || "application/octet-stream",
+        entityType: "slide_factory_brief",
       });
-      if (!urlRes.ok) {
-        const b = (await urlRes.json().catch(() => ({}))) as { error?: string };
-        throw new Error(b.error ?? "Failed to get upload URL");
-      }
       const { uploadURL, objectPath } = (await urlRes.json()) as {
         uploadURL: string;
         objectPath: string;
@@ -502,19 +487,11 @@ function FactoryBriefTab({
       });
       if (!putRes.ok) throw new Error("Failed to upload file to storage");
 
-      const briefRes = await fetch(
+      const briefRes = await apiRequest(
+        "POST",
         `/api/lb-slides/factory/runs/${run.id}/brief`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ r2Key: objectPath, filename: upload.file.name }),
-        },
+        { r2Key: objectPath, filename: upload.file.name },
       );
-      if (!briefRes.ok) {
-        const b = (await briefRes.json().catch(() => ({}))) as { error?: string };
-        throw new Error(b.error ?? "Failed to record brief");
-      }
       const updated = (await briefRes.json()) as SlideFactoryRun;
       setUpload((prev) => ({ ...prev, stage: "done" }));
       onRunUpdate(updated);
