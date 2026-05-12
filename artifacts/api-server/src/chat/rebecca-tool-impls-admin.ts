@@ -73,6 +73,90 @@ export async function toolRegenerateDataSource(args: Record<string, unknown>, ct
 }
 
 // ---------------------------------------------------------------------------
+// ICP national research table reads
+// ---------------------------------------------------------------------------
+
+export async function toolGetVendorPassthroughCosts(args: Record<string, unknown>): Promise<{ result: unknown }> {
+  const { getLatestNationalBenchmarks } = await import("../finance/national-benchmarks");
+
+  const serviceLine = typeof args.serviceLine === "string" && args.serviceLine.trim()
+    ? args.serviceLine.trim()
+    : null;
+
+  const { vendorCosts, vendorCostsLastFetchedAt } = await getLatestNationalBenchmarks();
+
+  const filtered = serviceLine
+    ? vendorCosts.filter(r => r.serviceLine === serviceLine)
+    : vendorCosts;
+
+  if (filtered.length === 0) {
+    return {
+      result: {
+        message: "No vendor pass-through cost data cached. Trigger regeneration from Admin → AI → Intelligence → Knowledge & Resources → Tables → National Vendor Pass-Through Costs.",
+        rows: [],
+        lastFetchedAt: null,
+      },
+    };
+  }
+
+  return {
+    result: {
+      rows: filtered.map(r => ({
+        serviceLine: r.serviceLine,
+        costPctRevenue: r.costPctRevenue,
+        costPctRevenueLabel: `${(r.costPctRevenue * 100).toFixed(2)}%`,
+        period: r.period,
+        source: r.source,
+        sourceUrl: r.sourceUrl,
+        fetchedAt: r.fetchedAt.toISOString(),
+      })),
+      count: filtered.length,
+      lastFetchedAt: vendorCostsLastFetchedAt,
+    },
+  };
+}
+
+export async function toolGetMgmtCoMarkupFactors(args: Record<string, unknown>): Promise<{ result: unknown }> {
+  const { getLatestNationalBenchmarks } = await import("../finance/national-benchmarks");
+
+  const serviceLine = typeof args.serviceLine === "string" && args.serviceLine.trim()
+    ? args.serviceLine.trim()
+    : null;
+
+  const { markupFactors, markupFactorsLastFetchedAt } = await getLatestNationalBenchmarks();
+
+  const filtered = serviceLine
+    ? markupFactors.filter(r => r.serviceLine === serviceLine)
+    : markupFactors;
+
+  if (filtered.length === 0) {
+    return {
+      result: {
+        message: "No Mgmt Co markup factor data cached. Trigger regeneration from Admin → AI → Intelligence → Knowledge & Resources → Tables → National Mgmt Co Markup Factors.",
+        rows: [],
+        lastFetchedAt: null,
+      },
+    };
+  }
+
+  return {
+    result: {
+      rows: filtered.map(r => ({
+        serviceLine: r.serviceLine,
+        markupPctRevenue: r.markupPctRevenue,
+        markupPctRevenueLabel: `${(r.markupPctRevenue * 100).toFixed(2)}%`,
+        period: r.period,
+        source: r.source,
+        sourceUrl: r.sourceUrl,
+        fetchedAt: r.fetchedAt.toISOString(),
+      })),
+      count: filtered.length,
+      lastFetchedAt: markupFactorsLastFetchedAt,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Tripadvisor live hotel research
 // ---------------------------------------------------------------------------
 

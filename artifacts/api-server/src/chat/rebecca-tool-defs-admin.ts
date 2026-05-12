@@ -300,6 +300,46 @@ export function getAdminTools(): ToolParam[] {
       },
     },
     {
+      name: "get_vendor_passthrough_costs",
+      description:
+        "Read the cached national vendor pass-through cost table (percent of revenue per service line). " +
+        "Returns all rows from vendor_passthrough_costs ordered by fetched_at DESC. " +
+        "Omit serviceLine to get all service lines; supply it to filter to one (e.g. 'marketing', 'it', 'housekeeping'). " +
+        "Use to inspect current national benchmarks before triggering a regeneration.",
+      parameters: {
+        type: "object",
+        properties: {
+          serviceLine: {
+            type: "string",
+            description:
+              "Optional service line filter, e.g. 'marketing', 'it', 'accounting', 'reservations', " +
+              "'housekeeping', 'maintenance', 'revenue_management', 'food_beverage', 'branding', 'performance_bonus'.",
+          },
+        },
+        required: [],
+      },
+    },
+    {
+      name: "get_mgmt_co_markup_factors",
+      description:
+        "Read the cached national Management Company markup factor table (percent of revenue per service line). " +
+        "Returns all rows from mgmt_co_markup_factors ordered by fetched_at DESC. " +
+        "Omit serviceLine to get all service lines; supply it to filter to one. " +
+        "Use to inspect current national benchmarks before triggering a regeneration.",
+      parameters: {
+        type: "object",
+        properties: {
+          serviceLine: {
+            type: "string",
+            description:
+              "Optional service line filter, e.g. 'marketing', 'it', 'accounting', 'reservations', " +
+              "'housekeeping', 'maintenance', 'revenue_management', 'food_beverage', 'branding', 'performance_bonus'.",
+          },
+        },
+        required: [],
+      },
+    },
+    {
       name: "update_admin_resource",
       description:
         "Update an admin_resources row (any kind). Admin only. Mirrors the admin resource update endpoint: each call writes a new version row, applies the SSRF guard to config.healthProbe.url, and returns { resource, impact } where impact is the list of catalog/feature surfaces affected. Use to retune display names, descriptions, config payloads (e.g. swap a model reference, edit a healthProbe URL), or rotate secretRef pointers. Caller must change at least one of displayName, description, config, or secretRef — changeSummary alone is metadata and does not satisfy the change requirement. Create and delete are NOT exposed — admin_resources rows are added via migrations.",

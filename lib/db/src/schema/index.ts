@@ -47,4 +47,5 @@ export * from "./reference-data-tables";
 // lives in the dev_internal Postgres schema and is strictly dev tooling.
 // Dev scripts import it directly: `from "@shared/schema/replit-billing"`.
 export * from "./compliance";
+export * from "./icp-data";
 export * from "./types/jsonb-shapes";

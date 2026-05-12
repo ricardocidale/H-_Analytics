@@ -89,6 +89,26 @@ const KNOWLEDGE_REGISTRY_SEEDS: typeof knowledgeRegistry.$inferInsert[] = [
     assetType: "country_data",
     assetRef: "country-economic-data",
   },
+  {
+    id: "vendor-passthrough-costs",
+    displayName: "National Vendor Pass-Through Costs",
+    description: "National hospitality benchmarks for vendor pass-through costs per service line (marketing, IT, accounting, reservations, housekeeping, maintenance, revenue management, F&B, branding, performance bonus), expressed as % of total revenue.",
+    howBuilt: "Fetched by minion Gaetano via Exa neural search over STR Global, CBRE, HVS, and PKF 2024 annual benchmark reports. Falls back to sourced industry anchors when search yields no parseable values.",
+    sourceDescription: "Exa neural search: STR HOST 2024, CBRE Hotels Americas Research 2024, HVS Management Contract Benchmarks 2024, PKF Hospitality Research 2024",
+    renewalMechanism: "Triggered daily by Pietro scheduler (minion Gaetano) or on demand via the Analyst button in the Knowledge Registry.",
+    assetType: "benchmark_table",
+    assetRef: "vendor-passthrough-costs",
+  },
+  {
+    id: "mgmt-co-markup-factors",
+    displayName: "National Mgmt Co Markup Factors",
+    description: "National benchmarks for Management Company markup factors per service line — the Mgmt Co's margin above vendor cost, expressed as % of total revenue (additive on top of pass-through costs).",
+    howBuilt: "Fetched by minion Renato via Exa neural search over HVS, CBRE, and PKF hotel management agreement fee benchmarks. Falls back to sourced industry anchors when search yields no parseable values.",
+    sourceDescription: "Exa neural search: HVS Management Contract Benchmarks 2024, CBRE Hotels Americas Research 2024, PKF Hospitality Research 2024",
+    renewalMechanism: "Triggered daily by Pietro scheduler (minion Renato) or on demand via the Analyst button in the Knowledge Registry.",
+    assetType: "benchmark_table",
+    assetRef: "mgmt-co-markup-factors",
+  },
 ];
 
 // Last-known seed values for country_economic_data. Inserted once on first

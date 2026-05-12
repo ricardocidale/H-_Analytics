@@ -219,6 +219,10 @@
     "0054_property_description_purchased": {
       "status": "self-idempotent",
       "reason": "Task #1404 Milestone A — adds nullable description_purchased text column to properties via ALTER TABLE … ADD COLUMN IF NOT EXISTS, then backfills from legacy description with WHERE … IS NULL guard. Both statements are idempotent; the UPDATE is a no-op when description_purchased is already populated."
+    },
+    "0055_vendor_passthrough_and_markup_factors": {
+      "status": "self-idempotent",
+      "reason": "Task #1410 — CREATE TABLE IF NOT EXISTS vendor_passthrough_costs + mgmt_co_markup_factors plus matching unique/regular indexes (all IF NOT EXISTS). Two national research cache tables for ICP bracket model R11–R14. Populated by MinionVendorPassthroughCosts (Gaetano) and MinionMgmtCoMarkupFactors (Renato). Re-running via migrate() is a no-op."
     }
   }
 }

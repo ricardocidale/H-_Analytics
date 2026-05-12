@@ -103,6 +103,8 @@ import {
   toolGetSpecialistConfig,
   toolRecordSpecialistRecommendationEvent,
   toolUpdateAdminResource,
+  toolGetVendorPassthroughCosts,
+  toolGetMgmtCoMarkupFactors,
 } from "./rebecca-tool-impls-admin";
 
 export async function dispatchRebeccaTool(
@@ -232,6 +234,10 @@ export async function dispatchRebeccaTool(
         return await toolDeleteCompany(args, ctx);
       case "get_tripadvisor_hotels":
         return await toolGetTripadvisorHotels(args);
+      case "get_vendor_passthrough_costs":
+        return await toolGetVendorPassthroughCosts(args);
+      case "get_mgmt_co_markup_factors":
+        return await toolGetMgmtCoMarkupFactors(args);
       case "create_kb_entry":
         return await toolCreateKbEntry(args, ctx);
       case "update_kb_entry":

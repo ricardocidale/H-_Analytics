@@ -216,6 +216,15 @@ Specialist prompts, models, required-fields, field-toggles, and prerequisite-tog
 | Regenerate a data source (triggers minion) | Admin → Sources | `regenerate_data_source` | ✅ |
 | View all data source statuses | Admin → Sources | `get_data_source_status` | ✅ |
 
+### ICP National Research Feeds (Task #1410)
+
+| UI Action | UI Location | Rebecca Tool | Status |
+|---|---|---|---|
+| Read vendor pass-through cost table | Admin → AI → Intelligence → Knowledge & Resources → Tables → National Vendor Pass-Through Costs | `get_vendor_passthrough_costs` | ✅ |
+| Regenerate vendor pass-through cost data (Analyst button) | Admin → AI → Intelligence → Knowledge & Resources → Tables → National Vendor Pass-Through Costs | `regenerate_data_source("vendor-passthrough-costs")` | ✅ |
+| Read Mgmt Co markup factor table | Admin → AI → Intelligence → Knowledge & Resources → Tables → National Mgmt Co Markup Factors | `get_mgmt_co_markup_factors` | ✅ |
+| Regenerate Mgmt Co markup factor data (Analyst button) | Admin → AI → Intelligence → Knowledge & Resources → Tables → National Mgmt Co Markup Factors | `regenerate_data_source("mgmt-co-markup-factors")` | ✅ |
+
 ### Admin Resources (model/api/mcp/source/factory_number registry)
 
 > `admin_resources` rows are added and removed via migrations only. The

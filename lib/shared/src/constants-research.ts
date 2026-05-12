@@ -116,3 +116,18 @@ export const TRIPADVISOR_MAX_HOTEL_RESULTS = 10;
 /** Default hotel count returned when the caller omits a limit. */
 // DB: tripadvisor-default-hotel-limit — move to model-constants-registry when admin tuning is needed
 export const TRIPADVISOR_DEFAULT_HOTEL_LIMIT = 5;
+
+// ---------------------------------------------------------------------------
+// ICP national research feed constants (Gaetano / Renato minions)
+// ---------------------------------------------------------------------------
+
+/** Number of Exa neural search results requested per national-feed query. */
+export const NATIONAL_FEED_EXA_NUM_RESULTS = 5;
+
+/**
+ * Sanity-clamp bounds for percentage-of-revenue values parsed from Exa search
+ * text. Any parsed value outside [MIN, MAX] is discarded in favour of the
+ * industry anchor. Units: percent (e.g. 0.5 means 0.5%, not 0.005).
+ */
+export const NATIONAL_FEED_PCT_SANITY_MIN = 0.5;   // 0.5% of revenue — lower bound
+export const NATIONAL_FEED_PCT_SANITY_MAX = 30;    // 30% of revenue — upper bound

@@ -21,11 +21,13 @@ import type { MinionResult } from "./minions/index";
 export type MinionFn = () => Promise<MinionResult>;
 
 export const MINION_REGISTRY: Record<string, MinionFn> = {
-  "fred-extended":  async () => { const { runMinionFredExtended }  = await import("./minions/fred-extension"); return runMinionFredExtended(); },
-  "fmp-reit":       async () => { const { runMinionFmpReit }       = await import("./minions/fmp-reit");       return runMinionFmpReit();       },
-  "daloopa-reit":   async () => { const { runMinionDaloopaReit }   = await import("./minions/daloopa-reit");   return runMinionDaloopaReit();   },
-  "booking-rates":  async () => { const { runMinionBookingRates }  = await import("./minions/booking-rates");  return runMinionBookingRates();  },
-  "expedia-rates":  async () => { const { runMinionExpediaRates }  = await import("./minions/expedia-rates");  return runMinionExpediaRates();  },
+  "fred-extended":            async () => { const { runMinionFredExtended }            = await import("./minions/fred-extension");            return runMinionFredExtended();            },
+  "fmp-reit":                 async () => { const { runMinionFmpReit }                 = await import("./minions/fmp-reit");                 return runMinionFmpReit();                 },
+  "daloopa-reit":             async () => { const { runMinionDaloopaReit }             = await import("./minions/daloopa-reit");             return runMinionDaloopaReit();             },
+  "booking-rates":            async () => { const { runMinionBookingRates }            = await import("./minions/booking-rates");            return runMinionBookingRates();            },
+  "expedia-rates":            async () => { const { runMinionExpediaRates }            = await import("./minions/expedia-rates");            return runMinionExpediaRates();            },
+  "vendor-passthrough-costs": async () => { const { runMinionVendorPassthroughCosts } = await import("./minions/vendor-passthrough-costs"); return runMinionVendorPassthroughCosts(); },
+  "mgmt-co-markup-factors":   async () => { const { runMinionMgmtCoMarkupFactors }    = await import("./minions/mgmt-co-markup-factors");   return runMinionMgmtCoMarkupFactors();    },
 };
 
 // ---------------------------------------------------------------------------
