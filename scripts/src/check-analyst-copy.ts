@@ -343,7 +343,6 @@ function isPathSkipped(absolutePath: string): boolean {
   const rel = path.relative(WORKSPACE_ROOT, absolutePath).replace(/\\/g, "/");
   return SKIP_PATH_PATTERNS.some((re) => re.test(rel));
 }
-}
 
 function isLineSkipped(line: string): boolean {
   return SKIP_LINE_PATTERNS.some((re) => re.test(line));
