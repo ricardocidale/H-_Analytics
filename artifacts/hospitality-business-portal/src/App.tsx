@@ -80,7 +80,6 @@ const PropertyResearchCriteria = lazy(
 const CompanyResearch = lazy(() => import("@/pages/CompanyResearch"));
 const CompanyBracketMix = lazy(() => import("@/pages/CompanyBracketMix"));
 const CompanyGuidance = lazy(() => import("@/pages/CompanyGuidance"));
-const _ResearchHub = lazy(() => import("@/pages/ResearchHub"));
 const Admin = lazy(() => import("@/pages/Admin"));
 const Intelligence = lazy(() => import("@/pages/Intelligence"));
 const Scenarios = lazy(() => import("@/pages/Scenarios"));
@@ -88,7 +87,6 @@ const PropertyFinder = lazy(() => import("@/pages/PropertyFinder"));
 const Analysis = lazy(() => import("@/pages/Analysis"));
 const Help = lazy(() => import("@/pages/Help"));
 const MapView = lazy(() => import("@/pages/MapView"));
-const _Icp = lazy(() => import("@/pages/Icp"));
 const PrivacyPolicy = lazy(() => import("@/pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("@/pages/TermsOfService"));
 const CookiePolicy = lazy(() => import("@/pages/CookiePolicy"));
