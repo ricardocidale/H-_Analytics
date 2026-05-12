@@ -197,6 +197,9 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
     setDraft((prev) => {
       const next = { ...prev, ...savedDiscipline };
       draftRef.current = next;
+      const savedRecord = saved as Record<string, unknown>;
+      const nextRecord = next as Record<string, unknown>;
+      setIsDirty(Object.keys(savedRecord).some((k) => nextRecord[k] !== savedRecord[k]));
       return next;
     });
   };
