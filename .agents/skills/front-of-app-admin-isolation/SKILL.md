@@ -25,6 +25,30 @@ Admin → Model Defaults" inside informational copy is allowed and often
 helpful — it explains where a value comes from without performing
 navigation. The forbidden thing is the JUMP, not the mention.
 
+## Resource presentation is also forbidden on the front of the app
+
+Beyond the navigation rule above, the front of the app must NOT render any
+presentation of the resource inventory — Tables, APIs, URL Links, Constants
+Tables, or any other external source. No cards, banners, panels, badges,
+callouts, or "data source" widgets. The resource inventory has exactly one
+home: `Admin → AI → Intelligence → Knowledge & Resources` (see
+`hplus-admin-nav-ia` for the canonical tree).
+
+The single allowed exception is a **Constant** (e.g. a depreciation life or
+tax rate) that may appear as **discreet muted inline text** on the
+front-of-app calculation page where the math actually consumes it — for
+example, a small label "7 yr MACRS" beside a depreciation field. Even that
+exception is bounded:
+
+- Inline only — never a card, panel, or banner.
+- Muted typography — not an attention-grabbing accent.
+- No source citation, no agent list, no health icon, no jump link.
+- No "open Tables" or "view details" affordance.
+
+If you find yourself wanting to show *which* Specialist tunes a value, *when*
+it was last refreshed, or *where* the data came from on a product page, the
+answer is no — that all lives in `Knowledge & Resources`.
+
 ## What you do instead
 
 When a front-of-app surface needs to *explain* that something is

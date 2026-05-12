@@ -19,7 +19,6 @@ export const COMPANY_ASSUMPTIONS_TAB_KEYS = [
   "revenue",
   "compensation",
   "overhead",
-  "property-defaults",
 ] as const;
 
 export type CompanyAssumptionsTabKey = typeof COMPANY_ASSUMPTIONS_TAB_KEYS[number];
@@ -29,7 +28,6 @@ export const TAB_LABELS: Record<CompanyAssumptionsTabKey, string> = {
   revenue: "Revenue Model",
   compensation: "Compensation",
   overhead: "Overhead",
-  "property-defaults": "Property Defaults",
 };
 
 export interface CompanyAssumptionsConfirmation {

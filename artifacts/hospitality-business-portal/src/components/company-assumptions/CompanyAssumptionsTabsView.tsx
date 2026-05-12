@@ -27,8 +27,6 @@ import {
   FixedOverheadSection,
   VariableCostsSection,
   CostOfEquityCard,
-  PropertyExpenseRatesSection,
-  PropertyExitDefaultsCard,
   PartnerCompSection,
   TabWarningsPanel,
   type TabValidationWarning,
@@ -217,20 +215,6 @@ export function CompanyAssumptionsTabsView(props: Props) {
               guidance={guidance}
             />
             <VariableCostsSection
-              formData={formData} onChange={onChange} global={global}
-              researchValues={researchValues}
-              guidance={guidance}
-            />
-          </div>
-        );
-      case "property-defaults":
-        return (
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 items-start">
-            <PropertyExpenseRatesSection
-              formData={formData} onChange={onChange} global={global}
-              researchValues={researchValues}
-            />
-            <PropertyExitDefaultsCard
               formData={formData} onChange={onChange} global={global}
               researchValues={researchValues}
               guidance={guidance}

@@ -31,10 +31,6 @@ import { getFactoryNumber } from "@shared/model-constants-registry";
 import type {
   TabValidationWarning,
 } from "@/components/company-assumptions";
-import {
-  computeExitMultipleWarning,
-  type ExitMultipleBand,
-} from "./exit-multiple-warning";
 
 const DAYS_PER_MONTH = getFactoryNumber("daysPerMonth");
 
@@ -44,7 +40,6 @@ export const TAB_KEYS = [
   "revenue",
   "compensation",
   "overhead",
-  "property-defaults",
 ] as const;
 export type TabKey = (typeof TAB_KEYS)[number];
 
@@ -54,7 +49,6 @@ export const TAB_LABELS: Record<TabKey, string> = {
   revenue: "Revenue Model",
   compensation: "Compensation",
   overhead: "Overhead",
-  "property-defaults": "Property Defaults",
 };
 
 /**
@@ -63,7 +57,12 @@ export const TAB_LABELS: Record<TabKey, string> = {
  *   - companyTaxRate / inflation / company identity now live in
  *     Admin → Model Defaults (the legacy `company` tab here was removed).
  *   - costOfEquity lives in `funding` (DCF discount rate / WACC Re)
- *   - exitCapRate + salesCommissionRate live in `property-defaults`
+ *   - exitCapRate / salesCommissionRate / industryVertical /
+ *     exitRevenueMultiple / property USALI ratios are admin-edited on
+ *     Admin → Steady State → Property Underwriting (the legacy
+ *     `property-defaults` tab here was removed). All five surfaces still
+ *     write to the same `globalAssumptions` row the engine reads, so the
+ *     move is behavior-neutral.
  */
 export const TAB_FIELDS: Record<TabKey, readonly (keyof GlobalResponse)[]> = {
   company: [
@@ -107,11 +106,6 @@ export const TAB_FIELDS: Record<TabKey, readonly (keyof GlobalResponse)[]> = {
     "officeLease", "professionalServices", "techInfra",
     "businessInsurance", "travelCost", "itLicense",
     "eventExpense", "marketingRate", "miscOps",
-  ] as unknown as Array<keyof GlobalResponse>,
-  "property-defaults": [
-    "eventExpenseRate", "otherExpenseRate", "utilitiesVariableSplit",
-    "exitCapRate", "salesCommissionRate",
-    "industryVertical", "exitRevenueMultiple",
   ] as unknown as Array<keyof GlobalResponse>,
 };
 
@@ -196,7 +190,7 @@ export function useCompanyAssumptionsForm(
 
   const [tabWarnings, setTabWarnings] = useState<Record<TabKey, TabValidationWarning[]>>({
     company: [], funding: [], revenue: [], compensation: [],
-    overhead: [], "property-defaults": [],
+    overhead: [],
   });
   const [savingTab, setSavingTab] = useState<TabKey | null>(null);
 
@@ -212,7 +206,7 @@ export function useCompanyAssumptionsForm(
   const [requiredFieldsMissingByTab, setRequiredFieldsMissingByTab] =
     useState<Record<TabKey, string[]>>({
       company: [], funding: [], revenue: [], compensation: [],
-      overhead: [], "property-defaults": [],
+      overhead: [],
     });
 
   // "Keep my value" acknowledgments — keyed by fieldName. Suppress warning
@@ -227,18 +221,6 @@ export function useCompanyAssumptionsForm(
     refetchOnWindowFocus: false,
   });
 
-  // Admin-managed exit-multiple bands. Shares the cache key with
-  // PropertyExitDefaultsCard so the inline card warning and the save-flow
-  // warning never disagree about which range a vertical lives in.
-  const { data: exitMultiples = [] } = useQuery<ExitMultipleBand[]>({
-    queryKey: ["/api/exit-multiples"],
-    queryFn: async () => {
-      const res = await fetch("/api/exit-multiples", { credentials: "include" });
-      if (!res.ok) return [];
-      return res.json();
-    },
-    staleTime: 5 * 60 * 1000,
-  });
   const ackByField = useMemo(() => {
     const m = new Map<string, AckRow>();
     for (const a of acks) m.set(a.fieldName, a);
@@ -419,21 +401,11 @@ export function useCompanyAssumptionsForm(
       }
     }
 
-    // Exit revenue multiple — admin-managed band check (separate from the
-    // Analyst research ranges above). The PropertyExitDefaultsCard already
-    // surfaces this inline, but at save time we also push it into
-    // tabWarnings so the post-save toast count and the warnings panel
-    // include it — making it harder to miss when batching multiple edits.
-    if (keys.includes("exitRevenueMultiple" as keyof GlobalResponse)) {
-      const merged = { ...(global ?? {}), ...data } as Partial<GlobalResponse>;
-      const exitWarning = computeExitMultipleWarning({
-        industryVertical: merged.industryVertical,
-        exitRevenueMultiple: merged.exitRevenueMultiple,
-        bands: exitMultiples,
-        ack: ackByField.get("exitRevenueMultiple") ?? null,
-      });
-      if (exitWarning) out.push(exitWarning);
-    }
+    // Note: the exit-multiple band check used to live here too, but that
+    // tab moved to Admin → Steady State → Property Underwriting. The
+    // PropertyExitDefaultsCard on the admin side runs the inline check;
+    // this page no longer owns the field, so it no longer fetches the
+    // bands or surfaces a save-time warning for it.
 
     return out;
   };

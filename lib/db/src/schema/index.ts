@@ -30,6 +30,7 @@ export * from "./integrations";
 export * from "./vector-chunks";
 export * from "./media-assets";
 export * from "./scheduler-runs";
+export * from "./minion-self-test-runs";
 export * from "./storage-drift-sweep-runs";
 export * from "./cache";
 export * from "./property-deck-payloads";

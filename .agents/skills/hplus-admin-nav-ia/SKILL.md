@@ -16,6 +16,134 @@ clarified by the product owner and must not be relitigated.
 
 ---
 
+## ⚠️ SUPERSEDING CONTRACT — Knowledge & Resources consolidation (May 2026)
+
+The product owner has restated this directive 10+ times — it is the canonical
+contract and overrides any older guidance below that conflicts with it. Do not
+relitigate. If a previous section disagrees, this section wins.
+
+### One home for every external resource (except LLMs)
+
+Every API, URL, Table, Constants Table, and any other source or external
+resource (with the **single exception of LLMs**) is displayed ONLY in:
+
+```
+Admin sidebar → AI → Intelligence → Knowledge & Resources
+```
+
+They must never appear as banners, cards, panels, badges, or admin-style
+widgets anywhere on the front of the app. (LLMs continue to live at
+`Intelligence → LLMs` — see the LLMs rules later in this skill.)
+
+**One narrow exception:** a Constant such as a depreciation life or a tax
+percentage may appear **discreetly inline** on a front-of-app calculation page
+where the number is actually used in the math (e.g. a small muted label
+"7 yr MACRS"). It must not be a card, banner, callout, or jump link, and it
+must not list its source / agents / health.
+
+### Canonical menu tree under Knowledge & Resources
+
+```
+Intelligence  (/intelligence)
+└── Knowledge & Resources       ← single home for non-LLM resources
+    └── Tables                  ← TOP-LEVEL item; ALL tables live here
+        │   • Market Data (every market-data tab/table routes through here)
+        │   • Constants Tables (depreciation, tax rates, GAAP/USALI references)
+        │   • Benchmarks (capital raise ranges, exit multiples, reference brands)
+        │   • Country Economic Data (inflation, FX, GDP, interest per country)
+        │   • Macro indicators (FRED, World Bank)
+        │   • Any reference / lookup table the app reads from
+        │
+        ├── APIs                ← sub-item of Tables
+        │
+        └── URL Links           ← sub-item of Tables
+```
+
+"Knowledge Registry" and "Resources Catalog" as separate concepts are folded
+into this tree. Do not introduce new pages labelled "Catalog" or
+"Knowledge Registry" — every entry belongs in one of `Tables`, `APIs`, or
+`URL Links`.
+
+### Display contract — accordion lines
+
+Every Table / API / URL Link is rendered as a row in a vertical column of
+**accordion lines**. A collapsed line shows:
+
+1. A colored **status icon** (accent palette) reflecting the most recent
+   health-probe outcome (Costantino — see `costantino-data-custodian` skill):
+   green = healthy, amber = degraded, red = failing, grey = never checked.
+2. A **brief description** of what the resource is.
+
+When the admin opens an accordion line, an inline card / panel shows the
+**complete information** about the resource:
+
+- Full description and purpose
+- Which **Agents, Specialists, and Minions** consume / tune it (read-only list)
+- Schema / endpoint / URL (as appropriate)
+- Last health check timestamp + last result detail
+- Last regeneration timestamp (Tables only)
+
+### Card actions — strictly three patterns
+
+| Resource type | Analyst button behavior            | Save | Cancel |
+|---------------|------------------------------------|------|--------|
+| **Table**     | Regenerate the table by re-running the same creation workflow (LLM or deterministic) it was originally built with | Yes  | Yes    |
+| **API**       | **Test** — fire a real probe, verify the API responds, record result | No   | No     |
+| **URL Link**  | **Test** — fetch the URL, verify it is reachable, record result | No   | No     |
+
+The Analyst button label and discipline follow `analyst-research-buttons`.
+
+For Tables: Save commits the regenerated output as the new canonical version;
+Cancel discards the regenerated draft and keeps the previous canonical
+version. The user-editable surface is bounded to accept/reject — see next
+rule.
+
+### Read-only for admin — no CRUD
+
+The admin **cannot edit, add, or delete** Tables, URLs, or APIs from the UI.
+Their definitions live in the codebase and are persisted to the database
+(Neon) along with a **rolling 90-day usage log**. The DB row is the
+authoritative record (full SQL surface), and the only way to mutate the
+inventory itself is:
+
+- Through the codebase (engineering change), or
+- Directly via the Neon console (operator break-glass)
+
+The Knowledge & Resources UI is therefore an **inspection + verification
++ regeneration surface**, not an authoring surface. Do not add any
+"+ Add resource" / "Edit definition" / "Delete" controls.
+
+### Tables use vector database indexing
+
+Every Table registered in `Knowledge & Resources → Tables` is indexed in the
+vector store so it is reachable by Rebecca / Specialist retrieval and by
+similarity search. New table integrations must register their vector
+indexing as part of the registration step.
+
+### Front-of-app removal — hard requirement
+
+Audit and **remove** every existing presentation of Tables, APIs, and URL
+Links from the front of the app:
+
+- No Sources cards on Property Edit, Company Assumptions, Steady State, or
+  any other product page.
+- No "Open in Admin / Intelligence" jump links (already enforced by
+  `front-of-app-admin-isolation`).
+- No badge / callout / banner that names a Table, an API, or a URL.
+
+Constants used in calculations may appear inline as muted helper text per
+the exception above — nothing more.
+
+### Why this is the contract
+
+Mixing the resource inventory into product surfaces makes the app feel like a
+control panel, leaks operator concerns into investor-facing flows, and
+creates a maintenance trap (every resource ends up referenced in many
+places). One canonical home, accordion + card, codebase-owned definitions,
+no front-of-app leakage. This is the rule.
+
+---
+
 ## Two separate admin areas
 
 | Area | URL | Sidebar file | Purpose |

@@ -16,7 +16,6 @@
  *   • FixedOverheadSectionProps – adds modelStartYear for display in the header
  *   • VariableCostsSectionProps – adds researchValues for marketing/travel benchmarks
  *   • PartnerCompSectionProps   – adds modelStartYear for year labels in the table
- *   • PropertyExpenseRatesSectionProps – adds researchValues for expense benchmarks
  */
 import type { GlobalResponse, FeeCategoryResponse, GuidanceRecord } from "@/lib/api";
 
@@ -60,10 +59,6 @@ export interface FixedOverheadSectionProps extends CompanyAssumptionsSectionProp
 }
 
 export interface VariableCostsSectionProps extends CompanyAssumptionsSectionProps {
-  researchValues: Record<string, { display: string; mid: number } | null | undefined>;
-}
-
-export interface PropertyExpenseRatesSectionProps extends CompanyAssumptionsSectionProps {
   researchValues: Record<string, { display: string; mid: number } | null | undefined>;
 }
 

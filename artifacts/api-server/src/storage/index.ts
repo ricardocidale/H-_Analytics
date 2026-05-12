@@ -48,6 +48,7 @@ import { SpecialistConfigStorage } from "./specialist-config";
 import { SpecialistIdentityStorage } from "./specialist-identity";
 import { MediaStorageImpl, type MediaStorage } from "./media";
 import { SchedulerRunsStorageImpl, type SchedulerRunsStorage } from "./scheduler-runs";
+import { MinionSelfTestRunsStorageImpl, type MinionSelfTestRunsStorage } from "./minion-self-test-runs";
 import { StorageDriftSweepRunsStorageImpl, type StorageDriftSweepRunsStorage } from "./storage-drift-sweep-runs";
 import { MarketSignalsStorage } from "./market-signals";
 import { PropertyDeckPayloadStorageImpl, type PropertyDeckPayloadStorage } from "./property-deck-payloads";
@@ -81,6 +82,7 @@ export interface IStorage extends
   SpecialistIdentityStorage,
   MediaStorage,
   SchedulerRunsStorage,
+  MinionSelfTestRunsStorage,
   StorageDriftSweepRunsStorage,
   MarketSignalsStorage,
   PropertyDeckPayloadStorage,
@@ -130,6 +132,7 @@ function buildDomainFactories(intelligenceV2: IntelligenceV2Storage) {
     () => new SpecialistIdentityStorage(),
     () => new MediaStorageImpl(),
     () => new SchedulerRunsStorageImpl(),
+    () => new MinionSelfTestRunsStorageImpl(),
     () => new StorageDriftSweepRunsStorageImpl(),
     () => new MarketSignalsStorage(),
     () => new PropertyDeckPayloadStorageImpl(),

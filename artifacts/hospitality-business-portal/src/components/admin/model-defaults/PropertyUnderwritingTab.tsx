@@ -4,14 +4,19 @@ import { apiRequest } from "@/lib/queryClient";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { IconShieldCheck } from "@/components/icons";
 import { useAuth } from "@/lib/auth";
 import { Section } from "@/components/ui/field-section";
+import EditableValue from "@/components/company-assumptions/EditableValue";
 import { PctField, DollarField, NumberField, TabBanner, type Draft } from "./FieldHelpers";
 import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
 import { AnalystButton } from "@/components/intelligence/AnalystButton";
 import { AnalystVerdictDisplay } from "@/components/analyst/AnalystVerdictDisplay";
+import { AnalystRangeIndicator } from "@/components/analyst/AnalystRangeIndicator";
 import { useFocusFieldFromUrl } from "@/lib/analyst-focus-field";
 import type { AnalystGuidanceRecord } from "@/components/analyst/useAnalystRefresh";
 import { PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS, toGuidanceKeys } from "./analyst-fields";
@@ -61,6 +66,22 @@ import { getFactoryNumber } from "@shared/model-constants-registry";
 // `defaultCostRateTaxes` in this tab — the override is country-agnostic and
 // applies to every newly created property regardless of locality.
 const DEFAULT_COST_RATE_TAXES = getFactoryNumber("costRateTaxes", "United States");
+
+// Cache lifetime for the exit-multiples bands + vertical-suggestion queries.
+// These read admin-managed reference rows that rarely change inside an admin
+// session, so a 5-minute staleTime keeps both polls cheap. 1000 ms × 60 × 5.
+const EXIT_MULTIPLE_QUERY_STALE_MS = 5 * 60 * 1000;
+
+// EditableValue clamp bounds for exit-revenue-multiple. A 0× exit is
+// economically meaningless, so the minimum is a small positive number rather
+// than 0 — that way the unset (`null`) state stays distinct from a typed-in 0.
+// The 20× ceiling matches the upper end of admin-supplied band cards.
+const EXIT_MULTIPLE_MIN = 0.1;
+const EXIT_MULTIPLE_MAX = 20;
+const EXIT_MULTIPLE_STEP = 0.1;
+// First-edit default when an admin clicks "Not set — click to enter".
+// Picked as a generic-hospitality midpoint; the admin can refine immediately.
+const EXIT_MULTIPLE_DEFAULT_ON_EDIT = 1.0;
 
 interface PropertyUnderwritingTabProps {
   draft: Draft;
@@ -724,6 +745,8 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
         />
       </Section>
 
+      <ExitRevenueMultipleSection draft={draft} onChange={onChange} />
+
       <Section grid title="Default Acquisition Package" description="Standard purchase assumptions pre-filled when adding a new property to the portfolio.">
         <DollarField
           label="Purchase Price"
@@ -807,5 +830,223 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
         </div>
       </Section>
     </div>
+  );
+}
+
+interface ExitMultipleBand {
+  dimensionKey: string;
+  label: string;
+  unit: string;
+  valueLow: number | null;
+  valueMid: number | null;
+  valueHigh: number | null;
+}
+
+interface IndustryVerticalSuggestion {
+  dimensionKey: string;
+  label: string;
+  rationale: string;
+}
+
+/**
+ * Industry-vertical band check for the property exit revenue multiple.
+ * Ported from the former front-of-app `PropertyExitDefaultsCard` so the
+ * full set of property defaults lives in one Admin tab. Writes to the same
+ * `globalAssumptions.industryVertical` / `exitRevenueMultiple` fields the
+ * watchdog reads — behavior-neutral move.
+ */
+function ExitRevenueMultipleSection({
+  draft,
+  onChange,
+}: {
+  draft: Draft;
+  onChange: (field: string, value: unknown) => void;
+}) {
+  // Both queries rely on the queryClient's default queryFn (in
+  // artifacts/hospitality-business-portal/src/lib/queryClient.ts), which joins
+  // `queryKey` into a URL and runs the fetch with `credentials: "include"` +
+  // CSRF handling. Inline `fetch("/api/...")` calls were flagged by CodeRabbit
+  // for bypassing the shared frontend request contract.
+  const { data: exitMultiples = [] } = useQuery<ExitMultipleBand[]>({
+    queryKey: ["/api/exit-multiples"],
+    staleTime: EXIT_MULTIPLE_QUERY_STALE_MS,
+  });
+
+  const selectedVertical = (draft.industryVertical as string | null | undefined) ?? "";
+
+  const { data: suggestionResp } = useQuery<{ suggestion: IndustryVerticalSuggestion | null }>({
+    queryKey: ["/api/exit-multiples/suggestion"],
+    enabled: !selectedVertical,
+    staleTime: EXIT_MULTIPLE_QUERY_STALE_MS,
+  });
+  const suggestion = !selectedVertical ? suggestionResp?.suggestion ?? null : null;
+  const suggestionStillValid = !!(
+    suggestion && exitMultiples.some((m) => m.dimensionKey === suggestion.dimensionKey)
+  );
+
+  const selectedMultipleRaw = draft.exitRevenueMultiple;
+  const selectedMultiple = typeof selectedMultipleRaw === "number" ? selectedMultipleRaw : null;
+  const band = exitMultiples.find((m) => m.dimensionKey === selectedVertical) ?? null;
+  const hasBand = !!(band && band.valueLow != null && band.valueHigh != null);
+
+  // TODO(specialist-plumbing): no Exit-Multiple Specialist currently emits a
+  // verdict for this field — bands come directly from the admin-managed
+  // `exit_multiples` table via /api/exit-multiples. Per the Intelligence
+  // Display contract (CLAUDE.md §"Intelligence Display"), range badges must be
+  // sourced from a specialist. Until a specialist exists, we adapt the table
+  // band into the canonical `GuidanceRecord` shape so the badge renders via
+  // `AnalystRangeIndicator` instead of bespoke local JSX. Followup: surface a
+  // real Specialist (e.g. "exitMultipleSpecialist") that consumes the same
+  // table + property locality and emits guidance with conviction + sourceName.
+  const exitMultipleGuidance = hasBand && band && band.valueLow != null && band.valueHigh != null
+    ? [{
+        assumptionKey: "exitRevenueMultiple",
+        valueLow: band.valueLow,
+        valueMid: band.valueMid,
+        valueHigh: band.valueHigh,
+        confidence: "moderate" as const,
+        reasoning: `Admin-managed band for vertical "${band.label}".`,
+        sourceName: "exit_multiples (admin-managed)",
+        dataQuality: null,
+      }]
+    : undefined;
+
+  return (
+    <Section
+      title="Exit Revenue Multiple"
+      description="Cross-check property terminal value against admin-managed bands per industry vertical. The watchdog flags multiples outside the band and recommends the midpoint."
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="industryVertical" className="text-xs text-muted-foreground">
+            Industry Vertical
+          </Label>
+          <Select
+            value={selectedVertical || "__none__"}
+            onValueChange={(v) => onChange("industryVertical", v === "__none__" ? null : v)}
+          >
+            <SelectTrigger id="industryVertical" data-testid="select-industry-vertical">
+              <SelectValue placeholder="Select a vertical…" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">— None —</SelectItem>
+              {exitMultiples.map((m) => (
+                <SelectItem
+                  key={m.dimensionKey}
+                  value={m.dimensionKey}
+                  data-testid={`option-vertical-${m.dimensionKey}`}
+                >
+                  {m.label}
+                  {m.valueLow != null && m.valueHigh != null
+                    ? ` (${m.valueLow.toFixed(1)}x – ${m.valueHigh.toFixed(1)}x)`
+                    : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {suggestion && suggestionStillValid && (
+            <div
+              className="rounded-md border border-sky-300/70 bg-sky-50 dark:bg-sky-950/40 dark:border-sky-700/50 p-2 text-xs text-sky-900 dark:text-sky-200"
+              data-testid="suggestion-industry-vertical"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <span className="font-medium">Analyst suggestion:</span>{" "}
+                  <span data-testid="text-suggested-vertical-label">{suggestion.label}</span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="shrink-0 underline underline-offset-2 h-auto p-0 text-xs"
+                  onClick={() => onChange("industryVertical", suggestion.dimensionKey)}
+                  data-testid="button-apply-vertical-suggestion"
+                >
+                  Use suggestion
+                </Button>
+              </div>
+              <p className="mt-1 text-[11px] leading-snug opacity-90" data-testid="text-suggested-vertical-rationale">
+                {suggestion.rationale}
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="exitRevenueMultiple" className="text-xs text-muted-foreground">
+            Exit Revenue Multiple (×)
+          </Label>
+          {selectedMultiple == null ? (
+            <button
+              type="button"
+              // First-edit seed value: prefer the selected vertical's band
+              // midpoint so the first persisted value is data-driven; fall
+              // back to EXIT_MULTIPLE_DEFAULT_ON_EDIT only when no band is
+              // available (no vertical selected yet, or the band has no mid).
+              onClick={() =>
+                onChange(
+                  "exitRevenueMultiple",
+                  band?.valueMid ?? EXIT_MULTIPLE_DEFAULT_ON_EDIT,
+                )
+              }
+              className="text-sm text-muted-foreground italic underline-offset-2 hover:underline"
+              data-testid="button-set-exit-multiple"
+            >
+              Not set — click to enter
+            </button>
+          ) : (
+            <EditableValue
+              value={selectedMultiple}
+              // Distinct unset state: enforce a positive minimum so a typed-in 0
+              // cannot be persisted. Use the band midpoint (if available) as the
+              // clear-to-unset escape via the dedicated button above instead.
+              onChange={(v) => onChange("exitRevenueMultiple", v)}
+              format="number"
+              min={EXIT_MULTIPLE_MIN}
+              max={EXIT_MULTIPLE_MAX}
+              step={EXIT_MULTIPLE_STEP}
+            />
+          )}
+          {hasBand && band && (
+            <div className="flex items-center gap-2">
+              {/* Range signal — sourced from admin-managed `exit_multiples`
+                  wrapped in the canonical AnalystRangeIndicator. Severity,
+                  copy, and within/above/below verdict all come from the
+                  component, not from local JSX. See TODO(specialist-plumbing)
+                  above re: replacing the wrapper with a real Specialist. */}
+              <AnalystRangeIndicator
+                fieldKey="exitRevenueMultiple"
+                currentValue={selectedMultiple}
+                guidance={exitMultipleGuidance}
+              />
+              <p className="text-xs text-muted-foreground" data-testid="text-exit-multiple-band">
+                {band.label} band: {band.valueLow!.toFixed(1)}x – {band.valueHigh!.toFixed(1)}x
+                {band.valueMid != null ? ` (mid ${band.valueMid.toFixed(1)}x)` : ""}
+              </p>
+            </div>
+          )}
+          {/* "Apply midpoint" remains as a data-driven action — `valueMid`
+              is sourced from the admin-managed `exit_multiples` row, not
+              authored locally — so it's not the bespoke severity copy CR
+              flagged. The amber outside-band severity rendering has been
+              removed; AnalystRangeIndicator above now owns that signal. */}
+          {hasBand && band && band.valueMid != null && selectedMultiple != null && (
+            selectedMultiple < (band.valueLow ?? Number.NEGATIVE_INFINITY) ||
+            selectedMultiple > (band.valueHigh ?? Number.POSITIVE_INFINITY)
+          ) && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="self-start underline underline-offset-2 h-auto p-0 text-xs"
+              onClick={() => onChange("exitRevenueMultiple", band.valueMid!)}
+              data-testid="button-apply-exit-multiple-mid"
+            >
+              Apply recommended midpoint {band.valueMid.toFixed(1)}x
+            </Button>
+          )}
+        </div>
+      </div>
+    </Section>
   );
 }
