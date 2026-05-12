@@ -144,11 +144,11 @@ Carry forward verbatim into per-iteration discipline (see U2/U3 Approach):
 | `/coderabbit-loop-autofix` (iter 2–4) | Open PR | `@coderabbitai review` via gh API | "Actionable comments posted: N" parser | Claude Code in-session | Zero actionable findings, or iteration 4 done |
 | `/coderabbit-loop-autofix` (§9 intersect) | Open PR | (autofix skipped) | "Actionable comments posted: N" parser | Claude Code in-session | Same as review-only path |
 
-### Watcher / state model
+### State model (diagnostic / progress only)
 
 ```text
 .local/coderabbit-loop/
-├── run.json            # manifest: pid, started_at, mode, pr_number, head_sha, status
+├── run.json            # manifest: started_at, mode, pr_number, head_sha, status, current_iteration
 ├── iteration-01.ndjson # local-CLI mode only — raw --agent output for iter 1
 ├── iteration-01.log    # plain-text status: trigger, poll cycles, fixes summary
 ├── iteration-02.ndjson
@@ -156,7 +156,7 @@ Carry forward verbatim into per-iteration discipline (see U2/U3 Approach):
 └── ...
 ```
 
-State is wiped at session start. The `/coderabbit-loop-status` command reads `run.json` plus the latest iteration log to show progress.
+State is wiped at session start. The `/coderabbit-loop-status` command reads `run.json` plus the latest iteration log to show progress. There is no background process — the loop runs synchronously in the session. If the session is killed, `run.json` shows last-known state; re-invoking starts a fresh loop from iteration 1.
 
 ---
 
@@ -225,10 +225,11 @@ State is wiped at session start. The `/coderabbit-loop-status` command reads `ru
 - Test: `scripts/tests/coderabbit-loop-review.test.sh` (NDJSON parser + severity counter + iteration cap)
 
 **Approach:**
-- Slash command body: launch the backgrounded watcher via the pnpm script, return immediately with the manifest path the user can poll via `/coderabbit-loop-status`.
-- Watcher does: ensure loop is ON (else exit with toggle-OFF message); ensure CodeRabbit CLI is installed and authed (else degrade gracefully with install pointer); wipe `.local/coderabbit-loop/`; loop up to 4 iterations; per iteration: run `cr review --type uncommitted --agent` capturing NDJSON to `iteration-NN.ndjson`; count `finding` events at `severity ≥ minor`; if 0, write `run.json` status=complete-clean and exit; else pause for Claude Code to apply fixes (mechanism: write a `iteration-NN.fixes-needed` marker, the slash command picks it up and the agent in the same session applies fixes); after fix application, run per-iteration gates (typecheck, magic-numbers, relevant tests, branch-hygiene check); commit cleanly (guard against auto-checkpoint capture); loop.
-- The "Claude Code applies fixes" handoff is the trickiest piece — the watcher emits a structured payload (NDJSON findings + `codegenInstructions` for each) into a file the slash command's follow-up message reads, then Claude Code uses standard Edit tools to apply fixes, then notifies the watcher to proceed. **`codegenInstructions` pre-filter:** before any payload is passed to Claude's edit pipeline, intersect each finding's target path against the §9 list AND a writeable-surface allowlist derived from the current working-tree change scope. Findings targeting §9 paths are downgraded to "review-only — surface to the user, do not auto-apply." Findings targeting paths outside the allowlist are dropped with a logged warning. (Architecture of this handoff itself is deferred — see Open Questions.)
-- Hard cap at 4: if iteration 4 still has findings, exit with status=complete-residual and surface the unresolved findings to the user.
+- Slash command body: Claude runs the loop synchronously in the current session. Preconditions first: ensure loop is ON (else exit with toggle-OFF message); ensure CodeRabbit CLI is installed and authed (else degrade gracefully with install pointer); wipe `.local/coderabbit-loop/` and write `run.json` (mode, started_at, status=running).
+- Loop up to 4 iterations. Per iteration: run `cr review --type uncommitted --agent` capturing NDJSON to `iteration-NN.ndjson`; parse `finding` events at `severity ≥ minor`; if 0, update `run.json` status=complete-clean and exit with a clean summary.
+- If findings remain: apply fixes using Edit tools directly in the same session. **`codegenInstructions` pre-filter:** intersect each finding's target path against the §9 list AND a writeable-surface allowlist derived from the current working-tree change scope. Findings targeting §9 paths are surfaced to the user as "review-only — do not auto-apply." Findings targeting paths outside the allowlist are dropped with a logged warning.
+- After fix application: run per-iteration gates (typecheck if present, magic-numbers if present, relevant tests, branch-hygiene check); commit cleanly (guard against auto-checkpoint capture); update `run.json` with iteration number + timestamp; loop.
+- Hard cap at 4: if iteration 4 still has findings, update `run.json` status=complete-residual and surface the open findings to the user.
 
 **Patterns to follow:**
 - Backgrounded `until`-loop watcher pattern from `cc-replit-branch-hygiene-2026-05-10.md` (Variant B).
@@ -266,7 +267,7 @@ State is wiped at session start. The `/coderabbit-loop-status` command reads `ru
 - Test: `scripts/tests/coderabbit-loop-autofix.test.sh` (§9 intersect detection + summary parser + duplicate-thread handling)
 
 **Approach:**
-- Preconditions enforced before iteration 1: `gh` CLI present, `$GITHUB_PAT` set, current branch has an open PR (`gh pr view --json number,headRefOid`), at least one prior CodeRabbit review exists on the PR (else surface "no prior CR review — push some commits and let CR run first, then re-invoke").
+- Claude runs the loop synchronously in the current session. Preconditions enforced before iteration 1: `gh` CLI present, `$GITHUB_PAT` set, current branch has an open PR (`gh pr view --json number,headRefOid`), at least one prior CodeRabbit review exists on the PR (else surface "no prior CR review — push some commits and let CR run first, then re-invoke"). Write `run.json` (mode=autofix, pr_number, head_sha, started_at, status=running).
 - **PAT handling.** Minimum required scopes are `issues:write` (to post bot trigger comments) + `pull_requests:read` (for review/diff/check fetching). The precondition check verifies the token's `X-OAuth-Scopes` response header includes these before proceeding; otherwise it surfaces a "PAT scope insufficient — needs at minimum: …" error. The PAT is referenced as `$GITHUB_PAT` in `curl -H "Authorization: Bearer $GITHUB_PAT"` (shell-interpolated, never echoed). The watcher's stdout/stderr redirect to a mode-0600 log file under `.local/coderabbit-loop/`; any line containing `Authorization` is redacted before writing. The U6 runbook documents PAT generation, scope selection, and rotation cadence.
 - §9 pre-check: `gh pr diff --name-only` ∩ §9 path list (`lib/engine/src/`, `lib/calc/src/`, `lib/shared/src/constants*.ts`, `lib/db/src/constants*.ts`, `artifacts/api-server/src/finance/`, `artifacts/api-server/src/report/`, `artifacts/api-server/src/tests/proof/`, `artifacts/api-server/src/tests/engine/`). On intersect: write `iteration-01.log` noting "autofix skipped — §9 intersect on <paths>"; iteration 1 falls back to review-only mode (post `@coderabbitai review`, parse "Actionable comments posted").
 - **§9 post-commit re-check (defense-in-depth).** After the autofix bot commit lands, re-run `gh pr diff --name-only` against the new HEAD. If the bot added or modified any path in the §9 list (paths that were *not* in the diff at pre-check time), hard-fail: `git revert <bot-sha>`, force-push, abort the autofix loop with a clear message, and fall back to review-only iterations. This closes the leak where the pre-check passes but autofix introduces new §9 edits.
@@ -415,7 +416,7 @@ State is wiped at session start. The `/coderabbit-loop-status` command reads `ru
 | CodeRabbit bot rate-limits or queues `@coderabbitai review` triggers under load | Poll cadence respects the +60s backoff already in the institutional learning; cap total polling time at 30 min per iteration; surface "CR review taking longer than expected" notice if hit. |
 | `@coderabbitai autofix` bot commit lands but breaks the build | Per-iteration gates (typecheck, magic-numbers, tests) run AFTER the bot commit and BEFORE the next iteration's review trigger. On failure: record the bot SHA, `git revert <bot-sha>`, force-push the revert, write iteration log status=autofix-broke-build, continue the loop in review-only mode. (See "Broken-bot-commit recovery" in U3 Approach.) |
 | Iteration 4 cap is too low for noisy PRs | The cap is a hard safety; status=complete-residual lists the open findings so the user can decide to re-invoke. Don't auto-extend — the cap exists to prevent runaway loops. |
-| Background watcher process is killed by Replit shell session ending | Watcher writes state to disk per iteration; user can re-invoke `/coderabbit-loop-status` to see last-known state; resume is implicit by re-invoking the original session command (it picks up from the last manifest iteration). |
+| Claude Code session ends mid-loop (user closes CC, timeout, or crash) | Loop does not resume — re-invocation starts from iteration 1. `run.json` shows last-known state when the session died; the user can invoke `/coderabbit-loop-status` to see where it left off before re-running. |
 | `gh` CLI not installed in the runtime env | U3 precondition check fires before any work; surfaces "gh CLI required — install via `brew install gh` or equivalent" message. |
 | Auto-checkpoint capture hides CC's fix commit under Replit-Agent attribution | Detection + soft-reset recovery is baked into per-iteration gates (per the institutional learning); the watcher's git-author check is the safety net. |
 
