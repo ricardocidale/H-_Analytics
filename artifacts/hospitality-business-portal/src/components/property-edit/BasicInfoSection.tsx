@@ -2,9 +2,13 @@
  * BasicInfoSection.tsx — Property identity, acquisition facts, and improvement hypothesis.
  *
  * Three visually distinct subsections within one card:
- *   Basic        — immutable identity fields only (name, address, market, market tier, year built, acreage)
- *   As Purchased — operational facts at acquisition (status, room count, type, model, capacity, description)
- *   As Improved  — post-renovation hypothesis for each As-Purchased operational field
+ *   Basic        — identity + operational fields: name, address, market, market tier, year built,
+ *                  acreage, status, room count, star rating, type, model, VRBO pricing,
+ *                  quality/service/location classification
+ *   As Purchased — physical capacity/size fields that have As-Improved counterparts + description:
+ *                  F&B venues, F&B seats, event space sqft, building sqft, last renovated,
+ *                  description_purchased
+ *   As Improved  — post-renovation hypothesis for each As-Purchased capacity field + description
  *
  * Task #1404 — Milestone A: UI-only restructure. Description is now inline here;
  * the standalone DescriptionSection component is deprecated.
@@ -439,7 +443,7 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
             </div>
           </div>
 
-          {/* Identity classifiers that belong in Basic: market tier, year built, acreage */}
+          {/* Identity classifiers + operational facts — all belong in Basic for Milestone A */}
           <div className="space-y-2">
             <Label className="label-text text-foreground flex items-center gap-1.5">Market Tier<InfoTooltip text="MSA classification. Primary = Top 25 metro areas with highest hotel demand. Secondary and tertiary markets have different risk/return profiles." /></Label>
             <Select value={draft.marketTier || ""} onValueChange={(v) => onChange("marketTier", v)}>
@@ -459,162 +463,163 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
             <Label className="label-text text-foreground text-sm">Total Acreage</Label>
             <Input type="number" step="0.1" value={draft.totalPropertyAcreage ?? ""} onChange={(e) => onNumberChange("totalPropertyAcreage", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-total-acreage" />
           </div>
+
+          {/* Status + Room Count */}
+          <div className="space-y-2">
+            <Label className="label-text text-foreground flex items-center gap-1.5">Status<InfoTooltip text="Current stage: Pipeline (being scoped), In Negotiation (advanced talks), Acquired (purchased), Improvements (under renovation), or Operating (generating revenue)." /></Label>
+            <Select value={draft.status} onValueChange={(v) => onChange("status", v)}>
+              <SelectTrigger className="bg-card border-primary/30 text-foreground"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PROPERTY_STATUS_VALUES.map(s => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="label-text text-foreground flex items-center gap-1.5">Room Count<InfoTooltip text="Total number of rentable guest rooms. This is the primary revenue driver — all room revenue is calculated as Rooms × ADR × Occupancy × 30.5 days/month." /></Label>
+            <Input type="number" value={draft.roomCount} onChange={(e) => onNumberChange("roomCount", e.target.value)} className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground" />
+          </div>
+
+          {/* Star Rating */}
+          <div className="space-y-2">
+            <Label className="label-text text-foreground flex items-center gap-1.5">Star Rating<InfoTooltip text="Property star classification (1-5★). Drives research comparable matching — luxury (5★) properties are only compared to other luxury properties. Click to set, click same star to clear." /></Label>
+            <StarRatingInput
+              value={draft.starRating}
+              suggested={draft.starRatingSuggested}
+              onChange={(v) => onChange("starRating", v)}
+            />
+          </div>
+
+          {/* Property Type + Business Model */}
+          <div className="space-y-2">
+            <Label className="label-text text-foreground flex items-center gap-1.5">Property Type<InfoTooltip text="Hospitality category that determines which expense benchmarks and revenue assumptions apply. Extended Stay properties use different occupancy and ADR patterns than traditional hotels." /></Label>
+            <PropertyTypeSelector
+              value={draft.hospitalityType || "hotel"}
+              onChange={(v) => onChange("hospitalityType", v)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="label-text text-foreground flex items-center gap-1.5">Business Model<InfoTooltip text="Determines the financial framework: Hotel uses USALI with departmental expenses (F&B, Events), management fees (2-5% base + incentive). Lodge is a large whole-property rental with premium amenities and guest meals but no events department, management fees (15-25%). VRBO/STR uses platform fees (Airbnb 15.5%, VRBO 8%), per-turnover cleaning, and all-in management fees (20-35%)." /></Label>
+            <BusinessModelSelector
+              value={draft.businessModel || "hotel"}
+              onChange={(v) => onChange("businessModel", v)}
+            />
+          </div>
+
+          {/* VRBO pricing panel — conditional on business model */}
+          {(draft.businessModel === "vrbo" || draft.businessModel === "vrbo_owner_managed") && (
+            <div className="sm:col-span-2 border border-primary/20 rounded-xl p-4 space-y-4">
+              <p className="text-sm font-medium text-foreground label-text">Pricing Model</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="label-text text-foreground flex items-center gap-1.5">Pricing Model<InfoTooltip text="Per Room uses hotel-style ADR × room count. Per Property charges a single nightly rate for the entire property (luxury rental model)." /></Label>
+                  <Select value={draft.pricingModel || "per_room"} onValueChange={(v) => onChange("pricingModel", v)}>
+                    <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-pricing-model"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="per_room">Per Room (hotel-style ADR × rooms)</SelectItem>
+                      <SelectItem value="per_property">Per Property (whole-property nightly rate)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {draft.pricingModel === "per_property" && (
+                  <>
+                    <div className="space-y-2">
+                      <Label className="label-text text-foreground flex items-center gap-1.5">Nightly Property Rate ($)<InfoTooltip text="The per-night rate for renting the entire property. Revenue = rate × days × occupancy. Room count is tracked for capacity only." /></Label>
+                      <Input type="number" value={draft.nightlyPropertyRate || ""} onChange={(e) => onNumberChange("nightlyPropertyRate", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-nightly-property-rate" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="label-text text-foreground flex items-center gap-1.5">Max Guests<InfoTooltip text="Maximum guest capacity for the whole property. Used by research engines to calibrate comparable properties." /></Label>
+                      <Input type="number" step="1" value={draft.maxGuests || ""} onChange={(e) => { const v = parseInt(e.target.value, 10); onChange("maxGuests", isNaN(v) ? null : v); }} className="bg-card border-primary/30 text-foreground" data-testid="input-max-guests" />
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                <div className="space-y-2">
+                  <Label className="label-text text-foreground flex items-center gap-1.5">
+                    Platform Fee Rate (%)
+                    <InfoTooltip text={`Blended Airbnb / VRBO / Booking.com commission as % of room revenue. Default ${DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE * 100}% = Airbnb ${PLATFORM_FEE_RATES.airbnb * 100}% / VRBO ${PLATFORM_FEE_RATES.vrbo * 100}% / Booking ${PLATFORM_FEE_RATES.booking * 100}% blended. Set to 0 for direct-booking only.`} />
+                  </Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    value={draft.platformFeeRate != null ? +(draft.platformFeeRate * 100).toFixed(2) : ""}
+                    placeholder={String(DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE * 100)}
+                    onChange={(e) => {
+                      const raw = parseFloat(e.target.value);
+                      onChange("platformFeeRate", isNaN(raw) ? null : raw / 100);
+                    }}
+                    className="bg-card border-primary/30 text-foreground"
+                    data-testid="input-platform-fee-rate"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Classification tiers — quality, service level, location type */}
+          <div className="sm:col-span-2 border-t border-border/50 pt-5">
+            <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">Classification</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="label-text text-foreground flex items-center gap-1.5">Quality Tier<InfoTooltip text="STR chain scale classification. Drives comp set matching and benchmark selection for research engines." /></Label>
+                <Select value={draft.qualityTier || ""} onValueChange={(v) => onChange("qualityTier", v)}>
+                  <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-quality-tier"><SelectValue placeholder="Select tier" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="luxury">Luxury</SelectItem>
+                    <SelectItem value="upper_upscale">Upper Upscale</SelectItem>
+                    <SelectItem value="upscale">Upscale</SelectItem>
+                    <SelectItem value="upper_midscale">Upper Midscale</SelectItem>
+                    <SelectItem value="midscale">Midscale</SelectItem>
+                    <SelectItem value="economy">Economy</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="label-text text-foreground flex items-center gap-1.5">Service Level<InfoTooltip text="Determines staffing model and expense structure. Full Service includes concierge, room service, and F&B. Limited Service operates with minimal on-site staff." /></Label>
+                <Select value={draft.serviceLevel || ""} onValueChange={(v) => onChange("serviceLevel", v)}>
+                  <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-service-level"><SelectValue placeholder="Select level" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="full_service">Full Service</SelectItem>
+                    <SelectItem value="select_service">Select Service</SelectItem>
+                    <SelectItem value="limited_service">Limited Service</SelectItem>
+                    <SelectItem value="all_inclusive">All Inclusive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="label-text text-foreground flex items-center gap-1.5">Location Type<InfoTooltip text="Geographic classification affecting seasonality patterns, ADR benchmarks, and expense ratios." /></Label>
+                <Select value={draft.locationType || ""} onValueChange={(v) => onChange("locationType", v)}>
+                  <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-location-type"><SelectValue placeholder="Select type" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="urban">Urban</SelectItem>
+                    <SelectItem value="suburban">Suburban</SelectItem>
+                    <SelectItem value="resort">Resort</SelectItem>
+                    <SelectItem value="rural">Rural</SelectItem>
+                    <SelectItem value="airport">Airport</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* ── AS PURCHASED ───────────────────────────────────────────────────
-            Operational facts at acquisition: status, room count, star rating,
-            type, model, VRBO pricing, classification tiers, F&B capacity,
-            physical size, and property description.
+            Physical capacity/size fields that have As-Improved counterparts,
+            plus the property description (bound to description_purchased).
+            Operational fields (status, rooms, type, model, classification)
+            live in Basic above; they don't have improved counterparts yet.
         ──────────────────────────────────────────────────────────────────── */}
         <div className="mt-8 border-t border-border/50 pt-6">
           <SubsectionHeader
             title="As Purchased"
-            subtitle="Operational facts at acquisition — type, capacity, classification, and description"
+            subtitle="Physical footprint and description at acquisition — capacity and size fields that have As-Improved counterparts"
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-
-            {/* Status + Room Count */}
-            <div className="space-y-2">
-              <Label className="label-text text-foreground flex items-center gap-1.5">Status<InfoTooltip text="Current stage: Pipeline (being scoped), In Negotiation (advanced talks), Acquired (purchased), Improvements (under renovation), or Operating (generating revenue)." /></Label>
-              <Select value={draft.status} onValueChange={(v) => onChange("status", v)}>
-                <SelectTrigger className="bg-card border-primary/30 text-foreground"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {PROPERTY_STATUS_VALUES.map(s => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="label-text text-foreground flex items-center gap-1.5">Room Count<InfoTooltip text="Total number of rentable guest rooms. This is the primary revenue driver — all room revenue is calculated as Rooms × ADR × Occupancy × 30.5 days/month." /></Label>
-              <Input type="number" value={draft.roomCount} onChange={(e) => onNumberChange("roomCount", e.target.value)} className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground" />
-            </div>
-
-            {/* Star Rating */}
-            <div className="space-y-2">
-              <Label className="label-text text-foreground flex items-center gap-1.5">Star Rating<InfoTooltip text="Property star classification (1-5★). Drives research comparable matching — luxury (5★) properties are only compared to other luxury properties. Click to set, click same star to clear." /></Label>
-              <StarRatingInput
-                value={draft.starRating}
-                suggested={draft.starRatingSuggested}
-                onChange={(v) => onChange("starRating", v)}
-              />
-            </div>
-
-            {/* Property Type + Business Model */}
-            <div className="space-y-2">
-              <Label className="label-text text-foreground flex items-center gap-1.5">Property Type<InfoTooltip text="Hospitality category that determines which expense benchmarks and revenue assumptions apply. Extended Stay properties use different occupancy and ADR patterns than traditional hotels." /></Label>
-              <PropertyTypeSelector
-                value={draft.hospitalityType || "hotel"}
-                onChange={(v) => onChange("hospitalityType", v)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="label-text text-foreground flex items-center gap-1.5">Business Model<InfoTooltip text="Determines the financial framework: Hotel uses USALI with departmental expenses (F&B, Events), management fees (2-5% base + incentive). Lodge is a large whole-property rental with premium amenities and guest meals but no events department, management fees (15-25%). VRBO/STR uses platform fees (Airbnb 15.5%, VRBO 8%), per-turnover cleaning, and all-in management fees (20-35%)." /></Label>
-              <BusinessModelSelector
-                value={draft.businessModel || "hotel"}
-                onChange={(v) => onChange("businessModel", v)}
-              />
-            </div>
-
-            {/* VRBO pricing panel — conditional on business model */}
-            {(draft.businessModel === "vrbo" || draft.businessModel === "vrbo_owner_managed") && (
-              <div className="sm:col-span-2 border border-primary/20 rounded-xl p-4 space-y-4">
-                <p className="text-sm font-medium text-foreground label-text">Pricing Model</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="label-text text-foreground flex items-center gap-1.5">Pricing Model<InfoTooltip text="Per Room uses hotel-style ADR × room count. Per Property charges a single nightly rate for the entire property (luxury rental model)." /></Label>
-                    <Select value={draft.pricingModel || "per_room"} onValueChange={(v) => onChange("pricingModel", v)}>
-                      <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-pricing-model"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="per_room">Per Room (hotel-style ADR × rooms)</SelectItem>
-                        <SelectItem value="per_property">Per Property (whole-property nightly rate)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {draft.pricingModel === "per_property" && (
-                    <>
-                      <div className="space-y-2">
-                        <Label className="label-text text-foreground flex items-center gap-1.5">Nightly Property Rate ($)<InfoTooltip text="The per-night rate for renting the entire property. Revenue = rate × days × occupancy. Room count is tracked for capacity only." /></Label>
-                        <Input type="number" value={draft.nightlyPropertyRate || ""} onChange={(e) => onNumberChange("nightlyPropertyRate", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-nightly-property-rate" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="label-text text-foreground flex items-center gap-1.5">Max Guests<InfoTooltip text="Maximum guest capacity for the whole property. Used by research engines to calibrate comparable properties." /></Label>
-                        <Input type="number" step="1" value={draft.maxGuests || ""} onChange={(e) => { const v = parseInt(e.target.value, 10); onChange("maxGuests", isNaN(v) ? null : v); }} className="bg-card border-primary/30 text-foreground" data-testid="input-max-guests" />
-                      </div>
-                    </>
-                  )}
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                  <div className="space-y-2">
-                    <Label className="label-text text-foreground flex items-center gap-1.5">
-                      Platform Fee Rate (%)
-                      <InfoTooltip text={`Blended Airbnb / VRBO / Booking.com commission as % of room revenue. Default ${DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE * 100}% = Airbnb ${PLATFORM_FEE_RATES.airbnb * 100}% / VRBO ${PLATFORM_FEE_RATES.vrbo * 100}% / Booking ${PLATFORM_FEE_RATES.booking * 100}% blended. Set to 0 for direct-booking only.`} />
-                    </Label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      max="100"
-                      value={draft.platformFeeRate != null ? +(draft.platformFeeRate * 100).toFixed(2) : ""}
-                      placeholder={String(DEFAULT_VRBO_BLENDED_PLATFORM_FEE_RATE * 100)}
-                      onChange={(e) => {
-                        const raw = parseFloat(e.target.value);
-                        onChange("platformFeeRate", isNaN(raw) ? null : raw / 100);
-                      }}
-                      className="bg-card border-primary/30 text-foreground"
-                      data-testid="input-platform-fee-rate"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Classification tiers — quality, service level, location type */}
-            <div className="sm:col-span-2 border-t border-border/50 pt-5">
-              <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">Classification</p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label className="label-text text-foreground flex items-center gap-1.5">Quality Tier<InfoTooltip text="STR chain scale classification. Drives comp set matching and benchmark selection for research engines." /></Label>
-                  <Select value={draft.qualityTier || ""} onValueChange={(v) => onChange("qualityTier", v)}>
-                    <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-quality-tier"><SelectValue placeholder="Select tier" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="luxury">Luxury</SelectItem>
-                      <SelectItem value="upper_upscale">Upper Upscale</SelectItem>
-                      <SelectItem value="upscale">Upscale</SelectItem>
-                      <SelectItem value="upper_midscale">Upper Midscale</SelectItem>
-                      <SelectItem value="midscale">Midscale</SelectItem>
-                      <SelectItem value="economy">Economy</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label className="label-text text-foreground flex items-center gap-1.5">Service Level<InfoTooltip text="Determines staffing model and expense structure. Full Service includes concierge, room service, and F&B. Limited Service operates with minimal on-site staff." /></Label>
-                  <Select value={draft.serviceLevel || ""} onValueChange={(v) => onChange("serviceLevel", v)}>
-                    <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-service-level"><SelectValue placeholder="Select level" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="full_service">Full Service</SelectItem>
-                      <SelectItem value="select_service">Select Service</SelectItem>
-                      <SelectItem value="limited_service">Limited Service</SelectItem>
-                      <SelectItem value="all_inclusive">All Inclusive</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label className="label-text text-foreground flex items-center gap-1.5">Location Type<InfoTooltip text="Geographic classification affecting seasonality patterns, ADR benchmarks, and expense ratios." /></Label>
-                  <Select value={draft.locationType || ""} onValueChange={(v) => onChange("locationType", v)}>
-                    <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-location-type"><SelectValue placeholder="Select type" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="urban">Urban</SelectItem>
-                      <SelectItem value="suburban">Suburban</SelectItem>
-                      <SelectItem value="resort">Resort</SelectItem>
-                      <SelectItem value="rural">Rural</SelectItem>
-                      <SelectItem value="airport">Airport</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
 
             {/* F&B & Events Capacity */}
             <div className="sm:col-span-2">
