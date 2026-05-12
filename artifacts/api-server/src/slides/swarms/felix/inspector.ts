@@ -18,9 +18,9 @@ import { logger } from "../../../logger";
 import { slide6PayloadSchema } from "@shared/deck-payload-v2";
 import type { Slide6Payload } from "@shared/deck-payload-v2";
 import {
-  LORENZO_VISION_MODEL,
   SWARM_INSPECTOR_MAX_TOKENS,
 } from "../../deck-render-constants";
+import { resolveLorenzoVisionModelId } from "../../factory-v2-llm-resolver";
 import { getStorageProviderAsync } from "../../../providers/storage";
 
 // ── Inspector verdict ────────────────────────────────────────────────────────
@@ -100,9 +100,10 @@ export async function runFelixInspector(
   }`;
 
   const anthropic = getAnthropicClient();
+  const modelId = await resolveLorenzoVisionModelId();
 
   const response = await anthropic.messages.create({
-    model: LORENZO_VISION_MODEL,
+    model: modelId,
     max_tokens: SWARM_INSPECTOR_MAX_TOKENS,
     system:
       "You are Felix-05, the Slide 6 Inspector for the H+ Analysis investor deck factory. " +

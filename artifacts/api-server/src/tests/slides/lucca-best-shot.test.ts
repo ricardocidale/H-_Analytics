@@ -25,8 +25,12 @@ import {
 import {
   buildBestShotTool,
   buildBestShotUserPrompt,
-  LUCCA_BEST_SHOT_MODEL,
 } from "../../slides/lucca-best-shot-prompt";
+import { resolveLorenzoVisionModelId } from "../../slides/factory-v2-llm-resolver";
+
+vi.mock("../../slides/factory-v2-llm-resolver", () => ({
+  resolveLorenzoVisionModelId: vi.fn().mockResolvedValue("test-model-id"),
+}));
 import type { PropertyBrief } from "../../slides/property-brief";
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
@@ -305,13 +309,10 @@ describe("buildBestShotTool", () => {
   });
 });
 
-describe("LUCCA_BEST_SHOT_MODEL", () => {
-  it("is a non-empty model identifier string", () => {
-    // The exact slug lives in deck-render-constants.ts (and will be
-    // relocated to an admin_resources row in a follow-up PR). The test
-    // asserts only that a model id is configured — no model-family name
-    // is embedded in the source per CLAUDE.md §1 (Integration identifier rule).
-    expect(typeof LUCCA_BEST_SHOT_MODEL).toBe("string");
-    expect(LUCCA_BEST_SHOT_MODEL.length).toBeGreaterThan(0);
+describe("resolveLorenzoVisionModelId", () => {
+  it("resolves to a non-empty model identifier string", async () => {
+    const modelId = await resolveLorenzoVisionModelId();
+    expect(typeof modelId).toBe("string");
+    expect(modelId.length).toBeGreaterThan(0);
   });
 });

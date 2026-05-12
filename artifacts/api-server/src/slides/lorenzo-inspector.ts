@@ -14,10 +14,10 @@ import { logger } from "../logger";
 import type { LorenzoTextBlock } from "./canonical-spec-types";
 import { CANONICAL_ASSETS } from "./canonical-assets";
 import {
-  LORENZO_VISION_MODEL,
   LORENZO_05_MAX_TOKENS,
   TOTAL_SLIDES,
 } from "./deck-render-constants";
+import { resolveLorenzoVisionModelId } from "./factory-v2-llm-resolver";
 import { getStorageProviderAsync } from "../providers/storage";
 
 // ── Tool schema ──────────────────────────────────────────────────────────────
@@ -94,8 +94,9 @@ export async function runLorenzoInspector(
     },
   ];
 
+  const modelId = await resolveLorenzoVisionModelId();
   const response = await anthropic.messages.create({
-    model: LORENZO_VISION_MODEL,
+    model: modelId,
     max_tokens: LORENZO_05_MAX_TOKENS,
     system: "You are Lorenzo-05, a canonical spec inspector. Your only job is to decide if the spec is complete enough for rebuild.",
     messages: [{ role: "user", content }],

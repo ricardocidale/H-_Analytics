@@ -19,13 +19,13 @@ import type { AldoResult, AldoElement } from "./minions/aldo";
 import type { LorenzoTextBlock } from "./canonical-spec-types";
 import { CANONICAL_ASSETS } from "./canonical-assets";
 import {
-  LORENZO_VISION_MODEL,
   LORENZO_03_MAX_TOKENS,
   ALDO_LINE_GROUP_Y_THRESHOLD_PX,
   ALDO_CANVAS_WIDTH,
   ALDO_CANVAS_HEIGHT,
   TOTAL_SLIDES,
 } from "./deck-render-constants";
+import { resolveLorenzoVisionModelId } from "./factory-v2-llm-resolver";
 import { getStorageProviderAsync } from "../providers/storage";
 
 // ── Type for the tool's input_schema ────────────────────────────────────────
@@ -216,8 +216,9 @@ async function enrichSlide(
     ],
   };
 
+  const modelId = await resolveLorenzoVisionModelId();
   const response = await anthropic.messages.create({
-    model: LORENZO_VISION_MODEL,
+    model: modelId,
     max_tokens: LORENZO_03_MAX_TOKENS,
     system: "You are Lorenzo-03, a visual spec reconciler. Analyse slide images and produce structured canonical specs for an investor deck pipeline. Be precise with font metrics and bounding boxes.",
     messages: [userMessage],

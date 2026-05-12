@@ -18,9 +18,9 @@ import { logger } from "../../../logger";
 import { slide3PayloadSchema } from "@shared/deck-payload-v2";
 import type { Slide3Payload } from "@shared/deck-payload-v2";
 import {
-  LORENZO_VISION_MODEL,
   SWARM_INSPECTOR_MAX_TOKENS,
 } from "../../deck-render-constants";
+import { resolveLorenzoVisionModelId } from "../../factory-v2-llm-resolver";
 import { getStorageProviderAsync } from "../../../providers/storage";
 
 // ── Inspector verdict ────────────────────────────────────────────────────────
@@ -110,9 +110,10 @@ export async function runChiaraInspector(
     `closingLine: ${payload.closingLine ? `"${payload.closingLine.text}"` : "(none)"}`;
 
   const anthropic = getAnthropicClient();
+  const modelId = await resolveLorenzoVisionModelId();
 
   const response = await anthropic.messages.create({
-    model: LORENZO_VISION_MODEL,
+    model: modelId,
     max_tokens: SWARM_INSPECTOR_MAX_TOKENS,
     system:
       "You are Chiara-03, the Slide 3 Inspector for the H+ Analysis investor deck factory. " +

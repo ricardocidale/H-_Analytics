@@ -18,9 +18,9 @@ import { logger } from "../../../logger";
 import { slide1PayloadSchema } from "@shared/deck-payload-v2";
 import type { Slide1Payload } from "@shared/deck-payload-v2";
 import {
-  LORENZO_VISION_MODEL,
   SWARM_INSPECTOR_MAX_TOKENS,
 } from "../../deck-render-constants";
+import { resolveLorenzoVisionModelId } from "../../factory-v2-llm-resolver";
 import { getStorageProviderAsync } from "../../../providers/storage";
 
 // ── Inspector verdict ────────────────────────────────────────────────────────
@@ -101,9 +101,10 @@ export async function runSofiaInspector(
     (payload.visionBullets?.map((b, i) => `  ${i + 1}. "${b.text}"`).join("\n") ?? "  (none)");
 
   const anthropic = getAnthropicClient();
+  const modelId = await resolveLorenzoVisionModelId();
 
   const response = await anthropic.messages.create({
-    model: LORENZO_VISION_MODEL,
+    model: modelId,
     max_tokens: SWARM_INSPECTOR_MAX_TOKENS,
     system:
       "You are Sofia-03, the Slide 1 Inspector for the H+ Analysis investor deck factory. " +
