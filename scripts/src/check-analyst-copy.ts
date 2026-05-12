@@ -119,13 +119,33 @@ const SKIP_DIRS = new Set([
  * casual-register rule is user-visible STATUS copy ("Looking at your
  * property…"), not LLM prompt scaffolding or knowledge-base content that
  * defines what the Analyst IS.
+ *
+ * SEED FILE POLICY (task #1527)
+ * ─────────────────────────────
+ * Seed files fall into two categories:
+ *
+ *   Persona / prompt seeds — define what the Analyst IS in LLM system
+ *     prompts, RAG knowledge-base entries, or agent-persona constants.
+ *     These legitimately use "The Analyst is …" in declarative prose and
+ *     are exempt from the scan. Covered by the per-file patterns below
+ *     (`/\/knowledge-base[a-z-]*\.ts$/`, `/-prompt(s|-[a-z-]+)?\.ts$/`,
+ *     `/\/agent-personas\.ts$/`).
+ *
+ *   Content seeds — seed user-visible UI strings such as toast copy,
+ *     onboarding messages, help text, and display labels into the database.
+ *     These MUST be scanned because the casual-register rule applies to every
+ *     string that surfaces in the UI, regardless of whether it arrives via
+ *     a hard-coded literal or a DB-seeded value.
+ *
+ * The former blanket `/\/seeds?\/` exclusion has been removed so that content
+ * seeds are checked. Only the specific persona/prompt seed patterns below
+ * remain exempt.
  */
 const SKIP_PATH_PATTERNS: RegExp[] = [
   /\/prompts?\//, // any prompts/ directory
   /-prompt(s|-[a-z-]+)?\.ts$/, // *-prompt.ts, *-prompts.ts, *-prompt-engineer.ts
-  /\/seeds?\//, // seed data trees
   /\/agent-personas\.ts$/, // persona description constants
-  /\/knowledge-base[a-z-]*\.ts$/, // knowledge-base seed/content files
+  /\/knowledge-base[a-z-]*\.ts$/, // knowledge-base persona/RAG seed files
   /\.test\.ts$/, // unit tests routinely reference banned strings to assert removal
   /\.test\.tsx$/,
   /\.spec\.ts$/,

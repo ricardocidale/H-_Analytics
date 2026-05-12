@@ -29,6 +29,14 @@ const SCAN_DIR = path.join(
 // scan branch (toasts, transactional emails, websocket status messages,
 // OpenAPI error descriptions) and the per-line `req.log.*` skip predicate.
 const API_SCAN_DIR = path.join(WORKSPACE_ROOT, "artifacts/api-server/src");
+// Task #1527: content-seed coverage. Fixtures dropped here exercise the seeds/
+// subdirectory, which is no longer blanket-exempt. Only persona/knowledge-base
+// seed files remain excluded; content seeds (UI strings seeded into the DB)
+// are now scanned.
+const SEEDS_SCAN_DIR = path.join(
+  WORKSPACE_ROOT,
+  "artifacts/api-server/src/seeds",
+);
 
 function runCheck(): { stdout: string; stderr: string; status: number } {
   // Disable the input-hash cache so synthetic fixtures are always re-evaluated.
@@ -68,6 +76,31 @@ function withApiFixture(
   body: () => void,
 ): void {
   const tmpFile = path.join(API_SCAN_DIR, name);
+  try {
+    fs.writeFileSync(tmpFile, contents, "utf8");
+    body();
+  } finally {
+    try {
+      fs.unlinkSync(tmpFile);
+    } catch {
+      // best-effort
+    }
+  }
+}
+
+/**
+ * Task #1527 — drops a temporary fixture inside the seeds/ directory so that
+ * the content-seed scan branch can be exercised. The seeds/ directory is no
+ * longer blanket-exempt; only specific persona/knowledge-base seed files are
+ * skipped. This helper verifies that user-visible UI strings in content seeds
+ * are caught the same as any other source file.
+ */
+function withSeedFixture(
+  name: string,
+  contents: string,
+  body: () => void,
+): void {
+  const tmpFile = path.join(SEEDS_SCAN_DIR, name);
   try {
     fs.writeFileSync(tmpFile, contents, "utf8");
     body();
@@ -271,6 +304,71 @@ describe("check-analyst-copy", { timeout: TEST_TIMEOUT_MS }, () => {
         "export function trace(req: { log: { info: (msg: string) => void } }) {",
         "  req.log.info(\"The Analyst is starting a refresh cycle\");",
         "}",
+      ].join("\n"),
+      () => {
+        const { stdout, status } = runCheck();
+        expect(status).toBe(0);
+        expect(stdout).toContain("PASS");
+      },
+    );
+  });
+
+  // -------------------------------------------------------------------------
+  // Task #1527 — content-seed coverage
+  // -------------------------------------------------------------------------
+
+  it("catches the banned phrase in a content-seed file (seeds/ UI strings)", () => {
+    // Verifies that seeds/ is no longer blanket-exempt. A seed file that
+    // contains user-visible copy — onboarding help text, default toast body,
+    // UI labels — must be scanned just like any other source file.
+    withSeedFixture(
+      "_analyst-copy-test-content-seed-fixture.ts",
+      [
+        "// AUTO-GENERATED TEST FIXTURE — deleted after test",
+        "export const ONBOARDING_HELP = {",
+        "  title: \"Getting started\",",
+        "  body: \"The Analyst is reviewing your assumptions to generate insights.\",",
+        "};",
+      ].join("\n"),
+      () => {
+        const { stderr, status } = runCheck();
+        expect(status).toBe(1);
+        expect(stderr).toContain("VIOLATION");
+        expect(stderr).toContain("_analyst-copy-test-content-seed-fixture.ts");
+      },
+    );
+  });
+
+  it("still flags a seed file whose name does not match the persona-seed exemption pattern", () => {
+    // The exemption for knowledge-base seeds is NAME-based, not
+    // DIRECTORY-based. A file inside seeds/ that does NOT match
+    // /\/knowledge-base[a-z-]*\.ts$/ must still be caught.
+    withSeedFixture(
+      "_analyst-copy-test-generic-seed-fixture.ts",
+      [
+        "// AUTO-GENERATED TEST FIXTURE — deleted after test",
+        "export const PERSONA = \"The Analyst is the intelligence engine of the platform.\";",
+      ].join("\n"),
+      () => {
+        const { stderr, status } = runCheck();
+        expect(status).toBe(1);
+        expect(stderr).toContain("VIOLATION");
+        expect(stderr).toContain("_analyst-copy-test-generic-seed-fixture.ts");
+      },
+    );
+  });
+
+  it("does NOT flag a persona seed whose filename matches /knowledge-base[a-z-]*.ts/", () => {
+    // A file named knowledge-base-*-fixture.ts matches the
+    // /\/knowledge-base[a-z-]*\.ts$/ skip pattern and is exempt even when it
+    // contains "The Analyst is …" in declarative persona/RAG prose.
+    // This mirrors the real knowledge-base-seeds.ts file.
+    withSeedFixture(
+      "knowledge-base-persona-fixture.ts",
+      [
+        "// AUTO-GENERATED TEST FIXTURE — deleted after test",
+        "// Declarative RAG prose: legitimately describes what The Analyst IS.",
+        "export const PERSONA = \"The Analyst is the intelligence engine of the platform.\";",
       ].join("\n"),
       () => {
         const { stdout, status } = runCheck();
