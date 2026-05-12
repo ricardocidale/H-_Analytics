@@ -52,11 +52,13 @@ vi.mock("../../storage", () => ({
 
 import { recomputeSinglePropertyAndStamp } from "../../finance/recompute";
 import { aggregateUnifiedByYear } from "@engine/aggregation/yearlyAggregator";
+import { DEFAULT_PROJECTION_YEARS } from "@shared/constants";
 
 import {
   SLIDE_6_PICTURE_SHAPE_NAME,
   SLIDE_6_SLIDE_NUMBER,
   SLIDE_6_IMAGE_MIME_TYPE,
+  Slide6PropertyLoadError,
   adaptYearlyArraysToReportDefinition,
   buildSlide6ReportDefinition,
   buildSlide6ImageSubstitutionEntry,
@@ -270,24 +272,41 @@ describe("buildSlide6ReportDefinition", () => {
     expect(section.title.toLowerCase()).toContain("incomplete data");
   });
 
-  it("returns sentinel when engine throws for every property", async () => {
+  it("fails closed (rejects) when engine throws for any property", async () => {
+    // CR rev2 on PR #120 (slide-6-report-builder.ts:415): previously this
+    // path returned an incomplete-data sentinel. Slide 6 is a financial
+    // aggregate; silently rendering a partial sum that *looks* complete is
+    // exactly the failure mode CR flagged. The builder now rejects with
+    // `Slide6PropertyLoadError` (with the failing id surfaced) so Marco
+    // surfaces the failure visibly in the run record.
     (recomputeSinglePropertyAndStamp as unknown as ReturnType<typeof vi.fn>).mockRejectedValue(
       new Error("engine boom"),
     );
-    const properties = [makeProperty(1), makeProperty(2)];
+    const FAILING_ID = 1;
+    const properties = [makeProperty(FAILING_ID), makeProperty(2)];
 
-    const report = await buildSlide6ReportDefinition({
-      properties,
-      globalAssumptions: {},
-      projectionYears: PROJ_YEARS_TEN,
+    let caught: unknown;
+    try {
+      await buildSlide6ReportDefinition({
+        properties,
+        globalAssumptions: {},
+        projectionYears: PROJ_YEARS_TEN,
+      });
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(Slide6PropertyLoadError);
+    expect(caught).toMatchObject({
+      name: "Slide6PropertyLoadError",
+      propertyId: FAILING_ID,
     });
-
-    const section = report.sections[ZERO];
-    if (section.kind !== "table") throw new Error("expected table section");
-    expect(section.title.toLowerCase()).toContain("incomplete data");
   });
 
-  it("survives a single property failing while others succeed", async () => {
+  it("fails closed when a single property fails mid-portfolio (no silent skip)", async () => {
+    // CR rev2 on PR #120: the prior "survives a single property failing while
+    // others succeed" semantics produced an aggregate that understated totals
+    // by the failing property's share while looking valid to the user. The
+    // builder now rejects with the failing id surfaced.
     let call = 0;
     (recomputeSinglePropertyAndStamp as unknown as ReturnType<typeof vi.fn>).mockImplementation(
       async () => {
@@ -303,18 +322,86 @@ describe("buildSlide6ReportDefinition", () => {
       },
     );
 
-    const properties = [makeProperty(1), makeProperty(2)];
-    const report = await buildSlide6ReportDefinition({
-      properties,
-      globalAssumptions: {},
-      projectionYears: PROJ_YEARS_TEN,
-    });
+    const FAILING_ID = 42;
+    const properties = [makeProperty(FAILING_ID), makeProperty(2)];
 
+    await expect(
+      buildSlide6ReportDefinition({
+        properties,
+        globalAssumptions: {},
+        projectionYears: PROJ_YEARS_TEN,
+      }),
+    ).rejects.toMatchObject({
+      name: "Slide6PropertyLoadError",
+      propertyId: FAILING_ID,
+    });
+  });
+
+  it("fails closed when the engine returns undefined/null aggregation output", async () => {
+    // CR rev2 on PR #120: even when the engine resolves successfully, a
+    // null/undefined `unified` object must not silently coerce to a zero
+    // contribution — the builder rejects with the failing id surfaced.
+    (recomputeSinglePropertyAndStamp as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(
+      { monthly: [], projectionYears: PROJ_YEARS_TEN },
+    );
+    (aggregateUnifiedByYear as unknown as ReturnType<typeof vi.fn>).mockReturnValue(
+      undefined,
+    );
+
+    const FAILING_ID = 7;
+    await expect(
+      buildSlide6ReportDefinition({
+        properties: [makeProperty(FAILING_ID)],
+        globalAssumptions: {},
+        projectionYears: PROJ_YEARS_TEN,
+      }),
+    ).rejects.toMatchObject({
+      name: "Slide6PropertyLoadError",
+      propertyId: FAILING_ID,
+    });
+  });
+
+  // ── projectionYears validation in the public builder (CR rev2 :540) ───────
+  //
+  // `buildSlide6ImageSubstitutionEntry` already guarded `projectionYears` via
+  // `validateProjectionYears`. CR rev2 flagged that `buildSlide6ReportDefinition`
+  // is also publicly exported and unguarded — these tests assert the public
+  // builder normalizes `NaN`, `0`, and `Infinity` to the project default.
+
+  it("normalizes projectionYears = NaN to DEFAULT_PROJECTION_YEARS", async () => {
+    wireEngineHappy(1, DEFAULT_PROJECTION_YEARS);
+    const report = await buildSlide6ReportDefinition({
+      properties: [makeProperty(1)],
+      globalAssumptions: {},
+      projectionYears: Number.NaN,
+    });
     const section = report.sections[ZERO];
     if (section.kind !== "table") throw new Error("expected table section");
-    // Should have a real report (only 1 property succeeded but that's enough)
-    const revenueRow = section.rows.find((r) => r.category === "Revenue");
-    expect(Number(revenueRow!.rawValues[ZERO])).toBe(REVENUE_PER_YEAR);
+    expect(section.title).toContain(`${DEFAULT_PROJECTION_YEARS}-Year`);
+  });
+
+  it("normalizes projectionYears = 0 to DEFAULT_PROJECTION_YEARS", async () => {
+    wireEngineHappy(1, DEFAULT_PROJECTION_YEARS);
+    const report = await buildSlide6ReportDefinition({
+      properties: [makeProperty(1)],
+      globalAssumptions: {},
+      projectionYears: 0,
+    });
+    const section = report.sections[ZERO];
+    if (section.kind !== "table") throw new Error("expected table section");
+    expect(section.title).toContain(`${DEFAULT_PROJECTION_YEARS}-Year`);
+  });
+
+  it("normalizes projectionYears = Infinity to DEFAULT_PROJECTION_YEARS", async () => {
+    wireEngineHappy(1, DEFAULT_PROJECTION_YEARS);
+    const report = await buildSlide6ReportDefinition({
+      properties: [makeProperty(1)],
+      globalAssumptions: {},
+      projectionYears: Number.POSITIVE_INFINITY,
+    });
+    const section = report.sections[ZERO];
+    if (section.kind !== "table") throw new Error("expected table section");
+    expect(section.title).toContain(`${DEFAULT_PROJECTION_YEARS}-Year`);
   });
 
   it("surfaces incomplete-data sentinel when engine produces NaN cells", async () => {
@@ -436,15 +523,37 @@ describe("buildSlide6ImageSubstitutionEntry", () => {
     expect(rendererInput).toBeDefined();
   });
 
-  it("filters out property ids that loadProperty returns null for", async () => {
+  it("fails closed (rejects) when loadProperty returns null for any id", async () => {
+    // CR rev2 on PR #120 (slide-6-report-builder.ts:415): a null return is
+    // treated as a load failure, not a "skip this property" signal. The
+    // builder rejects with `Slide6PropertyLoadError` naming the offending id.
     const deps = makeMockDeps({ loadPropertyResult: null });
-    await buildSlide6ImageSubstitutionEntry(
-      { propertyIds: [1, 2, 3] },
-      deps,
-    );
-    // All loads returned null; builder should receive an empty properties list
-    const builderArg = deps.buildReport.mock.calls[ZERO][ZERO];
-    expect(builderArg.properties).toEqual([]);
+    const FIRST_ID = 1;
+    await expect(
+      buildSlide6ImageSubstitutionEntry({ propertyIds: [FIRST_ID, 2, 3] }, deps),
+    ).rejects.toMatchObject({
+      name: "Slide6PropertyLoadError",
+      propertyId: FIRST_ID,
+    });
+    expect(deps.buildReport).not.toHaveBeenCalled();
+  });
+
+  it("fails closed (rejects) when loadProperty throws for any id", async () => {
+    // CR rev2 on PR #120 (slide-6-report-builder.ts:415): an exception from
+    // loadProperty is rethrown as `Slide6PropertyLoadError` so the failing
+    // id is surfaced in the run record.
+    const deps = makeMockDeps();
+    const FAILING_ID = 99;
+    deps.loadProperty = vi
+      .fn()
+      .mockRejectedValue(new Error("storage offline"));
+    await expect(
+      buildSlide6ImageSubstitutionEntry({ propertyIds: [FAILING_ID] }, deps),
+    ).rejects.toMatchObject({
+      name: "Slide6PropertyLoadError",
+      propertyId: FAILING_ID,
+    });
+    expect(deps.buildReport).not.toHaveBeenCalled();
   });
 
   it("threads projectionYearsOverride into the builder when provided", async () => {
