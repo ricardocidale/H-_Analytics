@@ -96,3 +96,10 @@ export const FACTORY_V2_DECK_R2_KEY_PREFIX = "factory-v2/runs";
 /** MIME type for PPTX uploads — used on R2 metadata + download responses. */
 export const PPTX_CONTENT_TYPE =
   "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+
+// ──────────────────────────────────────────────────────────
+// FACTORY V2 — LLM RESOLVER SLUGS
+// ──────────────────────────────────────────────────────────
+
+/** admin_resources llm_slot slug for the Lorenzo / Lucca vision pipeline. */
+export const FACTORY_V2_LORENZO_VISION_LLM_SLOT = "factory-v2-lorenzo-vision";
