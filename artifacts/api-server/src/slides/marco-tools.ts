@@ -632,6 +632,14 @@ export async function handleApplySubstitutions(runId: number) {
     // 4. Cache the validated map for U7's converter.
     assembledSubstitutionMaps.set(runId, allEntries);
 
+    // 5. Drop the per-slide cached entries for this run — Marco has now
+    //    consumed them into the assembled map and they will not be re-read.
+    //    Steady-state cleanup; the terminal-error cleanup in `clearRunPayloads`
+    //    remains as a safety net for the error path.
+    for (const key of dispatchedSubstitutionEntries.keys()) {
+      if (key.startsWith(`${runId}:`)) dispatchedSubstitutionEntries.delete(key);
+    }
+
     const slidesAddressed = Array.from(
       new Set(allEntries.map((e) => e.slideNumber)),
     ).sort((a, b) => a - b);

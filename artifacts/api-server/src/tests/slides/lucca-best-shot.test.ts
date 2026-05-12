@@ -306,9 +306,12 @@ describe("buildBestShotTool", () => {
 });
 
 describe("LUCCA_BEST_SHOT_MODEL", () => {
-  it("matches the Opus 4.7 model per the plan's 'generous budget' rule", () => {
-    // The exact slug lives in deck-render-constants.ts; we assert by the
-    // family marker only (no model-name string literal in this test).
-    expect(LUCCA_BEST_SHOT_MODEL).toMatch(/opus/i);
+  it("is a non-empty model identifier string", () => {
+    // The exact slug lives in deck-render-constants.ts (and will be
+    // relocated to an admin_resources row in a follow-up PR). The test
+    // asserts only that a model id is configured — no model-family name
+    // is embedded in the source per CLAUDE.md §1 (Integration identifier rule).
+    expect(typeof LUCCA_BEST_SHOT_MODEL).toBe("string");
+    expect(LUCCA_BEST_SHOT_MODEL.length).toBeGreaterThan(0);
   });
 });

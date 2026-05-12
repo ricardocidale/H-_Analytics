@@ -258,6 +258,28 @@ describe("Marco / apply_substitutions", () => {
     });
   });
 
+  it("clears per-slide substitutionEntries after successful apply_substitutions (R6 leak fix)", async () => {
+    await dispatchSlide(1, [makeSlideEntry(1, "Shape1", "Slide 1 text")]);
+    await dispatchSlide(2, [makeSlideEntry(2, "Shape2", "Slide 2 text")]);
+    expect(getCachedSubstitutionEntries(RUN_ID, 1)).toBeDefined();
+    expect(getCachedSubstitutionEntries(RUN_ID, 2)).toBeDefined();
+    (buildSlide6ImageSubstitutionEntry as Mock).mockResolvedValueOnce(
+      makeImageEntry(),
+    );
+    const out = await dispatchMarcoTool(
+      "apply_substitutions",
+      {},
+      { runId: RUN_ID },
+    );
+    expect(out.result).toMatchObject({ ok: true });
+    // After apply_substitutions consumes the per-slide entries, they are
+    // dropped from the cache to prevent unbounded growth on long-running
+    // processes. The assembled map remains until U7 (or clearRunPayloads).
+    expect(getCachedSubstitutionEntries(RUN_ID, 1)).toBeUndefined();
+    expect(getCachedSubstitutionEntries(RUN_ID, 2)).toBeUndefined();
+    expect(getAssembledSubstitutionMap(RUN_ID)).toBeDefined();
+  });
+
   it("clearRunPayloads removes the assembled-map cache", async () => {
     await dispatchSlide(1, [makeSlideEntry(1, "Shape1", "Slide 1 text")]);
     (buildSlide6ImageSubstitutionEntry as Mock).mockResolvedValueOnce(

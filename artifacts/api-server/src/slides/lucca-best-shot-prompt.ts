@@ -39,6 +39,15 @@ import {
   SLIDE5_TRANSFORMATION_ROWS_COUNT,
 } from "@shared/deck-payload-v2";
 
+// TODO(LLM-model-fetch-relocation): LORENZO_VISION_MODEL is a hardcoded
+// model-name string constant — see CLAUDE.md §1 (Integration identifier rule).
+// Relocate to admin_resources runtime fetch per
+// `docs/plans/2026-05-11-003-fix-cr-rev2-pr120-and-initial-pr124-plan.md` §U3.
+// Deferred from this PR because the LORENZO_VISION_MODEL constant has 9
+// non-test consumers (lorenzo-vision.ts, lorenzo-inspector.ts, lucca-best-
+// shot-prompt.ts, plus 6 swarm inspectors: sofia/bianca/chiara/dario/elisa/
+// felix), exceeding the plan's 3-consumer time-box threshold. A follow-up PR
+// with broader async-plumbing scope owns this refactor.
 import { LORENZO_VISION_MODEL, LUCCA_MAX_TOKENS } from "./deck-render-constants";
 import type { DraftSlotKey } from "./slot-context-map";
 

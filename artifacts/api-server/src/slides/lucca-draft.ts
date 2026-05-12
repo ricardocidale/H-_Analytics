@@ -77,6 +77,16 @@ import {
   SLIDE5_TRANSFORMATION_ROWS_COUNT,
 } from "@shared/deck-payload-v2";
 
+// ── Best-shot retry contract ─────────────────────────────────────────────────
+
+/**
+ * Number of attempts (initial call + one retry) for the best-shot LLM call
+ * per the U8 error-path contract. One retry on a transient LLM hiccup; on a
+ * second failure we surface "draft generation failed" to Marco as an empty
+ * draft.
+ */
+const LUCCA_DRAFT_MAX_RETRIES = 2;
+
 // ── Tool schemas ─────────────────────────────────────────────────────────────
 
 const VISION_TOOL: Anthropic.Tool = {
@@ -390,7 +400,7 @@ async function callBestShotLLM<
   const tool = buildBestShotTool(slotKey);
   const slideNumber = slideNumberFromSlotKey(slotKey);
 
-  const maxAttempts = 2; // Initial call + one retry per the U8 error-path contract.
+  const maxAttempts = LUCCA_DRAFT_MAX_RETRIES;
   let lastErrorMessage: string | null = null;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {

@@ -168,7 +168,7 @@ export function isFieldPresent(field: string, brief: PropertyBrief): boolean {
   for (const key of briefKeys) {
     const value = brief[key];
     if (value == null) continue;
-    if (typeof value === "string" && value.length > 0) return true;
+    if (typeof value === "string" && value.trim().length > 0) return true;
     if (typeof value === "number" && Number.isFinite(value) && value !== 0) return true;
     if (typeof value === "boolean" && value === true) return true;
   }
