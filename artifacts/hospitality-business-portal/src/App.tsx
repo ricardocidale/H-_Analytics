@@ -88,7 +88,6 @@ const PropertyFinder = lazy(() => import("@/pages/PropertyFinder"));
 const Analysis = lazy(() => import("@/pages/Analysis"));
 const Help = lazy(() => import("@/pages/Help"));
 const MapView = lazy(() => import("@/pages/MapView"));
-// const IcpStudio = lazy(() => import("@/pages/IcpStudio"));
 const _Icp = lazy(() => import("@/pages/Icp"));
 const PrivacyPolicy = lazy(() => import("@/pages/PrivacyPolicy"));
 const TermsOfService = lazy(() => import("@/pages/TermsOfService"));
