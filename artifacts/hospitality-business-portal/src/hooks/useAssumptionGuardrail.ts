@@ -41,13 +41,6 @@ export function useAssumptionGuardrail(
 ): AssumptionGuardrail | null {
   const { data } = useQuery<GuardrailsApiResponse>({
     queryKey: ["/api/assumption-guardrails"],
-    queryFn: async () => {
-      const res = await fetch("/api/assumption-guardrails", {
-        credentials: "include",
-      });
-      if (!res.ok) return { rows: [] };
-      return res.json() as Promise<GuardrailsApiResponse>;
-    },
     staleTime: STALE_TIME_MS,
     gcTime: GC_TIME_MS,
   });

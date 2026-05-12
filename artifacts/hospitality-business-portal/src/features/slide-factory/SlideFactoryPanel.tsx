@@ -1960,6 +1960,8 @@ function FactoryDownloadTab({ run, onRunUpdate }: { run: SlideFactoryRun; onRunU
   }, []);
 
   const handleDownload = async (format: "pdf" | "pptx") => {
+    setDownloadingPdf(false);
+    setDownloadingPptx(false);
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
