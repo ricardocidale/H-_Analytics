@@ -111,28 +111,6 @@ export const ALLOWLIST: ReadonlyMap<string, string> = new Map([
     "artifacts/api-server/src/ai/analyst-refresh/reference-data.ts",
     "Uses OpenAI chat.completions with response_format:json_object; the analyst-table-refresh slot is pinned to OpenAI because that JSON mode has no cross-vendor equivalent.",
   ],
-  // ── single-vendor Anthropic call sites (pending vendor-dispatch refactor) ──
-  // These files call getAnthropicClient() after resolveLlmFor() without vendor
-  // branching. The slots involved (regen-constants, risk-brief, executive-
-  // summary-*) were implemented against Anthropic's messages API and have not
-  // yet been refactored to the canonical 3-vendor dispatch pattern. They are
-  // listed here to keep the check green until that refactor lands.
-  [
-    "artifacts/api-server/src/ai/executive-summary/llm-sections.ts",
-    "Calls Anthropic messages.create for executive-summary slots; pending vendor-dispatch refactor to support OpenAI/Gemini in those slots.",
-  ],
-  [
-    "artifacts/api-server/src/ai/regenerate-constants.ts",
-    "Calls Anthropic messages.create for the regen-constants slot; pending vendor-dispatch refactor to support OpenAI/Gemini.",
-  ],
-  [
-    "artifacts/api-server/src/ai/regenerate-market-data.ts",
-    "Calls Anthropic messages.create for the regen-constants slot; pending vendor-dispatch refactor to support OpenAI/Gemini.",
-  ],
-  [
-    "artifacts/api-server/src/ai/risk/llm-brief.ts",
-    "Calls Anthropic messages.create for the risk-brief slot; pending vendor-dispatch refactor to support OpenAI/Gemini.",
-  ],
 ]);
 
 // ---------------------------------------------------------------------------

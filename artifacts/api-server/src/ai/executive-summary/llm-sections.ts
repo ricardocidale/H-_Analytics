@@ -1,12 +1,12 @@
 /**
  * server/ai/executive-summary/llm-sections.ts — LLM-enhanced narrative
  * generation for executive summaries. Returns structured JSON sections
- * via Anthropic, gracefully degrading to null on any failure (callers
- * fall back to the template builders in templates.ts).
+ * via the configured vendor, gracefully degrading to null on any failure
+ * (callers fall back to the template builders in templates.ts).
  */
 
 import type { Property } from "@workspace/db";
-import { getAnthropicClient } from "../clients";
+import { getAnthropicClient, getOpenAIClient, getGeminiClient } from "../clients";
 import { resolveLlmFor } from "../llm-config-resolver";
 import { logger } from "../../logger";
 import { AI_EXEC_SUMMARY_FULL_MAX_TOKENS, AI_EXEC_SUMMARY_SECTION_MAX_TOKENS } from "../../constants";
@@ -24,6 +24,40 @@ function stripCodeFences(text: string): string {
   return trimmed.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
 }
 
+async function callLlmForText(
+  slot: string,
+  userPrompt: string,
+  maxTokens: number,
+): Promise<string> {
+  const { vendor, modelId } = await resolveLlmFor(slot);
+  if (vendor === "anthropic") {
+    const client = getAnthropicClient();
+    const response = await client.messages.create({
+      model: modelId,
+      max_tokens: maxTokens,
+      messages: [{ role: "user", content: userPrompt }],
+    });
+    const block = response.content.find((b) => b.type === "text");
+    return block && block.type === "text" ? block.text : "";
+  } else if (vendor === "openai") {
+    const client = getOpenAIClient();
+    const response = await client.chat.completions.create({
+      model: modelId,
+      max_tokens: maxTokens,
+      messages: [{ role: "user", content: userPrompt }],
+    });
+    return response.choices[0]?.message?.content ?? "";
+  } else {
+    const client = getGeminiClient();
+    const response = await client.models.generateContent({
+      model: modelId,
+      contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+      config: { maxOutputTokens: maxTokens },
+    });
+    return response.text ?? "";
+  }
+}
+
 export async function generateLLMPropertySections(
   p: Property,
   metrics: PropertyExecutiveSummary["keyMetrics"],
@@ -32,9 +66,6 @@ export async function generateLLMPropertySections(
   guidanceSummary: string,
 ): Promise<PropertyQualitativeSections | null> {
   try {
-    const anthropic = getAnthropicClient();
-    const { modelId: propertyModelId } = await resolveLlmFor("executive-summary-property");
-
     const location = [p.city, p.stateProvince, p.country].filter(Boolean).join(", ");
     const tier = p.qualityTier ?? "upscale";
     const model = p.businessModel ?? "hotel";
@@ -82,16 +113,10 @@ Rules:
 4. Write like a Wall Street analyst, not a marketer.
 5. Return ONLY valid JSON, no markdown formatting.`;
 
-    const response = await anthropic.messages.create({
-      model: propertyModelId,
-      max_tokens: AI_EXEC_SUMMARY_FULL_MAX_TOKENS,
-      messages: [{ role: "user", content: prompt }],
-    });
+    const textContent = await callLlmForText("executive-summary-property", prompt, AI_EXEC_SUMMARY_FULL_MAX_TOKENS);
+    if (!textContent) return null;
 
-    const textBlock = response.content.find(b => b.type === "text");
-    if (!textBlock || textBlock.type !== "text") return null;
-
-    const parsed = JSON.parse(stripCodeFences(textBlock.text));
+    const parsed = JSON.parse(stripCodeFences(textContent));
     return {
       investmentThesis: parsed.investmentThesis || "",
       marketPosition: parsed.marketPosition || "",
@@ -115,9 +140,6 @@ export async function generateLLMPortfolioSections(
   geographicSpread: string,
 ): Promise<PortfolioQualitativeSections | null> {
   try {
-    const anthropic = getAnthropicClient();
-    const { modelId: portfolioModelId } = await resolveLlmFor("executive-summary-portfolio");
-
     const propertyLines = propertySummaries
       .map(ps => `- ${ps.name}: ${pct(ps.irr)} IRR, Risk ${ps.riskGrade} — ${ps.oneLiner}`)
       .join("\n");
@@ -149,16 +171,10 @@ Rules:
 3. Write for a sophisticated LP evaluating manager quality.
 4. Return ONLY valid JSON, no markdown formatting.`;
 
-    const response = await anthropic.messages.create({
-      model: portfolioModelId,
-      max_tokens: AI_EXEC_SUMMARY_SECTION_MAX_TOKENS,
-      messages: [{ role: "user", content: prompt }],
-    });
+    const textContent = await callLlmForText("executive-summary-portfolio", prompt, AI_EXEC_SUMMARY_SECTION_MAX_TOKENS);
+    if (!textContent) return null;
 
-    const textBlock = response.content.find(b => b.type === "text");
-    if (!textBlock || textBlock.type !== "text") return null;
-
-    const parsed = JSON.parse(stripCodeFences(textBlock.text));
+    const parsed = JSON.parse(stripCodeFences(textContent));
     return {
       portfolioThesis: parsed.portfolioThesis || "",
       brandStrategy: parsed.brandStrategy || "",

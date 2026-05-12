@@ -10,7 +10,7 @@ import type {
   RiskInsight,
 } from "@shared/risk-types";
 import type { Property } from "@workspace/db";
-import { getAnthropicClient } from "../clients";
+import { getAnthropicClient, getOpenAIClient, getGeminiClient } from "../clients";
 import { resolveLlmFor } from "../llm-config-resolver";
 import { logger } from "../../logger";
 import { BENCHMARKS } from "./benchmarks";
@@ -115,8 +115,6 @@ export async function generateLLMRiskBrief(
   enhancedBriefs: PropertyRiskBrief[];
 } | null> {
   try {
-    const anthropic = getAnthropicClient();
-
     // Build structured prompt
     const insightsSummary = deterministicInsights
       .slice(0, 15)
@@ -160,19 +158,41 @@ Rules:
 4. Questions should be specific to these properties, not generic
 5. Return ONLY valid JSON, no markdown formatting`;
 
-    const { modelId: riskBriefModelId } = await resolveLlmFor("risk-brief");
-    const response = await anthropic.messages.create({
-      model: riskBriefModelId,
-      max_tokens: 2000,
-      messages: [{ role: "user", content: prompt }],
-    });
-
-    const textBlock = response.content.find(b => b.type === "text");
-    if (!textBlock || textBlock.type !== "text") return null;
+    const { vendor: riskVendor, modelId: riskBriefModelId } = await resolveLlmFor("risk-brief");
+    let responseText: string;
+    if (riskVendor === "anthropic") {
+      const client = getAnthropicClient();
+      const response = await client.messages.create({
+        model: riskBriefModelId,
+        max_tokens: 2000,
+        messages: [{ role: "user", content: prompt }],
+      });
+      const textBlock = response.content.find(b => b.type === "text");
+      if (!textBlock || textBlock.type !== "text") return null;
+      responseText = textBlock.text;
+    } else if (riskVendor === "openai") {
+      const client = getOpenAIClient();
+      const response = await client.chat.completions.create({
+        model: riskBriefModelId,
+        max_tokens: 2000,
+        messages: [{ role: "user", content: prompt }],
+      });
+      responseText = response.choices[0]?.message?.content ?? "";
+      if (!responseText) return null;
+    } else {
+      const client = getGeminiClient();
+      const response = await client.models.generateContent({
+        model: riskBriefModelId,
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        config: { maxOutputTokens: 2000 },
+      });
+      responseText = response.text ?? "";
+      if (!responseText) return null;
+    }
 
     let parsed: LLMRiskBriefPayload;
     try {
-      parsed = JSON.parse(textBlock.text) as LLMRiskBriefPayload;
+      parsed = JSON.parse(responseText) as LLMRiskBriefPayload;
     } catch {
       logger.warn("LLM returned malformed JSON for risk enhancement — using unenhanced briefs", "risk-intelligence");
       return null;
