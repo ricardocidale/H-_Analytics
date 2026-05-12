@@ -1,12 +1,24 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import superjson from "superjson";
 import Layout from "@/components/Layout";
 import { AnimatedPage, AnimatedSection } from "@/components/graphics/AnimatedPage";
-import { useGlobalAssumptions, useProperties } from "@/lib/api";
-import { useBracketMix, useAssignBrackets, useUpdateBracketMix } from "@/lib/api/admin";
+import {
+  useGlobalAssumptions,
+  useProperties,
+  useIcpBrackets,
+  useIcpBracketMix,
+  useSaveBracketMix,
+  type IcpBracket,
+  type BracketMix,
+} from "@/lib/api";
+import { PROJECTION_YEARS } from "@/lib/constants";
+import type { CompanyMonthlyFinancials } from "@engine/types";
 import { PageHeader } from "@/components/ui/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { CurrentThemeTab, type CurrentThemeTabItem } from "@/components/ui/tabs";
 import { Loader2 } from "@/components/icons/themed-icons";
@@ -21,13 +33,19 @@ import {
   IconAlertTriangle,
   IconInfo,
   IconExternalLink,
-  IconRefreshCw,
   IconBookOpen,
   IconGlobe,
+  IconCheck,
 } from "@/components/icons";
 import { DEFAULT_ICP_CONFIG, DEFAULT_ICP_DESCRIPTIVE } from "@/components/admin/icp-config";
 import type { IcpConfig, IcpDescriptive } from "@/components/admin/icp-config";
 import type { GlobalResponse, PropertyResponse } from "@/lib/api/types";
+import {
+  ICP_BRACKET_MIX_MAX_ENTRIES,
+  ICP_BRACKET_MIX_WEIGHT_TOLERANCE,
+} from "@shared/constants";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 const TABS: CurrentThemeTabItem[] = [
   { value: "bracket-mix", label: "Bracket Mix", icon: IconTarget },
@@ -69,47 +87,522 @@ const ICP_BRACKET_FOCUS_AREAS = [
   "Market RevPAR and occupancy trends per bracket archetype",
 ];
 
-// ── colour tokens per bracket id ─────────────────────────────────────────
+function formatAdrBand(low: number | null, high: number | null): string {
+  if (!low && !high) return "—";
+  const fmt = (n: number) => `$${n.toFixed(0)}`;
+  if (low && high) return `${fmt(low)}–${fmt(high)}/night`;
+  if (low) return `${fmt(low)}+/night`;
+  return `up to ${fmt(high!)}/night`;
+}
 
-const BRACKET_COLOR: Record<string, string> = {
-  "boutique-upscale-hotel": "bg-chart-1/10 border-chart-1/20 text-chart-1",
-  "soft-brand-boutique": "bg-chart-2/10 border-chart-2/20 text-chart-2",
-  "performance-managed-str": "bg-primary/10 border-primary/20 text-primary",
-  "agritourism-experiential": "bg-chart-3/10 border-chart-3/20 text-chart-3",
-};
+function BracketCard({
+  bracket,
+  isSelected,
+  weightPct,
+  onToggle,
+  onWeightChange,
+  disabled,
+}: {
+  bracket: IcpBracket;
+  isSelected: boolean;
+  weightPct: string;
+  onToggle: () => void;
+  onWeightChange: (val: string) => void;
+  disabled: boolean;
+}) {
+  const isHotel = bracket.customer_type === "hotel";
+  const typeColor = isHotel
+    ? "border-chart-1/30 bg-chart-1/5"
+    : "border-primary/30 bg-primary/5";
+  const selectedBorder = isSelected
+    ? isHotel
+      ? "border-chart-1/60 ring-1 ring-chart-1/30"
+      : "border-primary/60 ring-1 ring-primary/30"
+    : "border-border";
 
-const CONSUMPTION_LABEL: Record<string, string> = {
-  hotel: "Full service",
-  str: "Mktg / branding / perf-bonus",
-  mixed: "Blended",
-};
+  return (
+    <div
+      className={cn(
+        "rounded-xl border p-4 transition-all cursor-pointer select-none",
+        typeColor,
+        selectedBorder,
+        !isSelected && "opacity-70 hover:opacity-100",
+      )}
+      data-testid={`bracket-card-${bracket.slug}`}
+      onClick={onToggle}
+      role="checkbox"
+      aria-checked={isSelected}
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); onToggle(); } }}
+    >
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2">
+          <div
+            className={cn(
+              "w-4 h-4 rounded border flex items-center justify-center shrink-0",
+              isSelected
+                ? isHotel ? "bg-chart-1 border-chart-1" : "bg-primary border-primary"
+                : "border-muted-foreground/40 bg-background",
+            )}
+          >
+            {isSelected && <IconCheck className="w-2.5 h-2.5 text-white" />}
+          </div>
+          <p className="text-sm font-semibold text-foreground leading-tight">{bracket.name}</p>
+        </div>
+        <Badge
+          variant="outline"
+          className={cn(
+            "text-[10px] shrink-0 uppercase tracking-wide",
+            isHotel ? "border-chart-1/40 text-chart-1" : "border-primary/40 text-primary",
+          )}
+        >
+          {bracket.customer_type}
+        </Badge>
+      </div>
 
-// ── BracketMixTab ─────────────────────────────────────────────────────────
+      <p className="text-[11px] font-medium text-muted-foreground mb-1">{bracket.archetype_label}</p>
+
+      {bracket.description && (
+        <p className="text-xs text-muted-foreground leading-relaxed mb-2 line-clamp-2">
+          {bracket.description}
+        </p>
+      )}
+
+      <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground mb-3">
+        <span className="flex items-center gap-1">
+          <IconDollarSign className="w-3 h-3" />
+          {formatAdrBand(bracket.target_adr_band_low, bracket.target_adr_band_high)}
+        </span>
+        {bracket.service_consumption_profile === "str_only" && (
+          <span className="text-primary/70">Marketing &amp; bonus only</span>
+        )}
+        {bracket.service_consumption_profile === "full" && (
+          <span className="text-chart-1/70">All service lines</span>
+        )}
+      </div>
+
+      {bracket.comp_set_names && bracket.comp_set_names.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-3">
+          {bracket.comp_set_names.slice(0, 4).map((name, i) => (
+            <Badge key={i} variant="secondary" className="text-[10px] px-1.5 py-0">
+              {name}
+            </Badge>
+          ))}
+          {bracket.comp_set_names.length > 4 && (
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+              +{bracket.comp_set_names.length - 4}
+            </Badge>
+          )}
+        </div>
+      )}
+
+      {isSelected && (
+        <div
+          className="flex items-center gap-2 pt-2 border-t border-border/50 mt-1"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <label className="text-xs text-muted-foreground shrink-0 min-w-[52px]">Weight %</label>
+          <Input
+            type="number"
+            min={1}
+            max={100}
+            step={1}
+            value={weightPct}
+            onChange={(e) => onWeightChange(e.target.value)}
+            disabled={disabled}
+            className="h-7 text-xs w-24"
+            data-testid={`bracket-weight-${bracket.slug}`}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface CompanyImpactSummary {
+  year1Revenue: number;
+  year1GrossProfit: number;
+  totalRevenue: number;
+  totalGrossProfit: number;
+}
+
+function summarizeCompanyImpact(monthly: CompanyMonthlyFinancials[], projectionYears: number): CompanyImpactSummary {
+  const monthsPerYear = 12;
+  const year1Months = monthly.slice(0, monthsPerYear);
+  const totalMonths = monthly.slice(0, projectionYears * monthsPerYear);
+  return {
+    year1Revenue: year1Months.reduce((s, m) => s + (m.totalRevenue ?? 0), 0),
+    year1GrossProfit: year1Months.reduce((s, m) => s + (m.grossProfit ?? 0), 0),
+    totalRevenue: totalMonths.reduce((s, m) => s + (m.totalRevenue ?? 0), 0),
+    totalGrossProfit: totalMonths.reduce((s, m) => s + (m.grossProfit ?? 0), 0),
+  };
+}
+
+function findFirstShortfall(
+  monthly: CompanyMonthlyFinancials[],
+  projectionYears: number,
+): { year: number; endingCash: number } | null {
+  const horizon = Math.min(monthly.length, projectionYears * 12);
+  for (let i = 0; i < horizon; i++) {
+    const m = monthly[i];
+    if (m.cashShortfall) {
+      return { year: m.year, endingCash: m.endingCash };
+    }
+  }
+  return null;
+}
+
+async function fetchCompanyComputeWithMix(
+  properties: PropertyResponse[],
+  global: GlobalResponse,
+  bracketMix: BracketMix | null,
+  projectionYears: number,
+): Promise<CompanyMonthlyFinancials[]> {
+  const body: Record<string, unknown> = {
+    properties: properties.filter((p) => p.isActive !== false),
+    globalAssumptions: global,
+    projectionYears,
+  };
+  if (bracketMix && bracketMix.length > 0) body.bracketMix = bracketMix;
+  const res = await fetch("/api/finance/company", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || `Company compute failed (${res.status})`);
+  }
+  const raw = await res.json();
+  const isSuperjson = res.headers.get("X-Superjson") === "true";
+  const result = (isSuperjson ? superjson.deserialize(raw) : raw) as { companyMonthly: CompanyMonthlyFinancials[] };
+  return result.companyMonthly ?? [];
+}
+
+function fmtMoney(n: number): string {
+  const sign = n < 0 ? "-" : "";
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(2)}M`;
+  if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(0)}K`;
+  return `${sign}$${abs.toFixed(0)}`;
+}
+
+function fmtSignedMoney(n: number): string {
+  if (Math.abs(n) < 1) return "$0";
+  const formatted = fmtMoney(n);
+  return n > 0 ? `+${formatted}` : formatted;
+}
+
+function fmtPct(n: number): string {
+  if (!Number.isFinite(n)) return "—";
+  const sign = n > 0 ? "+" : "";
+  return `${sign}${(n * 100).toFixed(1)}%`;
+}
+
+function BracketMixImpactCallout({
+  savedMix,
+  proposedMix,
+  proposedReady,
+}: {
+  savedMix: BracketMix | null | undefined;
+  proposedMix: BracketMix;
+  proposedReady: boolean;
+}) {
+  const { data: global } = useGlobalAssumptions();
+  const { data: properties } = useProperties();
+  const projectionYears = global?.projectionYears ?? PROJECTION_YEARS;
+  const activeProperties = (properties ?? []).filter((p) => p.isActive !== false);
+  const enabled = !!global && activeProperties.length > 0 && proposedReady;
+
+  const savedKey = JSON.stringify((savedMix ?? []).slice().sort((a, b) => a.bracketSlug.localeCompare(b.bracketSlug)));
+  const proposedKey = JSON.stringify(proposedMix.slice().sort((a, b) => a.bracketSlug.localeCompare(b.bracketSlug)));
+  const sameAsSaved = savedKey === proposedKey;
+
+  const savedQuery = useQuery({
+    queryKey: ["bracket-impact-saved", savedKey, projectionYears, activeProperties.length],
+    queryFn: () => fetchCompanyComputeWithMix(activeProperties, global!, savedMix ?? null, projectionYears),
+    enabled,
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
+
+  const proposedQuery = useQuery({
+    queryKey: ["bracket-impact-proposed", proposedKey, projectionYears, activeProperties.length],
+    queryFn: () => fetchCompanyComputeWithMix(activeProperties, global!, proposedMix, projectionYears),
+    enabled: enabled && !sameAsSaved,
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
+
+  if (!enabled) {
+    return (
+      <Card className="border border-dashed border-border bg-muted/20 p-4" data-testid="bracket-impact-callout-empty">
+        <div className="flex gap-3">
+          <IconInfo className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-foreground">Revenue impact preview</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Pick brackets that sum to 100% to see how the proposed mix shifts company
+              revenue and gross profit versus your currently saved mix.
+            </p>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  const isLoading = savedQuery.isLoading || (!sameAsSaved && proposedQuery.isLoading);
+  const error = savedQuery.error ?? proposedQuery.error;
+
+  if (error) {
+    return (
+      <Card className="border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/40 p-4" data-testid="bracket-impact-callout-error">
+        <div className="flex gap-3">
+          <IconAlertTriangle className="w-5 h-5 text-amber-700 dark:text-amber-300 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-foreground">Could not compute revenue impact</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {error instanceof Error ? error.message : "Unknown error"}
+            </p>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  if (isLoading || !savedQuery.data) {
+    return (
+      <Card className="border border-border p-4" data-testid="bracket-impact-callout-loading">
+        <div className="flex items-center gap-3">
+          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Estimating revenue impact…</p>
+        </div>
+      </Card>
+    );
+  }
+
+  const baseline = summarizeCompanyImpact(savedQuery.data, projectionYears);
+  const proposedMonthly = sameAsSaved ? savedQuery.data : proposedQuery.data;
+  const proposed = sameAsSaved
+    ? baseline
+    : (proposedQuery.data ? summarizeCompanyImpact(proposedQuery.data, projectionYears) : null);
+  const proposedShortfall = proposedMonthly
+    ? findFirstShortfall(proposedMonthly, projectionYears)
+    : null;
+  const baselineShortfall = findFirstShortfall(savedQuery.data, projectionYears);
+
+  if (!proposed) {
+    return (
+      <Card className="border border-border p-4" data-testid="bracket-impact-callout-loading">
+        <div className="flex items-center gap-3">
+          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Estimating revenue impact…</p>
+        </div>
+      </Card>
+    );
+  }
+
+  const revDelta = proposed.totalRevenue - baseline.totalRevenue;
+  const gpDelta = proposed.totalGrossProfit - baseline.totalGrossProfit;
+  const revDeltaPct = baseline.totalRevenue > 0 ? revDelta / baseline.totalRevenue : NaN;
+  const gpDeltaPct = baseline.totalGrossProfit > 0 ? gpDelta / baseline.totalGrossProfit : NaN;
+  const y1RevDelta = proposed.year1Revenue - baseline.year1Revenue;
+  const y1GpDelta = proposed.year1GrossProfit - baseline.year1GrossProfit;
+
+  const tone = revDelta > 0
+    ? "border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-950/30"
+    : revDelta < 0
+      ? "border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30"
+      : "border-border bg-muted/20";
+  const savedHasMix = !!savedMix && savedMix.length > 0;
+
+  return (
+    <Card className={cn("border p-4 space-y-3", tone)} data-testid="bracket-impact-callout">
+      <div className="flex items-start gap-3">
+        <IconDollarSign className="w-5 h-5 text-foreground/70 shrink-0 mt-0.5" />
+        <div className="space-y-1 flex-1">
+          <p className="text-sm font-semibold text-foreground">
+            Revenue impact of the proposed mix
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Comparing the proposed mix against{" "}
+            <span className="font-medium text-foreground">
+              {savedHasMix ? "your currently saved mix" : "the no-bracket baseline"}
+            </span>
+            {" "}across the {projectionYears}-year company pro forma.
+          </p>
+        </div>
+      </div>
+
+      {proposedShortfall && (
+        <div
+          className="rounded-lg border border-amber-400 bg-amber-100/70 dark:border-amber-600 dark:bg-amber-950/50 p-3 flex gap-2 items-start"
+          data-testid="bracket-impact-cash-shortfall-warning"
+        >
+          <IconAlertTriangle className="w-4 h-4 text-amber-700 dark:text-amber-300 shrink-0 mt-0.5" />
+          <div className="space-y-0.5">
+            <p className="text-xs font-semibold text-amber-900 dark:text-amber-200">
+              Proposed mix triggers a cash shortfall in year {proposedShortfall.year}
+            </p>
+            <p className="text-[11px] text-amber-900/80 dark:text-amber-200/80 leading-relaxed">
+              The Mgmt Co's projected ending cash first turns negative
+              ({fmtMoney(proposedShortfall.endingCash)}) in year {proposedShortfall.year} under
+              this mix{baselineShortfall ? ` (saved mix also shortfalls in year ${baselineShortfall.year})` : ""}.
+              Adjust weights toward higher-margin brackets to remove the shortfall.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {sameAsSaved ? (
+        <p className="text-xs text-muted-foreground" data-testid="bracket-impact-no-change">
+          Proposed mix matches the saved mix — no change in projected revenue or gross profit.
+        </p>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 pt-1">
+          <div className="rounded-lg border border-border bg-background/60 p-3" data-testid="impact-revenue">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              {projectionYears}-yr revenue
+            </p>
+            <p className="text-base font-semibold tabular-nums text-foreground">
+              {fmtSignedMoney(revDelta)}
+              <span className="ml-1 text-xs font-normal text-muted-foreground">
+                ({fmtPct(revDeltaPct)})
+              </span>
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Year 1 {fmtSignedMoney(y1RevDelta)} · {fmtMoney(baseline.totalRevenue)} → {fmtMoney(proposed.totalRevenue)}
+            </p>
+          </div>
+          <div className="rounded-lg border border-border bg-background/60 p-3" data-testid="impact-gross-profit">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+              {projectionYears}-yr gross profit
+            </p>
+            <p className="text-base font-semibold tabular-nums text-foreground">
+              {fmtSignedMoney(gpDelta)}
+              <span className="ml-1 text-xs font-normal text-muted-foreground">
+                ({fmtPct(gpDeltaPct)})
+              </span>
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Year 1 {fmtSignedMoney(y1GpDelta)} · {fmtMoney(baseline.totalGrossProfit)} → {fmtMoney(proposed.totalGrossProfit)}
+            </p>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
 
 function BracketMixTab() {
-  const { data, isLoading, isError } = useBracketMix();
-  const assignMutation = useAssignBrackets();
-  const updateMutation = useUpdateBracketMix();
+  const { data: brackets = [], isLoading: bracketsLoading } = useIcpBrackets();
+  const { data: savedMix, isLoading: mixLoading } = useIcpBracketMix();
+  const saveMutation = useSaveBracketMix();
+  const { toast } = useToast();
 
-  const mix = data?.mix ?? null;
-  const catalog = data?.catalog ?? [];
+  const [selectedSlugs, setSelectedSlugs] = useState<Set<string>>(new Set());
+  const [weights, setWeights] = useState<Record<string, string>>({});
+  const [initialized, setInitialized] = useState(false);
 
-  const handleAssign = () => {
-    assignMutation.mutate();
-  };
+  useEffect(() => {
+    if (initialized || mixLoading) return;
+    if (savedMix && savedMix.length > 0) {
+      setSelectedSlugs(new Set(savedMix.map((e) => e.bracketSlug)));
+      const w: Record<string, string> = {};
+      savedMix.forEach((e) => { w[e.bracketSlug] = String(Math.round(e.weight * 100)); });
+      setWeights(w);
+    }
+    setInitialized(true);
+  }, [savedMix, mixLoading, initialized]);
 
-  const handleWeightChange = (id: string, newPct: number) => {
-    if (!mix) return;
-    const newWeight = Math.max(0, Math.min(1, newPct / 100));
-    updateMutation.mutate({
-      entries: mix.entries.map((e) => ({
-        id: e.id,
-        weight: e.id === id ? newWeight : e.weight,
-      })),
+  const weightSum = Array.from(selectedSlugs).reduce((sum, slug) => {
+    const pct = parseFloat(weights[slug] ?? "0");
+    return sum + (isNaN(pct) ? 0 : pct);
+  }, 0);
+
+  const weightSumFraction = weightSum / 100;
+  const weightSumOk = Math.abs(weightSumFraction - 1) <= ICP_BRACKET_MIX_WEIGHT_TOLERANCE;
+  const selectedCount = selectedSlugs.size;
+  const atMax = selectedCount >= ICP_BRACKET_MIX_MAX_ENTRIES;
+
+  const handleToggle = (slug: string) => {
+    setSelectedSlugs((prev) => {
+      const next = new Set(prev);
+      if (next.has(slug)) {
+        next.delete(slug);
+        setWeights((w) => { const n = { ...w }; delete n[slug]; return n; });
+      } else {
+        if (next.size >= ICP_BRACKET_MIX_MAX_ENTRIES) {
+          toast({
+            title: "Bracket limit reached",
+            description: `You can select up to ${ICP_BRACKET_MIX_MAX_ENTRIES} brackets.`,
+            variant: "destructive",
+          });
+          return prev;
+        }
+        next.add(slug);
+        const remaining = 100 - Array.from(next).filter((s) => s !== slug).reduce((s, sl) => {
+          const pct = parseFloat(weights[sl] ?? "0");
+          return s + (isNaN(pct) ? 0 : pct);
+        }, 0);
+        setWeights((w) => ({ ...w, [slug]: String(Math.max(1, remaining)) }));
+      }
+      return next;
     });
   };
 
-  const isActing = assignMutation.isPending || updateMutation.isPending;
+  const handleSplitEqually = () => {
+    const slugs = Array.from(selectedSlugs);
+    if (slugs.length < 2) return;
+    const base = Math.floor(100 / slugs.length);
+    const remainder = 100 - base * slugs.length;
+    const next: Record<string, string> = { ...weights };
+    slugs.forEach((slug, idx) => {
+      const value = idx === slugs.length - 1 ? base + remainder : base;
+      next[slug] = String(value);
+    });
+    setWeights(next);
+  };
+
+  const handleSave = async () => {
+    if (selectedSlugs.size === 0) {
+      toast({ title: "No brackets selected", description: "Select at least one bracket.", variant: "destructive" });
+      return;
+    }
+    if (!weightSumOk) {
+      toast({
+        title: "Weights must sum to 100%",
+        description: `Current total: ${weightSum.toFixed(1)}%. Adjust weights before saving.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    const mix = Array.from(selectedSlugs).map((slug) => ({
+      bracketSlug: slug,
+      weight: Math.round((parseFloat(weights[slug] ?? "0") / 100) * 10000) / 10000,
+    }));
+    try {
+      await saveMutation.mutateAsync(mix);
+      toast({ title: "Bracket mix saved", description: "Your bracket mix has been updated." });
+    } catch (err) {
+      toast({
+        title: "Failed to save",
+        description: err instanceof Error ? err.message : "An error occurred.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const isLoading = bracketsLoading || mixLoading;
+
+  const proposedMix: BracketMix = useMemo(
+    () =>
+      Array.from(selectedSlugs).map((slug) => ({
+        bracketSlug: slug,
+        weight: Math.round((parseFloat(weights[slug] ?? "0") / 100) * 10000) / 10000,
+      })),
+    [selectedSlugs, weights],
+  );
 
   return (
     <div className="space-y-4">
@@ -119,12 +612,12 @@ function BracketMixTab() {
           <div className="space-y-1">
             <p className="text-sm font-medium text-foreground">What is a bracket mix?</p>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Instead of a 70-field freeform profile, each Management Company's ICP is expressed
-              as a weighted mix across 3–5 market-inferred{" "}
-              <span className="font-medium text-foreground">ICP brackets</span>. Brackets are
-              customer-property archetypes (e.g., boutique upscale hotel, performance-managed STR
-              cluster) characterized from real hospitality brand comps. The mix drives all
-              Management Company revenue and expense calculations automatically.
+              Each Management Company's ICP is expressed as a weighted mix across up to{" "}
+              <span className="font-medium text-foreground">{ICP_BRACKET_MIX_MAX_ENTRIES} brackets</span>.
+              Brackets are customer-property archetypes characterized from real hospitality brand
+              comps. The mix drives all Management Company revenue and expense calculations
+              automatically. Hotels consume all service lines; STRs consume only marketing,
+              branding, and performance-bonus fees.
             </p>
           </div>
         </div>
@@ -135,148 +628,114 @@ function BracketMixTab() {
           <div>
             <h3 className="text-sm font-semibold text-foreground">ICP Bracket Mix</h3>
             <p className="text-xs text-muted-foreground mt-1">
-              Weighted distribution of customer-property archetypes across the bracket catalog.
+              Select 1–{ICP_BRACKET_MIX_MAX_ENTRIES} brackets and assign weights that sum to 100%.
             </p>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleAssign}
-            disabled={isActing || isLoading}
-            className="text-xs h-8 gap-1.5 shrink-0"
-            data-testid="button-run-brackets"
-          >
-            {assignMutation.isPending ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <IconRefreshCw className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-2 shrink-0">
+            {selectedCount > 0 && (
+              <div
+                className={cn(
+                  "flex items-center gap-1 text-xs px-2 py-1 rounded-full border font-mono tabular-nums",
+                  weightSumOk
+                    ? "border-green-300 bg-green-50 text-green-800 dark:border-green-700 dark:bg-green-950/40 dark:text-green-200"
+                    : "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200",
+                )}
+                data-testid="weight-sum-indicator"
+              >
+                {weightSumOk
+                  ? <IconCheck className="w-3 h-3" />
+                  : <IconAlertTriangle className="w-3 h-3" />}
+                {weightSum.toFixed(0)}%
+              </div>
             )}
-            {assignMutation.isPending ? "Assigning…" : "Assign Brackets"}
-          </Button>
+            {selectedCount >= 2 && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleSplitEqually}
+                disabled={saveMutation.isPending || isLoading}
+                className="text-xs h-8"
+                data-testid="button-split-equally"
+              >
+                Split equally
+              </Button>
+            )}
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={saveMutation.isPending || selectedCount === 0 || !weightSumOk || isLoading}
+              className="text-xs h-8 gap-1.5"
+              data-testid="button-save-bracket-mix"
+            >
+              {saveMutation.isPending ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : null}
+              {saveMutation.isPending ? "Saving…" : "Save Mix"}
+            </Button>
+          </div>
         </div>
 
-        {isLoading && (
-          <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground" data-testid="bracket-mix-loading">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span className="text-sm">Loading bracket mix…</span>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
-        )}
-
-        {isError && (
-          <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3" data-testid="bracket-mix-error">
-            <IconAlertTriangle className="w-4 h-4 text-destructive shrink-0" />
-            <p className="text-sm text-destructive">Failed to load bracket mix. Please refresh.</p>
-          </div>
-        )}
-
-        {!isLoading && !isError && !mix && (
+        ) : brackets.length === 0 ? (
           <div
             className="flex flex-col items-center justify-center py-14 rounded-xl border border-dashed border-border bg-muted/20 text-center gap-3"
-            data-testid="bracket-mix-empty"
+            data-testid="bracket-catalog-empty"
           >
             <div className="w-10 h-10 rounded-full bg-muted/60 flex items-center justify-center">
               <IconTarget className="w-5 h-5 text-muted-foreground opacity-50" />
             </div>
-            <p className="text-sm font-medium text-foreground">No bracket mix assigned yet</p>
+            <p className="text-sm font-medium text-foreground">No brackets in catalog</p>
             <p className="text-xs text-muted-foreground max-w-sm leading-relaxed">
-              Click <span className="font-medium">Assign Brackets</span> to run the deterministic
-              assignment minion. It classifies your portfolio properties into hotel, STR, and mixed
-              buckets and computes weighted bracket allocations automatically.
+              The bracket catalog is managed by Administrators under{" "}
+              <span className="font-medium">
+                Admin → AI → Intelligence → Knowledge &amp; Resources → Tables
+              </span>
+              .
             </p>
           </div>
-        )}
-
-        {!isLoading && !isError && mix && mix.entries.length > 0 && (
-          <div className="space-y-3" data-testid="bracket-mix-entries">
-            {mix.entries.map((entry) => {
-              const colorClass = BRACKET_COLOR[entry.id] ?? "bg-muted border-border text-muted-foreground";
-              const pct = Math.round(entry.weight * 100);
-              return (
-                <div
-                  key={entry.id}
-                  className={`rounded-lg border ${colorClass.split(" ").slice(0, 2).join(" ")} px-4 py-3 space-y-1.5`}
-                  data-testid={`bracket-entry-${entry.id}`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-sm font-medium text-foreground truncate">{entry.name}</span>
-                      <Badge variant="outline" className="text-[10px] shrink-0">
-                        {CONSUMPTION_LABEL[entry.serviceConsumption] ?? entry.serviceConsumption}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={pct}
-                        disabled={isActing}
-                        onChange={(e) => handleWeightChange(entry.id, Number(e.target.value))}
-                        className="w-14 text-right text-sm font-mono bg-transparent border border-border rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
-                        aria-label={`${entry.name} weight percentage`}
-                      />
-                      <span className="text-xs text-muted-foreground">%</span>
-                    </div>
-                  </div>
-                  <div className="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-current opacity-50"
-                      style={{ width: `${pct}%`, color: "var(--chart-1)" }}
-                    />
-                  </div>
-                  {entry.rationale && (
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">{entry.rationale}</p>
-                  )}
-                </div>
-              );
-            })}
-
-            {mix.evidence && (
-              <div className="rounded-lg border border-border bg-muted/20 px-4 py-3">
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  <span className="font-medium text-foreground">Evidence: </span>
-                  {mix.evidence}
-                </p>
+        ) : (
+          <div className="space-y-3">
+            {atMax && (
+              <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2" data-testid="bracket-max-warning">
+                <IconAlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                Maximum of {ICP_BRACKET_MIX_MAX_ENTRIES} brackets selected. Deselect one to add another.
               </div>
             )}
-
-            {mix.assignedAt && (
-              <p className="text-[11px] text-muted-foreground text-right">
-                Last assigned: {new Date(mix.assignedAt).toLocaleString()}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" data-testid="bracket-catalog">
+              {brackets.map((bracket) => (
+                <BracketCard
+                  key={bracket.slug}
+                  bracket={bracket}
+                  isSelected={selectedSlugs.has(bracket.slug)}
+                  weightPct={weights[bracket.slug] ?? ""}
+                  onToggle={() => handleToggle(bracket.slug)}
+                  onWeightChange={(val) => setWeights((w) => ({ ...w, [bracket.slug]: val }))}
+                  disabled={saveMutation.isPending}
+                />
+              ))}
+            </div>
+            {selectedCount > 0 && !weightSumOk && (
+              <p className="text-xs text-amber-700 dark:text-amber-300" data-testid="weight-sum-error">
+                Weights sum to {weightSum.toFixed(1)}% — adjust to reach exactly 100% before saving.
               </p>
             )}
-
-            {updateMutation.isError && (
-              <p className="text-xs text-destructive">Failed to save weight changes. Please try again.</p>
+            {selectedCount > 0 && weightSumOk && (
+              <p className="text-xs text-green-700 dark:text-green-400" data-testid="weight-sum-ok">
+                Weights sum to 100% — ready to save.
+              </p>
             )}
-          </div>
-        )}
-
-        {!isLoading && !isError && catalog.length > 0 && !mix && (
-          <div className="space-y-2 pt-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Bracket catalog
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {catalog.map((bracket) => {
-                const colorClass = BRACKET_COLOR[bracket.id] ?? "bg-muted border-border text-muted-foreground";
-                return (
-                  <div
-                    key={bracket.id}
-                    className={`rounded-lg border ${colorClass.split(" ").slice(0, 2).join(" ")} px-3 py-2.5 flex items-center justify-between gap-2 opacity-60`}
-                  >
-                    <span className="text-sm text-foreground">{bracket.name}</span>
-                    <Badge variant="outline" className="text-[10px] shrink-0 capitalize">
-                      {bracket.serviceConsumption}
-                    </Badge>
-                  </div>
-                );
-              })}
-            </div>
           </div>
         )}
       </Card>
 
+      <BracketMixImpactCallout
+        savedMix={savedMix}
+        proposedMix={proposedMix}
+        proposedReady={selectedCount > 0 && weightSumOk}
+      />
       <Card className="border border-border rounded-lg p-5 space-y-3" data-testid="service-consumption-rules">
         <SectionHeading icon={IconUsers} title="Service-Consumption Rules (built into the model)" />
         <p className="text-xs text-muted-foreground">

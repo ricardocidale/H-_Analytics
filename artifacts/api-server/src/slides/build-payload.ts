@@ -32,6 +32,7 @@ import { storage } from "../storage";
 import { getStorageProviderAsync } from "../providers/storage";
 import { recomputeSinglePropertyAndStamp } from "../finance/recompute";
 import { withModelConstants } from "../finance/apply-model-constants";
+import { resolveAsImprovedFacts } from "@engine/property/renovation-facts";
 import {
   parseDeckPayloadV2,
   EMPTY_DECK_PAYLOAD_V2,
@@ -275,7 +276,9 @@ export async function buildSlidePayload(
     businessModel: property.businessModel ?? "hotel",
     hospitalityType: (p.hospitalityType ?? "") as string,
     qualityTier: (p.qualityTier ?? "") as string,
-    description: property.description ?? "",
+    description: resolveAsImprovedFacts(
+      property as unknown as Parameters<typeof resolveAsImprovedFacts>[0],
+    ).description ?? "",
     acquisitionStatus: (p.acquisitionStatus ?? "pipeline") as string,
     isHistoric: (p.isHistoric as boolean | string | undefined) ?? false,
     renovationScope: (p.renovationScope ?? "") as string,

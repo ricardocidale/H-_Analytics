@@ -126,6 +126,12 @@ export const MINIONS = {
     role: "Verdict Cache Checker",
     description: "Slot content-hash check — reuses prior Maya verdict when slide content is unchanged",
   },
+  fabio: {
+    id: "fabio",
+    label: "Fabio",
+    role: "Range-Quality Validator",
+    description: "Validates assumption ranges against the assumption_guardrails envelope — owns the green/yellow/red range-quality dot on every range badge",
+  },
 } as const;
 
 /** Minion IDs — these are hidden by default and only shown in Technical Details. */
@@ -148,7 +154,7 @@ export type RunType = keyof typeof RUN_TYPE_LABELS;
 export const NAV_GROUP_LABELS = {
   analyst: "Analyst",
   agents: "Agents",
-  runs: "Runs",
+  logs: "Logs",
   knowledgeResources: "Knowledge & Resources",
   system: "System",
 } as const;

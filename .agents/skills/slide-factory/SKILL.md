@@ -73,6 +73,7 @@ The following definitions are canonical across the entire H+ Analytics agent sys
 | Carlo | Zod schema validator |
 | Dino | Pixel-diff calculator (±2px gate) |
 | Enzo | Content hash cache (SHA-256 idempotency) |
+| Franco | Deck render minion — renders the 6-slide PDF via Playwright, uploads to R2, writes `deckR2Key` onto the run row. Called by Marco's `produce_deck` tool and by the Rebecca `produce_slide_factory_deck` tool. No LLM. (`slides/minions/franco.ts`) |
 
 ---
 

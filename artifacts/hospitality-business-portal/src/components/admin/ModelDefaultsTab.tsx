@@ -172,6 +172,38 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
   const saveRef = useRef<(() => void) | undefined>(undefined);
   saveRef.current = () => saveMutation.mutate(draftRef.current);
 
+  // Tab-scoped Save for the Capital Stack Discipline tab — persists only the
+  // four discipline fields so it does not bundle in unsaved edits from other
+  // tabs (Company, Market & Macro, etc.).
+  const CAPITAL_STACK_DISCIPLINE_FIELDS = [
+    "runwayBufferMonths",
+    "sizingOvershootPct",
+    "revenueRampDelayMonths",
+    "burnFlexDownPct",
+  ] as const;
+  const pickDisciplineFields = (source: Draft): Draft => {
+    const out: Draft = {};
+    for (const k of CAPITAL_STACK_DISCIPLINE_FIELDS) {
+      if (k in source) (out as Record<string, unknown>)[k] = (source as Record<string, unknown>)[k];
+    }
+    return out;
+  };
+  const saveCapitalStackDiscipline = () => {
+    saveMutation.mutate(pickDisciplineFields(draftRef.current));
+  };
+  const resetCapitalStackDiscipline = () => {
+    if (!saved) return;
+    const savedDiscipline = pickDisciplineFields(saved as Draft);
+    setDraft((prev) => {
+      const next = { ...prev, ...savedDiscipline };
+      draftRef.current = next;
+      const savedRecord = saved as Record<string, unknown>;
+      const nextRecord = next as Record<string, unknown>;
+      setIsDirty(Object.keys(savedRecord).some((k) => nextRecord[k] !== savedRecord[k]));
+      return next;
+    });
+  };
+
   useEffect(() => {
     onSaveStateChange?.({
       isDirty,
@@ -259,6 +291,18 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
               fundingAnalystRunning={fundingRefresh.running}
               fundingAnalystCooldownMs={fundingRefresh.cooldownRemainingMs}
               fundingVerdict={fundingRefresh.lastVerdict}
+              isDirty={
+                saved
+                  ? CAPITAL_STACK_DISCIPLINE_FIELDS.some(
+                      (k) =>
+                        (draft as Record<string, unknown>)[k] !==
+                        (saved as Record<string, unknown>)[k],
+                    )
+                  : false
+              }
+              isPending={saveMutation.isPending}
+              onSave={saveCapitalStackDiscipline}
+              onReset={resetCapitalStackDiscipline}
             />
           </TabsContent>
         )}

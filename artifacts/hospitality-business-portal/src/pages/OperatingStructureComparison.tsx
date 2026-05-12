@@ -40,11 +40,11 @@ import {
   type OperatingStructureDefaults,
 } from "@shared/constants-operating-structures";
 import { useStructureOverlays } from "@/hooks/useStructureOverlays";
-import { StructureRecommendationBanner } from "./StructureRecommendationBanner";
-import { StructureOverlayEditorCard } from "./StructureOverlayEditorCard";
-import { StructureComparisonTable } from "./StructureComparisonTable";
-import { StructureChartSection } from "./StructureChartSection";
-import { StructureSwitchCallout } from "./StructureSwitchCallout";
+import { StructureRecommendationBanner } from "./structures/StructureRecommendationBanner";
+import { StructureOverlayEditorCard } from "./structures/StructureOverlayEditorCard";
+import { StructureComparisonTable } from "./structures/StructureComparisonTable";
+import { StructureChartSection } from "./structures/StructureChartSection";
+import { StructureSwitchCallout } from "./structures/StructureSwitchCallout";
 
 export default function OperatingStructureComparison() {
   const params = useParams<{ id?: string }>();

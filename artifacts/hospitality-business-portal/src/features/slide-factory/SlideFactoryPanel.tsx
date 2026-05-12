@@ -16,8 +16,10 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { CancelButton } from "@/components/ui/cancel-button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -162,6 +164,7 @@ interface SlideFactoryRun {
   luccaDraft: Record<string, LuccaSlotDraft> | null;
   agentResults: Record<string, SlideAgentResultFE> | null;
   deckR2Key: string | null;
+  pptxR2Key: string | null;
   startedAt: string | null;
   completedAt: string | null;
   createdAt: string;
@@ -436,14 +439,7 @@ function FactoryBriefTab({
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      const r = await fetch("/api/lb-slides/factory/runs", {
-        method: "POST",
-        credentials: "include",
-      });
-      if (!r.ok) {
-        const body = (await r.json().catch(() => ({}))) as { error?: string };
-        throw new Error(body.error ?? "Failed to create run");
-      }
+      const r = await apiRequest("POST", "/api/lb-slides/factory/runs");
       return r.json() as Promise<SlideFactoryRun>;
     },
     onSuccess: (newRun) => {
@@ -474,21 +470,12 @@ function FactoryBriefTab({
     if (!upload.file || !run) return;
     setUpload((prev) => ({ ...prev, stage: "uploading", error: null }));
     try {
-      const urlRes = await fetch("/api/uploads/request-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          name: upload.file.name,
-          size: upload.file.size,
-          contentType: upload.file.type || "application/octet-stream",
-          entityType: "slide_factory_brief",
-        }),
+      const urlRes = await apiRequest("POST", "/api/uploads/request-url", {
+        name: upload.file.name,
+        size: upload.file.size,
+        contentType: upload.file.type || "application/octet-stream",
+        entityType: "slide_factory_brief",
       });
-      if (!urlRes.ok) {
-        const b = (await urlRes.json().catch(() => ({}))) as { error?: string };
-        throw new Error(b.error ?? "Failed to get upload URL");
-      }
       const { uploadURL, objectPath } = (await urlRes.json()) as {
         uploadURL: string;
         objectPath: string;
@@ -501,19 +488,11 @@ function FactoryBriefTab({
       });
       if (!putRes.ok) throw new Error("Failed to upload file to storage");
 
-      const briefRes = await fetch(
+      const briefRes = await apiRequest(
+        "POST",
         `/api/lb-slides/factory/runs/${run.id}/brief`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ r2Key: objectPath, filename: upload.file.name }),
-        },
+        { r2Key: objectPath, filename: upload.file.name },
       );
-      if (!briefRes.ok) {
-        const b = (await briefRes.json().catch(() => ({}))) as { error?: string };
-        throw new Error(b.error ?? "Failed to record brief");
-      }
       const updated = (await briefRes.json()) as SlideFactoryRun;
       setUpload((prev) => ({ ...prev, stage: "done" }));
       onRunUpdate(updated);
@@ -529,14 +508,7 @@ function FactoryBriefTab({
     if (!run) return;
     setIsAccepting(true);
     try {
-      const r = await fetch(
-        `/api/lb-slides/factory/runs/${run.id}/accept-brief`,
-        { method: "POST", credentials: "include" },
-      );
-      if (!r.ok) {
-        const b = (await r.json().catch(() => ({}))) as { error?: string };
-        throw new Error(b.error ?? "Failed to accept brief");
-      }
+      const r = await apiRequest("POST", `/api/lb-slides/factory/runs/${run.id}/accept-brief`);
       const updated = (await r.json()) as SlideFactoryRun;
       onRunUpdate(updated);
       toast({ title: "Brief accepted" });
@@ -1069,19 +1041,7 @@ function FactoryPropertiesTab({
       if (s3 != null) body.slide3PropertyId = s3;
       if (s5 != null) body.slide5PropertyId = s5;
 
-      const r = await fetch(
-        `/api/lb-slides/factory/runs/${run.id}/properties`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(body),
-        },
-      );
-      if (!r.ok) {
-        const b = (await r.json().catch(() => ({}))) as { error?: string };
-        throw new Error(b.error ?? "Failed to save properties");
-      }
+      const r = await apiRequest("POST", `/api/lb-slides/factory/runs/${run.id}/properties`, body);
       return r.json() as Promise<SlideFactoryRun>;
     },
     onSuccess: (updated) => {
@@ -1260,9 +1220,7 @@ function SlotRow({ slotKey, draft, onApprove, onSaveValue, disabled }: SlotRowPr
                   {saving && <Loader2 className="w-3 h-3 animate-spin mr-1" />}
                   Save
                 </Button>
-                <Button size="sm" variant="ghost" onClick={handleCancel} disabled={saving}>
-                  Cancel
-                </Button>
+                <CancelButton size="sm" onClick={handleCancel} disabled={saving} />
               </div>
             </div>
           ) : (
@@ -1313,19 +1271,11 @@ function FactoryLuccaTab({
   const handleApproveSlot = useCallback(
     async (key: string, approved: boolean) => {
       try {
-        const r = await fetch(
+        const r = await apiRequest(
+          "PATCH",
           `/api/lb-slides/factory/runs/${run.id}/slots/${encodeURIComponent(key)}`,
-          {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ approved }),
-          },
+          { approved },
         );
-        if (!r.ok) {
-          const b = (await r.json().catch(() => ({}))) as { error?: string };
-          throw new Error(b.error ?? "Failed to update slot");
-        }
         onRunUpdate((await r.json()) as SlideFactoryRun);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : "Update failed";
@@ -1338,19 +1288,11 @@ function FactoryLuccaTab({
   const handleSaveValue = useCallback(
     async (key: string, value: string) => {
       try {
-        const r = await fetch(
+        const r = await apiRequest(
+          "PATCH",
           `/api/lb-slides/factory/runs/${run.id}/slots/${encodeURIComponent(key)}`,
-          {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ value }),
-          },
+          { value },
         );
-        if (!r.ok) {
-          const b = (await r.json().catch(() => ({}))) as { error?: string };
-          throw new Error(b.error ?? "Failed to save slot value");
-        }
         onRunUpdate((await r.json()) as SlideFactoryRun);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : "Save failed";
@@ -1363,14 +1305,7 @@ function FactoryLuccaTab({
   const handleApproveAll = async () => {
     setApprovingAll(true);
     try {
-      const r = await fetch(
-        `/api/lb-slides/factory/runs/${run.id}/approve-all-slots`,
-        { method: "POST", credentials: "include" },
-      );
-      if (!r.ok) {
-        const b = (await r.json().catch(() => ({}))) as { error?: string };
-        throw new Error(b.error ?? "Failed to approve all slots");
-      }
+      const r = await apiRequest("POST", `/api/lb-slides/factory/runs/${run.id}/approve-all-slots`);
       onRunUpdate((await r.json()) as SlideFactoryRun);
       toast({ title: "All slots approved" });
     } catch (err: unknown) {
@@ -1384,14 +1319,7 @@ function FactoryLuccaTab({
   const handleTriggerBuild = async () => {
     setTriggeringBuild(true);
     try {
-      const r = await fetch(
-        `/api/lb-slides/factory/runs/${run.id}/trigger-build`,
-        { method: "POST", credentials: "include" },
-      );
-      if (!r.ok) {
-        const b = (await r.json().catch(() => ({}))) as { error?: string };
-        throw new Error(b.error ?? "Failed to trigger build");
-      }
+      const r = await apiRequest("POST", `/api/lb-slides/factory/runs/${run.id}/trigger-build`);
       onRunUpdate((await r.json()) as SlideFactoryRun);
       toast({ title: "Build triggered", description: "Slide agents are building the deck." });
     } catch (err: unknown) {
@@ -1744,19 +1672,11 @@ function SlotEditor({
     const valueToSave = valueOverride !== undefined ? valueOverride : localValue;
     setSaving(true);
     try {
-      const r = await fetch(
+      const r = await apiRequest(
+        "PATCH",
         `/api/lb-slides/factory/runs/${runId}/slots/${encodeURIComponent(slotKey)}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ value: valueToSave }),
-        },
+        { value: valueToSave },
       );
-      if (!r.ok) {
-        const b = (await r.json().catch(() => ({}))) as { error?: string };
-        throw new Error(b.error ?? "Failed to save slot");
-      }
       onRunUpdate((await r.json()) as SlideFactoryRun);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Save failed";
@@ -1769,17 +1689,10 @@ function SlotEditor({
   const handleSuggest = async () => {
     setSuggesting(true);
     try {
-      const r = await fetch(
+      const r = await apiRequest(
+        "POST",
         `/api/lb-slides/factory/runs/${runId}/slots/${encodeURIComponent(slotKey)}/suggest`,
-        {
-          method: "POST",
-          credentials: "include",
-        },
       );
-      if (!r.ok) {
-        const b = (await r.json().catch(() => ({}))) as { error?: string };
-        throw new Error(b.error ?? "Suggestion unavailable");
-      }
       const data = (await r.json()) as { suggestion: string };
       setSuggestion(data.suggestion);
     } catch (err: unknown) {
@@ -1954,14 +1867,7 @@ function FactoryOverridePanel({
   const handleRebuild = async () => {
     setRebuilding(true);
     try {
-      const r = await fetch(`/api/lb-slides/factory/runs/${run.id}/rebuild`, {
-        method: "POST",
-        credentials: "include",
-      });
-      if (!r.ok) {
-        const b = (await r.json().catch(() => ({}))) as { error?: string };
-        throw new Error(b.error ?? "Rebuild failed");
-      }
+      const r = await apiRequest("POST", `/api/lb-slides/factory/runs/${run.id}/rebuild`);
       onRunUpdate((await r.json()) as SlideFactoryRun);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Rebuild failed";
@@ -2041,9 +1947,11 @@ function FactoryOverridePanel({
 
 function FactoryDownloadTab({ run, onRunUpdate }: { run: SlideFactoryRun; onRunUpdate: (r: SlideFactoryRun) => void }) {
   const { toast } = useToast();
-  const [downloading, setDownloading] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [downloadingPptx, setDownloadingPptx] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const hasDeck = Boolean(run.deckR2Key);
+  const hasPptx = Boolean(run.pptxR2Key);
 
   useEffect(() => {
     return () => {
@@ -2051,38 +1959,42 @@ function FactoryDownloadTab({ run, onRunUpdate }: { run: SlideFactoryRun; onRunU
     };
   }, []);
 
-  const handleDownload = async () => {
+  const handleDownload = async (format: "pdf" | "pptx") => {
+    setDownloadingPdf(false);
+    setDownloadingPptx(false);
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
-    setDownloading(true);
+    const setLoading = format === "pdf" ? setDownloadingPdf : setDownloadingPptx;
+    setLoading(true);
+    const url =
+      format === "pdf"
+        ? `/api/lb-slides/factory/runs/${run.id}/download`
+        : `/api/lb-slides/factory/runs/${run.id}/download/pptx`;
     try {
-      const r = await fetch(`/api/lb-slides/factory/runs/${run.id}/download`, {
-        credentials: "include",
-        signal: controller.signal,
-      });
+      const r = await fetch(url, { credentials: "include", signal: controller.signal });
       if (!r.ok) {
         const b = (await r.json().catch(() => ({}))) as { error?: string };
         throw new Error(b.error ?? "Download failed");
       }
       const blob = await r.blob();
       if (controller.signal.aborted) return;
-      const url = URL.createObjectURL(blob);
+      const objectUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
-      a.download = `slide-deck-run-${run.id}.pdf`;
+      a.href = objectUrl;
+      a.download = `slide-deck-run-${run.id}.${format}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       // a.click() is synchronous; the browser has already grabbed the URL by
       // this line, so revoke immediately rather than via setTimeout.
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(objectUrl);
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === "AbortError") return;
       const msg = err instanceof Error ? err.message : "Download failed";
       toast({ title: "Download failed", description: msg, variant: "destructive" });
     } finally {
-      if (!controller.signal.aborted) setDownloading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   };
 
@@ -2126,26 +2038,49 @@ function FactoryDownloadTab({ run, onRunUpdate }: { run: SlideFactoryRun; onRunU
           )}
         </CardHeader>
         <CardContent>
-          {hasDeck && run.status !== "rebuilding" ? (
-            <Button onClick={() => void handleDownload()} disabled={downloading}>
-              {downloading ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : (
-                <IconDownload className="w-4 h-4 mr-2" />
-              )}
-              Download PDF
-            </Button>
-          ) : run.status === "rebuilding" ? (
+          {run.status === "rebuilding" ? (
             <p className="text-xs text-muted-foreground">
-              A new version of the PDF is being generated…
+              A new version of the deck is being generated…
             </p>
+          ) : hasDeck || hasPptx ? (
+            <div className="flex flex-wrap gap-2">
+              {hasDeck && (
+                <Button
+                  onClick={() => void handleDownload("pdf")}
+                  disabled={downloadingPdf}
+                  data-testid="download-pdf-button"
+                >
+                  {downloadingPdf ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : (
+                    <IconDownload className="w-4 h-4 mr-2" />
+                  )}
+                  Download PDF
+                </Button>
+              )}
+              {hasPptx && (
+                <Button
+                  variant="outline"
+                  onClick={() => void handleDownload("pptx")}
+                  disabled={downloadingPptx}
+                  data-testid="download-pptx-button"
+                >
+                  {downloadingPptx ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : (
+                    <IconDownload className="w-4 h-4 mr-2" />
+                  )}
+                  Download PPTX
+                </Button>
+              )}
+            </div>
           ) : (
             <div className="flex items-start gap-3 rounded-md border border-border bg-muted/30 p-4">
               <IconAlertCircle className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-medium">Deck not yet rendered</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  The build completed but the PDF has not been generated. Please contact your
+                  The build completed but no output files were generated. Please contact your
                   administrator.
                 </p>
               </div>

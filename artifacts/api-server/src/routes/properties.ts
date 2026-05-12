@@ -1,7 +1,14 @@
 import type { Express } from "express";
 import { storage } from "../storage";
 import { requireAuth, requireAdmin, checkPropertyAccess, checkPropertyEditAccess, getAuthUser } from "../auth";
-import { insertPropertySchema, updatePropertySchema, type GlobalAssumptions, type ResearchValueEntry } from "@workspace/db";
+import {
+  insertPropertySchema,
+  updatePropertySchema,
+  type GlobalAssumptions,
+  type ResearchValueEntry,
+  buildDescriptorDualWritePatch,
+  detectDescriptorDrift,
+} from "@workspace/db";
 import { z } from "zod";
 import { logActivity, logAndSendError, parseRouteId, zodErrorMessage } from "./helpers";
 import {
@@ -409,6 +416,23 @@ export function register(app: Express) {
       const suggestion = suggestStarRating(merged as Parameters<typeof suggestStarRating>[0]);
       const updateData: Record<string, unknown> = { ...validation.data, starRatingSuggested: suggestion.rating };
 
+      // Task #1407 (Milestone B) — dual-write: mirror every typed-column
+      // descriptor write into the JSONB blobs so the accessor sees a
+      // consistent view and we can drop typed columns later without losing
+      // data. The helper preserves existing keys not touched by this patch.
+      const existingRow = existingProp as Record<string, unknown>;
+      const dualWrite = buildDescriptorDualWritePatch(
+        validation.data as Record<string, unknown>,
+        existingRow.descriptorsPurchased as Record<string, unknown> | null | undefined,
+        existingRow.descriptorsImproved as Record<string, unknown> | null | undefined,
+      );
+      if (dualWrite.descriptorsPurchased) {
+        updateData.descriptorsPurchased = dualWrite.descriptorsPurchased;
+      }
+      if (dualWrite.descriptorsImproved) {
+        updateData.descriptorsImproved = dualWrite.descriptorsImproved;
+      }
+
       // Hero-photo write-path drift guard.
       //
       // `properties.image_url` is a *cache* of the current hero `property_photos`
@@ -449,6 +473,24 @@ export function register(app: Express) {
       let property = await storage.updateProperty(propertyId, updateData);
       if (!property) {
         return res.status(HTTP_404_NOT_FOUND).json({ error: "Property not found", code: "PROP-026" });
+      }
+
+      // Task #1407 (Milestone B) — drift instrumentation. After every write,
+      // compare typed columns to the JSONB blobs and warn on any divergence.
+      // Silent drift here would defeat the migration plan: if a write path
+      // bypasses the dual-write helper, this is where it surfaces.
+      try {
+        const drift = detectDescriptorDrift(property as Record<string, unknown>);
+        if (drift.length > 0) {
+          logger.warn(
+            `Descriptor drift on property ${propertyId} after PATCH: ${drift
+              .map(d => `${d.fieldKey}[${d.side}] typed=${JSON.stringify(d.typedValue)} jsonb=${JSON.stringify(d.jsonbValue)}`)
+              .join("; ")}`,
+            "descriptor-drift",
+          );
+        }
+      } catch (err: unknown) {
+        logger.warn(`Descriptor drift check failed for property ${propertyId}: ${err instanceof Error ? err.message : err}`, "descriptor-drift");
       }
 
       // Apply the hero-photo write through the album (see drift-guard comment
@@ -798,8 +840,9 @@ export function register(app: Express) {
       }
       const { text } = parsed.data;
 
-      const { getGeminiClient } = await import("../ai/clients");
+      const { getGeminiClient, getAnthropicClient, getOpenAIClient } = await import("../ai/clients");
       const { resolveLlm, getVendorService } = await import("../ai/resolve-llm");
+      const { generateText } = await import("../ai/dispatch");
       const { logApiCost, estimateCost } = await import("../middleware/cost-logger");
 
       const context = [
@@ -818,22 +861,18 @@ Rewritten description:`;
       const ga = await storage.getGlobalAssumptions(req.user?.id);
       const rc = (ga?.researchConfig as Record<string, unknown>) ?? {};
       const resolved = resolveLlm(rc, "aiUtilityLlm");
-      const gemini = getGeminiClient();
       const startTime = Date.now();
-      const response = await gemini.models.generateContent({
-        model: resolved.model,
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        config: { maxOutputTokens: 1024 },
-      });
 
-      const rewritten = response.text?.trim();
+      const { text: raw, inputTokens: inTok, outputTokens: outTok, service: svc } = await generateText({
+        llm: resolved,
+        prompt,
+        maxTokens: 1024,
+      });
+      const rewritten = raw.trim();
       if (!rewritten) {
         return res.status(HTTP_500_INTERNAL_SERVER_ERROR).json({ error: "No response from AI", code: "PROP-043" });
       }
 
-      const svc = getVendorService(resolved.vendor);
-      const inTok = response.usageMetadata?.promptTokenCount ?? Math.round(prompt.length / 4);
-      const outTok = response.usageMetadata?.candidatesTokenCount ?? Math.round(rewritten.length / 4);
       try {
         logApiCost({ timestamp: new Date().toISOString(), service: svc, model: resolved.model, operation: "rewrite-description", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost(svc, resolved.model, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: `/api/properties/${propertyId}/rewrite-description` });
       } catch (e: unknown) {
@@ -843,7 +882,7 @@ Rewritten description:`;
       res.json({ rewritten });
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
-      if (msg === "Gemini API key not configured" || msg.includes("not configured")) {
+      if (msg.includes("API key not configured") || msg.includes("not configured")) {
         return res.status(HTTP_503_SERVICE_UNAVAILABLE).json({ error: "AI service is not available", code: "PROP-044" });
       }
       logAndSendError(res, "Failed to rewrite description", error, "PROP-014");

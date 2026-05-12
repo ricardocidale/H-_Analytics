@@ -172,6 +172,9 @@ export const adminResources = pgTable(
     lastCheckedAt: timestamp("last_checked_at"),
     // Pietro scheduler: max API calls per day for rate-limited sources. null = unlimited.
     dailyRequestBudget: integer("daily_request_budget"),
+    // Self-test cadence (Task #1403): per-entity override for how often the self-test
+    // scheduler probes this resource. null = use the system-default (30 days).
+    selfTestIntervalDays: integer("self_test_interval_days"),
     createdByUserId: integer("created_by_user_id").references(() => users.id, { onDelete: "set null" }),
     updatedByUserId: integer("updated_by_user_id").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -549,6 +552,10 @@ export const ResourcePublicViewSchema = z.object({
   lastHealthStatus: ResourceHealthStatusSchema,
   lastCheckedAt: z.string().nullable(),
   dailyRequestBudget: z.number().int().nullable(),
+  // Self-test cadence (Task #1459): per-entity override in days; null means
+  // "use the system default" (currently 30 days). Surfaced so the admin UI can
+  // render either the override value or the "30 days (system default)" label.
+  selfTestIntervalDays: z.number().int().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -584,6 +591,7 @@ export function toResourcePublicView(row: AdminResourceRow, now: Date = new Date
     lastHealthStatus: band,
     lastCheckedAt: row.lastCheckedAt ? row.lastCheckedAt.toISOString() : null,
     dailyRequestBudget: row.dailyRequestBudget ?? null,
+    selfTestIntervalDays: row.selfTestIntervalDays ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };

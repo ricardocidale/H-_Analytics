@@ -581,6 +581,7 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
           min={0} max={0.2} step={0.0025}
           testId="field-acqInterestRate"
           researchRange="6%–10%"
+          guardrailKey="wacc.cost_of_debt"
         />
         <NumberField
           label="Loan Term"
@@ -624,6 +625,7 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
           min={0} max={0.2} step={0.0025}
           testId="field-refiInterestRate"
           researchRange="5%–9%"
+          guardrailKey="wacc.cost_of_debt"
         />
         <NumberField
           label="Refinance Term"
@@ -1018,6 +1020,7 @@ function ExitRevenueMultipleSection({
                 fieldKey="exitRevenueMultiple"
                 currentValue={selectedMultiple}
                 guidance={exitMultipleGuidance}
+                guardrailKey="exitRevenueMultiple"
               />
               <p className="text-xs text-muted-foreground" data-testid="text-exit-multiple-band">
                 {band.label} band: {band.valueLow!.toFixed(1)}x – {band.valueHigh!.toFixed(1)}x

@@ -13,6 +13,11 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { ResourcePublicView } from "@shared/schema";
 import type { ModelConfig, SlotConfig } from "./types";
+import {
+  SLOT_GROUPS,
+  SLOT_GROUP_CATEGORY_MAP,
+  type LlmCategory,
+} from "./constants";
 
 export interface SlotSelection {
   vendorFilter: string;
@@ -30,12 +35,30 @@ export interface UseSlotAssignmentsResult {
   >;
   originalSlugs: Record<number, string | null>;
   isDirty: boolean;
+  /**
+   * Total count of unsaved slot changes across ALL categories. The Save
+   * button persists every dirty slot regardless of which category is active.
+   */
   dirtyCount: number;
+  /**
+   * Count of unsaved slot changes whose owning category matches the
+   * `category` argument passed to the hook. Equals `dirtyCount` when no
+   * category is provided (legacy unscoped view).
+   */
+  visibleDirtyCount: number;
+  /**
+   * Count of unsaved slot changes whose owning category does NOT match the
+   * `category` argument (i.e. live in other LLM sub-sections). Always 0 when
+   * no category is provided.
+   */
+  otherDirtyCount: number;
   batchSavePending: boolean;
   handleSlotSave: () => void;
 }
 
-export function useSlotAssignments(): UseSlotAssignmentsResult {
+export function useSlotAssignments(
+  category?: LlmCategory,
+): UseSlotAssignmentsResult {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -106,6 +129,38 @@ export function useSlotAssignments(): UseSlotAssignmentsResult {
     [selections, originalSlugs],
   );
 
+  /**
+   * Map slotId → owning LLM category, derived from SLOT_GROUPS membership.
+   * A slot whose slug isn't found in any group has category `undefined` and
+   * will always count toward `visibleDirtyCount` (defensive — avoids hiding
+   * dirty rows the user can never re-find from a sub-section).
+   */
+  const slotCategoryById = useMemo(() => {
+    const slugToCategory = new Map<string, LlmCategory>();
+    for (const group of SLOT_GROUPS) {
+      const cat = SLOT_GROUP_CATEGORY_MAP[group.id];
+      if (!cat) continue;
+      for (const slug of group.slots) slugToCategory.set(slug, cat);
+    }
+    const map: Record<number, LlmCategory | undefined> = {};
+    for (const slot of slotResources) {
+      map[slot.id] = slugToCategory.get(slot.slug);
+    }
+    return map;
+  }, [slotResources]);
+
+  const visibleDirtyCount = useMemo(() => {
+    if (!category) return dirtyCount;
+    return Object.entries(selections).filter(([id, sel]) => {
+      const slotId = Number(id);
+      if (sel.modelSlug === originalSlugs[slotId]) return false;
+      const slotCategory = slotCategoryById[slotId];
+      return slotCategory === undefined || slotCategory === category;
+    }).length;
+  }, [category, selections, originalSlugs, slotCategoryById, dirtyCount]);
+
+  const otherDirtyCount = dirtyCount - visibleDirtyCount;
+
   const batchSave = useMutation({
     mutationFn: async (changes: { id: number; modelSlug: string | null }[]) => {
       await Promise.all(
@@ -152,6 +207,8 @@ export function useSlotAssignments(): UseSlotAssignmentsResult {
     originalSlugs,
     isDirty,
     dirtyCount,
+    visibleDirtyCount,
+    otherDirtyCount,
     batchSavePending: batchSave.isPending,
     handleSlotSave,
   };

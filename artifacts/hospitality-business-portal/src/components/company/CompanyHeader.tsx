@@ -16,6 +16,7 @@ import { CurrentThemeTab } from "@/components/ui/tabs";
 import { IconSettings, IconIncomeStatement, IconCashFlow, IconBalanceSheet, IconInvestment } from "@/components/icons";import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { KPIGrid, formatCompact } from "@/components/graphics";
+import BracketMixSummaryCard from "./BracketMixSummaryCard";
 import type { CompanyHeaderProps } from "./types";
 
 export default function CompanyHeader({
@@ -65,6 +66,10 @@ export default function CompanyHeader({
         columns={4}
         variant="glass"
       />
+
+      <div className="mt-4">
+        <BracketMixSummaryCard />
+      </div>
 
       <div className="mt-4 mb-6">
         <CurrentThemeTab

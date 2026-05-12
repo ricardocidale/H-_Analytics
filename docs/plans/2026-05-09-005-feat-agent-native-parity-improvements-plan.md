@@ -1,7 +1,7 @@
 ---
 title: "feat: Agent-Native Parity Improvements — Silent Actions, CRUD, Macro Context, LLM Slots, Parameter Kind"
 type: feat
-status: active
+status: completed
 date: 2026-05-09
 ---
 

@@ -28,6 +28,8 @@ import { registerIrisRoutes } from "./iris";
 import { registerComplianceRoutes } from "./compliance";
 import { registerAgentRosterRoutes } from "./agent-roster";
 import { registerMinionSelfTestRoutes } from "./minion-self-tests";
+import { registerSelfTestLogsRoutes } from "./self-test-logs";
+import { registerAssumptionGuardrailRoutes } from "./assumption-guardrails";
 
 export function register(app: Express) {
   registerUserRoutes(app);
@@ -62,4 +64,6 @@ export function register(app: Express) {
   registerComplianceRoutes(app);
   registerAgentRosterRoutes(app);
   registerMinionSelfTestRoutes(app);
+  registerSelfTestLogsRoutes(app);
+  registerAssumptionGuardrailRoutes(app);
 }

@@ -185,6 +185,16 @@ export async function runSchemaMigrations() {
     await runIcpBrackets001();
     await markMigrationApplied("icp_brackets_001");
   }
+
+  // Task #1486 — Normalise bracket_mix persisted shape to BracketMixData.
+  // Converts any legacy flat-array rows ([ { bracketSlug, weight } ]) to the
+  // canonical BracketMixData shape ({ entries, assignedAt, evidence }).
+  // Idempotent: rows already in BracketMixData shape or NULL are untouched.
+  if (!(await isMigrationApplied("icp_brackets_002"))) {
+    const { runIcpBrackets002 } = await import("../migrations/icp-brackets-002");
+    await runIcpBrackets002();
+    await markMigrationApplied("icp_brackets_002");
+  }
 }
 
 // ── Boot orchestration: schema migrations (fatal) ─────────────────────

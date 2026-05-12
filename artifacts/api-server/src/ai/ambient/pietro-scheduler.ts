@@ -5,14 +5,24 @@
  * against per-kind TTLs, respects daily_request_budget, and dispatches
  * the registered minion for each stale source.
  *
+ * Staleness is determined by:
+ *   1. `config.pietroTtlDays` — per-row override (e.g. 90 days for quarterly
+ *      national benchmark feeds that don't need hourly refreshes).
+ *   2. `PROBE_PROFILES[kind].ttlSeconds` — per-kind default (300 s for source).
+ * After a successful minion run, Pietro calls `storage.recordProbeResult()` to
+ * update `lastCheckedAt` on the admin_resources row so the TTL actually gates
+ * the next dispatch.
+ *
  * Pattern mirrors ambient/scheduler.ts exactly.
  */
 import { db } from "../../db";
 import { adminResources, PROBE_PROFILES } from "@workspace/db";
-import { inArray, or } from "drizzle-orm";
+import { eq, inArray, or } from "drizzle-orm";
 import { log } from "../../logger";
+import { storage } from "../../storage";
 import { recordSchedulerCycle, truncateNotes } from "../../jobs/scheduler-run-tracker";
 import type { MinionResult } from "./minions/index";
+import type { ResourceKind } from "@workspace/db";
 
 // ---------------------------------------------------------------------------
 // Minion registry — maps admin_resource slug → minion function
@@ -63,13 +73,32 @@ let schedulerGeneration = 0;
 // Staleness check
 // ---------------------------------------------------------------------------
 
-function isStale(row: { lastCheckedAt: Date | null; kind: string }): boolean {
-  if (!row.lastCheckedAt) return true; // never checked = stale
-  const kind = row.kind as keyof typeof PROBE_PROFILES;
-  const profile = PROBE_PROFILES[kind];
-  if (!profile) return true;
+/**
+ * Returns true if the admin_resources row is due for a minion dispatch.
+ *
+ * Staleness priority:
+ *  1. `config.pietroTtlDays` — per-row override (e.g. 90 days for quarterly
+ *     national benchmark feeds). Expressed in days; converted to ms.
+ *  2. `PROBE_PROFILES[kind].ttlSeconds` — per-kind default (300 s for source).
+ */
+function isStale(row: { lastCheckedAt: Date | null; kind: string; config: unknown }): boolean {
+  if (!row.lastCheckedAt) return true;
+
+  const cfg = row.config && typeof row.config === "object" ? (row.config as Record<string, unknown>) : {};
+  const pietroTtlDays = cfg.pietroTtlDays;
+  let ttlMs: number;
+
+  if (typeof pietroTtlDays === "number" && pietroTtlDays > 0) {
+    ttlMs = pietroTtlDays * 24 * 60 * 60 * 1_000;
+  } else {
+    const kind = row.kind as keyof typeof PROBE_PROFILES;
+    const profile = PROBE_PROFILES[kind];
+    if (!profile) return true;
+    ttlMs = profile.ttlSeconds * 1_000;
+  }
+
   const ageMs = Date.now() - row.lastCheckedAt.getTime();
-  return ageMs > profile.ttlSeconds * 1_000;
+  return ageMs > ttlMs;
 }
 
 function isBudgetAvailable(row: { dailyRequestBudget: number | null }): boolean {
@@ -122,11 +151,53 @@ async function runPietroTick(): Promise<void> {
           result.rowsFailed > 0 ? "warn" : "info",
         );
         if (result.errors.length > 0) allErrors.push(...result.errors.slice(0, PIETRO_MAX_ERRORS_IN_NOTES));
+
+        // Update lastCheckedAt on the admin_resources row so the per-kind (or
+        // per-row pietroTtlDays) TTL gates the next dispatch correctly.
+        // A run with partial failures is still recorded as "ok" so the TTL
+        // is respected; a complete run failure leaves lastCheckedAt untouched
+        // so the row stays stale for the next tick.
+        const probeStatus = result.rowsFailed === result.rowsUpserted + result.rowsFailed && result.rowsFailed > 0
+          ? "fail"
+          : "ok";
+        await storage.recordProbeResult(
+          row.id,
+          row.kind as ResourceKind,
+          { status: probeStatus, latencyMs: result.durationMs },
+          null,
+        ).catch((recordErr: unknown) => {
+          log(
+            `${row.slug}: failed to record probe result — ${recordErr instanceof Error ? recordErr.message : String(recordErr)}`,
+            "pietro-scheduler",
+            "warn",
+          );
+        });
+
         succeeded++;
       } catch (err: unknown) {
         const msg = `${row.slug}: ${err instanceof Error ? err.message : String(err)}`;
         allErrors.push(msg);
         log(msg, "pietro-scheduler", "error");
+
+        // Record a "fail" probe result so lastCheckedAt is set (to now)
+        // even on error — this prevents a broken minion from hammering on
+        // every tick. The status=fail will surface as red in the admin UI.
+        await db
+          .select({ id: adminResources.id, kind: adminResources.kind })
+          .from(adminResources)
+          .where(eq(adminResources.slug, row.slug))
+          .limit(1)
+          .then(async ([r]) => {
+            if (!r) return;
+            await storage.recordProbeResult(
+              r.id,
+              r.kind as ResourceKind,
+              { status: "fail", latencyMs: 0, errorMessage: msg },
+              null,
+            );
+          })
+          .catch(() => { /* best-effort — don't mask the original error */ });
+
         failed++;
       }
     }

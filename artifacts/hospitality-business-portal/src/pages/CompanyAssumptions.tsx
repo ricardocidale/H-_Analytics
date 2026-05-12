@@ -68,6 +68,7 @@ import {
   CompanyAssumptionsHeaderBar,
   CompanyAssumptionsTabsView,
   CompanyAnalystOverlay,
+  IcpMixSummary,
 } from "@/components/company-assumptions";
 import {
   useCompanyAssumptionsForm,
@@ -530,6 +531,8 @@ export default function CompanyAssumptions() {
               </div>
             </div>
           )}
+
+          <IcpMixSummary />
 
           <SummaryFooter
             formData={formApi.formData}

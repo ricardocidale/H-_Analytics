@@ -89,6 +89,7 @@ export class AdminResourceCrudStorage {
       if (patch.description !== undefined) updates.description = patch.description;
       if (patch.config !== undefined) updates.config = patch.config;
       if (patch.secretRef !== undefined) updates.secretRef = patch.secretRef;
+      if (patch.selfTestIntervalDays !== undefined) updates.selfTestIntervalDays = patch.selfTestIntervalDays;
 
       const [row] = await tx
         .update(adminResources)

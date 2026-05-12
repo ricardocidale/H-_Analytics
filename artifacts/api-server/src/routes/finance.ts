@@ -12,6 +12,7 @@ import { getAcquisitionYear, calculateLoanParams } from "@engine/debt/loanCalcul
 import type { LoanParams, GlobalLoanParams } from "@engine/debt/loanCalculations";
 import { computeSensitivityAnalysis } from "../finance/sensitivity";
 import { withModelConstants } from "../finance/apply-model-constants";
+import { withNationalBenchmarks, withPropertyCostAnchors } from "../finance/apply-national-benchmarks";
 import { getCacheStatus, invalidateComputeCache, resetCacheStats, computeCacheKey } from "../finance/cache";
 import { requireAuth, requireAdmin, isApiRateLimited, getAuthUser } from "../auth";
 import { logger } from "../logger";
@@ -24,7 +25,18 @@ import {
   HTTP_500_INTERNAL_SERVER_ERROR,
 } from "../constants";
 import type { PropertyInput, GlobalInput, MonthlyFinancials } from "@engine/types";
-import type { BracketMixEntry } from "@engine/company/icp-bracket-types";
+import type { BracketMixEntry, IcpBracketProfile } from "@engine/company/icp-bracket-types";
+import { normalizePersistedBracketMix } from "../finance/normalize-bracket-mix";
+import { getEffectivePropertyView } from "@workspace/db";
+
+// Task #1407 (Milestone B) — accessor wrapper applied at every engine entry
+// point in this file. Resolves each catalogued descriptor to its effective
+// (As-Improved ?? As-Purchased) value so the engine never sees the raw
+// pre-renovation envelope when an As-Improved value has been set.
+function applyDescriptorView<T extends Record<string, unknown>>(p: T): T {
+  return getEffectivePropertyView(p) as T;
+}
+
 import type { AuditTrailPerProperty } from "../finance/service";
 import { computeIRR } from "@analytics/returns/irr";
 import { propertyEquityInvested } from "@engine/debt/equityCalculations";
@@ -76,11 +88,14 @@ const propertyInputSchema = z.object({
   dispositionCommission: z.number().nullable().optional(),
   operatingReserve: z.number().nullable().optional(),
   refinanceYearsAfterAcquisition: z.number().nullable().optional(),
-  costRateRooms: z.number(),
-  costRateFB: z.number(),
+  // Task #1484: nullable so national-benchmark overlay can distinguish "not
+  // explicitly set" (null → anchor from Gaetano feed) from "user override"
+  // (number → preserved). Other cost rates stay required (no feed mapping).
+  costRateRooms: z.number().nullable().optional(),
+  costRateFB: z.number().nullable().optional(),
   costRateAdmin: z.number(),
   costRateMarketing: z.number(),
-  costRatePropertyOps: z.number(),
+  costRatePropertyOps: z.number().nullable().optional(),
   costRateUtilities: z.number(),
   costRateTaxes: z.number(),
   costRateIT: z.number(),
@@ -108,6 +123,19 @@ const propertyInputSchema = z.object({
   costSeg7yrPct: z.number().nullable().optional(),
   costSeg15yrPct: z.number().nullable().optional(),
   depreciationYears: z.number().nullable().optional(),
+  // Property descriptors + As-Improved twins (Milestone B, task #1406).
+  description: z.string().nullable().optional(),
+  descriptionPurchased: z.string().nullable().optional(),
+  fbVenues: z.number().nullable().optional(),
+  fbSeats: z.number().nullable().optional(),
+  eventSpaceSqft: z.number().nullable().optional(),
+  totalBuildingSqft: z.number().nullable().optional(),
+  fbVenuesImproved: z.number().nullable().optional(),
+  fbSeatsImproved: z.number().nullable().optional(),
+  eventSpaceSqftImproved: z.number().nullable().optional(),
+  totalBuildingSqftImproved: z.number().nullable().optional(),
+  plannedReopeningYear: z.number().int().nullable().optional(),
+  descriptionImproved: z.string().nullable().optional(),
   id: z.number().optional(),
   name: z.string().optional(),
   // Waterfall / LP-GP capital structure (ADR-011)
@@ -134,11 +162,21 @@ const globalInputSchema = z.object({
   }),
 }).passthrough();
 
+const bracketMixEntrySchema = z.object({
+  bracketSlug: z.string(),
+  weight: z.number().min(0).max(1),
+});
+
 const computeRequestSchema = z.object({
   properties: z.array(propertyInputSchema).min(1),
   globalAssumptions: globalInputSchema,
   projectionYears: z.number().int().positive().max(30).optional(),
   scenarioId: z.number().int().nonnegative().optional().default(0),
+  // Optional override for the company-level bracket mix. When provided, the
+  // server uses it instead of the persisted mix in global_assumptions —
+  // letting the ICP page preview revenue impact of a proposed mix without
+  // saving it. Only honored by /api/finance/company.
+  bracketMix: z.array(bracketMixEntrySchema).optional(),
 });
 
 const singlePropertyComputeSchema = z.object({
@@ -381,13 +419,15 @@ export function registerFinanceRoutes(router: Router): void {
         });
       }
 
-      const { properties: allProperties, globalAssumptions: rawGlobal, projectionYears } = validation.data;
+      const { properties: allProperties, globalAssumptions: rawGlobal, projectionYears, bracketMix: bracketMixOverride } = validation.data;
       // Overlay admin-governed Model Constants (e.g. daysPerMonth) on top of
       // whatever the client sent. Server is authoritative — admin overrides
       // always win, even against a stale client payload.
       const globalAssumptions = await withModelConstants(rawGlobal);
       // Defense-in-depth: exclude inactive properties even if client already filtered
-      const properties = allProperties.filter((p: Record<string, unknown>) => p.isActive !== false);
+      const properties = allProperties
+        .filter((p: Record<string, unknown>) => p.isActive !== false)
+        .map((p: Record<string, unknown>) => applyDescriptorView(p));
 
       // Warn (don't block) if properties have unvalidated assumptions
       const propertyIds = properties.map((p: Record<string, unknown>) => p.id).filter((id): id is number => typeof id === "number");
@@ -409,7 +449,7 @@ export function registerFinanceRoutes(router: Router): void {
 
       // Load service templates for company cost-of-services calculation
       const allTemplates = await storage.getAllServiceTemplates();
-      const serviceTemplates = allTemplates.map(t => ({
+      const rawServiceTemplates = allTemplates.map(t => ({
         id: t.id,
         name: t.name,
         defaultRate: (v => Number.isFinite(v) ? v : 0)(Number(t.defaultRate)),
@@ -418,22 +458,44 @@ export function registerFinanceRoutes(router: Router): void {
         isActive: t.isActive,
         sortOrder: t.sortOrder ?? 0,
       }));
+      // Task #1415: overlay national vendor cost / Mgmt Co markup benchmarks
+      // (Pietro/Gaetano/Renato feeds) onto the per-template `serviceMarkup`.
+      // Falls back to hardcoded national anchors when the DB tables are empty.
+      const serviceTemplates = await withNationalBenchmarks(rawServiceTemplates);
 
-      // Fetch the user's bracket mix from global_assumptions (server-authoritative).
-      // enrichWithBrackets in recompute.ts will load the matching icp_brackets rows.
-      // Non-fatal: if the fetch fails, the engine runs without bracket scaling.
+      // Task #1484: overlay national vendor cost percentages onto the three
+      // property cost rates that have a direct service-line counterpart
+      // (housekeeping→costRateRooms, maintenance→costRatePropertyOps,
+      //  food_beverage→costRateFB). Only null/undefined slots are filled —
+      // explicit numeric values from the client are preserved as-is.
+      // Falls back to hardcoded national anchors when the DB table is empty.
+      const propertiesWithCostAnchors = await withPropertyCostAnchors(properties);
+
+      // Resolve the bracket mix: explicit request-body override (used by the
+      // ICP page to preview the impact of a proposed mix on partner take-home
+      // and portfolio IRR) wins over the persisted mix in global_assumptions.
+      // enrichWithBrackets in recompute.ts will load the matching icp_brackets
+      // rows. Non-fatal: if the DB fetch fails, the engine runs without
+      // bracket scaling rather than blocking the projection.
       let portfolioBracketMix: BracketMixEntry[] | undefined;
-      try {
-        const ga = await storage.getGlobalAssumptions(getAuthUser(req).id);
-        const rawMix = (ga as Record<string, unknown>)?.bracketMix;
-        if (Array.isArray(rawMix) && rawMix.length > 0) {
-          portfolioBracketMix = rawMix as BracketMixEntry[];
+      let portfolioBrackets: IcpBracketProfile[] | undefined;
+      if (bracketMixOverride && bracketMixOverride.length > 0) {
+        portfolioBracketMix = bracketMixOverride as BracketMixEntry[];
+      } else {
+        try {
+          const ga = await storage.getGlobalAssumptions(getAuthUser(req).id);
+          const rawMix = (ga as Record<string, unknown>)?.bracketMix;
+          const normalized = normalizePersistedBracketMix(rawMix);
+          if (normalized) {
+            portfolioBracketMix = normalized.bracketMix;
+            if (normalized.brackets) portfolioBrackets = normalized.brackets;
+          }
+        } catch (mixErr: unknown) {
+          logger.warn(
+            `Failed to load bracketMix for portfolio compute: ${mixErr instanceof Error ? mixErr.message : String(mixErr)}`,
+            "finance",
+          );
         }
-      } catch (mixErr: unknown) {
-        logger.warn(
-          `Failed to load bracketMix for portfolio compute: ${mixErr instanceof Error ? mixErr.message : String(mixErr)}`,
-          "finance",
-        );
       }
 
       // Engine recompute + DB freshness stamp travel together — see
@@ -441,11 +503,12 @@ export function registerFinanceRoutes(router: Router): void {
       // means using the wrapper, never the raw engine function.
       const { result, auditTrails } = await recomputePortfolioWithAuditAndStamp(
         {
-          properties: properties as PropertyInput[],
+          properties: propertiesWithCostAnchors as unknown as PropertyInput[],
           globalAssumptions: globalAssumptions as GlobalInput,
           projectionYears,
           serviceTemplates,
           bracketMix: portfolioBracketMix,
+          brackets: portfolioBrackets,
         },
         wantAudit,
       );
@@ -454,7 +517,7 @@ export function registerFinanceRoutes(router: Router): void {
         const userId = getAuthUser(req).id;
         const scenarioId = validation.data.scenarioId ?? 0;
         const inputHash = computeCacheKey({
-          properties: properties as PropertyInput[],
+          properties: properties as unknown as PropertyInput[],
           globalAssumptions: globalAssumptions as GlobalInput,
           projectionYears,
         });
@@ -484,7 +547,7 @@ export function registerFinanceRoutes(router: Router): void {
       // canonical aggregateUnifiedByYear path. The client reads these values
       // directly and does not re-run the IRR solver.
       const returnsSummary = computeReturnsSummary(
-        properties as PropertyInput[],
+        propertiesWithCostAnchors as unknown as PropertyInput[],
         globalAssumptions as GlobalInput,
         result.perPropertyMonthly,
         result.projectionYears,
@@ -525,9 +588,15 @@ export function registerFinanceRoutes(router: Router): void {
       // Overlay admin-governed Model Constants before engine call.
       const globalAssumptions = await withModelConstants(rawGlobal);
 
+      // Task #1484: overlay national cost-rate anchors onto the three nullable
+      // property cost rates before the engine runs.
+      const [propertyWithCostAnchors] = await withPropertyCostAnchors([
+        applyDescriptorView({ ...property, id: routeId } as Record<string, unknown>),
+      ]);
+
       // Engine recompute + DB freshness stamp travel together — see
       // server/finance/recompute.ts.
-      const stampedProperty = { ...property, id: routeId } as PropertyInput;
+      const stampedProperty = propertyWithCostAnchors as unknown as PropertyInput;
       const result = await recomputeSinglePropertyAndStamp({
         property: stampedProperty,
         globalAssumptions: globalAssumptions as GlobalInput,
@@ -619,7 +688,7 @@ export function registerFinanceRoutes(router: Router): void {
       }
 
       const globalAssumptions = await withModelConstants(rawGlobal);
-      const stamped = { ...property, id: routeId } as PropertyInput;
+      const stamped = applyDescriptorView({ ...property, id: routeId } as Record<string, unknown>) as unknown as PropertyInput;
 
       // Reuse the cached engine output for this property.
       const compute = await recomputeSinglePropertyAndStamp({
@@ -690,15 +759,17 @@ export function registerFinanceRoutes(router: Router): void {
         });
       }
 
-      const { properties: allCompanyProps, globalAssumptions: rawGlobal, projectionYears } = validation.data;
+      const { properties: allCompanyProps, globalAssumptions: rawGlobal, projectionYears, bracketMix: bracketMixOverride } = validation.data;
       // Overlay admin-governed Model Constants before engine call.
       const globalAssumptions = await withModelConstants(rawGlobal);
       // Defense-in-depth: exclude inactive properties even if client already filtered
-      const properties = allCompanyProps.filter((p: Record<string, unknown>) => p.isActive !== false);
+      const properties = allCompanyProps
+        .filter((p: Record<string, unknown>) => p.isActive !== false)
+        .map((p: Record<string, unknown>) => applyDescriptorView(p));
 
       // Load service templates for company cost-of-services calculation
       const allTemplates = await storage.getAllServiceTemplates();
-      const serviceTemplates = allTemplates.map(t => ({
+      const rawServiceTemplates = allTemplates.map(t => ({
         id: t.id,
         name: t.name,
         defaultRate: (v => Number.isFinite(v) ? v : 0)(Number(t.defaultRate)),
@@ -707,32 +778,44 @@ export function registerFinanceRoutes(router: Router): void {
         isActive: t.isActive,
         sortOrder: t.sortOrder ?? 0,
       }));
+      // Task #1415: overlay national vendor cost / Mgmt Co markup benchmarks
+      // (Pietro/Gaetano/Renato feeds) onto the per-template `serviceMarkup`.
+      // Falls back to hardcoded national anchors when the DB tables are empty.
+      const serviceTemplates = await withNationalBenchmarks(rawServiceTemplates);
 
-      // Fetch the user's bracket mix from global_assumptions (server-authoritative).
-      // enrichWithBrackets in recompute.ts will load the matching icp_brackets rows.
-      // Non-fatal: if the fetch fails, the engine runs without bracket scaling.
+      // Resolve bracket mix: explicit request-body override (used by the ICP
+      // page to preview the impact of an unsaved mix) wins over the
+      // persisted mix in global_assumptions. Non-fatal if the DB fetch fails.
       let companyBracketMix: BracketMixEntry[] | undefined;
-      try {
-        const ga = await storage.getGlobalAssumptions(getAuthUser(req).id);
-        const rawMix = (ga as Record<string, unknown>)?.bracketMix;
-        if (Array.isArray(rawMix) && rawMix.length > 0) {
-          companyBracketMix = rawMix as BracketMixEntry[];
+      let companyBrackets: IcpBracketProfile[] | undefined;
+      if (bracketMixOverride && bracketMixOverride.length > 0) {
+        companyBracketMix = bracketMixOverride as BracketMixEntry[];
+      } else {
+        try {
+          const ga = await storage.getGlobalAssumptions(getAuthUser(req).id);
+          const rawMix = (ga as Record<string, unknown>)?.bracketMix;
+          const normalized = normalizePersistedBracketMix(rawMix);
+          if (normalized) {
+            companyBracketMix = normalized.bracketMix;
+            if (normalized.brackets) companyBrackets = normalized.brackets;
+          }
+        } catch (mixErr: unknown) {
+          logger.warn(
+            `Failed to load bracketMix for company compute: ${mixErr instanceof Error ? mixErr.message : String(mixErr)}`,
+            "finance",
+          );
         }
-      } catch (mixErr: unknown) {
-        logger.warn(
-          `Failed to load bracketMix for company compute: ${mixErr instanceof Error ? mixErr.message : String(mixErr)}`,
-          "finance",
-        );
       }
 
       // Engine recompute + DB freshness stamp travel together — see
       // server/finance/recompute.ts.
       const result = await recomputeCompanyAndStamp({
-        properties: properties as PropertyInput[],
+        properties: properties as unknown as PropertyInput[],
         globalAssumptions: globalAssumptions as GlobalInput,
         projectionYears,
         serviceTemplates,
         bracketMix: companyBracketMix,
+        brackets: companyBrackets,
       });
 
       res.setHeader("X-Finance-Engine-Version", result.engineVersion);

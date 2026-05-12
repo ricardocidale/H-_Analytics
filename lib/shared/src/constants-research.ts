@@ -125,6 +125,17 @@ export const TRIPADVISOR_DEFAULT_HOTEL_LIMIT = 5;
 export const NATIONAL_FEED_EXA_NUM_RESULTS = 5;
 
 /**
+ * Cadence for national benchmark feeds (vendor pass-through costs and Mgmt Co
+ * markup factors). These are sourced from annual industry reports (STR, CBRE,
+ * HVS, PKF) and only need to be refreshed quarterly — re-running more often
+ * calls Exa but writes identical anchor values until a new report cycle.
+ *
+ * Used by: Pietro scheduler (pietroTtlDays config override) and Costantino
+ * freshnessProbe (stale_feed finding threshold).
+ */
+export const NATIONAL_FEED_QUARTERLY_TTL_DAYS = 90;
+
+/**
  * Sanity-clamp bounds for percentage-of-revenue values parsed from Exa search
  * text. Any parsed value outside [MIN, MAX] is discarded in favour of the
  * industry anchor. Units: percent (e.g. 0.5 means 0.5%, not 0.005).

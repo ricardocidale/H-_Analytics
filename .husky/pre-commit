@@ -1,7 +1,23 @@
 #!/bin/sh
+set -e
+
 # Run check:schema-drift only when schema source files are staged.
 # Keeps pre-commit latency near-zero for non-schema commits.
 if git diff --cached --name-only | grep -q 'lib/db/src/schema/'; then
   echo "Schema files staged — running check:schema-drift..."
   pnpm run check:schema-drift
+fi
+
+# Run test:engine only when engine or its direct lib dependencies are staged.
+# Catches regressions immediately at commit time with no cost on unrelated commits.
+if git diff --cached --name-only | grep -qE '^lib/(engine|calc|shared|domain)/'; then
+  echo "Engine files staged — running test:engine..."
+  pnpm run test:engine
+fi
+
+# Run test:calc only when calc library files are staged.
+# Mirrors the engine guard pattern to catch calc regressions at commit time.
+if git diff --cached --name-only | grep -qE '^lib/calc/'; then
+  echo "Calc files staged — running test:calc..."
+  pnpm run test:calc
 fi

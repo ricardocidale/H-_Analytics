@@ -48,11 +48,44 @@ import {
 } from "@/lib/constants";
 import { getFactoryNumber } from "@shared/model-constants-registry";
 import { AnalystRangeIndicator, AssumptionGuidancePopover } from "@/components/analyst";
+import {
+  useNationalBenchmarks,
+  usaliFieldKeyToServiceLine,
+  type NationalBenchmarkRow,
+} from "@/lib/api/national-benchmarks";
+import { NationalBenchmarkChip } from "@/components/research/NationalBenchmarkChip";
 import type { PropertyEditSectionProps } from "./types";
 
 export default function OperatingCostRatesSection({ draft, onChange, globalAssumptions, researchValues, guidance }: PropertyEditSectionProps) {
   const eid = draft.id as number | undefined;
   const gc = (key: string, label?: string) => eid ? { entityType: "property" as const, entityId: eid, assumptionKey: key, fieldLabel: label } : undefined;
+
+  // National vendor pass-through cost benchmarks (Task #1482).
+  // Mirrors the chip pattern from `ServiceResearchPanel` so users can see
+  // how their property's USALI rate compares to the national feed value.
+  // Returns empty arrays when no rows exist — the helper renders nothing
+  // in that case, preserving the section's existing empty-state behavior.
+  const { data: nationalBenchmarks } = useNationalBenchmarks();
+  const benchmarkChip = (fieldKey: string, currentValue: number) => {
+    const serviceLine = usaliFieldKeyToServiceLine(fieldKey);
+    if (!serviceLine) return null;
+    const row: NationalBenchmarkRow | undefined = nationalBenchmarks?.vendorCosts.find(
+      (r) => r.serviceLine === serviceLine,
+    );
+    if (!row) return null;
+    return (
+      <NationalBenchmarkChip
+        kind="vendor-cost"
+        currentValue={currentValue}
+        benchmarkValue={row.value}
+        dot={row.dot}
+        guardrail={row.guardrail}
+        source={row.source}
+        period={row.period}
+        fetchedAt={row.fetchedAt}
+      />
+    );
+  };
 
   // Task #404 reconciliation: the property-tax fallback shown on the editor
   // resolves through the locality-aware registry using the property's own
@@ -108,7 +141,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <ResearchContextFieldLabel
-                        label={<>Housekeeping <InfoTooltip text="USALI Rooms Department — variable cost covering cleaning labor, linens, guest supplies, and room maintenance. Scales directly with room revenue. Industry benchmark (USALI 12th Ed.): Luxury 22–28%, Upper Upscale 18–25%, Upscale 20–27%. VRBO/STR properties use per-turnover cleaning costs instead." /></>}
+                        label={<>Housekeeping <InfoTooltip text="USALI Rooms Department — variable cost covering cleaning labor, linens, guest supplies, and room maintenance. Scales directly with room revenue. Industry benchmark (USALI 12th Ed.): Luxury 22–28%, Upper Upscale 18–25%, Upscale 20–27%. VRBO/STR properties use per-turnover cleaning costs instead." /> {benchmarkChip("costRateRooms", draft.costRateRooms ?? DEFAULT_COST_RATE_ROOMS)}</>}
                         badgeProps={{ entry: researchValues.costHousekeeping }}
                         onApplyValue={() => researchValues.costHousekeeping && onChange("costRateRooms", researchValues.costHousekeeping.mid / 100)}
                         guidanceContext={gc("costHousekeeping", "Housekeeping")}
@@ -139,7 +172,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <ResearchContextFieldLabel
-                        label={<>F&B <InfoTooltip text="USALI Food & Beverage Department — variable cost covering kitchen labor, food costs, beverages, and dining operations. Scales with room revenue for consistent cost modeling. Industry benchmark: 6–12% of total revenue for boutique hotels with on-site dining (USALI 12th Ed.)." /></>}
+                        label={<>F&B <InfoTooltip text="USALI Food & Beverage Department — variable cost covering kitchen labor, food costs, beverages, and dining operations. Scales with room revenue for consistent cost modeling. Industry benchmark: 6–12% of total revenue for boutique hotels with on-site dining (USALI 12th Ed.)." /> {benchmarkChip("costRateFB", draft.costRateFB ?? DEFAULT_COST_RATE_FB)}</>}
                         badgeProps={{ entry: researchValues.costFB }}
                         onApplyValue={() => researchValues.costFB && onChange("costRateFB", researchValues.costFB.mid / 100)}
                         guidanceContext={gc("costFB", "F&B Cost")}
@@ -176,7 +209,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <ResearchContextFieldLabel
-                        label={<>Admin & General <InfoTooltip text="USALI Administrative & General Department — fixed cost covering management salaries, accounting, legal, HR, and office operations. Dollar amount is set from Year 1 revenue and escalates annually with inflation. Industry benchmark: 7–10% of total revenue (USALI 12th Ed.)." /></>}
+                        label={<>Admin & General <InfoTooltip text="USALI Administrative & General Department — fixed cost covering management salaries, accounting, legal, HR, and office operations. Dollar amount is set from Year 1 revenue and escalates annually with inflation. Industry benchmark: 7–10% of total revenue (USALI 12th Ed.)." /> {benchmarkChip("costRateAdmin", draft.costRateAdmin ?? DEFAULT_COST_RATE_ADMIN)}</>}
                         badgeProps={{ entry: researchValues.costAdmin }}
                         onApplyValue={() => researchValues.costAdmin && onChange("costRateAdmin", researchValues.costAdmin.mid / 100)}
                         guidanceContext={gc("costAdmin", "Admin & General")}
@@ -202,7 +235,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <ResearchContextFieldLabel
-                        label={<>Property Ops <InfoTooltip text="USALI Property Operations & Maintenance (POM) Department — fixed cost covering engineering, repairs, grounds maintenance, and facilities. Dollar amount is set from Year 1 revenue and escalates annually with inflation. Industry benchmark: 3–6% of total revenue (USALI 12th Ed.)." /></>}
+                        label={<>Property Ops <InfoTooltip text="USALI Property Operations & Maintenance (POM) Department — fixed cost covering engineering, repairs, grounds maintenance, and facilities. Dollar amount is set from Year 1 revenue and escalates annually with inflation. Industry benchmark: 3–6% of total revenue (USALI 12th Ed.)." /> {benchmarkChip("costRatePropertyOps", draft.costRatePropertyOps ?? DEFAULT_COST_RATE_PROPERTY_OPS)}</>}
                         badgeProps={{ entry: researchValues.costPropertyOps }}
                         onApplyValue={() => researchValues.costPropertyOps && onChange("costRatePropertyOps", researchValues.costPropertyOps.mid / 100)}
                         guidanceContext={gc("costPropertyOps", "Property Ops")}
@@ -325,10 +358,11 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <ResearchContextFieldLabel
-                        label={<>Marketing <InfoTooltip text="USALI Sales & Marketing Department — variable cost covering property-level advertising, OTA commissions, loyalty programs, and local promotions. Scales with total revenue. Industry benchmark: 1–4% of total revenue for boutique hotels; can be higher for resort/destination properties (USALI 12th Ed.)." /></>}
+                        label={<>Marketing <InfoTooltip text="USALI Sales & Marketing Department — variable cost covering property-level advertising, OTA commissions, loyalty programs, and local promotions. Scales with total revenue. Industry benchmark: 1–4% of total revenue for boutique hotels; can be higher for resort/destination properties (USALI 12th Ed.)." /> {benchmarkChip("costRateMarketing", draft.costRateMarketing ?? DEFAULT_COST_RATE_MARKETING)}</>}
                         badgeProps={{ entry: researchValues.costMarketing }}
                         onApplyValue={() => researchValues.costMarketing && onChange("costRateMarketing", researchValues.costMarketing.mid / 100)}
                         guidanceContext={gc("costMarketing", "Marketing")}
+                        guardrailKey="vendor_passthrough_cost.marketing"
                         currentValue={draft.costRateMarketing ?? DEFAULT_COST_RATE_MARKETING} isPercent
                       />
                       <EditableValue
@@ -351,10 +385,11 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                       <ResearchContextFieldLabel
-                        label={<>IT <InfoTooltip text="USALI Information Technology — fixed cost covering property-level IT needs including WiFi, in-room tech, PMS hardware, and basic support. Dollar amount is set from Year 1 revenue and escalates annually with inflation. Industry benchmark: 0.3–1.0% of total revenue (USALI 12th Ed. / HFTP Technology Survey)." /></>}
+                        label={<>IT <InfoTooltip text="USALI Information Technology — fixed cost covering property-level IT needs including WiFi, in-room tech, PMS hardware, and basic support. Dollar amount is set from Year 1 revenue and escalates annually with inflation. Industry benchmark: 0.3–1.0% of total revenue (USALI 12th Ed. / HFTP Technology Survey)." /> {benchmarkChip("costRateIT", draft.costRateIT ?? DEFAULT_COST_RATE_IT)}</>}
                         badgeProps={{ entry: researchValues.costIT }}
                         onApplyValue={() => researchValues.costIT && onChange("costRateIT", researchValues.costIT.mid / 100)}
                         guidanceContext={gc("costIT", "IT")}
+                        guardrailKey="vendor_passthrough_cost.it"
                         currentValue={draft.costRateIT ?? DEFAULT_COST_RATE_IT} isPercent
                       />
                       <EditableValue

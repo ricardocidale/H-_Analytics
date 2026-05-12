@@ -25,6 +25,7 @@ import sharp from "sharp";
 import { runAldo } from "./aldo";
 import { runCarlo } from "./carlo";
 import { computeSlideContentHash } from "./enzo";
+import { runFabio } from "@workspace/engine/analyst/minions/fabio";
 
 export interface MinionSelfTestResult {
   minionId: string;
@@ -288,6 +289,85 @@ function enzoSelfTest(): MinionSelfTestResult {
   }
 }
 
+// ── Fabio ──────────────────────────────────────────────────────────────────
+// Pure function. Three fixtures exercise each branch of the range-quality
+// contract: an in-envelope range (green), a grazing range (yellow), and an
+// out-of-envelope range (red). Also confirms Fabio rejects structurally
+// invalid input (inverted interval) so caller mis-wiring fails loudly.
+
+// Fabio fixture envelope — picked to read like a realistic cost-of-equity
+// guardrail (6%–25%) without being tied to any specific seeded row.
+const FABIO_FIXTURE_GUARDRAIL_MIN = 6;
+const FABIO_FIXTURE_GUARDRAIL_MAX = 25;
+// Green fixture: [10, 18] sits comfortably inside [6, 25].
+const FABIO_FIXTURE_GREEN_LOW = 10;
+const FABIO_FIXTURE_GREEN_HIGH = 18;
+// Yellow fixture: [4, 18] grazes the lower guardrail (4 < 6).
+const FABIO_FIXTURE_YELLOW_LOW = 4;
+const FABIO_FIXTURE_YELLOW_HIGH = 18;
+// Red fixture: [30, 40] is entirely above the upper guardrail (30 > 25).
+const FABIO_FIXTURE_RED_LOW = 30;
+const FABIO_FIXTURE_RED_HIGH = 40;
+
+function fabioSelfTest(): MinionSelfTestResult {
+  const start = performance.now();
+  try {
+    const envelope = {
+      guardrailMin: FABIO_FIXTURE_GUARDRAIL_MIN,
+      guardrailMax: FABIO_FIXTURE_GUARDRAIL_MAX,
+    };
+
+    const green = runFabio({
+      rangeLow: FABIO_FIXTURE_GREEN_LOW,
+      rangeHigh: FABIO_FIXTURE_GREEN_HIGH,
+      ...envelope,
+    });
+    if (green.dot !== "green") {
+      return fail("fabio", start, `Expected green for in-envelope fixture, got ${green.dot}.`);
+    }
+
+    const yellow = runFabio({
+      rangeLow: FABIO_FIXTURE_YELLOW_LOW,
+      rangeHigh: FABIO_FIXTURE_YELLOW_HIGH,
+      ...envelope,
+    });
+    if (yellow.dot !== "yellow") {
+      return fail("fabio", start, `Expected yellow for grazing fixture, got ${yellow.dot}.`);
+    }
+
+    const red = runFabio({
+      rangeLow: FABIO_FIXTURE_RED_LOW,
+      rangeHigh: FABIO_FIXTURE_RED_HIGH,
+      ...envelope,
+    });
+    if (red.dot !== "red") {
+      return fail("fabio", start, `Expected red for out-of-envelope fixture, got ${red.dot}.`);
+    }
+
+    let threwOnInverted = false;
+    try {
+      runFabio({
+        rangeLow: FABIO_FIXTURE_GREEN_HIGH,
+        rangeHigh: FABIO_FIXTURE_GREEN_LOW,
+        ...envelope,
+      });
+    } catch {
+      threwOnInverted = true;
+    }
+    if (!threwOnInverted) {
+      return fail("fabio", start, "Inverted range should have thrown structurally but did not.");
+    }
+
+    return pass(
+      "fabio",
+      start,
+      "Green/yellow/red fixtures classified correctly; inverted range rejected.",
+    );
+  } catch (err) {
+    return fail("fabio", start, err instanceof Error ? err.message : String(err));
+  }
+}
+
 // ── Registry ───────────────────────────────────────────────────────────────
 
 type SelfTestFn = () => Promise<MinionSelfTestResult> | MinionSelfTestResult;
@@ -297,6 +377,7 @@ export const MINION_SELF_TESTS: Record<string, SelfTestFn> = {
   carlo: carloSelfTest,
   dino: dinoSelfTest,
   enzo: enzoSelfTest,
+  fabio: fabioSelfTest,
 };
 
 export async function runMinionSelfTest(minionId: string): Promise<MinionSelfTestResult> {

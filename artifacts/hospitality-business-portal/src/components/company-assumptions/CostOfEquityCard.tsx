@@ -141,6 +141,7 @@ export default function CostOfEquityCard({ formData, onChange, global, researchV
                 badgeProps={{ value: researchValues.costOfEquity?.display, entry: researchValues.costOfEquity ?? undefined, sourceType: "industry", sourceName: CITATIONS.privateReEquityBenchmarks, "data-testid": "badge-cost-of-equity" }}
                 onApplyValue={() => researchValues.costOfEquity && onChange("costOfEquity", researchValues.costOfEquity.mid / 100)}
                 guidanceContext={gc("costOfEquity", "Cost of Equity")}
+                guardrailKey="wacc.cost_of_equity"
                 currentValue={formData.costOfEquity ?? global.costOfEquity ?? DEFAULT_COST_OF_EQUITY}
                 isPercent
               />

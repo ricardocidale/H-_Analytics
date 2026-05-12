@@ -469,6 +469,44 @@ export async function toolDeleteSlideFactoryRun(
   };
 }
 
+export async function toolDownloadFactoryV2Deck(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown }> {
+  const runIdResult = requireNumericArg(args, "runId");
+  if (!runIdResult.ok) return runIdResult.result;
+  const runId = runIdResult.value;
+
+  const format = args.format as string | undefined;
+  if (format !== "pptx" && format !== "pdf" && format !== "both") {
+    return { result: { error: "format must be 'pptx', 'pdf', or 'both'" } };
+  }
+
+  const { getSlideFactoryRun } = await import("../storage/slide-factory-runs");
+  const run = await getSlideFactoryRun(runId, ctx.userId);
+  if (!run) return { result: { error: `Slide factory run ${runId} not found` } };
+  if (run.status !== "complete") {
+    return { result: { error: `Run is not complete — current status: ${run.status}` } };
+  }
+
+  const wantPdf = format === "pdf" || format === "both";
+  const wantPptx = format === "pptx" || format === "both";
+
+  if (wantPdf && !run.deckR2Key) {
+    return { result: { error: "PDF not available for this run" } };
+  }
+  if (wantPptx && !run.pptxR2Key) {
+    return { result: { error: "PPTX not available for this run (run may predate factory v2)" } };
+  }
+
+  const base = `/api/lb-slides/factory/runs/${runId}/download`;
+  const urls: Record<string, string> = {};
+  if (wantPdf) urls.pdfUrl = base;
+  if (wantPptx) urls.pptxUrl = `${base}/pptx`;
+
+  return { result: { ok: true, ...urls } };
+}
+
 // W1.5 — explicit background-job triggers. Separated from accept_slide_factory_brief
 // and assign_slide_factory_properties so the agent decides when to fire the
 // background work (the old tools auto-fired without surfacing a separate handle).

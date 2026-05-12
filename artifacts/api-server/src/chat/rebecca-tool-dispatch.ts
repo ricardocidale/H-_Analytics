@@ -53,6 +53,7 @@ import {
   toolCancelSlideFactoryBuild,
   toolProduceSlideFactoryDeck,
   toolRebuildSlideFactoryDeck,
+  toolDownloadFactoryV2Deck,
   toolDeleteSlideFactoryRun,
   toolTriggerLorenzoIngestion,
   toolTriggerLuccaDraft,
@@ -202,6 +203,8 @@ export async function dispatchRebeccaTool(
         return await toolProduceSlideFactoryDeck(args, ctx);
       case "rebuild_slide_factory_deck":
         return await toolRebuildSlideFactoryDeck(args, ctx);
+      case "download_factory_v2_deck":
+        return await toolDownloadFactoryV2Deck(args, ctx);
       case "get_data_source_status":
         return await toolGetDataSourceStatus(ctx);
       case "probe_data_source":

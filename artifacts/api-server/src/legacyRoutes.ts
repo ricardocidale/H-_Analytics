@@ -14,6 +14,7 @@ import * as uploadRoutes from "./routes/uploads";
 import * as marketRateRoutes from "./routes/market-rates";
 import * as countryRiskPremiumRoutes from "./routes/country-risk-premium";
 import * as countryDefaultsRoutes from "./routes/country-defaults";
+import * as nationalBenchmarksRoutes from "./routes/national-benchmarks";
 import * as tileRoutes from "./routes/tiles";
 import * as photoRoutes from "./routes/property-photos";
 import * as mediaRoutes from "./routes/media";
@@ -32,6 +33,7 @@ import * as financingRoutes from "./routes/financing";
 import * as hotelRateRoutes from "./routes/hotel-rates";
 import { registerFinanceRoutes } from "./routes/finance";
 import { registerStructureComparisonRoutes } from "./routes/structure-comparison";
+import { registerPublicAssumptionGuardrailRoutes } from "./routes/admin/assumption-guardrails";
 import healthRouter from "./routes/health";
 import * as guidanceRoutes from "./routes/guidance";
 import * as rebeccaRoutes from "./routes/rebecca";
@@ -74,6 +76,7 @@ export async function registerRoutes(
   marketRateRoutes.register(app);
   countryRiskPremiumRoutes.register(app);
   countryDefaultsRoutes.register(app);
+  nationalBenchmarksRoutes.register(app);
   tileRoutes.register(app);
   photoRoutes.register(app);
   mediaRoutes.register(app);
@@ -107,6 +110,7 @@ export async function registerRoutes(
   specialistPhotoEnhancerRoutes.register(app);
   propertyDdRoutes.register(app);
   marketSignalsRoutes.register(app);
+  registerPublicAssumptionGuardrailRoutes(app);
 
   return httpServer;
 }

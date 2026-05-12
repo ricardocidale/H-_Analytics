@@ -70,11 +70,18 @@ export interface PropertyInput {
   // Refinance timing
   refinanceYearsAfterAcquisition?: number | null;
   // Operating Cost Rates
-  costRateRooms: number;
-  costRateFB: number;
+  // costRateRooms, costRateFB, costRatePropertyOps are nullable so that the
+  // server-side national-benchmark overlay can distinguish "not explicitly set
+  // by the user" (null → national anchor wins) from "explicitly configured"
+  // (number → user's value is preserved). The engine's resolve-assumptions.ts
+  // falls back to modelDefaults when null, which is always pre-empted by the
+  // overlay in the finance route. All other cost rates remain required because
+  // they have no corresponding national benchmark service line.
+  costRateRooms?: number | null;
+  costRateFB?: number | null;
   costRateAdmin: number;
   costRateMarketing: number;
-  costRatePropertyOps: number;
+  costRatePropertyOps?: number | null;
   costRateUtilities: number;
   costRateTaxes: number;
   costRateIT: number;
@@ -134,6 +141,22 @@ export interface PropertyInput {
   totalBuildingSqft?: number | null;
   yearBuilt?: number | null;
   lastRenovationYear?: number | null;
+  // As-Improved (post-renovation hypothesis) counterparts to the descriptors
+  // above. Each is null when the operator has not yet captured a renovation
+  // hypothesis; downstream consumers fall back to the As-Purchased twin via
+  // `resolvePropertyFactsForYear` (lib/engine/src/property/renovation-facts.ts).
+  // `plannedReopeningYear` is the calendar year (e.g. 2027) the property
+  // re-opens in its improved configuration. `descriptionPurchased` /
+  // `descriptionImproved` are the explicit purchased / post-renovation
+  // narratives — when null, consumers fall back to the legacy `description`.
+  description?: string | null;
+  descriptionPurchased?: string | null;
+  fbVenuesImproved?: number | null;
+  fbSeatsImproved?: number | null;
+  eventSpaceSqftImproved?: number | null;
+  totalBuildingSqftImproved?: number | null;
+  plannedReopeningYear?: number | null;
+  descriptionImproved?: string | null;
   managementType?: string | null;
   onMunicipalSewer?: boolean | null;
   // Conversion cost fields — residential → hotel capital stack
@@ -319,6 +342,13 @@ export interface MonthlyFinancials {
   deferredFees: number;
   // Cumulative deferred fees balance
   cumulativeDeferredFees: number;
+  // Renovation hypothesis cutover state — `as_purchased` for every month
+  // before `plannedReopeningYear`, `as_improved` from the reopening year
+  // onward (and always `as_purchased` when no reopening year is set).
+  // Stamped by property-engine.ts via resolvePropertyFactsForYear so every
+  // downstream consumer can read the active configuration without
+  // re-deriving the cutover. See lib/engine/src/property/renovation-facts.ts.
+  propertyState: 'as_purchased' | 'as_improved';
 }
 
 export interface ServiceFeeBreakdown {

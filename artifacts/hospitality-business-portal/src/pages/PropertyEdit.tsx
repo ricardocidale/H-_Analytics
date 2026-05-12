@@ -111,6 +111,7 @@ export default function PropertyEdit() {
   const [prerequisiteFailures, setPrerequisiteFailures] = useState<PrerequisiteFailure[]>([]);
   const wasGeneratingRef = useRef(false);
   const [researchStartedAt, setResearchStartedAt] = useState<number | null>(null);
+  const [showWorkingCard, setShowWorkingCard] = useState(false);
   const { data: marketRates } = useMarketRates();
   const [showBackToTop, setShowBackToTop] = useState(false);
 
@@ -171,6 +172,7 @@ export default function PropertyEdit() {
   useEffect(() => {
     if (!wasGeneratingRef.current && isGenerating) {
       setResearchStartedAt(Date.now());
+      setShowWorkingCard(true);
     }
     if (wasGeneratingRef.current && !isGenerating && research?.content) {
       setShowApplyDialog(true);
@@ -672,13 +674,15 @@ export default function PropertyEdit() {
           onDismiss={() => setPrerequisiteFailures([])}
         />
 
-        {isGenerating ? (
+        {showWorkingCard ? (
           <AnalystWorkingView
             propertyName={property.name}
             phases={phases}
             streamedContent={streamedContent}
             startedAt={researchStartedAt}
-            onCancel={abortResearch}
+            onCancel={isGenerating ? abortResearch : undefined}
+            isComplete={!isGenerating}
+            onDone={() => setShowWorkingCard(false)}
           />
         ) : (
           <>

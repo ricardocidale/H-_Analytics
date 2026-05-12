@@ -1,7 +1,7 @@
 ---
 title: "feat: Agent-Native Parity Wave 4 — Action Parity, Company CRUD, UI Integration fix"
 type: feat
-status: active
+status: completed
 date: 2026-05-10
 ---
 

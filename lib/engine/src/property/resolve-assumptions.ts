@@ -137,6 +137,17 @@ export interface PropertyEngineContext {
   acqDebtMonthCount: number;
   prevAR: number;
   prevAP: number;
+
+  // Renovation hypothesis cutover — month index (relative to modelStart) at
+  // which the property re-opens in its As-Improved configuration. `null`
+  // when the operator has not captured a `plannedReopeningYear`. Used by
+  // property-engine.ts to stamp `propertyState` on every monthly row so
+  // downstream consumers (slides, reports, Rebecca) all agree on the cutover.
+  // The resolved As-Purchased / As-Improved fact snapshots are intentionally
+  // not carried on the context: descriptors do not flow through the
+  // monthly cash-flow loop, so consumers call resolveAsPurchasedFacts /
+  // resolveAsImprovedFacts directly with the property record.
+  reopeningMonthIdx: number | null;
 }
 
 export function resolvePropertyAssumptions(
@@ -235,6 +246,14 @@ export function resolvePropertyAssumptions(
   const startMonth = modelStart.getMonth();
   const opsStartIdx = (opsStart.getFullYear() - startYear) * MONTHS_PER_YEAR + (opsStart.getMonth() - startMonth);
   const acqMonthIdx = (acquisitionDate.getFullYear() - startYear) * MONTHS_PER_YEAR + (acquisitionDate.getMonth() - startMonth);
+
+  // Renovation hypothesis cutover. The reopening month is the January of
+  // `plannedReopeningYear` expressed as a month index relative to modelStart.
+  // When unset, reopeningMonthIdx is null and every month stays in the
+  // As-Purchased state.
+  const reopeningMonthIdx = property.plannedReopeningYear != null
+    ? (property.plannedReopeningYear - startYear) * MONTHS_PER_YEAR + (0 - startMonth)
+    : null;
 
   const needsDaysLookup = dayCountConvention === 'ACT/360' || dayCountConvention === 'ACT/365';
   const daysInMonthLookup: number[] = needsDaysLookup ? new Array(months) : [];
@@ -374,5 +393,6 @@ export function resolvePropertyAssumptions(
     acqDebtMonthCount: 0,
     prevAR: 0,
     prevAP: 0,
+    reopeningMonthIdx,
   };
 }

@@ -8,6 +8,9 @@ import { acquireInFlight, releaseInFlight } from "../../middleware/analyst-refre
 import { indexKnowledgeBase } from "../../ai/knowledge-base";
 import { indexAllMarketResearch } from "../../ai/vector-indexing";
 import { runIcpBrackets001 } from "../../migrations/icp-brackets-001";
+import { csrfTokenGuard } from "../../middleware/csrf";
+import { z } from "zod";
+import { ICP_CUSTOMER_TYPES, ICP_SERVICE_CONSUMPTION_PROFILES } from "@workspace/db";
 import {
   researchCapitalRaiseBenchmarks,
   researchExitMultiples,
@@ -20,6 +23,7 @@ import {
 import { MINION_REGISTRY } from "../../ai/ambient/pietro-scheduler";
 import { logger } from "../../logger";
 import {
+  HTTP_201_CREATED,
   HTTP_404_NOT_FOUND,
   HTTP_409_CONFLICT,
   HTTP_422_UNPROCESSABLE_ENTITY,
@@ -280,8 +284,9 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
   });
 
   // GET /api/admin/knowledge-registry/icp-bracket-catalog/data
-  // Returns all active ICP brackets for the AssetPanel viewer.
-  // Must be registered BEFORE /:id to prevent path shadowing.
+  // Returns ALL ICP brackets (active + inactive) for the admin viewer so
+  // retired brackets remain visible and can be restored. Must be registered
+  // BEFORE /:id to prevent path shadowing.
   app.get("/api/admin/knowledge-registry/icp-bracket-catalog/data", requireAdmin, async (_req, res) => {
     try {
       const result = await db.execute(sql`
@@ -291,14 +296,186 @@ export function registerKnowledgeRegistryRoutes(app: Express) {
                comp_set_names, description, source_note,
                is_active, sort_order
         FROM icp_brackets
-        WHERE is_active = true
-        ORDER BY sort_order ASC
+        ORDER BY is_active DESC, sort_order ASC, id ASC
       `);
       res.json({ brackets: result.rows });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch ICP bracket catalog", error, "AKNW-016");
     }
   });
+
+  // ── ICP bracket admin write paths (Task #1454) ──────────────────────────
+  //
+  // POST   /api/admin/knowledge-registry/icp-bracket-catalog/data
+  // PATCH  /api/admin/knowledge-registry/icp-bracket-catalog/data/:id
+  //
+  // Both endpoints are admin-only and CSRF-guarded. They mutate the shared
+  // icp_brackets catalog (consumed by Cecília + Marco). Soft-delete is done
+  // by PATCHing { isActive: false } — no DELETE endpoint to preserve history
+  // and any historical company bracket-mix references.
+  const SLUG_REGEX = /^[a-z\d][a-z\d-]*[a-z\d]$/;
+  const SLUG_MAX_LEN = 80;
+  const NAME_MAX_LEN = 120;
+  const ARCHETYPE_MAX_LEN = 80;
+  const COMP_SET_NAME_MAX_LEN = 120;
+  const COMP_SET_MAX_ITEMS = 20;
+  const SOURCE_NOTE_MAX_LEN = 500;
+  const DESCRIPTION_MAX_LEN = 2000;
+
+  const IcpBracketCreateSchema = z
+    .object({
+      slug: z.string().min(2).max(SLUG_MAX_LEN).regex(SLUG_REGEX, "slug must be kebab-case (lowercase letters, digits, hyphens)"),
+      name: z.string().min(1).max(NAME_MAX_LEN),
+      archetypeLabel: z.string().min(1).max(ARCHETYPE_MAX_LEN),
+      customerType: z.enum(ICP_CUSTOMER_TYPES),
+      serviceConsumptionProfile: z.enum(ICP_SERVICE_CONSUMPTION_PROFILES),
+      targetAdrBandLow: z.number().nonnegative().nullable().optional(),
+      targetAdrBandHigh: z.number().nonnegative().nullable().optional(),
+      compSetNames: z.array(z.string().min(1).max(COMP_SET_NAME_MAX_LEN)).max(COMP_SET_MAX_ITEMS).nullable().optional(),
+      description: z.string().max(DESCRIPTION_MAX_LEN).nullable().optional(),
+      sourceNote: z.string().max(SOURCE_NOTE_MAX_LEN).nullable().optional(),
+      sortOrder: z.number().int().nonnegative().optional(),
+      isActive: z.boolean().optional(),
+    })
+    .strict();
+
+  const IcpBracketPatchSchema = IcpBracketCreateSchema.partial().strict();
+
+  app.post(
+    "/api/admin/knowledge-registry/icp-bracket-catalog/data",
+    requireAdmin,
+    csrfTokenGuard,
+    async (req, res) => {
+      const parsed = IcpBracketCreateSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
+          error: "Invalid bracket payload",
+          code: "AKNW-017",
+          details: parsed.error.flatten(),
+        });
+      }
+      const b = parsed.data;
+      try {
+        const compSetJson = b.compSetNames ? JSON.stringify(b.compSetNames) : null;
+        const result = await db.execute(sql`
+          INSERT INTO icp_brackets (
+            slug, name, archetype_label, customer_type, service_consumption_profile,
+            target_adr_band_low, target_adr_band_high, comp_set_names,
+            description, source_note, sort_order, is_active
+          ) VALUES (
+            ${b.slug},
+            ${b.name},
+            ${b.archetypeLabel},
+            ${b.customerType},
+            ${b.serviceConsumptionProfile},
+            ${b.targetAdrBandLow ?? null},
+            ${b.targetAdrBandHigh ?? null},
+            ${compSetJson}::jsonb,
+            ${b.description ?? null},
+            ${b.sourceNote ?? null},
+            ${b.sortOrder ?? 0},
+            ${b.isActive ?? true}
+          )
+          RETURNING id, slug
+        `);
+        const row = result.rows[0] as { id: number; slug: string };
+        logActivity(req, "icp-bracket-create", "icp_brackets", row.id, row.slug, { slug: row.slug });
+        return res.status(HTTP_201_CREATED).json({ bracket: row });
+      } catch (error: unknown) {
+        if ((error as { code?: string })?.code === "23505") {
+          return res.status(HTTP_409_CONFLICT).json({
+            error: `Bracket with slug '${b.slug}' already exists`,
+            code: "AKNW-018",
+          });
+        }
+        return logAndSendError(res, "Failed to create ICP bracket", error, "AKNW-019");
+      }
+    },
+  );
+
+  app.patch(
+    "/api/admin/knowledge-registry/icp-bracket-catalog/data/:id",
+    requireAdmin,
+    csrfTokenGuard,
+    async (req, res) => {
+      const id = Number(req.params.id);
+      if (!Number.isInteger(id) || id <= 0) {
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
+          error: "Invalid bracket id",
+          code: "AKNW-020",
+        });
+      }
+      const parsed = IcpBracketPatchSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
+          error: "Invalid bracket payload",
+          code: "AKNW-021",
+          details: parsed.error.flatten(),
+        });
+      }
+      const p = parsed.data;
+      if (Object.keys(p).length === 0) {
+        return res.status(HTTP_422_UNPROCESSABLE_ENTITY).json({
+          error: "No fields to update",
+          code: "AKNW-022",
+        });
+      }
+      try {
+        const existing = await db.execute(sql`
+          SELECT id, slug FROM icp_brackets WHERE id = ${id} LIMIT 1
+        `);
+        if (existing.rows.length === 0) {
+          return res.status(HTTP_404_NOT_FOUND).json({
+            error: "Bracket not found",
+            code: "AKNW-023",
+          });
+        }
+
+        // Build SET clauses dynamically while keeping each value parameterized.
+        const sets: ReturnType<typeof sql>[] = [];
+        if (p.slug !== undefined) {
+          sets.push(sql`slug = ${p.slug}`);
+        }
+        if (p.name !== undefined) sets.push(sql`name = ${p.name}`);
+        if (p.archetypeLabel !== undefined) sets.push(sql`archetype_label = ${p.archetypeLabel}`);
+        if (p.customerType !== undefined) sets.push(sql`customer_type = ${p.customerType}`);
+        if (p.serviceConsumptionProfile !== undefined)
+          sets.push(sql`service_consumption_profile = ${p.serviceConsumptionProfile}`);
+        if (p.targetAdrBandLow !== undefined) sets.push(sql`target_adr_band_low = ${p.targetAdrBandLow}`);
+        if (p.targetAdrBandHigh !== undefined) sets.push(sql`target_adr_band_high = ${p.targetAdrBandHigh}`);
+        if (p.compSetNames !== undefined) {
+          const json = p.compSetNames ? JSON.stringify(p.compSetNames) : null;
+          sets.push(sql`comp_set_names = ${json}::jsonb`);
+        }
+        if (p.description !== undefined) sets.push(sql`description = ${p.description}`);
+        if (p.sourceNote !== undefined) sets.push(sql`source_note = ${p.sourceNote}`);
+        if (p.sortOrder !== undefined) sets.push(sql`sort_order = ${p.sortOrder}`);
+        if (p.isActive !== undefined) sets.push(sql`is_active = ${p.isActive}`);
+        sets.push(sql`updated_at = now()`);
+
+        const setClause = sql.join(sets, sql`, `);
+        const result = await db.execute(sql`
+          UPDATE icp_brackets SET ${setClause}
+          WHERE id = ${id}
+          RETURNING id, slug, is_active
+        `);
+        const row = result.rows[0] as { id: number; slug: string; is_active: boolean };
+        const action = p.isActive === false ? "icp-bracket-retire"
+          : p.isActive === true ? "icp-bracket-restore"
+          : "icp-bracket-update";
+        logActivity(req, action, "icp_brackets", row.id, row.slug, { fields: Object.keys(p) });
+        return res.json({ bracket: row });
+      } catch (error: unknown) {
+        if ((error as { code?: string })?.code === "23505") {
+          return res.status(HTTP_409_CONFLICT).json({
+            error: `Bracket with slug '${p.slug}' already exists`,
+            code: "AKNW-024",
+          });
+        }
+        return logAndSendError(res, "Failed to update ICP bracket", error, "AKNW-025");
+      }
+    },
+  );
 
   // POST /api/admin/knowledge-registry/country-economic-data/regenerate
   // Must be registered BEFORE /:id/regenerate to prevent path shadowing.

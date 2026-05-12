@@ -166,6 +166,9 @@ importers:
       '@workspace/db':
         specifier: workspace:*
         version: link:../../lib/db
+      '@workspace/engine':
+        specifier: workspace:*
+        version: link:../../lib/engine
       ai:
         specifier: ^6.0.170
         version: 6.0.170(zod@3.25.76)

@@ -12,6 +12,12 @@ export default defineConfig({
     ],
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@norfolk/shared': path.resolve(__dirname, '../../lib/shared/src'),
+      '@shared': path.resolve(__dirname, '../../lib/shared/src'),
+      '@engine': path.resolve(__dirname, '../../lib/engine/src'),
+      '@calc': path.resolve(__dirname, '../../lib/calc/src'),
+      '@analytics': path.resolve(__dirname, '../../lib/analytics/src'),
+      '@domain': path.resolve(__dirname, '../../lib/domain/src'),
     },
   },
 });

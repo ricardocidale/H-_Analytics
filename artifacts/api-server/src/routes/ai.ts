@@ -1,14 +1,16 @@
 import { type Express, type Request, type Response } from "express";
-import { getAnthropicClient, getGeminiClient } from "../ai/clients";
 import { requireAuth } from "../auth";
 import { aiRateLimit } from "../middleware/rate-limit";
 import { z } from "zod";
 import { logApiCost, estimateCost } from "../middleware/cost-logger";
 import { storage } from "../storage";
 import { resolveLlm, getVendorService } from "../ai/resolve-llm";
+import { generateText } from "../ai/dispatch";
 import { logger } from "../logger";
 import type { ResearchConfig } from "@workspace/db";
 import { HTTP_503_SERVICE_UNAVAILABLE, MAX_AI_PROMPT_INPUT_CHARS } from "../constants";
+
+const MAX_OPTIMIZE_TOKENS = 8192;
 
 const rewriteSchema = z.object({
   text: z.string().min(1).max(5000),
@@ -42,22 +44,19 @@ Rewritten description:`;
       const ga = await storage.getGlobalAssumptions(req.user?.id);
       const rc = (ga?.researchConfig as ResearchConfig) ?? {};
       const resolved = resolveLlm(rc, "aiUtilityLlm");
-      const gemini = getGeminiClient();
       const startTime = Date.now();
-      const response = await gemini.models.generateContent({
-        model: resolved.model,
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        config: { maxOutputTokens: 1024 },
-      });
 
-      const rewritten = response.text?.trim();
+      const { text: raw, inputTokens: inTok, outputTokens: outTok, service: svc } = await generateText({
+        llm: resolved,
+        prompt,
+        maxTokens: 1024,
+      });
+      const rewritten = raw.trim();
+
       if (!rewritten) {
         return res.status(500).json({ error: "No response from AI", code: "AI-002" });
       }
 
-      const svc = getVendorService(resolved.vendor);
-      const inTok = response.usageMetadata?.promptTokenCount ?? Math.round(prompt.length / 4);
-      const outTok = response.usageMetadata?.candidatesTokenCount ?? Math.round((rewritten?.length ?? 0) / 4);
       try { logApiCost({ timestamp: new Date().toISOString(), service: svc, model: resolved.model, operation: "rewrite-description", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost(svc, resolved.model, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/ai/rewrite-description" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
 
       res.json({ rewritten });
@@ -86,16 +85,8 @@ Rewritten description:`;
       const ga2 = await storage.getGlobalAssumptions(req.user?.id);
       const rc2 = (ga2?.researchConfig as ResearchConfig) ?? {};
       const resolved2 = resolveLlm(rc2, "aiUtilityLlm");
-      const anthropic = getAnthropicClient();
 
-      const startTime = Date.now();
-      const response = await anthropic.messages.create({
-        model: resolved2.model,
-        max_tokens: 8192,
-        messages: [
-          {
-            role: "user",
-            content: `You are a prompt engineering expert specializing in hospitality investment research. Your task is to optimize the following Ideal Customer Profile (ICP) prompt so it produces the best possible results when used to instruct an LLM performing market research on boutique luxury hotel investment opportunities.
+      const optimizePrompt = `You are a prompt engineering expert specializing in hospitality investment research. Your task is to optimize the following Ideal Customer Profile (ICP) prompt so it produces the best possible results when used to instruct an LLM performing market research on boutique luxury hotel investment opportunities.
 
 Rules:
 - Keep ALL factual data, ranges, numbers, and specifications exactly as provided
@@ -110,19 +101,20 @@ Rules:
 
 Original prompt to optimize:
 
-${prompt}`,
-          },
-        ],
-      });
+${prompt}`;
 
-      const optimized = response.content[0]?.type === "text" ? response.content[0].text.trim() : "";
+      const startTime = Date.now();
+      const { text: raw, inputTokens: inTok, outputTokens: outTok, service: svc2 } = await generateText({
+        llm: resolved2,
+        prompt: optimizePrompt,
+        maxTokens: 8192,
+      });
+      const optimized = raw.trim();
+
       if (!optimized) {
         return res.status(500).json({ error: "No response from AI", code: "AI-006" });
       }
 
-      const svc2 = getVendorService(resolved2.vendor);
-      const inTok = response.usage?.input_tokens ?? Math.round(prompt.length / 4);
-      const outTok = response.usage?.output_tokens ?? Math.round(optimized.length / 4);
       try { logApiCost({ timestamp: new Date().toISOString(), service: svc2, model: resolved2.model, operation: "optimize-prompt", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost(svc2, resolved2.model, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/ai/optimize-prompt" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
 
       res.json({ optimized });

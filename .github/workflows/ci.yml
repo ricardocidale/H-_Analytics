@@ -39,6 +39,9 @@ jobs:
       - name: Schema drift gate
         run: pnpm --filter @workspace/scripts run check:schema-drift
 
+      - name: Analyst copy guard (casual-register rule)
+        run: pnpm --filter @workspace/scripts run check:analyst-copy
+
   unit-tests:
     name: Unit Tests (calc + engine)
     runs-on: ubuntu-latest

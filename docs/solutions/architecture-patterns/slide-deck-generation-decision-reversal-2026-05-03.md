@@ -7,7 +7,7 @@ module: slides
 problem_type: decision_record
 component: service_object
 severity: high
-status: authoritative
+status: superseded
 applies_when:
   - "Deciding whether to add a PPTX or image-PPTX slide variant"
   - "Evaluating whether to reinstate the satori/sharp/python-pptx pipeline"
@@ -21,6 +21,16 @@ tags:
 ---
 
 # Slide deck generation: dual-format PPTX superseded by Playwright HTML→PDF
+
+## Supersession (2026-05-12)
+
+**This document is superseded.** Factory v2 reinstated the PPTX-as-truth pipeline it describes as abandoned. The catalyst was the v7 reconstruction package (`lb_property_reconstruction_package_v7_cleaned_instructed.zip`), which supplies a canonical source PPTX + per-slide bbox/object manifest as structural truth — eliminating the satori/sharp fidelity gap that motivated the 2026-05-03 reversal.
+
+The authoritative pipeline is now PPTX template substitution (`pptx-automizer`) → LibreOffice headless export → dual-format PPTX + PDF. See `docs/plans/2026-05-11-001-feat-factory-v2-pptx-substitution-plan.md` for the full rationale and implementation record.
+
+The Playwright HTML→PDF path described below still exists as `lb-deck-pdf.ts` (legacy Franco/React path) but is no longer the V2 factory's render path.
+
+---
 
 ## What this doc is
 

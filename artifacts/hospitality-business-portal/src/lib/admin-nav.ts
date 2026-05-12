@@ -49,7 +49,9 @@ export function setAdminSection(section: AdminSection | string) {
     if (kindHint) setResourcesCatalogKindHint(kindHint);
     setIntelligenceSection(target);
     if (typeof window !== "undefined" && !window.location.pathname.startsWith("/intelligence")) {
-      navigate("/intelligence");
+      // Carry the section in the URL so the cross-page jump survives a
+      // refresh / share / back-forward instead of resetting to the default.
+      navigate(`/intelligence?section=${encodeURIComponent(target)}`);
     }
     return;
   }

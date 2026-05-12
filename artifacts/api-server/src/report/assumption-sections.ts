@@ -1,5 +1,9 @@
 import type { PropertyInput } from "@engine/types";
 import { FIELD_REGISTRY, type FieldDefinition } from "@shared/field-registry";
+import {
+  resolveAsImprovedFacts,
+  resolveAsPurchasedFacts,
+} from "@engine/property/renovation-facts";
 
 /**
  * Assumption section builders for export reports.
@@ -142,9 +146,32 @@ export function buildPropertyAssumptionsSection(
   if (p.locationType) rows.push(row("Location Type", fmtText(p.locationType), { indent: 1 }));
   if (p.marketTier) rows.push(row("Market Tier", fmtText(p.marketTier), { indent: 1 }));
   rows.push(row("Rooms", fmtInt(property.roomCount), { indent: 1 }));
-  if (p.fbVenues) rows.push(row("F&B Venues", fmtInt(Number(p.fbVenues)), { indent: 1 }));
-  if (p.eventSpaceSqft) rows.push(row("Event Space (sq ft)", fmtInt(Number(p.eventSpaceSqft)), { indent: 1 }));
+  // Renovation hypothesis (task #1406). Both snapshots come from the engine
+  // resolver so the As-Improved row falls back to its As-Purchased twin
+  // whenever the operator has not entered an improved value, and the legacy
+  // `description` column survives transparently. The "(As-Improved, from
+  // YYYY)" suffix mirrors the cutover used by the projection pipeline.
+  const factsInput = p as unknown as Parameters<typeof resolveAsPurchasedFacts>[0];
+  const purchasedFacts = resolveAsPurchasedFacts(factsInput);
+  const improvedFacts = resolveAsImprovedFacts(factsInput);
+  if (purchasedFacts.fbVenues != null) rows.push(row("F&B Venues (As-Purchased)", fmtInt(purchasedFacts.fbVenues), { indent: 1 }));
+  if (purchasedFacts.fbSeats != null) rows.push(row("F&B Seats (As-Purchased)", fmtInt(purchasedFacts.fbSeats), { indent: 1 }));
+  if (purchasedFacts.eventSpaceSqft != null) rows.push(row("Event Space (As-Purchased, sq ft)", fmtInt(purchasedFacts.eventSpaceSqft), { indent: 1 }));
+  if (purchasedFacts.totalBuildingSqft != null) rows.push(row("Building (As-Purchased, sq ft)", fmtInt(purchasedFacts.totalBuildingSqft), { indent: 1 }));
   if (p.totalPropertyAcreage) rows.push(row("Acreage", fmtText(p.totalPropertyAcreage), { indent: 1 }));
+  const reopen = p.plannedReopeningYear != null ? Number(p.plannedReopeningYear) : null;
+  const improvedSuffix = reopen != null ? ` (As-Improved, from ${reopen})` : " (As-Improved)";
+  const hasImprovedHypothesis =
+    p.fbVenuesImproved != null || p.fbSeatsImproved != null ||
+    p.eventSpaceSqftImproved != null || p.totalBuildingSqftImproved != null ||
+    reopen != null;
+  if (hasImprovedHypothesis) {
+    if (improvedFacts.fbVenues != null) rows.push(row(`F&B Venues${improvedSuffix}`, fmtInt(improvedFacts.fbVenues), { indent: 1 }));
+    if (improvedFacts.fbSeats != null) rows.push(row(`F&B Seats${improvedSuffix}`, fmtInt(improvedFacts.fbSeats), { indent: 1 }));
+    if (improvedFacts.eventSpaceSqft != null) rows.push(row(`Event Space${improvedSuffix} (sq ft)`, fmtInt(improvedFacts.eventSpaceSqft), { indent: 1 }));
+    if (improvedFacts.totalBuildingSqft != null) rows.push(row(`Building${improvedSuffix} (sq ft)`, fmtInt(improvedFacts.totalBuildingSqft), { indent: 1 }));
+    if (reopen != null) rows.push(row("Planned Reopening Year", fmtInt(reopen), { indent: 1 }));
+  }
   if (p.acquisitionDate) rows.push(row("Acquisition Date", fmtText(p.acquisitionDate), { indent: 1 }));
   if (p.operationsStartDate) rows.push(row("Operations Start", fmtText(p.operationsStartDate), { indent: 1 }));
   if (p.ownerPriorityReturn !== undefined && p.ownerPriorityReturn !== null && Number(p.ownerPriorityReturn) > 0) {

@@ -1,7 +1,7 @@
 ---
 title: "feat: Factory v2 — agent-native PPTX-substitution rewrite of the slide factory"
 type: refactor
-status: active
+status: completed
 date: 2026-05-11
 ---
 

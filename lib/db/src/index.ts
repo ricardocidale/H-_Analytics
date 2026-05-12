@@ -9,3 +9,5 @@ export const pool = new Pool({ connectionString: requireDbUrl() });
 export const db = drizzle(pool, { schema });
 
 export * from "./schema";
+export * from "./property-descriptor-catalog-seed";
+export * from "./property-descriptor-accessor";

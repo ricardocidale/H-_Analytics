@@ -1,0 +1,118 @@
+~/workspace$ coderabbit review --plain --base-commit HEAD~15 --type committed --dir artifacts/api-server
+Starting CodeRabbit review in plain text mode...
+
+Review directory: /home/runner/workspace/artifacts/api-server
+
+Connecting to review service
+Setting up
+Summarizing
+Reviewing
+
+
+============================================================================
+File: artifacts/api-server/src/routes/admin/knowledge-registry.ts
+Line: 344 to 398
+Type: potential_issue
+Severity: major
+
+Comment:
+TOCTOU risk: slug duplicate check is not atomic.
+
+The handler performs an async SELECT (lines 359-361) to check for duplicate slugs, then an async INSERT (lines 370-390). Another concurrent POST request could insert the same slug between these operations, causing a DB constraint violation instead of the intended 409 response. As per coding guidelines, admin routes with async DB reads followed by writes must use an in-process or DB-level concurrency guard.
+
+
+
+
+🔒 Recommended mitigation
+
+Rely on the database UNIQUE constraint on slug and catch the error:
+
+-        const dup = await db.execute(sql
+-          SELECT 1 FROM icp_brackets WHERE slug = ${b.slug} LIMIT 1
+-        );
+-        if (dup.rows.length > 0) {
+-          return res.status(HTTP_409_CONFLICT).json({
+-            error: Bracket with slug '${b.slug}' already exists,
+-            code: "AKNW-018",
+-          });
+-        }
+-
+         const result = await db.execute(sql
+           INSERT INTO icp_brackets (
+             ...
+           )
+           ...
+         );
+       } catch (error: unknown) {
++        // Catch unique constraint violation (PostgreSQL error code 23505)
++        if ((error as any)?.code === '23505') {
++          return res.status(HTTP_409_CONFLICT).json({
++            error: Bracket with slug '${b.slug}' already exists,
++            code: "AKNW-018",
++          });
++        }
+         return logAndSendError(res, "Failed to create ICP bracket", error, "AKNW-019");
+
+
+Ensure the icp_brackets table has a UNIQUE constraint on slug.
+
+Prompt for AI Agent:
+Verify each finding against current code. Fix only still-valid issues, skip the rest with a brief reason, keep changes minimal, and validate.
+
+In @artifacts/api-server/src/routes/admin/knowledge-registry.ts around lines 344 - 398, The current POST handler for "/api/admin/knowledge-registry/icp-bracket-catalog/data" uses an async SELECT (the db.execute call checking slug) then INSERT which introduces a TOCTOU race; remove the pre-check and instead rely on a UNIQUE constraint on icp_brackets.slug and handle the DB unique-violation error from the INSERT (the same db.execute that RETURNS id, slug) by detecting the DB error code/constraint and returning HTTP_409_CONFLICT with code "AKNW-018"; for other errors call logAndSendError("Failed to create ICP bracket", error, "AKNW-019") as before and keep logActivity(...) after a successful insert. Ensure the icp_brackets.slug column has a UNIQUE constraint in the schema if it doesn’t already.
+
+============================================================================
+File: artifacts/api-server/src/routes/admin/knowledge-registry.ts
+Line: 400 to 487
+Type: potential_issue
+Severity: major
+
+Comment:
+TOCTOU risk: slug conflict check is not atomic.
+
+The handler performs multiple async SELECTs (lines 428-430, 442-450) followed by an async UPDATE (lines 472-476). A concurrent PATCH request could update to the same slug between the conflict check and the UPDATE. As per coding guidelines, admin routes with async DB reads followed by writes must use an in-process or DB-level concurrency guard.
+
+
+
+
+🔒 Recommended mitigation
+
+Remove the pre-check and rely on the database UNIQUE constraint:
+
+         if (p.slug !== undefined) {
+-          if (p.slug !== (existing.rows[0] as { slug: string }).slug) {
+-            const dup = await db.execute(sql
+-              SELECT 1 FROM icp_brackets WHERE slug = ${p.slug} AND id  ${id} LIMIT 1
+-            );
+-            if (dup.rows.length > 0) {
+-              return res.status(HTTP_409_CONFLICT).json({
+-                error: Bracket with slug '${p.slug}' already exists,
+-                code: "AKNW-024",
+-              });
+-            }
+-          }
+           sets.push(sqlslug = ${p.slug});
+         }
+         ...
+         const result = await db.execute(sql
+           UPDATE icp_brackets SET ${setClause}
+           WHERE id = ${id}
+           RETURNING id, slug, is_active
+         );
+       } catch (error: unknown) {
++        // Catch unique constraint violation
++        if ((error as any)?.code === '23505') {
++          return res.status(HTTP_409_CONFLICT).json({
++            error: Bracket with slug '${p.slug}' already exists,
++            code: "AKNW-024",
++          });
++        }
+         return logAndSendError(res, "Failed to update ICP bracket", error, "AKNW-025");
+
+Prompt for AI Agent:
+Verify each finding against current code. Fix only still-valid issues, skip the rest with a brief reason, keep changes minimal, and validate.
+
+In @artifacts/api-server/src/routes/admin/knowledge-registry.ts around lines 400 - 487, The slug uniqueness pre-check (db.execute SELECT dup) creates a TOCTOU race; remove the duplicate-check block in the PATCH handler (the code that queries icp_brackets for the duplicate slug and returns 409) and still push slug into sets when p.slug is provided; rely on the database UNIQUE constraint to enforce uniqueness. In the try/catch that wraps the UPDATE (the db.execute that runs UPDATE icp_brackets ... RETURNING ...), detect a DB unique-violation error and convert it to the existing 409 response (error message Bracket with slug '...' already exists, code "AKNW-024") instead of the generic logAndSendError; otherwise preserve the current logActivity call and existing error handling for non-unique errors.
+
+Review completed: 2 findings ✔
+~/workspace$ 

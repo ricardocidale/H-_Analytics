@@ -56,6 +56,7 @@ export type { TabValidationWarning } from "./TabActions";
 export { RangePillsLayer } from "./RangePillsLayer";
 export type { RangePillSpec } from "./RangePillsLayer";
 export { default as SummaryFooter } from "./SummaryFooter";
+export { default as IcpMixSummary } from "./IcpMixSummary";
 export { CompanyAssumptionsHeaderBar } from "./CompanyAssumptionsHeaderBar";
 export { CompanyAssumptionsTabsView } from "./CompanyAssumptionsTabsView";
 export { CompanyAnalystOverlay } from "./CompanyAnalystOverlay";

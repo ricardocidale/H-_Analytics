@@ -1,4 +1,5 @@
 import { storage } from "../storage";
+import { getEffectivePropertyView } from "@workspace/db";
 import { buildPropertyContextPack } from "./context-pack/property-pack";
 import { buildCompanyContextPack } from "./context-pack/company-pack";
 import type { PropertyContextPack, CompanyContextPack } from "./context-pack/types";
@@ -209,8 +210,14 @@ export async function buildRebeccaContext(
   let entityName: string;
 
   if (entityType === "property") {
-    const property = await storage.getProperty(entityId);
-    if (!property) throw new Error("Property not found");
+    const propertyRaw = await storage.getProperty(entityId);
+    if (!propertyRaw) throw new Error("Property not found");
+    // Task #1407 Milestone B — route every Rebecca read through the descriptor
+    // accessor so renovated descriptor values (As-Improved) override the raw
+    // As-Purchased typed columns whenever they are set. Without this, Rebecca
+    // would describe the property's pre-renovation envelope while the engine
+    // is computing returns against the renovated one.
+    const property = getEffectivePropertyView(propertyRaw as Record<string, unknown>) as typeof propertyRaw;
     const ga = await storage.getGlobalAssumptions(userId);
     const icpConfig = ga?.icpConfig ?? null;
     const pack = buildPropertyContextPack(property, ga ?? null, icpConfig);

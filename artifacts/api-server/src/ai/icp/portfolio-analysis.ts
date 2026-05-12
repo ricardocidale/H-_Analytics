@@ -9,6 +9,7 @@
 import type { Property } from "@workspace/db";
 import type { PortfolioAnalysis } from "@shared/icp-types";
 import { aggregateNullable, aggregateNumeric, countMap, dominant } from "./helpers";
+import { resolveAsImprovedFacts } from "@engine/property/renovation-facts";
 
 export function emptyPortfolioAnalysis(): PortfolioAnalysis {
   const zero = { min: 0, max: 0, median: 0, mean: 0 };
@@ -35,11 +36,18 @@ export function analyzePortfolio(properties: Property[]): PortfolioAnalysis {
   const maxOcc = aggregateNumeric(active.map(p => (p.maxOccupancy ?? 0)).filter(v => v > 0));
   const price = aggregateNumeric(active.map(p => p.purchasePrice ?? 0).filter(v => v > 0));
 
+  // ICP analysis is forward-looking — it describes the company we are
+  // building. When an operator has captured a renovation hypothesis the
+  // post-renovation (As-Improved) configuration is what defines the ICP,
+  // so descriptors flow through the shared resolver. Properties without
+  // a hypothesis fall back to their As-Purchased values transparently
+  // (task #1406).
+  const resolved = active.map(p => resolveAsImprovedFacts(p as unknown as Parameters<typeof resolveAsImprovedFacts>[0]));
   const acreage = aggregateNullable(active.map(p => p.totalPropertyAcreage));
-  const sqft = aggregateNullable(active.map(p => p.totalBuildingSqft));
-  const seats = aggregateNullable(active.map(p => p.fbSeats));
-  const eventSqft = aggregateNullable(active.map(p => p.eventSpaceSqft));
-  const venues = aggregateNullable(active.map(p => p.fbVenues));
+  const sqft = aggregateNullable(resolved.map(r => r.totalBuildingSqft));
+  const seats = aggregateNullable(resolved.map(r => r.fbSeats));
+  const eventSqft = aggregateNullable(resolved.map(r => r.eventSpaceSqft));
+  const venues = aggregateNullable(resolved.map(r => r.fbVenues));
 
   const fbShares = active.map(p => p.revShareFB).filter((v): v is number => v != null && v > 0);
   const evtShares = active.map(p => p.revShareEvents).filter((v): v is number => v != null && v > 0);

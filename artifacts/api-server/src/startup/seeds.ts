@@ -222,6 +222,7 @@ async function runSeeds() {
     { name: "admin-resources-008", run: async () => { const { runAdminResources008 } = await import("../migrations/admin-resources-008"); await runAdminResources008(); } },
     { name: "admin-resources-010", run: async () => { const { runAdminResources010 } = await import("../migrations/admin-resources-010"); await runAdminResources010(); } },
     { name: "admin-resources-011", run: async () => { const { runAdminResources011 } = await import("../migrations/admin-resources-011"); await runAdminResources011(); } },
+    { name: "admin-resources-012", run: async () => { const { runAdminResources012 } = await import("../migrations/admin-resources-012"); await runAdminResources012(); } },
   ]) {
     await modelMigrationTask.run();
   }

@@ -44,7 +44,7 @@ import {
  * Restructured per agent-taxonomy task (Task #1129):
  *   Analyst       — Gustavo [Orchestrator] card + Specialists directory
  *   Agents        — Rebecca (config/KB/conversations) + Iris
- *   Runs          — Unified cross-type run log (Analyst / Slide / Iris)
+ *   Logs          — Unified cross-type run log (Analyst / Slide / Iris) + Self-tests
  *   Knowledge & Resources — Knowledge Registry + Market Data
  *   System        — System Health, Scheduled Research, Vector Search Latency
  *
@@ -78,6 +78,9 @@ export type IntelligenceSection =
   | "resources-tables"
   | "knowledge-registry"
   | "knowledge-registry-country-data"
+  | "logs"
+  // "runs" is kept in the union as a backward-compat alias for deep links;
+  // Intelligence.tsx redirects it to "logs" on load.
   | "runs"
   // Agent Roster (Task #1389) — three new top-level browsing sections
   // for every Agent, Specialist, and Minion in the system. The legacy
@@ -119,7 +122,7 @@ interface NavGroup {
  *   Conversational
  *     Rebecca        (Configuration / Knowledge Base / Conversations)
  *     Iris           (Resource Maintainer)
- *   Runs             (unified cross-type log)
+ *   Logs             (unified cross-type log + self-tests)
  *   Knowledge & Resources
  *     Knowledge Registry
  *     Country Economic Data
@@ -182,15 +185,15 @@ function buildNavGroups(): NavGroup[] {
       ],
     },
     {
-      id: "runs",
-      label: NAV_GROUP_LABELS.runs,
+      id: "logs",
+      label: NAV_GROUP_LABELS.logs,
       icon: IconList,
       sections: [
         {
-          value: "runs",
-          label: "All Runs",
+          value: "logs",
+          label: "All Logs",
           icon: IconList,
-          tooltip: "Unified log of all agent runs — Analyst research, Slide Factory, and Iris. Filter by type, agent, status, or date.",
+          tooltip: "Unified log of all agent runs and self-tests — Analyst research, Slide Factory, Iris, and entity self-test history. Filter by type, agent, status, or date.",
         },
       ],
     },
@@ -294,6 +297,9 @@ function getGroupForSection(section: IntelligenceSection, groups: NavGroup[]): s
   if (section === "llm-workflows") {
     return "llms";
   }
+  // "runs" is the legacy alias for "logs" — map it to the logs group for
+  // sidebar highlighting while Intelligence.tsx redirects the section value.
+  if (section === "runs") return "logs";
   // Rebecca sub-sections that aren't in the nav map to the conversational group
   return "agents";
 }

@@ -30,7 +30,7 @@
  *     error rather than silently writing the wrong value.
  */
 
-import { getAnthropicClient } from "./clients";
+import { getAnthropicClient, getOpenAIClient, getGeminiClient } from "./clients";
 import { resolveLlmFor } from "./llm-config-resolver";
 import { GroundedResearchService } from "../services/GroundedResearchService";
 import { AI_REGEN_CONSTANTS_MAX_TOKENS } from "../constants";
@@ -558,35 +558,57 @@ export async function proposeConstantRegeneration(args: {
     }
   }
 
-  // 2. Ask Claude for the structured proposal.
-  const { modelId: analystModelId } = await resolveLlmFor("regen-constants");
-  const anthropic = getAnthropicClient();
-  const completion = await anthropic.messages.create({
-    model: analystModelId,
-    max_tokens: AI_REGEN_CONSTANTS_MAX_TOKENS,
-    system: [{ type: "text", text: buildSystemPrompt(), cache_control: { type: "ephemeral" } }],
-    messages: [
-      {
-        role: "user",
-        content: buildUserPrompt({
-          key: args.key,
-          label: entry.label,
-          helperText: entry.meta.helperText,
-          registryAuthority: entry.meta.authority,
-          registryReferenceUrl: entry.meta.referenceUrl,
-          country: args.country,
-          subdivision: args.subdivision,
-          factoryValue,
-          expectedType,
-          searchAnswer,
-          searchSources,
-        }),
-      },
-    ],
+  // 2. Ask the configured vendor LLM for the structured proposal.
+  const { vendor: analystVendor, modelId: analystModelId } = await resolveLlmFor("regen-constants");
+  const systemPromptText = buildSystemPrompt();
+  const userPromptText = buildUserPrompt({
+    key: args.key,
+    label: entry.label,
+    helperText: entry.meta.helperText,
+    registryAuthority: entry.meta.authority,
+    registryReferenceUrl: entry.meta.referenceUrl,
+    country: args.country,
+    subdivision: args.subdivision,
+    factoryValue,
+    expectedType,
+    searchAnswer,
+    searchSources,
   });
 
-  const textBlock = completion.content.find((b) => b.type === "text");
-  const rawText = textBlock && textBlock.type === "text" ? textBlock.text : "";
+  let rawText: string;
+  if (analystVendor === "anthropic") {
+    const client = getAnthropicClient();
+    const completion = await client.messages.create({
+      model: analystModelId,
+      max_tokens: AI_REGEN_CONSTANTS_MAX_TOKENS,
+      system: [{ type: "text", text: systemPromptText, cache_control: { type: "ephemeral" } }],
+      messages: [{ role: "user", content: userPromptText }],
+    });
+    const block = completion.content.find((b) => b.type === "text");
+    rawText = block && block.type === "text" ? block.text : "";
+  } else if (analystVendor === "openai") {
+    const client = getOpenAIClient();
+    const completion = await client.chat.completions.create({
+      model: analystModelId,
+      max_tokens: AI_REGEN_CONSTANTS_MAX_TOKENS,
+      messages: [
+        { role: "system", content: systemPromptText },
+        { role: "user", content: userPromptText },
+      ],
+    });
+    rawText = completion.choices[0]?.message?.content ?? "";
+  } else {
+    const client = getGeminiClient();
+    const completion = await client.models.generateContent({
+      model: analystModelId,
+      contents: [{ role: "user", parts: [{ text: userPromptText }] }],
+      config: {
+        systemInstruction: systemPromptText,
+        maxOutputTokens: AI_REGEN_CONSTANTS_MAX_TOKENS,
+      },
+    });
+    rawText = completion.text ?? "";
+  }
   if (!rawText) throw new Error("Analyst returned an empty response.");
 
   const parsed = parseAnalystJson(rawText);

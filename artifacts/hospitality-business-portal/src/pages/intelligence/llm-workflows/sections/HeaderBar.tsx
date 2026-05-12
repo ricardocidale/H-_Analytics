@@ -32,7 +32,18 @@ export interface HeaderBarProps {
   registry: LlmRegistryState | undefined;
   refreshRegistry: RefreshRegistryMutation;
   isDirty: boolean;
+  /** Total dirty slots across every category — what Save will persist. */
   dirtyCount: number;
+  /**
+   * Dirty slots in the current sub-section. Drives the Save button label so
+   * the badge reflects what the admin can actually see on screen.
+   */
+  visibleDirtyCount: number;
+  /**
+   * Dirty slots that live in OTHER LLM sub-sections. Used to surface a
+   * secondary hint so admins know they have unsaved changes elsewhere.
+   */
+  otherDirtyCount: number;
   batchSavePending: boolean;
   onSlotSave: () => void;
 }
@@ -42,6 +53,8 @@ export function HeaderBar({
   refreshRegistry,
   isDirty,
   dirtyCount,
+  visibleDirtyCount,
+  otherDirtyCount,
   batchSavePending,
   onSlotSave,
 }: HeaderBarProps) {
@@ -93,15 +106,23 @@ export function HeaderBar({
                 <span className="text-xs">Refresh models</span>
               )}
             </Button>
-            <SaveButton
-              size="sm"
-              onClick={onSlotSave}
-              hasChanges={isDirty}
-              isPending={batchSavePending}
-              data-testid="button-save-llm-workflows"
+            <span
+              title={
+                otherDirtyCount > 0
+                  ? `Save persists all ${dirtyCount} unsaved change${dirtyCount !== 1 ? "s" : ""} (${visibleDirtyCount} here, ${otherDirtyCount} in other LLM section${otherDirtyCount !== 1 ? "s" : ""}).`
+                  : undefined
+              }
             >
-              {`Save${dirtyCount > 0 ? ` (${dirtyCount})` : ""}`}
-            </SaveButton>
+              <SaveButton
+                size="sm"
+                onClick={onSlotSave}
+                hasChanges={isDirty}
+                isPending={batchSavePending}
+                data-testid="button-save-llm-workflows"
+              >
+                {`Save${visibleDirtyCount > 0 ? ` (${visibleDirtyCount})` : ""}`}
+              </SaveButton>
+            </span>
           </>
         }
       />
@@ -151,8 +172,29 @@ export function HeaderBar({
       {/* 3 — Slot dirty warning */}
       {isDirty && (
         <p className="text-xs text-amber-700 bg-amber-50/50 border border-amber-200 rounded-md px-3 py-2">
-          You have {dirtyCount} unsaved slot change{dirtyCount !== 1 ? "s" : ""}.
-          Click <strong>Save</strong> above to persist.
+          {visibleDirtyCount > 0 ? (
+            <>
+              You have {visibleDirtyCount} unsaved slot change
+              {visibleDirtyCount !== 1 ? "s" : ""} in this section
+              {otherDirtyCount > 0 && (
+                <>
+                  {" "}
+                  (and {otherDirtyCount} in other LLM section
+                  {otherDirtyCount !== 1 ? "s" : ""})
+                </>
+              )}
+              . Click <strong>Save</strong> above to persist
+              {otherDirtyCount > 0 ? " all of them" : ""}.
+            </>
+          ) : (
+            <>
+              You have {otherDirtyCount} unsaved slot change
+              {otherDirtyCount !== 1 ? "s" : ""} in other LLM section
+              {otherDirtyCount !== 1 ? "s" : ""}. Click <strong>Save</strong>{" "}
+              above to persist {otherDirtyCount !== 1 ? "them" : "it"}, or
+              switch sections to review.
+            </>
+          )}
         </p>
       )}
     </>

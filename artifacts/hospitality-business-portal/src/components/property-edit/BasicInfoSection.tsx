@@ -464,23 +464,6 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
             <Input type="number" step="0.1" value={draft.totalPropertyAcreage ?? ""} onChange={(e) => onNumberChange("totalPropertyAcreage", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-total-acreage" />
           </div>
 
-          {/* Status + Room Count */}
-          <div className="space-y-2">
-            <Label className="label-text text-foreground flex items-center gap-1.5">Status<InfoTooltip text="Current stage: Pipeline (being scoped), In Negotiation (advanced talks), Acquired (purchased), Improvements (under renovation), or Operating (generating revenue)." /></Label>
-            <Select value={draft.status} onValueChange={(v) => onChange("status", v)}>
-              <SelectTrigger className="bg-card border-primary/30 text-foreground"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {PROPERTY_STATUS_VALUES.map(s => (
-                  <SelectItem key={s} value={s}>{s}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label className="label-text text-foreground flex items-center gap-1.5">Room Count<InfoTooltip text="Total number of rentable guest rooms. This is the primary revenue driver — all room revenue is calculated as Rooms × ADR × Occupancy × 30.5 days/month." /></Label>
-            <Input type="number" value={draft.roomCount} onChange={(e) => onNumberChange("roomCount", e.target.value)} className="bg-card border-primary/30 text-foreground placeholder:text-muted-foreground" />
-          </div>
-
           {/* Star Rating */}
           <div className="space-y-2">
             <Label className="label-text text-foreground flex items-center gap-1.5">Star Rating<InfoTooltip text="Property star classification (1-5★). Drives research comparable matching — luxury (5★) properties are only compared to other luxury properties. Click to set, click same star to clear." /></Label>
@@ -559,7 +542,6 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
               </div>
             </div>
           )}
-
           {/* Classification tiers — quality, service level, location type */}
           <div className="sm:col-span-2 border-t border-border/50 pt-5">
             <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wider">Classification</p>
@@ -761,7 +743,6 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );

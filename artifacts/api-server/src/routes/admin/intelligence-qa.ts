@@ -13,7 +13,7 @@ import {
   HTTP_422_UNPROCESSABLE_ENTITY,
   HTTP_503_SERVICE_UNAVAILABLE,
 } from "../../constants";
-import { resolveLlm, getVendorService } from "../../ai/resolve-llm";
+import { resolveLlm } from "../../ai/resolve-llm";
 import { createResearchClient } from "../../ai/research-client";
 import { getGeminiClient, getAnthropicClient, getOpenAIClient } from "../../ai/clients";
 import type { ResearchConfig } from "@workspace/db";
@@ -217,10 +217,8 @@ export function registerQaRoutes(app: Express) {
 
       const researchConfig = ga?.researchConfig as ResearchConfig | undefined;
       const resolved = resolveLlm(researchConfig, domain);
-      const vendorKey = getVendorService(resolved.vendor);
-
       const supportedVendor: "anthropic" | "openai" | "google" =
-        vendorKey === "gemini" ? "google" : vendorKey === "anthropic" ? "anthropic" : "openai";
+        resolved.vendor === "anthropic" ? "anthropic" : resolved.vendor === "google" ? "google" : "openai";
 
       const clients: Parameters<typeof createResearchClient>[1] = {};
       try {

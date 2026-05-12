@@ -11,6 +11,7 @@ import { seedSourceRegistry } from "./source-registry";
 import { seedPropertyPhotos } from "./photos";
 import { seedBrandAssetLogos } from "./brand-assets";
 import { seedKnowledgeBase } from "./knowledge-base-seeds";
+import { seedAssumptionGuardrails } from "./assumption-guardrails";
 import { indexPropertyProfile } from "../ai/vector-store-service";
 import { logger } from "../logger";
 
@@ -127,6 +128,8 @@ export async function seed() {
 
     await seedKnowledgeBase();
 
+    await seedAssumptionGuardrails();
+
     // The Analyst validates every seeded property — catches errors like wrong tax rates
     try {
       const { validateAllProperties } = await import("../ai/analyst-watchdog");
@@ -196,4 +199,5 @@ export {
   seedMedellinDuplex,
   seedMedellinDuplexPhotos,
   seedKnowledgeBase,
+  seedAssumptionGuardrails,
 };

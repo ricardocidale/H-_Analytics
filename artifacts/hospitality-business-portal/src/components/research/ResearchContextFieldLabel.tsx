@@ -6,6 +6,7 @@ import { IconAlertCircle } from "@/components/icons";
 import { Lock } from "@/components/icons/themed-icons";
 import type { GuidanceContext } from "@/lib/panel-manager";
 import type { ResearchBadgeProps } from "@/components/ui/research-badge";
+import { useAssumptionGuardrail } from "@/hooks/useAssumptionGuardrail";
 
 type GuidanceState = "fresh" | "stale" | "pinned" | "none";
 
@@ -22,6 +23,17 @@ interface ResearchContextFieldLabelProps {
   children?: React.ReactNode;
   currentValue?: number | null;
   isPercent?: boolean;
+  /**
+   * Explicit guardrail key for the Fabio range-quality dot. When provided,
+   * overrides `guidanceContext.assumptionKey` for the guardrail lookup so
+   * callers can map a field-level key (e.g. "acqRate") to the canonical
+   * guardrail table key (e.g. "wacc.cost_of_debt"). When omitted, the hook
+   * falls back to `guidanceContext?.assumptionKey`, which already matches the
+   * guardrail key for fields seeded directly (e.g. "wacc.cost_of_equity").
+   * If neither resolves to a row in `assumption_guardrails`, the badge
+   * silently falls back to legacy (Med/Low/High) mode.
+   */
+  guardrailKey?: string;
   "data-testid"?: string;
 }
 
@@ -38,10 +50,14 @@ function ResearchContextFieldLabel({
   children,
   currentValue,
   isPercent,
+  guardrailKey,
   ...props
 }: ResearchContextFieldLabelProps) {
   const state = getState(updatedAt, isPinned, badgeProps);
   const freshnessInfo = updatedAt ? getFreshness(updatedAt) : null;
+
+  const resolvedGuardrailKey = guardrailKey ?? guidanceContext?.assumptionKey;
+  const guardrail = useAssumptionGuardrail(resolvedGuardrailKey);
 
   return (
     <div className={cn("space-y-1.5", className)} data-testid={props["data-testid"] ?? `field-label-${guidanceContext?.assumptionKey ?? "unknown"}`}>
@@ -102,6 +118,7 @@ function ResearchContextFieldLabel({
             currentValue={currentValue}
             entry={badgeProps.entry}
             isPercent={isPercent}
+            guardrail={guardrail}
           />
         )}
       </div>

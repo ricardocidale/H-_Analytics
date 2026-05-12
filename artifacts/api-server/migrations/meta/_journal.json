@@ -393,6 +393,20 @@
       "when": 1747180800000,
       "tag": "0057_icp_bracket_mix",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1747267200000,
+      "tag": "0058_self_test_logs",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1747353600000,
+      "tag": "0059_research_runs_constant_latest_idx",
+      "breakpoints": true
     }
   ]
 }

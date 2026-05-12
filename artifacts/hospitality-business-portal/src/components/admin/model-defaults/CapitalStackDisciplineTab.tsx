@@ -1,7 +1,9 @@
+import { Button } from "@/components/ui/button";
 import { Section } from "@/components/ui/field-section";
 import { NumberField, PctField, type Draft } from "./FieldHelpers";
 import { AnalystActionButton } from "@/components/analyst/AnalystActionButton";
 import { AnalystVerdictDisplay } from "@/components/analyst/AnalystVerdictDisplay";
+import { SaveButton } from "@/components/ui/save-button";
 import { useFocusFieldFromUrl } from "@/lib/analyst-focus-field";
 import { IconBriefcase } from "@/components/icons";
 import {
@@ -18,6 +20,14 @@ interface CapitalStackDisciplineTabProps {
   fundingAnalystRunning?: boolean;
   fundingAnalystCooldownMs?: number;
   fundingVerdict?: import("@engine/analyst/contracts/verdict").AnalystVerdict | null;
+  /** Whether there are unsaved changes. Controls Cancel button visibility. */
+  isDirty?: boolean;
+  /** Whether a save mutation is in flight. */
+  isPending?: boolean;
+  /** Called when the Save button inside the tab is clicked. */
+  onSave?: () => void;
+  /** Called when Cancel is clicked — discards unsaved changes. */
+  onReset?: () => void;
 }
 
 export function CapitalStackDisciplineTab(props: CapitalStackDisciplineTabProps) {
@@ -28,6 +38,10 @@ export function CapitalStackDisciplineTab(props: CapitalStackDisciplineTabProps)
     fundingAnalystRunning,
     fundingAnalystCooldownMs,
     fundingVerdict,
+    isDirty = false,
+    isPending = false,
+    onSave,
+    onReset,
   } = props;
 
   useFocusFieldFromUrl();
@@ -69,8 +83,18 @@ export function CapitalStackDisciplineTab(props: CapitalStackDisciplineTabProps)
             </div>
           </div>
         </div>
-        {onFundingAnalystRefresh && (
-          <div className="shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
+          {isDirty && onReset && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onReset}
+              data-testid="button-capital-stack-discipline-tab-cancel"
+            >
+              Cancel
+            </Button>
+          )}
+          {onFundingAnalystRefresh && (
             <AnalystActionButton
               variant="header"
               running={fundingAnalystRunning}
@@ -78,8 +102,18 @@ export function CapitalStackDisciplineTab(props: CapitalStackDisciplineTabProps)
               onClick={onFundingAnalystRefresh}
               testIdSuffix="capital-stack-discipline"
             />
-          </div>
-        )}
+          )}
+          {onSave && (
+            <SaveButton
+              onClick={onSave}
+              hasChanges={isDirty}
+              isPending={isPending}
+              alwaysActive
+              size="sm"
+              data-testid="button-capital-stack-discipline-tab-save"
+            />
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">

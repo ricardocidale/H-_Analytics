@@ -6,6 +6,7 @@ import { logActivity, logAndSendError, parseRouteId, zodErrorMessage } from "./h
 import { logger } from "../logger";
 import { HTTP_409_CONFLICT } from "../constants";
 import { resolveLlmFor } from "../ai/llm-config-resolver";
+import { generateText } from "../ai/dispatch";
 
 const httpUrlSchema = z.string().url().max(2048).refine(
   (val) => { try { const u = new URL(val); return u.protocol === "http:" || u.protocol === "https:"; } catch { return false; } },
@@ -56,8 +57,6 @@ async function scoreRelevanceAI(
   const results = new Map<number, { isRelevant: boolean; relevanceScore: number }>();
   if (urlEntries.length === 0) return results;
   try {
-    const { getGeminiClient } = await import("../ai/clients");
-    const gemini = getGeminiClient();
     const urlList = urlEntries.map((e, i) =>
       `${i + 1}. [ID:${e.id}] ${e.hostname} — Title: "${e.title || "N/A"}" — Description: "${e.description || "N/A"}" — URL: ${e.url}`
     ).join("\n");
@@ -73,14 +72,14 @@ For each URL, return a JSON array of objects: [{"id": <ID>, "score": <0.0-1.0>, 
 Score > 0.6 means relevant. Consider: Is this URL about this specific property? Is it a listing, review, map, or reference for this property or its local market? Hospitality platform links (Airbnb, VRBO, Booking, etc.) for this property score high.
 Return ONLY the JSON array, no other text.`;
 
-    const { modelId: urlScoringModelId } = await resolveLlmFor("url-extraction");
-    const response = await gemini.models.generateContent({
-      model: urlScoringModelId,
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: { maxOutputTokens: 512 },
-    });
+    const { vendor: urlScoringVendor, modelId: urlScoringModelId } = await resolveLlmFor("url-extraction");
 
-    const text = response.text?.trim() || "[]";
+    const { text: rawText } = await generateText({
+      llm: { vendor: urlScoringVendor, model: urlScoringModelId },
+      prompt,
+      maxTokens: 512,
+    });
+    const text = rawText.trim() || "[]";
     const cleaned = text.replace(/```json?\s*/g, "").replace(/```/g, "").trim();
     const parsed = JSON.parse(cleaned) as Array<{ id: number; score: number; relevant: boolean }>;
     for (const item of parsed) {

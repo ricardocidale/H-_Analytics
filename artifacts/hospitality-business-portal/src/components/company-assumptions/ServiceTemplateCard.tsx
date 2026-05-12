@@ -2,13 +2,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Check, X, ChevronDown, ChevronUp, ChevronRight } from "@/components/icons/themed-icons";
 import { IconPencil, IconTrash, IconPackage, IconBookOpen } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import type { ServiceTemplate } from "@shared/schema";
 import { ServiceResearchPanel } from "./ServiceResearchPanel";
+import { NationalBenchmarkBreakdown } from "./NationalBenchmarkBreakdown";
+import { useNationalBenchmarks } from "@/lib/api/national-benchmarks";
+import { TEMPLATE_TO_SERVICE_LINES } from "@calc/services/national-anchors";
 
 export const SERVICE_HELP: Record<string, string> = {
   "Marketing & Brand":
@@ -43,6 +46,91 @@ const NORMALIZED_SERVICE_HELP: Record<string, string> = Object.fromEntries(
 
 function lookupServiceHelp(templateName: string): string | undefined {
   return SERVICE_HELP[templateName] ?? NORMALIZED_SERVICE_HELP[normalizeHelpKey(templateName)];
+}
+
+/**
+ * Determine whether any live feed data exists for a template's contributing
+ * service lines. Returns "feed" | "partial" | "anchor".
+ */
+type MarkupSource = "feed" | "partial" | "anchor" | "none";
+
+function resolveMarkupSource(
+  templateName: string,
+  vendorCostServiceLines: string[],
+  markupFactorServiceLines: string[],
+): MarkupSource {
+  const lines = TEMPLATE_TO_SERVICE_LINES[templateName];
+  if (!lines || lines.length === 0) return "none";
+
+  const feedCostLines = new Set(vendorCostServiceLines);
+  const feedMarkupLines = new Set(markupFactorServiceLines);
+
+  const allCovered = lines.every(
+    (l) => feedCostLines.has(l) && feedMarkupLines.has(l),
+  );
+  if (allCovered) return "feed";
+
+  const anyCovered = lines.some(
+    (l) => feedCostLines.has(l) || feedMarkupLines.has(l),
+  );
+  if (anyCovered) return "partial";
+
+  return "anchor";
+}
+
+interface MarkupSourceBadgeProps {
+  source: MarkupSource;
+  className?: string;
+}
+
+function MarkupSourceBadge({ source, className }: MarkupSourceBadgeProps) {
+  if (source === "none") return null;
+
+  const isLive = source === "feed";
+  const isPartial = source === "partial";
+
+  const label = isLive ? "feed" : isPartial ? "partial" : "anchor";
+  const tooltipText = isLive
+    ? "Markup derived from national research feed (Gaetano + Renato). Click to expand and see the per-service-line breakdown."
+    : isPartial
+    ? "Some service lines come from the national feed; others use hardcoded anchor values. Expand to see the breakdown."
+    : "No live feed data available. Markup uses hardcoded anchor values (STR HOST 2024 / CBRE 2024 / HVS 2024). Expand to see details.";
+
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className={cn(
+              "inline-flex items-center gap-0.5 text-[9px] font-medium rounded border px-1 py-0.5 cursor-default select-none",
+              isLive
+                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400"
+                : isPartial
+                ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400"
+                : "bg-muted/60 border-border/60 text-muted-foreground",
+              className,
+            )}
+            data-testid="markup-source-badge"
+          >
+            <span
+              className={cn(
+                "h-1 w-1 rounded-full shrink-0",
+                isLive
+                  ? "bg-emerald-500"
+                  : isPartial
+                  ? "bg-amber-500"
+                  : "bg-muted-foreground/40",
+              )}
+            />
+            {label}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="text-xs max-w-56">
+          <p>{tooltipText}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
 }
 
 interface ServiceTemplateCardProps {
@@ -100,6 +188,15 @@ export function ServiceTemplateCard({
   const ratePct = ((t.defaultRate ?? 0) * 100).toFixed(1);
   const markupPct = ((t.serviceMarkup ?? 0) * 100).toFixed(0);
 
+  const { data: nationalBenchmarks } = useNationalBenchmarks();
+
+  const vendorCostLines = nationalBenchmarks?.vendorCosts.map((r) => r.serviceLine) ?? [];
+  const markupFactorLines = nationalBenchmarks?.markupFactors.map((r) => r.serviceLine) ?? [];
+  const markupSource =
+    t.serviceModel === "centralized"
+      ? resolveMarkupSource(t.name, vendorCostLines, markupFactorLines)
+      : "none";
+
   return (
     <div
       className={cn(
@@ -133,13 +230,16 @@ export function ServiceTemplateCard({
           </Badge>
         </button>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <span className="text-sm font-mono font-bold text-foreground tabular-nums">
             {ratePct}%
           </span>
           {t.serviceModel === "centralized" && (
-            <span className="text-xs font-mono text-muted-foreground tabular-nums">
-              +{markupPct}%
+            <span className="flex items-center gap-1">
+              <span className="text-xs font-mono text-muted-foreground tabular-nums">
+                +{markupPct}%
+              </span>
+              <MarkupSourceBadge source={markupSource} />
             </span>
           )}
           <Switch
@@ -241,11 +341,12 @@ export function ServiceTemplateCard({
 
             {t.serviceModel === "centralized" && (
               <div className="bg-primary/10 dark:bg-primary/15 border border-primary/30 dark:border-primary/40 rounded-lg p-3">
-                <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1">
+                <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-1">
                   Cost-Plus Markup
                   <InfoTooltip
                     text={`Centralized model: The management company procures this service from vendors and passes the cost through with a ${markupPct}% markup. Effective margin: ${(((t.serviceMarkup ?? 0) / (1 + (t.serviceMarkup ?? 0))) * 100).toFixed(1)}% of fee revenue.`}
                   />
+                  <MarkupSourceBadge source={markupSource} className="ml-1" />
                 </div>
                 {isEditingMarkup ? (
                   <div className="flex items-center gap-1.5">
@@ -309,6 +410,14 @@ export function ServiceTemplateCard({
               </div>
             )}
           </div>
+
+          {t.serviceModel === "centralized" && (
+            <NationalBenchmarkBreakdown
+              templateName={t.name}
+              serviceModel={t.serviceModel}
+              benchmarks={nationalBenchmarks}
+            />
+          )}
 
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-1">

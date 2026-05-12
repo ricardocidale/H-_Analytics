@@ -4,8 +4,10 @@ import { requireAuth, isApiRateLimited , getAuthUser } from "../auth";
 import { isAdminRole } from "@shared/constants";
 import { AI_ICP_RESEARCH_MAX_TOKENS } from "../constants";
 import { logActivity, logAndSendError, icpGenerateSchema, icpExportSchema, zodErrorMessage } from "./helpers";
-import { getAnthropicClient, normalizeModelId } from "../ai/clients";
+import { normalizeModelId } from "../ai/clients";
 import { resolveLlmFor } from "../ai/llm-config-resolver";
+import { resolveLlm } from "../ai/resolve-llm";
+import { streamText, dispatchService } from "../ai/dispatch";
 import { logApiCost, estimateCost } from "../middleware/cost-logger";
 import { logger } from "../logger";
 import {
@@ -37,12 +39,12 @@ export function register(app: Express) {
       const assetDescription = ga.assetDescription || "";
       const propertyLabel = ga.propertyLabel || "Hotel";
       const researchCfg = (ga.researchConfig as import("@workspace/db").ResearchConfig) ?? {};
+      const resolvedCompanyLlm = resolveLlm(researchCfg, "companyLlm");
       const model = normalizeModelId(researchCfg.companyLlm?.primaryLlm || researchCfg.preferredLlm || ga.preferredLlm || (await resolveLlmFor("research-analyst-a")).modelId);
       const _secondaryModel = researchCfg.companyLlm?.llmMode === "dual" && researchCfg.companyLlm.secondaryLlm ? normalizeModelId(researchCfg.companyLlm.secondaryLlm) : undefined;
+      const llmVendor = resolvedCompanyLlm.vendor;
 
       const promptBuilder = (bodyValidation.data.promptBuilder || icpConfig._promptBuilder || {}) as PromptBuilderConfig;
-
-      const anthropic = getAnthropicClient();
 
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
@@ -70,17 +72,14 @@ export function register(app: Express) {
       let fullContent = "";
 
       const startTime = Date.now();
-      const stream = await anthropic.messages.stream({
-        model,
-        max_tokens: AI_ICP_RESEARCH_MAX_TOKENS,
-        messages: [{ role: "user", content: prompt }],
-      });
 
-      for await (const event of stream) {
-        if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-          fullContent += event.delta.text;
-          res.write(`data: ${JSON.stringify({ type: "content", data: event.delta.text })}\n\n`);
-        }
+      for await (const delta of streamText({
+        llm: { vendor: llmVendor, model },
+        prompt,
+        maxTokens: AI_ICP_RESEARCH_MAX_TOKENS,
+      })) {
+        fullContent += delta;
+        res.write(`data: ${JSON.stringify({ type: "content", data: delta })}\n\n`);
       }
 
       const parsed = parseResearchResponse(fullContent);
@@ -97,7 +96,8 @@ export function register(app: Express) {
 
       const inTok = Math.round(prompt.length / 4);
       const outTok = Math.round(fullContent.length / 4);
-      try { logApiCost({ timestamp: new Date().toISOString(), service: "anthropic", model, operation: "icp-research", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost("anthropic", model, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/research/icp/generate" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
+      const svc = llmVendor === "anthropic" ? "anthropic" : llmVendor === "google" ? "gemini" : "openai";
+      try { logApiCost({ timestamp: new Date().toISOString(), service: svc, model, operation: "icp-research", inputTokens: inTok, outputTokens: outTok, estimatedCostUsd: estimateCost(svc, model, inTok, outTok), durationMs: Date.now() - startTime, userId: req.user?.id, route: "/api/research/icp/generate" }); } catch (e: unknown) { logger.warn(`Failed to log API cost: ${(e instanceof Error ? e.message : String(e))}`, "cost-logger"); }
 
       res.write(`data: ${JSON.stringify({ type: "done", report, markdown })}\n\n`);
       res.end();

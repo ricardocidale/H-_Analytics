@@ -8,6 +8,12 @@ import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconSave } from "@/components/icons";
 import { DEFAULT_SERVICE_MARKUP } from "@shared/constants";
+import { NationalBenchmarkBreakdown } from "./NationalBenchmarkBreakdown";
+import { useNationalBenchmarks } from "@/lib/api/national-benchmarks";
+import { TEMPLATE_TO_SERVICE_LINES } from "@calc/services/national-anchors";
+import {
+  deriveTemplateMarkupsFromNationalBenchmarks,
+} from "@calc/services/national-anchors";
 
 const DEFAULT_SERVICE_MARKUP_PCT = (DEFAULT_SERVICE_MARKUP * 100).toFixed(0);
 
@@ -49,9 +55,32 @@ export function ServiceTemplateDialog({
   onSave,
   isPending,
 }: ServiceTemplateDialogProps) {
+  const { data: nationalBenchmarks } = useNationalBenchmarks();
+
+  const isCentralized = form.serviceModel === "centralized";
+  const hasBenchmarkMapping =
+    isCentralized &&
+    form.name.trim().length > 0 &&
+    (TEMPLATE_TO_SERVICE_LINES[form.name] ?? []).length > 0;
+
+  const derivedMarkups =
+    nationalBenchmarks && isCentralized
+      ? deriveTemplateMarkupsFromNationalBenchmarks(
+          nationalBenchmarks.vendorCosts.map((r) => ({
+            serviceLine: r.serviceLine,
+            costPctRevenue: r.value,
+          })),
+          nationalBenchmarks.markupFactors.map((r) => ({
+            serviceLine: r.serviceLine,
+            markupPctRevenue: r.value,
+          })),
+        )
+      : null;
+  const derivedMarkupForTemplate = derivedMarkups?.[form.name] ?? null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="font-display">{editingId ? "Edit Service Category" : "Add Service Category"}</DialogTitle>
           <DialogDescription className="label-text">
@@ -106,7 +135,7 @@ export function ServiceTemplateDialog({
               </div>
             </div>
           </div>
-          {form.serviceModel === "centralized" && (
+          {isCentralized && (
             <div className="space-y-2 bg-muted rounded-lg p-3 border border-border/60">
               <Label className="text-sm font-medium flex items-center gap-1">
                 Cost-Plus Markup
@@ -115,6 +144,16 @@ export function ServiceTemplateDialog({
               <p className="text-xs text-muted-foreground">
                 If markup is 20% and the company procures a service for $1.00, the property is charged $1.20.
               </p>
+              {derivedMarkupForTemplate != null && (
+                <p className="text-[10px] text-muted-foreground bg-primary/5 border border-primary/20 rounded px-2 py-1">
+                  National feed derived markup for{" "}
+                  <span className="font-medium text-foreground">{form.name}</span>:{" "}
+                  <span className="font-mono font-semibold text-primary">
+                    {(derivedMarkupForTemplate * 100).toFixed(0)}%
+                  </span>
+                  . The engine will apply this value when the national-benchmark overlay is active.
+                </p>
+              )}
               <div className="relative">
                 <Input
                   type="number"
@@ -130,6 +169,15 @@ export function ServiceTemplateDialog({
               </div>
             </div>
           )}
+
+          {hasBenchmarkMapping && (
+            <NationalBenchmarkBreakdown
+              templateName={form.name}
+              serviceModel="centralized"
+              benchmarks={nationalBenchmarks}
+            />
+          )}
+
           <div className="flex items-center gap-3 pt-2">
             <Switch
               checked={form.isActive}

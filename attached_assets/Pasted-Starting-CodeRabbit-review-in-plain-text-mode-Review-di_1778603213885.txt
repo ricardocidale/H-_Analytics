@@ -1,0 +1,126 @@
+Starting CodeRabbit review in plain text mode...
+
+Review directory: /home/runner/workspace/artifacts/hospitality-business-portal
+
+Connecting to review service
+Setting up
+Summarizing
+Reviewing
+
+============================================================================
+File: artifacts/hospitality-business-portal/src/features/slide-factory/SlideFactoryPanel.tsx
+Line: 1962 to 1973
+Type: potential_issue
+Severity: minor
+
+Comment:
+The download fetch call uses a relative /api/ path without BASE_URL.
+
+The download handler constructs URLs like /api/lb-slides/factory/runs/${run.id}/download and uses them directly with fetch. Per coding guidelines, relative URL paths that start with /api/ without the BASE_URL prefix bypass the shared proxy path routing.
+
+Consider prefixing with BASE_URL or using a helper that handles this:
+
+
+
+Proposed fix
+
++import { BASE_URL } from "@/lib/config"; // or wherever BASE_URL is defined
++
+ const handleDownload = async (format: "pdf" | "pptx") => {
+   // ...
+   const url =
+     format === "pdf"
+-      ? /api/lb-slides/factory/runs/${run.id}/download
+-      : /api/lb-slides/factory/runs/${run.id}/download/pptx;
++      ? ${BASE_URL}/api/lb-slides/factory/runs/${run.id}/download
++      : ${BASE_URL}/api/lb-slides/factory/runs/${run.id}/download/pptx;
+
+
+
+As per coding guidelines: "Flag relative URL paths that start with /api/ without the BASE_URL prefix — they bypass the shared proxy path routing."
+
+Prompt for AI Agent:
+Verify each finding against current code. Fix only still-valid issues, skip the rest with a brief reason, keep changes minimal, and validate.
+
+In @artifacts/hospitality-business-portal/src/features/slide-factory/SlideFactoryPanel.tsx around lines 1962 - 1973, The fetch in handleDownload constructs a relative API URL (e.g., /api/lb-slides/factory/runs/${run.id}/download) which bypasses proxy routing; update handleDownload to build the request URL using the shared BASE_URL (or the project's URL helper) before calling fetch so the path becomes BASE_URL + /api/.... Locate the fetch call inside handleDownload, replace the raw template URL construction with a call that prefixes BASE_URL (or uses the existing helper that composes API URLs), and keep the existing AbortController/credentials logic unchanged.
+
+============================================================================
+File: artifacts/hospitality-business-portal/src/features/slide-factory/SlideFactoryPanel.tsx
+Line: 1962 to 1996
+Type: potential_issue
+Severity: minor
+
+Comment:
+Potential stale loading state when aborting a download.
+
+If a user initiates a PDF download and then clicks PPTX download before the PDF completes, the previous download is aborted (line 1963-1964). However, the setDownloadingPdf(false) is skipped because the finally block checks controller.signal.aborted (line 1995), leaving downloadingPdf stuck at true.
+
+
+
+Proposed fix
+
+ const handleDownload = async (format: "pdf" | "pptx") => {
++  // Reset stale state from any previous aborted download
++  setDownloadingPdf(false);
++  setDownloadingPptx(false);
++
+   abortRef.current?.abort();
+   const controller = new AbortController();
+   abortRef.current = controller;
+   const setLoading = format === "pdf" ? setDownloadingPdf : setDownloadingPptx;
+   setLoading(true);
+
+Prompt for AI Agent:
+Verify each finding against current code. Fix only still-valid issues, skip the rest with a brief reason, keep changes minimal, and validate.
+
+In @artifacts/hospitality-business-portal/src/features/slide-factory/SlideFactoryPanel.tsx around lines 1962 - 1996, The loading state can become stale because the finally block skips setLoading(false) when controller.signal.aborted; change the logic in handleDownload so the finally always clears the loading state for the run that started this request but not for newer requests: capture the local controller (already assigned to controller) and in the finally block call setLoading(false) only when abortRef.current === controller (instead of checking controller.signal.aborted). This ensures setDownloadingPdf/setDownloadingPptx is cleared for the aborted request while not clobbering a newer download's loading state; reference symbols: handleDownload, abortRef, controller, setLoading, setDownloadingPdf, setDownloadingPptx.
+
+============================================================================
+File: artifacts/hospitality-business-portal/src/hooks/useAssumptionGuardrail.ts
+Line: 45
+Type: potential_issue
+Severity: critical
+
+Comment:
+Use shared queryClient for API requests instead of direct fetch.
+
+The direct fetch("/api/assumption-guardrails", ...) call bypasses the shared proxy path routing. As per coding guidelines, relative URL paths starting with /api/ should use the BASE_URL prefix or the shared queryClient contract.
+
+Consider using the queryClient's default queryFn pattern (as seen in PropertyUnderwritingTab.tsx lines 872-875) which automatically handles the BASE_URL prefix, credentials, and CSRF:
+
+
+
+
+🔧 Recommended fix
+
+ export function useAssumptionGuardrail(
+   assumptionKey: string | null | undefined,
+ ): AssumptionGuardrail | null {
+   const { data } = useQuery({
+-    queryKey: ["/api/assumption-guardrails"],
+-    queryFn: async () => {
+-      const res = await fetch("/api/assumption-guardrails", {
+-        credentials: "include",
+-      });
+-      if (!res.ok) return { rows: [] };
+-      return res.json() as Promise;
+-    },
++    queryKey: ["/api/assumption-guardrails"],
+     staleTime: STALE_TIME_MS,
+     gcTime: GC_TIME_MS,
+   });
+
+
+The shared queryClient (configured in src/lib/queryClient.ts) will automatically construct the full URL from the queryKey and handle non-OK responses consistently.
+
+
+
+As per coding guidelines: Flag relative URL paths that start with /api/ without the BASE_URL prefix — they bypass the shared proxy path routing.
+
+Prompt for AI Agent:
+Verify each finding against current code. Fix only still-valid issues, skip the rest with a brief reason, keep changes minimal, and validate.
+
+In @artifacts/hospitality-business-portal/src/hooks/useAssumptionGuardrail.ts at line 45, In useAssumptionGuardrail, replace the direct fetch call to "/api/assumption-guardrails" with the shared queryClient pattern so the request goes through the BASE_URL proxy and shared error handling; specifically, use the queryClient/default queryFn convention (as used in PropertyUnderwritingTab) or call queryClient.fetchQuery/execute using a queryKey like ["assumption-guardrails"] so credentials, CSRF and non-OK responses are handled consistently by the central queryClient instead of calling fetch directly.
+
+Review completed: 3 findings ✔
+~/workspace$ 

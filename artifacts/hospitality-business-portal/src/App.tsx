@@ -42,6 +42,7 @@ import {
 import {
   GlobalBeforeUnloadGuard,
   NavigationGuard,
+  LlmWorkflowsRouteGuard,
   IdleAutoSave,
   AutoSaveRestorePrompt,
   LogoutProtectionDialog,
@@ -185,6 +186,7 @@ function Router() {
   return (
     <>
       <GlobalBeforeUnloadGuard />
+      <LlmWorkflowsRouteGuard />
       <NavigationGuard />
       <IdleAutoSave />
       <AutoSaveRestorePrompt />

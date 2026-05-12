@@ -38,7 +38,9 @@ export function SpecialistsSection() {
     if (!section) return;
     setIntelligenceTabHint(id, "llm-config");
     setIntelligenceSection(section);
-    setLocation("/intelligence");
+    // Carry the section in the URL so refresh / share / back-forward keep
+    // the admin on this Specialist instead of resetting to the default.
+    setLocation(`/intelligence?section=${encodeURIComponent(section)}`);
   };
 
   return (

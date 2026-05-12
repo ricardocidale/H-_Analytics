@@ -24,6 +24,7 @@ import { eq, and, isNull, desc, inArray, sql } from "drizzle-orm";
 import { storage } from "../../storage";
 import { writeCostantinoHealth } from "./workspace";
 import { validateIngestUrl } from "../iris/tools";
+import { NATIONAL_FEED_QUARTERLY_TTL_DAYS } from "@shared/constants-research";
 import {
   COSTANTINO_DEFAULT_EXPECTED_HTTP_STATUS,
   COSTANTINO_DEGRADED_HTTP_STATUS_MAX_EXCLUSIVE,
@@ -48,6 +49,7 @@ const FINDING_KINDS = [
   "missing_recipe",
   "missing_secret",
   "schema_mismatch",
+  "stale_feed",
   "unknown",
 ] as const;
 
@@ -239,6 +241,28 @@ export function getCostantinoTools(): ToolParam[] {
           },
         },
         required: ["findingId"],
+      },
+    },
+    {
+      name: "check_table_freshness",
+      description:
+        "Check whether a national benchmark feed table has been refreshed recently enough. " +
+        "Accepts the admin_resource slug for one of the known national feed sources " +
+        "('vendor-passthrough-costs' or 'mgmt-co-markup-factors'). Queries the DB for the " +
+        "most recent fetched_at value in the corresponding table and compares it against the " +
+        "row's config.freshnessProbe.thresholdDays. Returns { fresh, latestFetchedAt, " +
+        "ageHours, thresholdDays }. Use this after probing a source row that has a " +
+        "config.freshnessProbe — if fresh=false, open a stale_feed finding.",
+      parameters: {
+        type: "object",
+        properties: {
+          slug: {
+            type: "string",
+            description: "The admin_resource slug for the national feed source to check.",
+            enum: ["vendor-passthrough-costs", "mgmt-co-markup-factors"],
+          },
+        },
+        required: ["slug"],
       },
     },
     {
@@ -505,6 +529,69 @@ async function toolResolveFinding(args: Record<string, unknown>, metrics: Costan
   return { resolved: true };
 }
 
+// ---------------------------------------------------------------------------
+// Freshness probe — national benchmark feed tables (Gaetano / Renato minions)
+// ---------------------------------------------------------------------------
+
+/** Whitelisted table/column pairs for check_table_freshness. */
+const FRESHNESS_TABLE_MAP: Record<string, { table: string; column: string }> = {
+  "vendor-passthrough-costs": { table: "vendor_passthrough_costs", column: "fetched_at" },
+  "mgmt-co-markup-factors":   { table: "mgmt_co_markup_factors",   column: "fetched_at" },
+};
+
+async function toolCheckTableFreshness(args: Record<string, unknown>) {
+  const slug = args.slug as string;
+  const entry = FRESHNESS_TABLE_MAP[slug];
+  if (!entry) {
+    return { error: `Unknown national feed slug: ${slug}. Valid slugs: ${Object.keys(FRESHNESS_TABLE_MAP).join(", ")}` };
+  }
+
+  const [row] = await db
+    .select({ config: adminResources.config })
+    .from(adminResources)
+    .where(eq(adminResources.slug, slug))
+    .limit(1);
+
+  const cfg = row?.config && typeof row.config === "object" ? (row.config as Record<string, unknown>) : {};
+  const freshnessProbe = cfg.freshnessProbe && typeof cfg.freshnessProbe === "object"
+    ? (cfg.freshnessProbe as Record<string, unknown>)
+    : {};
+  const thresholdDays = typeof freshnessProbe.thresholdDays === "number"
+    ? freshnessProbe.thresholdDays
+    : NATIONAL_FEED_QUARTERLY_TTL_DAYS;
+
+  const result = await db.execute(
+    sql`SELECT MAX(${sql.raw(entry.column)}) AS latest FROM ${sql.raw(entry.table)}`,
+  );
+  const latest = (result.rows[0] as { latest: Date | string | null } | undefined)?.latest ?? null;
+
+  if (!latest) {
+    return {
+      fresh: false,
+      latestFetchedAt: null,
+      ageHours: null,
+      thresholdDays,
+      message: `Table ${entry.table} has no rows — feed has never run.`,
+    };
+  }
+
+  const latestDate = latest instanceof Date ? latest : new Date(latest);
+  const ageMs = Date.now() - latestDate.getTime();
+  const ageHours = parseFloat((ageMs / (60 * 60 * 1_000)).toFixed(1));
+  const thresholdMs = thresholdDays * 24 * 60 * 60 * 1_000;
+  const fresh = ageMs <= thresholdMs;
+
+  return {
+    fresh,
+    latestFetchedAt: latestDate.toISOString(),
+    ageHours,
+    thresholdDays,
+    message: fresh
+      ? `Feed is current (${ageHours}h old, threshold ${thresholdDays}d).`
+      : `Feed is STALE: last fetched ${ageHours}h ago, threshold is ${thresholdDays}d.`,
+  };
+}
+
 async function toolCompleteTask(args: Record<string, unknown>, metrics: CostantinoCycleMetrics) {
   const summary = args.summary as string;
   const timestamp = new Date().toISOString();
@@ -531,6 +618,7 @@ export async function dispatchCostantinoTool(
     case "write_finding":                return toolWriteFinding(args, metrics);
     case "list_findings":                return toolListFindings(args);
     case "resolve_finding":              return toolResolveFinding(args, metrics);
+    case "check_table_freshness":        return toolCheckTableFreshness(args);
     case "complete_task":                return toolCompleteTask(args, metrics);
     default:
       return { error: `Unknown Costantino tool: ${name}` };
