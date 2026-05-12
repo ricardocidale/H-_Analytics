@@ -25,14 +25,6 @@
  * `str_only` — so the engine's per-category scalar comes out at exactly the
  * midpoint of the pure-hotel and pure-STR results.
  */
- *
- * "mixed" handling: per `bracket-catalog.ts` doctrine, mixed brackets show
- * "blended service-consumption profile reflecting both hotel-style
- * accommodation and STR-style short-stay units". We split a mixed entry's
- * weight evenly between two synthetic profiles — one `full` and one
- * `str_only` — so the engine's per-category scalar comes out at exactly the
- * midpoint of the pure-hotel and pure-STR results.
- */
 
 import type {
   BracketMixEntry,

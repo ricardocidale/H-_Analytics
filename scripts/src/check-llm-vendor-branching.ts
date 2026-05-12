@@ -161,8 +161,40 @@ function isCommentLine(line: string): boolean {
 }
 
 function stripInlineComment(line: string): string {
-  const idx = line.indexOf("//");
-  return idx >= 0 ? line.slice(0, idx) : line;
+  let inString = false;
+  let stringChar = "";
+  let escaped = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (ch === "\\") {
+      escaped = true;
+      continue;
+    }
+
+    if (inString) {
+      if (ch === stringChar) inString = false;
+      continue;
+    }
+
+    if (ch === '"' || ch === "'" || ch === "`") {
+      inString = true;
+      stringChar = ch;
+      continue;
+    }
+
+    if (ch === "/" && line[i + 1] === "/") {
+      return line.slice(0, i);
+    }
+  }
+
+  return line;
 }
 
 function toRel(absPath: string): string {

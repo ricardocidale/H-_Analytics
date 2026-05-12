@@ -17,7 +17,12 @@ if command -v coderabbit >/dev/null 2>&1; then
 fi
 
 echo "Installing CodeRabbit CLI from cli.coderabbit.ai/install.sh ..."
-curl -fsSL https://cli.coderabbit.ai/install.sh | sh
+# Download to a temp file before executing so the script is not piped directly
+# to sh (mitigates MITM truncation risk). No checksum is published upstream.
+_cr_tmp="$(mktemp)"
+trap 'rm -f "$_cr_tmp"' EXIT
+curl -fsSL https://cli.coderabbit.ai/install.sh -o "$_cr_tmp"
+sh "$_cr_tmp"
 
 if command -v coderabbit >/dev/null 2>&1; then
   echo

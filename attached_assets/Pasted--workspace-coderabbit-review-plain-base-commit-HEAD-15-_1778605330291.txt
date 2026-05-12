@@ -1,0 +1,98 @@
+~/workspace$ coderabbit review --plain --base-commit HEAD~15 --type committed --dir scripts
+Starting CodeRabbit review in plain text mode...
+
+Review directory: /home/runner/workspace/scripts
+
+Connecting to review service
+Setting up
+Summarizing
+Reviewing
+
+
+============================================================================
+File: scripts/src/check-llm-vendor-branching.ts
+Line: 136 to 144
+Type: potential_issue
+Severity: minor
+
+Comment:
+Comment-stripping logic may incorrectly truncate string literals.
+
+The stripInlineComment function (line 141-143) uses a simple indexOf("//") check that doesn't account for // appearing inside string literals. For example:
+
+const url = "http://example.com";  // actual comment
+
+
+would be truncated to:
+
+const url = "http:
+
+
+This could cause false positives (if the truncated string happens to match a pattern) or false negatives (if vendor branching code is removed).
+
+
+
+
+🔧 More robust inline-comment stripping
+
+Consider a state-machine approach that tracks whether you're inside a string:
+
+ function stripInlineComment(line: string): string {
+-  const idx = line.indexOf("//");
+-  return idx >= 0 ? line.slice(0, idx) : line;
++  let inString = false;
++  let stringChar = '';
++  let escaped = false;
++  
++  for (let i = 0; i
+
+Prompt for AI Agent:
+Verify each finding against current code. Fix only still-valid issues, skip the rest with a brief reason, keep changes minimal, and validate.
+
+In @scripts/src/check-llm-vendor-branching.ts around lines 136 - 144, stripInlineComment currently uses indexOf("//") and will cut inside string literals; replace it with a small scanner that walks the line char-by-char tracking whether you're inside a single-quote, double-quote, or backtick string (and honoring backslash escapes) and only treat "//" as the start of an inline comment when not inside any string or template literal (also ensure it ignores "//" inside block-comment sequences if relevant). Update the implementation of stripInlineComment to return line.slice(0, idx) where idx is the position of the first "//" found by that scanner; keep isCommentLine unchanged.
+
+============================================================================
+File: scripts/install-coderabbit-cli.sh
+Line: 19 to 20
+Type: potential_issue
+Severity: major
+
+Comment:
+Security risk: unverified remote script execution.
+
+Piping curl output directly to sh without checksum or signature verification exposes users to supply-chain attacks if cli.coderabbit.ai is compromised or a MITM attack occurs. Consider:
+
+1. Download to a temporary file first
+2. Verify a checksum or GPG signature
+3. Only then execute the installer
+
+If the upstream installer doesn't publish checksums, document this risk in a comment and/or prompt the user for confirmation.
+
+
+
+
+🛡️ Safer installation pattern
+
+-echo "Installing CodeRabbit CLI from cli.coderabbit.ai/install.sh ..."
+-curl -fsSL https://cli.coderabbit.ai/install.sh | sh
++echo "Installing CodeRabbit CLI from cli.coderabbit.ai/install.sh ..."
++echo "WARNING: This will download and execute a remote script. Continue? (y/N)"
++read -r confirm
++if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
++  echo "Installation cancelled."
++  exit 1
++fi
++
++tmp_installer="$(mktemp)"
++trap 'rm -f "$tmp_installer"' EXIT
++curl -fsSL https://cli.coderabbit.ai/install.sh -o "$tmp_installer"
++# TODO: Verify checksum if upstream publishes one
++sh "$tmp_installer"
+
+Prompt for AI Agent:
+Verify each finding against current code. Fix only still-valid issues, skip the rest with a brief reason, keep changes minimal, and validate.
+
+In @scripts/install-coderabbit-cli.sh around lines 19 - 20, Replace the unsafe "curl ... | sh" pattern by downloading the installer to a temporary file (e.g., via the same curl command to a temp path), then verify the downloaded payload using an upstream checksum or GPG signature if available for https://cli.coderabbit.ai/install.sh; if no verification artifact exists, prompt the user to confirm running the unverified installer and add an explicit comment documenting the risk. After successful verification (or explicit user confirmation), execute the temp file with sh and then remove the temp file to clean up.
+
+Review completed: 2 findings ✔
+~/workspace$ 
