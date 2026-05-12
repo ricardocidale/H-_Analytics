@@ -89,8 +89,26 @@ const SCAN_DIRS = [
   "lib/api-spec/src",
 ];
 
-/** File extensions to scan. */
-const SCAN_EXTS = new Set([".ts", ".tsx", ".js", ".jsx"]);
+/**
+ * File extensions to scan.
+ *
+ * Code extensions (.ts/.tsx/.js/.jsx) were the original targets. Content
+ * extensions (.md/.mdx/.json/.mjml/.html) were added in task #1528 so that
+ * seed files, email templates, and locale JSON blobs are also guarded.
+ * All content files within SCAN_DIRS are checked; documentation and agent
+ * definition trees outside those dirs are never walked.
+ */
+const SCAN_EXTS = new Set([
+  ".ts",
+  ".tsx",
+  ".js",
+  ".jsx",
+  ".md",
+  ".mdx",
+  ".json",
+  ".mjml",
+  ".html",
+]);
 
 /** Directories to skip during tree walk. */
 const SKIP_DIRS = new Set([

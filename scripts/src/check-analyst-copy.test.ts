@@ -377,4 +377,87 @@ describe("check-analyst-copy", { timeout: TEST_TIMEOUT_MS }, () => {
       },
     );
   });
+
+  // -------------------------------------------------------------------------
+  // Task #1528 — content-file extension coverage (.md/.json/.mjml/.html)
+  // -------------------------------------------------------------------------
+
+  it("catches the banned phrase in a Markdown (.md) file", () => {
+    withFixture(
+      "_analyst-copy-test-md-fixture.md",
+      [
+        "# Status",
+        "",
+        "The Analyst is studying your property",
+      ].join("\n"),
+      () => {
+        const { stderr, status } = runCheck();
+        expect(status).toBe(1);
+        expect(stderr).toContain("VIOLATION");
+        expect(stderr).toContain("_analyst-copy-test-md-fixture.md");
+      },
+    );
+  });
+
+  it("catches the banned phrase in a JSON file", () => {
+    withFixture(
+      "_analyst-copy-test-json-fixture.json",
+      JSON.stringify({ status: "The Analyst is computing rates" }, null, 2),
+      () => {
+        const { stderr, status } = runCheck();
+        expect(status).toBe(1);
+        expect(stderr).toContain("VIOLATION");
+        expect(stderr).toContain("_analyst-copy-test-json-fixture.json");
+      },
+    );
+  });
+
+  it("catches the banned phrase in an MJML email template", () => {
+    withApiFixture(
+      "_analyst-copy-test-email-fixture.mjml",
+      [
+        "<mjml>",
+        "  <mj-body>",
+        "    <mj-text>The Analyst is refreshing your assumptions</mj-text>",
+        "  </mj-body>",
+        "</mjml>",
+      ].join("\n"),
+      () => {
+        const { stderr, status } = runCheck();
+        expect(status).toBe(1);
+        expect(stderr).toContain("VIOLATION");
+        expect(stderr).toContain("_analyst-copy-test-email-fixture.mjml");
+      },
+    );
+  });
+
+  it("catches the banned phrase in an HTML file", () => {
+    withFixture(
+      "_analyst-copy-test-html-fixture.html",
+      [
+        "<!doctype html>",
+        "<html><body>",
+        "<p>The Analyst is pulling comps for your property.</p>",
+        "</body></html>",
+      ].join("\n"),
+      () => {
+        const { stderr, status } = runCheck();
+        expect(status).toBe(1);
+        expect(stderr).toContain("VIOLATION");
+        expect(stderr).toContain("_analyst-copy-test-html-fixture.html");
+      },
+    );
+  });
+
+  it("does NOT flag a JSON file that uses casual-register copy", () => {
+    withFixture(
+      "_analyst-copy-test-json-clean-fixture.json",
+      JSON.stringify({ status: "Crunching the numbers…" }, null, 2),
+      () => {
+        const { stdout, status } = runCheck();
+        expect(status).toBe(0);
+        expect(stdout).toContain("PASS");
+      },
+    );
+  });
 });
