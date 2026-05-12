@@ -204,14 +204,15 @@ Expected: 7 rows including `Medellin Duplex`. The engine pipeline can now run ag
 ```bash
 pnpm run typecheck
 scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts
+pnpm --filter @workspace/scripts run check:migration-guards
 ```
 
-Both must PASS before declaring the reseed unit done (per `CLAUDE.md` § 5 Plan Verification Gate Checklist).
+All three must PASS before declaring the reseed unit done (per `CLAUDE.md` § 5 Plan Verification Gate Checklist — the `check:migration-guards` gate is required whenever a unit touches DB schema or seed files).
 
 ## Related
 
 - `docs/solutions/database-issues/drizzle-migration-state-drift-missing-tables-2026-05-07.md` — adjacent failure mode (hash mismatch in `__drizzle_migrations` after `bootstrapDrizzleMigrationState()` pre-marks rows). Different root cause; same two-folder architecture.
 - `docs/solutions/database-issues/seed-insert-no-conflict-financial-assumptions-lost-2026-05-02.md` — already names the Medellin Duplex as a property requiring special-case handling in seed/migration logic.
 - `docs/plans/2026-05-05-007-master-priority-plan.md` § L2-U7 — the origin task that triggered this discovery.
-- `.local/skills/pnpm-workspace/references/db.md` — canonical schema/migration runbook (does not yet document the dual-folder layout or the seed call-site requirement; refresh candidate).
+- `docs/runbooks/schema-migrations.md` — canonical schema/migration/seed runbook (covers the three-folder topology, runtime-guard pattern, dev-DB seed flow, and drift recovery).
 - `CLAUDE.md` § "Migration system architecture" — describes the two-layer migration system but does not call out the slot-collision risk between `lib/db/migrations/` and `artifacts/api-server/migrations/`.
