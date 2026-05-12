@@ -23,7 +23,7 @@ export const CONFIDENCE_BADGE: Record<string, string> = {
 };
 
 export const ANALYST_STEPS: readonly string[] = [
-  "The Analyst is cross-referencing live market data…",
+  "Analyst taking a look at live market data…",
   "Updating KPI benchmarks from AirROI…",
   "Refreshing macro indicators from FRED…",
   "Done. Ranges updated.",

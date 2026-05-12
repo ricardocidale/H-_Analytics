@@ -216,17 +216,17 @@ export default function Section18Research({ expanded, onToggle, sectionRef }: Se
             </div>
             <div className="flex items-start gap-2">
               <span className="mt-0.5 w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
-              <p className="text-xs"><span className="font-medium text-foreground">Not yet reviewed (red):</span> <span className="text-muted-foreground">The Analyst hasn't reviewed these assumptions yet. Press the Analyst button to get guidance.</span></p>
+              <p className="text-xs"><span className="font-medium text-foreground">Not yet reviewed (red):</span> <span className="text-muted-foreground">Analyst hasn't reviewed these assumptions yet. Press the Analyst button to get guidance.</span></p>
             </div>
             <div className="flex items-start gap-2">
               <span className="mt-0.5 w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
-              <p className="text-xs"><span className="font-medium text-foreground">Reviewing (blue):</span> <span className="text-muted-foreground">The Analyst is currently reviewing assumptions for this property. Results will appear automatically when complete.</span></p>
+              <p className="text-xs"><span className="font-medium text-foreground">Reviewing (blue):</span> <span className="text-muted-foreground">Analyst taking a look at assumptions for this property. Results will appear automatically when complete.</span></p>
             </div>
           </div>
           <p className="text-xs text-muted-foreground mt-3">
             The <span className="font-medium text-foreground">Review Status Bar</span> at the top of property and company
             assumption pages shows the overall review status at a glance — green when all reviews are current,
-            amber when some reviews are due, red when assumptions haven't been reviewed yet, and blue when The Analyst is actively reviewing.
+            amber when some reviews are due, red when assumptions haven't been reviewed yet, and blue when Analyst is taking a look.
           </p>
           <h5 className="font-medium text-foreground text-xs mt-3">Review Thresholds</h5>
           <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-1.5 mt-1">

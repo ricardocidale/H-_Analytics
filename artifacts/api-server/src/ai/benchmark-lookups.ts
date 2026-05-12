@@ -471,9 +471,9 @@ export function computeDataQuality(params: {
     if (freshScore < 12) gaps.push("older data");
     if (convergeScore < 15) gaps.push("wide range");
     if (typeScore < 15) gaps.push("web-sourced");
-    narrative = `Moderate quality — ${gaps.join(", ")}. Consider asking The Analyst to refresh with more market data.`;
+    narrative = `Moderate quality — ${gaps.join(", ")}. Consider asking the Analyst to refresh with more market data.`;
   } else {
-    narrative = `Developing — The Analyst is working with limited data for this market. Range will tighten as more properties are added and research accumulates.`;
+    narrative = `Developing — Analyst working with limited data for this market. Range will tighten as more properties are added and research accumulates.`;
   }
 
   return {

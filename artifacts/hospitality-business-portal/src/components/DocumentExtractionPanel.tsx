@@ -375,7 +375,7 @@ export default function DocumentExtractionPanel({ propertyId }: { propertyId: nu
     }
     setPostUpload(null);
     setActiveExtractionId(id);
-    toast({ title: "Analyzing document", description: "The Analyst is reading your document. Results will appear below." });
+    toast({ title: "Analyzing document", description: "Analyst taking a look at your document. Results will appear below." });
   }
 
   function dismissPostUpload() {

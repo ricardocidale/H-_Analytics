@@ -214,7 +214,7 @@ export async function dispatchSpecialist(
         logger.warn(`portfolio.capitalRaise v1 unavailable; returning Tier-0 honest-fail: ${err.message}`, "analyst-admin");
         res.status(HTTP_503_SERVICE_UNAVAILABLE).json({
           code: "TIER1_UNAVAILABLE",
-          message: "The Analyst is temporarily unavailable. Try again in a moment.",
+          message: "Analyst is temporarily unavailable. Try again in a moment.",
         });
         return "handled";
       }
@@ -248,7 +248,7 @@ export async function dispatchSpecialist(
         logger.warn(`property.risk-intelligence v1 unavailable; returning Tier-0 honest-fail: ${err.message}`, "analyst-admin");
         res.status(HTTP_503_SERVICE_UNAVAILABLE).json({
           code: "TIER1_UNAVAILABLE",
-          message: "The Analyst is temporarily unavailable. Try again in a moment.",
+          message: "Analyst is temporarily unavailable. Try again in a moment.",
         });
         return "handled";
       }

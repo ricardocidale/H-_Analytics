@@ -41,7 +41,7 @@ export function computeFreshnessStatus(opts: {
 
   const updatedAt = safeTimestamp(opts.researchUpdatedAt);
   if (updatedAt === null) {
-    return { status: "missing", reason: "The Analyst hasn't reviewed these assumptions yet", daysAgo: null };
+    return { status: "missing", reason: "Analyst hasn't reviewed these assumptions yet", daysAgo: null };
   }
 
   const daysAgo = Math.max(0, Math.floor((Date.now() - updatedAt) / (1000 * 60 * 60 * 24)));
@@ -164,7 +164,7 @@ export function IntelligenceStatusBar({
     ? bannerState === "saving"
       ? "Saving your assumptions"
       : bannerState === "reviewing"
-        ? "The Analyst is reviewing the change"
+        ? "Analyst taking a look at the change"
         : bannerState === "flagged"
           ? `${flaggedCount} value${flaggedCount === 1 ? "" : "s"} outside the expected range`
           : bannerState === "clean"

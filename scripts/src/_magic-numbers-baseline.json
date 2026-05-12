@@ -1898,6 +1898,7 @@
     "artifacts/api-server/src/ai/analyst-watchdog.ts",
     "artifacts/api-server/src/ai/comparables/relaxation-engine.ts",
     "artifacts/api-server/src/ai/guidance/extractor.ts",
+    "artifacts/api-server/src/ai/icp/bracket-assignment-minion.ts",
     "artifacts/api-server/src/ai/icp/config-builder.ts",
     "artifacts/api-server/src/ai/portfolio-risk-scorer.ts",
     "artifacts/api-server/src/ai/research-quality.ts",
@@ -2076,6 +2077,7 @@
     "artifacts/api-server/src/ai/analyst-refresh/reference-brands.ts",
     "artifacts/api-server/src/ai/analyst-refresh/reference-data.ts",
     "artifacts/api-server/src/ai/comparables/query-builder.ts",
+    "artifacts/api-server/src/ai/icp/bracket-assignment-minion.ts",
     "artifacts/api-server/src/ai/icp/config-builder.ts",
     "artifacts/api-server/src/ai/research-orchestrator.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-funding-orchestrator-adapter.ts",
@@ -2087,6 +2089,7 @@
   ],
   "0.1": [
     "artifacts/api-server/src/ai/guidance/extractor.ts",
+    "artifacts/api-server/src/ai/icp/bracket-assignment-minion.ts",
     "artifacts/api-server/src/ai/icp/config-builder.ts",
     "artifacts/api-server/src/finance/sensitivity.ts",
     "artifacts/api-server/src/pdf-styles.ts",
@@ -2638,6 +2641,16 @@
     "artifacts/api-server/src/ai/specialists/mgmt-co-funding-quant-panel-prompt.ts",
     "artifacts/api-server/src/ai/specialists/mgmt-co-revenue-orchestrator-adapter.ts"
   ],
+  "0.45": [
+    "artifacts/api-server/src/ai/icp/bracket-assignment-minion.ts",
+    "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-orchestrator-adapter.ts",
+    "artifacts/api-server/src/ai/specialists/portfolio-raise-live-comparables.ts",
+    "artifacts/api-server/src/routes/chat-context.ts",
+    "artifacts/api-server/src/routes/chat-insight.ts",
+    "artifacts/api-server/src/routes/format-generators/pptx-generator.ts",
+    "artifacts/api-server/src/seeds/property-data.ts",
+    "artifacts/api-server/src/seeds/reference-ranges/operating.ts"
+  ],
   "5.5": [
     "artifacts/api-server/src/ai/kb-content.ts",
     "artifacts/api-server/src/data/researchSeeds.ts",
@@ -2671,15 +2684,6 @@
     "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-orchestrator-adapter.ts",
     "artifacts/api-server/src/ai/specialists/property-risk-orchestrator-adapter.ts",
     "artifacts/api-server/src/seeds/property-data.ts"
-  ],
-  "0.45": [
-    "artifacts/api-server/src/ai/specialists/mgmt-co-property-defaults-orchestrator-adapter.ts",
-    "artifacts/api-server/src/ai/specialists/portfolio-raise-live-comparables.ts",
-    "artifacts/api-server/src/routes/chat-context.ts",
-    "artifacts/api-server/src/routes/chat-insight.ts",
-    "artifacts/api-server/src/routes/format-generators/pptx-generator.ts",
-    "artifacts/api-server/src/seeds/property-data.ts",
-    "artifacts/api-server/src/seeds/reference-ranges/operating.ts"
   ],
   "8.0": [
     "artifacts/api-server/src/data/researchSeeds.ts",

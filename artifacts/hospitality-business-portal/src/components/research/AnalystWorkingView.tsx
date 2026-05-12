@@ -110,7 +110,7 @@ export function AnalystWorkingView({
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <h3 className="text-sm font-semibold text-zinc-100 truncate" data-testid="text-analyst-studying">
-              The Analyst is studying <span className="text-amber-400">{propertyName}</span>
+              Analyst taking a look at <span className="text-amber-400">{propertyName}</span>
             </h3>
           </div>
 
