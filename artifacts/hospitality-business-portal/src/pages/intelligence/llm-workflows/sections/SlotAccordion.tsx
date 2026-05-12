@@ -24,7 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { ResourcePublicView } from "@shared/schema";
 import type { LlmRegistryState } from "@/lib/api/admin";
-import { SLOT_GROUPS } from "../constants";
+import { SLOT_GROUPS, SLOT_GROUP_CATEGORY_MAP, type LlmCategory } from "../constants";
 import { SlotCard } from "../SlotCard";
 import type { SlotSelection } from "../useSlotAssignments";
 
@@ -37,6 +37,7 @@ export interface SlotAccordionProps {
   originalSlugs: Record<number, string | null>;
   modelsByVendor: Record<string, ResourcePublicView[]>;
   registry: LlmRegistryState | undefined;
+  category?: LlmCategory;
 }
 
 export function SlotAccordion({
@@ -46,14 +47,19 @@ export function SlotAccordion({
   originalSlugs,
   modelsByVendor,
   registry,
+  category,
 }: SlotAccordionProps) {
+  const visibleGroups = category
+    ? SLOT_GROUPS.filter((g) => SLOT_GROUP_CATEGORY_MAP[g.id] === category)
+    : SLOT_GROUPS;
+
   return (
     <Accordion
       type="multiple"
-      defaultValue={["financial", "research"]}
+      defaultValue={visibleGroups.slice(0, 2).map((g) => g.id)}
       className="space-y-3"
     >
-      {SLOT_GROUPS.map((group) => {
+      {visibleGroups.map((group) => {
         const groupSlots = slotResources.filter((s) =>
           group.slots.includes(s.slug),
         );

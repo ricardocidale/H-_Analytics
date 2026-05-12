@@ -54,12 +54,18 @@ const SOFT_BRAND_FRACTION_OF_HOTEL_BUCKET_BUDGET = 0.5;
 /** Weight floor applied to any bracket that would otherwise reach zero. */
 const MINIMUM_BRACKET_WEIGHT = 0.05;
 
+// Default-mix weights for an empty portfolio (must sum to 1.0):
+const EMPTY_MIX_WEIGHT_BOUTIQUE_UPSCALE    = 0.45;
+const EMPTY_MIX_WEIGHT_SOFT_BRAND          = 0.25;
+const EMPTY_MIX_WEIGHT_PERFORMANCE_STR     = 0.20;
+const EMPTY_MIX_WEIGHT_AGRITOURISM         = 0.10;
+
 /** Default mix when the portfolio is completely empty (weights must sum to 1). */
 const EMPTY_PORTFOLIO_DEFAULT_MIX: readonly { id: string; weight: number }[] = [
-  { id: BRACKET_ID_BOUTIQUE_UPSCALE_HOTEL, weight: 0.45 },
-  { id: BRACKET_ID_SOFT_BRAND_BOUTIQUE, weight: 0.25 },
-  { id: BRACKET_ID_PERFORMANCE_MANAGED_STR, weight: 0.2 },
-  { id: BRACKET_ID_AGRITOURISM_EXPERIENTIAL, weight: 0.1 },
+  { id: BRACKET_ID_BOUTIQUE_UPSCALE_HOTEL, weight: EMPTY_MIX_WEIGHT_BOUTIQUE_UPSCALE },
+  { id: BRACKET_ID_SOFT_BRAND_BOUTIQUE,    weight: EMPTY_MIX_WEIGHT_SOFT_BRAND },
+  { id: BRACKET_ID_PERFORMANCE_MANAGED_STR, weight: EMPTY_MIX_WEIGHT_PERFORMANCE_STR },
+  { id: BRACKET_ID_AGRITOURISM_EXPERIENTIAL, weight: EMPTY_MIX_WEIGHT_AGRITOURISM },
 ] as const;
 
 // ── Property classification helpers ──────────────────────────────────────

@@ -246,10 +246,16 @@ Admin  (/admin)
         │   items — every Specialist lives in this accordion.
         │
         ├── LLMs                          ← the ONLY place to manage LLM configuration
-        │                                   Model names, endpoints, API key references,
-        │                                   rate limits, fallback chain
-        │                                   (LLMs shown in Specialists panel link here
-        │                                   conceptually but admin cannot click from there)
+        │   │                               Model names, endpoints, API key references,
+        │   │                               rate limits, fallback chain
+        │   │                               (LLMs shown in Specialists panel link here
+        │   │                               conceptually but admin cannot click from there)
+        │   │   Four scoped sub-items (Task #1390):
+        │   ├── Agents                    → assistants tab + Specialists section
+        │   ├── Research                  → research tab + N+1 pipeline + research/financial/property-docs slots
+        │   ├── Graphics                  → image-gen slot group
+        │   └── Other                     → operations/exports tabs + data-extraction/system slots
+        │   Legacy URL llm-workflows → resolves to Agents sub-item
         │
         ├── Assumption Guidance           ← Analyst-generated calibration output
         │                                   (research run output — not a source)

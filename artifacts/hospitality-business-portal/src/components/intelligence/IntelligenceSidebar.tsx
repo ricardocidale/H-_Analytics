@@ -61,7 +61,15 @@ export type IntelligenceSection =
   | "gustavo"
   | "iris"
   | "specialists"
+  // LLMs top-level group (Task #1390) — four scoped sub-items replace the
+  // single "llm-workflows" row that lived under System. The legacy
+  // "llm-workflows" value stays in the union so existing deep links resolve
+  // (Intelligence.tsx maps it to the Agents sub-item).
   | "llm-workflows"
+  | "llms-agents"
+  | "llms-research"
+  | "llms-graphics"
+  | "llms-other"
   | "assumption-guidance"
   | "engine-health"
   | "scheduled-research"
@@ -101,13 +109,14 @@ interface NavGroup {
 }
 
 /**
- * Canonical Intelligence nav tree (agent-taxonomy Task #1129):
+ * Canonical Intelligence nav tree (agent-taxonomy Task #1129,
+ * LLMs promotion Task #1390):
  *
- *   Analyst
- *     Gustavo        (Orchestrator info — read-only)
- *     Specialists    (all 16 in one accordion directory)
- *     Assumption Guidance
- *   Agents
+ *   Agent Roster
+ *     Agents
+ *     Specialists
+ *     Minions
+ *   Conversational
  *     Rebecca        (Configuration / Knowledge Base / Conversations)
  *     Iris           (Resource Maintainer)
  *   Runs             (unified cross-type log)
@@ -115,11 +124,18 @@ interface NavGroup {
  *     Knowledge Registry
  *     Country Economic Data
  *     Market Data
+ *   LLMs             (top-level group — CPU icon)
+ *     Agents         → llms-agents   (assistants tab; Specialists section)
+ *     Research       → llms-research (research tab; N+1 pipeline; research slots)
+ *     Graphics       → llms-graphics (image-gen slot group)
+ *     Other          → llms-other    (operations/exports tabs; data-extraction/system slots)
  *   System
+ *     Assumption Guidance
  *     System Health
  *     Scheduled Research
  *     Vector Search Latency
- *     LLMs
+ *
+ * Legacy "llm-workflows" deep link resolves to llms-agents (the default).
  */
 function buildNavGroups(): NavGroup[] {
   return [
@@ -206,6 +222,37 @@ function buildNavGroups(): NavGroup[] {
       ],
     },
     {
+      id: "llms",
+      label: "LLMs",
+      icon: IconCpu,
+      sections: [
+        {
+          value: "llms-agents",
+          label: "Agents",
+          icon: IconBot,
+          tooltip: "LLM configuration for agent and assistant workflows (Rebecca, Iris).",
+        },
+        {
+          value: "llms-research",
+          label: "Research",
+          icon: IconBrain,
+          tooltip: "LLM configuration for the research pipeline — Analyst A/B, synthesis, and deep research.",
+        },
+        {
+          value: "llms-graphics",
+          label: "Graphics",
+          icon: IconActivity,
+          tooltip: "LLM / image-model configuration for AI image generation (primary and fallback).",
+        },
+        {
+          value: "llms-other",
+          label: "Other",
+          icon: IconSettingsGear,
+          tooltip: "LLM configuration for operations, exports, data extraction, and system ops.",
+        },
+      ],
+    },
+    {
       id: "system",
       label: NAV_GROUP_LABELS.system,
       icon: IconSettingsGear,
@@ -219,12 +266,6 @@ function buildNavGroups(): NavGroup[] {
         { value: "engine-health",      label: "System Health",         icon: IconGauge  },
         { value: "scheduled-research", label: "Scheduled Research",    icon: IconTimer  },
         { value: "vector-bench",       label: "Vector Search Latency", icon: IconBrain  },
-        {
-          value: "llm-workflows",
-          label: "LLMs",
-          icon: IconCpu,
-          tooltip: "Language model configuration for each research workflow — the only place to manage LLM settings",
-        },
       ],
     },
   ];
@@ -248,6 +289,10 @@ function getGroupForSection(section: IntelligenceSection, groups: NavGroup[]): s
     section === "iris"
   ) {
     return "agent-roster";
+  }
+  // Legacy llm-workflows deep link maps to the LLMs group (defaults to Agents).
+  if (section === "llm-workflows") {
+    return "llms";
   }
   // Rebecca sub-sections that aren't in the nav map to the conversational group
   return "agents";

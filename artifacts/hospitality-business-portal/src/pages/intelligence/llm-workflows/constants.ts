@@ -4,6 +4,13 @@
  * Extracted from LlmWorkflowsPage.tsx during the section split. These define
  * the slot grouping shown in the accordion, the reverse specialist-id lookup,
  * and the function-area default tab items.
+ *
+ * Category mapping (Task #1390):
+ *   Agents    — assistants tab; Specialists section
+ *   Research  — research tab; financial, research, property-docs slot groups;
+ *               OrchestratorDefaults (N+1 pipeline)
+ *   Graphics  — image-gen slot group
+ *   Other     — operations + exports tabs; data-extraction + system slot groups
  */
 
 import {
@@ -18,6 +25,32 @@ export const SPECIALIST_ID_TO_SECTION: Record<string, SpecialistSection> =
       Object.entries(SPECIALIST_SECTION_TO_ID) as [SpecialistSection, string][]
     ).map(([section, id]) => [id, section]),
   );
+
+export type LlmCategory = "agents" | "research" | "graphics" | "other";
+
+/**
+ * Maps each tab key (from LLM_TAB_ITEMS) to the LLM sidebar category that
+ * owns it. This is the single source of truth for category filtering.
+ */
+export const TAB_CATEGORY_MAP: Record<string, LlmCategory> = {
+  assistants:  "agents",
+  research:    "research",
+  operations:  "other",
+  exports:     "other",
+};
+
+/**
+ * Maps each slot-group id (from SLOT_GROUPS) to the LLM sidebar category that
+ * owns it. This is the single source of truth for slot-group filtering.
+ */
+export const SLOT_GROUP_CATEGORY_MAP: Record<string, LlmCategory> = {
+  financial:       "research",
+  research:        "research",
+  "property-docs": "research",
+  "data-extraction": "other",
+  "image-gen":     "graphics",
+  system:          "other",
+};
 
 export const SLOT_GROUPS: {
   id: string;

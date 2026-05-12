@@ -40,13 +40,14 @@ import type {
   LlmVendor,
   ResearchConfig,
 } from "@shared/schema";
-import { LLM_TAB_ITEMS } from "../constants";
+import { LLM_TAB_ITEMS, TAB_CATEGORY_MAP, type LlmCategory } from "../constants";
 
 export interface FunctionAreaDefaultsProps {
   registry: LlmRegistryState | undefined;
+  category?: LlmCategory;
 }
 
-export function FunctionAreaDefaults({ registry }: FunctionAreaDefaultsProps) {
+export function FunctionAreaDefaults({ registry, category }: FunctionAreaDefaultsProps) {
   const { toast } = useToast();
   const { data: savedConfig } = useResearchConfig();
   const saveMutation = useSaveResearchConfig();
@@ -122,7 +123,7 @@ export function FunctionAreaDefaults({ registry }: FunctionAreaDefaultsProps) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
-        {LLM_TAB_ITEMS.map((tab) => {
+        {LLM_TAB_ITEMS.filter((tab) => !category || TAB_CATEGORY_MAP[tab.key] === category).map((tab) => {
           const def = tabDefaults[tab.key] || {};
           const vendor = def.llmVendor;
           const vendorModels = vendor

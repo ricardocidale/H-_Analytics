@@ -11,9 +11,14 @@
  *   2. Vendor Health — live status per vendor            ├─ HeaderBar
  *   3. Slot dirty warning                                ┘
  *   4. Function-Area Defaults — seed vendor/model per functional area
- *   5. N+1 Orchestrator Defaults — global multi-model pipeline assignments
- *   6. Slot Accordion — per-slot overrides (staged, saved via toolbar)
- *   7. Specialists — per-specialist override status + Configure links
+ *      (filtered to the active category's tabs)
+ *   5. N+1 Orchestrator Defaults — global multi-model pipeline (Research only)
+ *   6. Slot Accordion — per-slot overrides (filtered to active category)
+ *   7. Specialists — per-specialist override status (Agents only)
+ *
+ * The `category` prop (injected by Intelligence.tsx) scopes the page to a
+ * single LLM sub-domain. When undefined, all groups are shown (legacy behavior
+ * for the `llm-workflows` deep link).
  *
  * Each section is extracted under ./llm-workflows/. Slot-assignment state is
  * lifted into a hook (useSlotAssignments) so HeaderBar and SlotAccordion share
@@ -21,6 +26,7 @@
  * locally.
  */
 
+import { type LlmCategory } from "./llm-workflows/constants";
 import { useLlmRegistry, useRefreshLlmRegistry } from "@/lib/api/admin";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { HeaderBar } from "./llm-workflows/sections/HeaderBar";
@@ -30,7 +36,11 @@ import { SlotAccordion } from "./llm-workflows/sections/SlotAccordion";
 import { SpecialistsSection } from "./llm-workflows/sections/SpecialistsSection";
 import { useSlotAssignments } from "./llm-workflows/useSlotAssignments";
 
-export default function LlmWorkflowsPage() {
+export interface LlmWorkflowsPageProps {
+  category?: LlmCategory;
+}
+
+export default function LlmWorkflowsPage({ category }: LlmWorkflowsPageProps) {
   // Registry (vendor probe results + recommendations) — read by header,
   // function-area defaults, and slot accordion.
   const { data: registry } = useLlmRegistry();
@@ -52,6 +62,18 @@ export default function LlmWorkflowsPage() {
     handleSlotSave,
   } = useSlotAssignments();
 
+  // Derived visibility flags per category.
+  // OrchestratorDefaults is Research-only (it configures the N+1 pipeline).
+  // SpecialistsSection is Agents-only (agent-LLM override config).
+  const showOrchestratorDefaults = !category || category === "research";
+  const showSpecialists = !category || category === "agents";
+  // FunctionAreaDefaults renders its own tab filtering; hide the whole section
+  // when the active category has no tabs assigned (Graphics has none).
+  const showFunctionAreaDefaults = category !== "graphics";
+  // SlotAccordion hides itself when no groups match the category; always show
+  // for unscoped (legacy) view.
+  const showSlotAccordion = true;
+
   if (slotsLoading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -71,20 +93,27 @@ export default function LlmWorkflowsPage() {
         onSlotSave={handleSlotSave}
       />
 
-      <FunctionAreaDefaults registry={registry} />
+      {showFunctionAreaDefaults && (
+        <FunctionAreaDefaults registry={registry} category={category} />
+      )}
 
-      <OrchestratorDefaults modelResources={modelResources} />
+      {showOrchestratorDefaults && (
+        <OrchestratorDefaults modelResources={modelResources} />
+      )}
 
-      <SlotAccordion
-        slotResources={slotResources}
-        selections={selections}
-        setSelections={setSelections}
-        originalSlugs={originalSlugs}
-        modelsByVendor={modelsByVendor}
-        registry={registry}
-      />
+      {showSlotAccordion && (
+        <SlotAccordion
+          slotResources={slotResources}
+          selections={selections}
+          setSelections={setSelections}
+          originalSlugs={originalSlugs}
+          modelsByVendor={modelsByVendor}
+          registry={registry}
+          category={category}
+        />
+      )}
 
-      <SpecialistsSection />
+      {showSpecialists && <SpecialistsSection />}
     </div>
   );
 }

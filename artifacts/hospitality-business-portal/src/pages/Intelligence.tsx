@@ -76,7 +76,11 @@ const sectionMeta: Record<IntelligenceSection, { title: string; subtitle: string
   "gustavo":               { title: "Gustavo · Analyst Orchestrator", subtitle: "Routes research tasks to the Specialist team and coordinates all intelligence gathering" },
   "iris":                  { title: "Iris · Resource Maintainer",    subtitle: "Keeps resource registries and reference data current across the platform" },
   "specialists":           { title: "Specialists",              subtitle: "Research Specialists powering H+ Analysis — verify deployment and run health checks" },
-  "llm-workflows":         { title: "LLMs",                     subtitle: "Language model configuration for each research workflow — vendor, model, and Analyst recommendations" },
+  "llm-workflows":         { title: "LLMs — Agents",             subtitle: "Language model configuration for agent and assistant workflows (Rebecca, Iris)" },
+  "llms-agents":           { title: "LLMs — Agents",             subtitle: "Language model configuration for agent and assistant workflows (Rebecca, Iris)" },
+  "llms-research":         { title: "LLMs — Research",           subtitle: "Language model configuration for the research pipeline — Analyst A/B, synthesis, and deep research" },
+  "llms-graphics":         { title: "LLMs — Graphics",           subtitle: "LLM and image-model configuration for AI image generation (primary and fallback)" },
+  "llms-other":            { title: "LLMs — Other",              subtitle: "Language model configuration for operations, exports, data extraction, and system operations" },
   "assumption-guidance":   { title: "Assumption Guidance",      subtitle: "Analyst-generated calibration insights — suggested ranges and sources for financial assumptions" },
   "knowledge-registry":        { title: "Knowledge Registry",        subtitle: "Registry of knowledge sources and documents powering Intelligence" },
   "knowledge-registry-country-data": { title: "Country Economic Data", subtitle: "Inflation, FX rates, GDP growth, and interest rate data per country" },
@@ -195,7 +199,12 @@ function SectionContent({ section }: { section: IntelligenceSection }) {
     case "gustavo":           return <GustavoInfoPage />;
     case "iris":              return <IrisPanel />;
     case "specialists":       return <SpecialistsDirectoryPage />;
-    case "llm-workflows":     return <LlmWorkflowsPage />;
+    // Legacy deep link — defaults to the Agents category
+    case "llm-workflows":     return <LlmWorkflowsPage category="agents" />;
+    case "llms-agents":       return <LlmWorkflowsPage category="agents" />;
+    case "llms-research":     return <LlmWorkflowsPage category="research" />;
+    case "llms-graphics":     return <LlmWorkflowsPage category="graphics" />;
+    case "llms-other":        return <LlmWorkflowsPage category="other" />;
     case "assumption-guidance": return <AssumptionGuidancePage />;
     case "knowledge-registry":             return <KnowledgeRegistryPage />;
     case "knowledge-registry-country-data": return <CountryEconomicDataPage />;
@@ -227,6 +236,10 @@ const VALID_SECTIONS = new Set<IntelligenceSection>([
   "iris",
   "specialists",
   "llm-workflows",
+  "llms-agents",
+  "llms-research",
+  "llms-graphics",
+  "llms-other",
   "assumption-guidance",
   "engine-health",
   "scheduled-research",
@@ -273,8 +286,13 @@ export default function Intelligence() {
     didApplyDeepLinkRef.current = true;
     const params = new URLSearchParams(urlSearch);
     const requested = params.get("section");
-    if (requested && VALID_SECTIONS.has(requested as IntelligenceSection)) {
-      setIntelligenceSection(requested as IntelligenceSection);
+    if (requested) {
+      // Normalize the legacy `llm-workflows` deep link to `llms-agents` so the
+      // sidebar highlights the correct sub-item and the URL stays useful.
+      const normalized = requested === "llm-workflows" ? "llms-agents" : requested;
+      if (VALID_SECTIONS.has(normalized as IntelligenceSection)) {
+        setIntelligenceSection(normalized as IntelligenceSection);
+      }
     }
   }, [urlSearch]);
 
