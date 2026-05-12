@@ -48,15 +48,15 @@ Approximate field count: **~50 total** (~9 identity, ~5 purchased-only, ~3 impro
 
 These were the architect's reasons for blocking the original unified-cut plan. They become hard requirements when Milestone B is picked up:
 
-1. **Dependency matrix BEFORE any storage change ships.** Map every reader of every column being moved. Known consumers as of 2026-05-11:
-   - ICP analysis / config / prompt generation (consumes `fbSeats`, `fbVenues`, `eventSpaceSqft`, `totalPropertyAcreage`, `totalBuildingSqft`)
+1. **Dependency matrix BEFORE any storage change ships.** Map every reader of every column being moved. Known consumers as of 2026-05-11 (see UPDATE below — ICP consumer scope shrank on 2026-05-11):
+   - ~~ICP analysis / config / prompt generation (consumes `fbSeats`, `fbVenues`, `eventSpaceSqft`, `totalPropertyAcreage`, `totalBuildingSqft`)~~ — **Materially shrunk.** Per `docs/brainstorms/icp-simplification/requirements.md` (2026-05-11), ICP is being rebuilt as a 3–5 bracket model that does not consume per-property descriptors at the per-field grain the current pipeline does. Once the bracket-model rewire (follow-up task #6 in the icp-simplification doc) ships, the obsolete ICP server pipeline (`artifacts/api-server/src/ai/icp/{orchestrator,config-builder,portfolio-analysis,prompt,narrative,fallback-descriptive}.ts`, ~700 LOC, follow-up task #10) is removed. Treat ICP as a **near-zero accessor obligation** for Milestone B planning purposes — the heavy 70-field consumer is going away.
    - Rebecca research context assembly
    - Report assumption export (consumes `marketTier`, `fbVenues`, `eventSpaceSqft`, acreage)
    - Slide factory pulls
    - Shared engine `PropertyInput` type
    - AI tool function-calling parameters
    - Anywhere else `rg` finds these column names
-   - **Note:** ICP consumer status is itself uncertain — see `open-questions/icp-strategic-doubt.md`.
+   - **Re-confirmation step:** when Milestone B is picked up, re-run the dependency matrix against the codebase as of that date — by then, ICP's pipeline should be deleted and the matrix should be measurably smaller.
 
 2. **Accessor-first.** Single server-side accessor that resolves a property's descriptors from typed columns + JSONB. **No reader reads JSONB directly.** All reads go through the accessor.
 
@@ -88,7 +88,7 @@ These were the architect's reasons for blocking the original unified-cut plan. T
 - **`use_class` taxonomy** — final enum list. Opus implies ~10-15 values. Primary + secondary array shape is decided; the values are not.
 - **`condition_rating` decomposition** — still 1-5 single scale, or split into roof/mechanicals/envelope/finishes/site? Or accept it stays decorative and real condition data lives in the cap-ex module?
 - **`seasonality_pattern` retrofit risk** — enum vs 12-element monthly occupancy curve. Revenue module's call.
-- **ICP's status** as a Milestone B reader (see `open-questions/icp-strategic-doubt.md`) — if ICP is rebuilt or scoped down, the dependency matrix shrinks meaningfully.
+- ~~**ICP's status** as a Milestone B reader (see `open-questions/icp-strategic-doubt.md`) — if ICP is rebuilt or scoped down, the dependency matrix shrinks meaningfully.~~ **Resolved 2026-05-11.** ICP is being rebuilt as a 3–5 bracket model (see `docs/brainstorms/icp-simplification/requirements.md`); the dependency matrix has shrunk and the strategic-doubt note is closed. Milestone B planning should re-run the dependency matrix at start time to capture the new (smaller) state.
 
 ---
 
