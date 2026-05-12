@@ -114,6 +114,11 @@ Carry forward verbatim into per-iteration discipline (see U2/U3 Approach):
 - Exact wording of the natural-language trigger phrases in the harmonized table (revisit during U5 based on what reads naturally in CLAUDE.md/replit.md tone).
 - Whether the watcher's per-iteration log goes to a single `run.log` or per-iteration `iteration-NN.log`. Resolve during U3.
 
+### From 2026-05-12 review
+
+- **Watcher↔session fix-application handoff architecture is undefined and likely impossible as described.** Flagged by feasibility, scope-guardian, and adversarial personas. The plan's "backgrounded watcher with in-session Claude fix application" framing has no defined mechanism by which a backgrounded shell process resumes an interactive Claude Code session. Choose one of two concrete architectures and rewrite R5/R8 + U2/U3 to match before implementation begins: **(a) Synchronous loop** — slash command runs foreground for the full duration; drop R8's "do not block" framing and accept hours-long sessions for the autofix variant. Matches the curl-trigger-and-poll precedent in `docs/solutions/workflow-issues/coderabbit-iterative-review-loop-on-replit-agent-2026-05-09.md`. **(b) Two-phase commands** — `…-start` kicks off the watcher and returns; on each iteration completion the user invokes `…-apply` so Claude reads the marker and edits; then `…-resume` fires the next iteration. Matches the multi-phase ce-resolve-pr-feedback skill shape.
+  - **Cascaded sub-question — Resume-from-checkpoint guarantee.** Scope Boundaries (line 42) currently says "resume falls out of the watcher's state files" (presented as a guarantee), while the Risks table (line 397) treats the same behavior as a hope under "Background watcher process is killed by Replit shell session ending." After the architecture choice above lands, restate the resume contract consistently in both sections — either as an explicit guarantee (state-file persistence + re-invocation reads the manifest) or as an explicit non-guarantee (each invocation starts fresh; persistence is on the user).
+
 ---
 
 ## High-Level Technical Design
