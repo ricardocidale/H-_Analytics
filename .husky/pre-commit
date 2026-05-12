@@ -14,3 +14,10 @@ if git diff --cached --name-only | grep -qE '^lib/(engine|calc|shared|domain)/';
   echo "Engine files staged — running test:engine..."
   pnpm run test:engine
 fi
+
+# Run test:calc only when calc library files are staged.
+# Mirrors the engine guard pattern to catch calc regressions at commit time.
+if git diff --cached --name-only | grep -qE '^lib/calc/'; then
+  echo "Calc files staged — running test:calc..."
+  pnpm run test:calc
+fi

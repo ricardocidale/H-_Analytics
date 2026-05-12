@@ -39,7 +39,8 @@
     "check:core": "concurrently --kill-others-on-fail -n lint,lint:libs,typecheck,magic-numbers,replit-independence,migration-guards,spinner-contrast,production-image,types-mirror,schema-drift,direct-run-guards \"pnpm run check:lint\" \"pnpm run check:lint:libs\" \"pnpm run check:typecheck\" \"pnpm run check:magic-numbers\" \"pnpm run check:replit-independence\" \"pnpm run check:migration-guards\" \"pnpm run check:spinner-contrast\" \"pnpm run check:production-image\" \"pnpm run check:types-mirror\" \"pnpm run check:schema-drift\" \"pnpm run check:direct-run-guards\"",
     "check": "sh -c 'pnpm run check:all-cached || { pnpm run check:selective && pnpm run check:all-cached:write; }'",
     "check:timing-report": "pnpm --filter @workspace/scripts run check:timing-report",
-    "test:engine": "pnpm --filter @workspace/engine run test"
+    "test:engine": "pnpm --filter @workspace/engine run test",
+    "test:calc": "pnpm --filter @workspace/calc run test"
   },
   "private": true,
   "devDependencies": {
