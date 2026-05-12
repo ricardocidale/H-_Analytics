@@ -50,6 +50,11 @@ export async function seed() {
 
     await seedFeeCategories();
 
+    // 7th canonical dev property — kept in its own helper because it carries
+    // a Colombia-specific assumption set and a separate photo bundle.
+    await seedMedellinDuplex();
+    await seedMedellinDuplexPhotos();
+
     const seededProperties = await db.select().from(properties);
     const propertyMap: Record<string, number> = {};
     for (const p of seededProperties) {
