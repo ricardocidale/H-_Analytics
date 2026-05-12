@@ -211,6 +211,14 @@
     "0052_minion_self_test_cadence": {
       "status": "self-idempotent",
       "reason": "Single INSERT INTO admin_resources ... ON CONFLICT (kind, slug) DO NOTHING — seeds the minion-self-test cycle-interval parameter row. Re-running is a safe no-op; the ON CONFLICT guard ensures no duplicate is created (Task #1397)."
+    },
+    "0053_property_assumptions_improved_columns": {
+      "status": "self-idempotent",
+      "reason": "Task #1404 Milestone A — adds six nullable As-Improved integer/text columns to properties (fb_venues_improved, fb_seats_improved, event_space_sqft_improved, total_building_sqft_improved, planned_reopening_year, description_improved). Every statement uses ALTER TABLE … ADD COLUMN IF NOT EXISTS; re-running on an already-migrated DB is a no-op."
+    },
+    "0054_property_description_purchased": {
+      "status": "self-idempotent",
+      "reason": "Task #1404 Milestone A — adds nullable description_purchased text column to properties via ALTER TABLE … ADD COLUMN IF NOT EXISTS, then backfills from legacy description with WHERE … IS NULL guard. Both statements are idempotent; the UPDATE is a no-op when description_purchased is already populated."
     }
   }
 }

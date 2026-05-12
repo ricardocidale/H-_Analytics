@@ -358,6 +358,20 @@
       "when": 1778820000000,
       "tag": "0052_minion_self_test_cadence",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1778586871526,
+      "tag": "0053_property_assumptions_improved_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1747094400000,
+      "tag": "0054_property_description_purchased",
+      "breakpoints": true
     }
   ]
 }
