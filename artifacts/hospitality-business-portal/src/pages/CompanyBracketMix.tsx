@@ -736,7 +736,6 @@ function BracketMixTab() {
         proposedMix={proposedMix}
         proposedReady={selectedCount > 0 && weightSumOk}
       />
-
       <Card className="border border-border rounded-lg p-5 space-y-3" data-testid="service-consumption-rules">
         <SectionHeading icon={IconUsers} title="Service-Consumption Rules (built into the model)" />
         <p className="text-xs text-muted-foreground">

@@ -420,6 +420,7 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
                     badgeProps={{ entry: researchValues.acqRate, sourceType: researchValues.acqRate?.source === "market" ? "market" : "seed", sourceName: (researchValues.acqRate as { sourceName?: string })?.sourceName }}
                     onApplyValue={() => researchValues.acqRate && onChange("acquisitionInterestRate", researchValues.acqRate.mid / 100)}
                     guidanceContext={gc("acqRate", "Acquisition Interest Rate")}
+                    guardrailKey="wacc.cost_of_debt"
                     currentValue={draft.acquisitionInterestRate || DEFAULT_INTEREST_RATE} isPercent
                   />
                   <EditableValue

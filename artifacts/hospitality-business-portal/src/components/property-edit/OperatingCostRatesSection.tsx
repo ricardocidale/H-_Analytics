@@ -362,6 +362,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         badgeProps={{ entry: researchValues.costMarketing }}
                         onApplyValue={() => researchValues.costMarketing && onChange("costRateMarketing", researchValues.costMarketing.mid / 100)}
                         guidanceContext={gc("costMarketing", "Marketing")}
+                        guardrailKey="vendor_passthrough_cost.marketing"
                         currentValue={draft.costRateMarketing ?? DEFAULT_COST_RATE_MARKETING} isPercent
                       />
                       <EditableValue
@@ -388,6 +389,7 @@ export default function OperatingCostRatesSection({ draft, onChange, globalAssum
                         badgeProps={{ entry: researchValues.costIT }}
                         onApplyValue={() => researchValues.costIT && onChange("costRateIT", researchValues.costIT.mid / 100)}
                         guidanceContext={gc("costIT", "IT")}
+                        guardrailKey="vendor_passthrough_cost.it"
                         currentValue={draft.costRateIT ?? DEFAULT_COST_RATE_IT} isPercent
                       />
                       <EditableValue

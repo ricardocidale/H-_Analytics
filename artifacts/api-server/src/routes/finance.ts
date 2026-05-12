@@ -496,7 +496,7 @@ export function registerFinanceRoutes(router: Router): void {
           const normalized = normalizePersistedBracketMix(rawMix);
           if (normalized) {
             portfolioBracketMix = normalized.bracketMix;
-            portfolioBrackets = normalized.brackets;
+            if (normalized.brackets) portfolioBrackets = normalized.brackets;
           }
         } catch (mixErr: unknown) {
           logger.warn(
@@ -823,7 +823,7 @@ export function registerFinanceRoutes(router: Router): void {
           const normalized = normalizePersistedBracketMix(rawMix);
           if (normalized) {
             companyBracketMix = normalized.bracketMix;
-            companyBrackets = normalized.brackets;
+            if (normalized.brackets) companyBrackets = normalized.brackets;
           }
         } catch (mixErr: unknown) {
           logger.warn(

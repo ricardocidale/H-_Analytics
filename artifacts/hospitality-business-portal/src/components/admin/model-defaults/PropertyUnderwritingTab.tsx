@@ -1018,6 +1018,7 @@ function ExitRevenueMultipleSection({
                 fieldKey="exitRevenueMultiple"
                 currentValue={selectedMultiple}
                 guidance={exitMultipleGuidance}
+                guardrailKey="exitRevenueMultiple"
               />
               <p className="text-xs text-muted-foreground" data-testid="text-exit-multiple-band">
                 {band.label} band: {band.valueLow!.toFixed(1)}x – {band.valueHigh!.toFixed(1)}x
