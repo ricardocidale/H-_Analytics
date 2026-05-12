@@ -3,7 +3,7 @@
  *
  * Aggregation rules applied field-by-field in addPropertyYear():
  *
- *   SUM — all flow metrics: revenue lines, all expense lines, GOP, NOI, ANOI,
+ *   SUM — all flow metrics: revenue lines, all expense lines, GOP, AGOP, NOI, ANOI,
  *         netIncome, interest, depreciation, incomeTax, principalPayment,
  *         debtPayment, refinancingProceeds, the three cash-flow buckets, AR,
  *         AP, workingCapitalChange, soldRooms, availableRooms, fee lines.

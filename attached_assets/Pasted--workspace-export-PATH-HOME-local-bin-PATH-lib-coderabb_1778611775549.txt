@@ -1,0 +1,51 @@
+~/workspace$ export PATH="$HOME/.local/bin:$PATH"
+
+# lib
+coderabbit review --plain --base-commit HEAD~10 --type committed --dir lib
+
+# hospitality-business-portal (largest — run after lib finishes)
+coderabbit review --plain --base-commit HEAD~10 --type committed --dir artifacts/hospitality-business-portal
+Starting CodeRabbit review in plain text mode...
+
+Review directory: /home/runner/workspace/lib
+
+Connecting to review service
+Setting up
+Summarizing
+Reviewing
+
+============================================================================
+File: lib/engine/src/aggregation/consolidation.ts
+Line: 6 to 9
+Type: potential_issue
+Severity: minor
+
+Comment:
+Include AGOP in the documentation list.
+
+The enumeration lists "GOP, NOI, ANOI" but the implementation also sums agop at line 64. Since AGOP (Adjusted GOP) is a key metric alongside GOP, NOI, and ANOI, it should be included in this list for completeness.
+
+
+
+
+📝 Suggested documentation fix
+
+-*   SUM — all flow metrics: revenue lines, all expense lines, GOP, NOI, ANOI,
++*   SUM — all flow metrics: revenue lines, all expense lines, GOP, AGOP, NOI, ANOI,
+
+Prompt for AI Agent:
+Verify each finding against current code. Fix only still-valid issues, skip the rest with a brief reason, keep changes minimal, and validate.
+
+In @lib/engine/src/aggregation/consolidation.ts around lines 6 - 9, The header doc comment enumerating SUM metrics in consolidation.ts omits AGOP even though the implementation sums the agop field (see reference to agop in the SUM logic around the consolidation implementation); update the comment to include "AGOP" alongside "GOP, NOI, ANOI" so the documented list matches the code. Locate the block that currently reads "GOP, NOI, ANOI" and insert "AGOP" in the same style and comma-separated position.
+
+Review completed: 1 finding ✔
+Starting CodeRabbit review in plain text mode...
+
+Review directory: /home/runner/workspace/artifacts/hospitality-business-portal
+
+Connecting to review service
+Setting up
+[2026-05-12T18:17:22.377Z] ❌ ERROR: You’ve run out of usage credits. Purchase more in the [billing tab](https://app.coderabbit.ai/settings/subscription?tab=usage&tenantId=86265f71-aacf-4d98-a7fc-b9677cf30472).
+Failed to start review: Rate limit exceeded
+[error] stopping cli
+~/workspace$ 
