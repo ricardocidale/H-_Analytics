@@ -22,7 +22,6 @@ import {
   CompanyIdentitySection,
   CapitalRaisesCard,
   ConvertibleTermsCard,
-  CapitalStackDisciplineCard,
   ManagementFeesSection,
   CompensationSection,
   FixedOverheadSection,
@@ -139,18 +138,13 @@ export function CompanyAssumptionsTabsView(props: Props) {
           />
         );
       case "funding":
-        // The funding tab balances four cards across two columns at xl
-        // (the other tabs use three columns, but Capital Raises is now
-        // taller than the rest because the two tranches stack vertically,
-        // so a 3-col layout left columns 2 and 3 visibly short):
+        // The funding tab balances two columns at md+:
         //   col 1 → Capital Raises (the two tranches stacked vertically)
-        //   col 2 → Cost of Capital → Convertible Terms → Capital Stack
-        //           Discipline (three smaller cards stacked, total height
-        //           ≈ the Capital Raises card)
-        // Each named card is composed directly so column 2 can stack the
-        // three cards in a single vertical container. The Analyst verdict
-        // renders below the grid full-width — the structured 5-dimension
-        // stack reads better as one wide column than as a single grid cell.
+        //   col 2 → Cost of Capital → Convertible Terms (two smaller cards)
+        // Capital Stack Discipline was moved to Admin → App Defaults →
+        // Management Company → Capital Stack Discipline (task #1400) and is
+        // no longer rendered here. The Analyst verdict renders below the grid
+        // full-width — the 5-dimension stack reads better as one wide column.
         return (
           <div className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2 items-start">
@@ -165,11 +159,6 @@ export function CompanyAssumptionsTabsView(props: Props) {
                   researchValues={researchValues}
                 />
                 <ConvertibleTermsCard
-                  formData={formData}
-                  onChange={onChange}
-                  global={global}
-                />
-                <CapitalStackDisciplineCard
                   formData={formData}
                   onChange={onChange}
                   global={global}

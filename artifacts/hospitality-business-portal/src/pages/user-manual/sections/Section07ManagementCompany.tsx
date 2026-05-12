@@ -60,6 +60,25 @@ export default function Section07ManagementCompany({ expanded, onToggle, section
           future equity, not revenue.
         </p>
       </div>
+
+      <div className="bg-muted/50 rounded-lg p-4">
+        <h4 className="font-semibold mb-2">Capital Stack Discipline</h4>
+        <p className="text-sm text-muted-foreground mb-2">
+          Four admin-level thresholds consumed exclusively by the <strong>Funding Specialist</strong> when
+          it evaluates a capital-raise plan against live benchmarks. Admins configure these under{" "}
+          <strong>Admin → App Defaults → Management Company → Capital Stack Discipline</strong>.
+        </p>
+        <ManualTable
+          variant="light"
+          headers={["Threshold", "What It Controls"]}
+          rows={[
+            ["Runway Buffer", "Minimum months of runway past the operations start date. Raises leaving less than this cushion are flagged as undersized."],
+            ["Sizing Overshoot", "Minimum headroom (% of the raise) over the modeled cash need. Covers plan slippage."],
+            ["Revenue Ramp Delay", "Estimated months between operations start and first material property revenue. Sizes the operating reserve."],
+            ["Burn Flex-Down", "Discretionary portion of the burn plan that can be cut without breaking operations. Measures slack before a covenant or runway tripwire fires."],
+          ]}
+        />
+      </div>
     </SectionCard>
   );
 }

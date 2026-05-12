@@ -11,6 +11,7 @@ import { ModelConstantsTab } from "./model-defaults/ModelConstantsTab";
 import { PropertyUnderwritingTab } from "./model-defaults/PropertyUnderwritingTab";
 import { CompanyTab } from "./model-defaults/CompanyTab";
 import { DdTemplateTab } from "./model-defaults/DdTemplateTab";
+import { CapitalStackDisciplineTab } from "./model-defaults/CapitalStackDisciplineTab";
 import { useAuth } from "@/lib/auth";
 import {
   useAnalystRefresh,
@@ -110,6 +111,21 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
       }),
   });
 
+  // Funding Specialist — evaluates the management company's capital-raise
+  // plan against live benchmarks. Wired to the Capital Stack Discipline tab.
+  const fundingRefresh = useAnalystRefresh({
+    scope: "global-assumptions",
+    specialistId: "mgmt-co.funding",
+    invalidateKeys: [guidanceQueryKey],
+    entityValues: saved as Record<string, unknown> | undefined,
+    onMissingRequiredFields: (info) =>
+      setMissingFieldsPrompt({
+        open: true,
+        specialistId: info.specialistId,
+        missingFields: info.missingFields,
+      }),
+  });
+
   const saveMutation = useMutation({
     mutationFn: async (updates: Draft) => {
       const res = await fetch("/api/global-assumptions", {
@@ -193,6 +209,9 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
           {showTab("company") && (
             <TabsTrigger value="company" data-testid="tab-company">Company</TabsTrigger>
           )}
+          {showTab("capital-stack-discipline") && (
+            <TabsTrigger value="capital-stack-discipline" data-testid="tab-capital-stack-discipline">Capital Stack Discipline</TabsTrigger>
+          )}
           {showTab("market-macro") && (
             <TabsTrigger value="market-macro" data-testid="tab-market-macro">Market & Macro</TabsTrigger>
           )}
@@ -227,6 +246,19 @@ export default function ModelDefaultsTab({ onSaveStateChange, initialTab, visibl
                   setIsDirty(false);
                 }
               }}
+            />
+          </TabsContent>
+        )}
+
+        {showTab("capital-stack-discipline") && (
+          <TabsContent value="capital-stack-discipline">
+            <CapitalStackDisciplineTab
+              draft={draft}
+              onChange={handleChange}
+              onFundingAnalystRefresh={fundingRefresh.triggerRefresh}
+              fundingAnalystRunning={fundingRefresh.running}
+              fundingAnalystCooldownMs={fundingRefresh.cooldownRemainingMs}
+              fundingVerdict={fundingRefresh.lastVerdict}
             />
           </TabsContent>
         )}

@@ -175,6 +175,27 @@ DSCR (Debt Service Coverage Ratio) = ANOI ÷ Annual Debt Service. DSCR > 1.0 mea
   });
 
   chunks.push({
+    title: "Capital Stack Discipline",
+    content: `Capital Stack Discipline is a set of four admin-level thresholds consumed exclusively by the Funding Specialist (mgmt-co-funding) when it evaluates a management company capital-raise plan against live benchmarks.
+
+These thresholds are NOT configurable on the front-of-app Company Assumptions page. They are configured under Admin → App Defaults → Management Company → Capital Stack Discipline.
+
+The four thresholds:
+
+1. Runway Buffer (months) — Minimum months of runway past the operations start date. Raises leaving less than this cushion are flagged as undersized. Typical range: 6–12 months.
+
+2. Sizing Overshoot (%) — Minimum headroom over the modeled cash need, expressed as a percent of the raise. Covers plan slippage between model and actual; the Specialist prefers raises sized at or above this band. Typical range: 10%–35%.
+
+3. Revenue Ramp Delay (months) — Estimated months between operations start and the first material property management fee revenue arriving. Used to size the operating reserve and validate the gap between raise dates and revenue arrival. Typical range: 3–9 months.
+
+4. Burn Flex-Down (%) — Discretionary portion of the burn plan that can be cut without breaking operations, as a percent of plan burn. Quantifies how much the company can absorb before a covenant or runway tripwire fires. Typical range: 10%–30%.
+
+These four values define the minimum safety margins the Funding Specialist uses to score and flag funding plans. Admins can trigger a live Funding Specialist analysis from the Capital Stack Discipline tab using the Analyst button.`,
+    source: "Admin Settings",
+    category: "admin",
+  });
+
+  chunks.push({
     title: "Management Company Financials",
     content: `The Management Company earns revenue through management fees from all properties in the portfolio.
 

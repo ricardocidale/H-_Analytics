@@ -98,6 +98,17 @@ export default function Section16Admin({ expanded, onToggle, sectionRef }: Secti
       </div>
 
       <div className="bg-muted/50 rounded-lg p-4">
+        <h4 className="font-semibold mb-2">Model Defaults → Management Company → Capital Stack Discipline</h4>
+        <p className="text-sm text-muted-foreground mb-2">
+          A dedicated tab under Admin → App Defaults → Management Company that houses the four thresholds
+          the <strong>Funding Specialist</strong> uses to score management-company capital-raise plans:
+          Runway Buffer, Sizing Overshoot, Revenue Ramp Delay, and Burn Flex-Down. These values are
+          admin-only defaults — they are not editable on the front-of-app Company Assumptions page.
+          The Analyst button on this tab triggers a live Funding Specialist run against the saved values.
+        </p>
+      </div>
+
+      <div className="bg-muted/50 rounded-lg p-4">
         <h4 className="font-semibold mb-2">Model Defaults → Model Constants</h4>
         <p className="text-sm text-muted-foreground mb-3">
           The Model Constants tab is where the portal's accounting and regulatory standards live —

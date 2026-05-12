@@ -44,7 +44,7 @@
  */
 export { default as EditableValue } from "./EditableValue";
 export { default as CompanyIdentitySection } from "./CompanyIdentitySection";
-export { default as FundingSection, CapitalRaisesCard, ConvertibleTermsCard, CapitalStackDisciplineCard } from "./FundingSection";
+export { default as FundingSection, CapitalRaisesCard, ConvertibleTermsCard } from "./FundingSection";
 export { default as ManagementFeesSection } from "./ManagementFeesSection";
 export { default as CompensationSection } from "./CompensationSection";
 export { default as FixedOverheadSection } from "./FixedOverheadSection";

@@ -66,6 +66,13 @@ export const PROPERTY_UNDERWRITING_TAB_ANALYST_FIELDS: readonly AnalystFieldSpec
   // soft-gate already covers inflationRate.
 ];
 
+export const CAPITAL_STACK_DISCIPLINE_ANALYST_FIELDS: readonly AnalystFieldSpec[] = [
+  { guidanceKey: "runwayBufferMonths",     draftKey: "runwayBufferMonths" },
+  { guidanceKey: "sizingOvershootPct",     draftKey: "sizingOvershootPct" },
+  { guidanceKey: "revenueRampDelayMonths", draftKey: "revenueRampDelayMonths" },
+  { guidanceKey: "burnFlexDownPct",        draftKey: "burnFlexDownPct" },
+];
+
 // Placeholders — these tabs currently hold constants/LLM settings/required-field
 // metadata, not admin-editable assumption values. Kept for completeness so a
 // later slice can attach a button without inventing new keys.

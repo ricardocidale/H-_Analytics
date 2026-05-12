@@ -18,12 +18,14 @@
  * They provide the runway needed to operate before management fee revenue
  * from the property portfolio covers overhead.
  *
- * The file exposes three named card components — `CapitalRaisesCard`,
- * `ConvertibleTermsCard`, `CapitalStackDisciplineCard` — so the parent can
- * arrange them across the funding-tab grid (e.g. stack Cost of Capital atop
- * Convertible Terms in column 2). The default `FundingSection` export
- * renders all three in source order for any caller that wants the legacy
- * fragment behavior.
+ * The file exposes two named card components — `CapitalRaisesCard` and
+ * `ConvertibleTermsCard` — so the parent can arrange them across the
+ * funding-tab grid. The default `FundingSection` export renders both in
+ * source order for any caller that wants the legacy fragment behavior.
+ * Capital-stack discipline thresholds (Runway Buffer, Sizing Overshoot,
+ * Revenue Ramp Delay, Burn Flex-Down) were moved to the dedicated
+ * Admin → App Defaults → Management Company → Capital Stack Discipline tab
+ * (task #1400).
  */
 import { useState } from "react";
 import { Label } from "@/components/ui/label";
@@ -34,12 +36,6 @@ import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatMoney } from "@/lib/financialEngine";
 import { DEFAULT_CAPITAL_RAISE_VALUATION_CAP, DEFAULT_CAPITAL_RAISE_DISCOUNT_RATE, DEFAULT_FUNDING_INTEREST_RATE } from "@shared/constants";
-import {
-  DEFAULT_RUNWAY_BUFFER_MONTHS,
-  DEFAULT_SIZING_OVERSHOOT_PCT,
-  DEFAULT_REVENUE_RAMP_DELAY_MONTHS,
-  DEFAULT_BURN_FLEX_DOWN_PCT,
-} from "@shared/constants-funding";
 import EditableValue from "./EditableValue";
 import type { FundingSectionProps } from "./types";
 
@@ -383,148 +379,18 @@ export function ConvertibleTermsCard({ formData, onChange, global }: FundingSect
   );
 }
 
-/* ─────────────── Card 3: Capital Stack Discipline ───────────────
-   Funding-Specialist required-field cascade (G1.5b Packet B). Per
-   .claude/rules/inflation-cascade.md these four values flow
-   Constants → Defaults → Assumptions; this panel is the
-   Assumption-tier surface. Values fall back to the global Default
-   tier (`global.<field>`) and ultimately to the named DEFAULT_*
-   constants if neither layer has a value, so the slider always
-   renders a number. trancheGapMonths intentionally has no input —
-   it is derived from the two capital-raise dates in Card 1 (see
-   useCompanyAssumptionsForm). */
-export function CapitalStackDisciplineCard({ formData, onChange, global }: FundingSectionProps) {
-  return (
-    <div className={CARD_CLASSES}>
-      <div className="space-y-6">
-        <div>
-          <h3 className="text-lg font-display text-foreground flex items-center">
-            Capital Stack Discipline
-            <InfoTooltip text="Discipline metrics the Funding Specialist evaluates against live capital-raise benchmarks. Override here when your raise plan diverges from the company defaults; leave alone to inherit." manualSection="management-company" />
-          </h3>
-          <p className="text-muted-foreground text-xs label-text mt-1">Runway, sizing overshoot, revenue ramp, and burn flex-down used to size and stress-test the raise.</p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="flex items-center text-foreground label-text">
-                Runway Buffer
-                <InfoTooltip text="Months of runway buffer past the company operations start date. Sized so the plan does not run dry the day revenue should arrive — the Specialist flags raises with less than this cushion." />
-              </Label>
-              <span data-field="runwayBufferMonths">
-                <EditableValue
-                  value={formData.runwayBufferMonths ?? global.runwayBufferMonths ?? DEFAULT_RUNWAY_BUFFER_MONTHS}
-                  onChange={(v) => onChange("runwayBufferMonths", v)}
-                  format="number"
-                  min={3}
-                  max={24}
-                  step={1}
-                />
-              </span>
-            </div>
-            <Slider
-              value={[formData.runwayBufferMonths ?? global.runwayBufferMonths ?? DEFAULT_RUNWAY_BUFFER_MONTHS]}
-              onValueChange={([v]) => onChange("runwayBufferMonths", v)}
-              min={3}
-              max={24}
-              step={1}
-              data-testid="slider-runway-buffer-months"
-            />
-          </div>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="flex items-center text-foreground label-text">
-                Sizing Overshoot
-                <InfoTooltip text="Headroom over the modeled cash need, expressed as a percent of the modeled raise. Covers slippage between plan and actual; the Specialist prefers raises sized at or above the mid-band." />
-              </Label>
-              <span data-field="sizingOvershootPct">
-                <EditableValue
-                  value={formData.sizingOvershootPct ?? global.sizingOvershootPct ?? DEFAULT_SIZING_OVERSHOOT_PCT}
-                  onChange={(v) => onChange("sizingOvershootPct", v)}
-                  format="percent"
-                  min={0}
-                  max={0.5}
-                  step={0.01}
-                />
-              </span>
-            </div>
-            <Slider
-              value={[(formData.sizingOvershootPct ?? global.sizingOvershootPct ?? DEFAULT_SIZING_OVERSHOOT_PCT) * 100]}
-              onValueChange={([v]) => onChange("sizingOvershootPct", v / 100)}
-              min={0}
-              max={50}
-              step={1}
-              data-testid="slider-sizing-overshoot-pct"
-            />
-          </div>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="flex items-center text-foreground label-text">
-                Revenue Ramp Delay
-                <InfoTooltip text="Months between operations start and the first material property revenue. Used to size the operating reserve and validate the gap between raise dates and revenue arrival." />
-              </Label>
-              <span data-field="revenueRampDelayMonths">
-                <EditableValue
-                  value={formData.revenueRampDelayMonths ?? global.revenueRampDelayMonths ?? DEFAULT_REVENUE_RAMP_DELAY_MONTHS}
-                  onChange={(v) => onChange("revenueRampDelayMonths", v)}
-                  format="number"
-                  min={1}
-                  max={18}
-                  step={1}
-                />
-              </span>
-            </div>
-            <Slider
-              value={[formData.revenueRampDelayMonths ?? global.revenueRampDelayMonths ?? DEFAULT_REVENUE_RAMP_DELAY_MONTHS]}
-              onValueChange={([v]) => onChange("revenueRampDelayMonths", v)}
-              min={1}
-              max={18}
-              step={1}
-              data-testid="slider-revenue-ramp-delay-months"
-            />
-          </div>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="flex items-center text-foreground label-text">
-                Burn Flex-Down
-                <InfoTooltip text="Discretionary headroom in the burn plan that can be cut without breaking operations, as a percent of plan burn. Quantifies how much the company can absorb before a covenant or runway tripwire fires." />
-              </Label>
-              <span data-field="burnFlexDownPct">
-                <EditableValue
-                  value={formData.burnFlexDownPct ?? global.burnFlexDownPct ?? DEFAULT_BURN_FLEX_DOWN_PCT}
-                  onChange={(v) => onChange("burnFlexDownPct", v)}
-                  format="percent"
-                  min={0}
-                  max={0.5}
-                  step={0.01}
-                />
-              </span>
-            </div>
-            <Slider
-              value={[(formData.burnFlexDownPct ?? global.burnFlexDownPct ?? DEFAULT_BURN_FLEX_DOWN_PCT) * 100]}
-              onValueChange={([v]) => onChange("burnFlexDownPct", v / 100)}
-              min={0}
-              max={50}
-              step={1}
-              data-testid="slider-burn-flex-down-pct"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Default export keeps backward compatibility for any caller that wants
-// all three cards rendered in source order. The Funding tab in
+// Default export renders both cards in source order. The Funding tab in
 // CompanyAssumptionsTabsView composes the named exports directly so it
 // can interleave Cost of Capital between them.
+// Capital Stack Discipline (Runway Buffer, Sizing Overshoot, Revenue Ramp
+// Delay, Burn Flex-Down) was removed from this file in task #1400 and now
+// lives exclusively in Admin → App Defaults → Management Company →
+// Capital Stack Discipline.
 export default function FundingSection(props: FundingSectionProps) {
   return (
     <>
       <CapitalRaisesCard {...props} />
       <ConvertibleTermsCard {...props} />
-      <CapitalStackDisciplineCard {...props} />
     </>
   );
 }
