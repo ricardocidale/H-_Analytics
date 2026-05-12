@@ -24,6 +24,7 @@ import {
   HTTP_500_INTERNAL_SERVER_ERROR,
 } from "../constants";
 import type { PropertyInput, GlobalInput, MonthlyFinancials } from "@engine/types";
+import type { BracketMixEntry } from "@engine/company/icp-bracket-types";
 import type { AuditTrailPerProperty } from "../finance/service";
 import { computeIRR } from "@analytics/returns/irr";
 import { propertyEquityInvested } from "@engine/debt/equityCalculations";
@@ -418,6 +419,23 @@ export function registerFinanceRoutes(router: Router): void {
         sortOrder: t.sortOrder ?? 0,
       }));
 
+      // Fetch the user's bracket mix from global_assumptions (server-authoritative).
+      // enrichWithBrackets in recompute.ts will load the matching icp_brackets rows.
+      // Non-fatal: if the fetch fails, the engine runs without bracket scaling.
+      let portfolioBracketMix: BracketMixEntry[] | undefined;
+      try {
+        const ga = await storage.getGlobalAssumptions(getAuthUser(req).id);
+        const rawMix = (ga as Record<string, unknown>)?.bracketMix;
+        if (Array.isArray(rawMix) && rawMix.length > 0) {
+          portfolioBracketMix = rawMix as BracketMixEntry[];
+        }
+      } catch (mixErr: unknown) {
+        logger.warn(
+          `Failed to load bracketMix for portfolio compute: ${mixErr instanceof Error ? mixErr.message : String(mixErr)}`,
+          "finance",
+        );
+      }
+
       // Engine recompute + DB freshness stamp travel together — see
       // server/finance/recompute.ts. Adding a new compute entrypoint
       // means using the wrapper, never the raw engine function.
@@ -427,6 +445,7 @@ export function registerFinanceRoutes(router: Router): void {
           globalAssumptions: globalAssumptions as GlobalInput,
           projectionYears,
           serviceTemplates,
+          bracketMix: portfolioBracketMix,
         },
         wantAudit,
       );
@@ -689,6 +708,23 @@ export function registerFinanceRoutes(router: Router): void {
         sortOrder: t.sortOrder ?? 0,
       }));
 
+      // Fetch the user's bracket mix from global_assumptions (server-authoritative).
+      // enrichWithBrackets in recompute.ts will load the matching icp_brackets rows.
+      // Non-fatal: if the fetch fails, the engine runs without bracket scaling.
+      let companyBracketMix: BracketMixEntry[] | undefined;
+      try {
+        const ga = await storage.getGlobalAssumptions(getAuthUser(req).id);
+        const rawMix = (ga as Record<string, unknown>)?.bracketMix;
+        if (Array.isArray(rawMix) && rawMix.length > 0) {
+          companyBracketMix = rawMix as BracketMixEntry[];
+        }
+      } catch (mixErr: unknown) {
+        logger.warn(
+          `Failed to load bracketMix for company compute: ${mixErr instanceof Error ? mixErr.message : String(mixErr)}`,
+          "finance",
+        );
+      }
+
       // Engine recompute + DB freshness stamp travel together — see
       // server/finance/recompute.ts.
       const result = await recomputeCompanyAndStamp({
@@ -696,6 +732,7 @@ export function registerFinanceRoutes(router: Router): void {
         globalAssumptions: globalAssumptions as GlobalInput,
         projectionYears,
         serviceTemplates,
+        bracketMix: companyBracketMix,
       });
 
       res.setHeader("X-Finance-Engine-Version", result.engineVersion);

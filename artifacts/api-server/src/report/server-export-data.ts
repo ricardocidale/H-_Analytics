@@ -6,6 +6,7 @@ import {
 import { withModelConstants } from "../finance/apply-model-constants";
 import { storage } from "../storage";
 import type { PropertyInput, GlobalInput, CompanyYearlyFinancials } from "@engine/types";
+import type { BracketMixEntry } from "@engine/company/icp-bracket-types";
 import type { YearlyPropertyFinancials } from "@engine/aggregation/yearlyAggregator";
 import { aggregateUnifiedByYear } from "@engine/aggregation/yearlyAggregator";
 import { verifyExport } from "@calc/validation/export-verification";
@@ -410,12 +411,22 @@ export async function buildExportData(
     buildGlobalInput(globalAssumptions as unknown as Record<string, unknown>, projYears),
   );
 
+  // Extract the user's bracket mix from their global assumptions row
+  // (already loaded by loadUserContext — no extra DB query needed).
+  // enrichWithBrackets in recompute.ts will fetch the matching icp_brackets rows.
+  const rawPortfolioMix = (globalAssumptions as Record<string, unknown>).bracketMix;
+  const portfolioBracketMix: BracketMixEntry[] | undefined =
+    Array.isArray(rawPortfolioMix) && rawPortfolioMix.length > 0
+      ? (rawPortfolioMix as BracketMixEntry[])
+      : undefined;
+
   // Engine recompute + DB freshness stamp travel together — see
   // server/finance/recompute.ts.
   const result = await recomputePortfolioAndStamp({
     properties: propertyInputs,
     globalAssumptions: globalInput,
     projectionYears: projYears,
+    bracketMix: portfolioBracketMix,
   });
 
   const years = yearLabels(projYears);
@@ -734,12 +745,22 @@ export async function buildCompanyExportData(
     buildGlobalInput(globalAssumptions as unknown as Record<string, unknown>, projYears),
   );
 
+  // Extract the user's bracket mix from their global assumptions row
+  // (already loaded by loadUserContext — no extra DB query needed).
+  // enrichWithBrackets in recompute.ts will fetch the matching icp_brackets rows.
+  const rawCompanyMix = (globalAssumptions as Record<string, unknown>).bracketMix;
+  const companyBracketMix: BracketMixEntry[] | undefined =
+    Array.isArray(rawCompanyMix) && rawCompanyMix.length > 0
+      ? (rawCompanyMix as BracketMixEntry[])
+      : undefined;
+
   // Engine recompute + DB freshness stamp travel together — see
   // server/finance/recompute.ts.
   const result = await recomputeCompanyAndStamp({
     properties: propertyInputs,
     globalAssumptions: globalInput,
     projectionYears: projYears,
+    bracketMix: companyBracketMix,
   });
 
   const years = yearLabels(projYears);
