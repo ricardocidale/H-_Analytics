@@ -207,6 +207,10 @@
     "0051_minion_self_test_runs": {
       "status": "self-idempotent",
       "reason": "CREATE TABLE IF NOT EXISTS minion_self_test_runs + matching index — append-only short history of POST /api/admin/minions/:id/self-test invocations (Task #1396). All statements use IF NOT EXISTS; re-running via migrate() is a no-op. Trim-to-N is enforced by the storage layer (MINION_SELF_TEST_HISTORY_KEEP) on every insert, not by the migration."
+    },
+    "0052_minion_self_test_cadence": {
+      "status": "self-idempotent",
+      "reason": "Single INSERT INTO admin_resources ... ON CONFLICT (kind, slug) DO NOTHING — seeds the minion-self-test cycle-interval parameter row. Re-running is a safe no-op; the ON CONFLICT guard ensures no duplicate is created (Task #1397)."
     }
   }
 }
