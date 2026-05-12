@@ -1,14 +1,31 @@
 /**
  * consolidation.ts — Portfolio-level consolidation of yearly property financials
  *
- * Replaces the generic numeric-sum loop in usePortfolioFinancials with
- * explicit aggregation rules per field:
- *   SUM      — flow metrics (revenue, expenses, cash flows)
- *   WEIGHTED — rates that require denominator weighting (ADR)
- *   PICK_LAST — stock variables that represent point-in-time balances
+ * Aggregation rules applied field-by-field in addPropertyYear():
  *
- * This function is pure (no hooks, no React) so it can be used in both
- * the dashboard hook and in test/export contexts.
+ *   SUM — all flow metrics: revenue lines, all expense lines, GOP, NOI, ANOI,
+ *         netIncome, interest, depreciation, incomeTax, principalPayment,
+ *         debtPayment, refinancingProceeds, the three cash-flow buckets, AR,
+ *         AP, workingCapitalChange, soldRooms, availableRooms, fee lines.
+ *
+ *   SUM (stock) — endingCash and nolBalance are also SUM here, unlike in
+ *         yearlyAggregator.ts where endingCash is PICK_LAST (last month of
+ *         year). At portfolio level, each property is a separate SPV that
+ *         holds its own cash, so summing SPV balances gives total portfolio
+ *         cash. nolBalance is summed for display only — NOL carryforwards
+ *         are entity-specific and must never be used in portfolio-level tax
+ *         calculations (see inline comment on the nolBalance line below).
+ *
+ *   WEIGHTED — cleanAdr = portfolio room revenue ÷ portfolio rooms sold.
+ *         Arithmetic mean would overweight low-volume properties; revenue-
+ *         weighting gives the economically meaningful rate. computeWeightedMetrics()
+ *         applies the same formula and also produces weightedOcc and revPAR
+ *         for presentation consumers.
+ *
+ *   SUM (map) — serviceFeesByCategory: accumulated by category key.
+ *
+ * This module is pure (no hooks, no React) and can be called from both the
+ * dashboard hook and test/export contexts.
  */
 
 import type { YearlyPropertyFinancials } from "./yearlyAggregator";
