@@ -1,5 +1,33 @@
 import { Property } from "@shared/schema";
 
+export interface BracketEntry {
+  id: string;
+  name: string;
+  archetypeLabel: string;
+  serviceConsumption: "hotel" | "str" | "mixed";
+  weight: number;
+  rationale?: string;
+}
+
+export interface BracketMixData {
+  entries: BracketEntry[];
+  assignedAt?: string;
+  evidence?: string;
+}
+
+export interface BracketCatalogEntry {
+  id: string;
+  name: string;
+  archetypeLabel: string;
+  serviceConsumption: "hotel" | "str" | "mixed";
+  description: string;
+}
+
+export interface BracketMixResponse {
+  mix: BracketMixData | null;
+  catalog: BracketCatalogEntry[];
+}
+
 export type PropertyResponse = Property & {
   id: number;
   feeCategories?: { name: string; rate: number; isActive: boolean }[];
@@ -153,6 +181,8 @@ export interface GlobalResponse {
   assetDescription: string | null;
   // ICP Config
   icpConfig: Record<string, any> | null;
+  // ICP Bracket Mix (task-1412)
+  bracketMix: BracketMixData | null;
   // Research Automation
   autoResearchRefreshEnabled: boolean;
   // Governed model constants (DB-backed)

@@ -139,9 +139,9 @@ tools will be added when those services ship.
 
 | UI Action | UI Location | Rebecca Tool | Status |
 |---|---|---|---|
-| View bracket mix for the active management company | Company → ICP Bracket Mix → Bracket Mix tab | — | ⚠️ Gap — bracket model backend not yet shipped; tool planned alongside bracket-assignment minion |
-| Run bracket assignment (Assign Brackets button) | Company → ICP Bracket Mix → Bracket Mix tab → Assign Brackets | — | ⚠️ Gap — bracket-assignment minion + ICP Research Specialist not yet shipped |
-| Update bracket weights / mix | Company → ICP Bracket Mix → Bracket Mix tab (future edit UI) | — | ⚠️ Gap — PATCH endpoint and tool planned with bracket model backend |
+| View bracket mix for the active management company | Company → ICP Bracket Mix → Bracket Mix tab | `get_bracket_mix` | ✅ GET /api/company/bracket-mix returns mix + catalog; tool wired (task-1412) |
+| Run bracket assignment (Assign Brackets button) | Company → ICP Bracket Mix → Bracket Mix tab → Assign Brackets | `get_bracket_mix` | ✅ POST /api/company/bracket-mix/assign runs deterministic bracket-assignment minion; Rebecca reads result via get_bracket_mix (task-1412) |
+| Update bracket weights / mix | Company → ICP Bracket Mix → Bracket Mix tab (weight inputs) | `update_bracket_mix` | ✅ PATCH /api/company/bracket-mix + update_bracket_mix tool; server normalises weights to 1.0 (task-1412) |
 | View market evidence / comp context | Company → ICP Bracket Mix → Market Evidence tab | `get_global_assumptions` | ✅ (global assumptions already retrievable; dedicated bracket-evidence tool deferred) |
 | View legacy deprecated ICP record | Company → ICP Bracket Mix → Legacy ICP tab | `get_global_assumptions` | ✅ (legacy 70-field data is part of global assumptions; read-only) |
 

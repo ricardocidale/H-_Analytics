@@ -386,6 +386,13 @@
       "when": 1747267200000,
       "tag": "0056_icp_bracket_catalog",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1747180800000,
+      "tag": "0057_icp_bracket_mix",
+      "breakpoints": true
     }
   ]
 }

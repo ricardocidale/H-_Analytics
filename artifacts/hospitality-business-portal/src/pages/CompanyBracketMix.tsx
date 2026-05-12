@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import Layout from "@/components/Layout";
 import { AnimatedPage, AnimatedSection } from "@/components/graphics/AnimatedPage";
 import { useGlobalAssumptions, useProperties } from "@/lib/api";
+import { useBracketMix, useAssignBrackets, useUpdateBracketMix } from "@/lib/api/admin";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -68,17 +69,47 @@ const ICP_BRACKET_FOCUS_AREAS = [
   "Market RevPAR and occupancy trends per bracket archetype",
 ];
 
-function BracketMixTab() {
-  const [running, setRunning] = useState(false);
+// ── colour tokens per bracket id ─────────────────────────────────────────
 
-  const handleRunBrackets = async () => {
-    setRunning(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1_500));
-    } finally {
-      setRunning(false);
-    }
+const BRACKET_COLOR: Record<string, string> = {
+  "boutique-upscale-hotel": "bg-chart-1/10 border-chart-1/20 text-chart-1",
+  "soft-brand-boutique": "bg-chart-2/10 border-chart-2/20 text-chart-2",
+  "performance-managed-str": "bg-primary/10 border-primary/20 text-primary",
+  "agritourism-experiential": "bg-chart-3/10 border-chart-3/20 text-chart-3",
+};
+
+const CONSUMPTION_LABEL: Record<string, string> = {
+  hotel: "Full service",
+  str: "Mktg / branding / perf-bonus",
+  mixed: "Blended",
+};
+
+// ── BracketMixTab ─────────────────────────────────────────────────────────
+
+function BracketMixTab() {
+  const { data, isLoading, isError } = useBracketMix();
+  const assignMutation = useAssignBrackets();
+  const updateMutation = useUpdateBracketMix();
+
+  const mix = data?.mix ?? null;
+  const catalog = data?.catalog ?? [];
+
+  const handleAssign = () => {
+    assignMutation.mutate();
   };
+
+  const handleWeightChange = (id: string, newPct: number) => {
+    if (!mix) return;
+    const newWeight = Math.max(0, Math.min(1, newPct / 100));
+    updateMutation.mutate({
+      entries: mix.entries.map((e) => ({
+        id: e.id,
+        weight: e.id === id ? newWeight : e.weight,
+      })),
+    });
+  };
+
+  const isActing = assignMutation.isPending || updateMutation.isPending;
 
   return (
     <div className="space-y-4">
@@ -110,67 +141,140 @@ function BracketMixTab() {
           <Button
             size="sm"
             variant="outline"
-            onClick={handleRunBrackets}
-            disabled={running}
+            onClick={handleAssign}
+            disabled={isActing || isLoading}
             className="text-xs h-8 gap-1.5 shrink-0"
             data-testid="button-run-brackets"
           >
-            {running ? (
+            {assignMutation.isPending ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
               <IconRefreshCw className="w-3.5 h-3.5" />
             )}
-            {running ? "Assigning…" : "Assign Brackets"}
+            {assignMutation.isPending ? "Assigning…" : "Assign Brackets"}
           </Button>
         </div>
 
-        <div
-          className="flex flex-col items-center justify-center py-14 rounded-xl border border-dashed border-border bg-muted/20 text-center gap-3"
-          data-testid="bracket-mix-empty"
-        >
-          <div className="w-10 h-10 rounded-full bg-muted/60 flex items-center justify-center">
-            <IconTarget className="w-5 h-5 text-muted-foreground opacity-50" />
+        {isLoading && (
+          <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground" data-testid="bracket-mix-loading">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span className="text-sm">Loading bracket mix…</span>
           </div>
-          <p className="text-sm font-medium text-foreground">No bracket mix assigned yet</p>
-          <p className="text-xs text-muted-foreground max-w-sm leading-relaxed">
-            Click <span className="font-medium">Assign Brackets</span> to have the ICP Research
-            Specialist analyze your company's comparable brands and suggest a bracket mix. Hotels
-            consume all Mgmt Co services; STRs consume only marketing, branding, and
-            performance-bonus fees.
-          </p>
-        </div>
+        )}
 
-        <div className="space-y-2 pt-2">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            Bracket catalog (coming soon)
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {[
-              { label: "Boutique Upscale Hotel", type: "Hotel", color: "bg-chart-1/10 border-chart-1/20" },
-              { label: "Soft-Brand Boutique", type: "Hotel", color: "bg-chart-2/10 border-chart-2/20" },
-              { label: "Performance-Managed STR Cluster", type: "STR", color: "bg-primary/10 border-primary/20" },
-              { label: "Agritourism / Experiential Lodge", type: "Mixed", color: "bg-chart-3/10 border-chart-3/20" },
-            ].map((bracket) => (
-              <div
-                key={bracket.label}
-                className={`rounded-lg border ${bracket.color} px-3 py-2.5 flex items-center justify-between gap-2 opacity-50`}
-              >
-                <span className="text-sm text-foreground">{bracket.label}</span>
-                <Badge variant="outline" className="text-[10px] shrink-0">
-                  {bracket.type}
-                </Badge>
-              </div>
-            ))}
+        {isError && (
+          <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3" data-testid="bracket-mix-error">
+            <IconAlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+            <p className="text-sm text-destructive">Failed to load bracket mix. Please refresh.</p>
           </div>
-          <p className="text-[11px] text-muted-foreground">
-            Bracket weights will appear here after bracket assignment runs. The catalog is defined
-            in{" "}
-            <span className="font-medium">
-              Admin → AI → Intelligence → Knowledge &amp; Resources → Tables
-            </span>
-            .
-          </p>
-        </div>
+        )}
+
+        {!isLoading && !isError && !mix && (
+          <div
+            className="flex flex-col items-center justify-center py-14 rounded-xl border border-dashed border-border bg-muted/20 text-center gap-3"
+            data-testid="bracket-mix-empty"
+          >
+            <div className="w-10 h-10 rounded-full bg-muted/60 flex items-center justify-center">
+              <IconTarget className="w-5 h-5 text-muted-foreground opacity-50" />
+            </div>
+            <p className="text-sm font-medium text-foreground">No bracket mix assigned yet</p>
+            <p className="text-xs text-muted-foreground max-w-sm leading-relaxed">
+              Click <span className="font-medium">Assign Brackets</span> to run the deterministic
+              assignment minion. It classifies your portfolio properties into hotel, STR, and mixed
+              buckets and computes weighted bracket allocations automatically.
+            </p>
+          </div>
+        )}
+
+        {!isLoading && !isError && mix && mix.entries.length > 0 && (
+          <div className="space-y-3" data-testid="bracket-mix-entries">
+            {mix.entries.map((entry) => {
+              const colorClass = BRACKET_COLOR[entry.id] ?? "bg-muted border-border text-muted-foreground";
+              const pct = Math.round(entry.weight * 100);
+              return (
+                <div
+                  key={entry.id}
+                  className={`rounded-lg border ${colorClass.split(" ").slice(0, 2).join(" ")} px-4 py-3 space-y-1.5`}
+                  data-testid={`bracket-entry-${entry.id}`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-sm font-medium text-foreground truncate">{entry.name}</span>
+                      <Badge variant="outline" className="text-[10px] shrink-0">
+                        {CONSUMPTION_LABEL[entry.serviceConsumption] ?? entry.serviceConsumption}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={pct}
+                        disabled={isActing}
+                        onChange={(e) => handleWeightChange(entry.id, Number(e.target.value))}
+                        className="w-14 text-right text-sm font-mono bg-transparent border border-border rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
+                        aria-label={`${entry.name} weight percentage`}
+                      />
+                      <span className="text-xs text-muted-foreground">%</span>
+                    </div>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-current opacity-50"
+                      style={{ width: `${pct}%`, color: "var(--chart-1)" }}
+                    />
+                  </div>
+                  {entry.rationale && (
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">{entry.rationale}</p>
+                  )}
+                </div>
+              );
+            })}
+
+            {mix.evidence && (
+              <div className="rounded-lg border border-border bg-muted/20 px-4 py-3">
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  <span className="font-medium text-foreground">Evidence: </span>
+                  {mix.evidence}
+                </p>
+              </div>
+            )}
+
+            {mix.assignedAt && (
+              <p className="text-[11px] text-muted-foreground text-right">
+                Last assigned: {new Date(mix.assignedAt).toLocaleString()}
+              </p>
+            )}
+
+            {updateMutation.isError && (
+              <p className="text-xs text-destructive">Failed to save weight changes. Please try again.</p>
+            )}
+          </div>
+        )}
+
+        {!isLoading && !isError && catalog.length > 0 && !mix && (
+          <div className="space-y-2 pt-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Bracket catalog
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {catalog.map((bracket) => {
+                const colorClass = BRACKET_COLOR[bracket.id] ?? "bg-muted border-border text-muted-foreground";
+                return (
+                  <div
+                    key={bracket.id}
+                    className={`rounded-lg border ${colorClass.split(" ").slice(0, 2).join(" ")} px-3 py-2.5 flex items-center justify-between gap-2 opacity-60`}
+                  >
+                    <span className="text-sm text-foreground">{bracket.name}</span>
+                    <Badge variant="outline" className="text-[10px] shrink-0 capitalize">
+                      {bracket.serviceConsumption}
+                    </Badge>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </Card>
 
       <Card className="border border-border rounded-lg p-5 space-y-3" data-testid="service-consumption-rules">

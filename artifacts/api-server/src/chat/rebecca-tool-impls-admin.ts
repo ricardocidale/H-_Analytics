@@ -772,3 +772,87 @@ export async function toolUpdateAdminResource(
   const impact = await storage.listResourceImpact(idResult.value);
   return { result: { resource: toResourcePublicView(row), impact } };
 }
+
+// ── ICP Bracket Mix tools ─────────────────────────────────────────────────
+
+export async function toolGetBracketMix(ctx: ToolContext): Promise<{ result: unknown }> {
+  const ga = await storage.getGlobalAssumptions(ctx.userId);
+  if (!ga) return { result: { error: "Global assumptions not found" } };
+
+  const { BRACKET_CATALOG } = await import("../ai/icp/bracket-catalog");
+  const rec = ga as unknown as Record<string, unknown>;
+
+  return {
+    result: {
+      mix: rec.bracketMix ?? null,
+      catalog: BRACKET_CATALOG,
+    },
+  };
+}
+
+export async function toolUpdateBracketMix(
+  args: Record<string, unknown>,
+  ctx: ToolContext,
+): Promise<{ result: unknown; dataChanged?: DataChangedEntry }> {
+  const schema = (await import("zod")).z.object({
+    entries: (await import("zod")).z
+      .array(
+        (await import("zod")).z.object({
+          id: (await import("zod")).z.string().min(1),
+          weight: (await import("zod")).z.number().min(0).max(1),
+        })
+      )
+      .min(1),
+  });
+
+  const validation = schema.safeParse(args);
+  if (!validation.success) {
+    return { result: { error: validation.error.issues.map((i) => i.message).join("; ") } };
+  }
+
+  const ga = await storage.getGlobalAssumptions(ctx.userId);
+  if (!ga) return { result: { error: "Global assumptions not found" } };
+
+  const rec = ga as unknown as Record<string, unknown>;
+  const current = (rec.bracketMix as Record<string, unknown> | null) ?? {};
+  const existingEntries = Array.isArray((current as Record<string, unknown>).entries)
+    ? ((current as Record<string, unknown>).entries as Record<string, unknown>[])
+    : [];
+
+  const weightMap = new Map(validation.data.entries.map((e) => [e.id, e.weight]));
+  const mergedEntries = existingEntries.map((entry) => {
+    const newWeight = weightMap.get(String(entry.id));
+    return newWeight !== undefined ? { ...entry, weight: newWeight } : entry;
+  });
+
+  const total = mergedEntries.reduce((s, e) => s + (Number(e.weight) || 0), 0);
+  const normEntries =
+    total > 0 && Math.abs(total - 1) > 0.001
+      ? mergedEntries.map((e) => ({
+          ...e,
+          weight: Math.round((Number(e.weight) / total) * 1000) / 1000,
+        }))
+      : mergedEntries;
+
+  const newMix = {
+    ...(typeof current === "object" && current !== null ? current : {}),
+    entries: normEntries,
+    assignedAt: (current as Record<string, unknown>).assignedAt ?? new Date().toISOString(),
+  };
+
+  const updated = await storage.patchGlobalAssumptions(ga.id, { bracketMix: newMix });
+  const updatedRec = updated as unknown as Record<string, unknown>;
+
+  const { BRACKET_CATALOG } = await import("../ai/icp/bracket-catalog");
+
+  return {
+    result: {
+      mix: updatedRec.bracketMix,
+      catalog: BRACKET_CATALOG,
+    },
+    dataChanged: {
+      entityType: "global_assumptions",
+      entityId: ga.id,
+    },
+  };
+}

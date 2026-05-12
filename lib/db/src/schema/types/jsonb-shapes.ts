@@ -200,3 +200,30 @@ export interface RawExtractionData {
   confidence?: number;
   [key: string]: unknown;
 }
+
+// ── ICP Bracket Mix ───────────────────────────────────────────────────────
+
+/**
+ * A single bracket entry within a Management Company's ICP bracket mix.
+ * `weight` is a value in [0, 1]; all entries in a BracketMixData.entries
+ * array must sum to exactly 1.0.
+ */
+export interface BracketEntry {
+  id: string;
+  name: string;
+  archetypeLabel: string;
+  /** "hotel" = all service lines; "str" = marketing/branding/perf-bonus only; "mixed" = blended */
+  serviceConsumption: "hotel" | "str" | "mixed";
+  weight: number;
+  rationale?: string;
+}
+
+/**
+ * The full bracket mix stored in global_assumptions.bracket_mix.
+ * NULL = bracket mix has not been assigned yet.
+ */
+export interface BracketMixData {
+  entries: BracketEntry[];
+  assignedAt?: string;
+  evidence?: string;
+}

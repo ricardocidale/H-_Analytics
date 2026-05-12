@@ -105,6 +105,8 @@ import {
   toolUpdateAdminResource,
   toolGetVendorPassthroughCosts,
   toolGetMgmtCoMarkupFactors,
+  toolGetBracketMix,
+  toolUpdateBracketMix,
 } from "./rebecca-tool-impls-admin";
 
 export async function dispatchRebeccaTool(
@@ -300,6 +302,10 @@ export async function dispatchRebeccaTool(
         return await toolRecordSpecialistRecommendationEvent(args, ctx);
       case "update_admin_resource":
         return await toolUpdateAdminResource(args, ctx);
+      case "get_bracket_mix":
+        return await toolGetBracketMix(ctx);
+      case "update_bracket_mix":
+        return await toolUpdateBracketMix(args, ctx);
       default:
         return { result: { error: "Unknown tool" } };
     }

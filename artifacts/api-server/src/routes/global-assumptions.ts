@@ -416,6 +416,113 @@ export function register(app: Express) {
     }
   });
 
+  // ── ICP Bracket Mix endpoints ──────────────────────────────────────────────
+  // GET  /api/company/bracket-mix — return current mix + catalog
+  // POST /api/company/bracket-mix/assign — run minion, save, return mix
+  // PATCH /api/company/bracket-mix — manual weight update
+
+  app.get("/api/company/bracket-mix", requireAuth, async (req, res) => {
+    try {
+      const userId = getAuthUser(req).id;
+      const ga = await storage.getGlobalAssumptions(userId);
+      if (!ga) return res.status(404).json({ error: "Global assumptions not found", code: "BRAK-001" });
+
+      const { BRACKET_CATALOG } = await import("../ai/icp/bracket-catalog");
+      res.json({
+        mix: (ga as unknown as Record<string, unknown>).bracketMix ?? null,
+        catalog: BRACKET_CATALOG,
+      });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to fetch bracket mix", error, "BRAK-002");
+    }
+  });
+
+  app.post("/api/company/bracket-mix/assign", requireAuth, async (req, res) => {
+    try {
+      const userId = getAuthUser(req).id;
+      const [ga, properties] = await Promise.all([
+        storage.getGlobalAssumptions(userId),
+        storage.getAllProperties(userId),
+      ]);
+      if (!ga) return res.status(404).json({ error: "Global assumptions not found", code: "BRAK-003" });
+
+      const { assignBrackets } = await import("../ai/icp/bracket-assignment-minion");
+      const mix = assignBrackets(properties, ga);
+
+      const updated = await storage.patchGlobalAssumptions(ga.id, { bracketMix: mix });
+      logActivity(req, "assign-bracket-mix", "global_assumptions", updated.id, "ICP Bracket Mix");
+
+      const { BRACKET_CATALOG } = await import("../ai/icp/bracket-catalog");
+      res.json({
+        mix: (updated as unknown as Record<string, unknown>).bracketMix,
+        catalog: BRACKET_CATALOG,
+      });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to assign bracket mix", error, "BRAK-004");
+    }
+  });
+
+  const bracketMixPatchSchema = z.object({
+    entries: z.array(
+      z.object({
+        id: z.string().min(1),
+        weight: z.number().min(0).max(1),
+      })
+    ).min(1),
+  });
+
+  app.patch("/api/company/bracket-mix", requireAuth, async (req, res) => {
+    try {
+      const userId = getAuthUser(req).id;
+      const validation = bracketMixPatchSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: zodErrorMessage(validation.error), code: "BRAK-005" });
+      }
+
+      const ga = await storage.getGlobalAssumptions(userId);
+      if (!ga) return res.status(404).json({ error: "Global assumptions not found", code: "BRAK-006" });
+
+      const current = (ga as unknown as Record<string, unknown>).bracketMix as Record<string, unknown> | null ?? {};
+      const existingEntries = Array.isArray((current as Record<string, unknown>).entries)
+        ? (current as Record<string, unknown>).entries as Record<string, unknown>[]
+        : [];
+
+      // Merge the new weights into the existing entries
+      const weightMap = new Map(validation.data.entries.map((e) => [e.id, e.weight]));
+      const mergedEntries = existingEntries.map((entry) => {
+        const newWeight = weightMap.get(String(entry.id));
+        return newWeight !== undefined ? { ...entry, weight: newWeight } : entry;
+      });
+
+      // Normalise so weights sum to 1.0
+      const total = mergedEntries.reduce((s, e) => s + (Number(e.weight) || 0), 0);
+      const normEntries =
+        total > 0 && Math.abs(total - 1) > 0.001
+          ? mergedEntries.map((e) => ({
+              ...e,
+              weight: Math.round((Number(e.weight) / total) * 1000) / 1000,
+            }))
+          : mergedEntries;
+
+      const newMix = {
+        ...(typeof current === "object" && current !== null ? current : {}),
+        entries: normEntries,
+        assignedAt: (current as Record<string, unknown>).assignedAt ?? new Date().toISOString(),
+      };
+
+      const updated = await storage.patchGlobalAssumptions(ga.id, { bracketMix: newMix });
+      logActivity(req, "update-bracket-mix", "global_assumptions", updated.id, "ICP Bracket Mix");
+
+      const { BRACKET_CATALOG } = await import("../ai/icp/bracket-catalog");
+      res.json({
+        mix: (updated as unknown as Record<string, unknown>).bracketMix,
+        catalog: BRACKET_CATALOG,
+      });
+    } catch (error: unknown) {
+      logAndSendError(res, "Failed to update bracket mix", error, "BRAK-007");
+    }
+  });
+
   app.get("/api/company/service-templates", requireAuth, async (_req, res) => {
     try {
       const templates = await storage.getAllServiceTemplates();

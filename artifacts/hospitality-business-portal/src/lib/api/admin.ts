@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { GlobalResponse, ResearchQuestion } from "./types";
+import { GlobalResponse, ResearchQuestion, BracketMixResponse, BracketMixData } from "./types";
 import type { ResearchConfig, AiModelEntry, ResourcePublicView } from "@shared/schema";
 import { invalidateAllFinancialQueries } from "./properties";
 import { apiRequest } from "@/lib/queryClient";
@@ -237,6 +237,58 @@ export function useUpdateAdminResource() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/resources"] });
+    },
+  });
+}
+
+// ── ICP Bracket Mix ────────────────────────────────────────────────────────
+
+async function fetchBracketMix(): Promise<BracketMixResponse> {
+  const res = await fetch("/api/company/bracket-mix");
+  if (!res.ok) throw new Error("Failed to fetch bracket mix");
+  return res.json();
+}
+
+export function useBracketMix() {
+  return useQuery<BracketMixResponse>({
+    queryKey: ["bracketMix"],
+    queryFn: fetchBracketMix,
+  });
+}
+
+export function useAssignBrackets() {
+  const queryClient = useQueryClient();
+  return useMutation<BracketMixResponse, Error>({
+    mutationFn: async () => {
+      const res = await fetch("/api/company/bracket-mix/assign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as Record<string, unknown>).error as string ?? "Failed to assign brackets");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bracketMix"] });
+    },
+  });
+}
+
+export function useUpdateBracketMix() {
+  const queryClient = useQueryClient();
+  return useMutation<BracketMixResponse, Error, { entries: Array<{ id: string; weight: number }> }>({
+    mutationFn: async (data) => {
+      const res = await apiRequest("PATCH", "/api/company/bracket-mix", data);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as Record<string, unknown>).error as string ?? "Failed to update bracket mix");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["bracketMix"] });
     },
   });
 }

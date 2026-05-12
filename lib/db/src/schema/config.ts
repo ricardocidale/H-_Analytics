@@ -4,7 +4,7 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { logos } from "./core";
 import { users } from "./auth";
-import type { IcpConfig, ExportConfig, StandardAcqPackage, DebtAssumptions, AssetDefinition } from "./types/jsonb-shapes";
+import type { IcpConfig, ExportConfig, StandardAcqPackage, DebtAssumptions, AssetDefinition, BracketMixData, BracketEntry } from "./types/jsonb-shapes";
 import {
   DEFAULT_COMPANY_OPS_START_DATE,
   DEFAULT_CAPITAL_RAISE_1_DATE,
@@ -62,6 +62,9 @@ import {
   DEFAULT_MISC_OPS_RATE,
 } from "../constants";
 import { getFactoryNumber } from "../model-constants-registry";
+
+// Re-export JSONB shape types so consumers can import from @workspace/db.
+export type { BracketMixData, BracketEntry };
 
 // Audit #406: company tax rate column default sourced from the registry (US federal corporate baseline = 0.21).
 const US_COMPANY_TAX_RATE = getFactoryNumber("taxRate", "United States");
@@ -220,10 +223,9 @@ export const globalAssumptions = pgTable("global_assumptions", {
   // ICP Configuration — structured numeric/toggle parameters for Ideal Customer Profile
   icpConfig: jsonb("icp_config").$type<IcpConfig>(),
 
-  // ICP Bracket Mix — weighted distribution across the shared bracket catalog (Task #1409).
-  // Array of { bracketSlug: string, weight: number } entries that sum to 1.0.
-  // NULL means no mix has been assigned yet (agent derives on first open).
-  bracketMix: jsonb("bracket_mix").$type<Array<{ bracketSlug: string; weight: number }>>(),
+  // ICP Bracket Mix — weighted distribution of customer-property archetypes (task-1412).
+  // NULL = not yet assigned. Weights in entries sum to 1.0.
+  bracketMix: jsonb("bracket_mix").$type<BracketMixData>(),
 
   exportConfig: jsonb("export_config").$type<ExportConfig>(),
 

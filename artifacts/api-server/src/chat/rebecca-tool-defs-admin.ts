@@ -340,6 +340,48 @@ export function getAdminTools(): ToolParam[] {
       },
     },
     {
+      name: "get_bracket_mix",
+      description:
+        "Return the Management Company's current ICP bracket mix and the full bracket catalog. " +
+        "The bracket mix is a weighted distribution of customer-property archetypes (e.g., boutique-upscale-hotel, performance-managed-str) stored in global_assumptions.bracket_mix. " +
+        "Returns { mix: BracketMixData | null, catalog: CatalogBracket[] }. " +
+        "mix is null when no bracket assignment has been run yet. " +
+        "Use this to understand the company's current ICP positioning before recommending changes.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
+    },
+    {
+      name: "update_bracket_mix",
+      description:
+        "Manually update the weight of one or more brackets in the Management Company's ICP bracket mix. " +
+        "Weights are expressed as values in [0, 1]; the server normalises all entries to sum to 1.0 automatically. " +
+        "You must call get_bracket_mix first to obtain valid bracket IDs. " +
+        "Pass only the brackets whose weights you want to change — unchanged brackets are kept from the existing mix. " +
+        "Returns the updated { mix, catalog }.",
+      parameters: {
+        type: "object",
+        properties: {
+          entries: {
+            type: "array",
+            description: "Array of bracket ID + weight pairs to update. Weight is a value in [0, 1].",
+            items: {
+              type: "object",
+              properties: {
+                id: { type: "string", description: "Bracket ID (e.g. 'boutique-upscale-hotel')." },
+                weight: { type: "number", minimum: 0, maximum: 1, description: "New weight value in [0, 1]." },
+              },
+              required: ["id", "weight"],
+            },
+            minItems: 1,
+          },
+        },
+        required: ["entries"],
+      },
+    },
+    {
       name: "update_admin_resource",
       description:
         "Update an admin_resources row (any kind). Admin only. Mirrors the admin resource update endpoint: each call writes a new version row, applies the SSRF guard to config.healthProbe.url, and returns { resource, impact } where impact is the list of catalog/feature surfaces affected. Use to retune display names, descriptions, config payloads (e.g. swap a model reference, edit a healthProbe URL), or rotate secretRef pointers. Caller must change at least one of displayName, description, config, or secretRef — changeSummary alone is metadata and does not satisfy the change requirement. Create and delete are NOT exposed — admin_resources rows are added via migrations.",
