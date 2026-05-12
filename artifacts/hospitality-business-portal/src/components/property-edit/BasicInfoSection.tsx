@@ -464,23 +464,6 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
             <Input type="number" step="0.1" value={draft.totalPropertyAcreage ?? ""} onChange={(e) => onNumberChange("totalPropertyAcreage", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-total-acreage" />
           </div>
 
-          {/* Status + Room Count */}
-          <div className="space-y-2">
-            <Label className="label-text text-foreground flex items-center gap-1.5">Market Tier<InfoTooltip text="MSA classification. Primary = Top 25 metro areas with highest hotel demand. Secondary and tertiary markets have different risk/return profiles." /></Label>
-            <Select value={draft.marketTier || ""} onValueChange={(v) => onChange("marketTier", v)}>
-              <SelectTrigger className="bg-card border-primary/30 text-foreground" data-testid="select-market-tier"><SelectValue placeholder="Select tier" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="primary">Primary (Top 25 MSA)</SelectItem>
-                <SelectItem value="secondary">Secondary</SelectItem>
-                <SelectItem value="tertiary">Tertiary</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label className="label-text text-foreground text-sm">Year Built</Label>
-            <Input type="number" value={draft.yearBuilt ?? ""} onChange={(e) => onNumberChange("yearBuilt", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-year-built" />
-          </div>
-
           {/* Star Rating */}
           <div className="space-y-2">
             <Label className="label-text text-foreground flex items-center gap-1.5">Star Rating<InfoTooltip text="Property star classification (1-5★). Drives research comparable matching — luxury (5★) properties are only compared to other luxury properties. Click to set, click same star to clear." /></Label>
