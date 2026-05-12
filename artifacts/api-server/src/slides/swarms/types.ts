@@ -58,13 +58,36 @@ export interface SlideTeamInput {
  * @shared/deck-payload-v2 — each team's implementation uses the strict type
  * from that module.
  *
+ * `substitutionEntries` (U8): per-slot SubstitutionMap entries derived from
+ * `payloadV2` via `builder-substitution-entries.ts`. The dual-output keeps
+ * the existing Inspector/Maya/Dino pipeline reading `payloadV2` while
+ * Marco's U8 substitution-assembly step reads the entries. Empty array when
+ * the team produced no LLM-authored slots (e.g., a fully deterministic
+ * slide with no overrides).
+ *
  * `notes` carries the Inspector's reasoning when status is `block` or `fail`.
  */
 export interface SlideTeamOutput {
   slideNumber: SlideNumber;
   status: "ok" | "block" | "fail";
   payloadV2: unknown;
+  substitutionEntries: SlideTeamSubstitutionEntry[];
   notes: string | null;
+}
+
+/**
+ * Per-team substitution entry. Typed as `unknown` payload to keep the
+ * swarm framework decoupled from `pptx-substitution-types.ts`. Marco's U8
+ * assembly step parses these via Carlo before invoking `substituteSlots`,
+ * which is the single point where the strict
+ * `SubstitutionEntry` discriminated-union shape is enforced.
+ */
+export interface SlideTeamSubstitutionEntry {
+  slideNumber: number;
+  shapeId: string;
+  op: "text" | "image" | "table_cell";
+  slotKey?: string;
+  payload: unknown;
 }
 
 /**

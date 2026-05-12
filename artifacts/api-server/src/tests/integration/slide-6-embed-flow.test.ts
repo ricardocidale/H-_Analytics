@@ -122,6 +122,12 @@ const PROJ_YEARS_FIVE = 5;
 const ZERO = 0;
 const PROPERTY_COUNT = 3;
 const FAKE_PNG_BYTES = "\x89PNG\r\n\x1a\nFAKE";
+/**
+ * Vitest per-test timeout for the PPTX substitution round-trip. The default
+ * 5s vitest timeout is too tight for a cold-start fixture read + image-swap
+ * pass on the Belleayre PPTX; 60s gives sustainable headroom on slow CI.
+ */
+const SUBSTITUTION_INTEGRATION_TIMEOUT_MS = 60_000;
 /** Sanity floor on substituted PPTX output size. pptx-automizer's serialized
  *  output is consistently >1 KB even for empty templates; if we see fewer
  *  bytes, the substitution likely silently no-op'd. */
@@ -386,6 +392,6 @@ describe("slide-6 embed flow — substituteSlots round-trip", () => {
         );
       }
     },
-    60_000,
+    SUBSTITUTION_INTEGRATION_TIMEOUT_MS,
   );
 });

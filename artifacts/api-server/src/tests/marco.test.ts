@@ -710,26 +710,28 @@ describe("Enzo — invoke_maya cache integration via dispatchMarcoTool", () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe("MARCO_TOOLS schema + system prompt", () => {
-  // U3 added produce_deck — Marco is now an 8-tool agent
-  const MARCO_TOOL_COUNT = 8;
+  // U3 added produce_deck; U8 added apply_substitutions — Marco is now a 9-tool agent
+  const MARCO_TOOL_COUNT = 9;
 
-  it("MARCO_TOOLS has 8 entries (was 7 before U3)", () => {
+  it("MARCO_TOOLS has 9 entries (was 8 before U8)", () => {
     expect(MARCO_TOOLS).toHaveLength(MARCO_TOOL_COUNT);
   });
 
-  it("MARCO_TOOLS includes produce_deck", () => {
+  it("MARCO_TOOLS includes produce_deck and apply_substitutions", () => {
     const names = MARCO_TOOLS.map((t) => t.name);
     expect(names).toContain("produce_deck");
+    expect(names).toContain("apply_substitutions");
   });
 
-  it("system prompt mentions produce_deck and transition_status", () => {
+  it("system prompt mentions produce_deck, apply_substitutions, and transition_status", () => {
     expect(MARCO_SYSTEM_PROMPT).toContain("produce_deck");
+    expect(MARCO_SYSTEM_PROMPT).toContain("apply_substitutions");
     expect(MARCO_SYSTEM_PROMPT).toContain("transition_status");
   });
 
-  it("system prompt's tool-count constraint mentions 'eight' (not 'seven')", () => {
-    expect(MARCO_SYSTEM_PROMPT).toContain("eight");
-    expect(MARCO_SYSTEM_PROMPT).not.toMatch(/other than the seven listed/);
+  it("system prompt's tool-count constraint mentions 'nine' (not 'eight')", () => {
+    expect(MARCO_SYSTEM_PROMPT).toContain("nine");
+    expect(MARCO_SYSTEM_PROMPT).not.toMatch(/other than the eight listed/);
   });
 });
 
