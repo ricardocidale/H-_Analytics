@@ -23,6 +23,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Loader2 } from "@/components/icons/themed-icons";
 import {
   Select,
@@ -296,16 +297,7 @@ export default function LbSlides() {
 
   const saveMutation = useMutation({
     mutationFn: async (config: LbConfig) => {
-      const r = await fetch("/api/lb-slides/config", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(config),
-      });
-      if (!r.ok) {
-        const body = await r.json().catch(() => ({})) as { error?: string };
-        throw new Error(body.error ?? "Failed to save config");
-      }
+      const r = await apiRequest("PUT", "/api/lb-slides/config", config);
       return r.json();
     },
     onSuccess: () => {
@@ -319,14 +311,7 @@ export default function LbSlides() {
 
   const renderMutation = useMutation({
     mutationFn: async () => {
-      const r = await fetch("/api/lb-slides/render", {
-        method: "POST",
-        credentials: "include",
-      });
-      if (!r.ok) {
-        const body = await r.json().catch(() => ({})) as { error?: string };
-        throw new Error(body.error ?? "Failed to start render");
-      }
+      const r = await apiRequest("POST", "/api/lb-slides/render");
       return r.json();
     },
     onSuccess: () => {
