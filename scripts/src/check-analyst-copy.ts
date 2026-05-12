@@ -117,6 +117,8 @@ const CODE_SCAN_EXTS = new Set([".ts", ".tsx", ".js", ".jsx"]);
  */
 const CONTENT_SCAN_EXTS = new Set([".md", ".mdx", ".mjml", ".html", ".json"]);
 
+const CACHE_NAME = "analyst-copy";
+
 /** Directories to skip during tree walk (applied to both code and content). */
 const SKIP_DIRS = new Set([
   "node_modules",

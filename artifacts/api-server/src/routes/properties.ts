@@ -841,7 +841,6 @@ export function register(app: Express) {
       }
       const { text } = parsed.data;
 
-      const { getGeminiClient, getAnthropicClient, getOpenAIClient } = await import("../ai/clients");
       const { resolveLlm } = await import("../ai/resolve-llm");
       const { generateText } = await import("../ai/dispatch");
       const { logApiCost, estimateCost } = await import("../middleware/cost-logger");

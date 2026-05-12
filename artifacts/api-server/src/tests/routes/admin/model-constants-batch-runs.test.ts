@@ -157,7 +157,7 @@ describe("GET /api/admin/model-constants — batch research-run lookup (Task #14
     const items: Array<{ key: string; latestResearchRun?: { id?: number; authority?: string | null } | null }> =
       res.body.items;
     expect(Array.isArray(items)).toBe(true);
-    const entry = items.find((it) => it.key === sampleKey);
+    const entry = items.find((item) => item.key === sampleKey);
     expect(entry?.latestResearchRun?.id).toBe(4242);
     expect(entry?.latestResearchRun?.authority).toBe("Test Authority");
   });
