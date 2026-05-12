@@ -164,13 +164,16 @@ export function registerModelConstantsRoutes(app: Express) {
       if (!parsed.success) return res.status(HTTP_400_BAD_REQUEST).json({ error: parsed.error.message });
       const { country, subdivision } = normaliseLocality(parsed.data.country, parsed.data.subdivision);
 
-      const [allOverrides, allCanonicals, cadenceOverrides] = await Promise.all([
+      // Pre-fetch all three data sources plus the batch research-run map in
+      // parallel — one DB round-trip replaces the former 71-per-key N+1.
+      const [allOverrides, allCanonicals, cadenceOverrides, latestRunsMap] = await Promise.all([
         storage.listModelConstantOverrides(),
         storage.listCanonicals(),
         storage.getRefreshCadenceOverrides(),
+        storage.getLatestSuccessfulRunsForAllConstants(country, subdivision),
       ]);
 
-      const items = await Promise.all(REGISTERED_CONSTANT_KEYS.map(async (key) => {
+      const items = REGISTERED_CONSTANT_KEYS.map((key) => {
         const entry = MODEL_CONSTANTS_REGISTRY[key]!;
         // For "universal" constants, callers may pass a country but it is
         // irrelevant — fold to NULL/NULL so resolution and badges are honest.
@@ -210,18 +213,12 @@ export function registerModelConstantsRoutes(app: Express) {
         // time (cheap; the catalog is a frozen in-memory list).
         const owner = getSpecialistForConstant(key);
 
-        // Phase 4: pull the most recent *successful* research_run for this
-        // row so the card renders an authoritative "as of" date and
-        // conviction summary even when the verdict matched factory (no
-        // override row exists, but a research run absolutely does). We
-        // intentionally exclude failed attempts here — a failed scheduled
-        // refresh must not advance the freshness window or replace a
-        // good earlier verdict in the UI. Cheap — one indexed read.
-        const latest = (await storage.getLatestSuccessfulRunForConstant(
-          key,
-          localityForKey.country,
-          localityForKey.subdivision,
-        )) ?? null;
+        // O(1) lookup into the batch map pre-fetched above — eliminates the
+        // former per-key `await storage.getLatestSuccessfulRunForConstant()`
+        // call that caused the N+1 (Sentry #7471411947). Map key mirrors the
+        // composite used by getLatestSuccessfulRunsForAllConstants.
+        const latestMapKey = `${key}|${localityForKey.country ?? ""}|${localityForKey.subdivision ?? ""}`;
+        const latest = latestRunsMap.get(latestMapKey) ?? null;
         const latestMeta = (latest?.metadata ?? {}) as {
           proposal?: {
             value?: unknown;
@@ -319,7 +316,7 @@ export function registerModelConstantsRoutes(app: Express) {
           latestResearchRun: latestRun,
           convictionSummary,
         };
-      }));
+      });
 
       res.json({
         country,

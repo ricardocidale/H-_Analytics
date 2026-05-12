@@ -122,6 +122,131 @@ export class ResearchRunsStorage {
   }
 
   /**
+   * Batch variant of `getLatestSuccessfulRunForConstant` — fetches the most
+   * recent completed run for **every** registered constant key in a single
+   * `DISTINCT ON` query, eliminating the N+1 that was firing once per key on
+   * `GET /api/admin/model-constants` (Sentry #7471411947).
+   *
+   * Returns a `Map` keyed by `"<constantKey>|<country>|<subdivision>"` (empty
+   * string for NULL segments) so the route handler can do O(1) lookups for
+   * each key's effective locality triple.
+   *
+   * The WHERE clause covers all three locality tiers that a single request
+   * can resolve to:
+   *   • universal  — country IS NULL, subdivision IS NULL
+   *   • country    — country = $country, subdivision IS NULL
+   *   • full       — country = $country, subdivision = $subdivision
+   *
+   * When `country` is NULL the country/full tiers match nothing (the
+   * equality predicates are replaced with IS NULL which overlaps the
+   * universal clause — harmless dedup via DISTINCT ON).
+   */
+  async getLatestSuccessfulRunsForAllConstants(
+    country: string | null,
+    subdivision: string | null,
+  ): Promise<Map<string, ResearchRun>> {
+    const countryFilter = country === null
+      ? sql`metadata->'constant'->>'country' IS NULL`
+      : sql`metadata->'constant'->>'country' = ${country}`;
+    const subdivisionFilter = subdivision === null
+      ? sql`metadata->'constant'->>'subdivision' IS NULL`
+      : sql`metadata->'constant'->>'subdivision' = ${subdivision}`;
+
+    const result = await this._rtx.db.execute<{
+      id: number;
+      user_id: number | null;
+      entity_type: string;
+      entity_id: number;
+      scenario_id: number | null;
+      tier: number;
+      status: string;
+      started_at: Date;
+      completed_at: Date | null;
+      duration_ms: number | null;
+      model_primary: string | null;
+      model_secondary: string | null;
+      model_synthesis: string | null;
+      tokens_used: number | null;
+      estimated_cost: number | null;
+      error: string | null;
+      metadata: Record<string, unknown> | null;
+      cache_key: string | null;
+      cache_inputs_hash: string | null;
+    }>(sql`
+      SELECT DISTINCT ON (
+        metadata->'constant'->>'key',
+        metadata->'constant'->>'country',
+        metadata->'constant'->>'subdivision'
+      )
+        id,
+        user_id,
+        entity_type,
+        entity_id,
+        scenario_id,
+        tier,
+        status,
+        started_at,
+        completed_at,
+        duration_ms,
+        model_primary,
+        model_secondary,
+        model_synthesis,
+        tokens_used,
+        estimated_cost,
+        error,
+        metadata,
+        cache_key,
+        cache_inputs_hash
+      FROM research_runs
+      WHERE entity_type = 'model-constant'
+        AND status = 'completed'
+        AND completed_at IS NOT NULL
+        AND (
+          (metadata->'constant'->>'country' IS NULL AND metadata->'constant'->>'subdivision' IS NULL)
+          OR (${countryFilter} AND metadata->'constant'->>'subdivision' IS NULL)
+          OR (${countryFilter} AND ${subdivisionFilter})
+        )
+      ORDER BY
+        metadata->'constant'->>'key',
+        metadata->'constant'->>'country',
+        metadata->'constant'->>'subdivision',
+        completed_at DESC
+    `);
+
+    const map = new Map<string, ResearchRun>();
+    for (const raw of result.rows) {
+      const meta = (raw.metadata ?? {}) as { constant?: { key?: string; country?: string | null; subdivision?: string | null } };
+      const k = meta.constant?.key;
+      if (!k) continue;
+      const c = meta.constant?.country ?? null;
+      const s = meta.constant?.subdivision ?? null;
+      const mapKey = `${k}|${c ?? ""}|${s ?? ""}`;
+      map.set(mapKey, {
+        id: raw.id,
+        userId: raw.user_id,
+        entityType: raw.entity_type,
+        entityId: raw.entity_id,
+        scenarioId: raw.scenario_id,
+        tier: raw.tier,
+        status: raw.status,
+        startedAt: raw.started_at,
+        completedAt: raw.completed_at,
+        durationMs: raw.duration_ms,
+        modelPrimary: raw.model_primary,
+        modelSecondary: raw.model_secondary,
+        modelSynthesis: raw.model_synthesis,
+        tokensUsed: raw.tokens_used,
+        estimatedCost: raw.estimated_cost,
+        error: raw.error,
+        metadata: raw.metadata,
+        cacheKey: raw.cache_key,
+        cacheInputsHash: raw.cache_inputs_hash,
+      });
+    }
+    return map;
+  }
+
+  /**
    * List failed scheduled Constants refreshes whose `completedAt` is at or
    * after `since`. Filters by the marker (`metadata.scheduledRefresh = true`)
    * that `server/jobs/specialist-constants-refresh.ts` writes when it
