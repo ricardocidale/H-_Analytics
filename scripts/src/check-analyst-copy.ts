@@ -74,6 +74,7 @@ import { computeInputsHash, tryCacheHit, writeCacheHit } from "./lib/check-cache
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WORKSPACE_ROOT = path.resolve(__dirname, "../..");
+const CACHE_NAME = "analyst-copy";
 
 /**
  * Source trees to walk (relative to WORKSPACE_ROOT).
@@ -431,7 +432,6 @@ export function collectInputFiles(): string[] {
     for (const absPath of walkFiles(absDir, CONTENT_SCAN_EXTS)) {
       if (isContentPathSkipped(absPath)) continue;
       files.push(absPath);
-    }
     }
   }
   return files;

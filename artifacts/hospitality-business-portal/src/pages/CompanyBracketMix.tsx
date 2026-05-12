@@ -14,7 +14,6 @@ import {
 } from "@/lib/api";
 import { PROJECTION_YEARS } from "@/lib/constants";
 import type { CompanyMonthlyFinancials } from "@engine/types";
-import { normalizeBracketMix } from "@engine/helpers";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -582,9 +581,8 @@ function BracketMixTab() {
       bracketSlug: slug,
       weight: Math.round((parseFloat(weights[slug] ?? "0") / 100) * 10000) / 10000,
     }));
-    const normalized = normalizeBracketMix(mix);
     try {
-      await saveMutation.mutateAsync(normalized);
+      await saveMutation.mutateAsync(mix);
       toast({ title: "Bracket mix saved", description: "Your bracket mix has been updated." });
     } catch (err) {
       toast({

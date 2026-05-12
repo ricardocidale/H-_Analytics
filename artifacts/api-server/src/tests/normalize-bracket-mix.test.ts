@@ -35,7 +35,6 @@ describe("normalizePersistedBracketMix", () => {
     it("returns null for an empty object", () => {
       expect(normalizePersistedBracketMix({})).toBeNull();
     });
-  });
 
     it("returns null for an object without an `entries` array", () => {
       expect(normalizePersistedBracketMix({ foo: "bar" })).toBeNull();

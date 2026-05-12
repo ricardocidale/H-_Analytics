@@ -4,7 +4,7 @@ import { aiRateLimit } from "../middleware/rate-limit";
 import { z } from "zod";
 import { logApiCost, estimateCost } from "../middleware/cost-logger";
 import { storage } from "../storage";
-import { resolveLlm, getVendorService } from "../ai/resolve-llm";
+import { resolveLlm } from "../ai/resolve-llm";
 import { generateText } from "../ai/dispatch";
 import { logger } from "../logger";
 import type { ResearchConfig } from "@workspace/db";

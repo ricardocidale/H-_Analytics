@@ -464,33 +464,6 @@ export default function BasicInfoSection({ draft, onChange, onNumberChange }: Pr
             <Input type="number" step="0.1" value={draft.totalPropertyAcreage ?? ""} onChange={(e) => onNumberChange("totalPropertyAcreage", e.target.value)} className="bg-card border-primary/30 text-foreground" data-testid="input-total-acreage" />
           </div>
 
-          <div className="space-y-2">
-            <Label className="label-text text-foreground flex items-center gap-1.5">
-              Service Vendor
-              <InfoTooltip text="The management company or platform responsible for the day-to-day operations of this property. Used to apply specific markup and passthrough cost factors." />
-            </Label>
-            <Select
-              value={draft.vendorId ? String(draft.vendorId) : ""}
-              onValueChange={(v) => onNumberChange("vendorId", v)}
-            >
-              <SelectTrigger
-                className="bg-card border-primary/30 text-foreground"
-                data-testid="select-service-vendor"
-                vendorHealth={draft.vendorHealth}
-              >
-                <SelectValue placeholder="Select vendor" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">None (system defaults)</SelectItem>
-                {(draft.availableVendors || []).map((v: any) => (
-                  <SelectItem key={v.id} value={String(v.id)}>
-                    {v.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           {/* Star Rating */}
           <div className="space-y-2">
             <Label className="label-text text-foreground flex items-center gap-1.5">Star Rating<InfoTooltip text="Property star classification (1-5★). Drives research comparable matching — luxury (5★) properties are only compared to other luxury properties. Click to set, click same star to clear." /></Label>
