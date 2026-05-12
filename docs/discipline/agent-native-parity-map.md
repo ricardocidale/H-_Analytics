@@ -130,6 +130,21 @@ response without waiting for the background job.
 the SSE `done` payload so the frontend invalidates its run query and
 re-renders the panel.
 
+## ICP Bracket Mix Actions
+
+Bracket mix actions live on the Management Company page at `/company/icp-definition`
+(the new bracket-mix page that replaced the 70-field freeform editor per task-1411).
+The ICP Research Specialist and bracket-assignment minion are planned backend work;
+tools will be added when those services ship.
+
+| UI Action | UI Location | Rebecca Tool | Status |
+|---|---|---|---|
+| View bracket mix for the active management company | Company → ICP Bracket Mix → Bracket Mix tab | — | ⚠️ Gap — bracket model backend not yet shipped; tool planned alongside bracket-assignment minion |
+| Run bracket assignment (Assign Brackets button) | Company → ICP Bracket Mix → Bracket Mix tab → Assign Brackets | — | ⚠️ Gap — bracket-assignment minion + ICP Research Specialist not yet shipped |
+| Update bracket weights / mix | Company → ICP Bracket Mix → Bracket Mix tab (future edit UI) | — | ⚠️ Gap — PATCH endpoint and tool planned with bracket model backend |
+| View market evidence / comp context | Company → ICP Bracket Mix → Market Evidence tab | `get_global_assumptions` | ✅ (global assumptions already retrievable; dedicated bracket-evidence tool deferred) |
+| View legacy deprecated ICP record | Company → ICP Bracket Mix → Legacy ICP tab | `get_global_assumptions` | ✅ (legacy 70-field data is part of global assumptions; read-only) |
+
 ## Admin Actions (N/A or Deferred)
 
 | UI Action | Route / Location | Rebecca Tool | Status |

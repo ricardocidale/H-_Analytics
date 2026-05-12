@@ -78,7 +78,7 @@ const PropertyResearchCriteria = lazy(
   () => import("@/pages/PropertyResearchCriteria"),
 );
 const CompanyResearch = lazy(() => import("@/pages/CompanyResearch"));
-const CompanyIcpDefinition = lazy(() => import("@/pages/CompanyIcpDefinition"));
+const CompanyBracketMix = lazy(() => import("@/pages/CompanyBracketMix"));
 const CompanyGuidance = lazy(() => import("@/pages/CompanyGuidance"));
 const _ResearchHub = lazy(() => import("@/pages/ResearchHub"));
 const Admin = lazy(() => import("@/pages/Admin"));
@@ -279,7 +279,7 @@ function Router() {
           <Redirect to="/" />
         </Route>
         <Route path="/company/icp-definition">
-          <ProtectedRoute component={CompanyIcpDefinition} />
+          <ProtectedRoute component={CompanyBracketMix} />
         </Route>
         <Route path="/company/criteria">
           <Redirect to="/company/icp-definition" />
