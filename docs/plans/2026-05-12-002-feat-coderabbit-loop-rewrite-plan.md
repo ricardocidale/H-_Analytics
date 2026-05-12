@@ -21,7 +21,7 @@ Today the only working CodeRabbit workflow on `main` is the manual curl-trigger-
 
 ## Requirements
 
-- R1. Six slash commands exist on `main`: `/coderabbit-loop-on`, `/coderabbit-loop-off`, `/coderabbit-loop-status`, `/coderabbit-loop-help`, `/coderabbit-loop-review`, `/coderabbit-loop-autofix`.
+- R1. Six slash commands are installed globally at `~/.claude/commands/` (available in all repos on this machine): `/coderabbit-loop-on`, `/coderabbit-loop-off`, `/coderabbit-loop-status`, `/coderabbit-loop-help`, `/coderabbit-loop-review`, `/coderabbit-loop-autofix`. Source `.md` files are version-controlled in `.claude/commands/` in this repo; `scripts/install-coderabbit-loop.sh` deploys them.
 - R2. A loop session activates only via `/coderabbit-loop-review` or `/coderabbit-loop-autofix`; the four toggle/info commands are non-iterative.
 - R3. Every iterating variant caps at 4 iterations and exits early the moment **actionable** findings reach zero.
 - R4. The autofix variant uses CodeRabbit's autofix feature on iteration 1 only; iterations 2–4 are review-and-fix without autofix.
@@ -96,6 +96,8 @@ Carry forward verbatim into per-iteration discipline (see U2/U3 Approach):
 - **Exit gate is uniform: `gate_clean`.** Both `/coderabbit-loop-review` and `/coderabbit-loop-autofix` define their exit predicate as `gate_clean = (zero actionable findings) AND (all per-iteration gates pass)`. For U2 (working-tree), per-iteration gates are `pnpm run typecheck`, `scripts/node_modules/.bin/tsx scripts/src/check-magic-numbers.ts`, and the relevant test suite. For U3 (open PR), per-iteration gates are the U2 set plus `gh pr view --json statusCheckRollup` returning neither PENDING nor FAILURE.
 - **§9 protected-path policy: refuse autofix on intersect.** Iteration 1 of `/coderabbit-loop-autofix` runs `gh pr diff --name-only` against the §9 path list. On intersection, autofix is aborted with a clear message and the loop continues in review-only mode for iterations 2–4. No stacked-PR fallback (deferred).
 - **Cherry-pick, don't merge.** The 12 commits on `feat/csrf-mig-3-scenarios` include unrelated CSRF/scenarios work. Cherry-pick only the loop-tooling commits and rewrite the loop core for iteration; do not merge the branch.
+- **Global install target: `~/.claude/commands/`.** Command `.md` files are version-controlled in `.claude/commands/` (H+ Analytics is the source of truth) and installed globally to `~/.claude/commands/` via `scripts/install-coderabbit-loop.sh`. Helper shell scripts are installed to `~/.local/share/coderabbit-loop/`; the `.md` command files reference them at that path so the commands work from any repo. The H+ Analytics `package.json` pnpm scripts call the in-repo `scripts/` paths directly as local-dev convenience aliases — they are not the primary invocation path.
+- **Portable `gate_clean`.** All per-iteration gates are conditional on presence. Magic-numbers gate: runs only when `scripts/src/check-magic-numbers.ts` exists at the repo root; skipped with a logged note otherwise. Typecheck gate: auto-detects package manager (`pnpm-workspace.yaml` → pnpm; `bun.lockb` → bun; `package-lock.json` → npm) and runs only if a `typecheck` script is declared in the repo root `package.json`; skipped otherwise. The §9 guard trivially passes (zero intersection) in any repo that does not contain `lib/engine/src/` — no explicit H+ Analytics repo-detection needed.
 - **Naming parity across surfaces.** Slash commands use the `coderabbit-loop-*` form (dashes). pnpm scripts use `coderabbit-loop:*` (the colon stays as pnpm convention; the `-loop` infix matches the slash commands). Shell-script filenames use dashes.
 - **Toggle preserved, scope unchanged.** The `.local/opmode/active` marker file pattern from task-1386 is preserved verbatim. The four toggle/info commands behave identically to their predecessors apart from the rename.
 
@@ -172,12 +174,13 @@ State is wiped at session start. The `/coderabbit-loop-status` command reads `ru
 - Create: `scripts/opmode-active.sh` (cherry-picked from branch)
 - Create: `scripts/print-opmode-banner.sh` (cherry-picked)
 - Create: `scripts/install-coderabbit-cli.sh` (cherry-picked)
+- Create: `scripts/install-coderabbit-loop.sh` (global installer: copies `.claude/commands/coderabbit-loop-*.md` → `~/.claude/commands/`; copies `scripts/coderabbit-loop*.sh` → `~/.local/share/coderabbit-loop/`)
 - Create: `scripts/coderabbit-loop.sh` (rewritten from `coderabbit-loop.sh`, renamed namespace; preserves on/off/status/help subcommands)
-- Create: `.claude/commands/coderabbit-loop-on.md`
+- Create: `.claude/commands/coderabbit-loop-on.md` (source; installed globally by install script)
 - Create: `.claude/commands/coderabbit-loop-off.md`
 - Create: `.claude/commands/coderabbit-loop-status.md`
 - Create: `.claude/commands/coderabbit-loop-help.md`
-- Modify: `package.json` (add `coderabbit-loop:on/off/status/help` pnpm script entries)
+- Modify: `package.json` (add `coderabbit-loop:on/off/status/help` pnpm script entries; add `coderabbit-loop:install` → `bash scripts/install-coderabbit-loop.sh`)
 - Modify: `.gitignore` (ensure `.local/coderabbit-loop/` is gitignored — `.local/` already is, verify and document)
 - Test: `scripts/tests/coderabbit-loop-toggle.test.sh` (toggle round-trip + status output)
 
