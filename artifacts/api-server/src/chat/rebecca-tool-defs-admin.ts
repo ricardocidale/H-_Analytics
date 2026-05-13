@@ -343,7 +343,7 @@ export function getAdminTools(): ToolParam[] {
       name: "get_bracket_mix",
       description:
         "Return the Management Company's current ICP bracket mix and the full bracket catalog. " +
-        "The bracket mix is a weighted distribution of customer-property archetypes (e.g., boutique-upscale-hotel, performance-managed-str) stored in global_assumptions.bracket_mix. " +
+        "The bracket mix is a weighted distribution of customer-property archetypes (e.g., us-gateway-boutique, latam-luxury-str-single-key) stored in global_assumptions.bracket_mix. " +
         "Returns { mix: BracketMixData | null, catalog: CatalogBracket[] }. " +
         "mix is null when no bracket assignment has been run yet. " +
         "Use this to understand the company's current ICP positioning before recommending changes.",
@@ -370,7 +370,7 @@ export function getAdminTools(): ToolParam[] {
             items: {
               type: "object",
               properties: {
-                id: { type: "string", description: "Bracket ID (e.g. 'boutique-upscale-hotel')." },
+                id: { type: "string", description: "Bracket ID (e.g. 'us-gateway-boutique')." },
                 weight: { type: "number", minimum: 0, maximum: 1, description: "New weight value in [0, 1]." },
               },
               required: ["id", "weight"],

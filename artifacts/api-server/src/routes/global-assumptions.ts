@@ -447,7 +447,7 @@ export function register(app: Express) {
       if (!ga) return res.status(404).json({ error: "Global assumptions not found", code: "BRAK-003" });
 
       const { assignBrackets } = await import("../ai/icp/bracket-assignment-minion");
-      const mix = assignBrackets(properties, ga);
+      const mix = await assignBrackets(properties, ga);
 
       const updated = await storage.patchGlobalAssumptions(ga.id, { bracketMix: mix });
       logActivity(req, "assign-bracket-mix", "global_assumptions", updated.id, "ICP Bracket Mix");

@@ -395,7 +395,7 @@ function BracketEditorDialog({
               id="icp-bracket-slug"
               value={form.slug}
               onChange={(e) => setForm({ ...form, slug: e.target.value })}
-              placeholder="boutique-upscale-hotel"
+              placeholder="us-gateway-boutique"
               disabled={!!editing}
               data-testid="input-icp-bracket-slug"
             />

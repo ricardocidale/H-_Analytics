@@ -205,6 +205,17 @@ export async function runSchemaMigrations() {
     await markMigrationApplied("icp_brackets_003");
   }
 
+  // Plan 2026-05-13-001 U7 — geography-tier catalog rewrite + match-rule
+  // columns. Belt-and-suspenders companion to 0065_icp_brackets_match_rules.sql.
+  // Adds 6 match-rule columns, deletes the 4 retired service-profile bracket
+  // slugs, and upserts the 5 geography-tier brackets with default templates
+  // and match predicates loaded by Davi.
+  if (!(await isMigrationApplied("icp_brackets_004"))) {
+    const { runIcpBrackets004 } = await import("../migrations/icp-brackets-004");
+    await runIcpBrackets004();
+    await markMigrationApplied("icp_brackets_004");
+  }
+
   // Plan 2026-05-13-001 U2 — per-property refi LTV cap relative to original
   // acquisition loan. Belt-and-suspenders companion to
   // 0064_property_refi_max_ltv_cap.sql. Idempotent: ADD COLUMN IF NOT EXISTS

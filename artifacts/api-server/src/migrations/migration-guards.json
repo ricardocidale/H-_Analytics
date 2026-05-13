@@ -250,6 +250,11 @@
       "status": "guarded",
       "guard": "property-refi-max-ltv-001.ts",
       "reason": "Plan 2026-05-13-001 U2 — adds properties.refi_max_ltv_to_original real NOT NULL DEFAULT 0.70 plus a CHECK constraint constraining the value to [0, 1]. The default literal 0.70 mirrors lib/shared/src/constants-funding.ts:DEFAULT_REFI_MAX_LTV_TO_ORIGINAL and lib/db/src/constants.ts (same name). Both statements are idempotent (ADD COLUMN IF NOT EXISTS + DO-block-guarded CHECK addition). Guarded by property-refi-max-ltv-001.ts which re-applies the same ALTERs at boot."
+    },
+    "0065_icp_brackets_match_rules": {
+      "status": "guarded",
+      "guard": "icp-brackets-004.ts",
+      "reason": "Plan 2026-05-13-001 U7 — adds six NULL-able match-rule columns to icp_brackets (match_countries / match_business_models / match_quality_tiers / match_keywords as jsonb, match_priority integer NOT NULL DEFAULT 0, match_rationale text). All six are ALTER TABLE ... ADD COLUMN IF NOT EXISTS — re-running via migrate() is a no-op. Guarded by icp-brackets-004.ts which re-applies the same ALTERs at boot AND deletes the 4 retired service-profile bracket slugs (boutique-upscale-hotel, branded-full-service-hotel, performance-str-cluster, agritourism-experiential-lodge) + upserts the 5 geography-tier brackets with match predicates and Layer-2 default templates."
     }
   }
 }

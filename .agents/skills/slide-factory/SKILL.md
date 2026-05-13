@@ -74,6 +74,7 @@ The following definitions are canonical across the entire H+ Analytics agent sys
 | Dino | Pixel-diff calculator (±2px gate) |
 | Enzo | Content hash cache (SHA-256 idempotency) |
 | Franco | Deck render minion — renders the 6-slide PDF via Playwright, uploads to R2, writes `deckR2Key` onto the run row. Called by Marco's `produce_deck` tool and by the Rebecca `produce_slide_factory_deck` tool. No LLM. (`slides/minions/franco.ts`) |
+| Davi | Per-property best-fit bracket classifier — given a Property row and the active set of ICP bracket match-rules loaded from `icp_brackets`, returns the highest-priority bracket whose AND-ed predicates all match, or `null`. Pure deterministic, no LLM. Used by `bracket-assignment-minion` (company-level mix derivation) and by the U6 per-property resolver. (`ai/ambient/minions/davi.ts`) |
 
 ---
 

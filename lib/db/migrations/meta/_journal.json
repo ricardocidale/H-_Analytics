@@ -1,398 +1,405 @@
 {
-  "version": "7",
-  "dialect": "postgresql",
-  "entries": [
-    {
-      "idx": 0,
-      "version": "7",
-      "when": 1770334567098,
-      "tag": "0000_brainy_mother_askani",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1773619200000,
-      "tag": "0001_optional_password_hash",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1773705600000,
-      "tag": "0002_db_integrity_hardening",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1774300800000,
-      "tag": "0003_add_business_insurance",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1774886400000,
-      "tag": "0004_consolidated_schema",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1774972800000,
-      "tag": "0005_google_drive_tokens",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1775059200000,
-      "tag": "0006_add_missing_indexes",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1775145600000,
-      "tag": "0007_scenario_shares",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1775232000000,
-      "tag": "0008_scenario_computed_results",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "7",
-      "when": 1775606400000,
-      "tag": "0009_intelligence_v2",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "7",
-      "when": 1775865600000,
-      "tag": "0010_scenario_service_templates",
-      "breakpoints": true
-    },
-    {
-      "idx": 11,
-      "version": "7",
-      "when": 1776470400000,
-      "tag": "0011_capital_raise_rename",
-      "breakpoints": true
-    },
-    {
-      "idx": 12,
-      "version": "7",
-      "when": 1776643200000,
-      "tag": "0012_pgvector_store",
-      "breakpoints": true
-    },
-    {
-      "idx": 13,
-      "version": "7",
-      "when": 1776816000000,
-      "tag": "0013_industry_vertical_exit_multiple",
-      "breakpoints": true
-    },
-    {
-      "idx": 14,
-      "version": "7",
-      "when": 1776902400000,
-      "tag": "0014_saved_tabs",
-      "breakpoints": true
-    },
-    {
-      "idx": 15,
-      "version": "7",
-      "when": 1777507200000,
-      "tag": "0015_drop_required_fields_config",
-      "breakpoints": true
-    },
-    {
-      "idx": 16,
-      "version": "7",
-      "when": 1778112000000,
-      "tag": "0016_tax_bulletin_cache",
-      "breakpoints": true
-    },
-    {
-      "idx": 17,
-      "version": "7",
-      "when": 1778716800000,
-      "tag": "0017_specialist_identity_overrides",
-      "breakpoints": true
-    },
-    {
-      "idx": 18,
-      "version": "7",
-      "when": 1779321600000,
-      "tag": "0018_specialist_recommendation_events",
-      "breakpoints": true
-    },
-    {
-      "idx": 19,
-      "version": "7",
-      "when": 1779926400000,
-      "tag": "0019_specialist_config_missing_columns",
-      "breakpoints": true
-    },
-    {
-      "idx": 21,
-      "version": "7",
-      "when": 1782000000000,
-      "tag": "0021_backfill_company_change_log_entity_id",
-      "breakpoints": true
-    },
-    {
-      "idx": 22,
-      "version": "7",
-      "when": 1782604800000,
-      "tag": "0022_specialist_llm_overrides",
-      "breakpoints": true
-    },
-    {
-      "idx": 23,
-      "version": "7",
-      "when": 1783209600000,
-      "tag": "0023_rebecca_config_jsonb",
-      "breakpoints": true
-    },
-    {
-      "idx": 24,
-      "version": "7",
-      "when": 1783814400000,
-      "tag": "0024_oidc_sessions",
-      "breakpoints": true
-    },
-    {
-      "idx": 25,
-      "version": "7",
-      "when": 1784419200000,
-      "tag": "0025_property_price_history",
-      "breakpoints": true
-    },
-    {
-      "idx": 27,
-      "version": "7",
-      "when": 1785110400000,
-      "tag": "0027_scenario_share_consolidation",
-      "breakpoints": true
-    },
-    {
-      "idx": 28,
-      "version": "7",
-      "when": 1746057600000,
-      "tag": "0028_drop_scenario_shares",
-      "breakpoints": true
-    },
-    {
-      "idx": 29,
-      "version": "7",
-      "when": 1746144000000,
-      "tag": "0030_phase_c_batch_1",
-      "breakpoints": true
-    },
-    {
-      "idx": 30,
-      "version": "7",
-      "when": 1746144001000,
-      "tag": "0031_batch2_drops",
-      "breakpoints": true
-    },
-    {
-      "idx": 31,
-      "version": "7",
-      "when": 1746144002000,
-      "tag": "0032_batch3_rebecca",
-      "breakpoints": true
-    },
-    {
-      "idx": 32,
-      "version": "7",
-      "when": 1746144003000,
-      "tag": "0033_batch4_specialists",
-      "breakpoints": true
-    },
-    {
-      "idx": 33,
-      "version": "7",
-      "when": 1746144004000,
-      "tag": "0034_batch6_ga_columns",
-      "breakpoints": true
-    },
-    {
-      "idx": 34,
-      "version": "7",
-      "when": 1746144005000,
-      "tag": "0035_batch5_standalone_tables",
-      "breakpoints": true
-    },
-    {
-      "idx": 35,
-      "version": "7",
-      "when": 1746144006000,
-      "tag": "0036_batch7_pure_ddl",
-      "breakpoints": true
-    },
-    {
-      "idx": 36,
-      "version": "7",
-      "when": 1746144007000,
-      "tag": "0037_batch8_datafix_and_unique",
-      "breakpoints": true
-    },
-    {
-      "idx": 37,
-      "version": "7",
-      "when": 1746144008000,
-      "tag": "0038_batch9_drop_company_fk",
-      "breakpoints": true
-    },
-    {
-      "idx": 38,
-      "version": "7",
-      "when": 1746144009000,
-      "tag": "0039_users_rebecca_rail_open",
-      "breakpoints": true
-    },
-    {
-      "idx": 39,
-      "version": "7",
-      "when": 1746144010000,
-      "tag": "0040_property_slide_deck_pdf_format",
-      "breakpoints": true
-    },
-    {
-      "idx": 40,
-      "version": "7",
-      "when": 1746144011000,
-      "tag": "0041_property_slide_deck_drop_image_format",
-      "breakpoints": true
-    },
-    {
-      "idx": 41,
-      "version": "7",
-      "when": 1746144012000,
-      "tag": "0042_property_slide_deck_pdf_only",
-      "breakpoints": true
-    },
-    {
-      "idx": 42,
-      "version": "7",
-      "when": 1746835200000,
-      "tag": "0043_add_capital_raise_3",
-      "breakpoints": true
-    },
-    {
-      "idx": 43,
-      "version": "7",
-      "when": 1778284800000,
-      "tag": "0044_users_rebecca_history_open",
-      "breakpoints": true
-    },
-    {
-      "idx": 44,
-      "version": "7",
-      "when": 1778259791333,
-      "tag": "0044_misty_luke_cage",
-      "breakpoints": true
-    },
-    {
-      "idx": 45,
-      "version": "7",
-      "when": 1778287699367,
-      "tag": "0045_cool_starfox",
-      "breakpoints": true
-    },
-    {
-      "idx": 46,
-      "version": "7",
-      "when": 1778301787303,
-      "tag": "0046_previous_justin_hammer",
-      "breakpoints": true
-    },
-    {
-      "idx": 47,
-      "version": "7",
-      "when": 1778331876331,
-      "tag": "0047_great_tarantula",
-      "breakpoints": true
-    },
-    {
-      "idx": 48,
-      "version": "7",
-      "when": 1747094400000,
-      "tag": "0048_users_tour_step",
-      "breakpoints": true
-    },
-    {
-      "idx": 49,
-      "version": "7",
-      "when": 1778427720403,
-      "tag": "0049_users_tour_step_not_null",
-      "breakpoints": true
-    },
-    {
-      "idx": 50,
-      "version": "7",
-      "when": 1778561187303,
-      "tag": "0050_factory_v2_runs_columns",
-      "breakpoints": true
-    },
-    {
-      "idx": 51,
-      "version": "7",
-      "when": 1778733600000,
-      "tag": "0051_minion_self_test_runs",
-      "breakpoints": true
-    },
-    {
-      "idx": 52,
-      "version": "7",
-      "when": 1778586871526,
-      "tag": "0052_property_assumptions_improved_columns",
-      "breakpoints": true
-    },
-    {
-      "idx": 53,
-      "version": "7",
-      "when": 1747094400000,
-      "tag": "0053_property_description_purchased",
-      "breakpoints": true
-    },
-    {
-      "idx": 54,
-      "version": "7",
-      "when": 1747180800000,
-      "tag": "0054_property_descriptor_catalog",
-      "breakpoints": true
-    },
-    {
-      "idx": 55,
-      "version": "7",
-      "when": 1778880000000,
-      "tag": "0055_assumption_guardrails",
-      "breakpoints": true
-    },
-    {
-      "idx": 56,
-      "version": "7",
-      "when": 1778889600000,
-      "tag": "0056_icp_brackets_default_overlay",
-      "breakpoints": true
-    },
-    {
-      "idx": 57,
-      "version": "7",
-      "when": 1778892000000,
-      "tag": "0057_property_refi_max_ltv_cap",
-      "breakpoints": true
-    }
-  ]
+	"version": "7",
+	"dialect": "postgresql",
+	"entries": [
+		{
+			"idx": 0,
+			"version": "7",
+			"when": 1770334567098,
+			"tag": "0000_brainy_mother_askani",
+			"breakpoints": true
+		},
+		{
+			"idx": 1,
+			"version": "7",
+			"when": 1773619200000,
+			"tag": "0001_optional_password_hash",
+			"breakpoints": true
+		},
+		{
+			"idx": 2,
+			"version": "7",
+			"when": 1773705600000,
+			"tag": "0002_db_integrity_hardening",
+			"breakpoints": true
+		},
+		{
+			"idx": 3,
+			"version": "7",
+			"when": 1774300800000,
+			"tag": "0003_add_business_insurance",
+			"breakpoints": true
+		},
+		{
+			"idx": 4,
+			"version": "7",
+			"when": 1774886400000,
+			"tag": "0004_consolidated_schema",
+			"breakpoints": true
+		},
+		{
+			"idx": 5,
+			"version": "7",
+			"when": 1774972800000,
+			"tag": "0005_google_drive_tokens",
+			"breakpoints": true
+		},
+		{
+			"idx": 6,
+			"version": "7",
+			"when": 1775059200000,
+			"tag": "0006_add_missing_indexes",
+			"breakpoints": true
+		},
+		{
+			"idx": 7,
+			"version": "7",
+			"when": 1775145600000,
+			"tag": "0007_scenario_shares",
+			"breakpoints": true
+		},
+		{
+			"idx": 8,
+			"version": "7",
+			"when": 1775232000000,
+			"tag": "0008_scenario_computed_results",
+			"breakpoints": true
+		},
+		{
+			"idx": 9,
+			"version": "7",
+			"when": 1775606400000,
+			"tag": "0009_intelligence_v2",
+			"breakpoints": true
+		},
+		{
+			"idx": 10,
+			"version": "7",
+			"when": 1775865600000,
+			"tag": "0010_scenario_service_templates",
+			"breakpoints": true
+		},
+		{
+			"idx": 11,
+			"version": "7",
+			"when": 1776470400000,
+			"tag": "0011_capital_raise_rename",
+			"breakpoints": true
+		},
+		{
+			"idx": 12,
+			"version": "7",
+			"when": 1776643200000,
+			"tag": "0012_pgvector_store",
+			"breakpoints": true
+		},
+		{
+			"idx": 13,
+			"version": "7",
+			"when": 1776816000000,
+			"tag": "0013_industry_vertical_exit_multiple",
+			"breakpoints": true
+		},
+		{
+			"idx": 14,
+			"version": "7",
+			"when": 1776902400000,
+			"tag": "0014_saved_tabs",
+			"breakpoints": true
+		},
+		{
+			"idx": 15,
+			"version": "7",
+			"when": 1777507200000,
+			"tag": "0015_drop_required_fields_config",
+			"breakpoints": true
+		},
+		{
+			"idx": 16,
+			"version": "7",
+			"when": 1778112000000,
+			"tag": "0016_tax_bulletin_cache",
+			"breakpoints": true
+		},
+		{
+			"idx": 17,
+			"version": "7",
+			"when": 1778716800000,
+			"tag": "0017_specialist_identity_overrides",
+			"breakpoints": true
+		},
+		{
+			"idx": 18,
+			"version": "7",
+			"when": 1779321600000,
+			"tag": "0018_specialist_recommendation_events",
+			"breakpoints": true
+		},
+		{
+			"idx": 19,
+			"version": "7",
+			"when": 1779926400000,
+			"tag": "0019_specialist_config_missing_columns",
+			"breakpoints": true
+		},
+		{
+			"idx": 21,
+			"version": "7",
+			"when": 1782000000000,
+			"tag": "0021_backfill_company_change_log_entity_id",
+			"breakpoints": true
+		},
+		{
+			"idx": 22,
+			"version": "7",
+			"when": 1782604800000,
+			"tag": "0022_specialist_llm_overrides",
+			"breakpoints": true
+		},
+		{
+			"idx": 23,
+			"version": "7",
+			"when": 1783209600000,
+			"tag": "0023_rebecca_config_jsonb",
+			"breakpoints": true
+		},
+		{
+			"idx": 24,
+			"version": "7",
+			"when": 1783814400000,
+			"tag": "0024_oidc_sessions",
+			"breakpoints": true
+		},
+		{
+			"idx": 25,
+			"version": "7",
+			"when": 1784419200000,
+			"tag": "0025_property_price_history",
+			"breakpoints": true
+		},
+		{
+			"idx": 27,
+			"version": "7",
+			"when": 1785110400000,
+			"tag": "0027_scenario_share_consolidation",
+			"breakpoints": true
+		},
+		{
+			"idx": 28,
+			"version": "7",
+			"when": 1746057600000,
+			"tag": "0028_drop_scenario_shares",
+			"breakpoints": true
+		},
+		{
+			"idx": 29,
+			"version": "7",
+			"when": 1746144000000,
+			"tag": "0030_phase_c_batch_1",
+			"breakpoints": true
+		},
+		{
+			"idx": 30,
+			"version": "7",
+			"when": 1746144001000,
+			"tag": "0031_batch2_drops",
+			"breakpoints": true
+		},
+		{
+			"idx": 31,
+			"version": "7",
+			"when": 1746144002000,
+			"tag": "0032_batch3_rebecca",
+			"breakpoints": true
+		},
+		{
+			"idx": 32,
+			"version": "7",
+			"when": 1746144003000,
+			"tag": "0033_batch4_specialists",
+			"breakpoints": true
+		},
+		{
+			"idx": 33,
+			"version": "7",
+			"when": 1746144004000,
+			"tag": "0034_batch6_ga_columns",
+			"breakpoints": true
+		},
+		{
+			"idx": 34,
+			"version": "7",
+			"when": 1746144005000,
+			"tag": "0035_batch5_standalone_tables",
+			"breakpoints": true
+		},
+		{
+			"idx": 35,
+			"version": "7",
+			"when": 1746144006000,
+			"tag": "0036_batch7_pure_ddl",
+			"breakpoints": true
+		},
+		{
+			"idx": 36,
+			"version": "7",
+			"when": 1746144007000,
+			"tag": "0037_batch8_datafix_and_unique",
+			"breakpoints": true
+		},
+		{
+			"idx": 37,
+			"version": "7",
+			"when": 1746144008000,
+			"tag": "0038_batch9_drop_company_fk",
+			"breakpoints": true
+		},
+		{
+			"idx": 38,
+			"version": "7",
+			"when": 1746144009000,
+			"tag": "0039_users_rebecca_rail_open",
+			"breakpoints": true
+		},
+		{
+			"idx": 39,
+			"version": "7",
+			"when": 1746144010000,
+			"tag": "0040_property_slide_deck_pdf_format",
+			"breakpoints": true
+		},
+		{
+			"idx": 40,
+			"version": "7",
+			"when": 1746144011000,
+			"tag": "0041_property_slide_deck_drop_image_format",
+			"breakpoints": true
+		},
+		{
+			"idx": 41,
+			"version": "7",
+			"when": 1746144012000,
+			"tag": "0042_property_slide_deck_pdf_only",
+			"breakpoints": true
+		},
+		{
+			"idx": 42,
+			"version": "7",
+			"when": 1746835200000,
+			"tag": "0043_add_capital_raise_3",
+			"breakpoints": true
+		},
+		{
+			"idx": 43,
+			"version": "7",
+			"when": 1778284800000,
+			"tag": "0044_users_rebecca_history_open",
+			"breakpoints": true
+		},
+		{
+			"idx": 44,
+			"version": "7",
+			"when": 1778259791333,
+			"tag": "0044_misty_luke_cage",
+			"breakpoints": true
+		},
+		{
+			"idx": 45,
+			"version": "7",
+			"when": 1778287699367,
+			"tag": "0045_cool_starfox",
+			"breakpoints": true
+		},
+		{
+			"idx": 46,
+			"version": "7",
+			"when": 1778301787303,
+			"tag": "0046_previous_justin_hammer",
+			"breakpoints": true
+		},
+		{
+			"idx": 47,
+			"version": "7",
+			"when": 1778331876331,
+			"tag": "0047_great_tarantula",
+			"breakpoints": true
+		},
+		{
+			"idx": 48,
+			"version": "7",
+			"when": 1747094400000,
+			"tag": "0048_users_tour_step",
+			"breakpoints": true
+		},
+		{
+			"idx": 49,
+			"version": "7",
+			"when": 1778427720403,
+			"tag": "0049_users_tour_step_not_null",
+			"breakpoints": true
+		},
+		{
+			"idx": 50,
+			"version": "7",
+			"when": 1778561187303,
+			"tag": "0050_factory_v2_runs_columns",
+			"breakpoints": true
+		},
+		{
+			"idx": 51,
+			"version": "7",
+			"when": 1778733600000,
+			"tag": "0051_minion_self_test_runs",
+			"breakpoints": true
+		},
+		{
+			"idx": 52,
+			"version": "7",
+			"when": 1778586871526,
+			"tag": "0052_property_assumptions_improved_columns",
+			"breakpoints": true
+		},
+		{
+			"idx": 53,
+			"version": "7",
+			"when": 1747094400000,
+			"tag": "0053_property_description_purchased",
+			"breakpoints": true
+		},
+		{
+			"idx": 54,
+			"version": "7",
+			"when": 1747180800000,
+			"tag": "0054_property_descriptor_catalog",
+			"breakpoints": true
+		},
+		{
+			"idx": 55,
+			"version": "7",
+			"when": 1778880000000,
+			"tag": "0055_assumption_guardrails",
+			"breakpoints": true
+		},
+		{
+			"idx": 56,
+			"version": "7",
+			"when": 1778889600000,
+			"tag": "0056_icp_brackets_default_overlay",
+			"breakpoints": true
+		},
+		{
+			"idx": 57,
+			"version": "7",
+			"when": 1778892000000,
+			"tag": "0057_property_refi_max_ltv_cap",
+			"breakpoints": true
+		},
+		{
+			"idx": 58,
+			"version": "7",
+			"when": 1778894400000,
+			"tag": "0058_icp_brackets_match_rules",
+			"breakpoints": true
+		}
+	]
 }
