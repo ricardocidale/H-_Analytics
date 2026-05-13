@@ -241,7 +241,7 @@ export default function AnalystProgressHUDDemo() {
   const [visible, setVisible] = useState(true);
   const [done, setDone] = useState(false);
 
-  // Auto-advance progress in the demo
+  // Auto-advance progress, then auto-replay after a pause
   useEffect(() => {
     if (!visible || done) return;
     const id = setInterval(() => {
@@ -249,7 +249,15 @@ export default function AnalystProgressHUDDemo() {
         if (p >= 100) {
           clearInterval(id);
           setDone(true);
-          setTimeout(() => setVisible(false), 900);
+          // HUD exit pause, then reset and replay
+          setTimeout(() => {
+            setVisible(false);
+            setTimeout(() => {
+              setProgress(8);
+              setDone(false);
+              setVisible(true);
+            }, 1800);
+          }, 900);
           return 100;
         }
         return Math.min(100, p + (Math.random() * 2.8 + 0.6));
@@ -321,30 +329,6 @@ export default function AnalystProgressHUDDemo() {
       {/* ── HUD (floating, above page) ── */}
       <AnalystHUD progress={progress} visible={visible} />
 
-      {/* Restart button (demo only) */}
-      {!visible && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          style={{ position: "fixed", bottom: 24, right: 24 }}
-        >
-          <button
-            onClick={() => { setProgress(8); setDone(false); setVisible(true); }}
-            style={{
-              background: "rgba(245,158,11,0.15)",
-              border: "1px solid rgba(245,158,11,0.3)",
-              borderRadius: 8,
-              color: "rgba(245,158,11,0.9)",
-              fontSize: 12,
-              fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
-              padding: "8px 16px",
-              cursor: "pointer",
-            }}
-          >
-            ↺ Replay demo
-          </button>
-        </motion.div>
-      )}
     </div>
   );
 }
