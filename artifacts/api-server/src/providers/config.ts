@@ -39,13 +39,18 @@ export function isReplit(): boolean {
 /**
  * Check if running in a production deployment.
  *
- * Honours `NODE_ENV=production` (standard) and Replit's `REPLIT_DEPLOYMENT=1`
- * marker for backward compatibility while the app still runs on Replit.
+ * Production is Railway, which sets `NODE_ENV=production` on every deployed
+ * service. The legacy `REPLIT_DEPLOYMENT=1` branch was removed once PR #133
+ * moved the published-deployment gate to `RAILWAY_SERVICE_ID` via
+ * `isPublishedDeployment()` below — see CLAUDE.md § "Production Deployment".
+ *
+ * Callers that need to distinguish the Replit dev preview from a real
+ * published deployment (e.g., dev-login gating) must use
+ * `isPublishedDeployment()` instead — it is strictly stricter and continues
+ * to honour `REPLIT_DEPLOYMENT=1` for back-compat.
  */
 export function isProductionDeployment(): boolean {
-  if (process.env.NODE_ENV === "production") return true;
-  if (process.env.REPLIT_DEPLOYMENT === "1") return true;
-  return false;
+  return process.env.NODE_ENV === "production";
 }
 
 /**
