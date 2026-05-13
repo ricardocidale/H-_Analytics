@@ -21,6 +21,7 @@ import {
   resolveAsImprovedFacts,
   resolveAsPurchasedFacts,
 } from "@engine/property/renovation-facts";
+import { hasImprovedSideValues } from "@workspace/db";
 import { getMarketRate } from "../data/marketRates";
 
 const TRANSFER_TAX_KEYS = [
@@ -629,12 +630,12 @@ export async function buildPropertyExportData(
     })(),
     ...(p.totalPropertyAcreage ? [row("Acreage", [String(p.totalPropertyAcreage)], { indent: 1 })] : []),
     ...(() => {
+      // Plan 2026-05-13-002 U3 — accessor-mediated presence check. New
+      // As-Improved descriptor fields registered in the catalog
+      // automatically participate without code edits here.
       const reopen = p.plannedReopeningYear != null ? Number(p.plannedReopeningYear) : null;
       const sfx = reopen != null ? ` (As-Improved, from ${reopen})` : " (As-Improved)";
-      const hasImprovedHypothesis =
-        p.fbVenuesImproved != null || p.fbSeatsImproved != null ||
-        p.eventSpaceSqftImproved != null || p.totalBuildingSqftImproved != null ||
-        reopen != null;
+      const hasImprovedHypothesis = hasImprovedSideValues(p);
       if (!hasImprovedHypothesis) return [] as ExportRow[];
       const improved = resolveAsImprovedFacts(p as unknown as Parameters<typeof resolveAsImprovedFacts>[0]);
       const out: ExportRow[] = [];
