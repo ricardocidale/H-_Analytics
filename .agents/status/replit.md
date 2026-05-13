@@ -4,17 +4,18 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-13T18:00:00Z
+Updated: 2026-05-13T19:00:00Z
 Status: idle
 
 ## Active Branch
 
-main
+feat/financial-defaults-irr-calibration
+(pushed to origin — PR open on GitHub, not yet merged to main)
 
 ## Last Commit on Branch
 
-feat(#1626): Playwright narrow-layout squeeze regression — all 6 tests pass
-fix: apply min-w-0/shrink-0 overflow fix to remaining land-value-percent row in CapitalStructureSection
+chore(status): CC session end — financial-defaults Phases 1-5 complete
+plan: slide factory UI design consistency sweep (for CC)
 
 ## What Replit Did This Session
 
