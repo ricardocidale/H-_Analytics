@@ -4,24 +4,34 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-13T00:00:00Z
+Updated: 2026-05-13T14:15:00Z
 Status: idle
 
 ## Active Branch
 
-None
+main
 
 ## Last Commit on Branch
 
-(none recorded yet)
+sweep: replace all page-level spinners/error cards with floating states
 
 ## What Replit Did This Session
 
-(no activity yet)
+Completed full spinner/error-card sweep across the portal:
+- Added `PageLoadingState` and `PageErrorState` shared components (previous session)
+- Replaced all full-page `<Layout>`-wrapped spinners/error blocks across 11 pages:
+  Company, CompanyResearch, Portfolio, Scenarios, PropertyPhotos, PropertyEdit,
+  CompanyGuidance, PropertyResearchCriteria, CompanyAssumptions, CompanyBracketMix
+  (loading + error → PageLoadingState / PageErrorState throughout)
+- PropertyEdit: fixed both the isLoading, !property, and !draft spinner blocks
+- OperatingStructureComparison: replaced `<Alert variant="destructive">` with compact
+  inline chip (icon + text + retry link) — no more large red error card
+- KnowledgeRegistryPage, SpecialistsDirectoryPage, SlideFactoryDetail: replaced
+  Loader2 spinners in sub-components with skeleton shimmer bars; error text made muted
 
 ## Files Replit Owns Right Now
 
-None — awaiting next session.
+None — session complete.
 
 ## Handoff to CC
 

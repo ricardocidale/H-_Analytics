@@ -13,6 +13,7 @@
  */
 import { useMemo } from "react";
 import Layout from "@/components/Layout";
+import { PageLoadingState } from "@/components/ui/page-loading-state";
 import { AnimatedPage } from "@/components/graphics";
 import { useGlobalAssumptions, useProperties } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -299,13 +300,7 @@ export default function CompanyGuidance() {
   }, [global, guidanceMap]);
 
   if (isLoading) {
-    return (
-      <Layout>
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="w-8 h-8 animate-spin text-accent-pop" />
-        </div>
-      </Layout>
-    );
+    return <PageLoadingState />;
   }
 
   if (!global) {

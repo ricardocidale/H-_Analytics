@@ -1,4 +1,5 @@
 import Layout from "@/components/Layout";
+import { PageLoadingState } from "@/components/ui/page-loading-state";
 import { AnimatedPage } from "@/components/graphics/AnimatedPage";
 import { useProperty, useGlobalAssumptions } from "@/lib/api";
 import { PageHeader } from "@/components/ui/page-header";
@@ -33,13 +34,7 @@ export default function PropertyResearchCriteria() {
   const { data: global } = useGlobalAssumptions();
 
   if (isLoading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-accent-pop" />
-        </div>
-      </Layout>
-    );
+    return <PageLoadingState />;
   }
 
   if (!property) {

@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import superjson from "superjson";
 import Layout from "@/components/Layout";
+import { PageLoadingState } from "@/components/ui/page-loading-state";
+import { PageErrorState } from "@/components/ui/page-error-state";
 import { AnimatedPage, AnimatedSection } from "@/components/graphics/AnimatedPage";
 import {
   useGlobalAssumptions,
@@ -1157,23 +1159,11 @@ export default function CompanyBracketMix() {
   );
 
   if (isLoading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-accent-pop" />
-        </div>
-      </Layout>
-    );
+    return <PageLoadingState />;
   }
 
   if (!global) {
-    return (
-      <Layout>
-        <div className="flex flex-col items-center justify-center h-[60vh]">
-          <p className="text-muted-foreground">Failed to load company data.</p>
-        </div>
-      </Layout>
-    );
+    return <PageErrorState message="Failed to load company data" />;
   }
 
   const companyName = global.companyName ?? "Hospitality Business";

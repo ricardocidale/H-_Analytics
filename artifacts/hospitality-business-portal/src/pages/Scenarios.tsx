@@ -1,4 +1,6 @@
 import Layout from "@/components/Layout";
+import { PageLoadingState } from "@/components/ui/page-loading-state";
+import { PageErrorState } from "@/components/ui/page-error-state";
 import { AnimatedPage } from "@/components/graphics";
 import { KPIGrid } from "@/components/graphics";
 import { Loader2 } from "@/components/icons/themed-icons";
@@ -15,24 +17,11 @@ export default function Scenarios() {
   const { isLoading, isError, canManageScenarios, manualScenarios } = actions;
 
   if (isLoading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-[60vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-accent-pop" />
-        </div>
-      </Layout>
-    );
+    return <PageLoadingState />;
   }
 
   if (isError) {
-    return (
-      <Layout>
-        <div className="flex flex-col items-center justify-center h-[60vh] gap-3">
-          <IconAlertTriangle className="w-8 h-8 text-destructive" />
-          <p className="text-muted-foreground">Failed to load scenarios. Please try refreshing the page.</p>
-        </div>
-      </Layout>
-    );
+    return <PageErrorState message="Failed to load scenarios" />;
   }
 
   return (
