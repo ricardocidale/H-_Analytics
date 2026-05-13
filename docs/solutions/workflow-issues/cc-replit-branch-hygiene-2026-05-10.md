@@ -1,7 +1,7 @@
 ---
 title: "CC branch hygiene: Replit Agent stages unreviewed commits on CC PR branches"
 date: 2026-05-10
-last_updated: 2026-05-12
+last_updated: 2026-05-13
 category: docs/solutions/workflow-issues
 module: cc-replit-branch-hygiene
 problem_type: workflow_issue
@@ -17,6 +17,9 @@ applies_when:
   - Multiple PRs need to wait for CI gates and manual polling would otherwise be required
   - CC is actively authoring a file across multiple bash calls and the Replit Agent may touch the same path
   - "An agent's edits appear to have vanished after a branch switch — check reflog and `git log --all` before redoing the work"
+  - "A handoff brief, plan, or schema file referenced by CC is missing on origin even though the Replit Agent reported writing it"
+  - "`git ls-remote` shows no `replit-agent` branch on origin even after Replit Agent claimed a successful commit"
+  - "Replit sandbox `git push` or `git fetch` returns lock errors or reports success while origin remains unchanged"
 tags:
   - git-hygiene
   - branch-management
@@ -441,6 +444,115 @@ f22bbe44 Add fields to track property improvements and their descriptions       
 - **When the user pauses you with a CC-collision warning, note the exact files you had edited.** A one-line scratch note ("edited properties.ts schema + insertPropertySchema picks") makes the post-resume content search trivial.
 - **Do not re-apply edits onto whatever branch is currently checked out post-resume.** The current HEAD is whatever CC left it on — almost never the right target for your task. Always verify intended branch (`git branch --show-current`) and create or check out a task-scoped branch before redoing.
 - **Treat orphan auto-checkpoint commits as recoverable assets, not garbage.** Cherry-pick them into the right branch instead of ignoring them — the commit message preserves the agent's edit summary.
+
+## Sub-pattern: Replit Agent commits stranded on local `replit-agent` branch — origin never receives them
+
+The three patterns above all assume the Replit Agent's commits **reached origin**. A fourth, more insidious variant: the Replit Agent commits to a local `replit-agent` branch in its sandbox, but those commits **never reach GitHub** because (a) Replit's auto-checkpoint flow does not push, (b) the in-sandbox `git push` from a Replit Agent bash tool fails or hangs on a `.git/index.lock`, and (c) the user has not (or cannot) manually push from the Replit Git pane. CC then sees a stale or non-existent `origin/replit-agent` and reports "the file you mentioned isn't on the branch" — when in reality the file exists fine, just only inside the Replit sandbox.
+
+### When it surfaces
+
+- A handoff brief, plan, schema migration, or any file the Replit Agent claims to have authored is missing when CC clones / fetches origin
+- `git ls-remote origin replit-agent` returns nothing (no such ref on origin)
+- Replit Agent reports "committed and pushed" but `gh api repos/<owner>/<repo>/branches/replit-agent` returns 404
+- Replit's "Git" UI panel is unresponsive, shows a spinner indefinitely, or reports a generic error
+- A Replit Agent `git push` bash call exits non-zero with `fatal: Unable to create '/home/runner/workspace/.git/index.lock'` or completes silently with no remote update
+- A Replit Agent `git fetch` bash call hangs or fails with the same lock error
+- LFS upload logs show success on the sandbox side but `git ls-remote` still shows the old SHA on origin
+
+### Why it happens
+
+Replit Agent's auto-commit/auto-checkpoint mechanism only writes to the local `replit-agent` branch in the sandbox — it intentionally does not push to GitHub origin (push requires user-initiated action via the Replit Git pane to keep destructive ops user-gated, per the platform's `<rules_of_engagement>`).
+
+The sandbox additionally restricts most write-side `git` commands. `git push`, `git fetch`, `git commit`, `git merge`, `git rebase`, `git reset`, `git checkout` are gated. When the Replit Agent attempts `git push` from a bash tool to work around the missing auto-push, it usually fails one of two ways:
+
+1. **Lock collision**: another concurrent operation (auto-commit thread, LSP, validation worker) holds `.git/index.lock`, returning `fatal: Unable to create '.git/index.lock': File exists`.
+2. **Partial success that doesn't land**: LFS objects upload successfully, the command appears to exit 0, but the ref on origin doesn't move. Verifying with `git ls-remote origin <branch>` shows the old SHA.
+
+The Replit Git pane is the supported path, but it is itself flaky in several contexts and silently no-ops when broken.
+
+Net effect: there is a real divergence between **local `replit-agent`** (truth, in the Replit sandbox) and **origin** (stale or branch-doesn't-exist), invisible to CC.
+
+### Diagnostic — confirm the divergence
+
+Run these from CC (which has working `git push`/`fetch`):
+
+```bash
+# 1. Is the branch even on origin?
+git ls-remote origin replit-agent
+# Empty output = branch doesn't exist on GitHub
+
+# 2. If origin DOES have the branch, is it stale relative to what Replit Agent reports?
+git fetch origin replit-agent
+git log origin/replit-agent --oneline -10
+# Compare against the SHAs Replit Agent reported in its conversation
+
+# 3. Verify the missing files via GitHub API (bypasses local fetch entirely)
+gh api repos/<owner>/<repo>/contents/<path-to-missing-file>?ref=replit-agent
+# 404 confirms the file is not on origin's replit-agent
+```
+
+If origin's `replit-agent` is missing or stale, the work is stranded on the Replit sandbox side.
+
+### Recovery — two paths
+
+**Path A (preferred): user pushes from the Replit Git pane.** The Replit Agent asks the user to open the Replit Git pane, stage anything pending on `replit-agent`, and click Push. This is the only fully-supported flow. After the push completes, CC runs `git fetch origin replit-agent` and proceeds normally.
+
+**Path B (when the Git pane is broken): CC cherry-picks the stranded SHAs onto a fresh branch off origin/main.** The Replit Agent enumerates the stranded commits in its conversation output (SHAs + one-line subjects + which files each commit changed), and if helpful pastes the full content of the most-critical file (e.g., a handoff brief) inline so CC can recreate it byte-for-byte if cherry-pick is impossible. CC then:
+
+```bash
+git fetch origin main
+git checkout -b chore/recover-replit-agent-handoff origin/main
+
+# If the user can manually paste the SHAs into the CC shell after temporarily
+# pushing replit-agent from the Replit pane, cherry-pick them in order:
+git cherry-pick <replit-sha-1> <replit-sha-2> <replit-sha-3>
+
+# Otherwise (Replit Git pane fully dead, no SHAs reachable from CC's clone),
+# CC recreates the file content from the inline paste in the Replit Agent's
+# conversation output and authors a fresh CC commit:
+mkdir -p docs/handoffs
+cat > docs/handoffs/<brief-name>.md <<'EOF'
+<paste full content from Replit Agent conversation here>
+EOF
+git add docs/handoffs/<brief-name>.md
+git commit -m "docs(handoff): recreate <brief-name> from Replit Agent (SHA <sha> stranded on sandbox)"
+
+git push -u origin chore/recover-replit-agent-handoff
+gh pr create --title "..." --body "Recovered from stranded Replit Agent commits — original SHAs: ..."
+```
+
+Authorship trade-off: Path A preserves Replit Agent authorship in the commit metadata. Path B's manual recreate loses it (the recreate commit is CC-authored), so the PR body must explicitly state "recreated from Replit Agent commit `<sha>` stranded on sandbox" to keep the audit trail.
+
+### Anti-patterns (would lose work or waste time)
+
+- **Replit Agent retrying `git push` in a loop hoping the lock clears.** The lock is held by another sandbox process; spinning on it burns user wall-clock without making progress. After one retry, switch to Path A or Path B.
+- **CC re-deriving the missing file from scratch without first checking the Replit Agent's conversation output.** The Replit Agent typically pastes the full content inline (or at minimum a clear summary); recreating is much faster than re-deriving.
+- **Pushing from CC's shell with `--force` to a `replit-agent` branch CC doesn't own.** This rewrites history on a branch the Replit Agent expects to be authoritative on its side; on the next Replit Agent restart, the sandbox's local `replit-agent` and origin's `replit-agent` will diverge in the opposite direction.
+- **Treating "Replit Agent reported it pushed" as proof.** Always verify with `git ls-remote origin <branch>` or the GitHub API before downstream work depends on the file being on origin.
+
+### Prevention
+
+- **Replit Agent: never claim "pushed to origin" from a sandbox bash tool.** The Replit Agent should say "committed locally to `replit-agent` — please push from the Replit Git pane to reach origin." If the user is depending on the file being on origin (e.g., for a CC handoff), surface this explicitly before declaring the task complete.
+- **Handoff briefs that reference files: include the SHA AND a one-liner on where the file lives.** Example: "`docs/plans/<file>.md` — written on local `replit-agent` (SHA `<sha>`); user must push the branch from the Replit Git pane before CC can read it." This eliminates the "I can't find the file" round-trip.
+- **CC: before opening any work that depends on a Replit Agent handoff file, verify the file exists on origin.** `gh api repos/<owner>/<repo>/contents/<path>?ref=<branch>` is the cheapest check. If 404, ask for the Replit Git pane push or the inline content paste before proceeding.
+- **Use `project_tasks` for any destructive git op the sandbox blocks.** `git push --force`, `git rebase`, `git reset --hard`, `git checkout <other-branch>` — when the Replit Agent needs these, propose them as background project tasks (which run with elevated permissions) rather than retrying gated bash calls.
+
+### Worked example — 2026-05-13 Phase C ICP bracket-mix handoff
+
+The Replit Agent wrote three artifacts for a CC handoff: Phase A schema (`2d4daac80`), Phase B plan (`3a8b32d8a` / `5f8e0adf0`), and a 137-line handoff brief (`docs/handoffs/phase-c-icp-bracket-mix-peer-derived.md`, post-ce.code-review HEAD `22bf2e822`). All three commits landed on local `replit-agent` in the sandbox. None reached origin: `git ls-remote origin replit-agent` returned empty.
+
+Diagnostic confirmed the divergence:
+
+- `origin/main` HEAD: `1d0077c4f` — no Phase A schema, no plan, no brief
+- Local `main`: `286cecd1b` (1 ahead with brief, but rejected non-fast-forward on attempted push)
+- Local `replit-agent`: contained all three artifacts at `22bf2e822`
+- Replit sandbox `git push` partially worked (LFS upload succeeded for `replit-agent`) but the ref didn't land on origin
+- Subsequent `git fetch` blocked with `.git/index.lock` error
+- Replit Git pane reported broken by the user
+
+User chose Path B (cherry-pick): the Replit Agent enumerated the three stranded SHAs (`2d4daac80` schema, `3a8b32d8a` plan, `71153f770` brief) and provided the **full updated content** of the brief inline, since `71153f770` was pre-ce.code-review and CC needed the post-review version (4 fixes applied: parity-test discovery cmd, schema-migrations runbook ref, branch-hygiene ref, DoD wording). CC then cherry-picked the schema and plan commits, then committed a fresh CC-authored commit with the pasted-over brief content as commit #4 on a clean branch off `origin/main`. PR opened from CC's shell, with the PR body acknowledging the recreate origin: "Brief recreated from Replit Agent SHA `22bf2e822` stranded on sandbox; original SHAs `2d4daac80` and `3a8b32d8a` cherry-picked."
+
+Net cost: ~15 minutes of coordination overhead (mostly the user copy-pasting the brief content). The alternative — re-deriving 137 lines of handoff brief from scratch — would have been ~45 minutes plus a high risk of CC and Replit Agent drifting on what the brief said.
 
 ## Related
 
