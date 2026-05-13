@@ -119,6 +119,16 @@ const KNOWLEDGE_REGISTRY_SEEDS: typeof knowledgeRegistry.$inferInsert[] = [
     assetType: "catalog_table",
     assetRef: "icp-bracket-catalog",
   },
+  {
+    id: "property-descriptor-catalog",
+    displayName: "Property Descriptor Catalog",
+    description: "Code-defined universe of valid property descriptor keys (yearBuilt, fbVenues, serviceLevel, plannedReopeningYear, …) — their temporal scope (identity / parallel / purchased_only / improved_only), data type, unit, sort order, and the typed columns each one mirrors during the dual-write window. Drives the As-Purchased / As-Improved split everywhere descriptors surface.",
+    howBuilt: "Seeded from `lib/db/src/property-descriptor-catalog-seed.ts` via migration 0054. Idempotent: each boot re-asserts the codebase definitions via ON CONFLICT DO UPDATE, so the catalog cannot drift from the source of truth in code.",
+    sourceDescription: "Internal — codebase is the source of truth (Plan 2026-05-13-002, Property Assumptions Restructure).",
+    renewalMechanism: "Re-applied idempotently on each server boot via the descriptor-catalog seed. New fields are added by extending the codebase seed and re-running migrations; the Analyst button re-runs the seed to restore any rows that were manually deleted.",
+    assetType: "catalog_table",
+    assetRef: "property-descriptor-catalog",
+  },
 ];
 
 // Last-known seed values for country_economic_data. Inserted once on first

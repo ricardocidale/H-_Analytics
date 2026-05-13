@@ -226,6 +226,7 @@ Specialist prompts, models, required-fields, field-toggles, and prerequisite-tog
 | Regenerate vendor pass-through cost data (Analyst button) | Admin → AI → Intelligence → Knowledge & Resources → Tables → National Vendor Pass-Through Costs | `regenerate_data_source("vendor-passthrough-costs")` | ✅ |
 | Read Mgmt Co markup factor table | Admin → AI → Intelligence → Knowledge & Resources → Tables → National Mgmt Co Markup Factors | `get_mgmt_co_markup_factors` | ✅ |
 | Regenerate Mgmt Co markup factor data (Analyst button) | Admin → AI → Intelligence → Knowledge & Resources → Tables → National Mgmt Co Markup Factors | `regenerate_data_source("mgmt-co-markup-factors")` | ✅ |
+| View property descriptor catalog | Admin → AI → Intelligence → Knowledge & Resources → Tables → Property Descriptor Catalog | `list_tables` (existing) | ✅ Plan 2026-05-13-002 U2 — read-only K&R Tables surface; catalog is code-defined and re-seeded idempotently on each boot. |
 
 ### Admin Resources (model/api/mcp/source/factory_number registry)
 
