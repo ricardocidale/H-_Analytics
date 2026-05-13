@@ -179,7 +179,7 @@ function ProgressBar({ progress }: { progress: number }) {
                 key={i}
                 animate={{ opacity: [1, 0.3, 1] }}
                 transition={{ duration: 1.0, repeat: Infinity, ease: "easeInOut" }}
-                style={{ color: "hsl(var(--accent-pop))" }}
+                style={{ color: "hsl(195 80% 40%)" }}
               >
                 ●
               </motion.span>
@@ -189,9 +189,7 @@ function ProgressBar({ progress }: { progress: number }) {
             <span
               key={i}
               style={{
-                color: isFilled
-                  ? "hsl(var(--accent-pop))"
-                  : "rgba(0,0,0,0.12)",
+                color: isFilled ? "hsl(195 80% 40%)" : "rgba(0,0,0,0.12)",
               }}
             >
               {isFilled ? "●" : "○"}
@@ -229,19 +227,6 @@ function AnimatedSparkle({ size = 18 }: { size?: number }) {
         flexShrink: 0,
       }}
     >
-      {/* Ambient glow */}
-      <motion.span
-        animate={{ opacity: [0.25, 0.6, 0.25], scale: [0.75, 1.25, 0.75] }}
-        transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-        style={{
-          position: "absolute",
-          inset: -5,
-          borderRadius: "50%",
-          background:
-            "radial-gradient(circle, hsl(var(--accent-pop) / 0.5) 0%, transparent 70%)",
-          pointerEvents: "none",
-        }}
-      />
       {/* Outer star — clockwise */}
       <motion.svg
         width={size}
@@ -307,7 +292,7 @@ function AnalystHUD({ progress, visible }: { progress: number; visible: boolean 
             overflow: "hidden",
           }}
         >
-          {/* Amber left accent bar */}
+          {/* Subtle left rule */}
           <div
             style={{
               position: "absolute",
@@ -315,7 +300,7 @@ function AnalystHUD({ progress, visible }: { progress: number; visible: boolean 
               left: 0,
               bottom: 0,
               width: "3px",
-              background: "hsl(var(--accent-pop))",
+              background: "rgba(0,0,0,0.07)",
               borderRadius: "11px 0 0 11px",
             }}
           />
@@ -368,9 +353,9 @@ function AnalystHUD({ progress, visible }: { progress: number; visible: boolean 
                     transition={{ duration: 0.35, ease: "easeOut" }}
                     style={{
                       fontSize: "11px",
-                      color: "hsl(var(--accent-pop))",
+                      color: "rgba(0,0,0,0.5)",
                       fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
-                      fontWeight: 600,
+                      fontWeight: 500,
                     }}
                   >
                     {phase.label}
