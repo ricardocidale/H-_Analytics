@@ -63,6 +63,7 @@ The following definitions are canonical across the entire H+ Analytics agent sys
 |---|---|---|
 | Lucca | Content Drafter | Slide factory + any surface needing cited copy |
 | Maya | Visual Inspector | All slide team inspectors (Pass 2) |
+| Tiago | Bracket-Mix Specialist — single-pass grounded research per peer or per Mgmt-Co comp set; emits brand-level archetype split + roster-size estimate + 5–10 sample properties + citations | ICP bracket-mix peer-derived pipeline (`ai/ambient/specialists/tiago.ts`) |
 
 ### Minions (deterministic helpers)
 
