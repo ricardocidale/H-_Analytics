@@ -11,7 +11,23 @@ date: 2026-05-13
 
 Bring the demo portfolio's combined IRR from the current ~50%+ band into a defensible 25–30% boutique value-add target, while fixing the structural causes that produced the unrealistic seed in the first place. Three coordinated work streams: (1) **Tactical seed corrections** in the live DB — exit caps and Duplex occupancy; (2) **Engine + UI changes** for a configurable refi-LTV-to-original cap that prevents inflated mid-projection cash-out spikes; (3) **Structural bracket-default extension** that wires `exit_cap_rate` and `refi_max_ltv_to_original` into the bracket-default template pathway introduced in `docs/concepts/bracket-mix.md` § 6a, so future seeds and new entities inherit market-anchored values automatically.
 
-The tactical fix unblocks the demo immediately; the structural fix prevents the same drift from recurring. IRR continues to be computed as today (single combined-portfolio figure) — no view changes in scope.
+The tactical fix unblocks the demo; the structural fix prevents the same drift from recurring. IRR continues to be computed as today (single combined-portfolio figure) — no view changes in scope.
+
+**Canonical flow (locked in 2026-05-13):** No number used by the engine or shown in the UI may originate from a TypeScript literal, a `DEFAULT_*` constant, or a hardcoded seed assignment. The flow is always:
+
+```
+icp_brackets DB rows (market-anchored defaults)
+    ↓
+Admin → AI → Intelligence → Knowledge & Resources → Tables (editable source of truth)
+    ↓
+POST /api/properties (resolves bracket mix → weight-blends → writes DEFAULT-state values onto new property row)
+    ↓
+Property Edit UI (renders DEFAULT VARIABLES; user edits → ASSUMPTION → confirm → CONFIRMED per hplus-assumption-lifecycle)
+    ↓
+Dev seed re-run (same POST handler logic; per-entity overrides like the Duplex 7.5% applied AS documented CONFIRMED deviations on top)
+```
+
+This means the bracket-default work (U2/U3/U4 in the new ordering) MUST land **before** the demo properties get their corrected values — otherwise we'd be doing exactly the hardcoded-literal anti-pattern this plan exists to fix.
 
 ---
 
@@ -35,8 +51,8 @@ User direction (2026-05-13):
 
 ## Requirements
 
-- **R1.** Update the live DB `properties.exit_cap_rate` for the seven demo properties to market going-in + 75 bp per the recommendation table in §"Implementation Units" U1, with the Duplex exception (~7–8% to reflect package-sale exit thesis, not the market 11%).
-- **R2.** Update `properties.max_occupancy` for `Medellin Duplex` from 0.65 → 0.30 (start_occupancy stays 0.30, ramp_months stays 4 → effectively flat at 30% from month 4).
+- **R1.** After U5/U6/U7 land, the seven demo properties' `exit_cap_rate` values arrive at U1's expected table by re-running the dev seed through the bracket-default pathway — NOT by direct UPDATE. The two Duplex deviations (`exit_cap_rate = 0.075`, `max_occupancy = 0.30`) are applied as CONFIRMED-state per-entity overrides on top, with provenance metadata.
+- **R2.** No hardcoded number representing a default exit cap, refi LTV, or any other bracket-level default may exist in code — neither in seed scripts, nor in `DEFAULT_*` constants, nor as TypeScript literals in route handlers. All such values originate from `icp_brackets` rows in the DB.
 - **R3.** Add a user-editable property-level field `refi_max_ltv_to_original` (numeric, default 0.70). Surface in `client/src/pages/PropertyEdit` debt section. Type: DEFAULT VARIABLE per `hplus-variable-taxonomy`.
 - **R4.** The refinance pass in `lib/engine/src/property/refinance-pass.ts` must compute its target new-loan amount as today (`NOI / exit_cap × refi_LTV`) but then **cap** it at `original_loan × refi_max_ltv_to_original`. If the cap binds, log the binding through the existing engine diagnostic channel; do not silently produce an inflated cash-out.
 - **R5.** Extend the bracket-default template (DB schema and admin editor) with two new numeric fields: `default_exit_cap_rate` and `default_refi_max_ltv_to_original`. Both wire through the existing § 6a defaults flow: bracket row → weight-blended default → applied at `POST /api/properties` and at dev seed.
@@ -61,27 +77,39 @@ User direction (2026-05-13):
 
 ## Implementation Units
 
-### U1: DB seed corrections (tactical)
+### U1: Re-seed demo properties through the new bracket-default pathway
 
-**Files (data, not code):** Direct UPDATE against `properties` and `icp_brackets` tables in the dev/demo Neon DB via the `executeSql`-equivalent admin route or a one-off Node script using `process.env.POSTGRES_URL` per `replit.md` gotchas.
+**Prerequisite:** U5, U6, U7 MUST land first (bracket-default schema + seeding pathway + market-value backfill). This unit cannot be done as a "tactical direct UPDATE" — that would violate the canonical flow.
 
-**Changes:**
+**Files:**
+- Dev seed script (located in U6) — re-run end-to-end against the demo company. Properties either get re-created OR have their DEFAULT-state values reset to the bracket-blended values resolved through `POST /api/properties` logic.
+- `scripts/src/apply-per-entity-overrides-2026-05-13.ts` (new, one-off) — applies the two per-entity strategic overrides as if a user had edited and confirmed them: writes `Medellin Duplex.exit_cap_rate = 0.075` (CONFIRMED state) and `Medellin Duplex.max_occupancy = 0.30` (CONFIRMED state). Both with provenance metadata pointing at this plan + runbook for rationale.
 
-| Property | Stored exit cap | New exit cap | Rationale |
-|---|---|---|---|
-| Belleayre Mountain | 8.50% | **9.75%** | Catskills tertiary going-in 9.0% + 75 bp |
-| Loch Sheldrake | 7.50% | **9.75%** | Catskills tertiary going-in 9.0% + 75 bp |
-| Lakeview Haven Lodge | 8.00% | **9.75%** | Ogden Valley tertiary going-in 9.0% + 75 bp |
-| Scott's House | 8.50% | **9.75%** | Ogden Valley tertiary going-in 9.0% + 75 bp |
-| Jano Grande Ranch | 9.00% | **12.00%** | Rural Antioquia going-in 11.0% + 100 bp (illiquidity) |
-| "San Diego" Cartagena | 9.00% | **10.50%** | Cartagena prime going-in 9.75% + 75 bp |
-| Medellin Duplex | 6.00% | **7.50%** | Strategic package-sale exit (intentional below-market) — document rationale |
+**Per-entity overrides applied on top of bracket defaults** (NOT bracket-level — these are deliberate CONFIRMED-state deviations from the bracket-blended values, per `hplus-assumption-lifecycle`):
 
-Plus: `Medellin Duplex.max_occupancy` from 0.65 → **0.30**.
+| Property | Field | Bracket-blended default | Per-entity override | Rationale |
+|---|---|---|---|---|
+| Medellin Duplex | exit_cap_rate | ~11.0% (LatAm luxury STR) | **7.5%** | Strategic package-sale-to-Cartagena-guests exit thesis — trophy buyer pays compressed cap |
+| Medellin Duplex | max_occupancy | ~0.50 (LatAm luxury STR) | **0.30** | Ultra-luxury $1500 ADR positioning — 20–35% steady-state per user direction |
 
-**Acceptance:** All seven exit caps and the Duplex max-occupancy reflected in DB. A short markdown note added under `docs/runbooks/seed-calibration-2026-05-13.md` recording the before/after values and the rationale for the Duplex exception.
+**Bracket-blended values for the other six properties land naturally** through U6's seeding pathway from the U7-backfilled `icp_brackets` rows. The expected exit caps land at:
 
-**Tests:** Manual — re-run `GET /api/finance/compute` and confirm combined IRR moves into 25–30% band before any other unit lands. This is the calibration sanity check that gates U2–U7.
+| Property | Bracket(s) → blended exit cap |
+|---|---|
+| Belleayre Mountain | US tertiary boutique resort → 9.75% |
+| Loch Sheldrake | US tertiary boutique resort → 9.75% |
+| Lakeview Haven Lodge | US tertiary boutique resort → 9.75% |
+| Scott's House | US tertiary boutique resort → 9.75% |
+| Jano Grande Ranch | LatAm rural / illiquid → 12.00% |
+| "San Diego" Cartagena | LatAm prime urban boutique → 10.50% |
+
+**Acceptance:**
+- Demo company's properties hold the values shown above WITHOUT any literal in code paths.
+- The two Duplex overrides are stored as CONFIRMED-state per-entity values with provenance metadata.
+- Re-running the dev seed produces deterministic values (idempotent: same bracket rows → same blended defaults).
+- A short markdown note in `docs/runbooks/seed-calibration-2026-05-13.md` records the before/after IRR table and the rationale for the Duplex per-entity overrides (so a future engineer doesn't "correct" the 7.5% to market 11%).
+
+**Tests:** Manual — re-run `GET /api/finance/compute` and confirm combined IRR moves into 25–30% band. This is the calibration sanity check that gates U2/U3 and U8.
 
 ### U2: Refi LTV cap — schema + engine
 
@@ -165,16 +193,20 @@ Plus: `Medellin Duplex.max_occupancy` from 0.65 → **0.30**.
 ## Sequencing
 
 ```
-U1 (tactical DB seed) ──► sanity-check IRR moves into 25-30% band
-                              │
-                              ├──► U2 (refi cap engine) ──► U3 (refi cap UI)
-                              │
-                              └──► U5 (bracket-default schema) ──► U6 (seeding pathway) ──► U7 (catalog backfill)
-                                                                                                  │
-                                                                                                  └──► U8 (verify + doc)
+U5 (bracket-default schema) ──► U6 (seeding pathway, no-literals) ──► U7 (catalog backfill with market values)
+                                                                                  │
+                                                                                  ▼
+                                                                   U1 (re-seed demo + Duplex per-entity overrides)
+                                                                                  │
+                                                                                  ▼
+                                                                  sanity-check combined IRR in 25-30% band
+                                                                                  │
+                                                                                  ├──► U2 (refi cap engine) ──► U3 (refi cap UI)
+                                                                                  │
+                                                                                  └──► U8 (verify + doc)
 ```
 
-U1 must land first and produce the IRR sanity check. U2/U3 and U5/U6/U7 are independent and can run in parallel. U8 is the final close-out.
+**U5 → U6 → U7 → U1 is the critical path** because the canonical flow forbids hardcoded property values. U2/U3 (refi cap) is independent of the bracket-default chain and can run in parallel with U5–U7. U1 cannot start until U5–U7 are done. U8 is the final close-out.
 
 ---
 
@@ -183,7 +215,7 @@ U1 must land first and produce the IRR sanity check. U2/U3 and U5/U6/U7 are inde
 - **Refi LTV cap is a per-property DEFAULT VARIABLE, not a TRUE CONSTANT.** Default 0.70 lives in the bracket-default template; per-property override is allowed (per `hplus-variable-taxonomy`).
 - **Duplex exit cap stays at 7.5% per user direction** — this is a per-entity strategic-exit override, NOT a market-anchored default. The bracket-default template for "Latin America luxury STR (single-key)" carries 11% as the market-anchored value; the Duplex's 7.5% is documented as a deliberate deviation in U1's runbook note.
 - **IRR computation is unchanged — pure IRR (levered / equity).** Single combined-portfolio IRR per current code paths (`computeIRR(consolidatedFlows, 1)` in `lib/engine/src/aggregation/yearlyAggregator.ts`). "Pure IRR" here means the standard textbook IRR formula on a single net cash flow vector — equity outlay out, (NOI − debt service + refi proceeds) in, (sale − loan payoff) at exit. **This is levered / equity IRR, NOT unlevered project IRR** (confirmed with user 2026-05-13). One IRR figure only — no GP/LP split, no waterfall overlay, no preferred return, no promote tiers, no LP/asset/sponsor variants. The `lpEquityPct` field and `computeWaterfall` machinery exist in the codebase but are out of scope. The 25–30% target band is calibrated to this levered/equity IRR figure.
-- **No hardcoded literals in seed code per `no-magic-numbers`.** All values flow from bracket template → DB → seed; seed code reads bracket rows.
+- **No hardcoded literals anywhere per `no-magic-numbers` and the canonical flow.** This applies not just to seed code but to every layer: route handlers, engine modules, admin UI, dev seed. Default values flow `icp_brackets` row → admin Tables → POST /api/properties bracket-mix blender → property row → engine. Per-entity overrides (Duplex 7.5%) are CONFIRMED-state values written to the property row with provenance, NOT literals in the seed script.
 - **Migrations follow `docs/runbooks/schema-migrations.md`.** Both U2 and U5 add a sequential migration; verify the journal sync state after applying.
 
 ---
