@@ -213,6 +213,15 @@ export async function runSchemaMigrations() {
     await runPropertiesRefiLtvCap001();
     await markMigrationApplied("properties_refi_ltv_cap_001");
   }
+
+  // Plan 2026-05-13-005 P2 — recalibrate refi_max_ltv_to_original on all property rows.
+  // Fixes rows seeded with 1.00 (uncapped) to the correct 0.70 cap. Also fills any NULLs.
+  // One-time migration; no every-boot assertion (slider allows values up to 150%).
+  if (!(await isMigrationApplied("properties_refi_ltv_recalibration_001"))) {
+    const { runPropertiesRefiLtvRecalibration001 } = await import("../migrations/properties-refi-ltv-recalibration-001");
+    await runPropertiesRefiLtvRecalibration001();
+    await markMigrationApplied("properties_refi_ltv_recalibration_001");
+  }
 }
 
 // ── Boot orchestration: schema migrations (fatal) ─────────────────────
