@@ -249,6 +249,11 @@
       "status": "guarded",
       "guard": "icp-peer-companies-002.ts",
       "reason": "Phase B U1 of the ICP bracket-mix peer-derived rebuild plan (docs/plans/2026-05-13-001-feat-icp-bracket-mix-peer-derived-phase-b-plan.md). Five ADD COLUMN IF NOT EXISTS statements on icp_peer_companies: brand_archetype_split (jsonb), roster_size_estimate (integer), split_evidence (jsonb), last_research_run_id (integer), costantino_config (jsonb). All nullable — Tiago Specialist writes them per peer; NULL means the peer has not yet been researched. The last_research_run_id FK constraint to bracket_mix_runs.id is added in the U2 migration once that table exists. Belt-and-suspenders runtime guard icp-peer-companies-002 re-applies the same ALTER TABLE block on every boot."
+    },
+    "0062_bracket_mix_runs_and_diffs": {
+      "status": "guarded",
+      "guard": "bracket-mix-runs-001.ts",
+      "reason": "Phase B U2 of the ICP bracket-mix peer-derived rebuild plan (docs/plans/2026-05-13-001-feat-icp-bracket-mix-peer-derived-phase-b-plan.md). Creates bracket_mix_runs (provenance log for every Tiago Specialist run) and bracket_mix_dual_run_diffs (Phase B vs legacy mix per recompute), adds nullable bracket_mix_override_run_id (FK → bracket_mix_runs.id) to global_assumptions, and back-fills the matching FK on icp_peer_companies.last_research_run_id (declared as nullable in 0061 but constrained here once the target table exists). All CREATE statements are IF NOT EXISTS; FK additions are guarded by pg_constraint lookups inside DO blocks. Belt-and-suspenders runtime guard bracket-mix-runs-001 re-applies the same DDL on every boot."
     }
   }
 }

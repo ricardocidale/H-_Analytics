@@ -53,4 +53,6 @@ export * from "./icp-data";
 export * from "./types/jsonb-shapes";
 export * from "./icp-brackets";
 export * from "./icp-peer-companies";
+export * from "./bracket-mix-runs";
+export * from "./bracket-mix-dual-run-diffs";
 export * from "./self-test-logs";

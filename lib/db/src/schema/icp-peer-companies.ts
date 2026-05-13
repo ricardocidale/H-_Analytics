@@ -34,6 +34,7 @@ import type {
   SplitEvidence,
   CostantinoPeerConfig,
 } from "./types/jsonb-shapes";
+import { bracketMixRuns } from "./bracket-mix-runs";
 
 export const icpPeerCompanies = pgTable(
   "icp_peer_companies",
@@ -75,10 +76,13 @@ export const icpPeerCompanies = pgTable(
     splitEvidence: jsonb("split_evidence").$type<SplitEvidence>(),
     /**
      * Phase B (R10) — FK to bracket_mix_runs.id for the most recent
-     * successful Tiago run on this peer. NULL = never researched. The FK
-     * constraint is added in the U2 migration once bracket_mix_runs exists.
+     * successful Tiago run on this peer. NULL = never researched. The
+     * runtime FK constraint is added in the U2 migration once
+     * bracket_mix_runs exists.
      */
-    lastResearchRunId: integer("last_research_run_id"),
+    lastResearchRunId: integer("last_research_run_id").references(() => bracketMixRuns.id, {
+      onDelete: "set null",
+    }),
     /**
      * Phase B (R13) — per-peer override of Costantino freshness defaults
      * (e.g. `{ staleAfterDays: 30 }`). NULL = inherit the source-registry

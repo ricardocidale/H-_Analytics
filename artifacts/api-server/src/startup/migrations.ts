@@ -221,6 +221,18 @@ export async function runSchemaMigrations() {
     await runIcpPeerCompanies002();
     await markMigrationApplied("icp_peer_companies_002");
   }
+
+  // Phase B U2 of the ICP bracket-mix peer-derived rebuild plan.
+  // Belt-and-suspenders companion to 0062_bracket_mix_runs_and_diffs.sql.
+  // Idempotent: creates bracket_mix_runs + bracket_mix_dual_run_diffs (IF NOT
+  // EXISTS), adds bracket_mix_override_run_id column to global_assumptions
+  // (ADD COLUMN IF NOT EXISTS), and creates the two FK constraints inside a
+  // pg_constraint-guarded DO block.
+  if (!(await isMigrationApplied("bracket_mix_runs_001"))) {
+    const { runBracketMixRuns001 } = await import("../migrations/bracket-mix-runs-001");
+    await runBracketMixRuns001();
+    await markMigrationApplied("bracket_mix_runs_001");
+  }
 }
 
 // ── Boot orchestration: schema migrations (fatal) ─────────────────────

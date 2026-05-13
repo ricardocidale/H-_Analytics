@@ -4,6 +4,7 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { logos } from "./core";
 import { users } from "./auth";
+import { bracketMixRuns } from "./bracket-mix-runs";
 import type { IcpConfig, ExportConfig, StandardAcqPackage, DebtAssumptions, AssetDefinition, BracketMixData, BracketEntry } from "./types/jsonb-shapes";
 import {
   DEFAULT_COMPANY_OPS_START_DATE,
@@ -226,6 +227,18 @@ export const globalAssumptions = pgTable("global_assumptions", {
   // ICP Bracket Mix — weighted distribution of customer-property archetypes (task-1412).
   // NULL = not yet assigned. Weights in entries sum to 1.0.
   bracketMix: jsonb("bracket_mix").$type<BracketMixData>(),
+
+  // Phase B U2 of the ICP peer-derived rebuild plan (R7, R9). FK into
+  // bracket_mix_runs.id pointing at the most recent Tiago Specialist run
+  // for this Mgmt-Co's comp set. When NULL, `bracketMix` above mirrors the
+  // latest target_kind='global_default' Hugo aggregate. When non-NULL,
+  // `bracketMix` mirrors that override run's mix_value and is protected from
+  // global recompute writes. Unset → re-mirror the latest global default
+  // (handled by U6's override-clear endpoint).
+  bracketMixOverrideRunId: integer("bracket_mix_override_run_id").references(
+    () => bracketMixRuns.id,
+    { onDelete: "set null" },
+  ),
 
   exportConfig: jsonb("export_config").$type<ExportConfig>(),
 
