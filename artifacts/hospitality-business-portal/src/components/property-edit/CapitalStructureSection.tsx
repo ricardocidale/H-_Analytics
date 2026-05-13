@@ -638,21 +638,21 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
                       <div className="flex justify-between items-center">
                         <Label className="label-text text-foreground flex items-center gap-1.5 min-w-0">
                           Max Loan vs. Purchase Price
-                          <InfoTooltip text="Caps the refinance loan at a multiple of the original purchase price, preventing excessive leverage regardless of appraised value. 1.0× = loan cannot exceed purchase price; 1.5× = loan capped at 150% of purchase price." />
+                          <InfoTooltip text="Caps the refinance loan as a percentage of the original purchase price, preventing equity stripping regardless of appraised value at refinancing. 70% means the loan cannot exceed 70% of what the property originally cost to purchase." />
                         </Label>
                         <span className="text-sm font-mono text-foreground shrink-0">
-                          {((draft.refiMaxLtvToOriginal ?? DEFAULT_REFI_MAX_LTV_TO_ORIGINAL)).toFixed(2)}×
+                          {Math.round((draft.refiMaxLtvToOriginal ?? DEFAULT_REFI_MAX_LTV_TO_ORIGINAL) * 100)}%
                         </span>
                       </div>
                       <Slider
                         value={[(draft.refiMaxLtvToOriginal ?? DEFAULT_REFI_MAX_LTV_TO_ORIGINAL) * 100]}
                         onValueChange={(vals: number[]) => onChange("refiMaxLtvToOriginal", vals[0] / 100)}
                         min={50}
-                        max={200}
+                        max={150}
                         step={5}
                       />
                       <p className="text-xs text-muted-foreground">
-                        Cap: ${draft.purchasePrice ? ((draft.refiMaxLtvToOriginal ?? DEFAULT_REFI_MAX_LTV_TO_ORIGINAL) * draft.purchasePrice).toLocaleString("en-US", { maximumFractionDigits: 0 }) : "—"}
+                        Max refi loan: ${draft.purchasePrice ? ((draft.refiMaxLtvToOriginal ?? DEFAULT_REFI_MAX_LTV_TO_ORIGINAL) * draft.purchasePrice).toLocaleString("en-US", { maximumFractionDigits: 0 }) : "—"}
                       </p>
                     </div>
                   </div>
