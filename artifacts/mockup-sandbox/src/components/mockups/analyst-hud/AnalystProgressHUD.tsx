@@ -114,13 +114,61 @@ function ProgressBar({ progress }: { progress: number }) {
   );
 }
 
-// ── Sparkle icon (inline — no external dep) ────────────────────────────────
+// ── Claude-style animated 4-pointed sparkle ───────────────────────────────
+// Smooth bezier 4-point star, outer ring rotates + inner counter-rotates,
+// with a soft amber glow for the H+ brand.
 
-function Sparkle({ size = 13 }: { size?: number }) {
+function AnimatedSparkle({ size = 18 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
-    </svg>
+    <span style={{ position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center", width: size, height: size }}>
+      {/* Soft glow behind the star */}
+      <motion.span
+        animate={{ opacity: [0.3, 0.65, 0.3], scale: [0.8, 1.2, 0.8] }}
+        transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+        style={{
+          position: "absolute",
+          inset: -4,
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(245,158,11,0.45) 0%, transparent 70%)",
+          pointerEvents: "none",
+        }}
+      />
+
+      {/* Outer star — slow clockwise rotation */}
+      <motion.svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden
+        animate={{ rotate: 360 }}
+        transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+        style={{ position: "absolute" }}
+      >
+        {/* 4-pointed star — bezier curves give the pinched Claude shape */}
+        <path
+          d="M12 2 C12 7 17 12 22 12 C17 12 12 17 12 22 C12 17 7 12 2 12 C7 12 12 7 12 2 Z"
+          fill="hsl(38 92% 56%)"
+        />
+      </motion.svg>
+
+      {/* Inner small star — counter-rotates, slightly delayed */}
+      <motion.svg
+        width={size * 0.45}
+        height={size * 0.45}
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden
+        animate={{ rotate: -360 }}
+        transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+        style={{ position: "absolute" }}
+      >
+        <path
+          d="M12 2 C12 7 17 12 22 12 C17 12 12 17 12 22 C12 17 7 12 2 12 C7 12 12 7 12 2 Z"
+          fill="rgba(255,255,255,0.9)"
+        />
+      </motion.svg>
+    </span>
   );
 }
 
@@ -171,14 +219,8 @@ function AnalystHUD({ progress, visible }: { progress: number; visible: boolean 
 
             {/* Row 1: sparkle + "Analyst" + elapsed */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                <motion.span
-                  animate={{ scale: [1, 1.15, 1], opacity: [0.8, 1, 0.8] }}
-                  transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-                  style={{ color: "hsl(38 92% 56%)", display: "inline-flex" }}
-                >
-                  <Sparkle size={12} />
-                </motion.span>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <AnimatedSparkle size={18} />
                 <span style={{ fontSize: "12px", fontWeight: 600, color: "rgba(255,255,255,0.88)", letterSpacing: "0.01em", fontFamily: "'IBM Plex Sans', system-ui, sans-serif" }}>
                   Analyst
                 </span>
