@@ -191,7 +191,7 @@ function ProgressBar({ progress }: { progress: number }) {
               style={{
                 color: isFilled
                   ? "hsl(var(--accent-pop))"
-                  : "rgba(255,255,255,0.13)",
+                  : "rgba(0,0,0,0.12)",
               }}
             >
               {isFilled ? "●" : "○"}
@@ -203,7 +203,7 @@ function ProgressBar({ progress }: { progress: number }) {
         style={{
           fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
           fontSize: "11px",
-          color: "rgba(255,255,255,0.45)",
+          color: "rgba(0,0,0,0.38)",
           minWidth: "2.2rem",
           fontVariantNumeric: "tabular-nums",
         }}
@@ -297,26 +297,26 @@ function AnalystHUD({ progress, visible }: { progress: number; visible: boolean 
             right: "24px",
             width: "352px",
             zIndex: 9999,
-            background: "rgba(9,9,11,0.94)",
-            backdropFilter: "blur(18px) saturate(1.5)",
-            WebkitBackdropFilter: "blur(18px) saturate(1.5)",
+            background: "rgba(255,255,255,0.97)",
+            backdropFilter: "blur(20px) saturate(1.8)",
+            WebkitBackdropFilter: "blur(20px) saturate(1.8)",
             borderRadius: "11px",
             boxShadow:
-              "0 8px 40px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.04) inset",
-            border: "1px solid hsl(var(--accent-pop) / 0.2)",
+              "0 4px 24px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06)",
+            border: "1px solid rgba(0,0,0,0.08)",
+            overflow: "hidden",
           }}
         >
-          {/* Amber top-edge accent line */}
+          {/* Amber left accent bar */}
           <div
             style={{
               position: "absolute",
               top: 0,
-              left: "20px",
-              right: "20px",
-              height: "1px",
-              background:
-                "linear-gradient(90deg, transparent, hsl(var(--accent-pop) / 0.75), transparent)",
-              borderRadius: "999px",
+              left: 0,
+              bottom: 0,
+              width: "3px",
+              background: "hsl(var(--accent-pop))",
+              borderRadius: "11px 0 0 11px",
             }}
           />
 
@@ -342,7 +342,7 @@ function AnalystHUD({ progress, visible }: { progress: number; visible: boolean 
                   style={{
                     fontSize: "12px",
                     fontWeight: 600,
-                    color: "rgba(255,255,255,0.9)",
+                    color: "rgba(0,0,0,0.82)",
                     letterSpacing: "0.01em",
                     fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
                   }}
@@ -352,7 +352,7 @@ function AnalystHUD({ progress, visible }: { progress: number; visible: boolean 
                 <span
                   style={{
                     fontSize: "11px",
-                    color: "rgba(255,255,255,0.25)",
+                    color: "rgba(0,0,0,0.2)",
                     fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
                   }}
                 >
@@ -368,9 +368,9 @@ function AnalystHUD({ progress, visible }: { progress: number; visible: boolean 
                     transition={{ duration: 0.35, ease: "easeOut" }}
                     style={{
                       fontSize: "11px",
-                      color: "hsl(var(--accent-pop) / 0.85)",
+                      color: "hsl(var(--accent-pop))",
                       fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
-                      fontWeight: 500,
+                      fontWeight: 600,
                     }}
                   >
                     {phase.label}
@@ -385,7 +385,7 @@ function AnalystHUD({ progress, visible }: { progress: number; visible: boolean 
                   style={{
                     fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
                     fontSize: "11px",
-                    color: "rgba(255,255,255,0.3)",
+                    color: "rgba(0,0,0,0.35)",
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >
@@ -408,7 +408,7 @@ function AnalystHUD({ progress, visible }: { progress: number; visible: boolean 
                   style={{
                     display: "block",
                     fontSize: "11px",
-                    color: "rgba(255,255,255,0.42)",
+                    color: "rgba(0,0,0,0.42)",
                     fontFamily: "'IBM Plex Sans', system-ui, sans-serif",
                     whiteSpace: "nowrap",
                     overflow: "hidden",
