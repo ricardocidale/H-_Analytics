@@ -290,18 +290,20 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
 
       {/* Revenue Analyst CTA — fires the G2-v1 Revenue Specialist */}
       {onRevenueAnalystRefresh && (
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-sm text-muted-foreground">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <p className="text-sm text-muted-foreground min-w-0">
             The Analyst evaluates your ancillary revenue mix (F&amp;B, Events, Other, Catering, Marketing) against boutique-luxury comp sets.
           </p>
-          <AnalystButton
-            onClick={onRevenueAnalystRefresh}
-            isRunning={revenueAnalystRunning ?? false}
-            disabled={false}
-            tooltip="Have the Analyst review the revenue ancillary mix"
-            size="sm"
-            dataTestId="button-ask-analyst-revenue-mix"
-          />
+          <div className="shrink-0">
+            <AnalystButton
+              onClick={onRevenueAnalystRefresh}
+              isRunning={revenueAnalystRunning ?? false}
+              disabled={false}
+              tooltip="Have the Analyst review the revenue ancillary mix"
+              size="sm"
+              dataTestId="button-ask-analyst-revenue-mix"
+            />
+          </div>
         </div>
       )}
 
@@ -691,12 +693,12 @@ export function PropertyUnderwritingTab(props: PropertyUnderwritingTabProps) {
             className="rounded-md border border-border bg-muted/30 p-3 space-y-2"
             data-testid="reference-inflationRate"
           >
-            <div className="flex items-center justify-between">
-              <Label className="text-foreground label-text">
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-foreground label-text min-w-0">
                 Macro Inflation Rate (read-only)
               </Label>
               <span
-                className="font-mono text-sm text-foreground"
+                className="font-mono text-sm text-foreground shrink-0"
                 data-testid="text-inflationRate-readonly"
               >
                 {typeof draft.inflationRate === "number"

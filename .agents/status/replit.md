@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-13T15:30:00Z
+Updated: 2026-05-13T15:59:00Z
 Status: idle
 
 ## Active Branch
@@ -24,6 +24,12 @@ Diagnosed IRR 50%+ root causes and produced a structured implementation plan for
 - Plan covers 5 ordered phases: seed ownership lock → server hydration layer →
   seed calibration + magic-number cleanup → remove engine DEFAULT_* fallbacks →
   wire refiMaxLtvToOriginal cap (U3)
+
+Swept all admin model-defaults tab files for the label-wraps-around-value flex defect:
+- FieldHelpers.tsx: wrapped EditableValue in `<div className="shrink-0">` in PctField, DollarField, and NumberField
+- MarketMacroTab.tsx: added `gap-2` and `min-w-0` to the Fiscal Year Start Month flex row
+- PropertyUnderwritingTab.tsx: fixed Revenue Analyst CTA row (min-w-0 on <p>, shrink-0 on button wrapper); fixed Macro Inflation Rate read-only row (min-w-0 on Label, shrink-0 on <span>)
+- DdTemplateTab.tsx: added min-w-0 to card header left div + shrink-0 to Badge; added min-w-0 to template item flex-1 div + shrink-0 to stop-gate control div
 
 ## Files Replit Owns Right Now
 
