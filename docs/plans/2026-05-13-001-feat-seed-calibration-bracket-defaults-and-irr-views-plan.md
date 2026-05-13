@@ -13,21 +13,37 @@ Bring the demo portfolio's combined IRR from the current ~50%+ band into a defen
 
 The tactical fix unblocks the demo; the structural fix prevents the same drift from recurring. IRR continues to be computed as today (single combined-portfolio figure) — no view changes in scope.
 
-**Canonical flow (locked in 2026-05-13):** No number used by the engine or shown in the UI may originate from a TypeScript literal, a `DEFAULT_*` constant, or a hardcoded seed assignment. The flow is always:
+**Canonical flow (locked in 2026-05-13, layered model = Option C):** No number used by the engine or shown in the UI may originate from a TypeScript literal, a `DEFAULT_*` constant, or a hardcoded seed assignment. Defaults are resolved through three DB-backed layers, each visible in admin:
 
 ```
-icp_brackets DB rows (market-anchored defaults)
-    ↓
-Admin → AI → Intelligence → Knowledge & Resources → Tables (editable source of truth)
-    ↓
-POST /api/properties (resolves bracket mix → weight-blends → writes DEFAULT-state values onto new property row)
-    ↓
-Property Edit UI (renders DEFAULT VARIABLES; user edits → ASSUMPTION → confirm → CONFIRMED per hplus-assumption-lifecycle)
-    ↓
-Dev seed re-run (same POST handler logic; per-entity overrides like the Duplex 7.5% applied AS documented CONFIRMED deviations on top)
+LAYER 1 — Universal default
+  model_defaults table, row keyed e.g. property.template.exitCapRate, scope = NULL/NULL/NULL/NULL
+  Surfaces in:  Admin → Steady State → Property (PropertyUnderwritingTab)
+                Admin → Steady State → Management Co. (CompanyTab)
+                Admin → Steady State → Constants (ModelConstantsTab)  ← + model_constant_overrides for TS-factory departures
+                Admin → Steady State → Analyst Tables / Reference Ranges  ← market-data tables some defaults derive from
+                          ↓
+LAYER 2 — Bracket overlay (resolved at entity creation)
+  icp_brackets row carries default-value template (per docs/concepts/bracket-mix.md §6a).
+  POST /api/properties resolves the company's bracket mix, weight-blends each templated
+  field across mix entries, and overlays the result on top of Layer 1.
+                          ↓
+LAYER 3 — Per-entity value (DEFAULT → ASSUMPTION → CONFIRMED)
+  The blended value is written onto the new property row in DEFAULT state per
+  hplus-assumption-lifecycle. User edit → ASSUMPTION → confirm → CONFIRMED.
+  Per-entity strategic overrides (Duplex exit_cap_rate = 0.075) live here as CONFIRMED
+  deviations from the bracket-blended value, with provenance metadata.
+                          ↓
+Engine reads Layer 3 (the entity's own column), never Layer 1 or 2 directly.
 ```
 
-This means the bracket-default work (U2/U3/U4 in the new ordering) MUST land **before** the demo properties get their corrected values — otherwise we'd be doing exactly the hardcoded-literal anti-pattern this plan exists to fix.
+**Read-time precedence:** Layer 3 (entity row) > Layer 2 (bracket overlay at create) > Layer 1 (universal model_defaults). The engine only ever sees Layer 3.
+
+**Write-time precedence:** Bracket-overlay (Layer 2) writes happen ONLY at entity creation, never retroactively (per `hplus-assumption-lifecycle`). Admin edits to Layer 1 or to bracket templates affect future entity creations only.
+
+**Dev seed parity:** The dev seed script invokes the same `POST /api/properties` handler logic, so dev-environment values flow through the exact same three-layer pipeline. No literals.
+
+This means the bracket-default work (U5 → U6 → U7 in critical-path order) MUST land **before** the demo properties get their corrected values — otherwise we'd be doing exactly the hardcoded-literal anti-pattern this plan exists to fix.
 
 ---
 
@@ -55,9 +71,9 @@ User direction (2026-05-13):
 - **R2.** No hardcoded number representing a default exit cap, refi LTV, or any other bracket-level default may exist in code — neither in seed scripts, nor in `DEFAULT_*` constants, nor as TypeScript literals in route handlers. All such values originate from `icp_brackets` rows in the DB.
 - **R3.** Add a user-editable property-level field `refi_max_ltv_to_original` (numeric, default 0.70). Surface in `client/src/pages/PropertyEdit` debt section. Type: DEFAULT VARIABLE per `hplus-variable-taxonomy`.
 - **R4.** The refinance pass in `lib/engine/src/property/refinance-pass.ts` must compute its target new-loan amount as today (`NOI / exit_cap × refi_LTV`) but then **cap** it at `original_loan × refi_max_ltv_to_original`. If the cap binds, log the binding through the existing engine diagnostic channel; do not silently produce an inflated cash-out.
-- **R5.** Extend the bracket-default template (DB schema and admin editor) with two new numeric fields: `default_exit_cap_rate` and `default_refi_max_ltv_to_original`. Both wire through the existing § 6a defaults flow: bracket row → weight-blended default → applied at `POST /api/properties` and at dev seed.
-- **R6.** Backfill the seven existing bracket catalog rows with market-anchored values for both new fields per the recommendation table in U1.
-- **R7.** Dev seed script reads the new bracket-default fields and applies them — no hardcoded exit cap or refi LTV remains in seed code (per `no-magic-numbers` skill).
+- **R5.** Extend `icp_brackets` schema with two new numeric columns: `default_exit_cap_rate` and `default_refi_max_ltv_to_original`. Add a parallel pair of `model_defaults` rows (`property.template.exitCapRate`, `property.template.refiMaxLtvToOriginal`) seeded with universal Layer-1 fallback values. Both bracket columns participate as Layer 2 (bracket overlay) per the canonical flow; both `model_defaults` rows are visible/editable under Admin → Steady State → Property.
+- **R6.** Backfill the seven `icp_brackets` rows with market-anchored values for both new columns per the U1 recommendation table. The backfill is the only write to Layer 2; the dev-seed re-run in U1 propagates these to the demo properties through the layered resolver.
+- **R7.** `POST /api/properties` implements the three-layer resolver per the canonical-flow diagram: Layer 1 (universal `model_defaults`) → Layer 2 (bracket-mix-weight-blended overlay from `icp_brackets`) → write Layer 3 (DEFAULT-state property row). Per-entity overrides are written separately as CONFIRMED-state values. Resolver code lives in a single shared helper used by both the route handler and the dev-seed script — no parallel implementations, no hardcoded literals.
 - **R8.** After all DB changes, run `/api/finance/compute` against the demo company and verify combined portfolio IRR lands in **25–30%**. Document the before/after IRR table in the plan's completion notes. IRR computation itself is unchanged — single combined-portfolio figure as today.
 
 ---
@@ -215,7 +231,9 @@ U5 (bracket-default schema) ──► U6 (seeding pathway, no-literals) ──�
 - **Refi LTV cap is a per-property DEFAULT VARIABLE, not a TRUE CONSTANT.** Default 0.70 lives in the bracket-default template; per-property override is allowed (per `hplus-variable-taxonomy`).
 - **Duplex exit cap stays at 7.5% per user direction** — this is a per-entity strategic-exit override, NOT a market-anchored default. The bracket-default template for "Latin America luxury STR (single-key)" carries 11% as the market-anchored value; the Duplex's 7.5% is documented as a deliberate deviation in U1's runbook note.
 - **IRR computation is unchanged — pure IRR (levered / equity).** Single combined-portfolio IRR per current code paths (`computeIRR(consolidatedFlows, 1)` in `lib/engine/src/aggregation/yearlyAggregator.ts`). "Pure IRR" here means the standard textbook IRR formula on a single net cash flow vector — equity outlay out, (NOI − debt service + refi proceeds) in, (sale − loan payoff) at exit. **This is levered / equity IRR, NOT unlevered project IRR** (confirmed with user 2026-05-13). One IRR figure only — no GP/LP split, no waterfall overlay, no preferred return, no promote tiers, no LP/asset/sponsor variants. The `lpEquityPct` field and `computeWaterfall` machinery exist in the codebase but are out of scope. The 25–30% target band is calibrated to this levered/equity IRR figure.
-- **No hardcoded literals anywhere per `no-magic-numbers` and the canonical flow.** This applies not just to seed code but to every layer: route handlers, engine modules, admin UI, dev seed. Default values flow `icp_brackets` row → admin Tables → POST /api/properties bracket-mix blender → property row → engine. Per-entity overrides (Duplex 7.5%) are CONFIRMED-state values written to the property row with provenance, NOT literals in the seed script.
+- **No hardcoded literals anywhere per `no-magic-numbers` and the canonical flow.** This applies to every layer: route handlers, engine modules, admin UI, dev seed. Default values flow through the three-layer resolver (universal `model_defaults` → bracket overlay → per-entity row); see canonical flow in Summary. Per-entity overrides (Duplex 7.5%) are CONFIRMED-state values written to the property row with provenance, NOT literals in the seed script.
+- **Layered precedence locked as Option C (2026-05-13).** Universal `model_defaults` row → bracket overlay at create → per-entity value. Engine reads only the per-entity value. Bracket overlay writes happen ONLY at entity creation, never retroactively. Admin can edit any layer; edits affect future creations only (per `hplus-assumption-lifecycle`).
+- **Admin surface for default editing is Admin → Steady State** (legacy internal name "Model Defaults"; user-facing label "Steady State"; sub-tabs: Management Co., Property, Constants, Analyst Tables, Reference Ranges). It is NOT under `AI → Intelligence → Knowledge & Resources` — that's a separate area for analyst-facing tables. New default fields surface in Steady State → Property or Steady State → Management Co. as appropriate.
 - **Migrations follow `docs/runbooks/schema-migrations.md`.** Both U2 and U5 add a sequential migration; verify the journal sync state after applying.
 
 ---
