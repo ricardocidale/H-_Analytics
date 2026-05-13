@@ -110,10 +110,10 @@ export function register(app: Express) {
 
   app.post("/api/auth/dev-login", async (req, res) => {
     try {
-      // Gate on REPLIT_DEPLOYMENT (set only on published deployments) rather
-      // than NODE_ENV, because the dev preview can serve a built bundle with
-      // NODE_ENV=production. The published deployment is the only place this
-      // route must be unreachable.
+      // Gate on isPublishedDeployment() (Railway service ID or legacy
+      // REPLIT_DEPLOYMENT) rather than NODE_ENV, because the Replit dev
+      // preview can serve a built bundle with NODE_ENV=production. The
+      // published deployment is the only place this route must be unreachable.
       if (isPublishedDeployment()) {
         return res.status(HTTP_403_FORBIDDEN).json({ error: "Dev login disabled in production", code: "AUTH-018" });
       }
