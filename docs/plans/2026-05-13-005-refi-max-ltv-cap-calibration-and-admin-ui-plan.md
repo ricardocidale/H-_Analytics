@@ -1,6 +1,6 @@
 ---
 id: 2026-05-13-005
-title: "Refi Max LTV Cap — Calibration, DB Fix, and Admin UI"
+title: "Refi Max LTV Cap — Calibration, No-NULL Enforcement, and Admin UI"
 status: active
 created: 2026-05-13
 author: Replit Agent
@@ -8,55 +8,67 @@ author: Replit Agent
 
 ## Problem Frame
 
-The refinance loan cap (`refiMaxLtvToOriginal`) is currently calibrated to `1.00` on all
-seeded properties, meaning the engine allows refinancing up to 100% of the original
-purchase price. On Full Equity properties, this lets investors pull out 100% of their
-equity via refi while still owning the asset — producing astronomical combined IRRs
-(60%+). The correct cap is **70% of purchase price** (`0.70`).
+### Root cause: IRR inflation from uncapped refi proceeds
 
-The engine already applies the cap correctly against `purchasePrice` only (not total
-cost basis including improvements). The bug is entirely in the stored values, not the
-engine logic.
+`SEED_REFI_MAX_LTV_TO_ORIGINAL = 1.00` is stored at the property level on all seeded
+properties. The engine cap (`refiMaxLtvToOriginal × purchasePrice`) is therefore
+effectively `purchasePrice × 1.00`, meaning a Full Equity property can receive 100% of
+its original cost back as refi loan proceeds while still owning the asset. Net equity
+invested approaches zero; IRR approaches infinity.
 
-The admin also has no UI surface to view or adjust this cap default — it lives in
-`model_defaults` under key `mc.funding.refiMaxLtvToOriginal` (already seeded at `0.70`,
-the correct value) but is inaccessible from the admin Model Defaults panel.
+The correct cap is **0.70** (70% of purchase price). The engine already applies the cap
+against `purchasePrice` only — not purchase + improvements. No engine changes needed.
 
-The user-facing property edit slider was wired by Replit (U3, commit
-`feat(property-edit): wire refiMaxLtvToOriginal slider`) but its **display format needs
-fixing** — it currently shows "X.XX×" (a multiplier) rather than "XX%" (a percentage),
-which is how users think about this field.
+### Design rule: no NULLs in assumption fields
 
----
+Assumption fields must never be NULL in the database. The admin model default exists so
+that every property has a valid value even if a user never visits its edit screen. A NULL
+is a silent bug: the engine falls back at runtime, but that fallback is invisible and
+fragile. All properties must carry explicit values so the DB state is always the source
+of truth for what the engine will compute.
 
-## Scope
+**How creation already handles this:** `createPropertyRecord` calls
+`hydratePropertyFinancials` (CC's `artifacts/api-server/src/defaults.ts`) which writes
+`refiMaxLtvToOriginal` from `model_defaults` key `mc.funding.refiMaxLtvToOriginal`
+(currently `0.70`) onto any property row where the field is still NULL. This runs before
+the DB insert, so **new properties always get an explicit value**. The issue is
+exclusively pre-existing rows seeded with `1.00`.
 
-| # | What | Files | Territory |
-|---|------|-------|-----------|
-| P1 | Lower seed constant `SEED_REFI_MAX_LTV_TO_ORIGINAL` from `1.00` → `0.70` | `artifacts/api-server/src/seeds/property-data.ts` | CC |
-| P2 | DB migration: set `refi_max_ltv_to_original = 0.70` on existing properties where value > 0.70 or is NULL and refinancing is enabled | New Drizzle migration + runtime guard | CC |
-| P3 | Admin UI: add `refiMaxLtvToOriginal` control to Refinance Terms section of Property Underwriting tab | `artifacts/hospitality-business-portal/src/components/admin/model-defaults/PropertyUnderwritingTab.tsx` | CC |
-| P4 | Property edit display fix: change U3 slider display from "X.XX×" to "XX%" and update tooltip copy | `artifacts/hospitality-business-portal/src/components/property-edit/CapitalStructureSection.tsx` | CC |
+### Admin UI gap
 
----
+The admin has no way to view or adjust the `refiMaxLtvToOriginal` default. It lives in
+`model_defaults` as `mc.funding.refiMaxLtvToOriginal` (correctly set to `0.70`) but is
+not exposed in the Admin → Model Defaults → Property Underwriting panel.
 
-## Out of Scope
+### Display bug (U3)
 
-- Engine cap logic — already correct (`loanCalculations.ts`, `refinance-pass.ts` both cap
-  against `property.purchasePrice`)
-- `DEFAULT_REFI_MAX_LTV_TO_ORIGINAL` constant — already `0.70` in
-  `lib/shared/src/constants-funding.ts`; do **not** change it
-- `mc.funding.refiMaxLtvToOriginal` model_defaults row value — already seeded at `0.70`
-  from `DEFAULT_REFI_MAX_LTV_TO_ORIGINAL`; no seed change needed for that row
+The property-edit slider added by Replit (commit `feat(property-edit): wire
+refiMaxLtvToOriginal slider`) displays `0.70×` (a multiplier) instead of `70%` (a
+percentage). Users think of this as "70% of purchase price", not as "0.70×".
 
 ---
 
-## Implementation Units
+## Scope — Four Phases
 
-### P1 — Seed constant correction
+| # | What | Primary files | Notes |
+|---|------|--------------|-------|
+| P1 | Seed constant: `1.00` → `0.70` | `artifacts/api-server/src/seeds/property-data.ts` | One line |
+| P2 | DB migration: enforce no-NULL + recalibrate all bad rows | New migration + runtime guard | ALL properties, not just refinancing ones |
+| P3 | Admin UI: add `refiMaxLtvToOriginal` to Property Underwriting → Refinance Terms | `artifacts/hospitality-business-portal/src/components/admin/model-defaults/PropertyUnderwritingTab.tsx` | Follow STR platform fee pattern |
+| P4 | Display fix: U3 slider shows `70%` not `0.70×` | `artifacts/hospitality-business-portal/src/components/property-edit/CapitalStructureSection.tsx` | Format + tooltip only |
+
+**Do not touch:**
+- `lib/engine/src/` — engine cap logic is correct
+- `lib/shared/src/constants-funding.ts` — `DEFAULT_REFI_MAX_LTV_TO_ORIGINAL = 0.70` is correct
+- `artifacts/api-server/src/defaults.ts` — hydration already covers this field
+
+---
+
+## P1 — Seed constant correction
+
 **File:** `artifacts/api-server/src/seeds/property-data.ts`
 
-Change:
+Change line ~116:
 ```
 const SEED_REFI_MAX_LTV_TO_ORIGINAL = 1.00;
 ```
@@ -65,112 +77,144 @@ to:
 const SEED_REFI_MAX_LTV_TO_ORIGINAL = 0.70;
 ```
 
-No other changes needed in this file — the constant is already referenced correctly on
-all properties that have `refiMaxLtvToOriginal` set.
+This stops any future re-seed from writing the bad value. The constant is already used
+correctly on all properties that reference it.
 
 **Test scenarios:**
-- Verify the constant is `0.70` after the change
-- Verify no other file references the old literal `1.00` for this field
+- Constant reads `0.70` after change
+- No remaining literal `1.00` used for this field anywhere in the file
 
 ---
 
-### P2 — DB migration for existing properties
+## P2 — DB migration: no-NULL enforcement + recalibration
 
-**Pattern:** Follow the established Drizzle migration + runtime guard topology documented
-in `docs/runbooks/schema-migrations.md`. The column `refi_max_ltv_to_original` was added
-in migration `0058` / `0064` — this migration only updates values, not schema.
+### Design rule applied here
 
-**Migration file:** `artifacts/api-server/src/migrations/properties-refi-ltv-recalibration-001.ts`
+The migration must fix **every** property — not just ones currently set to refinance.
+A property that has `will_refinance = 'No'` today may be switched to `'Yes'` by a user
+tomorrow without ever visiting the refinance assumptions screen. When that happens,
+`refiMaxLtvToOriginal` must already carry a valid value. NULLs are never acceptable.
 
-**SQL intent:**
+### Files
+
+- **Migration:** `artifacts/api-server/src/migrations/properties-refi-ltv-recalibration-001.ts`
+- **Runtime guard:** `artifacts/api-server/src/startup/runtime-guards/properties-refi-ltv-recalibration-001.ts`
+- **Guard registration:** `artifacts/api-server/src/startup/runtime-guards/index.ts` (or
+  equivalent — follow the same pattern as `properties-refi-ltv-cap-001.ts` added in Plan
+  2026-05-13-003)
+
+### Migration SQL intent
+
 ```sql
+-- Fix all properties: set explicit 0.70 where NULL or over-calibrated
 UPDATE properties
 SET refi_max_ltv_to_original = 0.70
-WHERE will_refinance = 'Yes'
-  AND (refi_max_ltv_to_original IS NULL OR refi_max_ltv_to_original > 0.70);
+WHERE refi_max_ltv_to_original IS NULL
+   OR refi_max_ltv_to_original > 0.70;
 ```
 
-**Runtime guard:** `artifacts/api-server/src/startup/runtime-guards/properties-refi-ltv-recalibration-001.ts`
+No `will_refinance` filter. Every property row must have an explicit, valid value.
 
-Guard checks: `SELECT COUNT(*) FROM properties WHERE will_refinance = 'Yes' AND refi_max_ltv_to_original > 0.70`
-→ if count > 0, throw with a clear message directing operator to run the migration.
+### Runtime guard logic
 
-**Register** the guard in `artifacts/api-server/src/startup/runtime-guards/index.ts` (or
-equivalent guard runner — check the existing pattern for `properties-refi-ltv-cap-001.ts`
-which was added in Plan 2026-05-13-003).
+```
+FAIL if: COUNT(*) > 0
+  FROM properties
+  WHERE refi_max_ltv_to_original IS NULL
+     OR refi_max_ltv_to_original > 0.70
+
+Error message: "Migration properties-refi-ltv-recalibration-001 has not run.
+  N properties have refi_max_ltv_to_original NULL or > 0.70.
+  Run the migration and restart."
+```
+
+Guard must run at every boot (registered in the guard runner), not just once.
 
 **Test scenarios:**
-- Migration idempotency: running twice does not error
-- Properties with `will_refinance != 'Yes'` are not touched
-- Properties that already have `refi_max_ltv_to_original <= 0.70` are not changed
-- Runtime guard passes after migration runs
-- Runtime guard fails (throws) when a row with `> 0.70` exists
+- Migration is idempotent: running twice does not error and does not change rows a
+  second time
+- Properties with `will_refinance = 'No'` are updated (no filter exclusion)
+- Properties already at `0.70` or below are untouched
+- Properties with NULL are set to `0.70`
+- Runtime guard passes cleanly after migration
+- Runtime guard throws with a clear message when a bad row exists
 
 ---
 
-### P3 — Admin UI: Refinance Terms field
+## P3 — Admin UI: Refinance Terms field
 
 **File:** `artifacts/hospitality-business-portal/src/components/admin/model-defaults/PropertyUnderwritingTab.tsx`
 
-**Pattern to follow:** The existing STR Platform Fee field (lines ~130–164 and ~807–835)
-which fetches a `model_defaults` row directly via `GET /api/admin/model-defaults?...`,
-stores a local `useState` draft, and saves via `PATCH /api/admin/model-defaults/:id`.
+### Pattern
 
-**Query:**
+Follow the **STR Platform Fee** field pattern already in this file (~lines 130–164 and
+807–835). It fetches a specific `model_defaults` row directly, holds local `useState`
+draft, and patches the row on explicit Save — **separate from** the main
+`globalAssumptions` draft/save cycle. This is correct because `refiMaxLtvToOriginal`
+lives in `model_defaults`, not in `globalAssumptions.debtAssumptions`.
+
+### Query
+
 ```ts
 const { data: refiMaxLtvRow, refetch: refetchRefiMaxLtv } = useQuery({
   queryKey: ["model-defaults", "funding", "refiMaxLtvToOriginal"],
   queryFn: async () => {
     const res = await fetch(
       "/api/admin/model-defaults?category=management_company&cardKey=funding",
-      { credentials: "include" }
+      { credentials: "include" },
     );
-    if (!res.ok) throw new Error("Failed to fetch refi LTV defaults");
-    const json = await res.json() as { rows: Array<{ id: number; defaultKey: string; value: unknown }> };
+    if (!res.ok) throw new Error("Failed to fetch refi LTV cap default");
+    const json = await res.json() as {
+      rows: Array<{ id: number; defaultKey: string; value: unknown }>;
+    };
     return json.rows.find(r => r.defaultKey === "mc.funding.refiMaxLtvToOriginal") ?? null;
   },
 });
 ```
 
-Note: If `category=management_company&cardKey=funding` does not return the row, fall back
-to querying without `cardKey` and filtering by `defaultKey` client-side. The row
-definitely exists — it is in `REQUIRED_MODEL_DEFAULT_KEYS` and would cause a boot failure
-if absent.
+If the `cardKey=funding` filter doesn't return the row, omit the `cardKey` param and
+filter by `defaultKey` client-side. The row is guaranteed to exist (`REQUIRED_MODEL_DEFAULT_KEYS`
+— boot fails if absent).
 
-**Local state:**
+### Local state + sync
+
 ```ts
 const [refiMaxLtvDraft, setRefiMaxLtvDraft] = useState("");
 useEffect(() => {
   if (refiMaxLtvRow?.value != null)
-    setRefiMaxLtvDraft(((refiMaxLtvRow.value as number) * 100).toFixed(0));
+    setRefiMaxLtvDraft(Math.round((refiMaxLtvRow.value as number) * 100).toString());
 }, [refiMaxLtvRow]);
 ```
 
-**Save handler:**
+### Save handler
+
 ```ts
 const saveRefiMaxLtv = async () => {
   if (!refiMaxLtvRow) return;
   const parsed = parseFloat(refiMaxLtvDraft);
-  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 200) return;
+  if (!Number.isFinite(parsed) || parsed < 30 || parsed > 150) return;
   try {
     await apiRequest("PATCH", `/api/admin/model-defaults/${refiMaxLtvRow.id}`, {
       value: parsed / 100,
-      reason: "Admin updated refi LTV cap default",
+      reason: "Admin updated refi max LTV cap default",
     });
   } catch { /* preserve fire-and-forget */ }
   refetchRefiMaxLtv();
 };
 ```
 
-**Field placement:** Add at the END of the existing "Refinance Terms" `<Section>` block
-(after Refinance Closing Costs, before the closing `</Section>`).
+### Field placement
 
-**Field UI:**
+Add at the **end** of the "Refinance Terms" `<Section>` block, after Refinance Closing
+Costs and before the closing `</Section>` tag (~line 652).
+
+### Field JSX
+
 ```tsx
 <div className="space-y-2" data-testid="field-refiMaxLtvToOriginal">
   <Label className="label-text text-foreground flex items-center gap-1.5">
     Max Loan vs. Purchase Price
-    <InfoTooltip text="Caps the refinance loan as a percentage of the original purchase price, preventing excessive leverage regardless of appraised value at refinancing time. 70% means the refi loan cannot exceed 70% of what the property was purchased for. Applied to new properties; existing properties use their per-property setting." />
+    <InfoTooltip text="Caps the refinance loan as a percentage of the original purchase price. 70% means the refi loan cannot exceed 70% of the purchase price, regardless of how much the property has appreciated. Applies to new properties; each property stores its own value once saved." />
   </Label>
   <div className="flex gap-2 items-center">
     <Input
@@ -189,7 +233,7 @@ const saveRefiMaxLtv = async () => {
       variant="ghost"
       onClick={() => {
         if (refiMaxLtvRow?.value != null)
-          setRefiMaxLtvDraft(((refiMaxLtvRow.value as number) * 100).toFixed(0));
+          setRefiMaxLtvDraft(Math.round((refiMaxLtvRow.value as number) * 100).toString());
       }}
     >
       Cancel
@@ -199,61 +243,97 @@ const saveRefiMaxLtv = async () => {
     </Button>
   </div>
   <p className="text-xs text-muted-foreground">
-    Recommended: 65%–75%. Controls equity extraction at refi. 70% = cap at 70% of purchase price.
+    Recommended: 65%–75%. Lower values reduce equity extraction at refinancing and
+    produce more realistic IRR projections.
   </p>
 </div>
 ```
 
-**Imports:** `apiRequest` is already imported. `useState`, `useEffect`, `useQuery`,
-`Input`, `Label`, `Button`, `InfoTooltip` are all already imported in this file.
+All imports (`useState`, `useEffect`, `useQuery`, `Input`, `Label`, `Button`,
+`InfoTooltip`, `apiRequest`) are already present in this file.
 
 **Test scenarios:**
-- Field renders with the current stored value (displayed as an integer %)
-- Typing a new value and clicking Save updates the model_defaults row via PATCH
-- Cancel resets the input to the last saved value
-- Input is clamped: values outside 30–150 are not saved
-- Field renders the helper text with recommended range
+- Field renders with `70` pre-filled (from the stored `0.70` value)
+- Typing `65` and clicking Save sends `PATCH` with `{ value: 0.65 }`
+- Cancel resets input to the last saved value
+- Values outside 30–150 are not saved (guard in save handler)
+- Helper text visible below the input
 
 ---
 
-### P4 — Property edit display fix (U3)
+## P4 — Property edit display fix (U3)
 
 **File:** `artifacts/hospitality-business-portal/src/components/property-edit/CapitalStructureSection.tsx`
 
-**Current display (to replace):**
-- Label tooltip: `"Caps the refinance loan at a multiple of the original purchase price, preventing excessive leverage regardless of appraised value. 1.0× = loan cannot exceed purchase price; 1.5× = loan capped at 150% of purchase price."`
-- Value badge: `{((draft.refiMaxLtvToOriginal ?? DEFAULT_REFI_MAX_LTV_TO_ORIGINAL)).toFixed(2)}×`
-- Slider min/max/step: `min={50} max={200} step={5}` (stored as integer, divided by 100)
-- Helper text: `Cap: $...`
+The slider is already wired correctly (Replit U3 commit). Only the display format and
+tooltip need changing. Do not change `onChange`, `min`, `max`, `step`, or the dollar cap
+calculation.
 
-**New display:**
-- Label tooltip: `"Caps the refinance loan as a percentage of the original purchase price, preventing equity stripping regardless of appraised value at refinancing time. 70% means the loan cannot exceed 70% of what the property cost to purchase."`
-- Value badge: `{Math.round((draft.refiMaxLtvToOriginal ?? DEFAULT_REFI_MAX_LTV_TO_ORIGINAL) * 100)}%`
-- Slider range: `min={30} max={150} step={5}` — tighten the upper bound from 200 to 150 for a practical admin range; users who need higher can type a value in the property edit form... actually, keep the property-level slider generous: `min={30} max={150} step={5}`
-- Helper text: `Max refi loan: $...` (same dollar calculation, just relabeled)
+### Changes
+
+**Value badge** — change from:
+```tsx
+{((draft.refiMaxLtvToOriginal ?? DEFAULT_REFI_MAX_LTV_TO_ORIGINAL)).toFixed(2)}×
+```
+to:
+```tsx
+{Math.round((draft.refiMaxLtvToOriginal ?? DEFAULT_REFI_MAX_LTV_TO_ORIGINAL) * 100)}%
+```
+
+**Tooltip text** — change from:
+```
+"Caps the refinance loan at a multiple of the original purchase price, preventing
+excessive leverage regardless of appraised value. 1.0× = loan cannot exceed purchase
+price; 1.5× = loan capped at 150% of purchase price."
+```
+to:
+```
+"Caps the refinance loan as a percentage of the original purchase price, preventing
+equity stripping regardless of appraised value at refinancing. 70% means the loan
+cannot exceed 70% of what the property originally cost to purchase."
+```
+
+**Helper text** — change from:
+```tsx
+Cap: ${...}
+```
+to:
+```tsx
+Max refi loan: ${...}
+```
+(dollar calculation unchanged — same formula)
+
+**Slider range** — tighten upper bound from `max={200}` to `max={150}`. A cap above
+150% of purchase price is economically incoherent for this use case.
 
 **Test scenarios:**
-- Value `0.70` displays as `"70%"` not `"0.70×"`
-- Slider moving to 65 (int) stores `0.65` and displays `"65%"`
-- Helper text dollar amount is correct: `0.70 × purchasePrice`
-- Tooltip no longer mentions "multiple" or "×"
+- Value `0.70` renders as `"70%"` in the badge
+- Moving slider to position that stores `0.65` renders `"65%"`
+- Tooltip contains no `×` or "multiple" language
+- Helper text shows correct dollar cap amount
+- No change to how the value is stored or sent to the server
 
 ---
 
 ## Sequencing
 
-```
-P1 (seed constant) → no blockers
-P2 (DB migration)  → no blockers; run after P1 for conceptual consistency
-P3 (admin UI)      → no blockers (model_defaults row already exists)
-P4 (U3 display)    → no blockers (slider already wired by Replit U3 commit)
+All four phases are independent and can be executed in parallel. Suggested order for a
+single developer:
 
-All four can be implemented in parallel; P2 migration must be tested idempotently.
 ```
+P1  →  commit (one line, zero risk)
+P2  →  commit (migration + guard)
+P3  →  commit (admin UI)
+P4  →  commit (display fix)
+```
+
+P2 migration must be verified idempotent before merging.
 
 ---
 
-## Verification Gates (run before marking complete)
+## Verification Gates
+
+Run before marking complete:
 
 ```bash
 pnpm run typecheck
@@ -264,26 +344,32 @@ pnpm --filter @workspace/scripts run check:schema-drift
 ```
 
 After server restart:
-- Load a Full Equity + refi property in the property edit page → slider shows e.g. "70%"
-- Load Admin → Model Defaults → Property Underwriting → Refinance Terms → "Max Loan vs.
-  Purchase Price" field should show 70 with Save/Cancel buttons
-- Change the admin field to 65, Save → verify the model_defaults row updates
-- Confirm no existing property has `refi_max_ltv_to_original > 0.70` via the runtime guard
-  (should pass on boot after migration runs)
+1. Boot succeeds with no runtime guard errors (P2 migration ran)
+2. Property edit → Refinance Terms → slider shows `70%` not `0.70×` (P4)
+3. Admin → Model Defaults → Property Underwriting → Refinance Terms shows "Max Loan vs.
+   Purchase Price" field with value `70` and `% of purchase price` label (P3)
+4. Change admin field to `65`, Save → confirm `model_defaults` row updated to `0.65`
+5. Query `SELECT COUNT(*) FROM properties WHERE refi_max_ltv_to_original IS NULL OR
+   refi_max_ltv_to_original > 0.70` returns `0` (P2)
 
 ---
 
-## Context for CC
+## Architecture notes for CC
 
-- Replit already committed the U3 slider wiring (commit
-  `feat(property-edit): wire refiMaxLtvToOriginal slider in Refinance Terms`). The slider
-  is live; this plan only fixes its display format (P4) and adds the admin equivalent (P3).
-- The engine cap logic is correct — do NOT touch `lib/engine/src/debt/loanCalculations.ts`
-  or `refinance-pass.ts`. Both already cap against `property.purchasePrice`.
-- `DEFAULT_REFI_MAX_LTV_TO_ORIGINAL = 0.70` in `lib/shared/src/constants-funding.ts` —
-  do NOT change.
-- The `mc.funding.refiMaxLtvToOriginal` row in `model_defaults` is already seeded at
-  `0.70` (from `DEFAULT_REFI_MAX_LTV_TO_ORIGINAL`). Only the per-property stored values
-  need correcting (P2).
-- Existing runtime guard for the column: `properties-refi-ltv-cap-001.ts` (added in Plan
-  2026-05-13-003). P2 adds a new guard for the recalibration, not a replacement.
+- **Engine is untouched.** Both cap paths in `loanCalculations.ts` and `refinance-pass.ts`
+  already multiply `refiMaxLtvToOriginal × property.purchasePrice` — purchase price only,
+  not total cost basis. This is correct.
+- **Creation path is already correct.** `createPropertyRecord` →
+  `hydratePropertyFinancials` writes `refiMaxLtvToOriginal` from model_defaults at insert
+  time. New properties will never have NULL for this field as long as the model_defaults
+  row exists (boot-guarded by `REQUIRED_MODEL_DEFAULT_KEYS`).
+- **The no-NULL rule is a broader platform principle.** This plan enforces it for
+  `refiMaxLtvToOriginal`. Future migrations for any new assumption column should follow
+  the same pattern: write the model default to every existing property row, not rely on
+  runtime NULL fallback.
+- **model_defaults row value is already correct.** `mc.funding.refiMaxLtvToOriginal` is
+  seeded from `DEFAULT_REFI_MAX_LTV_TO_ORIGINAL = 0.70`. Only the per-property rows need
+  fixing (P2) and the seed constant (P1).
+- **Existing guard:** `properties-refi-ltv-cap-001.ts` (Plan 2026-05-13-003) guards the
+  column's existence. P2 adds a new guard for the recalibration — do not modify the
+  existing guard.
