@@ -179,7 +179,7 @@ function ProgressBar({ progress }: { progress: number }) {
                 key={i}
                 animate={{ opacity: [1, 0.3, 1] }}
                 transition={{ duration: 1.0, repeat: Infinity, ease: "easeInOut" }}
-                style={{ color: "hsl(195 80% 40%)" }}
+                style={{ color: "hsl(var(--accent-pop))" }}
               >
                 ●
               </motion.span>
@@ -189,7 +189,7 @@ function ProgressBar({ progress }: { progress: number }) {
             <span
               key={i}
               style={{
-                color: isFilled ? "hsl(195 80% 40%)" : "rgba(0,0,0,0.12)",
+                color: isFilled ? "hsl(var(--accent-pop))" : "rgba(0,0,0,0.12)",
               }}
             >
               {isFilled ? "●" : "○"}
@@ -285,10 +285,10 @@ function AnalystHUD({ progress, visible }: { progress: number; visible: boolean 
             background: "rgba(255,255,255,0.97)",
             backdropFilter: "blur(20px) saturate(1.8)",
             WebkitBackdropFilter: "blur(20px) saturate(1.8)",
-            borderRadius: "11px",
+            borderRadius: "8px",
             boxShadow:
-              "0 4px 24px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06)",
-            border: "1px solid rgba(0,0,0,0.08)",
+              "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)",
+            border: "1px solid hsl(var(--border))",
             overflow: "hidden",
           }}
         >
