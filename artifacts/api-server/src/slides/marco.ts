@@ -38,7 +38,17 @@ import {
   MARCO_MAX_TOOL_DEPTH,
   TOTAL_SLIDES,
 } from "./deck-render-constants";
-import { MARCO_TOOLS, dispatchMarcoTool, clearRunPayloads } from "./marco-tools";
+import { MARCO_TOOLS, dispatchMarcoTool, clearRunPayloads, getAssembledSubstitutionMap } from "./marco-tools";
+import { substituteSlotsFromAdminResource } from "./pptx-substitution";
+import { convertPptxToPdf } from "./soffice-convert";
+import { uploadFactoryV2Deck } from "./factory-v2-upload";
+import { getStorageProviderAsync } from "../providers/storage";
+import { storage } from "../storage";
+import type { ResourceKind } from "@workspace/db";
+import {
+  FACTORY_V2_PPTX_TEMPLATE_KIND,
+  FACTORY_V2_PPTX_TEMPLATE_SLUG,
+} from "./factory-v2-constants";
 
 export const MARCO_SYSTEM_PROMPT = `You are Marco, the slide factory orchestrator.
 
@@ -188,6 +198,30 @@ export async function runMarco(runId: number): Promise<void> {
     }
 
     logger.info(`[marco] run ${runId} complete — ${completedSummary}`, "slide-factory");
+
+    // U7 — PPTX substitution + soffice PDF (Railway only; no-op if soffice absent).
+    // Runs after Marco's terminal state is written. Failure here must NOT mark
+    // the run as error — Franco's deckR2Key is the live path; U7 adds pptxR2Key
+    // + pdfR2Key as supplementary outputs.
+    const u7Map = getAssembledSubstitutionMap(runId);
+    if (u7Map) {
+      try {
+        const sp = await getStorageProviderAsync();
+        const { pptx } = await substituteSlotsFromAdminResource(
+          { kind: FACTORY_V2_PPTX_TEMPLATE_KIND, slug: FACTORY_V2_PPTX_TEMPLATE_SLUG, map: u7Map },
+          { getAdminResourceBySlug: (kind, slug) => storage.getAdminResourceBySlug(kind as ResourceKind, slug), downloadBuffer: (key) => sp.downloadBuffer(key) },
+        );
+        const { pdfBuffer } = await convertPptxToPdf(pptx, { runId: String(runId) });
+        const { pptxR2Key } = await uploadFactoryV2Deck(String(runId), pptx, pdfBuffer);
+        await updateSlideFactoryRun(runId, { pptxR2Key });
+        logger.info(`[marco] U7 run ${runId} — PPTX+PDF uploaded`, "slide-factory");
+      } catch (u7Err: unknown) {
+        logger.error(
+          `[marco] U7 run ${runId} failed (run still valid): ${String(u7Err)}`,
+          "slide-factory",
+        );
+      }
+    }
   } catch (err: unknown) {
     logger.error(`[marco] run ${runId} failed: ${String(err)}`, "slide-factory");
     await markRunError(runId);
