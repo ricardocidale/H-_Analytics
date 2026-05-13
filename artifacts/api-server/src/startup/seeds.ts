@@ -100,6 +100,42 @@ export function indexPropertiesToVectorStoreAsync() {
   })();
 }
 
+// Keys required to exist in model_defaults for the financial engine to function.
+// If the table is non-empty but these keys are absent, an admin accidentally deleted
+// them or a migration ran without the seed. Boot must fail loudly so the issue is
+// caught before requests start producing wrong IRR numbers.
+const REQUIRED_MODEL_DEFAULT_KEYS = [
+  "mc.funding.ltv",
+  "mc.funding.refiLtv",
+  "mc.funding.refiMaxLtvToOriginal",
+  "mc.tax_exit.exitCapRate",
+  "mc.property_defaults.maxOccupancy",
+] as const;
+
+async function assertRequiredModelDefaults(): Promise<void> {
+  const rows = await db
+    .select({ defaultKey: modelDefaults.defaultKey })
+    .from(modelDefaults)
+    .where(inArray(modelDefaults.defaultKey, REQUIRED_MODEL_DEFAULT_KEYS as unknown as string[]));
+
+  const present = new Set(rows.map(r => r.defaultKey));
+  const missing = REQUIRED_MODEL_DEFAULT_KEYS.filter(k => !present.has(k));
+  if (missing.length === 0) return;
+
+  // If the entire model_defaults table is empty the seed simply hasn't run yet
+  // (fresh DB, first boot). The seed inserts these keys — proceed normally.
+  const anyRow = await db.select({ id: modelDefaults.id }).from(modelDefaults).limit(1);
+  if (anyRow.length === 0) return;
+
+  serverLog(
+    `[seed:model-defaults-check] FATAL — required model_defaults keys missing: ${missing.join(", ")}. ` +
+    `Re-seed by deleting all model_defaults rows and restarting, or manually insert the missing rows.`,
+    "startup",
+    "error",
+  );
+  process.exit(1);
+}
+
 async function runSeeds() {
   await seedAdminUser();
 
@@ -249,6 +285,11 @@ async function runSeeds() {
       serverLog(`[seed:${name}] ok`, "startup", "info");
     }
   });
+
+  // Guard: verify required model_defaults keys are present. Fatal if missing on
+  // a non-empty table — it means admin accidentally deleted a required row or
+  // the seed failed. On a fresh (empty) table the seeds just ran and inserted them.
+  await assertRequiredModelDefaults();
 
   // Auto-heal / drift detector. Runs after the idempotent seed/migration
   // steps so any newly-added column has a chance to be created normally;
