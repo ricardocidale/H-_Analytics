@@ -64,3 +64,46 @@ jobs:
 
       - name: scripts tests
         run: pnpm --filter @workspace/scripts run test
+
+  portal-tests:
+    name: Portal Tests (layout + component contracts)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: portal tests (incl. narrow-layout squeeze guard)
+        run: pnpm --filter @workspace/hospitality-business-portal run test
+
+  layout-tests:
+    name: Layout Tests (Playwright 768px narrow-layout)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium + system deps
+        run: pnpm --filter @workspace/tests-layout exec playwright install --with-deps chromium
+
+      - name: Narrow-layout Playwright tests (768px chip-width regression)
+        run: pnpm --filter @workspace/tests-layout run test

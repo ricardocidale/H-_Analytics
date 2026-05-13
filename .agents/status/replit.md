@@ -13,7 +13,7 @@ main
 
 ## Last Commit on Branch
 
-fix: apply min-w-0/shrink-0 flex overflow discipline to Property Edit and Company Assumptions
+feat(#1626): Playwright narrow-layout squeeze regression — all 6 tests pass
 
 ## What Replit Did This Session
 
@@ -36,6 +36,23 @@ Applied `min-w-0` on label/left side and `shrink-0` on value/control side in all
 - CapitalStructureSection.tsx (Cost Segregation toggle, Acq LTV, Acq Interest Rate, Acq Loan Term, Acq Closing Costs, Refi Years After Acq, Refi LTV, Refi Interest Rate, Refi Loan Term, Refi Closing Costs — 10 rows)
 
 Typecheck passes clean (0 errors).
+
+Task #1626 — Completed the Playwright narrow-layout squeeze regression guard:
+- Created `tests/layout/` workspace package (`@workspace/tests-layout`)
+  - `playwright.config.ts` — resolves Nix Chromium (Replit) or Playwright-installed (CI);
+    falls back to undefined so `playwright install --with-deps chromium` works on Ubuntu CI
+  - `fixtures/narrow-layout.html` — self-contained HTML fixture with a PROTECTED card
+    (min-w-0 label + shrink-0 chip wrapper) and a REGRESSION card (rigid nowrap label
+    + min-width:0/flex-shrink:1 chip) at 246 px inner width simulating one column of a
+    2-column grid at 768 px
+  - `tests/narrow-layout.spec.ts` — 6 Playwright tests; per-format minimum thresholds:
+    percent ≥ 40 px, dollar ≥ 40 px, number ≥ 15 px; regression control asserts
+    unprotected chip ≤ 35 px (measured ~30 px vs protected ~56 px)
+- Added `tests/*` to `pnpm-workspace.yaml`
+- Added `layout-tests` CI job to `.github/workflows/ci.yml` (installs Playwright Chromium
+  with `--with-deps`, runs the 6 Playwright tests on ubuntu-latest)
+- Kept complementary source-level test `narrow-layout-squeeze.test.ts` (18 vitest tests)
+  in the portal package — all 397 portal tests still pass
 
 ## Files Replit Owns Right Now
 
