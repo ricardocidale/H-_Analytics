@@ -477,9 +477,13 @@ export function register(app: Express) {
       }
 
       // Task #1407 (Milestone B) — drift instrumentation. After every write,
-      // compare typed columns to the JSONB blobs and warn on any divergence.
-      // Silent drift here would defeat the migration plan: if a write path
-      // bypasses the dual-write helper, this is where it surfaces.
+      // compare typed columns to the JSONB blobs and persist any divergence.
+      //
+      // Plan 2026-05-13-002 Unit U1 — drift events are now persisted to
+      // `property_descriptor_drift_log` (in addition to a log warning) so the
+      // U8 cleanup gate can probe a 14-day clean window. Silent drift here
+      // would defeat the migration plan: if a write path bypasses the
+      // dual-write helper, this is where it surfaces.
       try {
         const drift = detectDescriptorDrift(property as Record<string, unknown>);
         if (drift.length > 0) {
@@ -488,6 +492,15 @@ export function register(app: Express) {
               .map(d => `${d.fieldKey}[${d.side}] typed=${JSON.stringify(d.typedValue)} jsonb=${JSON.stringify(d.jsonbValue)}`)
               .join("; ")}`,
             "descriptor-drift",
+          );
+          await storage.recordDescriptorDriftEvents(
+            drift.map(d => ({
+              propertyId,
+              fieldKey: d.fieldKey,
+              side: d.side,
+              typedValue: d.typedValue,
+              jsonbValue: d.jsonbValue,
+            })),
           );
         }
       } catch (err: unknown) {

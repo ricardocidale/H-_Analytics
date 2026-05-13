@@ -386,6 +386,13 @@
       "when": 1778889600000,
       "tag": "0056_icp_brackets_default_overlay",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1778976000000,
+      "tag": "0057_descriptor_drift_log",
+      "breakpoints": true
     }
   ]
 }

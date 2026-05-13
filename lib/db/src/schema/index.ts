@@ -7,6 +7,7 @@ export * from "./model-canonicals";
 export * from "./model-defaults";
 export * from "./properties";
 export * from "./property-descriptor-catalog";
+export * from "./property-descriptor-drift-log";
 export * from "./property-dd";
 export * from "./services";
 export * from "./scenarios";
