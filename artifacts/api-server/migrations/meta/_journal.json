@@ -414,6 +414,13 @@
       "when": 1778889600000,
       "tag": "0063_icp_brackets_default_overlay",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1778976001000,
+      "tag": "0064_properties_refi_ltv_cap",
+      "breakpoints": true
     }
   ]
 }

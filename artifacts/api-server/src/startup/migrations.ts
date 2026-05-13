@@ -204,6 +204,15 @@ export async function runSchemaMigrations() {
     await runIcpBrackets003();
     await markMigrationApplied("icp_brackets_003");
   }
+
+  // Plan 2026-05-13-003 Phase 5 — refi LTV cap column on properties.
+  // Belt-and-suspenders companion to 0064_properties_refi_ltv_cap.sql.
+  // Idempotent: ALTER TABLE ... ADD COLUMN IF NOT EXISTS.
+  if (!(await isMigrationApplied("properties_refi_ltv_cap_001"))) {
+    const { runPropertiesRefiLtvCap001 } = await import("../migrations/properties-refi-ltv-cap-001");
+    await runPropertiesRefiLtvCap001();
+    await markMigrationApplied("properties_refi_ltv_cap_001");
+  }
 }
 
 // ── Boot orchestration: schema migrations (fatal) ─────────────────────

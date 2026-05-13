@@ -159,6 +159,12 @@ export const properties = pgTable("properties", {
   // Refinance years after acquisition (when refinancing should occur)
   refinanceYearsAfterAcquisition: integer("refinance_years_after_acquisition"),
 
+  // Refi LTV cap: maximum loan as a multiple of purchasePrice (e.g. 1.00 = no
+  // equity strip). NULL = uncapped. Prevents over-leveraging on Full Equity
+  // properties where a high in-place NOI could otherwise justify a refi loan
+  // that exceeds the original cost basis.
+  refiMaxLtvToOriginal: real("refi_max_ltv_to_original"),
+
   // Management Company Fee Rates (per-property, charged by management company)
   baseManagementFeeRate: real("base_management_fee_rate").notNull().default(DEFAULT_BASE_MANAGEMENT_FEE_RATE),
   incentiveManagementFeeRate: real("incentive_management_fee_rate").notNull().default(DEFAULT_INCENTIVE_MANAGEMENT_FEE_RATE),
@@ -451,6 +457,7 @@ export const insertPropertySchema = createInsertSchema(properties).pick({
   countryRiskPremium: true,
   dispositionCommission: true,
   refinanceYearsAfterAcquisition: true,
+  refiMaxLtvToOriginal: true,
   baseManagementFeeRate: true,
   incentiveManagementFeeRate: true,
   franchiseFeeRate: true,

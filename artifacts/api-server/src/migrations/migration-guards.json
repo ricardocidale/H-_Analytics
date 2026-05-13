@@ -227,24 +227,29 @@
     "0056_icp_bracket_catalog": {
       "status": "guarded",
       "guard": "icp-brackets-001.ts",
-      "reason": "Task #1409 — creates icp_brackets table (CREATE TABLE IF NOT EXISTS) and adds bracket_mix JSONB column to global_assumptions (ADD COLUMN IF NOT EXISTS in DO block). Guarded by icp-brackets-001.ts which also seeds 4 starter brackets (ON CONFLICT DO NOTHING) and registers the admin_resources entry (ON CONFLICT DO NOTHING)."
+      "reason": "Task #1409 \u2014 creates icp_brackets table (CREATE TABLE IF NOT EXISTS) and adds bracket_mix JSONB column to global_assumptions (ADD COLUMN IF NOT EXISTS in DO block). Guarded by icp-brackets-001.ts which also seeds 4 starter brackets (ON CONFLICT DO NOTHING) and registers the admin_resources entry (ON CONFLICT DO NOTHING)."
     },
     "0057_icp_bracket_mix": {
       "status": "self-idempotent",
-      "reason": "Task #1412 — single ALTER TABLE \"global_assumptions\" ADD COLUMN IF NOT EXISTS \"bracket_mix\" jsonb. Adds the management company's weighted ICP bracket mix column; NULL = not yet assigned. Companion to 0056_icp_bracket_catalog (which also adds bracket_mix via a guarded DO block); 0057 is the canonical column source. Re-running via migrate() is a no-op."
+      "reason": "Task #1412 \u2014 single ALTER TABLE \"global_assumptions\" ADD COLUMN IF NOT EXISTS \"bracket_mix\" jsonb. Adds the management company's weighted ICP bracket mix column; NULL = not yet assigned. Companion to 0056_icp_bracket_catalog (which also adds bracket_mix via a guarded DO block); 0057 is the canonical column source. Re-running via migrate() is a no-op."
     },
     "0058_self_test_logs": {
       "status": "self-idempotent",
-      "reason": "Task #1403 — Unified self-test cadence (30d default) + Logs rename. (1) ALTER TABLE admin_resources ADD COLUMN IF NOT EXISTS self_test_interval_days (nullable int). (2) CREATE TABLE IF NOT EXISTS self_test_logs with 5 indexes (all IF NOT EXISTS). (3) UPDATE admin_resources seed row for minion-self-test-cycle-interval-ms from 6h to 30d (UPDATE is idempotent — re-running sets the same value). Re-running via migrate() is a no-op on all three statements."
+      "reason": "Task #1403 \u2014 Unified self-test cadence (30d default) + Logs rename. (1) ALTER TABLE admin_resources ADD COLUMN IF NOT EXISTS self_test_interval_days (nullable int). (2) CREATE TABLE IF NOT EXISTS self_test_logs with 5 indexes (all IF NOT EXISTS). (3) UPDATE admin_resources seed row for minion-self-test-cycle-interval-ms from 6h to 30d (UPDATE is idempotent \u2014 re-running sets the same value). Re-running via migrate() is a no-op on all three statements."
     },
     "0059_research_runs_constant_latest_idx": {
       "status": "self-idempotent",
-      "reason": "Task #1437 — single CREATE INDEX IF NOT EXISTS statement adding research_runs_constant_latest_idx, a partial btree on (metadata->'constant'->>'key', metadata->'constant'->>'country', metadata->'constant'->>'subdivision', completed_at DESC) WHERE entity_type = 'model-constant' AND status = 'completed'. Backs ResearchRunsStorage.getLatestSuccessfulRunsForAllConstants() so the DISTINCT ON batch query stays O(log n) as research_runs grows. Re-running via migrate() is a no-op."
+      "reason": "Task #1437 \u2014 single CREATE INDEX IF NOT EXISTS statement adding research_runs_constant_latest_idx, a partial btree on (metadata->'constant'->>'key', metadata->'constant'->>'country', metadata->'constant'->>'subdivision', completed_at DESC) WHERE entity_type = 'model-constant' AND status = 'completed'. Backs ResearchRunsStorage.getLatestSuccessfulRunsForAllConstants() so the DISTINCT ON batch query stays O(log n) as research_runs grows. Re-running via migrate() is a no-op."
     },
     "0063_icp_brackets_default_overlay": {
       "status": "guarded",
       "guard": "icp-brackets-003.ts",
-      "reason": "Plan 2026-05-13-001 U5 — adds two NULL-able real columns to icp_brackets (default_exit_cap_rate, default_refi_max_ltv_to_original) for the Layer-2 bracket overlay in the layered defaults resolver. Both statements are ALTER TABLE ... ADD COLUMN IF NOT EXISTS; re-running via migrate() is a no-op. Guarded by icp-brackets-003.ts which re-applies the same ALTERs at boot to handle dev DBs whose _journal.json has drifted past 0063. Renumbered from 0060 to 0063 to avoid slot collision with PR #138 migrations 0060/0061/0062."
+      "reason": "Plan 2026-05-13-001 U5 \u2014 adds two NULL-able real columns to icp_brackets (default_exit_cap_rate, default_refi_max_ltv_to_original) for the Layer-2 bracket overlay in the layered defaults resolver. Both statements are ALTER TABLE ... ADD COLUMN IF NOT EXISTS; re-running via migrate() is a no-op. Guarded by icp-brackets-003.ts which re-applies the same ALTERs at boot to handle dev DBs whose _journal.json has drifted past 0063. Renumbered from 0060 to 0063 to avoid slot collision with PR #138 migrations 0060/0061/0062."
+    },
+    "0064_properties_refi_ltv_cap": {
+      "status": "guarded",
+      "guard": "properties-refi-ltv-cap-001.ts",
+      "reason": "Plan 2026-05-13-003 Phase 5 \u2014 adds nullable real column refi_max_ltv_to_original to properties. Caps refi loan at (refi_max_ltv_to_original \u00d7 purchase_price) to prevent equity stripping on Full Equity properties. ADD COLUMN IF NOT EXISTS is idempotent. Guarded by properties-refi-ltv-cap-001.ts which re-applies the same ALTER at boot for dev DBs whose _journal.json has drifted past 0064."
     }
   }
 }

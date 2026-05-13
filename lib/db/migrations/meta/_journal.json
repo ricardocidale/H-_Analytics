@@ -393,6 +393,13 @@
       "when": 1778976000000,
       "tag": "0057_descriptor_drift_log",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1778976001000,
+      "tag": "0058_properties_refi_ltv_cap",
+      "breakpoints": true
     }
   ]
 }
