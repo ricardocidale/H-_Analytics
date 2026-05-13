@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-13T20:00:00Z
+Updated: 2026-05-13T21:00:00Z
 Status: idle
 
 ## Active Branch
@@ -13,7 +13,7 @@ main
 
 ## Last Commit on Branch
 
-feat(property-edit): wire refiMaxLtvToOriginal slider in Refinance Terms (U3)
+docs(plans): 2026-05-13-005 refi max LTV cap calibration + admin UI plan
 
 ## What Replit Did This Session
 
