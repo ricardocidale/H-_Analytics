@@ -14,6 +14,7 @@ import {
 } from "./global-assumptions-save-tab";
 import { rebeccaSettingsPatchSchema, mergeRebeccaSettings } from "@shared/rebecca-settings";
 import { withFundingDefaults } from "../finance/apply-funding-defaults";
+import { writeEffectiveBracketMix } from "../services/bracketMix/effective";
 
 const appearanceDefaultsSchema = z.object({
   defaultColorMode: z.enum(["light", "auto", "dark"]).nullable().optional(),
@@ -428,9 +429,19 @@ export function register(app: Express) {
       if (!ga) return res.status(404).json({ error: "Global assumptions not found", code: "BRAK-001" });
 
       const { BRACKET_CATALOG } = await import("../ai/icp/bracket-catalog");
+      // Phase B (R15): surface override + provisional indicators so the
+      // front-of-app card can render the correct badges. Source is the
+      // effective-mix service that ALL writers route through.
+      const { effectiveBracketMix } = await import("../services/bracketMix/effective");
+      const effective = await effectiveBracketMix(ga.id);
       res.json({
         mix: (ga as unknown as Record<string, unknown>).bracketMix ?? null,
         catalog: BRACKET_CATALOG,
+        effective: {
+          source: effective.source,
+          provisional: effective.provisional,
+          runId: effective.runId,
+        },
       });
     } catch (error: unknown) {
       logAndSendError(res, "Failed to fetch bracket mix", error, "BRAK-002");
@@ -449,12 +460,21 @@ export function register(app: Express) {
       const { assignBrackets } = await import("../ai/icp/bracket-assignment-minion");
       const mix = assignBrackets(properties, ga);
 
-      const updated = await storage.patchGlobalAssumptions(ga.id, { bracketMix: mix });
-      logActivity(req, "assign-bracket-mix", "global_assumptions", updated.id, "ICP Bracket Mix");
+      // Phase B U6 retrofit: route through the override-aware shared writer.
+      // When override is active, Option A upgrades this assignment into a
+      // new override run rather than silently clobbering existing override.
+      await writeEffectiveBracketMix({
+        companyId: ga.id,
+        mix,
+        kind: "manual-assign",
+        evidenceLabel: "POST /api/company/bracket-mix/assign",
+      });
+      const updated = await storage.getGlobalAssumptions(userId);
+      logActivity(req, "assign-bracket-mix", "global_assumptions", ga.id, "ICP Bracket Mix");
 
       const { BRACKET_CATALOG } = await import("../ai/icp/bracket-catalog");
       res.json({
-        mix: (updated as unknown as Record<string, unknown>).bracketMix,
+        mix: (updated as unknown as Record<string, unknown>)?.bracketMix ?? mix,
         catalog: BRACKET_CATALOG,
       });
     } catch (error: unknown) {
@@ -510,12 +530,19 @@ export function register(app: Express) {
         assignedAt: (current as Record<string, unknown>).assignedAt ?? new Date().toISOString(),
       };
 
-      const updated = await storage.patchGlobalAssumptions(ga.id, { bracketMix: newMix });
-      logActivity(req, "update-bracket-mix", "global_assumptions", updated.id, "ICP Bracket Mix");
+      // Phase B U6 retrofit: route through the override-aware shared writer.
+      await writeEffectiveBracketMix({
+        companyId: ga.id,
+        mix: newMix as unknown as Parameters<typeof writeEffectiveBracketMix>[0]["mix"],
+        kind: "manual-assign",
+        evidenceLabel: "PATCH /api/company/bracket-mix",
+      });
+      const updated = await storage.getGlobalAssumptions(userId);
+      logActivity(req, "update-bracket-mix", "global_assumptions", ga.id, "ICP Bracket Mix");
 
       const { BRACKET_CATALOG } = await import("../ai/icp/bracket-catalog");
       res.json({
-        mix: (updated as unknown as Record<string, unknown>).bracketMix,
+        mix: (updated as unknown as Record<string, unknown>)?.bracketMix ?? newMix,
         catalog: BRACKET_CATALOG,
       });
     } catch (error: unknown) {

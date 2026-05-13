@@ -14,8 +14,12 @@ import { getRebeccaTools } from "../chat/rebecca-tool-definitions";
 const PARITY_MAP = resolve(__dirname, "../../../../docs/discipline/agent-native-parity-map.md");
 
 function extractMapMentions(markdown: string): Set<string> {
-  // Collect all backtick-quoted identifiers (tool names appear as `tool_name`)
-  const matches = [...markdown.matchAll(/`([a-z_]+)`/g)];
+  // Collect all backtick-quoted identifiers (tool names appear as `tool_name`).
+  // Tool names use lowercase + underscores and may embed version digits
+  // (e.g. `download_factory_v2_deck`). The regex must allow digits too —
+  // otherwise newer factory-v2 / phase-2 tools register as missing-from-map
+  // false positives even when their rows are present in the document.
+  const matches = [...markdown.matchAll(/`([a-z0-9_]+)`/g)];
   return new Set(matches.map((m) => m[1]));
 }
 

@@ -109,6 +109,12 @@ import {
   toolGetBracketMix,
   toolUpdateBracketMix,
 } from "./rebecca-tool-impls-admin";
+import {
+  toolRegenerateGlobalBracketMix,
+  toolRefreshPeerBracketMix,
+  toolSetCompanyBracketMixOverride,
+  toolClearCompanyBracketMixOverride,
+} from "./rebecca-tool-impls-bracket-mix";
 
 export async function dispatchRebeccaTool(
   name: string,
@@ -309,6 +315,14 @@ export async function dispatchRebeccaTool(
         return await toolGetBracketMix(ctx);
       case "update_bracket_mix":
         return await toolUpdateBracketMix(args, ctx);
+      case "regenerate_global_bracket_mix":
+        return await toolRegenerateGlobalBracketMix(ctx);
+      case "refresh_peer_bracket_mix":
+        return await toolRefreshPeerBracketMix(ctx, args);
+      case "set_company_bracket_mix_override":
+        return await toolSetCompanyBracketMixOverride(ctx, args);
+      case "clear_company_bracket_mix_override":
+        return await toolClearCompanyBracketMixOverride(ctx, args);
       default:
         return { result: { error: "Unknown tool" } };
     }

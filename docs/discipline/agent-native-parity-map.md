@@ -146,6 +146,10 @@ tools will be added when those services ship.
 | Update bracket weights / mix | Company → ICP Bracket Mix → Bracket Mix tab (weight inputs) | `update_bracket_mix` | ✅ PATCH /api/company/bracket-mix + update_bracket_mix tool; server normalises weights to 1.0 (task-1412) |
 | View market evidence / comp context | Company → ICP Bracket Mix → Market Evidence tab | `get_global_assumptions` | ✅ (global assumptions already retrievable; dedicated bracket-evidence tool deferred) |
 | View legacy deprecated ICP record | Company → ICP Bracket Mix → Legacy ICP tab | `get_global_assumptions` | ✅ (legacy 70-field data is part of global assumptions; read-only) |
+| Regenerate the global default bracket mix (Phase B, R17) | Admin → AI → Intelligence → Knowledge & Resources → Tables → ICP Peer Companies → Analyst | `regenerate_global_bracket_mix` | ✅ POST /api/admin/icp/bracket-mix/global/regenerate fires the dual-run orchestrator (Hugo + legacy classifier) and writes one bracket_mix_runs row + one bracket_mix_dual_run_diffs row per call; respects per-Mgmt-Co override-protect |
+| Refresh a single peer brand's archetype split (Phase B, R16) | Admin → AI → Intelligence → Knowledge & Resources → Tables → ICP Peer Companies → row Analyst button | `refresh_peer_bracket_mix` | ✅ POST /api/admin/icp/peers/:id/refresh re-runs Tiago for one peer and atomically updates icp_peer_companies.last_research_run_id |
+| Set a Mgmt-Co bracket-mix override from a comp set (Phase B, R7, R9) | Company → ICP Bracket Mix → per-company Analyst button | `set_company_bracket_mix_override` | ✅ POST /api/companies/:id/bracket-mix/override runs Tiago against the supplied comp-set slugs and installs the result via writeEffectiveBracketMix(kind: "override-set") |
+| Clear a Mgmt-Co bracket-mix override (Phase B, R8) | Company → ICP Bracket Mix → per-company Clear Override action | `clear_company_bracket_mix_override` | ✅ DELETE /api/companies/:id/bracket-mix/override clears bracket_mix_override_run_id and re-mirrors the latest global_default mix; idempotent on rows without an active override |
 
 ## Admin Actions (N/A or Deferred)
 

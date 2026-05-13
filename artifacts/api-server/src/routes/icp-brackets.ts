@@ -27,6 +27,7 @@ import { sql } from "drizzle-orm";
 import { logger } from "../logger";
 import { BracketMixSchema } from "@workspace/db";
 import { invalidateComputeCache } from "../finance/cache";
+import { writeEffectiveBracketMix } from "../services/bracketMix/effective";
 import {
   HTTP_STATUS_BAD_REQUEST,
   HTTP_STATUS_NOT_FOUND,
@@ -143,7 +144,21 @@ async function handleSaveMix(
     }
 
     if (base.userId === user.id) {
-      await storage.patchGlobalAssumptions(base.id, { bracketMix: bracketMixData });
+      // Phase B U6 retrofit: route through the override-aware shared writer
+      // so a manual-assign here that hits a row with an active override
+      // upgrades to a new override (Option A) instead of silently clobbering
+      // it. When no override is active, the writer is equivalent to the
+      // prior `patchGlobalAssumptions({ bracketMix })` call.
+      await writeEffectiveBracketMix({
+        companyId: base.id,
+        // bracketMixData.entries[*].serviceConsumption is built from the raw
+        // text column on icp_brackets so its TS type widens to `string`; the
+        // shape is otherwise byte-identical to BracketMixData. Cast at the
+        // boundary rather than re-shaping the existing builder.
+        mix: bracketMixData as unknown as Parameters<typeof writeEffectiveBracketMix>[0]["mix"],
+        kind: "manual-assign",
+        evidenceLabel: "PUT /api/icp/brackets/mix",
+      });
     } else {
       // User has no own row; base is the shared platform default.
       // upsertGlobalAssumptions filters strictly by userId and will INSERT a

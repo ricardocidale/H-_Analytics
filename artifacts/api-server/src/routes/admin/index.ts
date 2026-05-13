@@ -30,6 +30,7 @@ import { registerAgentRosterRoutes } from "./agent-roster";
 import { registerMinionSelfTestRoutes } from "./minion-self-tests";
 import { registerSelfTestLogsRoutes } from "./self-test-logs";
 import { registerAssumptionGuardrailRoutes } from "./assumption-guardrails";
+import { registerAdminBracketMixRoutes } from "./bracket-mix";
 
 export function register(app: Express) {
   registerUserRoutes(app);
@@ -66,4 +67,5 @@ export function register(app: Express) {
   registerMinionSelfTestRoutes(app);
   registerSelfTestLogsRoutes(app);
   registerAssumptionGuardrailRoutes(app);
+  registerAdminBracketMixRoutes(app);
 }

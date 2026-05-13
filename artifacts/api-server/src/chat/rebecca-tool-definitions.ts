@@ -6,6 +6,7 @@ import { getSlideFactoryTools } from "./rebecca-tool-defs-slide-factory";
 import { getIrisTools } from "./rebecca-tool-defs-iris";
 import { getKbTools } from "./rebecca-tool-defs-kb";
 import { getAdminTools } from "./rebecca-tool-defs-admin";
+import { getBracketMixTools } from "./rebecca-tool-defs-bracket-mix";
 
 export function getRebeccaTools(): ToolParam[] {
   return [
@@ -16,5 +17,6 @@ export function getRebeccaTools(): ToolParam[] {
     ...getIrisTools(),
     ...getKbTools(),
     ...getAdminTools(),
+    ...getBracketMixTools(),
   ];
 }
