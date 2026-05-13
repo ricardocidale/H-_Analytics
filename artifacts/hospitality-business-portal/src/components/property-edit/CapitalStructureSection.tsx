@@ -147,10 +147,10 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
             />
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-foreground" data-testid="text-land-value-percent">
+                <span className="text-sm font-medium text-foreground min-w-0" data-testid="text-land-value-percent">
                   {((draft.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT) * 100).toFixed(0)}%
                 </span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground shrink-0">
                   Depreciable basis: ${((draft.purchasePrice * (1 - (draft.landValuePercent ?? DEFAULT_LAND_VALUE_PERCENT))) + draft.buildingImprovements).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </span>
               </div>

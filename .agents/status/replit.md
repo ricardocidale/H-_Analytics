@@ -4,7 +4,7 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-13T17:30:00Z
+Updated: 2026-05-13T17:45:00Z
 Status: idle
 
 ## Active Branch
@@ -14,26 +14,21 @@ main
 ## Last Commit on Branch
 
 feat(#1626): Playwright narrow-layout squeeze regression — all 6 tests pass
+fix: apply min-w-0/shrink-0 overflow fix to remaining land-value-percent row in CapitalStructureSection
 
 ## What Replit Did This Session
 
-Audited and fixed all flex-row label overflow in Property Edit and Company Assumptions pages.
-Applied `min-w-0` on label/left side and `shrink-0` on value/control side in all
-`flex justify-between items-center` rows across:
+Task #1629: Audited all `flex justify-between items-center` rows in
+`artifacts/hospitality-business-portal/src/components/property-edit/` for
+the label overflow discipline (min-w-0 on left, shrink-0 on right).
 
-**Company Assumptions:**
-- FixedOverheadSection.tsx (5 rows)
-- VariableCostsSection.tsx (3 rows)
-- CompensationSection.tsx (staffSalary row)
-- CostOfEquityCard.tsx (costOfEquity row)
-- FundingSection.tsx (6 CapitalRaisesCard rows + 6 ConvertibleTermsCard rows; Select wrapped in span)
+Found all files already fully fixed EXCEPT one row in CapitalStructureSection.tsx:
+the land value percent display row (showing `40%` on the left and
+"Depreciable basis: $..." on the right) was missing both classes.
 
-**Property Edit:**
-- ManagementFeesSection.tsx (fee-category rows + incentive fee row)
-- OperatingCostRatesSection.tsx (Total Allocation, Housekeeping, F&B, Admin, PropertyOps, Utilities, FF&E, Other, Marketing, IT, Property Taxes, Insurance — 12 rows)
-- RevenueAssumptionsSection.tsx (ADR, ADR Growth, Starting Occupancy, Stabilized Occupancy, Occupancy Ramp, Occupancy Growth Step, Events, F&B, Other, Catering — 10 rows)
-- OtherAssumptionsSection.tsx (Exit Cap Rate, Income Tax Rate, Inflation Rate, Sale Commission, Country Risk Premium — 5 rows)
-- CapitalStructureSection.tsx (Cost Segregation toggle, Acq LTV, Acq Interest Rate, Acq Loan Term, Acq Closing Costs, Refi Years After Acq, Refi LTV, Refi Interest Rate, Refi Loan Term, Refi Closing Costs — 10 rows)
+Applied:
+- `min-w-0` to the left `<span>` (text-land-value-percent)
+- `shrink-0` to the right `<span>` (depreciable basis)
 
 Typecheck passes clean (0 errors).
 
@@ -53,6 +48,7 @@ Task #1626 — Completed the Playwright narrow-layout squeeze regression guard:
   with `--with-deps`, runs the 6 Playwright tests on ubuntu-latest)
 - Kept complementary source-level test `narrow-layout-squeeze.test.ts` (18 vitest tests)
   in the portal package — all 397 portal tests still pass
+Files touched: CapitalStructureSection.tsx (1 row, 2 class additions).
 
 ## Files Replit Owns Right Now
 
