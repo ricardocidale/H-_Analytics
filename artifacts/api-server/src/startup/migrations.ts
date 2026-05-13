@@ -204,6 +204,18 @@ export async function runSchemaMigrations() {
     await runIcpBrackets003();
     await markMigrationApplied("icp_brackets_003");
   }
+
+  // Plan 2026-05-13-001 U2 — per-property refi LTV cap relative to original
+  // acquisition loan. Belt-and-suspenders companion to
+  // 0064_property_refi_max_ltv_cap.sql. Idempotent: ADD COLUMN IF NOT EXISTS
+  // + DO-block-guarded CHECK constraint.
+  if (!(await isMigrationApplied("property_refi_max_ltv_001"))) {
+    const { runPropertyRefiMaxLtv001 } = await import(
+      "../migrations/property-refi-max-ltv-001"
+    );
+    await runPropertyRefiMaxLtv001();
+    await markMigrationApplied("property_refi_max_ltv_001");
+  }
 }
 
 // ── Boot orchestration: schema migrations (fatal) ─────────────────────

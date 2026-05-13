@@ -20,6 +20,7 @@ import {
   DEFAULT_REFI_CLOSING_COST_RATE,
   DEFAULT_EXIT_CAP_RATE,
 } from '@shared/constants';
+import { DEFAULT_REFI_MAX_LTV_TO_ORIGINAL } from '@shared/constants-funding';
 import { NOL_UTILIZATION_CAP, MONTHS_PER_YEAR } from '@shared/constants';
 import { PropertyInput, GlobalInput, MonthlyFinancials } from '../types';
 import { parseLocalDate } from '../helpers/utils';
@@ -29,6 +30,46 @@ export interface RefinanceContext {
   acquisitionDate: Date;
   originalLoanAmount: number;
   taxRate: number;
+}
+
+/**
+ * Cap the refi LTV so the resulting new-loan amount does not exceed
+ * `originalLoanAmount × refiMaxLtvToOriginal` (Plan 2026-05-13-001 U2).
+ *
+ * Without this cap, the refi can dwarf the original debt: e.g. a property
+ * bought at $5M (acquisition loan $3.75M) whose Year-7 NOI implies a new
+ * loan of $11M at 70% LTV-of-new-value silently produces a $7M+ cash-out
+ * spike that inflates the combined-portfolio IRR.
+ *
+ * The cap on the resulting loan amount translates into an upper bound on
+ * the effective LTV-against-valuation:
+ *
+ *   maxLtv = (originalLoan × refiMaxLtvToOriginal) / propertyValueAtRefi
+ *   effectiveLtv = min(refiLtv, maxLtv)
+ *
+ * Degenerate inputs (`propertyValueAtRefi <= 0` or `originalLoanAmount <= 0`)
+ * fall through with `capBinds=false` and the original `refiLtv` — the caller's
+ * existing cost-basis fallback / invalid-inputs branch handles them.
+ *
+ * Pure function (no I/O, no logging) — the engine logs the binding when
+ * `capBinds === true`. Extracted from `applyRefinancePostProcessing` so the
+ * branch logic is testable without constructing a full MonthlyFinancials[].
+ */
+export function applyRefiLtvOriginalCap(args: {
+  refiLtv: number;
+  refiMaxLtvToOriginal: number;
+  originalLoanAmount: number;
+  propertyValueAtRefi: number;
+}): { effectiveLtv: number; capBinds: boolean; impliedLtvCap: number | null } {
+  const { refiLtv, refiMaxLtvToOriginal, originalLoanAmount, propertyValueAtRefi } = args;
+  if (propertyValueAtRefi <= 0 || originalLoanAmount <= 0) {
+    return { effectiveLtv: refiLtv, capBinds: false, impliedLtvCap: null };
+  }
+  const impliedLtvCap = (originalLoanAmount * refiMaxLtvToOriginal) / propertyValueAtRefi;
+  if (impliedLtvCap < refiLtv) {
+    return { effectiveLtv: impliedLtvCap, capBinds: true, impliedLtvCap };
+  }
+  return { effectiveLtv: refiLtv, capBinds: false, impliedLtvCap };
 }
 
 export function applyRefinancePostProcessing(
@@ -90,11 +131,30 @@ export function applyRefinancePostProcessing(
     propertyValueAtRefi = refiNOI / exitCapRate;
   }
 
+  // Refi LTV cap relative to ORIGINAL acquisition loan amount (Plan 2026-05-13-001 U2).
+  // See `applyRefiLtvOriginalCap` for the cap math + rationale.
+  const refiMaxLtvToOriginal = property.refiMaxLtvToOriginal ?? DEFAULT_REFI_MAX_LTV_TO_ORIGINAL;
+  const capResult = applyRefiLtvOriginalCap({
+    refiLtv: refiLTV,
+    refiMaxLtvToOriginal,
+    originalLoanAmount: ctx.originalLoanAmount,
+    propertyValueAtRefi,
+  });
+  if (capResult.capBinds) {
+    console.warn(
+      `[refinance-pass] refi_max_ltv_to_original cap binds at refiMonth=${refiMonthIndex}: ` +
+      `originalLoan=${ctx.originalLoanAmount.toFixed(2)} × cap=${refiMaxLtvToOriginal} = ` +
+      `${(ctx.originalLoanAmount * refiMaxLtvToOriginal).toFixed(2)} (max new-loan); ` +
+      `propertyValueAtRefi=${propertyValueAtRefi.toFixed(2)}; ` +
+      `effective LTV lowered from ${refiLTV} to ${capResult.effectiveLtv.toFixed(4)}.`
+    );
+  }
+
   const refiOutput = computeRefinance({
     refinance_date: property.refinanceDate!,
     current_loan_balance: existingDebt,
     valuation: { method: "direct", property_value_at_refi: propertyValueAtRefi },
-    ltv_max: refiLTV,
+    ltv_max: capResult.effectiveLtv,
     closing_cost_pct: closingCostRate,
     prepayment_penalty: { type: "none", value: 0 },
     new_loan_terms: {

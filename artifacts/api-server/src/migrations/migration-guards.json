@@ -245,6 +245,11 @@
       "status": "guarded",
       "guard": "icp-brackets-003.ts",
       "reason": "Plan 2026-05-13-001 U5 — adds two NULL-able real columns to icp_brackets (default_exit_cap_rate, default_refi_max_ltv_to_original) for the Layer-2 bracket overlay in the layered defaults resolver. Both statements are ALTER TABLE ... ADD COLUMN IF NOT EXISTS; re-running via migrate() is a no-op. Guarded by icp-brackets-003.ts which re-applies the same ALTERs at boot to handle dev DBs whose _journal.json has drifted past 0063. Renumbered from 0060 to 0063 to avoid slot collision with PR #138 migrations 0060/0061/0062."
+    },
+    "0064_property_refi_max_ltv_cap": {
+      "status": "guarded",
+      "guard": "property-refi-max-ltv-001.ts",
+      "reason": "Plan 2026-05-13-001 U2 — adds properties.refi_max_ltv_to_original real NOT NULL DEFAULT 0.70 plus a CHECK constraint constraining the value to [0, 1]. The default literal 0.70 mirrors lib/shared/src/constants-funding.ts:DEFAULT_REFI_MAX_LTV_TO_ORIGINAL and lib/db/src/constants.ts (same name). Both statements are idempotent (ADD COLUMN IF NOT EXISTS + DO-block-guarded CHECK addition). Guarded by property-refi-max-ltv-001.ts which re-applies the same ALTERs at boot."
     }
   }
 }

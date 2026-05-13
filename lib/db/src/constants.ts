@@ -362,6 +362,20 @@ export const DEFAULT_REFI_CLOSING_COST_RATE = 0.03;
 export const DEFAULT_ACQ_CLOSING_COST_RATE = 0.02;
 export const DEFAULT_REFI_PERIOD_YEARS = 3;
 
+/**
+ * Universal Layer-1 default for the per-property refinance LTV cap relative
+ * to the ORIGINAL acquisition loan amount. Mirrors
+ * `lib/shared/src/constants-funding.ts:DEFAULT_REFI_MAX_LTV_TO_ORIGINAL`
+ * (the source-of-truth declaration). The mirror is required because lib/db
+ * does not depend on @workspace/shared; both files must declare the same
+ * value so Drizzle schema and runtime callers see identical defaults.
+ *
+ * Plan 2026-05-13-001 (feat seed-calibration-bracket-defaults-and-irr-views)
+ * U2 — used as the Drizzle `.default(...)` for the new
+ * `properties.refi_max_ltv_to_original` column.
+ */
+export const DEFAULT_REFI_MAX_LTV_TO_ORIGINAL = 0.70;
+
 // ── Management Company Cost Rates ───────────────────────────────────────
 // DEFAULT_STAFF_SALARY re-exported from constants-staffing (75_000)
 export const DEFAULT_OFFICE_LEASE_START = 36000;

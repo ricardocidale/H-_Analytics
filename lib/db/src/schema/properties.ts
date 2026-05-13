@@ -23,6 +23,7 @@ import {
   DEFAULT_REV_SHARE_OTHER,
   DEFAULT_CATERING_BOOST_PCT,
   DEFAULT_EXIT_CAP_RATE,
+  DEFAULT_REFI_MAX_LTV_TO_ORIGINAL,
   DEFAULT_PROPERTY_INCOME_TAX_RATE,
   DEFAULT_COMMISSION_RATE,
   DEFAULT_BASE_MANAGEMENT_FEE_RATE,
@@ -158,6 +159,14 @@ export const properties = pgTable("properties", {
 
   // Refinance years after acquisition (when refinancing should occur)
   refinanceYearsAfterAcquisition: integer("refinance_years_after_acquisition"),
+
+  // Refi LTV cap relative to the ORIGINAL acquisition loan amount. Plan
+  // 2026-05-13-001 U2 — engine caps target new-loan at
+  // `original_loan × refi_max_ltv_to_original` to prevent inflated
+  // mid-projection cash-out spikes. DEFAULT VARIABLE per
+  // hplus-variable-taxonomy. Layer-2 overlay lives on
+  // `icp_brackets.default_refi_max_ltv_to_original` (Plan U5/U7).
+  refiMaxLtvToOriginal: real("refi_max_ltv_to_original").notNull().default(DEFAULT_REFI_MAX_LTV_TO_ORIGINAL),
 
   // Management Company Fee Rates (per-property, charged by management company)
   baseManagementFeeRate: real("base_management_fee_rate").notNull().default(DEFAULT_BASE_MANAGEMENT_FEE_RATE),
@@ -384,6 +393,7 @@ export const properties = pgTable("properties", {
   check("prop_occupancy_growth_range", sql`${table.occupancyGrowthStep} >= 0 AND ${table.occupancyGrowthStep} <= 1`),
   check("prop_tax_rate_range", sql`${table.taxRate} >= 0 AND ${table.taxRate} <= 1`),
   check("prop_exit_cap_rate_range", sql`${table.exitCapRate} > 0 AND ${table.exitCapRate} <= 1`),
+  check("prop_refi_max_ltv_to_original_range", sql`${table.refiMaxLtvToOriginal} >= 0 AND ${table.refiMaxLtvToOriginal} <= 1`),
   check("prop_base_mgmt_fee_range", sql`${table.baseManagementFeeRate} >= 0 AND ${table.baseManagementFeeRate} <= 1`),
   check("prop_incentive_mgmt_fee_range", sql`${table.incentiveManagementFeeRate} >= 0 AND ${table.incentiveManagementFeeRate} <= 1`),
 ]);
@@ -451,6 +461,7 @@ export const insertPropertySchema = createInsertSchema(properties).pick({
   countryRiskPremium: true,
   dispositionCommission: true,
   refinanceYearsAfterAcquisition: true,
+  refiMaxLtvToOriginal: true,
   baseManagementFeeRate: true,
   incentiveManagementFeeRate: true,
   franchiseFeeRate: true,
