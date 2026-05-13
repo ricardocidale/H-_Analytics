@@ -11,6 +11,7 @@ import {
   getPropertyDefaultsComparables,
 } from "../ai/specialists/live-comparables";
 import { withFundingDefaults } from "../finance/apply-funding-defaults";
+import { withFinancialHydration } from "../defaults";
 import type {
   FundingPromptInputContext,
   FundingAnalysisSummary,
