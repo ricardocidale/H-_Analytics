@@ -4,28 +4,27 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-13T00:00:00Z
+Updated: 2026-05-13T12:00:00Z
 Status: idle
 
 ## Active Branch
 
-None (last active: `feat/seed-calibration-bracket-defaults`)
+main
 
 ## Last Commit on Branch
 
-`6fa406458` — "feat(engine): plan 002 U7 — migrate engine descriptor reads to property-descriptor-accessor"
+`e42dd7310` — "fix(coderabbit-loop): move branch-hygiene check to Step 1 preconditions"
 
 ## What CC Did This Session
 
-- Confirmed taxonomy rules (algorithm calibration stays in TS, SEED_* OK in migration guards, ALL DEFAULT_* are violations)
-- Updated `hplus-variable-taxonomy` skill with confirmed decisions
-- Updated `agent-memory-files` skill with TODO list discipline section
-- Updated `CLAUDE.md` + `replit.md` — taxonomy rules + per-agent TODO sections
-- Created `agent-collab-status` skill + these status files
+- Patched `coderabbit-loop-review` command: moved branch-hygiene check to Step 1 (precondition) so it fails fast before spending API quota
+- Synced patched command to global install and repo; helpers already in sync
+- Confirmed `/coderabbit-loop-autofix` is fully implemented — no changes needed; CR bot autofixes iter 1, Claude handles residuals iter 2–4
+- Updated cc.md + pushed all accumulated commits to origin/main
 
 ## Files CC Owns Right Now
 
-None — session ended. Branch `feat/seed-calibration-bracket-defaults` is idle.
+None
 
 ## Handoff to Replit
 
