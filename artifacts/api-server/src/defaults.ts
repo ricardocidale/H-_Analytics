@@ -23,7 +23,7 @@
  * the Admin UI's Pending Proposals queue. The engine reads only `value`.
  */
 
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "./db";
 import { modelDefaults, type ModelDefault } from "@workspace/db";
 
@@ -121,4 +121,116 @@ export async function resolveDefaultsByCard(
     if (best !== undefined) out.set(key, best.value);
   });
   return out;
+}
+
+// ── Property financial hydration ──────────────────────────────────────────────
+
+/** The 5 underwriting fields that must be non-null before any engine call. */
+export interface HydratedFinancials {
+  acquisitionLTV: number;
+  refinanceLTV: number;
+  exitCapRate: number;
+  maxOccupancy: number;
+  refiMaxLtvToOriginal: number;
+}
+
+type PartialFinancials = {
+  acquisitionLTV?: number | null;
+  refinanceLTV?: number | null;
+  exitCapRate?: number | null;
+  maxOccupancy?: number | null;
+  refiMaxLtvToOriginal?: number | null;
+};
+
+const FINANCIAL_DEFAULT_KEYS = [
+  { field: "acquisitionLTV",       defaultKey: "mc.funding.ltv" },
+  { field: "refinanceLTV",         defaultKey: "mc.funding.refiLtv" },
+  { field: "exitCapRate",          defaultKey: "mc.tax_exit.exitCapRate" },
+  { field: "maxOccupancy",         defaultKey: "mc.property_defaults.maxOccupancy" },
+  { field: "refiMaxLtvToOriginal", defaultKey: "mc.funding.refiMaxLtvToOriginal" },
+] as const;
+
+/**
+ * Guarantees all five underwriting fields are non-null.
+ *
+ * Precedence: property record value (if set) > model_defaults DB row > error.
+ * The startup guard (assertRequiredModelDefaults) ensures the DB rows exist, so
+ * the error branch is only reached if the DB is empty on a non-guarded path.
+ *
+ * Call this at every server-side boundary before passing a property to the engine.
+ * For batch property arrays, use hydratePropertiesFinancials.
+ */
+export async function hydratePropertyFinancials(
+  property: PartialFinancials,
+  scope: DefaultScope = {},
+): Promise<HydratedFinancials> {
+  const defaultKeys = FINANCIAL_DEFAULT_KEYS.map(m => m.defaultKey) as string[];
+  const rows = await db
+    .select()
+    .from(modelDefaults)
+    .where(inArray(modelDefaults.defaultKey, defaultKeys));
+
+  const resolved = new Map<string, number>();
+  for (const { defaultKey } of FINANCIAL_DEFAULT_KEYS) {
+    const candidates = rows.filter(r => r.defaultKey === defaultKey);
+    const best = pickBest(candidates, scope);
+    if (best !== undefined && typeof best.value === "number") {
+      resolved.set(defaultKey, best.value);
+    }
+  }
+
+  const hydrate = (field: keyof PartialFinancials, defaultKey: string): number => {
+    const existing = property[field];
+    if (existing != null && Number.isFinite(existing)) return existing as number;
+    const dbVal = resolved.get(defaultKey);
+    if (dbVal !== undefined) return dbVal;
+    throw new Error(
+      `hydratePropertyFinancials: required model_defaults key "${defaultKey}" is missing. ` +
+      `Run seedModelDefaults or restart the server to reseed.`,
+    );
+  };
+
+  return {
+    acquisitionLTV:       hydrate("acquisitionLTV",       "mc.funding.ltv"),
+    refinanceLTV:         hydrate("refinanceLTV",         "mc.funding.refiLtv"),
+    exitCapRate:          hydrate("exitCapRate",          "mc.tax_exit.exitCapRate"),
+    maxOccupancy:         hydrate("maxOccupancy",         "mc.property_defaults.maxOccupancy"),
+    refiMaxLtvToOriginal: hydrate("refiMaxLtvToOriginal", "mc.funding.refiMaxLtvToOriginal"),
+  };
+}
+
+/**
+ * Batch variant: overlays null financial fields from model_defaults on each property.
+ * Resolved DB rows are fetched once for the whole batch; scope is derived per-property.
+ * Returns a new array with the same objects but null underwriting fields filled in.
+ * Non-fatal: if resolution fails, the original array is returned unchanged.
+ */
+export async function withFinancialHydration<T extends Record<string, unknown>>(
+  properties: T[],
+): Promise<T[]> {
+  if (properties.length === 0) return properties;
+
+  // Fetch all relevant model_defaults rows once for the batch.
+  const defaultKeys = FINANCIAL_DEFAULT_KEYS.map(m => m.defaultKey) as string[];
+  const rows = await db
+    .select()
+    .from(modelDefaults)
+    .where(inArray(modelDefaults.defaultKey, defaultKeys));
+
+  return properties.map(p => {
+    const scope: DefaultScope = {
+      country: p.country as string | null | undefined,
+      businessType: (p.type ?? p.businessType) as string | null | undefined,
+    };
+    const patched: Record<string, unknown> = { ...p };
+    for (const { field, defaultKey } of FINANCIAL_DEFAULT_KEYS) {
+      if (patched[field] != null) continue;
+      const candidates = rows.filter(r => r.defaultKey === defaultKey);
+      const best = pickBest(candidates, scope);
+      if (best !== undefined && typeof best.value === "number") {
+        patched[field] = best.value;
+      }
+    }
+    return patched as T;
+  });
 }

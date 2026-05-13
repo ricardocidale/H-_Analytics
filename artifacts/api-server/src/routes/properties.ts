@@ -52,6 +52,7 @@ import { suggestStarRating } from "../ai/context-pack/star-rating";
 import { registerPropertyUrlRoutes } from "./properties-urls";
 import { computeStressScenarios, type StressAssumptions } from "@engine/helpers/stress-scenarios";
 import { computePropertyDefaults } from "@engine/helpers/default-resolver";
+import { hydratePropertyFinancials } from "../defaults";
 
 export function buildPropertyDefaultsFromGlobal(ga?: GlobalAssumptions): Record<string, unknown> {
   return buildPropertyDefaultsFromRegistry(ga as unknown as Record<string, unknown>);
@@ -88,8 +89,27 @@ export async function createPropertyRecord(
     userId: isAdminRole(user.role) ? null : user.id,
     researchValues: (data as { researchValues?: Record<string, ResearchValueEntry> }).researchValues ?? {},
   };
+
+  // Hydrate the 5 underwriting fields from model_defaults for any that are still null.
+  // Precedence: user-supplied or global-assumptions value > model_defaults row.
+  const createDataMut = createData as Record<string, unknown>;
+  try {
+    const hydrated = await hydratePropertyFinancials(
+      createDataMut as Parameters<typeof hydratePropertyFinancials>[0],
+      { country: createDataMut.country as string | null, businessType: createDataMut.type as string | null },
+    );
+    for (const [key, val] of Object.entries(hydrated)) {
+      if (createDataMut[key] == null) createDataMut[key] = val;
+    }
+  } catch (hydrateErr: unknown) {
+    logger.warn(
+      `hydratePropertyFinancials failed at creation (non-blocking): ${hydrateErr instanceof Error ? hydrateErr.message : hydrateErr}`,
+      "properties",
+    );
+  }
+
   const suggestion = suggestStarRating(createData as Parameters<typeof suggestStarRating>[0]);
-  (createData as typeof createData & { starRatingSuggested?: number | null }).starRatingSuggested = suggestion.rating;
+  (createData as Record<string, unknown> & { starRatingSuggested?: number | null }).starRatingSuggested = suggestion.rating;
 
   const property = await storage.createProperty(createData);
 
