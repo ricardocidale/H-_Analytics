@@ -85,8 +85,8 @@ export function CapitalRaisesCard({ formData, onChange, global }: FundingSection
             <h4 className="text-sm font-display text-foreground">Capital Raise 1</h4>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-foreground label-text flex items-center gap-1">Amount<InfoTooltip text="Capital amount raised in the first tranche of the capital raise to cover initial operating expenses before management fee revenue begins." /></Label>
-                <span data-field="capitalRaise1Amount">
+                <Label className="text-foreground label-text flex items-center gap-1 min-w-0">Amount<InfoTooltip text="Capital amount raised in the first tranche of the capital raise to cover initial operating expenses before management fee revenue begins." /></Label>
+                <span data-field="capitalRaise1Amount" className="shrink-0">
                   <EditableValue
                     value={formData.capitalRaise1Amount ?? global.capitalRaise1Amount}
                     onChange={(v) => onChange("capitalRaise1Amount", v)}
@@ -117,8 +117,8 @@ export function CapitalRaisesCard({ formData, onChange, global }: FundingSection
             <h4 className="text-sm font-display text-foreground">Capital Raise 2</h4>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-foreground label-text flex items-center gap-1">Amount<InfoTooltip text="Capital amount raised in the second tranche of the capital raise, typically deployed as the portfolio grows." /></Label>
-                <span data-field="capitalRaise2Amount">
+                <Label className="text-foreground label-text flex items-center gap-1 min-w-0">Amount<InfoTooltip text="Capital amount raised in the second tranche of the capital raise, typically deployed as the portfolio grows." /></Label>
+                <span data-field="capitalRaise2Amount" className="shrink-0">
                   <EditableValue
                     value={formData.capitalRaise2Amount ?? global.capitalRaise2Amount}
                     onChange={(v) => onChange("capitalRaise2Amount", v)}
@@ -149,8 +149,8 @@ export function CapitalRaisesCard({ formData, onChange, global }: FundingSection
             <h4 className="text-sm font-display text-foreground">Capital Raise 3</h4>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label className="text-foreground label-text flex items-center gap-1">Amount<InfoTooltip text="Capital amount raised in the third tranche of the capital raise, typically deployed during the expansion phase." /></Label>
-                <span data-field="capitalRaise3Amount">
+                <Label className="text-foreground label-text flex items-center gap-1 min-w-0">Amount<InfoTooltip text="Capital amount raised in the third tranche of the capital raise, typically deployed during the expansion phase." /></Label>
+                <span data-field="capitalRaise3Amount" className="shrink-0">
                   <EditableValue
                     value={formData.capitalRaise3Amount ?? global.capitalRaise3Amount ?? 0}
                     onChange={(v) => onChange("capitalRaise3Amount", v)}
@@ -218,11 +218,11 @@ export function ConvertibleTermsCard({ formData, onChange, global }: FundingSect
         <div className="space-y-6">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="flex items-center text-foreground label-text">
+              <Label className="flex items-center text-foreground label-text min-w-0">
                 Valuation Cap
                 <InfoTooltip text="Maximum company valuation at which the capital raise converts to equity. Enable this if your instrument includes a valuation cap (common for SAFEs and convertible notes)." manualSection="management-company" />
               </Label>
-              <Switch
+              <Switch className="shrink-0"
                 checked={showValuationCap}
                 onCheckedChange={(checked) => {
                   setShowValuationCap(checked);
@@ -244,7 +244,8 @@ export function ConvertibleTermsCard({ formData, onChange, global }: FundingSect
             {showValuationCap && (
               <>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Cap Amount</span>
+                  <span className="text-xs text-muted-foreground min-w-0">Cap Amount</span>
+                  <span className="shrink-0">
                   <EditableValue
                     value={formData.capitalRaiseValuationCap ?? global.capitalRaiseValuationCap}
                     onChange={(v) => onChange("capitalRaiseValuationCap", v)}
@@ -253,6 +254,7 @@ export function ConvertibleTermsCard({ formData, onChange, global }: FundingSect
                     max={5000000}
                     step={100000}
                   />
+                  </span>
                 </div>
                 <Slider
                   value={[formData.capitalRaiseValuationCap ?? global.capitalRaiseValuationCap]}
@@ -266,11 +268,11 @@ export function ConvertibleTermsCard({ formData, onChange, global }: FundingSect
           </div>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="flex items-center text-foreground label-text">
+              <Label className="flex items-center text-foreground label-text min-w-0">
                 Discount Rate
                 <InfoTooltip text="Percentage discount on share price when the capital raise converts to equity. Enable this if your instrument includes a discount rate." manualSection="management-company" />
               </Label>
-              <Switch
+              <Switch className="shrink-0"
                 checked={showDiscountRate}
                 onCheckedChange={(checked) => {
                   setShowDiscountRate(checked);
@@ -287,7 +289,8 @@ export function ConvertibleTermsCard({ formData, onChange, global }: FundingSect
             {showDiscountRate && (
               <>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Rate</span>
+                  <span className="text-xs text-muted-foreground min-w-0">Rate</span>
+                  <span className="shrink-0">
                   <EditableValue
                     value={formData.capitalRaiseDiscountRate ?? global.capitalRaiseDiscountRate}
                     onChange={(v) => onChange("capitalRaiseDiscountRate", v)}
@@ -296,6 +299,7 @@ export function ConvertibleTermsCard({ formData, onChange, global }: FundingSect
                     max={0.5}
                     step={0.05}
                   />
+                  </span>
                 </div>
                 <Slider
                   value={[(formData.capitalRaiseDiscountRate ?? global.capitalRaiseDiscountRate) * 100]}
@@ -309,11 +313,11 @@ export function ConvertibleTermsCard({ formData, onChange, global }: FundingSect
           </div>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="flex items-center text-foreground label-text">
+              <Label className="flex items-center text-foreground label-text min-w-0">
                 Interest Rate
                 <InfoTooltip text="Annual simple interest rate on the outstanding capital raise principal. Common for convertible notes and interest-bearing SAFEs. Interest accrues monthly and flows through the income statement as Interest Expense." manualSection="management-company" />
               </Label>
-              <Switch
+              <Switch className="shrink-0"
                 checked={showInterestRate}
                 onCheckedChange={(checked) => {
                   setShowInterestRate(checked);
@@ -334,7 +338,8 @@ export function ConvertibleTermsCard({ formData, onChange, global }: FundingSect
             {showInterestRate && (
               <>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Annual Rate</span>
+                  <span className="text-xs text-muted-foreground min-w-0">Annual Rate</span>
+                  <span className="shrink-0">
                   <EditableValue
                     value={formData.fundingInterestRate ?? global.fundingInterestRate ?? 0}
                     onChange={(v) => onChange("fundingInterestRate", v)}
@@ -343,6 +348,7 @@ export function ConvertibleTermsCard({ formData, onChange, global }: FundingSect
                     max={0.15}
                     step={0.005}
                   />
+                  </span>
                 </div>
                 <Slider
                   value={[(formData.fundingInterestRate ?? global.fundingInterestRate ?? 0) * 100]}
@@ -352,23 +358,25 @@ export function ConvertibleTermsCard({ formData, onChange, global }: FundingSect
                   step={0.5}
                 />
                 <div className="flex items-center justify-between mt-2">
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1 min-w-0">
                     Payment Frequency
                     <InfoTooltip text="How often accrued interest is paid out. 'Accrues Only' means interest accumulates as a liability until conversion (standard for convertible notes). Quarterly or annually pays out the accrued interest, reducing cash." />
                   </span>
-                  <Select
-                    value={formData.fundingInterestPaymentFrequency ?? global.fundingInterestPaymentFrequency ?? "accrues_only"}
-                    onValueChange={(v) => onChange("fundingInterestPaymentFrequency", v)}
-                  >
-                    <SelectTrigger className="w-40 h-8 text-xs" data-testid="select-interest-payment-frequency">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="accrues_only">Accrues Only</SelectItem>
-                      <SelectItem value="quarterly">Paid Quarterly</SelectItem>
-                      <SelectItem value="annually">Paid Annually</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <span className="shrink-0">
+                    <Select
+                      value={formData.fundingInterestPaymentFrequency ?? global.fundingInterestPaymentFrequency ?? "accrues_only"}
+                      onValueChange={(v) => onChange("fundingInterestPaymentFrequency", v)}
+                    >
+                      <SelectTrigger className="w-40 h-8 text-xs" data-testid="select-interest-payment-frequency">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="accrues_only">Accrues Only</SelectItem>
+                        <SelectItem value="quarterly">Paid Quarterly</SelectItem>
+                        <SelectItem value="annually">Paid Annually</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </span>
                 </div>
               </>
             )}

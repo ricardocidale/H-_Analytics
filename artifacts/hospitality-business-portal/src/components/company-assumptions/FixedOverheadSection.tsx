@@ -47,18 +47,20 @@ export default function FixedOverheadSection({ formData, onChange, global, model
         </h3>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label className="flex items-center text-foreground label-text">
+            <Label className="flex items-center text-foreground label-text min-w-0">
               Fixed Cost Escalation Rate
               <InfoTooltip text="Annual inflation factor applied to all fixed overhead costs (office lease, professional services, tech). This compounds each year, so a 3% rate means costs grow ~34% over 10 years." />
             </Label>
-            <EditableValue
-              value={formData.fixedCostEscalationRate ?? global.fixedCostEscalationRate}
-              onChange={(v) => onChange("fixedCostEscalationRate", v)}
-              format="percent"
-              min={0}
-              max={0.1}
-              step={0.005}
-            />
+            <span className="shrink-0">
+              <EditableValue
+                value={formData.fixedCostEscalationRate ?? global.fixedCostEscalationRate}
+                onChange={(v) => onChange("fixedCostEscalationRate", v)}
+                format="percent"
+                min={0}
+                max={0.1}
+                step={0.005}
+              />
+            </span>
           </div>
           <Slider
             value={[(formData.fixedCostEscalationRate ?? global.fixedCostEscalationRate) * 100]}
@@ -77,8 +79,9 @@ export default function FixedOverheadSection({ formData, onChange, global, model
               onApplyValue={() => researchValues.officeLease && onChange("officeLeaseStart", researchValues.officeLease.mid)}
               guidanceContext={gc("officeLease", "Office Lease")}
               currentValue={formData.officeLeaseStart ?? global.officeLeaseStart}
+              className="min-w-0"
             />
-            <span data-field="officeLeaseStart">
+            <span data-field="officeLeaseStart" className="shrink-0">
               <EditableValue
                 value={formData.officeLeaseStart ?? global.officeLeaseStart}
                 onChange={(v) => onChange("officeLeaseStart", v)}
@@ -110,8 +113,9 @@ export default function FixedOverheadSection({ formData, onChange, global, model
               onApplyValue={() => researchValues.professionalServices && onChange("professionalServicesStart", researchValues.professionalServices.mid)}
               guidanceContext={gc("professionalServices", "Professional Services")}
               currentValue={formData.professionalServicesStart ?? global.professionalServicesStart}
+              className="min-w-0"
             />
-            <span data-field="professionalServicesStart">
+            <span data-field="professionalServicesStart" className="shrink-0">
               <EditableValue
                 value={formData.professionalServicesStart ?? global.professionalServicesStart}
                 onChange={(v) => onChange("professionalServicesStart", v)}
@@ -143,8 +147,9 @@ export default function FixedOverheadSection({ formData, onChange, global, model
               onApplyValue={() => researchValues.techInfra && onChange("techInfraStart", researchValues.techInfra.mid)}
               guidanceContext={gc("techInfra", "Tech Infrastructure")}
               currentValue={formData.techInfraStart ?? global.techInfraStart}
+              className="min-w-0"
             />
-            <span data-field="techInfraStart">
+            <span data-field="techInfraStart" className="shrink-0">
               <EditableValue
                 value={formData.techInfraStart ?? global.techInfraStart}
                 onChange={(v) => onChange("techInfraStart", v)}
@@ -176,8 +181,9 @@ export default function FixedOverheadSection({ formData, onChange, global, model
               onApplyValue={() => researchValues.businessInsurance && onChange("businessInsuranceStart", researchValues.businessInsurance.mid)}
               guidanceContext={gc("businessInsurance", "Business Insurance")}
               currentValue={formData.businessInsuranceStart ?? global.businessInsuranceStart}
+              className="min-w-0"
             />
-            <span data-field="businessInsuranceStart">
+            <span data-field="businessInsuranceStart" className="shrink-0">
               <EditableValue
                 value={formData.businessInsuranceStart ?? global.businessInsuranceStart}
                 onChange={(v) => onChange("businessInsuranceStart", v)}

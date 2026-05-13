@@ -63,6 +63,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                 onApplyValue={() => researchValues.adr && onChange("startAdr", researchValues.adr.mid)}
                 guidanceContext={gc("adr", "Starting ADR")}
                 currentValue={draft.startAdr}
+                className="min-w-0"
               />
               <EditableValue
                 value={draft.startAdr}
@@ -71,6 +72,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                 min={100}
                 max={1200}
                 step={10}
+                className="shrink-0"
               />
             </div>
             <Slider 
@@ -90,6 +92,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                 onApplyValue={() => researchValues.adrGrowth && onChange("adrGrowthRate", researchValues.adrGrowth.mid / 100)}
                 guidanceContext={gc("adrGrowth", "ADR Annual Growth")}
                 currentValue={draft.adrGrowthRate} isPercent
+                className="min-w-0"
               />
               <EditableValue
                 value={draft.adrGrowthRate * 100}
@@ -98,6 +101,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                 min={0}
                 max={50}
                 step={1}
+                className="shrink-0"
               />
             </div>
             <Slider 
@@ -119,6 +123,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                 onApplyValue={() => researchValues.startOccupancy && onChange("startOccupancy", researchValues.startOccupancy.mid / 100)}
                 guidanceContext={gc("startOccupancy", "Starting Occupancy")}
                 currentValue={draft.startOccupancy} isPercent
+                className="min-w-0"
               />
               <EditableValue
                 value={draft.startOccupancy * 100}
@@ -127,6 +132,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                 min={0}
                 max={100}
                 step={1}
+                className="shrink-0"
               />
             </div>
             <Slider 
@@ -146,6 +152,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                 onApplyValue={() => researchValues.occupancy && onChange("maxOccupancy", researchValues.occupancy.mid / 100)}
                 guidanceContext={gc("occupancy", "Stabilized Occupancy")}
                 currentValue={draft.maxOccupancy} isPercent
+                className="min-w-0"
               />
               <EditableValue
                 value={draft.maxOccupancy * 100}
@@ -154,6 +161,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                 min={0}
                 max={100}
                 step={1}
+                className="shrink-0"
               />
             </div>
             <Slider 
@@ -175,6 +183,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                 onApplyValue={() => researchValues.rampMonths && onChange("occupancyRampMonths", researchValues.rampMonths.mid)}
                 guidanceContext={gc("rampMonths", "Occupancy Ramp")}
                 currentValue={draft.occupancyRampMonths}
+                className="min-w-0"
               />
               <EditableValue
                 value={draft.occupancyRampMonths}
@@ -183,6 +192,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                 min={0}
                 max={36}
                 step={1}
+                className="shrink-0"
               />
             </div>
             <Slider 
@@ -202,6 +212,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                 onApplyValue={() => researchValues.occupancyStep && onChange("occupancyGrowthStep", researchValues.occupancyStep.mid / 100)}
                 guidanceContext={gc("occupancyStep", "Occupancy Growth Step")}
                 currentValue={draft.occupancyGrowthStep} isPercent
+                className="min-w-0"
               />
               <EditableValue
                 value={draft.occupancyGrowthStep * 100}
@@ -210,6 +221,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                 min={0}
                 max={20}
                 step={1}
+                className="shrink-0"
               />
             </div>
             <Slider 
@@ -237,6 +249,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                   onApplyValue={() => researchValues.revShareEvents && onChange("revShareEvents", researchValues.revShareEvents.mid / 100)}
                   guidanceContext={gc("revShareEvents", "Events")}
                   currentValue={draft.revShareEvents ?? DEFAULT_REV_SHARE_EVENTS} isPercent
+                  className="min-w-0"
                 />
                 <EditableValue
                   value={(draft.revShareEvents ?? DEFAULT_REV_SHARE_EVENTS) * 100}
@@ -245,6 +258,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                   min={0}
                   max={100}
                   step={5}
+                  className="shrink-0"
                 />
               </div>
               <Slider 
@@ -265,6 +279,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                   onApplyValue={() => researchValues.revShareFB && onChange("revShareFB", researchValues.revShareFB.mid / 100)}
                   guidanceContext={gc("revShareFB", "F&B")}
                   currentValue={draft.revShareFB ?? DEFAULT_REV_SHARE_FB} isPercent
+                  className="min-w-0"
                 />
                 <EditableValue
                   value={(draft.revShareFB ?? DEFAULT_REV_SHARE_FB) * 100}
@@ -273,6 +288,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                   min={0}
                   max={100}
                   step={5}
+                  className="shrink-0"
                 />
               </div>
               <Slider 
@@ -293,6 +309,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                   onApplyValue={() => researchValues.revShareOther && onChange("revShareOther", researchValues.revShareOther.mid / 100)}
                   guidanceContext={gc("revShareOther", "Other Revenue")}
                   currentValue={draft.revShareOther ?? DEFAULT_REV_SHARE_OTHER} isPercent
+                  className="min-w-0"
                 />
                 <EditableValue
                   value={(draft.revShareOther ?? DEFAULT_REV_SHARE_OTHER) * 100}
@@ -301,6 +318,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                   min={0}
                   max={100}
                   step={5}
+                  className="shrink-0"
                 />
               </div>
               <Slider 
@@ -322,6 +340,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                   guidanceContext={gc("catering", "Catering Boost")}
                   currentValue={draft.cateringBoostPercent ?? DEFAULT_CATERING_BOOST_PCT}
                   isPercent
+                  className="min-w-0"
                 />
                 <EditableValue
                   value={(draft.cateringBoostPercent ?? DEFAULT_CATERING_BOOST_PCT) * 100}
@@ -330,6 +349,7 @@ export default function RevenueAssumptionsSection({ draft, onChange, researchVal
                   min={0}
                   max={100}
                   step={5}
+                  className="shrink-0"
                 />
               </div>
               <Slider 

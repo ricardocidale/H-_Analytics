@@ -271,7 +271,7 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
 
         <div className="border-t border-white/10 pt-4 space-y-4">
           <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
+            <div className="space-y-0.5 min-w-0">
               <Label className="label-text text-foreground flex items-center gap-1.5">
                 Cost Segregation Study
                 <InfoTooltip text="Apply accelerated depreciation using cost segregation analysis. Instead of straight-line 39-year depreciation, portions of the property value are allocated to 5-year, 7-year, and 15-year schedules (personal property, land improvements, etc.), accelerating tax deductions in the early years." />
@@ -283,6 +283,7 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
               checked={draft.costSegEnabled ?? false}
               onCheckedChange={(checked) => onChange("costSegEnabled", checked)}
               data-testid="switch-cost-seg-enabled"
+              className="shrink-0"
             />
           </div>
           {draft.costSegEnabled && (
@@ -395,6 +396,7 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
                     onApplyValue={() => researchValues.acqLtv && onChange("acquisitionLTV", researchValues.acqLtv.mid / 100)}
                     guidanceContext={gc("acqLtv", "Acquisition LTV")}
                     currentValue={draft.acquisitionLTV || DEFAULT_LTV} isPercent
+                    className="min-w-0"
                   />
                   <EditableValue
                     value={(draft.acquisitionLTV || DEFAULT_LTV) * 100}
@@ -403,6 +405,7 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
                     min={0}
                     max={95}
                     step={5}
+                    className="shrink-0"
                   />
                 </div>
                 <Slider
@@ -422,6 +425,7 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
                     guidanceContext={gc("acqRate", "Acquisition Interest Rate")}
                     guardrailKey="wacc.cost_of_debt"
                     currentValue={draft.acquisitionInterestRate || DEFAULT_INTEREST_RATE} isPercent
+                    className="min-w-0"
                   />
                   <EditableValue
                     value={(draft.acquisitionInterestRate || DEFAULT_INTEREST_RATE) * 100}
@@ -430,6 +434,7 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
                     min={0}
                     max={20}
                     step={0.25}
+                    className="shrink-0"
                   />
                 </div>
                 <Slider
@@ -442,8 +447,8 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <Label className="label-text text-foreground flex items-center gap-1.5">Loan Term<InfoTooltip text="Amortization period for the loan in years. Longer terms reduce monthly payments but increase total interest paid." /></Label>
-                  <span className="text-sm font-mono text-foreground">{draft.acquisitionTermYears || DEFAULT_TERM_YEARS} yrs</span>
+                  <Label className="label-text text-foreground flex items-center gap-1.5 min-w-0">Loan Term<InfoTooltip text="Amortization period for the loan in years. Longer terms reduce monthly payments but increase total interest paid." /></Label>
+                  <span className="text-sm font-mono text-foreground shrink-0">{draft.acquisitionTermYears || DEFAULT_TERM_YEARS} yrs</span>
                 </div>
                 <Slider
                   value={[draft.acquisitionTermYears || DEFAULT_TERM_YEARS]}
@@ -455,7 +460,7 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <Label className="label-text text-foreground flex items-center gap-1.5">Closing Costs<InfoTooltip text="Transaction costs as a percentage of the loan amount: lender fees, appraisal, title insurance, legal fees." /><GaapBadge rule="GAAP: Loan origination costs are capitalized and amortized over the loan term (ASC 310-20). Not expensed immediately. Shown as a reduction of the loan liability on the balance sheet." /></Label>
+                  <Label className="label-text text-foreground flex items-center gap-1.5 min-w-0">Closing Costs<InfoTooltip text="Transaction costs as a percentage of the loan amount: lender fees, appraisal, title insurance, legal fees." /><GaapBadge rule="GAAP: Loan origination costs are capitalized and amortized over the loan term (ASC 310-20). Not expensed immediately. Shown as a reduction of the loan liability on the balance sheet." /></Label>
                   <EditableValue
                     value={(draft.acquisitionClosingCostRate || DEFAULT_ACQ_CLOSING_COST_RATE) * 100}
                     onChange={(val) => onChange("acquisitionClosingCostRate", val / 100)}
@@ -463,6 +468,7 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
                     min={0}
                     max={10}
                     step={0.5}
+                    className="shrink-0"
                   />
                 </div>
                 <Slider
@@ -532,8 +538,8 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
                     </div>
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <Label className="label-text text-foreground flex items-center gap-1.5">Years After Acquisition<InfoTooltip text="Number of years after acquisition before refinancing occurs." /></Label>
-                        <span className="text-sm font-mono text-foreground" data-testid="text-refinance-years-after-acquisition">{draft.refinanceYearsAfterAcquisition ?? DEFAULT_REFI_PERIOD_YEARS} yrs</span>
+                        <Label className="label-text text-foreground flex items-center gap-1.5 min-w-0">Years After Acquisition<InfoTooltip text="Number of years after acquisition before refinancing occurs." /></Label>
+                        <span className="text-sm font-mono text-foreground shrink-0" data-testid="text-refinance-years-after-acquisition">{draft.refinanceYearsAfterAcquisition ?? DEFAULT_REFI_PERIOD_YEARS} yrs</span>
                       </div>
                       <Slider
                         data-testid="slider-refinance-years-after-acquisition"
@@ -553,6 +559,7 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
                           guidanceContext={gc("refiLtv", "Refinance LTV")}
                           currentValue={draft.refinanceLTV || DEFAULT_REFI_LTV}
                           isPercent
+                          className="min-w-0"
                         />
                         <EditableValue
                           value={(draft.refinanceLTV || DEFAULT_REFI_LTV) * 100}
@@ -561,6 +568,7 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
                           min={0}
                           max={95}
                           step={5}
+                          className="shrink-0"
                         />
                       </div>
                       <Slider
@@ -573,7 +581,7 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
                     </div>
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <Label className="label-text text-foreground flex items-center gap-1.5">Interest Rate<InfoTooltip text="Annual interest rate on the refinance loan." /></Label>
+                        <Label className="label-text text-foreground flex items-center gap-1.5 min-w-0">Interest Rate<InfoTooltip text="Annual interest rate on the refinance loan." /></Label>
                         <EditableValue
                           value={(draft.refinanceInterestRate || DEFAULT_INTEREST_RATE) * 100}
                           onChange={(val) => onChange("refinanceInterestRate", val / 100)}
@@ -581,6 +589,7 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
                           min={0}
                           max={20}
                           step={0.25}
+                          className="shrink-0"
                         />
                       </div>
                       <Slider
@@ -593,8 +602,8 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
                     </div>
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <Label className="label-text text-foreground flex items-center gap-1.5">Loan Term<InfoTooltip text="Amortization period for the refinance loan in years." /></Label>
-                        <span className="text-sm font-mono text-foreground">{draft.refinanceTermYears || DEFAULT_TERM_YEARS} yrs</span>
+                        <Label className="label-text text-foreground flex items-center gap-1.5 min-w-0">Loan Term<InfoTooltip text="Amortization period for the refinance loan in years." /></Label>
+                        <span className="text-sm font-mono text-foreground shrink-0">{draft.refinanceTermYears || DEFAULT_TERM_YEARS} yrs</span>
                       </div>
                       <Slider
                         value={[draft.refinanceTermYears || DEFAULT_TERM_YEARS]}
@@ -606,7 +615,7 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
                     </div>
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <Label className="label-text text-foreground flex items-center gap-1.5">Closing Costs<InfoTooltip text="Transaction costs for the refinance as a percentage of the new loan amount." /></Label>
+                        <Label className="label-text text-foreground flex items-center gap-1.5 min-w-0">Closing Costs<InfoTooltip text="Transaction costs for the refinance as a percentage of the new loan amount." /></Label>
                         <EditableValue
                           value={(draft.refinanceClosingCostRate || DEFAULT_REFI_CLOSING_COST_RATE) * 100}
                           onChange={(val) => onChange("refinanceClosingCostRate", val / 100)}
@@ -614,6 +623,7 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
                           min={0}
                           max={10}
                           step={0.5}
+                          className="shrink-0"
                         />
                       </div>
                       <Slider
