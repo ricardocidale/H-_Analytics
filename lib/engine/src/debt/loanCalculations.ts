@@ -253,12 +253,18 @@ export function calculateRefinanceParams(
   const refiMonthlyRate = refiInterestRate / MONTHS_PER_YEAR;
   const refiTotalPayments = refiTermYears * MONTHS_PER_YEAR;
   
-  const refiLTV = property.refinanceLTV ?? DEFAULT_REFI_LTV;
+  if (property.refinanceLTV == null) {
+    throw new Error("[engine] refinanceLTV must be hydrated before engine call — boundary layer missed");
+  }
+  const refiLTV = property.refinanceLTV;
   // Income-capitalization: new loan = stabilized NOI ÷ exit cap rate × refi LTV.
   // This matches the module header and lender practice — the refi loan is sized against
   // the property's income-based market value, not its historical cost basis.
   // yearlyNOIData[refiYear] is the engine's annual NOI for the refi year (already computed).
-  const exitCapRateForRefi = property.exitCapRate ?? global?.exitCapRate ?? DEFAULT_EXIT_CAP_RATE;
+  const exitCapRateForRefi = property.exitCapRate ?? global?.exitCapRate;
+  if (exitCapRateForRefi == null) {
+    throw new Error("[engine] exitCapRate must be hydrated before engine call — boundary layer missed");
+  }
   const refiYearNOI = yearlyNOIData[refiYear] ?? 0;
   const incomeCapValue = exitCapRateForRefi > 0 ? refiYearNOI / exitCapRateForRefi : 0;
   const refiLoanAmount = incomeCapValue * refiLTV;
@@ -394,9 +400,9 @@ export function calculateExitValue(
   loan: LoanCalculation,
   refi: RefinanceCalculation,
   year: number,
-  exitCapRate?: number | null
+  exitCapRate: number
 ): number {
-  const capRate = exitCapRate ?? DEFAULT_EXIT_CAP_RATE;
+  const capRate = exitCapRate;
   const grossValue = capRate > 0 ? noi / capRate : 0;
   const commission = grossValue * loan.commissionRate;
   const outstandingDebt = getOutstandingDebtAtYear(loan, refi, year);
