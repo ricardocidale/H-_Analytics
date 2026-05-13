@@ -51,6 +51,7 @@ import { SchedulerRunsStorageImpl, type SchedulerRunsStorage } from "./scheduler
 import { MinionSelfTestRunsStorageImpl, type MinionSelfTestRunsStorage } from "./minion-self-test-runs";
 import { SelfTestLogsStorageImpl, type SelfTestLogsStorage } from "./self-test-logs";
 import { StorageDriftSweepRunsStorageImpl, type StorageDriftSweepRunsStorage } from "./storage-drift-sweep-runs";
+import { PropertyDescriptorDriftLogStorageImpl, type PropertyDescriptorDriftLogStorage } from "./property-descriptor-drift-log";
 import { MarketSignalsStorage } from "./market-signals";
 import { PropertyDeckPayloadStorageImpl, type PropertyDeckPayloadStorage } from "./property-deck-payloads";
 import { BulkDraftRunsStorageImpl, type BulkDraftRunsStorage } from "./bulk-draft-runs";
@@ -86,6 +87,7 @@ export interface IStorage extends
   MinionSelfTestRunsStorage,
   SelfTestLogsStorage,
   StorageDriftSweepRunsStorage,
+  PropertyDescriptorDriftLogStorage,
   MarketSignalsStorage,
   PropertyDeckPayloadStorage,
   BulkDraftRunsStorage,
@@ -137,6 +139,7 @@ function buildDomainFactories(intelligenceV2: IntelligenceV2Storage) {
     () => new MinionSelfTestRunsStorageImpl(),
     () => new SelfTestLogsStorageImpl(),
     () => new StorageDriftSweepRunsStorageImpl(),
+    () => new PropertyDescriptorDriftLogStorageImpl(),
     () => new MarketSignalsStorage(),
     () => new PropertyDeckPayloadStorageImpl(),
     () => new BulkDraftRunsStorageImpl(),
