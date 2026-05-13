@@ -121,3 +121,35 @@ export function getLorenzoStepStatus(stepIndex: number, elapsedS: number): StepS
   if (!prev || elapsedS >= prev.completeSecs) return "running";
   return "waiting";
 }
+
+/**
+ * Validates a user-supplied URL before using it as an <img src>.
+ *
+ * Returns the URL only if it parses as http:/https:/blob:/relative — all
+ * other protocols (javascript:, data:, vbscript:, file:, etc.) return "".
+ *
+ * Without this, an admin pasting `javascript:alert(1)` into the photo-
+ * override field of `AgentsOverridePanel` would execute script when the
+ * preview <img> renders (CodeQL alert #94 / js/xss-through-dom).
+ *
+ * Used by photo-override preview rendering only. Server-side ingestion
+ * still has to validate independently; this is the front-end belt of the
+ * belt-and-suspenders.
+ */
+export function safeImageSrc(url: string | null | undefined): string {
+  if (!url) return "";
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  try {
+    // Relative URLs (no protocol prefix) — accept; the browser will resolve
+    // them against the current origin, which is the app itself.
+    if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed)) return trimmed;
+    const parsed = new URL(trimmed);
+    if (parsed.protocol === "https:" || parsed.protocol === "http:" || parsed.protocol === "blob:") {
+      return trimmed;
+    }
+  } catch {
+    return "";
+  }
+  return "";
+}

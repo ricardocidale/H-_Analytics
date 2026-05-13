@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "@/components/icons/themed-icons";
 import { IconDownload, IconWand2 } from "@/components/icons";
 import { OVERRIDE_SLOT_GROUPS } from "../SlideFactoryConstants";
+import { safeImageSrc } from "../SlideFactoryUtils";
 import type { LuccaSlotDraft, SlideFactoryRun } from "../SlideFactoryTypes";
 
 // ── Tab 6 — Override panel (edit slots after completion) ─────────────────────
@@ -131,10 +132,10 @@ function SlotEditor({
       )}
       {config?.type === "photo" ? (
         <div className="space-y-2">
-          {localValue && (
+          {localValue && safeImageSrc(localValue) && (
             <div className="relative inline-block">
               <img
-                src={localValue}
+                src={safeImageSrc(localValue)}
                 alt="Interior photo override"
                 className="h-24 w-auto rounded border object-cover"
               />
