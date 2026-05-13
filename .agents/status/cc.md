@@ -4,16 +4,16 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-13T15:15:00Z
-Status: handoff-pending
+Updated: 2026-05-13T15:30:00Z
+Status: idle
 
 ## Active Branch
 
-feat/factory-v2-u7-wire
+main
 
 ## Last Commit on Branch
 
-`a7e0d1cdc` — "feat(slide-factory): wire U7 PPTX substitution + seed admin_resources source row"
+`8daaa68f5` — "feat(slide-factory): wire U7 PPTX substitution pipeline + seed admin_resources source row (#149)"
 
 ## What CC Did This Session
 
@@ -26,22 +26,16 @@ feat/factory-v2-u7-wire
 
 ## Files CC Owns Right Now
 
-- `artifacts/api-server/src/slides/marco.ts`
-- `artifacts/api-server/src/slides/factory-v2-constants.ts`
-- `artifacts/api-server/src/migrations/admin-resources-013.ts`
-- `artifacts/api-server/src/startup/seeds.ts`
+None
 
 ## Handoff to Replit
 
-**U7 PR ready for review:** `feat/factory-v2-u7-wire`
+**PR #149 merged to main.** Slide factory U7 pipeline is now wired.
 
-- PPTX template is live in R2 at `canonical/lb-6-slide/templates/lb-v7-template.pptx`
-- `admin-resources-013.ts` guard seeds the source row on boot
-- U7 block in `marco.ts` runs after Marco completes — PPTX substitution → soffice PDF → upload
-- E2E PDF conversion (soffice) only works on Railway — Replit preview will log a U7 error and continue normally (Franco's PDF path is unaffected)
-- typecheck ✅ magic-numbers ✅
-
-**Next: open the PR** then Replit can merge after review, or CC can do it next session.
+- PPTX template live in R2 at `canonical/lb-6-slide/templates/lb-v7-template.pptx`
+- `admin-resources-013.ts` guard seeds the source row on next boot
+- U7 block in `marco.ts` runs after Marco completes (PPTX substitution → soffice PDF → pptxR2Key written to run row)
+- E2E PDF conversion (soffice) requires Railway — Replit preview logs a U7 error and continues normally
 
 ## Pending CC Work (do NOT touch — CC will handle)
 
