@@ -129,6 +129,34 @@ export function getEffectivePropertyView<T extends PropertyRow>(row: T): T {
   return out as T;
 }
 
+/**
+ * Returns true if the row carries ANY As-Improved descriptor value — set
+ * either in the `descriptors_improved` JSONB blob OR in a typed As-Improved
+ * column. Used by report builders to decide whether to render an "(As-Improved
+ * …)" section header at all.
+ *
+ * This is a *presence* check, not an effective-value read: the result
+ * specifically reflects whether the operator has populated the As-Improved
+ * side, distinct from `getEffectivePropertyView` which collapses purchased
+ * and improved into one effective value.
+ *
+ * Plan 2026-05-13-002 Unit U3 — replaces the inline predicates in
+ * `report/server-export-data.ts` and `report/assumption-sections.ts` that
+ * directly OR'd together every typed `*Improved` column. New As-Improved
+ * fields added to the catalog automatically participate without code edits.
+ */
+export function hasImprovedSideValues(row: PropertyRow): boolean {
+  const improvedBlob = readJsonbBlob(row, "improved");
+  for (const entry of PROPERTY_DESCRIPTOR_CATALOG) {
+    if (entry.scope !== "parallel" && entry.scope !== "improved_only") continue;
+    const fromBlob = improvedBlob[entry.fieldKey];
+    if (fromBlob !== undefined && fromBlob !== null) return true;
+    const typed = readTypedColumn(row, entry.typedColumnImproved);
+    if (typed !== undefined && typed !== null) return true;
+  }
+  return false;
+}
+
 export interface DescriptorDrift {
   fieldKey: string;
   side: "purchased" | "improved";

@@ -4,6 +4,7 @@ import {
   resolveAsImprovedFacts,
   resolveAsPurchasedFacts,
 } from "@engine/property/renovation-facts";
+import { hasImprovedSideValues } from "@workspace/db";
 
 /**
  * Assumption section builders for export reports.
@@ -159,12 +160,12 @@ export function buildPropertyAssumptionsSection(
   if (purchasedFacts.eventSpaceSqft != null) rows.push(row("Event Space (As-Purchased, sq ft)", fmtInt(purchasedFacts.eventSpaceSqft), { indent: 1 }));
   if (purchasedFacts.totalBuildingSqft != null) rows.push(row("Building (As-Purchased, sq ft)", fmtInt(purchasedFacts.totalBuildingSqft), { indent: 1 }));
   if (p.totalPropertyAcreage) rows.push(row("Acreage", fmtText(p.totalPropertyAcreage), { indent: 1 }));
+  // Plan 2026-05-13-002 U3 — accessor-mediated presence check. New
+  // As-Improved descriptor fields registered in the catalog automatically
+  // participate without code edits here.
   const reopen = p.plannedReopeningYear != null ? Number(p.plannedReopeningYear) : null;
   const improvedSuffix = reopen != null ? ` (As-Improved, from ${reopen})` : " (As-Improved)";
-  const hasImprovedHypothesis =
-    p.fbVenuesImproved != null || p.fbSeatsImproved != null ||
-    p.eventSpaceSqftImproved != null || p.totalBuildingSqftImproved != null ||
-    reopen != null;
+  const hasImprovedHypothesis = hasImprovedSideValues(p);
   if (hasImprovedHypothesis) {
     if (improvedFacts.fbVenues != null) rows.push(row(`F&B Venues${improvedSuffix}`, fmtInt(improvedFacts.fbVenues), { indent: 1 }));
     if (improvedFacts.fbSeats != null) rows.push(row(`F&B Seats${improvedSuffix}`, fmtInt(improvedFacts.fbSeats), { indent: 1 }));
