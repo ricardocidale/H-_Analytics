@@ -167,7 +167,7 @@ Full operator detail: `docs/runbooks/coderabbit-loop-workflow.md`
 <!-- Discipline: agent-memory-files skill → "TODO Lists" section -->
 | | Item | Scope |
 |---|---|---|
-| [ ] | U3: add refi LTV cap field to `DebtSection.tsx` (new `refiMaxLtvToOriginal` column is live; wire UI input + save) | Plan 2026-05-13-001 |
+| [x] | U3: add refi LTV cap field to `CapitalStructureSection.tsx` — wired slider + cap display, `DEFAULT_REFI_MAX_LTV_TO_ORIGINAL` import from `@shared/constants` | Plan 2026-05-13-001 |
 
 ---
 

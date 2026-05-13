@@ -4,52 +4,34 @@
 <!-- Update at session start (take ownership) and session end (release + handoff). -->
 <!-- Staleness: if Updated timestamp is >24h ago, treat as idle regardless of Status. -->
 
-Updated: 2026-05-13T19:00:00Z
+Updated: 2026-05-13T20:00:00Z
 Status: idle
 
 ## Active Branch
 
-feat/financial-defaults-irr-calibration
-(pushed to origin — PR open on GitHub, not yet merged to main)
+main
 
 ## Last Commit on Branch
 
-chore(status): CC session end — financial-defaults Phases 1-5 complete
-plan: slide factory UI design consistency sweep (for CC)
+feat(property-edit): wire refiMaxLtvToOriginal slider in Refinance Terms (U3)
 
 ## What Replit Did This Session
 
-Task #1629: Audited all `flex justify-between items-center` rows in
-`artifacts/hospitality-business-portal/src/components/property-edit/` for
-the label overflow discipline (min-w-0 on left, shrink-0 on right).
+U3 — Wired `refiMaxLtvToOriginal` slider in `CapitalStructureSection.tsx`:
+- Added `DEFAULT_REFI_MAX_LTV_TO_ORIGINAL` import from `@shared/constants`
+  (constant lives in `lib/shared/src/constants-funding.ts`, value = 0.70)
+- Added "Max Loan vs. Purchase Price" field at end of Refinance Terms grid:
+  - Label + InfoTooltip explaining the cap mechanic
+  - Read-only display showing current value as "X.XX×"
+  - Slider: 0.50×–2.00× (stored/sent as decimal), step 0.05
+  - Helper text showing the dollar cap based on purchase price
+- Typecheck clean, magic-numbers pass (named constant, no literal)
+- Field saves via existing `onChange("refiMaxLtvToOriginal", val)` pattern;
+  the schema already marks `refiMaxLtvToOriginal: true` in updatable fields
 
-Found all files already fully fixed EXCEPT one row in CapitalStructureSection.tsx:
-the land value percent display row (showing `40%` on the left and
-"Depreciable basis: $..." on the right) was missing both classes.
-
-Applied:
-- `min-w-0` to the left `<span>` (text-land-value-percent)
-- `shrink-0` to the right `<span>` (depreciable basis)
-
-Typecheck passes clean (0 errors).
-
-Task #1626 — Completed the Playwright narrow-layout squeeze regression guard:
-- Created `tests/layout/` workspace package (`@workspace/tests-layout`)
-  - `playwright.config.ts` — resolves Nix Chromium (Replit) or Playwright-installed (CI);
-    falls back to undefined so `playwright install --with-deps chromium` works on Ubuntu CI
-  - `fixtures/narrow-layout.html` — self-contained HTML fixture with a PROTECTED card
-    (min-w-0 label + shrink-0 chip wrapper) and a REGRESSION card (rigid nowrap label
-    + min-width:0/flex-shrink:1 chip) at 246 px inner width simulating one column of a
-    2-column grid at 768 px
-  - `tests/narrow-layout.spec.ts` — 6 Playwright tests; per-format minimum thresholds:
-    percent ≥ 40 px, dollar ≥ 40 px, number ≥ 15 px; regression control asserts
-    unprotected chip ≤ 35 px (measured ~30 px vs protected ~56 px)
-- Added `tests/*` to `pnpm-workspace.yaml`
-- Added `layout-tests` CI job to `.github/workflows/ci.yml` (installs Playwright Chromium
-  with `--with-deps`, runs the 6 Playwright tests on ubuntu-latest)
-- Kept complementary source-level test `narrow-layout-squeeze.test.ts` (18 vitest tests)
-  in the portal package — all 397 portal tests still pass
-Files touched: CapitalStructureSection.tsx (1 row, 2 class additions).
+Also produced two plans this session:
+- `docs/plans/2026-05-13-003-*` — financial defaults integrity + IRR calibration (CC)
+- `docs/plans/2026-05-13-004-*` — slide factory UI design consistency sweep (CC)
 
 ## Files Replit Owns Right Now
 

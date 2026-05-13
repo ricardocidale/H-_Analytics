@@ -34,7 +34,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ResearchContextFieldLabel } from "@/components/research/ResearchContextFieldLabel";
 import { GaapBadge } from "@/components/ui/gaap-badge";
 import { IconShieldCheck } from "@/components/icons";
-import { GOVERNED_FIELDS, DEFAULT_COST_SEG_5YR_PCT, DEFAULT_COST_SEG_7YR_PCT, DEFAULT_COST_SEG_15YR_PCT } from "@shared/constants";
+import { GOVERNED_FIELDS, DEFAULT_COST_SEG_5YR_PCT, DEFAULT_COST_SEG_7YR_PCT, DEFAULT_COST_SEG_15YR_PCT, DEFAULT_REFI_MAX_LTV_TO_ORIGINAL } from "@shared/constants";
 import { MarketRateBenchmark } from "@/components/property-research/MarketRateBenchmark";
 import { formatMoneyInput, parseMoneyInput } from "@/lib/formatters";
 import { 
@@ -633,6 +633,27 @@ export default function CapitalStructureSection({ draft, onChange, onNumberChang
                         max={10}
                         step={0.5}
                       />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <Label className="label-text text-foreground flex items-center gap-1.5 min-w-0">
+                          Max Loan vs. Purchase Price
+                          <InfoTooltip text="Caps the refinance loan at a multiple of the original purchase price, preventing excessive leverage regardless of appraised value. 1.0× = loan cannot exceed purchase price; 1.5× = loan capped at 150% of purchase price." />
+                        </Label>
+                        <span className="text-sm font-mono text-foreground shrink-0">
+                          {((draft.refiMaxLtvToOriginal ?? DEFAULT_REFI_MAX_LTV_TO_ORIGINAL)).toFixed(2)}×
+                        </span>
+                      </div>
+                      <Slider
+                        value={[(draft.refiMaxLtvToOriginal ?? DEFAULT_REFI_MAX_LTV_TO_ORIGINAL) * 100]}
+                        onValueChange={(vals: number[]) => onChange("refiMaxLtvToOriginal", vals[0] / 100)}
+                        min={50}
+                        max={200}
+                        step={5}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Cap: ${draft.purchasePrice ? ((draft.refiMaxLtvToOriginal ?? DEFAULT_REFI_MAX_LTV_TO_ORIGINAL) * draft.purchasePrice).toLocaleString("en-US", { maximumFractionDigits: 0 }) : "—"}
+                      </p>
                     </div>
                   </div>
                 </div>
