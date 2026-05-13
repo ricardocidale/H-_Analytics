@@ -32,7 +32,7 @@ import { storage } from "../storage";
 import { getStorageProviderAsync } from "../providers/storage";
 import { recomputeSinglePropertyAndStamp } from "../finance/recompute";
 import { withModelConstants } from "../finance/apply-model-constants";
-import { resolveAsImprovedFacts } from "@engine/property/renovation-facts";
+import { getEffectivePropertyView } from "@workspace/db";
 import {
   parseDeckPayloadV2,
   EMPTY_DECK_PAYLOAD_V2,
@@ -264,7 +264,13 @@ export async function buildSlidePayload(
     logger.warn(`Finance compute failed for slides (empty financials): ${e}`, "build-payload");
   }
 
-  const p = property as Record<string, unknown>;
+  // Plan 2026-05-13-002 U5: read property descriptors through the catalog
+  // accessor so As-Improved values transparently override As-Purchased ones
+  // for catalogued fields (description, fbVenues, fbSeats, eventSpaceSqft,
+  // totalBuildingSqft, lastRenovationYear). Non-catalogued columns pass
+  // through unchanged.
+  const view = getEffectivePropertyView(property as Record<string, unknown>);
+  const p = view as Record<string, unknown>;
 
   const propertyShape = {
     id: property.id, name: property.name,
@@ -276,9 +282,13 @@ export async function buildSlidePayload(
     businessModel: property.businessModel ?? "hotel",
     hospitalityType: (p.hospitalityType ?? "") as string,
     qualityTier: (p.qualityTier ?? "") as string,
-    description: resolveAsImprovedFacts(
-      property as unknown as Parameters<typeof resolveAsImprovedFacts>[0],
-    ).description ?? "",
+    // Effective descriptor lives at `descriptionPurchased` after the view
+    // walk (catalog typed-column → camelCase). The `?? p.description` tail
+    // preserves fallback to the legacy `description` column for properties
+    // not yet migrated to the descriptor JSONB blobs / typed twin columns.
+    description: ((p.descriptionPurchased as string | null | undefined)
+      ?? (p.description as string | null | undefined)
+      ?? "") as string,
     acquisitionStatus: (p.acquisitionStatus ?? "pipeline") as string,
     isHistoric: (p.isHistoric as boolean | string | undefined) ?? false,
     renovationScope: (p.renovationScope ?? "") as string,

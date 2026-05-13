@@ -35,7 +35,7 @@ import type { WishListLogEntry } from "@workspace/db";
 import { storage } from "../storage";
 import { getAnthropicClient } from "../ai/clients";
 import { buildPropertyBrief, briefToPromptLines } from "./property-brief";
-import { resolveAsImprovedFacts } from "@engine/property/renovation-facts";
+import { getEffectivePropertyView } from "@workspace/db";
 import type { PropertyBrief } from "./property-brief";
 import { getGroupBriefFields } from "./slot-context-map";
 import type { DraftSlotKey, SlotBatchGroup } from "./slot-context-map";
@@ -324,30 +324,38 @@ function serializeRow(r: { feature: string; existing: string; proposed: string }
 // ── Property adapter ─────────────────────────────────────────────────────────
 
 function toSlideProperty(p: Record<string, unknown>): SlideProperty {
+  // Plan 2026-05-13-002 U5: route descriptor reads through the catalog
+  // accessor so As-Improved values transparently override As-Purchased ones
+  // for catalogued fields (description, fbVenues, fbSeats, eventSpaceSqft,
+  // totalBuildingSqft, lastRenovationYear). Slide factory consumes the
+  // post-renovation hypothesis (Milestone B, task #1406) — the L+B deck
+  // pitches the As-Improved configuration.
+  const view = getEffectivePropertyView(p);
   return {
-    id: p.id as number,
-    name: (p.name as string) ?? "",
-    city: (p.city as string) ?? "",
-    stateProvince: (p.stateProvince as string) ?? "",
-    county: (p.county as string) ?? "",
-    country: (p.country as string) ?? "",
-    purchasePrice: (p.purchasePrice as number) ?? 0,
-    roomCount: (p.roomCount as number) ?? 0,
-    startAdr: (p.startAdr as number) ?? 0,
-    maxOccupancy: (p.maxOccupancy as number) ?? DEFAULT_FALLBACK_OCCUPANCY,
-    businessModel: (p.businessModel as string) ?? "hotel",
-    hospitalityType: (p.hospitalityType as string) ?? "",
-    qualityTier: (p.qualityTier as string) ?? "",
-    // Slide factory consumes the post-renovation hypothesis when present
-    // (Milestone B, task #1406) — the L+B deck pitches the As-Improved
-    // configuration. The resolver applies the central fallback rule
-    // (improved → purchased → legacy `description`).
-    description: resolveAsImprovedFacts(
-      p as unknown as Parameters<typeof resolveAsImprovedFacts>[0],
-    ).description ?? "",
-    acquisitionStatus: (p.acquisitionStatus as string) ?? "pipeline",
-    isHistoric: p.isHistoric as boolean | string | undefined,
-    renovationScope: (p.renovationScope as string) ?? "",
+    id: view.id as number,
+    name: (view.name as string) ?? "",
+    city: (view.city as string) ?? "",
+    stateProvince: (view.stateProvince as string) ?? "",
+    county: (view.county as string) ?? "",
+    country: (view.country as string) ?? "",
+    purchasePrice: (view.purchasePrice as number) ?? 0,
+    roomCount: (view.roomCount as number) ?? 0,
+    startAdr: (view.startAdr as number) ?? 0,
+    maxOccupancy: (view.maxOccupancy as number) ?? DEFAULT_FALLBACK_OCCUPANCY,
+    businessModel: (view.businessModel as string) ?? "hotel",
+    hospitalityType: (view.hospitalityType as string) ?? "",
+    qualityTier: (view.qualityTier as string) ?? "",
+    // Effective descriptor lives at `descriptionPurchased` after the view
+    // walk (catalog typed-column → camelCase). The `?? view.description`
+    // tail preserves fallback to the legacy `description` column for
+    // properties not yet migrated to the descriptor JSONB blobs / typed
+    // twin columns.
+    description: ((view.descriptionPurchased as string | null | undefined)
+      ?? (view.description as string | null | undefined)
+      ?? "") as string,
+    acquisitionStatus: (view.acquisitionStatus as string) ?? "pipeline",
+    isHistoric: view.isHistoric as boolean | string | undefined,
+    renovationScope: (view.renovationScope as string) ?? "",
   };
 }
 
