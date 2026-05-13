@@ -38,6 +38,7 @@ export interface LoanParams {
   refinanceInterestRate?: number | null;
   refinanceTermYears?: number | null;
   refinanceClosingCostRate?: number | null;
+  refiMaxLtvToOriginal?: number | null;
   exitCapRate?: number | null;
   dispositionCommission?: number | null;
   depreciationYears?: number | null;
@@ -267,8 +268,13 @@ export function calculateRefinanceParams(
   }
   const refiYearNOI = yearlyNOIData[refiYear] ?? 0;
   const incomeCapValue = exitCapRateForRefi > 0 ? refiYearNOI / exitCapRateForRefi : 0;
-  const refiLoanAmount = incomeCapValue * refiLTV;
-  
+  let refiLoanAmount = incomeCapValue * refiLTV;
+  // Cap refi loan at refiMaxLtvToOriginal × purchasePrice when the constraint is set.
+  // Prevents equity strips on Full Equity properties where income-cap value exceeds cost basis.
+  if (property.refiMaxLtvToOriginal != null && property.purchasePrice != null) {
+    refiLoanAmount = Math.min(refiLoanAmount, property.refiMaxLtvToOriginal * property.purchasePrice);
+  }
+
   let refiMonthlyPayment = 0;
   if (refiLoanAmount > 0) {
     refiMonthlyPayment = pmt(refiLoanAmount, refiMonthlyRate, refiTotalPayments);

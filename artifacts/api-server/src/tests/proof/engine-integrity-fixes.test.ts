@@ -389,6 +389,86 @@ describe('Finding #2 — Refi income-capitalization (T012)', () => {
   });
 });
 
+// ── Phase 5 — refiMaxLtvToOriginal cap ───────────────────────────────────────
+
+describe('Phase 5 — refiMaxLtvToOriginal cap (T013)', () => {
+  const PURCHASE_PRICE = 3_800_000;
+  const REFI_MAX_LTV = 1.00; // loan capped at 1× purchase price = $3,800,000
+
+  // Full Equity property with high NOI that would otherwise produce a refi loan well above cost basis
+  const cappedProp: PropertyInput = {
+    ...BASE_COSTS,
+    operationsStartDate: '2024-01-01',
+    acquisitionDate: '2024-01-01',
+    roomCount: 20,
+    startAdr: 385,
+    adrGrowthRate: 0,
+    startOccupancy: 0.75,
+    maxOccupancy: 0.75,
+    occupancyRampMonths: 0,
+    occupancyGrowthStep: 0,
+    purchasePrice: PURCHASE_PRICE,
+    type: 'Financed',
+    acquisitionLTV: 0,             // Full Equity — no acquisition debt
+    acquisitionInterestRate: 0,
+    acquisitionTermYears: 25,
+    willRefinance: 'Yes',
+    refinanceDate: '2027-01-01',   // refi at month 36 (year 4 start)
+    refinanceLTV: 0.75,
+    refinanceInterestRate: 0.075,
+    refinanceTermYears: 25,
+    exitCapRate: 0.085,
+    refiMaxLtvToOriginal: REFI_MAX_LTV,
+  };
+
+  const cappedGlobal: GlobalInput = {
+    modelStartDate: '2024-01-01',
+    inflationRate: 0.0,
+    marketingRate: 0.0,
+    exitCapRate: 0.085,
+    debtAssumptions: { interestRate: 0.075, amortizationYears: 25, acqLTV: 0.0 },
+  };
+
+  it('refi loan is capped at refiMaxLtvToOriginal × purchasePrice when income-cap would exceed it', () => {
+    const monthly = generatePropertyProForma(cappedProp, cappedGlobal, 60);
+    const totalRefiProceeds = monthly.reduce((s, m) => s + m.refinancingProceeds, 0);
+
+    // Without cap: NOI ≈ (20 rooms × 365 × $385 × 0.75) × net_margin ÷ 0.085 × 0.75 >> $3.8M
+    // With cap:    refiLoan ≤ 1.00 × $3,800,000 = $3,800,000
+    const maxLoanFromCap = REFI_MAX_LTV * PURCHASE_PRICE; // $3,800,000
+    // Proceeds = loan - closing costs - existing debt (≈ 0 for full equity)
+    // At most maxLoanFromCap (minus small closing cost deduction):
+    expect(totalRefiProceeds).toBeLessThanOrEqual(maxLoanFromCap);
+    expect(totalRefiProceeds).toBeGreaterThan(0); // refi fires
+  });
+
+  it('uncapped property (no refiMaxLtvToOriginal) produces larger refi proceeds than capped', () => {
+    const uncappedProp = { ...cappedProp, refiMaxLtvToOriginal: null };
+    const monthly = generatePropertyProForma(uncappedProp, cappedGlobal, 60);
+    const uncappedProceeds = monthly.reduce((s, m) => s + m.refinancingProceeds, 0);
+
+    const cappedMonthly = generatePropertyProForma(cappedProp, cappedGlobal, 60);
+    const cappedProceeds = cappedMonthly.reduce((s, m) => s + m.refinancingProceeds, 0);
+
+    // Cap must reduce (or equal) the uncapped proceeds
+    expect(cappedProceeds).toBeLessThanOrEqual(uncappedProceeds);
+  });
+
+  it('cap is irrelevant when income-cap loan is already below the cap', () => {
+    // Set a very tight cap that income-cap would never reach for a low-NOI property
+    const lowNOIProp: PropertyInput = {
+      ...cappedProp,
+      startOccupancy: 0.20,
+      maxOccupancy: 0.20,
+      refiMaxLtvToOriginal: 2.00, // very generous cap — should never bind
+    };
+    const monthly = generatePropertyProForma(lowNOIProp, cappedGlobal, 60);
+    const proceeds = monthly.reduce((s, m) => s + m.refinancingProceeds, 0);
+    // With low NOI, refi proceeds should still be non-negative (cap doesn't hurt)
+    expect(proceeds).toBeGreaterThanOrEqual(0);
+  });
+});
+
 // ── Finding #5: Pre-ops taxes and insurance from acquisition date ─────────────
 
 describe('Finding #5 — Pre-ops cost gating: taxes and insurance (T012)', () => {

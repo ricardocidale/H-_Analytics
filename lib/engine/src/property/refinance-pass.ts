@@ -90,6 +90,14 @@ export function applyRefinancePostProcessing(
     propertyValueAtRefi = refiNOI / exitCapRate;
   }
 
+  // Cap refi loan at refiMaxLtvToOriginal × purchasePrice when the constraint is set.
+  // Prevents equity strips on Full Equity properties where income-cap value exceeds cost basis.
+  // Back-calculate the capped property value so computeRefinance's ltv_max produces the right loan.
+  if (property.refiMaxLtvToOriginal != null && property.purchasePrice != null && refiLTV > 0) {
+    const maxPropertyValueForLoan = (property.refiMaxLtvToOriginal * property.purchasePrice) / refiLTV;
+    propertyValueAtRefi = Math.min(propertyValueAtRefi, maxPropertyValueForLoan);
+  }
+
   const refiOutput = computeRefinance({
     refinance_date: property.refinanceDate!,
     current_loan_balance: existingDebt,
