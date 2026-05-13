@@ -593,7 +593,7 @@ Full operator detail: `docs/runbooks/coderabbit-loop-workflow.md`
 <!-- Discipline: agent-memory-files skill → "TODO Lists" section -->
 | | Item | Scope |
 |---|---|---|
-| [ ] | U6: bracket-default seeding pathway at `POST /api/properties` (three-layer resolver writes icp_brackets Layer-2 values into new entity rows); when creating `icp-brackets-004.ts` use `SEED_BRACKET_*` maps in header — not `BRACKET_CATALOG` fields (removed) | Plan 2026-05-13-001 |
+| [x] | U6: bracket-default seeding pathway at `POST /api/properties` — `applyBracketLayerDefaults` in `defaults.ts`, wired before `hydratePropertyFinancials` in `createPropertyRecord` ✓ | Plan 2026-05-13-001 |
 | [ ] | U1: re-seed demo properties + Duplex per-entity CONFIRMED overrides via SQL migration | Plan 2026-05-13-001 |
 | [ ] | U8: verification — portfolio IRR in 25–30% band + docs | Plan 2026-05-13-001 |
 | [ ] | Migrate remaining `DEFAULT_*` constants in `lib/shared/src/constants*.ts` to `model_defaults` DB rows (incremental — check off each constant as cleaned up) | Taxonomy cleanup |

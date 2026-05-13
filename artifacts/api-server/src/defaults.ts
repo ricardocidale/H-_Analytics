@@ -234,3 +234,66 @@ export async function withFinancialHydration<T extends Record<string, unknown>>(
     return patched as T;
   });
 }
+
+// ── Layer-2 bracket overlay ───────────────────────────────────────────────────
+
+/**
+ * Overlay Layer-2 bracket-mix defaults onto a new property's underwriting fields.
+ *
+ * Must run BEFORE hydratePropertyFinancials (Layer-1): bracket values override
+ * model_defaults when a bracket carries an opinion; Layer-1 fills any remaining
+ * nulls from model_defaults.
+ *
+ * For each of the two fields icp_brackets carries opinions on (exitCapRate,
+ * refiMaxLtvToOriginal), the blended value is the weighted average over all
+ * brackets in the mix that have a non-null value for that field, re-normalizing
+ * by the sum of contributing weights only.
+ *
+ * Only writes to fields still null in createData — user-supplied values win.
+ * May throw; callers wrap in a non-fatal try/catch.
+ */
+export async function applyBracketLayerDefaults(
+  createData: Record<string, unknown>,
+  bracketMixData: BracketMixData | null | undefined,
+): Promise<void> {
+  if (!bracketMixData || !Array.isArray(bracketMixData.entries) || bracketMixData.entries.length === 0) return;
+
+  const entries = bracketMixData.entries.filter(
+    e => typeof e.id === "string" && typeof e.weight === "number" && e.weight > 0,
+  );
+  if (entries.length === 0) return;
+
+  const slugs = entries.map(e => e.id);
+  const rows = await db
+    .select({
+      slug: icpBrackets.slug,
+      defaultExitCapRate: icpBrackets.defaultExitCapRate,
+      defaultRefiMaxLtvToOriginal: icpBrackets.defaultRefiMaxLtvToOriginal,
+    })
+    .from(icpBrackets)
+    .where(inArray(icpBrackets.slug, slugs));
+
+  type RowKey = "defaultExitCapRate" | "defaultRefiMaxLtvToOriginal";
+  const layer2Fields: { field: string; rowKey: RowKey }[] = [
+    { field: "exitCapRate",          rowKey: "defaultExitCapRate" },
+    { field: "refiMaxLtvToOriginal", rowKey: "defaultRefiMaxLtvToOriginal" },
+  ];
+
+  for (const { field, rowKey } of layer2Fields) {
+    if (createData[field] != null) continue;
+
+    let weightedSum = 0;
+    let totalWeight = 0;
+    for (const entry of entries) {
+      const row = rows.find(r => r.slug === entry.id);
+      const val = row?.[rowKey];
+      if (val == null) continue;
+      weightedSum += val * entry.weight;
+      totalWeight += entry.weight;
+    }
+
+    if (totalWeight > 0) {
+      createData[field] = weightedSum / totalWeight;
+    }
+  }
+}

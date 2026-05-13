@@ -52,7 +52,7 @@ import { suggestStarRating } from "../ai/context-pack/star-rating";
 import { registerPropertyUrlRoutes } from "./properties-urls";
 import { computeStressScenarios, type StressAssumptions } from "@engine/helpers/stress-scenarios";
 import { computePropertyDefaults } from "@engine/helpers/default-resolver";
-import { hydratePropertyFinancials } from "../defaults";
+import { hydratePropertyFinancials, applyBracketLayerDefaults } from "../defaults";
 
 export function buildPropertyDefaultsFromGlobal(ga?: GlobalAssumptions): Record<string, unknown> {
   return buildPropertyDefaultsFromRegistry(ga as unknown as Record<string, unknown>);
@@ -90,9 +90,21 @@ export async function createPropertyRecord(
     researchValues: (data as { researchValues?: Record<string, ResearchValueEntry> }).researchValues ?? {},
   };
 
-  // Hydrate the 5 underwriting fields from model_defaults for any that are still null.
-  // Precedence: user-supplied or global-assumptions value > model_defaults row.
   const createDataMut = createData as Record<string, unknown>;
+
+  // Layer-2: bracket-mix overlay. Runs before Layer-1 so bracket values can
+  // override model_defaults when the company's bracket mix has an opinion.
+  try {
+    await applyBracketLayerDefaults(createDataMut, globalDefaults?.bracketMix ?? null);
+  } catch (bracketErr: unknown) {
+    logger.warn(
+      `applyBracketLayerDefaults failed at creation (non-blocking): ${bracketErr instanceof Error ? bracketErr.message : bracketErr}`,
+      "properties",
+    );
+  }
+
+  // Layer-1: hydrate the 5 underwriting fields from model_defaults for any still null.
+  // Precedence: user-supplied or global-assumptions value > Layer-2 bracket blend > model_defaults row.
   try {
     const hydrated = await hydratePropertyFinancials(
       createDataMut as Parameters<typeof hydratePropertyFinancials>[0],
