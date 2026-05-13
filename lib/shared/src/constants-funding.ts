@@ -100,8 +100,8 @@ export const DEFAULT_BURN_FLEX_DOWN_PCT = DEFAULT_CAPITAL_RAISE_BENCHMARKS.burnF
 export const DEFAULT_REFI_MAX_LTV_TO_ORIGINAL = 0.70;
 
 export const SEED_DEBT_ASSUMPTIONS = {
-  acqLTV: 0.75,             // Acquisition loan-to-value (75% LTV means 25% equity down)
-  refiLTV: 0.75,            // Refinance loan-to-value
+  acqLTV: 0.70,             // Acquisition loan-to-value — source: user directive 2026-05-13 (70% default for all markets)
+  refiLTV: 0.70,            // Refinance loan-to-value — source: user directive 2026-05-13 (70% default for all markets)
   interestRate: DEFAULT_INTEREST_RATE, // Annual interest rate — sourced from DEFAULT_INTEREST_RATE
   amortizationYears: 25,    // Loan fully amortizes over 25 years
   acqClosingCostRate: 0.02, // Acquisition closing costs as % of loan amount

@@ -241,6 +241,42 @@ export async function runSchemaMigrations() {
     await runPropertiesDemoSeedOverrides001();
     await markMigrationApplied("properties_demo_seed_overrides_001");
   }
+
+  // Plan 2026-05-13-001 U8 — full-equity refi rule: Medellin Duplex.
+  // User-confirmed rule (2026-05-13): full-equity acquisitions (LTV=null) are
+  // refinanced 3 years after operations begin; financed properties are not.
+  if (!(await isMigrationApplied("properties_demo_seed_overrides_002"))) {
+    const { runPropertiesDemoSeedOverrides002 } = await import("../migrations/properties-demo-seed-overrides-002");
+    await runPropertiesDemoSeedOverrides002();
+    await markMigrationApplied("properties_demo_seed_overrides_002");
+  }
+
+  // Plan 2026-05-13-001 U8 — LTV default recalibration: mc.funding.ltv and
+  // mc.funding.refiLtv both corrected to 0.70 per user directive (2026-05-13).
+  if (!(await isMigrationApplied("model_defaults_ltv_recalibration_001"))) {
+    const { runModelDefaultsLtvRecalibration001 } = await import("../migrations/model-defaults-ltv-recalibration-001");
+    await runModelDefaultsLtvRecalibration001();
+    await markMigrationApplied("model_defaults_ltv_recalibration_001");
+  }
+
+  // Plan 2026-05-13-001 U8 — enforce full-equity refi rule on demo portfolio.
+  // Sets acquisition_ltv=0 for Jano/Loch/Belleayre/Medellin Duplex (full-equity);
+  // recalibrates refi_ltv=0.70 for Jano/Loch/Belleayre.
+  if (!(await isMigrationApplied("properties_full_equity_refi_rule_001"))) {
+    const { runPropertiesFullEquityRefiRule001 } = await import("../migrations/properties-full-equity-refi-rule-001");
+    await runPropertiesFullEquityRefiRule001();
+    await markMigrationApplied("properties_full_equity_refi_rule_001");
+  }
+
+  // DB audit fix 2026-05-14 — model_defaults NULLS NOT DISTINCT unique index.
+  // Prevents duplicate rows on every boot when scope columns are all NULL.
+  // PostgreSQL NULL ≠ NULL inside standard unique indexes; NULLS NOT DISTINCT
+  // makes re-seeding fully idempotent. See db-storage-audit-2026-05-14.md.
+  if (!(await isMigrationApplied("model_defaults_unique_nulls_not_distinct_001"))) {
+    const { runModelDefaultsUniqueNullsNotDistinct001 } = await import("../migrations/model-defaults-unique-nulls-not-distinct-001");
+    await runModelDefaultsUniqueNullsNotDistinct001();
+    await markMigrationApplied("model_defaults_unique_nulls_not_distinct_001");
+  }
 }
 
 // ── Boot orchestration: schema migrations (fatal) ─────────────────────
